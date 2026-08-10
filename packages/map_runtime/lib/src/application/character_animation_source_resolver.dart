@@ -100,6 +100,39 @@ final class CharacterAnimationSourceResolver {
     );
   }
 
+  ResolvedCharacterAnimationFrameSource? resolveCustomFrame({
+    required ProjectCharacterEntry character,
+    required CharacterCustomAnimationClip clip,
+    required CharacterAnimationFrame frame,
+    required Set<String> availableImageIds,
+  }) {
+    final sourceAssetId = clip.sourceAssetId.trim();
+    final runtimeImageId = characterAnimationRuntimeImageId(sourceAssetId);
+    if (sourceAssetId.isEmpty || !availableImageIds.contains(runtimeImageId)) {
+      _emitOnce(
+        CharacterAnimationSourceDiagnostic(
+          code:
+              CharacterAnimationSourceDiagnosticCode.dedicatedSourceUnavailable,
+          characterId: character.id,
+          sourceAssetId: sourceAssetId,
+          direction: clip.direction,
+        ),
+      );
+      return null;
+    }
+    final source = frame.source;
+    return ResolvedCharacterAnimationFrameSource(
+      imageId: runtimeImageId,
+      sourceRect: Rect.fromLTWH(
+        source.x.toDouble(),
+        source.y.toDouble(),
+        source.width.toDouble(),
+        source.height.toDouble(),
+      ),
+      usesLegacyGrid: false,
+    );
+  }
+
   void _emitOnce(CharacterAnimationSourceDiagnostic diagnostic) {
     final key = '${diagnostic.code.name}\u0000${diagnostic.characterId}'
         '\u0000${diagnostic.sourceAssetId}\u0000${diagnostic.state?.name}'

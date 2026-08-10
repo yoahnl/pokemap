@@ -126,6 +126,14 @@ export 'src/application/character_animation_source_resolver.dart'
         CharacterAnimationSourcePreloadPlan,
         characterAnimationRuntimeImageId,
         buildCharacterAnimationSourcePreloadPlan;
+export 'src/application/character_custom_animation_runtime_controller.dart'
+    show
+        CharacterCustomAnimationRuntimeStatus,
+        CharacterCustomAnimationRuntimeDiagnosticCode,
+        CharacterCustomAnimationRuntimeResult,
+        CharacterCustomAnimationRuntimeActor,
+        CharacterCustomAnimationRuntimeActorLookup,
+        CharacterCustomAnimationRuntimeController;
 export 'src/presentation/flame/narrative_command_player_surface_capability_evidence.dart'
     show buildMapRuntimeNarrativeCommandPlayerSurfaceAttestation;
 export 'src/application/narrative_runtime_smoke_evidence.dart'

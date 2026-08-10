@@ -52,6 +52,8 @@ class OverworldActorComponent extends PositionComponent {
   EntityFacing _facing;
   CharacterAnimationState _animState;
   double _animElapsed = 0.0;
+  CharacterCustomAnimationClip? _customAnimation;
+  double _customAnimationElapsed = 0.0;
 
   /// Aligné sur [NpcMapPresencePredicate] côté [PlayableMapGame] : `false` =
   /// PNJ **absent du monde** (pas seulement transparent — pas de hit test).
@@ -104,6 +106,18 @@ class OverworldActorComponent extends PositionComponent {
   GridPos? get gridPos => _gridPos;
 
   ResolvedCharacterAnimationFrameSource? get debugAnimationSource {
+    final customAnimation = _customAnimation;
+    if (customAnimation != null && customAnimation.frames.isNotEmpty) {
+      return _sourceResolver.resolveCustomFrame(
+        character: character,
+        clip: customAnimation,
+        frame: _pickFrame(
+          customAnimation.frames,
+          elapsedSeconds: _customAnimationElapsed,
+        ),
+        availableImageIds: _availableImageIds,
+      );
+    }
     final animation = _findAnimation();
     if (animation == null || animation.frames.isEmpty) return null;
     final strideTimeScale =
@@ -120,6 +134,46 @@ class OverworldActorComponent extends PositionComponent {
       tileHeight: _tileHeight,
       availableImageIds: _availableImageIds,
     );
+  }
+
+  String? get debugCustomAnimationDefinitionId =>
+      _customAnimation?.definitionId;
+
+  bool canPlayCustomAnimation(CharacterCustomAnimationClip clip) {
+    if (clip.frames.isEmpty) return false;
+    final image =
+        tileImages[characterAnimationRuntimeImageId(clip.sourceAssetId)];
+    if (image == null) return false;
+    for (final frame in clip.frames) {
+      final resolved = _sourceResolver.resolveCustomFrame(
+        character: character,
+        clip: clip,
+        frame: frame,
+        availableImageIds: _availableImageIds,
+      );
+      if (resolved == null || !image.containsSourceRect(resolved.sourceRect)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void playCustomAnimation(CharacterCustomAnimationClip clip) {
+    if (!canPlayCustomAnimation(clip)) {
+      throw ArgumentError.value(clip, 'clip');
+    }
+    _customAnimation = clip;
+    _customAnimationElapsed = 0;
+    final direction = clip.direction;
+    if (direction != null) _facing = direction;
+  }
+
+  void restoreBase(EntityFacing facing) {
+    _customAnimation = null;
+    _customAnimationElapsed = 0;
+    _facing = facing;
+    _animState = CharacterAnimationState.idle;
+    _animElapsed = 0;
   }
 
   void setMotion(EntityFacing facing, CharacterAnimationState animState) {
@@ -236,6 +290,7 @@ class OverworldActorComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     _animElapsed += dt;
+    if (_customAnimation != null) _customAnimationElapsed += dt;
     if (isStepping && _moveFrom != null && _moveTo != null) {
       _moveRemaining = (_moveRemaining - dt).clamp(0.0, _stepDurationSeconds);
       final progress =
@@ -263,6 +318,11 @@ class OverworldActorComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     if (!_gameplayVisible) {
+      return;
+    }
+    final customAnimation = _customAnimation;
+    if (customAnimation != null) {
+      _renderCustomAnimation(canvas, customAnimation);
       return;
     }
     final anim = _findAnimation();
@@ -308,6 +368,39 @@ class OverworldActorComponent extends PositionComponent {
       Paint()..filterQuality = FilterQuality.none,
     );
     canvas.restore();
+  }
+
+  void _renderCustomAnimation(
+    Canvas canvas,
+    CharacterCustomAnimationClip animation,
+  ) {
+    if (animation.frames.isEmpty) {
+      _renderFallback(canvas);
+      return;
+    }
+    final frame = _pickFrame(
+      animation.frames,
+      elapsedSeconds: _customAnimationElapsed,
+    );
+    final resolved = _sourceResolver.resolveCustomFrame(
+      character: character,
+      clip: animation,
+      frame: frame,
+      availableImageIds: _availableImageIds,
+    );
+    final image = resolved == null ? null : tileImages[resolved.imageId];
+    if (resolved == null ||
+        image == null ||
+        !image.containsSourceRect(resolved.sourceRect)) {
+      _renderFallback(canvas);
+      return;
+    }
+    image.drawImageRect(
+      canvas,
+      resolved.sourceRect,
+      Rect.fromLTWH(0, 0, size.x, size.y),
+      Paint()..filterQuality = FilterQuality.none,
+    );
   }
 
   static bool _hasFrames(CharacterAnimation? a) =>
@@ -417,9 +510,11 @@ class OverworldActorComponent extends PositionComponent {
   CharacterAnimationFrame _pickFrame(
     List<CharacterAnimationFrame> frames, {
     double timeScale = 1.0,
+    double? elapsedSeconds,
   }) {
     if (frames.length == 1) return frames.first;
-    final elapsedMs = (_animElapsed * 1000 * timeScale).toInt();
+    final elapsedMs =
+        ((elapsedSeconds ?? _animElapsed) * 1000 * timeScale).toInt();
     var total = 0;
     for (final f in frames) {
       total += f.durationMs;
