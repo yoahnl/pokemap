@@ -504,14 +504,10 @@ Future<void> showTopToolbarGameExportDialog(
             dialogTitle: 'Exporter le jeu PokeMap',
             fileName: suggestedFileName,
             type: FileType.custom,
-            allowedExtensions: const <String>['pokemapgame'],
+            allowedExtensions: const <String>['avelunegame'],
           );
           if (selectedPath == null) return null;
-          final normalizedPath =
-              selectedPath.toLowerCase().endsWith('.avelunegame')
-              ? selectedPath
-              : '$selectedPath.avelunegame';
-          return File(normalizedPath);
+          return File(selectedPath);
         },
         chooseProjectFile: (type) async {
           final extensions = switch (type) {

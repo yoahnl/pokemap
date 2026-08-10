@@ -34,6 +34,32 @@ void main() {
     },
   );
 
+  test('rejects a destination carrying the legacy package suffix', () async {
+    final root = await createAuthorProject(withDialogue: false);
+    addTearDown(() => root.delete(recursive: true));
+    final output = File(
+      p.join(root.parent.path, 'legacy.pokemapgame.avelunegame'),
+    );
+    addTearDown(() async {
+      if (await output.exists()) await output.delete();
+    });
+
+    await expectLater(
+      const GamePackageExportService().exportToFile(
+        projectRoot: root,
+        profile: neutralExportProfile(),
+        outputFile: output,
+      ),
+      throwsA(
+        isA<GamePackageExportException>().having(
+          (error) => error.code,
+          'code',
+          'invalidExportDestination',
+        ),
+      ),
+    );
+  });
+
   test(
     'builds, reopens and writes a deterministic certified package',
     () async {

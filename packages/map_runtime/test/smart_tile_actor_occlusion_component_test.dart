@@ -125,10 +125,33 @@ void main() {
     collection.update(0.11);
     final active = await _render(collection.rows[1]);
 
-    expect(await pixelAt(idle, 16, 48), rgba(255, 0, 0, 255));
+    expect(await pixelAt(idle, 16, 48), rgba(0, 0, 0, 0));
     expect(await pixelAt(active, 16, 48), rgba(0, 0, 255, 255));
     idle.dispose();
     active.dispose();
+  });
+
+  test('static actor occlusion remains visible while on-enter is idle',
+      () async {
+    final image = await _runtimeImage();
+    addTearDown(image.dispose);
+    final map = _map(
+      animationActivation: SmartTileAnimationActivation.onEnter,
+    );
+    final manifest = _manifest(animated: false);
+    final collection = SmartTileActorOcclusionLayerCollection(
+      bundle: _bundle(manifest, map),
+      tileImagesByTilesetId: <String, RuntimeTilesetImage>{'smart': image},
+      smartTileAnimationController: SmartTileAnimationActivationController(
+        map: map,
+        catalog: manifest.smartTileCatalog,
+      ),
+    )..setVisibleLocalRect(const Rect.fromLTWH(0, 0, 96, 96));
+
+    final idle = await _render(collection.rows[1]);
+
+    expect(await pixelAt(idle, 16, 48), rgba(255, 0, 0, 255));
+    idle.dispose();
   });
 }
 

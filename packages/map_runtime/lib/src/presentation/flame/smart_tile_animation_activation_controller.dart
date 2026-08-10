@@ -50,6 +50,27 @@ final class SmartTileAnimationActivationController {
     }
   }
 
+  bool isAnimationActiveForCell({
+    required String layerId,
+    required int cellX,
+    required int cellY,
+  }) {
+    final layer = _layerById[layerId];
+    if (layer == null ||
+        layer.animationActivation == SmartTileAnimationActivation.always) {
+      return true;
+    }
+    if (cellX < 0 ||
+        cellY < 0 ||
+        cellX >= _mapSize.width ||
+        cellY >= _mapSize.height) {
+      return false;
+    }
+    return _startedAtMsByCell.containsKey(
+      (layerId, cellY * _mapSize.width + cellX),
+    );
+  }
+
   int elapsedMsForCell({
     required String layerId,
     required int cellX,

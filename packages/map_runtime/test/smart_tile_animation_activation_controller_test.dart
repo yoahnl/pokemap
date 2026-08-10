@@ -38,8 +38,24 @@ void main() {
         ),
         0,
       );
+      expect(
+        controller.isAnimationActiveForCell(
+          layerId: 'grass',
+          cellX: 0,
+          cellY: 0,
+        ),
+        isFalse,
+      );
 
       controller.onPlayerEnteredCell(const GridPos(x: 0, y: 0));
+      expect(
+        controller.isAnimationActiveForCell(
+          layerId: 'grass',
+          cellX: 0,
+          cellY: 0,
+        ),
+        isTrue,
+      );
       controller.update(0.1);
 
       expect(
@@ -63,6 +79,14 @@ void main() {
 
       controller.update(0.1);
 
+      expect(
+        controller.isAnimationActiveForCell(
+          layerId: 'grass',
+          cellX: 0,
+          cellY: 0,
+        ),
+        isFalse,
+      );
       expect(
         controller.elapsedMsForCell(
           layerId: 'grass',

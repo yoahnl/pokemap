@@ -323,11 +323,13 @@ final class GamePackageExportService {
     required GamePackageExportProfile profile,
     required File outputFile,
   }) async {
-    if (!outputFile.path.toLowerCase().endsWith('.avelunegame')) {
+    final outputName = outputFile.uri.pathSegments.last.toLowerCase();
+    if (!outputName.endsWith('.avelunegame') ||
+        outputName.endsWith('.pokemapgame.avelunegame')) {
       throw GamePackageExportException(
         code: 'invalidExportDestination',
         path: outputFile.path,
-        message: 'Export destination must use the .avelunegame extension.',
+        message: 'Export destination must use a single .avelunegame extension.',
       );
     }
     final artifact = await build(projectRoot: projectRoot, profile: profile);

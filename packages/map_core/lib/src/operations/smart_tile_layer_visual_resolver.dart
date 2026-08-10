@@ -20,6 +20,7 @@ final class SmartTileLayerVisual {
     required this.ruleId,
     required this.candidateId,
     required this.channel,
+    required this.isAnimated,
     required this.tilesetId,
     required this.sourceRect,
     required this.transform,
@@ -39,6 +40,7 @@ final class SmartTileLayerVisual {
   final String ruleId;
   final String candidateId;
   final SmartTileRenderChannel channel;
+  final bool isAnimated;
   final String tilesetId;
   final SmartTileSourceRect sourceRect;
   final SmartTileSpriteTransform transform;
@@ -627,6 +629,10 @@ SmartTileLayerVisual? _buildPartVisual({
     ruleId: ruleId,
     candidateId: candidateId,
     channel: part.channel,
+    isAnimated: part.source.map(
+      frame: (_) => false,
+      animation: (_) => true,
+    ),
     tilesetId: atlas.tilesetId,
     sourceRect: sourceRect,
     transform: transform,
