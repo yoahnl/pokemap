@@ -4266,6 +4266,10 @@ class EditorNotifier extends _$EditorNotifier
     state = _editorWorkspaceController.selectBorderStudioWorkspace(state);
   }
 
+  void selectCharacterStudioWorkspace() {
+    state = _editorWorkspaceController.selectCharacterStudioWorkspace(state);
+  }
+
   /// Écrit uniquement le fichier `.yarn` (le manifest projet reste inchangé).
   Future<void> saveProjectDialogueYarnBody({
     required String dialogueId,

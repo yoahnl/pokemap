@@ -13,7 +13,6 @@ import 'project_explorer/dialogs/tileset_library_dialogs.dart';
 import 'project_explorer/dialogs/world_group_dialogs.dart';
 import 'project_explorer/widgets/tree/tileset_tree_nodes.dart';
 import 'project_explorer/widgets/tree/world_tree_nodes.dart';
-import 'character_library_panel.dart';
 import 'narrative_library_panel.dart';
 import 'trainer_library_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
@@ -40,7 +39,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandWorld = false;
   bool _expandEnvironment = false;
   bool _expandTrainers = false;
-  bool _expandCharacters = false;
 
   @override
   Widget build(BuildContext context) {
@@ -319,7 +317,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
     final hEnvironment = (screenH * 0.22).clamp(180.0, 280.0);
     final hTrainers = (screenH * 0.18).clamp(180.0, 240.0);
-    final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
     final narrativeModuleCard = _buildNarrativeModuleCard(
       context,
       project,
@@ -460,17 +457,15 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           child: const TrainerLibraryPanel(embedded: true),
         ),
         ProjectExplorerModuleCard(
-          title: 'Character Library',
-          description: 'Sprites de monde pour le joueur et les PNJ',
-          icon: CupertinoIcons.person_crop_circle,
+          key: const ValueKey<String>('character-studio-module-card'),
+          title: 'Character Studio',
+          description: 'Personnages, portraits et animations du projet',
+          icon: CupertinoIcons.person_2_fill,
           accentColor: colors.cinematic,
           count: project.characters.length,
-          selected: false,
-          expanded: _expandCharacters,
-          onExpandToggle: () =>
-              setState(() => _expandCharacters = !_expandCharacters),
-          expandedHeight: hCharacters,
-          child: const CharacterLibraryPanel(embedded: true),
+          selected:
+              snapshot.workspaceMode == EditorWorkspaceMode.characterStudio,
+          onTap: notifier.selectCharacterStudioWorkspace,
         ),
       ],
     );

@@ -8,6 +8,8 @@ enum EditorWorkspaceMode {
   tileset,
   encounter,
 
+  characterStudio,
+
   // Workspace Pokédex minimal branché dans l'éditeur.
   //
   // Intention produit:

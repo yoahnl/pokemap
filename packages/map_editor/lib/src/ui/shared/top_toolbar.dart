@@ -707,6 +707,7 @@ class TopToolbar extends ConsumerWidget {
                 EditorWorkspaceMode.map => 'World Editor',
                 EditorWorkspaceMode.tileset => 'Tileset Studio',
                 EditorWorkspaceMode.encounter => 'Encounter Studio',
+                EditorWorkspaceMode.characterStudio => 'Character Studio',
                 EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
                 EditorWorkspaceMode.narrativeOverview =>
                   'Narrative Studio / Aperçu',

@@ -6,6 +6,7 @@ import '../../features/editor/state/editor_state.dart';
 import '../../features/environment_studio/environment_studio_workspace.dart';
 import '../../features/smart_tiles_studio/presentation/smart_tiles_studio_workspace.dart';
 import '../../features/border_studio/border_studio_workspace.dart';
+import '../../features/character_studio/presentation/character_studio_workspace.dart';
 import '../../features/personalization/presentation/personalization_studio_workspace.dart';
 import 'encounter_studio_panel.dart';
 import 'map_canvas.dart';
@@ -24,6 +25,7 @@ class EditorCanvasHost extends ConsumerWidget {
       EditorWorkspaceMode.map => const MapCanvas(),
       EditorWorkspaceMode.tileset => const TilesetEditorCanvas(),
       EditorWorkspaceMode.encounter => const EncounterStudioPanel(),
+      EditorWorkspaceMode.characterStudio => const CharacterStudioWorkspace(),
       EditorWorkspaceMode.pokedex => const PokemonCatalogsWorkspace(),
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||

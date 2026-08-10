@@ -1434,6 +1434,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
+                                                                .characterStudio =>
+                                                              EditorChrome
+                                                                  .islandCoolTint,
+                                                            EditorWorkspaceMode
                                                                 .pokedex =>
                                                               EditorChrome
                                                                   .islandWarmTint,
@@ -1507,6 +1511,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               const TilesetPalettePanel(),
                                                             EditorWorkspaceMode
                                                                 .encounter =>
+                                                              const _EmptyWorkspaceInspector(),
+                                                            EditorWorkspaceMode
+                                                                .characterStudio =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                 .pokedex =>
@@ -1905,6 +1912,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.map => colors.brandPrimary,
       EditorWorkspaceMode.tileset => colors.brandCyan,
       EditorWorkspaceMode.encounter => colors.combat,
+      EditorWorkspaceMode.characterStudio => colors.cinematic,
       EditorWorkspaceMode.pokedex => colors.reward,
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
@@ -1946,6 +1954,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.map => 'Scène',
       EditorWorkspaceMode.tileset => 'Bibliothèque',
       EditorWorkspaceMode.encounter => 'Rencontres',
+      EditorWorkspaceMode.characterStudio => 'Personnages',
       EditorWorkspaceMode.pokedex => 'Catalogues',
       EditorWorkspaceMode.narrativeOverview => 'Aperçu',
       EditorWorkspaceMode.globalStory => 'Macro-Récit',
@@ -2089,6 +2098,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
               EditorWorkspaceMode.map => CupertinoIcons.map,
               EditorWorkspaceMode.tileset => CupertinoIcons.square_grid_2x2,
               EditorWorkspaceMode.encounter => CupertinoIcons.person_3_fill,
+              EditorWorkspaceMode.characterStudio =>
+                CupertinoIcons.person_2_fill,
               EditorWorkspaceMode.pokedex => CupertinoIcons.book,
               EditorWorkspaceMode.narrativeOverview => CupertinoIcons.house,
               EditorWorkspaceMode.globalStory => CupertinoIcons.link,

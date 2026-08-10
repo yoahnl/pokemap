@@ -43,6 +43,10 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.encounter);
   }
 
+  EditorState selectCharacterStudioWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.characterStudio);
+  }
+
   EditorState selectEncounterStudioSection(
     EditorState current,
     EncounterStudioSection section,

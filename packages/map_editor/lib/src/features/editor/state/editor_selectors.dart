@@ -299,6 +299,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.map => activeMap?.name ?? 'Espace carte',
     EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
     EditorWorkspaceMode.encounter => 'Encounter Studio',
+    EditorWorkspaceMode.characterStudio => 'Character Studio',
     EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
     EditorWorkspaceMode.narrativeOverview => 'Narrative Studio / Aperçu',
     EditorWorkspaceMode.globalStory => 'Global Story Workspace',
@@ -326,6 +327,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
         : 'Bibliothèque visuelle pour éditer les tuiles, éléments et groupes.',
     EditorWorkspaceMode.encounter =>
       'Organisez les rencontres sauvages et les dresseurs depuis un espace guidé unique.',
+    EditorWorkspaceMode.characterStudio =>
+      'Personnages, portraits et animations du projet.',
     EditorWorkspaceMode.pokedex =>
       'Pokédex, Moves et Items réunis dans un même pôle de catalogues Pokémon.',
     EditorWorkspaceMode.narrativeOverview =>
