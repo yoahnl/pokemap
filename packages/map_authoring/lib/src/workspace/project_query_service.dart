@@ -509,6 +509,35 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
         'profile': profile.toJson(),
       };
       return [_QueryRecord(summary: detail, detail: detail)];
+    case 'projectPresentationPreset':
+      return <_QueryRecord>[
+        for (final preset in snapshot.manifest.presentationPresets)
+          _QueryRecord(
+            summary: <String, Object?>{
+              'id': preset.id,
+              'label': preset.label,
+              'description': preset.description,
+              'configuredCategories': <String>[
+                for (final category in preset.configuredCategories)
+                  category.name,
+              ],
+              'assetCount': preset.assets.length,
+            },
+            detail: <String, Object?>{
+              'id': preset.id,
+              'label': preset.label,
+              'description': preset.description,
+              'configuredCategories': <String>[
+                for (final category in preset.configuredCategories)
+                  category.name,
+              ],
+              'profile': preset.profile.toJson(),
+              'assets': <Object?>[
+                for (final asset in preset.assets) asset.toJson(),
+              ],
+            },
+          ),
+      ];
     case 'map':
       return [
         for (final map in snapshot.maps)

@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'project_presentation_layout_profile.dart';
+import 'project_presentation_surface_role.dart';
 import 'project_presentation_window_profile.dart';
 
 part 'project_presentation_profile.freezed.dart';

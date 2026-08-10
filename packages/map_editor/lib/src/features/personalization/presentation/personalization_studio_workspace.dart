@@ -23,13 +23,16 @@ import '../application/project_intro_video_import_service.dart';
 import '../application/project_presentation_preflight.dart';
 import '../application/project_title_music_import_service.dart';
 import '../application/project_title_music_preview_controller.dart';
+import '../application/project_title_motion_import_service.dart';
 import 'personalization_hub_shell.dart';
 import 'project_branding_editor.dart';
 import 'project_intro_video_editor.dart';
 import 'project_layout_studio.dart';
 import 'project_semantic_theme_editor.dart';
 import 'project_menu_labels_editor.dart';
+import 'project_presentation_preset_library.dart';
 import 'project_theme_token_dialog.dart';
+import 'project_title_motion_editor.dart';
 import 'project_typography_editor.dart';
 import 'project_window_studio.dart';
 
@@ -62,6 +65,7 @@ class _PersonalizationStudioWorkspaceState
       ProjectPresentationCategory.branding;
   String? _requestedProjectRootPath;
   bool _isImportingAsset = false;
+  bool _isManagingPreset = false;
   String? _assetFeedback;
   bool _assetFeedbackIsError = false;
   ProjectTitleMusicPreviewController? _titleMusicPreviewController;
@@ -545,6 +549,225 @@ class _PersonalizationStudioWorkspaceState
     }
   }
 
+  Future<void> _importTitleMotionLoop({
+    required String projectRootPath,
+    required ProjectPresentationProfile profile,
+    required ProjectTitleMotionLoopRole role,
+    required EditorNotifier notifier,
+  }) async {
+    if (_isImportingAsset) return;
+    setState(() {
+      _isImportingAsset = true;
+      _assetFeedback = null;
+    });
+    try {
+      final selection = await ref
+          .read(personalizationStudioAssetPickerProvider)
+          .pickTitleMotionAssets();
+      if (!mounted) return;
+      if (selection == null) {
+        setState(() {
+          _assetFeedbackIsError = false;
+          _assetFeedback = 'Import de boucle annulé.';
+        });
+        return;
+      }
+      final imported = await ref
+          .read(projectTitleMotionImportServiceProvider)
+          .importIntoProject(
+            projectRoot: Directory(projectRootPath),
+            videoFile: File(selection.videoPath),
+            posterFile: File(selection.posterPath),
+            captionsFile: selection.captionsPath == null
+                ? null
+                : File(selection.captionsPath!),
+          );
+      final current = profile.titleMotion ?? const ProjectTitleMotionProfile();
+      final titleMotion = switch (role) {
+        ProjectTitleMotionLoopRole.prompt => current.copyWith(
+          promptLoop: imported,
+        ),
+        ProjectTitleMotionLoopRole.menu => current.copyWith(menuLoop: imported),
+      };
+      final applied = await notifier.applyPersonalizationStudioProfile(
+        profile.copyWith(titleMotion: titleMotion),
+        label: role == ProjectTitleMotionLoopRole.prompt
+            ? 'Importer la boucle d’invitation'
+            : 'Importer la boucle du menu titre',
+      );
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = !applied;
+        _assetFeedback = applied
+            ? 'Boucle et poster importés dans le brouillon.'
+            : 'La boucle a été validée, mais le brouillon n’a pas pu être modifié.';
+      });
+    } on PersonalizationStudioAssetSelectionException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = error.message;
+      });
+    } on ProjectIntroVideoImportException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = _localizedIntroImportError(error);
+      });
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = 'L’import de la boucle a échoué.';
+      });
+    } finally {
+      if (mounted) setState(() => _isImportingAsset = false);
+    }
+  }
+
+  Future<void> _removeTitleMotionLoop({
+    required ProjectPresentationProfile profile,
+    required ProjectTitleMotionLoopRole role,
+    required EditorNotifier notifier,
+  }) async {
+    final current = profile.titleMotion;
+    if (current == null) return;
+    final updated = switch (role) {
+      ProjectTitleMotionLoopRole.prompt => current.copyWith(promptLoop: null),
+      ProjectTitleMotionLoopRole.menu => current.copyWith(menuLoop: null),
+    };
+    await notifier.applyPersonalizationStudioProfile(
+      profile.copyWith(
+        titleMotion: updated.promptLoop == null && updated.menuLoop == null
+            ? null
+            : updated,
+      ),
+      label: role == ProjectTitleMotionLoopRole.prompt
+          ? 'Retirer la boucle d’invitation'
+          : 'Retirer la boucle du menu titre',
+    );
+  }
+
+  Future<void> _exportPresentationPreset({
+    required String projectRootPath,
+    required String projectName,
+    required EditorNotifier notifier,
+  }) async {
+    if (_isManagingPreset) return;
+    final stamp = DateTime.now().toUtc().millisecondsSinceEpoch;
+    final presetId = 'profile-$stamp';
+    final destination = await ref
+        .read(personalizationStudioPresetFilePickerProvider)
+        .pickPresetExportPath('$presetId.pokemapstyle');
+    if (!mounted || destination == null) return;
+    setState(() {
+      _isManagingPreset = true;
+      _assetFeedback = null;
+    });
+    try {
+      await ref
+          .read(projectPresentationPresetServiceProvider)
+          .exportCurrent(
+            projectRootPath: projectRootPath,
+            presetId: presetId,
+            label: 'Profil de $projectName',
+            description: 'Profil PokeMap exporté depuis $projectName.',
+            destinationPath: destination.endsWith('.pokemapstyle')
+                ? destination
+                : '$destination.pokemapstyle',
+          );
+      await notifier.loadProject('$projectRootPath/project.json');
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = false;
+        _assetFeedback = 'Profil exporté et ajouté à la bibliothèque.';
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = _presetFailureMessage(error);
+      });
+    } finally {
+      if (mounted) setState(() => _isManagingPreset = false);
+    }
+  }
+
+  Future<void> _importPresentationPreset({
+    required String projectRootPath,
+    required EditorNotifier notifier,
+  }) async {
+    if (_isManagingPreset) return;
+    final source = await ref
+        .read(personalizationStudioPresetFilePickerProvider)
+        .pickPresetToImport();
+    if (!mounted || source == null) return;
+    setState(() {
+      _isManagingPreset = true;
+      _assetFeedback = null;
+    });
+    try {
+      await ref
+          .read(projectPresentationPresetServiceProvider)
+          .importAndApply(projectRootPath: projectRootPath, sourcePath: source);
+      await notifier.loadProject('$projectRootPath/project.json');
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = false;
+        _assetFeedback = 'Profil importé, vérifié et appliqué au projet.';
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = _presetFailureMessage(error);
+      });
+    } finally {
+      if (mounted) setState(() => _isManagingPreset = false);
+    }
+  }
+
+  Future<void> _deletePresentationPreset({
+    required BuildContext context,
+    required String projectRootPath,
+    required ProjectPresentationPresetRecord preset,
+    required EditorNotifier notifier,
+  }) async {
+    if (_isManagingPreset) return;
+    final confirmed = await showPokeMapBinaryConfirmationDialog(
+      context,
+      title: 'Supprimer « ${preset.label} » ?',
+      message:
+          'Le profil disparaîtra de cette bibliothèque. Les assets encore '
+          'utilisés par le projet seront conservés.',
+      secondaryLabel: 'Annuler',
+      primaryLabel: 'Supprimer',
+      primaryIsDestructive: true,
+      icon: Icons.delete_outline_rounded,
+    );
+    if (!mounted || !confirmed) return;
+    setState(() => _isManagingPreset = true);
+    try {
+      await ref
+          .read(projectPresentationPresetServiceProvider)
+          .delete(projectRootPath: projectRootPath, presetId: preset.id);
+      await notifier.loadProject('$projectRootPath/project.json');
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = false;
+        _assetFeedback = 'Profil supprimé de la bibliothèque.';
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _assetFeedbackIsError = true;
+        _assetFeedback = _presetFailureMessage(error);
+      });
+    } finally {
+      if (mounted) setState(() => _isManagingPreset = false);
+    }
+  }
+
   Widget _buildCategoryEditor({
     required BuildContext context,
     required ProjectPresentationCategory category,
@@ -553,13 +776,17 @@ class _PersonalizationStudioWorkspaceState
     required String projectRootPath,
     required EditorNotifier notifier,
     required bool canEdit,
+    required List<ProjectPresentationPresetRecord> presets,
+    required bool canManagePresets,
   }) {
     final feedback = <Widget>[
-      if (_isImportingAsset) ...<Widget>[
-        const PokeMapDiagnosticCallout(
-          key: ValueKey<String>('personalization-studio-asset-progress'),
+      if (_isImportingAsset || _isManagingPreset) ...<Widget>[
+        PokeMapDiagnosticCallout(
+          key: const ValueKey<String>('personalization-studio-asset-progress'),
           severity: PokeMapDiagnosticSeverity.info,
-          message: 'Validation et copie sécurisée des assets en cours…',
+          message: _isManagingPreset
+              ? 'Vérification du profil et transaction sécurisée en cours…'
+              : 'Validation et copie sécurisée des assets en cours…',
         ),
         const SizedBox(height: 12),
       ],
@@ -581,94 +808,169 @@ class _PersonalizationStudioWorkspaceState
           ...feedback,
           IgnorePointer(
             ignoring: !canEdit || _isImportingAsset,
-            child: ProjectBrandingEditor(
-              profile: profile.branding,
-              projectName: projectName,
-              projectRootPath: projectRootPath,
-              theme: profile.theme ?? safeProjectSemanticTheme,
-              typography: profile.typography,
-              onImportImage: (role) {
-                unawaited(
-                  _importBrandingImage(
-                    projectRootPath: projectRootPath,
-                    profile: profile,
-                    role: role,
-                    notifier: notifier,
-                  ),
-                );
-              },
-              onRemoveImage: (role) {
-                unawaited(
-                  notifier.applyPersonalizationStudioProfile(
-                    profile.copyWith(
-                      branding: _replaceBrandingImagePath(
-                        profile.branding,
-                        role,
-                        null,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                ProjectBrandingEditor(
+                  profile: profile.branding,
+                  projectName: projectName,
+                  projectRootPath: projectRootPath,
+                  theme: profile.theme ?? safeProjectSemanticTheme,
+                  typography: profile.typography,
+                  onImportImage: (role) {
+                    unawaited(
+                      _importBrandingImage(
+                        projectRootPath: projectRootPath,
+                        profile: profile,
+                        role: role,
+                        notifier: notifier,
                       ),
-                    ),
-                    label: 'Retirer ${_brandingImageRoleName(role)}',
-                  ),
-                );
-              },
-              onEditAccent: () {
-                unawaited(
-                  _editBrandingAccent(
-                    context: context,
-                    profile: profile,
-                    notifier: notifier,
-                  ),
-                );
-              },
-              onResetAccent: () {
-                unawaited(
-                  notifier.applyPersonalizationStudioProfile(
-                    profile.copyWith(
-                      branding: profile.branding.copyWith(accentColor: null),
-                    ),
-                    label: 'Réinitialiser la couleur de cartouche et d’accent',
-                  ),
-                );
-              },
-              onLayoutVariantChanged: (layoutVariant) {
-                unawaited(
-                  notifier.applyPersonalizationStudioProfile(
-                    profile.copyWith(
-                      branding: profile.branding.copyWith(
-                        layoutVariant: layoutVariant,
-                      ),
-                    ),
-                    label: 'Modifier la disposition du titre',
-                  ),
-                );
-              },
-              onImportTitleMusic: () {
-                unawaited(
-                  _importTitleMusic(
-                    projectRootPath: projectRootPath,
-                    profile: profile,
-                    notifier: notifier,
-                  ),
-                );
-              },
-              onToggleTitleMusicPreview: profile.branding.titleMusicPath == null
-                  ? null
-                  : () {
-                      unawaited(
-                        _toggleTitleMusicPreview(
-                          projectRootPath: projectRootPath,
-                          relativePath: profile.branding.titleMusicPath!,
+                    );
+                  },
+                  onRemoveImage: (role) {
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        profile.copyWith(
+                          branding: _replaceBrandingImagePath(
+                            profile.branding,
+                            role,
+                            null,
+                          ),
                         ),
-                      );
-                    },
-              onRemoveTitleMusic: profile.branding.titleMusicPath == null
-                  ? null
-                  : () {
-                      unawaited(
-                        _removeTitleMusic(profile: profile, notifier: notifier),
-                      );
-                    },
-              isTitleMusicPreviewPlaying: _isTitleMusicPreviewPlaying,
+                        label: 'Retirer ${_brandingImageRoleName(role)}',
+                      ),
+                    );
+                  },
+                  onEditAccent: () {
+                    unawaited(
+                      _editBrandingAccent(
+                        context: context,
+                        profile: profile,
+                        notifier: notifier,
+                      ),
+                    );
+                  },
+                  onResetAccent: () {
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        profile.copyWith(
+                          branding: profile.branding.copyWith(
+                            accentColor: null,
+                          ),
+                        ),
+                        label:
+                            'Réinitialiser la couleur de cartouche et d’accent',
+                      ),
+                    );
+                  },
+                  onLayoutVariantChanged: (layoutVariant) {
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        profile.copyWith(
+                          branding: profile.branding.copyWith(
+                            layoutVariant: layoutVariant,
+                          ),
+                        ),
+                        label: 'Modifier la disposition du titre',
+                      ),
+                    );
+                  },
+                  onImportTitleMusic: () {
+                    unawaited(
+                      _importTitleMusic(
+                        projectRootPath: projectRootPath,
+                        profile: profile,
+                        notifier: notifier,
+                      ),
+                    );
+                  },
+                  onToggleTitleMusicPreview:
+                      profile.branding.titleMusicPath == null
+                      ? null
+                      : () {
+                          unawaited(
+                            _toggleTitleMusicPreview(
+                              projectRootPath: projectRootPath,
+                              relativePath: profile.branding.titleMusicPath!,
+                            ),
+                          );
+                        },
+                  onRemoveTitleMusic: profile.branding.titleMusicPath == null
+                      ? null
+                      : () {
+                          unawaited(
+                            _removeTitleMusic(
+                              profile: profile,
+                              notifier: notifier,
+                            ),
+                          );
+                        },
+                  isTitleMusicPreviewPlaying: _isTitleMusicPreviewPlaying,
+                ),
+                const SizedBox(height: 18),
+                ProjectTitleMotionEditor(
+                  profile: profile.titleMotion,
+                  onImport: (role) {
+                    unawaited(
+                      _importTitleMotionLoop(
+                        projectRootPath: projectRootPath,
+                        profile: profile,
+                        role: role,
+                        notifier: notifier,
+                      ),
+                    );
+                  },
+                  onRemove: (role) {
+                    unawaited(
+                      _removeTitleMotionLoop(
+                        profile: profile,
+                        role: role,
+                        notifier: notifier,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 18),
+                ProjectPresentationPresetLibrary(
+                  presets: presets,
+                  canManage: canManagePresets && !_isManagingPreset,
+                  onApply: (preset) {
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        preset.profile,
+                        label: 'Appliquer le profil ${preset.label}',
+                      ),
+                    );
+                  },
+                  onDelete: (preset) {
+                    unawaited(
+                      _deletePresentationPreset(
+                        context: context,
+                        projectRootPath: projectRootPath,
+                        preset: preset,
+                        notifier: notifier,
+                      ),
+                    );
+                  },
+                  onImport: () {
+                    unawaited(
+                      _importPresentationPreset(
+                        projectRootPath: projectRootPath,
+                        notifier: notifier,
+                      ),
+                    );
+                  },
+                  onExport: () {
+                    unawaited(
+                      _exportPresentationPreset(
+                        projectRootPath: projectRootPath,
+                        projectName: projectName,
+                        notifier: notifier,
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ],
@@ -1050,6 +1352,8 @@ class _PersonalizationStudioWorkspaceState
                 projectRootPath: projectRootPath,
                 notifier: notifier,
                 canEdit: canEdit,
+                presets: project.presentationPresets,
+                canManagePresets: canEdit && studioSession?.isDirty != true,
               ),
               onProfileChanged: canEdit
                   ? (profile) {
@@ -1242,6 +1546,23 @@ String _localizedIntroImportError(ProjectIntroVideoImportException error) =>
         'Les assets validés n’ont pas pu être copiés dans le projet.',
       _ => error.message,
     };
+
+String _presetFailureMessage(Object error) {
+  final value = error.toString();
+  if (value.contains('presentation.preset.asset_unmanaged')) {
+    return 'Un asset de ce profil n’est pas encore géré par le catalogue du '
+        'projet. Réimporte-le depuis le Studio avant l’export.';
+  }
+  if (value.contains('presentation.preset.license_required') ||
+      value.contains('presentation.preset.license_invalid')) {
+    return 'Chaque asset partagé doit posséder une licence de redistribution '
+        'texte valide.';
+  }
+  if (value.contains('presentation.preset')) {
+    return 'Ce profil .pokemapstyle est invalide, incompatible ou déjà présent.';
+  }
+  return 'La bibliothèque de profils n’a pas pu terminer cette opération.';
+}
 
 String _localizedFontImportError(ProjectFontImportException error) =>
     switch (error.code) {

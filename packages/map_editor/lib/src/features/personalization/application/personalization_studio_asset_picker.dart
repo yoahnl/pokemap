@@ -83,6 +83,9 @@ final class PlatformPersonalizationStudioFilePickerBackend
 abstract interface class PersonalizationStudioAssetPicker {
   Future<PersonalizationStudioIntroAssetSelection?> pickIntroAssets();
 
+  Future<PersonalizationStudioIntroAssetSelection?> pickTitleMotionAssets() =>
+      pickIntroAssets();
+
   Future<PersonalizationStudioFontAssetSelection?> pickFontAssets();
 }
 
@@ -92,6 +95,40 @@ abstract interface class PersonalizationStudioBrandingImagePicker {
 
 abstract interface class PersonalizationStudioTitleMusicPicker {
   Future<String?> pickTitleMusic();
+}
+
+abstract interface class PersonalizationStudioPresetFilePicker {
+  Future<String?> pickPresetToImport();
+
+  Future<String?> pickPresetExportPath(String suggestedFileName);
+}
+
+final class FilePickerPersonalizationStudioPresetFilePicker
+    implements PersonalizationStudioPresetFilePicker {
+  const FilePickerPersonalizationStudioPresetFilePicker();
+
+  @override
+  Future<String?> pickPresetToImport() async {
+    final result = await FilePicker.pickFiles(
+      dialogTitle: 'Importer un profil PokeMap',
+      type: FileType.custom,
+      allowedExtensions: const <String>['pokemapstyle'],
+      allowMultiple: false,
+      withData: false,
+      lockParentWindow: true,
+    );
+    return result?.files.single.path;
+  }
+
+  @override
+  Future<String?> pickPresetExportPath(String suggestedFileName) =>
+      FilePicker.saveFile(
+        dialogTitle: 'Exporter le profil PokeMap',
+        fileName: suggestedFileName,
+        type: FileType.custom,
+        allowedExtensions: const <String>['pokemapstyle'],
+        lockParentWindow: true,
+      );
 }
 
 final class FilePickerPersonalizationStudioBrandingImagePicker
@@ -111,10 +148,12 @@ final class FilePickerPersonalizationStudioBrandingImagePicker
       ),
     );
     if (paths == null) return null;
-    final imagePath = _singlePath(
-      paths,
-      const <String>['.png', '.jpg', '.jpeg', '.webp'],
-    );
+    final imagePath = _singlePath(paths, const <String>[
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.webp',
+    ]);
     if (imagePath == null) {
       throw const PersonalizationStudioAssetSelectionException(
         code: 'brandingImageSelectionInvalid',
@@ -142,10 +181,13 @@ final class FilePickerPersonalizationStudioTitleMusicPicker
       ),
     );
     if (paths == null) return null;
-    final musicPath = _singlePath(
-      paths,
-      const <String>['.ogg', '.wav', '.mp3', '.flac', '.m4a'],
-    );
+    final musicPath = _singlePath(paths, const <String>[
+      '.ogg',
+      '.wav',
+      '.mp3',
+      '.flac',
+      '.m4a',
+    ]);
     if (musicPath == null) {
       throw const PersonalizationStudioAssetSelectionException(
         code: 'titleMusicSelectionInvalid',
@@ -175,6 +217,38 @@ final class FilePickerPersonalizationStudioAssetPicker
       const PersonalizationStudioFilePickerRequest(
         dialogTitle:
             'Choisir la vidéo, le poster et les sous-titres optionnels',
+        allowedExtensions: <String>['mp4', 'png', 'jpg', 'jpeg', 'webp', 'vtt'],
+      ),
+    );
+    if (paths == null) return null;
+    final video = _singlePath(paths, const <String>['.mp4']);
+    final poster = _singlePath(paths, const <String>[
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.webp',
+    ]);
+    final captions = _singlePath(paths, const <String>['.vtt']);
+    if (video == null || poster == null) {
+      throw const PersonalizationStudioAssetSelectionException(
+        code: 'introSelectionIncomplete',
+        message:
+            'Sélectionnez exactement une vidéo MP4 et un poster PNG, JPEG ou WebP.',
+      );
+    }
+    return PersonalizationStudioIntroAssetSelection(
+      videoPath: video,
+      posterPath: poster,
+      captionsPath: captions,
+    );
+  }
+
+  @override
+  Future<PersonalizationStudioIntroAssetSelection?>
+      pickTitleMotionAssets() async {
+    final paths = await backend.pick(
+      const PersonalizationStudioFilePickerRequest(
+        dialogTitle: 'Choisir la boucle du titre et son poster',
         allowedExtensions: <String>[
           'mp4',
           'png',
@@ -194,9 +268,9 @@ final class FilePickerPersonalizationStudioAssetPicker
     final captions = _singlePath(paths, const <String>['.vtt']);
     if (video == null || poster == null) {
       throw const PersonalizationStudioAssetSelectionException(
-        code: 'introSelectionIncomplete',
+        code: 'titleMotionSelectionIncomplete',
         message:
-            'Sélectionnez exactement une vidéo MP4 et un poster PNG, JPEG ou WebP.',
+            'Sélectionnez exactement une boucle MP4 et un poster PNG, JPEG ou WebP.',
       );
     }
     return PersonalizationStudioIntroAssetSelection(
@@ -232,10 +306,12 @@ final class FilePickerPersonalizationStudioAssetPicker
 }
 
 String? _singlePath(List<String> paths, List<String> extensions) {
-  final matches = paths.where((path) {
-    final lower = path.toLowerCase();
-    return extensions.any(lower.endsWith);
-  }).toList(growable: false);
+  final matches = paths
+      .where((path) {
+        final lower = path.toLowerCase();
+        return extensions.any(lower.endsWith);
+      })
+      .toList(growable: false);
   return matches.length == 1 ? matches.single : null;
 }
 

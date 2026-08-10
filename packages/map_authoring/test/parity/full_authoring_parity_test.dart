@@ -133,6 +133,13 @@ void main() {
         ),
       );
       expect(
+        catalog.requireMutationAction('presentation.preset.export').toJson(),
+        containsPair(
+          'endToEndVerifiedTransports',
+          ['cli', 'directApi', 'editor', 'mcp'],
+        ),
+      );
+      expect(
         catalog
             .requireMutationAction('smart_tile.layer.change_preset')
             .toJson(),
@@ -252,6 +259,19 @@ void main() {
       expect(directEvidence['titleExpandedSlot'], 'bottomLeft');
     });
 
+    test('presentation preset export has direct API and JSONL CLI parity',
+        () async {
+      final direct = await _GoldenHarness.create('preset-direct');
+      final cli = await _GoldenHarness.create('preset-cli');
+      addTearDown(direct.dispose);
+      addTearDown(cli.dispose);
+
+      expect(
+        await direct.exportPresentationPresetDirect(),
+        await cli.exportPresentationPresetThroughJsonl(),
+      );
+    });
+
     test('projectPresentationProfile is a first-class query resource', () {
       const profile = ProjectPresentationProfile(
         branding: ProjectBrandingProfile(accentColor: '#126E78'),
@@ -297,6 +317,7 @@ final Set<String> _approvedResourceKinds = {
   'projectPokemonConfig',
   'projectNewGameConfig',
   'projectPresentationProfile',
+  'projectPresentationPreset',
   'mapGroup',
   'map',
   'mapLayer',
@@ -540,6 +561,77 @@ final class _GoldenHarness {
     return _presentationEvidence(applied['receipt']);
   }
 
+  Future<Map<String, Object?>> exportPresentationPresetDirect() async {
+    final opened = await readApi.open(root.path);
+    final workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
+    final project = ProjectHandle(opened['projectHandle']! as String);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: workspace,
+      projectHandle: project,
+    );
+    var snapshot = await snapshots.load(project);
+    final presentation = await mutations.plan(
+      project,
+      _simplePresentationRequest(workspace.value, snapshot.revision),
+    );
+    await mutations.apply(
+      project,
+      planId: presentation['planId']! as String,
+      operationId: 'preset-direct-presentation',
+    );
+    snapshot = await snapshots.load(project);
+    final planned = await mutations.plan(
+      project,
+      _presetExportRequest(workspace.value, snapshot.revision),
+    );
+    final receipt = AuthoringReceipt.fromJson(
+      Map<String, dynamic>.from(planned['receipt']! as Map),
+    );
+    await mutations.apply(
+      project,
+      planId: planned['planId']! as String,
+      operationId: 'preset-direct-export',
+    );
+    return _presetEvidence(receipt);
+  }
+
+  Future<Map<String, Object?>> exportPresentationPresetThroughJsonl() async {
+    final opened = await _jsonl('open', {'projectRoot': root.path});
+    final workspaceHandle = opened['workspaceHandle']! as String;
+    final projectHandle = opened['projectHandle']! as String;
+    var snapshot = await snapshots.load(ProjectHandle(projectHandle));
+    final presentation = await _jsonl('plan', {
+      'projectHandle': projectHandle,
+      'request': _simplePresentationRequest(
+        workspaceHandle,
+        snapshot.revision,
+      ).toJson(),
+    });
+    await _jsonl('apply', {
+      'projectHandle': projectHandle,
+      'planId': presentation['planId'],
+      'operationId': 'preset-cli-presentation',
+    });
+    snapshot = await snapshots.load(ProjectHandle(projectHandle));
+    final planned = await _jsonl('plan', {
+      'projectHandle': projectHandle,
+      'request': _presetExportRequest(
+        workspaceHandle,
+        snapshot.revision,
+      ).toJson(),
+    });
+    final receipt = AuthoringReceipt.fromJson(
+      Map<String, dynamic>.from(planned['receipt']! as Map),
+    );
+    await _jsonl('apply', {
+      'projectHandle': projectHandle,
+      'planId': planned['planId'],
+      'operationId': 'preset-cli-export',
+    });
+    return _presetEvidence(receipt);
+  }
+
   AuthoringRequest _request(String workspaceHandle, String revision) =>
       AuthoringRequest(
         requestId: 'pmcp085-golden-request',
@@ -572,6 +664,60 @@ final class _GoldenHarness {
         idempotencyKey: 'pmcp085-presentation-idempotency',
         dryRun: false,
       );
+
+  AuthoringRequest _simplePresentationRequest(
+    String workspaceHandle,
+    String revision,
+  ) =>
+      AuthoringRequest(
+        requestId: 'preset-presentation-request',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: workspaceHandle,
+        parameters: <String, Object?>{
+          'profile': const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(accentColor: '#126E78'),
+          ).toJson(),
+        },
+        expectedRevision: revision,
+        idempotencyKey: 'preset-presentation-idempotency',
+        dryRun: false,
+      );
+
+  AuthoringRequest _presetExportRequest(
+    String workspaceHandle,
+    String revision,
+  ) =>
+      AuthoringRequest(
+        requestId: 'preset-export-request',
+        actionId: 'presentation.preset.export',
+        actionVersion: 1,
+        workspaceHandle: workspaceHandle,
+        parameters: const <String, Object?>{
+          'presetId': 'avelune-profile',
+          'label': 'Avelune Profile',
+          'description': 'Shareable authoring parity profile.',
+          'licenses': <String, String>{},
+        },
+        expectedRevision: revision,
+        idempotencyKey: 'preset-export-idempotency',
+        dryRun: false,
+      );
+
+  Future<Map<String, Object?>> _presetEvidence(AuthoringReceipt receipt) async {
+    final manifest = ProjectManifest.fromJson(
+      jsonDecode(await File('${root.path}/project.json').readAsString())
+          as Map<String, dynamic>,
+    );
+    final preset = manifest.presentationPresets.single;
+    final artifact = receipt.artifacts.single;
+    return <String, Object?>{
+      'preset': preset.toJson(),
+      'artifactMediaType': artifact.mediaType,
+      'artifactBytes': artifact.byteLength,
+      'artifactSha256': artifact.sha256,
+    };
+  }
 
   Future<Map<String, Object?>> _presentationEvidence(Object? receipt) async {
     final manifest = ProjectManifest.fromJson(

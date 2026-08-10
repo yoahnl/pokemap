@@ -2,12 +2,12 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'project_presentation_surface_role.dart';
+
 part 'project_presentation_layout_profile.freezed.dart';
 part 'project_presentation_layout_profile.g.dart';
 
 enum ProjectPresentationBreakpoint { compact, regular, expanded }
-
-enum ProjectPresentationSurfaceRole { title, pauseMenu, dialogue }
 
 enum ProjectPresentationLayoutSlot {
   center,
@@ -39,14 +39,19 @@ Set<ProjectPresentationLayoutSlot> projectPresentationLayoutSlotsFor(
   ProjectPresentationBreakpoint breakpoint,
 ) => switch ((role, breakpoint)) {
   (
-    ProjectPresentationSurfaceRole.title,
+    ProjectPresentationSurfaceRole.title ||
+        ProjectPresentationSurfaceRole.titlePrompt,
     ProjectPresentationBreakpoint.compact,
   ) =>
     const <ProjectPresentationLayoutSlot>{
       ProjectPresentationLayoutSlot.center,
       ProjectPresentationLayoutSlot.bottomCenter,
     },
-  (ProjectPresentationSurfaceRole.title, _) =>
+  (
+    ProjectPresentationSurfaceRole.title ||
+        ProjectPresentationSurfaceRole.titlePrompt,
+    _,
+  ) =>
     const <ProjectPresentationLayoutSlot>{
       ProjectPresentationLayoutSlot.center,
       ProjectPresentationLayoutSlot.bottomCenter,
@@ -73,12 +78,14 @@ Set<ProjectPresentationLayoutSlot> projectPresentationLayoutSlotsFor(
       ProjectPresentationLayoutSlot.topCenter,
       ProjectPresentationLayoutSlot.bottomCenter,
     },
+  _ => const <ProjectPresentationLayoutSlot>{},
 };
 
 Set<ProjectPresentationSecondaryElement>
 projectPresentationSecondaryElementsFor(ProjectPresentationSurfaceRole role) =>
     switch (role) {
-      ProjectPresentationSurfaceRole.title =>
+      ProjectPresentationSurfaceRole.title ||
+      ProjectPresentationSurfaceRole.titlePrompt =>
         const <ProjectPresentationSecondaryElement>{
           ProjectPresentationSecondaryElement.titleLogo,
           ProjectPresentationSecondaryElement.titleAuthor,
@@ -92,6 +99,7 @@ projectPresentationSecondaryElementsFor(ProjectPresentationSurfaceRole role) =>
         const <ProjectPresentationSecondaryElement>{
           ProjectPresentationSecondaryElement.dialoguePortrait,
         },
+      _ => const <ProjectPresentationSecondaryElement>{},
     };
 
 @Freezed(fromJson: true, toJson: true)
@@ -158,9 +166,15 @@ abstract class ProjectPresentationLayoutsProfile
   ProjectResponsiveSurfaceLayoutProfile resolve(
     ProjectPresentationSurfaceRole role,
   ) => switch (role) {
-    ProjectPresentationSurfaceRole.title => title,
+    ProjectPresentationSurfaceRole.title ||
+    ProjectPresentationSurfaceRole.titlePrompt => title,
     ProjectPresentationSurfaceRole.pauseMenu => pauseMenu,
     ProjectPresentationSurfaceRole.dialogue => dialogue,
+    _ => throw ArgumentError.value(
+      role,
+      'role',
+      'does not own a responsive layout',
+    ),
   };
 }
 

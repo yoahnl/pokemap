@@ -207,6 +207,8 @@ class PlayerTitleScreen extends StatelessWidget {
                         child: PlayerPanel(
                           elevated: true,
                           role: PlayerPanelRole.title,
+                          surfaceRole:
+                              ProjectPresentationSurfaceRole.titlePrompt,
                           child: FocusTraversalGroup(
                             policy: OrderedTraversalPolicy(),
                             child: Column(

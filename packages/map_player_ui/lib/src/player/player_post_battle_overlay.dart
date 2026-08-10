@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
@@ -29,6 +30,12 @@ class PlayerPostBattleOverlay extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 680, maxHeight: 620),
               child: PlayerPanel(
                 elevated: true,
+                surfaceRole: switch (snapshot.messageKind) {
+                  RuntimePostBattleMessageKind.captured ||
+                  RuntimePostBattleMessageKind.captureDestination =>
+                    ProjectPresentationSurfaceRole.captureResult,
+                  _ => ProjectPresentationSurfaceRole.battleResult,
+                },
                 child: Semantics(
                   container: true,
                   liveRegion: true,

@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 
 import '../errors/application_errors.dart';
 import '../services/tiled_image_collection_raster_codec.dart';
@@ -150,6 +151,18 @@ final class AuthoringMutationAdapter
           deduplicated: result.deduplicated,
         );
       });
+    } on Object catch (error) {
+      throw EditorAuthoringMutationFailure.capture(error);
+    }
+  }
+
+  Future<List<int>> readArtifact(
+    String projectRootPath, {
+    required String handle,
+  }) async {
+    try {
+      final session = await _open(projectRootPath);
+      return await session.use(() => session.artifactStore.read(handle));
     } on Object catch (error) {
       throw EditorAuthoringMutationFailure.capture(error);
     }
@@ -575,7 +588,7 @@ final class _EditorMutationSession {
     final projectHandle = opened.projectHandle;
     final artifactStore = LocalArtifactStore(
       allowedSourceRoots: [canonicalRoot],
-      maximumArtifactBytes: 64 << 20,
+      maximumArtifactBytes: presentationPresetMaxArchiveBytes,
     );
     final mutations = LocalMapAuthoringMutationApi(
       policy: policy,

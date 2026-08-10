@@ -1346,6 +1346,10 @@ final class _FixedAssetPicker implements PersonalizationStudioAssetPicker {
     if (introError case final error?) throw error;
     return intro;
   }
+
+  @override
+  Future<PersonalizationStudioIntroAssetSelection?>
+      pickTitleMotionAssets() => pickIntroAssets();
 }
 
 final class _FixedIntroImporter implements ProjectIntroVideoImporter {

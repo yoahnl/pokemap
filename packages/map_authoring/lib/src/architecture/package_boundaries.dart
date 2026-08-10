@@ -6,7 +6,10 @@ abstract final class MapAuthoringPackageBoundaries {
   static const String packageName = 'map_authoring';
 
   /// `map_core` owns PokeMap's serializable data and pure domain operations.
-  static const Set<String> allowedPackageDependencies = {'map_core'};
+  static const Set<String> allowedPackageDependencies = {
+    'map_core',
+    'map_distribution',
+  };
 
   static const Set<String> ownedResponsibilities = {
     'authoring contracts',

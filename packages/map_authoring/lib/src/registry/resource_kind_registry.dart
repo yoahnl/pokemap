@@ -141,6 +141,13 @@ final class AuthoringResourceKindRegistry {
             'Responsive intro, title motion, branding, typography, theme, window styles and surface layouts',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'projectPresentationPreset',
+        version: 1,
+        displayName: 'Project presentation preset',
+        summary:
+            'Versioned shareable presentation profile with licensed assets',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'map',
         version: 1,
         displayName: 'Map',
@@ -403,6 +410,7 @@ final class AuthoringResourceKindRegistry {
       'mapConnection',
       'project',
       'projectPresentationProfile',
+      'projectPresentationPreset',
       'scenario',
       'scene',
       'script',

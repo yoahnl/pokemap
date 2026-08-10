@@ -98,6 +98,8 @@ void main() {
           'pokemonDocument',
           'preset',
           'project',
+          'projectPresentationPreset',
+          'projectPresentationProfile',
           'region',
           'sandboxPlayerState',
           'scenario',

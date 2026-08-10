@@ -9,7 +9,7 @@ void main() {
       expect(MapAuthoringPackageBoundaries.packageName, 'map_authoring');
       expect(
         MapAuthoringPackageBoundaries.allowedPackageDependencies,
-        {'map_core'},
+        {'map_core', 'map_distribution'},
       );
       expect(
         MapAuthoringPackageBoundaries.ownedResponsibilities,
@@ -50,7 +50,7 @@ void main() {
       expect(violations, isEmpty);
     });
 
-    test('pubspec keeps production dependencies limited to map_core', () {
+    test('pubspec keeps production dependencies within the approved set', () {
       final pubspec = File('pubspec.yaml').readAsStringSync();
       final dependenciesBlock = RegExp(
         r'^dependencies:\n(?<body>(?:  .+\n?)+)',
@@ -62,7 +62,7 @@ void main() {
         r'^  ([a-zA-Z0-9_]+):',
         multiLine: true,
       ).allMatches(dependenciesBlock!).map((match) => match.group(1)!).toSet();
-      expect(dependencyNames, {'map_core'});
+      expect(dependencyNames, {'map_core', 'map_distribution'});
       expect(pubspec, isNot(contains('sdk: flutter')));
     });
 

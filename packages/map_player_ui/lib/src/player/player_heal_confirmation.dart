@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
@@ -48,6 +49,7 @@ class PlayerHealConfirmation extends StatelessWidget {
                   maxWidth: constraints.maxWidth < 600 ? 520 : 680,
                 ),
                 child: PlayerPanel(
+                  surfaceRole: ProjectPresentationSurfaceRole.confirmation,
                   elevated: true,
                   padding: const EdgeInsets.all(PlayerSpacing.md),
                   child: Column(
@@ -181,6 +183,7 @@ class _HealPartyMember extends StatelessWidget {
     final strings = PlayerHealStrings.of(context);
     final hpRatio = (member.currentHp / member.maxHp).clamp(0.0, 1.0);
     return PlayerPanel(
+      surfaceRole: ProjectPresentationSurfaceRole.confirmation,
       padding: const EdgeInsets.all(PlayerSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -218,6 +221,7 @@ class _HealFailureFallback extends StatelessWidget {
         color: context.playerColors.scrim,
         child: Center(
           child: PlayerPanel(
+            surfaceRole: ProjectPresentationSurfaceRole.confirmation,
             elevated: true,
             child: Column(
               mainAxisSize: MainAxisSize.min,

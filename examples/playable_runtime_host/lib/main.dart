@@ -48,10 +48,12 @@ void _runtimeHostLog(String message) {
 // On garde un MaterialApp très simple, puis toute la navigation se fait
 // depuis la page de chargement et le menu in-game.
 void main() {
-  runApp(const MaterialApp(
-    title: 'Playable Runtime Host',
-    home: _ProjectLoaderPage(),
-  ));
+  runApp(
+    const MaterialApp(
+      title: 'Playable Runtime Host',
+      home: _ProjectLoaderPage(),
+    ),
+  );
 }
 
 // Cette page joue deux rôles très ciblés :
@@ -95,13 +97,14 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       RuntimeGamepadPresence();
   late final PlayerServiceAutomationPort? _playerServiceAutomationPort =
       interactiveEvaluationConfig.enabled
-          ? PlayerServiceAutomationPort()
-          : null;
+      ? PlayerServiceAutomationPort()
+      : null;
   InteractiveEvaluationBridge? _interactiveBridge;
   final GlobalKey _interactiveGameSurfaceKey = GlobalKey();
   final player_ui.PlayerRuntimeStartupShellController _startupShellController =
       player_ui.PlayerRuntimeStartupShellController();
   StandaloneRuntimeStartupHost? _startupHost;
+  player_ui.RuntimePlayerCoordinatorViewController? _startupViewController;
   RuntimeStartupSnapshot? _startupSnapshot;
   StreamSubscription<RuntimeStartupSnapshot>? _startupSubscription;
   DateTime? _sessionCreatedAt;
@@ -169,44 +172,41 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       return;
     }
     final bridge = RuntimeGamepadBridge();
-    _runtimeGamepadSubscription = Gamepads.normalizedEvents.listen(
-      (event) {
-        final game = _game;
-        if (!_hasConnectedGamepad && mounted) {
-          setState(() => _hasConnectedGamepad = true);
-          _syncBattleCommandOverlayPreference();
-        }
-        final runtimeEvents = event.button != null
-            ? bridge.handleButton(
-                gamepadId: event.gamepadId,
-                button: event.button!,
-                value: event.value,
-              )
-            : bridge.handleAxis(
-                gamepadId: event.gamepadId,
-                axis: event.axis!,
-                value: event.value,
-              );
-        for (final runtimeEvent in runtimeEvents) {
-          if (game != null) {
-            final startupHost = _startupHost;
-            if (startupHost != null) {
-              startupHost.sessionController.handleInput(runtimeEvent);
-            } else {
-              game.handleRuntimeInputEvent(runtimeEvent);
-            }
-          } else {
-            _startupShellController.handle(
-              playerInputCommandFromRuntimeEvent(
-                runtimeEvent,
-                source: PlayerInputSource.controller,
-              ),
+    _runtimeGamepadSubscription = Gamepads.normalizedEvents.listen((event) {
+      final game = _game;
+      if (!_hasConnectedGamepad && mounted) {
+        setState(() => _hasConnectedGamepad = true);
+        _syncBattleCommandOverlayPreference();
+      }
+      final runtimeEvents = event.button != null
+          ? bridge.handleButton(
+              gamepadId: event.gamepadId,
+              button: event.button!,
+              value: event.value,
+            )
+          : bridge.handleAxis(
+              gamepadId: event.gamepadId,
+              axis: event.axis!,
+              value: event.value,
             );
+      for (final runtimeEvent in runtimeEvents) {
+        if (game != null) {
+          final startupHost = _startupHost;
+          if (startupHost != null) {
+            startupHost.sessionController.handleInput(runtimeEvent);
+          } else {
+            game.handleRuntimeInputEvent(runtimeEvent);
           }
+        } else {
+          _startupShellController.handle(
+            playerInputCommandFromRuntimeEvent(
+              runtimeEvent,
+              source: PlayerInputSource.controller,
+            ),
+          );
         }
-      },
-      onError: (_) {},
-    );
+      }
+    }, onError: (_) {});
   }
 
   void _startGamepadPresenceRefreshIfNeeded() {
@@ -225,8 +225,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       return;
     }
     try {
-      final hasConnectedGamepad =
-          await _runtimeGamepadPresence.hasConnectedGamepads();
+      final hasConnectedGamepad = await _runtimeGamepadPresence
+          .hasConnectedGamepads();
       if (!mounted || _hasConnectedGamepad == hasConnectedGamepad) {
         return;
       }
@@ -272,8 +272,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
               _touchControlsHiddenByUser = !restoredOptions.showTouchControls;
             });
           }
-          final savedProjectPath =
-              (decoded['projectFilePath'] as String?)?.trim();
+          final savedProjectPath = (decoded['projectFilePath'] as String?)
+              ?.trim();
           final savedMapId = (decoded['mapId'] as String?)?.trim();
           if (savedProjectPath != null &&
               savedProjectPath.isNotEmpty &&
@@ -494,15 +494,12 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   // les informations de debug et de save qui évoluent pendant la session.
   void _startRuntimeInfoTicker() {
     _runtimeInfoTicker?.cancel();
-    _runtimeInfoTicker = Timer.periodic(
-      const Duration(milliseconds: 250),
-      (_) {
-        if (!mounted || _game == null) {
-          return;
-        }
-        setState(() {});
-      },
-    );
+    _runtimeInfoTicker = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (!mounted || _game == null) {
+        return;
+      }
+      setState(() {});
+    });
   }
 
   void _stopRuntimeInfoTicker() {
@@ -560,7 +557,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       }
       final projectJsonPath = result.projectJsonPath!;
       _runtimeHostLog(
-          'project picker selected projectJsonPath=$projectJsonPath');
+        'project picker selected projectJsonPath=$projectJsonPath',
+      );
       setState(() {
         _projectFilePath = projectJsonPath;
         _error = null;
@@ -572,7 +570,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       await _loadPartyBuilderOptions(projectJsonPath);
       await _persistLastSession();
       _runtimeHostLog(
-          'project picker completed projectJsonPath=$_projectFilePath');
+        'project picker completed projectJsonPath=$_projectFilePath',
+      );
     } catch (e, stackTrace) {
       _runtimeHostLog('project picker exception error=$e');
       debugPrintStack(
@@ -608,7 +607,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     }
     if (selectedMapId.isEmpty) {
       _runtimeHostLog(
-          'map load blocked: empty mapId projectFilePath=$projectFilePath');
+        'map load blocked: empty mapId projectFilePath=$projectFilePath',
+      );
       setState(() => _error = 'Saisissez un identifiant de map.');
       throw StateError('A map must be selected before launch.');
     }
@@ -626,11 +626,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       _error = null;
     });
     reportProgress?.call(
-      const GameSessionLoadingProgress(
-        stage: 'project',
-        current: 0,
-        total: 4,
-      ),
+      const GameSessionLoadingProgress(stage: 'project', current: 0, total: 4),
     );
 
     try {
@@ -651,11 +647,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         'launch save load ${launchSaveData == null ? 'missing: will use project/legacy fallback' : 'ok: mapId=$mapId'}',
       );
       reportProgress?.call(
-        const GameSessionLoadingProgress(
-          stage: 'save',
-          current: 1,
-          total: 4,
-        ),
+        const GameSessionLoadingProgress(stage: 'save', current: 1, total: 4),
       );
       _runtimeHostLog('bundle load start mapId=$mapId');
       final preloadedBundle = preloadedInitialMap?.bundle;
@@ -671,11 +663,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         'bundle load ok map=${bundle.map.id} size=${bundle.map.size.width}x${bundle.map.size.height} layers=${bundle.map.layers.length} entities=${bundle.map.entities.length} tilesets=${bundle.tilesetAbsolutePathsById.length}',
       );
       reportProgress?.call(
-        const GameSessionLoadingProgress(
-          stage: 'world',
-          current: 2,
-          total: 4,
-        ),
+        const GameSessionLoadingProgress(stage: 'world', current: 2, total: 4),
       );
       // Phase A privilégie un vrai état joueur versionné quand le projet en
       // fournit un. Le seed de démo historique reste un fallback pratique pour
@@ -684,18 +672,19 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         newGame: bundle.manifest.newGame,
         versionedLaunchSave: launchSaveData,
       );
-      final selectedManualPartySeed =
-          allowsSyntheticLaunchSeed ? _buildManualPartySeed() : null;
+      final selectedManualPartySeed = allowsSyntheticLaunchSeed
+          ? _buildManualPartySeed()
+          : null;
       _runtimeHostLog(
         'party seed source=${selectedManualPartySeed == null ? 'auto/demo' : 'manual'} seedDemoPokemon=$_seedDemoPokemon syntheticAllowed=$allowsSyntheticLaunchSeed',
       );
       final launchDemoSeed =
           selectedManualPartySeed == null && allowsSyntheticLaunchSeed
-              ? await buildRuntimeHostLaunchDemoPartySeed(
-                  seedDemoPokemon: _seedDemoPokemon,
-                  projectFilePath: projectFilePath,
-                )
-              : null;
+          ? await buildRuntimeHostLaunchDemoPartySeed(
+              seedDemoPokemon: _seedDemoPokemon,
+              projectFilePath: projectFilePath,
+            )
+          : null;
       if (!mounted) {
         throw StateError('The runtime host closed before the map was ready.');
       }
@@ -783,6 +772,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       nextGame.setBattleFlutterCommandOverlayPreferred(
         _prefersBattleFlutterCommandOverlay,
       );
+      nextGame.setDialogueFlutterOverlayPreferred(true);
       nextGame.setDialogueTextSpeed(_playerOptions.dialogueTextSpeed);
       if (interactiveEvaluationConfig.enabled) {
         await WidgetsBinding.instance.endOfFrame;
@@ -803,11 +793,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       await _persistLastSession();
       _runtimeHostLog('map load completed mapId=$mapId');
       reportProgress?.call(
-        const GameSessionLoadingProgress(
-          stage: 'ready',
-          current: 4,
-          total: 4,
-        ),
+        const GameSessionLoadingProgress(stage: 'ready', current: 4, total: 4),
       );
       return nextGame;
     } catch (e, stackTrace) {
@@ -867,6 +853,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     });
     setState(() {
       _startupHost = startupHost;
+      _startupViewController = player_ui.RuntimePlayerCoordinatorViewController(
+        startupHost.playerCoordinator,
+      );
       _startupSnapshot = startupHost.snapshot;
       _startupSubscription = subscription;
       _error = null;
@@ -920,6 +909,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     _startupSubscription = null;
     await subscription?.cancel();
     final startupHost = _startupHost;
+    _startupViewController = null;
     _startupHost = null;
     _startupSnapshot = null;
     await startupHost?.dispose();
@@ -948,8 +938,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
 
   Future<List<int>> _captureInteractiveGameSurface() async {
     await WidgetsBinding.instance.endOfFrame;
-    final boundary =
-        _interactiveGameSurfaceKey.currentContext?.findRenderObject();
+    final boundary = _interactiveGameSurfaceKey.currentContext
+        ?.findRenderObject();
     if (boundary is! RenderRepaintBoundary) {
       throw StateError('The interactive game surface is unavailable.');
     }
@@ -982,9 +972,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   Future<InGameMenuActionResult> _performSaveRequest() async {
     final game = _game;
     if (game == null || _saveLoadBusy) {
-      return const InGameMenuActionResult(
-        error: 'Sauvegarde indisponible',
-      );
+      return const InGameMenuActionResult(error: 'Sauvegarde indisponible');
     }
     setState(() {
       _saveLoadBusy = true;
@@ -1025,9 +1013,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   Future<InGameMenuActionResult> _performLoadRequest() async {
     final game = _game;
     if (game == null || _saveLoadBusy) {
-      return const InGameMenuActionResult(
-        error: 'Chargement indisponible',
-      );
+      return const InGameMenuActionResult(error: 'Chargement indisponible');
     }
     setState(() {
       _saveLoadBusy = true;
@@ -1121,6 +1107,22 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     );
   }
 
+  void _openPlayerMenu() {
+    final controller = _startupViewController;
+    if (controller == null) {
+      unawaited(_openInGameMenu());
+      return;
+    }
+    unawaited(
+      controller.dispatch(
+        RuntimePlayerCommand(
+          snapshotRevision: controller.snapshot.revision,
+          action: RuntimePlayerAction.openMenu,
+        ),
+      ),
+    );
+  }
+
   void _updatePlayerOptions(RuntimePlayerOptions options) {
     if (!mounted) {
       return;
@@ -1140,11 +1142,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   ) {
     return switch (snapshot.mode) {
       BattleCommandOverlayMode.root => game.selectBattleRootEntry(index),
-      BattleCommandOverlayMode.fight ||
-      BattleCommandOverlayMode.continueOnly =>
-        game.selectBattleChoiceEntry(
-          index,
-        ),
+      BattleCommandOverlayMode.fight || BattleCommandOverlayMode.continueOnly =>
+        game.selectBattleChoiceEntry(index),
       BattleCommandOverlayMode.bag => game.selectBattleBagEntry(index),
       BattleCommandOverlayMode.pokemon => game.selectBattlePartyEntry(index),
       BattleCommandOverlayMode.bagMedicineTarget =>
@@ -1227,12 +1226,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   ) {
     final profile = snapshot.presentation?.profile;
     final introProfile = profile?.intro;
-    final orientation = snapshot.presentation?.orientation ??
+    final orientation =
+        snapshot.presentation?.orientation ??
         RuntimePresentationOrientation.landscape;
     final introVariant = introProfile == null
         ? null
-        : selectRuntimePresentationVideo(introProfile.media, orientation)
-            .variant;
+        : selectRuntimePresentationVideo(
+            introProfile.media,
+            orientation,
+          ).variant;
     final promptMedia = profile?.titleMotion?.promptLoop;
     final menuMedia = profile?.titleMotion?.menuLoop;
     final promptVariant = promptMedia == null
@@ -1246,9 +1248,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       snapshot.presentation?.introVideo,
       introVariant,
       looping: false,
-      volume: host.audioMixer.mix.volumeFor(
-        RuntimeAudioRoute.cinematicMusic,
-      ),
+      volume: host.audioMixer.mix.volumeFor(RuntimeAudioRoute.cinematicMusic),
     );
     final playerPresentation = snapshot.presentation == null
         ? const player_ui.RuntimePlayerPresentation(
@@ -1260,7 +1260,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
           );
     final reducedMotion =
         snapshot.playerSnapshot?.preferences?.accessibility.reducedMotion ??
-            false;
+        false;
     return Theme(
       data: playerPresentation.applyTo(
         player_ui.PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
@@ -1272,10 +1272,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         snapshot: snapshot,
         titlePresentation: playerPresentation.title,
         introSource: introSource,
-        introPoster: _startupImage(
-          host,
-          snapshot.presentation?.introPoster,
-        ),
+        introPoster: _startupImage(host, snapshot.presentation?.introPoster),
         titlePromptSource: _startupVideo(
           host,
           snapshot.presentation?.titlePromptVideo,
@@ -1311,9 +1308,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
           ),
         ),
         onIntroPlaybackCompleted: (revision) => unawaited(
-          host.coordinator.introPlaybackCompleted(
-            snapshotRevision: revision,
-          ),
+          host.coordinator.introPlaybackCompleted(snapshotRevision: revision),
         ),
         onIntroPlaybackFailed: (revision, reason) => unawaited(
           host.coordinator.introPlaybackFailed(
@@ -1321,11 +1316,31 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
             reason: reason,
           ),
         ),
-        sessionBuilder: (_, __) =>
-            activeGameSurface ??
-            const Scaffold(
+        sessionBuilder: (_, _) {
+          final game = _game;
+          final viewController = _startupViewController;
+          if (game == null ||
+              viewController == null ||
+              activeGameSurface == null) {
+            return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
-            ),
+            );
+          }
+          return player_ui.PokeMapPlayerSessionView(
+            key: const ValueKey<String>('standalone-runtime-player-view'),
+            controller: viewController,
+            titlePresentation: playerPresentation.title,
+            pauseMenuLabels: playerPresentation.pauseMenuLabels,
+            gameplayInputRoute: host.sessionController.handleInput,
+            gameplayInputAuthority: game.inputAuthorityListenable,
+            dialoguePresentation: game.dialoguePresentationListenable,
+            onDialogueCommand: game.dispatchDialoguePresentationCommand,
+            touchControlsAvailable:
+                _supportsTouchControls && !_touchControlsHiddenByUser,
+            controllerInputEnabled: false,
+            gameSceneBuilder: (_) => activeGameSurface,
+          );
+        },
       ),
     );
   }
@@ -1384,15 +1399,14 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
               ),
               onPressed: () {
                 setState(
-                    () => _showRuntimeDebugPanel = !_showRuntimeDebugPanel);
+                  () => _showRuntimeDebugPanel = !_showRuntimeDebugPanel,
+                );
               },
             ),
-            // Le menu in-game est volontairement minimal :
-            // un seul bouton ouvre les écrans lecture seule de la phase 10.
             IconButton(
               key: const Key('runtime-menu-button'),
               icon: const Icon(Icons.menu),
-              onPressed: _openInGameMenu,
+              onPressed: _openPlayerMenu,
             ),
           ],
         ),
@@ -1402,23 +1416,25 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
               key: _interactiveGameSurfaceKey,
               child: GameWidget(game: game),
             ),
-            ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
-              valueListenable: game.battleCommandOverlayListenable,
-              builder: (context, snapshot, child) {
-                final showFlutterOverlay =
-                    shouldShowRuntimeBattleCommandOverlay(
-                  supportsTouchControls: _supportsTouchControls,
-                  hasConnectedGamepad: _hasConnectedGamepad,
-                  isBattleActive: game.isBattleUiActive,
-                  hasSnapshot: snapshot != null,
-                );
-                if (!showFlutterOverlay || snapshot == null) {
-                  return const SizedBox.shrink();
-                }
-                return _buildBattleCommandOverlay(game, snapshot);
-              },
-            ),
-            if (touchControlsVisibility.showControls)
+            if (_startupViewController == null)
+              ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
+                valueListenable: game.battleCommandOverlayListenable,
+                builder: (context, snapshot, child) {
+                  final showFlutterOverlay =
+                      shouldShowRuntimeBattleCommandOverlay(
+                        supportsTouchControls: _supportsTouchControls,
+                        hasConnectedGamepad: _hasConnectedGamepad,
+                        isBattleActive: game.isBattleUiActive,
+                        hasSnapshot: snapshot != null,
+                      );
+                  if (!showFlutterOverlay || snapshot == null) {
+                    return const SizedBox.shrink();
+                  }
+                  return _buildBattleCommandOverlay(game, snapshot);
+                },
+              ),
+            if (_startupViewController == null &&
+                touchControlsVisibility.showControls)
               Positioned.fill(
                 child: RuntimeTouchControls(
                   dispatch: game.handleRuntimeInputEvent,
@@ -1432,7 +1448,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
                   color: Colors.black.withValues(alpha: 0.55),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -1511,7 +1529,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
                                         () => _showNpcCollisionDebugOverlay = v,
                                       );
                                       game.setNpcCollisionDebugOverlayVisible(
-                                          v);
+                                        v,
+                                      );
                                     },
                             ),
                           ],
@@ -1531,8 +1550,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
                         ),
                         Text(
                           'FPS: ${game.currentFps.toStringAsFixed(1)}',
-                          style:
-                              const TextStyle(color: Colors.lightGreenAccent),
+                          style: const TextStyle(
+                            color: Colors.lightGreenAccent,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -1686,8 +1706,8 @@ class _ProjectFileField extends StatelessWidget {
               child: Text(
                 path.isEmpty ? 'Aucun projet sélectionné' : path,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: path.isEmpty ? Theme.of(context).hintColor : null,
-                    ),
+                  color: path.isEmpty ? Theme.of(context).hintColor : null,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -1738,9 +1758,7 @@ final class _RuntimePlayerServiceOverlayHost
   final PlayerServiceAutomationPort? automationPort;
 
   @override
-  Future<PlayerServiceHostResult> openShop(
-    PlayerServiceShopRequest request,
-  ) {
+  Future<PlayerServiceHostResult> openShop(PlayerServiceShopRequest request) {
     return _open(
       title: request.resolvedState.storefrontLabel,
       gameState: request.gameState,
@@ -1773,18 +1791,17 @@ final class _RuntimePlayerServiceOverlayHost
   @override
   Future<PlayerServiceHostResult> openHealCenter(
     PlayerServiceHealRequest request,
-  ) =>
-      _open(
-        title: 'Centre Pokémon',
-        gameState: request.gameState,
-        bodyBuilder: (state, stageState, _, close) => InGameHealFlow(
-          gameState: state,
-          recoveryCaps: request.recoveryCaps,
-          onStateCommitted: stageState,
-          automationPort: automationPort,
-          onAutomationClose: close,
-        ),
-      );
+  ) => _open(
+    title: 'Centre Pokémon',
+    gameState: request.gameState,
+    bodyBuilder: (state, stageState, _, close) => InGameHealFlow(
+      gameState: state,
+      recoveryCaps: request.recoveryCaps,
+      onStateCommitted: stageState,
+      automationPort: automationPort,
+      onAutomationClose: close,
+    ),
+  );
 
   Future<PlayerServiceHostResult> _open({
     required String title,
@@ -1809,12 +1826,13 @@ final class _RuntimePlayerServiceOverlayHost
   }
 }
 
-typedef _PlayerServiceBodyBuilder = Widget Function(
-  GameState gameState,
-  Future<void> Function(GameState state) stageState,
-  GameState Function() currentGameState,
-  Future<void> Function() close,
-);
+typedef _PlayerServiceBodyBuilder =
+    Widget Function(
+      GameState gameState,
+      Future<void> Function(GameState state) stageState,
+      GameState Function() currentGameState,
+      Future<void> Function() close,
+    );
 
 final class _RuntimePlayerServiceRoute extends StatefulWidget {
   const _RuntimePlayerServiceRoute({

@@ -25,7 +25,9 @@ import '../../../features/personalization/application/project_branding_image_imp
 import '../../../features/personalization/application/project_font_import_service.dart';
 import '../../../features/personalization/application/project_intro_video_import_service.dart';
 import '../../../features/personalization/application/project_presentation_preflight.dart';
+import '../../../features/personalization/application/project_presentation_preset_service.dart';
 import '../../../features/personalization/application/project_title_music_import_service.dart';
+import '../../../features/personalization/application/project_title_motion_import_service.dart';
 import '../../../features/personalization/application/project_title_music_preview_controller.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../../../infrastructure/authoring_api/editor_project_file_reader.dart';
@@ -126,6 +128,18 @@ final personalizationStudioTitleMusicPickerProvider =
       return const FilePickerPersonalizationStudioTitleMusicPicker();
     });
 
+final personalizationStudioPresetFilePickerProvider =
+    Provider<PersonalizationStudioPresetFilePicker>((ref) {
+      return const FilePickerPersonalizationStudioPresetFilePicker();
+    });
+
+final projectPresentationPresetServiceProvider =
+    Provider<ProjectPresentationPresetService>((ref) {
+      return ProjectPresentationPresetService(
+        mutations: ref.watch(authoringMutationAdapterProvider),
+      );
+    });
+
 final projectBrandingImageImportServiceProvider =
     Provider<ProjectBrandingImageImporter>((ref) {
       return const ProjectBrandingImageImportService();
@@ -147,6 +161,11 @@ final projectTitleMusicPreviewControllerFactoryProvider =
 final projectIntroVideoImportServiceProvider =
     Provider<ProjectIntroVideoImporter>((ref) {
       return const ProjectIntroVideoImportService();
+    });
+
+final projectTitleMotionImportServiceProvider =
+    Provider<ProjectTitleMotionLoopImporter>((ref) {
+      return const ProjectTitleMotionImportService();
     });
 
 final projectFontImportServiceProvider = Provider<ProjectFontImporter>((ref) {

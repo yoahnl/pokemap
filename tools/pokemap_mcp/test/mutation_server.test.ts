@@ -848,10 +848,23 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       (action) => String(action.id),
     );
     assert.ok(actionIds.includes("presentation.update"));
+    for (const actionId of [
+      "presentation.preset.import_plan",
+      "presentation.preset.import_apply",
+      "presentation.preset.export",
+      "presentation.preset.delete_plan",
+      "presentation.preset.delete_apply",
+    ]) {
+      assert.ok(actionIds.includes(actionId));
+    }
     const presentationKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationProfile",
     );
     assert.equal(Number(presentationKind?.version), 4);
+    const presetKind = (described.resourceKinds as JsonRecord[]).find(
+      (kind) => String(kind.id) === "projectPresentationPreset",
+    );
+    assert.equal(Number(presetKind?.version), 1);
     const presentationAction = (
       record(described.fullParity).mutationActions as JsonRecord[]
     ).find((action) => String(action.actionId) === "presentation.update");
@@ -997,6 +1010,148 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       projectHandle,
     });
     assert.equal(String(finalValidation.snapshotRevision), appliedRevision);
+
+    const exportPlan = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "mcp-preset-export",
+        actionId: "presentation.preset.export",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: {
+          presetId: "avelune-profile",
+          label: "Avelune Profile",
+          description: "Shareable MCP presentation profile.",
+          licenses: {},
+        },
+        expectedRevision: finalValidation.snapshotRevision,
+        idempotencyKey: "idem-mcp-preset-export",
+        dryRun: false,
+      },
+    });
+    const exportArtifact = record(
+      (record(exportPlan.receipt).artifacts as JsonRecord[])[0],
+    );
+    const exported = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: exportPlan.planId,
+      operationId: "operation-mcp-preset-export",
+    });
+    assert.equal(
+      record(exported.receipt).actionId,
+      "presentation.preset.export",
+    );
+    let validation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const presetResource = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "projectPresentationPreset",
+      operation: "list",
+      view: "detail",
+    });
+    assert.equal(
+      record((presetResource.items as unknown[])[0]).id,
+      "avelune-profile",
+    );
+
+    const deletePreview = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "mcp-preset-delete-preview",
+        actionId: "presentation.preset.delete_plan",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: { presetId: "avelune-profile" },
+        expectedRevision: validation.snapshotRevision,
+        idempotencyKey: "idem-mcp-preset-delete-preview",
+        dryRun: true,
+      },
+    });
+    assert.equal(deletePreview.applicable, false);
+
+    const deletePlan = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "mcp-preset-delete",
+        actionId: "presentation.preset.delete_apply",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: { presetId: "avelune-profile" },
+        expectedRevision: validation.snapshotRevision,
+        idempotencyKey: "idem-mcp-preset-delete",
+        dryRun: false,
+      },
+    });
+    const deleteConfirmation = await toolData(
+      fixture.client,
+      "pokemap_apply",
+      {
+        operation: "confirm",
+        projectHandle,
+        planId: deletePlan.planId,
+      },
+    );
+    await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: deletePlan.planId,
+      operationId: "operation-mcp-preset-delete",
+      confirmationToken: deleteConfirmation.confirmationToken,
+    });
+    validation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+
+    const importPreview = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "mcp-preset-import-preview",
+        actionId: "presentation.preset.import_plan",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: { artifactHandle: exportArtifact.uri },
+        expectedRevision: validation.snapshotRevision,
+        idempotencyKey: "idem-mcp-preset-import-preview",
+        dryRun: true,
+      },
+    });
+    assert.equal(importPreview.applicable, false);
+
+    const importPlan = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "mcp-preset-import",
+        actionId: "presentation.preset.import_apply",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: { artifactHandle: exportArtifact.uri },
+        expectedRevision: validation.snapshotRevision,
+        idempotencyKey: "idem-mcp-preset-import",
+        dryRun: false,
+      },
+    });
+    await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: importPlan.planId,
+      operationId: "operation-mcp-preset-import",
+    });
+    const reimportedResource = await toolData(
+      fixture.client,
+      "pokemap_query",
+      {
+        projectHandle,
+        resourceKind: "projectPresentationPreset",
+        operation: "list",
+        view: "detail",
+      },
+    );
+    assert.equal(
+      record((reimportedResource.items as unknown[])[0]).id,
+      "avelune-profile",
+    );
   } finally {
     await fixture.client.close();
     await fixture.server.close();

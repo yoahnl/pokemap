@@ -239,6 +239,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                                     'runtime-save-receipt',
                                   ),
                                   elevated: true,
+                                  surfaceRole:
+                                      ProjectPresentationSurfaceRole.save,
                                   padding: const EdgeInsets.all(
                                     PlayerSpacing.sm,
                                   ),
@@ -273,6 +275,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     if (widget.pauseSection != RuntimePlayerPauseSection.root) {
       return PlayerPanel(
         role: PlayerPanelRole.menu,
+        surfaceRole: _surfaceRoleFor(widget.pauseSection),
         padding: panelPadding,
         child: _detailPane(context, layout),
       );
@@ -289,6 +292,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
           padding: EdgeInsets.all(margin),
           child: PlayerPanel(
             role: PlayerPanelRole.menu,
+            surfaceRole: ProjectPresentationSurfaceRole.pauseMenu,
             padding: panelPadding,
             elevated: true,
             child: _navigation(layout, resolved: resolved),
@@ -324,6 +328,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       ),
       child: PlayerPanel(
         role: PlayerPanelRole.menu,
+        surfaceRole: ProjectPresentationSurfaceRole.pauseMenu,
         padding: EdgeInsets.all(
           PlayerSpacing.md * (resolved?.spacingScale ?? 1),
         ),
@@ -505,4 +510,19 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         widget.labels.action(PlayerPauseAction.options, l10n),
     };
   }
+
+  ProjectPresentationSurfaceRole _surfaceRoleFor(
+    RuntimePlayerPauseSection section,
+  ) =>
+      switch (section) {
+        RuntimePlayerPauseSection.root =>
+          ProjectPresentationSurfaceRole.pauseMenu,
+        RuntimePlayerPauseSection.party => ProjectPresentationSurfaceRole.party,
+        RuntimePlayerPauseSection.bag => ProjectPresentationSurfaceRole.bag,
+        RuntimePlayerPauseSection.pokedex =>
+          ProjectPresentationSurfaceRole.pokedex,
+        RuntimePlayerPauseSection.map => ProjectPresentationSurfaceRole.map,
+        RuntimePlayerPauseSection.options =>
+          ProjectPresentationSurfaceRole.options,
+      };
 }

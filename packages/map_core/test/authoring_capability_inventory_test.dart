@@ -258,6 +258,7 @@ void main() {
       expect(actionIds, contains('action.project.create'));
       expect(actionIds, contains('action.map.apply_operations'));
       expect(actionIds, contains('action.playtest.start'));
+      expect(actionIds, contains('action.presentation.preset.export'));
     });
 
     test('catalog certifies Smart Tiles and contains no legacy paint actions',
@@ -330,7 +331,6 @@ void main() {
     });
   });
 }
-
 Set<String> _freezedMixinFields(File file, String marker) {
   final source = file.readAsStringSync();
   final start = source.indexOf(marker);
@@ -339,8 +339,7 @@ Set<String> _freezedMixinFields(File file, String marker) {
   expect(end, isNonNegative, reason: marker);
   final block = source.substring(start, end);
   return RegExp(
-    r'^\s+.+?\s+get\s+([a-zA-Z][a-zA-Z0-9_]*)\s*(?:=>|;)',
-    multiLine: true,
+    r'\bget\s+([a-zA-Z][a-zA-Z0-9_]*)\s*(?:=>|;)',
   )
       .allMatches(block)
       .map((match) => match.group(1)!)

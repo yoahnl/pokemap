@@ -135,6 +135,15 @@ _ProjectManifest _$ProjectManifestFromJson(
       : ProjectPresentationProfile.fromJson(
           json['presentation'] as Map<String, dynamic>,
         ),
+  presentationPresets:
+      (json['presentationPresets'] as List<dynamic>?)
+          ?.map(
+            (e) => ProjectPresentationPresetRecord.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
+          .toList() ??
+      const [],
   globalProperties:
       json['globalProperties'] as Map<String, dynamic>? ?? const {},
   smartTileCatalog: json['smartTileCatalog'] == null
@@ -196,6 +205,9 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'pokemon': instance.pokemon.toJson(),
   'newGame': instance.newGame.toJson(),
   'presentation': ?instance.presentation?.toJson(),
+  'presentationPresets': instance.presentationPresets
+      .map((e) => e.toJson())
+      .toList(),
   'globalProperties': instance.globalProperties,
   'smartTileCatalog': ?_projectSmartTileCatalogToJson(
     instance.smartTileCatalog,

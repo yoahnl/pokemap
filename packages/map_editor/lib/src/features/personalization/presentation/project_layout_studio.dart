@@ -55,7 +55,7 @@ class _ProjectLayoutStudioState extends State<ProjectLayoutStudio> {
                 spacing: 8,
                 runSpacing: 8,
                 children: <Widget>[
-                  for (final surface in ProjectPresentationSurfaceRole.values)
+                  for (final surface in _layoutSurfaceRoles)
                     PokeMapButton(
                       key: ValueKey<String>('layout-surface-${surface.name}'),
                       size: PokeMapButtonSize.small,
@@ -338,6 +338,7 @@ class _ProjectLayoutStudioState extends State<ProjectLayoutStudio> {
           ),
         ),
       (ProjectPresentationSurfaceRole.dialogue, _) => base.dialogue,
+      _ => throw ArgumentError.value(_surface, 'surface'),
     };
     widget.onChanged(_replaceSurface(_profile, _surface, replacement));
   }
@@ -355,6 +356,7 @@ ProjectPresentationLayoutsProfile _replaceSurface(
   ProjectPresentationSurfaceRole.dialogue => profile.copyWith(
     dialogue: replacement,
   ),
+  _ => throw ArgumentError.value(surface, 'surface'),
 };
 
 List<(String, String)> _presets(ProjectPresentationSurfaceRole surface) =>
@@ -374,6 +376,7 @@ List<(String, String)> _presets(ProjectPresentationSurfaceRole surface) =>
         ('wide', 'Bas étendu'),
         ('top', 'Haut centré'),
       ],
+      _ => throw ArgumentError.value(surface, 'surface'),
     };
 
 String _surfaceLabel(ProjectPresentationSurfaceRole surface) =>
@@ -381,7 +384,14 @@ String _surfaceLabel(ProjectPresentationSurfaceRole surface) =>
       ProjectPresentationSurfaceRole.title => 'Écran titre',
       ProjectPresentationSurfaceRole.pauseMenu => 'Menu Pause',
       ProjectPresentationSurfaceRole.dialogue => 'Dialogue',
+      _ => throw ArgumentError.value(surface, 'surface'),
     };
+
+const _layoutSurfaceRoles = <ProjectPresentationSurfaceRole>[
+  ProjectPresentationSurfaceRole.title,
+  ProjectPresentationSurfaceRole.pauseMenu,
+  ProjectPresentationSurfaceRole.dialogue,
+];
 
 String _breakpointLabel(ProjectPresentationBreakpoint breakpoint) =>
     switch (breakpoint) {

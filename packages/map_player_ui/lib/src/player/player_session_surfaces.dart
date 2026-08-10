@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
@@ -9,12 +10,15 @@ class PlayerDetailEntryCard extends StatelessWidget {
   const PlayerDetailEntryCard({
     super.key,
     required this.entry,
+    this.surfaceRole,
   });
 
   final RuntimePlayerDetailEntrySnapshot entry;
+  final ProjectPresentationSurfaceRole? surfaceRole;
 
   @override
   Widget build(BuildContext context) => PlayerPanel(
+        surfaceRole: surfaceRole,
         child: Semantics(
           container: true,
           label: entry.title,
@@ -100,6 +104,7 @@ class PlayerResultSurface extends StatelessWidget {
   Widget build(BuildContext context) => _CenteredSessionPanel(
         icon: Icons.emoji_events_rounded,
         title: title,
+        surfaceRole: ProjectPresentationSurfaceRole.battleResult,
         body: <Widget>[
           Text(summary, textAlign: TextAlign.center),
           for (final detail in details)
@@ -141,6 +146,7 @@ class PlayerCreditsSurface extends StatelessWidget {
   Widget build(BuildContext context) => _CenteredSessionPanel(
         icon: Icons.auto_stories_rounded,
         title: title,
+        surfaceRole: ProjectPresentationSurfaceRole.credits,
         body: <Widget>[
           Text(author, style: Theme.of(context).textTheme.titleLarge),
           if (endingLabel != null) ...<Widget>[
@@ -200,6 +206,7 @@ class PlayerErrorSurface extends StatelessWidget {
   Widget build(BuildContext context) => _CenteredSessionPanel(
         icon: Icons.error_outline_rounded,
         title: title,
+        surfaceRole: ProjectPresentationSurfaceRole.notification,
         iconColor: context.playerColors.danger,
         body: <Widget>[
           Text(message, textAlign: TextAlign.center),
@@ -273,12 +280,14 @@ class _CenteredSessionPanel extends StatelessWidget {
     required this.title,
     required this.body,
     this.iconColor,
+    this.surfaceRole,
   });
 
   final IconData icon;
   final String title;
   final List<Widget> body;
   final Color? iconColor;
+  final ProjectPresentationSurfaceRole? surfaceRole;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -288,6 +297,7 @@ class _CenteredSessionPanel extends StatelessWidget {
             child: SingleChildScrollView(
               child: PlayerPanel(
                 elevated: true,
+                surfaceRole: surfaceRole,
                 child: Semantics(
                   container: true,
                   namesRoute: true,

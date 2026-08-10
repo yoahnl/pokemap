@@ -10,6 +10,7 @@ import 'project_trainer.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
 import 'project_presentation_profile.dart';
+import 'project_presentation_preset.dart';
 import 'project_tileset_source.dart';
 import 'cinematic_asset.dart';
 import 'cinematic_media_asset.dart';
@@ -48,7 +49,6 @@ Object? _readProjectBorderCatalog(Map json, String key) {
   }
   return json[key] ?? _explicitNullProjectBorderCatalog;
 }
-
 ProjectBorderCatalog _projectBorderCatalogFromJson(Object? json) {
   if (identical(json, _explicitNullProjectBorderCatalog)) {
     throw const FormatException(r'$.borderCatalog: expected an object');
@@ -434,6 +434,7 @@ abstract class ProjectManifest with _$ProjectManifest {
     @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
     @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
+    @Default([]) List<ProjectPresentationPresetRecord> presentationPresets,
     @Default({}) Map<String, dynamic> globalProperties,
     @Default(ProjectSmartTileCatalog.empty())
     @JsonKey(
@@ -483,6 +484,10 @@ abstract class ProjectManifest with _$ProjectManifest {
       ids: badges.map((badge) => badge.id),
     );
     final manifest = decoded.copyWith(shops: shops, badges: badges);
+    _assertUniqueDefinitionIds(
+      kind: 'presentation preset',
+      ids: manifest.presentationPresets.map((preset) => preset.id),
+    );
     return manifest;
   }
 }

@@ -41,35 +41,54 @@ class PlayerPanel extends StatelessWidget {
     this.padding = const EdgeInsets.all(PlayerSpacing.lg),
     this.elevated = false,
     this.role = PlayerPanelRole.standard,
+    this.surfaceRole,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final bool elevated;
   final PlayerPanelRole role;
+  final ProjectPresentationSurfaceRole? surfaceRole;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.playerColors;
     final semantic = context.playerSemanticTheme;
     final windowTheme = context.playerWindowTheme;
-    final windowRole = switch (role) {
-      PlayerPanelRole.dialogue => ProjectWindowRole.dialogue,
-      PlayerPanelRole.menu => ProjectWindowRole.pauseMenu,
-      _ => null,
-    };
+    final assignment = surfaceRole == null
+        ? null
+        : projectPresentationSurfaceAssignment(surfaceRole!);
+    final windowRole = assignment?.windowRole ??
+        switch (role) {
+          PlayerPanelRole.dialogue => ProjectWindowRole.dialogue,
+          PlayerPanelRole.menu => ProjectWindowRole.pauseMenu,
+          _ => null,
+        };
     final windowStyle = windowTheme == null || windowRole == null
         ? null
         : windowTheme.style(windowRole);
-    final surface = switch (role) {
-      PlayerPanelRole.standard =>
-        elevated ? colors.surfaceElevated : colors.surface,
-      PlayerPanelRole.title => semantic.titleSurface,
-      PlayerPanelRole.dialogue => semantic.dialogueSurface,
-      PlayerPanelRole.menu => semantic.menuSurface,
-      PlayerPanelRole.overworldHud => semantic.overworldHudSurface,
-      PlayerPanelRole.battleHud => semantic.battleHudSurface,
-    };
+    final surface = assignment == null
+        ? switch (role) {
+            PlayerPanelRole.standard =>
+              elevated ? colors.surfaceElevated : colors.surface,
+            PlayerPanelRole.title => semantic.titleSurface,
+            PlayerPanelRole.dialogue => semantic.dialogueSurface,
+            PlayerPanelRole.menu => semantic.menuSurface,
+            PlayerPanelRole.overworldHud => semantic.overworldHudSurface,
+            PlayerPanelRole.battleHud => semantic.battleHudSurface,
+          }
+        : switch (assignment.themeToken) {
+            ProjectPresentationSurfaceThemeToken.titleSurface =>
+              semantic.titleSurface,
+            ProjectPresentationSurfaceThemeToken.dialogueSurface =>
+              semantic.dialogueSurface,
+            ProjectPresentationSurfaceThemeToken.menuSurface =>
+              semantic.menuSurface,
+            ProjectPresentationSurfaceThemeToken.overworldHudSurface =>
+              semantic.overworldHudSurface,
+            ProjectPresentationSurfaceThemeToken.battleHudSurface =>
+              semantic.battleHudSurface,
+          };
     return Material(
       color: windowStyle == null
           ? surface

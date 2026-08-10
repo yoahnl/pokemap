@@ -15,6 +15,7 @@ import 'package:map_editor/src/application/use_cases/map_connection_use_cases.da
 import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
 import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
+import 'package:map_editor/src/features/personalization/application/project_presentation_preset_service.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -152,6 +153,62 @@ void main() {
         durable.presentation?.windows?.dialogueStyleId,
         'dialogue',
       );
+    });
+
+    test('exports, deletes, and reimports a shareable presentation preset',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final projectFile = File(p.join(fixture.root.path, 'project.json'));
+      final revision = narrativeEventBytesFingerprint(
+        await projectFile.readAsBytes(),
+      );
+      const profile = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(accentColor: '#126E78'),
+      );
+      await fixture.mutations.savePresentation(
+        profile,
+        fixture.root.path,
+        expectedProjectRevision: revision,
+        operationId: 'editor_preset_profile_save',
+      );
+      final service = ProjectPresentationPresetService(
+        mutations: fixture.mutations,
+      );
+      final pack = p.join(fixture.root.path, 'avelune.pokemapstyle');
+      await File(pack).writeAsString('stale preset');
+
+      await service.exportCurrent(
+        projectRootPath: fixture.root.path,
+        presetId: 'avelune',
+        label: 'Avelune',
+        description: 'Profil partageable de test.',
+        destinationPath: pack,
+      );
+      var durable = ProjectManifest.fromJson(
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+      );
+      expect(File(pack).lengthSync(), greaterThan(0));
+      expect(durable.presentationPresets.single.id, 'avelune');
+
+      await service.delete(
+        projectRootPath: fixture.root.path,
+        presetId: 'avelune',
+      );
+      durable = ProjectManifest.fromJson(
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+      );
+      expect(durable.presentationPresets, isEmpty);
+
+      await service.importAndApply(
+        projectRootPath: fixture.root.path,
+        sourcePath: pack,
+      );
+      durable = ProjectManifest.fromJson(
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+      );
+      expect(durable.presentationPresets.single.id, 'avelune');
+      expect(durable.presentation?.branding.accentColor, '#126E78');
     });
 
     test('plans without writing, applies once, and replays idempotently',
@@ -838,7 +895,6 @@ void main() {
     });
   });
 }
-
 Map<String, Object?> _stableReceipt(AuthoringReceipt receipt) => {
       'actionId': receipt.actionId,
       'actionVersion': receipt.actionVersion,

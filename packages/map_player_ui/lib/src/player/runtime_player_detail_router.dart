@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
@@ -81,7 +82,10 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         for (var index = 0; index < detail.entries.length; index++) ...<Widget>[
-          PlayerDetailEntryCard(entry: detail.entries[index]),
+          PlayerDetailEntryCard(
+            entry: detail.entries[index],
+            surfaceRole: _surfaceRoleFor(section),
+          ),
           if (index != detail.entries.length - 1)
             const SizedBox(height: PlayerSpacing.sm),
         ],
@@ -124,6 +128,21 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.map => Icons.map_rounded,
         RuntimePlayerPauseSection.options => Icons.tune_rounded,
       };
+
+  ProjectPresentationSurfaceRole _surfaceRoleFor(
+    RuntimePlayerPauseSection section,
+  ) =>
+      switch (section) {
+        RuntimePlayerPauseSection.party => ProjectPresentationSurfaceRole.party,
+        RuntimePlayerPauseSection.bag => ProjectPresentationSurfaceRole.bag,
+        RuntimePlayerPauseSection.pokedex =>
+          ProjectPresentationSurfaceRole.pokedex,
+        RuntimePlayerPauseSection.map => ProjectPresentationSurfaceRole.map,
+        RuntimePlayerPauseSection.options =>
+          ProjectPresentationSurfaceRole.options,
+        RuntimePlayerPauseSection.root =>
+          ProjectPresentationSurfaceRole.pauseMenu,
+      };
 }
 
 class _RuntimePlayerMap extends StatelessWidget {
@@ -139,6 +158,7 @@ class _RuntimePlayerMap extends StatelessWidget {
           if (detail.message case final message?
               when message.trim().isNotEmpty) ...<Widget>[
             PlayerPanel(
+              surfaceRole: ProjectPresentationSurfaceRole.map,
               child: Text(
                 message,
                 key: const ValueKey<String>('runtime-player-map-message'),
@@ -149,7 +169,10 @@ class _RuntimePlayerMap extends StatelessWidget {
           for (var index = 0;
               index < detail.entries.length;
               index++) ...<Widget>[
-            PlayerDetailEntryCard(entry: detail.entries[index]),
+            PlayerDetailEntryCard(
+              entry: detail.entries[index],
+              surfaceRole: ProjectPresentationSurfaceRole.map,
+            ),
             if (index != detail.entries.length - 1)
               const SizedBox(height: PlayerSpacing.sm),
           ],
@@ -174,6 +197,7 @@ class _RuntimePlayerBag extends StatelessWidget {
           if (detail.message case final message?
               when message.trim().isNotEmpty) ...<Widget>[
             PlayerPanel(
+              surfaceRole: ProjectPresentationSurfaceRole.bag,
               child: Text(
                 message,
                 key: const ValueKey<String>('runtime-player-bag-message'),
@@ -185,7 +209,10 @@ class _RuntimePlayerBag extends StatelessWidget {
           for (var index = 0;
               index < detail.entries.length;
               index++) ...<Widget>[
-            PlayerDetailEntryCard(entry: detail.entries[index]),
+            PlayerDetailEntryCard(
+              entry: detail.entries[index],
+              surfaceRole: ProjectPresentationSurfaceRole.bag,
+            ),
             if (detail.entries[index].bagAction case final action?) ...<Widget>[
               const SizedBox(height: PlayerSpacing.xs),
               PlayerActionButton(
@@ -284,6 +311,7 @@ class _RuntimePlayerBag extends StatelessWidget {
             height: availableHeight.clamp(240, 640).toDouble(),
             child: PlayerPanel(
               elevated: true,
+              surfaceRole: ProjectPresentationSurfaceRole.bag,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
@@ -354,6 +382,7 @@ class _RuntimePlayerOptionsState extends State<_RuntimePlayerOptions> {
   Widget build(BuildContext context) {
     return PlayerPanel(
       key: const ValueKey<String>('runtime-player-options'),
+      surfaceRole: ProjectPresentationSurfaceRole.options,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
@@ -98,6 +99,7 @@ class _BattleHud extends StatelessWidget {
       padding: const EdgeInsets.all(PlayerSpacing.sm),
       elevated: true,
       role: PlayerPanelRole.battleHud,
+      surfaceRole: ProjectPresentationSurfaceRole.battleHud,
       child: Semantics(
         container: true,
         label: '${snapshot.ownerLabel}, ${snapshot.speciesLabel}, '
@@ -194,6 +196,7 @@ class _BattleCommandPanel extends StatelessWidget {
     return PlayerPanel(
       elevated: true,
       role: PlayerPanelRole.battleHud,
+      surfaceRole: ProjectPresentationSurfaceRole.battleHud,
       padding: const EdgeInsets.all(PlayerSpacing.sm),
       child: FocusTraversalGroup(
         policy: ReadingOrderTraversalPolicy(),

@@ -1,4 +1,5 @@
 import '../models/project_presentation_layout_profile.dart';
+import '../models/project_presentation_surface_role.dart';
 
 const double projectPresentationCompactWidth = 600;
 const double projectPresentationCompactHeight = 480;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
@@ -41,6 +42,7 @@ class PlayerNotificationOverlay extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 520),
             child: PlayerPanel(
               elevated: true,
+              surfaceRole: ProjectPresentationSurfaceRole.notification,
               padding: const EdgeInsets.symmetric(
                 horizontal: PlayerSpacing.md,
                 vertical: PlayerSpacing.sm,

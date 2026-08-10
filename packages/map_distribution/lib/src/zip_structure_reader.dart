@@ -28,9 +28,10 @@ final class ZipStructure {
 
 /// Strict reader for the deliberately small ZIP profile used by format v1.
 final class ZipStructureReader {
-  const ZipStructureReader(this.policy);
+  const ZipStructureReader(this.policy, {this.entryNameValidator});
 
   final GamePackageSecurityPolicy policy;
+  final void Function(String name)? entryNameValidator;
 
   ZipStructure read(Uint8List bytes) {
     try {
@@ -304,6 +305,11 @@ final class ZipStructureReader {
   }
 
   void _validateName(String name) {
+    final validator = entryNameValidator;
+    if (validator != null) {
+      validator(name);
+      return;
+    }
     if (name == 'game-manifest.json') return;
     try {
       PackagePathPolicy.validate(name, errorPath: name);

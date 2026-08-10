@@ -5,6 +5,7 @@ import '../domains/assets/asset_actions.dart';
 import '../domains/assets/element_actions.dart';
 import '../domains/assets/palette_actions.dart';
 import '../domains/assets/presentation_actions.dart';
+import '../domains/assets/presentation_preset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
 import '../domains/assets/tiled_tileset_import_actions.dart';
 import '../domains/assets/tiled_image_collection_packer.dart';
@@ -93,6 +94,9 @@ final class MapMutationDispatcher {
     const palettes = PaletteActions();
     const elements = ElementActions();
     const presentation = PresentationActions();
+    final presentationPresets = PresentationPresetActions(
+      artifactStore: artifacts,
+    );
     const pokemonCatalogs = PokemonCatalogActions();
     const campaignContent = CampaignContentActions();
     const dialogues = DialogueActions();
@@ -208,6 +212,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: presentation.build,
+        ),
+      for (final descriptor in PresentationPresetActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: presentationPresets.build,
         ),
       for (final descriptor in PokemonCatalogActions.descriptors)
         MapMutationActionRegistration(

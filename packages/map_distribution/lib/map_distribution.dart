@@ -20,4 +20,6 @@ export 'src/game_package_security_policy.dart';
 export 'src/game_package_release_policy.dart';
 export 'src/package_path_policy.dart';
 export 'src/personalization_release_gate_receipt.dart';
+export 'src/presentation_preset_pack.dart';
+export 'src/presentation_preset_pack_codec.dart';
 export 'src/random_access_package_source.dart';

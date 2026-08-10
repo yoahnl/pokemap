@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
@@ -60,6 +61,7 @@ class _DeviceBindings extends StatelessWidget {
           ]
         : RuntimeInputControl.values;
     return PlayerPanel(
+      surfaceRole: ProjectPresentationSurfaceRole.options,
       padding: const EdgeInsets.all(PlayerSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

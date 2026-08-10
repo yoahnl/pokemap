@@ -444,6 +444,7 @@ projectSettings
 projectPokemonConfig
 projectNewGameConfig
 projectPresentationProfile
+projectPresentationPreset
 mapGroup
 map
 mapLayer
@@ -535,6 +536,12 @@ project.new_game_config_get
 project.new_game_config_update
 project.presentation_get
 project.presentation_update
+presentation.update
+presentation.preset.import_plan
+presentation.preset.import_apply
+presentation.preset.export
+presentation.preset.delete_plan
+presentation.preset.delete_apply
 project.global_properties_get
 project.global_properties_patch
 project.global_properties_remove

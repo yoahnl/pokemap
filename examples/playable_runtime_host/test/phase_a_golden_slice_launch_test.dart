@@ -361,11 +361,13 @@ void main() {
   });
 
   test(
-    'the developer picker always adopts the generic runtime shell',
+    'the developer picker adopts the canonical startup and session surfaces',
     () async {
       final source = await File('lib/main.dart').readAsString();
 
       expect(source, contains('PlayerRuntimeStartupShell('));
+      expect(source, contains('PokeMapPlayerSessionView('));
+      expect(source, contains("'standalone-runtime-player-view'"));
       expect(source, contains('StandaloneRuntimeStartupHost('));
       expect(source, isNot(contains('POKEMAP_RUNTIME_STARTUP_SHELL')));
       expect(source, isNot(contains('_runtimeStartupShellEnabled')));

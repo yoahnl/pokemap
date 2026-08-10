@@ -144,6 +144,120 @@ void main() {
     expect(shape.side.color, _semanticTheme.outline);
   });
 
+  for (final role in <ProjectPresentationSurfaceRole>[
+    ProjectPresentationSurfaceRole.party,
+    ProjectPresentationSurfaceRole.notification,
+    ProjectPresentationSurfaceRole.battleHud,
+  ]) {
+    testWidgets('resolves the owned theme and window for ${role.name}', (
+      tester,
+    ) async {
+      final theme = PokeMapPlayerTheme.withWindowProfile(
+        PokeMapPlayerTheme.withSemanticTheme(
+          PokeMapPlayerTheme.light(),
+          _semanticTheme,
+        ),
+        _windows,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Scaffold(
+            body: PlayerPanel(
+              key: ValueKey<String>('surface-${role.name}'),
+              surfaceRole: role,
+              child: Text(role.name),
+            ),
+          ),
+        ),
+      );
+
+      final material = tester.widget<Material>(
+        find.descendant(
+          of: find.byKey(ValueKey<String>('surface-${role.name}')),
+          matching: find.byType(Material),
+        ),
+      );
+      expect(material.color, _semanticTheme.surfaceElevated);
+      expect(material.elevation, 8);
+    });
+  }
+
+  testWidgets('resolves each surface semantic token without window styles', (
+    tester,
+  ) async {
+    final theme = PokeMapPlayerTheme.withSemanticTheme(
+      PokeMapPlayerTheme.light(),
+      _semanticTheme,
+    );
+    const roles = <ProjectPresentationSurfaceRole>[
+      ProjectPresentationSurfaceRole.party,
+      ProjectPresentationSurfaceRole.notification,
+      ProjectPresentationSurfaceRole.battleHud,
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: Scaffold(
+          body: Column(
+            children: <Widget>[
+              for (final role in roles)
+                PlayerPanel(
+                  key: ValueKey<String>('semantic-${role.name}'),
+                  surfaceRole: role,
+                  child: Text('Surface'),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final expected = <ProjectPresentationSurfaceRole, Color>{
+      ProjectPresentationSurfaceRole.party: _semanticTheme.menuSurface,
+      ProjectPresentationSurfaceRole.notification:
+          _semanticTheme.overworldHudSurface,
+      ProjectPresentationSurfaceRole.battleHud: _semanticTheme.battleHudSurface,
+    };
+    for (final role in roles) {
+      final material = tester.widget<Material>(
+        find.descendant(
+          of: find.byKey(ValueKey<String>('semantic-${role.name}')),
+          matching: find.byType(Material),
+        ),
+      );
+      expect(material.color, expected[role]);
+    }
+  });
+
+  testWidgets('keeps the title surface borderless by ownership',
+      (tester) async {
+    final theme = PokeMapPlayerTheme.withWindowProfile(
+      PokeMapPlayerTheme.withSemanticTheme(
+        PokeMapPlayerTheme.light(),
+        _semanticTheme,
+      ),
+      _windows,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: const Scaffold(
+          body: PlayerPanel(
+            surfaceRole: ProjectPresentationSurfaceRole.title,
+            child: Text('Titre'),
+          ),
+        ),
+      ),
+    );
+
+    final material = tester.widget<Material>(find.byType(Material).last);
+    final shape = material.shape! as RoundedRectangleBorder;
+
+    expect(material.color, _semanticTheme.titleSurface);
+    expect(shape.borderRadius, BorderRadius.circular(PlayerRadii.md));
+  });
+
   testWidgets('renders a zero-width authored border as no border',
       (tester) async {
     final theme = PokeMapPlayerTheme.withWindowProfile(

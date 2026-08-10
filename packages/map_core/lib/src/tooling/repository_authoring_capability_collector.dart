@@ -57,8 +57,7 @@ final class RepositoryAuthoringCapabilityCollector {
     }
     final block = source.substring(start, end);
     final fields = RegExp(
-      r'^\s+.+?\s+get\s+([a-zA-Z][a-zA-Z0-9_]*)\s*(?:=>|;)',
-      multiLine: true,
+      r'\bget\s+([a-zA-Z][a-zA-Z0-9_]*)\s*(?:=>|;)',
     )
         .allMatches(block)
         .map((match) => match.group(1)!)
@@ -255,7 +254,6 @@ final class RepositoryAuthoringCapabilityCollector {
     return normalizedFile.substring(prefix.length);
   }
 }
-
 final RegExp _actionIdPattern = RegExp(
   r'^[a-z][a-zA-Z0-9_]*(?:\.[a-zA-Z0-9_]+)+$',
 );

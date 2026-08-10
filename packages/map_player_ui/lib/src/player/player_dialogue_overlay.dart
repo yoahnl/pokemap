@@ -61,6 +61,7 @@ class PlayerDialogueOverlay extends StatelessWidget {
                 child: PlayerPanel(
                   elevated: true,
                   role: PlayerPanelRole.dialogue,
+                  surfaceRole: ProjectPresentationSurfaceRole.dialogue,
                   padding: EdgeInsets.all(
                     PlayerSpacing.md * (resolved?.spacingScale ?? 1),
                   ),
