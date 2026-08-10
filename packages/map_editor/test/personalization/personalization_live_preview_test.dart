@@ -206,7 +206,7 @@ void main() {
 
     setHostState(() => scene = PersonalizationStudioScene.battle);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('ATTAQUE'));
+    await tester.tap(find.text('ATTAQUER'));
     await tester.pump();
     expect(target, isA<BattleCommandsTarget>());
   });

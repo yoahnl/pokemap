@@ -1331,7 +1331,7 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.tap(find.text('ATTAQUE').last);
+    await tester.tap(find.text('ATTAQUER').last);
     await tester.pumpAndSettle();
     expect(
       find.byKey(

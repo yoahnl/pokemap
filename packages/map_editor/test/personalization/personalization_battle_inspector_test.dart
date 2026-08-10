@@ -89,6 +89,8 @@ void main() {
       find.byKey(const ValueKey<String>('typography-import-combat')),
       findsOneWidget,
     );
+    expect(find.text('ATTAQUER'), findsOneWidget);
+    expect(find.text('ÉQUIPE'), findsOneWidget);
 
     await _tap(tester, 'battle-preset-cinematic');
     expect(
