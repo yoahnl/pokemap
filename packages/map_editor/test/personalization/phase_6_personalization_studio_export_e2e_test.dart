@@ -107,6 +107,10 @@ void main() {
       );
       final saved = await notifier.savePersonalizationStudio();
       expect(saved, isTrue, reason: notifier.state.errorMessage);
+      final durableProject = ProjectManifest.fromJson(
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+      );
+      expect(durableProject.presentation, profile);
 
       final configuredOutput =
           Platform.environment['POKEMAP_PHASE6_PACKAGE_OUTPUT'];
@@ -172,6 +176,15 @@ void main() {
       expect(
         artifact.manifest.presentation?.layouts?.title.expanded.slot,
         'bottomLeft',
+      );
+      expect(
+        artifact.manifest.presentation?.typography?.combat?.fallbackFamilies,
+        <String>['monospace'],
+      );
+      expect(artifact.manifest.presentation?.windows?.battleStyleId, 'battle');
+      expect(
+        artifact.manifest.presentation?.layouts?.battle?.regular.slot,
+        'right',
       );
     },
   );

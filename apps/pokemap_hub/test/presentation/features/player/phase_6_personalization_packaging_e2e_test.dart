@@ -107,17 +107,21 @@ void main() {
         assets: launch.assets,
       );
       final runtimeProfile = (await startupAdapter.loadPresentationProfile())!;
+      final packagePresentation = launch.manifest.presentation!;
+      final iconPath = packagePresentation.branding.icon!;
+      final titleMusicPath = packagePresentation.branding.titleMusic!;
+      final introVariant = packagePresentation.intro!.responsiveMedia.landscape;
+      final displayFont = packagePresentation.typography!.display;
       final resolvedAssets = <String, RuntimeResolvedAsset?>{
-        for (final path in <String>[
-          'presentation/icon.png',
-          'presentation/intro/video.mp4',
-          'presentation/intro/poster.png',
-          'project/assets/title.ogg',
-          'presentation/fonts/display.ttf',
-        ])
-          path: path.endsWith('.png')
-              ? await startupAdapter.resolveImage(path)
-              : await startupAdapter.resolveMedia(path),
+        iconPath: await startupAdapter.resolveImage(iconPath),
+        titleMusicPath: await startupAdapter.resolveMedia(titleMusicPath),
+        introVariant.video: await startupAdapter.resolveMedia(
+          introVariant.video,
+        ),
+        introVariant.poster: await startupAdapter.resolveImage(
+          introVariant.poster,
+        ),
+        displayFont.font!: await startupAdapter.resolveMedia(displayFont.font!),
       };
       final unavailableAssets = <String>[
         for (final entry in resolvedAssets.entries)
@@ -129,21 +133,19 @@ void main() {
           description: launch.manifest.description,
         ),
         profile: runtimeProfile,
-        titleLogo:
-            resolvedAssets['presentation/icon.png']?.presentationAsset,
-        titleMusic:
-            resolvedAssets['project/assets/title.ogg']?.presentationAsset,
-        introVideo: resolvedAssets['presentation/intro/video.mp4']
-            ?.presentationAsset,
-        introPoster: resolvedAssets['presentation/intro/poster.png']
-            ?.presentationAsset,
+        titleLogo: resolvedAssets[iconPath]?.presentationAsset,
+        titleMusic: resolvedAssets[titleMusicPath]?.presentationAsset,
+        introVideo: resolvedAssets[introVariant.video]?.presentationAsset,
+        introPoster: resolvedAssets[introVariant.poster]?.presentationAsset,
         typography: _loadedTypography(runtimeProfile.typography!),
       );
       final presentation = RuntimePlayerPresentation.fromRuntime(
         resolvedPresentation,
         imageForAsset: (asset) {
           final resolved =
-              asset == null ? null : startupAdapter.resolvedAsset(asset.assetId);
+              asset == null
+                  ? null
+                  : startupAdapter.resolvedAsset(asset.assetId);
           return resolved == null
               ? null
               : FileImage(File.fromUri(resolved.resolvedUri));
@@ -156,11 +158,11 @@ void main() {
       expect(
         preflight.assetSha256.keys,
         containsAll(<String>[
-          'presentation/icon.png',
-          'presentation/intro/video.mp4',
-          'presentation/intro/poster.png',
-          'presentation/fonts/display.ttf',
-          'presentation/fonts/display-license.txt',
+          iconPath,
+          introVariant.video,
+          introVariant.poster,
+          displayFont.font!,
+          displayFont.license!,
         ]),
       );
       expect(
@@ -168,10 +170,7 @@ void main() {
         PlayerTitleLayoutVariant.cinematic,
       );
       expect(runtimeProfile.intro, isNotNull);
-      expect(
-        presentation.typography.displayFamily,
-        'Aube Display',
-      );
+      expect(presentation.typography.displayFamily, 'Aube Display');
       expect(presentation.semanticTheme, isNotNull);
       expect(
         presentation.windowProfile
@@ -182,6 +181,19 @@ void main() {
       expect(
         presentation.layoutProfile?.pauseMenu.expanded.slot,
         ProjectPresentationLayoutSlot.leftPane,
+      );
+      expect(runtimeProfile.schemaVersion, 5);
+      expect(runtimeProfile.menuLabels?.pokedex, 'Carnet de route');
+      expect(presentation.typography.combatFallback, <String>['monospace']);
+      expect(
+        presentation.windowProfile
+            ?.resolve(ProjectWindowRole.battle)
+            .cornerRadius,
+        12,
+      );
+      expect(
+        presentation.layoutProfile?.battle?.regular.slot,
+        ProjectPresentationLayoutSlot.right,
       );
       expect(unavailableAssets, isEmpty);
 
@@ -239,7 +251,7 @@ void main() {
       expect(unmounted, isTrue);
 
       final installedVideo = await launch.assets.resolveReference(
-        launch.assets.reference('presentation/intro/video.mp4'),
+        launch.assets.reference(introVariant.video),
       );
       await installedVideo.writeAsBytes(<int>[0, 1, 2, 3], flush: true);
       var corruptionRejected = false;
@@ -289,8 +301,7 @@ void main() {
           'resolvedPresentation': <String, Object?>{
             'titleLayoutVariant': presentation.title.layoutVariant.name,
             'introAvailable': runtimeProfile.intro != null,
-            'displayFontFamily':
-                presentation.typography.displayFamily,
+            'displayFontFamily': presentation.typography.displayFamily,
             'semanticThemeAvailable': presentation.semanticTheme != null,
             'windowThemeAvailable': presentation.windowProfile != null,
             'layoutThemeAvailable': presentation.layoutProfile != null,
@@ -483,11 +494,15 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
         dialogue: GamePackageFontRole(
           fallbackFamilies: typography.dialogue.fallbackFamilies,
         ),
+        combat: GamePackageFontRole(
+          fallbackFamilies: typography.combat!.fallbackFamilies,
+        ),
         numbers: GamePackageFontRole(
           fallbackFamilies: typography.numbers.fallbackFamilies,
         ),
       ),
       theme: _packageTheme(profile.theme!),
+      menuLabels: _packageMenuLabels(profile.menuLabels!),
       windows: _packageWindows(profile.windows!),
       layouts: _packageLayouts(profile.layouts!),
     ),
@@ -520,6 +535,19 @@ GamePackageSemanticTheme _packageTheme(ProjectSemanticThemeProfile theme) =>
       battleHudSurface: theme.battleHudSurface,
     );
 
+GamePackageMenuLabels _packageMenuLabels(ProjectMenuLabelsProfile labels) =>
+    GamePackageMenuLabels(
+      pauseTitle: labels.pauseTitle,
+      resume: labels.resume,
+      party: labels.party,
+      bag: labels.bag,
+      pokedex: labels.pokedex,
+      map: labels.map,
+      save: labels.save,
+      options: labels.options,
+      returnToTitle: labels.returnToTitle,
+    );
+
 GamePackagePresentationWindows _packageWindows(
   ProjectPresentationWindowsProfile windows,
 ) => GamePackagePresentationWindows(
@@ -538,6 +566,7 @@ GamePackagePresentationWindows _packageWindows(
   defaultStyleId: windows.defaultStyleId,
   pauseMenuStyleId: windows.pauseMenuStyleId,
   dialogueStyleId: windows.dialogueStyleId,
+  battleStyleId: windows.battleStyleId,
   pauseBackdropOpacity: windows.pauseBackdropOpacity,
 );
 
@@ -547,6 +576,8 @@ GamePackagePresentationLayouts _packageLayouts(
   title: _packageResponsiveLayout(layouts.title),
   pauseMenu: _packageResponsiveLayout(layouts.pauseMenu),
   dialogue: _packageResponsiveLayout(layouts.dialogue),
+  battle:
+      layouts.battle == null ? null : _packageResponsiveLayout(layouts.battle!),
 );
 
 GamePackageResponsiveSurfaceLayout _packageResponsiveLayout(
@@ -584,6 +615,11 @@ RuntimeLoadedTypography _loadedTypography(ProjectTypographyProfile source) =>
         ProjectTypographyRole.dialogue: RuntimeLoadedFontRole(
           registeredFamily: source.dialogue.family,
           fallbackFamilies: source.dialogue.fallbackFamilies,
+        ),
+        ProjectTypographyRole.combat: RuntimeLoadedFontRole(
+          registeredFamily: source.combat?.family,
+          fallbackFamilies:
+              source.combat?.fallbackFamilies ?? source.body.fallbackFamilies,
         ),
         ProjectTypographyRole.numbers: RuntimeLoadedFontRole(
           registeredFamily: source.numbers.family,

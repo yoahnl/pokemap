@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:map_runtime/map_runtime.dart';
 import 'package:pokemap_loader/src/runtime_launch_save.dart';
 import 'package:pokemap_loader/src/runtime_startup_host.dart';
@@ -161,6 +162,48 @@ void main() {
       expect(host.snapshot.phase, RuntimeStartupPhase.completed);
     },
   );
+
+  test('standalone forwards the complete V5 presentation', () async {
+    final profile = ProjectPresentationProfile.fromJson(
+      jsonDecode(
+            await File(
+              '${Directory.current.path}/golden_personalization_slice/'
+              'presentation.json',
+            ).readAsString(),
+          )
+          as Map<String, dynamic>,
+    );
+    final projectFilePath = _goldenProjectPath();
+    final manifest = (await _loadManifest(
+      projectFilePath,
+    )).copyWith(presentation: profile);
+    final adapter = StandaloneRuntimeStartupAdapter(
+      projectFilePath: projectFilePath,
+      manifest: manifest,
+    );
+
+    final loaded = await adapter.loadPresentationProfile();
+    expect(loaded, profile);
+    final presentation = player_ui.RuntimePlayerPresentation.fromProfile(
+      loaded!,
+    );
+    expect(
+      presentation.title.layoutVariant,
+      player_ui.PlayerTitleLayoutVariant.cinematic,
+    );
+    expect(presentation.pauseMenuLabels.pokedex, 'Carnet de route');
+    expect(presentation.typography.combatFallback, <String>['monospace']);
+    expect(
+      presentation.windowProfile
+          ?.resolve(ProjectWindowRole.battle)
+          .cornerRadius,
+      12,
+    );
+    expect(
+      presentation.layoutProfile?.battle?.regular.slot,
+      ProjectPresentationLayoutSlot.right,
+    );
+  });
 
   test(
     'standalone presentation resolution cannot escape the project root',
