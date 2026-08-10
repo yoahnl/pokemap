@@ -239,6 +239,8 @@ final class RuntimeProjectProjectionBuilder {
       presentation: presentation,
     );
 
+    await _addPortableAssetClosure(payload, authorFiles, budget);
+
     await for (final entity
         in projectRoot.list(recursive: true, followLinks: false)) {
       budget.visitWorkspaceEntry();
@@ -263,7 +265,13 @@ final class RuntimeProjectProjectionBuilder {
         continue;
       }
       final extension = p.extension(relative).toLowerCase();
-      if (!_isRuntimeProjectFile(relative, extension)) continue;
+      if (!_isRuntimeProjectFile(
+        relative,
+        extension,
+        hasCanonicalAssetCatalog: authorFiles.catalog.records.isNotEmpty,
+      )) {
+        continue;
+      }
       final bytes = await budget.readFile(
         File(entity.path),
         logicalPath: relative,
@@ -414,6 +422,29 @@ final class RuntimeProjectProjectionBuilder {
       titleMenuMedia: titleMenuMedia,
       typographyRoles: typographyRoles,
     );
+  }
+
+  Future<void> _addPortableAssetClosure(
+    Map<String, List<int>> payload,
+    _AuthorProjectFileResolver authorFiles,
+    _ProjectionBudget budget,
+  ) async {
+    if (authorFiles.catalog.records.isEmpty) return;
+    budget.addPayload(
+      payload,
+      _normalizePackagePath('project/$assetCatalogStorageKey'),
+      _encodeRuntimeJson(authorFiles.catalog.toJson()),
+    );
+    final packagedArtifacts = <String>{};
+    for (final record in authorFiles.catalog.records) {
+      final storagePath = assetBlobStorageKey(record.artifact);
+      if (!packagedArtifacts.add(storagePath)) continue;
+      budget.addPayload(
+        payload,
+        _normalizePackagePath('project/$storagePath'),
+        await authorFiles.read(record.logicalPath, budget),
+      );
+    }
   }
 
   Future<RuntimeProjectedResponsiveVideo> _addResponsiveVideo(
@@ -822,8 +853,12 @@ final class RuntimeProjectProjectionBuilder {
     return RegExp(r'^[0-9a-f]{64}\.blob$').hasMatch(segments[2]);
   }
 
-  static bool _isRuntimeProjectFile(String path, String extension) {
-    if (_isPokeMapStoreBlob(path)) return true;
+  static bool _isRuntimeProjectFile(
+    String path,
+    String extension, {
+    required bool hasCanonicalAssetCatalog,
+  }) {
+    if (_isPokeMapStoreBlob(path)) return !hasCanonicalAssetCatalog;
     final firstSegment = path.split('/').first;
     if (extension == '.json') {
       // `assets/` is the media tree. The runtime only ever resolves it through
@@ -988,9 +1023,8 @@ final class _AuthorProjectFileResolver {
       relativePath,
     );
     final record = catalog.findByLogicalPath(normalized);
-    final storagePath = record == null
-        ? normalized
-        : assetBlobStorageKey(record.artifact);
+    final storagePath =
+        record == null ? normalized : assetBlobStorageKey(record.artifact);
     final file = _fileWithinRoot(storagePath, logicalPath: relativePath);
     final type = await FileSystemEntity.type(file.path, followLinks: false);
     if (type != FileSystemEntityType.file) {
