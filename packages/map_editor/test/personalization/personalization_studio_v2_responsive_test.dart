@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/features/personalization/application/personalization_inspector_target.dart';
 import 'package:map_editor/src/features/personalization/application/personalization_preview_surface_descriptor.dart';
-import 'package:map_editor/src/features/personalization/presentation/personalization_studio_shell_v2.dart';
+import 'package:map_editor/src/features/personalization/presentation/personalization_studio_shell.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 
 void main() {
@@ -154,7 +154,7 @@ Future<void> _pumpShell(
           textScaler: TextScaler.linear(textScale),
         ),
         child: Scaffold(
-          body: PersonalizationStudioShellV2(
+          body: PersonalizationStudioShell(
             selectedScene: PersonalizationStudioScene.globalStyle,
             onSceneSelected: onSceneSelected ?? (_) {},
             preview: Semantics(

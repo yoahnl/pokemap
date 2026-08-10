@@ -1,11 +1,28 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/features/personalization/application/personalization_inspector_target.dart';
 import 'package:map_editor/src/features/personalization/application/personalization_preview_surface_descriptor.dart';
-import 'package:map_editor/src/features/personalization/presentation/personalization_studio_shell_v2.dart';
+import 'package:map_editor/src/features/personalization/presentation/personalization_studio_shell.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 
 void main() {
+  test('legacy personalization shells are absent', () {
+    expect(
+      File(
+        'lib/src/features/personalization/presentation/personalization_hub_shell.dart',
+      ).existsSync(),
+      isFalse,
+    );
+    expect(
+      File(
+        'lib/src/features/personalization/presentation/personalization_studio_shell_v2.dart',
+      ).existsSync(),
+      isFalse,
+    );
+  });
+
   testWidgets('uses 260 and 360 pixel panes at 1600 pixels', (tester) async {
     await _pumpShell(tester, const Size(1600, 900));
 
@@ -129,7 +146,7 @@ Future<void> _pumpShell(
           textScaler: TextScaler.linear(textScale),
         ),
         child: Scaffold(
-          body: PersonalizationStudioShellV2(
+          body: PersonalizationStudioShell(
             selectedScene: PersonalizationStudioScene.globalStyle,
             onSceneSelected: (_) {},
             preview: const ColoredBox(

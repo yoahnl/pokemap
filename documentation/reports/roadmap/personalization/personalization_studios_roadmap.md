@@ -209,7 +209,7 @@ Le test bloquant vérifie que PlayerDialogueSurface, PlayerBattleSurface, Player
 | Phase 2 — Nouveau shell | PERS2-05, PERS2-06, PERS2-07 | Navigation, preview et inspecteur simples | Phase 1 |
 | Phase 3 — Cinq surfaces existantes | PERS2-08, puis PERS2-09 à PERS2-12 en parallèle | Global, titre, intro, Pause et Dialogue terminés | Phase 2 |
 | Phase 4 — Combat V1 | PERS2-13, puis PERS2-14 et PERS2-15, puis PERS2-16 | Combat personnalisable de bout en bout | Phase 3 |
-| Phase 5 — Certification | PERS2-17 et PERS2-18, puis PERS2-19 | Hub, standalone, accessibilité et acceptation finale | Phase 4 |
+| Phase 5 — Certification — implémentée, gate globale PARTIAL | PERS2-17 et PERS2-18, puis PERS2-19 | Hub, standalone, accessibilité et acceptation finale | Phase 4 |
 
 Ordre critique :
 
@@ -747,6 +747,10 @@ npm test
 
 ### PERS2-17 — Sauvegarde, export, Hub et standalone
 
+**Statut : DONE — 2026-08-10**
+
+**Preuves :** commit `031f84bc6` ; 13 tests ciblés verts sur le redémarrage Editor, l’export canonique, l’installation Hub et le lancement standalone. Le profil V5 complet traverse `presentation.update`, le package exporté et `RuntimePlayerPresentation` sans second loader de présentation.
+
 **Fichiers :**
 
 - Modifier : packages/map_editor/lib/src/features/personalization/application/personalization_studio_session_controller.dart
@@ -764,6 +768,10 @@ npm test
 **Commit proposé :** feat(personalization): complete studio to player propagation
 
 ### PERS2-18 — Accessibilité, input et responsive
+
+**Statut : DONE — 2026-08-10**
+
+**Preuves :** commit `03120b033` ; 32 tests Editor et 50 tests player ciblés verts. La matrice couvre les quatre viewports, les échelles 1× à 2×, clavier, souris et manette, les cibles de 48 px, les semantics, le mouvement réduit et l’absence d’overflow.
 
 **Fichiers :**
 
@@ -786,6 +794,8 @@ npm test
 **Commit proposé :** test(personalization): certify responsive accessible authoring
 
 ### PERS2-19 — Acceptation visuelle et suppression de l’ancien Studio
+
+**Statut : IMPLÉMENTÉ — certification globale PARTIAL — 2026-08-10**
 
 **Fichiers :**
 
@@ -850,6 +860,22 @@ npm test
 cd ../..
 bash tools/scripts/check_markdown_hygiene.sh
 ~~~
+
+**Preuves de clôture Phase 5 :**
+
+| Gate | Preuve fraîche | Verdict |
+|---|---|---|
+| Shell canonique | `personalization_hub_shell.dart` supprimé ; `PersonalizationStudioShell` sans suffixe V2 ; test d’absence legacy vert | PASS |
+| Six scènes et vrais widgets | registre à six scènes ; `PersonalizationPlayerSurfaceAdapter` monte les surfaces `map_player_ui` ; 190 tests Personalization verts | PASS |
+| Acceptation visuelle | 12 goldens Editor et 10 goldens player régénérés, rejoués et inspectés en deux contact sheets | PASS technique, approbation Yoahn requise |
+| Propagation | certification PERS2-17 : 13 tests ciblés verts | PASS |
+| Accessibilité et responsive | certification PERS2-18 : 82 tests ciblés verts | PASS |
+| Parité authoring et MCP | PMCP-085 : 63 ressources, 237 actions, zéro contrat manquant ou bloqué ; 491 tests authoring et 39 tests MCP verts ; `presentation.update` visible dans `pokemap_describe` live | PASS ciblé |
+| Distribution et player | 99 tests distribution et 190 tests player verts | PASS |
+| Builds | Editor macOS, standalone macOS, Hub macOS et Hub Android debug construits | PASS |
+| Suites globales héritées | `map_core` : 4042 succès, 8 échecs, 1 skip ; standalone : 246 succès, 24 échecs, 3 skips ; Hub : 398 succès, 7 goldens Avelune en échec | HORS SCOPE, bloque le statut global DONE |
+
+PERS2-19 ne passe à `DONE` global qu’après acceptation visuelle de Yoahn et résolution ou dérogation explicite des suites héritées rouges. Les tests et builds du périmètre Personalization sont verts.
 
 **Commit proposé :** feat(personalization): ship the studio v2 experience
 

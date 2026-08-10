@@ -345,10 +345,9 @@ void main() {
         theme: safeProjectSemanticTheme,
       ),
     );
-    File('${root.path}/project.json').writeAsStringSync(
-      jsonEncode(project.toJson()),
-      flush: true,
-    );
+    File(
+      '${root.path}/project.json',
+    ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
     final gateway = _MemoryProjectGateway(project);
     final container = await pumpEditorCanvasHostHarness(
       tester,
@@ -427,7 +426,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey<String>('personalization-studio-shell-v2')),
+      find.byKey(const ValueKey<String>('personalization-studio-shell')),
       findsOneWidget,
     );
     expect(find.byType(PersonalizationLivePreview), findsOneWidget);
@@ -1357,7 +1356,7 @@ void main() {
     );
     expect(find.text('Aucun projet ouvert'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('personalization-studio-shell-v2')),
+      find.byKey(const ValueKey<String>('personalization-studio-shell')),
       findsNothing,
     );
   });
@@ -1379,7 +1378,7 @@ void main() {
     );
     expect(find.text('Chargement du projet…'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('personalization-studio-shell-v2')),
+      find.byKey(const ValueKey<String>('personalization-studio-shell')),
       findsNothing,
     );
   });
@@ -1401,7 +1400,7 @@ void main() {
     );
     expect(find.text('Manifest illisible'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('personalization-studio-shell-v2')),
+      find.byKey(const ValueKey<String>('personalization-studio-shell')),
       findsNothing,
     );
   });

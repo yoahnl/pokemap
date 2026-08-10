@@ -6,8 +6,8 @@ import '../application/personalization_preview_surface_descriptor.dart';
 import 'personalization_scene_inspector.dart';
 import 'personalization_scene_navigation.dart';
 
-class PersonalizationStudioShellV2 extends StatelessWidget {
-  const PersonalizationStudioShellV2({
+class PersonalizationStudioShell extends StatelessWidget {
+  const PersonalizationStudioShell({
     super.key,
     required this.selectedScene,
     required this.onSceneSelected,
@@ -30,7 +30,7 @@ class PersonalizationStudioShellV2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => PokeMapPageSurface(
-    key: const ValueKey<String>('personalization-studio-shell-v2'),
+    key: const ValueKey<String>('personalization-studio-shell'),
     padding: const EdgeInsets.all(12),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

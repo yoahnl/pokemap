@@ -34,7 +34,7 @@ import '../application/project_title_motion_import_service.dart';
 import 'personalization_live_preview.dart';
 import 'personalization_readiness_panel.dart';
 import 'personalization_section_actions.dart';
-import 'personalization_studio_shell_v2.dart';
+import 'personalization_studio_shell.dart';
 import 'inspectors/personalization_battle_inspector.dart';
 import 'inspectors/personalization_global_style_inspector.dart';
 import 'inspectors/personalization_dialogue_inspector.dart';
@@ -1896,7 +1896,7 @@ class _PersonalizationStudioWorkspaceState
             ),
           ),
           Expanded(
-            child: PersonalizationStudioShellV2(
+            child: PersonalizationStudioShell(
               key: const ValueKey<String>('personalization-studio-workspace'),
               selectedScene: _selectedScene,
               onSceneSelected: (scene) {
