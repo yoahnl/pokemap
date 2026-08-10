@@ -102,7 +102,7 @@ void main() {
     after.dispose();
   });
 
-  test('actor occlusion follows cell-entry animation activation', () async {
+  test('actor occlusion stays visible around cell-entry animation', () async {
     final image = await _runtimeImage();
     addTearDown(image.dispose);
     final map = _map(
@@ -124,11 +124,16 @@ void main() {
     controller.update(0.11);
     collection.update(0.11);
     final active = await _render(collection.rows[1]);
+    controller.update(0.1);
+    collection.update(0.1);
+    final completed = await _render(collection.rows[1]);
 
-    expect(await pixelAt(idle, 16, 48), rgba(0, 0, 0, 0));
+    expect(await pixelAt(idle, 16, 48), rgba(255, 0, 0, 255));
     expect(await pixelAt(active, 16, 48), rgba(0, 0, 255, 255));
+    expect(await pixelAt(completed, 16, 48), rgba(255, 0, 0, 255));
     idle.dispose();
     active.dispose();
+    completed.dispose();
   });
 
   test('static actor occlusion remains visible while on-enter is idle',

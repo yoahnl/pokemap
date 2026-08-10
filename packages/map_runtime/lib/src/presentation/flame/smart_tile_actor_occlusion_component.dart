@@ -194,15 +194,6 @@ final class _SmartTileActorOcclusionRenderSource {
       );
       ownerCellVisits += batch.work.ownerCellVisits;
       for (final visual in batch.visuals) {
-        if (visual.isAnimated &&
-            smartTileAnimationController != null &&
-            !smartTileAnimationController!.isAnimationActiveForCell(
-              layerId: layer.layerId,
-              cellX: visual.cellX,
-              cellY: visual.cellY,
-            )) {
-          continue;
-        }
         (byRow[visual.cellY] ??= <_ResolvedActorOcclusionVisual>[]).add(
           _ResolvedActorOcclusionVisual(
             visual: visual,
