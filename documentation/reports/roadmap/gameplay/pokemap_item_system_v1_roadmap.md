@@ -4,7 +4,7 @@
 
 **Goal:** Construire un système d’objets cohérent, project-owned et extensible dans lequel le catalogue, le Bag, l’overworld, les combats, la capture, les boutiques, les récompenses, l’éditeur et le MCP consomment une définition canonique unique.
 
-**Architecture:** Introduire dans map_core des contrats d’objets exécutables et un codec de catalogue partagé, puis résoudre leurs capacités dans map_gameplay sans dépendre de Flutter ou de Flame. Les catégories et pockets restent des métadonnées de présentation ; aucun comportement ne dépend d’une chaîne de catégorie. La migration est additive : les anciennes sauvegardes et anciens catalogues restent lisibles pendant que les chemins runtime historiques sont remplacés progressivement.
+**Architecture:** Introduire dans map_core des contrats d’objets exécutables et un codec de catalogue strict, puis résoudre leurs capacités dans map_gameplay sans dépendre de Flutter ou de Flame. Les pockets restent des métadonnées de présentation ; aucun comportement ne dépend d’une chaîne de catégorie. Le changement est une rupture assumée : seuls le catalogue et les sauvegardes du nouvel Item System sont acceptés, sans lecteur, adaptateur ou migration pour les anciens formats.
 
 **Tech Stack:** Dart 3, Flutter, Freezed/JSON selon les conventions locales, map_core, map_gameplay, map_battle, map_runtime, map_authoring, map_editor, JSONL/CLI, PokeMap MCP et outils de certification produit.
 
@@ -38,14 +38,14 @@ Aujourd’hui :
 - la validation structurelle ne prouve pas qu’un objet configuré est réellement consommable ;
 - les contrats item.* et bag.* documentés ne sont pas exposés par le MCP live.
 
-La stratégie retenue est incrémentale :
+La stratégie retenue est un remplacement progressif du code, livré comme une rupture de données unique :
 
-1. réparer la compatibilité runtime sans modifier le format des projets ;
-2. créer les contrats et le codec canoniques ;
-3. unifier les opérations d’inventaire ;
-4. migrer chaque consommateur vers le resolver commun ;
+1. caractériser les comportements métier qui doivent survivre, sans conserver leurs formats ;
+2. créer les contrats stricts et le codec canoniques ;
+3. remplacer le Bag et refuser explicitement les anciennes sauvegardes ;
+4. basculer chaque consommateur vers le resolver commun ;
 5. livrer l’authoring no-code et la parité MCP ;
-6. supprimer seulement ensuite les chemins historiques ;
+6. supprimer intégralement les chemins historiques ;
 7. certifier le tout sur une golden slice générique.
 
 ## 3. Audit initial vérifié
@@ -111,9 +111,9 @@ Cette baseline prouve les slices existantes. Elle ne prouve pas leur intégratio
 ### 4.1 Identité et présentation
 
 1. itemId est l’identité stable d’un objet dans un projet.
-2. Deux piles possédant le même itemId représentent le même objet, quelle que soit leur ancienne catégorie persistée.
+2. Deux piles possédant le même itemId représentent le même objet ; le nouveau wire Bag ne contient aucune catégorie.
 3. pocketId organise l’interface et peut être librement défini par le projet.
-4. categoryId importé reste une métadonnée de recherche ou de migration ; il ne déclenche jamais un comportement.
+4. Une catégorie issue d’un import externe est transformée en pocketId ou en tag avant l’écriture canonique ; categoryId n’existe pas dans le nouveau contrat.
 5. Renommer un objet ou son pocket ne modifie ni ses usages, ni les sauvegardes, ni les références.
 6. Un objet valide sans usage direct est affiché comme objet passif, pas comme objet cassé.
 7. Unsupported signifie que la définition demande une capacité que le moteur ne sait pas exécuter ; cette situation doit être détectée avant le playtest.
@@ -131,14 +131,14 @@ Cette baseline prouve les slices existantes. Elle ne prouve pas leur intégratio
 9. Les objets clés ne sont ni jetables, ni vendables, ni consommables par défaut.
 10. Les objets custom peuvent être passifs, utilisables ou liés à une action sémantique explicitement supportée.
 
-### 4.3 Compatibilité
+### 4.3 Rupture de format
 
-1. Un ancien catalogue sans bloc gameplay reste lisible.
-2. Un ancien BagEntry avec categoryId reste lisible.
-3. La première migration ignore categoryId pour décider du comportement, mais conserve le champ sur le wire tant que la compatibilité descendante n’est pas officiellement abandonnée.
-4. Aucun projet n’est réécrit automatiquement à l’ouverture.
+1. Un catalogue sans le schemaVersion exact du nouvel Item System est refusé.
+2. Une sauvegarde utilisant l’ancien BagEntry ou contenant categoryId est refusée.
+3. Aucun lecteur dual, fallback MVP, adaptateur legacy ou migration automatique n’est livré.
+4. Le refus retourne une erreur typée avec le format détecté, le format attendu et le chemin concerné.
 5. Une écriture de catalogue ou de sauvegarde est déterministe et stable.
-6. Les doublons historiques du même itemId sont fusionnés de manière déterministe, avec conservation de la quantité totale.
+6. Les doublons du même itemId dans le nouveau format sont fusionnés de manière déterministe, avec conservation de la quantité totale.
 7. Une définition inconnue échoue en validation avec un chemin précis ; elle ne devient pas silencieusement un objet passif.
 
 ## 5. Architecture cible
@@ -150,7 +150,7 @@ Créer un domaine focalisé dans packages/map_core/lib/src/models/items/.
 Contrats visés :
 
     ProjectItemCatalog
-      schemaVersion: int
+      schemaVersion: int (valeur obligatoire : 1)
       entries: List<ProjectItemDefinition>
 
     ProjectItemDefinition
@@ -158,7 +158,6 @@ Contrats visés :
       displayName: String
       aliases: List<String>
       pocketId: String
-      categoryId: String?
       description: String?
       buyPrice: int?
       sellPrice: int?
@@ -191,6 +190,14 @@ Contrats visés :
       moveId: String
       kind: tm|hm
       consumable: bool
+
+    SaveData
+      itemSystemSchemaVersion: int (valeur obligatoire : 1)
+      bag: List<BagEntry>
+
+    BagEntry
+      itemId: String
+      quantity: int
 
 Les effets sont un vocabulaire fermé et versionné. Un projet peut créer autant d’objets qu’il le souhaite, mais ne peut pas injecter du code arbitraire dans le runtime.
 
@@ -251,128 +258,74 @@ ItemCatalogSnapshot compose la définition d’objet avec les références exter
 - Les diagnostics de catalogue sont calculés une fois et réutilisés.
 - Les tests de performance couvrent au moins 5 000 définitions et un Bag de 500 piles sans dépendre du réseau.
 
-## 6. Migration et stratégie de dépréciation
+## 6. Stratégie de rupture et de bascule
 
-### Étape A — compatibilité comportementale
+### Étape A — figer le nouveau format
 
-- Conserver le wire actuel.
-- Cesser d’utiliser categoryId pour autoriser capture ou medicine.
-- Résoudre les objets MVP existants depuis un seed catalog canonique.
-- Ajouter les tests de catégories arbitraires.
+- Définir un schemaVersion obligatoire pour le catalogue et la sauvegarde.
+- Définir BagEntry uniquement par itemId et quantity.
+- Interdire categoryId dans le catalogue canonique et dans le Bag.
+- Définir les erreurs UnsupportedItemCatalogSchema et UnsupportedSaveSchema.
 
-### Étape B — catalogue v2
+### Étape B — construire le nouveau système isolément
 
-- Lire les catalogues v1 actuels.
-- Projeter les IDs MVP connus vers des définitions built-in uniquement quand aucun bloc gameplay authored n’existe.
-- Écrire schemaVersion 2 seulement après une mutation explicite du catalogue.
-- Préserver les champs locaux et importés non gameplay.
+- Accepter uniquement le catalogue canonique strict.
+- Résoudre les objets MVP depuis un seed catalog conforme au nouveau schéma.
+- N’inférer aucun effet depuis un identifiant, une catégorie ou un texte libre.
+- Tester les anciens formats uniquement pour prouver leur refus explicite.
 
-### Étape C — Bag logique par itemId
+### Étape C — basculer tous les consommateurs
 
-- Fusionner les piles par itemId dans les opérations gameplay.
-- Conserver categoryId comme legacyPresentationHint sur le wire v1.
-- Dériver pocketId et labels du catalogue.
-- Ajouter un receipt de migration listant les piles fusionnées.
+- Remplacer chaque lecture historique par ItemCatalogSnapshot et BagOperations.
+- Dériver pocketId et labels exclusivement du catalogue canonique.
+- Interdire tout fallback vers PlayerItemEffectRegistry.mvp ou un loader historique.
+- Ne publier aucune version hybride acceptant les deux systèmes.
 
-### Étape D — retrait physique
+### Étape D — supprimer l’ancien système
 
-- Mesurer les lectures restantes de categoryId.
-- Interdire toute nouvelle écriture métier fondée sur categoryId.
-- Retirer le champ d’un futur wire versionné seulement après certification de lecture des anciennes sauvegardes et décision de compatibilité explicite.
+- Supprimer les codecs, modèles, registries, guards et fixtures de succès historiques.
+- Conserver uniquement des fixtures minimales de rejet de schéma.
+- Vérifier par recherche statique qu’aucun categoryId ni fallback ancien ne subsiste dans les chemins produit.
+- Certifier uniquement un nouveau projet synthétique et une nouvelle sauvegarde synthétique.
 
 ## 7. Vue d’ensemble des phases
 
 | Phase | Lots | Résultat livrable | Dépend de |
 |---|---|---|---|
-| 0 — Vérité et réparation | ITM-001 à ITM-004 | Les objets existants fonctionnent indépendamment de leur catégorie | — |
-| 1 — Contrats canoniques | ITM-010 à ITM-014 | Catalogue v2, codec et validation partagés | Phase 0 |
-| 2 — Bag transactionnel | ITM-020 à ITM-024 | Inventaire unifié par itemId et receipts atomiques | Phase 1 |
-| 3 — Consommateurs gameplay | ITM-030 à ITM-038 | Overworld, battle, capture minimale, key items, machines et held items unifiés | Phase 2 |
+| 0 — Vérité et inventaire de rupture | ITM-001 | Les comportements à conserver et les chemins à supprimer sont verrouillés | — |
+| 1 — Contrats canoniques | ITM-010 à ITM-014 | Catalogue strict, codec et validation partagés | Phase 0 |
+| 2 — Bag transactionnel | ITM-020 à ITM-024 | Nouveau wire Bag par itemId, receipts atomiques et version gate | Phase 1 |
+| 3 — Consommateurs gameplay | ITM-025 à ITM-038 | Classification, diagnostics, overworld, battle, capture minimale, key items, machines et held items unifiés | Phase 2 |
 | 4 — Producteurs et économie | ITM-040 à ITM-044 | New Game, scènes, pickups, rewards et shops utilisent la même autorité | Phase 2 |
 | 5 — Authoring et MCP | ITM-050 à ITM-055 | Item Studio no-code et parité transports | Phases 1, 3 et 4 |
-| 6 — Dépréciation | ITM-060 à ITM-062 | Chemins historiques supprimés sans régression | Phase 5 |
+| 6 — Suppression historique | ITM-060 à ITM-062 | Anciens chemins et anciens formats physiquement absents | Phase 5 |
 | 7 — Certification | ITM-070 à ITM-074 | Golden slice générique et statuts FG recertifiés | Phase 6 |
 
 Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modifient save_data.dart, le codec de catalogue ou les registries partagés restent séquentiels.
 
-## 8. Phase 0 — Vérité et réparation immédiate
+## 8. Phase 0 — Vérité et inventaire de rupture
 
 ### ITM-001 — Matrice de caractérisation inter-contextes
 
 - [ ] **Résultat :** verrouiller les divergences actuelles avant correction.
 - **Fichiers de test :**
-  - packages/map_gameplay/test/item_capability_characterization_test.dart
-  - packages/map_runtime/test/item_category_compatibility_test.dart
+  - packages/map_gameplay/test/item_system_current_behavior_characterization_test.dart
+  - packages/map_runtime/test/item_system_current_behavior_characterization_test.dart
   - packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
   - packages/map_editor/test/project_new_game_configuration_form_test.dart
-- **Cas positifs :**
-  - Potion utilisable avec les catégories medicine, healing et custom-heals ;
-  - Poké Ball utilisable avec items, standard-balls et custom-balls ;
-  - objet passif affiché sans action directe.
-- **Cas négatifs :**
-  - itemId inconnu ;
-  - quantité nulle ;
-  - mauvaise cible ;
-  - contexte battle non déclaré.
-- **Non-régressions :**
-  - anciennes catégories items et medicine ;
-  - aucune consommation sur no-effect ;
-  - save/load inchangé.
-- **Gate :** les nouveaux tests doivent échouer sur les guards de catégorie actuels et documenter leur message exact.
+- **Observations à verrouiller :**
+  - delta HP exact des objets MVP dans chaque contexte ;
+  - consommation exacte lors d’un effet ou d’une capture acceptée ;
+  - absence de consommation sur no-effect ;
+  - chemins actuels fondés sur categoryId, registries ou loaders séparés ;
+  - sérialisation actuelle du catalogue et du Bag, uniquement comme inventaire de suppression.
+- **Règle :** ces tests caractérisent les sémantiques, pas une promesse de compatibilité ; les assertions portant sur les anciens formats sont supprimées par ITM-060 à ITM-062.
+- **Gate :** les tests de caractérisation passent sur le système actuel et chaque chemin destiné à disparaître possède un propriétaire de lot explicite.
 - **Dépendances :** aucune.
 
-### ITM-002 — Classifier par capacité, jamais par catégorie
+**Gate de phase 0 :** suites de caractérisation vertes et tableau de correspondance chemin actuel → lot de suppression complet.
 
-- [ ] **Résultat :** le menu battle et la capture utilisent la définition d’effet ou l’itemId MVP, sans categoryId.
-- **Fichiers principaux :**
-  - packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
-  - packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
-  - packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart
-  - packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
-- **Tests :**
-  - packages/map_runtime/test/item_category_compatibility_test.dart
-  - packages/map_runtime/test/battle_bag_menu_model_test.dart
-  - packages/map_runtime/test/runtime_generic_battle_items_v0_test.dart
-- **Règle :** categoryId reste affichable, mais n’intervient dans aucun booléen de support.
-- **Gate :** tous les cas ajoutés dans ITM-001 passent ; les suites battle historiques restent vertes.
-- **Dépendances :** ITM-001.
-
-### ITM-003 — Unifier les valeurs des effets MVP
-
-- [ ] **Résultat :** une seule valeur autoritaire par Potion, cure, revive et restore PP.
-- **Fichiers principaux :**
-  - packages/map_gameplay/lib/src/player_item_effects.dart
-  - packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
-  - packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
-- **Cas obligatoire :** Hyper Potion produit exactement le même delta hors combat, en battle PSDK et dans le texte de résultat.
-- **Gate :** un test paramétré compare les trois chemins pour Potion, Super Potion, Hyper Potion et Max Potion.
-- **Dépendances :** ITM-002.
-
-### ITM-004 — Diagnostic honnête utilisable/passif/unsupported
-
-- [ ] **Résultat :** supprimer l’ambiguïté utilisateur entre un objet passif et une fonctionnalité moteur absente.
-- **Fichiers principaux :**
-  - packages/map_runtime/lib/src/player/runtime_player_pause_data_builder.dart
-  - packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
-  - packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
-- **États produit :**
-  - usable ;
-  - passive ;
-  - unavailableInContext ;
-  - invalidDefinition ;
-  - unsupportedCapability.
-- **Gate :** tests widget/model vérifiant libellé, sélection et raison de désactivation.
-- **Dépendances :** ITM-002.
-
-**Gate de phase 0 :**
-
-    cd packages/map_runtime
-    flutter test test/item_category_compatibility_test.dart test/battle_bag_menu_model_test.dart test/runtime_generic_battle_items_v0_test.dart test/wild_battle_end_to_end_flow_test.dart
-    flutter analyze
-
-Résultat attendu : exit code 0 et All tests passed.
-
-## 9. Phase 1 — Contrats canoniques et catalogue v2
+## 9. Phase 1 — Contrats canoniques et catalogue strict
 
 ### ITM-010 — Modèles Item System V1
 
@@ -396,27 +349,25 @@ Résultat attendu : exit code 0 et All tests passed.
   - effet semanticAction limité à un registre déclaré.
 - **Non-goal :** aucune lecture fichier et aucune UI.
 - **Gate :** tests ciblés et dart analyze sans nouvelle issue.
-- **Dépendances :** ITM-003.
+- **Dépendances :** ITM-001.
 
-### ITM-011 — Codec pur et migration catalogue v1 vers projection v2
+### ITM-011 — Codec strict du catalogue canonique
 
-- [ ] **Résultat :** un codec partagé lit les formats existants et le format v2.
+- [ ] **Résultat :** un codec partagé accepte uniquement le schemaVersion du nouvel Item System et refuse tout autre format.
 - **Fichiers à créer :**
   - packages/map_core/lib/src/serialization/project_item_catalog_codec.dart
-  - packages/map_core/lib/src/compatibility/project_item_catalog_migration.dart
 - **Tests à créer :**
   - packages/map_core/test/project_item_catalog_codec_test.dart
-  - packages/map_core/test/project_item_catalog_migration_test.dart
 - **Fixtures à créer :**
-  - packages/map_core/test/fixtures/items_catalog_v1_minimal.json
-  - packages/map_core/test/fixtures/items_catalog_v2_complete.json
-- **Règles de migration :**
-  - conservation des champs importés ;
-  - seed built-in uniquement pour les IDs MVP reconnus ;
+  - packages/map_core/test/fixtures/items_catalog_v1_complete.json
+  - packages/map_core/test/fixtures/items_catalog_legacy_rejected.json
+- **Règles de codec :**
+  - schemaVersion 1 obligatoire ;
+  - rejet des champs categoryId et effect text legacy ;
   - aucun effet déduit d’un texte libre ;
-  - aucune réécriture sans mutation explicite ;
+  - aucun seed ou fallback injecté pendant le décodage ;
   - diagnostics localisés par entry index et itemId.
-- **Gate :** v1 decode, v2 round-trip et stabilité d’ordre prouvés.
+- **Gate :** round-trip v1 canonique, stabilité d’ordre et rejet typé de chaque ancien format prouvés.
 - **Dépendances :** ITM-010.
 
 ### ITM-012 — Seed canonique des objets MVP
@@ -488,11 +439,11 @@ Résultat attendu : exit code 0 et All tests passed.
 - **Tests à créer :**
   - packages/map_core/test/bag_stack_identity_test.dart
 - **Cas obligatoires :**
-  - mêmes itemId et catégories différentes fusionnés ;
+  - mêmes itemId fusionnés ;
   - quantité totale conservée ;
   - ordre stable ;
-  - lecture d’un ancien JSON ;
-  - écriture backward-compatible ;
+  - ancien JSON refusé avec UnsupportedSaveSchema ;
+  - écriture strictement conforme au nouveau schemaVersion ;
   - overflow de quantité rejeté.
 - **Gate :** aucune quantité n’est perdue pendant la normalisation.
 - **Dépendances :** ITM-011.
@@ -538,20 +489,20 @@ Résultat attendu : exit code 0 et All tests passed.
 - **Gate :** le service ne lit ni catégorie, ni fichier, ni dépendance Flutter.
 - **Dépendances :** ITM-012 et ITM-021.
 
-### ITM-023 — Migration de sauvegarde et observabilité
+### ITM-023 — Version gate de sauvegarde et diagnostic de rupture
 
-- [ ] **Résultat :** normaliser une sauvegarde historique sans mutation silencieuse impossible à diagnostiquer.
+- [ ] **Résultat :** accepter uniquement le nouveau schéma de sauvegarde et refuser les anciennes structures sans mutation.
 - **Fichiers à créer :**
-  - packages/map_gameplay/lib/src/items/bag_migration_service.dart
+  - packages/map_gameplay/lib/src/items/save_item_schema_guard.dart
 - **Tests à créer :**
-  - packages/map_gameplay/test/bag_migration_service_test.dart
-- **Receipt :**
-  - piles source ;
-  - pile cible ;
-  - quantité totale ;
-  - legacy categories rencontrées ;
-  - warnings.
-- **Gate :** save → migrate → save → load est stable.
+  - packages/map_gameplay/test/save_item_schema_guard_test.dart
+- **Diagnostic :**
+  - schemaVersion détecté ;
+  - schemaVersion attendu ;
+  - chemin du premier champ incompatible ;
+  - code UnsupportedSaveSchema ;
+  - état joueur original inchangé.
+- **Gate :** nouveau save → save → load est stable ; chaque ancienne fixture est refusée sans produire de nouvel état.
 - **Dépendances :** ITM-020 et ITM-021.
 
 ### ITM-024 — Adapter GameStateMutations
@@ -568,6 +519,57 @@ Résultat attendu : exit code 0 et All tests passed.
 - **Dépendances :** ITM-021 et ITM-022.
 
 ## 11. Phase 3 — Consommateurs gameplay
+
+### ITM-025 — Classifier par capacité canonique
+
+- [ ] **Résultat :** le menu battle et la capture utilisent exclusivement la définition canonique, sans categoryId ni fallback par itemId MVP.
+- **Fichiers principaux :**
+  - packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
+- **Tests :**
+  - packages/map_runtime/test/item_capability_classification_test.dart
+  - packages/map_runtime/test/battle_bag_menu_model_test.dart
+  - packages/map_runtime/test/runtime_generic_battle_items_v0_test.dart
+- **Règle :** categoryId est absent des entrées runtime et n’intervient dans aucun booléen de support.
+- **Gate :** les comportements heal, capture et consommation caractérisés dans ITM-001 restent verts sur le nouveau format.
+- **Dépendances :** ITM-014 et ITM-024.
+
+### ITM-026 — Unifier les valeurs des effets MVP
+
+- [ ] **Résultat :** une seule valeur autoritaire par Potion, cure, revive et restore PP.
+- **Fichiers principaux :**
+  - packages/map_gameplay/lib/src/player_item_effects.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
+  - packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
+- **Cas obligatoire :** Hyper Potion produit exactement le même delta hors combat, en battle PSDK et dans le texte de résultat.
+- **Gate :** un test paramétré compare les trois chemins pour Potion, Super Potion, Hyper Potion et Max Potion.
+- **Dépendances :** ITM-025.
+
+### ITM-027 — Diagnostic honnête utilisable/passif/unsupported
+
+- [ ] **Résultat :** supprimer l’ambiguïté utilisateur entre un objet passif et une fonctionnalité moteur absente.
+- **Fichiers principaux :**
+  - packages/map_runtime/lib/src/player/runtime_player_pause_data_builder.dart
+  - packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
+  - packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
+- **États produit :**
+  - usable ;
+  - passive ;
+  - unavailableInContext ;
+  - invalidDefinition ;
+  - unsupportedCapability.
+- **Gate :** tests widget/model vérifiant libellé, sélection et raison de désactivation.
+- **Dépendances :** ITM-025.
+
+**Gate de bascule initiale :**
+
+    cd packages/map_runtime
+    flutter test test/item_capability_classification_test.dart test/battle_bag_menu_model_test.dart test/runtime_generic_battle_items_v0_test.dart test/wild_battle_end_to_end_flow_test.dart
+    flutter analyze
+
+Résultat attendu : exit code 0 et All tests passed.
 
 ### ITM-030 — Menu Bag overworld
 
@@ -885,16 +887,19 @@ Résultat attendu : exit code 0 pour chaque commande.
 - **Gate :** catalog mutations et player-state mutations ont des permissions et receipts distincts.
 - **Dépendances :** ITM-054.
 
-## 14. Phase 6 — Dépréciation des chemins historiques
+## 14. Phase 6 — Suppression totale des chemins historiques
 
 ### ITM-060 — Retirer les guards de catégories
 
 - [ ] **Résultat :** aucune décision gameplay ne dépend de medicine, items, healing ou standard-balls.
+- **Nettoyage de caractérisation :** transférer les assertions métier toujours valides vers les suites canoniques, puis supprimer les assertions et fixtures qui décrivent le succès des anciens formats dans :
+  - packages/map_gameplay/test/item_system_current_behavior_characterization_test.dart
+  - packages/map_runtime/test/item_system_current_behavior_characterization_test.dart
 - **Commande de preuve :**
 
     rg -n "categoryId.*(medicine|items)|standard-balls|healing" packages/map_gameplay/lib packages/map_runtime/lib packages/map_battle/lib
 
-- **Résultat attendu :** uniquement codecs, migrations, présentation ou fixtures explicitement legacy.
+- **Résultat attendu :** aucun résultat dans les chemins produit ; seules les fixtures de rejet de schéma peuvent contenir ces chaînes.
 - **Dépendances :** ITM-030 à ITM-043, hors ITM-034 tant que FG-065 reste DEFERRED.
 
 ### ITM-061 — Retirer les registries et wrappers dupliqués
@@ -903,23 +908,21 @@ Résultat attendu : exit code 0 pour chaque commande.
 - **Fichiers visés :**
   - packages/map_gameplay/lib/src/player_item_effects.dart
   - packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
-- **Règle :** conserver des façades temporaires uniquement si un appel externe est encore prouvé ; elles délèguent sans redéfinir une valeur.
+- **Règle :** aucune façade temporaire, aucun alias et aucun fallback historique ne subsiste dans l’API publique.
 - **Gate :** recherche d’identifiants et valeurs MVP sans duplication.
 - **Dépendances :** ITM-031 et ITM-012.
 
-### ITM-062 — Décision de wire Bag v2
+### ITM-062 — Supprimer définitivement l’ancien wire Bag
 
-- [ ] **Résultat :** décider avec preuve si categoryId peut être retiré physiquement.
+- [ ] **Résultat :** categoryId et tous les décodeurs de l’ancien Bag sont physiquement absents du modèle, du codec et du runtime.
 - **Preuves requises :**
-  - toutes les lectures classées ;
-  - fixtures de saves historiques ;
-  - compatibilité import/export ;
-  - comportement d’un ancien runtime documenté ;
-  - migration réversible ou backup explicite.
-- **Issues acceptables :**
-  - retrait versionné ;
-  - maintien comme legacyPresentationHint sans usage métier.
-- **Interdit :** suppression opportuniste sans décision produit.
+  - recherche statique sans lecture ou écriture categoryId dans les chemins produit ;
+  - nouveau BagEntry sérialisé uniquement avec itemId et quantity ;
+  - ancienne fixture refusée par UnsupportedSaveSchema ;
+  - aucune API de migration ou de conversion exportée ;
+  - golden save conforme au nouveau schemaVersion.
+- **Issue acceptable :** retrait complet uniquement.
+- **Interdit :** maintenir un champ ignoré, un alias de décodage ou un fallback silencieux.
 - **Dépendances :** ITM-060 et ITM-023.
 
 ## 15. Phase 7 — Certification et clôture
@@ -1005,13 +1008,13 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 | Vague | Lots | Peut être parallélisé logiquement | Point de synchronisation |
 |---|---|---|---|
-| A | ITM-001 → ITM-004 | Non | Compatibilité runtime |
+| A | ITM-001 | Non | Inventaire de rupture |
 | B | ITM-010 → ITM-014 | ITM-012 et ITM-013 après ITM-011 | Codec partagé |
 | C | ITM-020 → ITM-024 | ITM-022 et ITM-023 après ITM-021 | Bag API stable |
-| D1 | ITM-030 → ITM-038 hors ITM-034 différé | Capture, machines et held après resolver | Consommateurs |
+| D1 | ITM-025 → ITM-038 hors ITM-034 différé | Classification, capture, machines et held après resolver | Consommateurs |
 | D2 | ITM-040 → ITM-044 | Rewards et shops après BagOperations | Producteurs |
 | E | ITM-050 → ITM-055 | UI après actions ; transports après contrats | Parité |
-| F | ITM-060 → ITM-062 | Non | Dépréciation |
+| F | ITM-060 → ITM-062 | Non | Suppression historique |
 | G | ITM-070 → ITM-074 | Non | Certification |
 
 Une vague n’autorise pas plusieurs modifications concurrentes du même modèle généré, du même codec ou de save_data.dart.
@@ -1030,7 +1033,7 @@ Une vague n’autorise pas plusieurs modifications concurrentes du même modèle
 | TM/HM | contrat | requis | requis | picker | validate | requis |
 | Held item | contrat | requis | requis | picker | validate | requis |
 | Shops/rewards | référence | requis | requis | requis | requis | requis |
-| Save migration | codec | requis | requis | diagnostic | N/A | requis |
+| Save schema gate | codec strict | requis | requis | diagnostic | N/A | requis |
 
 N/A signifie réellement non applicable ; il ne doit pas masquer une exposition absente.
 
@@ -1040,9 +1043,9 @@ N/A signifie réellement non applicable ; il ne doit pas masquer une exposition 
 
 **Garde-fou :** map_core porte les données, map_gameplay la résolution pure, map_battle l’exécution battle et les adapters l’IO. Aucun package ne devient propriétaire de tout.
 
-### Risque 2 — Casser les sauvegardes
+### Risque 2 — Rendre la rupture ambiguë ou silencieuse
 
-**Garde-fou :** migration additive, fixtures historiques, receipt de fusion et aucun retrait physique avant ITM-062.
+**Garde-fou :** schemaVersion obligatoire, erreurs typées, aucune transformation automatique et fixtures anciennes conservées uniquement pour vérifier leur refus.
 
 ### Risque 3 — Confondre import externe et sémantique PokeMap
 
@@ -1069,17 +1072,17 @@ N/A signifie réellement non applicable ; il ne doit pas masquer une exposition 
 - Les effets non supportés par map_battle restent hors scope tant qu’ils n’ont pas leur propre lot.
 - Le scripting arbitraire d’effets d’objets n’est pas introduit.
 - Les familles complètes de Balls et Repel restent soumises aux décisions produit de la roadmap mécanique.
-- Aucun projet utilisateur n’est migré automatiquement par cette roadmap.
+- Les projets, catalogues et sauvegardes de l’ancien système ne sont ni supportés, ni migrés, ni convertis par cette roadmap.
 - Aucun nettoyage sans rapport avec Item System n’est autorisé.
 - Aucun changement visuel du battle HUD n’est prévu hors états et diagnostics nécessaires.
-- Le retrait physique de categoryId reste une décision de ITM-062, pas une hypothèse.
+- categoryId est supprimé physiquement par ITM-062 ; aucun mode de compatibilité ne peut le réintroduire.
 
 ## 20. Checklist de clôture d’un lot
 
 - [ ] Audit du lot et état Git initial consignés.
 - [ ] Test positif écrit avant implémentation lorsque possible.
 - [ ] Cas négatif et garde-fou couverts.
-- [ ] Non-régression legacy couverte.
+- [ ] Refus explicite des anciens formats couvert.
 - [ ] Tests ciblés exécutés avec résultat exact.
 - [ ] Suite package exécutée ou raison précise de non-exécution.
 - [ ] Analyse exécutée.
@@ -1096,4 +1099,4 @@ Cette roadmap doit être exécutée par lots, avec un checkpoint après chaque p
 1. **Exécution pilotée lot par lot** — recommandée : un lot, tests, review et validation avant le suivant.
 2. **Exécution inline par vagues** — acceptable pour les lots courts d’une même phase, avec checkpoint obligatoire avant changement de package ou de schéma.
 
-Le premier lot à exécuter est ITM-001. ITM-002 ne doit pas commencer avant d’avoir obtenu les échecs de caractérisation attendus.
+Le premier lot à exécuter est ITM-001. ITM-010 ne commence qu’après obtention d’une caractérisation verte et d’un inventaire exhaustif des chemins à supprimer.
