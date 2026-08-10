@@ -63,14 +63,14 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
                             profile: scenario.draftProfile,
                             scene: scenario.surface,
                             aspectRatio: scenario.viewport.aspectRatio,
-                            reducedMotion: scenario.reducedMotion,
+                            reducedMotion: scenario.effectiveReducedMotion,
                           ),
                         )
                       : surfaceBuilder(
                           profile: scenario.draftProfile,
                           scene: scenario.surface,
                           aspectRatio: scenario.viewport.aspectRatio,
-                          reducedMotion: scenario.reducedMotion,
+                          reducedMotion: scenario.effectiveReducedMotion,
                         ),
                 ),
               ),
@@ -87,7 +87,7 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
       profile: baseline,
       scene: scenario.surface,
       aspectRatio: scenario.viewport.aspectRatio,
-      reducedMotion: scenario.reducedMotion,
+      reducedMotion: scenario.effectiveReducedMotion,
     );
   }
 }

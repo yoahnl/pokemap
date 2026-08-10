@@ -50,6 +50,30 @@ void main() {
     expect(changed.reducedMotion, isTrue);
   });
 
+  test('reduced motion affects only title and intro scenes', () {
+    const profile = ProjectPresentationProfile();
+    const title = PersonalizationPreviewScenario(
+      draftProfile: profile,
+      surface: PersonalizationStudioScene.title,
+      reducedMotion: true,
+    );
+    const intro = PersonalizationPreviewScenario(
+      draftProfile: profile,
+      surface: PersonalizationStudioScene.intro,
+      reducedMotion: true,
+    );
+    const pause = PersonalizationPreviewScenario(
+      draftProfile: profile,
+      surface: PersonalizationStudioScene.pause,
+      reducedMotion: true,
+    );
+
+    expect(title.effectiveReducedMotion, isTrue);
+    expect(intro.effectiveReducedMotion, isTrue);
+    expect(pause.supportsReducedMotion, isFalse);
+    expect(pause.effectiveReducedMotion, isFalse);
+  });
+
   test(
     'viewport scenarios carry deterministic logical sizes and safe areas',
     () {

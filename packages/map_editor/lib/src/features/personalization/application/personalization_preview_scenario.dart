@@ -33,6 +33,12 @@ final class PersonalizationPreviewScenario {
 
   bool get showComparison => canCompare && comparisonEnabled;
 
+  bool get supportsReducedMotion =>
+      surface == PersonalizationStudioScene.title ||
+      surface == PersonalizationStudioScene.intro;
+
+  bool get effectiveReducedMotion => supportsReducedMotion && reducedMotion;
+
   PersonalizationPreviewScenario copyWith({
     PersonalizationStudioScene? surface,
     PersonalizationPreviewViewport? viewport,

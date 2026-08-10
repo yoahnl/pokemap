@@ -1,4 +1,3 @@
-
 export 'src/features/personalization/application/project_font_import_service.dart';
 export 'src/features/personalization/application/project_intro_video_import_service.dart';
 export 'src/features/personalization/application/project_title_music_import_service.dart';
@@ -8,6 +7,7 @@ export 'src/features/personalization/application/project_presentation_preflight.
 export 'src/features/personalization/application/project_presentation_presets.dart';
 export 'src/features/personalization/application/project_window_style_presets.dart';
 export 'src/features/personalization/application/personalization_publish_readiness.dart';
+export 'src/features/personalization/application/personalization_inspector_target.dart';
 export 'src/features/personalization/application/personalization_preview_projection.dart';
 export 'src/features/personalization/application/personalization_preview_scenario.dart';
 export 'src/features/personalization/application/personalization_preview_surface_descriptor.dart';
@@ -15,6 +15,7 @@ export 'src/features/personalization/application/personalization_studio_asset_pi
 export 'src/features/personalization/application/personalization_studio_session_controller.dart';
 export 'src/features/personalization/application/project_branding_image_import_service.dart';
 export 'src/features/personalization/presentation/personalization_hub_shell.dart';
+export 'src/features/personalization/presentation/personalization_live_preview.dart';
 export 'src/features/personalization/presentation/personalization_readiness_panel.dart';
 export 'src/features/personalization/presentation/personalization_runtime_preview.dart';
 export 'src/features/personalization/presentation/personalization_studio_workspace.dart';

@@ -6,6 +6,7 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:path/path.dart' as p;
 
 import '../application/personalization_preview_fixtures.dart';
+import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
 
 class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
@@ -17,6 +18,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     required this.scene,
     this.aspectRatio = 16 / 9,
     this.reducedMotion = false,
+    this.onTargeted,
   });
 
   final ProjectPresentationProfile profile;
@@ -25,6 +27,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   final PersonalizationStudioScene scene;
   final double aspectRatio;
   final bool reducedMotion;
+  final ValueChanged<PersonalizationInspectorTarget>? onTargeted;
 
   @override
   Widget build(BuildContext context) {
@@ -35,18 +38,22 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     final theme = presentation.applyTo(
       PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
     );
+    final surface = switch (scene) {
+      PersonalizationStudioScene.globalStyle => GestureDetector(
+        key: const ValueKey<String>(
+          'personalization-preview-target-global-colors',
+        ),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _target(const GlobalColorsTarget()),
+        child: _globalStyle(presentation),
+      ),
+      _ => _surface(scene, presentation),
+    };
     return Theme(
       data: theme,
       child: AspectRatio(
         aspectRatio: aspectRatio,
-        child: ClipRect(
-          child: switch (scene) {
-            PersonalizationStudioScene.globalStyle => _globalStyle(
-              presentation,
-            ),
-            _ => _surface(scene, presentation),
-          },
-        ),
+        child: ClipRect(child: surface),
       ),
     );
   }
@@ -58,7 +65,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     PersonalizationStudioScene.title => PlayerTitleSurface(
       key: const ValueKey<String>('personalization-title-composition'),
       data: PersonalizationPreviewFixtures.title(projectName, presentation),
-      onSelected: (_) {},
+      onSelected: (_) => _target(const TitlePresentationTarget()),
     ),
     PersonalizationStudioScene.intro => PlayerIntroVideoSurface(
       key: const ValueKey<String>('personalization-intro-composition'),
@@ -69,26 +76,27 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
           : profile.intro == null
           ? 'Aucune introduction configurée'
           : null,
-      onSkip: () {},
-      onContinue: () {},
+      onSkip: () => _target(const IntroPresentationTarget()),
+      onContinue: () => _target(const IntroPresentationTarget()),
     ),
     PersonalizationStudioScene.pause => RuntimePlayerPauseShell.root(
       key: const ValueKey<String>('personalization-pause-composition'),
       gameTitle: projectName,
       actions: PersonalizationPreviewFixtures.pauseActions,
       labels: presentation.pauseMenuLabels,
-      onSelected: (_) {},
+      onSelected: (action) =>
+          _target(PauseLabelsTarget(actionName: action.name)),
       detail: const Center(child: Text('Sélectionnez une section')),
     ),
     PersonalizationStudioScene.dialogue => PlayerDialogueSurface(
       key: const ValueKey<String>('personalization-dialogue-composition'),
       data: PersonalizationPreviewFixtures.dialogue,
-      onAction: (_) {},
+      onAction: (_) => _target(const DialogueAppearanceTarget()),
     ),
     PersonalizationStudioScene.battle => PlayerBattleSurface(
       key: const ValueKey<String>('personalization-battle-composition'),
       data: PersonalizationPreviewFixtures.battle,
-      onAction: (_) {},
+      onAction: (_) => _target(const BattleCommandsTarget()),
     ),
     PersonalizationStudioScene.globalStyle => throw StateError(
       'Global style is a composition, not one player surface.',
@@ -134,6 +142,9 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
 
   bool get _introSkipped =>
       reducedMotion && profile.intro?.reducedMotionBehavior == 'skip';
+
+  void _target(PersonalizationInspectorTarget target) =>
+      onTargeted?.call(target);
 
   ImageProvider? _imageForPath(String assetPath) {
     final file = _fileForPath(assetPath);
