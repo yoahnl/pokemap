@@ -39,6 +39,7 @@ class PokemonDatabaseIndexEntry {
     required this.isEnabledInProject,
     required this.refs,
     this.portraitRelativePath,
+    this.thumbnailRelativePath,
   });
 
   final String id;
@@ -69,6 +70,7 @@ class PokemonDatabaseIndexEntry {
   /// - l'UI résout ensuite le chemin absolu à partir du workspace courant ;
   /// - on évite d'enfermer ce modèle applicatif dans un chemin machine-local.
   final String? portraitRelativePath;
+  final String? thumbnailRelativePath;
 
   /// Construit l'entree specifique au lot 11 a partir d'une source de vérité
   /// déjà existante.
@@ -112,6 +114,7 @@ class PokemonDatabaseIndexEntry {
     required PokemonSpeciesIndexEntry speciesIndexEntry,
     required PokemonSpeciesFile species,
     String? portraitRelativePath,
+    String? thumbnailRelativePath,
   }) {
     return PokemonDatabaseIndexEntry(
       id: speciesIndexEntry.id,
@@ -128,6 +131,9 @@ class PokemonDatabaseIndexEntry {
       portraitRelativePath: portraitRelativePath?.trim().isEmpty ?? true
           ? null
           : portraitRelativePath?.trim(),
+      thumbnailRelativePath: thumbnailRelativePath?.trim().isEmpty ?? true
+          ? null
+          : thumbnailRelativePath?.trim(),
     );
   }
 }

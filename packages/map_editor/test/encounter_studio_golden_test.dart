@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
@@ -13,12 +15,21 @@ void main() {
   testWidgets('matches the approved Encounter Studio state at 1672x941', (
     tester,
   ) async {
+    final visualProjectRoot = await tester.runAsync(
+      createEncounterStudioVisualProjectRoot,
+    );
+    if (visualProjectRoot == null) {
+      fail('Unable to create the Encounter Studio visual fixture.');
+    }
+    addTearDown(() => Directory(visualProjectRoot).deleteSync(recursive: true));
     await loadNarrativeStudioCaptureFonts(
       textFamilies: const <String>[_captureFontFamily],
     );
     await pumpEditorShellPage(
       tester,
-      initialState: encounterStudioFixtureState,
+      initialState: encounterStudioFixtureState.copyWith(
+        projectRootPath: visualProjectRoot,
+      ),
       surfaceSize: const Size(1672, 941),
       fontFamily: _captureFontFamily,
       cupertinoFontFamily: _captureFontFamily,
@@ -28,6 +39,16 @@ void main() {
         ),
       ],
     );
+    for (var attempt = 0; attempt < 200; attempt++) {
+      if (PaintingBinding.instance.imageCache.pendingImageCount == 0) {
+        break;
+      }
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 5)),
+      );
+      await tester.pump();
+    }
+    expect(PaintingBinding.instance.imageCache.pendingImageCount, 0);
     await tester.tap(
       find.byKey(const Key('encounter-roster-entry-route_1_grass-0')),
     );

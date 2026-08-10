@@ -236,7 +236,51 @@ void main() {
         bulbasaur.portraitRelativePath,
         'assets/pokemon/portraits/bulbasaur.png',
       );
+      expect(
+        bulbasaur.thumbnailRelativePath,
+        'assets/pokemon/portraits/bulbasaur.png',
+      );
       expect(ivysaur.portraitRelativePath, isNull);
+      expect(ivysaur.thumbnailRelativePath, isNull);
+    });
+
+    test('projects the front battle sprite as the lightweight thumbnail',
+        () async {
+      await _createProjectAndSeedDemoData(
+        createProjectUseCase,
+        seedUseCase,
+        workspace,
+        tempProjectRoot.path,
+      );
+
+      final spriteFile = File(
+        workspace.resolveProjectRelativePath(
+          'assets/pokemon/sprites/bulbasaur/front.png',
+        ),
+      );
+      await spriteFile.parent.create(recursive: true);
+      await spriteFile.writeAsBytes(const <int>[1, 2, 3, 4]);
+      final portraitFile = File(
+        workspace.resolveProjectRelativePath(
+          'assets/pokemon/portraits/bulbasaur.png',
+        ),
+      );
+      await portraitFile.parent.create(recursive: true);
+      await portraitFile.writeAsBytes(const <int>[1, 2, 3, 4]);
+
+      final entries = await indexService.build(workspace);
+      final bulbasaur = entries.firstWhere((entry) => entry.id == 'bulbasaur');
+      final ivysaur = entries.firstWhere((entry) => entry.id == 'ivysaur');
+
+      expect(
+        bulbasaur.thumbnailRelativePath,
+        'assets/pokemon/sprites/bulbasaur/front.png',
+      );
+      expect(
+        bulbasaur.portraitRelativePath,
+        'assets/pokemon/portraits/bulbasaur.png',
+      );
+      expect(ivysaur.thumbnailRelativePath, isNull);
     });
 
     test(

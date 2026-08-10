@@ -219,7 +219,7 @@ class PokemonProjectDataReader {
       //
       // Cela permet d'embellir la liste sans transformer l'index léger en
       // seconde fiche détail ni faire de l'UI une lectrice JSON parallèle.
-      final portraitRelativePath = await _resolveOptionalPortraitRelativePath(
+      final mediaPreview = await _resolveOptionalMediaPreview(
         workspace,
         species,
       );
@@ -228,7 +228,8 @@ class PokemonProjectDataReader {
         PokemonDatabaseIndexEntry.fromSpeciesEntry(
           speciesIndexEntry: speciesIndexEntry,
           species: species,
-          portraitRelativePath: portraitRelativePath,
+          portraitRelativePath: mediaPreview.portraitRelativePath,
+          thumbnailRelativePath: mediaPreview.thumbnailRelativePath,
         ),
       );
     }
@@ -242,37 +243,65 @@ class PokemonProjectDataReader {
     return entries;
   }
 
-  Future<String?> _resolveOptionalPortraitRelativePath(
+  Future<({String? portraitRelativePath, String? thumbnailRelativePath})>
+  _resolveOptionalMediaPreview(
     ProjectWorkspace workspace,
     PokemonSpeciesFile species,
   ) async {
     final mediaId = species.refs.media.trim();
     if (mediaId.isEmpty) {
-      return null;
+      return (portraitRelativePath: null, thumbnailRelativePath: null);
     }
 
     try {
       final media = await readMediaById(workspace, mediaId);
       final defaultVariant = media.variants[media.defaultFormId];
-      final portraitRelativePath = defaultVariant?.portrait?.trim();
-      if (portraitRelativePath == null || portraitRelativePath.isEmpty) {
-        return null;
-      }
-
-      final exists = await workspace.fileExists(
-        workspace.resolveProjectRelativePath(portraitRelativePath),
+      final portraitRelativePath = await _resolveExistingMediaPath(
+        workspace,
+        defaultVariant?.portrait,
       );
-      return exists ? portraitRelativePath : null;
+      String? thumbnailRelativePath;
+      for (final candidate in <String?>[
+        defaultVariant?.frontStatic,
+        defaultVariant?.icon,
+        defaultVariant?.party,
+      ]) {
+        thumbnailRelativePath = await _resolveExistingMediaPath(
+          workspace,
+          candidate,
+        );
+        if (thumbnailRelativePath != null) {
+          break;
+        }
+      }
+      return (
+        portraitRelativePath: portraitRelativePath,
+        thumbnailRelativePath: thumbnailRelativePath ?? portraitRelativePath,
+      );
     } on EditorApplicationException {
       // Important : le portrait de liste est décoratif.
       // Une erreur média locale ne doit pas rendre la liste Pokédex inutilisable
       // si l'espèce elle-même reste lisible et indexable.
-      return null;
+      return (portraitRelativePath: null, thumbnailRelativePath: null);
     } catch (_) {
       // Même philosophie ici : on ne masque pas un problème plus loin dans la
       // stack, mais on n'échoue pas non plus la liste pour un portrait.
+      return (portraitRelativePath: null, thumbnailRelativePath: null);
+    }
+  }
+
+  Future<String?> _resolveExistingMediaPath(
+    ProjectWorkspace workspace,
+    String? rawRelativePath,
+  ) async {
+    final relativePath = rawRelativePath?.trim();
+    if (relativePath == null || relativePath.isEmpty) {
       return null;
     }
+    final exists = await workspace.fileExists(
+      workspace.resolveProjectRelativePath(relativePath),
+    );
+    return exists ? relativePath : null;
   }
 
   Future<PokemonSpeciesFile> readSpeciesByRelativePath(

@@ -13,12 +13,15 @@ class PokeMapAssetThumbnail extends StatelessWidget {
     this.imageBytes,
     this.imageFilePath,
     this.size = 56,
-  }) : assert(imageBytes == null || imageFilePath == null);
+    this.imageScale = 1,
+  }) : assert(imageBytes == null || imageFilePath == null),
+       assert(imageScale > 0);
 
   final String semanticLabel;
   final Uint8List? imageBytes;
   final String? imageFilePath;
   final double size;
+  final double imageScale;
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +29,41 @@ class PokeMapAssetThumbnail extends StatelessWidget {
     final bytes = imageBytes;
     final filePath = imageFilePath;
     final hasImage = bytes != null || filePath != null;
+    final content = bytes != null
+        ? Image.memory(
+            bytes,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.none,
+            gaplessPlayback: true,
+            frameBuilder: imageScale == 1
+                ? null
+                : (_, child, frame, _) => frame == null
+                      ? child
+                      : Transform.scale(scale: imageScale, child: child),
+            errorBuilder: (_, _, _) => Icon(
+              CupertinoIcons.exclamationmark_triangle,
+              color: colors.error,
+              size: size * 0.4,
+            ),
+          )
+        : filePath != null
+        ? Image.file(
+            File(filePath),
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.none,
+            gaplessPlayback: true,
+            frameBuilder: imageScale == 1
+                ? null
+                : (_, child, frame, _) => frame == null
+                      ? child
+                      : Transform.scale(scale: imageScale, child: child),
+            errorBuilder: (_, _, _) => Icon(
+              CupertinoIcons.exclamationmark_triangle,
+              color: colors.error,
+              size: size * 0.4,
+            ),
+          )
+        : Icon(CupertinoIcons.photo, color: colors.textMuted, size: size * 0.4);
     return Semantics(
       image: hasImage,
       label: semanticLabel,
@@ -39,35 +77,7 @@ class PokeMapAssetThumbnail extends StatelessWidget {
           border: Border.all(color: colors.borderSubtle),
         ),
         clipBehavior: Clip.antiAlias,
-        child: bytes != null
-            ? Image.memory(
-                bytes,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.none,
-                gaplessPlayback: true,
-                errorBuilder: (_, _, _) => Icon(
-                  CupertinoIcons.exclamationmark_triangle,
-                  color: colors.error,
-                  size: size * 0.4,
-                ),
-              )
-            : filePath != null
-            ? Image.file(
-                File(filePath),
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.none,
-                gaplessPlayback: true,
-                errorBuilder: (_, _, _) => Icon(
-                  CupertinoIcons.exclamationmark_triangle,
-                  color: colors.error,
-                  size: size * 0.4,
-                ),
-              )
-            : Icon(
-                CupertinoIcons.photo,
-                color: colors.textMuted,
-                size: size * 0.4,
-              ),
+        child: content,
       ),
     );
   }

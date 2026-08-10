@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,6 +19,7 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/panels/encounter_tables_panel.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   Future<void> pumpEncounterPanel(
@@ -302,6 +306,146 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Table valide'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'renders catalog thumbnails in the roster, inspector, and species suggestions',
+    (tester) async {
+      final projectRoot = await tester.runAsync(
+        () => Directory.systemTemp.createTemp('encounter_thumbnail_test_'),
+      );
+      if (projectRoot == null) {
+        fail('Unable to create the temporary encounter thumbnail fixture.');
+      }
+      addTearDown(() => projectRoot.delete(recursive: true));
+      const thumbnailBytes =
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+      const bulbasaurRelativePath =
+          'assets/pokemon/sprites/bulbasaur/front.png';
+      const pikachuRelativePath = 'assets/pokemon/sprites/pikachu/front.png';
+      await tester.runAsync(() async {
+        for (final relativePath in <String>[
+          bulbasaurRelativePath,
+          pikachuRelativePath,
+        ]) {
+          final file = File(p.join(projectRoot.path, relativePath));
+          await file.parent.create(recursive: true);
+          await file.writeAsBytes(base64Decode(thumbnailBytes));
+        }
+      });
+
+      final repository = _FakeProjectRepository();
+      const workspace = _FakeWorkspace();
+      final speciesEntries = <PokemonDatabaseIndexEntry>[
+        PokemonDatabaseIndexEntry(
+          id: 'bulbasaur',
+          nationalDex: 1,
+          primaryName: 'Bulbizarre',
+          genIntroduced: 1,
+          types: <String>['grass', 'poison'],
+          isEnabledInProject: true,
+          refs: const PokemonDatabaseIndexRefs(
+            learnset: 'bulbasaur',
+            evolution: 'bulbasaur',
+            media: 'bulbasaur',
+          ),
+          thumbnailRelativePath: bulbasaurRelativePath,
+        ),
+        PokemonDatabaseIndexEntry(
+          id: 'pikachu',
+          nationalDex: 25,
+          primaryName: 'Pikachu',
+          genIntroduced: 1,
+          types: <String>['electric'],
+          isEnabledInProject: true,
+          refs: const PokemonDatabaseIndexRefs(
+            learnset: 'pikachu',
+            evolution: 'pikachu',
+            media: 'pikachu',
+          ),
+          thumbnailRelativePath: pikachuRelativePath,
+        ),
+      ];
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(
+            _FakeEncounterTablePersistenceGateway(repository),
+          ),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: projectRoot.path,
+        project: const ProjectManifest(
+          name: 'encounter_thumbnail_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          encounterTables: <ProjectEncounterTable>[
+            ProjectEncounterTable(
+              id: 'route_1_grass',
+              name: 'Route 1 — Hautes herbes',
+              encounterKind: EncounterKind.walk,
+              chancePerStep: 0.2,
+              entries: <ProjectEncounterEntry>[
+                ProjectEncounterEntry(
+                  speciesId: 'bulbasaur',
+                  minLevel: 2,
+                  maxLevel: 4,
+                  weight: 3,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pumpAndSettle();
+
+      final rosterThumbnail = tester.widget<PokeMapAssetThumbnail>(
+        find.byKey(const Key('encounter-roster-sprite-route_1_grass-0')),
+      );
+      expect(
+        rosterThumbnail.imageFilePath,
+        p.join(projectRoot.path, bulbasaurRelativePath),
+      );
+      expect((rosterThumbnail as dynamic).imageScale, 3);
+
+      await tester.tap(
+        find.byKey(const Key('encounter-roster-entry-route_1_grass-0')),
+      );
+      await tester.pumpAndSettle();
+
+      final inspectorThumbnail = tester.widget<PokeMapAssetThumbnail>(
+        find.byKey(const Key('encounter-entry-species-thumbnail')),
+      );
+      expect(
+        inspectorThumbnail.imageFilePath,
+        p.join(projectRoot.path, bulbasaurRelativePath),
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-species-field')),
+        'pika',
+      );
+      await tester.pumpAndSettle();
+
+      final suggestionThumbnail = tester.widget<PokeMapAssetThumbnail>(
+        find.byKey(const Key('encounter-species-suggestion-thumbnail-pikachu')),
+      );
+      expect(
+        suggestionThumbnail.imageFilePath,
+        p.join(projectRoot.path, pikachuRelativePath),
+      );
     },
   );
 

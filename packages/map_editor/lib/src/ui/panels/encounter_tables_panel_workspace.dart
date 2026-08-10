@@ -969,11 +969,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
     final draftProbability = _draftEntryProbability(table);
     final duplicateMessage = _duplicateDraftSpeciesMessage(table);
     final persistenceError = (state.errorMessage ?? '').trim();
-    final portraitRelativePath = species?.portraitRelativePath;
-    final portraitPath =
-        portraitRelativePath == null || _referenceProjectRootPath == null
-        ? null
-        : p.join(_referenceProjectRootPath!, portraitRelativePath);
+    final thumbnailPath = _encounterSpeciesThumbnailPath(species);
 
     return ListView(
       padding: const EdgeInsets.all(12),
@@ -981,9 +977,11 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
         Row(
           children: [
             PokeMapAssetThumbnail(
+              key: const Key('encounter-entry-species-thumbnail'),
               semanticLabel:
-                  'Portrait de ${species?.primaryName ?? 'l’espèce sélectionnée'}',
-              imageFilePath: portraitPath,
+                  'Aperçu de ${species?.primaryName ?? 'l’espèce sélectionnée'}',
+              imageFilePath: thumbnailPath,
+              imageScale: _encounterSpeciesThumbnailScale(species),
               size: 54,
             ),
             const SizedBox(width: 10),
@@ -1073,6 +1071,18 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
                   onTap: () => _selectSuggestedSpecies(suggestion.id),
                   child: Row(
                     children: [
+                      PokeMapAssetThumbnail(
+                        key: Key(
+                          'encounter-species-suggestion-thumbnail-${suggestion.id}',
+                        ),
+                        semanticLabel: 'Aperçu de ${suggestion.primaryName}',
+                        imageFilePath: _encounterSpeciesThumbnailPath(
+                          suggestion,
+                        ),
+                        imageScale: _encounterSpeciesThumbnailScale(suggestion),
+                        size: 32,
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           suggestion.primaryName,
@@ -1418,11 +1428,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
     final colors = context.pokeMapColors;
     final species = _resolveEncounterSpecies(references, entry.speciesId);
     final speciesName = species?.primaryName ?? entry.speciesId;
-    final portraitRelativePath = species?.portraitRelativePath;
-    final portraitPath =
-        portraitRelativePath == null || _referenceProjectRootPath == null
-        ? null
-        : p.join(_referenceProjectRootPath!, portraitRelativePath);
+    final thumbnailPath = _encounterSpeciesThumbnailPath(species);
     final relativeShare = probability.relativeShare;
     final resolvedChance = probability.resolvedChancePerStep;
 
@@ -1439,8 +1445,9 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
         children: [
           PokeMapAssetThumbnail(
             key: Key('encounter-roster-sprite-${table.id}-$entryIndex'),
-            semanticLabel: 'Portrait de $speciesName',
-            imageFilePath: portraitPath,
+            semanticLabel: 'Aperçu de $speciesName',
+            imageFilePath: thumbnailPath,
+            imageScale: _encounterSpeciesThumbnailScale(species),
             size: 36,
           ),
           const SizedBox(width: 8),
@@ -1551,6 +1558,20 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
 
   String _formatEncounterProbability(double probability) {
     return '${(probability * 100).toStringAsFixed(1)}%';
+  }
+
+  String? _encounterSpeciesThumbnailPath(PokemonDatabaseIndexEntry? species) {
+    final relativePath =
+        species?.thumbnailRelativePath ?? species?.portraitRelativePath;
+    final projectRootPath = _referenceProjectRootPath;
+    if (relativePath == null || projectRootPath == null) {
+      return null;
+    }
+    return p.join(projectRootPath, relativePath);
+  }
+
+  double _encounterSpeciesThumbnailScale(PokemonDatabaseIndexEntry? species) {
+    return species?.thumbnailRelativePath == null ? 1 : 3;
   }
 
   String _encounterTypeLabel(String type) {
