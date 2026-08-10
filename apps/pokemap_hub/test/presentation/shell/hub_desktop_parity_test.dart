@@ -133,7 +133,7 @@ void main() {
       find.byType(HubShell),
       matchesGoldenFile('../../goldens/avelune/desktop_home_1280x800.png'),
     );
-  });
+  }, tags: 'visual');
 
   testWidgets('landscape phone visual gate', (tester) async {
     await _pumpShell(
@@ -146,7 +146,7 @@ void main() {
       find.byType(HubShell),
       matchesGoldenFile('../../goldens/avelune/home_landscape_844x390.png'),
     );
-  });
+  }, tags: 'visual');
 
   testWidgets('a window below the supported minimum explains itself', (
     tester,

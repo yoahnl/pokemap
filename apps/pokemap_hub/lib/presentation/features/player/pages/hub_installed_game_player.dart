@@ -9,11 +9,12 @@ import 'package:map_runtime/map_runtime.dart';
 
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
-import 'package:pokemap_hub/presentation/features/player/state/hub_runtime_startup_bootstrap.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_bootstrap.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
 import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
+import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
 
 typedef HubPlayerReturnRequest = Future<void> Function();
 
@@ -98,6 +99,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             mountGame: _mountGame,
             unmountGame: _unmountGame,
             stopIntroPlayback: _startupShellController.stopIntroPlayback,
+            defaultProfileDisplayNameForLocale: (locale) =>
+                HubInstalledPlayerStrings.forLocale(locale).defaultProfile,
             diagnosticLogFile: widget.diagnosticLogFile,
           ),
           hostBranding: widget.hostBranding,

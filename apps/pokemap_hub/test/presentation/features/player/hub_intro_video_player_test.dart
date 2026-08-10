@@ -29,7 +29,7 @@ void main() {
       'lib/presentation/features/player/pages/hub_installed_game_player.dart',
     ).readAsString();
     final startupBootstrap = await File(
-      'lib/presentation/features/player/state/hub_runtime_startup_bootstrap.dart',
+      'lib/features/session/application/services/hub_runtime_startup_bootstrap.dart',
     ).readAsString();
 
     expect(

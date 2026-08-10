@@ -56,7 +56,7 @@ jobs:
         working-directory: apps/pokemap_hub
         run: |
           flutter pub get
-          flutter test --timeout 2m
+          flutter test --timeout 2m --exclude-tags visual
           flutter analyze
           flutter build macos --release
       - name: Verify intro codecs

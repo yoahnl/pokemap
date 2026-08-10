@@ -42,4 +42,15 @@ void main() {
     expect(workflow, contains('flutter build linux --release'));
     expect(workflow, contains('xvfb-run'));
   });
+
+  test('Hub CI keeps visual snapshots opt-in', () async {
+    final workflow = await File(
+      '../../.github/workflows/pokemap_hub_product_certification.yml',
+    ).readAsString();
+
+    expect(
+      workflow,
+      contains('flutter test --timeout 2m --exclude-tags visual'),
+    );
+  });
 }

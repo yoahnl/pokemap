@@ -17,7 +17,6 @@ import 'package:pokemap_hub/features/session/application/services/player_launch_
 import 'package:pokemap_hub/features/session/domain/entities/hub_runtime_external_exit.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
-import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
 
 final class HubRuntimeStartupPreparedData {
   const HubRuntimeStartupPreparedData({
@@ -54,6 +53,7 @@ final class HubRuntimeStartupBootstrap
     required this.mountGame,
     required this.unmountGame,
     required this.stopIntroPlayback,
+    required this.defaultProfileDisplayNameForLocale,
     this.diagnosticLogFile,
   });
 
@@ -67,6 +67,7 @@ final class HubRuntimeStartupBootstrap
   final Future<void> Function(PlayableMapGame game) mountGame;
   final Future<void> Function(PlayableMapGame game) unmountGame;
   final Future<void> Function() stopIntroPlayback;
+  final String Function(String locale) defaultProfileDisplayNameForLocale;
   final File? diagnosticLogFile;
 
   @override
@@ -105,11 +106,12 @@ final class HubRuntimeStartupBootstrap
         supportedLocales: launch.manifest.locales.supported,
         fallbackLocale: launch.manifest.locales.defaultLocale,
       );
-      final strings = HubInstalledPlayerStrings.forLocale(playerLocale);
       final saveSelection = await HubSaveProfileManager(
         store: store,
       ).ensureDefaultSelection(
-        defaultProfileDisplayName: strings.defaultProfile,
+        defaultProfileDisplayName: defaultProfileDisplayNameForLocale(
+          playerLocale,
+        ),
         defaultSlotDisplayName: 'Slot 1',
       );
       onStageCompleted(RuntimeStartupBootstrapStage.hostStorage);

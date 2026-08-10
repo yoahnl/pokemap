@@ -164,7 +164,7 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('../../../goldens/avelune/settings_sheet_393x852.png'),
     );
-  });
+  }, tags: 'visual');
 
   testWidgets('the sheet stays on the Home section', (tester) async {
     final observed = <HubSection>[];

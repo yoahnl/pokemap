@@ -12,7 +12,7 @@ void main() {
           ).readAsString();
       final startupBootstrap =
           await File(
-            'lib/presentation/features/player/state/hub_runtime_startup_bootstrap.dart',
+            'lib/features/session/application/services/hub_runtime_startup_bootstrap.dart',
           ).readAsString();
       final uiBarrel = await File('lib/pokemap_hub_ui.dart').readAsString();
       final playerBarrel =
