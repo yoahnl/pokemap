@@ -407,6 +407,20 @@ enum CharacterAnimationState {
   run,
 }
 
+enum CharacterPortraitFitMode {
+  @JsonValue('contain')
+  contain,
+  @JsonValue('cover')
+  cover,
+}
+
+enum CharacterCustomAnimationMode {
+  @JsonValue('single')
+  single,
+  @JsonValue('directional')
+  directional,
+}
+
 enum TilesetScope {
   @JsonValue('global')
   global,

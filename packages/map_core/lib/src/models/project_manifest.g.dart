@@ -121,6 +121,11 @@ _ProjectManifest _$ProjectManifestFromJson(
           )
           .toList() ??
       const [],
+  characterStudioCatalog: json['characterStudioCatalog'] == null
+      ? const ProjectCharacterStudioCatalog()
+      : ProjectCharacterStudioCatalog.fromJson(
+          json['characterStudioCatalog'] as Map<String, dynamic>,
+        ),
   settings: json['settings'] == null
       ? const ProjectSettings()
       : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
@@ -201,6 +206,7 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'badges': instance.badges.map((e) => e.toJson()).toList(),
   'trainers': instance.trainers.map((e) => e.toJson()).toList(),
   'characters': instance.characters.map((e) => e.toJson()).toList(),
+  'characterStudioCatalog': instance.characterStudioCatalog.toJson(),
   'settings': instance.settings.toJson(),
   'pokemon': instance.pokemon.toJson(),
   'newGame': instance.newGame.toJson(),
@@ -741,6 +747,100 @@ Map<String, dynamic> _$ProjectScriptEntryToJson(_ProjectScriptEntry instance) =>
       'tags': instance.tags,
     };
 
+_ProjectCharacterStudioCatalog _$ProjectCharacterStudioCatalogFromJson(
+  Map<String, dynamic> json,
+) => _ProjectCharacterStudioCatalog(
+  portraitStates:
+      (json['portraitStates'] as List<dynamic>?)
+          ?.map(
+            (e) => CharacterPortraitStateDefinition.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
+          .toList() ??
+      const [],
+  customAnimationDefinitions:
+      (json['customAnimationDefinitions'] as List<dynamic>?)
+          ?.map(
+            (e) => CharacterCustomAnimationDefinition.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
+          .toList() ??
+      const [],
+);
+
+Map<String, dynamic> _$ProjectCharacterStudioCatalogToJson(
+  _ProjectCharacterStudioCatalog instance,
+) => <String, dynamic>{
+  'portraitStates': instance.portraitStates.map((e) => e.toJson()).toList(),
+  'customAnimationDefinitions': instance.customAnimationDefinitions
+      .map((e) => e.toJson())
+      .toList(),
+};
+
+_CharacterPortraitStateDefinition _$CharacterPortraitStateDefinitionFromJson(
+  Map<String, dynamic> json,
+) => _CharacterPortraitStateDefinition(
+  id: json['id'] as String,
+  displayName: json['displayName'] as String,
+  sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+);
+
+Map<String, dynamic> _$CharacterPortraitStateDefinitionToJson(
+  _CharacterPortraitStateDefinition instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'displayName': instance.displayName,
+  'sortOrder': instance.sortOrder,
+};
+
+_CharacterCustomAnimationDefinition
+_$CharacterCustomAnimationDefinitionFromJson(Map<String, dynamic> json) =>
+    _CharacterCustomAnimationDefinition(
+      id: json['id'] as String,
+      displayName: json['displayName'] as String,
+      mode: $enumDecode(_$CharacterCustomAnimationModeEnumMap, json['mode']),
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$CharacterCustomAnimationDefinitionToJson(
+  _CharacterCustomAnimationDefinition instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'displayName': instance.displayName,
+  'mode': _$CharacterCustomAnimationModeEnumMap[instance.mode]!,
+  'sortOrder': instance.sortOrder,
+};
+
+const _$CharacterCustomAnimationModeEnumMap = {
+  CharacterCustomAnimationMode.single: 'single',
+  CharacterCustomAnimationMode.directional: 'directional',
+};
+
+_CharacterPortraitVariant _$CharacterPortraitVariantFromJson(
+  Map<String, dynamic> json,
+) => _CharacterPortraitVariant(
+  portraitStateId: json['portraitStateId'] as String,
+  assetId: json['assetId'] as String,
+  fitMode:
+      $enumDecodeNullable(_$CharacterPortraitFitModeEnumMap, json['fitMode']) ??
+      CharacterPortraitFitMode.contain,
+);
+
+Map<String, dynamic> _$CharacterPortraitVariantToJson(
+  _CharacterPortraitVariant instance,
+) => <String, dynamic>{
+  'portraitStateId': instance.portraitStateId,
+  'assetId': instance.assetId,
+  'fitMode': _$CharacterPortraitFitModeEnumMap[instance.fitMode]!,
+};
+
+const _$CharacterPortraitFitModeEnumMap = {
+  CharacterPortraitFitMode.contain: 'contain',
+  CharacterPortraitFitMode.cover: 'cover',
+};
+
 _ProjectCharacterEntry _$ProjectCharacterEntryFromJson(
   Map<String, dynamic> json,
 ) => _ProjectCharacterEntry(
@@ -749,9 +849,25 @@ _ProjectCharacterEntry _$ProjectCharacterEntryFromJson(
   tilesetId: json['tilesetId'] as String,
   frameWidth: (json['frameWidth'] as num?)?.toInt() ?? 1,
   frameHeight: (json['frameHeight'] as num?)?.toInt() ?? 2,
+  portraits:
+      (json['portraits'] as List<dynamic>?)
+          ?.map(
+            (e) => CharacterPortraitVariant.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
   animations:
       (json['animations'] as List<dynamic>?)
           ?.map((e) => CharacterAnimation.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  customAnimations:
+      (json['customAnimations'] as List<dynamic>?)
+          ?.map(
+            (e) => CharacterCustomAnimationClip.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
           .toList() ??
       const [],
   tags:
@@ -768,7 +884,9 @@ Map<String, dynamic> _$ProjectCharacterEntryToJson(
   'tilesetId': instance.tilesetId,
   'frameWidth': instance.frameWidth,
   'frameHeight': instance.frameHeight,
+  'portraits': instance.portraits.map((e) => e.toJson()).toList(),
   'animations': instance.animations.map((e) => e.toJson()).toList(),
+  'customAnimations': instance.customAnimations.map((e) => e.toJson()).toList(),
   'tags': instance.tags,
   'sortOrder': instance.sortOrder,
 };
@@ -777,6 +895,7 @@ _CharacterAnimation _$CharacterAnimationFromJson(Map<String, dynamic> json) =>
     _CharacterAnimation(
       state: $enumDecode(_$CharacterAnimationStateEnumMap, json['state']),
       direction: $enumDecode(_$EntityFacingEnumMap, json['direction']),
+      sourceAssetId: json['sourceAssetId'] as String?,
       frames:
           (json['frames'] as List<dynamic>?)
               ?.map(
@@ -785,13 +904,16 @@ _CharacterAnimation _$CharacterAnimationFromJson(Map<String, dynamic> json) =>
               )
               .toList() ??
           const [],
+      loop: json['loop'] as bool? ?? true,
     );
 
 Map<String, dynamic> _$CharacterAnimationToJson(_CharacterAnimation instance) =>
     <String, dynamic>{
       'state': _$CharacterAnimationStateEnumMap[instance.state]!,
       'direction': _$EntityFacingEnumMap[instance.direction]!,
+      'sourceAssetId': ?instance.sourceAssetId,
       'frames': instance.frames.map((e) => e.toJson()).toList(),
+      'loop': ?_characterAnimationLoopToJson(instance.loop),
     };
 
 const _$CharacterAnimationStateEnumMap = {
@@ -805,6 +927,32 @@ const _$EntityFacingEnumMap = {
   EntityFacing.south: 'south',
   EntityFacing.east: 'east',
   EntityFacing.west: 'west',
+};
+
+_CharacterCustomAnimationClip _$CharacterCustomAnimationClipFromJson(
+  Map<String, dynamic> json,
+) => _CharacterCustomAnimationClip(
+  definitionId: json['definitionId'] as String,
+  direction: $enumDecodeNullable(_$EntityFacingEnumMap, json['direction']),
+  sourceAssetId: json['sourceAssetId'] as String,
+  frames:
+      (json['frames'] as List<dynamic>?)
+          ?.map(
+            (e) => CharacterAnimationFrame.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
+  loop: json['loop'] as bool? ?? true,
+);
+
+Map<String, dynamic> _$CharacterCustomAnimationClipToJson(
+  _CharacterCustomAnimationClip instance,
+) => <String, dynamic>{
+  'definitionId': instance.definitionId,
+  'direction': ?_$EntityFacingEnumMap[instance.direction],
+  'sourceAssetId': instance.sourceAssetId,
+  'frames': instance.frames.map((e) => e.toJson()).toList(),
+  'loop': instance.loop,
 };
 
 _CharacterAnimationFrame _$CharacterAnimationFrameFromJson(

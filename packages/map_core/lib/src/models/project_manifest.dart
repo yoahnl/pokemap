@@ -430,6 +430,8 @@ abstract class ProjectManifest with _$ProjectManifest {
     @Default([]) List<BadgeDefinition> badges,
     @Default([]) List<ProjectTrainerEntry> trainers,
     @Default([]) List<ProjectCharacterEntry> characters,
+    @Default(ProjectCharacterStudioCatalog())
+    ProjectCharacterStudioCatalog characterStudioCatalog,
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
@@ -964,6 +966,61 @@ abstract class ProjectScriptEntry with _$ProjectScriptEntry {
 }
 
 @freezed
+abstract class ProjectCharacterStudioCatalog
+    with _$ProjectCharacterStudioCatalog {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectCharacterStudioCatalog({
+    @Default([]) List<CharacterPortraitStateDefinition> portraitStates,
+    @Default([])
+    List<CharacterCustomAnimationDefinition> customAnimationDefinitions,
+  }) = _ProjectCharacterStudioCatalog;
+
+  factory ProjectCharacterStudioCatalog.fromJson(Map<String, dynamic> json) =>
+      _$ProjectCharacterStudioCatalogFromJson(json);
+}
+
+@freezed
+abstract class CharacterPortraitStateDefinition
+    with _$CharacterPortraitStateDefinition {
+  const factory CharacterPortraitStateDefinition({
+    required String id,
+    required String displayName,
+    @Default(0) int sortOrder,
+  }) = _CharacterPortraitStateDefinition;
+
+  factory CharacterPortraitStateDefinition.fromJson(
+    Map<String, dynamic> json,
+  ) => _$CharacterPortraitStateDefinitionFromJson(json);
+}
+
+@freezed
+abstract class CharacterCustomAnimationDefinition
+    with _$CharacterCustomAnimationDefinition {
+  const factory CharacterCustomAnimationDefinition({
+    required String id,
+    required String displayName,
+    required CharacterCustomAnimationMode mode,
+    @Default(0) int sortOrder,
+  }) = _CharacterCustomAnimationDefinition;
+
+  factory CharacterCustomAnimationDefinition.fromJson(
+    Map<String, dynamic> json,
+  ) => _$CharacterCustomAnimationDefinitionFromJson(json);
+}
+
+@freezed
+abstract class CharacterPortraitVariant with _$CharacterPortraitVariant {
+  const factory CharacterPortraitVariant({
+    required String portraitStateId,
+    required String assetId,
+    @Default(CharacterPortraitFitMode.contain) CharacterPortraitFitMode fitMode,
+  }) = _CharacterPortraitVariant;
+
+  factory CharacterPortraitVariant.fromJson(Map<String, dynamic> json) =>
+      _$CharacterPortraitVariantFromJson(json);
+}
+
+@freezed
 abstract class ProjectCharacterEntry with _$ProjectCharacterEntry {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectCharacterEntry({
@@ -972,7 +1029,9 @@ abstract class ProjectCharacterEntry with _$ProjectCharacterEntry {
     required String tilesetId,
     @Default(1) int frameWidth,
     @Default(2) int frameHeight,
+    @Default([]) List<CharacterPortraitVariant> portraits,
     @Default([]) List<CharacterAnimation> animations,
+    @Default([]) List<CharacterCustomAnimationClip> customAnimations,
     @Default([]) List<String> tags,
     @Default(0) int sortOrder,
   }) = _ProjectCharacterEntry;
@@ -981,17 +1040,39 @@ abstract class ProjectCharacterEntry with _$ProjectCharacterEntry {
       _$ProjectCharacterEntryFromJson(json);
 }
 
+bool? _characterAnimationLoopToJson(bool loop) => loop ? null : false;
+
 @freezed
 abstract class CharacterAnimation with _$CharacterAnimation {
   @JsonSerializable(explicitToJson: true)
   const factory CharacterAnimation({
     required CharacterAnimationState state,
     required EntityFacing direction,
+    @JsonKey(includeIfNull: false) String? sourceAssetId,
     @Default([]) List<CharacterAnimationFrame> frames,
+    @Default(true)
+    @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)
+    bool loop,
   }) = _CharacterAnimation;
 
   factory CharacterAnimation.fromJson(Map<String, dynamic> json) =>
       _$CharacterAnimationFromJson(json);
+}
+
+@freezed
+abstract class CharacterCustomAnimationClip
+    with _$CharacterCustomAnimationClip {
+  @JsonSerializable(explicitToJson: true)
+  const factory CharacterCustomAnimationClip({
+    required String definitionId,
+    @JsonKey(includeIfNull: false) EntityFacing? direction,
+    required String sourceAssetId,
+    @Default([]) List<CharacterAnimationFrame> frames,
+    @Default(true) bool loop,
+  }) = _CharacterCustomAnimationClip;
+
+  factory CharacterCustomAnimationClip.fromJson(Map<String, dynamic> json) =>
+      _$CharacterCustomAnimationClipFromJson(json);
 }
 
 @freezed

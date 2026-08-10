@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ProjectManifest {
 
- String get name; ProjectVersion get version; List<ProjectMapEntry> get maps; List<ProjectMapGroup> get groups; List<ProjectTilesetFolder> get tilesetFolders; List<ProjectTilesetEntry> get tilesets; List<ProjectElementCategory> get elementCategories; List<ProjectElementEntry> get elements;@JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) List<EnvironmentPreset> get environmentPresets; List<ProjectEncounterTable> get encounterTables; List<ProjectDialogueFolder> get dialogueFolders; List<ProjectDialogueEntry> get dialogues; List<ProjectScriptEntry> get scripts; List<ScenarioAsset> get scenarios;@JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) List<CinematicAsset> get cinematics;@JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) List<CinematicMediaAsset> get cinematicMediaAssets;@JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) List<NarrativeFactDefinition> get facts;@JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) List<WorldRuleDefinition> get worldRules; List<NarrativeDiagnosticSuppression> get narrativeDiagnosticSuppressions;@JsonKey(includeIfNull: false) NarrativeEventRegistry? get eventRegistry;@JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) List<SceneAsset> get scenes;@JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) List<StorylineAsset> get storylines; List<ShopDefinition> get shops; List<BadgeDefinition> get badges; List<ProjectTrainerEntry> get trainers; List<ProjectCharacterEntry> get characters; ProjectSettings get settings; ProjectPokemonConfig get pokemon; ProjectNewGameConfig get newGame;@JsonKey(includeIfNull: false) ProjectPresentationProfile? get presentation; List<ProjectPresentationPresetRecord> get presentationPresets; Map<String, dynamic> get globalProperties;@JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) ProjectSmartTileCatalog get smartTileCatalog;@JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) ProjectBorderCatalog get borderCatalog;@ProjectShadowCatalogJsonConverter() ProjectShadowCatalog get shadowCatalog;@JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) ProjectBuildingShadowPresetCatalog get projectedBuildingShadowCatalog;
+ String get name; ProjectVersion get version; List<ProjectMapEntry> get maps; List<ProjectMapGroup> get groups; List<ProjectTilesetFolder> get tilesetFolders; List<ProjectTilesetEntry> get tilesets; List<ProjectElementCategory> get elementCategories; List<ProjectElementEntry> get elements;@JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) List<EnvironmentPreset> get environmentPresets; List<ProjectEncounterTable> get encounterTables; List<ProjectDialogueFolder> get dialogueFolders; List<ProjectDialogueEntry> get dialogues; List<ProjectScriptEntry> get scripts; List<ScenarioAsset> get scenarios;@JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) List<CinematicAsset> get cinematics;@JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) List<CinematicMediaAsset> get cinematicMediaAssets;@JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) List<NarrativeFactDefinition> get facts;@JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) List<WorldRuleDefinition> get worldRules; List<NarrativeDiagnosticSuppression> get narrativeDiagnosticSuppressions;@JsonKey(includeIfNull: false) NarrativeEventRegistry? get eventRegistry;@JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) List<SceneAsset> get scenes;@JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) List<StorylineAsset> get storylines; List<ShopDefinition> get shops; List<BadgeDefinition> get badges; List<ProjectTrainerEntry> get trainers; List<ProjectCharacterEntry> get characters; ProjectCharacterStudioCatalog get characterStudioCatalog; ProjectSettings get settings; ProjectPokemonConfig get pokemon; ProjectNewGameConfig get newGame;@JsonKey(includeIfNull: false) ProjectPresentationProfile? get presentation; List<ProjectPresentationPresetRecord> get presentationPresets; Map<String, dynamic> get globalProperties;@JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) ProjectSmartTileCatalog get smartTileCatalog;@JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) ProjectBorderCatalog get borderCatalog;@ProjectShadowCatalogJsonConverter() ProjectShadowCatalog get shadowCatalog;@JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) ProjectBuildingShadowPresetCatalog get projectedBuildingShadowCatalog;
 /// Create a copy of ProjectManifest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ProjectManifestCopyWith<ProjectManifest> get copyWith => _$ProjectManifestCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectManifest&&(identical(other.name, name) || other.name == name)&&(identical(other.version, version) || other.version == version)&&const DeepCollectionEquality().equals(other.maps, maps)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.tilesetFolders, tilesetFolders)&&const DeepCollectionEquality().equals(other.tilesets, tilesets)&&const DeepCollectionEquality().equals(other.elementCategories, elementCategories)&&const DeepCollectionEquality().equals(other.elements, elements)&&const DeepCollectionEquality().equals(other.environmentPresets, environmentPresets)&&const DeepCollectionEquality().equals(other.encounterTables, encounterTables)&&const DeepCollectionEquality().equals(other.dialogueFolders, dialogueFolders)&&const DeepCollectionEquality().equals(other.dialogues, dialogues)&&const DeepCollectionEquality().equals(other.scripts, scripts)&&const DeepCollectionEquality().equals(other.scenarios, scenarios)&&const DeepCollectionEquality().equals(other.cinematics, cinematics)&&const DeepCollectionEquality().equals(other.cinematicMediaAssets, cinematicMediaAssets)&&const DeepCollectionEquality().equals(other.facts, facts)&&const DeepCollectionEquality().equals(other.worldRules, worldRules)&&const DeepCollectionEquality().equals(other.narrativeDiagnosticSuppressions, narrativeDiagnosticSuppressions)&&(identical(other.eventRegistry, eventRegistry) || other.eventRegistry == eventRegistry)&&const DeepCollectionEquality().equals(other.scenes, scenes)&&const DeepCollectionEquality().equals(other.storylines, storylines)&&const DeepCollectionEquality().equals(other.shops, shops)&&const DeepCollectionEquality().equals(other.badges, badges)&&const DeepCollectionEquality().equals(other.trainers, trainers)&&const DeepCollectionEquality().equals(other.characters, characters)&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.pokemon, pokemon) || other.pokemon == pokemon)&&(identical(other.newGame, newGame) || other.newGame == newGame)&&(identical(other.presentation, presentation) || other.presentation == presentation)&&const DeepCollectionEquality().equals(other.presentationPresets, presentationPresets)&&const DeepCollectionEquality().equals(other.globalProperties, globalProperties)&&(identical(other.smartTileCatalog, smartTileCatalog) || other.smartTileCatalog == smartTileCatalog)&&(identical(other.borderCatalog, borderCatalog) || other.borderCatalog == borderCatalog)&&(identical(other.shadowCatalog, shadowCatalog) || other.shadowCatalog == shadowCatalog)&&(identical(other.projectedBuildingShadowCatalog, projectedBuildingShadowCatalog) || other.projectedBuildingShadowCatalog == projectedBuildingShadowCatalog));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectManifest&&(identical(other.name, name) || other.name == name)&&(identical(other.version, version) || other.version == version)&&const DeepCollectionEquality().equals(other.maps, maps)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.tilesetFolders, tilesetFolders)&&const DeepCollectionEquality().equals(other.tilesets, tilesets)&&const DeepCollectionEquality().equals(other.elementCategories, elementCategories)&&const DeepCollectionEquality().equals(other.elements, elements)&&const DeepCollectionEquality().equals(other.environmentPresets, environmentPresets)&&const DeepCollectionEquality().equals(other.encounterTables, encounterTables)&&const DeepCollectionEquality().equals(other.dialogueFolders, dialogueFolders)&&const DeepCollectionEquality().equals(other.dialogues, dialogues)&&const DeepCollectionEquality().equals(other.scripts, scripts)&&const DeepCollectionEquality().equals(other.scenarios, scenarios)&&const DeepCollectionEquality().equals(other.cinematics, cinematics)&&const DeepCollectionEquality().equals(other.cinematicMediaAssets, cinematicMediaAssets)&&const DeepCollectionEquality().equals(other.facts, facts)&&const DeepCollectionEquality().equals(other.worldRules, worldRules)&&const DeepCollectionEquality().equals(other.narrativeDiagnosticSuppressions, narrativeDiagnosticSuppressions)&&(identical(other.eventRegistry, eventRegistry) || other.eventRegistry == eventRegistry)&&const DeepCollectionEquality().equals(other.scenes, scenes)&&const DeepCollectionEquality().equals(other.storylines, storylines)&&const DeepCollectionEquality().equals(other.shops, shops)&&const DeepCollectionEquality().equals(other.badges, badges)&&const DeepCollectionEquality().equals(other.trainers, trainers)&&const DeepCollectionEquality().equals(other.characters, characters)&&(identical(other.characterStudioCatalog, characterStudioCatalog) || other.characterStudioCatalog == characterStudioCatalog)&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.pokemon, pokemon) || other.pokemon == pokemon)&&(identical(other.newGame, newGame) || other.newGame == newGame)&&(identical(other.presentation, presentation) || other.presentation == presentation)&&const DeepCollectionEquality().equals(other.presentationPresets, presentationPresets)&&const DeepCollectionEquality().equals(other.globalProperties, globalProperties)&&(identical(other.smartTileCatalog, smartTileCatalog) || other.smartTileCatalog == smartTileCatalog)&&(identical(other.borderCatalog, borderCatalog) || other.borderCatalog == borderCatalog)&&(identical(other.shadowCatalog, shadowCatalog) || other.shadowCatalog == shadowCatalog)&&(identical(other.projectedBuildingShadowCatalog, projectedBuildingShadowCatalog) || other.projectedBuildingShadowCatalog == projectedBuildingShadowCatalog));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,name,version,const DeepCollectionEquality().hash(maps),const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(tilesetFolders),const DeepCollectionEquality().hash(tilesets),const DeepCollectionEquality().hash(elementCategories),const DeepCollectionEquality().hash(elements),const DeepCollectionEquality().hash(environmentPresets),const DeepCollectionEquality().hash(encounterTables),const DeepCollectionEquality().hash(dialogueFolders),const DeepCollectionEquality().hash(dialogues),const DeepCollectionEquality().hash(scripts),const DeepCollectionEquality().hash(scenarios),const DeepCollectionEquality().hash(cinematics),const DeepCollectionEquality().hash(cinematicMediaAssets),const DeepCollectionEquality().hash(facts),const DeepCollectionEquality().hash(worldRules),const DeepCollectionEquality().hash(narrativeDiagnosticSuppressions),eventRegistry,const DeepCollectionEquality().hash(scenes),const DeepCollectionEquality().hash(storylines),const DeepCollectionEquality().hash(shops),const DeepCollectionEquality().hash(badges),const DeepCollectionEquality().hash(trainers),const DeepCollectionEquality().hash(characters),settings,pokemon,newGame,presentation,const DeepCollectionEquality().hash(presentationPresets),const DeepCollectionEquality().hash(globalProperties),smartTileCatalog,borderCatalog,shadowCatalog,projectedBuildingShadowCatalog]);
+int get hashCode => Object.hashAll([runtimeType,name,version,const DeepCollectionEquality().hash(maps),const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(tilesetFolders),const DeepCollectionEquality().hash(tilesets),const DeepCollectionEquality().hash(elementCategories),const DeepCollectionEquality().hash(elements),const DeepCollectionEquality().hash(environmentPresets),const DeepCollectionEquality().hash(encounterTables),const DeepCollectionEquality().hash(dialogueFolders),const DeepCollectionEquality().hash(dialogues),const DeepCollectionEquality().hash(scripts),const DeepCollectionEquality().hash(scenarios),const DeepCollectionEquality().hash(cinematics),const DeepCollectionEquality().hash(cinematicMediaAssets),const DeepCollectionEquality().hash(facts),const DeepCollectionEquality().hash(worldRules),const DeepCollectionEquality().hash(narrativeDiagnosticSuppressions),eventRegistry,const DeepCollectionEquality().hash(scenes),const DeepCollectionEquality().hash(storylines),const DeepCollectionEquality().hash(shops),const DeepCollectionEquality().hash(badges),const DeepCollectionEquality().hash(trainers),const DeepCollectionEquality().hash(characters),characterStudioCatalog,settings,pokemon,newGame,presentation,const DeepCollectionEquality().hash(presentationPresets),const DeepCollectionEquality().hash(globalProperties),smartTileCatalog,borderCatalog,shadowCatalog,projectedBuildingShadowCatalog]);
 
 @override
 String toString() {
-  return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, presentationPresets: $presentationPresets, globalProperties: $globalProperties, smartTileCatalog: $smartTileCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+  return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, characterStudioCatalog: $characterStudioCatalog, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, presentationPresets: $presentationPresets, globalProperties: $globalProperties, smartTileCatalog: $smartTileCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
 }
 
 
@@ -48,11 +48,11 @@ abstract mixin class $ProjectManifestCopyWith<$Res>  {
   factory $ProjectManifestCopyWith(ProjectManifest value, $Res Function(ProjectManifest) _then) = _$ProjectManifestCopyWithImpl;
 @useResult
 $Res call({
- String name, ProjectVersion version, List<ProjectMapEntry> maps, List<ProjectMapGroup> groups, List<ProjectTilesetFolder> tilesetFolders, List<ProjectTilesetEntry> tilesets, List<ProjectElementCategory> elementCategories, List<ProjectElementEntry> elements,@JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) List<EnvironmentPreset> environmentPresets, List<ProjectEncounterTable> encounterTables, List<ProjectDialogueFolder> dialogueFolders, List<ProjectDialogueEntry> dialogues, List<ProjectScriptEntry> scripts, List<ScenarioAsset> scenarios,@JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) List<CinematicAsset> cinematics,@JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) List<CinematicMediaAsset> cinematicMediaAssets,@JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) List<NarrativeFactDefinition> facts,@JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) List<WorldRuleDefinition> worldRules, List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,@JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,@JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) List<SceneAsset> scenes,@JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) List<StorylineAsset> storylines, List<ShopDefinition> shops, List<BadgeDefinition> badges, List<ProjectTrainerEntry> trainers, List<ProjectCharacterEntry> characters, ProjectSettings settings, ProjectPokemonConfig pokemon, ProjectNewGameConfig newGame,@JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation, List<ProjectPresentationPresetRecord> presentationPresets, Map<String, dynamic> globalProperties,@JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) ProjectSmartTileCatalog smartTileCatalog,@JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) ProjectBorderCatalog borderCatalog,@ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,@JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog
+ String name, ProjectVersion version, List<ProjectMapEntry> maps, List<ProjectMapGroup> groups, List<ProjectTilesetFolder> tilesetFolders, List<ProjectTilesetEntry> tilesets, List<ProjectElementCategory> elementCategories, List<ProjectElementEntry> elements,@JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) List<EnvironmentPreset> environmentPresets, List<ProjectEncounterTable> encounterTables, List<ProjectDialogueFolder> dialogueFolders, List<ProjectDialogueEntry> dialogues, List<ProjectScriptEntry> scripts, List<ScenarioAsset> scenarios,@JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) List<CinematicAsset> cinematics,@JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) List<CinematicMediaAsset> cinematicMediaAssets,@JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) List<NarrativeFactDefinition> facts,@JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) List<WorldRuleDefinition> worldRules, List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,@JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,@JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) List<SceneAsset> scenes,@JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) List<StorylineAsset> storylines, List<ShopDefinition> shops, List<BadgeDefinition> badges, List<ProjectTrainerEntry> trainers, List<ProjectCharacterEntry> characters, ProjectCharacterStudioCatalog characterStudioCatalog, ProjectSettings settings, ProjectPokemonConfig pokemon, ProjectNewGameConfig newGame,@JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation, List<ProjectPresentationPresetRecord> presentationPresets, Map<String, dynamic> globalProperties,@JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) ProjectSmartTileCatalog smartTileCatalog,@JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) ProjectBorderCatalog borderCatalog,@ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,@JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog
 });
 
 
-$ProjectSettingsCopyWith<$Res> get settings;$ProjectPokemonConfigCopyWith<$Res> get pokemon;$ProjectPresentationProfileCopyWith<$Res>? get presentation;
+$ProjectCharacterStudioCatalogCopyWith<$Res> get characterStudioCatalog;$ProjectSettingsCopyWith<$Res> get settings;$ProjectPokemonConfigCopyWith<$Res> get pokemon;$ProjectPresentationProfileCopyWith<$Res>? get presentation;
 
 }
 /// @nodoc
@@ -65,7 +65,7 @@ class _$ProjectManifestCopyWithImpl<$Res>
 
 /// Create a copy of ProjectManifest
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? version = null,Object? maps = null,Object? groups = null,Object? tilesetFolders = null,Object? tilesets = null,Object? elementCategories = null,Object? elements = null,Object? environmentPresets = null,Object? encounterTables = null,Object? dialogueFolders = null,Object? dialogues = null,Object? scripts = null,Object? scenarios = null,Object? cinematics = null,Object? cinematicMediaAssets = null,Object? facts = null,Object? worldRules = null,Object? narrativeDiagnosticSuppressions = null,Object? eventRegistry = freezed,Object? scenes = null,Object? storylines = null,Object? shops = null,Object? badges = null,Object? trainers = null,Object? characters = null,Object? settings = null,Object? pokemon = null,Object? newGame = null,Object? presentation = freezed,Object? presentationPresets = null,Object? globalProperties = null,Object? smartTileCatalog = null,Object? borderCatalog = null,Object? shadowCatalog = null,Object? projectedBuildingShadowCatalog = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? version = null,Object? maps = null,Object? groups = null,Object? tilesetFolders = null,Object? tilesets = null,Object? elementCategories = null,Object? elements = null,Object? environmentPresets = null,Object? encounterTables = null,Object? dialogueFolders = null,Object? dialogues = null,Object? scripts = null,Object? scenarios = null,Object? cinematics = null,Object? cinematicMediaAssets = null,Object? facts = null,Object? worldRules = null,Object? narrativeDiagnosticSuppressions = null,Object? eventRegistry = freezed,Object? scenes = null,Object? storylines = null,Object? shops = null,Object? badges = null,Object? trainers = null,Object? characters = null,Object? characterStudioCatalog = null,Object? settings = null,Object? pokemon = null,Object? newGame = null,Object? presentation = freezed,Object? presentationPresets = null,Object? globalProperties = null,Object? smartTileCatalog = null,Object? borderCatalog = null,Object? shadowCatalog = null,Object? projectedBuildingShadowCatalog = null,}) {
   return _then(_self.copyWith(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,version: null == version ? _self.version : version // ignore: cast_nullable_to_non_nullable
@@ -93,7 +93,8 @@ as List<StorylineAsset>,shops: null == shops ? _self.shops : shops // ignore: ca
 as List<ShopDefinition>,badges: null == badges ? _self.badges : badges // ignore: cast_nullable_to_non_nullable
 as List<BadgeDefinition>,trainers: null == trainers ? _self.trainers : trainers // ignore: cast_nullable_to_non_nullable
 as List<ProjectTrainerEntry>,characters: null == characters ? _self.characters : characters // ignore: cast_nullable_to_non_nullable
-as List<ProjectCharacterEntry>,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
+as List<ProjectCharacterEntry>,characterStudioCatalog: null == characterStudioCatalog ? _self.characterStudioCatalog : characterStudioCatalog // ignore: cast_nullable_to_non_nullable
+as ProjectCharacterStudioCatalog,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
 as ProjectSettings,pokemon: null == pokemon ? _self.pokemon : pokemon // ignore: cast_nullable_to_non_nullable
 as ProjectPokemonConfig,newGame: null == newGame ? _self.newGame : newGame // ignore: cast_nullable_to_non_nullable
 as ProjectNewGameConfig,presentation: freezed == presentation ? _self.presentation : presentation // ignore: cast_nullable_to_non_nullable
@@ -107,6 +108,15 @@ as ProjectBuildingShadowPresetCatalog,
   ));
 }
 /// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectCharacterStudioCatalogCopyWith<$Res> get characterStudioCatalog {
+
+  return $ProjectCharacterStudioCatalogCopyWith<$Res>(_self.characterStudioCatalog, (value) {
+    return _then(_self.copyWith(characterStudioCatalog: value));
+  });
+}/// Create a copy of ProjectManifest
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
@@ -218,10 +228,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  ProjectVersion version,  List<ProjectMapEntry> maps,  List<ProjectMapGroup> groups,  List<ProjectTilesetFolder> tilesetFolders,  List<ProjectTilesetEntry> tilesets,  List<ProjectElementCategory> elementCategories,  List<ProjectElementEntry> elements, @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)  List<EnvironmentPreset> environmentPresets,  List<ProjectEncounterTable> encounterTables,  List<ProjectDialogueFolder> dialogueFolders,  List<ProjectDialogueEntry> dialogues,  List<ProjectScriptEntry> scripts,  List<ScenarioAsset> scenarios, @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)  List<CinematicAsset> cinematics, @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)  List<CinematicMediaAsset> cinematicMediaAssets, @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)  List<NarrativeFactDefinition> facts, @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)  List<WorldRuleDefinition> worldRules,  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions, @JsonKey(includeIfNull: false)  NarrativeEventRegistry? eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)  List<SceneAsset> scenes, @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)  List<StorylineAsset> storylines,  List<ShopDefinition> shops,  List<BadgeDefinition> badges,  List<ProjectTrainerEntry> trainers,  List<ProjectCharacterEntry> characters,  ProjectSettings settings,  ProjectPokemonConfig pokemon,  ProjectNewGameConfig newGame, @JsonKey(includeIfNull: false)  ProjectPresentationProfile? presentation,  List<ProjectPresentationPresetRecord> presentationPresets,  Map<String, dynamic> globalProperties, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)  ProjectSmartTileCatalog smartTileCatalog, @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false)  ProjectBorderCatalog borderCatalog, @ProjectShadowCatalogJsonConverter()  ProjectShadowCatalog shadowCatalog, @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)  ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  ProjectVersion version,  List<ProjectMapEntry> maps,  List<ProjectMapGroup> groups,  List<ProjectTilesetFolder> tilesetFolders,  List<ProjectTilesetEntry> tilesets,  List<ProjectElementCategory> elementCategories,  List<ProjectElementEntry> elements, @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)  List<EnvironmentPreset> environmentPresets,  List<ProjectEncounterTable> encounterTables,  List<ProjectDialogueFolder> dialogueFolders,  List<ProjectDialogueEntry> dialogues,  List<ProjectScriptEntry> scripts,  List<ScenarioAsset> scenarios, @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)  List<CinematicAsset> cinematics, @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)  List<CinematicMediaAsset> cinematicMediaAssets, @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)  List<NarrativeFactDefinition> facts, @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)  List<WorldRuleDefinition> worldRules,  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions, @JsonKey(includeIfNull: false)  NarrativeEventRegistry? eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)  List<SceneAsset> scenes, @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)  List<StorylineAsset> storylines,  List<ShopDefinition> shops,  List<BadgeDefinition> badges,  List<ProjectTrainerEntry> trainers,  List<ProjectCharacterEntry> characters,  ProjectCharacterStudioCatalog characterStudioCatalog,  ProjectSettings settings,  ProjectPokemonConfig pokemon,  ProjectNewGameConfig newGame, @JsonKey(includeIfNull: false)  ProjectPresentationProfile? presentation,  List<ProjectPresentationPresetRecord> presentationPresets,  Map<String, dynamic> globalProperties, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)  ProjectSmartTileCatalog smartTileCatalog, @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false)  ProjectBorderCatalog borderCatalog, @ProjectShadowCatalogJsonConverter()  ProjectShadowCatalog shadowCatalog, @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)  ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectManifest() when $default != null:
-return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFolders,_that.tilesets,_that.elementCategories,_that.elements,_that.environmentPresets,_that.encounterTables,_that.dialogueFolders,_that.dialogues,_that.scripts,_that.scenarios,_that.cinematics,_that.cinematicMediaAssets,_that.facts,_that.worldRules,_that.narrativeDiagnosticSuppressions,_that.eventRegistry,_that.scenes,_that.storylines,_that.shops,_that.badges,_that.trainers,_that.characters,_that.settings,_that.pokemon,_that.newGame,_that.presentation,_that.presentationPresets,_that.globalProperties,_that.smartTileCatalog,_that.borderCatalog,_that.shadowCatalog,_that.projectedBuildingShadowCatalog);case _:
+return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFolders,_that.tilesets,_that.elementCategories,_that.elements,_that.environmentPresets,_that.encounterTables,_that.dialogueFolders,_that.dialogues,_that.scripts,_that.scenarios,_that.cinematics,_that.cinematicMediaAssets,_that.facts,_that.worldRules,_that.narrativeDiagnosticSuppressions,_that.eventRegistry,_that.scenes,_that.storylines,_that.shops,_that.badges,_that.trainers,_that.characters,_that.characterStudioCatalog,_that.settings,_that.pokemon,_that.newGame,_that.presentation,_that.presentationPresets,_that.globalProperties,_that.smartTileCatalog,_that.borderCatalog,_that.shadowCatalog,_that.projectedBuildingShadowCatalog);case _:
   return orElse();
 
 }
@@ -239,10 +249,10 @@ return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFo
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  ProjectVersion version,  List<ProjectMapEntry> maps,  List<ProjectMapGroup> groups,  List<ProjectTilesetFolder> tilesetFolders,  List<ProjectTilesetEntry> tilesets,  List<ProjectElementCategory> elementCategories,  List<ProjectElementEntry> elements, @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)  List<EnvironmentPreset> environmentPresets,  List<ProjectEncounterTable> encounterTables,  List<ProjectDialogueFolder> dialogueFolders,  List<ProjectDialogueEntry> dialogues,  List<ProjectScriptEntry> scripts,  List<ScenarioAsset> scenarios, @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)  List<CinematicAsset> cinematics, @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)  List<CinematicMediaAsset> cinematicMediaAssets, @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)  List<NarrativeFactDefinition> facts, @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)  List<WorldRuleDefinition> worldRules,  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions, @JsonKey(includeIfNull: false)  NarrativeEventRegistry? eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)  List<SceneAsset> scenes, @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)  List<StorylineAsset> storylines,  List<ShopDefinition> shops,  List<BadgeDefinition> badges,  List<ProjectTrainerEntry> trainers,  List<ProjectCharacterEntry> characters,  ProjectSettings settings,  ProjectPokemonConfig pokemon,  ProjectNewGameConfig newGame, @JsonKey(includeIfNull: false)  ProjectPresentationProfile? presentation,  List<ProjectPresentationPresetRecord> presentationPresets,  Map<String, dynamic> globalProperties, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)  ProjectSmartTileCatalog smartTileCatalog, @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false)  ProjectBorderCatalog borderCatalog, @ProjectShadowCatalogJsonConverter()  ProjectShadowCatalog shadowCatalog, @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)  ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  ProjectVersion version,  List<ProjectMapEntry> maps,  List<ProjectMapGroup> groups,  List<ProjectTilesetFolder> tilesetFolders,  List<ProjectTilesetEntry> tilesets,  List<ProjectElementCategory> elementCategories,  List<ProjectElementEntry> elements, @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)  List<EnvironmentPreset> environmentPresets,  List<ProjectEncounterTable> encounterTables,  List<ProjectDialogueFolder> dialogueFolders,  List<ProjectDialogueEntry> dialogues,  List<ProjectScriptEntry> scripts,  List<ScenarioAsset> scenarios, @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)  List<CinematicAsset> cinematics, @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)  List<CinematicMediaAsset> cinematicMediaAssets, @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)  List<NarrativeFactDefinition> facts, @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)  List<WorldRuleDefinition> worldRules,  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions, @JsonKey(includeIfNull: false)  NarrativeEventRegistry? eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)  List<SceneAsset> scenes, @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)  List<StorylineAsset> storylines,  List<ShopDefinition> shops,  List<BadgeDefinition> badges,  List<ProjectTrainerEntry> trainers,  List<ProjectCharacterEntry> characters,  ProjectCharacterStudioCatalog characterStudioCatalog,  ProjectSettings settings,  ProjectPokemonConfig pokemon,  ProjectNewGameConfig newGame, @JsonKey(includeIfNull: false)  ProjectPresentationProfile? presentation,  List<ProjectPresentationPresetRecord> presentationPresets,  Map<String, dynamic> globalProperties, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)  ProjectSmartTileCatalog smartTileCatalog, @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false)  ProjectBorderCatalog borderCatalog, @ProjectShadowCatalogJsonConverter()  ProjectShadowCatalog shadowCatalog, @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)  ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectManifest():
-return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFolders,_that.tilesets,_that.elementCategories,_that.elements,_that.environmentPresets,_that.encounterTables,_that.dialogueFolders,_that.dialogues,_that.scripts,_that.scenarios,_that.cinematics,_that.cinematicMediaAssets,_that.facts,_that.worldRules,_that.narrativeDiagnosticSuppressions,_that.eventRegistry,_that.scenes,_that.storylines,_that.shops,_that.badges,_that.trainers,_that.characters,_that.settings,_that.pokemon,_that.newGame,_that.presentation,_that.presentationPresets,_that.globalProperties,_that.smartTileCatalog,_that.borderCatalog,_that.shadowCatalog,_that.projectedBuildingShadowCatalog);case _:
+return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFolders,_that.tilesets,_that.elementCategories,_that.elements,_that.environmentPresets,_that.encounterTables,_that.dialogueFolders,_that.dialogues,_that.scripts,_that.scenarios,_that.cinematics,_that.cinematicMediaAssets,_that.facts,_that.worldRules,_that.narrativeDiagnosticSuppressions,_that.eventRegistry,_that.scenes,_that.storylines,_that.shops,_that.badges,_that.trainers,_that.characters,_that.characterStudioCatalog,_that.settings,_that.pokemon,_that.newGame,_that.presentation,_that.presentationPresets,_that.globalProperties,_that.smartTileCatalog,_that.borderCatalog,_that.shadowCatalog,_that.projectedBuildingShadowCatalog);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -259,10 +269,10 @@ return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFo
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  ProjectVersion version,  List<ProjectMapEntry> maps,  List<ProjectMapGroup> groups,  List<ProjectTilesetFolder> tilesetFolders,  List<ProjectTilesetEntry> tilesets,  List<ProjectElementCategory> elementCategories,  List<ProjectElementEntry> elements, @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)  List<EnvironmentPreset> environmentPresets,  List<ProjectEncounterTable> encounterTables,  List<ProjectDialogueFolder> dialogueFolders,  List<ProjectDialogueEntry> dialogues,  List<ProjectScriptEntry> scripts,  List<ScenarioAsset> scenarios, @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)  List<CinematicAsset> cinematics, @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)  List<CinematicMediaAsset> cinematicMediaAssets, @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)  List<NarrativeFactDefinition> facts, @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)  List<WorldRuleDefinition> worldRules,  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions, @JsonKey(includeIfNull: false)  NarrativeEventRegistry? eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)  List<SceneAsset> scenes, @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)  List<StorylineAsset> storylines,  List<ShopDefinition> shops,  List<BadgeDefinition> badges,  List<ProjectTrainerEntry> trainers,  List<ProjectCharacterEntry> characters,  ProjectSettings settings,  ProjectPokemonConfig pokemon,  ProjectNewGameConfig newGame, @JsonKey(includeIfNull: false)  ProjectPresentationProfile? presentation,  List<ProjectPresentationPresetRecord> presentationPresets,  Map<String, dynamic> globalProperties, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)  ProjectSmartTileCatalog smartTileCatalog, @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false)  ProjectBorderCatalog borderCatalog, @ProjectShadowCatalogJsonConverter()  ProjectShadowCatalog shadowCatalog, @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)  ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  ProjectVersion version,  List<ProjectMapEntry> maps,  List<ProjectMapGroup> groups,  List<ProjectTilesetFolder> tilesetFolders,  List<ProjectTilesetEntry> tilesets,  List<ProjectElementCategory> elementCategories,  List<ProjectElementEntry> elements, @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)  List<EnvironmentPreset> environmentPresets,  List<ProjectEncounterTable> encounterTables,  List<ProjectDialogueFolder> dialogueFolders,  List<ProjectDialogueEntry> dialogues,  List<ProjectScriptEntry> scripts,  List<ScenarioAsset> scenarios, @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)  List<CinematicAsset> cinematics, @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)  List<CinematicMediaAsset> cinematicMediaAssets, @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)  List<NarrativeFactDefinition> facts, @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)  List<WorldRuleDefinition> worldRules,  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions, @JsonKey(includeIfNull: false)  NarrativeEventRegistry? eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)  List<SceneAsset> scenes, @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)  List<StorylineAsset> storylines,  List<ShopDefinition> shops,  List<BadgeDefinition> badges,  List<ProjectTrainerEntry> trainers,  List<ProjectCharacterEntry> characters,  ProjectCharacterStudioCatalog characterStudioCatalog,  ProjectSettings settings,  ProjectPokemonConfig pokemon,  ProjectNewGameConfig newGame, @JsonKey(includeIfNull: false)  ProjectPresentationProfile? presentation,  List<ProjectPresentationPresetRecord> presentationPresets,  Map<String, dynamic> globalProperties, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)  ProjectSmartTileCatalog smartTileCatalog, @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false)  ProjectBorderCatalog borderCatalog, @ProjectShadowCatalogJsonConverter()  ProjectShadowCatalog shadowCatalog, @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)  ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectManifest() when $default != null:
-return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFolders,_that.tilesets,_that.elementCategories,_that.elements,_that.environmentPresets,_that.encounterTables,_that.dialogueFolders,_that.dialogues,_that.scripts,_that.scenarios,_that.cinematics,_that.cinematicMediaAssets,_that.facts,_that.worldRules,_that.narrativeDiagnosticSuppressions,_that.eventRegistry,_that.scenes,_that.storylines,_that.shops,_that.badges,_that.trainers,_that.characters,_that.settings,_that.pokemon,_that.newGame,_that.presentation,_that.presentationPresets,_that.globalProperties,_that.smartTileCatalog,_that.borderCatalog,_that.shadowCatalog,_that.projectedBuildingShadowCatalog);case _:
+return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFolders,_that.tilesets,_that.elementCategories,_that.elements,_that.environmentPresets,_that.encounterTables,_that.dialogueFolders,_that.dialogues,_that.scripts,_that.scenarios,_that.cinematics,_that.cinematicMediaAssets,_that.facts,_that.worldRules,_that.narrativeDiagnosticSuppressions,_that.eventRegistry,_that.scenes,_that.storylines,_that.shops,_that.badges,_that.trainers,_that.characters,_that.characterStudioCatalog,_that.settings,_that.pokemon,_that.newGame,_that.presentation,_that.presentationPresets,_that.globalProperties,_that.smartTileCatalog,_that.borderCatalog,_that.shadowCatalog,_that.projectedBuildingShadowCatalog);case _:
   return null;
 
 }
@@ -274,7 +284,7 @@ return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFo
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectManifest implements ProjectManifest {
-  const _ProjectManifest({required this.name, this.version = ProjectVersion.v6, required final  List<ProjectMapEntry> maps, final  List<ProjectMapGroup> groups = const [], final  List<ProjectTilesetFolder> tilesetFolders = const [], required final  List<ProjectTilesetEntry> tilesets, final  List<ProjectElementCategory> elementCategories = const [], final  List<ProjectElementEntry> elements = const [], @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) final  List<EnvironmentPreset> environmentPresets = const [], final  List<ProjectEncounterTable> encounterTables = const [], final  List<ProjectDialogueFolder> dialogueFolders = const [], final  List<ProjectDialogueEntry> dialogues = const [], final  List<ProjectScriptEntry> scripts = const [], final  List<ScenarioAsset> scenarios = const [], @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) final  List<CinematicAsset> cinematics = const [], @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) final  List<CinematicMediaAsset> cinematicMediaAssets = const [], @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) final  List<NarrativeFactDefinition> facts = const [], @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) final  List<WorldRuleDefinition> worldRules = const [], final  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions = const [], @JsonKey(includeIfNull: false) this.eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) final  List<SceneAsset> scenes = const [], @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) final  List<StorylineAsset> storylines = const [], final  List<ShopDefinition> shops = const [], final  List<BadgeDefinition> badges = const [], final  List<ProjectTrainerEntry> trainers = const [], final  List<ProjectCharacterEntry> characters = const [], this.settings = const ProjectSettings(), this.pokemon = const ProjectPokemonConfig(), this.newGame = const ProjectNewGameConfig(), @JsonKey(includeIfNull: false) this.presentation, final  List<ProjectPresentationPresetRecord> presentationPresets = const [], final  Map<String, dynamic> globalProperties = const {}, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) this.smartTileCatalog = const ProjectSmartTileCatalog.empty(), @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) this.borderCatalog = const ProjectBorderCatalog.empty(), @ProjectShadowCatalogJsonConverter() this.shadowCatalog = const ProjectShadowCatalog.empty(), @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) this.projectedBuildingShadowCatalog = const ProjectBuildingShadowPresetCatalog.empty()}): _maps = maps,_groups = groups,_tilesetFolders = tilesetFolders,_tilesets = tilesets,_elementCategories = elementCategories,_elements = elements,_environmentPresets = environmentPresets,_encounterTables = encounterTables,_dialogueFolders = dialogueFolders,_dialogues = dialogues,_scripts = scripts,_scenarios = scenarios,_cinematics = cinematics,_cinematicMediaAssets = cinematicMediaAssets,_facts = facts,_worldRules = worldRules,_narrativeDiagnosticSuppressions = narrativeDiagnosticSuppressions,_scenes = scenes,_storylines = storylines,_shops = shops,_badges = badges,_trainers = trainers,_characters = characters,_presentationPresets = presentationPresets,_globalProperties = globalProperties;
+  const _ProjectManifest({required this.name, this.version = ProjectVersion.v6, required final  List<ProjectMapEntry> maps, final  List<ProjectMapGroup> groups = const [], final  List<ProjectTilesetFolder> tilesetFolders = const [], required final  List<ProjectTilesetEntry> tilesets, final  List<ProjectElementCategory> elementCategories = const [], final  List<ProjectElementEntry> elements = const [], @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) final  List<EnvironmentPreset> environmentPresets = const [], final  List<ProjectEncounterTable> encounterTables = const [], final  List<ProjectDialogueFolder> dialogueFolders = const [], final  List<ProjectDialogueEntry> dialogues = const [], final  List<ProjectScriptEntry> scripts = const [], final  List<ScenarioAsset> scenarios = const [], @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) final  List<CinematicAsset> cinematics = const [], @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) final  List<CinematicMediaAsset> cinematicMediaAssets = const [], @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) final  List<NarrativeFactDefinition> facts = const [], @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) final  List<WorldRuleDefinition> worldRules = const [], final  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions = const [], @JsonKey(includeIfNull: false) this.eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) final  List<SceneAsset> scenes = const [], @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) final  List<StorylineAsset> storylines = const [], final  List<ShopDefinition> shops = const [], final  List<BadgeDefinition> badges = const [], final  List<ProjectTrainerEntry> trainers = const [], final  List<ProjectCharacterEntry> characters = const [], this.characterStudioCatalog = const ProjectCharacterStudioCatalog(), this.settings = const ProjectSettings(), this.pokemon = const ProjectPokemonConfig(), this.newGame = const ProjectNewGameConfig(), @JsonKey(includeIfNull: false) this.presentation, final  List<ProjectPresentationPresetRecord> presentationPresets = const [], final  Map<String, dynamic> globalProperties = const {}, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) this.smartTileCatalog = const ProjectSmartTileCatalog.empty(), @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) this.borderCatalog = const ProjectBorderCatalog.empty(), @ProjectShadowCatalogJsonConverter() this.shadowCatalog = const ProjectShadowCatalog.empty(), @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) this.projectedBuildingShadowCatalog = const ProjectBuildingShadowPresetCatalog.empty()}): _maps = maps,_groups = groups,_tilesetFolders = tilesetFolders,_tilesets = tilesets,_elementCategories = elementCategories,_elements = elements,_environmentPresets = environmentPresets,_encounterTables = encounterTables,_dialogueFolders = dialogueFolders,_dialogues = dialogues,_scripts = scripts,_scenarios = scenarios,_cinematics = cinematics,_cinematicMediaAssets = cinematicMediaAssets,_facts = facts,_worldRules = worldRules,_narrativeDiagnosticSuppressions = narrativeDiagnosticSuppressions,_scenes = scenes,_storylines = storylines,_shops = shops,_badges = badges,_trainers = trainers,_characters = characters,_presentationPresets = presentationPresets,_globalProperties = globalProperties;
   factory _ProjectManifest.fromJson(Map<String, dynamic> json) => _$ProjectManifestFromJson(json);
 
 @override final  String name;
@@ -441,6 +451,7 @@ class _ProjectManifest implements ProjectManifest {
   return EqualUnmodifiableListView(_characters);
 }
 
+@override@JsonKey() final  ProjectCharacterStudioCatalog characterStudioCatalog;
 @override@JsonKey() final  ProjectSettings settings;
 @override@JsonKey() final  ProjectPokemonConfig pokemon;
 @override@JsonKey() final  ProjectNewGameConfig newGame;
@@ -477,16 +488,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectManifest&&(identical(other.name, name) || other.name == name)&&(identical(other.version, version) || other.version == version)&&const DeepCollectionEquality().equals(other._maps, _maps)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._tilesetFolders, _tilesetFolders)&&const DeepCollectionEquality().equals(other._tilesets, _tilesets)&&const DeepCollectionEquality().equals(other._elementCategories, _elementCategories)&&const DeepCollectionEquality().equals(other._elements, _elements)&&const DeepCollectionEquality().equals(other._environmentPresets, _environmentPresets)&&const DeepCollectionEquality().equals(other._encounterTables, _encounterTables)&&const DeepCollectionEquality().equals(other._dialogueFolders, _dialogueFolders)&&const DeepCollectionEquality().equals(other._dialogues, _dialogues)&&const DeepCollectionEquality().equals(other._scripts, _scripts)&&const DeepCollectionEquality().equals(other._scenarios, _scenarios)&&const DeepCollectionEquality().equals(other._cinematics, _cinematics)&&const DeepCollectionEquality().equals(other._cinematicMediaAssets, _cinematicMediaAssets)&&const DeepCollectionEquality().equals(other._facts, _facts)&&const DeepCollectionEquality().equals(other._worldRules, _worldRules)&&const DeepCollectionEquality().equals(other._narrativeDiagnosticSuppressions, _narrativeDiagnosticSuppressions)&&(identical(other.eventRegistry, eventRegistry) || other.eventRegistry == eventRegistry)&&const DeepCollectionEquality().equals(other._scenes, _scenes)&&const DeepCollectionEquality().equals(other._storylines, _storylines)&&const DeepCollectionEquality().equals(other._shops, _shops)&&const DeepCollectionEquality().equals(other._badges, _badges)&&const DeepCollectionEquality().equals(other._trainers, _trainers)&&const DeepCollectionEquality().equals(other._characters, _characters)&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.pokemon, pokemon) || other.pokemon == pokemon)&&(identical(other.newGame, newGame) || other.newGame == newGame)&&(identical(other.presentation, presentation) || other.presentation == presentation)&&const DeepCollectionEquality().equals(other._presentationPresets, _presentationPresets)&&const DeepCollectionEquality().equals(other._globalProperties, _globalProperties)&&(identical(other.smartTileCatalog, smartTileCatalog) || other.smartTileCatalog == smartTileCatalog)&&(identical(other.borderCatalog, borderCatalog) || other.borderCatalog == borderCatalog)&&(identical(other.shadowCatalog, shadowCatalog) || other.shadowCatalog == shadowCatalog)&&(identical(other.projectedBuildingShadowCatalog, projectedBuildingShadowCatalog) || other.projectedBuildingShadowCatalog == projectedBuildingShadowCatalog));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectManifest&&(identical(other.name, name) || other.name == name)&&(identical(other.version, version) || other.version == version)&&const DeepCollectionEquality().equals(other._maps, _maps)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._tilesetFolders, _tilesetFolders)&&const DeepCollectionEquality().equals(other._tilesets, _tilesets)&&const DeepCollectionEquality().equals(other._elementCategories, _elementCategories)&&const DeepCollectionEquality().equals(other._elements, _elements)&&const DeepCollectionEquality().equals(other._environmentPresets, _environmentPresets)&&const DeepCollectionEquality().equals(other._encounterTables, _encounterTables)&&const DeepCollectionEquality().equals(other._dialogueFolders, _dialogueFolders)&&const DeepCollectionEquality().equals(other._dialogues, _dialogues)&&const DeepCollectionEquality().equals(other._scripts, _scripts)&&const DeepCollectionEquality().equals(other._scenarios, _scenarios)&&const DeepCollectionEquality().equals(other._cinematics, _cinematics)&&const DeepCollectionEquality().equals(other._cinematicMediaAssets, _cinematicMediaAssets)&&const DeepCollectionEquality().equals(other._facts, _facts)&&const DeepCollectionEquality().equals(other._worldRules, _worldRules)&&const DeepCollectionEquality().equals(other._narrativeDiagnosticSuppressions, _narrativeDiagnosticSuppressions)&&(identical(other.eventRegistry, eventRegistry) || other.eventRegistry == eventRegistry)&&const DeepCollectionEquality().equals(other._scenes, _scenes)&&const DeepCollectionEquality().equals(other._storylines, _storylines)&&const DeepCollectionEquality().equals(other._shops, _shops)&&const DeepCollectionEquality().equals(other._badges, _badges)&&const DeepCollectionEquality().equals(other._trainers, _trainers)&&const DeepCollectionEquality().equals(other._characters, _characters)&&(identical(other.characterStudioCatalog, characterStudioCatalog) || other.characterStudioCatalog == characterStudioCatalog)&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.pokemon, pokemon) || other.pokemon == pokemon)&&(identical(other.newGame, newGame) || other.newGame == newGame)&&(identical(other.presentation, presentation) || other.presentation == presentation)&&const DeepCollectionEquality().equals(other._presentationPresets, _presentationPresets)&&const DeepCollectionEquality().equals(other._globalProperties, _globalProperties)&&(identical(other.smartTileCatalog, smartTileCatalog) || other.smartTileCatalog == smartTileCatalog)&&(identical(other.borderCatalog, borderCatalog) || other.borderCatalog == borderCatalog)&&(identical(other.shadowCatalog, shadowCatalog) || other.shadowCatalog == shadowCatalog)&&(identical(other.projectedBuildingShadowCatalog, projectedBuildingShadowCatalog) || other.projectedBuildingShadowCatalog == projectedBuildingShadowCatalog));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,name,version,const DeepCollectionEquality().hash(_maps),const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_tilesetFolders),const DeepCollectionEquality().hash(_tilesets),const DeepCollectionEquality().hash(_elementCategories),const DeepCollectionEquality().hash(_elements),const DeepCollectionEquality().hash(_environmentPresets),const DeepCollectionEquality().hash(_encounterTables),const DeepCollectionEquality().hash(_dialogueFolders),const DeepCollectionEquality().hash(_dialogues),const DeepCollectionEquality().hash(_scripts),const DeepCollectionEquality().hash(_scenarios),const DeepCollectionEquality().hash(_cinematics),const DeepCollectionEquality().hash(_cinematicMediaAssets),const DeepCollectionEquality().hash(_facts),const DeepCollectionEquality().hash(_worldRules),const DeepCollectionEquality().hash(_narrativeDiagnosticSuppressions),eventRegistry,const DeepCollectionEquality().hash(_scenes),const DeepCollectionEquality().hash(_storylines),const DeepCollectionEquality().hash(_shops),const DeepCollectionEquality().hash(_badges),const DeepCollectionEquality().hash(_trainers),const DeepCollectionEquality().hash(_characters),settings,pokemon,newGame,presentation,const DeepCollectionEquality().hash(_presentationPresets),const DeepCollectionEquality().hash(_globalProperties),smartTileCatalog,borderCatalog,shadowCatalog,projectedBuildingShadowCatalog]);
+int get hashCode => Object.hashAll([runtimeType,name,version,const DeepCollectionEquality().hash(_maps),const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_tilesetFolders),const DeepCollectionEquality().hash(_tilesets),const DeepCollectionEquality().hash(_elementCategories),const DeepCollectionEquality().hash(_elements),const DeepCollectionEquality().hash(_environmentPresets),const DeepCollectionEquality().hash(_encounterTables),const DeepCollectionEquality().hash(_dialogueFolders),const DeepCollectionEquality().hash(_dialogues),const DeepCollectionEquality().hash(_scripts),const DeepCollectionEquality().hash(_scenarios),const DeepCollectionEquality().hash(_cinematics),const DeepCollectionEquality().hash(_cinematicMediaAssets),const DeepCollectionEquality().hash(_facts),const DeepCollectionEquality().hash(_worldRules),const DeepCollectionEquality().hash(_narrativeDiagnosticSuppressions),eventRegistry,const DeepCollectionEquality().hash(_scenes),const DeepCollectionEquality().hash(_storylines),const DeepCollectionEquality().hash(_shops),const DeepCollectionEquality().hash(_badges),const DeepCollectionEquality().hash(_trainers),const DeepCollectionEquality().hash(_characters),characterStudioCatalog,settings,pokemon,newGame,presentation,const DeepCollectionEquality().hash(_presentationPresets),const DeepCollectionEquality().hash(_globalProperties),smartTileCatalog,borderCatalog,shadowCatalog,projectedBuildingShadowCatalog]);
 
 @override
 String toString() {
-  return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, presentationPresets: $presentationPresets, globalProperties: $globalProperties, smartTileCatalog: $smartTileCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+  return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, characterStudioCatalog: $characterStudioCatalog, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, presentationPresets: $presentationPresets, globalProperties: $globalProperties, smartTileCatalog: $smartTileCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
 }
 
 
@@ -497,11 +508,11 @@ abstract mixin class _$ProjectManifestCopyWith<$Res> implements $ProjectManifest
   factory _$ProjectManifestCopyWith(_ProjectManifest value, $Res Function(_ProjectManifest) _then) = __$ProjectManifestCopyWithImpl;
 @override @useResult
 $Res call({
- String name, ProjectVersion version, List<ProjectMapEntry> maps, List<ProjectMapGroup> groups, List<ProjectTilesetFolder> tilesetFolders, List<ProjectTilesetEntry> tilesets, List<ProjectElementCategory> elementCategories, List<ProjectElementEntry> elements,@JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) List<EnvironmentPreset> environmentPresets, List<ProjectEncounterTable> encounterTables, List<ProjectDialogueFolder> dialogueFolders, List<ProjectDialogueEntry> dialogues, List<ProjectScriptEntry> scripts, List<ScenarioAsset> scenarios,@JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) List<CinematicAsset> cinematics,@JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) List<CinematicMediaAsset> cinematicMediaAssets,@JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) List<NarrativeFactDefinition> facts,@JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) List<WorldRuleDefinition> worldRules, List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,@JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,@JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) List<SceneAsset> scenes,@JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) List<StorylineAsset> storylines, List<ShopDefinition> shops, List<BadgeDefinition> badges, List<ProjectTrainerEntry> trainers, List<ProjectCharacterEntry> characters, ProjectSettings settings, ProjectPokemonConfig pokemon, ProjectNewGameConfig newGame,@JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation, List<ProjectPresentationPresetRecord> presentationPresets, Map<String, dynamic> globalProperties,@JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) ProjectSmartTileCatalog smartTileCatalog,@JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) ProjectBorderCatalog borderCatalog,@ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,@JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog
+ String name, ProjectVersion version, List<ProjectMapEntry> maps, List<ProjectMapGroup> groups, List<ProjectTilesetFolder> tilesetFolders, List<ProjectTilesetEntry> tilesets, List<ProjectElementCategory> elementCategories, List<ProjectElementEntry> elements,@JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) List<EnvironmentPreset> environmentPresets, List<ProjectEncounterTable> encounterTables, List<ProjectDialogueFolder> dialogueFolders, List<ProjectDialogueEntry> dialogues, List<ProjectScriptEntry> scripts, List<ScenarioAsset> scenarios,@JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) List<CinematicAsset> cinematics,@JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) List<CinematicMediaAsset> cinematicMediaAssets,@JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) List<NarrativeFactDefinition> facts,@JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) List<WorldRuleDefinition> worldRules, List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,@JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,@JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) List<SceneAsset> scenes,@JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) List<StorylineAsset> storylines, List<ShopDefinition> shops, List<BadgeDefinition> badges, List<ProjectTrainerEntry> trainers, List<ProjectCharacterEntry> characters, ProjectCharacterStudioCatalog characterStudioCatalog, ProjectSettings settings, ProjectPokemonConfig pokemon, ProjectNewGameConfig newGame,@JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation, List<ProjectPresentationPresetRecord> presentationPresets, Map<String, dynamic> globalProperties,@JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) ProjectSmartTileCatalog smartTileCatalog,@JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) ProjectBorderCatalog borderCatalog,@ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,@JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog
 });
 
 
-@override $ProjectSettingsCopyWith<$Res> get settings;@override $ProjectPokemonConfigCopyWith<$Res> get pokemon;@override $ProjectPresentationProfileCopyWith<$Res>? get presentation;
+@override $ProjectCharacterStudioCatalogCopyWith<$Res> get characterStudioCatalog;@override $ProjectSettingsCopyWith<$Res> get settings;@override $ProjectPokemonConfigCopyWith<$Res> get pokemon;@override $ProjectPresentationProfileCopyWith<$Res>? get presentation;
 
 }
 /// @nodoc
@@ -514,7 +525,7 @@ class __$ProjectManifestCopyWithImpl<$Res>
 
 /// Create a copy of ProjectManifest
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? version = null,Object? maps = null,Object? groups = null,Object? tilesetFolders = null,Object? tilesets = null,Object? elementCategories = null,Object? elements = null,Object? environmentPresets = null,Object? encounterTables = null,Object? dialogueFolders = null,Object? dialogues = null,Object? scripts = null,Object? scenarios = null,Object? cinematics = null,Object? cinematicMediaAssets = null,Object? facts = null,Object? worldRules = null,Object? narrativeDiagnosticSuppressions = null,Object? eventRegistry = freezed,Object? scenes = null,Object? storylines = null,Object? shops = null,Object? badges = null,Object? trainers = null,Object? characters = null,Object? settings = null,Object? pokemon = null,Object? newGame = null,Object? presentation = freezed,Object? presentationPresets = null,Object? globalProperties = null,Object? smartTileCatalog = null,Object? borderCatalog = null,Object? shadowCatalog = null,Object? projectedBuildingShadowCatalog = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? version = null,Object? maps = null,Object? groups = null,Object? tilesetFolders = null,Object? tilesets = null,Object? elementCategories = null,Object? elements = null,Object? environmentPresets = null,Object? encounterTables = null,Object? dialogueFolders = null,Object? dialogues = null,Object? scripts = null,Object? scenarios = null,Object? cinematics = null,Object? cinematicMediaAssets = null,Object? facts = null,Object? worldRules = null,Object? narrativeDiagnosticSuppressions = null,Object? eventRegistry = freezed,Object? scenes = null,Object? storylines = null,Object? shops = null,Object? badges = null,Object? trainers = null,Object? characters = null,Object? characterStudioCatalog = null,Object? settings = null,Object? pokemon = null,Object? newGame = null,Object? presentation = freezed,Object? presentationPresets = null,Object? globalProperties = null,Object? smartTileCatalog = null,Object? borderCatalog = null,Object? shadowCatalog = null,Object? projectedBuildingShadowCatalog = null,}) {
   return _then(_ProjectManifest(
 name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,version: null == version ? _self.version : version // ignore: cast_nullable_to_non_nullable
@@ -542,7 +553,8 @@ as List<StorylineAsset>,shops: null == shops ? _self._shops : shops // ignore: c
 as List<ShopDefinition>,badges: null == badges ? _self._badges : badges // ignore: cast_nullable_to_non_nullable
 as List<BadgeDefinition>,trainers: null == trainers ? _self._trainers : trainers // ignore: cast_nullable_to_non_nullable
 as List<ProjectTrainerEntry>,characters: null == characters ? _self._characters : characters // ignore: cast_nullable_to_non_nullable
-as List<ProjectCharacterEntry>,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
+as List<ProjectCharacterEntry>,characterStudioCatalog: null == characterStudioCatalog ? _self.characterStudioCatalog : characterStudioCatalog // ignore: cast_nullable_to_non_nullable
+as ProjectCharacterStudioCatalog,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
 as ProjectSettings,pokemon: null == pokemon ? _self.pokemon : pokemon // ignore: cast_nullable_to_non_nullable
 as ProjectPokemonConfig,newGame: null == newGame ? _self.newGame : newGame // ignore: cast_nullable_to_non_nullable
 as ProjectNewGameConfig,presentation: freezed == presentation ? _self.presentation : presentation // ignore: cast_nullable_to_non_nullable
@@ -557,6 +569,15 @@ as ProjectBuildingShadowPresetCatalog,
 }
 
 /// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectCharacterStudioCatalogCopyWith<$Res> get characterStudioCatalog {
+
+  return $ProjectCharacterStudioCatalogCopyWith<$Res>(_self.characterStudioCatalog, (value) {
+    return _then(_self.copyWith(characterStudioCatalog: value));
+  });
+}/// Create a copy of ProjectManifest
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
@@ -5780,9 +5801,1097 @@ $ScriptAssetCopyWith<$Res> get asset {
 
 
 /// @nodoc
+mixin _$ProjectCharacterStudioCatalog {
+
+ List<CharacterPortraitStateDefinition> get portraitStates; List<CharacterCustomAnimationDefinition> get customAnimationDefinitions;
+/// Create a copy of ProjectCharacterStudioCatalog
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectCharacterStudioCatalogCopyWith<ProjectCharacterStudioCatalog> get copyWith => _$ProjectCharacterStudioCatalogCopyWithImpl<ProjectCharacterStudioCatalog>(this as ProjectCharacterStudioCatalog, _$identity);
+
+  /// Serializes this ProjectCharacterStudioCatalog to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCharacterStudioCatalog&&const DeepCollectionEquality().equals(other.portraitStates, portraitStates)&&const DeepCollectionEquality().equals(other.customAnimationDefinitions, customAnimationDefinitions));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(portraitStates),const DeepCollectionEquality().hash(customAnimationDefinitions));
+
+@override
+String toString() {
+  return 'ProjectCharacterStudioCatalog(portraitStates: $portraitStates, customAnimationDefinitions: $customAnimationDefinitions)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectCharacterStudioCatalogCopyWith<$Res>  {
+  factory $ProjectCharacterStudioCatalogCopyWith(ProjectCharacterStudioCatalog value, $Res Function(ProjectCharacterStudioCatalog) _then) = _$ProjectCharacterStudioCatalogCopyWithImpl;
+@useResult
+$Res call({
+ List<CharacterPortraitStateDefinition> portraitStates, List<CharacterCustomAnimationDefinition> customAnimationDefinitions
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectCharacterStudioCatalogCopyWithImpl<$Res>
+    implements $ProjectCharacterStudioCatalogCopyWith<$Res> {
+  _$ProjectCharacterStudioCatalogCopyWithImpl(this._self, this._then);
+
+  final ProjectCharacterStudioCatalog _self;
+  final $Res Function(ProjectCharacterStudioCatalog) _then;
+
+/// Create a copy of ProjectCharacterStudioCatalog
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? portraitStates = null,Object? customAnimationDefinitions = null,}) {
+  return _then(_self.copyWith(
+portraitStates: null == portraitStates ? _self.portraitStates : portraitStates // ignore: cast_nullable_to_non_nullable
+as List<CharacterPortraitStateDefinition>,customAnimationDefinitions: null == customAnimationDefinitions ? _self.customAnimationDefinitions : customAnimationDefinitions // ignore: cast_nullable_to_non_nullable
+as List<CharacterCustomAnimationDefinition>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ProjectCharacterStudioCatalog].
+extension ProjectCharacterStudioCatalogPatterns on ProjectCharacterStudioCatalog {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectCharacterStudioCatalog value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectCharacterStudioCatalog() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectCharacterStudioCatalog value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectCharacterStudioCatalog():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectCharacterStudioCatalog value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectCharacterStudioCatalog() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<CharacterPortraitStateDefinition> portraitStates,  List<CharacterCustomAnimationDefinition> customAnimationDefinitions)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectCharacterStudioCatalog() when $default != null:
+return $default(_that.portraitStates,_that.customAnimationDefinitions);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<CharacterPortraitStateDefinition> portraitStates,  List<CharacterCustomAnimationDefinition> customAnimationDefinitions)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectCharacterStudioCatalog():
+return $default(_that.portraitStates,_that.customAnimationDefinitions);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<CharacterPortraitStateDefinition> portraitStates,  List<CharacterCustomAnimationDefinition> customAnimationDefinitions)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectCharacterStudioCatalog() when $default != null:
+return $default(_that.portraitStates,_that.customAnimationDefinitions);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _ProjectCharacterStudioCatalog implements ProjectCharacterStudioCatalog {
+  const _ProjectCharacterStudioCatalog({final  List<CharacterPortraitStateDefinition> portraitStates = const [], final  List<CharacterCustomAnimationDefinition> customAnimationDefinitions = const []}): _portraitStates = portraitStates,_customAnimationDefinitions = customAnimationDefinitions;
+  factory _ProjectCharacterStudioCatalog.fromJson(Map<String, dynamic> json) => _$ProjectCharacterStudioCatalogFromJson(json);
+
+ final  List<CharacterPortraitStateDefinition> _portraitStates;
+@override@JsonKey() List<CharacterPortraitStateDefinition> get portraitStates {
+  if (_portraitStates is EqualUnmodifiableListView) return _portraitStates;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_portraitStates);
+}
+
+ final  List<CharacterCustomAnimationDefinition> _customAnimationDefinitions;
+@override@JsonKey() List<CharacterCustomAnimationDefinition> get customAnimationDefinitions {
+  if (_customAnimationDefinitions is EqualUnmodifiableListView) return _customAnimationDefinitions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_customAnimationDefinitions);
+}
+
+
+/// Create a copy of ProjectCharacterStudioCatalog
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectCharacterStudioCatalogCopyWith<_ProjectCharacterStudioCatalog> get copyWith => __$ProjectCharacterStudioCatalogCopyWithImpl<_ProjectCharacterStudioCatalog>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectCharacterStudioCatalogToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCharacterStudioCatalog&&const DeepCollectionEquality().equals(other._portraitStates, _portraitStates)&&const DeepCollectionEquality().equals(other._customAnimationDefinitions, _customAnimationDefinitions));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_portraitStates),const DeepCollectionEquality().hash(_customAnimationDefinitions));
+
+@override
+String toString() {
+  return 'ProjectCharacterStudioCatalog(portraitStates: $portraitStates, customAnimationDefinitions: $customAnimationDefinitions)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectCharacterStudioCatalogCopyWith<$Res> implements $ProjectCharacterStudioCatalogCopyWith<$Res> {
+  factory _$ProjectCharacterStudioCatalogCopyWith(_ProjectCharacterStudioCatalog value, $Res Function(_ProjectCharacterStudioCatalog) _then) = __$ProjectCharacterStudioCatalogCopyWithImpl;
+@override @useResult
+$Res call({
+ List<CharacterPortraitStateDefinition> portraitStates, List<CharacterCustomAnimationDefinition> customAnimationDefinitions
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectCharacterStudioCatalogCopyWithImpl<$Res>
+    implements _$ProjectCharacterStudioCatalogCopyWith<$Res> {
+  __$ProjectCharacterStudioCatalogCopyWithImpl(this._self, this._then);
+
+  final _ProjectCharacterStudioCatalog _self;
+  final $Res Function(_ProjectCharacterStudioCatalog) _then;
+
+/// Create a copy of ProjectCharacterStudioCatalog
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? portraitStates = null,Object? customAnimationDefinitions = null,}) {
+  return _then(_ProjectCharacterStudioCatalog(
+portraitStates: null == portraitStates ? _self._portraitStates : portraitStates // ignore: cast_nullable_to_non_nullable
+as List<CharacterPortraitStateDefinition>,customAnimationDefinitions: null == customAnimationDefinitions ? _self._customAnimationDefinitions : customAnimationDefinitions // ignore: cast_nullable_to_non_nullable
+as List<CharacterCustomAnimationDefinition>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$CharacterPortraitStateDefinition {
+
+ String get id; String get displayName; int get sortOrder;
+/// Create a copy of CharacterPortraitStateDefinition
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CharacterPortraitStateDefinitionCopyWith<CharacterPortraitStateDefinition> get copyWith => _$CharacterPortraitStateDefinitionCopyWithImpl<CharacterPortraitStateDefinition>(this as CharacterPortraitStateDefinition, _$identity);
+
+  /// Serializes this CharacterPortraitStateDefinition to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterPortraitStateDefinition&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,displayName,sortOrder);
+
+@override
+String toString() {
+  return 'CharacterPortraitStateDefinition(id: $id, displayName: $displayName, sortOrder: $sortOrder)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CharacterPortraitStateDefinitionCopyWith<$Res>  {
+  factory $CharacterPortraitStateDefinitionCopyWith(CharacterPortraitStateDefinition value, $Res Function(CharacterPortraitStateDefinition) _then) = _$CharacterPortraitStateDefinitionCopyWithImpl;
+@useResult
+$Res call({
+ String id, String displayName, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class _$CharacterPortraitStateDefinitionCopyWithImpl<$Res>
+    implements $CharacterPortraitStateDefinitionCopyWith<$Res> {
+  _$CharacterPortraitStateDefinitionCopyWithImpl(this._self, this._then);
+
+  final CharacterPortraitStateDefinition _self;
+  final $Res Function(CharacterPortraitStateDefinition) _then;
+
+/// Create a copy of CharacterPortraitStateDefinition
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? sortOrder = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
+as String,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [CharacterPortraitStateDefinition].
+extension CharacterPortraitStateDefinitionPatterns on CharacterPortraitStateDefinition {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CharacterPortraitStateDefinition value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CharacterPortraitStateDefinition() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CharacterPortraitStateDefinition value)  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterPortraitStateDefinition():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CharacterPortraitStateDefinition value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterPortraitStateDefinition() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CharacterPortraitStateDefinition() when $default != null:
+return $default(_that.id,_that.displayName,_that.sortOrder);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  int sortOrder)  $default,) {final _that = this;
+switch (_that) {
+case _CharacterPortraitStateDefinition():
+return $default(_that.id,_that.displayName,_that.sortOrder);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  int sortOrder)?  $default,) {final _that = this;
+switch (_that) {
+case _CharacterPortraitStateDefinition() when $default != null:
+return $default(_that.id,_that.displayName,_that.sortOrder);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _CharacterPortraitStateDefinition implements CharacterPortraitStateDefinition {
+  const _CharacterPortraitStateDefinition({required this.id, required this.displayName, this.sortOrder = 0});
+  factory _CharacterPortraitStateDefinition.fromJson(Map<String, dynamic> json) => _$CharacterPortraitStateDefinitionFromJson(json);
+
+@override final  String id;
+@override final  String displayName;
+@override@JsonKey() final  int sortOrder;
+
+/// Create a copy of CharacterPortraitStateDefinition
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CharacterPortraitStateDefinitionCopyWith<_CharacterPortraitStateDefinition> get copyWith => __$CharacterPortraitStateDefinitionCopyWithImpl<_CharacterPortraitStateDefinition>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$CharacterPortraitStateDefinitionToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterPortraitStateDefinition&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,displayName,sortOrder);
+
+@override
+String toString() {
+  return 'CharacterPortraitStateDefinition(id: $id, displayName: $displayName, sortOrder: $sortOrder)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CharacterPortraitStateDefinitionCopyWith<$Res> implements $CharacterPortraitStateDefinitionCopyWith<$Res> {
+  factory _$CharacterPortraitStateDefinitionCopyWith(_CharacterPortraitStateDefinition value, $Res Function(_CharacterPortraitStateDefinition) _then) = __$CharacterPortraitStateDefinitionCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String displayName, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class __$CharacterPortraitStateDefinitionCopyWithImpl<$Res>
+    implements _$CharacterPortraitStateDefinitionCopyWith<$Res> {
+  __$CharacterPortraitStateDefinitionCopyWithImpl(this._self, this._then);
+
+  final _CharacterPortraitStateDefinition _self;
+  final $Res Function(_CharacterPortraitStateDefinition) _then;
+
+/// Create a copy of CharacterPortraitStateDefinition
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? sortOrder = null,}) {
+  return _then(_CharacterPortraitStateDefinition(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
+as String,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$CharacterCustomAnimationDefinition {
+
+ String get id; String get displayName; CharacterCustomAnimationMode get mode; int get sortOrder;
+/// Create a copy of CharacterCustomAnimationDefinition
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CharacterCustomAnimationDefinitionCopyWith<CharacterCustomAnimationDefinition> get copyWith => _$CharacterCustomAnimationDefinitionCopyWithImpl<CharacterCustomAnimationDefinition>(this as CharacterCustomAnimationDefinition, _$identity);
+
+  /// Serializes this CharacterCustomAnimationDefinition to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterCustomAnimationDefinition&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,displayName,mode,sortOrder);
+
+@override
+String toString() {
+  return 'CharacterCustomAnimationDefinition(id: $id, displayName: $displayName, mode: $mode, sortOrder: $sortOrder)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CharacterCustomAnimationDefinitionCopyWith<$Res>  {
+  factory $CharacterCustomAnimationDefinitionCopyWith(CharacterCustomAnimationDefinition value, $Res Function(CharacterCustomAnimationDefinition) _then) = _$CharacterCustomAnimationDefinitionCopyWithImpl;
+@useResult
+$Res call({
+ String id, String displayName, CharacterCustomAnimationMode mode, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class _$CharacterCustomAnimationDefinitionCopyWithImpl<$Res>
+    implements $CharacterCustomAnimationDefinitionCopyWith<$Res> {
+  _$CharacterCustomAnimationDefinitionCopyWithImpl(this._self, this._then);
+
+  final CharacterCustomAnimationDefinition _self;
+  final $Res Function(CharacterCustomAnimationDefinition) _then;
+
+/// Create a copy of CharacterCustomAnimationDefinition
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? mode = null,Object? sortOrder = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
+as String,mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
+as CharacterCustomAnimationMode,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [CharacterCustomAnimationDefinition].
+extension CharacterCustomAnimationDefinitionPatterns on CharacterCustomAnimationDefinition {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CharacterCustomAnimationDefinition value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationDefinition() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CharacterCustomAnimationDefinition value)  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationDefinition():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CharacterCustomAnimationDefinition value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationDefinition() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  CharacterCustomAnimationMode mode,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationDefinition() when $default != null:
+return $default(_that.id,_that.displayName,_that.mode,_that.sortOrder);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  CharacterCustomAnimationMode mode,  int sortOrder)  $default,) {final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationDefinition():
+return $default(_that.id,_that.displayName,_that.mode,_that.sortOrder);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  CharacterCustomAnimationMode mode,  int sortOrder)?  $default,) {final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationDefinition() when $default != null:
+return $default(_that.id,_that.displayName,_that.mode,_that.sortOrder);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _CharacterCustomAnimationDefinition implements CharacterCustomAnimationDefinition {
+  const _CharacterCustomAnimationDefinition({required this.id, required this.displayName, required this.mode, this.sortOrder = 0});
+  factory _CharacterCustomAnimationDefinition.fromJson(Map<String, dynamic> json) => _$CharacterCustomAnimationDefinitionFromJson(json);
+
+@override final  String id;
+@override final  String displayName;
+@override final  CharacterCustomAnimationMode mode;
+@override@JsonKey() final  int sortOrder;
+
+/// Create a copy of CharacterCustomAnimationDefinition
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CharacterCustomAnimationDefinitionCopyWith<_CharacterCustomAnimationDefinition> get copyWith => __$CharacterCustomAnimationDefinitionCopyWithImpl<_CharacterCustomAnimationDefinition>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$CharacterCustomAnimationDefinitionToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterCustomAnimationDefinition&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,displayName,mode,sortOrder);
+
+@override
+String toString() {
+  return 'CharacterCustomAnimationDefinition(id: $id, displayName: $displayName, mode: $mode, sortOrder: $sortOrder)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CharacterCustomAnimationDefinitionCopyWith<$Res> implements $CharacterCustomAnimationDefinitionCopyWith<$Res> {
+  factory _$CharacterCustomAnimationDefinitionCopyWith(_CharacterCustomAnimationDefinition value, $Res Function(_CharacterCustomAnimationDefinition) _then) = __$CharacterCustomAnimationDefinitionCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String displayName, CharacterCustomAnimationMode mode, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class __$CharacterCustomAnimationDefinitionCopyWithImpl<$Res>
+    implements _$CharacterCustomAnimationDefinitionCopyWith<$Res> {
+  __$CharacterCustomAnimationDefinitionCopyWithImpl(this._self, this._then);
+
+  final _CharacterCustomAnimationDefinition _self;
+  final $Res Function(_CharacterCustomAnimationDefinition) _then;
+
+/// Create a copy of CharacterCustomAnimationDefinition
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? mode = null,Object? sortOrder = null,}) {
+  return _then(_CharacterCustomAnimationDefinition(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
+as String,mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
+as CharacterCustomAnimationMode,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$CharacterPortraitVariant {
+
+ String get portraitStateId; String get assetId; CharacterPortraitFitMode get fitMode;
+/// Create a copy of CharacterPortraitVariant
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CharacterPortraitVariantCopyWith<CharacterPortraitVariant> get copyWith => _$CharacterPortraitVariantCopyWithImpl<CharacterPortraitVariant>(this as CharacterPortraitVariant, _$identity);
+
+  /// Serializes this CharacterPortraitVariant to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterPortraitVariant&&(identical(other.portraitStateId, portraitStateId) || other.portraitStateId == portraitStateId)&&(identical(other.assetId, assetId) || other.assetId == assetId)&&(identical(other.fitMode, fitMode) || other.fitMode == fitMode));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,portraitStateId,assetId,fitMode);
+
+@override
+String toString() {
+  return 'CharacterPortraitVariant(portraitStateId: $portraitStateId, assetId: $assetId, fitMode: $fitMode)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CharacterPortraitVariantCopyWith<$Res>  {
+  factory $CharacterPortraitVariantCopyWith(CharacterPortraitVariant value, $Res Function(CharacterPortraitVariant) _then) = _$CharacterPortraitVariantCopyWithImpl;
+@useResult
+$Res call({
+ String portraitStateId, String assetId, CharacterPortraitFitMode fitMode
+});
+
+
+
+
+}
+/// @nodoc
+class _$CharacterPortraitVariantCopyWithImpl<$Res>
+    implements $CharacterPortraitVariantCopyWith<$Res> {
+  _$CharacterPortraitVariantCopyWithImpl(this._self, this._then);
+
+  final CharacterPortraitVariant _self;
+  final $Res Function(CharacterPortraitVariant) _then;
+
+/// Create a copy of CharacterPortraitVariant
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? portraitStateId = null,Object? assetId = null,Object? fitMode = null,}) {
+  return _then(_self.copyWith(
+portraitStateId: null == portraitStateId ? _self.portraitStateId : portraitStateId // ignore: cast_nullable_to_non_nullable
+as String,assetId: null == assetId ? _self.assetId : assetId // ignore: cast_nullable_to_non_nullable
+as String,fitMode: null == fitMode ? _self.fitMode : fitMode // ignore: cast_nullable_to_non_nullable
+as CharacterPortraitFitMode,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [CharacterPortraitVariant].
+extension CharacterPortraitVariantPatterns on CharacterPortraitVariant {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CharacterPortraitVariant value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CharacterPortraitVariant() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CharacterPortraitVariant value)  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterPortraitVariant():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CharacterPortraitVariant value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterPortraitVariant() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String portraitStateId,  String assetId,  CharacterPortraitFitMode fitMode)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CharacterPortraitVariant() when $default != null:
+return $default(_that.portraitStateId,_that.assetId,_that.fitMode);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String portraitStateId,  String assetId,  CharacterPortraitFitMode fitMode)  $default,) {final _that = this;
+switch (_that) {
+case _CharacterPortraitVariant():
+return $default(_that.portraitStateId,_that.assetId,_that.fitMode);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String portraitStateId,  String assetId,  CharacterPortraitFitMode fitMode)?  $default,) {final _that = this;
+switch (_that) {
+case _CharacterPortraitVariant() when $default != null:
+return $default(_that.portraitStateId,_that.assetId,_that.fitMode);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _CharacterPortraitVariant implements CharacterPortraitVariant {
+  const _CharacterPortraitVariant({required this.portraitStateId, required this.assetId, this.fitMode = CharacterPortraitFitMode.contain});
+  factory _CharacterPortraitVariant.fromJson(Map<String, dynamic> json) => _$CharacterPortraitVariantFromJson(json);
+
+@override final  String portraitStateId;
+@override final  String assetId;
+@override@JsonKey() final  CharacterPortraitFitMode fitMode;
+
+/// Create a copy of CharacterPortraitVariant
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CharacterPortraitVariantCopyWith<_CharacterPortraitVariant> get copyWith => __$CharacterPortraitVariantCopyWithImpl<_CharacterPortraitVariant>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$CharacterPortraitVariantToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterPortraitVariant&&(identical(other.portraitStateId, portraitStateId) || other.portraitStateId == portraitStateId)&&(identical(other.assetId, assetId) || other.assetId == assetId)&&(identical(other.fitMode, fitMode) || other.fitMode == fitMode));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,portraitStateId,assetId,fitMode);
+
+@override
+String toString() {
+  return 'CharacterPortraitVariant(portraitStateId: $portraitStateId, assetId: $assetId, fitMode: $fitMode)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CharacterPortraitVariantCopyWith<$Res> implements $CharacterPortraitVariantCopyWith<$Res> {
+  factory _$CharacterPortraitVariantCopyWith(_CharacterPortraitVariant value, $Res Function(_CharacterPortraitVariant) _then) = __$CharacterPortraitVariantCopyWithImpl;
+@override @useResult
+$Res call({
+ String portraitStateId, String assetId, CharacterPortraitFitMode fitMode
+});
+
+
+
+
+}
+/// @nodoc
+class __$CharacterPortraitVariantCopyWithImpl<$Res>
+    implements _$CharacterPortraitVariantCopyWith<$Res> {
+  __$CharacterPortraitVariantCopyWithImpl(this._self, this._then);
+
+  final _CharacterPortraitVariant _self;
+  final $Res Function(_CharacterPortraitVariant) _then;
+
+/// Create a copy of CharacterPortraitVariant
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? portraitStateId = null,Object? assetId = null,Object? fitMode = null,}) {
+  return _then(_CharacterPortraitVariant(
+portraitStateId: null == portraitStateId ? _self.portraitStateId : portraitStateId // ignore: cast_nullable_to_non_nullable
+as String,assetId: null == assetId ? _self.assetId : assetId // ignore: cast_nullable_to_non_nullable
+as String,fitMode: null == fitMode ? _self.fitMode : fitMode // ignore: cast_nullable_to_non_nullable
+as CharacterPortraitFitMode,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$ProjectCharacterEntry {
 
- String get id; String get name; String get tilesetId; int get frameWidth; int get frameHeight; List<CharacterAnimation> get animations; List<String> get tags; int get sortOrder;
+ String get id; String get name; String get tilesetId; int get frameWidth; int get frameHeight; List<CharacterPortraitVariant> get portraits; List<CharacterAnimation> get animations; List<CharacterCustomAnimationClip> get customAnimations; List<String> get tags; int get sortOrder;
 /// Create a copy of ProjectCharacterEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -5795,16 +6904,16 @@ $ProjectCharacterEntryCopyWith<ProjectCharacterEntry> get copyWith => _$ProjectC
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other.animations, animations)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other.portraits, portraits)&&const DeepCollectionEquality().equals(other.animations, animations)&&const DeepCollectionEquality().equals(other.customAnimations, customAnimations)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,tilesetId,frameWidth,frameHeight,const DeepCollectionEquality().hash(animations),const DeepCollectionEquality().hash(tags),sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,tilesetId,frameWidth,frameHeight,const DeepCollectionEquality().hash(portraits),const DeepCollectionEquality().hash(animations),const DeepCollectionEquality().hash(customAnimations),const DeepCollectionEquality().hash(tags),sortOrder);
 
 @override
 String toString() {
-  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, frameWidth: $frameWidth, frameHeight: $frameHeight, animations: $animations, tags: $tags, sortOrder: $sortOrder)';
+  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, frameWidth: $frameWidth, frameHeight: $frameHeight, portraits: $portraits, animations: $animations, customAnimations: $customAnimations, tags: $tags, sortOrder: $sortOrder)';
 }
 
 
@@ -5815,7 +6924,7 @@ abstract mixin class $ProjectCharacterEntryCopyWith<$Res>  {
   factory $ProjectCharacterEntryCopyWith(ProjectCharacterEntry value, $Res Function(ProjectCharacterEntry) _then) = _$ProjectCharacterEntryCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String tilesetId, int frameWidth, int frameHeight, List<CharacterAnimation> animations, List<String> tags, int sortOrder
+ String id, String name, String tilesetId, int frameWidth, int frameHeight, List<CharacterPortraitVariant> portraits, List<CharacterAnimation> animations, List<CharacterCustomAnimationClip> customAnimations, List<String> tags, int sortOrder
 });
 
 
@@ -5832,15 +6941,17 @@ class _$ProjectCharacterEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectCharacterEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? frameWidth = null,Object? frameHeight = null,Object? animations = null,Object? tags = null,Object? sortOrder = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? frameWidth = null,Object? frameHeight = null,Object? portraits = null,Object? animations = null,Object? customAnimations = null,Object? tags = null,Object? sortOrder = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
 as String,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
 as int,frameHeight: null == frameHeight ? _self.frameHeight : frameHeight // ignore: cast_nullable_to_non_nullable
-as int,animations: null == animations ? _self.animations : animations // ignore: cast_nullable_to_non_nullable
-as List<CharacterAnimation>,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
+as int,portraits: null == portraits ? _self.portraits : portraits // ignore: cast_nullable_to_non_nullable
+as List<CharacterPortraitVariant>,animations: null == animations ? _self.animations : animations // ignore: cast_nullable_to_non_nullable
+as List<CharacterAnimation>,customAnimations: null == customAnimations ? _self.customAnimations : customAnimations // ignore: cast_nullable_to_non_nullable
+as List<CharacterCustomAnimationClip>,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
 as List<String>,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
 as int,
   ));
@@ -5927,10 +7038,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight,  List<CharacterAnimation> animations,  List<String> tags,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight,  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations,  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectCharacterEntry() when $default != null:
-return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.animations,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
   return orElse();
 
 }
@@ -5948,10 +7059,10 @@ return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frame
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight,  List<CharacterAnimation> animations,  List<String> tags,  int sortOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight,  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations,  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectCharacterEntry():
-return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.animations,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -5968,10 +7079,10 @@ return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frame
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight,  List<CharacterAnimation> animations,  List<String> tags,  int sortOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight,  List<CharacterPortraitVariant> portraits,  List<CharacterAnimation> animations,  List<CharacterCustomAnimationClip> customAnimations,  List<String> tags,  int sortOrder)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectCharacterEntry() when $default != null:
-return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.animations,_that.tags,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.portraits,_that.animations,_that.customAnimations,_that.tags,_that.sortOrder);case _:
   return null;
 
 }
@@ -5983,7 +7094,7 @@ return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frame
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectCharacterEntry implements ProjectCharacterEntry {
-  const _ProjectCharacterEntry({required this.id, required this.name, required this.tilesetId, this.frameWidth = 1, this.frameHeight = 2, final  List<CharacterAnimation> animations = const [], final  List<String> tags = const [], this.sortOrder = 0}): _animations = animations,_tags = tags;
+  const _ProjectCharacterEntry({required this.id, required this.name, required this.tilesetId, this.frameWidth = 1, this.frameHeight = 2, final  List<CharacterPortraitVariant> portraits = const [], final  List<CharacterAnimation> animations = const [], final  List<CharacterCustomAnimationClip> customAnimations = const [], final  List<String> tags = const [], this.sortOrder = 0}): _portraits = portraits,_animations = animations,_customAnimations = customAnimations,_tags = tags;
   factory _ProjectCharacterEntry.fromJson(Map<String, dynamic> json) => _$ProjectCharacterEntryFromJson(json);
 
 @override final  String id;
@@ -5991,11 +7102,25 @@ class _ProjectCharacterEntry implements ProjectCharacterEntry {
 @override final  String tilesetId;
 @override@JsonKey() final  int frameWidth;
 @override@JsonKey() final  int frameHeight;
+ final  List<CharacterPortraitVariant> _portraits;
+@override@JsonKey() List<CharacterPortraitVariant> get portraits {
+  if (_portraits is EqualUnmodifiableListView) return _portraits;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_portraits);
+}
+
  final  List<CharacterAnimation> _animations;
 @override@JsonKey() List<CharacterAnimation> get animations {
   if (_animations is EqualUnmodifiableListView) return _animations;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_animations);
+}
+
+ final  List<CharacterCustomAnimationClip> _customAnimations;
+@override@JsonKey() List<CharacterCustomAnimationClip> get customAnimations {
+  if (_customAnimations is EqualUnmodifiableListView) return _customAnimations;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_customAnimations);
 }
 
  final  List<String> _tags;
@@ -6020,16 +7145,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other._animations, _animations)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other._portraits, _portraits)&&const DeepCollectionEquality().equals(other._animations, _animations)&&const DeepCollectionEquality().equals(other._customAnimations, _customAnimations)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,tilesetId,frameWidth,frameHeight,const DeepCollectionEquality().hash(_animations),const DeepCollectionEquality().hash(_tags),sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,tilesetId,frameWidth,frameHeight,const DeepCollectionEquality().hash(_portraits),const DeepCollectionEquality().hash(_animations),const DeepCollectionEquality().hash(_customAnimations),const DeepCollectionEquality().hash(_tags),sortOrder);
 
 @override
 String toString() {
-  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, frameWidth: $frameWidth, frameHeight: $frameHeight, animations: $animations, tags: $tags, sortOrder: $sortOrder)';
+  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, frameWidth: $frameWidth, frameHeight: $frameHeight, portraits: $portraits, animations: $animations, customAnimations: $customAnimations, tags: $tags, sortOrder: $sortOrder)';
 }
 
 
@@ -6040,7 +7165,7 @@ abstract mixin class _$ProjectCharacterEntryCopyWith<$Res> implements $ProjectCh
   factory _$ProjectCharacterEntryCopyWith(_ProjectCharacterEntry value, $Res Function(_ProjectCharacterEntry) _then) = __$ProjectCharacterEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String tilesetId, int frameWidth, int frameHeight, List<CharacterAnimation> animations, List<String> tags, int sortOrder
+ String id, String name, String tilesetId, int frameWidth, int frameHeight, List<CharacterPortraitVariant> portraits, List<CharacterAnimation> animations, List<CharacterCustomAnimationClip> customAnimations, List<String> tags, int sortOrder
 });
 
 
@@ -6057,15 +7182,17 @@ class __$ProjectCharacterEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectCharacterEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? frameWidth = null,Object? frameHeight = null,Object? animations = null,Object? tags = null,Object? sortOrder = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? frameWidth = null,Object? frameHeight = null,Object? portraits = null,Object? animations = null,Object? customAnimations = null,Object? tags = null,Object? sortOrder = null,}) {
   return _then(_ProjectCharacterEntry(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
 as String,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
 as int,frameHeight: null == frameHeight ? _self.frameHeight : frameHeight // ignore: cast_nullable_to_non_nullable
-as int,animations: null == animations ? _self._animations : animations // ignore: cast_nullable_to_non_nullable
-as List<CharacterAnimation>,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
+as int,portraits: null == portraits ? _self._portraits : portraits // ignore: cast_nullable_to_non_nullable
+as List<CharacterPortraitVariant>,animations: null == animations ? _self._animations : animations // ignore: cast_nullable_to_non_nullable
+as List<CharacterAnimation>,customAnimations: null == customAnimations ? _self._customAnimations : customAnimations // ignore: cast_nullable_to_non_nullable
+as List<CharacterCustomAnimationClip>,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
 as List<String>,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
 as int,
   ));
@@ -6078,7 +7205,7 @@ as int,
 /// @nodoc
 mixin _$CharacterAnimation {
 
- CharacterAnimationState get state; EntityFacing get direction; List<CharacterAnimationFrame> get frames;
+ CharacterAnimationState get state; EntityFacing get direction;@JsonKey(includeIfNull: false) String? get sourceAssetId; List<CharacterAnimationFrame> get frames;@JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) bool get loop;
 /// Create a copy of CharacterAnimation
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -6091,16 +7218,16 @@ $CharacterAnimationCopyWith<CharacterAnimation> get copyWith => _$CharacterAnima
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterAnimation&&(identical(other.state, state) || other.state == state)&&(identical(other.direction, direction) || other.direction == direction)&&const DeepCollectionEquality().equals(other.frames, frames));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterAnimation&&(identical(other.state, state) || other.state == state)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&const DeepCollectionEquality().equals(other.frames, frames)&&(identical(other.loop, loop) || other.loop == loop));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,state,direction,const DeepCollectionEquality().hash(frames));
+int get hashCode => Object.hash(runtimeType,state,direction,sourceAssetId,const DeepCollectionEquality().hash(frames),loop);
 
 @override
 String toString() {
-  return 'CharacterAnimation(state: $state, direction: $direction, frames: $frames)';
+  return 'CharacterAnimation(state: $state, direction: $direction, sourceAssetId: $sourceAssetId, frames: $frames, loop: $loop)';
 }
 
 
@@ -6111,7 +7238,7 @@ abstract mixin class $CharacterAnimationCopyWith<$Res>  {
   factory $CharacterAnimationCopyWith(CharacterAnimation value, $Res Function(CharacterAnimation) _then) = _$CharacterAnimationCopyWithImpl;
 @useResult
 $Res call({
- CharacterAnimationState state, EntityFacing direction, List<CharacterAnimationFrame> frames
+ CharacterAnimationState state, EntityFacing direction,@JsonKey(includeIfNull: false) String? sourceAssetId, List<CharacterAnimationFrame> frames,@JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) bool loop
 });
 
 
@@ -6128,12 +7255,14 @@ class _$CharacterAnimationCopyWithImpl<$Res>
 
 /// Create a copy of CharacterAnimation
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? state = null,Object? direction = null,Object? frames = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? state = null,Object? direction = null,Object? sourceAssetId = freezed,Object? frames = null,Object? loop = null,}) {
   return _then(_self.copyWith(
 state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
 as CharacterAnimationState,direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
-as EntityFacing,frames: null == frames ? _self.frames : frames // ignore: cast_nullable_to_non_nullable
-as List<CharacterAnimationFrame>,
+as EntityFacing,sourceAssetId: freezed == sourceAssetId ? _self.sourceAssetId : sourceAssetId // ignore: cast_nullable_to_non_nullable
+as String?,frames: null == frames ? _self.frames : frames // ignore: cast_nullable_to_non_nullable
+as List<CharacterAnimationFrame>,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -6218,10 +7347,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CharacterAnimationState state,  EntityFacing direction,  List<CharacterAnimationFrame> frames)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CharacterAnimationState state,  EntityFacing direction, @JsonKey(includeIfNull: false)  String? sourceAssetId,  List<CharacterAnimationFrame> frames, @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)  bool loop)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CharacterAnimation() when $default != null:
-return $default(_that.state,_that.direction,_that.frames);case _:
+return $default(_that.state,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
   return orElse();
 
 }
@@ -6239,10 +7368,10 @@ return $default(_that.state,_that.direction,_that.frames);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CharacterAnimationState state,  EntityFacing direction,  List<CharacterAnimationFrame> frames)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CharacterAnimationState state,  EntityFacing direction, @JsonKey(includeIfNull: false)  String? sourceAssetId,  List<CharacterAnimationFrame> frames, @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)  bool loop)  $default,) {final _that = this;
 switch (_that) {
 case _CharacterAnimation():
-return $default(_that.state,_that.direction,_that.frames);case _:
+return $default(_that.state,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -6259,10 +7388,10 @@ return $default(_that.state,_that.direction,_that.frames);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CharacterAnimationState state,  EntityFacing direction,  List<CharacterAnimationFrame> frames)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CharacterAnimationState state,  EntityFacing direction, @JsonKey(includeIfNull: false)  String? sourceAssetId,  List<CharacterAnimationFrame> frames, @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)  bool loop)?  $default,) {final _that = this;
 switch (_that) {
 case _CharacterAnimation() when $default != null:
-return $default(_that.state,_that.direction,_that.frames);case _:
+return $default(_that.state,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
   return null;
 
 }
@@ -6274,11 +7403,12 @@ return $default(_that.state,_that.direction,_that.frames);case _:
 
 @JsonSerializable(explicitToJson: true)
 class _CharacterAnimation implements CharacterAnimation {
-  const _CharacterAnimation({required this.state, required this.direction, final  List<CharacterAnimationFrame> frames = const []}): _frames = frames;
+  const _CharacterAnimation({required this.state, required this.direction, @JsonKey(includeIfNull: false) this.sourceAssetId, final  List<CharacterAnimationFrame> frames = const [], @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) this.loop = true}): _frames = frames;
   factory _CharacterAnimation.fromJson(Map<String, dynamic> json) => _$CharacterAnimationFromJson(json);
 
 @override final  CharacterAnimationState state;
 @override final  EntityFacing direction;
+@override@JsonKey(includeIfNull: false) final  String? sourceAssetId;
  final  List<CharacterAnimationFrame> _frames;
 @override@JsonKey() List<CharacterAnimationFrame> get frames {
   if (_frames is EqualUnmodifiableListView) return _frames;
@@ -6286,6 +7416,7 @@ class _CharacterAnimation implements CharacterAnimation {
   return EqualUnmodifiableListView(_frames);
 }
 
+@override@JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) final  bool loop;
 
 /// Create a copy of CharacterAnimation
 /// with the given fields replaced by the non-null parameter values.
@@ -6300,16 +7431,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterAnimation&&(identical(other.state, state) || other.state == state)&&(identical(other.direction, direction) || other.direction == direction)&&const DeepCollectionEquality().equals(other._frames, _frames));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterAnimation&&(identical(other.state, state) || other.state == state)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&const DeepCollectionEquality().equals(other._frames, _frames)&&(identical(other.loop, loop) || other.loop == loop));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,state,direction,const DeepCollectionEquality().hash(_frames));
+int get hashCode => Object.hash(runtimeType,state,direction,sourceAssetId,const DeepCollectionEquality().hash(_frames),loop);
 
 @override
 String toString() {
-  return 'CharacterAnimation(state: $state, direction: $direction, frames: $frames)';
+  return 'CharacterAnimation(state: $state, direction: $direction, sourceAssetId: $sourceAssetId, frames: $frames, loop: $loop)';
 }
 
 
@@ -6320,7 +7451,7 @@ abstract mixin class _$CharacterAnimationCopyWith<$Res> implements $CharacterAni
   factory _$CharacterAnimationCopyWith(_CharacterAnimation value, $Res Function(_CharacterAnimation) _then) = __$CharacterAnimationCopyWithImpl;
 @override @useResult
 $Res call({
- CharacterAnimationState state, EntityFacing direction, List<CharacterAnimationFrame> frames
+ CharacterAnimationState state, EntityFacing direction,@JsonKey(includeIfNull: false) String? sourceAssetId, List<CharacterAnimationFrame> frames,@JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) bool loop
 });
 
 
@@ -6337,12 +7468,295 @@ class __$CharacterAnimationCopyWithImpl<$Res>
 
 /// Create a copy of CharacterAnimation
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? state = null,Object? direction = null,Object? frames = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? state = null,Object? direction = null,Object? sourceAssetId = freezed,Object? frames = null,Object? loop = null,}) {
   return _then(_CharacterAnimation(
 state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
 as CharacterAnimationState,direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
-as EntityFacing,frames: null == frames ? _self._frames : frames // ignore: cast_nullable_to_non_nullable
-as List<CharacterAnimationFrame>,
+as EntityFacing,sourceAssetId: freezed == sourceAssetId ? _self.sourceAssetId : sourceAssetId // ignore: cast_nullable_to_non_nullable
+as String?,frames: null == frames ? _self._frames : frames // ignore: cast_nullable_to_non_nullable
+as List<CharacterAnimationFrame>,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$CharacterCustomAnimationClip {
+
+ String get definitionId;@JsonKey(includeIfNull: false) EntityFacing? get direction; String get sourceAssetId; List<CharacterAnimationFrame> get frames; bool get loop;
+/// Create a copy of CharacterCustomAnimationClip
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CharacterCustomAnimationClipCopyWith<CharacterCustomAnimationClip> get copyWith => _$CharacterCustomAnimationClipCopyWithImpl<CharacterCustomAnimationClip>(this as CharacterCustomAnimationClip, _$identity);
+
+  /// Serializes this CharacterCustomAnimationClip to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterCustomAnimationClip&&(identical(other.definitionId, definitionId) || other.definitionId == definitionId)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&const DeepCollectionEquality().equals(other.frames, frames)&&(identical(other.loop, loop) || other.loop == loop));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,definitionId,direction,sourceAssetId,const DeepCollectionEquality().hash(frames),loop);
+
+@override
+String toString() {
+  return 'CharacterCustomAnimationClip(definitionId: $definitionId, direction: $direction, sourceAssetId: $sourceAssetId, frames: $frames, loop: $loop)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CharacterCustomAnimationClipCopyWith<$Res>  {
+  factory $CharacterCustomAnimationClipCopyWith(CharacterCustomAnimationClip value, $Res Function(CharacterCustomAnimationClip) _then) = _$CharacterCustomAnimationClipCopyWithImpl;
+@useResult
+$Res call({
+ String definitionId,@JsonKey(includeIfNull: false) EntityFacing? direction, String sourceAssetId, List<CharacterAnimationFrame> frames, bool loop
+});
+
+
+
+
+}
+/// @nodoc
+class _$CharacterCustomAnimationClipCopyWithImpl<$Res>
+    implements $CharacterCustomAnimationClipCopyWith<$Res> {
+  _$CharacterCustomAnimationClipCopyWithImpl(this._self, this._then);
+
+  final CharacterCustomAnimationClip _self;
+  final $Res Function(CharacterCustomAnimationClip) _then;
+
+/// Create a copy of CharacterCustomAnimationClip
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? definitionId = null,Object? direction = freezed,Object? sourceAssetId = null,Object? frames = null,Object? loop = null,}) {
+  return _then(_self.copyWith(
+definitionId: null == definitionId ? _self.definitionId : definitionId // ignore: cast_nullable_to_non_nullable
+as String,direction: freezed == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
+as EntityFacing?,sourceAssetId: null == sourceAssetId ? _self.sourceAssetId : sourceAssetId // ignore: cast_nullable_to_non_nullable
+as String,frames: null == frames ? _self.frames : frames // ignore: cast_nullable_to_non_nullable
+as List<CharacterAnimationFrame>,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [CharacterCustomAnimationClip].
+extension CharacterCustomAnimationClipPatterns on CharacterCustomAnimationClip {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CharacterCustomAnimationClip value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationClip() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CharacterCustomAnimationClip value)  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationClip():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CharacterCustomAnimationClip value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationClip() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String definitionId, @JsonKey(includeIfNull: false)  EntityFacing? direction,  String sourceAssetId,  List<CharacterAnimationFrame> frames,  bool loop)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationClip() when $default != null:
+return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String definitionId, @JsonKey(includeIfNull: false)  EntityFacing? direction,  String sourceAssetId,  List<CharacterAnimationFrame> frames,  bool loop)  $default,) {final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationClip():
+return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String definitionId, @JsonKey(includeIfNull: false)  EntityFacing? direction,  String sourceAssetId,  List<CharacterAnimationFrame> frames,  bool loop)?  $default,) {final _that = this;
+switch (_that) {
+case _CharacterCustomAnimationClip() when $default != null:
+return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _CharacterCustomAnimationClip implements CharacterCustomAnimationClip {
+  const _CharacterCustomAnimationClip({required this.definitionId, @JsonKey(includeIfNull: false) this.direction, required this.sourceAssetId, final  List<CharacterAnimationFrame> frames = const [], this.loop = true}): _frames = frames;
+  factory _CharacterCustomAnimationClip.fromJson(Map<String, dynamic> json) => _$CharacterCustomAnimationClipFromJson(json);
+
+@override final  String definitionId;
+@override@JsonKey(includeIfNull: false) final  EntityFacing? direction;
+@override final  String sourceAssetId;
+ final  List<CharacterAnimationFrame> _frames;
+@override@JsonKey() List<CharacterAnimationFrame> get frames {
+  if (_frames is EqualUnmodifiableListView) return _frames;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_frames);
+}
+
+@override@JsonKey() final  bool loop;
+
+/// Create a copy of CharacterCustomAnimationClip
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CharacterCustomAnimationClipCopyWith<_CharacterCustomAnimationClip> get copyWith => __$CharacterCustomAnimationClipCopyWithImpl<_CharacterCustomAnimationClip>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$CharacterCustomAnimationClipToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterCustomAnimationClip&&(identical(other.definitionId, definitionId) || other.definitionId == definitionId)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&const DeepCollectionEquality().equals(other._frames, _frames)&&(identical(other.loop, loop) || other.loop == loop));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,definitionId,direction,sourceAssetId,const DeepCollectionEquality().hash(_frames),loop);
+
+@override
+String toString() {
+  return 'CharacterCustomAnimationClip(definitionId: $definitionId, direction: $direction, sourceAssetId: $sourceAssetId, frames: $frames, loop: $loop)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CharacterCustomAnimationClipCopyWith<$Res> implements $CharacterCustomAnimationClipCopyWith<$Res> {
+  factory _$CharacterCustomAnimationClipCopyWith(_CharacterCustomAnimationClip value, $Res Function(_CharacterCustomAnimationClip) _then) = __$CharacterCustomAnimationClipCopyWithImpl;
+@override @useResult
+$Res call({
+ String definitionId,@JsonKey(includeIfNull: false) EntityFacing? direction, String sourceAssetId, List<CharacterAnimationFrame> frames, bool loop
+});
+
+
+
+
+}
+/// @nodoc
+class __$CharacterCustomAnimationClipCopyWithImpl<$Res>
+    implements _$CharacterCustomAnimationClipCopyWith<$Res> {
+  __$CharacterCustomAnimationClipCopyWithImpl(this._self, this._then);
+
+  final _CharacterCustomAnimationClip _self;
+  final $Res Function(_CharacterCustomAnimationClip) _then;
+
+/// Create a copy of CharacterCustomAnimationClip
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? definitionId = null,Object? direction = freezed,Object? sourceAssetId = null,Object? frames = null,Object? loop = null,}) {
+  return _then(_CharacterCustomAnimationClip(
+definitionId: null == definitionId ? _self.definitionId : definitionId // ignore: cast_nullable_to_non_nullable
+as String,direction: freezed == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
+as EntityFacing?,sourceAssetId: null == sourceAssetId ? _self.sourceAssetId : sourceAssetId // ignore: cast_nullable_to_non_nullable
+as String,frames: null == frames ? _self._frames : frames // ignore: cast_nullable_to_non_nullable
+as List<CharacterAnimationFrame>,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
