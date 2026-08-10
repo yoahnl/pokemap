@@ -14238,6 +14238,126 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  Future<bool> importCharacterPortrait({
+    required String characterId,
+    required String portraitStateId,
+    required CharacterPortraitFitMode fitMode,
+  }) async {
+    if (state.isSaving) return false;
+    final sourcePath = await ref
+        .read(characterStudioPortraitSourcePickerProvider)
+        .pickPng();
+    if (sourcePath == null || state.isSaving) return false;
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return false;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(characterStudioPortraitImportServiceProvider)
+          .import(
+            projectRootPath: workspace.projectRoot,
+            project: project,
+            characterId: characterId,
+            portraitStateId: portraitStateId,
+            sourcePath: sourcePath,
+            fitMode: fitMode,
+          );
+      _projectSessionRevision += 1;
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Portrait imported',
+        errorMessage: null,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to import portrait: $error',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> clearCharacterPortrait({
+    required String characterId,
+    required String portraitStateId,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return false;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(clearCharacterPortraitUseCaseProvider)
+          .execute(
+            workspace,
+            project,
+            characterId: characterId,
+            portraitStateId: portraitStateId,
+          );
+      _projectSessionRevision += 1;
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Portrait cleared',
+        errorMessage: null,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to clear portrait: $error',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> setCharacterPortraitFitMode({
+    required String characterId,
+    required String portraitStateId,
+    required CharacterPortraitFitMode fitMode,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return false;
+    final portrait = project.characters
+        .where((character) => character.id == characterId)
+        .firstOrNull
+        ?.portraits
+        .where((entry) => entry.portraitStateId == portraitStateId)
+        .firstOrNull;
+    if (portrait == null) return false;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(assignCharacterPortraitUseCaseProvider)
+          .execute(
+            workspace,
+            project,
+            characterId: characterId,
+            portraitStateId: portraitStateId,
+            assetId: portrait.assetId,
+            fitMode: fitMode,
+          );
+      _projectSessionRevision += 1;
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Portrait framing updated',
+        errorMessage: null,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to update portrait framing: $error',
+      );
+      return false;
+    }
+  }
+
   Future<void> upsertCharacterAnimation({
     required String characterId,
     required CharacterAnimationState animState,

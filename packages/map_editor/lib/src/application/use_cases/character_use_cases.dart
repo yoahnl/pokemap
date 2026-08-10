@@ -401,6 +401,58 @@ class DeletePortraitStateUseCase {
   }
 }
 
+class AssignCharacterPortraitUseCase {
+  AssignCharacterPortraitUseCase(this._authoring);
+
+  final CharacterStudioAuthoringGateway _authoring;
+
+  Future<ProjectManifest> execute(
+    ProjectWorkspace workspace,
+    ProjectManifest project, {
+    required String characterId,
+    required String portraitStateId,
+    required String assetId,
+    required CharacterPortraitFitMode fitMode,
+  }) {
+    return _authoring.apply(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      actionId: 'characterStudio.character.assignPortrait',
+      parameters: <String, Object?>{
+        'characterId': characterId,
+        'portraitStateId': portraitStateId,
+        'assetId': assetId,
+        'fitMode': fitMode.name,
+      },
+      operationLabel: 'portrait_assign_${characterId}_$portraitStateId',
+    );
+  }
+}
+
+class ClearCharacterPortraitUseCase {
+  ClearCharacterPortraitUseCase(this._authoring);
+
+  final CharacterStudioAuthoringGateway _authoring;
+
+  Future<ProjectManifest> execute(
+    ProjectWorkspace workspace,
+    ProjectManifest project, {
+    required String characterId,
+    required String portraitStateId,
+  }) {
+    return _authoring.apply(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      actionId: 'characterStudio.character.clearPortrait',
+      parameters: <String, Object?>{
+        'characterId': characterId,
+        'portraitStateId': portraitStateId,
+      },
+      operationLabel: 'portrait_clear_${characterId}_$portraitStateId',
+    );
+  }
+}
+
 Iterable<Map<String, Object?>> _previewMaps(Object? value) sync* {
   if (value is! List) return;
   for (final entry in value) {

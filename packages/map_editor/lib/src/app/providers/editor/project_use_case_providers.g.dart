@@ -2493,6 +2493,108 @@ final class DeletePortraitStateUseCaseProvider
 String _$deletePortraitStateUseCaseHash() =>
     r'02f3ab5c77177f43d7d8af067266c4ca763572a9';
 
+@ProviderFor(assignCharacterPortraitUseCase)
+final assignCharacterPortraitUseCaseProvider =
+    AssignCharacterPortraitUseCaseProvider._();
+
+final class AssignCharacterPortraitUseCaseProvider
+    extends
+        $FunctionalProvider<
+          AssignCharacterPortraitUseCase,
+          AssignCharacterPortraitUseCase,
+          AssignCharacterPortraitUseCase
+        >
+    with $Provider<AssignCharacterPortraitUseCase> {
+  AssignCharacterPortraitUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'assignCharacterPortraitUseCaseProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$assignCharacterPortraitUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<AssignCharacterPortraitUseCase> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  AssignCharacterPortraitUseCase create(Ref ref) {
+    return assignCharacterPortraitUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AssignCharacterPortraitUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AssignCharacterPortraitUseCase>(
+        value,
+      ),
+    );
+  }
+}
+
+String _$assignCharacterPortraitUseCaseHash() =>
+    r'c41e84b872eb156f167cd9b3723e84c311e15d57';
+
+@ProviderFor(clearCharacterPortraitUseCase)
+final clearCharacterPortraitUseCaseProvider =
+    ClearCharacterPortraitUseCaseProvider._();
+
+final class ClearCharacterPortraitUseCaseProvider
+    extends
+        $FunctionalProvider<
+          ClearCharacterPortraitUseCase,
+          ClearCharacterPortraitUseCase,
+          ClearCharacterPortraitUseCase
+        >
+    with $Provider<ClearCharacterPortraitUseCase> {
+  ClearCharacterPortraitUseCaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'clearCharacterPortraitUseCaseProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$clearCharacterPortraitUseCaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<ClearCharacterPortraitUseCase> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ClearCharacterPortraitUseCase create(Ref ref) {
+    return clearCharacterPortraitUseCase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ClearCharacterPortraitUseCase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ClearCharacterPortraitUseCase>(
+        value,
+      ),
+    );
+  }
+}
+
+String _$clearCharacterPortraitUseCaseHash() =>
+    r'72cbca0f3ec53622d6fbc49fde90aa6c622278b6';
+
 @ProviderFor(upsertCharacterAnimationUseCase)
 final upsertCharacterAnimationUseCaseProvider =
     UpsertCharacterAnimationUseCaseProvider._();

@@ -15,6 +15,7 @@ class CharacterStudioMediaPreview extends StatefulWidget {
     required this.semanticLabel,
     this.fit = BoxFit.contain,
     this.pixelated = false,
+    this.checkerboard = true,
   });
 
   final CharacterStudioMediaResolverContract resolver;
@@ -22,6 +23,7 @@ class CharacterStudioMediaPreview extends StatefulWidget {
   final String semanticLabel;
   final BoxFit fit;
   final bool pixelated;
+  final bool checkerboard;
 
   @override
   State<CharacterStudioMediaPreview> createState() =>
@@ -97,6 +99,7 @@ class _CharacterStudioMediaPreviewState
   Widget build(BuildContext context) {
     return PokeMapMediaPreviewSurface(
       semanticLabel: widget.semanticLabel,
+      checkerboard: widget.checkerboard,
       child: switch (_phase) {
         _PreviewPhase.empty => const PokeMapEmptyState(
           key: ValueKey<String>('character-studio-preview-empty'),

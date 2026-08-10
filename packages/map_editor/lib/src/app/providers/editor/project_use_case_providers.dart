@@ -11,6 +11,7 @@ import '../../../application/use_cases/project_management_use_cases.dart';
 import '../../../application/use_cases/project_tileset_library_use_cases.dart';
 import '../../../application/use_cases/project_tileset_use_cases.dart';
 import '../../../application/use_cases/trainer_use_cases.dart';
+import '../../../features/character_studio/application/character_studio_portrait_import_service.dart';
 import '../core/repository_providers.dart';
 
 part 'project_use_case_providers.g.dart';
@@ -216,6 +217,26 @@ final characterStudioAuthoringGatewayProvider =
       );
     });
 
+final characterStudioPortraitAssetGatewayProvider =
+    Provider<CharacterStudioPortraitAssetGateway>((ref) {
+      return CanonicalCharacterStudioPortraitAssetGateway(
+        mutations: ref.watch(authoringMutationAdapterProvider),
+        authoring: ref.watch(characterStudioAuthoringGatewayProvider),
+      );
+    });
+
+final characterStudioPortraitImportServiceProvider =
+    Provider<CharacterStudioPortraitImportService>((ref) {
+      return CharacterStudioPortraitImportService(
+        gateway: ref.watch(characterStudioPortraitAssetGatewayProvider),
+      );
+    });
+
+final characterStudioPortraitSourcePickerProvider =
+    Provider<CharacterStudioPortraitSourcePicker>((ref) {
+      return const FilePickerCharacterStudioPortraitSourcePicker();
+    });
+
 @riverpod
 CreateEncounterTableUseCase createEncounterTableUseCase(Ref ref) {
   return CreateEncounterTableUseCase(
@@ -347,6 +368,20 @@ final previewDeletePortraitStateUseCaseProvider =
 @riverpod
 DeletePortraitStateUseCase deletePortraitStateUseCase(Ref ref) {
   return DeletePortraitStateUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
+}
+
+@riverpod
+AssignCharacterPortraitUseCase assignCharacterPortraitUseCase(Ref ref) {
+  return AssignCharacterPortraitUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
+}
+
+@riverpod
+ClearCharacterPortraitUseCase clearCharacterPortraitUseCase(Ref ref) {
+  return ClearCharacterPortraitUseCase(
     ref.watch(characterStudioAuthoringGatewayProvider),
   );
 }

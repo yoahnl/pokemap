@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
@@ -16,6 +17,7 @@ import 'identity/character_studio_identity_draft_controller.dart';
 import 'identity/character_studio_identity_editor.dart';
 import 'identity/character_studio_inspector.dart';
 import 'library/character_studio_library.dart';
+import 'portraits/character_studio_portraits_tab.dart';
 import 'character_studio_workspace_shell.dart';
 
 class CharacterStudioWorkspace extends ConsumerStatefulWidget {
@@ -121,20 +123,42 @@ class _CharacterStudioWorkspaceState
                   unawaited(notifier.setPlayerCharacter(character.id)),
               onDelete: () => unawaited(_deleteCharacter(character.id)),
             ),
-          (CharacterStudioSection.portraits, _) => PortraitStateManager(
-            project: project,
-            isSaving: snapshot.isSaving,
-            onCreate: notifier.createPortraitState,
-            onRename: notifier.renamePortraitState,
-            onReorder: notifier.reorderPortraitStates,
-            onPreviewDelete: notifier.previewDeletePortraitState,
-            onDelete: (id, resolution, replacementId) =>
-                notifier.deletePortraitState(
-                  id,
-                  resolution: resolution,
-                  replacementId: replacementId,
-                ),
-          ),
+          (CharacterStudioSection.portraits, final character?) =>
+            CharacterStudioPortraitsTab(
+              project: project,
+              character: character,
+              projectRootPath: editorState.projectRootPath ?? '',
+              projectRevision: Object.hash(
+                project,
+                notifier.projectSessionRevision,
+              ).toString(),
+              mediaResolver: _mediaResolver,
+              isSaving: snapshot.isSaving,
+              onImport: (stateId) => notifier.importCharacterPortrait(
+                characterId: character.id,
+                portraitStateId: stateId,
+                fitMode:
+                    character.portraits
+                        .where(
+                          (portrait) => portrait.portraitStateId == stateId,
+                        )
+                        .firstOrNull
+                        ?.fitMode ??
+                    CharacterPortraitFitMode.contain,
+              ),
+              onClear: (stateId) => notifier.clearCharacterPortrait(
+                characterId: character.id,
+                portraitStateId: stateId,
+              ),
+              onFitChanged: (stateId, fitMode) =>
+                  notifier.setCharacterPortraitFitMode(
+                    characterId: character.id,
+                    portraitStateId: stateId,
+                    fitMode: fitMode,
+                  ),
+              onManageGlobalStates: () =>
+                  unawaited(_showPortraitStateManager()),
+            ),
           _ => _CharacterStudioSectionPlaceholder(section: _section),
         },
       ),
@@ -298,6 +322,59 @@ class _CharacterStudioWorkspaceState
             characterId: characterId,
           );
     }
+  }
+
+  Future<void> _showPortraitStateManager() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final project = ref.watch(editorProjectManifestProvider);
+            final isSaving = ref.watch(
+              editorNotifierProvider.select((state) => state.isSaving),
+            );
+            final notifier = ref.read(editorNotifierProvider.notifier);
+            return PokeMapDialog(
+              title: 'Expressions globales du projet',
+              icon: CupertinoIcons.person_2_square_stack_fill,
+              maxWidth: 780,
+              footer: Align(
+                alignment: Alignment.centerRight,
+                child: PokeMapButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  variant: PokeMapButtonVariant.secondary,
+                  child: const Text('Fermer'),
+                ),
+              ),
+              child: SizedBox(
+                height: 600,
+                child: project == null
+                    ? const PokeMapEmptyState(
+                        title: 'Projet indisponible',
+                        description:
+                            'Rouvrez le projet pour gérer ses expressions.',
+                      )
+                    : PortraitStateManager(
+                        project: project,
+                        isSaving: isSaving,
+                        onCreate: notifier.createPortraitState,
+                        onRename: notifier.renamePortraitState,
+                        onReorder: notifier.reorderPortraitStates,
+                        onPreviewDelete: notifier.previewDeletePortraitState,
+                        onDelete: (id, resolution, replacementId) =>
+                            notifier.deletePortraitState(
+                              id,
+                              resolution: resolution,
+                              replacementId: replacementId,
+                            ),
+                      ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 
