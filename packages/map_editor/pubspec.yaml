@@ -1,6 +1,6 @@
 name: map_editor
 description: Flutter Desktop Map Editor for RPG projects.
-version: 0.3.3+303
+version: 0.3.4+304
 publish_to: none
 
 environment:
