@@ -647,10 +647,14 @@ void main() {
     );
   });
 
-  test('runtime resolves title identity, logo and project typography', () async {
+  test('runtime resolves title identity, logo and project typography',
+      () async {
     final root = await Directory.systemTemp.createTemp('runtime-presentation-');
     addTearDown(() => root.delete(recursive: true));
-    final font = await File('${root.path}/display.ttf').writeAsBytes(<int>[1, 2]);
+    final font =
+        await File('${root.path}/display.ttf').writeAsBytes(<int>[1, 2]);
+    final combatFont =
+        await File('${root.path}/combat.ttf').writeAsBytes(<int>[3, 4]);
     final registrar = _RecordingFontRegistrar();
     final harness = _RuntimeStartupTestHarness(
       profile: const ProjectPresentationProfile(
@@ -661,6 +665,11 @@ void main() {
             family: 'Train Display',
             fallbackFamilies: <String>['serif'],
           ),
+          combat: ProjectTypographyRoleProfile(
+            fontPath: 'assets/combat.ttf',
+            family: 'Train Combat',
+            fallbackFamilies: <String>['sans-serif'],
+          ),
         ),
       ),
       presentationMetadata: const RuntimeStartupPresentationMetadata(
@@ -669,7 +678,10 @@ void main() {
       ),
       typographyLoader: RuntimeProjectTypographyLoader(registrar: registrar),
       assetResolver: _MemoryPresentationAssetResolver(
-        resolvedFiles: <String, File>{'assets/display.ttf': font},
+        resolvedFiles: <String, File>{
+          'assets/display.ttf': font,
+          'assets/combat.ttf': combatFont,
+        },
       ),
     );
     addTearDown(harness.dispose);
@@ -689,12 +701,15 @@ void main() {
     expect(presentation?.titleLogo?.assetId, 'assets/logo.png');
     expect(
       presentation
-          ?.typography
-          ?.roles[ProjectTypographyRole.display]
-          ?.registeredFamily,
+          ?.typography?.roles[ProjectTypographyRole.display]?.registeredFamily,
       'Train Display',
     );
-    expect(registrar.families, <String>['Train Display']);
+    expect(
+      presentation
+          ?.typography?.roles[ProjectTypographyRole.combat]?.registeredFamily,
+      'Train Combat',
+    );
+    expect(registrar.families, <String>['Train Display', 'Train Combat']);
   });
 
   test('optional poster failure preserves the playable intro video', () async {

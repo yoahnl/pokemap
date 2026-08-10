@@ -61,6 +61,10 @@ void main() {
             registeredFamily: null,
             fallbackFamilies: const <String>['sans-serif'],
           ),
+          ProjectTypographyRole.combat: RuntimeLoadedFontRole(
+            registeredFamily: 'Aube Combat',
+            fallbackFamilies: const <String>['sans-serif'],
+          ),
         },
         unavailableRoles: const <ProjectTypographyRole>[],
       ),
@@ -86,6 +90,8 @@ void main() {
     );
     expect(presentation.typography.displayFamily, 'Aube Display');
     expect(presentation.typography.displayFallback, <String>['serif']);
+    expect(presentation.typography.combatFamily, 'Aube Combat');
+    expect(presentation.typography.bodyFamily, isNull);
     expect(presentation.semanticTheme?.titleSurface, const Color(0xFFD9F4F6));
     expect(
       presentation.windowProfile?.resolve(ProjectWindowRole.pauseMenu),

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
+
+import 'fixtures/personalization_studio_v2_fixture.dart';
 
 void main() {
   testWidgets('renders canonical battle data and emits a versioned command',
@@ -68,6 +71,96 @@ void main() {
     expect(find.byKey(const ValueKey<String>('battle-back')), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('battle style and combat typography stay scoped to combat', (
+    tester,
+  ) async {
+    const typography = PokeMapPlayerTypography(
+      bodyFamily: 'Studio Body',
+      dialogueFamily: 'Studio Dialogue',
+      combatFamily: 'Studio Combat',
+    );
+    const windows = ProjectPresentationWindowsProfile(
+      styles: <ProjectWindowStyleProfile>[
+        ProjectWindowStyleProfile(
+          id: 'default',
+          fillToken: 'surface',
+          borderToken: 'outline',
+          borderWidth: 1,
+          cornerRadius: 16,
+          contentPadding: 24,
+          shadowElevation: 8,
+        ),
+        ProjectWindowStyleProfile(
+          id: 'battle',
+          fillToken: 'battleHudSurface',
+          borderToken: 'primary',
+          borderWidth: 3,
+          cornerRadius: 5,
+          contentPadding: 8,
+          shadowElevation: 2,
+        ),
+      ],
+      defaultStyleId: 'default',
+      pauseMenuStyleId: 'default',
+      dialogueStyleId: 'default',
+      battleStyleId: 'battle',
+      pauseBackdropOpacity: .7,
+    );
+    final theme = PokeMapPlayerTheme.withWindowProfile(
+      PokeMapPlayerTheme.withTypography(
+        PokeMapPlayerTheme.dark(),
+        typography,
+      ),
+      windows,
+    );
+
+    await _pumpOverlay(
+      tester,
+      snapshot: _snapshot(),
+      onCommand: (_) {},
+      theme: theme,
+    );
+
+    final panel = find.byKey(
+      const ValueKey<String>('battle-command-panel'),
+    );
+    final material = tester.widget<Material>(
+      find.descendant(of: panel, matching: find.byType(Material)).first,
+    );
+    final shape = material.shape! as RoundedRectangleBorder;
+    final battleContext = tester.element(find.byType(PlayerBattleSurface));
+    expect(material.color, battleContext.playerSemanticTheme.battleHudSurface);
+    expect(shape.borderRadius, BorderRadius.circular(5));
+    expect(shape.side.width, 3);
+    expect(tester.widget<Text>(find.text('CAPACITÉS')).style?.fontFamily,
+        'Studio Combat');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('fr'),
+        supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+        localizationsDelegates:
+            PokeMapPlayerLocalizations.localizationsDelegates,
+        theme: theme,
+        home: PlayerDialogueSurface(
+          data: PersonalizationStudioV2Fixture.dialogue,
+          onAction: (_) {},
+        ),
+      ),
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.text(
+              'Le monde est peuplé de créatures extraordinaires.',
+            ),
+          )
+          .style
+          ?.fontFamily,
+      'Studio Dialogue',
+    );
+  });
 }
 
 Future<void> _pumpOverlay(
@@ -75,13 +168,14 @@ Future<void> _pumpOverlay(
   required BattleCommandOverlaySnapshot snapshot,
   required ValueChanged<BattlePresentationCommand> onCommand,
   TextScaler textScaler = TextScaler.noScaling,
+  ThemeData? theme,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.dark(),
+      theme: theme ?? PokeMapPlayerTheme.dark(),
       home: MediaQuery(
         data: MediaQueryData(textScaler: textScaler),
         child: Scaffold(

@@ -4,6 +4,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../fixtures/personalization_studio_v2_fixture.dart';
+
 void main() {
   final scenarios = <_LayoutScenario>[
     const _LayoutScenario(
@@ -57,7 +59,7 @@ void main() {
   for (final scenario in scenarios) {
     for (final textScale in scenario.textScales) {
       testWidgets(
-        '${scenario.name} at ${textScale}x keeps title, pause and dialogue safe',
+        '${scenario.name} at ${textScale}x keeps every scene safe',
         (tester) async {
           tester.view.physicalSize = scenario.size;
           tester.view.devicePixelRatio = 1;
@@ -132,6 +134,28 @@ void main() {
             findsOneWidget,
           );
           expect(tester.takeException(), isNull);
+
+          await tester.pumpWidget(
+            _app(
+              scenario: scenario,
+              textScale: textScale,
+              layouts: layouts,
+              child: PlayerBattleSurface(
+                data: PersonalizationStudioV2Fixture.battle,
+                onAction: (_) {},
+              ),
+            ),
+          );
+          expect(
+            find.byKey(
+              ValueKey<String>('player-battle-responsive-$breakpoint'),
+            ),
+            findsOneWidget,
+          );
+          expect(find.text('ROUCOOL'), findsOneWidget);
+          expect(find.text('BRINDIBOU'), findsOneWidget);
+          expect(find.text('ATTAQUE'), findsOneWidget);
+          expect(tester.takeException(), isNull);
         },
       );
     }
@@ -190,6 +214,85 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('battle right layout falls back to bottom on compact portrait', (
+    tester,
+  ) async {
+    final layouts = suggestedProjectPresentationLayouts('cinematic').copyWith(
+      battle: const ProjectResponsiveSurfaceLayoutProfile(
+        compact: ProjectSurfaceLayoutVariant(
+          breakpoint: ProjectPresentationBreakpoint.compact,
+          slot: ProjectPresentationLayoutSlot.right,
+          width: ProjectPresentationContentWidth.narrow,
+          spacing: ProjectPresentationSpacing.compact,
+          screenMargin: ProjectPresentationScreenMargin.compact,
+        ),
+        regular: ProjectSurfaceLayoutVariant(
+          breakpoint: ProjectPresentationBreakpoint.regular,
+          slot: ProjectPresentationLayoutSlot.right,
+          width: ProjectPresentationContentWidth.narrow,
+        ),
+        expanded: ProjectSurfaceLayoutVariant(
+          breakpoint: ProjectPresentationBreakpoint.expanded,
+          slot: ProjectPresentationLayoutSlot.right,
+          width: ProjectPresentationContentWidth.narrow,
+        ),
+      ),
+    );
+    const compact = _LayoutScenario(
+      name: 'compact',
+      size: Size(390, 844),
+      textScales: <double>[1],
+      safeArea: EdgeInsets.only(top: 44, bottom: 34),
+      breakpoint: ProjectPresentationBreakpoint.compact,
+    );
+    const regular = _LayoutScenario(
+      name: 'regular',
+      size: Size(1024, 768),
+      textScales: <double>[1],
+      breakpoint: ProjectPresentationBreakpoint.regular,
+    );
+    tester.view.physicalSize = compact.size;
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _app(
+        scenario: compact,
+        textScale: 1,
+        layouts: layouts,
+        child: PlayerBattleSurface(
+          data: PersonalizationStudioV2Fixture.battle,
+          onAction: (_) {},
+        ),
+      ),
+    );
+    var panelRect = tester.getRect(
+      find.byKey(const ValueKey<String>('battle-command-panel')),
+    );
+    expect(panelRect.center.dx, closeTo(compact.size.width / 2, 4));
+    expect(panelRect.bottom, greaterThan(700));
+
+    tester.view.physicalSize = regular.size;
+    await tester.pumpWidget(
+      _app(
+        scenario: regular,
+        textScale: 1,
+        layouts: layouts,
+        child: PlayerBattleSurface(
+          data: PersonalizationStudioV2Fixture.battle,
+          onAction: (_) {},
+        ),
+      ),
+    );
+    panelRect = tester.getRect(
+      find.byKey(const ValueKey<String>('battle-command-panel')),
+    );
+    expect(panelRect.center.dx, greaterThan(regular.size.width * .65));
+    expect(find.text('ATTAQUE'), findsOneWidget);
+    expect(find.text('ROUCOOL'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

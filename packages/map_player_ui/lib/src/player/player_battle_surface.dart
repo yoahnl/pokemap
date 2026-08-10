@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
+import '../theme/pokemap_player_layout_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 
 enum PlayerBattleEntryTone {
@@ -145,16 +146,71 @@ class PlayerBattleSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(PlayerSpacing.sm),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 560;
-            final hudWidth = math.min(
-              compact ? constraints.maxWidth * 0.72 : 280.0,
-              320.0,
-            );
-            return Stack(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final contentWidth = math.max(
+            0.0,
+            constraints.maxWidth - PlayerSpacing.sm * 2,
+          );
+          final contentHeight = math.max(
+            0.0,
+            constraints.maxHeight - PlayerSpacing.sm * 2,
+          );
+          final resolved = context.playerLayoutTheme?.tryResolve(
+            ProjectPresentationSurfaceRole.battleHud,
+            constraints,
+          );
+          final breakpoint = resolved?.breakpoint ??
+              const ProjectPresentationLayoutResolver().classify(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
+              );
+          final compact = resolved == null
+              ? contentWidth < 560
+              : breakpoint == ProjectPresentationBreakpoint.compact;
+          final hudWidth = math.min(
+            compact ? contentWidth * 0.72 : 280.0,
+            320.0,
+          );
+          final configuredSlot = resolved?.variant.slot;
+          final slot =
+              compact && configuredSlot == ProjectPresentationLayoutSlot.right
+                  ? ProjectPresentationLayoutSlot.bottomCenter
+                  : configuredSlot;
+          final fullScreen = slot == ProjectPresentationLayoutSlot.fullScreen;
+          final alignment = switch (slot) {
+            ProjectPresentationLayoutSlot.right => Alignment.centerRight,
+            ProjectPresentationLayoutSlot.fullScreen => Alignment.center,
+            _ => Alignment.bottomCenter,
+          };
+          final margin = resolved?.additionalSafeAreaPadding ?? 0;
+          final panelMaxWidth =
+              resolved == null ? 720.0 : contentWidth * resolved.maxWidthFactor;
+          final panel = _BattleCommandPanel(
+            data: data,
+            onAction: onAction,
+            itemIconBuilder: itemIconBuilder,
+            spacingScale: resolved?.spacingScale ?? 1,
+          );
+          final commandPanel = fullScreen
+              ? SizedBox(
+                  width: math.max(0.0, contentWidth - margin * 2),
+                  height: math.max(0.0, contentHeight - margin * 2),
+                  child: panel,
+                )
+              : ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: panelMaxWidth,
+                    maxHeight: contentHeight * (compact ? 0.58 : 0.5),
+                  ),
+                  child: panel,
+                );
+          return Padding(
+            padding: const EdgeInsets.all(PlayerSpacing.sm),
+            child: Stack(
+              key: ValueKey<String>(
+                'player-battle-responsive-${breakpoint.name}',
+              ),
               children: <Widget>[
                 Align(
                   alignment: Alignment.topLeft,
@@ -173,23 +229,16 @@ class PlayerBattleSurface extends StatelessWidget {
                   ),
                 ),
                 Align(
-                  alignment: Alignment.bottomCenter,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: 720,
-                      maxHeight: constraints.maxHeight * (compact ? 0.58 : 0.5),
-                    ),
-                    child: _BattleCommandPanel(
-                      data: data,
-                      onAction: onAction,
-                      itemIconBuilder: itemIconBuilder,
-                    ),
+                  alignment: alignment,
+                  child: Padding(
+                    padding: EdgeInsets.all(margin),
+                    child: commandPanel,
                   ),
                 ),
               ],
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -234,7 +283,10 @@ class _BattleHud extends StatelessWidget {
                       data.speciesLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: context.playerTypography.combatStyle(
+                        Theme.of(context).textTheme.titleMedium ??
+                            const TextStyle(),
+                      ),
                     ),
                   ),
                   const SizedBox(width: PlayerSpacing.xs),
@@ -301,27 +353,31 @@ class _BattleCommandPanel extends StatelessWidget {
     required this.data,
     required this.onAction,
     required this.itemIconBuilder,
+    required this.spacingScale,
   });
 
   final PlayerBattleViewData data;
   final ValueChanged<PlayerBattleAction> onAction;
   final Widget Function(String assetPath)? itemIconBuilder;
+  final double spacingScale;
 
   @override
   Widget build(BuildContext context) {
     return PlayerPanel(
+      key: const ValueKey<String>('battle-command-panel'),
       elevated: true,
       role: PlayerPanelRole.battleHud,
       surfaceRole: ProjectPresentationSurfaceRole.battleHud,
-      padding: const EdgeInsets.all(PlayerSpacing.sm),
+      padding: EdgeInsets.all(PlayerSpacing.sm * spacingScale),
       child: FocusTraversalGroup(
         policy: ReadingOrderTraversalPolicy(),
         child: LayoutBuilder(
           builder: (context, constraints) {
+            double gap(double value) => value * spacingScale;
             final columns = constraints.maxWidth >= 560 ? 2 : 1;
             final entryWidth = columns == 1
                 ? constraints.maxWidth
-                : (constraints.maxWidth - PlayerSpacing.xs) / 2;
+                : (constraints.maxWidth - gap(PlayerSpacing.xs)) / 2;
             return SingleChildScrollView(
               child: Semantics(
                 container: true,
@@ -336,7 +392,10 @@ class _BattleCommandPanel extends StatelessWidget {
                         Expanded(
                           child: Text(
                             data.title,
-                            style: Theme.of(context).textTheme.titleLarge,
+                            style: context.playerTypography.combatStyle(
+                              Theme.of(context).textTheme.titleLarge ??
+                                  const TextStyle(),
+                            ),
                           ),
                         ),
                         if (data.canGoBack)
@@ -355,26 +414,35 @@ class _BattleCommandPanel extends StatelessWidget {
                       ],
                     ),
                     if (data.forcedReplacement) ...<Widget>[
-                      const SizedBox(height: PlayerSpacing.xxs),
+                      SizedBox(height: gap(PlayerSpacing.xxs)),
                       PlayerBadge(
                         label: context.playerL10n.mandatoryReplacement,
                         icon: Icons.swap_horiz_rounded,
                         tone: PlayerBadgeTone.warning,
                       ),
                     ],
-                    const SizedBox(height: PlayerSpacing.xxs),
+                    SizedBox(height: gap(PlayerSpacing.xxs)),
                     Text(
                       data.prompt,
-                      style: Theme.of(context).textTheme.bodyLarge,
+                      style: context.playerTypography.combatStyle(
+                        Theme.of(context).textTheme.bodyLarge ??
+                            const TextStyle(),
+                      ),
                     ),
                     if (data.narrationLines.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: PlayerSpacing.xxs),
-                      Text(data.narrationLines.join('\n')),
+                      SizedBox(height: gap(PlayerSpacing.xxs)),
+                      Text(
+                        data.narrationLines.join('\n'),
+                        style: context.playerTypography.combatStyle(
+                          Theme.of(context).textTheme.bodyMedium ??
+                              const TextStyle(),
+                        ),
+                      ),
                     ],
-                    const SizedBox(height: PlayerSpacing.sm),
+                    SizedBox(height: gap(PlayerSpacing.sm)),
                     Wrap(
-                      spacing: PlayerSpacing.xs,
-                      runSpacing: PlayerSpacing.xs,
+                      spacing: gap(PlayerSpacing.xs),
+                      runSpacing: gap(PlayerSpacing.xs),
                       children: <Widget>[
                         for (final entry in data.commands)
                           SizedBox(
@@ -504,34 +572,49 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
                         children: <Widget>[
                           Text(
                             entry.primaryLabel,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelLarge
-                                ?.copyWith(color: foreground),
+                            style: context.playerTypography.combatStyle(
+                              (Theme.of(context).textTheme.labelLarge ??
+                                      const TextStyle())
+                                  .copyWith(color: foreground),
+                            ),
                           ),
                           if (entry.secondaryLabel.isNotEmpty)
                             Text(
                               entry.secondaryLabel,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: foreground),
+                              style: context.playerTypography.combatStyle(
+                                (Theme.of(context).textTheme.bodySmall ??
+                                        const TextStyle())
+                                    .copyWith(color: foreground),
+                              ),
                             ),
                           if (entry.tertiaryLabel case final label?)
-                            Text(label),
+                            Text(
+                              label,
+                              style: context.playerTypography.combatStyle(
+                                Theme.of(context).textTheme.bodySmall ??
+                                    const TextStyle(),
+                              ),
+                            ),
                           if (entry.statusLabel case final status?)
                             Text(
                               status,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(color: accent),
+                              style: context.playerTypography.combatStyle(
+                                (Theme.of(context).textTheme.labelSmall ??
+                                        const TextStyle())
+                                    .copyWith(color: accent),
+                              ),
                             ),
                         ],
                       ),
                     ),
                     if (entry.trailingLabel case final trailing?)
-                      Text(trailing),
+                      Text(
+                        trailing,
+                        style: context.playerTypography.combatStyle(
+                          Theme.of(context).textTheme.bodyMedium ??
+                              const TextStyle(),
+                        ),
+                      ),
                   ],
                 ),
               ),

@@ -358,9 +358,12 @@ final class PokeMapPlayerTypography
     this.bodyFallback = const <String>['sans-serif'],
     this.dialogueFamily,
     this.dialogueFallback = const <String>['sans-serif'],
+    String? combatFamily,
+    List<String>? combatFallback,
     this.numbersFamily,
     this.numbersFallback = const <String>['monospace'],
-  });
+  })  : combatFamily = combatFamily ?? bodyFamily,
+        combatFallback = combatFallback ?? bodyFallback;
 
   final String? displayFamily;
   final List<String> displayFallback;
@@ -368,6 +371,8 @@ final class PokeMapPlayerTypography
   final List<String> bodyFallback;
   final String? dialogueFamily;
   final List<String> dialogueFallback;
+  final String? combatFamily;
+  final List<String> combatFallback;
   final String? numbersFamily;
   final List<String> numbersFallback;
 
@@ -386,6 +391,11 @@ final class PokeMapPlayerTypography
         fontFamilyFallback: dialogueFallback,
       );
 
+  TextStyle combatStyle(TextStyle base) => base.copyWith(
+        fontFamily: combatFamily,
+        fontFamilyFallback: combatFallback,
+      );
+
   TextStyle numbersStyle(TextStyle base) => base.copyWith(
         fontFamily: numbersFamily,
         fontFamilyFallback: numbersFallback,
@@ -400,6 +410,8 @@ final class PokeMapPlayerTypography
     List<String>? bodyFallback,
     String? dialogueFamily,
     List<String>? dialogueFallback,
+    String? combatFamily,
+    List<String>? combatFallback,
     String? numbersFamily,
     List<String>? numbersFallback,
   }) =>
@@ -410,6 +422,8 @@ final class PokeMapPlayerTypography
         bodyFallback: bodyFallback ?? this.bodyFallback,
         dialogueFamily: dialogueFamily ?? this.dialogueFamily,
         dialogueFallback: dialogueFallback ?? this.dialogueFallback,
+        combatFamily: combatFamily ?? this.combatFamily,
+        combatFallback: combatFallback ?? this.combatFallback,
         numbersFamily: numbersFamily ?? this.numbersFamily,
         numbersFallback: numbersFallback ?? this.numbersFallback,
       );

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "branding": {
     "iconPath": "assets/presentation/icon.png",
     "coverPath": "assets/presentation/cover.png",
@@ -71,6 +71,11 @@
         "sans-serif"
       ]
     },
+    "combat": {
+      "fallbackFamilies": [
+        "monospace"
+      ]
+    },
     "numbers": {
       "fallbackFamilies": [
         "monospace"
@@ -134,11 +139,21 @@
         "cornerRadius": 8,
         "contentPadding": 12,
         "shadowElevation": 4
+      },
+      {
+        "id": "battle",
+        "fillToken": "battleHudSurface",
+        "borderToken": "danger",
+        "borderWidth": 3,
+        "cornerRadius": 12,
+        "contentPadding": 14,
+        "shadowElevation": 6
       }
     ],
     "defaultStyleId": "default",
     "pauseMenuStyleId": "pause-menu",
     "dialogueStyleId": "dialogue",
+    "battleStyleId": "battle",
     "pauseBackdropOpacity": 0.8
   },
   "layouts": {
@@ -226,6 +241,32 @@
         "spacing": "airy",
         "screenMargin": "comfortable",
         "visibleSecondaryElements": ["dialoguePortrait"]
+      }
+    },
+    "battle": {
+      "compact": {
+        "breakpoint": "compact",
+        "slot": "bottomCenter",
+        "width": "wide",
+        "spacing": "compact",
+        "screenMargin": "none",
+        "visibleSecondaryElements": []
+      },
+      "regular": {
+        "breakpoint": "regular",
+        "slot": "right",
+        "width": "narrow",
+        "spacing": "compact",
+        "screenMargin": "compact",
+        "visibleSecondaryElements": []
+      },
+      "expanded": {
+        "breakpoint": "expanded",
+        "slot": "right",
+        "width": "narrow",
+        "spacing": "normal",
+        "screenMargin": "comfortable",
+        "visibleSecondaryElements": []
       }
     }
   }

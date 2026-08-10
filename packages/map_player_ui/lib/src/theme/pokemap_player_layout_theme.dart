@@ -19,6 +19,17 @@ final class PokeMapPlayerLayoutTheme
         height: constraints.maxHeight,
       );
 
+  ProjectResolvedSurfaceLayout? tryResolve(
+    ProjectPresentationSurfaceRole role,
+    BoxConstraints constraints,
+  ) {
+    if (role == ProjectPresentationSurfaceRole.battleHud &&
+        profile.battle == null) {
+      return null;
+    }
+    return resolve(role, constraints);
+  }
+
   @override
   PokeMapPlayerLayoutTheme copyWith({
     ProjectPresentationLayoutsProfile? profile,

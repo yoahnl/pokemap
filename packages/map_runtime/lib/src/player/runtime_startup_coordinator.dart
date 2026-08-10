@@ -850,6 +850,8 @@ final class RuntimeStartupCoordinator {
       ProjectTypographyRole.display: source.display,
       ProjectTypographyRole.body: source.body,
       ProjectTypographyRole.dialogue: source.dialogue,
+      if (source.combat case final combat?)
+        ProjectTypographyRole.combat: combat,
       ProjectTypographyRole.numbers: source.numbers,
     };
     final requests = <ProjectTypographyRole, RuntimeProjectFontRequest>{};

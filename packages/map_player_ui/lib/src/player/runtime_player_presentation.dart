@@ -128,6 +128,7 @@ PokeMapPlayerTypography _typography(RuntimeLoadedTypography? source) {
     ProjectTypographyRole.dialogue,
     const <String>['sans-serif'],
   );
+  final combat = source?.roles[ProjectTypographyRole.combat] ?? body;
   final numbers = role(
     ProjectTypographyRole.numbers,
     const <String>['monospace'],
@@ -139,6 +140,8 @@ PokeMapPlayerTypography _typography(RuntimeLoadedTypography? source) {
     bodyFallback: body.fallbackFamilies,
     dialogueFamily: dialogue.registeredFamily,
     dialogueFallback: dialogue.fallbackFamilies,
+    combatFamily: combat.registeredFamily,
+    combatFallback: combat.fallbackFamilies,
     numbersFamily: numbers.registeredFamily,
     numbersFallback: numbers.fallbackFamilies,
   );
@@ -157,6 +160,10 @@ PokeMapPlayerTypography _typographyFromProfile(
       dialogueFamily: source?.dialogue.family,
       dialogueFallback:
           source?.dialogue.fallbackFamilies ?? const <String>['sans-serif'],
+      combatFamily: source?.combat?.family ?? source?.body.family,
+      combatFallback: source?.combat?.fallbackFamilies ??
+          source?.body.fallbackFamilies ??
+          const <String>['sans-serif'],
       numbersFamily: source?.numbers.family,
       numbersFallback:
           source?.numbers.fallbackFamilies ?? const <String>['monospace'],

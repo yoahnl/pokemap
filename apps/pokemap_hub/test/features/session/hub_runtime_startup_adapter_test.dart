@@ -35,6 +35,7 @@ void main() {
     expect(profile?.intro?.allowReplay, isTrue);
     expect(profile?.typography?.display.fontPath, 'presentation/display.ttf');
     expect(profile?.typography?.display.family, 'Train Display');
+    expect(profile?.typography?.combat?.family, 'Train Combat');
     expect(profile?.theme?.titleSurface, '#D9F4F6');
     expect(profile?.menuLabels?.pauseTitle, 'Interlude');
     expect(profile?.menuLabels?.pokedex, 'Carnet');
@@ -43,6 +44,14 @@ void main() {
       24,
     );
     expect(profile?.windows?.pauseBackdropOpacity, .8);
+    expect(
+      profile?.windows?.resolve(ProjectWindowRole.battle).id,
+      'battle',
+    );
+    expect(
+      profile?.layouts?.battle?.regular.slot,
+      ProjectPresentationLayoutSlot.right,
+    );
     expect(resolvedVideo?.resolvedUri, video.uri);
     expect(resolvedVideo?.mediaType, 'video/mp4');
     expect(resolvedPoster?.resolvedUri, poster.uri);
@@ -112,7 +121,7 @@ final _manifest = GamePackageManifest(
     supported: const <String>['fr'],
   ),
   presentation: GamePackagePresentation(
-    schemaVersion: 3,
+    schemaVersion: 5,
     branding: const GamePackageBranding(
       icon: 'presentation/icon.png',
       hero: 'presentation/hero.png',
@@ -137,6 +146,10 @@ final _manifest = GamePackageManifest(
         font: 'presentation/display.ttf',
         family: 'Train Display',
         fallbackFamilies: <String>['serif'],
+      ),
+      combat: GamePackageFontRole(
+        family: 'Train Combat',
+        fallbackFamilies: <String>['sans-serif'],
       ),
     ),
     theme: const GamePackageSemanticTheme(
@@ -190,12 +203,23 @@ final _manifest = GamePackageManifest(
           contentPadding: 12,
           shadowElevation: 4,
         ),
+        GamePackageWindowStyle(
+          id: 'battle',
+          fillToken: 'battleHudSurface',
+          borderToken: 'primary',
+          borderWidth: 3,
+          cornerRadius: 12,
+          contentPadding: 12,
+          shadowElevation: 4,
+        ),
       ],
       defaultStyleId: 'default',
       pauseMenuStyleId: 'pause-menu',
       dialogueStyleId: 'dialogue',
+      battleStyleId: 'battle',
       pauseBackdropOpacity: .8,
     ),
+    layouts: _packageLayouts,
   ),
   content: GamePackageContent(
     fileCount: 2,
@@ -216,4 +240,32 @@ final _manifest = GamePackageManifest(
       ),
     ],
   ),
+);
+
+final _packageLayouts = GamePackagePresentationLayouts(
+  title: _responsiveLayout('center', 'center'),
+  pauseMenu: _responsiveLayout('fullScreen', 'left'),
+  dialogue: _responsiveLayout('bottomCenter', 'bottomCenter'),
+  battle: _responsiveLayout('bottomCenter', 'right'),
+);
+
+GamePackageResponsiveSurfaceLayout _responsiveLayout(
+  String compactSlot,
+  String largerSlot,
+) => GamePackageResponsiveSurfaceLayout(
+  compact: _layoutVariant('compact', compactSlot),
+  regular: _layoutVariant('regular', largerSlot),
+  expanded: _layoutVariant('expanded', largerSlot),
+);
+
+GamePackageSurfaceLayoutVariant _layoutVariant(
+  String breakpoint,
+  String slot,
+) => GamePackageSurfaceLayoutVariant(
+  breakpoint: breakpoint,
+  slot: slot,
+  width: 'comfortable',
+  spacing: 'normal',
+  screenMargin: 'compact',
+  visibleSecondaryElements: const <String>[],
 );

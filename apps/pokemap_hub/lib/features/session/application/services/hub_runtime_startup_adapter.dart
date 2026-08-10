@@ -85,6 +85,9 @@ final class HubRuntimeStartupAdapter
               display: _projectFontRole(typography.display),
               body: _projectFontRole(typography.body),
               dialogue: _projectFontRole(typography.dialogue),
+              combat: typography.combat == null
+                  ? null
+                  : _projectFontRole(typography.combat!),
               numbers: _projectFontRole(typography.numbers),
             ),
       theme: theme == null
@@ -138,6 +141,7 @@ final class HubRuntimeStartupAdapter
               defaultStyleId: windows.defaultStyleId,
               pauseMenuStyleId: windows.pauseMenuStyleId,
               dialogueStyleId: windows.dialogueStyleId,
+              battleStyleId: windows.battleStyleId,
               pauseBackdropOpacity: windows.pauseBackdropOpacity,
             ),
       layouts: layouts == null ? null : _projectLayouts(layouts),
@@ -172,6 +176,7 @@ final class HubRuntimeStartupAdapter
       title: responsive(source.title),
       pauseMenu: responsive(source.pauseMenu),
       dialogue: responsive(source.dialogue),
+      battle: source.battle == null ? null : responsive(source.battle!),
     );
   }
 
