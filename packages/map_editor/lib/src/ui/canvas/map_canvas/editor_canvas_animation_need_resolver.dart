@@ -22,7 +22,11 @@ bool editorCanvasNeedsAnimation({
   if (project != null &&
       project.smartTileCatalog.animations.isNotEmpty &&
       map.layers.whereType<SmartTileLayer>().any(
-            (layer) => layer.isVisible && layer.opacity > 0,
+            (layer) =>
+                layer.isVisible &&
+                layer.opacity > 0 &&
+                layer.animationActivation ==
+                    SmartTileAnimationActivation.always,
           )) {
     return true;
   }
@@ -40,6 +44,16 @@ bool editorCanvasNeedsAnimation({
     }
   }
   return false;
+}
+
+int resolveEditorSmartTileAnimationElapsedMs({
+  required SmartTileAnimationActivation activation,
+  required int elapsedMs,
+}) {
+  return switch (activation) {
+    SmartTileAnimationActivation.always => elapsedMs,
+    SmartTileAnimationActivation.onEnter => 0,
+  };
 }
 
 bool _visiblePlacedTilesNeedAnimation(

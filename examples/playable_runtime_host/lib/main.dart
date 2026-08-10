@@ -1416,23 +1416,22 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
               key: _interactiveGameSurfaceKey,
               child: GameWidget(game: game),
             ),
-            if (_startupViewController == null)
-              ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
-                valueListenable: game.battleCommandOverlayListenable,
-                builder: (context, snapshot, child) {
-                  final showFlutterOverlay =
-                      shouldShowRuntimeBattleCommandOverlay(
-                        supportsTouchControls: _supportsTouchControls,
-                        hasConnectedGamepad: _hasConnectedGamepad,
-                        isBattleActive: game.isBattleUiActive,
-                        hasSnapshot: snapshot != null,
-                      );
-                  if (!showFlutterOverlay || snapshot == null) {
-                    return const SizedBox.shrink();
-                  }
-                  return _buildBattleCommandOverlay(game, snapshot);
-                },
-              ),
+            ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
+              valueListenable: game.battleCommandOverlayListenable,
+              builder: (context, snapshot, child) {
+                final showFlutterOverlay =
+                    shouldShowRuntimeBattleCommandOverlay(
+                      supportsTouchControls: _supportsTouchControls,
+                      hasConnectedGamepad: _hasConnectedGamepad,
+                      isBattleActive: game.isBattleUiActive,
+                      hasSnapshot: snapshot != null,
+                    );
+                if (!showFlutterOverlay || snapshot == null) {
+                  return const SizedBox.shrink();
+                }
+                return _buildBattleCommandOverlay(game, snapshot);
+              },
+            ),
             if (_startupViewController == null &&
                 touchControlsVisibility.showControls)
               Positioned.fill(

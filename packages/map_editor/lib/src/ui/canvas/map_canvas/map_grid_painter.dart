@@ -252,7 +252,6 @@ final class EditorMapVisibleCellBounds {
     return x < right && x + width > left && y < bottom && y + height > top;
   }
 }
-
 @visibleForTesting
 EditorMapVisibleCellBounds resolveEditorMapVisibleCellBounds({
   required Size viewportSize,
@@ -2833,7 +2832,10 @@ class MapGridPainter extends CustomPainter {
       layer: layer,
       catalog: catalog,
       pass: pass,
-      elapsedMs: effectiveAnimationMs,
+      elapsedMs: resolveEditorSmartTileAnimationElapsedMs(
+        activation: layer.animationActivation,
+        elapsedMs: effectiveAnimationMs,
+      ),
       startX: visibleBounds.left,
       startY: visibleBounds.top,
       endX: visibleBounds.right,
