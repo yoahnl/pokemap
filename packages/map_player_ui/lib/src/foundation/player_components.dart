@@ -123,6 +123,36 @@ class PlayerPanel extends StatelessWidget {
   }
 }
 
+class PlayerPortraitFrame extends StatelessWidget {
+  const PlayerPortraitFrame({
+    super.key,
+    required this.child,
+    required this.dimension,
+  });
+
+  final Widget child;
+  final double dimension;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.playerColors;
+    return Container(
+      width: dimension,
+      height: dimension,
+      padding: const EdgeInsets.all(1),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(PlayerRadii.md),
+        border: Border.all(color: colors.outline),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(PlayerRadii.md - 1),
+        child: child,
+      ),
+    );
+  }
+}
+
 enum PlayerPanelRole {
   standard,
   title,

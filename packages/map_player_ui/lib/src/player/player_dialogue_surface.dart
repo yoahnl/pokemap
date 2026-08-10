@@ -70,12 +70,14 @@ class PlayerDialogueSurface extends StatelessWidget {
     required this.data,
     required this.onAction,
     this.portraitBuilder,
+    this.resolvedPortrait,
     this.showSpeakerName = true,
   });
 
   final PlayerDialogueViewData data;
   final ValueChanged<PlayerDialogueAction> onAction;
   final Widget Function(String speaker)? portraitBuilder;
+  final Widget? resolvedPortrait;
   final bool showSpeakerName;
 
   @override
@@ -144,6 +146,8 @@ class PlayerDialogueSurface extends StatelessWidget {
                               data: data,
                               portraitBuilder:
                                   showPortrait ? portraitBuilder : null,
+                              resolvedPortrait:
+                                  showPortrait ? resolvedPortrait : null,
                               showSpeakerName: showSpeakerName,
                             ),
                           ),
@@ -168,15 +172,24 @@ class _DialogueLineContent extends StatelessWidget {
   const _DialogueLineContent({
     required this.data,
     required this.portraitBuilder,
+    required this.resolvedPortrait,
     required this.showSpeakerName,
   });
 
   final PlayerDialogueViewData data;
   final Widget Function(String speaker)? portraitBuilder;
+  final Widget? resolvedPortrait;
   final bool showSpeakerName;
 
   @override
   Widget build(BuildContext context) {
+    if (resolvedPortrait case final portrait?) {
+      return _DialogueLineWithResolvedPortrait(
+        data: data,
+        portrait: portrait,
+        showSpeakerName: showSpeakerName,
+      );
+    }
     final speaker = data.speaker;
     return SingleChildScrollView(
       child: Column(
@@ -217,26 +230,106 @@ class _DialogueLineContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: PlayerSpacing.md),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: <Widget>[
-              Icon(
-                data.isCurrentLineFullyRevealed
-                    ? Icons.navigate_next_rounded
-                    : Icons.fast_forward_rounded,
-              ),
-              const SizedBox(width: PlayerSpacing.xxs),
-              Text(
-                !data.isCurrentLineFullyRevealed
-                    ? context.playerL10n.showFullText
-                    : data.isLastContent
-                        ? context.playerL10n.close
-                        : context.playerL10n.next,
-              ),
-            ],
-          ),
+          _DialogueAdvanceLabel(data: data),
         ],
       ),
+    );
+  }
+}
+
+class _DialogueLineWithResolvedPortrait extends StatelessWidget {
+  const _DialogueLineWithResolvedPortrait({
+    required this.data,
+    required this.portrait,
+    required this.showSpeakerName,
+  });
+
+  final PlayerDialogueViewData data;
+  final Widget portrait;
+  final bool showSpeakerName;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final portraitDimension = constraints.maxWidth < 420 ? 72.0 : 96.0;
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              ExcludeSemantics(
+                child: AnimatedSwitcher(
+                  duration: context.playerMotion.fast,
+                  child: PlayerPortraitFrame(
+                    key: portrait.key,
+                    dimension: portraitDimension,
+                    child: portrait,
+                  ),
+                ),
+              ),
+              const SizedBox(width: PlayerSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    if (data.speaker case final speaker?
+                        when showSpeakerName) ...<Widget>[
+                      Text(
+                        speaker,
+                        style: context.playerTypography
+                            .dialogueStyle(
+                              Theme.of(context).textTheme.titleLarge ??
+                                  const TextStyle(),
+                            )
+                            .copyWith(color: context.playerColors.primary),
+                      ),
+                      const SizedBox(height: PlayerSpacing.sm),
+                    ],
+                    Text(
+                      data.text,
+                      style: context.playerTypography.dialogueStyle(
+                        Theme.of(context).textTheme.bodyLarge ??
+                            const TextStyle(),
+                      ),
+                    ),
+                    const SizedBox(height: PlayerSpacing.md),
+                    _DialogueAdvanceLabel(data: data),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DialogueAdvanceLabel extends StatelessWidget {
+  const _DialogueAdvanceLabel({required this.data});
+
+  final PlayerDialogueViewData data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: <Widget>[
+        Icon(
+          data.isCurrentLineFullyRevealed
+              ? Icons.navigate_next_rounded
+              : Icons.fast_forward_rounded,
+        ),
+        const SizedBox(width: PlayerSpacing.xxs),
+        Text(
+          !data.isCurrentLineFullyRevealed
+              ? context.playerL10n.showFullText
+              : data.isLastContent
+                  ? context.playerL10n.close
+                  : context.playerL10n.next,
+        ),
+      ],
     );
   }
 }
