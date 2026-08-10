@@ -114,7 +114,7 @@ const personalizationPreviewSurfaceDescriptors =
         surface: PersonalizationStudioScene.battle,
         label: 'Combat',
         themeRole: PersonalizationPreviewThemeRole.battleSurface,
-        typographyRole: ProjectTypographyRole.numbers,
+        typographyRole: ProjectTypographyRole.combat,
         supportsReducedMotion: false,
       ),
     ];

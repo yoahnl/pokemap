@@ -74,6 +74,9 @@ void main() {
     final pause = PersonalizationStudioSceneDescriptor.forSurface(
       PersonalizationStudioScene.pause,
     );
+    final battle = PersonalizationStudioSceneDescriptor.forSurface(
+      PersonalizationStudioScene.battle,
+    );
 
     expect(title.themeRole, PersonalizationPreviewThemeRole.titleSurface);
     expect(title.typographyRole, ProjectTypographyRole.display);
@@ -81,5 +84,8 @@ void main() {
     expect(pause.themeRole, PersonalizationPreviewThemeRole.menuSurface);
     expect(pause.typographyRole, ProjectTypographyRole.body);
     expect(pause.supportsReducedMotion, isFalse);
+    expect(battle.themeRole, PersonalizationPreviewThemeRole.battleSurface);
+    expect(battle.typographyRole, ProjectTypographyRole.combat);
+    expect(battle.supportsReducedMotion, isFalse);
   });
 }
