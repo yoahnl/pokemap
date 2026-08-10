@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/character_animation_source_resolver.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 
 class OverworldActorComponent extends PositionComponent {
@@ -15,8 +16,14 @@ class OverworldActorComponent extends PositionComponent {
     required double cellHeight,
     EntityFacing facing = EntityFacing.south,
     CharacterAnimationState animState = CharacterAnimationState.idle,
+    void Function(CharacterAnimationSourceDiagnostic diagnostic)?
+        onSourceDiagnostic,
   })  : _facing = facing,
         _animState = animState,
+        _sourceResolver = CharacterAnimationSourceResolver(
+          onDiagnostic: onSourceDiagnostic,
+        ),
+        _availableImageIds = Set<String>.unmodifiable(tileImages.keys),
         _tileWidth = tileWidth,
         _tileHeight = tileHeight,
         _cellWidth = cellWidth,
@@ -39,6 +46,8 @@ class OverworldActorComponent extends PositionComponent {
   final double _cellHeight;
   final int _frameWidthTiles;
   final int _frameHeightTiles;
+  final CharacterAnimationSourceResolver _sourceResolver;
+  final Set<String> _availableImageIds;
 
   EntityFacing _facing;
   CharacterAnimationState _animState;
@@ -93,6 +102,25 @@ class OverworldActorComponent extends PositionComponent {
   double get depthSortY => position.y + size.y;
   bool get isStepping => _moveTo != null && _moveRemaining > 0;
   GridPos? get gridPos => _gridPos;
+
+  ResolvedCharacterAnimationFrameSource? get debugAnimationSource {
+    final animation = _findAnimation();
+    if (animation == null || animation.frames.isEmpty) return null;
+    final strideTimeScale =
+        _strideBobActive && animation.frames.length <= 3 ? 2.4 : 1.0;
+    final frame = _pickFrame(
+      animation.frames,
+      timeScale: strideTimeScale,
+    );
+    return _sourceResolver.resolveFrame(
+      character: character,
+      animation: animation,
+      frame: frame,
+      tileWidth: _tileWidth,
+      tileHeight: _tileHeight,
+      availableImageIds: _availableImageIds,
+    );
+  }
 
   void setMotion(EntityFacing facing, CharacterAnimationState animState) {
     // Guard rail:
@@ -242,23 +270,27 @@ class OverworldActorComponent extends PositionComponent {
       _renderFallback(canvas);
       return;
     }
-    final image = tileImages[character.tilesetId];
+    final strideTimeScale =
+        _strideBobActive && anim.frames.length <= 3 ? 2.4 : 1.0;
+    final frame = _pickFrame(anim.frames, timeScale: strideTimeScale);
+    final resolved = _sourceResolver.resolveFrame(
+      character: character,
+      animation: anim,
+      frame: frame,
+      tileWidth: _tileWidth,
+      tileHeight: _tileHeight,
+      availableImageIds: _availableImageIds,
+    );
+    if (resolved == null) {
+      _renderFallback(canvas);
+      return;
+    }
+    final image = tileImages[resolved.imageId];
     if (image == null) {
       _renderFallback(canvas);
       return;
     }
-    final strideTimeScale =
-        _strideBobActive && anim.frames.length <= 3 ? 2.4 : 1.0;
-    final frame = _pickFrame(anim.frames, timeScale: strideTimeScale);
-    final src = frame.source;
-    final srcW = _frameWidthTiles * _tileWidth;
-    final srcH = _frameHeightTiles * _tileHeight;
-    final srcRect = Rect.fromLTWH(
-      (src.x * srcW).toDouble(),
-      (src.y * srcH).toDouble(),
-      srcW.toDouble(),
-      srcH.toDouble(),
-    );
+    final srcRect = resolved.sourceRect;
     if (!image.containsSourceRect(srcRect)) {
       _renderFallback(canvas);
       return;
@@ -280,6 +312,25 @@ class OverworldActorComponent extends PositionComponent {
 
   static bool _hasFrames(CharacterAnimation? a) =>
       a != null && a.frames.isNotEmpty;
+
+  bool _hasRenderableFrames(CharacterAnimation? animation) {
+    if (!_hasFrames(animation)) return false;
+    final sourceAssetId = animation!.sourceAssetId?.trim();
+    if (sourceAssetId == null || sourceAssetId.isEmpty) return true;
+    if (tileImages
+        .containsKey(characterAnimationRuntimeImageId(sourceAssetId))) {
+      return true;
+    }
+    _sourceResolver.resolveFrame(
+      character: character,
+      animation: animation,
+      frame: animation.frames.first,
+      tileWidth: _tileWidth,
+      tileHeight: _tileHeight,
+      availableImageIds: _availableImageIds,
+    );
+    return false;
+  }
 
   CharacterAnimation? _findAnimation() {
     _strideBobActive = false;
@@ -322,7 +373,7 @@ class OverworldActorComponent extends PositionComponent {
       }
     }
 
-    if (_hasFrames(exactFacing)) {
+    if (_hasRenderableFrames(exactFacing)) {
       return exactFacing;
     }
 
@@ -350,7 +401,7 @@ class OverworldActorComponent extends PositionComponent {
                 ];
 
       for (final candidate in cascade) {
-        if (!_hasFrames(candidate)) continue;
+        if (!_hasRenderableFrames(candidate)) continue;
         if (candidate!.state == CharacterAnimationState.idle && isStepping) {
           _strideBobActive = true;
         }
@@ -358,7 +409,9 @@ class OverworldActorComponent extends PositionComponent {
       }
     }
 
-    return idleFacing ?? idleAny;
+    if (_hasRenderableFrames(idleFacing)) return idleFacing;
+    if (_hasRenderableFrames(idleAny)) return idleAny;
+    return null;
   }
 
   CharacterAnimationFrame _pickFrame(

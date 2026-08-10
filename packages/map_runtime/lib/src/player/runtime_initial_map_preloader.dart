@@ -205,12 +205,12 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     try {
       publish(RuntimeInitialMapPreloadStage.tilesets, 0.78);
       await tilesetCache.loadById(
-        bundle.tilesetAbsolutePathsById,
+        bundle.runtimeImageAbsolutePathsById,
         transparentColorByTilesetId: _transparentColorByTilesetId(
           bundle.manifest,
         ),
       );
-      if (bundle.tilesetAbsolutePathsById.isEmpty) {
+      if (bundle.runtimeImageAbsolutePathsById.isEmpty) {
         publish(RuntimeInitialMapPreloadStage.tilesets, 0.96);
       }
       tilesetProgress = null;

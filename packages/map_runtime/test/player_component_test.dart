@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/player_component.dart';
+import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -118,7 +119,109 @@ void main() {
       final secondStepDelta = component.position.x - secondStepStartX;
       expect(secondStepDelta, closeTo(firstStepDelta, 0.0001));
     });
+
+    test('dedicated source wins and keeps pixel geometry', () async {
+      const character = ProjectCharacterEntry(
+        id: 'player',
+        name: 'Player',
+        tilesetId: 'hero',
+        animations: <CharacterAnimation>[
+          CharacterAnimation(
+            state: CharacterAnimationState.idle,
+            direction: EntityFacing.south,
+            sourceAssetId: 'hero_idle',
+            frames: <CharacterAnimationFrame>[
+              CharacterAnimationFrame(
+                source: TilesetSourceRect(
+                  x: 17,
+                  y: 9,
+                  width: 23,
+                  height: 31,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+      final component = PlayerComponent(
+        bundle: _bundle(),
+        state: _stateAt(const GridPos(x: 0, y: 0)),
+        characterEntry: character,
+        tileImages: <String, RuntimeTilesetImage>{
+          'hero': _emptyImage(),
+          characterAnimationRuntimeImageId('hero_idle'): _emptyImage(),
+        },
+        mapOrigin: Vector2.zero(),
+      );
+
+      await component.onLoad();
+
+      expect(
+        component.debugAnimationSource?.imageId,
+        characterAnimationRuntimeImageId('hero_idle'),
+      );
+      expect(component.debugAnimationSource?.sourceRect.left, 17);
+      expect(component.debugAnimationSource?.sourceRect.top, 9);
+      expect(component.debugAnimationSource?.sourceRect.width, 23);
+      expect(component.debugAnimationSource?.sourceRect.height, 31);
+    });
+
+    test('missing dedicated walk source falls back to legacy base', () async {
+      const character = ProjectCharacterEntry(
+        id: 'player',
+        name: 'Player',
+        tilesetId: 'hero',
+        animations: <CharacterAnimation>[
+          CharacterAnimation(
+            state: CharacterAnimationState.idle,
+            direction: EntityFacing.east,
+            frames: <CharacterAnimationFrame>[
+              CharacterAnimationFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 2),
+              ),
+            ],
+          ),
+          CharacterAnimation(
+            state: CharacterAnimationState.walk,
+            direction: EntityFacing.east,
+            sourceAssetId: 'hero_walk',
+            frames: <CharacterAnimationFrame>[
+              CharacterAnimationFrame(
+                source: TilesetSourceRect(
+                  x: 24,
+                  y: 0,
+                  width: 24,
+                  height: 32,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+      final component = PlayerComponent(
+        bundle: _bundle(),
+        state: _stateAt(const GridPos(x: 0, y: 0)),
+        characterEntry: character,
+        tileImages: <String, RuntimeTilesetImage>{'hero': _emptyImage()},
+        mapOrigin: Vector2.zero(),
+      );
+
+      await component.onLoad();
+      component.startStep(_stateAt(const GridPos(x: 1, y: 0)));
+
+      expect(component.debugAnimationSource?.imageId, 'hero');
+      expect(component.debugAnimationSource?.usesLegacyGrid, isTrue);
+    });
   });
+}
+
+RuntimeTilesetImage _emptyImage() {
+  return RuntimeTilesetImage(
+    images: const [],
+    chunks: const [],
+    width: 128,
+    height: 128,
+  );
 }
 
 ProjectCharacterEntry _legacyCharacter() {

@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 
 import 'runtime_manifest_tilesets.dart';
 import 'runtime_map_bundle.dart';
+import 'character_animation_source_resolver.dart';
 import '../border/border_runtime_readiness.dart';
 
 @immutable
@@ -317,6 +318,18 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     tilesetIds: tilesetIds,
     assetCatalog: assetCatalog,
   );
+  final characterAnimationPreloadPlan =
+      buildCharacterAnimationSourcePreloadPlan(
+    manifest: manifest,
+    projectRootDirectory: projectRoot,
+    assetCatalog: assetCatalog,
+  );
+  for (final diagnostic in characterAnimationPreloadPlan.diagnostics) {
+    _runtimeLoaderLog(
+      'character animation source unavailable character=${diagnostic.characterId} '
+      'asset=${diagnostic.sourceAssetId} code=${diagnostic.code.name}',
+    );
+  }
   tilesetWatch.stop();
   progressSink?.call(RuntimeMapBundleLoadStage.tilesets);
   for (final entry in paths.entries) {
@@ -333,6 +346,8 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
       map: map,
       projectRootDirectory: projectRoot,
       tilesetAbsolutePathsById: paths,
+      characterAnimationAbsolutePathsByAssetId:
+          characterAnimationPreloadPlan.absolutePathsByAssetId,
     ),
   );
   borderWatch.stop();

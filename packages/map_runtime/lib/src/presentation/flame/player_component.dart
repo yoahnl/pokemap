@@ -6,6 +6,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../application/runtime_map_bundle.dart';
+import '../../application/character_animation_source_resolver.dart';
 import 'overworld_actor_component.dart';
 
 /// Composant joueur : aligne le **rendu** sur [GameplayPlayerState.playerPositionPx]
@@ -124,6 +125,9 @@ class PlayerComponent extends PositionComponent {
   Vector2 get visualSize => (_actor?.size ?? size).clone();
 
   Vector2? get debugActorLocalPosition => _actor?.position.clone();
+
+  ResolvedCharacterAnimationFrameSource? get debugAnimationSource =>
+      _actor?.debugAnimationSource;
 
   void _layoutActor() {
     final actor = _actor;

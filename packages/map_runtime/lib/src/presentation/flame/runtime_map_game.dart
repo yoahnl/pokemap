@@ -26,7 +26,7 @@ class RuntimeMapGame extends FlameGame {
       collection: bundle.borderRuntimePreparation!.assetCollection,
     );
     final images = await loadTilesetImagesById(
-      bundle.tilesetAbsolutePathsById,
+      bundle.runtimeImageAbsolutePathsById,
       transparentColorByTilesetId: _transparentColorByTilesetId(
         bundle.manifest,
       ),

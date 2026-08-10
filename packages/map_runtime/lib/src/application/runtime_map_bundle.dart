@@ -8,6 +8,7 @@ class RuntimeMapBundle {
     required this.map,
     required this.projectRootDirectory,
     required this.tilesetAbsolutePathsById,
+    this.characterAnimationAbsolutePathsByAssetId = const <String, String>{},
     this.borderRuntimePreparation,
   });
 
@@ -15,13 +16,21 @@ class RuntimeMapBundle {
   final MapData map;
   final String projectRootDirectory;
   final Map<String, String> tilesetAbsolutePathsById;
+  final Map<String, String> characterAnimationAbsolutePathsByAssetId;
   final BorderRuntimePreparation? borderRuntimePreparation;
+
+  Map<String, String> get runtimeImageAbsolutePathsById => <String, String>{
+        ...tilesetAbsolutePathsById,
+        for (final entry in characterAnimationAbsolutePathsByAssetId.entries)
+          'character-animation:${entry.key}': entry.value,
+      };
 
   RuntimeMapBundle copyWith({
     ProjectManifest? manifest,
     MapData? map,
     String? projectRootDirectory,
     Map<String, String>? tilesetAbsolutePathsById,
+    Map<String, String>? characterAnimationAbsolutePathsByAssetId,
     BorderRuntimePreparation? borderRuntimePreparation,
     bool clearBorderRuntimePreparation = false,
   }) {
@@ -37,6 +46,9 @@ class RuntimeMapBundle {
       projectRootDirectory: nextProjectRoot,
       tilesetAbsolutePathsById:
           tilesetAbsolutePathsById ?? this.tilesetAbsolutePathsById,
+      characterAnimationAbsolutePathsByAssetId:
+          characterAnimationAbsolutePathsByAssetId ??
+              this.characterAnimationAbsolutePathsByAssetId,
       borderRuntimePreparation:
           clearBorderRuntimePreparation || preparationInputsChanged
               ? null

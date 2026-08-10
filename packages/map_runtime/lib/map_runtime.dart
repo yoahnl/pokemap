@@ -117,6 +117,15 @@ export 'src/application/dialogue_portrait_resolver.dart'
         ResolvedDialoguePortrait,
         DialoguePortraitLookup,
         DialoguePortraitResolver;
+export 'src/application/character_animation_source_resolver.dart'
+    show
+        CharacterAnimationSourceDiagnosticCode,
+        CharacterAnimationSourceDiagnostic,
+        ResolvedCharacterAnimationFrameSource,
+        CharacterAnimationSourceResolver,
+        CharacterAnimationSourcePreloadPlan,
+        characterAnimationRuntimeImageId,
+        buildCharacterAnimationSourcePreloadPlan;
 export 'src/presentation/flame/narrative_command_player_surface_capability_evidence.dart'
     show buildMapRuntimeNarrativeCommandPlayerSurfaceAttestation;
 export 'src/application/narrative_runtime_smoke_evidence.dart'

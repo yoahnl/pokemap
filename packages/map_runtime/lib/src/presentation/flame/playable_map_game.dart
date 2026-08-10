@@ -3505,7 +3505,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
           '[runtime_game] tileset image load start map=${_bundle.map.id}');
       final tilesetImages =
-          _loadTilesetImagesCached(_bundle.tilesetAbsolutePathsById);
+          _loadTilesetImagesCached(_bundle.runtimeImageAbsolutePathsById);
       final bootResources = await Future.wait<Object?>(
         <Future<Object?>>[
           hydratedGameState,
@@ -10894,7 +10894,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GameplayWorldState preparedWorld;
     try {
       newImages = await _loadTilesetImagesCached(
-        newBundle.tilesetAbsolutePathsById,
+        newBundle.runtimeImageAbsolutePathsById,
         manifest: newBundle.manifest,
       );
       newBorderAssets = await _loadBorderRuntimeAssets(newBundle);
@@ -11020,7 +11020,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       var sourceBundle = await prepareBorderRuntimeBundle(source.bundle);
       final sourceImages = await _loadTilesetImagesCached(
-        sourceBundle.tilesetAbsolutePathsById,
+        sourceBundle.runtimeImageAbsolutePathsById,
         manifest: sourceBundle.manifest,
       );
       final sourceBorderAssets = await _loadBorderRuntimeAssets(sourceBundle);
@@ -11290,7 +11290,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'warp',
         'loadTilesets',
         () => _loadTilesetImagesCached(
-          newBundle.tilesetAbsolutePathsById,
+          newBundle.runtimeImageAbsolutePathsById,
           manifest: newBundle.manifest,
         ),
       );
@@ -11481,7 +11481,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileHeight: fallbackBundle.manifest.settings.tileHeight,
       );
       final fallbackImages = await _loadTilesetImagesCached(
-        fallbackBundle.tilesetAbsolutePathsById,
+        fallbackBundle.runtimeImageAbsolutePathsById,
         manifest: fallbackBundle.manifest,
       );
       final fallbackBorderAssets =
@@ -12205,7 +12205,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           targetSize: bundle.map.size,
         );
         final images = await _loadTilesetImagesCached(
-          bundle.tilesetAbsolutePathsById,
+          bundle.runtimeImageAbsolutePathsById,
           manifest: bundle.manifest,
         );
         final loaded = await _mountLoadedMap(
@@ -12357,7 +12357,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       try {
         final bundle = await _loadRuntimeMapBundleCached(normalizedTargetMapId);
         await _loadTilesetImagesCached(
-          bundle.tilesetAbsolutePathsById,
+          bundle.runtimeImageAbsolutePathsById,
           manifest: bundle.manifest,
         );
         await _loadBorderRuntimeAssets(bundle);
