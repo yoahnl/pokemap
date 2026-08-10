@@ -7,26 +7,19 @@ import 'package:map_editor/personalization_hub.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 
 void main() {
-  testWidgets('localizes the publication surface in French and English',
-      (tester) async {
+  testWidgets('localizes the publication surface in French and English', (
+    tester,
+  ) async {
     const profile = ProjectPresentationProfile(
       branding: ProjectBrandingProfile(accentColor: 'purple'),
     );
 
-    await _pumpReadiness(
-      tester,
-      locale: const Locale('fr'),
-      profile: profile,
-    );
+    await _pumpReadiness(tester, locale: const Locale('fr'), profile: profile);
     expect(find.text('Préparation à l’export'), findsOneWidget);
     expect(find.text('Preflight requis'), findsOneWidget);
     expect(find.text('Couleur d’accent invalide'), findsOneWidget);
 
-    await _pumpReadiness(
-      tester,
-      locale: const Locale('en'),
-      profile: profile,
-    );
+    await _pumpReadiness(tester, locale: const Locale('en'), profile: profile);
     expect(find.text('Export readiness'), findsOneWidget);
     expect(find.text('Preflight required'), findsOneWidget);
     expect(find.text('Invalid accent color'), findsOneWidget);
@@ -34,8 +27,9 @@ void main() {
     expect(find.text('Continue to export'), findsOneWidget);
   });
 
-  testWidgets('supports keyboard, gamepad activation, and directional focus',
-      (tester) async {
+  testWidgets('supports keyboard, gamepad activation, and directional focus', (
+    tester,
+  ) async {
     var preflightCount = 0;
     var exportCount = 0;
 
@@ -82,9 +76,7 @@ void main() {
       tester
           .getSemantics(
             find.byKey(
-              const ValueKey<String>(
-                'personalization-readiness-semantics',
-              ),
+              const ValueKey<String>('personalization-readiness-semantics'),
             ),
           )
           .label,
@@ -105,8 +97,29 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('adapts to a narrow window with 200 percent text',
-      (tester) async {
+  testWidgets('keeps publication actions at least 48 pixels high', (
+    tester,
+  ) async {
+    await _pumpReadiness(
+      tester,
+      locale: const Locale('fr'),
+      hasCompletedPreflight: true,
+      canContinueToExport: true,
+    );
+
+    for (final key in <String>[
+      'personalization-readiness-run-preflight',
+      'personalization-readiness-export',
+    ]) {
+      final action = find.byKey(ValueKey<String>(key));
+      expect(action, findsOneWidget);
+      expect(tester.getSize(action).height, greaterThanOrEqualTo(48));
+    }
+  });
+
+  testWidgets('adapts to a narrow window with 200 percent text', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(320, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -127,9 +140,7 @@ void main() {
       );
     }
     expect(
-      find.byKey(
-        const ValueKey<String>('personalization-readiness-export'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-readiness-export')),
       findsOneWidget,
     );
   });
@@ -161,9 +172,9 @@ Future<void> _pumpReadiness(
       supportedLocales: AppLocalizations.supportedLocales,
       theme: PokeMapTheme.light(),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(
-          textScaler: TextScaler.linear(textScale),
-        ),
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
         child: child!,
       ),
       home: Scaffold(

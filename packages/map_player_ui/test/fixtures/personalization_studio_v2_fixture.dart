@@ -60,7 +60,7 @@ abstract final class PersonalizationStudioV2Fixture {
     commands: <PlayerBattleCommandViewData>[
       PlayerBattleCommandViewData(
         index: 0,
-        primaryLabel: 'ATTAQUE',
+        primaryLabel: 'ATTAQUER',
         secondaryLabel: 'Choisir une capacité',
         enabled: true,
         selected: true,
@@ -76,7 +76,7 @@ abstract final class PersonalizationStudioV2Fixture {
       ),
       PlayerBattleCommandViewData(
         index: 2,
-        primaryLabel: 'POKÉMON',
+        primaryLabel: 'ÉQUIPE',
         secondaryLabel: 'Changer de Pokémon',
         enabled: true,
         selected: false,

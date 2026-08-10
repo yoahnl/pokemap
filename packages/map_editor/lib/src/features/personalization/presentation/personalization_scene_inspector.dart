@@ -60,7 +60,7 @@ class PersonalizationSceneInspector extends StatelessWidget {
                   key: ValueKey<String>(
                     'personalization-inspector-target-${_targetId(destination)}',
                   ),
-                  size: PokeMapButtonSize.compact,
+                  size: PokeMapButtonSize.large,
                   variant: PokeMapButtonVariant.secondary,
                   isSelected: destination.runtimeType == target.runtimeType,
                   onPressed: () => onTargetSelected(destination),

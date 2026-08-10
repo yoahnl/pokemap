@@ -135,6 +135,7 @@ class _PokeMapDesktopSideSheetState extends State<PokeMapDesktopSideSheet> {
       child: CallbackShortcuts(
         bindings: <ShortcutActivator, VoidCallback>{
           const SingleActivator(LogicalKeyboardKey.escape): widget.onClose,
+          const SingleActivator(LogicalKeyboardKey.gameButtonB): widget.onClose,
         },
         child: FocusTraversalGroup(
           policy: ReadingOrderTraversalPolicy(),

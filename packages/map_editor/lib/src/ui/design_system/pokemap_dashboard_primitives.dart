@@ -7,11 +7,7 @@ import 'pokemap_tone.dart';
 
 /// Structural surface for a full editor page or workspace area.
 class PokeMapPageSurface extends StatelessWidget {
-  const PokeMapPageSurface({
-    super.key,
-    required this.child,
-    this.padding,
-  });
+  const PokeMapPageSurface({super.key, required this.child, this.padding});
 
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -57,11 +53,7 @@ class PokeMapIconTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: colors.border),
       ),
-      child: Icon(
-        icon,
-        size: iconSize,
-        color: colors.icon,
-      ),
+      child: Icon(icon, size: iconSize, color: colors.icon),
     );
   }
 }
@@ -226,10 +218,7 @@ class PokeMapModuleCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (count != null)
-                _PokeMapCountPill(
-                  count: count!,
-                ),
+              if (count != null) _PokeMapCountPill(count: count!),
             ],
           ),
           const SizedBox(height: 10),
@@ -244,10 +233,7 @@ class PokeMapModuleCard extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          if (footer != null) ...[
-            const SizedBox(height: 12),
-            footer!,
-          ],
+          if (footer != null) ...[const SizedBox(height: 12), footer!],
         ],
       ),
     );
@@ -399,10 +385,7 @@ class PokeMapInspectorPanel extends StatelessWidget {
               header!,
               Divider(color: colors.divider, height: 1),
             ],
-            Padding(
-              padding: padding ?? const EdgeInsets.all(14),
-              child: child,
-            ),
+            Padding(padding: padding ?? const EdgeInsets.all(14), child: child),
             if (footer != null) ...[
               Divider(color: colors.divider, height: 1),
               footer!,
@@ -435,9 +418,11 @@ class PokeMapSegmentedTabs extends StatelessWidget {
   const PokeMapSegmentedTabs({
     super.key,
     required this.tabs,
+    this.minimumHeight,
   });
 
   final List<PokeMapSegmentedTab> tabs;
+  final double? minimumHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -454,7 +439,11 @@ class PokeMapSegmentedTabs extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (final tab in tabs) _PokeMapSegmentedTabButton(tab: tab),
+            for (final tab in tabs)
+              _PokeMapSegmentedTabButton(
+                tab: tab,
+                minimumHeight: minimumHeight,
+              ),
           ],
         ),
       ),
@@ -463,9 +452,11 @@ class PokeMapSegmentedTabs extends StatelessWidget {
 }
 
 class _PokeMapSegmentedTabButton extends StatefulWidget {
-  _PokeMapSegmentedTabButton({required this.tab}) : super(key: tab.key);
+  _PokeMapSegmentedTabButton({required this.tab, required this.minimumHeight})
+    : super(key: tab.key);
 
   final PokeMapSegmentedTab tab;
+  final double? minimumHeight;
 
   @override
   State<_PokeMapSegmentedTabButton> createState() =>
@@ -485,8 +476,8 @@ class _PokeMapSegmentedTabButtonState
     final foreground = active
         ? colors.brandPrimary
         : enabled
-            ? colors.textSecondary
-            : colors.textDisabled;
+        ? colors.textSecondary
+        : colors.textDisabled;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 1),
       child: FocusableActionDetector(
@@ -512,6 +503,7 @@ class _PokeMapSegmentedTabButtonState
             behavior: HitTestBehavior.opaque,
             onTap: enabled ? tab.onTap : null,
             child: Container(
+              constraints: BoxConstraints(minHeight: widget.minimumHeight ?? 0),
               decoration: BoxDecoration(
                 color: active ? colors.cardSelected : colors.controlSurface,
                 borderRadius: BorderRadius.circular(6),
@@ -519,8 +511,8 @@ class _PokeMapSegmentedTabButtonState
                   color: _focused
                       ? colors.focusRing
                       : active
-                          ? colors.brandPrimaryBorder
-                          : colors.controlSurface,
+                      ? colors.brandPrimaryBorder
+                      : colors.controlSurface,
                   width: _focused ? 1.5 : 1,
                 ),
               ),

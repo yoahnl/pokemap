@@ -50,7 +50,11 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
                   '${scenario.viewport.name}',
                 ),
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 160),
+                  duration:
+                      scenario.effectiveReducedMotion ||
+                          MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 160),
                   child: scenario.showComparison
                       ? _ComparisonPreview(
                           key: ValueKey<String>(

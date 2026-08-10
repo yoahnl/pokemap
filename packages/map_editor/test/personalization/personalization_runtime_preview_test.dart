@@ -324,6 +324,20 @@ void main() {
         const ValueKey<String>('personalization-preview-reduced-motion'),
       ),
     );
+    await tester.pump();
+    final switcher = tester.widget<AnimatedSwitcher>(
+      find
+          .descendant(
+            of: find.byKey(
+              const ValueKey<String>(
+                'personalization-preview-viewport-frame-portrait',
+              ),
+            ),
+            matching: find.byType(AnimatedSwitcher),
+          )
+          .first,
+    );
+    expect(switcher.duration, Duration.zero);
     await tester.tap(
       find.byKey(const ValueKey<String>('personalization-preview-intro')),
     );
@@ -388,6 +402,42 @@ void main() {
     expect(find.text('Maintenant'), findsOneWidget);
     expect(find.byType(PlayerTitleSurface), findsNWidgets(2));
     expect(find.text('Texte 150 %'), findsOneWidget);
+  });
+
+  testWidgets('preview controls expose 48 pixel interaction targets', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          baselineProfile: ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(layoutVariant: 'standard'),
+            theme: safeProjectSemanticTheme,
+          ),
+          profile: ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
+            theme: safeProjectSemanticTheme,
+          ),
+        ),
+      ),
+    );
+
+    for (final key in <String>[
+      'personalization-preview-viewport-landscape',
+      'personalization-preview-viewport-portrait',
+      'personalization-preview-text-scale-100',
+      'personalization-preview-text-scale-150',
+      'personalization-preview-text-scale-200',
+      'personalization-preview-reduced-motion',
+      'personalization-preview-compare',
+    ]) {
+      expect(
+        tester.getSize(find.byKey(ValueKey<String>(key))).height,
+        greaterThanOrEqualTo(48),
+      );
+    }
   });
 
   testWidgets('PST-045 hides comparison when the draft is unchanged', (

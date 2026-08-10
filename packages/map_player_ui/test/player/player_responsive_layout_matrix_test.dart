@@ -154,7 +154,8 @@ void main() {
           );
           expect(find.text('ROUCOOL'), findsOneWidget);
           expect(find.text('BRINDIBOU'), findsOneWidget);
-          expect(find.text('ATTAQUE'), findsOneWidget);
+          expect(find.text('ATTAQUER'), findsOneWidget);
+          expect(find.text('ÉQUIPE'), findsOneWidget);
           expect(tester.takeException(), isNull);
         },
       );
@@ -291,7 +292,8 @@ void main() {
       find.byKey(const ValueKey<String>('battle-command-panel')),
     );
     expect(panelRect.center.dx, greaterThan(regular.size.width * .65));
-    expect(find.text('ATTAQUE'), findsOneWidget);
+    expect(find.text('ATTAQUER'), findsOneWidget);
+    expect(find.text('ÉQUIPE'), findsOneWidget);
     expect(find.text('ROUCOOL'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

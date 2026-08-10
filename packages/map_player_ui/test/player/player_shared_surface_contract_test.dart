@@ -6,6 +6,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' show PokeMapPlayerTheme;
 import 'package:map_player_ui/player_surfaces.dart';
 
+import '../fixtures/personalization_studio_v2_fixture.dart';
+
 void main() {
   test('exports the five reusable player surface types', () {
     expect(
@@ -87,6 +89,34 @@ void main() {
       ),
     );
     expect(align.alignment, Alignment.center);
+  });
+
+  testWidgets('battle surface exposes semantic 48 pixel command targets', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await tester.binding.setSurfaceSize(const Size(720, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapPlayerTheme.dark(),
+        home: PlayerBattleSurface(
+          data: PersonalizationStudioV2Fixture.battle,
+          onAction: (_) {},
+        ),
+      ),
+    );
+
+    for (var index = 0; index < 4; index += 1) {
+      final command = find.byKey(ValueKey<String>('battle-entry-$index'));
+      expect(command, findsOneWidget);
+      expect(tester.getSize(command).height, greaterThanOrEqualTo(48));
+      expect(tester.getSemantics(command).label, isNotEmpty);
+    }
+    expect(find.text('ATTAQUER'), findsOneWidget);
+    expect(find.text('ÉQUIPE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
   });
 }
 

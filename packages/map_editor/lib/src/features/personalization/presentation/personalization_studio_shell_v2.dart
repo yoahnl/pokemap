@@ -155,7 +155,7 @@ class PersonalizationStudioShellV2 extends StatelessWidget {
             key: const ValueKey<String>(
               'personalization-studio-open-inspector',
             ),
-            size: PokeMapButtonSize.compact,
+            size: PokeMapButtonSize.large,
             variant: PokeMapButtonVariant.secondary,
             leading: const Icon(Icons.tune_rounded),
             onPressed: () => _openInspector(context),

@@ -66,20 +66,23 @@ class PersonalizationSceneNavigation extends StatelessWidget {
     PersonalizationStudioSceneDescriptor descriptor, {
     bool collapsed = false,
     bool showSubtitle = true,
-  }) => PokeMapSidebarItem(
-    key: ValueKey<String>(
-      'personalization-studio-scene-${descriptor.surface.name}',
+  }) => ConstrainedBox(
+    constraints: const BoxConstraints(minHeight: 48),
+    child: PokeMapSidebarItem(
+      key: ValueKey<String>(
+        'personalization-studio-scene-${descriptor.surface.name}',
+      ),
+      label: descriptor.label,
+      subtitle: collapsed || !showSubtitle
+          ? null
+          : _description(descriptor.surface),
+      subtitleMaxLines: 2,
+      growForTextScale: true,
+      collapsed: collapsed,
+      selected: selectedScene == descriptor.surface,
+      icon: Icon(_icon(descriptor.surface), size: 20),
+      onTap: () => onSceneSelected(descriptor.surface),
     ),
-    label: descriptor.label,
-    subtitle: collapsed || !showSubtitle
-        ? null
-        : _description(descriptor.surface),
-    subtitleMaxLines: 2,
-    growForTextScale: true,
-    collapsed: collapsed,
-    selected: selectedScene == descriptor.surface,
-    icon: Icon(_icon(descriptor.surface), size: 20),
-    onTap: () => onSceneSelected(descriptor.surface),
   );
 }
 

@@ -27,6 +27,7 @@ class PersonalizationPreviewControls extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         PokeMapSegmentedTabs(
+          minimumHeight: 48,
           tabs: <PokeMapSegmentedTab>[
             for (final viewport in viewports)
               PokeMapSegmentedTab(
@@ -47,6 +48,7 @@ class PersonalizationPreviewControls extends StatelessWidget {
           children: <Widget>[
             const Text('Taille du texte'),
             PokeMapSegmentedTabs(
+              minimumHeight: 48,
               tabs: <PokeMapSegmentedTab>[
                 for (final entry in textScales)
                   PokeMapSegmentedTab(
@@ -67,7 +69,7 @@ class PersonalizationPreviewControls extends StatelessWidget {
             key: const ValueKey<String>(
               'personalization-preview-reduced-motion',
             ),
-            size: PokeMapButtonSize.compact,
+            size: PokeMapButtonSize.large,
             variant: PokeMapButtonVariant.secondary,
             isSelected: scenario.reducedMotion,
             onPressed: () => onChanged(
@@ -79,7 +81,7 @@ class PersonalizationPreviewControls extends StatelessWidget {
         if (scenario.canCompare)
           PokeMapButton(
             key: const ValueKey<String>('personalization-preview-compare'),
-            size: PokeMapButtonSize.compact,
+            size: PokeMapButtonSize.large,
             variant: PokeMapButtonVariant.secondary,
             isSelected: scenario.showComparison,
             onPressed: () => onChanged(

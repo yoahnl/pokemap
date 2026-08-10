@@ -75,93 +75,93 @@ class PersonalizationReadinessPanel extends StatelessWidget {
     }
 
     Widget buildPanel({required bool expandChild}) => PokeMapPanel(
-          key: const ValueKey<String>('personalization-readiness-panel'),
-          expandChild: expandChild,
-          header: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              alignment: WrapAlignment.spaceBetween,
+      key: const ValueKey<String>('personalization-readiness-panel'),
+      expandChild: expandChild,
+      header: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          alignment: WrapAlignment.spaceBetween,
+          children: <Widget>[
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      l10n.personalizationReadinessTitle,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(l10n.personalizationReadinessDescription),
-                  ],
-                ),
-                Semantics(
-                  key: const ValueKey<String>(
-                    'personalization-readiness-overall-semantics',
-                  ),
-                  label: overallLabel,
-                  liveRegion: true,
-                  child: ExcludeSemantics(
-                    child: PokeMapBadge(
-                      key: const ValueKey<String>(
-                        'personalization-readiness-overall',
-                      ),
-                      label: overallLabel,
-                      variant: _overallBadgeVariant(
-                        report,
-                        requiresPreflight: requiresPreflight,
-                        hasCompletedPreflight: hasCompletedPreflight,
-                        isPreflightRunning: isPreflightRunning,
-                        isPreflightStale: isPreflightStale,
-                        hasUnsavedChanges: hasUnsavedChanges,
-                        hasPreflightError: preflightError != null,
-                      ),
-                    ),
+                Text(
+                  l10n.personalizationReadinessTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                if (requiresPreflight)
-                  PokeMapButton(
-                    key: const ValueKey<String>(
-                      'personalization-readiness-run-preflight',
-                    ),
-                    variant: PokeMapButtonVariant.secondary,
-                    size: PokeMapButtonSize.small,
-                    leading: const Icon(Icons.fact_check_outlined),
-                    isLoading: isPreflightRunning,
-                    onPressed: isPreflightRunning ? null : onRunPreflight,
-                    child: Text(
-                      isPreflightRunning
-                          ? l10n.personalizationChecking
-                          : hasCompletedPreflight
-                              ? l10n.personalizationRerunPreflight
-                              : l10n.personalizationRunPreflight,
-                    ),
-                  ),
+                const SizedBox(height: 4),
+                Text(l10n.personalizationReadinessDescription),
               ],
             ),
-          ),
-          padding: const EdgeInsets.all(12),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final content = _ReadinessContent(
-                report: report,
-                onCorrectIssue: onCorrectIssue,
-                requiresPreflight: requiresPreflight,
-                hasUnsavedChanges: hasUnsavedChanges,
-                preflightError: preflightError,
-                onSaveDraft: onSaveDraft,
-                canContinueToExport: canContinueToExport,
-                onContinueToExport: onContinueToExport,
-              );
-              if (!expandChild) return content;
-              return SingleChildScrollView(child: content);
-            },
-          ),
-        );
+            Semantics(
+              key: const ValueKey<String>(
+                'personalization-readiness-overall-semantics',
+              ),
+              label: overallLabel,
+              liveRegion: true,
+              child: ExcludeSemantics(
+                child: PokeMapBadge(
+                  key: const ValueKey<String>(
+                    'personalization-readiness-overall',
+                  ),
+                  label: overallLabel,
+                  variant: _overallBadgeVariant(
+                    report,
+                    requiresPreflight: requiresPreflight,
+                    hasCompletedPreflight: hasCompletedPreflight,
+                    isPreflightRunning: isPreflightRunning,
+                    isPreflightStale: isPreflightStale,
+                    hasUnsavedChanges: hasUnsavedChanges,
+                    hasPreflightError: preflightError != null,
+                  ),
+                ),
+              ),
+            ),
+            if (requiresPreflight)
+              PokeMapButton(
+                key: const ValueKey<String>(
+                  'personalization-readiness-run-preflight',
+                ),
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.large,
+                leading: const Icon(Icons.fact_check_outlined),
+                isLoading: isPreflightRunning,
+                onPressed: isPreflightRunning ? null : onRunPreflight,
+                child: Text(
+                  isPreflightRunning
+                      ? l10n.personalizationChecking
+                      : hasCompletedPreflight
+                      ? l10n.personalizationRerunPreflight
+                      : l10n.personalizationRunPreflight,
+                ),
+              ),
+          ],
+        ),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final content = _ReadinessContent(
+            report: report,
+            onCorrectIssue: onCorrectIssue,
+            requiresPreflight: requiresPreflight,
+            hasUnsavedChanges: hasUnsavedChanges,
+            preflightError: preflightError,
+            onSaveDraft: onSaveDraft,
+            canContinueToExport: canContinueToExport,
+            onContinueToExport: onContinueToExport,
+          );
+          if (!expandChild) return content;
+          return SingleChildScrollView(child: content);
+        },
+      ),
+    );
 
     return Semantics(
       key: const ValueKey<String>('personalization-readiness-semantics'),
@@ -169,7 +169,8 @@ class PersonalizationReadinessPanel extends StatelessWidget {
       explicitChildNodes: true,
       label: l10n.personalizationReadinessSemantics,
       value: overallLabel,
-      liveRegion: isPreflightRunning ||
+      liveRegion:
+          isPreflightRunning ||
           isPreflightStale ||
           preflightError != null ||
           hasCompletedPreflight,
@@ -192,7 +193,8 @@ class PersonalizationReadinessPanel extends StatelessWidget {
           policy: ReadingOrderTraversalPolicy(),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final boundedHeight = constraints.hasBoundedHeight &&
+              final boundedHeight =
+                  constraints.hasBoundedHeight &&
                   constraints.maxHeight.isFinite;
               final panel = buildPanel(expandChild: boundedHeight);
               if (!boundedHeight) return panel;
@@ -234,8 +236,8 @@ class _ReadinessContent extends StatelessWidget {
         final columnCount = constraints.maxWidth >= 680
             ? 4
             : constraints.maxWidth >= 480
-                ? 2
-                : 1;
+            ? 2
+            : 1;
         const spacing = 10.0;
         final width =
             (constraints.maxWidth - spacing * (columnCount - 1)) / columnCount;
@@ -267,7 +269,7 @@ class _ReadinessContent extends StatelessWidget {
                       key: const ValueKey<String>(
                         'personalization-readiness-save-draft',
                       ),
-                      size: PokeMapButtonSize.small,
+                      size: PokeMapButtonSize.large,
                       leading: const Icon(Icons.save_outlined),
                       onPressed: onSaveDraft,
                       child: Text(l10n.personalizationSaveDraft),
@@ -339,10 +341,11 @@ class _ReadinessContent extends StatelessWidget {
                         'personalization-readiness-export',
                       ),
                       variant: PokeMapButtonVariant.success,
-                      size: PokeMapButtonSize.medium,
+                      size: PokeMapButtonSize.large,
                       leading: const Icon(Icons.rocket_launch_outlined),
-                      onPressed:
-                          canContinueToExport ? onContinueToExport : null,
+                      onPressed: canContinueToExport
+                          ? onContinueToExport
+                          : null,
                       child: Text(l10n.personalizationContinueToExport),
                     ),
                   ],
@@ -407,9 +410,7 @@ class _ReadinessIssueCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             title,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
                       ],
@@ -422,11 +423,12 @@ class _ReadinessIssueCard extends StatelessWidget {
             ),
             PokeMapButton(
               key: correctionKey,
-              variant: issue.correctionKind ==
+              variant:
+                  issue.correctionKind ==
                       PersonalizationCorrectionKind.useSafeTheme
                   ? PokeMapButtonVariant.successOutline
                   : PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.small,
+              size: PokeMapButtonSize.large,
               leading: const Icon(Icons.build_outlined),
               onPressed: onCorrect,
               child: Text(copy.correctionLabel(issue)),
@@ -451,8 +453,8 @@ class _ReadinessCategoryCard extends StatelessWidget {
     final status = copy.categoryStatus(readiness);
     final summary = readiness.issues.isEmpty
         ? readiness.isConfigured
-            ? l10n.personalizationCategoryValid
-            : l10n.personalizationCategoryDefaultValid
+              ? l10n.personalizationCategoryValid
+              : l10n.personalizationCategoryDefaultValid
         : copy.issueSummary(readiness);
     return Semantics(
       key: ValueKey<String>(
