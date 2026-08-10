@@ -92,9 +92,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(PlayerPauseSurface), findsOneWidget);
-    expect(find.text('Interlude'), findsOneWidget);
-    final pause = tester.widget<PlayerPauseSurface>(
-      find.byType(PlayerPauseSurface),
+    expect(find.text('Interlude'), findsWidgets);
+    final pause = tester.widget<RuntimePlayerPauseShell>(
+      find.byType(RuntimePlayerPauseShell),
     );
     expect(pause.labels.pauseTitle, 'Interlude');
     expect(pause.labels.pokedex, 'Carnet');

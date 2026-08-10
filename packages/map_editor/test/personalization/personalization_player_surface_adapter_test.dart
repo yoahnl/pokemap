@@ -22,6 +22,9 @@ void main() {
       await tester.pumpWidget(_app(_adapter(entry.key)));
       await tester.pump();
       expect(find.byType(entry.value), findsOneWidget, reason: entry.key.name);
+      if (entry.key == PersonalizationStudioScene.pause) {
+        expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
+      }
     }
   });
 

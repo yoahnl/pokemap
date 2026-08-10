@@ -31,6 +31,21 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.labels = const PlayerPauseMenuLabels(),
   });
 
+  const RuntimePlayerPauseShell.root({
+    super.key,
+    required this.gameTitle,
+    required this.actions,
+    required this.onSelected,
+    required this.detail,
+    this.onTouchMenu,
+    this.activeInputSource,
+    this.logicalSelectionId,
+    this.focusController,
+    this.saveMessage,
+    this.labels = const PlayerPauseMenuLabels(),
+  })  : pauseSection = RuntimePlayerPauseSection.root,
+        onBackToRoot = _noop;
+
   final String gameTitle;
   final RuntimePlayerPauseSection pauseSection;
   final Map<PlayerPauseAction, PlayerActionAvailability> actions;
@@ -43,6 +58,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final RuntimePlayerFocusController? focusController;
   final String? saveMessage;
   final PlayerPauseMenuLabels labels;
+
+  static void _noop() {}
 
   @override
   State<RuntimePlayerPauseShell> createState() =>
