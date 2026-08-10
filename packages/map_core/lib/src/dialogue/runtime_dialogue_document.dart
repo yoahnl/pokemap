@@ -14,13 +14,15 @@ final class RuntimeDialogueDocument {
     }
     if (this.nodes.isEmpty) {
       throw const FormatException(
-          'Runtime dialogue requires at least one node.');
+        'Runtime dialogue requires at least one node.',
+      );
     }
     final titles = <String>{};
     for (final node in this.nodes) {
       if (!titles.add(node.title)) {
         throw FormatException(
-            'Duplicate runtime dialogue node "${node.title}".');
+          'Duplicate runtime dialogue node "${node.title}".',
+        );
       }
     }
     for (final node in this.nodes) {
@@ -32,9 +34,9 @@ final class RuntimeDialogueDocument {
   final List<RuntimeDialogueNode> nodes;
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'format': version,
-        'nodes': nodes.map((node) => node.toJson()).toList(growable: false),
-      };
+    'format': version,
+    'nodes': nodes.map((node) => node.toJson()).toList(growable: false),
+  };
 
   static void _validateSteps(
     List<RuntimeDialogueStep> steps,
@@ -72,8 +74,8 @@ final class RuntimeDialogueNode {
   RuntimeDialogueNode({
     required String title,
     required List<RuntimeDialogueStep> steps,
-  })  : title = title.trim(),
-        steps = List.unmodifiable(steps) {
+  }) : title = title.trim(),
+       steps = List.unmodifiable(steps) {
     if (this.title.isEmpty) {
       throw const FormatException('Runtime dialogue node title is required.');
     }
@@ -88,9 +90,9 @@ final class RuntimeDialogueNode {
   final List<RuntimeDialogueStep> steps;
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'title': title,
-        'steps': steps.map((step) => step.toJson()).toList(growable: false),
-      };
+    'title': title,
+    'steps': steps.map((step) => step.toJson()).toList(growable: false),
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -109,26 +111,55 @@ sealed class RuntimeDialogueStep {
 }
 
 final class RuntimeDialogueLine extends RuntimeDialogueStep {
-  RuntimeDialogueLine(String text) : text = text.trim() {
+  RuntimeDialogueLine(
+    String text, {
+    String? characterId,
+    String? portraitStateId,
+  }) : text = text.trim(),
+       characterId = characterId?.trim(),
+       portraitStateId = portraitStateId?.trim() {
     if (this.text.isEmpty) {
       throw const FormatException('Runtime dialogue line cannot be empty.');
+    }
+    if (this.characterId?.isEmpty ?? false) {
+      throw const FormatException(
+        'Runtime dialogue character ID cannot be empty.',
+      );
+    }
+    if (this.portraitStateId?.isEmpty ?? false) {
+      throw const FormatException(
+        'Runtime dialogue portrait state ID cannot be empty.',
+      );
+    }
+    if (this.characterId == null && this.portraitStateId != null) {
+      throw const FormatException(
+        'Runtime dialogue portrait state requires a character ID.',
+      );
     }
   }
 
   final String text;
+  final String? characterId;
+  final String? portraitStateId;
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
-        'kind': 'line',
-        'text': text,
-      };
+    'kind': 'line',
+    'text': text,
+    if (characterId != null) 'characterId': characterId,
+    if (portraitStateId != null) 'portraitStateId': portraitStateId,
+  };
 
   @override
   bool operator ==(Object other) =>
-      other is RuntimeDialogueLine && text == other.text;
+      other is RuntimeDialogueLine &&
+      text == other.text &&
+      characterId == other.characterId &&
+      portraitStateId == other.portraitStateId;
 
   @override
-  int get hashCode => Object.hash(runtimeType, text);
+  int get hashCode =>
+      Object.hash(runtimeType, text, characterId, portraitStateId);
 }
 
 final class RuntimeDialogueJump extends RuntimeDialogueStep {
@@ -142,9 +173,9 @@ final class RuntimeDialogueJump extends RuntimeDialogueStep {
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
-        'kind': 'jump',
-        'targetNode': targetNode,
-      };
+    'kind': 'jump',
+    'targetNode': targetNode,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -156,7 +187,7 @@ final class RuntimeDialogueJump extends RuntimeDialogueStep {
 
 final class RuntimeDialogueChoiceBlock extends RuntimeDialogueStep {
   RuntimeDialogueChoiceBlock(List<RuntimeDialogueChoice> choices)
-      : choices = List.unmodifiable(choices) {
+    : choices = List.unmodifiable(choices) {
     if (this.choices.isEmpty) {
       throw const FormatException(
         'Runtime dialogue choice block cannot be empty.',
@@ -168,10 +199,9 @@ final class RuntimeDialogueChoiceBlock extends RuntimeDialogueStep {
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
-        'kind': 'choices',
-        'choices':
-            choices.map((choice) => choice.toJson()).toList(growable: false),
-      };
+    'kind': 'choices',
+    'choices': choices.map((choice) => choice.toJson()).toList(growable: false),
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -187,9 +217,9 @@ final class RuntimeDialogueChoice {
     required String text,
     required List<RuntimeDialogueStep> steps,
     String? outcomeId,
-  })  : text = text.trim(),
-        steps = List.unmodifiable(steps),
-        outcomeId = outcomeId?.trim() {
+  }) : text = text.trim(),
+       steps = List.unmodifiable(steps),
+       outcomeId = outcomeId?.trim() {
     if (this.text.isEmpty) {
       throw const FormatException('Runtime dialogue choice text is required.');
     }
@@ -205,10 +235,10 @@ final class RuntimeDialogueChoice {
   final String? outcomeId;
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'text': text,
-        if (outcomeId != null) 'outcomeId': outcomeId,
-        'steps': steps.map((step) => step.toJson()).toList(growable: false),
-      };
+    'text': text,
+    if (outcomeId != null) 'outcomeId': outcomeId,
+    'steps': steps.map((step) => step.toJson()).toList(growable: false),
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -224,9 +254,8 @@ final class RuntimeDialogueChoice {
 final class RuntimeDialogueDocumentCodec {
   const RuntimeDialogueDocumentCodec();
 
-  Uint8List encodeUtf8(RuntimeDialogueDocument document) => Uint8List.fromList(
-        canonicalizeNarrativeEventJsonUtf8(document.toJson()),
-      );
+  Uint8List encodeUtf8(RuntimeDialogueDocument document) =>
+      Uint8List.fromList(canonicalizeNarrativeEventJsonUtf8(document.toJson()));
 
   RuntimeDialogueDocument decodeUtf8(List<int> bytes) {
     final Object? decoded;
@@ -241,10 +270,7 @@ final class RuntimeDialogueDocumentCodec {
   }
 
   RuntimeDialogueDocument decodeJson(Object? value) {
-    final json = _object(
-      value,
-      required: const <String>{'format', 'nodes'},
-    );
+    final json = _object(value, required: const <String>{'format', 'nodes'});
     final format = json['format'];
     if (format != 1) {
       throw const FormatException('Unsupported runtime dialogue format.');
@@ -254,10 +280,7 @@ final class RuntimeDialogueDocumentCodec {
   }
 
   RuntimeDialogueNode _decodeNode(Object? value) {
-    final json = _object(
-      value,
-      required: const <String>{'title', 'steps'},
-    );
+    final json = _object(value, required: const <String>{'title', 'steps'});
     return RuntimeDialogueNode(
       title: _string(json['title']),
       steps: _list(json['steps']).map(_decodeStep).toList(growable: false),
@@ -268,30 +291,46 @@ final class RuntimeDialogueDocumentCodec {
     final source = _object(
       value,
       required: const <String>{'kind'},
-      optional: const <String>{'text', 'targetNode', 'choices'},
+      optional: const <String>{
+        'text',
+        'targetNode',
+        'choices',
+        'characterId',
+        'portraitStateId',
+      },
     );
     return switch (_string(source['kind'])) {
       'line' => RuntimeDialogueLine(
-          _string(
-            _exact(source, required: const <String>{'kind', 'text'})['text'],
-          ),
+        _string(
+          _exact(
+            source,
+            required: const <String>{'kind', 'text'},
+            optional: const <String>{'characterId', 'portraitStateId'},
+          )['text'],
         ),
+        characterId: source.containsKey('characterId')
+            ? _string(source['characterId'])
+            : null,
+        portraitStateId: source.containsKey('portraitStateId')
+            ? _string(source['portraitStateId'])
+            : null,
+      ),
       'jump' => RuntimeDialogueJump(
-          _string(
-            _exact(
-              source,
-              required: const <String>{'kind', 'targetNode'},
-            )['targetNode'],
-          ),
+        _string(
+          _exact(
+            source,
+            required: const <String>{'kind', 'targetNode'},
+          )['targetNode'],
         ),
+      ),
       'choices' => RuntimeDialogueChoiceBlock(
-          _list(
-            _exact(
-              source,
-              required: const <String>{'kind', 'choices'},
-            )['choices'],
-          ).map(_decodeChoice).toList(growable: false),
-        ),
+        _list(
+          _exact(
+            source,
+            required: const <String>{'kind', 'choices'},
+          )['choices'],
+        ).map(_decodeChoice).toList(growable: false),
+      ),
       _ => throw const FormatException('Unknown runtime dialogue step kind.'),
     };
   }
@@ -304,8 +343,9 @@ final class RuntimeDialogueDocumentCodec {
     );
     return RuntimeDialogueChoice(
       text: _string(json['text']),
-      outcomeId:
-          json.containsKey('outcomeId') ? _string(json['outcomeId']) : null,
+      outcomeId: json.containsKey('outcomeId')
+          ? _string(json['outcomeId'])
+          : null,
       steps: _list(json['steps']).map(_decodeStep).toList(growable: false),
     );
   }
@@ -334,8 +374,9 @@ final class RuntimeDialogueDocumentCodec {
     Set<String> optional = const <String>{},
   }) {
     if (!value.keys.toSet().containsAll(required) ||
-        value.keys
-            .any((key) => !required.contains(key) && !optional.contains(key))) {
+        value.keys.any(
+          (key) => !required.contains(key) && !optional.contains(key),
+        )) {
       throw const FormatException('Invalid runtime dialogue object fields.');
     }
     return value;

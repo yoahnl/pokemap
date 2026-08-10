@@ -1,5 +1,30 @@
 import 'runtime_dialogue_document.dart';
 
+final class YarnDialogueFormatException extends FormatException {
+  YarnDialogueFormatException(
+    String message, {
+    required this.lineNumber,
+    required this.sourceLine,
+  }) : super('$message (line $lineNumber)', sourceLine, lineNumber);
+
+  final int lineNumber;
+  final String sourceLine;
+}
+
+final class _PortraitDirective {
+  const _PortraitDirective({
+    required this.characterId,
+    required this.portraitStateId,
+    required this.lineNumber,
+    required this.sourceLine,
+  });
+
+  final String characterId;
+  final String portraitStateId;
+  final int lineNumber;
+  final String sourceLine;
+}
+
 /// Compiles the deliberately small Yarn subset supported by PokeMap runtime.
 final class YarnDialogueCompiler {
   const YarnDialogueCompiler();
@@ -14,6 +39,65 @@ final class YarnDialogueCompiler {
     String? currentChoiceText;
     String? currentChoiceOutcomeId;
     final currentChoiceSteps = <RuntimeDialogueStep>[];
+    _PortraitDirective? pendingPortrait;
+
+    Never invalidPortrait(String message, int lineNumber, String sourceLine) {
+      throw YarnDialogueFormatException(
+        message,
+        lineNumber: lineNumber,
+        sourceLine: sourceLine,
+      );
+    }
+
+    void requirePortraitConsumed() {
+      final pending = pendingPortrait;
+      if (pending == null) return;
+      invalidPortrait(
+        'A portrait directive must be followed by a dialogue line.',
+        pending.lineNumber,
+        pending.sourceLine,
+      );
+    }
+
+    _PortraitDirective? consumePortrait() {
+      final result = pendingPortrait;
+      pendingPortrait = null;
+      return result;
+    }
+
+    void readPortraitDirective(
+      String value,
+      int lineNumber,
+      String sourceLine,
+    ) {
+      if (!value.startsWith('<<portrait')) return;
+      if (pendingPortrait != null) requirePortraitConsumed();
+      final match = RegExp(
+        r'^<<portrait\s+([^\s>]+)\s+([^\s>]+)>>$',
+      ).firstMatch(value);
+      if (match == null) {
+        invalidPortrait(
+          'Invalid portrait directive. Expected <<portrait characterId portraitStateId>>.',
+          lineNumber,
+          sourceLine,
+        );
+      }
+      pendingPortrait = _PortraitDirective(
+        characterId: match.group(1)!,
+        portraitStateId: match.group(2)!,
+        lineNumber: lineNumber,
+        sourceLine: sourceLine,
+      );
+    }
+
+    RuntimeDialogueLine dialogueLine(String text) {
+      final portrait = consumePortrait();
+      return RuntimeDialogueLine(
+        text,
+        characterId: portrait?.characterId,
+        portraitStateId: portrait?.portraitStateId,
+      );
+    }
 
     void closeChoiceOption() {
       if (currentChoiceText != null) {
@@ -31,6 +115,7 @@ final class YarnDialogueCompiler {
     }
 
     void closeChoiceBlock() {
+      requirePortraitConsumed();
       closeChoiceOption();
       if (currentChoices.isNotEmpty) {
         rootSteps.add(
@@ -42,6 +127,7 @@ final class YarnDialogueCompiler {
     }
 
     void closeNode() {
+      requirePortraitConsumed();
       if (inChoiceBlock) closeChoiceBlock();
       if (currentTitle != null && rootSteps.isNotEmpty) {
         nodes.add(
@@ -54,9 +140,13 @@ final class YarnDialogueCompiler {
       currentTitle = null;
       rootSteps.clear();
       inBody = false;
+      pendingPortrait = null;
     }
 
-    for (final raw in source.split('\n')) {
+    final sourceLines = source.split('\n');
+    for (var lineIndex = 0; lineIndex < sourceLines.length; lineIndex++) {
+      final raw = sourceLines[lineIndex];
+      final lineNumber = lineIndex + 1;
       final line = raw.trimRight();
       final trimmed = line.trim();
       if (!inBody) {
@@ -75,6 +165,7 @@ final class YarnDialogueCompiler {
           currentChoiceText = null;
           currentChoiceOutcomeId = null;
           currentChoiceSteps.clear();
+          pendingPortrait = null;
         }
         continue;
       }
@@ -89,20 +180,28 @@ final class YarnDialogueCompiler {
             'Indented Yarn content must belong to a choice.',
           );
         }
-        if (trimmed.startsWith('<<outcome ') && trimmed.endsWith('>>')) {
-          final outcomeId =
-              trimmed.substring('<<outcome '.length, trimmed.length - 2).trim();
+        if (trimmed.startsWith('<<portrait')) {
+          readPortraitDirective(trimmed, lineNumber, line);
+        } else if (trimmed.startsWith('<<outcome ') && trimmed.endsWith('>>')) {
+          requirePortraitConsumed();
+          final outcomeId = trimmed
+              .substring('<<outcome '.length, trimmed.length - 2)
+              .trim();
           if (outcomeId.isNotEmpty) currentChoiceOutcomeId = outcomeId;
         } else if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
+          requirePortraitConsumed();
           currentChoiceSteps.add(
             RuntimeDialogueJump(
               trimmed.substring('<<jump '.length, trimmed.length - 2),
             ),
           );
         } else if (!(trimmed.startsWith('<<') && trimmed.endsWith('>>'))) {
-          currentChoiceSteps.add(RuntimeDialogueLine(trimmed));
+          currentChoiceSteps.add(dialogueLine(trimmed));
+        } else {
+          requirePortraitConsumed();
         }
       } else if (trimmed.startsWith('->')) {
+        requirePortraitConsumed();
         if (!inChoiceBlock) {
           inChoiceBlock = true;
         } else {
@@ -110,17 +209,22 @@ final class YarnDialogueCompiler {
         }
         currentChoiceText = trimmed.substring(2).trim();
       } else if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
+        requirePortraitConsumed();
         if (inChoiceBlock) closeChoiceBlock();
         rootSteps.add(
           RuntimeDialogueJump(
             trimmed.substring('<<jump '.length, trimmed.length - 2),
           ),
         );
+      } else if (trimmed.startsWith('<<portrait')) {
+        if (inChoiceBlock) closeChoiceBlock();
+        readPortraitDirective(trimmed, lineNumber, line);
       } else if (trimmed.startsWith('<<') && trimmed.endsWith('>>')) {
+        requirePortraitConsumed();
         if (inChoiceBlock) closeChoiceBlock();
       } else {
         if (inChoiceBlock) closeChoiceBlock();
-        rootSteps.add(RuntimeDialogueLine(trimmed));
+        rootSteps.add(dialogueLine(trimmed));
       }
     }
     if (inBody) {
