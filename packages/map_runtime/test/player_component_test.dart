@@ -84,7 +84,69 @@ void main() {
       expect(component.position.x, greaterThan(initialX));
       expect(component.position.x, lessThan(16));
     });
+
+    test('consecutive legacy walk steps keep the same cadence', () async {
+      final component = PlayerComponent(
+        bundle: _bundle(),
+        state: _stateAt(const GridPos(x: 0, y: 0)),
+        characterEntry: _legacyCharacter(),
+        tileImages: const {},
+        mapOrigin: Vector2.zero(),
+      );
+
+      await component.onLoad();
+
+      final firstStepStartX = component.position.x;
+      component.startStep(
+        _stateAt(const GridPos(x: 1, y: 0)),
+        durationSeconds: 0.12,
+      );
+      component.update(0.02);
+      final firstStepDelta = component.position.x - firstStepStartX;
+      for (var i = 1; i < 6; i++) {
+        component.update(0.02);
+      }
+      expect(component.position.x, closeTo(16, 0.0001));
+
+      final secondStepStartX = component.position.x;
+      component.startStep(
+        _stateAt(const GridPos(x: 2, y: 0)),
+        durationSeconds: 0.12,
+      );
+      component.update(0.02);
+
+      final secondStepDelta = component.position.x - secondStepStartX;
+      expect(secondStepDelta, closeTo(firstStepDelta, 0.0001));
+    });
   });
+}
+
+ProjectCharacterEntry _legacyCharacter() {
+  return const ProjectCharacterEntry(
+    id: 'player',
+    name: 'Player',
+    tilesetId: 'hero',
+    animations: <CharacterAnimation>[
+      CharacterAnimation(
+        state: CharacterAnimationState.idle,
+        direction: EntityFacing.east,
+        frames: <CharacterAnimationFrame>[
+          CharacterAnimationFrame(
+            source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 2),
+          ),
+        ],
+      ),
+      CharacterAnimation(
+        state: CharacterAnimationState.walk,
+        direction: EntityFacing.east,
+        frames: <CharacterAnimationFrame>[
+          CharacterAnimationFrame(
+            source: TilesetSourceRect(x: 1, y: 0, width: 1, height: 2),
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 RuntimeMapBundle _bundle() {
