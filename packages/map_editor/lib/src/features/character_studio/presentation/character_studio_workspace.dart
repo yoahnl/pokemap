@@ -171,7 +171,27 @@ class _CharacterStudioWorkspaceState
             CharacterStudioAnimationsTab(
               project: project,
               character: character,
+              projectRootPath: editorState.projectRootPath ?? '',
+              projectRevision: Object.hash(
+                project,
+                notifier.projectSessionRevision,
+              ).toString(),
+              mediaResolver: _mediaResolver,
+              isSaving: snapshot.isSaving,
               onManageDefinitions: _showAnimationDefinitionManager,
+              onImportSource: (slot) => notifier.importCharacterAnimationSource(
+                characterId: character.id,
+                slotKey: slot.key,
+                currentSourceAssetId: slot.sourceAssetId,
+                loop: slot.loop,
+              ),
+              onSaveClip: (slot, frames) => notifier.saveCharacterAnimationClip(
+                characterId: character.id,
+                slotKey: slot.key,
+                sourceAssetId: slot.sourceAssetId,
+                frames: frames,
+                loop: slot.loop,
+              ),
             ),
           _ => _CharacterStudioSectionPlaceholder(section: _section),
         },

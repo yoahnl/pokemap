@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/character_studio/application/character_animation_matrix_model.dart';
+import 'package:map_editor/src/features/character_studio/application/character_studio_media_resolver.dart';
 import 'package:map_editor/src/features/character_studio/presentation/animations/animation_matrix.dart';
 import 'package:map_editor/src/features/character_studio/presentation/animations/character_studio_animations_tab.dart';
 import 'package:map_editor/src/theme/theme.dart';
@@ -97,7 +98,13 @@ void main() {
               child: CharacterStudioAnimationsTab(
                 project: project,
                 character: project.characters.single,
+                projectRootPath: '/project',
+                projectRevision: '1',
+                mediaResolver: _UnusedMediaResolver(),
+                isSaving: false,
                 onManageDefinitions: () => manageRequested = true,
+                onImportSource: (_) async => true,
+                onSaveClip: (_, _) async => true,
               ),
             ),
           ),
@@ -124,6 +131,12 @@ void main() {
       expect(manageRequested, isTrue);
     },
   );
+}
+
+final class _UnusedMediaResolver
+    implements CharacterStudioMediaResolverContract {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 Widget _harness(CharacterAnimationMatrixModel model) {

@@ -24,6 +24,7 @@ import '../../../application/services/map_viewport_navigation.dart';
 import '../../../application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
 import '../../../application/use_cases/character_use_cases.dart';
 import '../../character_studio/application/character_animation_definition_use_cases.dart';
+import '../../character_studio/application/character_animation_matrix_model.dart';
 import '../../../application/use_cases/environment_generator_apply_use_cases.dart';
 import '../../../application/use_cases/environment_generator_clear_use_cases.dart';
 import '../../../application/use_cases/environment_generator_regenerate_use_cases.dart';
@@ -14377,6 +14378,124 @@ class EditorNotifier extends _$EditorNotifier
         isSaving: false,
         errorMessage: 'Failed to delete animation definition: $error',
       );
+    }
+  }
+
+  Future<bool> saveCharacterAnimationClip({
+    required String characterId,
+    required CharacterAnimationSlotKey slotKey,
+    required String? sourceAssetId,
+    required List<CharacterAnimationFrame> frames,
+    required bool loop,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return false;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(saveCharacterAnimationClipUseCaseProvider)
+          .execute(
+            workspace,
+            project,
+            characterId: characterId,
+            slotKey: slotKey,
+            sourceAssetId: sourceAssetId,
+            frames: frames,
+            loop: loop,
+          );
+      _projectSessionRevision += 1;
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Animation clip updated',
+        errorMessage: null,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to update animation clip: $error',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> importCharacterAnimationSource({
+    required String characterId,
+    required CharacterAnimationSlotKey slotKey,
+    required String? currentSourceAssetId,
+    required bool loop,
+  }) async {
+    if (state.isSaving) return false;
+    final sourcePath = await ref
+        .read(characterStudioPortraitSourcePickerProvider)
+        .pickPng();
+    if (sourcePath == null || state.isSaving) return false;
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return false;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(characterAnimationSourceImportServiceProvider)
+          .import(
+            projectRootPath: workspace.projectRoot,
+            project: project,
+            characterId: characterId,
+            slotKey: slotKey,
+            sourcePath: sourcePath,
+            currentSourceAssetId: currentSourceAssetId,
+            loop: loop,
+          );
+      _projectSessionRevision += 1;
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Animation source imported',
+        errorMessage: null,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to import animation source: $error',
+      );
+      return false;
+    }
+  }
+
+  Future<bool> deleteCharacterAnimationClip({
+    required String characterId,
+    required CharacterAnimationSlotKey slotKey,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return false;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(deleteCharacterAnimationClipUseCaseProvider)
+          .execute(
+            workspace,
+            project,
+            characterId: characterId,
+            slotKey: slotKey,
+          );
+      _projectSessionRevision += 1;
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Animation clip deleted',
+        errorMessage: null,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to delete animation clip: $error',
+      );
+      return false;
     }
   }
 

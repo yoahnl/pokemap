@@ -13,6 +13,8 @@ import '../../../application/use_cases/project_tileset_use_cases.dart';
 import '../../../application/use_cases/trainer_use_cases.dart';
 import '../../../features/character_studio/application/character_studio_portrait_import_service.dart';
 import '../../../features/character_studio/application/character_animation_definition_use_cases.dart';
+import '../../../features/character_studio/application/character_animation_clip_use_cases.dart';
+import '../../../features/character_studio/application/character_animation_source_import_service.dart';
 import '../core/repository_providers.dart';
 
 part 'project_use_case_providers.g.dart';
@@ -236,6 +238,27 @@ final characterStudioPortraitImportServiceProvider =
 final characterStudioPortraitSourcePickerProvider =
     Provider<CharacterStudioPortraitSourcePicker>((ref) {
       return const FilePickerCharacterStudioPortraitSourcePicker();
+    });
+
+final saveCharacterAnimationClipUseCaseProvider =
+    Provider<SaveCharacterAnimationClipUseCase>((ref) {
+      return SaveCharacterAnimationClipUseCase(
+        ref.watch(characterStudioAuthoringGatewayProvider),
+      );
+    });
+
+final deleteCharacterAnimationClipUseCaseProvider =
+    Provider<DeleteCharacterAnimationClipUseCase>((ref) {
+      return DeleteCharacterAnimationClipUseCase(
+        ref.watch(characterStudioAuthoringGatewayProvider),
+      );
+    });
+
+final characterAnimationSourceImportServiceProvider =
+    Provider<CharacterAnimationSourceImportService>((ref) {
+      return CharacterAnimationSourceImportService(
+        gateway: ref.watch(characterStudioPortraitAssetGatewayProvider),
+      );
     });
 
 @riverpod

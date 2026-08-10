@@ -4,19 +4,37 @@ import 'package:map_core/map_core.dart';
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../application/character_animation_matrix_model.dart';
+import '../../application/character_studio_media_resolver.dart';
 import 'animation_matrix.dart';
+import 'character_animation_source_editor.dart';
 
 class CharacterStudioAnimationsTab extends StatefulWidget {
   const CharacterStudioAnimationsTab({
     super.key,
     required this.project,
     required this.character,
+    required this.projectRootPath,
+    required this.projectRevision,
+    required this.mediaResolver,
+    required this.isSaving,
     required this.onManageDefinitions,
+    required this.onImportSource,
+    required this.onSaveClip,
   });
 
   final ProjectManifest project;
   final ProjectCharacterEntry character;
+  final String projectRootPath;
+  final String projectRevision;
+  final CharacterStudioMediaResolverContract mediaResolver;
+  final bool isSaving;
   final VoidCallback onManageDefinitions;
+  final Future<bool> Function(CharacterAnimationMatrixSlot slot) onImportSource;
+  final Future<bool> Function(
+    CharacterAnimationMatrixSlot slot,
+    List<CharacterAnimationFrame> frames,
+  )
+  onSaveClip;
 
   @override
   State<CharacterStudioAnimationsTab> createState() =>
@@ -37,6 +55,7 @@ class _CharacterStudioAnimationsTabState
     final selectedKey = slots.any((slot) => slot.key == _selectedKey)
         ? _selectedKey
         : slots.firstOrNull?.key;
+    final selectedSlot = selectedKey == null ? null : model.slot(selectedKey);
 
     return Padding(
       key: const ValueKey<String>('character-studio-animations-tab'),
@@ -83,10 +102,54 @@ class _CharacterStudioAnimationsTabState
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: AnimationMatrix(
-              model: model,
-              selectedKey: selectedKey,
-              onSelected: (key) => setState(() => _selectedKey = key),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final matrix = AnimationMatrix(
+                  model: model,
+                  selectedKey: selectedKey,
+                  onSelected: (key) => setState(() => _selectedKey = key),
+                );
+                final editor = selectedSlot == null
+                    ? const PokeMapEmptyState(
+                        title: 'Aucun slot sélectionné',
+                        description:
+                            'Sélectionnez une direction dans la matrice.',
+                      )
+                    : CharacterAnimationSourceEditor(
+                        key: ValueKey<String>(
+                          'animation-source-${selectedSlot.key.stableId}',
+                        ),
+                        slot: selectedSlot,
+                        projectRootPath: widget.projectRootPath,
+                        projectRevision: widget.projectRevision,
+                        mediaResolver: widget.mediaResolver,
+                        enabled: !widget.isSaving,
+                        onImportSource: () async {
+                          await widget.onImportSource(selectedSlot);
+                        },
+                        onFramesChanged: (frames) async {
+                          await widget.onSaveClip(selectedSlot, frames);
+                        },
+                      );
+                if (constraints.maxWidth >= 1080) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(flex: 11, child: matrix),
+                      const SizedBox(width: 12),
+                      Expanded(flex: 9, child: editor),
+                    ],
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(flex: 11, child: matrix),
+                    const SizedBox(height: 12),
+                    Expanded(flex: 9, child: editor),
+                  ],
+                );
+              },
             ),
           ),
         ],
