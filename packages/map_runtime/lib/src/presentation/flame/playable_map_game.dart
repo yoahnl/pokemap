@@ -124,6 +124,7 @@ import 'flame_cinematic_fx_playback_adapter.dart';
 import 'flame_cinematic_media_playback_adapter.dart';
 import 'flame_cinematic_runtime_playback_sink.dart';
 import 'map_layers_component.dart';
+import 'overworld_render_priority.dart';
 import 'pixel_perfect_overworld_camera.dart';
 import 'overworld_actor_component.dart';
 import 'player_component.dart';
@@ -4081,9 +4082,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _updateActorDepthOrdering() {
-    _player.priority = 1000 + _player.footPoint.y.round();
+    _player.priority = overworldActorRenderPriority(_player.footPoint.y);
     for (final actor in _npcActors) {
-      actor.priority = 1000 + actor.depthSortY.round();
+      actor.priority = overworldActorRenderPriority(actor.depthSortY);
     }
   }
 
@@ -12016,7 +12017,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       originCellX: originCellX,
       originCellY: originCellY,
     );
-    backgroundLayers.priority = 0;
+    backgroundLayers.priority = overworldBackgroundRenderPriority;
     await world.add(backgroundLayers);
 
     final foregroundLayers = MapLayersComponent(
@@ -12033,7 +12034,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       originCellX: originCellX,
       originCellY: originCellY,
     );
-    foregroundLayers.priority = 100000;
+    foregroundLayers.priority = overworldForegroundRenderPriority;
     await world.add(foregroundLayers);
 
     final actorOcclusionLayers = SmartTileActorOcclusionLayerCollection(

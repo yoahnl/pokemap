@@ -6,8 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
+import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
 import 'package:map_runtime/src/presentation/flame/placed_element_occlusion_patch_component.dart';
 import 'package:map_runtime/src/presentation/flame/playable_map_game.dart';
+import 'package:map_runtime/src/presentation/flame/player_component.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -121,6 +123,32 @@ void main() {
       expect(patch.position.y, 64);
       expect(patch.priority, 1096);
     });
+
+    test('keeps actors above the background at negative world depths',
+        () async {
+      final game = _game(bundle: _bundle());
+      await _load(game);
+      final player = _player(game)..position.y = -1200;
+
+      game.update(0);
+
+      expect(player.priority, isNegative);
+      expect(_layers(game, MapLayerRenderPass.background).priority,
+          lessThan(player.priority));
+    });
+
+    test('keeps actors below the foreground at large positive world depths',
+        () async {
+      final game = _game(bundle: _bundle());
+      await _load(game);
+      final player = _player(game)..position.y = 200000;
+
+      game.update(0);
+
+      expect(player.priority, 99999);
+      expect(player.priority,
+          lessThan(_layers(game, MapLayerRenderPass.foreground).priority));
+    });
   });
 }
 
@@ -169,6 +197,17 @@ List<PlacedElementOcclusionPatchComponent> _occlusionPatches(
       .whereType<PlacedElementOcclusionPatchComponent>()
       .toList(growable: false);
 }
+
+PlayerComponent _player(PlayableMapGame game) =>
+    game.world.children.whereType<PlayerComponent>().single;
+
+MapLayersComponent _layers(
+  PlayableMapGame game,
+  MapLayerRenderPass pass,
+) =>
+    game.world.children.whereType<MapLayersComponent>().singleWhere(
+          (component) => component.renderPass == pass,
+        );
 
 RuntimeMapBundle _bundle({
   bool includeOcclusionMask = true,

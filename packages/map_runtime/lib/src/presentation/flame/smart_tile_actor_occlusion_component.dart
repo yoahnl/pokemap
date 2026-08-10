@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
+import 'overworld_render_priority.dart';
 import 'smart_tile_animation_activation_controller.dart';
 import 'smart_tile_visual_renderer.dart';
 
@@ -15,7 +16,10 @@ int smartTileActorOcclusionDepthPriority({
   required int ownerRow,
   required double cellHeight,
 }) =>
-    1001 + (mapOriginY + (ownerRow + 1) * cellHeight).round();
+    overworldActorRenderPriority(
+      mapOriginY + (ownerRow + 1) * cellHeight,
+      tieBreaker: 1,
+    );
 
 final class SmartTileActorOcclusionLayerCollection {
   SmartTileActorOcclusionLayerCollection({

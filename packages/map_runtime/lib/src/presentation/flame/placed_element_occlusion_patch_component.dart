@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../infrastructure/runtime_tileset_image.dart';
+import 'overworld_render_priority.dart';
 import 'quarter_turn_pixel_renderer.dart';
 import 'static_placed_element_occlusion_patch_resolution.dart';
 
@@ -120,7 +121,7 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
   void translateByMapOriginDelta(Vector2 delta) {
     position = position + delta;
     _currentDepthSortY += delta.y;
-    priority = (1000 + _currentDepthSortY).round();
+    priority = overworldActorRenderPriority(_currentDepthSortY);
   }
 
   @override

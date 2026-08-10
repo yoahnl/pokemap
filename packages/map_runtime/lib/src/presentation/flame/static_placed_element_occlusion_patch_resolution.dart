@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../../application/runtime_map_bundle.dart';
+import 'overworld_render_priority.dart';
 
 final class StaticPlacedElementOcclusionPatchInstruction {
   const StaticPlacedElementOcclusionPatchInstruction({
@@ -161,7 +162,7 @@ StaticPlacedElementOcclusionPatchInstruction? _resolveInstruction({
     visualWidth: visualWidth,
     visualHeight: visualHeight,
     depthSortY: depthSortY,
-    flamePriority: (1000 + depthSortY).round(),
+    flamePriority: overworldActorRenderPriority(depthSortY),
     opacity: instance.opacity.clamp(0.0, 1.0).toDouble(),
     occlusionMask: mask,
   );
