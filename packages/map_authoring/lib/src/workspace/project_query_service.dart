@@ -112,6 +112,7 @@ List<_QueryRecord>? _characterStudioRecords(
   final projection = const CharacterStudioResourceProjector().project(
     manifest: snapshot.manifest,
     workspaceRevision: snapshot.revision,
+    maps: snapshot.maps,
     selectedCharacterId: selectedCharacterId as String?,
   );
   final records = projection.records(request.resourceKind);

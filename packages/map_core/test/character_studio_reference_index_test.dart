@@ -77,6 +77,48 @@ void main() {
       );
     });
 
+    test('indexes character dependencies placed on maps', () {
+      final index = buildCharacterStudioReferenceIndex(
+        _manifest(),
+        maps: const <MapData>[
+          MapData(
+            id: 'village',
+            name: 'Village',
+            size: GridSize(width: 8, height: 8),
+            entities: <MapEntity>[
+              MapEntity(
+                id: 'elia_npc',
+                kind: MapEntityKind.npc,
+                pos: GridPos(x: 2, y: 3),
+                npc: MapEntityNpcData(characterId: 'hero'),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        index.referencesTo(
+          CharacterStudioReferenceTargetKind.character,
+          'hero',
+        ),
+        contains(
+          isA<CharacterStudioReference>()
+              .having(
+                (reference) => reference.sourceKind,
+                'sourceKind',
+                CharacterStudioReferenceSourceKind.mapNpc,
+              )
+              .having((reference) => reference.sourceId, 'sourceId', 'elia_npc')
+              .having(
+                (reference) => reference.path,
+                'path',
+                r'$.maps[village].entities[0].npc.characterId',
+              ),
+        ),
+      );
+    });
+
     test('returns deterministic immutable query results', () {
       final index = buildCharacterStudioReferenceIndex(
         _manifest(

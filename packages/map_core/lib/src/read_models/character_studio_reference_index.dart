@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart' show immutable;
 
+import '../models/map_data.dart';
 import '../models/project_manifest.dart';
 
 enum CharacterStudioReferenceTargetKind {
@@ -13,6 +14,7 @@ enum CharacterStudioReferenceSourceKind {
   newGameAvatar,
   trainer,
   cinematicAppearance,
+  mapNpc,
   characterPortrait,
   characterCustomAnimation,
 }
@@ -71,8 +73,9 @@ final class CharacterStudioReferenceIndex {
 }
 
 CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
-  ProjectManifest manifest,
-) {
+  ProjectManifest manifest, {
+  Iterable<MapData> maps = const <MapData>[],
+}) {
   final references = <CharacterStudioReference>[];
   final defaultPlayerId = manifest.settings.defaultPlayerCharacterId?.trim();
   if (defaultPlayerId != null && defaultPlayerId.isNotEmpty) {
@@ -149,6 +152,33 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
               r'$.cinematics['
               '$cinematicIndex].stageContext.actorAppearanceBindings['
               '$bindingIndex].characterId',
+        ),
+      );
+    }
+  }
+
+  final sortedMaps = maps.toList()
+    ..sort((left, right) => left.id.compareTo(right.id));
+  for (final map in sortedMaps) {
+    for (
+      var entityIndex = 0;
+      entityIndex < map.entities.length;
+      entityIndex++
+    ) {
+      final entity = map.entities[entityIndex];
+      final characterId = entity.npc?.characterId?.trim();
+      if (characterId == null || characterId.isEmpty) {
+        continue;
+      }
+      references.add(
+        CharacterStudioReference(
+          targetKind: CharacterStudioReferenceTargetKind.character,
+          targetId: characterId,
+          sourceKind: CharacterStudioReferenceSourceKind.mapNpc,
+          sourceId: entity.id,
+          path:
+              r'$.maps['
+              '${map.id}].entities[$entityIndex].npc.characterId',
         ),
       );
     }

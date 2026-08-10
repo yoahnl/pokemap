@@ -41,10 +41,14 @@ final class CharacterStudioResourceProjector {
   CharacterStudioResourceProjection project({
     required ProjectManifest manifest,
     required String workspaceRevision,
+    Iterable<MapData> maps = const <MapData>[],
     String? selectedCharacterId,
   }) {
     final selectedId = selectedCharacterId?.trim();
-    final references = buildCharacterStudioReferenceIndex(manifest);
+    final references = buildCharacterStudioReferenceIndex(
+      manifest,
+      maps: maps,
+    );
     final readiness = analyzeCharacterStudioReadiness(
       manifest: manifest,
       requiredCharacterIds: {

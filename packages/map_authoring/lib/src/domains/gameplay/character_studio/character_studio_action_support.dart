@@ -66,6 +66,7 @@ AuthoringMutationDraft characterStudioProjectDraft(
   required String path,
   Object? before,
   Object? after,
+  Map<String, MapData> projectedMaps = const <String, MapData>{},
   Map<String, Object?> preview = const <String, Object?>{},
 }) {
   final project = AuthoringResourceRef(
@@ -73,6 +74,44 @@ AuthoringMutationDraft characterStudioProjectDraft(
     id: 'project',
     revision: snapshot.resourceFingerprints['project'],
   );
+  final mapIds = projectedMaps.keys.toList()..sort();
+  final mapChanges = <AuthoringResourceChange>[];
+  final mapDiffs = <AuthoringDiffEntry>[];
+  for (final mapId in mapIds) {
+    final map = projectedMaps[mapId]!;
+    final resourceIdentity = 'map:$mapId';
+    final revision = snapshot.resourceFingerprints[resourceIdentity];
+    final storageKey = snapshot.resourceStorageKeys[resourceIdentity];
+    if (revision == null || storageKey == null) {
+      throw CharacterStudioActionException(
+        'character_studio.map_resource_unavailable',
+        'A referenced map cannot be changed by Character Studio.',
+        details: <String, Object?>{'mapId': mapId},
+      );
+    }
+    final mapResource = AuthoringResourceRef(
+      kind: 'map',
+      id: mapId,
+      revision: revision,
+    );
+    mapChanges.add(
+      AuthoringResourceChange(
+        resource: mapResource,
+        storageKey: storageKey,
+        beforeBytes: snapshot.resourceBytes(resourceIdentity),
+        afterBytes: encodeMapAuthoringDocument(map),
+      ),
+    );
+    mapDiffs.add(
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.replace,
+        resource: mapResource,
+        path: '/entities',
+        before: <String, Object?>{'characterReferencesChanged': true},
+        after: <String, Object?>{'characterReferencesChanged': true},
+      ),
+    );
+  }
   return AuthoringMutationDraft(
     changeSet: AuthoringChangeSet(
       changes: <AuthoringResourceChange>[
@@ -82,6 +121,7 @@ AuthoringMutationDraft characterStudioProjectDraft(
           beforeBytes: snapshot.resourceBytes('project'),
           afterBytes: _encodeCharacterStudioProject(snapshot, projected),
         ),
+        ...mapChanges,
       ],
       diff: AuthoringDiff(<AuthoringDiffEntry>[
         AuthoringDiffEntry(
@@ -95,6 +135,7 @@ AuthoringMutationDraft characterStudioProjectDraft(
           before: before,
           after: after,
         ),
+        ...mapDiffs,
       ]),
     ),
     preview: <String, Object?>{
@@ -154,6 +195,42 @@ final class CharacterStudioActionParameters {
     return string(key);
   }
 
+  bool contains(String key) => values.containsKey(key);
+
+  int positiveInt(String key) {
+    final value = values[key];
+    if (value is! int || value <= 0) {
+      throw CharacterStudioActionException(
+        'character_studio.parameters.positive_int_required',
+        '$key must be a positive integer.',
+        details: <String, Object?>{'parameter': key},
+      );
+    }
+    return value;
+  }
+
+  int? optionalPositiveInt(String key) {
+    if (!values.containsKey(key) || values[key] == null) return null;
+    return positiveInt(key);
+  }
+
+  bool boolean(String key) {
+    final value = values[key];
+    if (value is! bool) {
+      throw CharacterStudioActionException(
+        'character_studio.parameters.boolean_required',
+        '$key must be a boolean.',
+        details: <String, Object?>{'parameter': key},
+      );
+    }
+    return value;
+  }
+
+  bool? optionalBoolean(String key) {
+    if (!values.containsKey(key) || values[key] == null) return null;
+    return boolean(key);
+  }
+
   List<String> strings(String key) {
     final value = values[key];
     if (value is! List || value.any((item) => item is! String)) {
@@ -175,6 +252,23 @@ final class CharacterStudioActionParameters {
       result.add(item);
     }
     return result;
+  }
+
+  List<String>? optionalStrings(String key) {
+    if (!values.containsKey(key) || values[key] == null) return null;
+    return strings(key);
+  }
+
+  Map<String, Object?> object(String key) {
+    final value = values[key];
+    if (value is! Map || value.keys.any((entry) => entry is! String)) {
+      throw CharacterStudioActionException(
+        'character_studio.parameters.object_required',
+        '$key must be an object.',
+        details: <String, Object?>{'parameter': key},
+      );
+    }
+    return Map<String, Object?>.from(value);
   }
 }
 
