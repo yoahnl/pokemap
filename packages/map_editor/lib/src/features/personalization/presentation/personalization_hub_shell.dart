@@ -307,6 +307,7 @@ class _CategoryDetail extends StatelessWidget {
       ),
     ];
     return PokeMapPanel(
+      key: ValueKey<String>('personalization-category-detail-${category.name}'),
       header: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -339,7 +340,7 @@ class _CategoryDetail extends StatelessWidget {
       child: fillAvailableHeight
           ? ListView(
               key: ValueKey<String>(
-                'personalization-category-detail-${category.name}',
+                'personalization-category-detail-scroll-${category.name}',
               ),
               children: content,
             )

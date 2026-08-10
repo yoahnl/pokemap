@@ -138,43 +138,19 @@ void main() {
           .read(editorNotifierProvider.notifier)
           .initializePersonalizationStudioSession();
       await tester.pump();
-      final detailScrollable = find
-          .descendant(
-            of: find.byKey(
-              const ValueKey<String>(
-                'personalization-category-detail-branding',
-              ),
-            ),
-            matching: find.byType(Scrollable),
-          )
-          .first;
+      final detailScrollable = _detailScrollable('branding');
+      final runPreflight = find.byKey(
+        const ValueKey<String>('personalization-readiness-run-preflight'),
+      );
+      expect(detailScrollable, findsOneWidget);
 
-      await tester.scrollUntilVisible(
-        find.byKey(
-          const ValueKey<String>('personalization-readiness-run-preflight'),
-        ),
-        500,
-        scrollable: detailScrollable,
+      await _dragUntilHitTestable(
+        tester,
+        runPreflight,
+        detailScrollable,
+        dy: -500,
       );
-      await tester.ensureVisible(
-        find.byKey(
-          const ValueKey<String>('personalization-readiness-run-preflight'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find
-            .byKey(
-              const ValueKey<String>('personalization-readiness-run-preflight'),
-            )
-            .hitTestable(),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>('personalization-readiness-run-preflight'),
-        ),
-      );
+      await tester.tap(runPreflight.hitTestable());
       await tester.pump();
       await tester.pump();
 
@@ -190,28 +166,23 @@ void main() {
       await tester.pump();
       expect(exportCalls, 1);
 
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey<String>('personalization-preset-cinematic')),
-        -500,
-        scrollable: detailScrollable,
+      final cinematicPreset = find.byKey(
+        const ValueKey<String>('personalization-preset-cinematic'),
       );
-      expect(
-        find
-            .byKey(const ValueKey<String>('personalization-preset-cinematic'))
-            .hitTestable(),
-        findsOneWidget,
+      await _dragUntilHitTestable(
+        tester,
+        cinematicPreset,
+        detailScrollable,
+        dy: 500,
       );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('personalization-preset-cinematic')),
-      );
+      await tester.tap(cinematicPreset.hitTestable());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 20));
-      await tester.scrollUntilVisible(
-        find.byKey(
-          const ValueKey<String>('personalization-readiness-run-preflight'),
-        ),
-        500,
-        scrollable: detailScrollable,
+      await _dragUntilHitTestable(
+        tester,
+        runPreflight,
+        detailScrollable,
+        dy: -500,
       );
 
       expect(find.text('Preflight à relancer'), findsOneWidget);
@@ -842,21 +813,13 @@ void main() {
     final editPrimary = find.byKey(
       const ValueKey<String>('theme-edit-primary'),
     );
-    final detailScrollable = find
-        .descendant(
-          of: find.byKey(
-            const ValueKey<String>('personalization-category-detail-theme'),
-          ),
-          matching: find.byType(Scrollable),
-        )
-        .first;
-    await tester.scrollUntilVisible(
+    final detailScrollable = _detailScrollable('theme');
+    await _dragUntilHitTestable(
+      tester,
       editPrimary,
-      500,
-      scrollable: detailScrollable,
+      detailScrollable,
+      dy: -500,
     );
-    await tester.pumpAndSettle();
-    expect(editPrimary.hitTestable(), findsOneWidget);
     await tester.tap(editPrimary.hitTestable());
     await tester.pumpAndSettle();
 
@@ -1219,6 +1182,48 @@ void main() {
   });
 }
 
+Finder _detailScrollable(String category) {
+  final ownedScrollView = find.byKey(
+    ValueKey<String>('personalization-category-detail-scroll-$category'),
+  );
+  if (ownedScrollView.evaluate().isNotEmpty) {
+    return find
+        .descendant(of: ownedScrollView, matching: find.byType(Scrollable))
+        .first;
+  }
+  final detail = find.byKey(
+    ValueKey<String>('personalization-category-detail-$category'),
+  );
+  final nested = find.descendant(of: detail, matching: find.byType(Scrollable));
+  if (nested.evaluate().isNotEmpty) return nested.first;
+  return find.ancestor(of: detail, matching: find.byType(Scrollable)).first;
+}
+
+Future<void> _dragUntilHitTestable(
+  WidgetTester tester,
+  Finder target,
+  Finder scrollable, {
+  required double dy,
+}) async {
+  for (var attempt = 0; attempt < 12; attempt += 1) {
+    if (target.hitTestable().evaluate().isNotEmpty) return;
+    if (target.evaluate().isNotEmpty) {
+      await tester.ensureVisible(target);
+      await tester.pumpAndSettle();
+      if (target.hitTestable().evaluate().isNotEmpty) return;
+    }
+    final position = tester.state<ScrollableState>(scrollable).position;
+    final direction = dy.isNegative ? 1 : -1;
+    final next = (position.pixels + direction * dy.abs())
+        .clamp(position.minScrollExtent, position.maxScrollExtent)
+        .toDouble();
+    if (next == position.pixels) break;
+    position.jumpTo(next);
+    await tester.pumpAndSettle();
+  }
+  expect(target.hitTestable(), findsOneWidget);
+}
+
 final class _MemoryProjectGateway
     implements NarrativeDocumentGateway<ProjectManifest> {
   _MemoryProjectGateway(this.durableDocument);
@@ -1348,8 +1353,8 @@ final class _FixedAssetPicker implements PersonalizationStudioAssetPicker {
   }
 
   @override
-  Future<PersonalizationStudioIntroAssetSelection?>
-      pickTitleMotionAssets() => pickIntroAssets();
+  Future<PersonalizationStudioIntroAssetSelection?> pickTitleMotionAssets() =>
+      pickIntroAssets();
 }
 
 final class _FixedIntroImporter implements ProjectIntroVideoImporter {
