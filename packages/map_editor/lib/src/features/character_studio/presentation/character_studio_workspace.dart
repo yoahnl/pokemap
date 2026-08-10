@@ -185,13 +185,14 @@ class _CharacterStudioWorkspaceState
                 currentSourceAssetId: slot.sourceAssetId,
                 loop: slot.loop,
               ),
-              onSaveClip: (slot, frames) => notifier.saveCharacterAnimationClip(
-                characterId: character.id,
-                slotKey: slot.key,
-                sourceAssetId: slot.sourceAssetId,
-                frames: frames,
-                loop: slot.loop,
-              ),
+              onSaveClip: (slot, frames, loop) =>
+                  notifier.saveCharacterAnimationClip(
+                    characterId: character.id,
+                    slotKey: slot.key,
+                    sourceAssetId: slot.sourceAssetId,
+                    frames: frames,
+                    loop: loop,
+                  ),
             ),
           _ => _CharacterStudioSectionPlaceholder(section: _section),
         },

@@ -142,6 +142,7 @@ void main() {
               enabled: true,
               onImportSource: () async {},
               onFramesChanged: (frames) async => savedFrames = frames,
+              onLoopChanged: (_) async {},
             ),
           ),
         ),
@@ -153,6 +154,16 @@ void main() {
     await tester.enterText(
       find.byKey(const ValueKey<String>('animation-grid-duration')),
       '120',
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('animation-grid-apply')),
+    );
+    await tester.pump();
+    expect(
+      find
+          .byKey(const ValueKey<String>('animation-grid-apply'))
+          .hitTestable(),
+      findsOneWidget,
     );
     await tester.tap(
       find.byKey(const ValueKey<String>('animation-grid-apply')),

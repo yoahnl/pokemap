@@ -33,6 +33,7 @@ class CharacterStudioAnimationsTab extends StatefulWidget {
   final Future<bool> Function(
     CharacterAnimationMatrixSlot slot,
     List<CharacterAnimationFrame> frames,
+    bool loop,
   )
   onSaveClip;
 
@@ -128,7 +129,18 @@ class _CharacterStudioAnimationsTabState
                           await widget.onImportSource(selectedSlot);
                         },
                         onFramesChanged: (frames) async {
-                          await widget.onSaveClip(selectedSlot, frames);
+                          await widget.onSaveClip(
+                            selectedSlot,
+                            frames,
+                            selectedSlot.loop,
+                          );
+                        },
+                        onLoopChanged: (loop) async {
+                          await widget.onSaveClip(
+                            selectedSlot,
+                            selectedSlot.frames,
+                            loop,
+                          );
                         },
                       );
                 if (constraints.maxWidth >= 1080) {

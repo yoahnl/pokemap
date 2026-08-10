@@ -104,7 +104,7 @@ void main() {
                 isSaving: false,
                 onManageDefinitions: () => manageRequested = true,
                 onImportSource: (_) async => true,
-                onSaveClip: (_, _) async => true,
+                onSaveClip: (_, _, _) async => true,
               ),
             ),
           ),

@@ -9,6 +9,7 @@ import '../../application/character_animation_matrix_model.dart';
 import '../../application/character_animation_source_slicing.dart';
 import '../../application/character_studio_media_resolver.dart';
 import 'character_animation_frame_timeline.dart';
+import 'character_animation_preview.dart';
 
 class CharacterAnimationSourceEditor extends StatefulWidget {
   const CharacterAnimationSourceEditor({
@@ -20,6 +21,7 @@ class CharacterAnimationSourceEditor extends StatefulWidget {
     required this.enabled,
     required this.onImportSource,
     required this.onFramesChanged,
+    required this.onLoopChanged,
   });
 
   final CharacterAnimationMatrixSlot slot;
@@ -30,6 +32,7 @@ class CharacterAnimationSourceEditor extends StatefulWidget {
   final Future<void> Function() onImportSource;
   final Future<void> Function(List<CharacterAnimationFrame> frames)
   onFramesChanged;
+  final Future<void> Function(bool loop) onLoopChanged;
 
   @override
   State<CharacterAnimationSourceEditor> createState() =>
@@ -154,6 +157,16 @@ class _CharacterAnimationSourceEditorState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          CharacterAnimationPreview(
+            sourceBytes: bytes,
+            frames: widget.slot.frames,
+            loop: widget.slot.loop,
+            slotIdentity: widget.slot.key.stableId,
+            directionLabel: widget.slot.label,
+            enabled: widget.enabled,
+            onLoopChanged: widget.onLoopChanged,
+          ),
+          const SizedBox(height: 10),
           PokeMapPanel(
             padding: const EdgeInsets.all(12),
             child: Column(
