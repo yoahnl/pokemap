@@ -15,6 +15,7 @@ import '../../../features/character_studio/application/character_studio_portrait
 import '../../../features/character_studio/application/character_animation_definition_use_cases.dart';
 import '../../../features/character_studio/application/character_animation_clip_use_cases.dart';
 import '../../../features/character_studio/application/character_animation_source_import_service.dart';
+import '../../../features/character_studio/application/cinematic_character_animation_use_case.dart';
 import '../core/repository_providers.dart';
 
 part 'project_use_case_providers.g.dart';
@@ -419,10 +420,17 @@ final previewDeleteAnimationDefinitionUseCaseProvider =
 
 final deleteAnimationDefinitionUseCaseProvider =
     Provider<DeleteAnimationDefinitionUseCase>((ref) {
-      return DeleteAnimationDefinitionUseCase(
-        ref.watch(characterStudioAuthoringGatewayProvider),
-      );
-    });
+  return DeleteAnimationDefinitionUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
+});
+
+final upsertCinematicCharacterAnimationUseCaseProvider =
+    Provider<UpsertCinematicCharacterAnimationUseCase>((ref) {
+  return UpsertCinematicCharacterAnimationUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
+});
 
 @riverpod
 DeletePortraitStateUseCase deletePortraitStateUseCase(Ref ref) {

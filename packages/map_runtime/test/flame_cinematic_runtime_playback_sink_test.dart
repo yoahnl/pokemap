@@ -163,6 +163,39 @@ void main() {
       expect(host.cameraPosition, Vector2(10, 10));
       expect(host.actors['hero']!.focusPoint, Vector2(20, 20));
     });
+
+    test('awaits custom character animation and restores Base', () async {
+      final host = _FakeHost();
+      final sink = FlameCinematicRuntimePlaybackSink(
+        host: host,
+        project: _characterAnimationProject(),
+      );
+      final controller = CinematicRuntimePlaybackController(sink: sink);
+      final command = CharacterCustomAnimationRuntimeCommand(
+        actorId: 'hero',
+        definitionId: 'wave',
+      );
+      final asset = _visualAsset(
+        steps: <CinematicTimelineStep>[
+          buildCinematicCharacterCustomAnimationStep(
+            id: 'wave-step',
+            command: command,
+          ),
+        ],
+      );
+
+      final completion = controller.play(asset);
+      expect(host.actors['hero']!.playedDefinitions, <String>['wave']);
+
+      controller.update(const Duration(milliseconds: 299));
+      expect(controller.isPlaying, isTrue);
+      controller.update(const Duration(milliseconds: 1));
+
+      expect((await completion).success, isTrue);
+      expect(host.actors['hero']!.restoreCount, 1);
+      expect(host.actors['hero']!.facing, EntityFacing.north);
+      expect(host.emoteId, isNull);
+    });
   });
 }
 
@@ -255,7 +288,7 @@ final class _FakeHost implements FlameCinematicRuntimeHost {
   }
 }
 
-final class _FakeActor implements FlameCinematicRuntimeActorHandle {
+final class _FakeActor implements FlameCinematicCharacterAnimationActorHandle {
   _FakeActor(this.focusPoint, this.facing);
 
   @override
@@ -263,6 +296,29 @@ final class _FakeActor implements FlameCinematicRuntimeActorHandle {
 
   @override
   EntityFacing facing;
+  final List<String> playedDefinitions = <String>[];
+  int restoreCount = 0;
+
+  @override
+  String get actorId => 'fake';
+
+  @override
+  ProjectCharacterEntry get character => _characterAnimationCharacter();
+
+  @override
+  bool canPlayCustomAnimation(CharacterCustomAnimationClip clip) => true;
+
+  @override
+  void playCustomAnimation(CharacterCustomAnimationClip clip) {
+    playedDefinitions.add(clip.definitionId);
+    if (clip.direction != null) facing = clip.direction!;
+  }
+
+  @override
+  void restoreBase(EntityFacing facing) {
+    restoreCount += 1;
+    this.facing = facing;
+  }
 
   @override
   void setFacing(EntityFacing facing) {
@@ -273,6 +329,47 @@ final class _FakeActor implements FlameCinematicRuntimeActorHandle {
   void setFocusPoint(Vector2 focusPoint) {
     this.focusPoint = focusPoint.clone();
   }
+}
+
+ProjectManifest _characterAnimationProject() {
+  return ProjectManifest(
+    name: 'Cinematic custom animation',
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[],
+    characterStudioCatalog: const ProjectCharacterStudioCatalog(
+      customAnimationDefinitions: <CharacterCustomAnimationDefinition>[
+        CharacterCustomAnimationDefinition(
+          id: 'wave',
+          displayName: 'Wave',
+          mode: CharacterCustomAnimationMode.single,
+        ),
+      ],
+    ),
+  );
+}
+
+ProjectCharacterEntry _characterAnimationCharacter() {
+  return const ProjectCharacterEntry(
+    id: 'hero-character',
+    name: 'Hero',
+    tilesetId: 'hero',
+    customAnimations: <CharacterCustomAnimationClip>[
+      CharacterCustomAnimationClip(
+        definitionId: 'wave',
+        sourceAssetId: 'wave-source',
+        frames: <CharacterAnimationFrame>[
+          CharacterAnimationFrame(
+            source: TilesetSourceRect(x: 0, y: 0, width: 24, height: 32),
+            durationMs: 100,
+          ),
+          CharacterAnimationFrame(
+            source: TilesetSourceRect(x: 24, y: 0, width: 24, height: 32),
+            durationMs: 200,
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 CinematicAsset _visualAsset({

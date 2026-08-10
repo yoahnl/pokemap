@@ -82,6 +82,7 @@ void main() {
           'cinematic.timeline_duplicate',
           'cinematic.timeline_paste',
           'cinematic.timeline_delete',
+          'cinematic.character_animation.upsert',
         }),
       );
       expect(
@@ -90,6 +91,54 @@ void main() {
             .map((kind) => kind.id),
         contains('cinematic'),
       );
+    });
+
+    test('semantic action adds and updates a stable animation step', () {
+      final project = _manifest(cinematics: <CinematicAsset>[_cinematic()]);
+      final command = CharacterCustomAnimationRuntimeCommand(
+        actorId: 'hero',
+        definitionId: 'wave',
+        direction: EntityFacing.south,
+      );
+
+      final added = const CinematicActions().upsertCharacterAnimationStep(
+        project,
+        cinematicId: 'cine_timeline',
+        command: command,
+      );
+      final step = added.cinematics.single.timeline.steps.last;
+      final renamedDefinition = added.copyWith(
+        characterStudioCatalog: const ProjectCharacterStudioCatalog(
+          customAnimationDefinitions: <CharacterCustomAnimationDefinition>[
+            CharacterCustomAnimationDefinition(
+              id: 'wave',
+              displayName: 'Salut renommé',
+              mode: CharacterCustomAnimationMode.directional,
+            ),
+          ],
+        ),
+      );
+      final updated = const CinematicActions().upsertCharacterAnimationStep(
+        renamedDefinition,
+        cinematicId: 'cine_timeline',
+        stepId: step.id,
+        command: CharacterCustomAnimationRuntimeCommand(
+          actorId: command.actorId,
+          definitionId: command.definitionId,
+          direction: command.direction,
+          playback: CharacterCustomAnimationPlayback.repeatCount(2),
+        ),
+      );
+
+      expect(step.kind, CinematicTimelineStepKind.actorAnimation);
+      expect(
+        cinematicCharacterCustomAnimationCommandOf(
+          updated.cinematics.single.timeline.steps.last,
+        )!
+            .definitionId,
+        'wave',
+      );
+      expect(updated.cinematics.single.timeline.steps.last.id, step.id);
     });
   });
 }
@@ -100,6 +149,15 @@ ProjectManifest _manifest({List<CinematicAsset> cinematics = const []}) =>
       maps: const [],
       tilesets: const [],
       cinematics: cinematics,
+      characterStudioCatalog: const ProjectCharacterStudioCatalog(
+        customAnimationDefinitions: <CharacterCustomAnimationDefinition>[
+          CharacterCustomAnimationDefinition(
+            id: 'wave',
+            displayName: 'Saluer',
+            mode: CharacterCustomAnimationMode.directional,
+          ),
+        ],
+      ),
     );
 
 CinematicAsset _cinematic() => CinematicAsset(
@@ -124,4 +182,7 @@ CinematicAsset _cinematic() => CinematicAsset(
           ),
         ],
       ),
+      requiredActors: <CinematicActorRef>[
+        CinematicActorRef(actorId: 'hero', label: 'Héros'),
+      ],
     );

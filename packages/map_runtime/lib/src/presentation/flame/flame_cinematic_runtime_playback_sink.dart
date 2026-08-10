@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import '../../application/scene_runtime/cinematic_runtime_playback_controller.dart';
 import '../../application/scene_runtime/cinematic_media_playback_port.dart';
 import '../../application/scene_runtime/scene_cinematic_runtime_awaitable_result.dart';
+import '../../application/character_custom_animation_runtime_controller.dart';
 
 /// Minimal visual handle used by the production Flame cinematic sink.
 ///
@@ -21,6 +22,11 @@ abstract interface class FlameCinematicRuntimeActorHandle {
 
   void setFacing(EntityFacing facing);
 }
+
+abstract interface class FlameCinematicCharacterAnimationActorHandle
+    implements
+        FlameCinematicRuntimeActorHandle,
+        CharacterCustomAnimationRuntimeActor {}
 
 /// Host boundary implemented by [PlayableMapGame]'s Flame scene.
 ///
@@ -76,12 +82,14 @@ final class FlameCinematicRuntimePlaybackSink
     this.mediaPlaybackPort,
     this.dialogues = const [],
     this.mediaAssets = const [],
+    this.project,
   });
 
   final FlameCinematicRuntimeHost host;
   final CinematicRuntimeMediaPlaybackPort? mediaPlaybackPort;
   final List<ProjectDialogueEntry> dialogues;
   final List<CinematicMediaAsset> mediaAssets;
+  final ProjectManifest? project;
 
   _CinematicRuntimeVisualSnapshot? _snapshot;
   Map<String, FlameCinematicRuntimeActorHandle> _actors = const {};
@@ -89,6 +97,7 @@ final class FlameCinematicRuntimePlaybackSink
   bool _dialogueLineSignalled = false;
   Future<CinematicMediaPlaybackCheckpoint>? _mediaCheckpointFuture;
   Future<void>? _pendingMediaOperation;
+  CharacterCustomAnimationRuntimeController? _characterAnimationController;
 
   bool get isAwaitingDialogueLineAdvance =>
       _stepState is _DialogueLineStepState && !_dialogueLineSignalled;
@@ -187,6 +196,8 @@ final class FlameCinematicRuntimePlaybackSink
         final emoteId = cinematicTimelineActorEmoteEmoteIdOf(step)!;
         host.showCinematicActorEmote(actor, emoteId);
         _stepState = _ActorEmoteStepState(actor);
+      case CinematicTimelineStepKind.actorAnimation:
+        _beginCharacterAnimationStep(step);
       case CinematicTimelineStepKind.dialogueLine:
         final dialogueId = step.assetRef;
         if (dialogueId == null) {
@@ -248,6 +259,14 @@ final class FlameCinematicRuntimePlaybackSink
       case _DialogueLineStepState():
         break;
       case _AsyncStepState():
+        if (state is _AsyncCharacterAnimationStepState) {
+          final controller = _characterAnimationController;
+          controller?.update(context.delta);
+          final result = controller?.lastResultFor(state.actorId);
+          if (result != null) {
+            _applyCharacterAnimationResult(state, result);
+          }
+        }
         final error = state.error;
         if (error != null) {
           Error.throwWithStackTrace(
@@ -293,6 +312,7 @@ final class FlameCinematicRuntimePlaybackSink
       case _DialogueLineStepState():
         host.showCinematicDialogueLine(null);
       case _AsyncDialogueStepState():
+      case _AsyncCharacterAnimationStepState():
         break;
       case _AsyncMediaStepState():
         final command = cinematicMediaEndCommandForStep(context.step);
@@ -377,6 +397,7 @@ final class FlameCinematicRuntimePlaybackSink
     attempt(host.cancelCinematicDialogueAsset);
     attempt(() => host.showCinematicActorEmote(null, null));
     attempt(() => host.setCinematicFadeOpacity(null));
+    attempt(() => _characterAnimationController?.dispose());
     if (snapshot != null) {
       for (final actorSnapshot in snapshot.actors.values) {
         attempt(() => actorSnapshot.restore());
@@ -392,6 +413,7 @@ final class FlameCinematicRuntimePlaybackSink
     _snapshot = null;
     _actors = const {};
     _stepState = null;
+    _characterAnimationController = null;
     _dialogueLineSignalled = false;
 
     if (firstError != null) {
@@ -468,6 +490,19 @@ final class FlameCinematicRuntimePlaybackSink
           return invalid('has no emote id.');
         }
         return null;
+      case CinematicTimelineStepKind.actorAnimation:
+        final command = cinematicCharacterCustomAnimationCommandOf(step);
+        if (command == null) {
+          return invalid('has invalid character animation metadata.');
+        }
+        final actor = _resolveActorById(asset, step.actorId);
+        if (actor is! FlameCinematicCharacterAnimationActorHandle) {
+          return invalid('targets an actor without animation capability.');
+        }
+        if (project == null) {
+          return invalid('has no Character Studio runtime catalog.');
+        }
+        return _preflightCharacterAnimation(actor, command, invalid);
       case CinematicTimelineStepKind.fade:
         final fadeMode = step.metadata[cinematicTimelineFadeModeMetadataKey];
         if (fadeMode != CinematicTimelineFadeMode.fadeIn.name &&
@@ -537,6 +572,102 @@ final class FlameCinematicRuntimePlaybackSink
         state.stackTrace = stackTrace;
       },
     );
+  }
+
+  void _beginCharacterAnimationStep(CinematicTimelineStep step) {
+    final command = cinematicCharacterCustomAnimationCommandOf(step);
+    if (command == null) {
+      throw StateError('Invalid character animation step "${step.id}".');
+    }
+    final controller = _characterAnimationController ??=
+        CharacterCustomAnimationRuntimeController(
+      manifest: project!,
+      actorLookup: (actorId) {
+        final actor = _actors[actorId];
+        return actor is FlameCinematicCharacterAnimationActorHandle
+            ? actor
+            : null;
+      },
+    );
+    final state = _AsyncCharacterAnimationStepState(command.actorId);
+    _stepState = state;
+    controller.play(command).then(
+      (result) => _applyCharacterAnimationResult(state, result),
+      onError: (Object error, StackTrace stackTrace) {
+        state.error = error;
+        state.stackTrace = stackTrace;
+      },
+    );
+  }
+
+  CinematicRuntimeSinkPreflightResult? _preflightCharacterAnimation(
+    FlameCinematicCharacterAnimationActorHandle actor,
+    CharacterCustomAnimationRuntimeCommand command,
+    CinematicRuntimeSinkPreflightResult Function(String message) invalid,
+  ) {
+    try {
+      final definitions =
+          project!.characterStudioCatalog.customAnimationDefinitions;
+      CharacterCustomAnimationDefinition? definition;
+      for (final candidate in definitions) {
+        if (candidate.id == command.definitionId) {
+          definition = candidate;
+          break;
+        }
+      }
+      if (definition == null) {
+        return invalid('references an unknown definition.');
+      }
+      if (definition.mode == CharacterCustomAnimationMode.single &&
+          command.direction != null) {
+        return invalid('sets a direction on a single animation.');
+      }
+      if (definition.mode == CharacterCustomAnimationMode.directional &&
+          command.direction == null) {
+        return invalid('requires an animation direction.');
+      }
+      CharacterCustomAnimationClip? clip;
+      for (final candidate in actor.character.customAnimations) {
+        if (candidate.definitionId != command.definitionId) continue;
+        if (definition.mode == CharacterCustomAnimationMode.single &&
+            candidate.direction == null) {
+          clip = candidate;
+          break;
+        }
+        if (definition.mode == CharacterCustomAnimationMode.directional &&
+            candidate.direction == command.direction) {
+          clip = candidate;
+          break;
+        }
+      }
+      if (clip == null ||
+          clip.frames.isEmpty ||
+          !actor.canPlayCustomAnimation(clip)) {
+        return invalid('has no playable character animation clip.');
+      }
+      return null;
+    } on Object {
+      return invalid('cannot resolve its character animation actor.');
+    }
+  }
+
+  void _applyCharacterAnimationResult(
+    _AsyncCharacterAnimationStepState state,
+    CharacterCustomAnimationRuntimeResult result,
+  ) {
+    if (!identical(_stepState, state) || state.completed) return;
+    switch (result.status) {
+      case CharacterCustomAnimationRuntimeStatus.completed:
+      case CharacterCustomAnimationRuntimeStatus.fallbackApplied:
+        state.completed = true;
+      case CharacterCustomAnimationRuntimeStatus.interrupted:
+      case CharacterCustomAnimationRuntimeStatus.failed:
+        state.error = StateError(
+          'Character animation ${result.definitionId} ended with '
+          '${result.status.name}: ${result.diagnosticCode?.name ?? 'unknown'}.',
+        );
+        state.stackTrace = StackTrace.current;
+    }
   }
 
   Future<void> _queueMediaCommand(CinematicMediaPlaybackCommand command) {
@@ -888,6 +1019,12 @@ sealed class _AsyncStepState extends _FlameCinematicStepState {
 final class _AsyncDialogueStepState extends _AsyncStepState {}
 
 final class _AsyncMediaStepState extends _AsyncStepState {}
+
+final class _AsyncCharacterAnimationStepState extends _AsyncStepState {
+  _AsyncCharacterAnimationStepState(this.actorId);
+
+  final String actorId;
+}
 
 final class _FadeStepState extends _FlameCinematicStepState {
   const _FadeStepState({required this.fadeOut});

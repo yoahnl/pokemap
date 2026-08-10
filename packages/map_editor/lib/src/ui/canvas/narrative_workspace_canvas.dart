@@ -2681,6 +2681,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onUpdateTimelineActorMove: _updateCinematicTimelineActorMove,
       onAddTimelineActorEmote: _addCinematicTimelineActorEmote,
       onUpdateTimelineActorEmote: _updateCinematicTimelineActorEmote,
+      onUpsertTimelineActorAnimation: _upsertCinematicTimelineActorAnimation,
       onRemoveTimelineAuthoringStep: _removeCinematicTimelineAuthoringStep,
       onUpdateStageMap: _updateCinematicStageMap,
       onUpdateStageContext: _updateCinematicStageContext,
@@ -3389,6 +3390,22 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     } on ArgumentError {
       return false;
     }
+  }
+
+  Future<String?> _upsertCinematicTimelineActorAnimation({
+    required String cinematicId,
+    required CharacterCustomAnimationRuntimeCommand command,
+    String? stepId,
+    String? afterStepId,
+    String? label,
+  }) {
+    return widget.editorNotifier.upsertCinematicCharacterAnimation(
+      cinematicId: cinematicId,
+      command: command,
+      stepId: stepId,
+      afterStepId: afterStepId,
+      label: label,
+    );
   }
 
   Future<bool> _removeCinematicTimelineAuthoringStep({

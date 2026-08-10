@@ -4,6 +4,7 @@ enum CinematicActorWalkingAnimationPreviewKind {
   idle,
   walk,
   run,
+  custom,
   fallback,
 }
 
@@ -82,6 +83,8 @@ final class CinematicActorWalkingAnimationPreviewFrame {
     this.sourceRect,
     this.characterId,
     this.tilesetId,
+    this.sourceAssetId,
+    this.usesPixelCoordinates = false,
   }) : diagnostics =
             List<CinematicActorWalkingAnimationPreviewDiagnostic>.unmodifiable(
           diagnostics,
@@ -99,6 +102,8 @@ final class CinematicActorWalkingAnimationPreviewFrame {
   final TilesetSourceRect? sourceRect;
   final String? characterId;
   final String? tilesetId;
+  final String? sourceAssetId;
+  final bool usesPixelCoordinates;
 
   @override
   bool operator ==(Object other) =>
@@ -115,7 +120,9 @@ final class CinematicActorWalkingAnimationPreviewFrame {
           _listEquals(other.diagnostics, diagnostics) &&
           other.sourceRect == sourceRect &&
           other.characterId == characterId &&
-          other.tilesetId == tilesetId;
+          other.tilesetId == tilesetId &&
+          other.sourceAssetId == sourceAssetId &&
+          other.usesPixelCoordinates == usesPixelCoordinates;
 
   @override
   int get hashCode => Object.hash(
@@ -131,6 +138,8 @@ final class CinematicActorWalkingAnimationPreviewFrame {
         sourceRect,
         characterId,
         tilesetId,
+        sourceAssetId,
+        usesPixelCoordinates,
       );
 }
 
@@ -173,14 +182,16 @@ CinematicActorWalkingAnimationPreviewFrame
   final diagnostics = <CinematicActorWalkingAnimationPreviewDiagnostic>[];
   final pose = playbackFrame?.actorPoseById(actor.actorId);
   if (pose == null) {
-    diagnostics.add(_diagnostic(
-      CinematicActorWalkingAnimationPreviewDiagnosticCode
-          .walkingAnimationPoseMissing,
-      CinematicActorWalkingAnimationPreviewDiagnosticSeverity.info,
-      'Pose fixe utilisée pour cet acteur.',
-      actor,
-      character,
-    ));
+    diagnostics.add(
+      _diagnostic(
+        CinematicActorWalkingAnimationPreviewDiagnosticCode
+            .walkingAnimationPoseMissing,
+        CinematicActorWalkingAnimationPreviewDiagnosticSeverity.info,
+        'Pose fixe utilisée pour cet acteur.',
+        actor,
+        character,
+      ),
+    );
   }
 
   final moving = pose != null &&
@@ -229,6 +240,43 @@ CinematicActorWalkingAnimationPreviewFrame
     );
   }
 
+  final activeCustomAnimation = _activeCustomAnimationFor(
+    playbackFrame,
+    actor.actorId,
+  );
+  if (activeCustomAnimation != null) {
+    final clip = _customClipFor(character, activeCustomAnimation.command);
+    if (clip != null && clip.frames.isNotEmpty) {
+      final frameIndex = _frameIndexFor(
+        frames: clip.frames,
+        kind: CinematicActorWalkingAnimationPreviewKind.custom,
+        playbackTimeMs: activeCustomAnimation.elapsedMs,
+      );
+      final frame = clip.frames[frameIndex];
+      if (_isValidSource(frame.source)) {
+        return CinematicActorWalkingAnimationPreviewFrame(
+          actorId: actor.actorId,
+          kind: CinematicActorWalkingAnimationPreviewKind.custom,
+          direction: clip.direction,
+          frameIndex: frameIndex,
+          frameDurationMs: _durationFor(
+            frame,
+            CinematicActorWalkingAnimationPreviewKind.custom,
+          ),
+          isMoving: false,
+          isFallback: false,
+          fallbackReason: CinematicActorWalkingAnimationFallbackReason.none,
+          diagnostics: diagnostics,
+          sourceRect: frame.source,
+          characterId: character.id,
+          tilesetId: clip.sourceAssetId,
+          sourceAssetId: clip.sourceAssetId,
+          usesPixelCoordinates: true,
+        );
+      }
+    }
+  }
+
   if (actor.appearance.status !=
           CinematicActorPreviewAppearanceStatus.spriteReady ||
       actor.renderHint != CinematicActorPreviewRenderHint.sprite) {
@@ -252,10 +300,7 @@ CinematicActorWalkingAnimationPreviewFrame
   }
 
   final requestedState = moving
-      ? _movementStateFor(
-          pose.activeStepId!,
-          timelineSteps,
-        )
+      ? _movementStateFor(pose.activeStepId!, timelineSteps)
       : CharacterAnimationState.idle;
   final selection = _selectAnimation(
     character: character,
@@ -284,9 +329,11 @@ CinematicActorWalkingAnimationPreviewFrame
     );
   }
 
-  diagnostics.addAll(selection.diagnostics.map(
-    (diagnostic) => diagnostic.withActor(actor, character),
-  ));
+  diagnostics.addAll(
+    selection.diagnostics.map(
+      (diagnostic) => diagnostic.withActor(actor, character),
+    ),
+  );
 
   final animation = selection.animation;
   if (animation.frames.isEmpty) {
@@ -355,6 +402,30 @@ CinematicActorWalkingAnimationPreviewFrame
     characterId: character.id,
     tilesetId: character.tilesetId,
   );
+}
+
+CinematicActorCustomAnimationPlaybackState? _activeCustomAnimationFor(
+  CinematicPreviewPlaybackFrame? playbackFrame,
+  String actorId,
+) {
+  if (playbackFrame == null) return null;
+  for (final state in playbackFrame.activeCharacterAnimations.reversed) {
+    if (state.command.actorId == actorId) return state;
+  }
+  return null;
+}
+
+CharacterCustomAnimationClip? _customClipFor(
+  ProjectCharacterEntry character,
+  CharacterCustomAnimationRuntimeCommand command,
+) {
+  for (final clip in character.customAnimations) {
+    if (clip.definitionId == command.definitionId &&
+        clip.direction == command.direction) {
+      return clip;
+    }
+  }
+  return null;
 }
 
 CharacterAnimationState _movementStateFor(
@@ -548,6 +619,7 @@ int _fallbackDurationFor(CinematicActorWalkingAnimationPreviewKind kind) {
     CinematicActorWalkingAnimationPreviewKind.run => 90,
     CinematicActorWalkingAnimationPreviewKind.idle ||
     CinematicActorWalkingAnimationPreviewKind.walk ||
+    CinematicActorWalkingAnimationPreviewKind.custom ||
     CinematicActorWalkingAnimationPreviewKind.fallback =>
       140,
   };
@@ -579,6 +651,7 @@ int _effectiveDurationForCadence({
     CinematicActorWalkingAnimationPreviewKind.run => 4.0,
     CinematicActorWalkingAnimationPreviewKind.walk => 2.0,
     CinematicActorWalkingAnimationPreviewKind.idle ||
+    CinematicActorWalkingAnimationPreviewKind.custom ||
     CinematicActorWalkingAnimationPreviewKind.fallback =>
       0.0,
   };

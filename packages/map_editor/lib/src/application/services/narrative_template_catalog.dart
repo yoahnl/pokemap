@@ -41,8 +41,9 @@ final class NarrativeTemplateDefinition {
         parameterLabels = Map<String, String>.unmodifiable(
           additionalRequiredParameters,
         ),
-        additionalRequiredParameters =
-            Map<String, String>.unmodifiable(additionalRequiredParameters);
+        additionalRequiredParameters = Map<String, String>.unmodifiable(
+          additionalRequiredParameters,
+        );
 
   NarrativeTemplateDefinition.asset({
     required this.kind,
@@ -396,8 +397,9 @@ NarrativeTemplatePreview previewNarrativeTemplate({
   if (project.scenes.any((scene) => scene.id == request.sceneId)) {
     diagnostics.add('Une Scene utilise déjà l’ID ${request.sceneId}.');
   }
-  if (project.eventRegistry?.records
-          .any((record) => record.id == request.eventId) ==
+  if (project.eventRegistry?.records.any(
+        (record) => record.id == request.eventId,
+      ) ==
       true) {
     diagnostics.add('Un Event utilise déjà l’ID ${request.eventId}.');
   }
@@ -427,11 +429,7 @@ NarrativeTemplatePreview previewNarrativeTemplate({
     diagnostics.addAll(_diagnoseFinishGameParameters(request.parameters));
   }
   diagnostics.addAll(
-    _diagnoseProjectReferences(
-      project,
-      template.command,
-      request.parameters,
-    ),
+    _diagnoseProjectReferences(project, template.command, request.parameters),
   );
   if (request.kind == NarrativeTemplateKind.conditionalNpc &&
       request.parameters['expectedValue'] != 'true' &&
@@ -550,8 +548,9 @@ List<String> _diagnoseParameterValues(
           diagnostics.add('${parameter.label} doit valoir vrai ou faux.');
         }
       case NarrativeCommandParameterKind.completionOutcome:
-        if (!SceneGameCompletionOutcome.values
-            .any((outcome) => outcome.name == value)) {
+        if (!SceneGameCompletionOutcome.values.any(
+          (outcome) => outcome.name == value,
+        )) {
           diagnostics.add('${parameter.label} est inconnue.');
         }
       case NarrativeCommandParameterKind.postGamePolicy:
@@ -681,7 +680,9 @@ NarrativeEventReusePolicy _reusePolicy(NarrativeTemplateKind kind) =>
       NarrativeTemplateKind.cinematicDialogueBeat ||
       NarrativeTemplateKind.worldRuleFactVisibility ||
       NarrativeTemplateKind.worldRuleDialogueOverride =>
-        throw StateError('This template does not create an Event.'),
+        throw StateError(
+          'This template does not create an Event.',
+        ),
     };
 
 /// Converts a publishable command form into its one canonical Scene wire.
@@ -759,6 +760,29 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
             ),
         },
       ),
+    NarrativeCommandIds.playCharacterAnimation =>
+      SceneActionPayload.interactive(
+        SceneInteractiveCommand.playCharacterAnimation(
+          runtimeCommand: CharacterCustomAnimationRuntimeCommand(
+            actorId: parameters['actorId']!,
+            definitionId: parameters['definitionId']!,
+            direction: switch (parameters['direction']) {
+              final direction? when direction.trim().isNotEmpty =>
+                EntityFacing.values.byName(direction),
+              _ => null,
+            },
+            playback: switch (parameters['playbackKind']) {
+              'repeatCount' => CharacterCustomAnimationPlayback.repeatCount(
+                  integer('repeatCount'),
+                ),
+              'forDuration' => CharacterCustomAnimationPlayback.forDuration(
+                  integer('durationMs'),
+                ),
+              _ => CharacterCustomAnimationPlayback.once(),
+            },
+          ),
+        ),
+      ),
     NarrativeCommandIds.warp => SceneActionPayload.interactive(
         SceneInteractiveCommand.warp(
           destinationMapId: parameters['destinationMapId']!,
@@ -775,8 +799,9 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       ),
     NarrativeCommandIds.openPc => SceneActionPayload.interactive(
         switch (parameters['storageId']) {
-          final storageId? =>
-            SceneInteractiveCommand.openPc(storageId: storageId),
+          final storageId? => SceneInteractiveCommand.openPc(
+              storageId: storageId,
+            ),
           null => SceneInteractiveCommand.openPc(),
         },
       ),
@@ -798,9 +823,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
       ),
     NarrativeCommandIds.staticEncounter => SceneBattlePayload(
         battleKind: 'static',
-        trainerId: _staticEncounterTrainerId(
-          parameters,
-        ),
+        trainerId: _staticEncounterTrainerId(parameters),
         battleTemplateId: _staticEncounterBattleTemplateId(parameters),
         declaredOutcomes: const ['victory', 'defeat'],
       ),
@@ -869,9 +892,7 @@ SceneFinishGameConsequence _buildFinishGameConsequence(
     final english = parameters[englishId]?.trim();
     return SceneLocalizedText(
       fallback: required(fallbackId),
-      translations: {
-        if (english != null && english.isNotEmpty) 'en': english,
-      },
+      translations: {if (english != null && english.isNotEmpty) 'en': english},
     );
   }
 
@@ -1065,9 +1086,7 @@ final class NarrativeTemplateTransactionRecord {
         .where((value) => value.name == statusName)
         .firstOrNull;
     if (status == null) {
-      throw const FormatException(
-        'Unknown Narrative template journal status.',
-      );
+      throw const FormatException('Unknown Narrative template journal status.');
     }
     return NarrativeTemplateTransactionRecord(
       transactionId: json['transactionId'] as String,

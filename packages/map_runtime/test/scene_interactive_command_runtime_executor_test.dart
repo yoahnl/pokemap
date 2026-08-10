@@ -17,6 +17,7 @@ void main() {
       openShop: handler,
       openHeal: handler,
       openPc: handler,
+      playCharacterAnimation: handler,
     );
     for (final command in <SceneInteractiveCommand>[
       SceneInteractiveCommand.warp(
@@ -31,6 +32,12 @@ void main() {
       SceneInteractiveCommand.openShop(shopId: 'shop.port'),
       SceneInteractiveCommand.openHeal(),
       SceneInteractiveCommand.openPc(),
+      SceneInteractiveCommand.playCharacterAnimation(
+        runtimeCommand: CharacterCustomAnimationRuntimeCommand(
+          actorId: 'npc.guard',
+          definitionId: 'wave',
+        ),
+      ),
     ]) {
       final result = await executor.execute(
         SceneRuntimePlanIntent.executeInteractiveCommand(command: command),
@@ -39,6 +46,31 @@ void main() {
     }
 
     expect(calls, SceneInteractiveCommandKind.values);
+  });
+
+  test('custom character animation is awaited through its dedicated handler',
+      () async {
+    SceneCharacterCustomAnimationInteractiveCommand? received;
+    final executor = SceneInteractiveCommandRuntimeExecutor(
+      warp: (_) async => 'completed',
+      playCharacterAnimation: (command) async {
+        received = command as SceneCharacterCustomAnimationInteractiveCommand;
+        return 'fallback';
+      },
+    );
+    final command = SceneInteractiveCommand.playCharacterAnimation(
+      runtimeCommand: CharacterCustomAnimationRuntimeCommand(
+        actorId: 'npc.guard',
+        definitionId: 'wave',
+      ),
+    );
+
+    final output = await executor.execute(
+      SceneRuntimePlanIntent.executeInteractiveCommand(command: command),
+    );
+
+    expect(output, 'fallback');
+    expect(received?.runtimeCommand.definitionId, 'wave');
   });
 
   test('projects Scene services into typed world requests', () async {

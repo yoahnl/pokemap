@@ -115,6 +115,48 @@ void main() {
     );
   });
 
+  testWidgets('custom animation uses actor definition and direction pickers',
+      (tester) async {
+    SceneNodePayload? submitted;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.playCharacterAnimation,
+      options: const {
+        NarrativeCommandParameterKind.actor: [
+          SceneActionPickerOption(id: 'player', label: 'Joueur'),
+        ],
+        NarrativeCommandParameterKind.customAnimationDefinition: [
+          SceneActionPickerOption(
+            id: 'wave',
+            label: 'Saluer',
+            parameters: {'animationMode': 'directional'},
+          ),
+        ],
+      },
+      onSubmit: (payload) => submitted = payload,
+    );
+
+    expect(find.text('Joueur'), findsOneWidget);
+    expect(find.text('Saluer'), findsOneWidget);
+    expect(find.text('Direction'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('scene-action-parameter-actorId')),
+      findsNothing,
+    );
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+
+    final command = (submitted! as SceneActionPayload).interactiveCommand!
+        as SceneCharacterCustomAnimationInteractiveCommand;
+    expect(command.runtimeCommand.actorId, 'player');
+    expect(command.runtimeCommand.definitionId, 'wave');
+    expect(command.runtimeCommand.direction, EntityFacing.south);
+    expect(
+      command.runtimeCommand.playback,
+      CharacterCustomAnimationPlayback.once(),
+    );
+  });
+
   testWidgets('badge and field ability use project-owned guided pickers',
       (tester) async {
     SceneNodePayload? badgePayload;

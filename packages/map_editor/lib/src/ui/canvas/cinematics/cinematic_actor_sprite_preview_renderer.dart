@@ -19,14 +19,10 @@ class CinematicActorSpritePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final src = spriteRef.sourceTileRect;
-    final frameW = spriteRef.frameWidthTiles * tileWidth;
-    final frameH = spriteRef.frameHeightTiles * tileHeight;
-    final srcRect = Rect.fromLTWH(
-      src.x * frameW.toDouble(),
-      src.y * frameH.toDouble(),
-      frameW.toDouble(),
-      frameH.toDouble(),
+    final srcRect = cinematicActorSpriteSourceRect(
+      spriteRef: spriteRef,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
     );
 
     if (srcRect.left < 0 ||
@@ -65,4 +61,28 @@ class CinematicActorSpritePainter extends CustomPainter {
         oldDelegate.tileHeight != tileHeight ||
         oldDelegate.outOfBoundsColor != outOfBoundsColor;
   }
+}
+
+Rect cinematicActorSpriteSourceRect({
+  required CinematicActorSpriteRef spriteRef,
+  required int tileWidth,
+  required int tileHeight,
+}) {
+  final source = spriteRef.sourceTileRect;
+  if (spriteRef.usesPixelCoordinates) {
+    return Rect.fromLTWH(
+      source.x.toDouble(),
+      source.y.toDouble(),
+      source.width.toDouble(),
+      source.height.toDouble(),
+    );
+  }
+  final frameWidth = spriteRef.frameWidthTiles * tileWidth;
+  final frameHeight = spriteRef.frameHeightTiles * tileHeight;
+  return Rect.fromLTWH(
+    source.x * frameWidth.toDouble(),
+    source.y * frameHeight.toDouble(),
+    frameWidth.toDouble(),
+    frameHeight.toDouble(),
+  );
 }

@@ -77,6 +77,69 @@ void main() {
       );
     });
 
+    test('indexes cinematic and Scene custom animation commands', () {
+      final animationCommand = CharacterCustomAnimationRuntimeCommand(
+        actorId: 'hero_actor',
+        definitionId: 'wave',
+      );
+      final index = buildCharacterStudioReferenceIndex(
+        _manifest(
+          cinematics: <CinematicAsset>[
+            CinematicAsset(
+              id: 'intro',
+              title: 'Intro',
+              timeline: CinematicTimeline(
+                steps: <CinematicTimelineStep>[
+                  buildCinematicCharacterCustomAnimationStep(
+                    id: 'wave_step',
+                    command: animationCommand,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          scenes: <SceneAsset>[
+            SceneAsset(
+              id: 'scene_intro',
+              name: 'Intro scene',
+              graph: SceneGraph(
+                startNodeId: 'start',
+                nodes: <SceneNode>[
+                  SceneNode(id: 'start', kind: SceneNodeKind.start),
+                  SceneNode(
+                    id: 'wave_action',
+                    kind: SceneNodeKind.action,
+                    payload: SceneActionPayload.interactive(
+                      SceneInteractiveCommand.playCharacterAnimation(
+                        runtimeCommand: animationCommand,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+      final references = index.referencesTo(
+        CharacterStudioReferenceTargetKind.customAnimationDefinition,
+        'wave',
+      );
+
+      expect(
+        references.map((reference) => reference.sourceKind),
+        containsAll(<CharacterStudioReferenceSourceKind>{
+          CharacterStudioReferenceSourceKind.cinematicCustomAnimation,
+          CharacterStudioReferenceSourceKind.sceneCustomAnimation,
+        }),
+      );
+      expect(
+        references.map((reference) => reference.sourceId),
+        containsAll(<String>['intro', 'scene_intro:wave_action']),
+      );
+    });
+
     test('indexes character dependencies placed on maps', () {
       final index = buildCharacterStudioReferenceIndex(
         _manifest(),
@@ -155,6 +218,8 @@ ProjectManifest _manifest({
   List<String> newGameAvatarIds = const [],
   String? trainerCharacterId,
   String? cinematicCharacterId,
+  List<CinematicAsset>? cinematics,
+  List<SceneAsset> scenes = const <SceneAsset>[],
 }) {
   return ProjectManifest(
     name: 'Character Studio references',
@@ -188,22 +253,24 @@ ProjectManifest _manifest({
               characterId: trainerCharacterId,
             ),
           ],
-    cinematics: cinematicCharacterId == null
-        ? const <CinematicAsset>[]
-        : <CinematicAsset>[
-            CinematicAsset(
-              id: 'intro',
-              title: 'Intro',
-              stageContext: CinematicStageContext(
-                actorAppearanceBindings: <CinematicActorAppearanceBinding>[
-                  CinematicActorAppearanceBinding(
-                    actorId: 'hero_actor',
-                    characterId: cinematicCharacterId,
+    cinematics: cinematics ??
+        (cinematicCharacterId == null
+            ? const <CinematicAsset>[]
+            : <CinematicAsset>[
+                CinematicAsset(
+                  id: 'intro',
+                  title: 'Intro',
+                  stageContext: CinematicStageContext(
+                    actorAppearanceBindings: <CinematicActorAppearanceBinding>[
+                      CinematicActorAppearanceBinding(
+                        actorId: 'hero_actor',
+                        characterId: cinematicCharacterId,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              timeline: CinematicTimeline(),
-            ),
-          ],
+                  timeline: CinematicTimeline(),
+                ),
+              ]),
+    scenes: scenes,
   );
 }

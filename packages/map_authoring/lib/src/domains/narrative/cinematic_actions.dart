@@ -122,6 +122,11 @@ final class CinematicActions {
             ? AuthoringRiskLevel.high
             : AuthoringRiskLevel.medium,
       ),
+    narrativeActionDescriptor(
+      'cinematic.character_animation.upsert',
+      'Add or update one bounded Character Studio animation timeline step',
+      resourceKinds: const ['project', 'cinematic'],
+    ),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
@@ -190,6 +195,28 @@ final class CinematicActions {
           context.snapshot.manifest,
           cinematicId: cinematicId,
           stepIds: _stringSet(parameters, 'stepIds'),
+        );
+      case 'cinematic.character_animation.upsert':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {
+            'cinematicId',
+            'stepId',
+            'afterStepId',
+            'label',
+            'runtimeCommand',
+          },
+        );
+        cinematicId = narrativeStringParameter(parameters, 'cinematicId');
+        projected = upsertCharacterAnimationStep(
+          context.snapshot.manifest,
+          cinematicId: cinematicId,
+          stepId: _optionalTrimmedString(parameters, 'stepId'),
+          afterStepId: _optionalTrimmedString(parameters, 'afterStepId'),
+          label: _optionalTrimmedString(parameters, 'label'),
+          command: _decodeCharacterAnimationCommand(
+            narrativeObjectParameter(parameters, 'runtimeCommand'),
+          ),
         );
       default:
         throw NarrativeAuthoringException(
@@ -294,6 +321,57 @@ final class CinematicActions {
           stepIds: stepIds,
         ),
       );
+
+  ProjectManifest upsertCharacterAnimationStep(
+    ProjectManifest project, {
+    required String cinematicId,
+    required CharacterCustomAnimationRuntimeCommand command,
+    String? stepId,
+    String? afterStepId,
+    String? label,
+  }) {
+    final cinematic = _requireCinematic(project, cinematicId);
+    _validateCharacterAnimationCommand(
+      project,
+      command,
+      actorIds: cinematic.requiredActors.map((actor) => actor.actorId).toSet(),
+    );
+    final steps = cinematic.timeline.steps.toList();
+    final targetId = stepId ?? _nextCharacterAnimationStepId(cinematic);
+    final existingIndex = steps.indexWhere((step) => step.id == targetId);
+    if (existingIndex >= 0 &&
+        steps[existingIndex].kind != CinematicTimelineStepKind.actorAnimation) {
+      throw NarrativeAuthoringException(
+        'cinematic.character_animation.step_kind_mismatch',
+        'The selected timeline step is not a character animation.',
+        details: <String, Object?>{'stepId': targetId},
+      );
+    }
+    final step = buildCinematicCharacterCustomAnimationStep(
+      id: targetId,
+      command: command,
+      label: label,
+    );
+    if (existingIndex >= 0) {
+      steps[existingIndex] = step;
+    } else if (afterStepId == null) {
+      steps.add(step);
+    } else {
+      final insertionIndex = steps.indexWhere((item) => item.id == afterStepId);
+      if (insertionIndex < 0) {
+        throw NarrativeAuthoringException(
+          'cinematic.character_animation.after_step_unknown',
+          'The requested insertion anchor does not exist.',
+          details: <String, Object?>{'afterStepId': afterStepId},
+        );
+      }
+      steps.insert(insertionIndex + 1, step);
+    }
+    return updateCinematicAsset(
+      project,
+      cinematic.copyWith(timeline: CinematicTimeline(steps: steps)),
+    ).updatedProject;
+  }
 }
 
 ProjectManifest _replaceTimelineEdit(
@@ -343,4 +421,84 @@ int _integer(Map<String, Object?> parameters, String key) {
     throw ArgumentError.value(value, key, 'must be an integer');
   }
   return value;
+}
+
+String? _optionalTrimmedString(
+  Map<String, Object?> parameters,
+  String key,
+) {
+  final value = parameters[key];
+  if (value == null) return null;
+  if (value is! String || value.trim().isEmpty || value != value.trim()) {
+    throw ArgumentError.value(value, key, 'must be a nonblank trimmed string');
+  }
+  return value;
+}
+
+CharacterCustomAnimationRuntimeCommand _decodeCharacterAnimationCommand(
+  Map<String, dynamic> json,
+) {
+  try {
+    return CharacterCustomAnimationRuntimeCommand.fromJson(json);
+  } on Object catch (error) {
+    throw NarrativeAuthoringException(
+      'character_animation.command_invalid',
+      'The Character Studio animation command cannot be decoded.',
+      details: <String, Object?>{
+        'validationType': error.runtimeType.toString(),
+      },
+    );
+  }
+}
+
+void _validateCharacterAnimationCommand(
+  ProjectManifest project,
+  CharacterCustomAnimationRuntimeCommand command, {
+  Set<String>? actorIds,
+}) {
+  if (actorIds != null && !actorIds.contains(command.actorId)) {
+    throw NarrativeAuthoringException(
+      'character_animation.actor_unknown',
+      'The selected actor is not available in this narrative asset.',
+      details: <String, Object?>{'actorId': command.actorId},
+    );
+  }
+  CharacterCustomAnimationDefinition? definition;
+  for (final candidate
+      in project.characterStudioCatalog.customAnimationDefinitions) {
+    if (candidate.id == command.definitionId) {
+      definition = candidate;
+      break;
+    }
+  }
+  if (definition == null) {
+    throw NarrativeAuthoringException(
+      'character_animation.definition_unknown',
+      'The selected custom animation definition does not exist.',
+      details: <String, Object?>{'definitionId': command.definitionId},
+    );
+  }
+  if (definition.mode == CharacterCustomAnimationMode.single &&
+      command.direction != null) {
+    throw NarrativeAuthoringException(
+      'character_animation.direction_unexpected',
+      'A single custom animation does not accept a direction.',
+    );
+  }
+  if (definition.mode == CharacterCustomAnimationMode.directional &&
+      command.direction == null) {
+    throw NarrativeAuthoringException(
+      'character_animation.direction_required',
+      'A directional custom animation requires a direction.',
+    );
+  }
+}
+
+String _nextCharacterAnimationStepId(CinematicAsset cinematic) {
+  final used = cinematic.timeline.steps.map((step) => step.id).toSet();
+  var suffix = 1;
+  while (used.contains('step_character_animation_$suffix')) {
+    suffix += 1;
+  }
+  return 'step_character_animation_$suffix';
 }

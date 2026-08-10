@@ -14327,6 +14327,46 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  Future<String?> upsertCinematicCharacterAnimation({
+    required String cinematicId,
+    required CharacterCustomAnimationRuntimeCommand command,
+    String? stepId,
+    String? afterStepId,
+    String? label,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return null;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final result = await ref
+          .read(upsertCinematicCharacterAnimationUseCaseProvider)
+          .execute(
+            workspace,
+            project,
+            cinematicId: cinematicId,
+            command: command,
+            stepId: stepId,
+            afterStepId: afterStepId,
+            label: label,
+          );
+      _projectSessionRevision += 1;
+      state = state.copyWith(
+        project: result.project,
+        isSaving: false,
+        statusMessage: 'Cinematic character animation updated',
+        errorMessage: null,
+      );
+      return result.stepId;
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to update cinematic character animation: $error',
+      );
+      return null;
+    }
+  }
+
   Future<AnimationDefinitionDeletePlan?> previewDeleteAnimationDefinition(
     String id,
   ) async {

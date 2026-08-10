@@ -30,6 +30,10 @@ enum NarrativeCommandParameterKind {
   staticEncounter,
   dialogue,
   cinematic,
+  actor,
+  customAnimationDefinition,
+  characterDirection,
+  customAnimationPlayback,
 }
 
 @immutable

@@ -155,19 +155,19 @@ class _ActorDisplayPlaceholder extends StatelessWidget {
     if (isSpriteReady) {
       final asset = tilesets![tilesetId]!;
       final image = asset.image!;
-      final src = spriteRef.sourceTileRect;
-      final frameW = spriteRef.frameWidthTiles * asset.tileWidth;
-      final frameH = spriteRef.frameHeightTiles * asset.tileHeight;
-      final px = src.x * frameW;
-      final py = src.y * frameH;
-      if (px < 0 ||
-          py < 0 ||
-          px + frameW > image.width ||
-          py + frameH > image.height) {
+      final sourceRect = cinematicActorSpriteSourceRect(
+        spriteRef: spriteRef,
+        tileWidth: asset.tileWidth,
+        tileHeight: asset.tileHeight,
+      );
+      if (sourceRect.left < 0 ||
+          sourceRect.top < 0 ||
+          sourceRect.right > image.width ||
+          sourceRect.bottom > image.height) {
         isSpriteReady = false;
         debugPrint(
           'WARNING: Actor "${actor.label}" (id: ${actor.actorId}) has a sprite source rect out of bounds. '
-          'Source rect: x=$px, y=$py, width=$frameW, height=$frameH. '
+          'Source rect: $sourceRect. '
           'Tileset image size: ${image.width}x${image.height}.',
         );
       }
@@ -295,10 +295,7 @@ class _ActorDisplayMarker extends StatelessWidget {
               Positioned(
                 right: -(spriteWidth / 4).clamp(6.0, 10.0),
                 bottom: 0,
-                child: _DirectionHint(
-                  actor: actor,
-                  compact: compact,
-                ),
+                child: _DirectionHint(actor: actor, compact: compact),
               ),
             ],
           )
@@ -323,20 +320,14 @@ class _ActorDisplayMarker extends StatelessWidget {
                 child: SizedBox.square(
                   dimension: compact ? 18 : 22,
                   child: Center(
-                    child: Text(
-                      _glyphForActor(actor),
-                      style: glyphStyle,
-                    ),
+                    child: Text(_glyphForActor(actor), style: glyphStyle),
                   ),
                 ),
               ),
               Positioned(
                 right: compact ? -7 : -8,
                 bottom: compact ? -5 : -6,
-                child: _DirectionHint(
-                  actor: actor,
-                  compact: compact,
-                ),
+                child: _DirectionHint(actor: actor, compact: compact),
               ),
             ],
           ),
@@ -346,10 +337,7 @@ class _ActorDisplayMarker extends StatelessWidget {
 }
 
 class _DirectionHint extends StatelessWidget {
-  const _DirectionHint({
-    required this.actor,
-    required this.compact,
-  });
+  const _DirectionHint({required this.actor, required this.compact});
 
   final CinematicActorDisplayPreviewActor actor;
   final bool compact;

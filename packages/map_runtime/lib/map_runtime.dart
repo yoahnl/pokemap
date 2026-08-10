@@ -294,6 +294,7 @@ export 'src/presentation/flame/post_battle_progression_overlay_component.dart'
 export 'src/presentation/flame/flame_cinematic_runtime_playback_sink.dart'
     show
         FlameCinematicRuntimeActorHandle,
+        FlameCinematicCharacterAnimationActorHandle,
         FlameCinematicRuntimeHost,
         FlameCinematicRuntimePlaybackSink;
 export 'src/presentation/flame/flame_cinematic_media_playback_adapter.dart'

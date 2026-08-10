@@ -241,6 +241,7 @@ void main() {
         containsAll({
           'scene.upsert',
           'scene.delete',
+          'scene.character_animation.set',
           'event_v2.record_upsert',
           'event_v2.registry_mode.set',
           'event_v2.publish',
@@ -262,6 +263,31 @@ void main() {
         containsAll({'scene', 'eventV2', 'fact', 'worldRule'}),
       );
     });
+
+    test('semantic Scene action sets a bounded character animation command',
+        () {
+      final command = CharacterCustomAnimationRuntimeCommand(
+        actorId: 'player',
+        definitionId: 'wave',
+      );
+      final projected = const SceneActions().setCharacterAnimationCommand(
+        _manifest(scenes: <SceneAsset>[_scene()]),
+        maps: const <MapData>[],
+        sceneId: 'intro_scene',
+        nodeId: 'action',
+        command: command,
+      );
+      final action = projected.scenes.single.graph.nodes
+          .singleWhere((node) => node.id == 'action')
+          .payload as SceneActionPayload;
+
+      expect(
+        action.interactiveCommand,
+        SceneInteractiveCommand.playCharacterAnimation(
+          runtimeCommand: command,
+        ),
+      );
+    });
   });
 }
 
@@ -275,6 +301,15 @@ ProjectManifest _manifest({
       maps: const [],
       tilesets: const [],
       scenes: scenes,
+      characterStudioCatalog: const ProjectCharacterStudioCatalog(
+        customAnimationDefinitions: <CharacterCustomAnimationDefinition>[
+          CharacterCustomAnimationDefinition(
+            id: 'wave',
+            displayName: 'Saluer',
+            mode: CharacterCustomAnimationMode.single,
+          ),
+        ],
+      ),
       facts: facts,
       eventRegistry: eventRegistry,
     );
@@ -286,15 +321,29 @@ SceneAsset _scene() => SceneAsset(
         startNodeId: 'start',
         nodes: [
           SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'action',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.interactive(
+              SceneInteractiveCommand.openPc(),
+            ),
+          ),
           SceneNode(id: 'end', kind: SceneNodeKind.end),
         ],
         edges: [
           SceneEdge(
-            id: 'start_end',
+            id: 'start_action',
             fromNodeId: 'start',
             fromPortId: 'completed',
-            toNodeId: 'end',
+            toNodeId: 'action',
             kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'action_end',
+            fromNodeId: 'action',
+            fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.actionCompleted,
           ),
         ],
       ),

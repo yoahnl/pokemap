@@ -255,6 +255,50 @@ void main() {
     expect(mapData.toJson(), beforeMapData);
   });
 
+  testWidgets(
+    'CHS-046 palette authors a custom animation with guided pickers',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _actorEmoteAuthoringCinematic(withEmoteStep: false);
+      final project = _project(
+        cinematics: <CinematicAsset>[asset],
+        includeBridge: false,
+        animationDefinitions: const <CharacterCustomAnimationDefinition>[
+          CharacterCustomAnimationDefinition(
+            id: 'wave',
+            displayName: 'Saluer',
+            mode: CharacterCustomAnimationMode.directional,
+          ),
+        ],
+      );
+      var latestProject = project;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (project) => latestProject = project,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final paletteButton = find.byKey(
+        const ValueKey('cinematic-builder-palette-actor-animation-button'),
+      );
+      await tester.ensureVisible(paletteButton);
+      await tester.tap(paletteButton);
+      await tester.pumpAndSettle();
+
+      final step = latestProject.cinematics.single.timeline.steps.last;
+      final command = cinematicCharacterCustomAnimationCommandOf(step)!;
+      expect(command.actorId, 'actor_professor');
+      expect(command.definitionId, 'wave');
+      expect(command.direction, EntityFacing.south);
+      expect(find.text('Saluer'), findsWidgets);
+      expect(find.text('Direction'), findsWidgets);
+      expect(find.textContaining('definitionId'), findsNothing);
+    },
+  );
+
   testWidgets('V1-128 actor emote inspector lets user choose actor', (
     tester,
   ) async {
@@ -18652,6 +18696,14 @@ Future<void> _pumpBuilder(
                 int? durationMs,
               }) async =>
                   false,
+              onUpsertActorAnimationStep: ({
+                required String cinematicId,
+                required CharacterCustomAnimationRuntimeCommand command,
+                String? stepId,
+                String? afterStepId,
+                String? label,
+              }) async =>
+                  null,
               onRemoveAuthoringStep: ({
                 required String cinematicId,
                 required String stepId,
@@ -18810,6 +18862,8 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               stageMaps: _project.maps,
               groups: _project.groups,
               characters: _project.characters,
+              animationDefinitions:
+                  _project.characterStudioCatalog.customAnimationDefinitions,
               dialogues: _project.dialogues,
               cinematicMediaAssets: _project.cinematicMediaAssets,
               stageMapSourceCatalog: widget.stageMapSourceCatalog ??
@@ -18837,6 +18891,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               onUpdateActorMoveStep: _updateActorMoveStep,
               onAddActorEmoteStep: _addActorEmoteStep,
               onUpdateActorEmoteStep: _updateActorEmoteStep,
+              onUpsertActorAnimationStep: _upsertActorAnimationStep,
               onRemoveAuthoringStep: _removeAuthoringStep,
               onUpdateStageMap: _updateStageMap,
               onUpdateStageContext: _updateStageContext,
@@ -19224,6 +19279,45 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);
     return result.step.id == stepId;
+  }
+
+  Future<String?> _upsertActorAnimationStep({
+    required String cinematicId,
+    required CharacterCustomAnimationRuntimeCommand command,
+    String? stepId,
+    String? afterStepId,
+    String? label,
+  }) async {
+    final cinematic = _asset(_project, cinematicId);
+    final steps = cinematic.timeline.steps.toList();
+    final targetId = stepId ?? 'step_character_animation_${steps.length + 1}';
+    final step = buildCinematicCharacterCustomAnimationStep(
+      id: targetId,
+      command: command,
+      label: label,
+    );
+    final existingIndex = steps.indexWhere(
+      (candidate) => candidate.id == targetId,
+    );
+    if (existingIndex >= 0) {
+      steps[existingIndex] = step;
+    } else {
+      final anchorIndex = afterStepId == null
+          ? -1
+          : steps.indexWhere((candidate) => candidate.id == afterStepId);
+      if (anchorIndex >= 0) {
+        steps.insert(anchorIndex + 1, step);
+      } else {
+        steps.add(step);
+      }
+    }
+    final result = updateCinematicAsset(
+      _project,
+      cinematic.copyWith(timeline: CinematicTimeline(steps: steps)),
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return targetId;
   }
 
   Future<bool> _updateActorFacingStep({
@@ -20774,6 +20868,7 @@ Future<void> _loadScreenshotFonts() async {
 ProjectManifest _project({
   List<CinematicAsset>? cinematics,
   List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
+  List<CharacterCustomAnimationDefinition> animationDefinitions = const [],
   bool includeBridge = true,
 }) {
   return ProjectManifest(
@@ -20783,6 +20878,9 @@ ProjectManifest _project({
     ],
     tilesets: const <ProjectTilesetEntry>[],
     characters: characters,
+    characterStudioCatalog: ProjectCharacterStudioCatalog(
+      customAnimationDefinitions: animationDefinitions,
+    ),
     scenes: [
       if (cinematics == null)
         _sceneReferencing(

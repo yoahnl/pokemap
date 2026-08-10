@@ -141,6 +141,14 @@ typedef UpdateCinematicActorEmoteStepCallback = Future<bool> Function({
   int? durationMs,
 });
 
+typedef UpsertCinematicActorAnimationStepCallback = Future<String?> Function({
+  required String cinematicId,
+  required CharacterCustomAnimationRuntimeCommand command,
+  String? stepId,
+  String? afterStepId,
+  String? label,
+});
+
 typedef RemoveCinematicAuthoringStepCallback = Future<bool> Function({
   required String cinematicId,
   required String stepId,
@@ -231,6 +239,13 @@ typedef _UpdateActorEmoteCallback = Future<void> Function(
   int? durationMs,
 });
 
+typedef _UpdateActorAnimationCallback = Future<void> Function(
+  CinematicTimelineStep step, {
+  String? actorId,
+  String? definitionId,
+  EntityFacing? direction,
+});
+
 typedef _ResizeStepDurationCallback = Future<bool> Function(
   CinematicTimelineStep step, {
   required int durationMs,
@@ -265,9 +280,10 @@ typedef _AddActorMoveCallback = Future<void> Function();
 
 typedef _AddActorEmoteCallback = Future<void> Function();
 
+typedef _AddActorAnimationCallback = Future<void> Function();
+
 typedef _AddCommandCallback = Future<void> Function(
-  CinematicTimelineStepKind kind,
-);
+    CinematicTimelineStepKind kind);
 
 typedef _UpdateCommandCallback = Future<void> Function(
   CinematicTimelineStep step, {
@@ -312,6 +328,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.stageMaps,
     required this.groups,
     required this.characters,
+    this.animationDefinitions = const [],
     this.dialogues = const [],
     this.cinematicMediaAssets = const [],
     this.projectRootPath,
@@ -341,6 +358,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.onUpdateActorMoveStep,
     required this.onAddActorEmoteStep,
     required this.onUpdateActorEmoteStep,
+    required this.onUpsertActorAnimationStep,
     required this.onRemoveAuthoringStep,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
@@ -357,6 +375,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final List<ProjectMapEntry> stageMaps;
   final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
+  final List<CharacterCustomAnimationDefinition> animationDefinitions;
   final List<ProjectDialogueEntry> dialogues;
   final List<CinematicMediaAsset> cinematicMediaAssets;
   final String? projectRootPath;
@@ -386,6 +405,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final UpdateCinematicActorMoveStepCallback onUpdateActorMoveStep;
   final AddCinematicActorEmoteStepCallback onAddActorEmoteStep;
   final UpdateCinematicActorEmoteStepCallback onUpdateActorEmoteStep;
+  final UpsertCinematicActorAnimationStepCallback onUpsertActorAnimationStep;
   final RemoveCinematicAuthoringStepCallback onRemoveAuthoringStep;
   final UpdateCinematicStageMapCallback onUpdateStageMap;
   final UpdateCinematicStageContextCallback onUpdateStageContext;
@@ -634,10 +654,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     );
   }
 
-  void _seekMediaPreviewTo(
-    CinematicPreviewPlaybackPlan plan,
-    int timeMs,
-  ) {
+  void _seekMediaPreviewTo(CinematicPreviewPlaybackPlan plan, int timeMs) {
     final controller = _mediaPreviewController;
     if (controller == null) return;
     unawaited(() async {
@@ -650,10 +667,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     }());
   }
 
-  void _syncMediaPreviewTo(
-    CinematicPreviewPlaybackPlan plan,
-    int timeMs,
-  ) {
+  void _syncMediaPreviewTo(CinematicPreviewPlaybackPlan plan, int timeMs) {
     final controller = _mediaPreviewController;
     if (controller == null) return;
     _pendingMediaPreviewTimeMs = timeMs;
@@ -683,8 +697,10 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
 
   @override
   Widget build(BuildContext context) {
-    final selectedStep =
-        _selectedStep(widget.asset, _builderController.selectedStepId);
+    final selectedStep = _selectedStep(
+      widget.asset,
+      _builderController.selectedStepId,
+    );
     final selectedStepIndex = selectedStep == null
         ? null
         : widget.asset.timeline.steps.indexOf(selectedStep);
@@ -812,6 +828,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                             onAddActorFacing: _addActorFacing,
                             onAddActorMove: _addActorMove,
                             onAddActorEmote: _addActorEmote,
+                            onAddActorAnimation: _addActorAnimation,
+                            animationDefinitions: widget.animationDefinitions,
                             dialogues: widget.dialogues,
                             mediaAssets: widget.cinematicMediaAssets,
                             onAddCommand: _addCommand,
@@ -1063,6 +1081,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                             stageMaps: widget.stageMaps,
                             groups: widget.groups,
                             characters: widget.characters,
+                            animationDefinitions: widget.animationDefinitions,
                             dialogues: widget.dialogues,
                             mediaAssets: widget.cinematicMediaAssets,
                             stageMapSourceCatalog: widget.stageMapSourceCatalog,
@@ -1087,6 +1106,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                             onUpdateActorFacing: _updateActorFacing,
                             onUpdateActorMove: _updateActorMove,
                             onUpdateActorEmote: _updateActorEmote,
+                            onUpdateActorAnimation: _updateActorAnimation,
                             onUpdateCommand: _updateCommand,
                             onRemoveAuthoringStep: _removeAuthoringStep,
                             onAddRequiredActor: _addRequiredActor,
@@ -1812,8 +1832,10 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
           return;
         }
       }
-      target =
-          CinematicMovementTargetRef(targetId: targetId, label: 'Destination');
+      target = CinematicMovementTargetRef(
+        targetId: targetId,
+        label: 'Destination',
+      );
     }
     final createdStepId = await widget.onAddActorMoveStep(
       cinematicId: widget.asset.id,
@@ -1846,6 +1868,30 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     if (!mounted || createdStepId == null) {
       return;
     }
+    setState(() => _builderController.selectedStepId = createdStepId);
+  }
+
+  Future<void> _addActorAnimation() async {
+    if (widget.asset.requiredActors.isEmpty ||
+        widget.animationDefinitions.isEmpty) {
+      return;
+    }
+    final actor = widget.asset.requiredActors.first;
+    final definition = widget.animationDefinitions.first;
+    final command = CharacterCustomAnimationRuntimeCommand(
+      actorId: actor.actorId,
+      definitionId: definition.id,
+      direction: definition.mode == CharacterCustomAnimationMode.directional
+          ? EntityFacing.south
+          : null,
+    );
+    final createdStepId = await widget.onUpsertActorAnimationStep(
+      cinematicId: widget.asset.id,
+      command: command,
+      afterStepId: _builderController.selectedStepId,
+      label: definition.displayName,
+    );
+    if (!mounted || createdStepId == null) return;
     setState(() => _builderController.selectedStepId = createdStepId);
   }
 
@@ -1994,6 +2040,44 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     });
   }
 
+  Future<void> _updateActorAnimation(
+    CinematicTimelineStep step, {
+    String? actorId,
+    String? definitionId,
+    EntityFacing? direction,
+  }) async {
+    final current = cinematicCharacterCustomAnimationCommandOf(step);
+    if (current == null) return;
+    final effectiveDefinitionId = definitionId ?? current.definitionId;
+    CharacterCustomAnimationDefinition? definition;
+    for (final candidate in widget.animationDefinitions) {
+      if (candidate.id == effectiveDefinitionId) {
+        definition = candidate;
+        break;
+      }
+    }
+    if (definition == null) return;
+    final effectiveDirection =
+        definition.mode == CharacterCustomAnimationMode.single
+            ? null
+            : direction ?? current.direction ?? EntityFacing.south;
+    final updatedStepId = await widget.onUpsertActorAnimationStep(
+      cinematicId: widget.asset.id,
+      stepId: step.id,
+      command: CharacterCustomAnimationRuntimeCommand(
+        actorId: actorId ?? current.actorId,
+        definitionId: effectiveDefinitionId,
+        direction: effectiveDirection,
+        playback: current.playback,
+        interruptionPolicy: current.interruptionPolicy,
+        fallbackPolicy: current.fallbackPolicy,
+      ),
+      label: definition.displayName,
+    );
+    if (!mounted || updatedStepId == null) return;
+    setState(() => _builderController.selectedStepId = updatedStepId);
+  }
+
   Future<bool> _resizeTimelineStepDuration(
     CinematicTimelineStep step, {
     required int durationMs,
@@ -2070,6 +2154,8 @@ class _BlockPalette extends StatelessWidget {
     required this.onAddActorFacing,
     required this.onAddActorMove,
     required this.onAddActorEmote,
+    required this.onAddActorAnimation,
+    required this.animationDefinitions,
     required this.dialogues,
     required this.mediaAssets,
     required this.onAddCommand,
@@ -2085,6 +2171,8 @@ class _BlockPalette extends StatelessWidget {
   final _AddActorFacingCallback onAddActorFacing;
   final _AddActorMoveCallback onAddActorMove;
   final _AddActorEmoteCallback onAddActorEmote;
+  final _AddActorAnimationCallback onAddActorAnimation;
+  final List<CharacterCustomAnimationDefinition> animationDefinitions;
   final List<ProjectDialogueEntry> dialogues;
   final List<CinematicMediaAsset> mediaAssets;
   final _AddCommandCallback onAddCommand;
@@ -2156,6 +2244,12 @@ class _BlockPalette extends StatelessWidget {
                   _ActorEmotePaletteTile(
                     asset: asset,
                     onAddActorEmote: onAddActorEmote,
+                  ),
+                  const SizedBox(height: 8),
+                  _ActorAnimationPaletteTile(
+                    asset: asset,
+                    animationDefinitions: animationDefinitions,
+                    onAddActorAnimation: onAddActorAnimation,
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -2743,6 +2837,70 @@ class _ActorEmotePaletteTile extends StatelessWidget {
                 'cinematic-builder-palette-actor-emote-button',
               ),
               onPressed: hasActors ? onAddActorEmote : null,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              child: const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActorAnimationPaletteTile extends StatelessWidget {
+  const _ActorAnimationPaletteTile({
+    required this.asset,
+    required this.animationDefinitions,
+    required this.onAddActorAnimation,
+  });
+
+  final CinematicAsset asset;
+  final List<CharacterCustomAnimationDefinition> animationDefinitions;
+  final _AddActorAnimationCallback onAddActorAnimation;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled =
+        asset.requiredActors.isNotEmpty && animationDefinitions.isNotEmpty;
+    return Stack(
+      children: [
+        PokeMapCard(
+          onTap: enabled ? onAddActorAnimation : null,
+          child: Row(
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.play_circle,
+                tone: PokeMapTone.narrative,
+                size: 30,
+                iconSize: 14,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _StrongText('Animation custom'),
+                    const SizedBox(height: 2),
+                    _MutedText(
+                      enabled
+                          ? 'Jouer une animation du Character Studio'
+                          : 'Ajoutez un acteur et une animation custom',
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned.fill(
+          child: _TestHidden(
+            hitTestable: true,
+            child: PokeMapButton(
+              key: const ValueKey(
+                'cinematic-builder-palette-actor-animation-button',
+              ),
+              onPressed: enabled ? onAddActorAnimation : null,
               variant: PokeMapButtonVariant.secondary,
               size: PokeMapButtonSize.small,
               child: const SizedBox.shrink(),
@@ -3497,23 +3655,25 @@ _PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
     }
     final sourceRect = resolved?.sourceRect;
     final isMoving = resolved?.isMoving ?? false;
+    final isCustom =
+        resolved?.kind == CinematicActorWalkingAnimationPreviewKind.custom;
+    final sourceId = resolved?.sourceAssetId ?? resolved?.tilesetId;
 
-    // V1-116 only swaps the already-resolved sprite source during editor
-    // preview playback. Missing/invalid animation data deliberately falls back
-    // to the V1-99 idle sprite or placeholder path instead of inventing frames.
     if (sourceRect == null ||
         resolved?.characterId == null ||
-        resolved?.tilesetId == null ||
-        spriteActor.spriteRef == null ||
-        spriteActor.status != CinematicActorSpriteStatus.spriteReady) {
-      if (isMoving) {
+        sourceId == null ||
+        (!isCustom &&
+            (spriteActor.spriteRef == null ||
+                spriteActor.status !=
+                    CinematicActorSpriteStatus.spriteReady))) {
+      if (isMoving || isCustom) {
         hasPartialAnimation = true;
       }
       resolvedActors.add(spriteActor);
       continue;
     }
 
-    if (isMoving) {
+    if (isMoving || isCustom) {
       if (resolved!.isFallback) {
         hasPartialAnimation = true;
       } else {
@@ -3523,20 +3683,26 @@ _PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
 
     final animatedSpriteRef = CinematicActorSpriteRef(
       characterId: resolved!.characterId!,
-      tilesetId: resolved.tilesetId!,
+      tilesetId: sourceId,
       sourceTileRect: TilesetSourceRect(
         x: sourceRect.x,
         y: sourceRect.y,
-        width: character?.frameWidth ?? spriteActor.spriteRef!.frameWidthTiles,
-        height:
-            character?.frameHeight ?? spriteActor.spriteRef!.frameHeightTiles,
+        width: isCustom
+            ? sourceRect.width
+            : character?.frameWidth ?? spriteActor.spriteRef!.frameWidthTiles,
+        height: isCustom
+            ? sourceRect.height
+            : character?.frameHeight ?? spriteActor.spriteRef!.frameHeightTiles,
       ),
       frameWidthTiles:
-          character?.frameWidth ?? spriteActor.spriteRef!.frameWidthTiles,
-      frameHeightTiles:
-          character?.frameHeight ?? spriteActor.spriteRef!.frameHeightTiles,
+          character?.frameWidth ?? spriteActor.spriteRef?.frameWidthTiles ?? 1,
+      frameHeightTiles: character?.frameHeight ??
+          spriteActor.spriteRef?.frameHeightTiles ??
+          2,
       direction: _previewDirectionFromFacing(resolved.direction) ??
-          spriteActor.spriteRef!.direction,
+          spriteActor.spriteRef?.direction ??
+          spriteActor.direction,
+      usesPixelCoordinates: resolved.usesPixelCoordinates,
     );
     changed = true;
     resolvedActors.add(
@@ -3546,9 +3712,11 @@ _PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
         bindingKind: spriteActor.bindingKind,
         position: spriteActor.position,
         direction: spriteActor.direction,
-        status: spriteActor.status,
+        status: isCustom
+            ? CinematicActorSpriteStatus.spriteReady
+            : spriteActor.status,
         spriteRef: animatedSpriteRef,
-        placeholderFallback: spriteActor.placeholderFallback,
+        placeholderFallback: isCustom ? false : spriteActor.placeholderFallback,
         depthHint: spriteActor.depthHint,
         diagnostics: spriteActor.diagnostics,
       ),
@@ -3579,7 +3747,8 @@ _PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
 }
 
 CinematicActorPreviewDirection? _previewDirectionFromFacing(
-    EntityFacing? facing) {
+  EntityFacing? facing,
+) {
   return switch (facing) {
     EntityFacing.north => CinematicActorPreviewDirection.north,
     EntityFacing.south => CinematicActorPreviewDirection.south,
@@ -4925,9 +5094,7 @@ class _TimelineAxis extends StatelessWidget {
               children: [
                 for (final tick in ticks)
                   Positioned(
-                    key: ValueKey(
-                      'cinematic-builder-time-tick-${tick.timeMs}',
-                    ),
+                    key: ValueKey('cinematic-builder-time-tick-${tick.timeMs}'),
                     left: _tickLeft(tick.timeMs, pixelsPerMs, contentWidth),
                     top: 0,
                     bottom: 0,
@@ -6150,6 +6317,7 @@ class _InspectorPlaceholder extends StatefulWidget {
     required this.stageMaps,
     required this.groups,
     required this.characters,
+    required this.animationDefinitions,
     required this.dialogues,
     required this.mediaAssets,
     required this.stageMapSourceCatalog,
@@ -6170,6 +6338,7 @@ class _InspectorPlaceholder extends StatefulWidget {
     required this.onUpdateActorFacing,
     required this.onUpdateActorMove,
     required this.onUpdateActorEmote,
+    required this.onUpdateActorAnimation,
     required this.onUpdateCommand,
     required this.onRemoveAuthoringStep,
     required this.onAddMovementTarget,
@@ -6196,6 +6365,7 @@ class _InspectorPlaceholder extends StatefulWidget {
   final List<ProjectMapEntry> stageMaps;
   final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
+  final List<CharacterCustomAnimationDefinition> animationDefinitions;
   final List<ProjectDialogueEntry> dialogues;
   final List<CinematicMediaAsset> mediaAssets;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
@@ -6216,6 +6386,7 @@ class _InspectorPlaceholder extends StatefulWidget {
   final _UpdateActorFacingCallback onUpdateActorFacing;
   final _UpdateActorMoveCallback onUpdateActorMove;
   final _UpdateActorEmoteCallback onUpdateActorEmote;
+  final _UpdateActorAnimationCallback onUpdateActorAnimation;
   final _UpdateCommandCallback onUpdateCommand;
   final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
   final _AddMovementTargetCallback onAddMovementTarget;
@@ -6318,6 +6489,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                     else if (selected != null && selectedIndex != null)
                       _SelectedStepInspector(
                         asset: widget.asset,
+                        animationDefinitions: widget.animationDefinitions,
                         dialogues: widget.dialogues,
                         mediaAssets: widget.mediaAssets,
                         step: selected,
@@ -6327,6 +6499,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                         onUpdateActorFacing: widget.onUpdateActorFacing,
                         onUpdateActorMove: widget.onUpdateActorMove,
                         onUpdateActorEmote: widget.onUpdateActorEmote,
+                        onUpdateActorAnimation: widget.onUpdateActorAnimation,
                         onUpdateCommand: widget.onUpdateCommand,
                         onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
                         onToggleActorMovePathMode:
@@ -6406,6 +6579,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                   else if (selected != null && selectedIndex != null)
                     _SelectedStepInspector(
                       asset: widget.asset,
+                      animationDefinitions: widget.animationDefinitions,
                       dialogues: widget.dialogues,
                       mediaAssets: widget.mediaAssets,
                       step: selected,
@@ -6415,6 +6589,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                       onUpdateActorFacing: widget.onUpdateActorFacing,
                       onUpdateActorMove: widget.onUpdateActorMove,
                       onUpdateActorEmote: widget.onUpdateActorEmote,
+                      onUpdateActorAnimation: widget.onUpdateActorAnimation,
                       onUpdateCommand: widget.onUpdateCommand,
                       onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
                       onToggleActorMovePathMode:
@@ -10791,6 +10966,7 @@ class _StageChoice extends StatelessWidget {
 class _SelectedStepInspector extends StatelessWidget {
   const _SelectedStepInspector({
     required this.asset,
+    required this.animationDefinitions,
     required this.dialogues,
     required this.mediaAssets,
     required this.step,
@@ -10800,6 +10976,7 @@ class _SelectedStepInspector extends StatelessWidget {
     required this.onUpdateActorFacing,
     required this.onUpdateActorMove,
     required this.onUpdateActorEmote,
+    required this.onUpdateActorAnimation,
     required this.onUpdateCommand,
     required this.onRemoveAuthoringStep,
     required this.onToggleActorMovePathMode,
@@ -10810,6 +10987,7 @@ class _SelectedStepInspector extends StatelessWidget {
   });
 
   final CinematicAsset asset;
+  final List<CharacterCustomAnimationDefinition> animationDefinitions;
   final List<ProjectDialogueEntry> dialogues;
   final List<CinematicMediaAsset> mediaAssets;
   final CinematicTimelineStep step;
@@ -10819,6 +10997,7 @@ class _SelectedStepInspector extends StatelessWidget {
   final _UpdateActorFacingCallback onUpdateActorFacing;
   final _UpdateActorMoveCallback onUpdateActorMove;
   final _UpdateActorEmoteCallback onUpdateActorEmote;
+  final _UpdateActorAnimationCallback onUpdateActorAnimation;
   final _UpdateCommandCallback onUpdateCommand;
   final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
   final _ToggleActorMovePathModeCallback onToggleActorMovePathMode;
@@ -10835,6 +11014,8 @@ class _SelectedStepInspector extends StatelessWidget {
     final isActorFacing = isCinematicTimelineActorFacingStep(step);
     final isActorMove = isCinematicTimelineActorMoveStep(step);
     final isActorEmote = isCinematicTimelineActorEmoteStep(step);
+    final isActorAnimation =
+        step.kind == CinematicTimelineStepKind.actorAnimation;
     final isCommand = isCinematicTimelineCommandStep(step);
     final isAuthoringOwned = isCinematicTimelineAuthoringStep(step);
     final durationNonEditableReason =
@@ -10877,6 +11058,15 @@ class _SelectedStepInspector extends StatelessWidget {
             asset: asset,
             step: step,
             onUpdateActorEmote: onUpdateActorEmote,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (isActorAnimation) ...[
+          _ActorAnimationControls(
+            asset: asset,
+            step: step,
+            animationDefinitions: animationDefinitions,
+            onUpdateActorAnimation: onUpdateActorAnimation,
           ),
           const SizedBox(height: 8),
         ],
@@ -10954,13 +11144,13 @@ class _CommandControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final volume = (double.tryParse(
-                step.metadata[cinematicTimelineCommandVolumeMetadataKey] ??
-                    '') ??
+              step.metadata[cinematicTimelineCommandVolumeMetadataKey] ?? '',
+            ) ??
             1)
         .clamp(0, 1);
     final intensity = (double.tryParse(
-                step.metadata[cinematicTimelineCommandIntensityMetadataKey] ??
-                    '') ??
+              step.metadata[cinematicTimelineCommandIntensityMetadataKey] ?? '',
+            ) ??
             0.5)
         .clamp(0, 1);
     final fadeMs = int.tryParse(
@@ -11104,9 +11294,7 @@ class _SelectedStepTechnicalDetailsAccordion extends StatelessWidget {
     final colors = context.pokeMapColors;
 
     return Theme(
-      data: Theme.of(context).copyWith(
-        dividerColor: colors.transparent,
-      ),
+      data: Theme.of(context).copyWith(dividerColor: colors.transparent),
       child: ExpansionTile(
         key: const ValueKey(
           'cinematic-builder-selected-step-details-accordion',
@@ -11125,11 +11313,7 @@ class _SelectedStepTechnicalDetailsAccordion extends StatelessWidget {
               ),
         ),
         children: [
-          _SelectedStepTechnicalDetails(
-            asset: asset,
-            step: step,
-            index: index,
-          ),
+          _SelectedStepTechnicalDetails(asset: asset, step: step, index: index),
         ],
       ),
     );
@@ -11634,23 +11818,23 @@ class _CameraModeControls extends StatelessWidget {
         const SizedBox(height: 8),
         if (currentMode == CinematicTimelineCameraMode.reset)
           const _MutedText(
-              'Réinitialise le cadrage caméra. Aucune cible requise.')
+            'Réinitialise le cadrage caméra. Aucune cible requise.',
+          )
         else if (currentMode == CinematicTimelineCameraMode.hold)
           const _MutedText('Conserve le cadrage courant. Aucune cible requise.')
         else if (currentMode == CinematicTimelineCameraMode.focus) ...[
           const _SectionTitle(title: 'Cible', subtitle: 'Choix no-code'),
           const SizedBox(height: 6),
           _InspectorDropdownField<CinematicCameraTargetKind>(
-            key:
-                const ValueKey('cinematic-builder-camera-target-kind-dropdown'),
+            key: const ValueKey(
+              'cinematic-builder-camera-target-kind-dropdown',
+            ),
             value: targetKind,
             hint: 'Choisir une cible',
             items: [
               for (final kind in CinematicCameraTargetKind.values)
                 MacosPopupMenuItem<CinematicCameraTargetKind>(
-                  key: ValueKey(
-                    'cinematic-builder-camera-target-${kind.name}',
-                  ),
+                  key: ValueKey('cinematic-builder-camera-target-${kind.name}'),
                   value: kind,
                   child: _InspectorDropdownOption(
                     icon: _cameraTargetKindIcon(kind),
@@ -11674,11 +11858,9 @@ class _CameraModeControls extends StatelessWidget {
                   }
                   _updateFocusTarget(
                     CinematicCameraTargetBinding.actor(
-                      actorId: _selectedCameraTargetActorId(
-                            focusBinding,
-                            asset,
-                          ) ??
-                          actors.first.actorId,
+                      actorId:
+                          _selectedCameraTargetActorId(focusBinding, asset) ??
+                              actors.first.actorId,
                     ),
                     focusBinding.zoomPreset,
                   );
@@ -11943,16 +12125,14 @@ class _ActorEmoteControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedEmoteId = cinematicTimelineActorEmoteEmoteIdOf(step);
     final selectedEmote = cinematicEmoteCatalogEntryById(selectedEmoteId);
-    final selectedActorId = asset.requiredActors.any(
-      (actor) => actor.actorId == step.actorId,
-    )
-        ? step.actorId
-        : null;
-    final selectedCatalogEmoteId = cinematicEmoteCatalog.any(
-      (emote) => emote.id == selectedEmoteId,
-    )
-        ? selectedEmoteId
-        : null;
+    final selectedActorId =
+        asset.requiredActors.any((actor) => actor.actorId == step.actorId)
+            ? step.actorId
+            : null;
+    final selectedCatalogEmoteId =
+        cinematicEmoteCatalog.any((emote) => emote.id == selectedEmoteId)
+            ? selectedEmoteId
+            : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -11963,9 +12143,7 @@ class _ActorEmoteControls extends StatelessWidget {
           const _MutedText('Ajoutez un acteur requis pour choisir qui réagit.')
         else
           _InspectorDropdownField<String>(
-            key: const ValueKey(
-              'cinematic-builder-actor-emote-actor-dropdown',
-            ),
+            key: const ValueKey('cinematic-builder-actor-emote-actor-dropdown'),
             value: selectedActorId,
             hint: 'Choisir un acteur',
             items: [
@@ -12033,9 +12211,7 @@ class _ActorEmoteControls extends StatelessWidget {
 }
 
 class _ActorEmoteDropdownOption extends StatelessWidget {
-  const _ActorEmoteDropdownOption({
-    required this.entry,
-  });
+  const _ActorEmoteDropdownOption({required this.entry});
 
   final CinematicEmoteCatalogEntry entry;
 
@@ -12052,22 +12228,138 @@ class _ActorEmoteDropdownOption extends StatelessWidget {
           size: 18,
         ),
         const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            entry.label,
-            overflow: TextOverflow.ellipsis,
+        Flexible(child: Text(entry.label, overflow: TextOverflow.ellipsis)),
+      ],
+    );
+  }
+}
+
+class _ActorAnimationControls extends StatelessWidget {
+  const _ActorAnimationControls({
+    required this.asset,
+    required this.step,
+    required this.animationDefinitions,
+    required this.onUpdateActorAnimation,
+  });
+
+  final CinematicAsset asset;
+  final CinematicTimelineStep step;
+  final List<CharacterCustomAnimationDefinition> animationDefinitions;
+  final _UpdateActorAnimationCallback onUpdateActorAnimation;
+
+  @override
+  Widget build(BuildContext context) {
+    final command = cinematicCharacterCustomAnimationCommandOf(step);
+    if (command == null) {
+      return const PokeMapDiagnosticCallout(
+        severity: PokeMapDiagnosticSeverity.error,
+        title: 'Animation invalide',
+        message: 'Cette commande ne peut pas être relue.',
+      );
+    }
+    final definition = animationDefinitions
+        .where((candidate) => candidate.id == command.definitionId)
+        .firstOrNull;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        const _SectionTitle(title: 'Acteur', subtitle: 'Picker requis'),
+        const SizedBox(height: 8),
+        _InspectorDropdownField<String>(
+          key: const ValueKey(
+            'cinematic-builder-actor-animation-actor-dropdown',
           ),
+          value: asset.requiredActors.any(
+            (actor) => actor.actorId == command.actorId,
+          )
+              ? command.actorId
+              : null,
+          hint: 'Choisir un acteur',
+          items: [
+            for (final actor in asset.requiredActors)
+              MacosPopupMenuItem<String>(
+                value: actor.actorId,
+                child: Text(_actorDisplayLabel(actor)),
+              ),
+          ],
+          onChanged: (actorId) {
+            if (actorId != null) {
+              onUpdateActorAnimation(step, actorId: actorId);
+            }
+          },
+        ),
+        const SizedBox(height: 8),
+        const _SectionTitle(title: 'Animation', subtitle: 'Catalogue global'),
+        const SizedBox(height: 8),
+        _InspectorDropdownField<String>(
+          key: const ValueKey(
+            'cinematic-builder-actor-animation-definition-dropdown',
+          ),
+          value: definition?.id,
+          hint: 'Choisir une animation',
+          items: [
+            for (final candidate in animationDefinitions)
+              MacosPopupMenuItem<String>(
+                value: candidate.id,
+                child: Text(candidate.displayName),
+              ),
+          ],
+          onChanged: (definitionId) {
+            if (definitionId != null) {
+              onUpdateActorAnimation(step, definitionId: definitionId);
+            }
+          },
+        ),
+        if (definition?.mode == CharacterCustomAnimationMode.directional) ...[
+          const SizedBox(height: 8),
+          const _SectionTitle(title: 'Direction', subtitle: 'Clip requis'),
+          const SizedBox(height: 8),
+          _InspectorDropdownField<EntityFacing>(
+            key: const ValueKey(
+              'cinematic-builder-actor-animation-direction-dropdown',
+            ),
+            value: command.direction,
+            hint: 'Choisir une direction',
+            items: [
+              for (final direction in EntityFacing.values)
+                MacosPopupMenuItem<EntityFacing>(
+                  value: direction,
+                  child: Text(_entityFacingLabel(direction)),
+                ),
+            ],
+            onChanged: (direction) {
+              if (direction != null) {
+                onUpdateActorAnimation(step, direction: direction);
+              }
+            },
+          ),
+        ],
+        const SizedBox(height: 8),
+        _KeyValue(
+          label: 'Lecture',
+          value: switch (command.playback.kind) {
+            CharacterCustomAnimationPlaybackKind.once => 'Une fois',
+            CharacterCustomAnimationPlaybackKind.repeatCount =>
+              '${command.playback.repeatCount} répétitions',
+            CharacterCustomAnimationPlaybackKind.forDuration =>
+              '${command.playback.durationMs} ms',
+          },
         ),
       ],
     );
   }
 }
 
+String _entityFacingLabel(EntityFacing direction) => switch (direction) {
+      EntityFacing.north => 'Nord',
+      EntityFacing.south => 'Sud',
+      EntityFacing.east => 'Est',
+      EntityFacing.west => 'Ouest',
+    };
+
 class _InspectorDropdownOption extends StatelessWidget {
-  const _InspectorDropdownOption({
-    required this.icon,
-    required this.label,
-  });
+  const _InspectorDropdownOption({required this.icon, required this.label});
 
   final IconData icon;
   final String label;
@@ -12080,12 +12372,7 @@ class _InspectorDropdownOption extends StatelessWidget {
       children: [
         Icon(icon, size: 15, color: colors.textSecondary),
         const SizedBox(width: 8),
-        Flexible(
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
+        Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
       ],
     );
   }
@@ -12186,8 +12473,10 @@ class _ActorMoveControls extends StatelessWidget {
 
     final selectedTarget = _selectedTarget(asset, step);
     final destinationStagePointId = _destinationStagePointId(asset, step);
-    final destinationStagePoint =
-        _stagePointById(stagePoints, destinationStagePointId);
+    final destinationStagePoint = _stagePointById(
+      stagePoints,
+      destinationStagePointId,
+    );
     final selectedDestinationStagePointId = destinationStagePoint?.id;
     final availablePoints = [
       for (final point in stagePoints)
@@ -12594,8 +12883,9 @@ class _MovementTargetPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedTargetValue = asset.movementTargets
-            .any((target) => target.targetId == selectedTargetId)
+    final selectedTargetValue = asset.movementTargets.any(
+      (target) => target.targetId == selectedTargetId,
+    )
         ? selectedTargetId
         : null;
 
@@ -12606,9 +12896,7 @@ class _MovementTargetPicker extends StatelessWidget {
       items: [
         for (final target in asset.movementTargets)
           MacosPopupMenuItem<String>(
-            key: ValueKey(
-              'cinematic-builder-target-picker-${target.targetId}',
-            ),
+            key: ValueKey('cinematic-builder-target-picker-${target.targetId}'),
             value: target.targetId,
             child: _InspectorDropdownOption(
               icon: CupertinoIcons.location,
@@ -13246,7 +13534,9 @@ int _timelineProbeSnapHintPriority(CinematicTimelineProbeSnapHint hint) {
 }
 
 String _timelineProbeBadgeLabel(
-    int timeMs, CinematicTimelineProbeSnapHint? snapHint) {
+  int timeMs,
+  CinematicTimelineProbeSnapHint? snapHint,
+) {
   final baseLabel = 'Marqueur : ${_shortTimeLabel(timeMs)}';
   if (snapHint == null) {
     return baseLabel;
@@ -13350,6 +13640,7 @@ String _timelineStepKindLabel(CinematicTimelineStepKind kind) {
     CinematicTimelineStepKind.actorMove => 'Déplacement acteur',
     CinematicTimelineStepKind.actorFace => 'Orientation acteur',
     CinematicTimelineStepKind.actorEmote => 'Émotion acteur',
+    CinematicTimelineStepKind.actorAnimation => 'Animation acteur',
     CinematicTimelineStepKind.dialogueLine => 'Dialogue',
     CinematicTimelineStepKind.sound => 'Son',
     CinematicTimelineStepKind.music => 'Musique',
@@ -14005,6 +14296,7 @@ IconData _stepIcon(CinematicTimelineStepKind kind) {
     CinematicTimelineStepKind.actorMove => CupertinoIcons.arrow_right,
     CinematicTimelineStepKind.actorFace => CupertinoIcons.arrow_turn_up_right,
     CinematicTimelineStepKind.actorEmote => CupertinoIcons.chat_bubble,
+    CinematicTimelineStepKind.actorAnimation => CupertinoIcons.play_circle,
     CinematicTimelineStepKind.dialogueLine => CupertinoIcons.text_bubble,
     CinematicTimelineStepKind.sound => CupertinoIcons.speaker_2,
     CinematicTimelineStepKind.music => CupertinoIcons.music_note_2,
@@ -14065,7 +14357,8 @@ PokeMapTone _blockTone(CinematicTimelineStepKind kind) {
     CinematicTimelineStepKind.camera => PokeMapTone.cinematic,
     CinematicTimelineStepKind.actorMove ||
     CinematicTimelineStepKind.actorFace ||
-    CinematicTimelineStepKind.actorEmote =>
+    CinematicTimelineStepKind.actorEmote ||
+    CinematicTimelineStepKind.actorAnimation =>
       PokeMapTone.narrative,
     CinematicTimelineStepKind.dialogueLine => PokeMapTone.dialogue,
     CinematicTimelineStepKind.fx ||
@@ -14155,7 +14448,9 @@ class _StagePointsSection extends StatelessWidget {
                 child: Text(
                   point.label,
                   style: const TextStyle(
-                      fontSize: 10, fontWeight: FontWeight.bold),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               );
             }).toList(),

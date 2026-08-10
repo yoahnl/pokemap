@@ -157,6 +157,10 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
       ];
 
   bool _isParameterRequired(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.playCharacterAnimation &&
+        parameter.id == 'direction') {
+      return _values['animationMode'] == 'directional';
+    }
     if (_command.id == NarrativeCommandIds.finishGame &&
         _values['includeCredits'] == 'true' &&
         const {
@@ -170,6 +174,17 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   }
 
   bool _isParameterVisible(NarrativeCommandParameterDescriptor parameter) {
+    if (_command.id == NarrativeCommandIds.playCharacterAnimation) {
+      if (parameter.id == 'direction') {
+        return _values['animationMode'] == 'directional';
+      }
+      if (parameter.id == 'repeatCount') {
+        return _values['playbackKind'] == 'repeatCount';
+      }
+      if (parameter.id == 'durationMs') {
+        return _values['playbackKind'] == 'forDuration';
+      }
+    }
     if (_command.id != NarrativeCommandIds.finishGame) return true;
     if (!parameter.id.startsWith('credits') ||
         parameter.id == 'includeCredits') {
@@ -330,7 +345,7 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
             for (final option in options)
               PokeMapDropdownItem(value: option.id, label: option.label),
           ],
-          onChanged: (value) => _setValue(parameter.id, value),
+          onChanged: (value) => _setReferenceValue(parameter, value),
         );
     }
   }
@@ -356,10 +371,22 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
             id: 'returnToTitle',
             label: 'Retourner au titre',
           ),
+          SceneActionPickerOption(id: 'returnToHub', label: 'Retourner au Hub'),
+        ],
+      NarrativeCommandParameterKind.characterDirection => const [
+          SceneActionPickerOption(id: 'south', label: 'Sud'),
+          SceneActionPickerOption(id: 'north', label: 'Nord'),
+          SceneActionPickerOption(id: 'east', label: 'Est'),
+          SceneActionPickerOption(id: 'west', label: 'Ouest'),
+        ],
+      NarrativeCommandParameterKind.customAnimationPlayback => const [
+          SceneActionPickerOption(id: 'once', label: 'Une fois'),
           SceneActionPickerOption(
-            id: 'returnToHub',
-            label: 'Retourner au Hub',
+            id: 'repeatCount',
+            label: 'Nombre de répétitions',
           ),
+          SceneActionPickerOption(
+              id: 'forDuration', label: 'Pendant une durée'),
         ],
       _ => widget.pickerOptions[kind] ?? const [],
     };

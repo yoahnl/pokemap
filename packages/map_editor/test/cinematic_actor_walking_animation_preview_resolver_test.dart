@@ -704,6 +704,77 @@ void main() {
           CinematicActorWalkingAnimationFallbackReason.missingCharacter);
     });
 
+    test('custom animation uses its stable definition, asset, and cadence', () {
+      final character = _character(
+        animations: const [],
+        customAnimations: [
+          CharacterCustomAnimationClip(
+            definitionId: 'saluer',
+            direction: EntityFacing.south,
+            sourceAssetId: 'asset_saluer',
+            frames: [
+              CharacterAnimationFrame(
+                source: TilesetSourceRect(
+                  x: 0,
+                  y: 0,
+                  width: 24,
+                  height: 32,
+                ),
+                durationMs: 100,
+              ),
+              CharacterAnimationFrame(
+                source: TilesetSourceRect(
+                  x: 24,
+                  y: 0,
+                  width: 24,
+                  height: 32,
+                ),
+                durationMs: 200,
+              ),
+            ],
+          ),
+        ],
+      );
+      final command = CharacterCustomAnimationRuntimeCommand(
+        actorId: 'actor_lysa',
+        definitionId: 'saluer',
+        direction: EntityFacing.south,
+      );
+
+      final resolved = resolveCinematicActorWalkingAnimationPreviewFrame(
+        actor: _actor(),
+        playbackFrame: _frameAt(
+          100,
+          pose: _pose(isInterpolated: false),
+          activeCharacterAnimations: [
+            CinematicActorCustomAnimationPlaybackState(
+              activeStepId: 'custom_1',
+              stepIndex: 0,
+              command: command,
+              durationMs: 300,
+              elapsedMs: 100,
+              progress: 1 / 3,
+            ),
+          ],
+        ),
+        playbackTimeMs: 100,
+        isPlaybackPlaying: true,
+        timelineSteps: const [],
+        character: character,
+      );
+
+      expect(resolved.kind, CinematicActorWalkingAnimationPreviewKind.custom);
+      expect(resolved.frameIndex, 1);
+      expect(resolved.frameDurationMs, 200);
+      expect(resolved.direction, EntityFacing.south);
+      expect(resolved.sourceAssetId, 'asset_saluer');
+      expect(resolved.usesPixelCoordinates, isTrue);
+      expect(
+        resolved.sourceRect,
+        const TilesetSourceRect(x: 24, y: 0, width: 24, height: 32),
+      );
+    });
+
     test('resolver is deterministic and does not mutate source models', () {
       final actor = _actor();
       final character = _character(animations: [
@@ -779,6 +850,7 @@ CinematicActorDisplayPreviewActor _actor({
 
 ProjectCharacterEntry _character({
   required List<CharacterAnimation> animations,
+  List<CharacterCustomAnimationClip> customAnimations = const [],
 }) {
   return ProjectCharacterEntry(
     id: 'char_lysa',
@@ -787,6 +859,7 @@ ProjectCharacterEntry _character({
     frameWidth: 1,
     frameHeight: 2,
     animations: animations,
+    customAnimations: customAnimations,
   );
 }
 
@@ -830,12 +903,15 @@ CinematicTimelineStep _actorMoveStep(
 CinematicPreviewPlaybackFrame _frameAt(
   int timeMs, {
   required CinematicActorPlaybackPose pose,
+  List<CinematicActorCustomAnimationPlaybackState> activeCharacterAnimations =
+      const [],
 }) {
   return CinematicPreviewPlaybackFrame(
     timeMs: timeMs,
     clampedTimeMs: timeMs < 0 ? 0 : timeMs,
     activeStepIds: pose.activeStepId == null ? const [] : [pose.activeStepId!],
     actorPoses: [pose],
+    activeCharacterAnimations: activeCharacterAnimations,
     visibleDiagnostics: const [],
   );
 }

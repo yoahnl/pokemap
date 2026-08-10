@@ -40,6 +40,32 @@ void main() {
       expect(fileContents.contains('isPlaying'), isFalse);
     });
 
+    test('custom animation source rectangles remain absolute pixels', () {
+      const spriteRef = CinematicActorSpriteRef(
+        characterId: 'char_professor',
+        tilesetId: 'asset_saluer',
+        sourceTileRect: TilesetSourceRect(
+          x: 24,
+          y: 32,
+          width: 24,
+          height: 32,
+        ),
+        frameWidthTiles: 1,
+        frameHeightTiles: 2,
+        direction: CinematicActorPreviewDirection.south,
+        usesPixelCoordinates: true,
+      );
+
+      expect(
+        cinematicActorSpriteSourceRect(
+          spriteRef: spriteRef,
+          tileWidth: 16,
+          tileHeight: 16,
+        ),
+        const Rect.fromLTWH(24, 32, 24, 32),
+      );
+    });
+
     testWidgets(
         'renders resolved actor sprite in cinematic preview when image is available',
         (tester) async {

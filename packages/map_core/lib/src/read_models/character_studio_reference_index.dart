@@ -2,6 +2,9 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../models/map_data.dart';
 import '../models/project_manifest.dart';
+import '../models/scene_asset.dart';
+import '../models/scene_interactive_command.dart';
+import '../runtime/cinematic_character_custom_animation_contract.dart';
 
 enum CharacterStudioReferenceTargetKind {
   character,
@@ -17,6 +20,8 @@ enum CharacterStudioReferenceSourceKind {
   mapNpc,
   characterPortrait,
   characterCustomAnimation,
+  cinematicCustomAnimation,
+  sceneCustomAnimation,
 }
 
 @immutable
@@ -90,11 +95,9 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
     );
   }
 
-  for (
-    var index = 0;
-    index < manifest.newGame.playerAvatarCharacterIds.length;
-    index++
-  ) {
+  for (var index = 0;
+      index < manifest.newGame.playerAvatarCharacterIds.length;
+      index++) {
     final characterId = manifest.newGame.playerAvatarCharacterIds[index];
     references.add(
       CharacterStudioReference(
@@ -102,18 +105,15 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
         targetId: characterId,
         sourceKind: CharacterStudioReferenceSourceKind.newGameAvatar,
         sourceId: 'newGame',
-        path:
-            r'$.newGame.playerAvatarCharacterIds['
+        path: r'$.newGame.playerAvatarCharacterIds['
             '$index]',
       ),
     );
   }
 
-  for (
-    var trainerIndex = 0;
-    trainerIndex < manifest.trainers.length;
-    trainerIndex++
-  ) {
+  for (var trainerIndex = 0;
+      trainerIndex < manifest.trainers.length;
+      trainerIndex++) {
     final trainer = manifest.trainers[trainerIndex];
     final characterId = trainer.characterId?.trim();
     if (characterId == null || characterId.isEmpty) {
@@ -125,18 +125,15 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
         targetId: characterId,
         sourceKind: CharacterStudioReferenceSourceKind.trainer,
         sourceId: trainer.id,
-        path:
-            r'$.trainers['
+        path: r'$.trainers['
             '$trainerIndex].characterId',
       ),
     );
   }
 
-  for (
-    var cinematicIndex = 0;
-    cinematicIndex < manifest.cinematics.length;
-    cinematicIndex++
-  ) {
+  for (var cinematicIndex = 0;
+      cinematicIndex < manifest.cinematics.length;
+      cinematicIndex++) {
     final cinematic = manifest.cinematics[cinematicIndex];
     final bindings =
         cinematic.stageContext?.actorAppearanceBindings ?? const [];
@@ -148,10 +145,55 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
           targetId: binding.characterId,
           sourceKind: CharacterStudioReferenceSourceKind.cinematicAppearance,
           sourceId: cinematic.id,
-          path:
-              r'$.cinematics['
+          path: r'$.cinematics['
               '$cinematicIndex].stageContext.actorAppearanceBindings['
               '$bindingIndex].characterId',
+        ),
+      );
+    }
+    for (var stepIndex = 0;
+        stepIndex < cinematic.timeline.steps.length;
+        stepIndex++) {
+      final command = cinematicCharacterCustomAnimationCommandOf(
+        cinematic.timeline.steps[stepIndex],
+      );
+      if (command == null) continue;
+      references.add(
+        CharacterStudioReference(
+          targetKind:
+              CharacterStudioReferenceTargetKind.customAnimationDefinition,
+          targetId: command.definitionId,
+          sourceKind:
+              CharacterStudioReferenceSourceKind.cinematicCustomAnimation,
+          sourceId: cinematic.id,
+          path: r'$.cinematics['
+              '$cinematicIndex].timeline.steps[$stepIndex].metadata.'
+              '$cinematicCharacterAnimationDefinitionIdMetadataKey',
+        ),
+      );
+    }
+  }
+
+  for (var sceneIndex = 0; sceneIndex < manifest.scenes.length; sceneIndex++) {
+    final scene = manifest.scenes[sceneIndex];
+    for (var nodeIndex = 0; nodeIndex < scene.graph.nodes.length; nodeIndex++) {
+      final node = scene.graph.nodes[nodeIndex];
+      final payload = node.payload;
+      if (payload is! SceneActionPayload) continue;
+      final command = payload.interactiveCommand;
+      if (command is! SceneCharacterCustomAnimationInteractiveCommand) {
+        continue;
+      }
+      references.add(
+        CharacterStudioReference(
+          targetKind:
+              CharacterStudioReferenceTargetKind.customAnimationDefinition,
+          targetId: command.runtimeCommand.definitionId,
+          sourceKind: CharacterStudioReferenceSourceKind.sceneCustomAnimation,
+          sourceId: '${scene.id}:${node.id}',
+          path: r'$.scenes['
+              '$sceneIndex].graph.nodes[$nodeIndex].payload.'
+              'interactiveCommand.runtimeCommand.definitionId',
         ),
       );
     }
@@ -160,11 +202,9 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
   final sortedMaps = maps.toList()
     ..sort((left, right) => left.id.compareTo(right.id));
   for (final map in sortedMaps) {
-    for (
-      var entityIndex = 0;
-      entityIndex < map.entities.length;
-      entityIndex++
-    ) {
+    for (var entityIndex = 0;
+        entityIndex < map.entities.length;
+        entityIndex++) {
       final entity = map.entities[entityIndex];
       final characterId = entity.npc?.characterId?.trim();
       if (characterId == null || characterId.isEmpty) {
@@ -176,25 +216,20 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
           targetId: characterId,
           sourceKind: CharacterStudioReferenceSourceKind.mapNpc,
           sourceId: entity.id,
-          path:
-              r'$.maps['
+          path: r'$.maps['
               '${map.id}].entities[$entityIndex].npc.characterId',
         ),
       );
     }
   }
 
-  for (
-    var characterIndex = 0;
-    characterIndex < manifest.characters.length;
-    characterIndex++
-  ) {
+  for (var characterIndex = 0;
+      characterIndex < manifest.characters.length;
+      characterIndex++) {
     final character = manifest.characters[characterIndex];
-    for (
-      var portraitIndex = 0;
-      portraitIndex < character.portraits.length;
-      portraitIndex++
-    ) {
+    for (var portraitIndex = 0;
+        portraitIndex < character.portraits.length;
+        portraitIndex++) {
       final portrait = character.portraits[portraitIndex];
       references.add(
         CharacterStudioReference(
@@ -202,17 +237,14 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
           targetId: portrait.portraitStateId,
           sourceKind: CharacterStudioReferenceSourceKind.characterPortrait,
           sourceId: character.id,
-          path:
-              r'$.characters['
+          path: r'$.characters['
               '$characterIndex].portraits[$portraitIndex].portraitStateId',
         ),
       );
     }
-    for (
-      var animationIndex = 0;
-      animationIndex < character.customAnimations.length;
-      animationIndex++
-    ) {
+    for (var animationIndex = 0;
+        animationIndex < character.customAnimations.length;
+        animationIndex++) {
       final animation = character.customAnimations[animationIndex];
       references.add(
         CharacterStudioReference(
@@ -222,8 +254,7 @@ CharacterStudioReferenceIndex buildCharacterStudioReferenceIndex(
           sourceKind:
               CharacterStudioReferenceSourceKind.characterCustomAnimation,
           sourceId: character.id,
-          path:
-              r'$.characters['
+          path: r'$.characters['
               '$characterIndex].customAnimations['
               '$animationIndex].definitionId',
         ),

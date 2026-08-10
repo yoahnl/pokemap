@@ -1,6 +1,7 @@
 library map_core;
 
 export 'src/runtime/character_custom_animation_runtime_contract.dart';
+export 'src/runtime/cinematic_character_custom_animation_contract.dart';
 
 export 'src/localization/project_locale_resolver.dart';
 export 'src/models/narrative_validation_report.dart';

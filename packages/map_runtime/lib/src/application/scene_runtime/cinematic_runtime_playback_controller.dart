@@ -336,6 +336,7 @@ const _supportedKinds = <CinematicTimelineStepKind>{
   CinematicTimelineStepKind.actorMove,
   CinematicTimelineStepKind.actorFace,
   CinematicTimelineStepKind.actorEmote,
+  CinematicTimelineStepKind.actorAnimation,
   CinematicTimelineStepKind.dialogueLine,
   CinematicTimelineStepKind.fade,
   CinematicTimelineStepKind.shake,

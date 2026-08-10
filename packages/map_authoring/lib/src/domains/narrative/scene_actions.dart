@@ -22,6 +22,11 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       risk: AuthoringRiskLevel.high,
     ),
+    narrativeActionDescriptor(
+      'scene.character_animation.set',
+      'Set one bounded Character Studio animation on a Scene action node',
+      resourceKinds: const ['project', 'scene'],
+    ),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
@@ -78,6 +83,39 @@ final class SceneActions {
           operation: context.request.actionId,
           path: '/scenes/$sceneId',
           before: before?.toJson(),
+          preview: const ModernNarrativeInspector()
+              .inspect(project: projected, maps: context.snapshot.maps)
+              .toJson(),
+        );
+      case 'scene.character_animation.set':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {'sceneId', 'nodeId', 'runtimeCommand'},
+        );
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final nodeId = narrativeStringParameter(parameters, 'nodeId');
+        final before = context.snapshot.manifest.scenes
+            .where((candidate) => candidate.id == sceneId)
+            .firstOrNull;
+        final projected = setCharacterAnimationCommand(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          nodeId: nodeId,
+          command: _decodeCharacterAnimationCommand(
+            narrativeObjectParameter(parameters, 'runtimeCommand'),
+          ),
+        );
+        final after = projected.scenes
+            .where((candidate) => candidate.id == sceneId)
+            .firstOrNull;
+        return narrativeProjectDraft(
+          context.snapshot,
+          projected,
+          operation: context.request.actionId,
+          path: '/scenes/$sceneId/graph/nodes/$nodeId/interactiveCommand',
+          before: before?.toJson(),
+          after: after?.toJson(),
           preview: const ModernNarrativeInspector()
               .inspect(project: projected, maps: context.snapshot.maps)
               .toJson(),
@@ -152,6 +190,65 @@ final class SceneActions {
     }
     return result.after;
   }
+
+  ProjectManifest setCharacterAnimationCommand(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String nodeId,
+    required CharacterCustomAnimationRuntimeCommand command,
+  }) {
+    _validateSceneCharacterAnimationCommand(project, command);
+    final scene = project.scenes
+        .where((candidate) => candidate.id == sceneId)
+        .firstOrNull;
+    if (scene == null) {
+      throw NarrativeAuthoringException(
+        'scene.unknown',
+        'The Scene identity is unknown.',
+        details: <String, Object?>{'sceneId': sceneId},
+      );
+    }
+    final nodeIndex = scene.graph.nodes.indexWhere((node) => node.id == nodeId);
+    if (nodeIndex < 0 ||
+        scene.graph.nodes[nodeIndex].kind != SceneNodeKind.action) {
+      throw NarrativeAuthoringException(
+        'scene.character_animation.action_node_required',
+        'Character animations require an existing Scene action node.',
+        details: <String, Object?>{'nodeId': nodeId},
+      );
+    }
+    final beforeNode = scene.graph.nodes[nodeIndex];
+    final nodes = scene.graph.nodes.toList();
+    nodes[nodeIndex] = SceneNode(
+      id: beforeNode.id,
+      kind: beforeNode.kind,
+      title: beforeNode.title,
+      description: beforeNode.description,
+      payload: SceneActionPayload.interactive(
+        SceneInteractiveCommand.playCharacterAnimation(
+          runtimeCommand: command,
+        ),
+      ),
+    );
+    final updatedScene = SceneAsset(
+      id: scene.id,
+      name: scene.name,
+      description: scene.description,
+      storylineId: scene.storylineId,
+      chapterId: scene.chapterId,
+      tags: scene.tags,
+      graph: SceneGraph(
+        startNodeId: scene.graph.startNodeId,
+        nodes: nodes,
+        edges: scene.graph.edges,
+      ),
+      layout: scene.layout,
+      declaredOutcomes: scene.declaredOutcomes,
+      metadata: scene.metadata,
+    );
+    return upsert(project, maps: maps, scene: updatedScene);
+  }
 }
 
 SceneAsset _decodeScene(Map<String, dynamic> json) {
@@ -162,6 +259,57 @@ SceneAsset _decodeScene(Map<String, dynamic> json) {
       'scene.invalid',
       'The Scene payload cannot be decoded.',
       details: {'validationType': error.runtimeType.toString()},
+    );
+  }
+}
+
+CharacterCustomAnimationRuntimeCommand _decodeCharacterAnimationCommand(
+  Map<String, dynamic> json,
+) {
+  try {
+    return CharacterCustomAnimationRuntimeCommand.fromJson(json);
+  } on Object catch (error) {
+    throw NarrativeAuthoringException(
+      'scene.character_animation.command_invalid',
+      'The Character Studio animation command cannot be decoded.',
+      details: <String, Object?>{
+        'validationType': error.runtimeType.toString(),
+      },
+    );
+  }
+}
+
+void _validateSceneCharacterAnimationCommand(
+  ProjectManifest project,
+  CharacterCustomAnimationRuntimeCommand command,
+) {
+  CharacterCustomAnimationDefinition? definition;
+  for (final candidate
+      in project.characterStudioCatalog.customAnimationDefinitions) {
+    if (candidate.id == command.definitionId) {
+      definition = candidate;
+      break;
+    }
+  }
+  if (definition == null) {
+    throw NarrativeAuthoringException(
+      'scene.character_animation.definition_unknown',
+      'The selected custom animation definition does not exist.',
+      details: <String, Object?>{'definitionId': command.definitionId},
+    );
+  }
+  if (definition.mode == CharacterCustomAnimationMode.single &&
+      command.direction != null) {
+    throw NarrativeAuthoringException(
+      'scene.character_animation.direction_unexpected',
+      'A single custom animation does not accept a direction.',
+    );
+  }
+  if (definition.mode == CharacterCustomAnimationMode.directional &&
+      command.direction == null) {
+    throw NarrativeAuthoringException(
+      'scene.character_animation.direction_required',
+      'A directional custom animation requires a direction.',
     );
   }
 }

@@ -64,6 +64,16 @@ void main() {
         () {
       final payloads = <SceneActionPayload>[
         buildScenePayloadForNarrativeCommand(
+          commandId: NarrativeCommandIds.playCharacterAnimation,
+          parameters: const {
+            'actorId': 'player',
+            'definitionId': 'wave',
+            'direction': 'south',
+            'playbackKind': 'repeatCount',
+            'repeatCount': '2',
+          },
+        ) as SceneActionPayload,
+        buildScenePayloadForNarrativeCommand(
           commandId: NarrativeCommandIds.openHeal,
           parameters: const {'requiresConfirmation': 'false'},
         ) as SceneActionPayload,
@@ -97,19 +107,30 @@ void main() {
 
       expect(
         payloads[0].interactiveCommand,
+        SceneInteractiveCommand.playCharacterAnimation(
+          runtimeCommand: CharacterCustomAnimationRuntimeCommand(
+            actorId: 'player',
+            definitionId: 'wave',
+            direction: EntityFacing.south,
+            playback: CharacterCustomAnimationPlayback.repeatCount(2),
+          ),
+        ),
+      );
+      expect(
+        payloads[1].interactiveCommand,
         SceneInteractiveCommand.openHeal(requiresConfirmation: false),
       );
-      expect(payloads[1].consequence, SceneConsequence.healParty());
+      expect(payloads[2].consequence, SceneConsequence.healParty());
       expect(
-        payloads[2].consequence,
+        payloads[3].consequence,
         SceneConsequence.awardBadge(badgeId: 'badge_tide'),
       );
       expect(
-        payloads[3].consequence,
+        payloads[4].consequence,
         SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
       );
       expect(
-        payloads[4].consequence,
+        payloads[5].consequence,
         SceneConsequence.setNpcPresence(
           mapId: 'map_port',
           entityId: 'npc_sailor',
@@ -117,7 +138,7 @@ void main() {
         ),
       );
       expect(
-        payloads[5].interactiveCommand,
+        payloads[6].interactiveCommand,
         SceneInteractiveCommand.moveNpc(
           mapId: 'map_port',
           entityId: 'npc_sailor',

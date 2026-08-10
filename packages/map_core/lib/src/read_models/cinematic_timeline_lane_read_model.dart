@@ -139,8 +139,9 @@ final class CinematicTimelineLaneStep {
 }
 
 CinematicTimelineLaneReadModel buildCinematicTimelineLaneReadModel(
-    CinematicAsset cinematic,
-    {Map<String, CinematicTimelineTrackState> trackStates = const {}}) {
+  CinematicAsset cinematic, {
+  Map<String, CinematicTimelineTrackState> trackStates = const {},
+}) {
   final actorLabels = <String, String>{
     for (final actor in cinematic.requiredActors)
       actor.actorId: actor.label ?? actor.actorId,
@@ -255,12 +256,7 @@ CinematicTimelineLaneReadModel buildCinematicTimelineLaneReadModel(
       hasDuration = true;
     }
 
-    final lane = _laneForStep(
-      step,
-      lanes,
-      actorLabels,
-      unknownActorOffset,
-    );
+    final lane = _laneForStep(step, lanes, actorLabels, unknownActorOffset);
     if (lane.wasUnknownActorCreated) {
       unknownActorOffset += 1;
     }
@@ -344,7 +340,8 @@ _LaneLookup _laneForStep(
       'time-global',
     CinematicTimelineStepKind.actorMove ||
     CinematicTimelineStepKind.actorFace ||
-    CinematicTimelineStepKind.actorEmote =>
+    CinematicTimelineStepKind.actorEmote ||
+    CinematicTimelineStepKind.actorAnimation =>
       'other',
   };
   return _LaneLookup(lanes[laneId]!, wasUnknownActorCreated: false);
@@ -431,7 +428,8 @@ bool _isActorLaneStep(CinematicTimelineStepKind kind) {
   return switch (kind) {
     CinematicTimelineStepKind.actorMove ||
     CinematicTimelineStepKind.actorFace ||
-    CinematicTimelineStepKind.actorEmote =>
+    CinematicTimelineStepKind.actorEmote ||
+    CinematicTimelineStepKind.actorAnimation =>
       true,
     _ => false,
   };

@@ -23,6 +23,7 @@ abstract final class NarrativeCommandIds {
   static const finishGame = 'finishGame';
   static const setNpcPresence = 'setNpcPresence';
   static const moveNpc = 'moveNpc';
+  static const playCharacterAnimation = 'playCharacterAnimation';
 }
 
 final class NarrativeCommandCatalog {
@@ -102,36 +103,64 @@ final class NarrativeCommandCatalog {
         'Terminer une étape',
         'FG-082',
         [
-          _parameter('stepId', 'Étape', NarrativeCommandParameterKind.storyStep)
+          _parameter(
+            'stepId',
+            'Étape',
+            NarrativeCommandParameterKind.storyStep,
+          ),
         ],
       ),
       consequence(NarrativeCommandIds.giveItem, 'Donner un objet', 'FG-083', [
         _parameter('itemId', 'Objet', NarrativeCommandParameterKind.item),
         _parameter(
-            'quantity', 'Quantité', NarrativeCommandParameterKind.integer),
+          'quantity',
+          'Quantité',
+          NarrativeCommandParameterKind.integer,
+        ),
       ]),
       consequence(NarrativeCommandIds.takeItem, 'Retirer un objet', 'FG-083', [
         _parameter('itemId', 'Objet', NarrativeCommandParameterKind.item),
         _parameter(
-            'quantity', 'Quantité', NarrativeCommandParameterKind.integer),
+          'quantity',
+          'Quantité',
+          NarrativeCommandParameterKind.integer,
+        ),
       ]),
       consequence(
-          NarrativeCommandIds.giveMoney, 'Donner de l’argent', 'FG-084', [
-        _parameter('amount', 'Montant', NarrativeCommandParameterKind.integer),
-      ]),
+        NarrativeCommandIds.giveMoney,
+        'Donner de l’argent',
+        'FG-084',
+        [
+          _parameter(
+            'amount',
+            'Montant',
+            NarrativeCommandParameterKind.integer,
+          ),
+        ],
+      ),
       consequence(
-          NarrativeCommandIds.givePokemon, 'Donner un Pokémon', 'FG-085', [
-        _parameter(
-            'speciesId', 'Espèce', NarrativeCommandParameterKind.species),
-        _parameter('level', 'Niveau', NarrativeCommandParameterKind.integer),
-      ]),
+        NarrativeCommandIds.givePokemon,
+        'Donner un Pokémon',
+        'FG-085',
+        [
+          _parameter(
+            'speciesId',
+            'Espèce',
+            NarrativeCommandParameterKind.species,
+          ),
+          _parameter('level', 'Niveau', NarrativeCommandParameterKind.integer),
+        ],
+      ),
       consequence(
         NarrativeCommandIds.giveConfiguredStarter,
         'Donner un starter configuré',
         'FG-085',
         [
-          _parameter('starterOptionId', 'Starter',
-              NarrativeCommandParameterKind.starter)
+          _parameter(
+            'starterOptionId',
+            'Starter',
+            NarrativeCommandParameterKind.starter,
+          ),
         ],
       ),
       consequence(
@@ -140,14 +169,9 @@ final class NarrativeCommandCatalog {
         'FG-085',
         const [],
       ),
-      consequence(
-        NarrativeCommandIds.awardBadge,
-        'Donner un badge',
-        'FG-089',
-        [
-          _parameter('badgeId', 'Badge', NarrativeCommandParameterKind.badge),
-        ],
-      ),
+      consequence(NarrativeCommandIds.awardBadge, 'Donner un badge', 'FG-089', [
+        _parameter('badgeId', 'Badge', NarrativeCommandParameterKind.badge),
+      ]),
       consequence(
         NarrativeCommandIds.unlockFieldAbility,
         'Débloquer une capacité terrain',
@@ -256,11 +280,7 @@ final class NarrativeCommandCatalog {
         'Modifier la présence d’un PNJ',
         'FG-092',
         [
-          _parameter(
-            'npcRef',
-            'PNJ',
-            NarrativeCommandParameterKind.npc,
-          ),
+          _parameter('npcRef', 'PNJ', NarrativeCommandParameterKind.npc),
           _parameter(
             'present',
             'Présent sur la map',
@@ -270,13 +290,18 @@ final class NarrativeCommandCatalog {
       ),
       interactive(NarrativeCommandIds.warp, 'Téléporter', 'FG-090', [
         _parameter(
-            'destinationMapId', 'Map', NarrativeCommandParameterKind.map),
+          'destinationMapId',
+          'Map',
+          NarrativeCommandParameterKind.map,
+        ),
         _parameter('warpId', 'Warp', NarrativeCommandParameterKind.warp),
       ]),
       interactive(
-          NarrativeCommandIds.openShop, 'Ouvrir une boutique', 'FG-091', [
-        _parameter('shopId', 'Boutique', NarrativeCommandParameterKind.shop),
-      ]),
+        NarrativeCommandIds.openShop,
+        'Ouvrir une boutique',
+        'FG-091',
+        [_parameter('shopId', 'Boutique', NarrativeCommandParameterKind.shop)],
+      ),
       interactive(
         NarrativeCommandIds.openHeal,
         'Ouvrir un service de soin',
@@ -290,21 +315,48 @@ final class NarrativeCommandCatalog {
         ],
       ),
       interactive(
-          NarrativeCommandIds.openPc, 'Ouvrir le PC', 'FG-091', const []),
+        NarrativeCommandIds.openPc,
+        'Ouvrir le PC',
+        'FG-091',
+        const [],
+      ),
+      interactive(NarrativeCommandIds.moveNpc, 'Déplacer un PNJ', 'FG-092', [
+        _parameter('npcRef', 'PNJ', NarrativeCommandParameterKind.npc),
+        _parameter('warpId', 'Destination', NarrativeCommandParameterKind.warp),
+      ]),
       interactive(
-        NarrativeCommandIds.moveNpc,
-        'Déplacer un PNJ',
-        'FG-092',
+        NarrativeCommandIds.playCharacterAnimation,
+        'Jouer une animation de personnage',
+        'CHS-046',
         [
+          _parameter('actorId', 'Acteur', NarrativeCommandParameterKind.actor),
           _parameter(
-            'npcRef',
-            'PNJ',
-            NarrativeCommandParameterKind.npc,
+            'definitionId',
+            'Animation',
+            NarrativeCommandParameterKind.customAnimationDefinition,
           ),
           _parameter(
-            'warpId',
-            'Destination',
-            NarrativeCommandParameterKind.warp,
+            'direction',
+            'Direction',
+            NarrativeCommandParameterKind.characterDirection,
+            required: false,
+          ),
+          _parameter(
+            'playbackKind',
+            'Lecture',
+            NarrativeCommandParameterKind.customAnimationPlayback,
+          ),
+          _parameter(
+            'repeatCount',
+            'Répétitions',
+            NarrativeCommandParameterKind.integer,
+            required: false,
+          ),
+          _parameter(
+            'durationMs',
+            'Durée',
+            NarrativeCommandParameterKind.integer,
+            required: false,
           ),
         ],
       ),
@@ -314,7 +366,10 @@ final class NarrativeCommandCatalog {
         'SceneNode.yarnDialogue',
         'FG-089',
         _parameter(
-            'dialogueId', 'Dialogue', NarrativeCommandParameterKind.dialogue),
+          'dialogueId',
+          'Dialogue',
+          NarrativeCommandParameterKind.dialogue,
+        ),
       ),
       node(
         NarrativeCommandIds.trainerBattle,
@@ -322,7 +377,10 @@ final class NarrativeCommandCatalog {
         'SceneNode.battle.trainer',
         'FG-090',
         _parameter(
-            'trainerId', 'Dresseur', NarrativeCommandParameterKind.trainer),
+          'trainerId',
+          'Dresseur',
+          NarrativeCommandParameterKind.trainer,
+        ),
       ),
       node(
         NarrativeCommandIds.staticEncounter,
@@ -340,8 +398,11 @@ final class NarrativeCommandCatalog {
         'Jouer une cinématique',
         'SceneNode.cinematic',
         'FG-091',
-        _parameter('cinematicId', 'Cinématique',
-            NarrativeCommandParameterKind.cinematic),
+        _parameter(
+          'cinematicId',
+          'Cinématique',
+          NarrativeCommandParameterKind.cinematic,
+        ),
       ),
     ]);
   }

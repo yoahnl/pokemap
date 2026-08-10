@@ -1,6 +1,15 @@
 import 'package:meta/meta.dart' show immutable;
 
-enum SceneInteractiveCommandKind { warp, moveNpc, openShop, openHeal, openPc }
+import '../runtime/character_custom_animation_runtime_contract.dart';
+
+enum SceneInteractiveCommandKind {
+  warp,
+  moveNpc,
+  openShop,
+  openHeal,
+  openPc,
+  playCharacterAnimation,
+}
 
 @immutable
 abstract base class SceneInteractiveCommand {
@@ -20,12 +29,15 @@ abstract base class SceneInteractiveCommand {
   factory SceneInteractiveCommand.openShop({required String shopId}) =
       SceneOpenShopInteractiveCommand;
 
-  factory SceneInteractiveCommand.openHeal({
-    bool requiresConfirmation,
-  }) = SceneOpenHealInteractiveCommand;
+  factory SceneInteractiveCommand.openHeal({bool requiresConfirmation}) =
+      SceneOpenHealInteractiveCommand;
 
   factory SceneInteractiveCommand.openPc({String storageId}) =
       SceneOpenPcInteractiveCommand;
+
+  factory SceneInteractiveCommand.playCharacterAnimation({
+    required CharacterCustomAnimationRuntimeCommand runtimeCommand,
+  }) = SceneCharacterCustomAnimationInteractiveCommand;
 
   factory SceneInteractiveCommand.fromJson(Map<String, dynamic> json) {
     final kind = SceneInteractiveCommandKind.values.firstWhere(
@@ -53,6 +65,12 @@ abstract base class SceneInteractiveCommand {
         ),
       SceneInteractiveCommandKind.openPc => SceneOpenPcInteractiveCommand(
           storageId: _optional(json, 'storageId'),
+        ),
+      SceneInteractiveCommandKind.playCharacterAnimation =>
+        SceneCharacterCustomAnimationInteractiveCommand(
+          runtimeCommand: CharacterCustomAnimationRuntimeCommand.fromJson(
+            _requiredObject(json, 'runtimeCommand'),
+          ),
         ),
     };
   }
@@ -161,9 +179,7 @@ final class SceneOpenShopInteractiveCommand extends SceneInteractiveCommand {
 
 @immutable
 final class SceneOpenHealInteractiveCommand extends SceneInteractiveCommand {
-  const SceneOpenHealInteractiveCommand({
-    this.requiresConfirmation = true,
-  });
+  const SceneOpenHealInteractiveCommand({this.requiresConfirmation = true});
 
   final bool requiresConfirmation;
 
@@ -216,6 +232,42 @@ final class SceneOpenPcInteractiveCommand extends SceneInteractiveCommand {
   int get hashCode => storageId.hashCode;
 }
 
+@immutable
+final class SceneCharacterCustomAnimationInteractiveCommand
+    extends SceneInteractiveCommand {
+  const SceneCharacterCustomAnimationInteractiveCommand({
+    required this.runtimeCommand,
+  });
+
+  final CharacterCustomAnimationRuntimeCommand runtimeCommand;
+
+  @override
+  SceneInteractiveCommandKind get kind =>
+      SceneInteractiveCommandKind.playCharacterAnimation;
+
+  @override
+  List<String> get outputPortIds => const <String>[
+        'completed',
+        'fallback',
+        'interrupted',
+        'failed',
+      ];
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'kind': kind.name,
+        'runtimeCommand': runtimeCommand.toJson(),
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is SceneCharacterCustomAnimationInteractiveCommand &&
+      other.runtimeCommand == runtimeCommand;
+
+  @override
+  int get hashCode => runtimeCommand.hashCode;
+}
+
 String _normalize(String value, String field) {
   final normalized = value.trim();
   if (normalized.isEmpty) throw ArgumentError.value(value, field);
@@ -240,4 +292,10 @@ bool? _optionalBool(Map<String, dynamic> json, String field) {
   if (value == null) return null;
   if (value is! bool) throw FormatException('$field must be a boolean.');
   return value;
+}
+
+Map<String, dynamic> _requiredObject(Map<String, dynamic> json, String field) {
+  final value = json[field];
+  if (value is! Map) throw FormatException('$field must be an object.');
+  return Map<String, dynamic>.from(value);
 }

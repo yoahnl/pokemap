@@ -311,6 +311,50 @@ void main() {
       );
     });
 
+    test('narrative references block animation definition deletion', () {
+      final snapshot = _snapshot(
+        withCinematicUsage: true,
+        definitions: const <CharacterCustomAnimationDefinition>[
+          CharacterCustomAnimationDefinition(
+            id: 'emote',
+            displayName: 'Émote',
+            mode: CharacterCustomAnimationMode.directional,
+          ),
+          CharacterCustomAnimationDefinition(
+            id: 'gesture',
+            displayName: 'Geste',
+            mode: CharacterCustomAnimationMode.directional,
+          ),
+        ],
+      );
+
+      for (final parameters in <Map<String, Object?>>[
+        const <String, Object?>{'id': 'emote', 'resolution': 'clear'},
+        const <String, Object?>{
+          'id': 'emote',
+          'resolution': 'replace',
+          'replacementId': 'gesture',
+        },
+      ]) {
+        expect(
+          () => const CharacterStudioAnimationDefinitionActions().build(
+            _context(
+              snapshot: snapshot,
+              actionId: 'characterStudio.animationDefinition.delete',
+              parameters: parameters,
+            ),
+          ),
+          throwsA(
+            isA<CharacterStudioActionException>().having(
+              (error) => error.code,
+              'code',
+              'character_studio.animation_definition.narrative_reference_blocked',
+            ),
+          ),
+        );
+      }
+    });
+
     test('replacement requires a compatible mode', () {
       final incompatible = _snapshot(
         withClipUsage: true,
@@ -448,6 +492,7 @@ ProjectSnapshot _snapshot({
   ],
   bool withClipUsage = false,
   bool withReplacementClipUsage = false,
+  bool withCinematicUsage = false,
 }) {
   final manifest = ProjectManifest(
     name: 'Animation definition fixture',
@@ -476,6 +521,25 @@ ProjectSnapshot _snapshot({
             ),
         ],
       ),
+    ],
+    cinematics: <CinematicAsset>[
+      if (withCinematicUsage)
+        CinematicAsset(
+          id: 'intro',
+          title: 'Intro',
+          timeline: CinematicTimeline(
+            steps: <CinematicTimelineStep>[
+              buildCinematicCharacterCustomAnimationStep(
+                id: 'emote_step',
+                command: CharacterCustomAnimationRuntimeCommand(
+                  actorId: 'elia',
+                  definitionId: 'emote',
+                  direction: EntityFacing.south,
+                ),
+              ),
+            ],
+          ),
+        ),
     ],
   );
   final bytes = utf8.encode(jsonEncode(manifest.toJson()));

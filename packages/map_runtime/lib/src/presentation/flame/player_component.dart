@@ -129,6 +129,19 @@ class PlayerComponent extends PositionComponent {
   ResolvedCharacterAnimationFrameSource? get debugAnimationSource =>
       _actor?.debugAnimationSource;
 
+  bool canPlayCustomAnimation(CharacterCustomAnimationClip clip) =>
+      _actor?.canPlayCustomAnimation(clip) == true;
+
+  void playCustomAnimation(CharacterCustomAnimationClip clip) {
+    final actor = _actor;
+    if (actor == null) throw StateError('Player actor is not mounted.');
+    actor.playCustomAnimation(clip);
+  }
+
+  void restoreBaseAnimation(EntityFacing facing) {
+    _actor?.restoreBase(facing);
+  }
+
   void _layoutActor() {
     final actor = _actor;
     if (actor == null) {

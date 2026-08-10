@@ -379,6 +379,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       mediaPlaybackPort: cinematicMediaPlayback,
       dialogues: _bundle.manifest.dialogues,
       mediaAssets: _bundle.manifest.cinematicMediaAssets,
+      project: _bundle.manifest,
     );
     _cinematicRuntimeController = CinematicRuntimePlaybackController(
       sink: _cinematicRuntimeSink,

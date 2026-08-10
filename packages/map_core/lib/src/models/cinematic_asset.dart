@@ -10,6 +10,7 @@ enum CinematicTimelineStepKind {
   actorMove,
   actorFace,
   actorEmote,
+  actorAnimation,
   dialogueLine,
   sound,
   music,
@@ -19,23 +20,11 @@ enum CinematicTimelineStepKind {
   marker,
 }
 
-enum CinematicLegacyBridgeSourceKind {
-  scenarioAsset,
-  cutsceneStudio,
-  unknown,
-}
+enum CinematicLegacyBridgeSourceKind { scenarioAsset, cutsceneStudio, unknown }
 
-enum CinematicStageBackdropMode {
-  none,
-  projectMap,
-}
+enum CinematicStageBackdropMode { none, projectMap }
 
-enum CinematicActorBindingKind {
-  player,
-  mapEntity,
-  cinematicOnly,
-  unbound,
-}
+enum CinematicActorBindingKind { player, mapEntity, cinematicOnly, unbound }
 
 enum CinematicActorInitialPlacementKind {
   unset,
@@ -77,8 +66,9 @@ final class CinematicAsset {
         mapId = _trimOptional(mapId),
         tags = _stableStringList(tags),
         requiredActors = List<CinematicActorRef>.unmodifiable(requiredActors),
-        movementTargets =
-            List<CinematicMovementTargetRef>.unmodifiable(movementTargets),
+        movementTargets = List<CinematicMovementTargetRef>.unmodifiable(
+          movementTargets,
+        ),
         notes = _trimOptional(notes),
         metadata = Map<String, String>.unmodifiable(metadata);
 
@@ -106,12 +96,9 @@ final class CinematicAsset {
         'stageContext',
         CinematicStageContext.fromJson,
       ),
-      timeline: _readOptionalObject(
-            json,
-            'timeline',
-            CinematicTimeline.fromJson,
-          ) ??
-          CinematicTimeline(),
+      timeline:
+          _readOptionalObject(json, 'timeline', CinematicTimeline.fromJson) ??
+              CinematicTimeline(),
       notes: _readOptionalString(json, 'notes'),
       metadata: _readStringMap(json, 'metadata'),
       legacyBridge: _readOptionalObject(
@@ -342,10 +329,7 @@ final class CinematicStageContext {
       other is CinematicStageContext &&
           other.backdropMode == backdropMode &&
           _listEquals(other.actorBindings, actorBindings) &&
-          _listEquals(
-            other.actorAppearanceBindings,
-            actorAppearanceBindings,
-          ) &&
+          _listEquals(other.actorAppearanceBindings, actorAppearanceBindings) &&
           _listEquals(other.initialPlacements, initialPlacements) &&
           _listEquals(other.movementTargetBindings, movementTargetBindings) &&
           _listEquals(other.stagePoints, stagePoints) &&
@@ -369,20 +353,13 @@ final class CinematicActorBinding {
     required String actorId,
     required this.kind,
     String? mapEntityId,
-  })  : actorId = _requireTrimmed(
-          actorId,
-          'CinematicActorBinding.actorId',
-        ),
+  })  : actorId = _requireTrimmed(actorId, 'CinematicActorBinding.actorId'),
         mapEntityId = _trimOptional(mapEntityId);
 
   factory CinematicActorBinding.fromJson(Map<String, dynamic> json) {
     return CinematicActorBinding(
       actorId: _readRequiredString(json, 'actorId'),
-      kind: _readEnum(
-        CinematicActorBindingKind.values,
-        json['kind'],
-        'kind',
-      ),
+      kind: _readEnum(CinematicActorBindingKind.values, json['kind'], 'kind'),
       mapEntityId: _readOptionalString(json, 'mapEntityId'),
     );
   }
@@ -423,9 +400,7 @@ final class CinematicActorAppearanceBinding {
           'CinematicActorAppearanceBinding.characterId',
         );
 
-  factory CinematicActorAppearanceBinding.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory CinematicActorAppearanceBinding.fromJson(Map<String, dynamic> json) {
     return CinematicActorAppearanceBinding(
       actorId: _readRequiredString(json, 'actorId'),
       characterId: _readRequiredString(json, 'characterId'),
@@ -640,7 +615,10 @@ final class CinematicManualPath {
       waypoints = const [];
     } else if (rawWaypoints is! List) {
       throw ArgumentError.value(
-          rawWaypoints, 'waypointStagePointIds', 'must be a list');
+        rawWaypoints,
+        'waypointStagePointIds',
+        'must be a list',
+      );
     } else {
       waypoints = List<String>.unmodifiable([
         for (final item in rawWaypoints)
@@ -648,7 +626,10 @@ final class CinematicManualPath {
             item
           else
             throw ArgumentError.value(
-                item, 'waypointStagePointIds', 'must contain strings'),
+              item,
+              'waypointStagePointIds',
+              'must contain strings',
+            ),
       ]);
     }
     return CinematicManualPath(
@@ -720,11 +701,7 @@ final class CinematicTimeline {
 
   factory CinematicTimeline.fromJson(Map<String, dynamic> json) {
     return CinematicTimeline(
-      steps: _readObjectList(
-        json,
-        'steps',
-        CinematicTimelineStep.fromJson,
-      ),
+      steps: _readObjectList(json, 'steps', CinematicTimelineStep.fromJson),
     );
   }
 
@@ -766,11 +743,7 @@ final class CinematicTimelineStep {
   factory CinematicTimelineStep.fromJson(Map<String, dynamic> json) {
     return CinematicTimelineStep(
       id: _readRequiredString(json, 'id'),
-      kind: _readEnum(
-        CinematicTimelineStepKind.values,
-        json['kind'],
-        'kind',
-      ),
+      kind: _readEnum(CinematicTimelineStepKind.values, json['kind'], 'kind'),
       label: _readOptionalString(json, 'label'),
       durationMs: _readOptionalInt(json, 'durationMs'),
       actorId: _readOptionalString(json, 'actorId'),
@@ -887,10 +860,7 @@ final class CinematicMovementTargetRef {
           targetId,
           'CinematicMovementTargetRef.targetId',
         ),
-        label = _requireTrimmed(
-          label,
-          'CinematicMovementTargetRef.label',
-        ),
+        label = _requireTrimmed(label, 'CinematicMovementTargetRef.label'),
         description = _trimOptional(description);
 
   factory CinematicMovementTargetRef.fromJson(Map<String, dynamic> json) {
@@ -1085,12 +1055,14 @@ Map<String, String> _readStringMap(Map<String, dynamic> json, String key) {
   if (value is! Map) {
     throw ArgumentError.value(value, key, 'must be an object');
   }
-  return Map<String, String>.unmodifiable(value.map((rawKey, rawValue) {
-    if (rawKey is! String || rawValue is! String) {
-      throw ArgumentError.value(value, key, 'must map strings to strings');
-    }
-    return MapEntry(rawKey, rawValue);
-  }));
+  return Map<String, String>.unmodifiable(
+    value.map((rawKey, rawValue) {
+      if (rawKey is! String || rawValue is! String) {
+        throw ArgumentError.value(value, key, 'must map strings to strings');
+      }
+      return MapEntry(rawKey, rawValue);
+    }),
+  );
 }
 
 T _readEnum<T extends Enum>(List<T> values, Object? value, String key) {

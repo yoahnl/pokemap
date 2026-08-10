@@ -292,6 +292,26 @@ final class CharacterStudioAnimationDefinitionActions {
         preview: basePreview,
       );
     }
+    final narrativeReferences = references.where(
+      (reference) =>
+          reference.sourceKind ==
+              CharacterStudioReferenceSourceKind.cinematicCustomAnimation ||
+          reference.sourceKind ==
+              CharacterStudioReferenceSourceKind.sceneCustomAnimation,
+    );
+    if (narrativeReferences.isNotEmpty) {
+      throw CharacterStudioActionException(
+        'character_studio.animation_definition.narrative_reference_blocked',
+        'Animation definitions used by cinematics or Scenes cannot be deleted.',
+        details: <String, Object?>{
+          'id': id,
+          'dependencies': <Object?>[
+            for (final reference in narrativeReferences)
+              characterStudioReferenceJson(reference),
+          ],
+        },
+      );
+    }
     final resolution = parameters.optionalString('resolution');
     if (references.isNotEmpty && resolution == null) {
       throw CharacterStudioActionException(

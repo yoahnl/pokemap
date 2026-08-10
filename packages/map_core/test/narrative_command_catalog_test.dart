@@ -6,8 +6,10 @@ void main() {
     final catalog = NarrativeCommandCatalog.canonical();
 
     expect(diagnoseNarrativeCommandCatalog(catalog), isEmpty);
-    expect(catalog.commands.map((command) => command.id).toSet().length,
-        catalog.commands.length);
+    expect(
+      catalog.commands.map((command) => command.id).toSet().length,
+      catalog.commands.length,
+    );
     expect(
       catalog.publishable.map((command) => command.wireId).toSet().length,
       catalog.publishable.length,
@@ -15,46 +17,43 @@ void main() {
   });
 
   test(
-      'persistent effects reuse SceneConsequence and dedicated flows stay nodes',
-      () {
-    final catalog = NarrativeCommandCatalog.canonical();
-    for (final id in [
-      NarrativeCommandIds.setFact,
-      NarrativeCommandIds.markEventConsumed,
-      NarrativeCommandIds.completeStoryStep,
-      NarrativeCommandIds.giveItem,
-      NarrativeCommandIds.takeItem,
-      NarrativeCommandIds.giveMoney,
-      NarrativeCommandIds.givePokemon,
-    ]) {
-      final command = catalog.byId(id)!;
-      expect(command.backend, NarrativeCommandBackend.sceneConsequence);
-      expect(command.isPersistent, isTrue);
-      expect(command.wireId, 'SceneConsequence.$id');
-    }
-    expect(
-      catalog.byId(NarrativeCommandIds.dialogue)!.backend,
-      NarrativeCommandBackend.dedicatedSceneNode,
-    );
-    expect(
-      catalog.byId(NarrativeCommandIds.trainerBattle)!.wireId,
-      'SceneNode.battle.trainer',
-    );
-    expect(
-      catalog.byId(NarrativeCommandIds.staticEncounter)!.parameters.single,
-      isA<NarrativeCommandParameterDescriptor>()
-          .having(
-            (parameter) => parameter.id,
-            'id',
-            'staticEncounterId',
-          )
-          .having(
-            (parameter) => parameter.kind,
-            'kind',
-            NarrativeCommandParameterKind.staticEncounter,
-          ),
-    );
-  });
+    'persistent effects reuse SceneConsequence and dedicated flows stay nodes',
+    () {
+      final catalog = NarrativeCommandCatalog.canonical();
+      for (final id in [
+        NarrativeCommandIds.setFact,
+        NarrativeCommandIds.markEventConsumed,
+        NarrativeCommandIds.completeStoryStep,
+        NarrativeCommandIds.giveItem,
+        NarrativeCommandIds.takeItem,
+        NarrativeCommandIds.giveMoney,
+        NarrativeCommandIds.givePokemon,
+      ]) {
+        final command = catalog.byId(id)!;
+        expect(command.backend, NarrativeCommandBackend.sceneConsequence);
+        expect(command.isPersistent, isTrue);
+        expect(command.wireId, 'SceneConsequence.$id');
+      }
+      expect(
+        catalog.byId(NarrativeCommandIds.dialogue)!.backend,
+        NarrativeCommandBackend.dedicatedSceneNode,
+      );
+      expect(
+        catalog.byId(NarrativeCommandIds.trainerBattle)!.wireId,
+        'SceneNode.battle.trainer',
+      );
+      expect(
+        catalog.byId(NarrativeCommandIds.staticEncounter)!.parameters.single,
+        isA<NarrativeCommandParameterDescriptor>()
+            .having((parameter) => parameter.id, 'id', 'staticEncounterId')
+            .having(
+              (parameter) => parameter.kind,
+              'kind',
+              NarrativeCommandParameterKind.staticEncounter,
+            ),
+      );
+    },
+  );
 
   test('canonical gameplay consequences are fully authorable', () {
     final catalog = NarrativeCommandCatalog.canonical();
@@ -160,18 +159,14 @@ void main() {
       NarrativeCommandIds.markEventConsumed,
     )!;
 
-    expect(
-      descriptor.parameters.map((parameter) => parameter.id),
-      ['mapId', 'eventId'],
-    );
+    expect(descriptor.parameters.map((parameter) => parameter.id), [
+      'mapId',
+      'eventId',
+    ]);
   });
 
   test('interactive diagnostics block an unknown destination map', () {
-    const project = ProjectManifest(
-      name: 'Commands',
-      maps: [],
-      tilesets: [],
-    );
+    const project = ProjectManifest(name: 'Commands', maps: [], tilesets: []);
     final diagnostics = diagnoseInteractiveCommand(
       command: SceneInteractiveCommand.warp(
         destinationMapId: 'map.missing',
@@ -180,7 +175,30 @@ void main() {
       project: project,
     );
 
-    expect(diagnostics.single.code,
-        NarrativeCommandDiagnosticCode.unknownDestinationMap);
+    expect(
+      diagnostics.single.code,
+      NarrativeCommandDiagnosticCode.unknownDestinationMap,
+    );
+  });
+
+  test('custom character animation is an awaitable guided command', () {
+    final command = NarrativeCommandCatalog.canonical().byId(
+      NarrativeCommandIds.playCharacterAnimation,
+    )!;
+
+    expect(command.backend, NarrativeCommandBackend.interactiveRuntimeCommand);
+    expect(command.wireId, 'SceneInteractiveCommand.playCharacterAnimation');
+    expect(command.isAwaitable, isTrue);
+    expect(
+      command.parameters.map((parameter) => parameter.kind),
+      <NarrativeCommandParameterKind>[
+        NarrativeCommandParameterKind.actor,
+        NarrativeCommandParameterKind.customAnimationDefinition,
+        NarrativeCommandParameterKind.characterDirection,
+        NarrativeCommandParameterKind.customAnimationPlayback,
+        NarrativeCommandParameterKind.integer,
+        NarrativeCommandParameterKind.integer,
+      ],
+    );
   });
 }

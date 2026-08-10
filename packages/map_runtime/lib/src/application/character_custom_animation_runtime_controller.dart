@@ -59,12 +59,18 @@ final class CharacterCustomAnimationRuntimeController {
   final CharacterCustomAnimationRuntimeActorLookup _actorLookup;
   final Map<String, _ActiveCharacterCustomAnimation> _activeByActorId =
       <String, _ActiveCharacterCustomAnimation>{};
+  final Map<String, CharacterCustomAnimationRuntimeResult>
+      _lastResultByActorId = <String, CharacterCustomAnimationRuntimeResult>{};
 
   bool isActorPlaying(String actorId) => _activeByActorId.containsKey(actorId);
+
+  CharacterCustomAnimationRuntimeResult? lastResultFor(String actorId) =>
+      _lastResultByActorId[actorId];
 
   Future<CharacterCustomAnimationRuntimeResult> play(
     CharacterCustomAnimationRuntimeCommand command,
   ) {
+    _lastResultByActorId.remove(command.actorId);
     final current = _activeByActorId[command.actorId];
     if (current != null) {
       if (command.interruptionPolicy ==
@@ -254,8 +260,10 @@ final class CharacterCustomAnimationRuntimeController {
     _activeByActorId.remove(active.command.actorId);
     active.actor.restoreBase(active.restoreFacing);
     if (!active.completer.isCompleted) {
+      final result = _result(active.command, status, diagnosticCode);
+      _lastResultByActorId[active.command.actorId] = result;
       active.completer.complete(
-        _result(active.command, status, diagnosticCode),
+        result,
       );
     }
   }

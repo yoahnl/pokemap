@@ -59,7 +59,9 @@ final class _PlayableMapCinematicRuntimeHost
   FlameCinematicRuntimeActorHandle? mapEntityActor(String entityId) {
     final actor =
         _game._loadedMapsById[_game._activeMapId]?.npcActorByEntityId[entityId];
-    return actor == null ? null : _PlayableMapNpcCinematicActorHandle(actor);
+    return actor == null
+        ? null
+        : _PlayableMapNpcCinematicActorHandle(entityId, actor);
   }
 
   @override
@@ -252,10 +254,31 @@ final class _PlayableMapCinematicRuntimeHost
 }
 
 final class _PlayableMapPlayerCinematicActorHandle
-    implements FlameCinematicRuntimeActorHandle {
+    implements FlameCinematicCharacterAnimationActorHandle {
   const _PlayableMapPlayerCinematicActorHandle(this._player);
 
   final PlayerComponent _player;
+
+  @override
+  String get actorId => 'player';
+
+  @override
+  ProjectCharacterEntry get character {
+    final character = _player.characterEntry;
+    if (character == null) throw StateError('Player has no character entry.');
+    return character;
+  }
+
+  @override
+  bool canPlayCustomAnimation(CharacterCustomAnimationClip clip) =>
+      _player.canPlayCustomAnimation(clip);
+
+  @override
+  void playCustomAnimation(CharacterCustomAnimationClip clip) =>
+      _player.playCustomAnimation(clip);
+
+  @override
+  void restoreBase(EntityFacing facing) => _player.restoreBaseAnimation(facing);
 
   @override
   Vector2 get focusPoint => _player.focusPoint;
@@ -276,10 +299,27 @@ final class _PlayableMapPlayerCinematicActorHandle
 }
 
 final class _PlayableMapNpcCinematicActorHandle
-    implements FlameCinematicRuntimeActorHandle {
-  const _PlayableMapNpcCinematicActorHandle(this._actor);
+    implements FlameCinematicCharacterAnimationActorHandle {
+  const _PlayableMapNpcCinematicActorHandle(this.actorId, this._actor);
+
+  @override
+  final String actorId;
 
   final OverworldActorComponent _actor;
+
+  @override
+  ProjectCharacterEntry get character => _actor.character;
+
+  @override
+  bool canPlayCustomAnimation(CharacterCustomAnimationClip clip) =>
+      _actor.canPlayCustomAnimation(clip);
+
+  @override
+  void playCustomAnimation(CharacterCustomAnimationClip clip) =>
+      _actor.playCustomAnimation(clip);
+
+  @override
+  void restoreBase(EntityFacing facing) => _actor.restoreBase(facing);
 
   @override
   Vector2 get focusPoint => _actor.position + _actor.size / 2;

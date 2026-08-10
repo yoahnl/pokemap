@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:map_core/map_core.dart';
 
 import '../../../application/services/narrative_template_catalog.dart';
+import '../../../features/character_studio/application/character_studio_media_resolver.dart';
 import '../../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
@@ -38,9 +40,8 @@ typedef UpdateCinematicMetadataCallback = Future<bool> Function({
   required bool archived,
 });
 
-typedef DuplicateCinematicCallback = Future<String?> Function({
-  required String cinematicId,
-});
+typedef DuplicateCinematicCallback = Future<String?> Function(
+    {required String cinematicId});
 
 typedef ToggleCinematicArchiveCallback = Future<bool> Function({
   required String cinematicId,
@@ -57,14 +58,11 @@ typedef BulkArchiveCinematicsCallback = Future<bool> Function({
   required bool archived,
 });
 
-typedef OpenCinematicSceneUsageCallback = void Function({
-  required String sceneId,
-  required String nodeId,
-});
+typedef OpenCinematicSceneUsageCallback = void Function(
+    {required String sceneId, required String nodeId});
 
-typedef RemoveCinematicCallback = Future<bool> Function({
-  required String cinematicId,
-});
+typedef RemoveCinematicCallback = Future<bool> Function(
+    {required String cinematicId});
 
 typedef AddTimelineDraftCallback = Future<String?> Function({
   required String cinematicId,
@@ -91,10 +89,8 @@ typedef UpdateTimelineBasicBlockCallback = Future<bool> Function({
   CinematicTimelineCameraFocusBinding? cameraFocusBinding,
 });
 
-typedef AddRequiredActorCallback = Future<String?> Function({
-  required String cinematicId,
-  String? label,
-});
+typedef AddRequiredActorCallback = Future<String?> Function(
+    {required String cinematicId, String? label});
 
 typedef RenameRequiredActorCallback = Future<bool> Function({
   required String cinematicId,
@@ -107,9 +103,8 @@ typedef RemoveRequiredActorCallback = Future<bool> Function({
   required String actorId,
 });
 
-typedef AddMovementTargetCallback = Future<String?> Function({
-  required String cinematicId,
-});
+typedef AddMovementTargetCallback = Future<String?> Function(
+    {required String cinematicId});
 
 typedef UpdateMovementTargetCallback = Future<bool> Function({
   required String cinematicId,
@@ -172,15 +167,21 @@ typedef UpdateTimelineActorEmoteCallback = Future<bool> Function({
   int? durationMs,
 });
 
+typedef UpsertTimelineActorAnimationCallback = Future<String?> Function({
+  required String cinematicId,
+  required CharacterCustomAnimationRuntimeCommand command,
+  String? stepId,
+  String? afterStepId,
+  String? label,
+});
+
 typedef RemoveTimelineAuthoringStepCallback = Future<bool> Function({
   required String cinematicId,
   required String stepId,
 });
 
-typedef UpdateStageMapCallback = Future<bool> Function({
-  required String cinematicId,
-  String? mapId,
-});
+typedef UpdateStageMapCallback = Future<bool> Function(
+    {required String cinematicId, String? mapId});
 
 typedef UpdateStageContextCallback = Future<bool> Function({
   required String cinematicId,
@@ -221,11 +222,7 @@ typedef BuildCinematicBackdropTileRenderPlanCallback
   required CinematicMapBackdropPreviewModel? previewModel,
 });
 
-enum _CinematicsLibraryFilter {
-  all,
-  canonical,
-  bridge,
-}
+enum _CinematicsLibraryFilter { all, canonical, bridge }
 
 class CinematicsLibraryWorkspace extends StatefulWidget {
   const CinematicsLibraryWorkspace({
@@ -255,6 +252,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onUpdateTimelineActorMove,
     required this.onAddTimelineActorEmote,
     required this.onUpdateTimelineActorEmote,
+    this.onUpsertTimelineActorAnimation,
     required this.onRemoveTimelineAuthoringStep,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
@@ -308,6 +306,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final UpdateTimelineActorMoveCallback onUpdateTimelineActorMove;
   final AddTimelineActorEmoteCallback onAddTimelineActorEmote;
   final UpdateTimelineActorEmoteCallback onUpdateTimelineActorEmote;
+  final UpsertTimelineActorAnimationCallback? onUpsertTimelineActorAnimation;
   final RemoveTimelineAuthoringStepCallback onRemoveTimelineAuthoringStep;
   final UpdateStageMapCallback onUpdateStageMap;
   final UpdateStageContextCallback onUpdateStageContext;
@@ -338,6 +337,9 @@ class _CinematicsLibraryWorkspaceState
   final _tagsController = TextEditingController();
   final _bulkTagsController = TextEditingController();
   final _backdropLayerPlanLoader = CinematicMapBackdropLayerPlanLoader();
+  final _characterStudioMediaResolver = CharacterStudioMediaResolver(
+    source: const FileCharacterStudioMediaSource(),
+  );
 
   _CinematicsLibraryFilter _filter = _CinematicsLibraryFilter.all;
   CinematicsLibraryVisibility _visibility = CinematicsLibraryVisibility.active;
@@ -363,6 +365,7 @@ class _CinematicsLibraryWorkspaceState
   int _stageMapSourceCatalogGeneration = 0;
   Map<String, CinematicResolvedTilesetAsset> _resolvedActorTilesets = const {};
   final Set<String> _loadingActorTilesetIds = {};
+  int _actorTilesetGeneration = 0;
 
   @override
   void initState() {
@@ -373,6 +376,16 @@ class _CinematicsLibraryWorkspaceState
   @override
   void didUpdateWidget(covariant CinematicsLibraryWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.project != widget.project ||
+        oldWidget.projectRootPath != widget.projectRootPath) {
+      final previousRoot = oldWidget.projectRootPath?.trim();
+      if (previousRoot != null && previousRoot.isNotEmpty) {
+        _characterStudioMediaResolver.invalidateProject(previousRoot);
+      }
+      _actorTilesetGeneration++;
+      _resolvedActorTilesets = const {};
+      _loadingActorTilesetIds.clear();
+    }
     final previousRequested = oldWidget.requestedEntryId?.trim();
     final requested = widget.requestedEntryId?.trim();
     final previousRequestId =
@@ -401,6 +414,11 @@ class _CinematicsLibraryWorkspaceState
     _tagsController.dispose();
     _bulkTagsController.dispose();
     _backdropLayerPlanLoader.clear();
+    final projectRoot = widget.projectRootPath?.trim();
+    if (projectRoot != null && projectRoot.isNotEmpty) {
+      _characterStudioMediaResolver.invalidateProject(projectRoot);
+    }
+    _actorTilesetGeneration++;
     _loadingActorTilesetIds.clear();
     super.dispose();
   }
@@ -455,6 +473,8 @@ class _CinematicsLibraryWorkspaceState
         stageMaps: widget.project.maps,
         groups: widget.project.groups,
         characters: widget.project.characters,
+        animationDefinitions:
+            widget.project.characterStudioCatalog.customAnimationDefinitions,
         dialogues: widget.project.dialogues,
         cinematicMediaAssets: widget.project.cinematicMediaAssets,
         projectRootPath: widget.projectRootPath,
@@ -484,6 +504,15 @@ class _CinematicsLibraryWorkspaceState
         onUpdateActorMoveStep: widget.onUpdateTimelineActorMove,
         onAddActorEmoteStep: widget.onAddTimelineActorEmote,
         onUpdateActorEmoteStep: widget.onUpdateTimelineActorEmote,
+        onUpsertActorAnimationStep: widget.onUpsertTimelineActorAnimation ??
+            ({
+              required String cinematicId,
+              required CharacterCustomAnimationRuntimeCommand command,
+              String? stepId,
+              String? afterStepId,
+              String? label,
+            }) async =>
+                null,
         onRemoveAuthoringStep: widget.onRemoveTimelineAuthoringStep,
         onUpdateStageMap: widget.onUpdateStageMap,
         onUpdateStageContext: widget.onUpdateStageContext,
@@ -524,9 +553,7 @@ class _CinematicsLibraryWorkspaceState
             variant: PokeMapButtonVariant.secondary,
             size: PokeMapButtonSize.small,
             leading: const Icon(CupertinoIcons.arrow_2_circlepath),
-            child: Text(
-              'Migration (${migrationScan.legacyRemainingCount})',
-            ),
+            child: Text('Migration (${migrationScan.legacyRemainingCount})'),
           ),
           PokeMapButton(
             key: const ValueKey('cinematics-library-open-legacy-button'),
@@ -645,8 +672,9 @@ class _CinematicsLibraryWorkspaceState
             _backdropLayerRenderPlan == null) {
           needsTilesetReload = true;
         } else {
-          final actorDisplayPreviewModel =
-              _buildActorDisplayPreviewModel(asset);
+          final actorDisplayPreviewModel = _buildActorDisplayPreviewModel(
+            asset,
+          );
           if (actorDisplayPreviewModel != null) {
             final actorSpritePreviewPlan = buildCinematicActorSpritePreviewPlan(
               actorDisplayModel: actorDisplayPreviewModel,
@@ -655,8 +683,9 @@ class _CinematicsLibraryWorkspaceState
             for (final actor in actorSpritePreviewPlan.actors) {
               final tilesetId = actor.spriteRef?.tilesetId;
               if (tilesetId != null && tilesetId.isNotEmpty) {
-                if (!_backdropLayerRenderPlan!.tilesets
-                    .containsKey(tilesetId)) {
+                if (!_backdropLayerRenderPlan!.tilesets.containsKey(
+                  tilesetId,
+                )) {
                   needsTilesetReload = true;
                   break;
                 }
@@ -786,7 +815,9 @@ class _CinematicsLibraryWorkspaceState
   }
 
   ProjectTilesetEntry? _tilesetById(
-      ProjectManifest manifest, String tilesetId) {
+    ProjectManifest manifest,
+    String tilesetId,
+  ) {
     for (final tileset in manifest.tilesets) {
       if (tileset.id.trim() == tilesetId) {
         return tileset;
@@ -797,11 +828,8 @@ class _CinematicsLibraryWorkspaceState
 
   void _ensureActorTilesets(CinematicAsset asset) {
     final resolver = widget.onResolveBackdropTilesetPath;
-    if (resolver == null) {
-      return;
-    }
-
     final requiredTilesetIds = <String>{};
+    final requiredCustomAssetIds = <String>{};
 
     // 1. Scan actor appearance bindings
     final bindings = asset.stageContext?.actorAppearanceBindings ?? const [];
@@ -811,7 +839,7 @@ class _CinematicsLibraryWorkspaceState
         for (final character in widget.project.characters) {
           if (character.id.trim() == characterId) {
             final tilesetId = character.tilesetId.trim();
-            if (tilesetId.isNotEmpty) {
+            if (resolver != null && tilesetId.isNotEmpty) {
               requiredTilesetIds.add(tilesetId);
             }
             break;
@@ -827,7 +855,7 @@ class _CinematicsLibraryWorkspaceState
       for (final character in widget.project.characters) {
         if (character.id.trim() == defaultPlayerCharId) {
           final tilesetId = character.tilesetId.trim();
-          if (tilesetId.isNotEmpty) {
+          if (resolver != null && tilesetId.isNotEmpty) {
             requiredTilesetIds.add(tilesetId);
           }
           break;
@@ -835,7 +863,18 @@ class _CinematicsLibraryWorkspaceState
       }
     }
 
-    final missingTilesetIds = requiredTilesetIds.where((id) {
+    final projectRoot = widget.projectRootPath?.trim();
+    if (projectRoot != null && projectRoot.isNotEmpty) {
+      for (final character in widget.project.characters) {
+        for (final clip in character.customAnimations) {
+          final assetId = clip.sourceAssetId.trim();
+          if (assetId.isNotEmpty) requiredCustomAssetIds.add(assetId);
+        }
+      }
+    }
+
+    final missingTilesetIds =
+        {...requiredTilesetIds, ...requiredCustomAssetIds}.where((id) {
       return !_resolvedActorTilesets.containsKey(id) &&
           !_loadingActorTilesetIds.contains(id);
     }).toList();
@@ -845,31 +884,51 @@ class _CinematicsLibraryWorkspaceState
     }
 
     _loadingActorTilesetIds.addAll(missingTilesetIds);
+    final generation = _actorTilesetGeneration;
 
     unawaited(() async {
       final newResolved = Map<String, CinematicResolvedTilesetAsset>.from(
-          _resolvedActorTilesets);
+        _resolvedActorTilesets,
+      );
       bool changed = false;
       for (final id in missingTilesetIds) {
         try {
-          final tileset = _tilesetById(widget.project, id);
-          final path = resolver(id);
-          final asset = await _backdropLayerPlanLoader.registry.resolve(
-            tileset: tileset,
-            absolutePath: path,
-            tileWidth: widget.project.settings.tileWidth,
-            tileHeight: widget.project.settings.tileHeight,
-          );
-          newResolved[id] = asset;
+          if (requiredCustomAssetIds.contains(id)) {
+            final bytes = await _characterStudioMediaResolver.resolve(
+              CharacterStudioMediaRequest(
+                projectRootPath: projectRoot!,
+                assetId: id,
+                projectRevision: widget.project.hashCode.toString(),
+              ),
+            );
+            final codec = await ui.instantiateImageCodec(bytes);
+            final frame = await codec.getNextFrame();
+            codec.dispose();
+            newResolved[id] = CinematicResolvedTilesetAsset.available(
+              tilesetId: id,
+              image: frame.image,
+              tileWidth: 1,
+              tileHeight: 1,
+            );
+          } else if (resolver != null) {
+            final tileset = _tilesetById(widget.project, id);
+            final path = resolver(id);
+            final resolved = await _backdropLayerPlanLoader.registry.resolve(
+              tileset: tileset,
+              absolutePath: path,
+              tileWidth: widget.project.settings.tileWidth,
+              tileHeight: widget.project.settings.tileHeight,
+            );
+            newResolved[id] = resolved;
+          }
           changed = true;
         } catch (_) {
-          // Ignore error and continue
         } finally {
           _loadingActorTilesetIds.remove(id);
         }
       }
 
-      if (changed && mounted) {
+      if (changed && mounted && generation == _actorTilesetGeneration) {
         setState(() {
           _resolvedActorTilesets = Map.unmodifiable(newResolved);
         });
@@ -985,6 +1044,7 @@ class _CinematicsLibraryWorkspaceState
       _loadingBackdropTileRenderPlanMapId = null;
       _loadingStageMapSourceCatalogMapId = null;
       _stageMapSourceCatalogGeneration++;
+      _actorTilesetGeneration++;
       _resolvedActorTilesets = const {};
       _loadingActorTilesetIds.clear();
     });
@@ -1100,10 +1160,8 @@ class _CinematicsLibraryWorkspaceState
         },
       ),
     );
-    final groupedEntries = <({
-      CinematicsLibraryGroup group,
-      CinematicsLibraryEntry entry,
-    })>[
+    final groupedEntries =
+        <({CinematicsLibraryGroup group, CinematicsLibraryEntry entry})>[
       for (final group in groups)
         for (final entry in group.entries) (group: group, entry: entry),
     ];
@@ -1206,10 +1264,7 @@ class _CinematicsLibraryWorkspaceState
     );
   }
 
-  Widget _buildDetails(
-    BuildContext context,
-    CinematicsLibraryEntry? entry,
-  ) {
+  Widget _buildDetails(BuildContext context, CinematicsLibraryEntry? entry) {
     if (entry == null) {
       return const PokeMapPanel(
         expandChild: true,
@@ -1496,9 +1551,9 @@ class _CinematicsLibraryWorkspaceState
       _builderEntryId = null;
       return;
     }
-    final entry = buildCinematicsLibraryReadModel(widget.project).entryById(
-      requested,
-    );
+    final entry = buildCinematicsLibraryReadModel(
+      widget.project,
+    ).entryById(requested);
     if (entry == null) {
       _requestedEntryUnavailable = true;
       _selectedEntryId = null;
@@ -1800,10 +1855,7 @@ class _CreateCinematicPanel extends StatelessWidget {
                 label: 'Cinématique vide',
               ),
               for (final template in templates)
-                PokeMapDropdownItem(
-                  value: template.id,
-                  label: template.label,
-                ),
+                PokeMapDropdownItem(value: template.id, label: template.label),
             ],
             onChanged: onTemplateChanged,
           ),
@@ -1856,10 +1908,7 @@ class _CinematicEntryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _CinematicGeneratedThumbnail(
-                entry: entry,
-                isBridge: isBridge,
-              ),
+              _CinematicGeneratedThumbnail(entry: entry, isBridge: isBridge),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -2117,8 +2166,9 @@ class _BridgeDetailsPanel extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const PokeMapButton(
-              key:
-                  ValueKey('cinematics-library-legacy-builder-disabled-button'),
+              key: ValueKey(
+                'cinematics-library-legacy-builder-disabled-button',
+              ),
               onPressed: null,
               variant: PokeMapButtonVariant.secondary,
               size: PokeMapButtonSize.small,
@@ -2166,10 +2216,7 @@ class _MetadataSummary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SectionTitle(
-            title: 'Métadonnées',
-            subtitle: 'Lecture auteur',
-          ),
+          const _SectionTitle(title: 'Métadonnées', subtitle: 'Lecture auteur'),
           const SizedBox(height: 8),
           _KeyValue(label: 'Statut', value: entry.statusLabel),
           _KeyValue(label: 'Map stage', value: _stageMapLabel(entry, maps)),
@@ -2266,11 +2313,8 @@ const _stageDiagnosticCodes = <String>{
   'movementTargetBindingMissingSource',
 };
 
-typedef _CinematicClassificationChanged = void Function({
-  String? mapId,
-  String? storylineId,
-  String? chapterId,
-});
+typedef _CinematicClassificationChanged = void Function(
+    {String? mapId, String? storylineId, String? chapterId});
 
 class _CinematicClassificationPickers extends StatelessWidget {
   const _CinematicClassificationPickers({
@@ -2317,15 +2361,9 @@ class _CinematicClassificationPickers extends StatelessWidget {
           items: [
             const PokeMapDropdownItem(value: '', label: 'Sans storyline'),
             for (final storyline in project.storylines)
-              PokeMapDropdownItem(
-                value: storyline.id,
-                label: storyline.title,
-              ),
+              PokeMapDropdownItem(value: storyline.id, label: storyline.title),
           ],
-          onChanged: (value) => onChanged(
-            storylineId: value,
-            chapterId: '',
-          ),
+          onChanged: (value) => onChanged(storylineId: value, chapterId: ''),
         ),
         const SizedBox(height: 8),
         PokeMapDropdownField<String>(
@@ -2366,10 +2404,7 @@ class _TimelineSummaryPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SectionTitle(
-            title: 'Résumé timeline',
-            subtitle: 'Déroulé',
-          ),
+          const _SectionTitle(title: 'Résumé timeline', subtitle: 'Déroulé'),
           const SizedBox(height: 8),
           _KeyValue(label: 'Actions', value: '${timeline.stepCount} action(s)'),
           _KeyValue(
@@ -2378,10 +2413,7 @@ class _TimelineSummaryPanel extends StatelessWidget {
                 ? 'Non calculable'
                 : '${timeline.estimatedDurationMs} ms estimé(s)',
           ),
-          _KeyValue(
-            label: 'Types',
-            value: timeline.stepKindLabels.join(', '),
-          ),
+          _KeyValue(label: 'Types', value: timeline.stepKindLabels.join(', ')),
           _KeyValue(
             label: 'Acteurs utilisés',
             value: timeline.actorIds.isEmpty
@@ -2395,10 +2427,7 @@ class _TimelineSummaryPanel extends StatelessWidget {
               runSpacing: 6,
               children: [
                 for (final label in timeline.previewLabels)
-                  PokeMapBadge(
-                    label: label,
-                    variant: PokeMapBadgeVariant.info,
-                  ),
+                  PokeMapBadge(label: label, variant: PokeMapBadgeVariant.info),
               ],
             ),
           ],
@@ -2425,10 +2454,7 @@ class _UsageTile extends StatelessWidget {
           _KeyValue(label: 'Scene', value: usage.sceneTitle),
           _KeyValue(label: 'Node', value: usage.nodeTitle),
           if (usage.outcomeLabels.isNotEmpty)
-            _KeyValue(
-              label: 'Sorties',
-              value: usage.outcomeLabels.join(', '),
-            ),
+            _KeyValue(label: 'Sorties', value: usage.outcomeLabels.join(', ')),
           PokeMapBadge(
             label: switch (usage.referenceStatus) {
               CinematicsLibraryReferenceStatus.canonical =>
@@ -2549,10 +2575,7 @@ class _PanelHeader extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.title,
-    required this.subtitle,
-  });
+  const _SectionTitle({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -2612,10 +2635,7 @@ class _FieldLabel extends StatelessWidget {
 }
 
 class _KeyValue extends StatelessWidget {
-  const _KeyValue({
-    required this.label,
-    required this.value,
-  });
+  const _KeyValue({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -2675,10 +2695,7 @@ class _BodyText extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.title,
-    required this.description,
-  });
+  const _EmptyState({required this.title, required this.description});
 
   final String title;
   final String description;

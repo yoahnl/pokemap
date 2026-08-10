@@ -51,6 +51,7 @@ final class CinematicActorSpriteRef {
     required this.frameWidthTiles,
     required this.frameHeightTiles,
     required this.direction,
+    this.usesPixelCoordinates = false,
   });
 
   final String characterId;
@@ -59,6 +60,7 @@ final class CinematicActorSpriteRef {
   final int frameWidthTiles;
   final int frameHeightTiles;
   final CinematicActorPreviewDirection direction;
+  final bool usesPixelCoordinates;
 }
 
 @immutable
@@ -98,11 +100,14 @@ final class CinematicActorSpritePreviewPlan {
   final List<CinematicActorSpritePreviewActor> actors;
   final List<CinematicActorDisplayPreviewDiagnostic> diagnostics;
 
-  bool get hasReadySprites => actors
-      .any((actor) => actor.status == CinematicActorSpriteStatus.spriteReady);
+  bool get hasReadySprites => actors.any(
+        (actor) => actor.status == CinematicActorSpriteStatus.spriteReady,
+      );
 
   bool get hasFallbacks => actors.any((actor) => actor.placeholderFallback);
 
-  bool get hasErrors => diagnostics.any((d) =>
-      d.severity == CinematicActorDisplayPreviewDiagnosticSeverity.error);
+  bool get hasErrors => diagnostics.any(
+        (d) =>
+            d.severity == CinematicActorDisplayPreviewDiagnosticSeverity.error,
+      );
 }

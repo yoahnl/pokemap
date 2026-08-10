@@ -20,6 +20,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
     this.openShop,
     this.openHeal,
     this.openPc,
+    this.playCharacterAnimation,
     this.openWorldService,
   });
 
@@ -28,6 +29,7 @@ final class SceneInteractiveCommandRuntimeExecutor {
   final SceneInteractiveCommandHandler? openShop;
   final SceneInteractiveCommandHandler? openHeal;
   final SceneInteractiveCommandHandler? openPc;
+  final SceneInteractiveCommandHandler? playCharacterAnimation;
   final SceneWorldServiceRequestHandler? openWorldService;
 
   Future<String> execute(SceneRuntimePlanIntent intent) async {
@@ -59,6 +61,11 @@ final class SceneInteractiveCommandRuntimeExecutor {
       SceneInteractiveCommandKind.openPc => await _executeService(
           command,
           legacyHandler: openPc,
+        ),
+      SceneInteractiveCommandKind.playCharacterAnimation =>
+        await _executeRequired(
+          command,
+          handler: playCharacterAnimation,
         ),
     };
     if (!command.outputPortIds.contains(output)) {
@@ -120,6 +127,9 @@ final class SceneInteractiveCommandRuntimeExecutor {
         ),
       SceneMoveNpcInteractiveCommand() => throw StateError(
           'NPC movement commands are not world services.',
+        ),
+      SceneCharacterCustomAnimationInteractiveCommand() => throw StateError(
+          'Character animation commands are not world services.',
         ),
       _ => throw StateError(
           'Unsupported world-service command: ${command.kind.name}.',
