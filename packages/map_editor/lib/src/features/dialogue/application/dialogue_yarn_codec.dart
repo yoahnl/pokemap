@@ -40,11 +40,7 @@ class _PChoice extends _PStep {
 }
 
 class _PBranch {
-  _PBranch({
-    required this.label,
-    required this.outcomeId,
-    required this.steps,
-  });
+  _PBranch({required this.label, required this.outcomeId, required this.steps});
   final String label;
   final String? outcomeId;
   final List<_PStep> steps;
@@ -159,13 +155,15 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
         // Ligne vide ignorée (comme le runtime).
       } else if (line.startsWith(' ') || line.startsWith('\t')) {
         // Branche de choix : lignes indentées.
-        final outcomeMatch =
-            RegExp(r'^<<outcome\s+([^>]+)>>$').firstMatch(trimmed);
+        final outcomeMatch = RegExp(
+          r'^<<outcome\s+([^>]+)>>$',
+        ).firstMatch(trimmed);
         if (outcomeMatch != null) {
           currentChoiceOutcomeId = outcomeMatch.group(1)?.trim();
         } else if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
-          final target =
-              trimmed.substring('<<jump '.length, trimmed.length - 2).trim();
+          final target = trimmed
+              .substring('<<jump '.length, trimmed.length - 2)
+              .trim();
           currentChoiceSteps.add(_PJump(target));
         } else if (trimmed.startsWith('<<') && trimmed.endsWith('>>')) {
           // Extension : conserver toute commande (dont `<<if …>>`).
@@ -182,8 +180,9 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
         currentChoiceText = trimmed.substring(2).trim();
       } else if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
         if (inChoiceBlock) closeChoiceBlock();
-        final target =
-            trimmed.substring('<<jump '.length, trimmed.length - 2).trim();
+        final target = trimmed
+            .substring('<<jump '.length, trimmed.length - 2)
+            .trim();
         rootSteps.add(_PJump(target));
       } else if (trimmed.startsWith('<<') && trimmed.endsWith('>>')) {
         if (inChoiceBlock) closeChoiceBlock();
@@ -204,14 +203,15 @@ bool _isConditionToken(String line) {
 }
 
 /// Transforme une ligne « dialogue » en [DeLineStep] ou [DeNarrationStep].
-DialogueEditorStep _lineStepFromPlainText(String trimmed) {
+DialogueEditorStep _lineStepFromPlainText(
+  String trimmed, {
+  String? characterId,
+  String? portraitStateId,
+}) {
   // Narration : convention éditeur `(didascalie)` sur une seule ligne.
   final nar = RegExp(r'^\((.*)\)\s*$').firstMatch(trimmed);
   if (nar != null) {
-    return DeNarrationStep(
-      id: newDialogueEditorId(),
-      text: nar.group(1) ?? '',
-    );
+    return DeNarrationStep(id: newDialogueEditorId(), text: nar.group(1) ?? '');
   }
   final colon = RegExp(r'^([^:]+):\s*(.*)$').firstMatch(trimmed);
   if (colon != null) {
@@ -219,24 +219,56 @@ DialogueEditorStep _lineStepFromPlainText(String trimmed) {
       id: newDialogueEditorId(),
       speaker: colon.group(1)!.trim(),
       body: colon.group(2)!.trim(),
+      characterId: characterId,
+      portraitStateId: portraitStateId,
     );
   }
   return DeLineStep(
     id: newDialogueEditorId(),
     speaker: null,
     body: trimmed,
+    characterId: characterId,
+    portraitStateId: portraitStateId,
   );
 }
+
+List<DialogueEditorStep> _convertParsedSteps(List<_PStep> steps) {
+  final converted = <DialogueEditorStep>[];
+  for (var index = 0; index < steps.length; index++) {
+    final step = steps[index];
+    if (step case _PRaw(:final line)) {
+      final portrait = _portraitDirective.firstMatch(line.trim());
+      final next = index + 1 < steps.length ? steps[index + 1] : null;
+      if (portrait != null &&
+          next is _PLine &&
+          !_narrationLine.hasMatch(next.text.trim())) {
+        converted.add(
+          _lineStepFromPlainText(
+            next.text,
+            characterId: portrait.group(1),
+            portraitStateId: portrait.group(2),
+          ),
+        );
+        index += 1;
+        continue;
+      }
+    }
+    converted.add(_convertParsedStep(step));
+  }
+  return converted;
+}
+
+final RegExp _portraitDirective = RegExp(
+  r'^<<portrait\s+([^\s>]+)\s+([^\s>]+)>>$',
+);
+final RegExp _narrationLine = RegExp(r'^\(.*\)\s*$');
 
 DialogueEditorStep _convertParsedStep(_PStep step) {
   switch (step) {
     case _PLine(:final text):
       return _lineStepFromPlainText(text);
     case _PJump(:final target):
-      return DeJumpStep(
-        id: newDialogueEditorId(),
-        targetTitle: target,
-      );
+      return DeJumpStep(id: newDialogueEditorId(), targetTitle: target);
     case _PChoice(:final branches):
       return DeChoiceStep(
         id: newDialogueEditorId(),
@@ -246,7 +278,7 @@ DialogueEditorStep _convertParsedStep(_PStep step) {
                 id: newDialogueEditorId(),
                 label: b.label,
                 outcomeId: b.outcomeId,
-                steps: b.steps.map(_convertParsedStep).toList(),
+                steps: _convertParsedSteps(b.steps),
               ),
             )
             .toList(),
@@ -284,7 +316,7 @@ DialogueEditorDocument parseYarnToDocument(
         id: newDialogueEditorId(),
         title: p.title,
         headers: p.headers,
-        steps: p.steps.map(_convertParsedStep).toList(),
+        steps: _convertParsedSteps(p.steps),
       ),
     );
   }
@@ -325,11 +357,7 @@ DialogueEditorDocument emptyDialogueDocument({String startTitle = 'Start'}) {
         title: startTitle,
         steps: [
           DeStartStep(id: newDialogueEditorId()),
-          DeLineStep(
-            id: newDialogueEditorId(),
-            speaker: null,
-            body: '',
-          ),
+          DeLineStep(id: newDialogueEditorId(), speaker: null, body: ''),
         ],
       ),
     ],
@@ -342,10 +370,21 @@ bool _emitSkip(DialogueEditorStep s) => s is DeStartStep || s is DeEndStep;
 void _emitStep(StringBuffer sb, DialogueEditorStep step, String indent) {
   if (_emitSkip(step)) return;
   switch (step) {
-    case DeLineStep(:final speaker, :final body):
+    case DeLineStep(
+      :final speaker,
+      :final body,
+      :final characterId,
+      :final portraitStateId,
+    ):
+      if (characterId != null && portraitStateId != null) {
+        sb.writeln(
+          '$indent<<portrait ${characterId.trim()} ${portraitStateId.trim()}>>',
+        );
+      }
       final sp = speaker;
-      final line =
-          (sp != null && sp.trim().isNotEmpty) ? '${sp.trim()}: $body' : body;
+      final line = (sp != null && sp.trim().isNotEmpty)
+          ? '${sp.trim()}: $body'
+          : body;
       sb.writeln('$indent$line');
     case DeNarrationStep(:final text):
       sb.writeln('$indent($text)');

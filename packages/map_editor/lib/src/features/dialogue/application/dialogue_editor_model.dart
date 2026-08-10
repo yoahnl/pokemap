@@ -26,10 +26,7 @@ String newDialogueEditorId() {
 /// `completed` is reserved by the Scene runtime for the no-outcome fallback,
 /// so the generated id always skips it even when no dialogue outcome currently
 /// uses that value.
-String availableDialogueOutcomeId(
-  String label,
-  Iterable<String> usedIds,
-) {
+String availableDialogueOutcomeId(String label, Iterable<String> usedIds) {
   var base = label.toLowerCase();
   const replacements = <String, String>{
     'à': 'a',
@@ -201,10 +198,7 @@ class DialogueEditorDocument {
   }
 
   /// Adds a new valid Yarn node without mutating the current document.
-  DialogueEditorDocument createNode({
-    required String title,
-    int? index,
-  }) {
+  DialogueEditorDocument createNode({required String title, int? index}) {
     final normalizedTitle = _availableDialogueNodeTitle(title, nodes);
     final node = DialogueEditorNode(
       id: newDialogueEditorId(),
@@ -284,11 +278,7 @@ class DialogueEditorDocument {
     final duplicateTitle = _availableDialogueNodeTitle(source.title, nodes);
     final duplicate = _cloneDialogueNode(source, freshIds: true)
       ..title = duplicateTitle;
-    _rewriteDialogueJumps(
-      duplicate.steps,
-      source.title.trim(),
-      duplicateTitle,
-    );
+    _rewriteDialogueJumps(duplicate.steps, source.title.trim(), duplicateTitle);
     final next = nodes.map(_cloneDialogueNode).toList()
       ..insert(sourceIndex + 1, duplicate);
     return DialogueEditorDocument(
@@ -424,36 +414,51 @@ DialogueEditorStep _cloneDialogueStep(
   String nextId(String current) => freshIds ? newDialogueEditorId() : current;
   return switch (step) {
     DeStartStep(:final id) => DeStartStep(id: nextId(id)),
-    DeLineStep(:final id, :final speaker, :final body) => DeLineStep(
+    DeLineStep(
+      :final id,
+      :final speaker,
+      :final body,
+      :final characterId,
+      :final portraitStateId,
+    ) =>
+      DeLineStep(
         id: nextId(id),
         speaker: speaker,
         body: body,
+        characterId: characterId,
+        portraitStateId: portraitStateId,
       ),
-    DeNarrationStep(:final id, :final text) =>
-      DeNarrationStep(id: nextId(id), text: text),
+    DeNarrationStep(:final id, :final text) => DeNarrationStep(
+      id: nextId(id),
+      text: text,
+    ),
     DeChoiceStep(:final id, :final branches) => DeChoiceStep(
-        id: nextId(id),
-        branches: branches
-            .map(
-              (branch) => DeChoiceBranch(
-                id: nextId(branch.id),
-                label: branch.label,
-                outcomeId: branch.outcomeId,
-                steps: branch.steps
-                    .map(
-                      (inner) => _cloneDialogueStep(inner, freshIds: freshIds),
-                    )
-                    .toList(),
-              ),
-            )
-            .toList(),
-      ),
-    DeJumpStep(:final id, :final targetTitle) =>
-      DeJumpStep(id: nextId(id), targetTitle: targetTitle),
-    DeConditionStep(:final id, :final raw) =>
-      DeConditionStep(id: nextId(id), raw: raw),
-    DeCommandStep(:final id, :final raw) =>
-      DeCommandStep(id: nextId(id), raw: raw),
+      id: nextId(id),
+      branches: branches
+          .map(
+            (branch) => DeChoiceBranch(
+              id: nextId(branch.id),
+              label: branch.label,
+              outcomeId: branch.outcomeId,
+              steps: branch.steps
+                  .map((inner) => _cloneDialogueStep(inner, freshIds: freshIds))
+                  .toList(),
+            ),
+          )
+          .toList(),
+    ),
+    DeJumpStep(:final id, :final targetTitle) => DeJumpStep(
+      id: nextId(id),
+      targetTitle: targetTitle,
+    ),
+    DeConditionStep(:final id, :final raw) => DeConditionStep(
+      id: nextId(id),
+      raw: raw,
+    ),
+    DeCommandStep(:final id, :final raw) => DeCommandStep(
+      id: nextId(id),
+      raw: raw,
+    ),
     DeEndStep(:final id) => DeEndStep(id: nextId(id)),
   };
 }
@@ -500,6 +505,8 @@ class DeLineStep implements DialogueEditorStep {
     required this.id,
     this.speaker,
     required this.body,
+    this.characterId,
+    this.portraitStateId,
   });
 
   @override
@@ -510,6 +517,9 @@ class DeLineStep implements DialogueEditorStep {
 
   /// Texte sans le préfixe locuteur.
   String body;
+
+  String? characterId;
+  String? portraitStateId;
 }
 
 /// Narration / didascalie : sérialisée comme `(texte)` pour rester une seule ligne Yarn.

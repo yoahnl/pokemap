@@ -25,6 +25,7 @@ import '../../features/dialogue/application/dialogue_editor_validation.dart';
 import '../../features/dialogue/application/dialogue_preview_runner.dart';
 import '../../features/dialogue/application/dialogue_yarn_codec.dart';
 import '../../features/dialogue/application/mistral_dialogue_client.dart';
+import '../../features/dialogue/presentation/dialogue_character_portrait_picker.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../theme/theme.dart';
@@ -969,9 +970,11 @@ class _DialogueStudioWorkspaceState
     final session = _documentSession;
     final document = _doc;
     if (session == null || document == null) return;
-    final entry = _selectedDialogueEntry(ref.read(editorNotifierProvider));
+    final editor = ref.read(editorNotifierProvider);
+    final entry = _selectedDialogueEntry(editor);
     final blocking = validateDialogueDocument(
       document,
+      project: editor.project,
       declaredOutcomeIds:
           entry?.declaredOutcomes.map((outcome) => outcome.id) ?? const [],
     ).where(
@@ -1230,10 +1233,35 @@ class _DialogueStudioWorkspaceState
               itemBuilder: (context, i) {
                 final ev = session.transcript[i];
                 return switch (ev) {
-                  DialoguePreviewLine(:final displayText) => Padding(
+                  DialoguePreviewLine(
+                    :final displayText,
+                    :final characterId,
+                    :final portraitStateId,
+                  ) => Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      child: Text(displayText,
-                          style: const TextStyle(fontSize: 14)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_portraitPreviewLabel(
+                                characterId,
+                                portraitStateId,
+                              )
+                              case final label?) ...[
+                            PokeMapBadge(
+                              label: label,
+                              variant: PokeMapBadgeVariant.narrative,
+                              icon: const Icon(
+                                CupertinoIcons.person_crop_rectangle,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                          ],
+                          Text(
+                            displayText,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
                     ),
                   DialoguePreviewChoicePrompt(:final options) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -1306,6 +1334,22 @@ class _DialogueStudioWorkspaceState
     );
   }
 
+  String? _portraitPreviewLabel(
+    String? characterId,
+    String? portraitStateId,
+  ) {
+    if (characterId == null || portraitStateId == null) return null;
+    final project = ref.read(editorNotifierProvider).project;
+    final character = project?.characters
+        .where((entry) => entry.id == characterId)
+        .firstOrNull;
+    final state = project?.characterStudioCatalog.portraitStates
+        .where((entry) => entry.id == portraitStateId)
+        .firstOrNull;
+    if (character == null || state == null) return 'Portrait indisponible';
+    return '${character.name} · ${state.displayName}';
+  }
+
   Widget _buildYarnReadout(BuildContext context) {
     final text = emitDocumentToYarn(_doc!);
     return Container(
@@ -1362,6 +1406,7 @@ class _DialogueStudioWorkspaceState
         ? <DialogueValidationIssue>[]
         : validateDialogueDocument(
             _doc!,
+            project: editor.project,
             declaredOutcomeIds:
                 dialogueEntry?.declaredOutcomes.map((outcome) => outcome.id) ??
                     const <String>[],
@@ -1468,22 +1513,55 @@ class _DialogueStudioWorkspaceState
     }
     return switch (step) {
       DeStartStep() => const Text('Début de conversation (marqueur visuel).'),
-      DeLineStep(:final speaker, :final body) => Column(
+      DeLineStep(
+        :final speaker,
+        :final body,
+        :final characterId,
+        :final portraitStateId,
+      ) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _fieldLabel(context, 'Interlocuteur'),
             CupertinoTextField(
               controller: TextEditingController(text: speaker ?? ''),
-              onChanged: (v) => _patchLine(sel,
-                  speaker: v.trim().isEmpty ? null : v.trim(), body: body),
+              onChanged: (v) => _patchLine(
+                sel,
+                speaker: v.trim().isEmpty ? null : v.trim(),
+                body: body,
+                characterId: characterId,
+                portraitStateId: portraitStateId,
+              ),
               placeholder: 'hero, professor…',
               padding: const EdgeInsets.all(10),
             ),
             const SizedBox(height: 10),
+            if (editor.project case final project?) ...[
+              DialogueCharacterPortraitPicker(
+                project: project,
+                characterId: characterId,
+                portraitStateId: portraitStateId,
+                enabled: !editor.isSaving,
+                onChanged: (nextCharacterId, nextPortraitStateId) =>
+                    _patchLine(
+                  sel,
+                  speaker: speaker,
+                  body: body,
+                  characterId: nextCharacterId,
+                  portraitStateId: nextPortraitStateId,
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             _fieldLabel(context, 'Texte'),
             CupertinoTextField(
               controller: TextEditingController(text: body),
-              onChanged: (v) => _patchLine(sel, speaker: speaker, body: v),
+              onChanged: (v) => _patchLine(
+                sel,
+                speaker: speaker,
+                body: v,
+                characterId: characterId,
+                portraitStateId: portraitStateId,
+              ),
               maxLines: 4,
               padding: const EdgeInsets.all(10),
             ),
@@ -1889,12 +1967,24 @@ class _DialogueStudioWorkspaceState
     _recordDocumentEdit('Modifier un bloc');
   }
 
-  void _patchLine(_StepSelection sel, {String? speaker, required String body}) {
+  void _patchLine(
+    _StepSelection sel, {
+    String? speaker,
+    required String body,
+    required String? characterId,
+    required String? portraitStateId,
+  }) {
     final cur = _findStep(_doc!, sel);
     if (cur is! DeLineStep) return;
     _replaceStep(
       sel,
-      DeLineStep(id: cur.id, speaker: speaker, body: body),
+      DeLineStep(
+        id: cur.id,
+        speaker: speaker,
+        body: body,
+        characterId: characterId,
+        portraitStateId: portraitStateId,
+      ),
     );
   }
 
@@ -2103,8 +2193,22 @@ Règles strictes :
       client.close();
       final text = stripMarkdownFences(raw).trim();
       switch (step) {
-        case DeLineStep(:final id, :final speaker):
-          _replaceStep(sel, DeLineStep(id: id, speaker: speaker, body: text));
+        case DeLineStep(
+          :final id,
+          :final speaker,
+          :final characterId,
+          :final portraitStateId,
+        ):
+          _replaceStep(
+            sel,
+            DeLineStep(
+              id: id,
+              speaker: speaker,
+              body: text,
+              characterId: characterId,
+              portraitStateId: portraitStateId,
+            ),
+          );
         case DeNarrationStep(:final id):
           _replaceStep(sel, DeNarrationStep(id: id, text: text));
         default:

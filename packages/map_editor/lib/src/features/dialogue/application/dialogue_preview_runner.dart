@@ -14,8 +14,14 @@ sealed class DialoguePreviewEvent {
 }
 
 class DialoguePreviewLine extends DialoguePreviewEvent {
-  DialoguePreviewLine(this.displayText);
+  DialoguePreviewLine(
+    this.displayText, {
+    this.characterId,
+    this.portraitStateId,
+  });
   final String displayText;
+  final String? characterId;
+  final String? portraitStateId;
 }
 
 class DialoguePreviewChoicePrompt extends DialoguePreviewEvent {
@@ -124,10 +130,12 @@ class DialoguePreviewSession {
         return;
       }
       if (_index >= _activeSteps.length) {
-        transcript.add(DialoguePreviewEnded(
-          reason: 'Fin du nœud.',
-          outcomeId: _selectedOutcomeId,
-        ));
+        transcript.add(
+          DialoguePreviewEnded(
+            reason: 'Fin du nœud.',
+            outcomeId: _selectedOutcomeId,
+          ),
+        );
         return;
       }
       final step = _activeSteps[_index];
@@ -138,19 +146,33 @@ class DialoguePreviewSession {
         case DeStartStep():
         case DeEndStep():
           break;
-        case DeLineStep(:final speaker, :final body):
+        case DeLineStep(
+          :final speaker,
+          :final body,
+          :final characterId,
+          :final portraitStateId,
+        ):
           final sp = speaker;
-          final prefix =
-              (sp != null && sp.trim().isNotEmpty) ? '${sp.trim()}: ' : '';
-          transcript.add(DialoguePreviewLine('$prefix$body'));
+          final prefix = (sp != null && sp.trim().isNotEmpty)
+              ? '${sp.trim()}: '
+              : '';
+          transcript.add(
+            DialoguePreviewLine(
+              '$prefix$body',
+              characterId: characterId,
+              portraitStateId: portraitStateId,
+            ),
+          );
         case DeNarrationStep(:final text):
           transcript.add(DialoguePreviewLine('($text)'));
         case DeJumpStep(:final targetTitle):
           final next = _nodeByTitle(targetTitle);
           if (next == null) {
-            transcript.add(DialoguePreviewEnded(
-              reason: 'Saut impossible : nœud « $targetTitle » introuvable.',
-            ));
+            transcript.add(
+              DialoguePreviewEnded(
+                reason: 'Saut impossible : nœud « $targetTitle » introuvable.',
+              ),
+            );
             return;
           }
           _activeSteps = List<DialogueEditorStep>.from(next.steps);
@@ -164,9 +186,9 @@ class DialoguePreviewSession {
             return;
           }
           _pendingChoices = branches;
-          transcript.add(DialoguePreviewChoicePrompt(
-            branches.map((b) => b.label).toList(),
-          ));
+          transcript.add(
+            DialoguePreviewChoicePrompt(branches.map((b) => b.label).toList()),
+          );
           return;
         case DeConditionStep():
           // Already handled by [_handleConditionControl].
@@ -224,8 +246,9 @@ class DialoguePreviewSession {
   bool _evaluate(String expression) {
     var source = expression.trim();
     if (source.startsWith('not ')) return !_evaluate(source.substring(4));
-    final comparison =
-        RegExp(r'^\$([A-Za-z_][\w]*)\s*(==|!=)\s*(.+)$').firstMatch(source);
+    final comparison = RegExp(
+      r'^\$([A-Za-z_][\w]*)\s*(==|!=)\s*(.+)$',
+    ).firstMatch(source);
     if (comparison != null) {
       final current = _state[comparison.group(1)!];
       final expected = _parseValue(comparison.group(3)!);
@@ -286,12 +309,12 @@ class DialoguePreviewSession {
   }
 
   bool _truthy(Object? value) => switch (value) {
-        null => false,
-        false => false,
-        num value => value != 0,
-        String value => value.isNotEmpty,
-        _ => true,
-      };
+    null => false,
+    false => false,
+    num value => value != 0,
+    String value => value.isNotEmpty,
+    _ => true,
+  };
 
   /// L’utilisateur a choisi l’index [i] pour le dernier prompt de choix.
   void choose(int i) {

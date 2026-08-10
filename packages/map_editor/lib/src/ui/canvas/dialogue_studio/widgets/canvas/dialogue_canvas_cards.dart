@@ -29,8 +29,9 @@ class _NodeCanvasCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border:
-              Border.all(color: CupertinoColors.separator.resolveFrom(context)),
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -39,8 +40,9 @@ class _NodeCanvasCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
                 color: CupertinoColors.systemGrey6.resolveFrom(context),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(11)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(11),
+                ),
               ),
               child: Row(
                 children: [
@@ -93,7 +95,8 @@ class _NodeCanvasCard extends StatelessWidget {
                       step: step,
                       nodeId: node.id,
                       branchId: null,
-                      selected: selection?.nodeId == node.id &&
+                      selected:
+                          selection?.nodeId == node.id &&
                           selection?.branchId == null &&
                           selection?.stepId == step.id,
                       onTap: () => onSelectStep(
@@ -112,8 +115,9 @@ class _NodeCanvasCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                color: EditorChrome.inspectorJoyMint
-                                    .withValues(alpha: 0.5),
+                                color: EditorChrome.inspectorJoyMint.withValues(
+                                  alpha: 0.5,
+                                ),
                               ),
                             ),
                             child: Column(
@@ -132,7 +136,8 @@ class _NodeCanvasCard extends StatelessWidget {
                                     step: inner,
                                     nodeId: node.id,
                                     branchId: branch.id,
-                                    selected: selection?.nodeId == node.id &&
+                                    selected:
+                                        selection?.nodeId == node.id &&
                                         selection?.branchId == branch.id &&
                                         selection?.stepId == inner.id,
                                     onTap: () => onSelectStep(
@@ -186,8 +191,16 @@ class _StepBlockTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final (String title, String subtitle) = switch (step) {
       DeStartStep() => ('Début', 'Point d’entrée visuel'),
-      DeLineStep(:final speaker, :final body) => (
-          'Réplique',
+      DeLineStep(
+        :final speaker,
+        :final body,
+        :final characterId,
+        :final portraitStateId,
+      ) =>
+        (
+          characterId != null && portraitStateId != null
+              ? 'Réplique · portrait'
+              : 'Réplique',
           '${speaker ?? '?'}: $body',
         ),
       DeNarrationStep(:final text) => ('Narration', text),
