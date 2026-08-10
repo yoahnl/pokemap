@@ -9,11 +9,15 @@ class ProjectLayoutStudio extends StatefulWidget {
     required this.profile,
     required this.brandingLayoutVariant,
     required this.onChanged,
+    this.fixedSurfaceRole,
+    this.simplePresetsOnly = false,
   });
 
   final ProjectPresentationLayoutsProfile? profile;
   final String brandingLayoutVariant;
   final ValueChanged<ProjectPresentationLayoutsProfile?> onChanged;
+  final ProjectPresentationSurfaceRole? fixedSurfaceRole;
+  final bool simplePresetsOnly;
 
   @override
   State<ProjectLayoutStudio> createState() => _ProjectLayoutStudioState();
@@ -30,7 +34,24 @@ class _ProjectLayoutStudioState extends State<ProjectLayoutStudio> {
       suggestedProjectPresentationLayouts(widget.brandingLayoutVariant);
 
   @override
+  void initState() {
+    super.initState();
+    _surface = widget.fixedSurfaceRole ?? _surface;
+  }
+
+  @override
+  void didUpdateWidget(covariant ProjectLayoutStudio oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final surface = widget.fixedSurfaceRole;
+    if (oldWidget.fixedSurfaceRole != widget.fixedSurfaceRole &&
+        surface != null) {
+      _surface = surface;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (widget.simplePresetsOnly) return _buildSimplePauseControls(context);
     final responsive = _profile.resolve(_surface);
     final variant = responsive.resolve(_breakpoint);
     return Column(
@@ -46,27 +67,29 @@ class _ProjectLayoutStudioState extends State<ProjectLayoutStudio> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Text(
-                'Surface à organiser',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: <Widget>[
-                  for (final surface in _layoutSurfaceRoles)
-                    PokeMapButton(
-                      key: ValueKey<String>('layout-surface-${surface.name}'),
-                      size: PokeMapButtonSize.small,
-                      variant: PokeMapButtonVariant.secondary,
-                      isSelected: _surface == surface,
-                      onPressed: () => setState(() => _surface = surface),
-                      child: Text(_surfaceLabel(surface)),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
+              if (widget.fixedSurfaceRole == null) ...<Widget>[
+                Text(
+                  'Surface à organiser',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    for (final surface in _layoutSurfaceRoles)
+                      PokeMapButton(
+                        key: ValueKey<String>('layout-surface-${surface.name}'),
+                        size: PokeMapButtonSize.small,
+                        variant: PokeMapButtonVariant.secondary,
+                        isSelected: _surface == surface,
+                        onPressed: () => setState(() => _surface = surface),
+                        child: Text(_surfaceLabel(surface)),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
               Text(
                 'Compositions prêtes à jouer',
                 style: Theme.of(context).textTheme.titleSmall,
@@ -228,6 +251,139 @@ class _ProjectLayoutStudioState extends State<ProjectLayoutStudio> {
       ],
     );
   }
+
+  Widget _buildSimplePauseControls(BuildContext context) {
+    final responsive = _profile.pauseMenu;
+    final regular = responsive.regular;
+    return Column(
+      key: const ValueKey<String>('project-layout-studio-simple-pause'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const PokeMapSectionHeader(
+          title: 'Disposition du menu',
+          description:
+              'Choisissez où placer le menu et l’espace qu’il doit occuper.',
+        ),
+        const SizedBox(height: 8),
+        PokeMapCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Text('Position', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  _pausePlacementButton(
+                    id: 'left',
+                    label: 'Gauche',
+                    slot: ProjectPresentationLayoutSlot.left,
+                    selected:
+                        regular.slot == ProjectPresentationLayoutSlot.left,
+                  ),
+                  _pausePlacementButton(
+                    id: 'center',
+                    label: 'Centrée',
+                    slot: ProjectPresentationLayoutSlot.center,
+                    selected:
+                        regular.slot == ProjectPresentationLayoutSlot.center,
+                  ),
+                  _pausePlacementButton(
+                    id: 'right',
+                    label: 'Droite',
+                    slot: ProjectPresentationLayoutSlot.right,
+                    selected:
+                        regular.slot == ProjectPresentationLayoutSlot.right,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text('Taille', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  _pauseSizeButton(
+                    id: 'compact',
+                    label: 'Compact',
+                    width: ProjectPresentationContentWidth.narrow,
+                    selected:
+                        regular.width == ProjectPresentationContentWidth.narrow,
+                  ),
+                  _pauseSizeButton(
+                    id: 'normal',
+                    label: 'Normal',
+                    width: ProjectPresentationContentWidth.comfortable,
+                    selected:
+                        regular.width ==
+                        ProjectPresentationContentWidth.comfortable,
+                  ),
+                  _pauseSizeButton(
+                    id: 'large',
+                    label: 'Grand',
+                    width: ProjectPresentationContentWidth.wide,
+                    selected:
+                        regular.width == ProjectPresentationContentWidth.wide,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _pausePlacementButton({
+    required String id,
+    required String label,
+    required ProjectPresentationLayoutSlot slot,
+    required bool selected,
+  }) => PokeMapButton(
+    key: ValueKey<String>('pause-layout-$id'),
+    size: PokeMapButtonSize.small,
+    variant: PokeMapButtonVariant.secondary,
+    isSelected: selected,
+    onPressed: () {
+      final responsive = _profile.pauseMenu;
+      widget.onChanged(
+        _profile.copyWith(
+          pauseMenu: responsive.copyWith(
+            regular: responsive.regular.copyWith(slot: slot),
+            expanded: responsive.expanded.copyWith(slot: slot),
+          ),
+        ),
+      );
+    },
+    child: Text(label),
+  );
+
+  Widget _pauseSizeButton({
+    required String id,
+    required String label,
+    required ProjectPresentationContentWidth width,
+    required bool selected,
+  }) => PokeMapButton(
+    key: ValueKey<String>('pause-size-$id'),
+    size: PokeMapButtonSize.small,
+    variant: PokeMapButtonVariant.secondary,
+    isSelected: selected,
+    onPressed: () {
+      final responsive = _profile.pauseMenu;
+      widget.onChanged(
+        _profile.copyWith(
+          pauseMenu: responsive.copyWith(
+            compact: responsive.compact.copyWith(width: width),
+            regular: responsive.regular.copyWith(width: width),
+            expanded: responsive.expanded.copyWith(width: width),
+          ),
+        ),
+      );
+    },
+    child: Text(label),
+  );
 
   Widget _choiceRow<T extends Enum>({
     required BuildContext context,

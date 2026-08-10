@@ -35,6 +35,7 @@ import 'personalization_section_actions.dart';
 import 'personalization_studio_shell_v2.dart';
 import 'inspectors/personalization_global_style_inspector.dart';
 import 'inspectors/personalization_intro_inspector.dart';
+import 'inspectors/personalization_pause_inspector.dart';
 import 'inspectors/personalization_title_inspector.dart';
 import 'project_layout_studio.dart';
 import 'project_semantic_theme_editor.dart';
@@ -1305,9 +1306,17 @@ class _PersonalizationStudioWorkspaceState
         presets: presets,
         canManagePresets: canManagePresets,
       ),
-      PauseAppearanceTarget() ||
       DialogueAppearanceTarget() => _buildWindowTarget(
         profile: profile,
+        notifier: notifier,
+        canEdit: canEdit,
+      ),
+      PauseLabelsTarget() ||
+      PauseAppearanceTarget() ||
+      PauseLayoutTarget() => _buildPauseTarget(
+        context: context,
+        profile: profile,
+        projectRootPath: projectRootPath,
         notifier: notifier,
         canEdit: canEdit,
       ),
@@ -1333,12 +1342,7 @@ class _PersonalizationStudioWorkspaceState
         presets: presets,
         canManagePresets: canManagePresets,
       ),
-      PauseLabelsTarget() => _buildMenuLabelsTarget(
-        profile: profile,
-        notifier: notifier,
-        canEdit: canEdit,
-      ),
-      PauseLayoutTarget() || DialogueLayoutTarget() => _buildCategoryEditor(
+      DialogueLayoutTarget() => _buildCategoryEditor(
         context: context,
         category: ProjectPresentationCategory.layouts,
         profile: profile,
@@ -1454,23 +1458,80 @@ class _PersonalizationStudioWorkspaceState
     ],
   );
 
-  Widget _buildMenuLabelsTarget({
+  Widget _buildPauseTarget({
+    required BuildContext context,
     required ProjectPresentationProfile profile,
+    required String projectRootPath,
     required EditorNotifier notifier,
     required bool canEdit,
-  }) => IgnorePointer(
-    ignoring: !canEdit,
-    child: ProjectMenuLabelsEditor(
-      profile: profile.menuLabels ?? const ProjectMenuLabelsProfile(),
-      onChanged: (menuLabels) {
-        unawaited(
-          notifier.applyPersonalizationStudioProfile(
-            profile.copyWith(menuLabels: menuLabels),
-            label: 'Modifier les libellés du menu Pause',
-          ),
-        );
-      },
-    ),
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: <Widget>[
+      if (_isImportingAsset) ...<Widget>[
+        const PokeMapDiagnosticCallout(
+          severity: PokeMapDiagnosticSeverity.info,
+          message: 'Validation et copie sécurisée de la police en cours…',
+        ),
+        const SizedBox(height: 12),
+      ],
+      if (_assetFeedback != null) ...<Widget>[
+        PokeMapDiagnosticCallout(
+          severity: _assetFeedbackIsError
+              ? PokeMapDiagnosticSeverity.error
+              : PokeMapDiagnosticSeverity.info,
+          message: _assetFeedback!,
+        ),
+        const SizedBox(height: 12),
+      ],
+      IgnorePointer(
+        ignoring: !canEdit || _isImportingAsset,
+        child: PersonalizationPauseInspector(
+          profile: profile,
+          previewFamilies: _fontPreviewFamilies,
+          onMenuLabelsChanged: (menuLabels) {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(menuLabels: menuLabels),
+                label: 'Modifier les libellés du menu Pause',
+              ),
+            );
+          },
+          onWindowsChanged: (windows) {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(windows: windows),
+                label: 'Modifier l’apparence du menu Pause',
+              ),
+            );
+          },
+          onLayoutsChanged: (layouts) {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(layouts: layouts),
+                label: 'Modifier la disposition du menu Pause',
+              ),
+            );
+          },
+          onImportCommonFont: () {
+            unawaited(
+              _importFont(
+                context: context,
+                projectRootPath: projectRootPath,
+                profile: profile,
+                role: ProjectTypographyRole.body,
+                notifier: notifier,
+                applyToAllRoles: true,
+              ),
+            );
+          },
+          onUseSystemCommonFont: () {
+            unawaited(
+              _useSystemCommonFont(profile: profile, notifier: notifier),
+            );
+          },
+        ),
+      ),
+    ],
   );
 
   Widget _buildWindowTarget({

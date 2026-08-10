@@ -10,11 +10,13 @@ class ProjectWindowStudio extends StatefulWidget {
     required this.profile,
     required this.onChanged,
     this.simplePresetsOnly = false,
+    this.fixedRole,
   });
 
   final ProjectPresentationWindowsProfile profile;
   final ValueChanged<ProjectPresentationWindowsProfile?> onChanged;
   final bool simplePresetsOnly;
+  final ProjectWindowRole? fixedRole;
 
   @override
   State<ProjectWindowStudio> createState() => _ProjectWindowStudioState();
@@ -31,14 +33,18 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
         onChanged: widget.onChanged,
       );
     }
-    final style = widget.profile.resolve(_target.role);
+    final role = widget.fixedRole ?? _target.role;
+    final style = widget.profile.resolve(role);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const PokeMapSectionHeader(
-          title: 'Fenêtres du jeu',
-          description:
-              'Façonnez les cadres du menu Pause et des dialogues. Le grand aperçu reflète chaque changement immédiatement.',
+        PokeMapSectionHeader(
+          title: widget.fixedRole == ProjectWindowRole.pauseMenu
+              ? 'Apparence du menu Pause'
+              : 'Fenêtres du jeu',
+          description: widget.fixedRole == ProjectWindowRole.pauseMenu
+              ? 'Réglez la forme, les couleurs, les contours et la profondeur du menu.'
+              : 'Façonnez les cadres du menu Pause et des dialogues. Le grand aperçu reflète chaque changement immédiatement.',
         ),
         const SizedBox(height: 8),
         PokeMapCard(
@@ -62,7 +68,7 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
                   for (final preset in projectWindowStylePresets)
                     PokeMapButton(
                       key: ValueKey<String>('window-preset-${preset.id}'),
-                      onPressed: () => widget.onChanged(preset.profile),
+                      onPressed: () => _applyPreset(preset.profile),
                       variant: PokeMapButtonVariant.secondary,
                       size: PokeMapButtonSize.small,
                       leading: const Icon(Icons.auto_awesome_outlined),
@@ -70,7 +76,7 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
                     ),
                   PokeMapButton(
                     key: const ValueKey<String>('window-reset-project'),
-                    onPressed: () => widget.onChanged(null),
+                    onPressed: _reset,
                     variant: PokeMapButtonVariant.ghost,
                     size: PokeMapButtonSize.small,
                     leading: const Icon(Icons.restart_alt_rounded),
@@ -86,22 +92,24 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Align(
-                alignment: Alignment.centerLeft,
-                child: PokeMapSegmentedTabs(
-                  tabs: <PokeMapSegmentedTab>[
-                    for (final target in _WindowTarget.values)
-                      PokeMapSegmentedTab(
-                        key: ValueKey<String>('window-target-${target.name}'),
-                        label: target.label,
-                        icon: target.icon,
-                        selected: _target == target,
-                        onTap: () => setState(() => _target = target),
-                      ),
-                  ],
+              if (widget.fixedRole == null) ...<Widget>[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PokeMapSegmentedTabs(
+                    tabs: <PokeMapSegmentedTab>[
+                      for (final target in _WindowTarget.values)
+                        PokeMapSegmentedTab(
+                          key: ValueKey<String>('window-target-${target.name}'),
+                          label: target.label,
+                          icon: target.icon,
+                          selected: _target == target,
+                          onTap: () => setState(() => _target = target),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
+              ],
               LayoutBuilder(
                 builder: (context, constraints) {
                   final columns = constraints.maxWidth >= 620 ? 2 : 1;
@@ -196,7 +204,7 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
                         onChanged: (value) =>
                             _replace(style.copyWith(shadowElevation: value)),
                       ),
-                      if (_target == _WindowTarget.pause)
+                      if (role == ProjectWindowRole.pauseMenu)
                         _field<double>(
                           width: width,
                           key: 'backdrop',
@@ -255,13 +263,51 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
   );
 
   void _replace(ProjectWindowStyleProfile style) {
+    final role = widget.fixedRole ?? _target.role;
+    final currentStyle = widget.profile.resolve(role);
     widget.onChanged(
       widget.profile.copyWith(
         styles: widget.profile.styles
-            .map((current) => current.id == style.id ? style : current)
+            .map(
+              (current) => current.id == currentStyle.id
+                  ? style.copyWith(id: currentStyle.id)
+                  : current,
+            )
             .toList(growable: false),
       ),
     );
+  }
+
+  void _applyPreset(ProjectPresentationWindowsProfile preset) {
+    final role = widget.fixedRole;
+    if (role == null) {
+      widget.onChanged(preset);
+      return;
+    }
+    final style = preset.resolve(role);
+    final currentStyle = widget.profile.resolve(role);
+    widget.onChanged(
+      widget.profile.copyWith(
+        styles: widget.profile.styles
+            .map(
+              (current) => current.id == currentStyle.id
+                  ? style.copyWith(id: currentStyle.id)
+                  : current,
+            )
+            .toList(growable: false),
+        pauseBackdropOpacity: role == ProjectWindowRole.pauseMenu
+            ? preset.pauseBackdropOpacity
+            : widget.profile.pauseBackdropOpacity,
+      ),
+    );
+  }
+
+  void _reset() {
+    if (widget.fixedRole == null) {
+      widget.onChanged(null);
+      return;
+    }
+    _applyPreset(legacyProjectPresentationWindows);
   }
 }
 
