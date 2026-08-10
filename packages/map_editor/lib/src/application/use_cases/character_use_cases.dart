@@ -93,19 +93,136 @@ class DeleteCharacterUseCase {
     ProjectWorkspace workspace,
     ProjectManifest project, {
     required String characterId,
+    CharacterDeleteResolution resolution = CharacterDeleteResolution.clear,
+    String? replacementId,
   }) {
+    final trimmedReplacementId = replacementId?.trim();
+    if (resolution == CharacterDeleteResolution.replace &&
+        (trimmedReplacementId == null || trimmedReplacementId.isEmpty)) {
+      throw const EditorValidationException(
+        'A replacement character is required',
+      );
+    }
     return _authoring.apply(
       projectRootPath: workspace.projectRoot,
       expectedProject: project,
       actionId: 'characterStudio.character.delete',
       parameters: <String, Object?>{
         'characterId': characterId,
-        'resolution': 'clear',
+        'resolution': resolution.name,
+        if (trimmedReplacementId != null && trimmedReplacementId.isNotEmpty)
+          'replacementId': trimmedReplacementId,
       },
       operationLabel: 'character_delete_$characterId',
       requiresConfirmation: true,
     );
   }
+}
+
+enum CharacterDeleteResolution { replace, clear }
+
+final class CharacterDeleteDependency {
+  const CharacterDeleteDependency({
+    required this.sourceKind,
+    required this.sourceId,
+    required this.path,
+  });
+
+  final String sourceKind;
+  final String sourceId;
+  final String path;
+}
+
+final class CharacterDeleteReplacementCandidate {
+  const CharacterDeleteReplacementCandidate({
+    required this.id,
+    required this.name,
+  });
+
+  final String id;
+  final String name;
+}
+
+final class CharacterDeletePlan {
+  const CharacterDeletePlan({
+    required this.characterId,
+    required this.requiresResolution,
+    required this.dependencies,
+    required this.replacementCandidates,
+  });
+
+  factory CharacterDeletePlan.fromPreview(Map<String, Object?> preview) {
+    final characterId = preview['characterId'];
+    if (characterId is! String || characterId.trim().isEmpty) {
+      throw const EditorValidationException(
+        'Character deletion preview is missing its character',
+      );
+    }
+    return CharacterDeletePlan(
+      characterId: characterId,
+      requiresResolution: preview['requiresResolution'] == true,
+      dependencies: <CharacterDeleteDependency>[
+        for (final raw in _previewMaps(preview['dependencies']))
+          CharacterDeleteDependency(
+            sourceKind: _previewString(raw, 'sourceKind'),
+            sourceId: _previewString(raw, 'sourceId'),
+            path: _previewString(raw, 'path'),
+          ),
+      ],
+      replacementCandidates: <CharacterDeleteReplacementCandidate>[
+        for (final raw in _previewMaps(preview['replacementCandidates']))
+          CharacterDeleteReplacementCandidate(
+            id: _previewString(raw, 'id'),
+            name: _previewString(raw, 'name'),
+          ),
+      ],
+    );
+  }
+
+  final String characterId;
+  final bool requiresResolution;
+  final List<CharacterDeleteDependency> dependencies;
+  final List<CharacterDeleteReplacementCandidate> replacementCandidates;
+}
+
+class PreviewDeleteCharacterUseCase {
+  PreviewDeleteCharacterUseCase(this._authoring);
+
+  final CharacterStudioAuthoringGateway _authoring;
+
+  Future<CharacterDeletePlan> execute(
+    ProjectWorkspace workspace,
+    ProjectManifest project, {
+    required String characterId,
+  }) async {
+    final plan = await _authoring.preview(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      actionId: 'characterStudio.character.deletePlan',
+      parameters: <String, Object?>{'characterId': characterId},
+      operationLabel: 'character_delete_plan_$characterId',
+    );
+    return CharacterDeletePlan.fromPreview(plan.preview);
+  }
+}
+
+Iterable<Map<String, Object?>> _previewMaps(Object? value) sync* {
+  if (value is! List) return;
+  for (final entry in value) {
+    if (entry is Map<String, Object?>) {
+      yield entry;
+    } else if (entry is Map) {
+      yield <String, Object?>{
+        for (final item in entry.entries)
+          if (item.key is String) item.key as String: item.value,
+      };
+    }
+  }
+}
+
+String _previewString(Map<String, Object?> value, String key) {
+  final result = value[key];
+  return result is String ? result : '';
 }
 
 class UpsertCharacterAnimationUseCase {

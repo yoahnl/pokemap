@@ -83,18 +83,11 @@ void main() {
           hasLength(2),
         );
 
-        final deletePlan = await fixture.gateway.preview(
-          projectRootPath: fixture.root.path,
-          expectedProject: renamed,
-          actionId: 'characterStudio.character.deletePlan',
-          parameters: const <String, Object?>{'characterId': 'elia'},
-          operationLabel: 'character_delete_plan_elia',
-        );
-        expect(deletePlan.preview['requiresResolution'], isTrue);
-        expect(
-          deletePlan.receipt.actionId,
-          'characterStudio.character.deletePlan',
-        );
+        final deletePlan = await PreviewDeleteCharacterUseCase(
+          fixture.gateway,
+        ).execute(fixture.workspace, renamed, characterId: 'elia');
+        expect(deletePlan.requiresResolution, isTrue);
+        expect(deletePlan.dependencies, isNotEmpty);
 
         final deleted = await DeleteCharacterUseCase(
           fixture.gateway,

@@ -22,6 +22,7 @@ import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../../../application/services/map_dependency_preflight_service.dart';
 import '../../../application/services/map_viewport_navigation.dart';
 import '../../../application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
+import '../../../application/use_cases/character_use_cases.dart';
 import '../../../application/use_cases/environment_generator_apply_use_cases.dart';
 import '../../../application/use_cases/environment_generator_clear_use_cases.dart';
 import '../../../application/use_cases/environment_generator_regenerate_use_cases.dart';
@@ -14045,7 +14046,34 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  Future<void> deleteCharacter(String characterId) async {
+  Future<CharacterDeletePlan?> previewDeleteCharacter(
+    String characterId,
+  ) async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) return null;
+    try {
+      final useCase = ref.read(previewDeleteCharacterUseCaseProvider);
+      final plan = await useCase.execute(
+        fs,
+        project,
+        characterId: characterId,
+      );
+      state = state.copyWith(errorMessage: null);
+      return plan;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to inspect character dependencies: $e',
+      );
+      return null;
+    }
+  }
+
+  Future<void> deleteCharacter(
+    String characterId, {
+    CharacterDeleteResolution resolution = CharacterDeleteResolution.clear,
+    String? replacementId,
+  }) async {
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
@@ -14055,6 +14083,8 @@ class EditorNotifier extends _$EditorNotifier
         fs,
         project,
         characterId: characterId,
+        resolution: resolution,
+        replacementId: replacementId,
       );
       state = state.copyWith(
         project: updated,

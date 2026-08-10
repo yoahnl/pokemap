@@ -309,6 +309,13 @@ DeleteCharacterUseCase deleteCharacterUseCase(Ref ref) {
   );
 }
 
+final previewDeleteCharacterUseCaseProvider =
+    Provider<PreviewDeleteCharacterUseCase>((ref) {
+      return PreviewDeleteCharacterUseCase(
+        ref.watch(characterStudioAuthoringGatewayProvider),
+      );
+    });
+
 @riverpod
 UpsertCharacterAnimationUseCase upsertCharacterAnimationUseCase(Ref ref) {
   return UpsertCharacterAnimationUseCase(

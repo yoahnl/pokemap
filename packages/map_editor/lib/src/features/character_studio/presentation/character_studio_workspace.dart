@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,6 +7,10 @@ import '../../editor/state/editor_notifier.dart';
 import '../../editor/state/editor_selectors.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
+import 'identity/character_studio_delete_dialog.dart';
+import 'identity/character_studio_identity_editor.dart';
+import 'identity/character_studio_inspector.dart';
+import 'library/character_studio_library.dart';
 import 'character_studio_workspace_shell.dart';
 
 class CharacterStudioWorkspace extends ConsumerStatefulWidget {
@@ -42,25 +48,31 @@ class _CharacterStudioWorkspaceState
         ),
       ),
     );
-    final selectedCharacter = project.characters
-        .where((character) => character.id == snapshot.selectedCharacterId)
-        .firstOrNull;
+    final selectedCharacter =
+        project.characters
+            .where((character) => character.id == snapshot.selectedCharacterId)
+            .firstOrNull ??
+        project.characters.firstOrNull;
+    final selectedCharacterId = selectedCharacter?.id;
+    final notifier = ref.read(editorNotifierProvider.notifier);
 
     return CharacterStudioWorkspaceShell(
       key: const ValueKey<String>('character-studio-workspace'),
       project: project,
       isSaving: snapshot.isSaving,
       statusMessage: snapshot.statusMessage,
-      library: _CharacterStudioPlaceholderRegion(
-        title: 'Personnages',
-        description: '${project.characters.length} dans le projet',
-        icon: CupertinoIcons.person_2_fill,
-        emptyTitle: project.characters.isEmpty
-            ? 'Aucun personnage'
-            : 'Bibliothèque prête',
-        emptyDescription: project.characters.isEmpty
-            ? 'Créez votre premier personnage depuis ce panneau.'
-            : 'La liste détaillée arrive dans le prochain lot.',
+      library: CharacterStudioLibrary(
+        project: project,
+        selectedCharacterId: selectedCharacterId,
+        onSelect: notifier.selectCharacter,
+        onCreate: (draft) => unawaited(
+          notifier.createCharacter(
+            name: draft.name,
+            tilesetId: draft.tilesetId,
+            frameWidth: draft.frameWidth,
+            frameHeight: draft.frameHeight,
+          ),
+        ),
       ),
       canvas: CharacterStudioCanvasFrame(
         characterName: selectedCharacter?.name,
@@ -68,54 +80,57 @@ class _CharacterStudioWorkspaceState
         tags: selectedCharacter?.tags ?? const <String>[],
         activeSection: _section,
         onSectionChanged: (section) => setState(() => _section = section),
-        child: _CharacterStudioSectionPlaceholder(section: _section),
+        child: switch ((_section, selectedCharacter)) {
+          (CharacterStudioSection.identity, final character?) =>
+            CharacterStudioIdentityEditor(
+              project: project,
+              character: character,
+              isDefaultCharacter:
+                  project.settings.defaultPlayerCharacterId == character.id,
+              isSaving: snapshot.isSaving,
+              onSave: (draft) => unawaited(
+                notifier.updateCharacter(
+                  characterId: character.id,
+                  name: draft.name,
+                  tilesetId: draft.tilesetId,
+                  frameWidth: draft.frameWidth,
+                  frameHeight: draft.frameHeight,
+                  tags: draft.tags,
+                ),
+              ),
+              onSetDefault: () =>
+                  unawaited(notifier.setPlayerCharacter(character.id)),
+              onDelete: () => unawaited(_deleteCharacter(character.id)),
+            ),
+          _ => _CharacterStudioSectionPlaceholder(section: _section),
+        },
       ),
-      inspector: const _CharacterStudioPlaceholderRegion(
-        title: 'Inspecteur',
-        description: 'Contexte de la sélection active',
-        icon: CupertinoIcons.slider_horizontal_3,
-        emptyTitle: 'Aucune propriété sélectionnée',
-        emptyDescription:
-            'Sélectionnez un personnage ou une propriété à inspecter.',
+      inspector: CharacterStudioInspector(
+        project: project,
+        character: selectedCharacter,
       ),
     );
   }
-}
 
-class _CharacterStudioPlaceholderRegion extends StatelessWidget {
-  const _CharacterStudioPlaceholderRegion({
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.emptyTitle,
-    required this.emptyDescription,
-  });
-
-  final String title;
-  final String description;
-  final IconData icon;
-  final String emptyTitle;
-  final String emptyDescription;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PokeMapSectionHeader(title: title, description: description),
-          const SizedBox(height: 8),
-          Expanded(
-            child: PokeMapEmptyState(
-              title: emptyTitle,
-              description: emptyDescription,
-              icon: Icon(icon),
-              compact: true,
-            ),
-          ),
-        ],
-      ),
+  Future<void> _deleteCharacter(String characterId) async {
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final plan = await notifier.previewDeleteCharacter(characterId);
+    if (!mounted || plan == null) return;
+    final project = ref.read(editorProjectManifestProvider);
+    final character = project?.characters
+        .where((entry) => entry.id == characterId)
+        .firstOrNull;
+    if (character == null) return;
+    final decision = await showCharacterDeleteDialog(
+      context: context,
+      characterName: character.name,
+      plan: plan,
+    );
+    if (!mounted || decision == null) return;
+    await notifier.deleteCharacter(
+      characterId,
+      resolution: decision.resolution,
+      replacementId: decision.replacementId,
     );
   }
 }
