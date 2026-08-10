@@ -4,6 +4,9 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 
+String presentationPresetFileSha256(List<int> bytes) =>
+    sha256.convert(bytes).toString();
+
 final class PresentationPresetPackException implements Exception {
   const PresentationPresetPackException({
     required this.code,
@@ -375,7 +378,7 @@ Map<String, Uint8List> _validatePackFiles(
         'A preset asset size differs from its manifest.',
       );
     }
-    if (sha256.convert(bytes).toString() != asset.sha256) {
+    if (presentationPresetFileSha256(bytes) != asset.sha256) {
       _fail(
         'presetPackChecksumMismatch',
         asset.archivePath,
@@ -392,7 +395,7 @@ Map<String, Uint8List> _validatePackFiles(
       );
     }
     if (license.length != asset.licenseSizeBytes ||
-        sha256.convert(license).toString() != asset.licenseSha256) {
+        presentationPresetFileSha256(license) != asset.licenseSha256) {
       _fail(
         'presetPackChecksumMismatch',
         asset.licenseArchivePath!,

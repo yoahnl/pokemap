@@ -137,6 +137,7 @@ final projectPresentationPresetServiceProvider =
     Provider<ProjectPresentationPresetService>((ref) {
       return ProjectPresentationPresetService(
         mutations: ref.watch(authoringMutationAdapterProvider),
+        queries: ref.watch(authoringQueryAdapterProvider),
       );
     });
 

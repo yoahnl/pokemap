@@ -33,7 +33,8 @@ class ProjectPresentationPresetLibrary extends StatelessWidget {
         title: 'Bibliothèque de profils',
         description:
             'Réutilisez une identité complète ou échangez-la avec un autre '
-            'projet au format sécurisé .pokemapstyle.',
+            'projet au format sécurisé .pokemapstyle. Les médias partagés '
+            'demandent une licence TXT de redistribution.',
       ),
       const SizedBox(height: 8),
       PokeMapCard(

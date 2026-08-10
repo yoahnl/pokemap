@@ -174,6 +174,7 @@ void main() {
       );
       final service = ProjectPresentationPresetService(
         mutations: fixture.mutations,
+        queries: fixture.queries,
       );
       final pack = p.join(fixture.root.path, 'avelune.pokemapstyle');
       await File(pack).writeAsString('stale preset');
@@ -209,6 +210,301 @@ void main() {
       );
       expect(durable.presentationPresets.single.id, 'avelune');
       expect(durable.presentation?.branding.accentColor, '#126E78');
+    });
+
+    test('catalogs project-owned presentation media before preset export',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final projectFile = File(p.join(fixture.root.path, 'project.json'));
+      const iconPath = 'assets/presentation/icon.png';
+      const licensePath = 'assets/presentation/LICENSE.txt';
+      await File(p.join(fixture.root.path, iconPath))
+          .create(recursive: true)
+          .then((file) => file.writeAsBytes(<int>[
+                0x89,
+                0x50,
+                0x4e,
+                0x47,
+                0x0d,
+                0x0a,
+                0x1a,
+                0x0a,
+              ]));
+      await File(p.join(fixture.root.path, licensePath))
+          .writeAsString('Redistribution allowed for this fixture.');
+      await FileProjectRepository().saveProject(
+        fixture.project.copyWith(
+          presentation: const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(iconPath: iconPath),
+          ),
+        ),
+        projectFile.path,
+      );
+      final service = ProjectPresentationPresetService(
+        mutations: fixture.mutations,
+        queries: fixture.queries,
+      );
+      final pack = p.join(fixture.root.path, 'media.pokemapstyle');
+
+      await service.exportCurrent(
+        projectRootPath: fixture.root.path,
+        presetId: 'media',
+        label: 'Media',
+        description: 'Profil avec media.',
+        destinationPath: pack,
+        licenses: const <String, String>{iconPath: licensePath},
+      );
+
+      final catalog = AssetCatalog.fromJson(
+        jsonDecode(
+          await File(
+            p.join(fixture.root.path, 'assets/.pokemap-assets.json'),
+          ).readAsString(),
+        ) as Map<String, dynamic>,
+      );
+      expect(catalog.findByLogicalPath(iconPath), isNotNull);
+      expect(catalog.findByLogicalPath(licensePath), isNotNull);
+      expect(File(pack).lengthSync(), greaterThan(0));
+    });
+
+    test('applies one selected redistribution license to preset media',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final licenseRoot = await Directory.systemTemp.createTemp(
+        'pokemap_preset_license_',
+      );
+      addTearDown(() => licenseRoot.delete(recursive: true));
+      const iconPath = 'assets/presentation/icon.png';
+      await File(p.join(fixture.root.path, iconPath))
+          .create(recursive: true)
+          .then((file) => file.writeAsBytes(<int>[
+                0x89,
+                0x50,
+                0x4e,
+                0x47,
+                0x0d,
+                0x0a,
+                0x1a,
+                0x0a,
+              ]));
+      final externalLicense = File(p.join(licenseRoot.path, 'LICENSE.txt'));
+      await externalLicense.writeAsString(
+        'Redistribution allowed for every media in this preset.',
+      );
+      await FileProjectRepository().saveProject(
+        fixture.project.copyWith(
+          presentation: const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(iconPath: iconPath),
+          ),
+        ),
+        p.join(fixture.root.path, 'project.json'),
+      );
+      final service = ProjectPresentationPresetService(
+        mutations: fixture.mutations,
+        queries: fixture.queries,
+      );
+      final pack = p.join(fixture.root.path, 'licensed.pokemapstyle');
+
+      await service.exportCurrent(
+        projectRootPath: fixture.root.path,
+        presetId: 'licensed',
+        label: 'Licensed',
+        description: 'Profil avec licence guidée.',
+        destinationPath: pack,
+        redistributionLicenseSourcePath: externalLicense.path,
+      );
+
+      final durable = ProjectManifest.fromJson(
+        jsonDecode(
+          await File(p.join(fixture.root.path, 'project.json')).readAsString(),
+        ) as Map<String, dynamic>,
+      );
+      final preset = durable.presentationPresets.single;
+      expect(preset.assets.single.projectPath, iconPath);
+      expect(
+        preset.assets.single.licenseProjectPath,
+        startsWith('assets/presentation/licenses/'),
+      );
+      expect(File(pack).lengthSync(), greaterThan(0));
+    });
+
+    test('rejects unlicensed preset media before catalog mutation', () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      const iconPath = 'assets/presentation/icon.png';
+      await File(p.join(fixture.root.path, iconPath))
+          .create(recursive: true)
+          .then((file) => file.writeAsBytes(<int>[
+                0x89,
+                0x50,
+                0x4e,
+                0x47,
+                0x0d,
+                0x0a,
+                0x1a,
+                0x0a,
+              ]));
+      await FileProjectRepository().saveProject(
+        fixture.project.copyWith(
+          presentation: const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(iconPath: iconPath),
+          ),
+        ),
+        p.join(fixture.root.path, 'project.json'),
+      );
+      final service = ProjectPresentationPresetService(
+        mutations: fixture.mutations,
+        queries: fixture.queries,
+      );
+      final pack = p.join(fixture.root.path, 'unlicensed.pokemapstyle');
+
+      await expectLater(
+        service.exportCurrent(
+          projectRootPath: fixture.root.path,
+          presetId: 'unlicensed',
+          label: 'Unlicensed',
+          description: 'Profil incomplet.',
+          destinationPath: pack,
+        ),
+        throwsA(
+          isA<ProjectPresentationPresetExportException>().having(
+            (error) => error.code,
+            'code',
+            'presentation.preset.license_required',
+          ),
+        ),
+      );
+      expect(
+        File(
+          p.join(fixture.root.path, 'assets/.pokemap-assets.json'),
+        ).existsSync(),
+        isFalse,
+      );
+      expect(File(pack).existsSync(), isFalse);
+    });
+
+    test('rejects a non-text redistribution license before catalog mutation',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final licenseRoot = await Directory.systemTemp.createTemp(
+        'pokemap_invalid_preset_license_',
+      );
+      addTearDown(() => licenseRoot.delete(recursive: true));
+      const iconPath = 'assets/presentation/icon.png';
+      await File(p.join(fixture.root.path, iconPath))
+          .create(recursive: true)
+          .then((file) => file.writeAsBytes(<int>[
+                0x89,
+                0x50,
+                0x4e,
+                0x47,
+                0x0d,
+                0x0a,
+                0x1a,
+                0x0a,
+              ]));
+      final externalLicense = File(p.join(licenseRoot.path, 'LICENSE.txt'));
+      await externalLicense.writeAsBytes(<int>[0xff, 0xfe, 0xfd]);
+      await FileProjectRepository().saveProject(
+        fixture.project.copyWith(
+          presentation: const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(iconPath: iconPath),
+          ),
+        ),
+        p.join(fixture.root.path, 'project.json'),
+      );
+      final service = ProjectPresentationPresetService(
+        mutations: fixture.mutations,
+        queries: fixture.queries,
+      );
+
+      await expectLater(
+        service.exportCurrent(
+          projectRootPath: fixture.root.path,
+          presetId: 'invalid-license',
+          label: 'Invalid license',
+          description: 'Profil incomplet.',
+          destinationPath: p.join(fixture.root.path, 'invalid.pokemapstyle'),
+          redistributionLicenseSourcePath: externalLicense.path,
+        ),
+        throwsA(
+          isA<ProjectPresentationPresetExportException>().having(
+            (error) => error.code,
+            'code',
+            'presentation.preset.license_invalid',
+          ),
+        ),
+      );
+      expect(
+        File(
+          p.join(fixture.root.path, 'assets/.pokemap-assets.json'),
+        ).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('rejects an empty redistribution license before catalog mutation',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final licenseRoot = await Directory.systemTemp.createTemp(
+        'pokemap_empty_preset_license_',
+      );
+      addTearDown(() => licenseRoot.delete(recursive: true));
+      const iconPath = 'assets/presentation/icon.png';
+      await File(p.join(fixture.root.path, iconPath))
+          .create(recursive: true)
+          .then((file) => file.writeAsBytes(<int>[
+                0x89,
+                0x50,
+                0x4e,
+                0x47,
+                0x0d,
+                0x0a,
+                0x1a,
+                0x0a,
+              ]));
+      final externalLicense = File(p.join(licenseRoot.path, 'LICENSE.txt'));
+      await externalLicense.writeAsString('   \n');
+      await FileProjectRepository().saveProject(
+        fixture.project.copyWith(
+          presentation: const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(iconPath: iconPath),
+          ),
+        ),
+        p.join(fixture.root.path, 'project.json'),
+      );
+      final service = ProjectPresentationPresetService(
+        mutations: fixture.mutations,
+        queries: fixture.queries,
+      );
+
+      await expectLater(
+        service.exportCurrent(
+          projectRootPath: fixture.root.path,
+          presetId: 'empty-license',
+          label: 'Empty license',
+          description: 'Profil incomplet.',
+          destinationPath: p.join(fixture.root.path, 'invalid.pokemapstyle'),
+          redistributionLicenseSourcePath: externalLicense.path,
+        ),
+        throwsA(
+          isA<ProjectPresentationPresetExportException>().having(
+            (error) => error.code,
+            'code',
+            'presentation.preset.license_invalid',
+          ),
+        ),
+      );
+      expect(
+        File(
+          p.join(fixture.root.path, 'assets/.pokemap-assets.json'),
+        ).existsSync(),
+        isFalse,
+      );
     });
 
     test('plans without writing, applies once, and replays idempotently',

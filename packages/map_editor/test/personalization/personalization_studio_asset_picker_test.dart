@@ -126,6 +126,19 @@ void main() {
       ),
     );
   });
+
+  test('preset license picker guides one text file', () async {
+    final backend = _Backend(<String>['/source/LICENSE.txt']);
+    final picker = FilePickerPersonalizationStudioPresetFilePicker(
+      backend: backend,
+    );
+
+    expect(
+      await picker.pickPresetRedistributionLicense(),
+      '/source/LICENSE.txt',
+    );
+    expect(backend.lastRequest?.allowedExtensions, <String>['txt']);
+  });
 }
 
 final class _Backend implements PersonalizationStudioFilePickerBackend {

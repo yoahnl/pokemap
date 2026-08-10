@@ -15,7 +15,7 @@
 | Élément | Décision |
 |---|---|
 | Socle déjà livré | `337a97a6e feat(personalization): add live pause menu customization` |
-| Lots restant à livrer | **0 lot d’implémentation majeure** ; PERS-L4 reste `PARTIAL` sur deux gates d’intégration |
+| Lots restant à livrer | **0** ; les quatre lots sont certifiés |
 | Ordre | Acceptation → Window Studio → Layout Studio → Extension complète |
 | Mutation canonique | `presentation.update` |
 | Profil canonique | `ProjectPresentationProfile` |
@@ -25,7 +25,7 @@
 | Placements | Nouveau profil Layout Studio à breakpoints fixes |
 | Coordonnées libres | Exclues |
 | Splash Avelune | Host-owned, visible dans le parcours mais non personnalisable |
-| État global | PERS-L1 et PERS-L2 `DONE` ; PERS-L3 et PERS-L4 `PARTIAL` jusqu’aux gates d’intégration restants |
+| État global | PERS-L1, PERS-L2, PERS-L3 et PERS-L4 `DONE` |
 
 Le commit `337a97a6e` est le **lot zéro livré**. Il ne doit pas être recompté comme travail futur : il prouve déjà la verticale modèle → sauvegarde canonique → export → Hub → menu Pause réel.
 
@@ -134,14 +134,14 @@ Pendant l’audit, ce chantier parallèle a été commit sous :
 
 `49afbe464` a `337a97a6e` pour parent et ne modifie pas le périmètre Personalization. La roadmap ne réécrit aucun de ces deux commits.
 
-## 4. Vue d’ensemble des quatre lots restants
+## 4. Vue d’ensemble des quatre lots
 
-| Lot | Résultat visible | Taille | Dépend de | Statut initial |
+| Lot | Résultat visible | Taille | Dépend de | Statut |
 |---|---|---:|---|---|
 | PERS-L1 | La preview actuelle est fiable, accessible et acceptée dans la vraie app | M | Socle `337a97a6e` | **DONE — 2026-08-10** |
 | PERS-L2 | Window Studio personnalise réellement Pause et Dialogue | L | PERS-L1 | **DONE — 2026-08-10** |
-| PERS-L3 | Layout Studio place les contenus par variantes responsives sûres | L | PERS-L2 | **PARTIAL — 2026-08-10** |
-| PERS-L4 | Toutes les surfaces utilisent les contrats et les presets sont partageables | XL | PERS-L3 | **PARTIAL — 2026-08-10** |
+| PERS-L3 | Layout Studio place les contenus par variantes responsives sûres | L | PERS-L2 | **DONE — 2026-08-10** |
+| PERS-L4 | Toutes les surfaces utilisent les contrats et les presets sont partageables | XL | PERS-L3 | **DONE — 2026-08-10** |
 
 La dépendance est stricte :
 
@@ -422,7 +422,7 @@ Les actions essentielles ne peuvent jamais être masquées par `optionalVisibili
 
 Le contrat V4, le Studio guidé, le résolveur partagé, l’export certifié et le chargement Hub sont implémentés. La fixture unique `golden_personalization_slice/presentation.json` alimente les goldens editor/player et le parcours package installé. La matrice player couvre les 12 combinaisons de tailles et de text scale prévues, les safe areas et la conservation du focus après changement de breakpoint.
 
-Le lot reste `PARTIAL` pour une raison précise : le standalone historique ouvre encore `InGameMenuPage` et son dialogue Flame au lieu de `RuntimePlayerPauseShell` et `PlayerDialogueOverlay`. Le thème V4 est chargé et le Title canonique le consomme, mais déclarer la parité Pause/Dialogue standalone serait faux. La preuve MCP locale couvre `pokemap_describe`, `presentation.update` et la relecture V4 ; le serveur MCP configuré dans Codex pointe le checkout principal et ne pourra certifier ce commit en live qu’après intégration.
+Le lot est `DONE`. Le standalone passe désormais par les surfaces de session joueur canoniques pour Title, Pause et Dialogue, tandis que le Hub installé consomme les mêmes résolveurs V4. La relecture live `pokemap_describe` a été exécutée contre le serveur MCP construit dans ce worktree via le client officiel et son transport stdio moderne.
 
 ### Fichiers structurants
 
@@ -464,7 +464,7 @@ Le lot reste `PARTIAL` pour une raison précise : le standalone historique ouvre
 
 ### Gate de sortie
 
-- [ ] Le même résolveur sélectionne compact, regular ou expanded pour preview, standalone et Hub : Title est commun, Pause/Dialogue standalone restent historiques.
+- [x] Le même résolveur sélectionne compact, regular ou expanded pour preview, standalone et Hub sur Title, Pause et Dialogue.
 - [x] Portrait, paysage, fallback et projet legacy sont déterministes.
 - [x] Aucun contenu ne quitte les safe areas.
 - [x] Aucun overflow à 200 % de texte.
@@ -472,7 +472,7 @@ Le lot reste `PARTIAL` pour une raison précise : le standalone historique ouvre
 - [x] Snap, bornes, annulation et restauration sont couverts par interaction réelle.
 - [x] Les goldens editor/player utilisent exactement la même fixture.
 - [x] `branding.layoutVariant` conserve sa sémantique historique pendant la migration.
-- [x] Les quatre transports et le package installé sont prouvés par les tests locaux ; la relecture MCP live attend l’intégration du worktree.
+- [x] Les quatre transports, le package installé et la relecture MCP live du serveur construit dans ce worktree sont prouvés.
 
 ### Non-objectifs
 
@@ -553,19 +553,18 @@ Ressource queryable proposée : `projectPresentationPreset`.
 - [x] Rendre `titleMotion.promptLoop` et `menuLoop` entièrement éditables sans JSON.
 - [x] Clarifier icon, cover et hero par destination réelle.
 - [x] Ajouter une bibliothèque de presets versionnés et réversibles.
-- [ ] Exporter et importer les packs avec assets et licences.
+- [x] Exporter et importer les packs avec assets et licences.
 - [x] Ajouter une section unique Vérifier & publier avec erreurs actionnables.
 - [x] Certifier le profil final dans un package installé Hub et un standalone.
-- [ ] Vérifier `pokemap_describe` live après rebuild MCP.
+- [x] Vérifier `pokemap_describe` live après rebuild MCP.
 
 ### État d’exécution — 2026-08-10
 
 Le lot livre l’inventaire canonique des 17 surfaces, leur consommation réelle par `map_player_ui`, les boucles de titre no-code, la bibliothèque de profils et le format déterministe `.pokemapstyle`. Les cinq actions `presentation.preset.*`, la ressource `projectPresentationPreset`, les transports API directe, JSONL/CLI, Editor et MCP, le host autonome canonique ainsi que le package installé Hub sont couverts par des tests frais.
 
-Deux gates interdisent encore `DONE` :
+Le lot est `DONE`. L’export guidé demande une licence TXT commune lorsque le profil contient des médias sans licence intégrée, catalogue ou remplace chaque fichier par les actions canoniques `asset.import` et `asset.replace`, puis produit l’archive avec des checksums SHA-256 bruts vérifiés. Un refus de licence intervient avant toute mutation du catalogue.
 
-1. Les profils sans asset et les packs déjà licenciés s’échangent entièrement, mais l’éditeur ne catalogue pas encore automatiquement les images, vidéos et musiques importées et ne demande pas leur licence lors de l’export. Le codec et l’API refusent correctement ces assets non gérés au lieu de produire un pack mensonger.
-2. Le serveur MCP configuré par Codex pointe sur le checkout principal et n’autorise pas ce worktree. Le build et le test MCP local passent pour la présentation et les presets ; la relecture `pokemap_describe` live doit être faite après intégration du commit.
+Le serveur construit dans le worktree a été appelé par un vrai client MCP stdio moderne. `pokemap_describe` expose les cinq actions `presentation.preset.*` et la ressource `projectPresentationPreset` sans modifier la configuration MCP persistante de Codex.
 
 ### Sécurité d’import obligatoire
 
@@ -614,12 +613,12 @@ Une cellule vaut `PASS` ou possède une justification `N/A` démontrée. Une cel
 - [x] Chaque surface inventoriée consomme theme, window et layout selon sa responsabilité.
 - [x] Aucun champ du profil n’est techniquement présent mais introuvable dans le Studio.
 - [x] Preset, reset, undo/redo et comparaison couvrent toutes les sections.
-- [ ] Import/export préserve assets, licences, checksums et compatibilité de schéma.
+- [x] Import/export préserve assets, licences, checksums et compatibilité de schéma.
 - [x] Un package réellement installable est lancé dans le Hub.
 - [x] Standalone et Hub produisent les mêmes résolutions de style/layout.
 - [x] Les builds desktop Hub/editor/host et Android Hub réussissent.
 - [x] Toutes les analyses et suites globales concernées sont vertes ; les échecs globaux hors lot restent listés dans le rapport de commit.
-- [ ] Le catalogue et le live `pokemap_describe` exposent les actions et ressources réelles.
+- [x] Le catalogue et le live `pokemap_describe` exposent les actions et ressources réelles.
 
 ### Commandes de certification finale
 
@@ -686,17 +685,17 @@ Cette roadmap détaille la **Phase 8 — Refonte du Personalization Hub** de `do
 | PERS-04, PERS-06 | PERS-L3 |
 | PERS-03, PERS-04, PERS-05, PERS-09, PERS-10, PERS-11, PERS-12 | PERS-L4 |
 
-La Phase 8 reste `PARTIAL` jusqu’à la certification de PERS-L4. Les statuts du document parent ne sont pas modifiés par cette roadmap seule.
+La Phase 8 est certifiée `DONE` dans cette roadmap. Les statuts du document parent ne sont pas modifiés par cette roadmap seule.
 
 ## 11. Verdict des passes indépendantes
 
 | Passe | Verdict |
 |---|---|
 | Audit / Architecture | `PASS PERS-L4` — ownership unique des 17 surfaces et aucun renderer runtime parallèle |
-| Implémentation / Produit | `PASS avec gate` — profils, boucles de titre et packs sont no-code ; les assets non catalogués restent refusés à l’export |
-| Tests | `PASS ciblé PERS-L4` — contrats, codec, Authoring, Editor, player, host, Hub et MCP ciblé sont verts |
+| Implémentation / Produit | `PASS PERS-L4` — sélection de licence guidée, catalogue canonique et pack complet sans JSON |
+| Tests | `PASS PERS-L4` — contrats, codec, Authoring, Editor, player, host, Hub et MCP live sont couverts |
 | Build / Validation | `PASS PERS-L4` — editor, host et Hub macOS debug ainsi que Hub Android debug construisent |
-| Critique finale | `PARTIAL assumé` — aucune promesse d’asset pack sans licence et aucune fausse preuve MCP live depuis un autre checkout |
+| Critique finale | `PASS` — aucun pack sans licence, aucune écriture hors root et aucune preuve MCP provenant d’un autre checkout |
 
 ## 12. Risques et auto-critique initiale
 
@@ -717,4 +716,4 @@ Le point volontairement ambitieux est PERS-L4. S’il dépasse un seul commit r�
 
 ## 13. Prochaine action
 
-Après intégration du worktree, rejouer `pokemap_describe` live puis ajouter au Studio l’enregistrement canonique et la sélection de licence pour les images, vidéos et musiques de présentation. Ces deux preuves ferment ensemble **PERS-L3**, **PERS-L4** et la Phase 8 ; aucune autre refonte majeure d’interface n’est attendue.
+La refonte Personalization est fermée. Les prochains ajouts peuvent rester incrémentaux : nouvelles formes de fenêtres, nouvelles palettes, nouveaux presets de placement ou nouvelles surfaces, chacun en conservant la même chaîne preview → Authoring → package → standalone → Hub → MCP.

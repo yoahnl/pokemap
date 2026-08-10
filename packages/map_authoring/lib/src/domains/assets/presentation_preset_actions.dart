@@ -242,7 +242,7 @@ ProjectPresentationPresetPack _buildExportPack(
   final catalog = _catalog(snapshot);
   final files = <String, Uint8List>{};
   final assets = <PresentationPresetAsset>[];
-  final references = _presentationAssetReferences(profile);
+  final references = presentationPresetAssetReferences(profile);
   for (final reference in references) {
     final asset = catalog.findByLogicalPath(reference.projectPath);
     if (asset == null) {
@@ -268,9 +268,11 @@ ProjectPresentationPresetPack _buildExportPack(
     }
     final assetBytes = _blobBytes(snapshot, asset.artifact);
     final licenseBytes = _blobBytes(snapshot, license.artifact);
+    final assetSha256 = presentationPresetFileSha256(assetBytes);
+    final licenseSha256 = presentationPresetFileSha256(licenseBytes);
     final assetArchivePath =
-        'assets/${asset.artifact.hexDigest}${_extension(reference.projectPath)}';
-    final licenseArchivePath = 'licenses/${license.artifact.hexDigest}.txt';
+        'assets/$assetSha256${_extension(reference.projectPath)}';
+    final licenseArchivePath = 'licenses/$licenseSha256.txt';
     files[assetArchivePath] = Uint8List.fromList(assetBytes);
     files[licenseArchivePath] = Uint8List.fromList(licenseBytes);
     assets.add(
@@ -279,11 +281,11 @@ ProjectPresentationPresetPack _buildExportPack(
         archivePath: assetArchivePath,
         mediaType: asset.artifact.mediaType,
         sizeBytes: asset.artifact.byteLength,
-        sha256: asset.artifact.hexDigest,
+        sha256: assetSha256,
         licenseProjectPath: licensePath,
         licenseArchivePath: licenseArchivePath,
         licenseSizeBytes: license.artifact.byteLength,
-        licenseSha256: license.artifact.hexDigest,
+        licenseSha256: licenseSha256,
       ),
     );
   }
@@ -499,7 +501,7 @@ ProjectPresentationPresetRecord _recordFromPack(
     );
 
 List<({String projectPath, String? licenseProjectPath})>
-    _presentationAssetReferences(ProjectPresentationProfile profile) {
+    presentationPresetAssetReferences(ProjectPresentationProfile profile) {
   final references = <({String projectPath, String? licenseProjectPath})>[];
   final seen = <String>{};
   void add(String? path, {String? licensePath}) {

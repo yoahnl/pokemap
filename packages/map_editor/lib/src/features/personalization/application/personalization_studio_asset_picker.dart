@@ -101,11 +101,17 @@ abstract interface class PersonalizationStudioPresetFilePicker {
   Future<String?> pickPresetToImport();
 
   Future<String?> pickPresetExportPath(String suggestedFileName);
+
+  Future<String?> pickPresetRedistributionLicense();
 }
 
 final class FilePickerPersonalizationStudioPresetFilePicker
     implements PersonalizationStudioPresetFilePicker {
-  const FilePickerPersonalizationStudioPresetFilePicker();
+  const FilePickerPersonalizationStudioPresetFilePicker({
+    this.backend = const PlatformPersonalizationStudioFilePickerBackend(),
+  });
+
+  final PersonalizationStudioFilePickerBackend backend;
 
   @override
   Future<String?> pickPresetToImport() async {
@@ -129,6 +135,25 @@ final class FilePickerPersonalizationStudioPresetFilePicker
         allowedExtensions: const <String>['pokemapstyle'],
         lockParentWindow: true,
       );
+
+  @override
+  Future<String?> pickPresetRedistributionLicense() async {
+    final paths = await backend.pick(
+      const PersonalizationStudioFilePickerRequest(
+        dialogTitle: 'Choisir la licence de redistribution du profil',
+        allowedExtensions: <String>['txt'],
+      ),
+    );
+    if (paths == null) return null;
+    final license = _singlePath(paths, const <String>['.txt']);
+    if (license == null) {
+      throw const PersonalizationStudioAssetSelectionException(
+        code: 'presetLicenseSelectionInvalid',
+        message: 'Sélectionnez exactement une licence au format TXT.',
+      );
+    }
+    return license;
+  }
 }
 
 final class FilePickerPersonalizationStudioBrandingImagePicker

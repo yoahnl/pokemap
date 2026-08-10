@@ -158,6 +158,31 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
       (described.structuredContent as { ok?: boolean } | undefined)?.ok,
       true,
     );
+    const data = (
+      described.structuredContent as {
+        data?: {
+          mutationActions?: Array<{ id?: string }>;
+          resourceKinds?: Array<{ id?: string }>;
+        };
+      }
+    ).data;
+    const actionIds = new Set(
+      data?.mutationActions?.map((action) => action.id) ?? [],
+    );
+    for (const actionId of [
+      "presentation.preset.import_plan",
+      "presentation.preset.import_apply",
+      "presentation.preset.export",
+      "presentation.preset.delete_plan",
+      "presentation.preset.delete_apply",
+    ]) {
+      assert.ok(actionIds.has(actionId));
+    }
+    assert.ok(
+      data?.resourceKinds?.some(
+        (resource) => resource.id === "projectPresentationPreset",
+      ),
+    );
   } finally {
     await client.close();
   }

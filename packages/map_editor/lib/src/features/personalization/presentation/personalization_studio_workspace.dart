@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:map_authoring/map_authoring.dart'
+    show presentationPresetAssetReferences;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/l10n/l10n.dart';
 
@@ -651,14 +653,24 @@ class _PersonalizationStudioWorkspaceState
   Future<void> _exportPresentationPreset({
     required String projectRootPath,
     required String projectName,
+    required ProjectPresentationProfile profile,
     required EditorNotifier notifier,
   }) async {
     if (_isManagingPreset) return;
     final stamp = DateTime.now().toUtc().millisecondsSinceEpoch;
     final presetId = 'profile-$stamp';
-    final destination = await ref
-        .read(personalizationStudioPresetFilePickerProvider)
-        .pickPresetExportPath('$presetId.pokemapstyle');
+    final picker = ref.read(personalizationStudioPresetFilePickerProvider);
+    String? redistributionLicenseSourcePath;
+    if (presentationPresetAssetReferences(
+      profile,
+    ).any((reference) => reference.licenseProjectPath == null)) {
+      redistributionLicenseSourcePath = await picker
+          .pickPresetRedistributionLicense();
+      if (!mounted || redistributionLicenseSourcePath == null) return;
+    }
+    final destination = await picker.pickPresetExportPath(
+      '$presetId.pokemapstyle',
+    );
     if (!mounted || destination == null) return;
     setState(() {
       _isManagingPreset = true;
@@ -675,6 +687,7 @@ class _PersonalizationStudioWorkspaceState
             destinationPath: destination.endsWith('.pokemapstyle')
                 ? destination
                 : '$destination.pokemapstyle',
+            redistributionLicenseSourcePath: redistributionLicenseSourcePath,
           );
       await notifier.loadProject('$projectRootPath/project.json');
       if (!mounted) return;
@@ -965,6 +978,7 @@ class _PersonalizationStudioWorkspaceState
                       _exportPresentationPreset(
                         projectRootPath: projectRootPath,
                         projectName: projectName,
+                        profile: profile,
                         notifier: notifier,
                       ),
                     );
