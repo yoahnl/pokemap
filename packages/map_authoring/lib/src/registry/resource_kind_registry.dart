@@ -371,6 +371,30 @@ final class AuthoringResourceKindRegistry {
         summary: 'Trainer, encounter, shop, badge, character or New Game data',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'characterStudioCatalog',
+        version: 1,
+        displayName: 'Character Studio catalog',
+        summary: 'Global portrait states and animation definitions',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'characterStudioCharacter',
+        version: 1,
+        displayName: 'Character Studio character',
+        summary: 'Character identity, media coverage and selection status',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'characterStudioDependency',
+        version: 1,
+        displayName: 'Character Studio dependency',
+        summary: 'Stable reference targeting Character Studio content',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'characterStudioReadiness',
+        version: 1,
+        displayName: 'Character Studio readiness',
+        summary: 'Per-character media coverage and readiness diagnostics',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'sandboxPlayerState',
         version: 1,
         displayName: 'Sandbox player state',
@@ -402,6 +426,10 @@ final class AuthoringResourceKindRegistry {
       ),
     ], queryableResourceKindIds: const {
       'asset',
+      'characterStudioCatalog',
+      'characterStudioCharacter',
+      'characterStudioDependency',
+      'characterStudioReadiness',
       'dialogue',
       'elementCategory',
       'eventV2',

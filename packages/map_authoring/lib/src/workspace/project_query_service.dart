@@ -6,6 +6,7 @@ import '../contracts/json_contract_support.dart';
 import '../contracts/query_page.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_store.dart';
+import '../domains/gameplay/character_studio/character_studio_resources.dart';
 import '../domains/maps/map_region_query.dart';
 import '../domains/maps/warp_connection_actions.dart';
 import '../domains/maps/world_graph_queries.dart';
@@ -53,8 +54,10 @@ final class ProjectQueryService {
         'The query action is not supported by the requested resource kind.',
       );
     }
-    var records =
-        worldGraphActionRecords ?? _records(snapshot, request.resourceKind);
+    final characterStudioRecords = _characterStudioRecords(snapshot, request);
+    var records = worldGraphActionRecords ??
+        characterStudioRecords ??
+        _records(snapshot, request.resourceKind);
     records = _applyOperation(records, request);
     records = records
         .where((record) => _matchesFilters(record.detail, request.filters))
@@ -93,6 +96,36 @@ final class ProjectQueryService {
       nextCursor: nextCursor,
     );
   }
+}
+
+List<_QueryRecord>? _characterStudioRecords(
+  ProjectSnapshot snapshot,
+  AuthoringQueryRequest request,
+) {
+  final selectedCharacterId = request.extensions['selectedCharacterId'];
+  if (selectedCharacterId != null && selectedCharacterId is! String) {
+    throw const AuthoringQueryException(
+      'query.character_studio_selection_invalid',
+      'The selected Character Studio identity must be a string.',
+    );
+  }
+  final projection = const CharacterStudioResourceProjector().project(
+    manifest: snapshot.manifest,
+    workspaceRevision: snapshot.revision,
+    selectedCharacterId: selectedCharacterId as String?,
+  );
+  final records = projection.records(request.resourceKind);
+  if (records == null) return null;
+  if (request.extensions.keys.any((key) => key != 'selectedCharacterId')) {
+    throw const AuthoringQueryException(
+      'query.character_studio_extension_unsupported',
+      'The Character Studio query contains an unsupported extension.',
+    );
+  }
+  return <_QueryRecord>[
+    for (final record in records)
+      _QueryRecord(summary: record.summary, detail: record.detail),
+  ];
 }
 
 AuthoringQueryPage? _queryConnectionAction(
