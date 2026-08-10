@@ -170,6 +170,18 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
       data?.mutationActions?.map((action) => action.id) ?? [],
     );
     for (const actionId of [
+      "characterStudio.asset.import",
+      "characterStudio.asset.replace",
+      "characterStudio.portraitState.create",
+      "characterStudio.portraitState.update",
+      "characterStudio.portraitState.reorder",
+      "characterStudio.portraitState.deletePlan",
+      "characterStudio.portraitState.delete",
+      "characterStudio.animationDefinition.create",
+      "characterStudio.animationDefinition.update",
+      "characterStudio.animationDefinition.reorder",
+      "characterStudio.animationDefinition.deletePlan",
+      "characterStudio.animationDefinition.delete",
       "presentation.preset.import_plan",
       "presentation.preset.import_apply",
       "presentation.preset.export",
@@ -178,11 +190,18 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
     ]) {
       assert.ok(actionIds.has(actionId));
     }
-    assert.ok(
-      data?.resourceKinds?.some(
-        (resource) => resource.id === "projectPresentationPreset",
-      ),
+    const resourceKindIds = new Set(
+      data?.resourceKinds?.map((resource) => resource.id) ?? [],
     );
+    for (const resourceKindId of [
+      "characterStudioCatalog",
+      "characterStudioCharacter",
+      "characterStudioDependency",
+      "characterStudioReadiness",
+      "projectPresentationPreset",
+    ]) {
+      assert.ok(resourceKindIds.has(resourceKindId));
+    }
   } finally {
     await client.close();
   }

@@ -611,6 +611,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/assets/content_addressing_test.dart',
   ),
   _ContractEvidenceRule(
+    ['characterStudio.asset.'],
+    'test/domains/assets/character_studio_asset_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['asset.'],
     'test/domains/assets/asset_security_test.dart',
   ),
@@ -636,6 +640,14 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['campaign.'],
     'test/domains/gameplay/campaign_content_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['characterStudio.portraitState.'],
+    'test/domains/gameplay/character_studio_portrait_state_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['characterStudio.animationDefinition.'],
+    'test/domains/gameplay/character_studio_animation_definition_actions_test.dart',
   ),
   _ContractEvidenceRule(
     ['dialogue.', 'script.'],
@@ -707,6 +719,10 @@ const _semanticOwners = <String, String>{
   'badge': 'campaignContent',
   'trainer': 'campaignContent',
   'character': 'campaignContent',
+  'characterStudioCatalog': 'project',
+  'characterStudioCharacter': 'project',
+  'characterStudioDependency': 'project',
+  'characterStudioReadiness': 'project',
   'pokemonSpecies': 'pokemonDocument',
   'pokemonForm': 'pokemonDocument',
   'pokemonLearnset': 'pokemonDocument',
@@ -722,6 +738,10 @@ const _semanticOwners = <String, String>{
 };
 
 const _requiredDirectReadResourceKinds = <String>{
+  'characterStudioCatalog',
+  'characterStudioCharacter',
+  'characterStudioDependency',
+  'characterStudioReadiness',
   'mapConnection',
 };
 
