@@ -932,6 +932,11 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 
 Objectif : rendre l’inventaire utile hors combat.
 
+La refonte transversale de ce domaine est détaillée dans la
+[roadmap PokeMap Item System V1](documentation/reports/roadmap/gameplay/pokemap_item_system_v1_roadmap.md).
+Les lots ITM-* y découpent l’implémentation technique sans remplacer les statuts
+FG-* ci-dessous.
+
 | ID | Lot | Statut | Preuve |
 |---|---|---|---|
 | FG-060 | Item Use Effect Registry V0 | `✅ DONE` | Registry pur HP/statut/revive/PP/key item/Ball et erreurs typées ; lot 3.2 |

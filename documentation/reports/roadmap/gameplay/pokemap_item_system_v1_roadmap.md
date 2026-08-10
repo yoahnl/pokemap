@@ -1,0 +1,1099 @@
+# PokeMap Item System V1 — Roadmap d’implémentation
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development when explicitly authorized, or executing-plans for an execution inline. Implémenter cette roadmap lot par lot, suivre les cases à cocher et ne jamais effectuer d’opération Git d’écriture sans autorisation explicite.
+
+**Goal:** Construire un système d’objets cohérent, project-owned et extensible dans lequel le catalogue, le Bag, l’overworld, les combats, la capture, les boutiques, les récompenses, l’éditeur et le MCP consomment une définition canonique unique.
+
+**Architecture:** Introduire dans map_core des contrats d’objets exécutables et un codec de catalogue partagé, puis résoudre leurs capacités dans map_gameplay sans dépendre de Flutter ou de Flame. Les catégories et pockets restent des métadonnées de présentation ; aucun comportement ne dépend d’une chaîne de catégorie. La migration est additive : les anciennes sauvegardes et anciens catalogues restent lisibles pendant que les chemins runtime historiques sont remplacés progressivement.
+
+**Tech Stack:** Dart 3, Flutter, Freezed/JSON selon les conventions locales, map_core, map_gameplay, map_battle, map_runtime, map_authoring, map_editor, JSONL/CLI, PokeMap MCP et outils de certification produit.
+
+---
+
+## 1. Statut, autorité et règle de portée
+
+- [ ] NOT_STARTED — aucun lot de cette roadmap n’est encore exécuté.
+- Ce document est la roadmap dédiée à la refonte Item System V1.
+- La roadmap mécanique racine reste l’autorité des statuts FG-050 et FG-060 à FG-079.
+- Les identifiants ITM-* découpent l’implémentation technique sans remplacer les identifiants FG-*.
+- Aucun projet de jeu utilisateur n’est une source de vérité produit.
+- Les projets réels peuvent servir de smoke tests manuels, jamais de fixture canonique, de règle métier ou de dépendance CI.
+- Les preuves automatisées utilisent uniquement des fixtures synthétiques appartenant au dépôt.
+- Un lot n’est DONE que si ses contrats, ses tests ciblés, son analyse et son état Git sont rapportés avec des résultats frais.
+- Aucun statut existant de la roadmap mécanique n’est rétrogradé automatiquement par ce document. Les lots déjà fermés sont recertifiés sur la nouvelle architecture avant suppression des chemins historiques.
+
+## 2. Résumé exécutif
+
+Le système actuel possède des briques réelles et testées : persistance du Bag, soins hors combat, objets de combat génériques, capture minimale, boutiques, récompenses, pickups, machines et objets tenus. Le problème n’est donc pas l’absence de fonctionnalités, mais l’absence d’une autorité commune.
+
+Aujourd’hui :
+
+- BagEntry persiste itemId, categoryId et quantity ;
+- Bag.normalized fusionne par le couple categoryId/itemId ;
+- le catalogue d’objets est projeté dans l’éditeur par un modèle privé ;
+- PlayerItemEffectRegistry connaît une petite liste d’identifiants codés en dur ;
+- le runtime de combat filtre aussi sur des catégories codées en dur ;
+- les boutiques, récompenses et conséquences de scène réinventent leur propre catégorie ;
+- capture, TM/HM et objets tenus utilisent encore des registries ou loaders séparés ;
+- la validation structurelle ne prouve pas qu’un objet configuré est réellement consommable ;
+- les contrats item.* et bag.* documentés ne sont pas exposés par le MCP live.
+
+La stratégie retenue est incrémentale :
+
+1. réparer la compatibilité runtime sans modifier le format des projets ;
+2. créer les contrats et le codec canoniques ;
+3. unifier les opérations d’inventaire ;
+4. migrer chaque consommateur vers le resolver commun ;
+5. livrer l’authoring no-code et la parité MCP ;
+6. supprimer seulement ensuite les chemins historiques ;
+7. certifier le tout sur une golden slice générique.
+
+## 3. Audit initial vérifié
+
+### 3.1 Git et périmètre
+
+- Branche observée : main.
+- HEAD observé à la création de la roadmap : c145292d3.
+- État initial : worktree propre.
+- L’audit n’a modifié aucun code produit.
+- Les zones auditées couvrent map_core, map_gameplay, map_battle, map_runtime, map_editor, map_authoring, tools/pokemap_mcp et la roadmap mécanique.
+
+### 3.2 Contrats et comportements actuels
+
+| Domaine | État observé | Limite structurante |
+|---|---|---|
+| Catalogue | Import, lecture, recherche, sprites et métadonnées | Modèle privé à map_editor ; texte d’effet non exécutable |
+| Bag | Quantités, normalisation et save/load | categoryId participe à l’identité d’une pile |
+| Objets joueur | Heal, cure, revive, PP, key item et Ball metadata | Registry MVP limité à des IDs codés en dur |
+| Overworld | Menu Bag, cible, transaction et sauvegarde | Résolution par registry statique et loaders annexes |
+| Combat | Heal, cure et revive via action générique | Disponibilité encore filtrée par categoryId |
+| Capture | Formule déterministe et une Poké Ball minimale | Une seule Ball et catégorie runtime historique |
+| Shops | Modèle, états, prix, stock, achat et vente | Catégorie dérivée séparément du catalogue |
+| Give/take/rewards | Mutations et persistance fonctionnelles | Inférence partielle et codée en dur de la catégorie |
+| TM/HM | Loader catalogue et service d’apprentissage | Métadonnées séparées du registre d’utilisation |
+| Objets tenus | Registry battle et write-back runtime | Pas d’opération Bag/Party complète et canonique |
+| Validation | Forme des BagEntry et références de shops | Pas de validation de capacité runtime par contexte |
+| Authoring/MCP | New Game, shops et payloads d’entités partiels | Aucun domaine item ou bag découvrable dans le live MCP |
+
+### 3.3 Autorités actuellement concurrentes
+
+Les sources suivantes définissent aujourd’hui une partie du comportement Item :
+
+1. packages/map_gameplay/lib/src/player_item_effects.dart
+2. packages/map_battle/lib/src/domain/effect/item/item_effect_registry.dart
+3. packages/map_battle/lib/src/capture_formula.dart
+4. packages/map_runtime/lib/src/application/runtime_move_machine_loader.dart
+5. packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
+6. packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
+7. packages/map_runtime/lib/src/application/player_service_runtime_controller.dart
+8. packages/map_gameplay/lib/src/game_state_mutations.dart
+9. packages/map_editor/lib/src/application/use_cases/load_pokemon_items_catalog_use_case.dart
+
+Ces fichiers ne doivent pas être fusionnés artificiellement dans un mega-service. La cible est un contrat partagé et plusieurs adaptateurs spécialisés qui consomment ce contrat.
+
+### 3.4 Baseline fraîche issue de l’audit
+
+| Commande | Résultat |
+|---|---:|
+| cd packages/map_gameplay puis cinq suites Bag, rewards, shops, machines et New Game | 89 tests réussis |
+| cd packages/map_battle puis quatre suites items génériques, capture et manifest held items | 35 tests réussis |
+| cd packages/map_runtime puis onze suites Bag, battle, shop, pickup, key item, held item, machine, reward et New Game | 72 tests réussis |
+| cd packages/map_editor puis suites New Game, catalogue, synchronisation et shops | 18 tests réussis |
+| cd packages/map_editor puis scènes filtrées giveItem/takeItem | 4 tests réussis |
+| cd packages/map_battle && dart analyze | aucune issue |
+| cd packages/map_gameplay && dart analyze | une info préexistante unnecessary_library_name |
+| analyses ciblées map_runtime et map_editor | aucune issue |
+
+Cette baseline prouve les slices existantes. Elle ne prouve pas leur intégration avec des catégories de catalogue arbitraires.
+
+## 4. Contrat produit non négociable
+
+### 4.1 Identité et présentation
+
+1. itemId est l’identité stable d’un objet dans un projet.
+2. Deux piles possédant le même itemId représentent le même objet, quelle que soit leur ancienne catégorie persistée.
+3. pocketId organise l’interface et peut être librement défini par le projet.
+4. categoryId importé reste une métadonnée de recherche ou de migration ; il ne déclenche jamais un comportement.
+5. Renommer un objet ou son pocket ne modifie ni ses usages, ni les sauvegardes, ni les références.
+6. Un objet valide sans usage direct est affiché comme objet passif, pas comme objet cassé.
+7. Unsupported signifie que la définition demande une capacité que le moteur ne sait pas exécuter ; cette situation doit être détectée avant le playtest.
+
+### 4.2 Comportement
+
+1. Une définition exécutable déclare explicitement les contextes autorisés.
+2. Le même effet produit le même résultat en overworld et en combat lorsque les deux contextes sont déclarés.
+3. Aucun écran ne réinterprète un texte descriptif pour fabriquer un effet.
+4. Une consommation est transactionnelle : zéro consommation sans effet appliqué, exactement une consommation après un effet accepté.
+5. La capture consomme exactement la Ball associée à la tentative acceptée, succès ou échec.
+6. Les multiplicateurs de capture utilisent des rationnels entiers, jamais des doubles divergents.
+7. Les objets tenus restent résolus par map_battle, mais leur référence et leur support sont validés depuis la définition canonique.
+8. Les machines restent résolues par le service d’apprentissage, mais leurs métadonnées proviennent de la même définition canonique.
+9. Les objets clés ne sont ni jetables, ni vendables, ni consommables par défaut.
+10. Les objets custom peuvent être passifs, utilisables ou liés à une action sémantique explicitement supportée.
+
+### 4.3 Compatibilité
+
+1. Un ancien catalogue sans bloc gameplay reste lisible.
+2. Un ancien BagEntry avec categoryId reste lisible.
+3. La première migration ignore categoryId pour décider du comportement, mais conserve le champ sur le wire tant que la compatibilité descendante n’est pas officiellement abandonnée.
+4. Aucun projet n’est réécrit automatiquement à l’ouverture.
+5. Une écriture de catalogue ou de sauvegarde est déterministe et stable.
+6. Les doublons historiques du même itemId sont fusionnés de manière déterministe, avec conservation de la quantité totale.
+7. Une définition inconnue échoue en validation avec un chemin précis ; elle ne devient pas silencieusement un objet passif.
+
+## 5. Architecture cible
+
+### 5.1 Contrats dans map_core
+
+Créer un domaine focalisé dans packages/map_core/lib/src/models/items/.
+
+Contrats visés :
+
+    ProjectItemCatalog
+      schemaVersion: int
+      entries: List<ProjectItemDefinition>
+
+    ProjectItemDefinition
+      id: String
+      displayName: String
+      aliases: List<String>
+      pocketId: String
+      categoryId: String?
+      description: String?
+      buyPrice: int?
+      sellPrice: int?
+      tags: Set<String>
+      uses: List<ProjectItemUseDefinition>
+      capture: ProjectCaptureItemDefinition?
+      machine: ProjectMoveMachineItemDefinition?
+      heldEffectId: String?
+
+    ProjectItemUseDefinition
+      contexts: Set<ProjectItemUseContext>
+      target: ProjectItemTargetKind
+      consumption: ProjectItemConsumptionPolicy
+      effect: ProjectItemEffectDefinition
+
+    ProjectItemEffectDefinition
+      healHp(mode: flat|full, amount: int?)
+      cureStatus(mode: listed|all, statusIds: Set<String>)
+      revive(rateNumerator: int, rateDenominator: int)
+      restorePp(mode: flat|full, amount: int?)
+      repel(steps: int)
+      semanticAction(actionId: String)
+
+    ProjectCaptureItemDefinition
+      rateNumerator: int
+      rateDenominator: int
+      allowedEncounterKinds: Set<EncounterKind>
+
+    ProjectMoveMachineItemDefinition
+      moveId: String
+      kind: tm|hm
+      consumable: bool
+
+Les effets sont un vocabulaire fermé et versionné. Un projet peut créer autant d’objets qu’il le souhaite, mais ne peut pas injecter du code arbitraire dans le runtime.
+
+Règles de cohérence :
+
+- contexts accepte overworld et battle ; deux uses d’un même objet ne peuvent pas se chevaucher sur un contexte ;
+- target accepte partyMember, partyMove, world et none ;
+- consumption accepte onApplied et never ;
+- flat exige un amount strictement positif ; full interdit amount ;
+- listed exige au moins un statusId ; all interdit une liste non vide ;
+- buyPrice et sellPrice sont des valeurs par défaut de catalogue, jamais une priorité sur un prix authored dans un ShopEntryDefinition ;
+- une évolution par objet reste définie dans le catalogue d’évolutions. ItemCatalogSnapshot reçoit un overlay de références d’évolution et ne duplique pas cette règle dans ProjectItemDefinition ;
+- heldEffectId référence une capacité déclarée par map_battle ; il ne contient ni classe Dart, ni code, ni payload moteur opaque.
+
+### 5.2 Codec partagé
+
+Le parsing JSON devient une fonction pure de map_core :
+
+    ProjectItemCatalog decodeProjectItemCatalog(Object? json)
+    Map<String, Object?> encodeProjectItemCatalog(ProjectItemCatalog catalog)
+
+Les accès fichiers restent dans leurs adaptateurs :
+
+- map_editor lit et écrit via ses repositories ;
+- map_runtime lit via un loader borné au projectRoot ;
+- map_authoring lit et mute via ProjectSnapshot et transactions ;
+- le MCP ne lit jamais directement un chemin arbitraire.
+
+### 5.3 Résolution pure dans map_gameplay
+
+Créer ItemCatalogSnapshot, ItemCapabilityResolver, BagOperations, PlayerItemUseService, ItemUseRequest, ItemUseResult et ItemConsumptionReceipt.
+
+ItemCapabilityResolver répond au minimum :
+
+- l’objet existe-t-il ;
+- est-il passif ou utilisable ;
+- dans quels contextes ;
+- quelle cible est requise ;
+- quel effet déterministe appliquer ;
+- doit-il être consommé ;
+- quelles capacités runtime externes sont requises.
+
+ItemCatalogSnapshot compose la définition d’objet avec les références externes qui restent autoritaires dans leur domaine : règles d’évolution, compatibilité de moves et capability truth des held effects. Cette composition est un read model ; elle ne recopie pas ces données dans le catalogue Item.
+
+### 5.4 Adaptateurs
+
+- map_runtime adapte ItemUseRequest aux menus pause et battle.
+- map_battle conserve l’exécution battle pure et reçoit un effet déjà résolu.
+- map_editor construit et valide les définitions via des pickers no-code.
+- map_authoring possède les mutations sémantiques et le reference index.
+- tools/pokemap_mcp transporte les mêmes contrats sans raccourci filesystem.
+
+### 5.5 Cache et performance
+
+- Le catalogue est décodé une fois par révision de projet.
+- ItemCatalogSnapshot indexe les définitions par itemId en O(1).
+- Aucun menu n’effectue une lecture fichier par ligne de Bag.
+- Les diagnostics de catalogue sont calculés une fois et réutilisés.
+- Les tests de performance couvrent au moins 5 000 définitions et un Bag de 500 piles sans dépendre du réseau.
+
+## 6. Migration et stratégie de dépréciation
+
+### Étape A — compatibilité comportementale
+
+- Conserver le wire actuel.
+- Cesser d’utiliser categoryId pour autoriser capture ou medicine.
+- Résoudre les objets MVP existants depuis un seed catalog canonique.
+- Ajouter les tests de catégories arbitraires.
+
+### Étape B — catalogue v2
+
+- Lire les catalogues v1 actuels.
+- Projeter les IDs MVP connus vers des définitions built-in uniquement quand aucun bloc gameplay authored n’existe.
+- Écrire schemaVersion 2 seulement après une mutation explicite du catalogue.
+- Préserver les champs locaux et importés non gameplay.
+
+### Étape C — Bag logique par itemId
+
+- Fusionner les piles par itemId dans les opérations gameplay.
+- Conserver categoryId comme legacyPresentationHint sur le wire v1.
+- Dériver pocketId et labels du catalogue.
+- Ajouter un receipt de migration listant les piles fusionnées.
+
+### Étape D — retrait physique
+
+- Mesurer les lectures restantes de categoryId.
+- Interdire toute nouvelle écriture métier fondée sur categoryId.
+- Retirer le champ d’un futur wire versionné seulement après certification de lecture des anciennes sauvegardes et décision de compatibilité explicite.
+
+## 7. Vue d’ensemble des phases
+
+| Phase | Lots | Résultat livrable | Dépend de |
+|---|---|---|---|
+| 0 — Vérité et réparation | ITM-001 à ITM-004 | Les objets existants fonctionnent indépendamment de leur catégorie | — |
+| 1 — Contrats canoniques | ITM-010 à ITM-014 | Catalogue v2, codec et validation partagés | Phase 0 |
+| 2 — Bag transactionnel | ITM-020 à ITM-024 | Inventaire unifié par itemId et receipts atomiques | Phase 1 |
+| 3 — Consommateurs gameplay | ITM-030 à ITM-038 | Overworld, battle, capture minimale, key items, machines et held items unifiés | Phase 2 |
+| 4 — Producteurs et économie | ITM-040 à ITM-044 | New Game, scènes, pickups, rewards et shops utilisent la même autorité | Phase 2 |
+| 5 — Authoring et MCP | ITM-050 à ITM-055 | Item Studio no-code et parité transports | Phases 1, 3 et 4 |
+| 6 — Dépréciation | ITM-060 à ITM-062 | Chemins historiques supprimés sans régression | Phase 5 |
+| 7 — Certification | ITM-070 à ITM-074 | Golden slice générique et statuts FG recertifiés | Phase 6 |
+
+Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modifient save_data.dart, le codec de catalogue ou les registries partagés restent séquentiels.
+
+## 8. Phase 0 — Vérité et réparation immédiate
+
+### ITM-001 — Matrice de caractérisation inter-contextes
+
+- [ ] **Résultat :** verrouiller les divergences actuelles avant correction.
+- **Fichiers de test :**
+  - packages/map_gameplay/test/item_capability_characterization_test.dart
+  - packages/map_runtime/test/item_category_compatibility_test.dart
+  - packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
+  - packages/map_editor/test/project_new_game_configuration_form_test.dart
+- **Cas positifs :**
+  - Potion utilisable avec les catégories medicine, healing et custom-heals ;
+  - Poké Ball utilisable avec items, standard-balls et custom-balls ;
+  - objet passif affiché sans action directe.
+- **Cas négatifs :**
+  - itemId inconnu ;
+  - quantité nulle ;
+  - mauvaise cible ;
+  - contexte battle non déclaré.
+- **Non-régressions :**
+  - anciennes catégories items et medicine ;
+  - aucune consommation sur no-effect ;
+  - save/load inchangé.
+- **Gate :** les nouveaux tests doivent échouer sur les guards de catégorie actuels et documenter leur message exact.
+- **Dépendances :** aucune.
+
+### ITM-002 — Classifier par capacité, jamais par catégorie
+
+- [ ] **Résultat :** le menu battle et la capture utilisent la définition d’effet ou l’itemId MVP, sans categoryId.
+- **Fichiers principaux :**
+  - packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
+- **Tests :**
+  - packages/map_runtime/test/item_category_compatibility_test.dart
+  - packages/map_runtime/test/battle_bag_menu_model_test.dart
+  - packages/map_runtime/test/runtime_generic_battle_items_v0_test.dart
+- **Règle :** categoryId reste affichable, mais n’intervient dans aucun booléen de support.
+- **Gate :** tous les cas ajoutés dans ITM-001 passent ; les suites battle historiques restent vertes.
+- **Dépendances :** ITM-001.
+
+### ITM-003 — Unifier les valeurs des effets MVP
+
+- [ ] **Résultat :** une seule valeur autoritaire par Potion, cure, revive et restore PP.
+- **Fichiers principaux :**
+  - packages/map_gameplay/lib/src/player_item_effects.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
+  - packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
+- **Cas obligatoire :** Hyper Potion produit exactement le même delta hors combat, en battle PSDK et dans le texte de résultat.
+- **Gate :** un test paramétré compare les trois chemins pour Potion, Super Potion, Hyper Potion et Max Potion.
+- **Dépendances :** ITM-002.
+
+### ITM-004 — Diagnostic honnête utilisable/passif/unsupported
+
+- [ ] **Résultat :** supprimer l’ambiguïté utilisateur entre un objet passif et une fonctionnalité moteur absente.
+- **Fichiers principaux :**
+  - packages/map_runtime/lib/src/player/runtime_player_pause_data_builder.dart
+  - packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
+  - packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
+- **États produit :**
+  - usable ;
+  - passive ;
+  - unavailableInContext ;
+  - invalidDefinition ;
+  - unsupportedCapability.
+- **Gate :** tests widget/model vérifiant libellé, sélection et raison de désactivation.
+- **Dépendances :** ITM-002.
+
+**Gate de phase 0 :**
+
+    cd packages/map_runtime
+    flutter test test/item_category_compatibility_test.dart test/battle_bag_menu_model_test.dart test/runtime_generic_battle_items_v0_test.dart test/wild_battle_end_to_end_flow_test.dart
+    flutter analyze
+
+Résultat attendu : exit code 0 et All tests passed.
+
+## 9. Phase 1 — Contrats canoniques et catalogue v2
+
+### ITM-010 — Modèles Item System V1
+
+- [ ] **Résultat :** contrats listés en section 5.1, immuables et sérialisables.
+- **Fichiers à créer :**
+  - packages/map_core/lib/src/models/items/project_item_catalog.dart
+  - packages/map_core/lib/src/models/items/project_item_definition.dart
+  - packages/map_core/lib/src/models/items/project_item_effect_definition.dart
+  - packages/map_core/lib/src/models/items/project_item_capabilities.dart
+- **Fichiers à modifier :**
+  - packages/map_core/lib/map_core.dart
+- **Tests à créer :**
+  - packages/map_core/test/project_item_catalog_model_test.dart
+  - packages/map_core/test/project_item_effect_definition_test.dart
+- **Cas obligatoires :**
+  - round-trip de chaque kind ;
+  - contexts vides interdits pour un use ;
+  - ratio de capture positif et réduit ;
+  - machine HM non consommable ;
+  - IDs, pockets et tags normalisés ;
+  - effet semanticAction limité à un registre déclaré.
+- **Non-goal :** aucune lecture fichier et aucune UI.
+- **Gate :** tests ciblés et dart analyze sans nouvelle issue.
+- **Dépendances :** ITM-003.
+
+### ITM-011 — Codec pur et migration catalogue v1 vers projection v2
+
+- [ ] **Résultat :** un codec partagé lit les formats existants et le format v2.
+- **Fichiers à créer :**
+  - packages/map_core/lib/src/serialization/project_item_catalog_codec.dart
+  - packages/map_core/lib/src/compatibility/project_item_catalog_migration.dart
+- **Tests à créer :**
+  - packages/map_core/test/project_item_catalog_codec_test.dart
+  - packages/map_core/test/project_item_catalog_migration_test.dart
+- **Fixtures à créer :**
+  - packages/map_core/test/fixtures/items_catalog_v1_minimal.json
+  - packages/map_core/test/fixtures/items_catalog_v2_complete.json
+- **Règles de migration :**
+  - conservation des champs importés ;
+  - seed built-in uniquement pour les IDs MVP reconnus ;
+  - aucun effet déduit d’un texte libre ;
+  - aucune réécriture sans mutation explicite ;
+  - diagnostics localisés par entry index et itemId.
+- **Gate :** v1 decode, v2 round-trip et stabilité d’ordre prouvés.
+- **Dépendances :** ITM-010.
+
+### ITM-012 — Seed canonique des objets MVP
+
+- [ ] **Résultat :** remplacer la Map privée actuelle par des définitions ProjectItemDefinition.
+- **Fichiers à créer :**
+  - packages/map_gameplay/lib/src/items/mvp_item_catalog.dart
+- **Fichiers à modifier :**
+  - packages/map_gameplay/lib/src/player_item_effects.dart
+  - packages/map_gameplay/lib/map_gameplay.dart
+- **Contenu minimal :**
+  - quatre Potions ;
+  - cures de statuts actuellement supportées ;
+  - Full Heal ;
+  - Revive ;
+  - Ether et Max Ether ;
+  - Poké Ball ;
+  - key item passif générique.
+- **Gate :** aucune valeur n’est dupliquée entre seed, overworld et battle.
+- **Dépendances :** ITM-010.
+
+### ITM-013 — Validation sémantique et capability truth
+
+- [ ] **Résultat :** chaque définition annonce honnêtement si toutes ses capacités sont câblées.
+- **Fichiers à créer :**
+  - packages/map_core/lib/src/validation/project_item_catalog_validator.dart
+  - packages/map_core/lib/src/read_models/item_capability_truth.dart
+- **Tests à créer :**
+  - packages/map_core/test/project_item_catalog_validator_test.dart
+- **Diagnostics bloquants :**
+  - duplicate itemId ;
+  - kind ou version inconnu ;
+  - ratio invalide ;
+  - cible incompatible avec effet ;
+  - heldEffectId non déclaré par la capability truth fournie ;
+  - moveId absent ;
+  - action sémantique inconnue.
+- **Diagnostics non bloquants :**
+  - objet passif sans prix ;
+  - pocket vide remplacé par fallback de présentation ;
+  - champs externes non consommés.
+- **Gate :** aucun objet unsupported ne peut être présenté comme runtime-ready.
+- **Dépendances :** ITM-011.
+
+### ITM-014 — Loader partagé par ports
+
+- [ ] **Résultat :** éditeur et runtime utilisent le même codec sans partager leurs accès fichiers.
+- **Fichiers à modifier :**
+  - packages/map_editor/lib/src/application/use_cases/load_pokemon_items_catalog_use_case.dart
+  - packages/map_editor/lib/src/application/use_cases/sync_pokemon_items_catalog_use_case.dart
+  - packages/map_runtime/lib/src/application/runtime_move_machine_loader.dart
+- **Fichiers à créer :**
+  - packages/map_runtime/lib/src/application/runtime_item_catalog_loader.dart
+- **Tests :**
+  - packages/map_editor/test/load_pokemon_items_catalog_use_case_test.dart
+  - packages/map_editor/test/sync_pokemon_items_catalog_use_case_test.dart
+  - packages/map_runtime/test/runtime_item_catalog_loader_test.dart
+- **Gate :** les deux adaptateurs produisent des ProjectItemDefinition égales depuis le même JSON.
+- **Dépendances :** ITM-011 et ITM-013.
+
+## 10. Phase 2 — Bag transactionnel
+
+### ITM-020 — Définir l’identité logique d’une pile
+
+- [ ] **Résultat :** toutes les opérations gameplay identifient une pile par itemId.
+- **Fichiers à modifier :**
+  - packages/map_core/lib/src/models/save_data.dart
+  - fichiers générés associés à save_data.dart
+- **Tests à créer :**
+  - packages/map_core/test/bag_stack_identity_test.dart
+- **Cas obligatoires :**
+  - mêmes itemId et catégories différentes fusionnés ;
+  - quantité totale conservée ;
+  - ordre stable ;
+  - lecture d’un ancien JSON ;
+  - écriture backward-compatible ;
+  - overflow de quantité rejeté.
+- **Gate :** aucune quantité n’est perdue pendant la normalisation.
+- **Dépendances :** ITM-011.
+
+### ITM-021 — BagOperations et receipts atomiques
+
+- [ ] **Résultat :** give, take, consume et inspect utilisent une API pure unique.
+- **Fichiers à créer :**
+  - packages/map_gameplay/lib/src/items/bag_operations.dart
+  - packages/map_gameplay/lib/src/items/bag_operation_result.dart
+- **Tests à créer :**
+  - packages/map_gameplay/test/bag_operations_test.dart
+- **Contrats :** BagGiveRequest, BagTakeRequest, BagConsumeRequest, BagOperationResult et ItemConsumptionReceipt.
+- **Invariants :**
+  - état original conservé sur échec ;
+  - quantité positive obligatoire ;
+  - receipt identifie itemId, quantité avant/après et raison ;
+  - key item consumption refusée sauf politique explicite.
+- **Gate :** tests positifs, négatifs, overflow et idempotence.
+- **Dépendances :** ITM-020.
+
+### ITM-022 — PlayerItemUseService
+
+- [ ] **Résultat :** remplacer PlayerItemOperations par un service fondé sur ItemCatalogSnapshot.
+- **Fichiers à créer :**
+  - packages/map_gameplay/lib/src/items/item_catalog_snapshot.dart
+  - packages/map_gameplay/lib/src/items/item_capability_resolver.dart
+  - packages/map_gameplay/lib/src/items/player_item_use_service.dart
+- **Fichiers à modifier :**
+  - packages/map_gameplay/lib/src/player_item_effects.dart
+- **Tests à créer :**
+  - packages/map_gameplay/test/player_item_use_service_test.dart
+- **Cas obligatoires :**
+  - heal plat/full ;
+  - cure ciblée/any ;
+  - revive ;
+  - PP single move ;
+  - mauvaise cible ;
+  - mauvais contexte ;
+  - no-effect ;
+  - définition inconnue ;
+  - receipt de consommation exact.
+- **Gate :** le service ne lit ni catégorie, ni fichier, ni dépendance Flutter.
+- **Dépendances :** ITM-012 et ITM-021.
+
+### ITM-023 — Migration de sauvegarde et observabilité
+
+- [ ] **Résultat :** normaliser une sauvegarde historique sans mutation silencieuse impossible à diagnostiquer.
+- **Fichiers à créer :**
+  - packages/map_gameplay/lib/src/items/bag_migration_service.dart
+- **Tests à créer :**
+  - packages/map_gameplay/test/bag_migration_service_test.dart
+- **Receipt :**
+  - piles source ;
+  - pile cible ;
+  - quantité totale ;
+  - legacy categories rencontrées ;
+  - warnings.
+- **Gate :** save → migrate → save → load est stable.
+- **Dépendances :** ITM-020 et ITM-021.
+
+### ITM-024 — Adapter GameStateMutations
+
+- [ ] **Résultat :** supprimer les inférences de catégorie de giveItem, rewards, purchase et consume.
+- **Fichiers à modifier :**
+  - packages/map_gameplay/lib/src/game_state_mutations.dart
+  - packages/map_gameplay/lib/src/battle_reward.dart
+- **Tests à modifier :**
+  - packages/map_gameplay/test/party_bag_heal_operations_test.dart
+  - packages/map_gameplay/test/battle_reward_operations_test.dart
+  - packages/map_gameplay/test/shop_operations_test.dart
+- **Gate :** aucun switch ou if sur un itemId concret ne subsiste dans GameStateMutations.
+- **Dépendances :** ITM-021 et ITM-022.
+
+## 11. Phase 3 — Consommateurs gameplay
+
+### ITM-030 — Menu Bag overworld
+
+- [ ] **Résultat :** présentation, cible et utilisabilité proviennent de ItemCapabilityResolver.
+- **Fichiers à modifier :**
+  - packages/map_runtime/lib/src/player/runtime_player_pause_data_builder.dart
+  - packages/map_runtime/lib/src/application/player_service_runtime_controller.dart
+- **Tests :**
+  - packages/map_runtime/test/player/runtime_player_pause_data_builder_test.dart
+  - packages/map_runtime/test/player/runtime_pause_bag_item_service_test.dart
+- **Cas obligatoires :** custom pocket, objet passif, objet invalide, mauvaise cible, no-effect et chaque failure reason.
+- **Gate :** aucune classification par catégorie et aucune lecture de catalogue déclenchée par une ligne de Bag.
+- **Dépendances :** ITM-022 et ITM-014.
+
+### ITM-031 — Objets génériques en combat
+
+- [ ] **Résultat :** FG-050 est réellement câblé du Bag au moteur battle.
+- **Fichiers à modifier :**
+  - packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
+  - packages/map_runtime/lib/src/presentation/flame/battle_medicine_target_menu_model.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
+  - packages/map_battle/lib/src/domain/action/battle_item_action_handler.dart
+- **Tests :**
+  - packages/map_battle/test/generic_battle_items_v0_test.dart
+  - packages/map_runtime/test/runtime_generic_battle_items_v0_test.dart
+  - packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
+- **Gate :** heal, cure et revive utilisent tous ItemUseResult et un seul receipt de consommation.
+- **Dépendances :** ITM-022 et ITM-030.
+
+### ITM-032 — Capture items génériques
+
+- [ ] **Résultat :** la formule reçoit les métadonnées de la Ball choisie.
+- **Fichiers à modifier :**
+  - packages/map_battle/lib/src/capture_formula.dart
+  - packages/map_battle/lib/src/domain/action/battle_capture_action_handler.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart
+- **Tests :**
+  - packages/map_battle/test/battle_capture_formula_test.dart
+  - packages/map_battle/test/battle_capture_flow_test.dart
+  - packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
+- **Cas minimum :**
+  - ratio 1/1 ;
+  - ratio supérieur dans un test moteur synthétique, sans livrer une famille de Balls ;
+  - item non Ball ;
+  - trainer battle ;
+  - party pleine ;
+  - tentative ratée consommée ;
+  - tentative réussie consommée.
+- **Gate :** aucune constante de catégorie ou de Ball ne subsiste dans map_runtime.
+- **Dépendances :** ITM-013 et ITM-031.
+
+### ITM-033 — Key Item Gates
+
+- [ ] **Résultat :** les conditions gameplay interrogent les capacités du Bag sans consommer l’objet.
+- **Fichiers à modifier :**
+  - packages/map_gameplay/lib/src/game_state_mutations.dart
+  - packages/map_runtime/lib/src/application/scene_runtime/scene_consequence_runtime_writer.dart
+  - packages/map_gameplay/lib/src/script_condition_evaluator.dart
+- **Tests :**
+  - packages/map_runtime/test/key_item_door_gate_readiness_test.dart
+  - packages/map_gameplay/test/key_item_gate_test.dart
+- **Gate :** présence, absence, quantité, invendabilité et save/load sont prouvés.
+- **Dépendances :** ITM-021 et ITM-013.
+
+### ITM-034 — Repel
+
+- [ ] **Statut :** DEFERRED_BY_PRODUCT — ce lot ne rejoint aucune vague d’exécution tant que FG-065 reste DEFERRED.
+- **Résultat futur :** un effet repel authored porte une durée en pas et modifie l’évaluation des rencontres.
+- **Fichiers à créer ou modifier :**
+  - packages/map_gameplay/lib/src/items/repel_state.dart
+  - packages/map_gameplay/lib/src/gameplay_encounter.dart
+  - packages/map_runtime/lib/src/application/player_service_runtime_controller.dart
+- **Tests :**
+  - packages/map_gameplay/test/repel_item_effect_test.dart
+  - packages/map_runtime/test/player/runtime_repel_item_service_test.dart
+- **Décision de lot :** choisir et documenter replace, extend ou reject lorsqu’un Repel est déjà actif.
+- **Gate :** activation, décrément, fin, save/load et no-effect sont testés sans RNG réel.
+- **Dépendances :** ITM-022.
+
+### ITM-035 — TM/HM unifiées
+
+- [ ] **Résultat :** machine metadata est lue depuis ProjectItemDefinition.
+- **Fichiers à modifier :**
+  - packages/map_runtime/lib/src/application/runtime_move_machine_loader.dart
+  - packages/map_gameplay/lib/src/pokemon_move_machine_service.dart
+- **Tests :**
+  - packages/map_runtime/test/runtime_move_machine_loader_test.dart
+  - packages/map_gameplay/test/pokemon_move_machine_service_test.dart
+- **Gate :** TM consommable, HM réutilisable, compatibilité, remplacement exact et refus atomique.
+- **Dépendances :** ITM-014 et ITM-022.
+
+### ITM-036 — Objets d’évolution
+
+- [ ] **Résultat :** les items d’évolution sont résolus via itemId canonique et le catalogue des règles d’évolution.
+- **Fichiers à modifier :**
+  - packages/map_runtime/lib/src/application/player_service_runtime_controller.dart
+  - packages/map_runtime/lib/src/application/runtime_pokemon_evolution_loader.dart
+  - packages/map_gameplay/lib/src/pokemon_evolution_service.dart
+- **Tests :**
+  - packages/map_runtime/test/player/runtime_pause_bag_item_service_test.dart
+- **Gate :** évolution réussie consomme selon policy ; refus ou cible incompatible ne consomme pas.
+- **Dépendances :** ITM-022 et ITM-030.
+
+### ITM-037 — Equip/unequip d’objets tenus
+
+- [ ] **Résultat :** transfert atomique Bag ↔ party member avec persistance.
+- **Fichiers à créer :**
+  - packages/map_gameplay/lib/src/items/held_item_operations.dart
+- **Fichiers à modifier :**
+  - packages/map_runtime/lib/src/application/player_service_runtime_controller.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_combatant_seed_builder.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart
+- **Tests :**
+  - packages/map_gameplay/test/held_item_operations_test.dart
+  - packages/map_runtime/test/runtime_held_item_bridge_v0_test.dart
+- **Cas obligatoires :** equip, swap, unequip, cible invalide, objet absent, held effect inconnu et save/load.
+- **Gate :** aucune quantité n’est perdue pendant un swap.
+- **Dépendances :** ITM-021 et ITM-013.
+
+### ITM-038 — Réconciliation avec ItemEffectRegistry battle
+
+- [ ] **Résultat :** heldEffectId authored est validé et adapté vers le registry map_battle sans dupliquer les factories.
+- **Fichiers à modifier :**
+  - packages/map_battle/lib/src/domain/effect/item/item_effect_registry.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_combatant_seed_builder.dart
+- **Tests :**
+  - packages/map_battle/test/psdk_item_registry_manifest_test.dart
+  - packages/map_runtime/test/runtime_held_item_bridge_v0_test.dart
+- **Gate :** item passif, held supporté et held non porté ont trois diagnostics distincts.
+- **Dépendances :** ITM-013 et ITM-037.
+
+**Gate de phase 3 :**
+
+    cd packages/map_gameplay
+    dart test test/player_item_use_service_test.dart test/pokemon_move_machine_service_test.dart test/held_item_operations_test.dart
+    dart analyze
+
+    cd packages/map_battle
+    dart test test/generic_battle_items_v0_test.dart test/battle_capture_formula_test.dart test/battle_capture_flow_test.dart test/psdk_item_registry_manifest_test.dart
+    dart analyze
+
+    cd packages/map_runtime
+    flutter test test/player/runtime_pause_bag_item_service_test.dart test/runtime_generic_battle_items_v0_test.dart test/wild_battle_end_to_end_flow_test.dart test/runtime_held_item_bridge_v0_test.dart
+    flutter analyze
+
+Résultat attendu : exit code 0 pour chaque commande.
+
+## 12. Phase 4 — Producteurs, événements et économie
+
+### ITM-040 — New Game initial Bag
+
+- [ ] **Résultat :** le picker ajoute un itemId et laisse pocket et effets au catalogue.
+- **Fichiers à modifier :**
+  - packages/map_editor/lib/src/ui/canvas/new_game/project_new_game_configuration_sheet.dart
+  - packages/map_core/lib/src/models/project_new_game_config.dart
+  - packages/map_gameplay/lib/src/new_game_state_builder.dart
+- **Tests :**
+  - packages/map_editor/test/project_new_game_configuration_form_test.dart
+  - packages/map_gameplay/test/project_new_game_state_builder_test.dart
+- **Gate :** aucun categoryId hardcodé dans le formulaire ou le builder.
+- **Dépendances :** ITM-021 et ITM-014.
+
+### ITM-041 — GiveItem, TakeItem et pickups
+
+- [ ] **Résultat :** scripts, scènes et pickups passent par BagOperations.
+- **Fichiers à modifier :**
+  - packages/map_runtime/lib/src/application/script_command_executor.dart
+  - packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_executor.dart
+  - packages/map_runtime/lib/src/application/scene_runtime/scene_consequence_runtime_writer.dart
+- **Tests :**
+  - packages/map_runtime/test/item_pickup_give_item_readiness_test.dart
+  - packages/map_editor/test/scenes_workspace_shell_test.dart
+- **Gate :** pickup unique, take insuffisant, save/reload et objet custom passif.
+- **Dépendances :** ITM-024.
+
+### ITM-042 — Battle rewards et trainer rewards
+
+- [ ] **Résultat :** les grants portent itemId et quantity ; BagOperations résout l’ajout.
+- **Fichiers à modifier :**
+  - packages/map_gameplay/lib/src/battle_reward.dart
+  - packages/map_gameplay/lib/src/battle_progression_service.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_reward_resolver.dart
+- **Tests :**
+  - packages/map_gameplay/test/battle_reward_model_test.dart
+  - packages/map_gameplay/test/battle_reward_operations_test.dart
+  - packages/map_runtime/test/runtime_battle_reward_resolver_test.dart
+  - packages/map_runtime/test/reward_bridge_readiness_test.dart
+- **Gate :** reward inconnue échoue avant application ; aucune mutation partielle.
+- **Dépendances :** ITM-024.
+
+### ITM-043 — Shops et ventes
+
+- [ ] **Résultat :** shops utilisent les prix authored et ItemCapabilityResolver pour pocket, key item et sellability.
+- **Fichiers à modifier :**
+  - packages/map_core/lib/src/models/shop_definition.dart
+  - packages/map_gameplay/lib/src/game_state_mutations.dart
+  - packages/map_runtime/lib/src/application/player_service_runtime_controller.dart
+- **Tests :**
+  - packages/map_gameplay/test/shop_operations_test.dart
+  - packages/map_runtime/test/player/runtime_shop_service_test.dart
+- **Gate :** achat, vente, key item, stock, custom item et changement de profil restent transactionnels.
+- **Dépendances :** ITM-024 et ITM-013.
+
+### ITM-044 — Références et usages d’objets
+
+- [ ] **Résultat :** indexer New Game, scènes, scripts, shops, rewards, pickups, machines, évolutions et held items.
+- **Fichiers à créer :**
+  - packages/map_core/lib/src/read_models/project_item_reference_index.dart
+- **Tests à créer :**
+  - packages/map_core/test/project_item_reference_index_test.dart
+- **Gate :** suppression ou rename d’un item retourne toutes les dépendances avec leur chemin éditable.
+- **Dépendances :** ITM-040 à ITM-043.
+
+## 13. Phase 5 — Authoring no-code et MCP
+
+### ITM-050 — Ressources de lecture Item
+
+- [ ] **Résultat :** itemCatalog, itemDefinition, itemUsage et itemReadiness sont queryables.
+- **Fichiers à modifier :**
+  - packages/map_authoring/lib/src/registry/resource_kind_registry.dart
+  - packages/map_authoring/lib/src/workspace/project_query_service.dart
+  - packages/map_authoring/lib/src/parity/full_authoring_parity.dart
+- **Tests :**
+  - packages/map_authoring/test/contracts/query_pagination_test.dart
+  - packages/map_authoring/test/parity/full_authoring_parity_test.dart
+- **Gate :** list/get/search/summary, field masks, pagination et stabilité de révision.
+- **Dépendances :** ITM-014 et ITM-044.
+
+### ITM-051 — Mutations sémantiques Item
+
+- [ ] **Résultat :** exposer les actions documentées item.* avec plan/apply et validation.
+- **Fichiers à créer :**
+  - packages/map_authoring/lib/src/domains/gameplay/item_catalog_actions.dart
+  - packages/map_authoring/test/domains/gameplay/item_catalog_actions_test.dart
+- **Actions minimales :**
+  - item.create ;
+  - item.update ;
+  - item.clone ;
+  - item.delete_plan ;
+  - item.delete_apply ;
+  - item.set_overworld_effect ;
+  - item.set_battle_effect ;
+  - item.set_held_effect ;
+  - item.set_capture_effect ;
+  - item.set_tm_hm_move ;
+  - item.validate ;
+  - item.simulate.
+- **Gate :** atomicité, dry-run, expectedRevision, idempotence, undo et dépendances de suppression.
+- **Dépendances :** ITM-050.
+
+### ITM-052 — Item Studio no-code
+
+- [ ] **Résultat :** créer et éditer un objet sans JSON ni ID brut.
+- **Fichiers à créer :**
+  - packages/map_editor/lib/src/features/gameplay/items/item_studio_workspace.dart
+  - packages/map_editor/lib/src/features/gameplay/items/item_catalog_list.dart
+  - packages/map_editor/lib/src/features/gameplay/items/item_definition_editor.dart
+  - packages/map_editor/lib/src/features/gameplay/items/item_effect_editor.dart
+  - packages/map_editor/lib/src/features/gameplay/items/item_readiness_panel.dart
+- **Expérience minimale :**
+  - recherche et filtres ;
+  - identité, pocket, prix et présentation ;
+  - contextes, cible, consumption policy et effet ;
+  - capture, machine et held ;
+  - usages et diagnostics ;
+  - preview/simulation.
+- **Règle UI :** design system et tokens uniquement.
+- **Tests à créer :**
+  - packages/map_editor/test/item_studio_workspace_test.dart
+  - packages/map_editor/test/item_definition_editor_test.dart
+- **Gate :** création, édition, erreur inline, undo et reload.
+- **Dépendances :** ITM-051.
+
+### ITM-053 — Pickers contextuels cohérents
+
+- [ ] **Résultat :** chaque écran filtre les objets par capacité réelle.
+- **Surfaces :** New Game, give/take item, rewards, shops, machines, held items et capture preview.
+- **Tests :**
+  - suites widget existantes de chaque surface ;
+  - packages/map_editor/test/item_capability_picker_test.dart.
+- **Gate :** aucun picker normal ne demande categoryId ou itemId brut.
+- **Dépendances :** ITM-052.
+
+### ITM-054 — Transport JSONL/CLI et MCP
+
+- [ ] **Résultat :** les ressources/actions Item traversent direct API, CLI, editor et MCP.
+- **Fichiers à modifier :**
+  - packages/map_authoring/lib/src/tooling/jsonl_worker.dart
+  - packages/map_authoring/lib/src/registry/action_registry.dart
+  - packages/map_authoring/lib/src/registry/mutation_registry.dart
+  - packages/map_authoring/lib/src/registry/resource_kind_registry.dart
+  - packages/map_editor/lib/src/application/authoring_api/authoring_mutation_adapter.dart
+  - tools/pokemap_mcp/src/authoring_client.ts
+- **Tests :**
+  - packages/map_authoring/test/parity/full_authoring_parity_test.dart
+  - packages/map_authoring/test/domains/gameplay/item_catalog_jsonl_test.dart ;
+  - tools/pokemap_mcp/test/item_authoring.test.ts.
+- **Gate :** describe live annonce item resources/actions et chaque transport possède une preuve end-to-end.
+- **Dépendances :** ITM-051 et ITM-052.
+
+### ITM-055 — Séparer authoring et mutation de save
+
+- [ ] **Résultat :** ne pas confondre actions item.* de projet avec commandes Bag d’un joueur.
+- **Décision contractuelle :**
+  - item.* modifie le catalogue du projet ;
+  - campaign.new_game.update configure le Bag initial ;
+  - les commandes Bag de playtest passent par un service de session borné ;
+  - le MCP authoring ne modifie jamais arbitrairement une sauvegarde utilisateur.
+- **Tests :**
+  - permissions ;
+  - workspace ownership ;
+  - refus d’un bag.give sans session de playtest ;
+  - aucune écriture hors projectRoot.
+- **Gate :** catalog mutations et player-state mutations ont des permissions et receipts distincts.
+- **Dépendances :** ITM-054.
+
+## 14. Phase 6 — Dépréciation des chemins historiques
+
+### ITM-060 — Retirer les guards de catégories
+
+- [ ] **Résultat :** aucune décision gameplay ne dépend de medicine, items, healing ou standard-balls.
+- **Commande de preuve :**
+
+    rg -n "categoryId.*(medicine|items)|standard-balls|healing" packages/map_gameplay/lib packages/map_runtime/lib packages/map_battle/lib
+
+- **Résultat attendu :** uniquement codecs, migrations, présentation ou fixtures explicitement legacy.
+- **Dépendances :** ITM-030 à ITM-043, hors ITM-034 tant que FG-065 reste DEFERRED.
+
+### ITM-061 — Retirer les registries et wrappers dupliqués
+
+- [ ] **Résultat :** PlayerItemEffectRegistry.mvp et les wrappers Potion historiques ne sont plus des autorités.
+- **Fichiers visés :**
+  - packages/map_gameplay/lib/src/player_item_effects.dart
+  - packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
+- **Règle :** conserver des façades temporaires uniquement si un appel externe est encore prouvé ; elles délèguent sans redéfinir une valeur.
+- **Gate :** recherche d’identifiants et valeurs MVP sans duplication.
+- **Dépendances :** ITM-031 et ITM-012.
+
+### ITM-062 — Décision de wire Bag v2
+
+- [ ] **Résultat :** décider avec preuve si categoryId peut être retiré physiquement.
+- **Preuves requises :**
+  - toutes les lectures classées ;
+  - fixtures de saves historiques ;
+  - compatibilité import/export ;
+  - comportement d’un ancien runtime documenté ;
+  - migration réversible ou backup explicite.
+- **Issues acceptables :**
+  - retrait versionné ;
+  - maintien comme legacyPresentationHint sans usage métier.
+- **Interdit :** suppression opportuniste sans décision produit.
+- **Dépendances :** ITM-060 et ITM-023.
+
+## 15. Phase 7 — Certification et clôture
+
+### ITM-070 — Fixture Golden Item System
+
+- [ ] **Résultat :** créer un mini-projet synthétique, générique et repo-owned.
+- **Emplacement :**
+  - examples/playable_runtime_host/golden_item_system/
+- **Contenu :**
+  - une map minimale ;
+  - un Pokémon joueur et un adversaire capturable ;
+  - Potion, cure, Revive, Ether, Poké Ball minimale, key item, TM, held item et objet passif custom ;
+  - pickup, shop, reward et save/reload.
+- **Interdit :** dépendre d’un nom, chemin, asset ou état d’un projet utilisateur.
+- **Dépendances :** ITM-062.
+
+### ITM-071 — Golden flow automatisé
+
+- [ ] **Résultat :** prouver la chaîne complète.
+- **Scénario :**
+  1. créer une nouvelle partie ;
+  2. recevoir des objets initiaux ;
+  3. ramasser un objet ;
+  4. soigner hors combat ;
+  5. acheter puis vendre ;
+  6. utiliser un objet en combat ;
+  7. tenter une capture ;
+  8. équiper un held item ;
+  9. apprendre une capacité par TM ;
+  10. obtenir une reward ;
+  11. sauvegarder et recharger ;
+  12. vérifier quantités, party, held item, moves et progression.
+- **Test à créer :**
+  - examples/playable_runtime_host/test/golden_item_system_flow_test.dart
+- **Gate :** aucun accès réseau, RNG injecté, résultat déterministe.
+- **Dépendances :** ITM-070.
+
+### ITM-072 — Certification produit
+
+- [ ] **Résultat :** intégrer le domaine aux niveaux de preuve L0-L6.
+- **Fichiers à modifier :**
+  - tools/pokemap_product_certification/lib/pokemap_product_certification.dart
+  - tools/pokemap_product_certification/test/item_system_certification_test.dart
+- **Axes :** schema, authoring, persistence, runtime, player UX, MCP parity et golden flow.
+- **Gate :** aucune capacité Item n’est CERTIFIED sur un simple test de modèle.
+- **Dépendances :** ITM-071 et ITM-054.
+
+### ITM-073 — Matrice finale de validation
+
+- [ ] **Résultat :** exécuter les suites packages dans l’ordre.
+
+    cd packages/map_core && dart test && dart analyze
+    cd packages/map_gameplay && dart test && dart analyze
+    cd packages/map_battle && dart test && dart analyze
+    cd packages/map_authoring && dart test && dart analyze
+    cd packages/map_runtime && flutter test && flutter analyze
+    cd packages/map_editor && flutter test && flutter analyze
+    cd examples/playable_runtime_host && flutter test && flutter analyze
+    cd tools/pokemap_mcp && npm test && npm run check
+
+- **Builds :**
+
+    cd packages/map_editor && flutter build macos --debug
+    cd examples/playable_runtime_host && flutter build macos --debug
+
+- **Gate :** résultats exacts consignés ; toute dette préexistante séparée du scope.
+- **Dépendances :** ITM-072.
+
+### ITM-074 — Recertification de la roadmap mécanique
+
+- [ ] **Résultat :** proposer les statuts FG avec preuves fraîches.
+- **Lots à auditer :**
+  - FG-050 ;
+  - FG-060 à FG-070 ;
+  - FG-072 et FG-073 ;
+  - FG-074 à FG-079 pour non-régression shops.
+- **Règle :** FG-065 et FG-066 conservent leur décision produit DEFERRED tant que cette décision n’est pas explicitement changée ; la capture minimale reste néanmoins certifiée.
+- **Gate :** chaque statut cite fichiers, commandes, résultats, limites et scénario de preuve.
+- **Dépendances :** ITM-073.
+
+## 16. Vagues d’exécution recommandées
+
+| Vague | Lots | Peut être parallélisé logiquement | Point de synchronisation |
+|---|---|---|---|
+| A | ITM-001 → ITM-004 | Non | Compatibilité runtime |
+| B | ITM-010 → ITM-014 | ITM-012 et ITM-013 après ITM-011 | Codec partagé |
+| C | ITM-020 → ITM-024 | ITM-022 et ITM-023 après ITM-021 | Bag API stable |
+| D1 | ITM-030 → ITM-038 hors ITM-034 différé | Capture, machines et held après resolver | Consommateurs |
+| D2 | ITM-040 → ITM-044 | Rewards et shops après BagOperations | Producteurs |
+| E | ITM-050 → ITM-055 | UI après actions ; transports après contrats | Parité |
+| F | ITM-060 → ITM-062 | Non | Dépréciation |
+| G | ITM-070 → ITM-074 | Non | Certification |
+
+Une vague n’autorise pas plusieurs modifications concurrentes du même modèle généré, du même codec ou de save_data.dart.
+
+## 17. Matrice de preuve obligatoire
+
+| Capacité | Core | Gameplay | Runtime | Editor | Authoring/MCP | Golden |
+|---|---:|---:|---:|---:|---:|---:|
+| Catalogue v2 | requis | requis | requis | requis | requis | requis |
+| Bag give/take | requis | requis | requis | picker | service borné | requis |
+| Heal/cure/revive | contrat | requis | requis | preview | simulate | requis |
+| PP | contrat | requis | requis | preview | simulate | requis |
+| Capture | contrat | effet résolu | requis | preview | simulate | requis |
+| Key item | contrat | requis | requis | picker | usages | requis |
+| Repel | contrat futur | DEFERRED | DEFERRED | DEFERRED | DEFERRED | DEFERRED |
+| TM/HM | contrat | requis | requis | picker | validate | requis |
+| Held item | contrat | requis | requis | picker | validate | requis |
+| Shops/rewards | référence | requis | requis | requis | requis | requis |
+| Save migration | codec | requis | requis | diagnostic | N/A | requis |
+
+N/A signifie réellement non applicable ; il ne doit pas masquer une exposition absente.
+
+## 18. Risques et garde-fous
+
+### Risque 1 — Refaire un mega-registry
+
+**Garde-fou :** map_core porte les données, map_gameplay la résolution pure, map_battle l’exécution battle et les adapters l’IO. Aucun package ne devient propriétaire de tout.
+
+### Risque 2 — Casser les sauvegardes
+
+**Garde-fou :** migration additive, fixtures historiques, receipt de fusion et aucun retrait physique avant ITM-062.
+
+### Risque 3 — Confondre import externe et sémantique PokeMap
+
+**Garde-fou :** les champs externes restent des données importées ; seuls les blocs gameplay versionnés sont exécutables.
+
+### Risque 4 — Afficher des milliers d’objets comme utilisables
+
+**Garde-fou :** capability truth, états passif/unavailable/unsupported et filtres contextuels.
+
+### Risque 5 — Duplications de valeurs
+
+**Garde-fou :** seed canonique, tests de parité inter-contextes et retrait des wrappers historiques.
+
+### Risque 6 — MCP de façade
+
+**Garde-fou :** aucune clôture sans describe live, query réelle, plan/apply et tests des quatre transports.
+
+### Risque 7 — Roadmap trop large pour une seule livraison
+
+**Garde-fou :** chaque phase produit un système utilisable ; Phase 0 répare la régression sans attendre Item Studio, et aucune phase ne nécessite une PR monolithique.
+
+## 19. Limites explicitement conservées
+
+- Les effets non supportés par map_battle restent hors scope tant qu’ils n’ont pas leur propre lot.
+- Le scripting arbitraire d’effets d’objets n’est pas introduit.
+- Les familles complètes de Balls et Repel restent soumises aux décisions produit de la roadmap mécanique.
+- Aucun projet utilisateur n’est migré automatiquement par cette roadmap.
+- Aucun nettoyage sans rapport avec Item System n’est autorisé.
+- Aucun changement visuel du battle HUD n’est prévu hors états et diagnostics nécessaires.
+- Le retrait physique de categoryId reste une décision de ITM-062, pas une hypothèse.
+
+## 20. Checklist de clôture d’un lot
+
+- [ ] Audit du lot et état Git initial consignés.
+- [ ] Test positif écrit avant implémentation lorsque possible.
+- [ ] Cas négatif et garde-fou couverts.
+- [ ] Non-régression legacy couverte.
+- [ ] Tests ciblés exécutés avec résultat exact.
+- [ ] Suite package exécutée ou raison précise de non-exécution.
+- [ ] Analyse exécutée.
+- [ ] Build exécuté lorsqu’une application ou un transport compilable est touché.
+- [ ] Parité MCP évaluée.
+- [ ] Aucun fichier hors scope modifié.
+- [ ] État Git final consigné.
+- [ ] Statut ITM et proposition de statut FG rapportés sans les maquiller.
+
+## 21. Choix d’exécution
+
+Cette roadmap doit être exécutée par lots, avec un checkpoint après chaque phase.
+
+1. **Exécution pilotée lot par lot** — recommandée : un lot, tests, review et validation avant le suivant.
+2. **Exécution inline par vagues** — acceptable pour les lots courts d’une même phase, avec checkpoint obligatoire avant changement de package ou de schéma.
+
+Le premier lot à exécuter est ITM-001. ITM-002 ne doit pas commencer avant d’avoir obtenu les échecs de caractérisation attendus.
