@@ -93,6 +93,7 @@ Future<void> _pumpOverlay(
       ),
     ),
   );
+  expect(find.byType(PlayerBattleSurface), findsOneWidget);
 }
 
 BattleCommandOverlaySnapshot _snapshot({

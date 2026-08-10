@@ -48,6 +48,7 @@ void main() {
       detail: const Text('DÉTAIL ÉQUIPE'),
     )));
 
+    expect(find.byType(PlayerPauseSurface), findsOneWidget);
     expect(
       find.byKey(
         const ValueKey<String>(

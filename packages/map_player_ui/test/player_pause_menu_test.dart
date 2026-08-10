@@ -19,6 +19,7 @@ void main() {
       ),
     ));
 
+    expect(find.byType(PlayerPauseSurface), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('player-pause-grid')),
         findsOneWidget);
     expect(find.text('Boutique'), findsNothing);

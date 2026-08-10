@@ -61,6 +61,10 @@ final class RuntimePlayerFocusController extends ChangeNotifier {
     if (requestFocus) _requestFocusAfterLayout(logicalId);
   }
 
+  void selectFromTouch(String logicalId) {
+    select(logicalId, source: PlayerInputSource.touch);
+  }
+
   void restoreSelection(String? logicalId) {
     if (_disposed || logicalId == null) return;
     _logicalSelectionId = logicalId;

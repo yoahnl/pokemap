@@ -1,6 +1,7 @@
 /// Reusable player-facing UI for PokeMap games and the PokeMap Hub.
 library;
 
+export 'player_surfaces.dart';
 export 'src/foundation/player_action_availability.dart';
 export 'src/foundation/player_asset_preloader.dart';
 export 'src/foundation/player_components.dart';

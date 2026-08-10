@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import '../foundation/player_components.dart';
-import '../localization/player_localizations.dart';
-import '../theme/pokemap_player_theme.dart';
-import '../theme/pokemap_player_layout_theme.dart';
+import 'player_dialogue_surface.dart';
 
-/// Boîte de dialogue joueur rendue en Flutter à partir du snapshot runtime.
+export 'player_dialogue_surface.dart';
+
 class PlayerDialogueOverlay extends StatelessWidget {
   const PlayerDialogueOverlay({
     super.key,
@@ -21,214 +18,39 @@ class PlayerDialogueOverlay extends StatelessWidget {
   final Widget Function(String speaker)? portraitBuilder;
 
   @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final resolved = context.playerLayoutTheme?.resolve(
-            ProjectPresentationSurfaceRole.dialogue,
-            constraints,
-          );
-          final margin =
-              PlayerSpacing.sm + (resolved?.additionalSafeAreaPadding ?? 0);
-          final showPortrait = resolved == null ||
-              resolved.variant.visibleSecondaryElements.contains(
-                ProjectPresentationSecondaryElement.dialoguePortrait,
-              );
-          final alignment =
-              resolved?.variant.slot == ProjectPresentationLayoutSlot.topCenter
-                  ? Alignment.topCenter
-                  : Alignment.bottomCenter;
-          return Padding(
-            padding: EdgeInsets.all(margin),
-            child: Align(
-              key: resolved == null
-                  ? null
-                  : ValueKey<String>(
-                      'player-dialogue-responsive-'
-                      '${resolved.breakpoint.name}',
-                    ),
-              alignment: alignment,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: resolved == null
-                      ? 760
-                      : constraints.maxWidth * resolved.maxWidthFactor,
-                  maxHeight: resolved == null
-                      ? constraints.maxHeight * 0.58
-                      : constraints.maxHeight - margin * 2,
-                ),
-                child: PlayerPanel(
-                  elevated: true,
-                  role: PlayerPanelRole.dialogue,
-                  surfaceRole: ProjectPresentationSurfaceRole.dialogue,
-                  padding: EdgeInsets.all(
-                    PlayerSpacing.md * (resolved?.spacingScale ?? 1),
-                  ),
-                  child: AnimatedSwitcher(
-                    duration: context.playerMotion.fast,
-                    child: Semantics(
-                      key: ValueKey<int>(snapshot.revision),
-                      container: true,
-                      liveRegion: true,
-                      label: _semanticLabel(snapshot),
-                      child: switch (snapshot.mode) {
-                        DialoguePresentationMode.line => GestureDetector(
-                            key: const ValueKey<String>('dialogue-tap-zone'),
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () => onCommand(
-                              DialogueAdvanceCommand(
-                                snapshotRevision: snapshot.revision,
-                              ),
-                            ),
-                            child: _DialogueLineContent(
-                              snapshot: snapshot,
-                              portraitBuilder:
-                                  showPortrait ? portraitBuilder : null,
-                            ),
-                          ),
-                        DialoguePresentationMode.choices =>
-                          _DialogueChoiceContent(
-                            snapshot: snapshot,
-                            onCommand: onCommand,
-                          ),
-                      },
-                    ),
-                  ),
-                ),
+  Widget build(BuildContext context) => PlayerDialogueSurface(
+        data: PlayerDialogueViewData(
+          revision: snapshot.revision,
+          mode: switch (snapshot.mode) {
+            DialoguePresentationMode.line => PlayerDialogueMode.line,
+            DialoguePresentationMode.choices => PlayerDialogueMode.choices,
+          },
+          speaker: snapshot.speaker,
+          text: snapshot.text,
+          fullText: snapshot.fullText,
+          isCurrentLineFullyRevealed: snapshot.isCurrentLineFullyRevealed,
+          isLastContent: snapshot.isLastContent,
+          choices: <PlayerDialogueChoiceViewData>[
+            for (final choice in snapshot.choices)
+              PlayerDialogueChoiceViewData(
+                index: choice.index,
+                label: choice.label,
+                selected: choice.selected,
               ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _DialogueLineContent extends StatelessWidget {
-  const _DialogueLineContent({
-    required this.snapshot,
-    required this.portraitBuilder,
-  });
-
-  final DialoguePresentationSnapshot snapshot;
-  final Widget Function(String speaker)? portraitBuilder;
-
-  @override
-  Widget build(BuildContext context) {
-    final speaker = snapshot.speaker;
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          if (speaker != null) ...<Widget>[
-            Row(
-              children: <Widget>[
-                if (portraitBuilder != null) ...<Widget>[
-                  SizedBox.square(
-                    dimension: 64,
-                    child: portraitBuilder!(speaker),
-                  ),
-                  const SizedBox(width: PlayerSpacing.sm),
-                ],
-                Expanded(
-                  child: Text(
-                    speaker,
-                    style: context.playerTypography
-                        .dialogueStyle(
-                          Theme.of(context).textTheme.titleLarge ??
-                              const TextStyle(),
-                        )
-                        .copyWith(color: context.playerColors.primary),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: PlayerSpacing.sm),
           ],
-          Text(
-            snapshot.text,
-            style: context.playerTypography.dialogueStyle(
-              Theme.of(context).textTheme.bodyLarge ?? const TextStyle(),
-            ),
-          ),
-          const SizedBox(height: PlayerSpacing.md),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: <Widget>[
-              Icon(
-                snapshot.isCurrentLineFullyRevealed
-                    ? Icons.navigate_next_rounded
-                    : Icons.fast_forward_rounded,
+        ),
+        onAction: (action) => onCommand(
+          switch (action) {
+            PlayerDialogueAdvanceAction() => DialogueAdvanceCommand(
+                snapshotRevision: action.snapshotRevision,
               ),
-              const SizedBox(width: PlayerSpacing.xxs),
-              Text(
-                !snapshot.isCurrentLineFullyRevealed
-                    ? context.playerL10n.showFullText
-                    : snapshot.isLastContent
-                        ? context.playerL10n.close
-                        : context.playerL10n.next,
+            PlayerDialogueSelectChoiceAction(:final choiceIndex) =>
+              DialogueSelectChoiceCommand(
+                snapshotRevision: action.snapshotRevision,
+                choiceIndex: choiceIndex,
               ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DialogueChoiceContent extends StatelessWidget {
-  const _DialogueChoiceContent({
-    required this.snapshot,
-    required this.onCommand,
-  });
-
-  final DialoguePresentationSnapshot snapshot;
-  final ValueChanged<DialoguePresentationCommand> onCommand;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            context.playerL10n.yourChoice,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: PlayerSpacing.sm),
-          for (final choice in snapshot.choices) ...<Widget>[
-            PlayerActionButton(
-              key: ValueKey<String>('dialogue-choice-${choice.index}'),
-              label: choice.label,
-              icon: choice.selected
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              autofocus: choice.selected,
-              secondary: !choice.selected,
-              onPressed: () => onCommand(
-                DialogueSelectChoiceCommand(
-                  snapshotRevision: snapshot.revision,
-                  choiceIndex: choice.index,
-                ),
-              ),
-            ),
-            if (choice != snapshot.choices.last)
-              const SizedBox(height: PlayerSpacing.xs),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-String _semanticLabel(DialoguePresentationSnapshot snapshot) {
-  return switch (snapshot.mode) {
-    DialoguePresentationMode.line =>
-      '${snapshot.speaker == null ? '' : '${snapshot.speaker}, '}${snapshot.fullText}',
-    DialoguePresentationMode.choices =>
-      'Choix de dialogue, ${snapshot.choices.length} options',
-  };
+          },
+        ),
+        portraitBuilder: portraitBuilder,
+      );
 }

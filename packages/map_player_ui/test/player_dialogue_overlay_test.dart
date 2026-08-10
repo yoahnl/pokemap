@@ -160,7 +160,8 @@ Future<void> _pump(
   if (layouts != null) {
     theme = PokeMapPlayerTheme.withLayoutProfile(theme, layouts);
   }
-  return tester.pumpWidget(
+  return tester
+      .pumpWidget(
     MaterialApp(
       theme: theme,
       home: MediaQuery(
@@ -174,7 +175,10 @@ Future<void> _pump(
         ),
       ),
     ),
-  );
+  )
+      .then((_) {
+    expect(find.byType(PlayerDialogueSurface), findsOneWidget);
+  });
 }
 
 DialoguePresentationSnapshot _lineSnapshot() {

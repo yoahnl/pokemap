@@ -116,7 +116,10 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      PlayerPauseSurface.composed(child: _buildSurface(context));
+
+  Widget _buildSurface(BuildContext context) {
     return RuntimePlayerActions(
       onBack: widget.onBackToRoot,
       onMenu: widget.onTouchMenu ?? widget.onBackToRoot,

@@ -29,6 +29,7 @@ void main() {
       ),
     );
 
+    expect(find.byType(PlayerTitleSurface), findsOneWidget);
     expect(find.text('Aube'), findsOneWidget);
     expect(find.text('Studio Brume'), findsOneWidget);
     expect(find.text('Continuer'), findsOneWidget);
