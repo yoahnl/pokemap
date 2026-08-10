@@ -1644,6 +1644,15 @@ class ProjectValidator {
   }
 
   static void _validateCharacters(ProjectManifest manifest) {
+    _validateCharacterStudioCatalog(manifest.characterStudioCatalog);
+    final portraitStateIds = manifest.characterStudioCatalog.portraitStates
+        .map((definition) => definition.id)
+        .toSet();
+    final customDefinitionsById = <String, CharacterCustomAnimationDefinition>{
+      for (final definition
+          in manifest.characterStudioCatalog.customAnimationDefinitions)
+        definition.id: definition,
+    };
     final knownTilesetIds = manifest.tilesets.map((t) => t.id).toSet();
     for (final char in manifest.characters) {
       final id = char.id.trim();
@@ -1663,31 +1672,102 @@ class ProjectValidator {
         );
       }
       if (char.frameWidth <= 0 || char.frameHeight <= 0) {
-        throw ValidationException(
-          'Character $id has invalid frame dimensions',
-        );
+        throw ValidationException('Character $id has invalid frame dimensions');
       }
+      final portraitSlots = <String>{};
+      for (var i = 0; i < char.portraits.length; i++) {
+        final portrait = char.portraits[i];
+        if (!portraitStateIds.contains(portrait.portraitStateId)) {
+          throw ValidationException(
+            'Character $id portrait[$i] references unknown portrait state: '
+            '${portrait.portraitStateId}',
+            code: 'character_studio.portrait.state_unknown',
+          );
+        }
+        if (!portraitSlots.add(portrait.portraitStateId)) {
+          throw ValidationException(
+            'Character $id has duplicate portrait state: '
+            '${portrait.portraitStateId}',
+            code: 'character_studio.portrait.duplicate_state',
+          );
+        }
+        if (portrait.assetId.trim().isEmpty) {
+          throw ValidationException(
+            'Character $id portrait[$i] has an empty assetId',
+            code: 'character_studio.portrait.asset_invalid',
+          );
+        }
+      }
+      final animationSlots = <String>{};
       for (var i = 0; i < char.animations.length; i++) {
         final anim = char.animations[i];
-        for (var j = 0; j < anim.frames.length; j++) {
-          final frame = anim.frames[j];
-          final src = frame.source;
-          if (src.x < 0 || src.y < 0) {
-            throw ValidationException(
-              'Character $id animation[$i] frame $j has invalid source coordinates',
-            );
-          }
-          if (src.width <= 0 || src.height <= 0) {
-            throw ValidationException(
-              'Character $id animation[$i] frame $j has invalid source size',
-            );
-          }
-          if (frame.durationMs <= 0) {
-            throw ValidationException(
-              'Character $id animation[$i] frame $j durationMs must be positive',
-            );
-          }
+        final slot = '${anim.state.name}:${anim.direction.name}';
+        if (!animationSlots.add(slot)) {
+          throw ValidationException(
+            'Character $id has duplicate animation slot: $slot',
+            code: 'character_studio.animation.duplicate_slot',
+          );
         }
+        final sourceAssetId = anim.sourceAssetId?.trim();
+        if (sourceAssetId != null && sourceAssetId.isEmpty) {
+          throw ValidationException(
+            'Character $id animation[$i] has an empty sourceAssetId',
+            code: 'character_studio.animation.source_asset_invalid',
+          );
+        }
+        _validateCharacterAnimationFrames(
+          characterId: id,
+          animationLabel: 'animation[$i]',
+          frames: anim.frames,
+        );
+      }
+      final customAnimationSlots = <String>{};
+      for (var i = 0; i < char.customAnimations.length; i++) {
+        final animation = char.customAnimations[i];
+        final definition = customDefinitionsById[animation.definitionId];
+        if (definition == null) {
+          throw ValidationException(
+            'Character $id customAnimations[$i] references unknown '
+            'definition: ${animation.definitionId}',
+            code: 'character_studio.custom_animation.definition_unknown',
+          );
+        }
+        if (definition.mode == CharacterCustomAnimationMode.single &&
+            animation.direction != null) {
+          throw ValidationException(
+            'Character $id custom animation ${definition.id} must not have '
+            'a direction',
+            code: 'character_studio.custom_animation.direction_forbidden',
+          );
+        }
+        if (definition.mode == CharacterCustomAnimationMode.directional &&
+            animation.direction == null) {
+          throw ValidationException(
+            'Character $id custom animation ${definition.id} requires a '
+            'direction',
+            code: 'character_studio.custom_animation.direction_required',
+          );
+        }
+        if (animation.sourceAssetId.trim().isEmpty) {
+          throw ValidationException(
+            'Character $id customAnimations[$i] has an empty sourceAssetId',
+            code: 'character_studio.custom_animation.source_asset_invalid',
+          );
+        }
+        final slot =
+            '${animation.definitionId}:'
+            '${animation.direction?.name ?? 'single'}';
+        if (!customAnimationSlots.add(slot)) {
+          throw ValidationException(
+            'Character $id has duplicate custom animation slot: $slot',
+            code: 'character_studio.custom_animation.duplicate_slot',
+          );
+        }
+        _validateCharacterAnimationFrames(
+          characterId: id,
+          animationLabel: 'customAnimations[$i]',
+          frames: animation.frames,
+        );
       }
     }
     final playerCharId = manifest.settings.defaultPlayerCharacterId?.trim();
@@ -1696,6 +1776,88 @@ class ProjectValidator {
       if (!charIds.contains(playerCharId)) {
         throw ValidationException(
           'Settings defaultPlayerCharacterId "$playerCharId" references unknown character',
+        );
+      }
+    }
+  }
+
+  static void _validateCharacterStudioCatalog(
+    ProjectCharacterStudioCatalog catalog,
+  ) {
+    final stableId = RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$');
+    final portraitStateIds = <String>{};
+    for (var i = 0; i < catalog.portraitStates.length; i++) {
+      final definition = catalog.portraitStates[i];
+      if (!stableId.hasMatch(definition.id) ||
+          definition.displayName.trim().isEmpty) {
+        throw ValidationException(
+          'Character Studio portrait state[$i] is invalid',
+          code: 'character_studio.portrait_state.invalid',
+        );
+      }
+      if (!portraitStateIds.add(definition.id)) {
+        throw ValidationException(
+          'Character Studio has duplicate portrait state id: '
+          '${definition.id}',
+          code: 'character_studio.portrait_state.duplicate_id',
+        );
+      }
+    }
+    const reservedAnimationIds = <String>{'base', 'idle', 'walk', 'run'};
+    final animationDefinitionIds = <String>{};
+    for (var i = 0; i < catalog.customAnimationDefinitions.length; i++) {
+      final definition = catalog.customAnimationDefinitions[i];
+      if (!stableId.hasMatch(definition.id) ||
+          definition.displayName.trim().isEmpty) {
+        throw ValidationException(
+          'Character Studio custom animation definition[$i] is invalid',
+          code: 'character_studio.animation_definition.invalid',
+        );
+      }
+      if (reservedAnimationIds.contains(definition.id)) {
+        throw ValidationException(
+          'Character Studio custom animation id is reserved: '
+          '${definition.id}',
+          code: 'character_studio.animation_definition.id_reserved',
+        );
+      }
+      if (!animationDefinitionIds.add(definition.id)) {
+        throw ValidationException(
+          'Character Studio has duplicate custom animation id: '
+          '${definition.id}',
+          code: 'character_studio.animation_definition.duplicate_id',
+        );
+      }
+    }
+  }
+
+  static void _validateCharacterAnimationFrames({
+    required String characterId,
+    required String animationLabel,
+    required List<CharacterAnimationFrame> frames,
+  }) {
+    for (var frameIndex = 0; frameIndex < frames.length; frameIndex++) {
+      final frame = frames[frameIndex];
+      final source = frame.source;
+      if (source.x < 0 || source.y < 0) {
+        throw ValidationException(
+          'Character $characterId $animationLabel frame $frameIndex has '
+          'invalid source coordinates',
+          code: 'character_studio.animation.frame_source_invalid',
+        );
+      }
+      if (source.width <= 0 || source.height <= 0) {
+        throw ValidationException(
+          'Character $characterId $animationLabel frame $frameIndex has '
+          'invalid source size',
+          code: 'character_studio.animation.frame_size_invalid',
+        );
+      }
+      if (frame.durationMs <= 0) {
+        throw ValidationException(
+          'Character $characterId $animationLabel frame $frameIndex '
+          'durationMs must be positive',
+          code: 'character_studio.animation.frame_duration_invalid',
         );
       }
     }
