@@ -1,719 +1,912 @@
-# PokeMap Personalization Studios Implementation Roadmap
+# Personalization Studio V2 Implementation Roadmap
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` (recommended) or `executing-plans` to implement this roadmap lot by lot. Every lot must end with fresh tests, build evidence, visual acceptance and a scoped commit.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development (recommended) or executing-plans to implement this roadmap lot by lot. Steps use checkbox syntax for tracking. Every lot ends with focused tests, explicit analyzer evidence, a visual or runtime proof when applicable, and one scoped commit.
 
-**Goal:** Livrer dans PokeMap une personnalisation compréhensible et réellement consommée par le jeu : aperçu immédiat, fenêtres personnalisables, placements responsifs contraints, puis presets partageables sur toutes les surfaces joueur.
+**Goal:** Remplacer l’actuel Personalization Hub par un Studio immédiatement compréhensible dont chaque preview affiche les véritables widgets visibles dans le jeu, pour six scènes seulement : Style global, Écran titre, Intro, Menu Pause, Dialogue et Combat.
 
-**Architecture:** `ProjectPresentationProfile` reste la source project-owned. Toutes les modifications passent par `presentation.update`, sont transportées dans le package certifié, chargées par le Hub et consommées par `map_player_ui`. Les couleurs restent dans le thème sémantique, les formes dans Window Studio et les placements dans Layout Studio ; aucun JSON, CSS ou arbre de widgets libre n’est exposé au créateur.
+**Architecture:** ProjectPresentationProfile reste la source project-owned et presentation.update reste la mutation canonique. Les surfaces visuelles réutilisables appartiennent à map_player_ui ; la runtime et le Studio les composent avec des données différentes, mais ne possèdent jamais deux implémentations graphiques concurrentes. Le Studio possède uniquement le scénario de démonstration, les inspecteurs, la navigation et les contrôles de simulation.
 
-**Tech Stack:** Dart, Flutter, Freezed/JSON, Riverpod 3, packages `map_core`, `map_authoring`, `map_distribution`, `map_editor`, `map_player_ui`, `map_runtime`, PokeMap Hub et PokeMap MCP.
+**Tech Stack:** Dart 3, Flutter, Freezed/JSON, Riverpod 3, map_core, map_authoring, map_distribution, map_player_ui, map_runtime, map_editor, PokeMap Hub, PokeMap MCP, tests widget/golden et builds macOS.
 
 ---
 
-## 0. Décision en une page
+## 0. Décision produit et état de cette roadmap
 
-| Élément | Décision |
+| Décision | Règle |
 |---|---|
-| Socle déjà livré | `337a97a6e feat(personalization): add live pause menu customization` |
-| Lots restant à livrer | **0** ; les quatre lots sont certifiés |
-| Ordre | Acceptation → Window Studio → Layout Studio → Extension complète |
-| Mutation canonique | `presentation.update` |
-| Profil canonique | `ProjectPresentationProfile` |
-| Preview | Editor-owned, certifiée contre les mêmes fixtures que le player ; aucune dépendance aux internes runtime |
-| Couleurs | `ProjectSemanticThemeProfile` |
-| Formes de fenêtres | Nouveau profil Window Studio |
-| Placements | Nouveau profil Layout Studio à breakpoints fixes |
-| Coordonnées libres | Exclues |
-| Splash Avelune | Host-owned, visible dans le parcours mais non personnalisable |
-| État global | PERS-L1, PERS-L2, PERS-L3 et PERS-L4 `DONE` |
+| Référence visuelle | La preview HTML V4 et les screenshots versionnés ci-dessous |
+| Nombre de scènes | Six : Style global, Écran titre, Intro, Menu Pause, Dialogue, Combat |
+| HUD exploration | Aucun écran dédié ; le jeu n’en possède pas |
+| HUD combat | Le vocabulaire Studio devient « Combat » ; le nom JSON battleHudSurface reste compatible |
+| Fidélité | La preview Flutter monte les mêmes widgets visibles que la runtime |
+| Runtime internals | map_editor n’importe jamais package:map_runtime |
+| Données de démonstration | Editor-owned et non persistées dans ProjectPresentationProfile |
+| Portraits | Character Studio possède les assets ; Personalization Studio possède leur présentation |
+| Mutation | presentation.update, sans second chemin de sauvegarde |
+| Ancien Studio | Conservé uniquement jusqu’à ce que le nouveau parcours atteigne sa gate de parité |
+| Schéma courant | ProjectPresentationProfile V4 |
+| Prochaine évolution | V5 bornée au Combat et aux fallbacks associés |
 
-Le commit `337a97a6e` est le **lot zéro livré**. Il ne doit pas être recompté comme travail futur : il prouve déjà la verticale modèle → sauvegarde canonique → export → Hub → menu Pause réel.
+Les anciens lots PERS-L1 à PERS-L4 restent de l’historique Git utile, mais leur statut DONE ne signifie pas que l’interface actuelle est acceptée. Cette roadmap V2 remplace leur cible UX sans jeter les contrats, migrations, transports et garanties déjà livrés.
 
-## 1. Ce que signifie « l’interface magique »
+## 1. Référence visuelle capturée
 
-La cible est atteinte lorsque :
+### 1.1 Contact sheets
 
-- chaque réglage indique clairement où il apparaît dans le jeu ;
-- le résultat est visible pendant l’édition dans la bonne surface ;
-- un projet ancien conserve exactement son rendu actuel ;
-- les réglages invalides expliquent le problème avant l’export ;
-- le Hub et le standalone consomment les mêmes valeurs ;
-- clavier, manette, grands textes, portrait, paysage et mouvement réduit restent utilisables ;
-- aucune capacité n’existe uniquement dans le schéma, l’éditeur ou la preview ;
-- aucun placement ne dépend d’une résolution ou d’une coordonnée pixel absolue.
+![Les six scènes en paysage](assets/personalization-studio-v2/00-contact-sheet-landscape.png)
 
-## 2. Architecture cible verrouillée
+![Les six scènes en portrait](assets/personalization-studio-v2/00-contact-sheet-portrait.png)
 
-```mermaid
-flowchart TD
-  P["ProjectPresentationProfile"] --> E["Champs existants"]
-  P --> W["windows — PERS-L2"]
-  P --> L["layouts — PERS-L3"]
-  E --> B["branding / intro / titleMotion"]
-  E --> T["typography / theme / menuLabels"]
-  W --> WR["Forme, bordure, densité, ombre, frame"]
-  L --> LR["compact / regular / expanded"]
-  P --> A["presentation.update"]
-  A --> D["Package certifié"]
-  D --> H["Hub et standalone"]
-  H --> UI["map_player_ui"]
-```
+### 1.2 Captures individuelles
 
-Décisions non négociables :
+| Scène | Paysage | Portrait |
+|---|---|---|
+| Style global | [PNG](assets/personalization-studio-v2/01-global-landscape.png) | [PNG](assets/personalization-studio-v2/01-global-portrait.png) |
+| Écran titre | [PNG](assets/personalization-studio-v2/02-title-landscape.png) | [PNG](assets/personalization-studio-v2/02-title-portrait.png) |
+| Intro | [PNG](assets/personalization-studio-v2/03-intro-landscape.png) | [PNG](assets/personalization-studio-v2/03-intro-portrait.png) |
+| Menu Pause | [PNG](assets/personalization-studio-v2/04-pause-landscape.png) | [PNG](assets/personalization-studio-v2/04-pause-portrait.png) |
+| Dialogue | [PNG](assets/personalization-studio-v2/05-dialogue-landscape.png) | [PNG](assets/personalization-studio-v2/05-dialogue-portrait.png) |
+| Combat | [PNG](assets/personalization-studio-v2/06-battle-landscape.png) | [PNG](assets/personalization-studio-v2/06-battle-portrait.png) |
 
-1. Le thème sémantique possède les couleurs. Window Studio référence ses tokens au lieu de dupliquer des palettes.
-2. Les breakpoints sont définis par le runtime. Le projet choisit une variante par classe, pas ses propres seuils.
-3. L’éditeur ne dépend pas des internes de `map_runtime`. La fidélité se prouve par fixtures communes, résolveurs purs et comparaisons visuelles editor/player.
-4. `presentation.update` reste la seule mutation de profil complet. Les packs du lot 4 possèdent des actions dédiées uniquement pour leur cycle import/export.
-5. Toute ressource image ou fonte reste relative au projet, cataloguée, validée et soumise au lifecycle d’assets.
-6. Le splash de plateforme reste Avelune-owned. Un jeu ne peut ni le masquer ni le recolorer.
+Capture réalisée à partir de http://127.0.0.1:8174/personalization-studio-v4.html?v=1. Les douze vues ont été rejouées après navigation réelle ; la console ne contenait ni warning ni erreur.
 
-## 3. Audit initial
+## 2. Audit initial du checkout
 
-### 3.1 Socle réellement livré par `337a97a6e`
+### 2.1 État Git initial
 
-- `ProjectMenuLabelsProfile` et validation vide, longueur et caractères de contrôle ;
-- édition guidée des neuf libellés du menu Pause ;
-- fallback automatique vers la localisation player ;
-- sauvegarde du Studio via `EditorAuthoringMutationAdapter.savePresentation` et `presentation.update` ;
-- export `.avelunegame`, chargement Hub et consommation par `PlayerPauseMenu` ;
-- preview intro, titre, dialogue, menu, HUD exploration et HUD combat ;
-- simulations paysage, portrait, carré, text scale et reduced motion ;
-- comparaison brouillon/sauvegarde et composition éditeur/preview côte à côte ;
-- tests ciblés dans core, authoring, distribution, editor, player UI et Hub.
+~~~text
+Worktree: /Users/karim/.config/superpowers/worktrees/pokemonProject/personalization-preview-acceptance
+Branch: feature/personalization-preview-acceptance
+HEAD: 984b6973d chore(editor): satisfy pinned Flutter lints
+Status initial: clean
+~~~
 
-### 3.2 Gaps confirmés
+### 2.2 Contrats déjà solides
 
-| Gap | Conséquence |
+- packages/map_core/lib/src/models/project_presentation_profile.dart porte le profil V4 : branding, intro, titleMotion, typography, theme, menuLabels, windows et layouts.
+- packages/map_core/lib/src/models/project_presentation_window_profile.dart possède les rôles standard, pauseMenu et dialogue.
+- packages/map_core/lib/src/models/project_presentation_layout_profile.dart possède des layouts responsifs pour title, pauseMenu et dialogue.
+- packages/map_authoring/lib/src/domains/assets/presentation_actions.dart porte presentation.update et la lecture projectPresentationProfile.
+- packages/map_distribution transporte le profil et ses assets dans le package certifié.
+- packages/map_player_ui/lib/src/player/runtime_player_presentation.dart applique le thème sémantique, les fenêtres et les layouts.
+- apps/pokemap_hub/lib/features/session/application/services/hub_runtime_startup_adapter.dart recharge la présentation installée.
+- examples/playable_runtime_host et le Hub appliquent RuntimePlayerPresentation avant d’afficher le player.
+
+### 2.3 Dette bloquante de la preview actuelle
+
+packages/map_editor ne dépend pas de map_player_ui. Le fichier personalization_runtime_preview.dart redessine localement le titre, le dialogue, le menu, l’intro et le combat avec des classes privées telles que _TitleRuntimePreview, _DialogueRuntimePreview, _MenuRuntimePreview, _BattleHudRuntimePreview et _IntroRuntimePreview.
+
+Conséquences :
+
+1. une modification du vrai widget runtime ne modifie pas automatiquement la preview ;
+2. les goldens editor et player peuvent être tous les deux verts tout en montrant deux interfaces différentes ;
+3. l’ancien inventaire expose un HUD exploration absent du produit ;
+4. le Combat ne possède ni rôle Window dédié, ni layout responsive dédié ;
+5. la preview mélange les réglages persistés et les données fictives utilisées pour raconter une scène.
+
+### 2.4 Widgets réels à partager
+
+| Scène | Widget runtime actuel | Cible partagée |
+|---|---|---|
+| Écran titre | PlayerTitleScreen | PlayerTitleSurface monté par PlayerTitleScreen et le Studio |
+| Intro | PlayerIntroVideoSurface | PlayerIntroVideoSurface directement |
+| Menu Pause | RuntimePlayerPauseShell et PlayerPauseMenu | PlayerPauseSurface partagé, shell runtime conservé pour session/focus |
+| Dialogue | PlayerDialogueOverlay | PlayerDialogueSurface partagé, overlay runtime conservé comme adaptateur |
+| Combat | PlayerBattleOverlay | PlayerBattleSurface partagé, overlay runtime conservé comme adaptateur |
+| Style global | RuntimePlayerPresentation.applyTo | Même ThemeData appliqué autour des cinq surfaces |
+
+Le mot « même » désigne ici le même widget visible. Les wrappers runtime restent autorisés pour convertir les snapshots, dispatcher les commandes, gérer le focus ou charger les assets ; ils ne doivent pas repeindre la surface.
+
+### 2.5 Character Studio : frontière à préserver
+
+Il n’existe pas encore de contrat canonique de portrait et d’expression pour les personnages. Le Studio doit néanmoins conserver les contrôles Portrait, Nom et Choix.
+
+Décision :
+
+- aucun portrait n’est ajouté à ProjectPresentationProfile ;
+- un PersonalizationCharacterPreviewSource editor-owned fournit des options de démonstration ;
+- l’option transporte characterId, displayName, portraitPath et expressionId ;
+- le provider de transition peut retourner une fixture locale ;
+- lorsque Character Studio livre sa query canonique, seul l’adaptateur de source change ;
+- la runtime reçoit plus tard une référence stable de personnage/expression, jamais une recherche fragile par nom affiché.
+
+### 2.6 Risques principaux
+
+| Risque | Réponse imposée |
 |---|---|
-| 6 tests globaux Personalization rouges | La preview actuelle n’est pas encore certifiée comme parcours complet |
-| Preview composée dans l’éditeur | La fidélité au player n’est pas prouvée par goldens croisés |
-| `compareProjectPresentation` ignore `menuLabels` et `titleMotion` | Comparaison, reset et presets peuvent mentir |
-| Presets/reset incomplets | Une section peut paraître réinitialisée sans l’être entièrement |
-| Test MCP sans `menuLabels` | La nouvelle sémantique n’est pas prouvée sur le transport live |
-| Transport Editor absent du catalogue `presentation.update` | La parité reste administrativement partielle |
-| `titleMotion` sans parcours no-code complet | Le schéma possède encore une capacité invisible |
-| Window Studio absent | Rayons, bordures, densité et frames restent codés dans les widgets |
-| Layout Studio absent | Les placements restent déterminés par le code |
-| Aucun pack de style | Les personnalisations ne sont ni partageables ni importables |
+| Import map_runtime dans map_editor | Test de frontière qui scanne les imports et échoue |
+| Faux partage via deux widgets presque identiques | Tests find.byType sur le widget visible partagé |
+| Changement visuel legacy involontaire | Golden avant/après avec profil absent |
+| Migration V4 vers V5 modifiant le Combat | battle layout et combat font restent absents après migration |
+| Portrait placé dans le profil de présentation | Test JSON prouvant son absence |
+| Contrôle visible sans consommation runtime | Gate de parité par champ et par surface |
+| Écran trop dense à 720 px | Layout adaptatif et inspecteur en side sheet |
+| Goldens trompeurs | Même fixture JSON, widgets partagés, captures editor/player séparées |
 
-### 3.3 Échecs globaux à fermer en premier
+## 3. Architecture cible
 
-Commande fraîche de l’audit :
+~~~mermaid
+flowchart LR
+  Profile["ProjectPresentationProfile"] --> Authoring["presentation.update"]
+  Authoring --> Package["Package certifié"]
+  Package --> Hub["Hub / standalone"]
+  Hub --> RuntimePresentation["RuntimePlayerPresentation"]
+  RuntimePresentation --> Shared["Surfaces visibles map_player_ui"]
 
-```bash
+  Studio["Personalization Studio"] --> Draft["Draft + autosave"]
+  Draft --> Authoring
+  Studio --> Scenario["Scénario editor-owned"]
+  Scenario --> Shared
+
+  Runtime["Snapshots et commandes map_runtime"] --> Adapters["Wrappers runtime"]
+  Adapters --> Shared
+
+  Character["Character Studio"] --> CharacterQuery["Query portraits / expressions"]
+  CharacterQuery --> Scenario
+  CharacterQuery --> Runtime
+~~~
+
+### 3.1 Autorités
+
+| Couche | Possède | Ne possède pas |
+|---|---|---|
+| map_core | Profil, migrations, validation, rôles sémantiques | Widgets, fichiers locaux ouverts |
+| map_authoring | Mutation/query canonique, révisions, parité transports | État Riverpod ou contrôles UI |
+| map_distribution | Manifeste, assets, préflight, hash | Choix visuels |
+| map_player_ui | ThemeData player, surfaces visibles et view-data UI | Sauvegarde de projet |
+| map_runtime | Snapshots de jeu, commandes, orchestration | Duplication visuelle des surfaces |
+| map_editor | Draft, navigation, scénario, inspecteurs, simulation | Rendu alternatif du player |
+| Character Studio | Personnages, portraits, expressions | Forme/couleur/placement des dialogues |
+
+### 3.2 Contrat de scène du Studio
+
+~~~dart
+enum PersonalizationStudioScene {
+  globalStyle,
+  title,
+  intro,
+  pause,
+  dialogue,
+  battle,
+}
+
+final class PersonalizationPreviewScenario {
+  const PersonalizationPreviewScenario({
+    required this.profile,
+    required this.scene,
+    required this.viewport,
+    required this.textScale,
+    required this.reducedMotion,
+    required this.fixtures,
+  });
+}
+~~~
+
+PersonalizationPreviewFixtures contient uniquement le nom du jeu, une ligne de dialogue, des choix, les états de combat, les images de décor et une option de portrait. Son JSON éventuel reste dans les tests ou les fixtures editor ; il n’est jamais écrit dans project.json.
+
+### 3.3 Règle de parité widget
+
+Chaque surface possède un widget visible partagé et deux types de consommateurs :
+
+~~~dart
+PlayerDialogueOverlay(snapshot: runtimeSnapshot)
+  -> maps snapshot
+  -> PlayerDialogueSurface(data: sharedViewData)
+
+PersonalizationPlayerSurfaceAdapter(scenario: editorScenario)
+  -> maps fixture
+  -> PlayerDialogueSurface(data: sharedViewData)
+~~~
+
+Le test bloquant vérifie que PlayerDialogueSurface, PlayerBattleSurface, PlayerPauseSurface, PlayerTitleSurface et PlayerIntroVideoSurface apparaissent dans l’arbre du Studio et dans l’arbre runtime correspondant.
+
+## 4. Phases et ordre d’exécution
+
+| Phase | Lots exécutables dans la même tranche | Résultat de phase | Dépendance |
+|---|---|---|---|
+| Phase 0 — Contrat | PERS2-00, PERS2-01 | Référence et vocabulaire verrouillés | aucune |
+| Phase 1 — Widgets partagés | PERS2-02, PERS2-03, PERS2-04 | La preview affiche les vrais widgets | Phase 0 |
+| Phase 2 — Nouveau shell | PERS2-05, PERS2-06, PERS2-07 | Navigation, preview et inspecteur simples | Phase 1 |
+| Phase 3 — Cinq surfaces existantes | PERS2-08, puis PERS2-09 à PERS2-12 en parallèle | Global, titre, intro, Pause et Dialogue terminés | Phase 2 |
+| Phase 4 — Combat V1 | PERS2-13, puis PERS2-14 et PERS2-15, puis PERS2-16 | Combat personnalisable de bout en bout | Phase 3 |
+| Phase 5 — Certification | PERS2-17 et PERS2-18, puis PERS2-19 | Hub, standalone, accessibilité et acceptation finale | Phase 4 |
+
+Ordre critique :
+
+~~~text
+00 → 01 → 02 → 03 → 04 → 05
+                         ├─ 06
+                         └─ 07
+05/06/07 → 08 → 09 + 10 + 11 + 12
+09/10/11/12 → 13 → 14 + 15 → 16
+16 → 17 + 18 → 19
+~~~
+
+## 5. Phase 0 — Contrat et vocabulaire
+
+### PERS2-00 — Captures et roadmap V2
+
+**Statut : DONE — 2026-08-10**
+
+**Résultat :** douze screenshots et deux contact sheets figent les six scènes en paysage et portrait.
+
+**Fichiers :**
+
+- Modifier : documentation/reports/roadmap/personalization/personalization_studios_roadmap.md
+- Créer : documentation/reports/roadmap/personalization/assets/personalization-studio-v2/*.png
+
+**Gate :**
+
+- [x] Six scènes capturées en paysage.
+- [x] Six scènes capturées en portrait.
+- [x] Navigation réelle rejouée.
+- [x] Console sans warning ni erreur.
+- [x] Roadmap unique mise à jour au lieu de créer un second document concurrent.
+
+**Commit proposé :** docs(personalization): define the studio v2 implementation roadmap
+
+### PERS2-01 — Registre canonique des six scènes
+
+**Résultat :** le code, les libellés et les tests parlent tous des mêmes six scènes.
+
+**Fichiers :**
+
+- Modifier : packages/map_editor/lib/src/features/personalization/application/personalization_preview_surface_descriptor.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/application/personalization_preview_projection.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/project_semantic_theme_editor.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/personalization_readiness_localizations.dart
+- Test : packages/map_editor/test/personalization/personalization_preview_surface_descriptor_test.dart
+- Test : packages/map_editor/test/personalization/personalization_runtime_preview_test.dart
+- Test : packages/map_editor/test/personalization/project_semantic_theme_editor_test.dart
+
+**Étapes :**
+
+- [ ] Écrire un test exigeant exactement globalStyle, title, intro, pause, dialogue et battle.
+- [ ] Vérifier que le test échoue encore sur overworldHud et battleHud.
+- [ ] Remplacer PersonalizationPreviewSurface par PersonalizationStudioScene.
+- [ ] Garder overworldHudSurface dans le modèle V4 pour compatibilité, mais ne plus l’exposer comme scène.
+- [ ] Afficher « Combat » au lieu de « HUD combat » sans renommer la clé JSON battleHudSurface.
+- [ ] Mettre à jour les clés ValueKey stables et les tests de navigation.
+
+**Commandes :**
+
+~~~bash
 cd packages/map_editor
-flutter test test/personalization --reporter expanded
-```
+flutter test test/personalization/personalization_preview_surface_descriptor_test.dart \
+  test/personalization/project_semantic_theme_editor_test.dart \
+  test/personalization/personalization_runtime_preview_test.dart
+flutter analyze lib/src/features/personalization test/personalization
+~~~
 
-Résultat : **95 réussis, 6 échoués**, exit `1`.
+**Gate :** aucune chaîne « HUD exploration » dans le parcours Studio ; aucun changement du JSON V4.
 
-1. `Phase 5 golden fixture packages every presentation category` attend les anciens chemins d’intro plats au lieu de `presentation/intro/landscape/...`.
-2. `PST-061 saves a Studio profile and exports its installable package` reçoit `false` après la sauvegarde canonique.
-3. `runs preflight in Studio and invalidates it after a draft edit` ne déclenche pas le preflight.
-4. `applies a preset to a dirty draft without writing project.json` conserve `standard` au lieu de `cinematic`.
-5. `branding accent and layout update only the studio draft` manque sa cible de clic.
-6. `title music import, preview, and removal stay in the draft` manque sa cible de clic et n’appelle pas le picker.
+**Commit proposé :** refactor(personalization): align the studio on six player scenes
 
-Aucun lot ne peut être marqué `DONE` en neutralisant les hit-tests, en appelant directement un callback ou en supprimant une assertion.
+## 6. Phase 1 — Les véritables widgets dans la preview
 
-### 3.4 État Git observé
+### PERS2-02 — Extraire les surfaces visibles partagées
 
-Au début de la préparation de cette roadmap :
+**Résultat :** runtime et Studio peuvent rendre les mêmes widgets sans partager les snapshots ni les contrôleurs.
 
-```text
-HEAD 337a97a6e
-Worktree sale avec le chantier Smart Tiles/runtime parallèle.
-```
+**Fichiers :**
 
-Pendant l’audit, ce chantier parallèle a été commit sous :
+- Créer : packages/map_player_ui/lib/src/player/player_title_surface.dart
+- Créer : packages/map_player_ui/lib/src/player/player_pause_surface.dart
+- Créer : packages/map_player_ui/lib/src/player/player_dialogue_surface.dart
+- Créer : packages/map_player_ui/lib/src/player/player_battle_surface.dart
+- Créer : packages/map_player_ui/lib/player_surfaces.dart
+- Modifier : packages/map_player_ui/lib/src/player/player_title_screen.dart
+- Modifier : packages/map_player_ui/lib/src/player/player_pause_menu.dart
+- Modifier : packages/map_player_ui/lib/src/player/runtime_player_pause_shell.dart
+- Modifier : packages/map_player_ui/lib/src/player/player_dialogue_overlay.dart
+- Modifier : packages/map_player_ui/lib/src/player/player_battle_overlay.dart
+- Test : packages/map_player_ui/test/player/player_shared_surface_contract_test.dart
+- Test : packages/map_player_ui/test/player_title_screen_test.dart
+- Test : packages/map_player_ui/test/player_pause_menu_test.dart
+- Test : packages/map_player_ui/test/player_dialogue_overlay_test.dart
+- Test : packages/map_player_ui/test/player_battle_overlay_test.dart
 
-```text
-49afbe464 feat(smart-tiles): add cell-entry animation activation for smart tile layers
-```
+**Contrats minimaux :**
 
-`49afbe464` a `337a97a6e` pour parent et ne modifie pas le périmètre Personalization. La roadmap ne réécrit aucun de ces deux commits.
+~~~dart
+final class PlayerDialogueViewData {
+  final int revision;
+  final String? speaker;
+  final String text;
+  final List<PlayerDialogueChoiceViewData> choices;
+  final PlayerPortraitSlotData? portrait;
+}
 
-## 4. Vue d’ensemble des quatre lots
+final class PlayerBattleViewData {
+  final PlayerBattleHudViewData enemy;
+  final PlayerBattleHudViewData player;
+  final String prompt;
+  final List<PlayerBattleCommandViewData> commands;
+}
+~~~
 
-| Lot | Résultat visible | Taille | Dépend de | Statut |
-|---|---|---:|---|---|
-| PERS-L1 | La preview actuelle est fiable, accessible et acceptée dans la vraie app | M | Socle `337a97a6e` | **DONE — 2026-08-10** |
-| PERS-L2 | Window Studio personnalise réellement Pause et Dialogue | L | PERS-L1 | **DONE — 2026-08-10** |
-| PERS-L3 | Layout Studio place les contenus par variantes responsives sûres | L | PERS-L2 | **DONE — 2026-08-10** |
-| PERS-L4 | Toutes les surfaces utilisent les contrats et les presets sont partageables | XL | PERS-L3 | **DONE — 2026-08-10** |
+**Étapes :**
 
-La dépendance est stricte :
+- [ ] Écrire des tests find.byType qui échouent tant que les wrappers peignent eux-mêmes leur contenu.
+- [ ] Déplacer uniquement l’arbre visuel et ses view-data dans les quatre nouveaux fichiers.
+- [ ] Conserver les conversions snapshot/commande dans les wrappers existants.
+- [ ] Faire composer PlayerTitleScreen, RuntimePlayerPauseShell, PlayerDialogueOverlay et PlayerBattleOverlay avec la surface partagée correspondante.
+- [ ] Exporter seulement les surfaces et view-data depuis player_surfaces.dart.
+- [ ] Vérifier le fallback pixel historique lorsque ProjectPresentationProfile est absent.
 
-```text
-PERS-L1 → PERS-L2 → PERS-L3 → PERS-L4
-```
+**Commandes :**
 
-## 5. PERS-L1 — Stabilisation et acceptation de la preview
-
-### Résultat utilisateur
-
-La nouvelle interface de la preview est celle de PokeMap, pas une démonstration séparée. Chaque section est atteignable, les changements restent visibles après redémarrage et l’aperçu annonce uniquement ce que le runtime consomme réellement.
-
-### Scope
-
-- [x] Corriger les six tests globaux sans contourner les interactions réelles.
-- [x] Centraliser les scénarios de preview : surface, viewport, text scale, reduced motion, baseline et brouillon.
-- [x] Centraliser les descripteurs de surfaces : libellé, rôle typographique, token sémantique et projection.
-- [x] Scinder le grand widget de preview en contrôles, canvas et surfaces ciblées.
-- [x] Couvrir `menuLabels` et `titleMotion` dans comparaison, reset et presets : reset Branding efface `branding + titleMotion`, reset Interface efface `theme + menuLabels`.
-- [x] Ajouter des goldens déterministes editor et player alimentés par la même fixture.
-- [x] Ajouter `menuLabels` à la preuve MCP de `presentation.update`.
-- [x] Déclarer le transport Editor dans la parité canonique.
-- [x] Rejouer le parcours dans l’application macOS réelle sans prendre le contrôle d’une autre session active.
-
-### Fichiers structurants
-
-| Action | Fichier |
-|---|---|
-| Modifier | `packages/map_editor/lib/src/features/personalization/application/personalization_preview_projection.dart` |
-| Créer | `packages/map_editor/lib/src/features/personalization/application/personalization_preview_scenario.dart` |
-| Modifier | `packages/map_editor/lib/src/features/personalization/application/project_presentation_presets.dart` |
-| Modifier | `packages/map_editor/lib/src/features/personalization/presentation/personalization_runtime_preview.dart` |
-| Créer | `packages/map_editor/lib/src/features/personalization/presentation/personalization_preview_controls.dart` |
-| Créer | `packages/map_editor/lib/src/features/personalization/presentation/personalization_preview_canvas.dart` |
-| Modifier | `packages/map_editor/test/personalization/personalization_runtime_preview_test.dart` |
-| Créer | `packages/map_editor/test/personalization/personalization_runtime_preview_golden_test.dart` |
-| Modifier | `packages/map_authoring/lib/src/parity/full_authoring_parity.dart` |
-| Modifier | `packages/map_authoring/test/parity/full_authoring_parity_test.dart` |
-| Modifier | `tools/pokemap_mcp/test/mutation_server.test.ts` |
-
-### Gate de sortie
-
-- [x] `flutter test test/personalization --reporter expanded` termine à `0 failed`.
-- [x] Les interactions utilisent des widgets `hitTestable()` et des scrollables explicitement identifiés.
-- [x] Le shell passe à `759×900`, `760×900`, `761×900`, `1024×720`, `1280×800` et `1600×1000`.
-- [x] Les mêmes cas passent à text scale `1.0` et `2.0` sans overflow ni scroll horizontal obligatoire.
-- [x] Tab, Shift+Tab, Entrée, Espace, directions/D-pad et A couvrent le parcours preview/publication. Échap/B sont `N/A` dans le Studio embarqué : il ne possède ni modal ni niveau de navigation à fermer ; leur affecter une action locale serait arbitraire.
-- [x] Les goldens couvrent les six surfaces, paysage et portrait ; carré uniquement lorsqu’il apporte une différence réelle.
-- [x] Reduced motion est prouvé pour intro et titre.
-- [x] La comparaison détecte `menuLabels` et `titleMotion`.
-- [x] Direct API, JSONL/CLI, Editor et MCP produisent le même profil de labels.
-- [x] Un build macOS debug réussit et le parcours réel est inspecté visuellement.
-
-### Clôture PERS-L1 — 2026-08-10
-
-Statut produit : **DONE**. Le schéma reste en version 2 et Window/Layout Studio restent hors scope.
-
-Preuves principales :
-
-- suite Personalization : `140 passed`, `0 failed` ;
-- gate Editor + export + Personalization : `174 passed`, `0 failed` ;
-- goldens : 12 editor et 12 player, six surfaces en paysage et portrait ;
-- authoring ciblé : `15 passed`, analyse `No issues found!` ;
-- MCP `presentation.update` avec `menuLabels` : test live ciblé vert ; suite séquentielle `37 passed`, `1 failed` sur `runtime_server.test.ts`, sans lien avec la présentation ;
-- build réel : `Built build/macos/Build/Products/Debug/PokeMap.app` ;
-- smoke réel isolé : projet disposable attesté, ouverture de `personalizationStudio`, 306 éléments inspectables, menu en portrait à 200 % et mouvement réduit vérifiés par clés stables et capture ;
-- fixture source inchangée avant/après (`0932bd9eefd549bedda54b2afe2fd0b9a95dc5595950f0f1ce52bd5e1c24d702`).
-
-Limites de validation globales conservées :
-
-- `flutter analyze` reste rouge sur 379 diagnostics préexistants, sans warning ou erreur ajouté par PERS-L1 ;
-- la suite globale `map_editor` a été interrompue après `5160 passed`, `11 skipped`, `133 failed` lorsqu’un test Narrative a dépassé son timeout de dix minutes puis bloqué le runner ; l’interruption a ajouté un échec technique de fermeture du loader. Les échecs observés concernent notamment goldens Narrative absents, fixtures Selbrume V2/V6 et lifecycles Riverpod, pas Personalization ;
-- le connecteur Marionette Codex installé est en `0.5.0` face au binding projet `0.6.0`. Le smoke a utilisé les extensions debug `0.6.0` du processus isolé directement ; aucune autre instance PokeMap n’a été pilotée.
-
-### Commandes obligatoires
-
-```bash
-cd packages/map_editor
-flutter test test/personalization --reporter expanded
-flutter test test/authoring_api/editor_mutation_parity_test.dart \
-  test/game_export/game_package_export_service_test.dart \
-  test/personalization
-flutter test
+~~~bash
+cd packages/map_player_ui
+flutter test test/player/player_shared_surface_contract_test.dart \
+  test/player_title_screen_test.dart \
+  test/player_pause_menu_test.dart \
+  test/player_dialogue_overlay_test.dart \
+  test/player_battle_overlay_test.dart
 flutter analyze
-flutter build macos --debug
+~~~
 
-cd ../map_authoring
+**Gate :** les wrappers runtime contiennent les surfaces partagées ; aucune copie de l’arbre visible ne subsiste.
+
+**Commit proposé :** refactor(player-ui): share visible player surfaces
+
+### PERS2-03 — Brancher map_editor sur les surfaces partagées
+
+**Résultat :** le Studio monte les mêmes widgets que le player avec des fixtures editor-owned.
+
+**Fichiers :**
+
+- Modifier : packages/map_editor/pubspec.yaml
+- Créer : packages/map_editor/lib/src/features/personalization/application/personalization_preview_fixtures.dart
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/personalization_player_surface_adapter.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/personalization_preview_canvas.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/personalization_runtime_preview.dart
+- Test : packages/map_editor/test/personalization/personalization_player_surface_adapter_test.dart
+- Test : packages/map_editor/test/personalization/personalization_package_boundary_test.dart
+
+**Étapes :**
+
+- [ ] Ajouter map_player_ui comme dépendance locale.
+- [ ] Créer une fixture typée pour titre, intro, Pause, dialogue et combat.
+- [ ] Construire RuntimePlayerPresentation depuis le draft et appliquer exactement son ThemeData.
+- [ ] Mapper les fixtures vers PlayerTitleSurface, PlayerIntroVideoSurface, PlayerPauseSurface, PlayerDialogueSurface et PlayerBattleSurface.
+- [ ] Écrire un test qui échoue si un fichier du feature importe package:map_runtime.
+- [ ] Écrire un test qui échoue si les cinq types partagés sont absents de l’arbre.
+
+**Commandes :**
+
+~~~bash
+cd packages/map_editor
+flutter pub get
+flutter test test/personalization/personalization_player_surface_adapter_test.dart \
+  test/personalization/personalization_package_boundary_test.dart
+flutter analyze lib/src/features/personalization
+~~~
+
+**Gate :** la preview ne possède plus de renderer visuel indépendant.
+
+**Commit proposé :** feat(personalization): preview real player surfaces
+
+### PERS2-04 — Parité golden editor/player et suppression des faux renderers
+
+**Résultat :** une fixture unique produit des captures editor et player séparées mais issues des mêmes widgets.
+
+**Fichiers :**
+
+- Créer : packages/map_player_ui/test/fixtures/personalization_studio_v2_fixture.dart
+- Modifier : packages/map_player_ui/test/player/player_personalization_surface_golden_test.dart
+- Modifier : packages/map_editor/test/personalization/personalization_runtime_preview_golden_test.dart
+- Supprimer les classes privées de rendu dans : packages/map_editor/lib/src/features/personalization/presentation/personalization_runtime_preview.dart
+- Supprimer les goldens overworldHud dans packages/map_editor/test/personalization/goldens/personalization/
+- Supprimer les goldens overworldHud dans packages/map_player_ui/test/player/goldens/player_personalization/
+
+**Étapes :**
+
+- [ ] Ajouter des goldens paysage et portrait pour les cinq surfaces player.
+- [ ] Ajouter un golden Style global qui compose plusieurs surfaces partagées.
+- [ ] Ajouter un test de type commun en plus de la comparaison d’images.
+- [ ] Supprimer _TitleRuntimePreview, _DialogueRuntimePreview, _MenuRuntimePreview, _OverworldHudRuntimePreview, _BattleHudRuntimePreview et _IntroRuntimePreview.
+- [ ] Refuser toute régénération qui conserve overworldHud comme scène.
+
+**Commandes :**
+
+~~~bash
+cd packages/map_player_ui
+flutter test test/player/player_personalization_surface_golden_test.dart
+
+cd ../map_editor
+flutter test test/personalization/personalization_runtime_preview_golden_test.dart \
+  test/personalization/personalization_player_surface_adapter_test.dart
+~~~
+
+**Gate :** aucune classe privée de faux player dans map_editor ; goldens des cinq surfaces et du collage global présents.
+
+**Commit proposé :** test(personalization): lock shared widget visual parity
+
+## 7. Phase 2 — Nouveau shell simple et contextualisé
+
+### PERS2-05 — Shell trois colonnes conforme à la maquette
+
+**Résultat :** liste des scènes à gauche, preview dominante au centre, inspecteur contextuel à droite.
+
+**Fichiers :**
+
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/personalization_studio_shell_v2.dart
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/personalization_scene_navigation.dart
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/personalization_scene_inspector.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/personalization_studio_workspace.dart
+- Étendre si nécessaire : packages/map_editor/lib/src/ui/design_system/pokemap_dashboard_primitives.dart
+- Test : packages/map_editor/test/personalization/personalization_studio_shell_v2_test.dart
+
+**Breakpoints :**
+
+| Largeur utile | Navigation | Inspecteur | Preview |
+|---:|---|---|---|
+| au moins 1440 | 260 px | 360 px | flexible, prioritaire |
+| 1100 à 1439 | 220 px | 320 px | flexible |
+| 760 à 1099 | rail compact | side sheet ouvrable | flexible |
+| moins de 760 | liste horizontale | sheet modale | largeur complète |
+
+**Étapes :**
+
+- [ ] Écrire les quatre tests de layout avant le widget.
+- [ ] Composer uniquement des primitives PokeMap du design system.
+- [ ] Garder Enregistrer, Annuler et Rétablir dans le chrome global existant.
+- [ ] Afficher un seul titre, une seule description et un badge En direct dans l’inspecteur.
+- [ ] Préserver les clés sémantiques de navigation et de scroll.
+
+**Gate :** aucune couleur brute dans le feature ; aucun overflow à 720×900 et text scale 2.0.
+
+**Commit proposé :** feat(personalization): introduce the studio v2 shell
+
+### PERS2-06 — Barre de preview et ciblage direct
+
+**Résultat :** paysage/portrait, échelle du texte et clic sur la scène contrôlent réellement la preview.
+
+**Fichiers :**
+
+- Modifier : packages/map_editor/lib/src/features/personalization/application/personalization_preview_scenario.dart
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/personalization_live_preview.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/personalization_preview_controls.dart
+- Test : packages/map_editor/test/personalization/personalization_live_preview_test.dart
+
+**Étapes :**
+
+- [ ] Limiter les orientations produit à paysage et portrait dans la navigation principale.
+- [ ] Garder les matrices carrée/téléphone paysage dans les tests techniques, pas dans l’UI simple.
+- [ ] Conserver text scale 100 %, 150 % et 200 %.
+- [ ] Faire remonter un PersonalizationInspectorTarget lors d’un clic sur une zone éditable.
+- [ ] Garder reduced motion visible uniquement sur Intro et Écran titre.
+
+**Gate :** chaque contrôle modifie le widget partagé sans écrire dans le draft sauf pour un vrai réglage de projet.
+
+**Commit proposé :** feat(personalization): add direct live preview controls
+
+### PERS2-07 — Orchestration des inspecteurs
+
+**Résultat :** chaque scène ouvre uniquement les réglages qui la concernent.
+
+**Fichiers :**
+
+- Créer : packages/map_editor/lib/src/features/personalization/application/personalization_inspector_target.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/personalization_scene_inspector.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/personalization_studio_workspace.dart
+- Test : packages/map_editor/test/personalization/personalization_scene_inspector_test.dart
+
+**Contrat :**
+
+~~~dart
+sealed class PersonalizationInspectorTarget {
+  const PersonalizationInspectorTarget();
+}
+
+final class GlobalColorsTarget extends PersonalizationInspectorTarget {}
+final class PauseLabelsTarget extends PersonalizationInspectorTarget {}
+final class DialogueAppearanceTarget extends PersonalizationInspectorTarget {}
+final class BattleCommandsTarget extends PersonalizationInspectorTarget {}
+~~~
+
+**Gate :** le clic sur une bulle, un bouton Pause ou un panneau Combat positionne l’inspecteur sur la section correspondante sans nouvelle route.
+
+**Commit proposé :** feat(personalization): route scene selections to contextual inspectors
+
+## 8. Phase 3 — Les cinq surfaces déjà contractées
+
+### PERS2-08 — Style global
+
+**Résultat :** couleurs, forme générale et typographie commune se répercutent sur toutes les surfaces.
+
+**Fichiers :**
+
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/inspectors/personalization_global_style_inspector.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/project_semantic_theme_editor.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/project_window_studio.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/project_typography_editor.dart
+- Test : packages/map_editor/test/personalization/personalization_global_style_inspector_test.dart
+
+**Gate :**
+
+- quatre couleurs simples exposées : accent, fenêtres, texte, boutons ;
+- trois presets de forme : carrée, arrondie, douce ;
+- une police sélectionnée sans exposer de chemin de fichier brut ;
+- contraste bloquant avant sauvegarde ;
+- modification visible simultanément sur le collage multi-surfaces.
+
+**Commit proposé :** feat(personalization): simplify global visual styling
+
+### PERS2-09 — Écran titre
+
+**Fichiers :**
+
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/inspectors/personalization_title_inspector.dart
+- Réutiliser : project_branding_editor.dart, project_title_motion_editor.dart
+- Test : packages/map_editor/test/personalization/personalization_title_inspector_test.dart
+
+**Gate :** presets Centrée, À gauche et Cinématique ; titre, sous-titre, invitation et média immédiatement visibles dans PlayerTitleSurface ; reduced motion prouvé.
+
+**Commit proposé :** feat(personalization): rebuild the title scene inspector
+
+### PERS2-10 — Intro
+
+**Fichiers :**
+
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/inspectors/personalization_intro_inspector.dart
+- Réutiliser : project_intro_video_editor.dart
+- Test : packages/map_editor/test/personalization/personalization_intro_inspector_test.dart
+
+**Gate :** média principal, point focal, poster de repli, sous-titres, relecture et mouvement réduit pilotent PlayerIntroVideoSurface ; aucun lecteur vidéo alternatif dans map_editor.
+
+**Commit proposé :** feat(personalization): rebuild the intro scene inspector
+
+### PERS2-11 — Menu Pause
+
+**Fichiers :**
+
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/inspectors/personalization_pause_inspector.dart
+- Réutiliser : project_menu_labels_editor.dart, project_window_studio.dart, project_layout_studio.dart
+- Test : packages/map_editor/test/personalization/personalization_pause_inspector_test.dart
+
+**Gate :** gauche/centrée/droite, compact/normal/grand, couleurs, typo et neuf libellés ; le changement Pokédex → Bestiaire est prouvé dans PlayerPauseSurface puis dans RuntimePlayerPauseShell.
+
+**Commit proposé :** feat(personalization): rebuild the pause menu inspector
+
+### PERS2-12 — Dialogue et seam Character Studio
+
+**Fichiers :**
+
+- Créer : packages/map_editor/lib/src/features/personalization/application/personalization_character_preview_source.dart
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/inspectors/personalization_dialogue_inspector.dart
+- Modifier : packages/map_player_ui/lib/src/player/player_dialogue_surface.dart
+- Test : packages/map_editor/test/personalization/personalization_dialogue_inspector_test.dart
+- Test : packages/map_editor/test/personalization/personalization_character_preview_source_test.dart
+- Test : packages/map_player_ui/test/player/player_shared_surface_contract_test.dart
+
+**Contrat temporaire :**
+
+~~~dart
+final class PersonalizationCharacterPreviewOption {
+  final String characterId;
+  final String displayName;
+  final String? portraitPath;
+  final String? expressionId;
+}
+
+abstract interface class PersonalizationCharacterPreviewSource {
+  Future<List<PersonalizationCharacterPreviewOption>> load(String projectRoot);
+}
+~~~
+
+**Gate :**
+
+- bas/haut/centrée, rayon, contour, couleurs et typographie ;
+- toggles Portrait, Nom et Choix fonctionnels ;
+- fixture de portrait substituable par provider ;
+- aucun champ characterId, portraitPath ou expressionId dans ProjectPresentationProfile.toJson ;
+- intégration Character Studio limitée au provider, sans modifier l’inspecteur.
+
+**Commit proposé :** feat(personalization): rebuild dialogue with character preview seam
+
+## 9. Phase 4 — Combat personnalisable V1
+
+### PERS2-13 — Schéma V5 borné au Combat
+
+**Résultat :** le Combat possède forme, placement, taille et typo sans coordonnée libre.
+
+**Fichiers :**
+
+- Modifier : packages/map_core/lib/src/models/project_presentation_profile.dart
+- Modifier : packages/map_core/lib/src/models/project_presentation_window_profile.dart
+- Modifier : packages/map_core/lib/src/models/project_presentation_layout_profile.dart
+- Modifier : packages/map_core/lib/src/models/project_presentation_surface_role.dart
+- Régénérer : fichiers Freezed/JSON correspondants dans packages/map_core/lib/src/models/
+- Modifier : packages/map_core/lib/map_core.dart
+- Test : packages/map_core/test/project_presentation_profile_test.dart
+- Test : packages/map_core/test/project_presentation_window_profile_test.dart
+- Test : packages/map_core/test/project_presentation_layout_profile_test.dart
+
+**Évolution :**
+
+~~~dart
+ProjectPresentationProfile.supportedSchemaVersion = 5;
+
+enum ProjectWindowRole { standard, pauseMenu, dialogue, battle }
+
+ProjectPresentationWindowsProfile {
+  String? battleStyleId;
+}
+
+ProjectPresentationLayoutsProfile {
+  ProjectResponsiveSurfaceLayoutProfile? battle;
+}
+
+ProjectTypographyProfile {
+  ProjectTypographyRoleProfile? combat;
+}
+~~~
+
+**Règles :**
+
+- migration V4 → V5 conserve battle null et combat null ;
+- battleStyleId absent résout defaultStyleId ;
+- slots Combat autorisés : bottomCenter, right et fullScreen ;
+- width, spacing et screenMargin fournissent la taille ; aucune largeur pixel authorable ;
+- la police combat fallback sur body ;
+- battleHudSurface reste la clé couleur compatible.
+
+**Gate :** roundtrip V5, migration V1/V2/V3/V4, rejet V4 contenant des clés V5, valeurs inconnues, listes invalides et fallback legacy pixel.
+
+**Commit proposé :** feat(core): add bounded combat presentation contracts
+
+### PERS2-14 — Authoring, distribution et MCP V5
+
+**Fichiers :**
+
+- Modifier : packages/map_authoring/lib/src/domains/assets/presentation_actions.dart
+- Modifier : packages/map_authoring/lib/src/parity/full_authoring_parity.dart
+- Modifier : packages/map_authoring/lib/src/registry/resource_kind_registry.dart
+- Modifier : packages/map_distribution/lib/src/game_package_manifest_codec.dart
+- Modifier : packages/map_distribution/lib/src/presentation_preset_pack.dart
+- Modifier : tools/pokemap_mcp/test/mutation_server.test.ts
+- Test : packages/map_authoring/test/domains/assets/presentation_authoring_test.dart
+- Test : packages/map_authoring/test/parity/full_authoring_parity_test.dart
+- Test : packages/map_distribution/test/game_package_manifest_codec_test.dart
+
+**Gate :**
+
+- direct API, JSONL/CLI, Editor et MCP transportent battleStyleId, layouts.battle et typography.combat ;
+- projectPresentationProfile les retourne après relecture ;
+- export/import preset conserve les assets et le hash ;
+- pokemap_describe annonce schemaVersion 5 ;
+- generic JSON persistence n’est pas acceptée comme preuve.
+
+**Commandes :**
+
+~~~bash
+cd packages/map_authoring
+dart run tool/pmcp085_conformance.dart
 dart test test/domains/assets/presentation_authoring_test.dart \
   test/parity/full_authoring_parity_test.dart
+dart analyze
+
+cd ../map_distribution
+dart test
 dart analyze
 
 cd ../../tools/pokemap_mcp
 npm run check
 npm test
-```
-
-### Non-objectifs
-
-- nouveaux champs de projet ;
-- Window Studio ou Layout Studio ;
-- modification du splash Avelune ;
-- refonte générale de `map_player_ui`.
-
-### Commit de lot proposé
-
-```text
-fix(personalization): certify the studio preview experience
-```
-
-## 6. PERS-L2 — Window Studio V1
-
-### Résultat utilisateur
-
-Le créateur choisit l’apparence des fenêtres sans JSON et voit cette apparence dans le menu Pause et les dialogues du jeu installé.
-
-### Contrat proposé
-
-```text
-ProjectWindowStyleProfile
-- id
-- fillToken
-- borderToken
-- borderWidth
-- cornerRadius
-- contentPadding
-- shadowElevation
-
-ProjectPresentationWindowsProfile
-- styles
-- defaultStyleId
-- pauseMenuStyleId
-- dialogueStyleId
-- pauseBackdropOpacity
-```
-
-Les valeurs numériques sont bornées et éditées par contrôles guidés. `fillToken` et `borderToken` référencent le thème sémantique existant ; aucune couleur n’est copiée dans le profil de fenêtre.
-
-### Scope
-
-- [x] Ajouter modèle, JSON, migration/defaults et validation pure dans `map_core`.
-- [x] Passer `ProjectPresentationProfile` à `schemaVersion: 3` et migrer V2 → V3 sans modifier le rendu des projets dépourvus de `windows`.
-- [x] Étendre `presentation.update` et la ressource queryable.
-- [x] Transporter le profil dans le manifeste `.avelunegame`.
-- [x] Créer un thème Window résolu dans `map_player_ui`.
-- [x] Faire consommer le profil par les primitives communes, puis Pause et Dialogue.
-- [x] Construire un éditeur no-code avec presets sûrs, reset et comparaison.
-- [x] Prévisualiser les mêmes fixtures dans l’éditeur et le player.
-- [x] Charger réellement le profil depuis un jeu installé dans le Hub.
-
-### Fichiers structurants
-
-| Action | Fichier |
-|---|---|
-| Créer | `packages/map_core/lib/src/models/project_presentation_window_profile.dart` |
-| Modifier | `packages/map_core/lib/src/models/project_presentation_profile.dart` |
-| Créer | `packages/map_core/test/project_presentation_window_profile_test.dart` |
-| Modifier | `packages/map_authoring/lib/src/domains/assets/presentation_actions.dart` |
-| Modifier | `packages/map_distribution/lib/src/game_package_manifest.dart` |
-| Modifier | `packages/map_distribution/lib/src/game_package_manifest_codec.dart` |
-| Créer | `packages/map_player_ui/lib/src/theme/pokemap_player_window_theme.dart` |
-| Modifier | `packages/map_player_ui/lib/src/foundation/player_components.dart` |
-| Modifier | `packages/map_player_ui/lib/src/player/player_pause_menu.dart` |
-| Modifier | `packages/map_player_ui/lib/src/player/player_dialogue_overlay.dart` |
-| Créer | `packages/map_editor/lib/src/features/personalization/presentation/project_window_studio.dart` |
-| Créer | `packages/map_editor/lib/src/features/personalization/application/project_window_style_presets.dart` |
-| Modifier | `apps/pokemap_hub/lib/features/session/application/services/hub_title_presentation_loader.dart` |
-
-### Gate de sortie
-
-- [x] Pause et Dialogue consomment les styles dans le standalone et le Hub installé.
-- [x] Un projet sans `windows` conserve le chemin de rendu historique pixel pour pixel.
-- [x] Les valeurs hors bornes, non finies et les tokens inconnus sont rejetés.
-- [x] Brouillon, undo/redo, autosave, restart recovery et conflit de révision sont testés.
-- [x] La preview editor et le player utilisent le même profil fixture et des goldens comparables.
-- [x] API directe, JSONL/CLI, Editor, export, Hub et MCP sont prouvés.
-- [x] Les widgets concernés délèguent rayon, padding et bordure à `PlayerPanel` lorsqu’un profil Window est présent.
-
-### Clôture PERS-L2 — 2026-08-10
-
-Statut produit : **DONE**. `pauseBackdropOpacity` appartient au profil Window global, car seul le menu Pause possède un backdrop ; le dialogue ne reçoit pas un champ sans consommateur. L’absence de `windows` conserve volontairement le chemin historique de `PlayerPanel`, au lieu de simuler un faux profil legacy qui ne pourrait pas représenter pixel pour pixel les deux implémentations Pause existantes.
-
-Preuves principales :
-
-- `map_core` : 30 tests ciblés verts pour codec, migrations V1/V2, bornes inclusives et exclusives, non-finis, tokens, références et contraste ;
-- `map_authoring` : 16 tests verts pour `presentation.update`, query et parité directe/JSONL ;
-- `map_distribution` : 31 tests verts pour manifeste V3, codec, preflight et hash ;
-- `map_editor` : 146 tests Personalization verts, dont Window Studio à `720×900` et text scale `2.0`, presets, reset, comparaison, sauvegarde, restart et export ;
-- `map_player_ui` : suite complète verte, 161 tests, avec Pause standalone, vrai `RuntimePlayerPauseShell`, Dialogue, bordure désactivée, padding historique de `PlayerSurface` et fallback sans profil ;
-- PokeMap Hub : 14 tests verts sur loader, package installé, rendu Phase 5 et parcours export-install-start Phase 6 ;
-- standalone : smoke `phase_a_golden_slice_launch_test.dart` vert, 9 tests ;
-- goldens : 4 images editor et 4 images player mises à jour pour Pause et Dialogue, paysage et portrait, depuis `golden_personalization_slice/presentation.json` ;
-- MCP : TypeScript check et build verts ; mutation réelle `presentation.update`, requery `projectPresentationProfile`, catalogue V3 et parité transport vérifiés par le SDK MCP local.
-
-Limites globales sans lien avec PERS-L2 :
-
-- la suite complète `map_core` termine à `4017 passed`, `1 skipped`, `11 failed` : trois timeouts de benchmarks exécutés sous charge, deux budgets Border dépassés, quatre fixtures historiques absentes et deux attentes obsolètes de l’inventaire Smart Tiles ; les tests PERS-L2 isolés restent verts ;
-- la suite complète `map_distribution` conserve six échecs sur des fichiers historiques absents sous `reports/product/pokemap_hub/phase_0`, tandis que les 31 tests de personnalisation ciblés sont verts ;
-- `flutter analyze` de `map_editor` et du host standalone reste non nul sur leurs diagnostics préexistants ; aucun diagnostic ne vise les nouveaux fichiers Window Studio ou Window Theme.
-
-### Tests minimum
-
-```text
-map_core        codec + validation + migration + defaults
-map_authoring   plan/apply + stale revision + assets + JSONL
-map_distribution manifeste + codec + preflight
-map_editor      édition + draft/save/restart + preview + export
-map_player_ui   Pause + Dialogue + primitives communes
-pokemap_hub     package installé + rendu consommé
-tools/pokemap_mcp mutation réelle + requery
-```
-
-### Non-objectifs
-
-- placement responsive ;
-- CSS ou widget tree libre ;
-- application immédiate à toutes les surfaces ;
-- textures, frames décoratives et nine-slices ;
-- animations de chrome ;
-- splash Avelune personnalisable.
-
-### Commit de lot proposé
-
-```text
-feat(personalization): add project window styles
-```
-
-## 7. PERS-L3 — Layout Studio responsive V1
-
-### Résultat utilisateur
-
-Le créateur choisit où vivent les blocs du titre, du menu Pause et du dialogue selon la classe d’écran, sans pouvoir produire une interface inaccessible ou spécifique à sa machine.
-
-### Contrat proposé
-
-```text
-ProjectPresentationBreakpoint
-- compact
-- regular
-- expanded
-
-ProjectSurfaceLayoutVariant
-- alignment
-- maxWidthFactor
-- maxHeightFactor
-- safeAreaPadding
-- contentPadding
-- spacingScale
-- contentOrder stable
-- optionalVisibilityFlags bornés aux éléments secondaires
-
-ProjectResponsiveSurfaceLayout
-- compact
-- regular
-- expanded
-
-ProjectPresentationLayoutsProfile
-- title
-- pauseMenu
-- dialogue
-```
-
-Le runtime possède les seuils de breakpoints. L’utilisateur manipule des slots, alignements et ordres bornés ; jamais des coordonnées absolues.
-Les actions essentielles ne peuvent jamais être masquées par `optionalVisibilityFlags`.
-
-### Scope
-
-- [x] Ajouter le profil et un résolveur pur dans `map_core`.
-- [x] Migrer `branding.layoutVariant` vers les nouveaux presets tout en le conservant en lecture pendant une version complète.
-- [x] Ajouter le résolveur partagé côté player sans logique gameplay.
-- [x] Adapter Title, Pause et Dialogue.
-- [x] Construire un canvas contraint avec snap, reset, comparaison et presets.
-- [x] Utiliser les scénarios de preview stabilisés au lot 1.
-- [x] Étendre authoring, distribution, Hub, export et MCP.
-- [x] Prouver focus, safe areas, text scale et fallbacks.
-
-### État exécuté le 2026-08-10
-
-Le contrat V4, le Studio guidé, le résolveur partagé, l’export certifié et le chargement Hub sont implémentés. La fixture unique `golden_personalization_slice/presentation.json` alimente les goldens editor/player et le parcours package installé. La matrice player couvre les 12 combinaisons de tailles et de text scale prévues, les safe areas et la conservation du focus après changement de breakpoint.
-
-Le lot est `DONE`. Le standalone passe désormais par les surfaces de session joueur canoniques pour Title, Pause et Dialogue, tandis que le Hub installé consomme les mêmes résolveurs V4. La relecture live `pokemap_describe` a été exécutée contre le serveur MCP construit dans ce worktree via le client officiel et son transport stdio moderne.
-
-### Fichiers structurants
-
-| Action | Fichier |
-|---|---|
-| Créer | `packages/map_core/lib/src/models/project_presentation_layout_profile.dart` |
-| Créer | `packages/map_core/lib/src/operations/project_presentation_layout_resolver.dart` |
-| Modifier | `packages/map_core/lib/src/models/project_presentation_profile.dart` |
-| Modifier | `packages/map_core/lib/map_core.dart` et fichiers Freezed/JSON générés |
-| Créer | `packages/map_core/test/project_presentation_layout_profile_test.dart` |
-| Créer | `packages/map_core/test/project_presentation_layout_resolver_test.dart` |
-| Modifier | `packages/map_authoring/lib/src/domains/assets/presentation_actions.dart` et tests de parité |
-| Modifier | `packages/map_distribution/lib/src/game_package_manifest.dart` et `game_package_manifest_codec.dart` |
-| Modifier | `packages/map_editor/lib/src/features/game_export/application/game_package_export_service.dart` |
-| Créer | `packages/map_player_ui/lib/src/layout/player_responsive_surface_layout.dart` |
-| Modifier | `packages/map_player_ui/lib/map_player_ui.dart` |
-| Modifier | `packages/map_player_ui/lib/src/player/player_title_screen.dart` |
-| Modifier | `packages/map_player_ui/lib/src/player/player_pause_menu.dart` |
-| Modifier | `packages/map_player_ui/lib/src/player/player_dialogue_overlay.dart` |
-| Créer | `packages/map_editor/lib/src/features/personalization/presentation/project_layout_studio.dart` |
-| Créer | `packages/map_editor/lib/src/features/personalization/presentation/personalization_layout_canvas.dart` |
-| Modifier | `packages/map_editor/lib/src/features/personalization/presentation/personalization_runtime_preview.dart` |
-| Modifier | `apps/pokemap_hub/lib/features/session/application/services/hub_title_presentation_loader.dart` |
-| Modifier | `tools/pokemap_mcp/test/mutation_server.test.ts` et catalogue `pokemap_describe` |
-
-### Matrice obligatoire
-
-| Cas | Taille | Text scale | Safe area |
-|---|---:|---:|---:|
-| Téléphone portrait | `390×844` | `1.0`, `2.0` | haut `44`, bas `34` |
-| Téléphone paysage | `844×390` | `1.0`, `2.0` | latéral/bas `21` |
-| Tablette portrait | `768×1024` | `1.0`, `2.0` | standard |
-| Tablette paysage | `1024×768` | `1.0`, `2.0` | standard |
-| Desktop HD | `1280×720` | `1.0`, `2.0` | zéro |
-| Desktop FHD | `1920×1080` | `1.0` | zéro |
-| Ultra-wide | `2560×1080` | `1.0` | zéro |
-
-`reducedMotion=true/false` est obligatoire au minimum pour `390×844` et `1280×720`.
-
-### Gate de sortie
-
-- [x] Le même résolveur sélectionne compact, regular ou expanded pour preview, standalone et Hub sur Title, Pause et Dialogue.
-- [x] Portrait, paysage, fallback et projet legacy sont déterministes.
-- [x] Aucun contenu ne quitte les safe areas.
-- [x] Aucun overflow à 200 % de texte.
-- [x] Le focus clavier/manette reste stable après changement de breakpoint et réordonnancement.
-- [x] Snap, bornes, annulation et restauration sont couverts par interaction réelle.
-- [x] Les goldens editor/player utilisent exactement la même fixture.
-- [x] `branding.layoutVariant` conserve sa sémantique historique pendant la migration.
-- [x] Les quatre transports, le package installé et la relecture MCP live du serveur construit dans ce worktree sont prouvés.
-
-### Non-objectifs
-
-- drag libre au pixel ;
-- seuils de breakpoint configurables ;
-- layout différent pour chaque appareil ;
-- logique de gameplay ;
-- keyframes ou timeline ;
-- skin du splash hôte.
-
-### Commit de lot proposé
-
-```text
-feat(personalization): add responsive surface layouts
-```
-
-## 8. PERS-L4 — Toutes surfaces, presets et import/export
-
-### Résultat utilisateur
-
-Le créateur applique le même langage visuel à toutes les interfaces joueur, enregistre un preset, l’exporte et le réimporte sans perdre ses assets ni casser un ancien projet.
-
-### Surfaces à certifier
-
-- titre et prompt ;
-- dialogue ;
-- menu Pause ;
-- équipe ;
-- sac ;
-- Pokédex ;
-- carte ;
-- sauvegarde ;
-- options ;
-- crédits ;
-- notifications et confirmations ;
-- HUD exploration ;
-- HUD combat ;
-- résultats de combat et capture.
-
-L’intro reste une surface plein écran. Elle ne reçoit un style de fenêtre qu’après démonstration d’un besoin réel.
-
-### Contrats proposés
-
-```text
-ProjectPresentationSurfaceRole
-ProjectPresentationSurfaceAssignments
-ProjectPresentationPresetPack
-PresentationPresetPackManifest
-PresentationPresetAsset
-PresentationPresetCompatibility
-```
-
-Format local proposé : `.pokemapstyle`, archive déterministe :
-
-```text
-manifest.json
-profile.json
-assets/
-licenses/
-```
-
-Actions canoniques proposées :
-
-```text
-presentation.preset.import_plan
-presentation.preset.import_apply
-presentation.preset.export
-presentation.preset.delete_plan
-presentation.preset.delete_apply
-```
-
-Ressource queryable proposée : `projectPresentationPreset`.
-
-### Scope
-
-- [x] Inventorier chaque surface et son ownership window/layout/theme/labels.
-- [x] Étendre les contrats prouvés des lots 2–3 sans ajouter de renderer parallèle.
-- [x] Rendre `titleMotion.promptLoop` et `menuLoop` entièrement éditables sans JSON.
-- [x] Clarifier icon, cover et hero par destination réelle.
-- [x] Ajouter une bibliothèque de presets versionnés et réversibles.
-- [x] Exporter et importer les packs avec assets et licences.
-- [x] Ajouter une section unique Vérifier & publier avec erreurs actionnables.
-- [x] Certifier le profil final dans un package installé Hub et un standalone.
-- [x] Vérifier `pokemap_describe` live après rebuild MCP.
-
-### État d’exécution — 2026-08-10
-
-Le lot livre l’inventaire canonique des 17 surfaces, leur consommation réelle par `map_player_ui`, les boucles de titre no-code, la bibliothèque de profils et le format déterministe `.pokemapstyle`. Les cinq actions `presentation.preset.*`, la ressource `projectPresentationPreset`, les transports API directe, JSONL/CLI, Editor et MCP, le host autonome canonique ainsi que le package installé Hub sont couverts par des tests frais.
-
-Le lot est `DONE`. L’export guidé demande une licence TXT commune lorsque le profil contient des médias sans licence intégrée, catalogue ou remplace chaque fichier par les actions canoniques `asset.import` et `asset.replace`, puis produit l’archive avec des checksums SHA-256 bruts vérifiés. Un refus de licence intervient avant toute mutation du catalogue.
-
-Le serveur construit dans le worktree a été appelé par un vrai client MCP stdio moderne. `pokemap_describe` expose les cinq actions `presentation.preset.*` et la ressource `projectPresentationPreset` sans modifier la configuration MCP persistante de Codex.
-
-### Sécurité d’import obligatoire
-
-- chemins relatifs uniquement ;
-- rejet traversal et symlinks ;
-- checksum, MIME et limites de taille ;
-- licences obligatoires pour fontes et assets redistribuables ;
-- staging avant apply ;
-- import atomique et révisionné ;
-- aucune écriture hors root autorisée ;
-- aucune extension exécutable ou widget Flutter importable.
-
-### Fichiers structurants
-
-| Action | Fichier |
-|---|---|
-| Créer | `packages/map_core/lib/src/models/project_presentation_surface_role.dart` |
-| Modifier | profils Window/Layout, `ProjectPresentationProfile`, barrels et fichiers générés |
-| Créer | `packages/map_distribution/lib/src/presentation_preset_pack.dart` |
-| Créer | `packages/map_distribution/lib/src/presentation_preset_pack_codec.dart` |
-| Créer | `packages/map_authoring/lib/src/domains/assets/presentation_preset_actions.dart` |
-| Modifier | dispatcher, resource registry et catalogue de parité `map_authoring` |
-| Créer | `packages/map_editor/lib/src/features/personalization/application/project_presentation_pack_import_service.dart` |
-| Créer | `packages/map_editor/lib/src/features/personalization/application/project_presentation_pack_export_service.dart` |
-| Créer | `packages/map_editor/lib/src/features/personalization/presentation/project_presentation_preset_library.dart` |
-| Modifier | lifecycle d’assets, preflight, export et tests Personalization Editor |
-| Modifier | surfaces concernées sous `packages/map_player_ui/lib/src/player/` |
-| Modifier | chargement Hub et tests de package installé |
-| Modifier | `pokemap_authoring_api_mcp_action_catalog.md` |
-| Modifier | `tools/pokemap_mcp/test/mutation_server.test.ts` et tests de ressources |
-
-### Matrice de complétude
-
-Chaque champ doit être prouvé de bout en bout :
-
-```text
-schéma → validation → migration → API canonique → JSONL/CLI
-→ UI no-code → preview → export → standalone runtime
-→ Hub installé → MCP live → accessibilité
-```
-
-Une cellule vaut `PASS` ou possède une justification `N/A` démontrée. Une cellule vide interdit `DONE`.
-
-### Gate de sortie
-
-- [x] Chaque surface inventoriée consomme theme, window et layout selon sa responsabilité.
-- [x] Aucun champ du profil n’est techniquement présent mais introuvable dans le Studio.
-- [x] Preset, reset, undo/redo et comparaison couvrent toutes les sections.
-- [x] Import/export préserve assets, licences, checksums et compatibilité de schéma.
-- [x] Un package réellement installable est lancé dans le Hub.
-- [x] Standalone et Hub produisent les mêmes résolutions de style/layout.
-- [x] Les builds desktop Hub/editor/host et Android Hub réussissent.
-- [x] Toutes les analyses et suites globales concernées sont vertes ; les échecs globaux hors lot restent listés dans le rapport de commit.
-- [x] Le catalogue et le live `pokemap_describe` exposent les actions et ressources réelles.
-
-### Commandes de certification finale
-
-```bash
-cd packages/map_core && dart test && dart analyze
-cd ../map_authoring && dart run tool/pmcp085_conformance.dart && dart test && dart analyze
-cd ../map_distribution && dart test && dart analyze
-cd ../map_player_ui && flutter test && flutter analyze
-cd ../map_runtime && flutter test && flutter analyze
-cd ../map_editor && flutter test && flutter analyze && flutter build macos --debug
-cd ../../examples/playable_runtime_host && flutter test && flutter analyze && flutter build macos --debug
-cd ../../apps/pokemap_hub && flutter test && flutter analyze && flutter build macos --debug && flutter build apk --debug
-cd ../../tools/pokemap_mcp && npm run check && npm test
-```
-
-### Non-objectifs
-
-- marketplace ou synchronisation cloud ;
-- publication communautaire ;
-- plugins exécutables ;
-- fusion automatique de packs conflictuels ;
-- montage vidéo ou éditeur de sous-titres temporel ;
-- personnalisation du splash Avelune.
-
-### Commit de lot proposé
-
-```text
-feat(personalization): complete shareable presentation profiles
-```
-
-## 9. Règles communes de fermeture d’un lot
-
-Un lot reste `PARTIAL` si une seule de ces conditions est vraie :
-
-- la fonctionnalité existe uniquement dans l’éditeur ou la preview ;
-- le runtime utilise encore une constante concurrente ;
-- l’utilisateur doit éditer du JSON ou un chemin manuel ;
-- un test global lié au lot échoue ;
-- un build requis est omis ou échoue ;
-- un projet legacy change sans migration prouvée ;
-- la matrice responsive ou accessibilité est incomplète ;
-- API directe, JSONL/CLI, Editor ou MCP ne sont pas prouvés ;
-- le Hub installé et le standalone divergent ;
-- un changement concurrent Smart Tiles/runtime est incorporé au commit.
-
-Chaque lot doit terminer par :
-
-```bash
+~~~
+
+**Commit proposé :** feat(authoring): propagate combat presentation v5
+
+### PERS2-15 — Consommation réelle dans PlayerBattleSurface
+
+**Fichiers :**
+
+- Modifier : packages/map_player_ui/lib/src/player/player_battle_surface.dart
+- Modifier : packages/map_player_ui/lib/src/player/player_battle_overlay.dart
+- Modifier : packages/map_player_ui/lib/src/theme/pokemap_player_layout_theme.dart
+- Modifier : packages/map_player_ui/lib/src/theme/pokemap_player_window_theme.dart
+- Modifier : packages/map_player_ui/lib/src/theme/pokemap_player_theme.dart
+- Test : packages/map_player_ui/test/player_battle_overlay_test.dart
+- Test : packages/map_player_ui/test/player/player_responsive_layout_matrix_test.dart
+- Test : packages/map_player_ui/test/player/player_personalization_surface_golden_test.dart
+
+**Gate :**
+
+- Classique place les commandes en bas ;
+- Compacte réduit largeur et spacing sans cacher PV/commandes ;
+- Cinématique place le panneau à droite sur regular/expanded et revient en bas sur compact portrait ;
+- forme et couleur passent par PlayerPanel ;
+- combat font ne modifie pas les dialogues ;
+- clavier, tactile et manette gardent les mêmes commandes versionnées.
+
+**Commit proposé :** feat(player-ui): consume combat presentation settings
+
+### PERS2-16 — Inspecteur Combat et quatre états
+
+**Fichiers :**
+
+- Créer : packages/map_editor/lib/src/features/personalization/presentation/inspectors/personalization_battle_inspector.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/application/personalization_preview_fixtures.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/personalization_player_surface_adapter.dart
+- Test : packages/map_editor/test/personalization/personalization_battle_inspector_test.dart
+
+**États obligatoires :**
+
+1. Commandes : Attaquer, Sac, Équipe, Fuite.
+2. Capacités : quatre capacités, PP et indisponibilité.
+3. Cible : sélection d’une cible.
+4. Message : texte long sans commandes actives.
+
+**Gate :** les trois presets, trois tailles, couleurs et police sont visibles dans les quatre états et les deux orientations.
+
+**Commit proposé :** feat(personalization): add the combat scene inspector
+
+## 10. Phase 5 — Persistance, Hub et certification
+
+### PERS2-17 — Sauvegarde, export, Hub et standalone
+
+**Fichiers :**
+
+- Modifier : packages/map_editor/lib/src/features/personalization/application/personalization_studio_session_controller.dart
+- Modifier : packages/map_editor/lib/src/features/personalization/presentation/personalization_studio_workspace.dart
+- Modifier : apps/pokemap_hub/lib/features/session/application/services/hub_runtime_startup_adapter.dart
+- Modifier : apps/pokemap_hub/lib/presentation/features/player/pages/hub_installed_game_player.dart
+- Modifier : examples/playable_runtime_host/lib/main.dart
+- Test : packages/map_editor/test/personalization/phase_6_personalization_studio_export_e2e_test.dart
+- Test : apps/pokemap_hub/test/presentation/features/player/hub_runtime_presentation_test.dart
+- Test : apps/pokemap_hub/test/presentation/features/player/phase_6_personalization_packaging_e2e_test.dart
+- Test : examples/playable_runtime_host/test/phase_a_golden_slice_launch_test.dart
+
+**Gate :** draft → save presentation.update → restart → export → install Hub → launch montre le même profil sur les cinq widgets partagés ; le standalone montre la même chose.
+
+**Commit proposé :** feat(personalization): complete studio to player propagation
+
+### PERS2-18 — Accessibilité, input et responsive
+
+**Fichiers :**
+
+- Modifier : packages/map_editor/test/personalization/personalization_readiness_accessibility_test.dart
+- Créer : packages/map_editor/test/personalization/personalization_studio_v2_responsive_test.dart
+- Modifier : packages/map_player_ui/test/player/player_responsive_layout_matrix_test.dart
+- Modifier : packages/map_player_ui/test/player/player_shared_surface_contract_test.dart
+
+**Matrice :**
+
+| Viewport Studio | Jeu simulé | Text scale | Input |
+|---|---|---:|---|
+| 720×900 | portrait | 1.0 et 2.0 | clavier |
+| 1024×768 | paysage | 1.0 et 1.5 | clavier/souris |
+| 1440×900 | paysage | 1.0 et 2.0 | clavier/manette |
+| 1600×1000 | paysage | 1.0 | souris |
+
+**Gate :** Tab/Shift+Tab/Entrée/Espace, directions, D-pad/A/B, focus visible, semantics, reduced motion, zéro overflow et cible tactile minimale.
+
+**Commit proposé :** test(personalization): certify responsive accessible authoring
+
+### PERS2-19 — Acceptation visuelle et suppression de l’ancien Studio
+
+**Fichiers :**
+
+- Supprimer : packages/map_editor/lib/src/features/personalization/presentation/personalization_hub_shell.dart
+- Renommer/remplacer : packages/map_editor/lib/src/features/personalization/presentation/personalization_studio_shell_v2.dart vers personalization_studio_shell.dart
+- Supprimer les éditeurs devenus inaccessibles uniquement après migration de leurs tests.
+- Mettre à jour : packages/map_editor/test/personalization/goldens/personalization/
+- Mettre à jour : documentation/reports/roadmap/personalization/personalization_studios_roadmap.md avec preuves de clôture.
+
+**Gate finale :**
+
+- aucun ancien shell monté ;
+- aucun faux renderer ;
+- six scènes exactement ;
+- même widget visible editor/runtime ;
+- douze goldens Studio et dix goldens player minimum ;
+- sauvegarde/export/Hub/standalone verts ;
+- direct API/JSONL/Editor/MCP verts ;
+- build macOS Editor, standalone et Hub vert ;
+- comparaison humaine avec les contact sheets approuvée.
+
+**Commandes de certification :**
+
+~~~bash
+cd packages/map_core
+dart test
+dart analyze
+
+cd ../map_authoring
+dart run tool/pmcp085_conformance.dart
+dart test
+dart analyze
+
+cd ../map_distribution
+dart test
+dart analyze
+
+cd ../map_player_ui
+flutter test
+flutter analyze
+
+cd ../map_editor
+flutter test test/personalization
+flutter analyze
+flutter build macos --debug
+
+cd ../../examples/playable_runtime_host
+flutter test
+flutter analyze
+flutter build macos --debug
+
+cd ../../apps/pokemap_hub
+flutter test
+flutter analyze
+flutter build macos --debug
+flutter build apk --debug
+
+cd ../../tools/pokemap_mcp
+npm run check
+npm test
+
+cd ../..
 bash tools/scripts/check_markdown_hygiene.sh
-git diff --check
-git status --short --untracked-files=all
-```
+~~~
 
-Le rapport de lot doit fournir les commandes exactes, leurs résultats, le build, l’acceptation visuelle, l’état Git initial/final, les limites et les risques restants.
+**Commit proposé :** feat(personalization): ship the studio v2 experience
 
-## 10. Alignement avec la roadmap existante
+## 11. Definition of Done commune à chaque lot
 
-Cette roadmap détaille la **Phase 8 — Refonte du Personalization Hub** de `documentation/roadmap/road_map_runtime_media_cinematics_audio_time.md`.
+- [ ] Le lot commence par un test rouge ou un test de caractérisation explicite.
+- [ ] Les modifications restent limitées aux fichiers annoncés ou le dépassement est documenté avant édition.
+- [ ] Le comportement legacy sans profil reste prouvé.
+- [ ] Toute donnée persistée passe par map_core, map_authoring, map_distribution, Hub et MCP.
+- [ ] Toute surface visible utilise map_player_ui.
+- [ ] Aucun import package:map_runtime dans le feature Personalization de map_editor.
+- [ ] Les tests ciblés passent avec le nombre exact rapporté.
+- [ ] L’analyse ciblée passe ou les diagnostics préexistants sont listés précisément.
+- [ ] Un contrôle visible possède une preuve de consommation runtime.
+- [ ] Le statut Git final distingue les fichiers du lot des changements parallèles.
+- [ ] Un commit unique et scoped clôt le lot lorsque Yoahn le demande.
 
-| Capacités parentes | Lot de fermeture principal |
-|---|---|
-| PERS-01, PERS-02, PERS-06, PERS-07, PERS-08, PERS-11, PERS-13, PERS-14 | PERS-L1 |
-| PERS-05, PERS-09 | PERS-L2 |
-| PERS-04, PERS-06 | PERS-L3 |
-| PERS-03, PERS-04, PERS-05, PERS-09, PERS-10, PERS-11, PERS-12 | PERS-L4 |
+## 12. Limites volontaires de V2
 
-La Phase 8 est certifiée `DONE` dans cette roadmap. Les statuts du document parent ne sont pas modifiés par cette roadmap seule.
+- Pas de coordonnées pixel libres.
+- Pas de constructeur de fenêtre arbitraire.
+- Pas de seuils responsive configurables par projet.
+- Pas de remplacement du splash Avelune.
+- Pas de portrait stocké dans ProjectPresentationProfile.
+- Pas de Character Studio complet dans cette roadmap.
+- Pas de HUD exploration inventé.
+- Pas de personnalisation des sprites de combat ou des décors par le Studio.
+- Pas de changement de règles de combat ; uniquement leur présentation.
 
-## 11. Verdict des passes indépendantes
+## 13. Verdict des passes d’audit
 
 | Passe | Verdict |
 |---|---|
-| Audit / Architecture | `PASS PERS-L4` — ownership unique des 17 surfaces et aucun renderer runtime parallèle |
-| Implémentation / Produit | `PASS PERS-L4` — sélection de licence guidée, catalogue canonique et pack complet sans JSON |
-| Tests | `PASS PERS-L4` — contrats, codec, Authoring, Editor, player, host, Hub et MCP live sont couverts |
-| Build / Validation | `PASS PERS-L4` — editor, host et Hub macOS debug ainsi que Hub Android debug construisent |
-| Critique finale | `PASS` — aucun pack sans licence, aucune écriture hors root et aucune preuve MCP provenant d’un autre checkout |
+| Audit / Architecture | CHANGES REQUIRED : la preview editor duplique actuellement les widgets et map_editor ne dépend pas de map_player_ui |
+| Implémentation / Plan | PASS : la décomposition isole d’abord les surfaces partagées, puis le shell, puis les scènes |
+| Tests | PASS WITH GATES : type identity, legacy goldens, matrices responsive et parité transports sont obligatoires |
+| Build / Validation | NOT RUN pour cette tâche documentaire ; aucune source Dart n’a été modifiée |
+| Critique finale | PASS : le Combat reçoit un contrat V5 borné ; Character Studio reste propriétaire des portraits ; aucun HUD exploration n’est recréé |
 
-## 12. Risques et auto-critique initiale
+Les vrais sub-agents n’ont pas été lancés pour produire cette roadmap, conformément à la restriction d’orchestration active de cette session. Les cinq passes ci-dessus ont été réalisées séparément dans le même audit.
 
-| Risque | Réponse de la roadmap |
-|---|---|
-| Mini-Flutter no-code incontrôlable | Breakpoints fixes, slots bornés, aucun arbre libre |
-| Explosion combinatoire des goldens | Fixtures partagées et matrice minimale définie par lot |
-| Duplication thème/window | Window référence les tokens sémantiques |
-| Preview différente du runtime | Résolveurs purs, fixtures communes et goldens editor/player |
-| Assets orphelins | Lifecycle canonique et imports atomiques |
-| Régression des anciens projets | Defaults identiques et migration testée avant consommation |
-| Confusion icon/cover/hero | Destinations explicites dans PERS-L4 |
-| Mélange splash hôte/projet | Splash Avelune non éditable dans tous les lots |
-| Parité annoncée mais non réelle | Preuve direct API, JSONL, Editor et MCP obligatoire |
-| Worktree concurrent | Staging explicite par lot et contrôle du diff avant commit |
+## 14. Auto-critique et points de vigilance
 
-Le point volontairement ambitieux est PERS-L4. S’il dépasse un seul commit révisable, il doit être exécuté en sous-lots internes `surface assignments`, `preset pack` et `certification`, tout en conservant un seul statut produit : aucun sous-lot ne suffit à déclarer l’extension complète `DONE`.
+1. Extraire les surfaces partagées est plus important que refaire le shell. Commencer par le shell produirait encore une jolie interface mensongère.
+2. map_player_ui dépend aujourd’hui de map_runtime. Cette roadmap ne propose pas une scission complète du package, car ce serait un chantier beaucoup plus large ; elle impose un barrel player_surfaces.dart et des view-data indépendants pour empêcher le Studio d’importer les types runtime.
+3. Le nombre de goldens ne doit pas exploser avec toutes les combinaisons. Les tests widget prouvent les états ; les goldens couvrent les six scènes, deux orientations et les variantes qui modifient réellement la géométrie.
+4. Le schéma V5 ne doit pas absorber les données de démonstration. Le test JSON négatif du lot PERS2-12 est bloquant.
+5. L’intégration réelle des portraits aux dialogues dépendra du contrat Character Studio. La preview et son provider peuvent être livrés avant, mais la runtime ne doit pas inventer une résolution par nom.
 
-## 13. Prochaine action
+## 15. Tranches recommandées
 
-La refonte Personalization est fermée. Les prochains ajouts peuvent rester incrémentaux : nouvelles formes de fenêtres, nouvelles palettes, nouveaux presets de placement ou nouvelles surfaces, chacun en conservant la même chaîne preview → Authoring → package → standalone → Hub → MCP.
+Pour avancer vite sans mélanger les responsabilités :
+
+1. **Tranche A : PERS2-01 à PERS2-04** — supprimer le mensonge architectural et afficher les vrais widgets.
+2. **Tranche B : PERS2-05 à PERS2-08** — installer le nouveau shell et le style global.
+3. **Tranche C : PERS2-09 à PERS2-12** — terminer titre, intro, Pause et Dialogue dans une seule phase fonctionnelle.
+4. **Tranche D : PERS2-13 à PERS2-16** — livrer le Combat V1 verticalement.
+5. **Tranche E : PERS2-17 à PERS2-19** — certifier, construire et supprimer définitivement l’ancien Studio.
+
+Chaque tranche doit disposer de son propre worktree, être rebasée avant intégration et rester sans changement parallèle non lié.
