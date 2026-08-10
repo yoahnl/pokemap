@@ -70,11 +70,13 @@ class PlayerDialogueSurface extends StatelessWidget {
     required this.data,
     required this.onAction,
     this.portraitBuilder,
+    this.showSpeakerName = true,
   });
 
   final PlayerDialogueViewData data;
   final ValueChanged<PlayerDialogueAction> onAction;
   final Widget Function(String speaker)? portraitBuilder;
+  final bool showSpeakerName;
 
   @override
   Widget build(BuildContext context) {
@@ -91,10 +93,11 @@ class PlayerDialogueSurface extends StatelessWidget {
               resolved.variant.visibleSecondaryElements.contains(
                 ProjectPresentationSecondaryElement.dialoguePortrait,
               );
-          final alignment =
-              resolved?.variant.slot == ProjectPresentationLayoutSlot.topCenter
-                  ? Alignment.topCenter
-                  : Alignment.bottomCenter;
+          final alignment = switch (resolved?.variant.slot) {
+            ProjectPresentationLayoutSlot.topCenter => Alignment.topCenter,
+            ProjectPresentationLayoutSlot.center => Alignment.center,
+            _ => Alignment.bottomCenter,
+          };
           return Padding(
             padding: EdgeInsets.all(margin),
             child: Align(
@@ -127,7 +130,7 @@ class PlayerDialogueSurface extends StatelessWidget {
                       key: ValueKey<int>(data.revision),
                       container: true,
                       liveRegion: true,
-                      label: _semanticLabel(data),
+                      label: _semanticLabel(data, showSpeakerName),
                       child: switch (data.mode) {
                         PlayerDialogueMode.line => GestureDetector(
                             key: const ValueKey<String>('dialogue-tap-zone'),
@@ -141,6 +144,7 @@ class PlayerDialogueSurface extends StatelessWidget {
                               data: data,
                               portraitBuilder:
                                   showPortrait ? portraitBuilder : null,
+                              showSpeakerName: showSpeakerName,
                             ),
                           ),
                         PlayerDialogueMode.choices => _DialogueChoiceContent(
@@ -164,10 +168,12 @@ class _DialogueLineContent extends StatelessWidget {
   const _DialogueLineContent({
     required this.data,
     required this.portraitBuilder,
+    required this.showSpeakerName,
   });
 
   final PlayerDialogueViewData data;
   final Widget Function(String speaker)? portraitBuilder;
+  final bool showSpeakerName;
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +183,8 @@ class _DialogueLineContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          if (speaker != null) ...<Widget>[
+          if (speaker != null &&
+              (portraitBuilder != null || showSpeakerName)) ...<Widget>[
             Row(
               children: <Widget>[
                 if (portraitBuilder != null) ...<Widget>[
@@ -187,17 +194,18 @@ class _DialogueLineContent extends StatelessWidget {
                   ),
                   const SizedBox(width: PlayerSpacing.sm),
                 ],
-                Expanded(
-                  child: Text(
-                    speaker,
-                    style: context.playerTypography
-                        .dialogueStyle(
-                          Theme.of(context).textTheme.titleLarge ??
-                              const TextStyle(),
-                        )
-                        .copyWith(color: context.playerColors.primary),
+                if (showSpeakerName)
+                  Expanded(
+                    child: Text(
+                      speaker,
+                      style: context.playerTypography
+                          .dialogueStyle(
+                            Theme.of(context).textTheme.titleLarge ??
+                                const TextStyle(),
+                          )
+                          .copyWith(color: context.playerColors.primary),
+                    ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: PlayerSpacing.sm),
@@ -279,10 +287,10 @@ class _DialogueChoiceContent extends StatelessWidget {
   }
 }
 
-String _semanticLabel(PlayerDialogueViewData data) {
+String _semanticLabel(PlayerDialogueViewData data, bool showSpeakerName) {
   return switch (data.mode) {
     PlayerDialogueMode.line =>
-      '${data.speaker == null ? '' : '${data.speaker}, '}${data.fullText}',
+      '${data.speaker == null || !showSpeakerName ? '' : '${data.speaker}, '}${data.fullText}',
     PlayerDialogueMode.choices =>
       'Choix de dialogue, ${data.choices.length} options',
   };

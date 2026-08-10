@@ -18,6 +18,7 @@ import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../../ui/design_system/pokemap_toggle_tile.dart';
 import '../../../ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import '../../editor/state/editor_notifier.dart';
+import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
 import '../application/personalization_publish_readiness.dart';
@@ -34,6 +35,7 @@ import 'personalization_readiness_panel.dart';
 import 'personalization_section_actions.dart';
 import 'personalization_studio_shell_v2.dart';
 import 'inspectors/personalization_global_style_inspector.dart';
+import 'inspectors/personalization_dialogue_inspector.dart';
 import 'inspectors/personalization_intro_inspector.dart';
 import 'inspectors/personalization_pause_inspector.dart';
 import 'inspectors/personalization_title_inspector.dart';
@@ -81,6 +83,10 @@ class _PersonalizationStudioWorkspaceState
   ProjectTitleMusicPreviewController? _titleMusicPreviewController;
   StreamSubscription<bool>? _titleMusicPreviewSubscription;
   bool _isTitleMusicPreviewPlaying = false;
+  String? _selectedDialogueCharacterId;
+  bool _showDialoguePortrait = true;
+  bool _showDialogueName = true;
+  bool _showDialogueChoices = false;
   final Map<ProjectTypographyRole, String> _fontPreviewFamilies =
       <ProjectTypographyRole, String>{};
   ProjectPresentationPreflightResult? _preflightResult;
@@ -1263,6 +1269,7 @@ class _PersonalizationStudioWorkspaceState
     required bool canEdit,
     required List<ProjectPresentationPresetRecord> presets,
     required bool canManagePresets,
+    required List<PersonalizationCharacterPreviewOption> characterOptions,
   }) {
     final editor = switch (target) {
       GlobalColorsTarget() => _buildGlobalStyleTarget(
@@ -1295,21 +1302,15 @@ class _PersonalizationStudioWorkspaceState
         notifier: notifier,
         canEdit: canEdit,
       ),
-      DialogueTypographyTarget() => _buildCategoryEditor(
+      DialogueAppearanceTarget() ||
+      DialogueTypographyTarget() ||
+      DialogueLayoutTarget() => _buildDialogueTarget(
         context: context,
-        category: ProjectPresentationCategory.typography,
         profile: profile,
-        projectName: projectName,
         projectRootPath: projectRootPath,
         notifier: notifier,
         canEdit: canEdit,
-        presets: presets,
-        canManagePresets: canManagePresets,
-      ),
-      DialogueAppearanceTarget() => _buildWindowTarget(
-        profile: profile,
-        notifier: notifier,
-        canEdit: canEdit,
+        characterOptions: characterOptions,
       ),
       PauseLabelsTarget() ||
       PauseAppearanceTarget() ||
@@ -1334,17 +1335,6 @@ class _PersonalizationStudioWorkspaceState
       IntroPresentationTarget() => _buildCategoryEditor(
         context: context,
         category: ProjectPresentationCategory.intro,
-        profile: profile,
-        projectName: projectName,
-        projectRootPath: projectRootPath,
-        notifier: notifier,
-        canEdit: canEdit,
-        presets: presets,
-        canManagePresets: canManagePresets,
-      ),
-      DialogueLayoutTarget() => _buildCategoryEditor(
-        context: context,
-        category: ProjectPresentationCategory.layouts,
         profile: profile,
         projectName: projectName,
         projectRootPath: projectRootPath,
@@ -1534,26 +1524,107 @@ class _PersonalizationStudioWorkspaceState
     ],
   );
 
-  Widget _buildWindowTarget({
+  Widget _buildDialogueTarget({
+    required BuildContext context,
     required ProjectPresentationProfile profile,
+    required String projectRootPath,
     required EditorNotifier notifier,
     required bool canEdit,
-  }) => IgnorePointer(
-    ignoring: !canEdit,
-    child: ProjectWindowStudio(
-      profile: profile.windows ?? legacyProjectPresentationWindows,
-      onChanged: (windows) {
-        unawaited(
-          notifier.applyPersonalizationStudioProfile(
-            profile.copyWith(windows: windows),
-            label: windows == null
-                ? 'Réinitialiser les fenêtres du jeu'
-                : 'Modifier les fenêtres du jeu',
+    required List<PersonalizationCharacterPreviewOption> characterOptions,
+  }) {
+    final typography = profile.typography ?? const ProjectTypographyProfile();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (_isImportingAsset) ...<Widget>[
+          const PokeMapDiagnosticCallout(
+            severity: PokeMapDiagnosticSeverity.info,
+            message: 'Validation et copie sécurisée de la police en cours…',
           ),
-        );
-      },
-    ),
-  );
+          const SizedBox(height: 12),
+        ],
+        if (_assetFeedback != null) ...<Widget>[
+          PokeMapDiagnosticCallout(
+            severity: _assetFeedbackIsError
+                ? PokeMapDiagnosticSeverity.error
+                : PokeMapDiagnosticSeverity.info,
+            message: _assetFeedback!,
+          ),
+          const SizedBox(height: 12),
+        ],
+        IgnorePointer(
+          ignoring: !canEdit || _isImportingAsset,
+          child: PersonalizationDialogueInspector(
+            profile: profile,
+            characterOptions: characterOptions,
+            selectedCharacterId: _selectedDialogueCharacterId,
+            showPortrait: _showDialoguePortrait,
+            showName: _showDialogueName,
+            showChoices: _showDialogueChoices,
+            previewFamilies: _fontPreviewFamilies,
+            onCharacterSelected: (characterId) {
+              setState(() => _selectedDialogueCharacterId = characterId);
+            },
+            onShowPortraitChanged: (value) {
+              setState(() => _showDialoguePortrait = value);
+            },
+            onShowNameChanged: (value) {
+              setState(() => _showDialogueName = value);
+            },
+            onShowChoicesChanged: (value) {
+              setState(() => _showDialogueChoices = value);
+            },
+            onWindowsChanged: (windows) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(windows: windows),
+                  label: 'Modifier l’apparence de la bulle de dialogue',
+                ),
+              );
+            },
+            onLayoutsChanged: (layouts) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(layouts: layouts),
+                  label: 'Modifier la disposition de la bulle de dialogue',
+                ),
+              );
+            },
+            onImportDialogueFont: () {
+              unawaited(
+                _importFont(
+                  context: context,
+                  projectRootPath: projectRootPath,
+                  profile: profile,
+                  role: ProjectTypographyRole.dialogue,
+                  notifier: notifier,
+                ),
+              );
+            },
+            onUseSystemDialogueFont: () {
+              final current = typography.dialogue;
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(
+                    typography: typography.copyWith(
+                      dialogue: ProjectTypographyRoleProfile(
+                        fallbackFamilies: current.fallbackFamilies,
+                      ),
+                    ),
+                  ),
+                  label: 'Utiliser le fallback Dialogues',
+                ),
+              );
+              setState(
+                () =>
+                    _fontPreviewFamilies.remove(ProjectTypographyRole.dialogue),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildSemanticThemeTarget({
     required BuildContext context,
@@ -1643,6 +1714,21 @@ class _PersonalizationStudioWorkspaceState
         (_preflightProjectRootPath != projectRootPath ||
             _preflightProfile != profile);
     final activePreflightResult = isPreflightStale ? null : _preflightResult;
+    final characterOptions =
+        _selectedScene == PersonalizationStudioScene.dialogue
+        ? ref
+                  .watch(
+                    personalizationCharacterPreviewOptionsProvider(
+                      projectRootPath,
+                    ),
+                  )
+                  .value ??
+              const <PersonalizationCharacterPreviewOption>[]
+        : const <PersonalizationCharacterPreviewOption>[];
+    final dialogueCharacter = _resolveDialogueCharacter(
+      characterOptions,
+      _selectedDialogueCharacterId,
+    );
 
     return Material(
       type: MaterialType.transparency,
@@ -1763,6 +1849,10 @@ class _PersonalizationStudioWorkspaceState
                 projectRootPath: projectRootPath,
                 baselineProfile: baselineProfile,
                 scene: _selectedScene,
+                dialogueCharacter: dialogueCharacter,
+                showDialoguePortrait: _showDialoguePortrait,
+                showDialogueName: _showDialogueName,
+                showDialogueChoices: _showDialogueChoices,
                 onTargeted: (target) {
                   setState(() {
                     _selectedScene = _sceneForInspectorTarget(target);
@@ -1806,6 +1896,7 @@ class _PersonalizationStudioWorkspaceState
                     canEdit: canEdit,
                     presets: project.presentationPresets,
                     canManagePresets: canEdit && studioSession?.isDirty != true,
+                    characterOptions: characterOptions,
                   ),
                   const SizedBox(height: 16),
                   PersonalizationReadinessPanel(
@@ -1943,6 +2034,17 @@ PersonalizationStudioScene _sceneForCategory(
   ProjectPresentationCategory.theme => PersonalizationStudioScene.globalStyle,
   ProjectPresentationCategory.layouts => PersonalizationStudioScene.pause,
 };
+
+PersonalizationCharacterPreviewOption? _resolveDialogueCharacter(
+  List<PersonalizationCharacterPreviewOption> options,
+  String? selectedCharacterId,
+) {
+  if (options.isEmpty) return null;
+  for (final option in options) {
+    if (option.characterId == selectedCharacterId) return option;
+  }
+  return options.first;
+}
 
 PersonalizationInspectorTarget _targetForCategory(
   ProjectPresentationCategory category,

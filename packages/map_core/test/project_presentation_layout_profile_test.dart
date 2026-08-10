@@ -95,6 +95,27 @@ void main() {
       expect(codes, contains('presentationLayoutSecondaryElementUnsupported'));
     });
 
+    test('accepts a vertically centered dialogue layout', () {
+      final layouts = _layouts().copyWith(
+        dialogue: _layouts().dialogue.copyWith(
+          regular: _variant(
+            ProjectPresentationBreakpoint.regular,
+            slot: ProjectPresentationLayoutSlot.center,
+          ),
+        ),
+      );
+
+      expect(
+        validateProjectPresentationProfile(
+          ProjectPresentationProfile(layouts: layouts),
+        ).where(
+          (diagnostic) =>
+              diagnostic.code == 'presentationLayoutSlotUnsupported',
+        ),
+        isEmpty,
+      );
+    });
+
     test('rejects duplicate secondary elements', () {
       final layouts = _layouts().copyWith(
         dialogue: _layouts().dialogue.copyWith(

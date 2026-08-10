@@ -75,6 +75,7 @@ Set<ProjectPresentationLayoutSlot> projectPresentationLayoutSlotsFor(
     },
   (ProjectPresentationSurfaceRole.dialogue, _) =>
     const <ProjectPresentationLayoutSlot>{
+      ProjectPresentationLayoutSlot.center,
       ProjectPresentationLayoutSlot.topCenter,
       ProjectPresentationLayoutSlot.bottomCenter,
     },

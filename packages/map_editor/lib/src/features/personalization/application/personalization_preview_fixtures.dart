@@ -39,6 +39,42 @@ abstract final class PersonalizationPreviewFixtures {
     choices: <PlayerDialogueChoiceViewData>[],
   );
 
+  static PlayerDialogueViewData dialogueFor({
+    required String speaker,
+    required bool showChoices,
+  }) => showChoices
+      ? const PlayerDialogueViewData(
+          revision: 2,
+          mode: PlayerDialogueMode.choices,
+          speaker: null,
+          text: '',
+          fullText: '',
+          isCurrentLineFullyRevealed: true,
+          isLastContent: false,
+          choices: <PlayerDialogueChoiceViewData>[
+            PlayerDialogueChoiceViewData(
+              index: 0,
+              label: 'Oui, allons-y !',
+              selected: true,
+            ),
+            PlayerDialogueChoiceViewData(
+              index: 1,
+              label: 'Pas encore.',
+              selected: false,
+            ),
+          ],
+        )
+      : PlayerDialogueViewData(
+          revision: 1,
+          mode: PlayerDialogueMode.line,
+          speaker: speaker,
+          text: 'Bienvenue dans le monde des Pokémon !',
+          fullText: 'Bienvenue dans le monde des Pokémon !',
+          isCurrentLineFullyRevealed: true,
+          isLastContent: false,
+          choices: const <PlayerDialogueChoiceViewData>[],
+        );
+
   static const battle = PlayerBattleViewData(
     revision: 1,
     enemy: PlayerBattleHudViewData(

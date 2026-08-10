@@ -12,6 +12,7 @@ class ProjectTypographyEditor extends StatelessWidget {
     required this.onUseSystemFont,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
     this.commonOnly = false,
+    this.fixedRole,
     this.onImportCommonFont,
     this.onUseSystemCommonFont,
   });
@@ -21,40 +22,63 @@ class ProjectTypographyEditor extends StatelessWidget {
   final ValueChanged<ProjectTypographyRole> onUseSystemFont;
   final Map<ProjectTypographyRole, String> previewFamilies;
   final bool commonOnly;
+  final ProjectTypographyRole? fixedRole;
   final VoidCallback? onImportCommonFont;
   final VoidCallback? onUseSystemCommonFont;
 
   @override
-  Widget build(BuildContext context) => commonOnly
-      ? _CommonTypographyEditor(
-          profile: profile,
-          previewFamily: previewFamilies[ProjectTypographyRole.body],
-          onImport: onImportCommonFont,
-          onUseSystem: onUseSystemCommonFont,
-        )
-      : Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            const PokeMapCard(
-              child: Text(
-                'Chaque rôle conserve un fallback système. Les fontes embarquées '
-                'doivent inclure une licence redistribuable et les glyphes joueur.',
+  Widget build(BuildContext context) {
+    final role = fixedRole;
+    if (role != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const PokeMapSectionHeader(
+            title: 'Typographie du dialogue',
+            description: 'Choisissez la police utilisée pour les répliques.',
+          ),
+          const SizedBox(height: 8),
+          _RoleEditor(
+            role: role,
+            profile: _profileForRole(profile, role),
+            previewFamily: previewFamilies[role],
+            onImport: () => onImportRole(role),
+            onUseSystem: () => onUseSystemFont(role),
+          ),
+        ],
+      );
+    }
+    return commonOnly
+        ? _CommonTypographyEditor(
+            profile: profile,
+            previewFamily: previewFamilies[ProjectTypographyRole.body],
+            onImport: onImportCommonFont,
+            onUseSystem: onUseSystemCommonFont,
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const PokeMapCard(
+                child: Text(
+                  'Chaque rôle conserve un fallback système. Les fontes embarquées '
+                  'doivent inclure une licence redistribuable et les glyphes joueur.',
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            for (final role in ProjectTypographyRole.values) ...<Widget>[
-              _RoleEditor(
-                role: role,
-                profile: _profileForRole(profile, role),
-                previewFamily: previewFamilies[role],
-                onImport: () => onImportRole(role),
-                onUseSystem: () => onUseSystemFont(role),
-              ),
-              if (role != ProjectTypographyRole.values.last)
-                const SizedBox(height: 12),
+              const SizedBox(height: 12),
+              for (final role in ProjectTypographyRole.values) ...<Widget>[
+                _RoleEditor(
+                  role: role,
+                  profile: _profileForRole(profile, role),
+                  previewFamily: previewFamilies[role],
+                  onImport: () => onImportRole(role),
+                  onUseSystem: () => onUseSystemFont(role),
+                ),
+                if (role != ProjectTypographyRole.values.last)
+                  const SizedBox(height: 12),
+              ],
             ],
-          ],
-        );
+          );
+  }
 }
 
 class _CommonTypographyEditor extends StatelessWidget {

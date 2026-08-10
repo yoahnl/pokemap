@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/design_system.dart';
+import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_projection.dart';
 import '../application/personalization_preview_scenario.dart';
@@ -20,6 +21,10 @@ class PersonalizationLivePreview extends StatefulWidget {
     this.baselineProfile,
     this.initialViewport = PersonalizationPreviewViewport.landscape,
     this.onTargeted,
+    this.dialogueCharacter,
+    this.showDialoguePortrait = true,
+    this.showDialogueName = true,
+    this.showDialogueChoices = false,
   });
 
   final ProjectPresentationProfile profile;
@@ -29,6 +34,10 @@ class PersonalizationLivePreview extends StatefulWidget {
   final PersonalizationStudioScene scene;
   final PersonalizationPreviewViewport initialViewport;
   final ValueChanged<PersonalizationInspectorTarget>? onTargeted;
+  final PersonalizationCharacterPreviewOption? dialogueCharacter;
+  final bool showDialoguePortrait;
+  final bool showDialogueName;
+  final bool showDialogueChoices;
 
   @override
   State<PersonalizationLivePreview> createState() =>
@@ -110,6 +119,10 @@ class _PersonalizationLivePreviewState
               aspectRatio: aspectRatio,
               reducedMotion: reducedMotion,
               onTargeted: widget.onTargeted,
+              dialogueCharacter: widget.dialogueCharacter,
+              showDialoguePortrait: widget.showDialoguePortrait,
+              showDialogueName: widget.showDialogueName,
+              showDialogueChoices: widget.showDialogueChoices,
             ),
       ),
     );

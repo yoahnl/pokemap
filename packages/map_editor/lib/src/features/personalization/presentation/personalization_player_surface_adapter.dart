@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:path/path.dart' as p;
 
+import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_preview_fixtures.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
@@ -19,6 +20,10 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     this.aspectRatio = 16 / 9,
     this.reducedMotion = false,
     this.onTargeted,
+    this.dialogueCharacter,
+    this.showDialoguePortrait = true,
+    this.showDialogueName = true,
+    this.showDialogueChoices = false,
   });
 
   final ProjectPresentationProfile profile;
@@ -28,6 +33,10 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   final double aspectRatio;
   final bool reducedMotion;
   final ValueChanged<PersonalizationInspectorTarget>? onTargeted;
+  final PersonalizationCharacterPreviewOption? dialogueCharacter;
+  final bool showDialoguePortrait;
+  final bool showDialogueName;
+  final bool showDialogueChoices;
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +109,16 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     ),
     PersonalizationStudioScene.dialogue => PlayerDialogueSurface(
       key: const ValueKey<String>('personalization-dialogue-composition'),
-      data: PersonalizationPreviewFixtures.dialogue,
+      data: dialogueCharacter == null && !showDialogueChoices
+          ? PersonalizationPreviewFixtures.dialogue
+          : PersonalizationPreviewFixtures.dialogueFor(
+              speaker: dialogueCharacter?.displayName ?? 'Professeure Saule',
+              showChoices: showDialogueChoices,
+            ),
+      showSpeakerName: showDialogueName,
+      portraitBuilder: showDialoguePortrait && dialogueCharacter != null
+          ? (_) => _dialoguePortrait()
+          : null,
       onAction: (_) => _target(const DialogueAppearanceTarget()),
     ),
     PersonalizationStudioScene.battle => PlayerBattleSurface(
@@ -187,6 +205,33 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
 
   bool get _introSkipped =>
       reducedMotion && profile.intro?.reducedMotionBehavior == 'skip';
+
+  Widget _dialoguePortrait() {
+    final path = dialogueCharacter?.portraitPath;
+    final file = path == null ? null : _fileForPath(path);
+    if (file != null && file.existsSync()) {
+      return ClipRRect(
+        key: const ValueKey<String>('personalization-dialogue-portrait'),
+        borderRadius: BorderRadius.circular(12),
+        child: Image.file(file, fit: BoxFit.cover),
+      );
+    }
+    return Builder(
+      builder: (context) => DecoratedBox(
+        key: const ValueKey<String>('personalization-dialogue-portrait'),
+        decoration: BoxDecoration(
+          color: context.playerColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.playerColors.outline),
+        ),
+        child: Icon(
+          Icons.person_rounded,
+          color: context.playerColors.primary,
+          size: 42,
+        ),
+      ),
+    );
+  }
 
   void _target(PersonalizationInspectorTarget target) =>
       onTargeted?.call(target);

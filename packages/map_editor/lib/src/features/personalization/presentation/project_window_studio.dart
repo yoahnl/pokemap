@@ -39,12 +39,19 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         PokeMapSectionHeader(
-          title: widget.fixedRole == ProjectWindowRole.pauseMenu
-              ? 'Apparence du menu Pause'
-              : 'Fenêtres du jeu',
-          description: widget.fixedRole == ProjectWindowRole.pauseMenu
-              ? 'Réglez la forme, les couleurs, les contours et la profondeur du menu.'
-              : 'Façonnez les cadres du menu Pause et des dialogues. Le grand aperçu reflète chaque changement immédiatement.',
+          title: switch (widget.fixedRole) {
+            ProjectWindowRole.pauseMenu => 'Apparence du menu Pause',
+            ProjectWindowRole.dialogue => 'Apparence de la bulle',
+            _ => 'Fenêtres du jeu',
+          },
+          description: switch (widget.fixedRole) {
+            ProjectWindowRole.pauseMenu =>
+              'Réglez la forme, les couleurs, les contours et la profondeur du menu.',
+            ProjectWindowRole.dialogue =>
+              'Réglez la forme, les couleurs, le contour et la profondeur de la bulle.',
+            _ =>
+              'Façonnez les cadres du menu Pause et des dialogues. Le grand aperçu reflète chaque changement immédiatement.',
+          },
         ),
         const SizedBox(height: 8),
         PokeMapCard(
