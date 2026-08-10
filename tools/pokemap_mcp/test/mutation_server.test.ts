@@ -3498,6 +3498,156 @@ test("MCP completes a cold-start 34-element visual import", async () => {
   }
 });
 
+test("MCP authors and rereads a complete Character Studio character", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const projectDocument = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    const tilesets = Array.isArray(projectDocument.tilesets)
+      ? (projectDocument.tilesets as JsonRecord[])
+      : [];
+    const tilesetId =
+      tilesets.length > 0 ? String(record(tilesets[0]).id) : "mcp-characters";
+    if (tilesets.length === 0) {
+      projectDocument.tilesets = [
+        {
+          id: tilesetId,
+          name: "MCP Characters",
+          relativePath: "assets/mcp-characters.png",
+        },
+      ];
+      await writeFile(
+        join(fixture.root, "project.json"),
+        JSON.stringify(projectDocument),
+      );
+    }
+    const portraitPath = join(fixture.root, "mcp-character-portrait.png");
+    await writeFile(
+      portraitPath,
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    );
+    const staged = await toolData(fixture.client, "pokemap_artifact_stage", {
+      sourcePath: portraitPath,
+      declaredMediaType: "image/png",
+    });
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    let revision = String(
+      (
+        await toolData(fixture.client, "pokemap_validate", {
+          projectHandle,
+        })
+      ).snapshotRevision,
+    );
+    const actions: Array<{ id: string; parameters: JsonRecord }> = [
+      {
+        id: "characterStudio.portraitState.create",
+        parameters: { displayName: "MCP Neutre" },
+      },
+      {
+        id: "characterStudio.character.create",
+        parameters: {
+          name: "MCP Hero",
+          tilesetId,
+          frameWidth: 1,
+          frameHeight: 1,
+        },
+      },
+      {
+        id: "characterStudio.asset.import",
+        parameters: {
+          artifactHandle: staged.artifactHandle,
+          assetId: "mcp-hero-neutral",
+          logicalPath: "assets/characters/mcp-hero/neutral.png",
+          mediaKind: "portrait",
+        },
+      },
+      {
+        id: "characterStudio.character.portrait.assign",
+        parameters: {
+          characterId: "mcp-hero",
+          portraitStateId: "mcp-neutre",
+          assetId: "mcp-hero-neutral",
+        },
+      },
+      {
+        id: "characterStudio.animationDefinition.create",
+        parameters: { displayName: "MCP Saluer", mode: "directional" },
+      },
+      {
+        id: "characterStudio.animationClip.upsert",
+        parameters: {
+          characterId: "mcp-hero",
+          kind: "custom",
+          definitionId: "mcp-saluer",
+          direction: "south",
+          sourceAssetId: "mcp-hero-neutral",
+        },
+      },
+      {
+        id: "characterStudio.animationFrame.insert",
+        parameters: {
+          characterId: "mcp-hero",
+          kind: "custom",
+          definitionId: "mcp-saluer",
+          direction: "south",
+          frameIndex: 0,
+          frame: {
+            source: { x: 0, y: 0, width: 1, height: 1 },
+            durationMs: 120,
+          },
+        },
+      },
+    ];
+    for (const [index, action] of actions.entries()) {
+      revision = await applyMutation(fixture.client, {
+        projectHandle,
+        workspaceHandle,
+        expectedRevision: revision,
+        actionId: action.id,
+        parameters: action.parameters,
+        sequence: `character-studio-${index}`,
+      });
+    }
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle,
+    });
+    const reopened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const queried = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(reopened.projectHandle),
+      resourceKind: "characterStudioCharacter",
+      operation: "get",
+      view: "detail",
+      ids: ["mcp-hero"],
+    });
+    const character = record((queried.items as unknown[])[0]);
+    assert.equal((character.portraits as unknown[]).length, 1);
+    assert.equal((character.customAnimations as unknown[]).length, 1);
+    assert.equal(
+      (record((character.customAnimations as JsonRecord[])[0]).frames as unknown[])
+        .length,
+      1,
+    );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP returns a revision conflict without silently rebuilding the plan", async () => {
   const fixture = await mutationFixture();
   try {

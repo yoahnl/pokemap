@@ -650,6 +650,14 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/gameplay/character_studio_animation_definition_actions_test.dart',
   ),
   _ContractEvidenceRule(
+    ['characterStudio.character.'],
+    'test/domains/gameplay/character_studio_character_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['characterStudio.animationClip.', 'characterStudio.animationFrame.'],
+    'test/domains/gameplay/character_studio_animation_clip_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['dialogue.', 'script.'],
     'test/domains/narrative/dialogue_script_authoring_test.dart',
   ),
