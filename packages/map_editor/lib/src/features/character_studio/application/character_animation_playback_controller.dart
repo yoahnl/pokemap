@@ -9,6 +9,7 @@ final class CharacterAnimationPlaybackController {
   List<CharacterAnimationFrame> _frames;
   bool loop;
   bool _isPlaying = false;
+  bool _completed = false;
   int _currentFrameIndex = 0;
   double _elapsedInFrameMs = 0;
   double _speed = 1;
@@ -27,6 +28,7 @@ final class CharacterAnimationPlaybackController {
   }
 
   void play() {
+    if (_completed) reset();
     if (_frames.isNotEmpty) _isPlaying = true;
   }
 
@@ -35,6 +37,7 @@ final class CharacterAnimationPlaybackController {
   void reset({bool pause = true}) {
     _currentFrameIndex = 0;
     _elapsedInFrameMs = 0;
+    _completed = false;
     if (pause) _isPlaying = false;
   }
 
@@ -46,6 +49,7 @@ final class CharacterAnimationPlaybackController {
   void stepNext() {
     if (_frames.isEmpty) return;
     _isPlaying = false;
+    _completed = false;
     _elapsedInFrameMs = 0;
     _currentFrameIndex = (_currentFrameIndex + 1) % _frames.length;
   }
@@ -53,6 +57,7 @@ final class CharacterAnimationPlaybackController {
   void stepPrevious() {
     if (_frames.isEmpty) return;
     _isPlaying = false;
+    _completed = false;
     _elapsedInFrameMs = 0;
     _currentFrameIndex =
         (_currentFrameIndex - 1 + _frames.length) % _frames.length;
@@ -80,6 +85,7 @@ final class CharacterAnimationPlaybackController {
         _currentFrameIndex = 0;
       } else {
         _isPlaying = false;
+        _completed = true;
       }
     }
   }

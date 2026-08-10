@@ -42,6 +42,22 @@ void main() {
     },
   );
 
+  test('replaying a completed non-looping clip restarts at frame zero', () {
+    final controller = CharacterAnimationPlaybackController(
+      frames: _frames,
+      loop: false,
+    )..play();
+
+    controller.advance(const Duration(seconds: 1));
+    expect(controller.isPlaying, isFalse);
+    expect(controller.currentFrameIndex, 1);
+
+    controller.play();
+
+    expect(controller.isPlaying, isTrue);
+    expect(controller.currentFrameIndex, 0);
+  });
+
   test('step controls wrap deterministically while paused', () {
     final controller = CharacterAnimationPlaybackController(
       frames: _frames,

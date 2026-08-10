@@ -42,6 +42,7 @@ class _CharacterAnimationPreviewState extends State<CharacterAnimationPreview>
   late final Ticker _ticker;
   Duration _lastTick = Duration.zero;
   Future<ui.Image>? _image;
+  ui.Image? _resolvedImage;
   int? _sourceFingerprint;
   double _zoom = 2;
   CharacterAnimationPreviewBackground _background =
@@ -76,6 +77,7 @@ class _CharacterAnimationPreviewState extends State<CharacterAnimationPreview>
   @override
   void dispose() {
     _ticker.dispose();
+    _resolvedImage?.dispose();
     super.dispose();
   }
 
@@ -326,7 +328,18 @@ class _CharacterAnimationPreviewState extends State<CharacterAnimationPreview>
     final fingerprint = Object.hashAll(widget.sourceBytes);
     if (fingerprint == _sourceFingerprint) return;
     _sourceFingerprint = fingerprint;
-    _image = _decodeImage(widget.sourceBytes);
+    _image = _decodeTrackedImage(widget.sourceBytes, fingerprint);
+  }
+
+  Future<ui.Image> _decodeTrackedImage(Uint8List bytes, int fingerprint) async {
+    final image = await _decodeImage(bytes);
+    if (!mounted || fingerprint != _sourceFingerprint) {
+      image.dispose();
+      return image;
+    }
+    _resolvedImage?.dispose();
+    _resolvedImage = image;
+    return image;
   }
 }
 

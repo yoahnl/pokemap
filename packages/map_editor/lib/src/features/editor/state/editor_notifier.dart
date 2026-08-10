@@ -14424,7 +14424,6 @@ class EditorNotifier extends _$EditorNotifier
   Future<bool> importCharacterAnimationSource({
     required String characterId,
     required CharacterAnimationSlotKey slotKey,
-    required String? currentSourceAssetId,
     required bool loop,
   }) async {
     if (state.isSaving) return false;
@@ -14445,7 +14444,6 @@ class EditorNotifier extends _$EditorNotifier
             characterId: characterId,
             slotKey: slotKey,
             sourcePath: sourcePath,
-            currentSourceAssetId: currentSourceAssetId,
             loop: loop,
           );
       _projectSessionRevision += 1;

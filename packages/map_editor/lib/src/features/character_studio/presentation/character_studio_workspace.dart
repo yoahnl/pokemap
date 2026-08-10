@@ -182,7 +182,6 @@ class _CharacterStudioWorkspaceState
               onImportSource: (slot) => notifier.importCharacterAnimationSource(
                 characterId: character.id,
                 slotKey: slot.key,
-                currentSourceAssetId: slot.sourceAssetId,
                 loop: slot.loop,
               ),
               onSaveClip: (slot, frames, loop) =>

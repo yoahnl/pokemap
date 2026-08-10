@@ -15,9 +15,13 @@ final class CharacterAnimationSourceImportException implements Exception {
 }
 
 final class CharacterAnimationSourceImportService {
-  const CharacterAnimationSourceImportService({required this.gateway});
+  const CharacterAnimationSourceImportService({
+    required this.gateway,
+    this.uniqueSuffix = _uniqueSuffix,
+  });
 
   final CharacterStudioPortraitAssetGateway gateway;
+  final String Function() uniqueSuffix;
 
   Future<ProjectManifest> import({
     required String projectRootPath,
@@ -25,7 +29,6 @@ final class CharacterAnimationSourceImportService {
     required String characterId,
     required CharacterAnimationSlotKey slotKey,
     required String sourcePath,
-    required String? currentSourceAssetId,
     required bool loop,
   }) async {
     if (!project.characters.any((character) => character.id == characterId)) {
@@ -45,29 +48,28 @@ final class CharacterAnimationSourceImportService {
       );
     }
     final digestSuffix = staged.hexDigest.substring(0, 12);
+    final suffix = _safeSegment(uniqueSuffix());
+    if (suffix.isEmpty) {
+      throw const CharacterAnimationSourceImportException(
+        'asset_id_suffix_invalid',
+        'La source d’animation ne peut pas recevoir un identifiant unique.',
+      );
+    }
     final assetId =
         'sprite-${_safeSegment(characterId)}-'
-        '${_safeSegment(slotKey.stableId)}-$digestSuffix';
-    final replacesCurrent = currentSourceAssetId == assetId;
+        '${_safeSegment(slotKey.stableId)}-$digestSuffix-$suffix';
     final withAsset = await gateway.apply(
       projectRootPath: projectRootPath,
       expectedProject: project,
-      actionId: replacesCurrent
-          ? 'characterStudio.asset.replace'
-          : 'characterStudio.asset.import',
-      parameters: replacesCurrent
-          ? <String, Object?>{
-              'artifactHandle': staged.handle,
-              'assetId': assetId,
-            }
-          : <String, Object?>{
-              'artifactHandle': staged.handle,
-              'assetId': assetId,
-              'logicalPath':
-                  'assets/characters/${_safeSegment(characterId)}/animations/'
-                  '${_safeSegment(slotKey.stableId)}-$digestSuffix.png',
-              'mediaKind': 'spriteSheet',
-            },
+      actionId: 'characterStudio.asset.import',
+      parameters: <String, Object?>{
+        'artifactHandle': staged.handle,
+        'assetId': assetId,
+        'logicalPath':
+            'assets/characters/${_safeSegment(characterId)}/animations/'
+            '${_safeSegment(slotKey.stableId)}-$digestSuffix-$suffix.png',
+        'mediaKind': 'spriteSheet',
+      },
       operationLabel: 'animation_source_${characterId}_${slotKey.stableId}',
     );
     return gateway.apply(
@@ -85,6 +87,10 @@ final class CharacterAnimationSourceImportService {
           'animation_source_assign_${characterId}_${slotKey.stableId}',
     );
   }
+}
+
+String _uniqueSuffix() {
+  return DateTime.now().toUtc().microsecondsSinceEpoch.toRadixString(36);
 }
 
 String _safeSegment(String value) {

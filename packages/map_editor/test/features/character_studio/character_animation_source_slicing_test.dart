@@ -90,7 +90,6 @@ void main() {
         characterId: 'elia',
         slotKey: slot,
         sourcePath: '/source/elia.png',
-        currentSourceAssetId: null,
         loop: true,
       );
 
@@ -106,6 +105,49 @@ void main() {
       expect(
         gateway.parameters.last['sourceAssetId'],
         startsWith('sprite-elia-'),
+      );
+    },
+  );
+
+  test(
+    'reimporting a historical source never reuses its asset record',
+    () async {
+      final gateway = _AssetGateway();
+      var sequence = 0;
+      final service = CharacterAnimationSourceImportService(
+        gateway: gateway,
+        uniqueSuffix: () => 'import-${sequence++}',
+      );
+      final project = _project();
+      const slot = CharacterAnimationSlotKey.system(
+        state: CharacterAnimationState.idle,
+        direction: EntityFacing.north,
+      );
+
+      await service.import(
+        projectRootPath: '/project',
+        project: project,
+        characterId: 'elia',
+        slotKey: slot,
+        sourcePath: '/source/a.png',
+        loop: true,
+      );
+      final firstAssetId = gateway.parameters.last['sourceAssetId'];
+      await service.import(
+        projectRootPath: '/project',
+        project: project,
+        characterId: 'elia',
+        slotKey: slot,
+        sourcePath: '/source/a.png',
+        loop: true,
+      );
+
+      expect(gateway.parameters.last['sourceAssetId'], isNot(firstAssetId));
+      expect(
+        gateway.actions.where(
+          (action) => action == 'characterStudio.asset.import',
+        ),
+        hasLength(2),
       );
     },
   );
@@ -160,9 +202,7 @@ void main() {
     );
     await tester.pump();
     expect(
-      find
-          .byKey(const ValueKey<String>('animation-grid-apply'))
-          .hitTestable(),
+      find.byKey(const ValueKey<String>('animation-grid-apply')).hitTestable(),
       findsOneWidget,
     );
     await tester.tap(
