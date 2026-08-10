@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' show Provider;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../application/authoring_api/encounter_table_persistence_gateway.dart';
+import '../../../application/authoring_api/character_studio_authoring_gateway.dart';
 import '../../../application/use_cases/character_use_cases.dart';
 import '../../../application/use_cases/encounter_table_use_cases.dart';
 import '../../../application/use_cases/project_element_use_cases.dart';
@@ -48,7 +49,8 @@ UpdateProjectTilesetUseCase updateProjectTilesetUseCase(Ref ref) {
 
 @riverpod
 ResolveAssignableTilesetsForMapUseCase resolveAssignableTilesetsForMapUseCase(
-    Ref ref) {
+  Ref ref,
+) {
   return ResolveAssignableTilesetsForMapUseCase();
 }
 
@@ -68,13 +70,15 @@ ReorderProjectTilesetUseCase reorderProjectTilesetUseCase(Ref ref) {
 @riverpod
 CreateTilesetLibraryFolderUseCase createTilesetLibraryFolderUseCase(Ref ref) {
   return CreateTilesetLibraryFolderUseCase(
-      ref.watch(projectRepositoryProvider));
+    ref.watch(projectRepositoryProvider),
+  );
 }
 
 @riverpod
 RenameTilesetLibraryFolderUseCase renameTilesetLibraryFolderUseCase(Ref ref) {
   return RenameTilesetLibraryFolderUseCase(
-      ref.watch(projectRepositoryProvider));
+    ref.watch(projectRepositoryProvider),
+  );
 }
 
 @riverpod
@@ -85,14 +89,17 @@ MoveTilesetLibraryFolderUseCase moveTilesetLibraryFolderUseCase(Ref ref) {
 @riverpod
 DeleteTilesetLibraryFolderUseCase deleteTilesetLibraryFolderUseCase(Ref ref) {
   return DeleteTilesetLibraryFolderUseCase(
-      ref.watch(projectRepositoryProvider));
+    ref.watch(projectRepositoryProvider),
+  );
 }
 
 @riverpod
 AssignTilesetToLibraryFolderUseCase assignTilesetToLibraryFolderUseCase(
-    Ref ref) {
+  Ref ref,
+) {
   return AssignTilesetToLibraryFolderUseCase(
-      ref.watch(projectRepositoryProvider));
+    ref.watch(projectRepositoryProvider),
+  );
 }
 
 @riverpod
@@ -124,7 +131,8 @@ CreateTilesetElementGroupUseCase createTilesetElementGroupUseCase(Ref ref) {
 
 @riverpod
 CreateTilesetElementSubgroupUseCase createTilesetElementSubgroupUseCase(
-    Ref ref) {
+  Ref ref,
+) {
   return CreateTilesetElementSubgroupUseCase(
     ref.watch(createTilesetElementGroupUseCaseProvider),
   );
@@ -152,7 +160,8 @@ DeleteProjectElementUseCase deleteProjectElementUseCase(Ref ref) {
 
 @riverpod
 ResolveVisibleProjectElementsUseCase resolveVisibleProjectElementsUseCase(
-    Ref ref) {
+  Ref ref,
+) {
   return ResolveVisibleProjectElementsUseCase();
 }
 
@@ -193,11 +202,19 @@ RenameGroupUseCase renameGroupUseCase(Ref ref) {
 
 final encounterTablePersistenceGatewayProvider =
     Provider<EncounterTablePersistenceGateway>((ref) {
-  return CanonicalEncounterTablePersistenceGateway(
-    mutations: ref.watch(authoringMutationAdapterProvider),
-    queries: ref.watch(authoringQueryAdapterProvider),
-  );
-});
+      return CanonicalEncounterTablePersistenceGateway(
+        mutations: ref.watch(authoringMutationAdapterProvider),
+        queries: ref.watch(authoringQueryAdapterProvider),
+      );
+    });
+
+final characterStudioAuthoringGatewayProvider =
+    Provider<CharacterStudioAuthoringGateway>((ref) {
+      return CanonicalCharacterStudioAuthoringGateway(
+        mutations: ref.watch(authoringMutationAdapterProvider),
+        queries: ref.watch(authoringQueryAdapterProvider),
+      );
+    });
 
 @riverpod
 CreateEncounterTableUseCase createEncounterTableUseCase(Ref ref) {
@@ -273,25 +290,35 @@ DeleteTrainerPokemonUseCase deleteTrainerPokemonUseCase(Ref ref) {
 
 @riverpod
 CreateCharacterUseCase createCharacterUseCase(Ref ref) {
-  return CreateCharacterUseCase(ref.watch(projectRepositoryProvider));
+  return CreateCharacterUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
 }
 
 @riverpod
 UpdateCharacterUseCase updateCharacterUseCase(Ref ref) {
-  return UpdateCharacterUseCase(ref.watch(projectRepositoryProvider));
+  return UpdateCharacterUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
 }
 
 @riverpod
 DeleteCharacterUseCase deleteCharacterUseCase(Ref ref) {
-  return DeleteCharacterUseCase(ref.watch(projectRepositoryProvider));
+  return DeleteCharacterUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
 }
 
 @riverpod
 UpsertCharacterAnimationUseCase upsertCharacterAnimationUseCase(Ref ref) {
-  return UpsertCharacterAnimationUseCase(ref.watch(projectRepositoryProvider));
+  return UpsertCharacterAnimationUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
 }
 
 @riverpod
 SetPlayerCharacterUseCase setPlayerCharacterUseCase(Ref ref) {
-  return SetPlayerCharacterUseCase(ref.watch(projectRepositoryProvider));
+  return SetPlayerCharacterUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
 }

@@ -299,6 +299,28 @@ final class CharacterStudioActionParameters {
     }
     return Map<String, Object?>.from(value);
   }
+
+  List<Map<String, Object?>> objects(String key) {
+    final value = values[key];
+    if (value is! List) {
+      throw CharacterStudioActionException(
+        'character_studio.parameters.object_list_required',
+        '$key must be a list of objects.',
+        details: <String, Object?>{'parameter': key},
+      );
+    }
+    return <Map<String, Object?>>[
+      for (final item in value)
+        if (item is Map && item.keys.every((entry) => entry is String))
+          Map<String, Object?>.from(item)
+        else
+          throw CharacterStudioActionException(
+            'character_studio.parameters.object_list_required',
+            '$key must be a list of objects.',
+            details: <String, Object?>{'parameter': key},
+          ),
+    ];
+  }
 }
 
 String characterStudioSlug(String value) {

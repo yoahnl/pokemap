@@ -74,6 +74,7 @@ final class CharacterStudioAnimationClipActions {
         ..._slotParameterNames,
         'sourceAssetId',
         'loop',
+        'frames',
       },
     );
     final manifest = context.snapshot.manifest;
@@ -84,6 +85,12 @@ final class CharacterStudioAnimationClipActions {
     final character = manifest.characters[characterIndex];
     final slot = _parseSlot(manifest, parameters);
     final loop = parameters.optionalBoolean('loop');
+    final requestedFrames = parameters.contains('frames')
+        ? <CharacterAnimationFrame>[
+            for (final frame in parameters.objects('frames'))
+              _parseFrame(frame),
+          ]
+        : null;
     late final ProjectCharacterEntry updated;
     late final Object? before;
     late final Object after;
@@ -97,7 +104,9 @@ final class CharacterStudioAnimationClipActions {
         state: slot.state!,
         direction: slot.direction!,
         sourceAssetId: sourceAssetId,
-        frames: current?.frames ?? const <CharacterAnimationFrame>[],
+        frames: requestedFrames ??
+            current?.frames ??
+            const <CharacterAnimationFrame>[],
         loop: loop ?? current?.loop ?? true,
       );
       final animations = character.animations.toList();
@@ -126,7 +135,9 @@ final class CharacterStudioAnimationClipActions {
         definitionId: slot.definitionId!,
         direction: slot.direction,
         sourceAssetId: sourceAssetId,
-        frames: current?.frames ?? const <CharacterAnimationFrame>[],
+        frames: requestedFrames ??
+            current?.frames ??
+            const <CharacterAnimationFrame>[],
         loop: loop ?? current?.loop ?? true,
       );
       final animations = character.customAnimations.toList();

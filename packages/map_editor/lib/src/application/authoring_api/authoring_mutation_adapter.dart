@@ -111,6 +111,7 @@ final class AuthoringMutationAdapter
     required String idempotencyKey,
     String? requestId,
     String? expectedRevision,
+    bool dryRun = false,
   }) async {
     try {
       final session = await _open(projectRootPath);
@@ -122,6 +123,7 @@ final class AuthoringMutationAdapter
           idempotencyKey: idempotencyKey,
           requestId: requestId,
           expectedRevision: expectedRevision,
+          dryRun: dryRun,
         ),
       );
     } on Object catch (error) {
@@ -260,6 +262,7 @@ final class AuthoringMutationAdapter
     required String idempotencyKey,
     String? requestId,
     String? expectedRevision,
+    bool dryRun = false,
   }) async {
     final snapshot = await session.snapshot();
     final response = await session.mutations.planMutation(
@@ -272,10 +275,7 @@ final class AuthoringMutationAdapter
         parameters: parameters,
         expectedRevision: expectedRevision ?? snapshot.revision,
         idempotencyKey: idempotencyKey,
-        // `plan` is non-mutating regardless. `dryRun: true` deliberately
-        // creates a preview-only plan that the canonical API refuses to
-        // apply, so editor plans intended for confirmation use `false`.
-        dryRun: false,
+        dryRun: dryRun,
       ),
     );
     return EditorAuthoringMutationPlan._(

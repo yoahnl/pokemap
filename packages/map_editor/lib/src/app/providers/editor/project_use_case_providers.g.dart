@@ -2199,7 +2199,7 @@ final class CreateCharacterUseCaseProvider
 }
 
 String _$createCharacterUseCaseHash() =>
-    r'63106242eb724d7392ea9f120a75d2f4d8bb67f3';
+    r'1dcac5ca69a3158de228157b9a3cb716e45cbd30';
 
 @ProviderFor(updateCharacterUseCase)
 final updateCharacterUseCaseProvider = UpdateCharacterUseCaseProvider._();
@@ -2247,7 +2247,7 @@ final class UpdateCharacterUseCaseProvider
 }
 
 String _$updateCharacterUseCaseHash() =>
-    r'126854401d905d5e4ac0469f6f8f3899ac589126';
+    r'e8f14a64e9c09f4ff0ba4c6cd16a23a06998a987';
 
 @ProviderFor(deleteCharacterUseCase)
 final deleteCharacterUseCaseProvider = DeleteCharacterUseCaseProvider._();
@@ -2295,7 +2295,7 @@ final class DeleteCharacterUseCaseProvider
 }
 
 String _$deleteCharacterUseCaseHash() =>
-    r'4cd0dd0cc43bb667ea04012ebb249879e5a21694';
+    r'1c8e6a223c4d239bdc46c4ce46c709611f902ce3';
 
 @ProviderFor(upsertCharacterAnimationUseCase)
 final upsertCharacterAnimationUseCaseProvider =
@@ -2346,7 +2346,7 @@ final class UpsertCharacterAnimationUseCaseProvider
 }
 
 String _$upsertCharacterAnimationUseCaseHash() =>
-    r'8d9ca7721aed413f8e0ab8921d97c4c5b1943e74';
+    r'8a365947f3c3efe4698e0b696864f56bd3baa317';
 
 @ProviderFor(setPlayerCharacterUseCase)
 final setPlayerCharacterUseCaseProvider = SetPlayerCharacterUseCaseProvider._();
@@ -2394,4 +2394,4 @@ final class SetPlayerCharacterUseCaseProvider
 }
 
 String _$setPlayerCharacterUseCaseHash() =>
-    r'dacb0a41ea0c020f8b5dc5d4f2e6ce07a0fc01ff';
+    r'6a9831a1cecec9072d9ba1ff86b7b239617f36ef';
