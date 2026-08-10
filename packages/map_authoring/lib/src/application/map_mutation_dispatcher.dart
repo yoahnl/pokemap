@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../contracts/action_descriptor.dart';
 import '../domains/assets/asset_actions.dart';
+import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/element_actions.dart';
 import '../domains/assets/palette_actions.dart';
 import '../domains/assets/presentation_actions.dart';
@@ -81,6 +82,9 @@ final class MapMutationDispatcher {
     final artifacts =
         artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20);
     final assets = AssetActions(artifactStore: artifacts);
+    final characterStudioAssets = CharacterStudioAssetActions(
+      artifactStore: artifacts,
+    );
     final tiledTilesets = TiledTilesetImportActions(
       artifactStore: artifacts,
       imageCollectionRasterCodec: tiledImageCollectionRasterCodec,
@@ -177,6 +181,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: assets.build,
+        ),
+      for (final descriptor in CharacterStudioAssetActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: characterStudioAssets.build,
         ),
       for (final descriptor in TilesetActions.descriptors)
         MapMutationActionRegistration(

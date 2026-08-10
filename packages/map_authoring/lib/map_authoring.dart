@@ -57,6 +57,7 @@ export 'src/domains/gameplay/sandbox_player_state_actions.dart';
 export 'src/domains/gameplay/battle_actions.dart';
 export 'src/domains/gameplay/progression_actions.dart';
 export 'src/domains/assets/asset_actions.dart';
+export 'src/domains/assets/character_studio_asset_actions.dart';
 export 'src/domains/assets/asset_store.dart';
 export 'src/domains/assets/element_actions.dart';
 export 'src/domains/assets/image_collection_prop_preview.dart';
