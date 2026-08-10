@@ -46,15 +46,42 @@ abstract interface class CharacterStudioMediaResolverContract {
 
 final class CharacterStudioMediaResolver
     implements CharacterStudioMediaResolverContract {
-  CharacterStudioMediaResolver({required CharacterStudioMediaSource source})
-    : _source = source;
+  CharacterStudioMediaResolver({
+    required CharacterStudioMediaSource source,
+    this.maxEntries = 64,
+  }) : _source = source {
+    if (maxEntries <= 0) {
+      throw ArgumentError.value(maxEntries, 'maxEntries', 'must be positive');
+    }
+  }
 
   final CharacterStudioMediaSource _source;
+  final int maxEntries;
   final Map<CharacterStudioMediaRequest, Future<Uint8List>> _cache = {};
 
   @override
   Future<Uint8List> resolve(CharacterStudioMediaRequest request) {
-    return _cache.putIfAbsent(request, () => _source.load(request));
+    final cached = _cache.remove(request);
+    if (cached != null) {
+      _cache[request] = cached;
+      return cached;
+    }
+    late final Future<Uint8List> pending;
+    pending = Future<Uint8List>.sync(() => _source.load(request)).onError((
+      error,
+      stackTrace,
+    ) {
+      if (identical(_cache[request], pending)) _cache.remove(request);
+      Error.throwWithStackTrace(
+        error ?? StateError('Character Studio media failed to load'),
+        stackTrace,
+      );
+    });
+    _cache[request] = pending;
+    while (_cache.length > maxEntries) {
+      _cache.remove(_cache.keys.first);
+    }
+    return pending;
   }
 
   void invalidateProject(String projectRootPath) {

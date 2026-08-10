@@ -13979,6 +13979,7 @@ class EditorNotifier extends _$EditorNotifier
   // ---------------------------------------------------------------------------
 
   void selectCharacter(String? characterId) {
+    if (state.isSaving) return;
     state = state.copyWith(selectedCharacterId: characterId);
   }
 
@@ -13991,6 +13992,8 @@ class EditorNotifier extends _$EditorNotifier
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
     try {
       final useCase = ref.read(createCharacterUseCaseProvider);
       final updated = await useCase.execute(
@@ -14005,11 +14008,15 @@ class EditorNotifier extends _$EditorNotifier
         project: updated,
         selectedCharacterId:
             updated.characters.isNotEmpty ? updated.characters.last.id : null,
+        isSaving: false,
         statusMessage: 'Character created',
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to create character: $e');
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to create character: $e',
+      );
     }
   }
 
@@ -14024,6 +14031,8 @@ class EditorNotifier extends _$EditorNotifier
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
     try {
       final useCase = ref.read(updateCharacterUseCaseProvider);
       final updated = await useCase.execute(
@@ -14038,11 +14047,15 @@ class EditorNotifier extends _$EditorNotifier
       );
       state = state.copyWith(
         project: updated,
+        isSaving: false,
         statusMessage: 'Character updated',
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to update character: $e');
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to update character: $e',
+      );
     }
   }
 
@@ -14077,6 +14090,8 @@ class EditorNotifier extends _$EditorNotifier
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
     try {
       final useCase = ref.read(deleteCharacterUseCaseProvider);
       final updated = await useCase.execute(
@@ -14091,11 +14106,15 @@ class EditorNotifier extends _$EditorNotifier
         selectedCharacterId: state.selectedCharacterId == characterId
             ? null
             : state.selectedCharacterId,
+        isSaving: false,
         statusMessage: 'Character deleted',
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to delete character: $e');
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to delete character: $e',
+      );
     }
   }
 
@@ -14108,6 +14127,8 @@ class EditorNotifier extends _$EditorNotifier
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
     try {
       final useCase = ref.read(upsertCharacterAnimationUseCaseProvider);
       final updated = await useCase.execute(
@@ -14120,11 +14141,15 @@ class EditorNotifier extends _$EditorNotifier
       );
       state = state.copyWith(
         project: updated,
+        isSaving: false,
         statusMessage: 'Animation updated',
         errorMessage: null,
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to update animation: $e');
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to update animation: $e',
+      );
     }
   }
 
@@ -14132,6 +14157,8 @@ class EditorNotifier extends _$EditorNotifier
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
     try {
       final useCase = ref.read(setPlayerCharacterUseCaseProvider);
       final updated = await useCase.execute(
@@ -14141,14 +14168,17 @@ class EditorNotifier extends _$EditorNotifier
       );
       state = state.copyWith(
         project: updated,
+        isSaving: false,
         statusMessage: characterId == null
             ? 'Player character cleared'
             : 'Player character set',
         errorMessage: null,
       );
     } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Failed to set player character: $e');
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to set player character: $e',
+      );
     }
   }
 

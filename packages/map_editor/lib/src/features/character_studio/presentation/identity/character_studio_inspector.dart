@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
+import '../character_studio_character_metrics.dart';
 
 class CharacterStudioInspector extends StatelessWidget {
   const CharacterStudioInspector({
@@ -69,12 +70,12 @@ class CharacterStudioInspector extends StatelessWidget {
                 const SizedBox(height: 8),
                 _InspectorMetric(
                   label: 'Animations de base',
-                  value: '${selected.animations.length}',
+                  value: '${characterStudioSystemAnimationCount(selected)}',
                 ),
                 const SizedBox(height: 8),
                 _InspectorMetric(
                   label: 'Animations custom',
-                  value: '${selected.customAnimations.length}',
+                  value: '${characterStudioCustomAnimationCount(selected)}',
                 ),
                 const SizedBox(height: 8),
                 _InspectorMetric(

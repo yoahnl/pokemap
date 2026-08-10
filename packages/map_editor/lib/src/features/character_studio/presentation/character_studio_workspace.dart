@@ -2,12 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../editor/state/editor_notifier.dart';
 import '../../editor/state/editor_selectors.dart';
+import '../../editor/state/editor_state.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
+import '../application/character_studio_media_resolver.dart';
 import 'identity/character_studio_delete_dialog.dart';
+import 'identity/character_studio_identity_draft_controller.dart';
 import 'identity/character_studio_identity_editor.dart';
 import 'identity/character_studio_inspector.dart';
 import 'library/character_studio_library.dart';
@@ -24,6 +28,10 @@ class CharacterStudioWorkspace extends ConsumerStatefulWidget {
 class _CharacterStudioWorkspaceState
     extends ConsumerState<CharacterStudioWorkspace> {
   CharacterStudioSection _section = CharacterStudioSection.identity;
+  final CharacterStudioMediaResolver _mediaResolver =
+      CharacterStudioMediaResolver(
+        source: const FileCharacterStudioMediaSource(),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -55,31 +63,44 @@ class _CharacterStudioWorkspaceState
         project.characters.firstOrNull;
     final selectedCharacterId = selectedCharacter?.id;
     final notifier = ref.read(editorNotifierProvider.notifier);
+    final editorState = ref.watch(editorNotifierProvider);
+    final projectRootPath = _draftProjectKey(editorState);
+    final identityDraft = selectedCharacterId == null
+        ? null
+        : ref
+              .watch(characterStudioIdentityDraftProvider)
+              .draftFor(
+                projectRootPath: projectRootPath,
+                characterId: selectedCharacterId,
+              );
 
     return CharacterStudioWorkspaceShell(
       key: const ValueKey<String>('character-studio-workspace'),
       project: project,
       isSaving: snapshot.isSaving,
+      hasUnsavedChanges: identityDraft != null,
       statusMessage: snapshot.statusMessage,
       library: CharacterStudioLibrary(
         project: project,
         selectedCharacterId: selectedCharacterId,
-        onSelect: notifier.selectCharacter,
-        onCreate: (draft) => unawaited(
-          notifier.createCharacter(
-            name: draft.name,
-            tilesetId: draft.tilesetId,
-            frameWidth: draft.frameWidth,
-            frameHeight: draft.frameHeight,
-          ),
-        ),
+        isSaving: snapshot.isSaving,
+        resolveTilesetPath: notifier.getTilesetAbsolutePathById,
+        canCreate: _discardIdentityChangesIfNeeded,
+        projectRootPath: editorState.projectRootPath,
+        projectRevision: Object.hash(
+          project,
+          notifier.projectSessionRevision,
+        ).toString(),
+        mediaResolver: _mediaResolver,
+        onSelect: (characterId) => unawaited(_selectCharacter(characterId)),
+        onCreate: (draft) => unawaited(_createCharacter(draft)),
       ),
       canvas: CharacterStudioCanvasFrame(
         characterName: selectedCharacter?.name,
         characterId: selectedCharacter?.id,
         tags: selectedCharacter?.tags ?? const <String>[],
         activeSection: _section,
-        onSectionChanged: (section) => setState(() => _section = section),
+        onSectionChanged: (section) => unawaited(_selectSection(section)),
         child: switch ((_section, selectedCharacter)) {
           (CharacterStudioSection.identity, final character?) =>
             CharacterStudioIdentityEditor(
@@ -88,16 +109,13 @@ class _CharacterStudioWorkspaceState
               isDefaultCharacter:
                   project.settings.defaultPlayerCharacterId == character.id,
               isSaving: snapshot.isSaving,
-              onSave: (draft) => unawaited(
-                notifier.updateCharacter(
-                  characterId: character.id,
-                  name: draft.name,
-                  tilesetId: draft.tilesetId,
-                  frameWidth: draft.frameWidth,
-                  frameHeight: draft.frameHeight,
-                  tags: draft.tags,
-                ),
+              initialDraft: identityDraft,
+              onDraftChanged: (draft) => _updateIdentityDraft(
+                projectRootPath: projectRootPath,
+                character: character,
+                draft: draft,
               ),
+              onSave: (draft) => unawaited(_saveIdentity(character.id, draft)),
               onSetDefault: () =>
                   unawaited(notifier.setPlayerCharacter(character.id)),
               onDelete: () => unawaited(_deleteCharacter(character.id)),
@@ -110,6 +128,126 @@ class _CharacterStudioWorkspaceState
         character: selectedCharacter,
       ),
     );
+  }
+
+  void _updateIdentityDraft({
+    required String projectRootPath,
+    required ProjectCharacterEntry character,
+    required CharacterIdentityFormDraft draft,
+  }) {
+    final controller = ref.read(characterStudioIdentityDraftProvider.notifier);
+    if (draft.matches(character)) {
+      controller.clear(
+        projectRootPath: projectRootPath,
+        characterId: character.id,
+      );
+      return;
+    }
+    controller.update(
+      projectRootPath: projectRootPath,
+      characterId: character.id,
+      draft: draft,
+    );
+  }
+
+  Future<bool> _discardIdentityChangesIfNeeded() async {
+    final editorState = ref.read(editorNotifierProvider);
+    final characterId =
+        editorState.selectedCharacterId ??
+        editorState.project?.characters.firstOrNull?.id;
+    if (characterId == null) return true;
+    final projectRootPath = _draftProjectKey(editorState);
+    final controller = ref.read(characterStudioIdentityDraftProvider.notifier);
+    final draft = ref
+        .read(characterStudioIdentityDraftProvider)
+        .draftFor(projectRootPath: projectRootPath, characterId: characterId);
+    if (draft == null) return true;
+    final discard = await showPokeMapConfirmationDialog<bool>(
+      context: context,
+      title: 'Modifications non enregistrées',
+      message:
+          'L’identité du personnage contient des changements non enregistrés.',
+      actions: const <PokeMapDialogAction<bool>>[
+        PokeMapDialogAction<bool>(label: 'Rester ici', value: false),
+        PokeMapDialogAction<bool>(
+          label: 'Ignorer les modifications',
+          value: true,
+          variant: PokeMapButtonVariant.danger,
+        ),
+      ],
+    );
+    if (discard != true) return false;
+    controller.clear(
+      projectRootPath: projectRootPath,
+      characterId: characterId,
+    );
+    return true;
+  }
+
+  Future<void> _selectCharacter(String characterId) async {
+    final editorState = ref.read(editorNotifierProvider);
+    final selectedId =
+        editorState.selectedCharacterId ??
+        editorState.project?.characters.firstOrNull?.id;
+    if (selectedId == characterId) return;
+    if (!await _discardIdentityChangesIfNeeded() || !mounted) return;
+    ref.read(editorNotifierProvider.notifier).selectCharacter(characterId);
+  }
+
+  Future<void> _selectSection(CharacterStudioSection section) async {
+    if (_section == section) return;
+    if (_section == CharacterStudioSection.identity &&
+        !await _discardIdentityChangesIfNeeded()) {
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _section = section);
+  }
+
+  Future<void> _createCharacter(CharacterCreateDraft draft) async {
+    await ref
+        .read(editorNotifierProvider.notifier)
+        .createCharacter(
+          name: draft.name,
+          tilesetId: draft.tilesetId,
+          frameWidth: draft.frameWidth,
+          frameHeight: draft.frameHeight,
+        );
+  }
+
+  Future<void> _saveIdentity(
+    String characterId,
+    CharacterIdentityDraft draft,
+  ) async {
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    await notifier.updateCharacter(
+      characterId: characterId,
+      name: draft.name,
+      tilesetId: draft.tilesetId,
+      frameWidth: draft.frameWidth,
+      frameHeight: draft.frameHeight,
+      tags: draft.tags,
+    );
+    if (!mounted) return;
+    final editorState = ref.read(editorNotifierProvider);
+    if (editorState.errorMessage != null) return;
+    final saved = editorState.project?.characters
+        .where((character) => character.id == characterId)
+        .firstOrNull;
+    if (saved == null ||
+        saved.name != draft.name ||
+        saved.tilesetId != draft.tilesetId ||
+        saved.frameWidth != draft.frameWidth ||
+        saved.frameHeight != draft.frameHeight ||
+        !_sameTags(saved.tags, draft.tags)) {
+      return;
+    }
+    ref
+        .read(characterStudioIdentityDraftProvider.notifier)
+        .clear(
+          projectRootPath: _draftProjectKey(editorState),
+          characterId: characterId,
+        );
   }
 
   Future<void> _deleteCharacter(String characterId) async {
@@ -132,7 +270,34 @@ class _CharacterStudioWorkspaceState
       resolution: decision.resolution,
       replacementId: decision.replacementId,
     );
+    if (mounted &&
+        ref
+                .read(editorProjectManifestProvider)
+                ?.characters
+                .every((character) => character.id != characterId) ==
+            true) {
+      ref
+          .read(characterStudioIdentityDraftProvider.notifier)
+          .clear(
+            projectRootPath: _draftProjectKey(ref.read(editorNotifierProvider)),
+            characterId: characterId,
+          );
+    }
   }
+}
+
+String _draftProjectKey(EditorState state) {
+  final root = state.projectRootPath?.trim();
+  if (root != null && root.isNotEmpty) return root;
+  return 'memory:${state.project?.name ?? 'character-studio'}';
+}
+
+bool _sameTags(List<String> left, List<String> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }
 
 class _CharacterStudioSectionPlaceholder extends StatelessWidget {

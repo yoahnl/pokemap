@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
+import 'character_studio_identity_draft_controller.dart';
 
 final class CharacterIdentityDraft {
   const CharacterIdentityDraft({
@@ -31,6 +32,9 @@ class CharacterStudioIdentityEditor extends StatefulWidget {
     required this.onSave,
     required this.onSetDefault,
     required this.onDelete,
+    this.initialDraft,
+    this.onDraftChanged,
+    this.onDirtyChanged,
   });
 
   final ProjectManifest project;
@@ -40,6 +44,9 @@ class CharacterStudioIdentityEditor extends StatefulWidget {
   final ValueChanged<CharacterIdentityDraft> onSave;
   final VoidCallback onSetDefault;
   final VoidCallback onDelete;
+  final CharacterIdentityFormDraft? initialDraft;
+  final ValueChanged<CharacterIdentityFormDraft>? onDraftChanged;
+  final ValueChanged<bool>? onDirtyChanged;
 
   @override
   State<CharacterStudioIdentityEditor> createState() =>
@@ -125,6 +132,7 @@ class _CharacterStudioIdentityEditorState
                   fieldKey: const ValueKey<String>('character-identity-name'),
                   errorText: _nameError,
                   onChanged: (_) {
+                    _markDirty();
                     if (_nameError != null) {
                       setState(() => _nameError = null);
                     }
@@ -136,7 +144,10 @@ class _CharacterStudioIdentityEditorState
                   label: 'Planche de sprites',
                   value: _tilesetId,
                   items: dropdownItems,
-                  onChanged: (value) => setState(() => _tilesetId = value),
+                  onChanged: (value) {
+                    setState(() => _tilesetId = value);
+                    _markDirty();
+                  },
                 ),
                 const SizedBox(height: 14),
                 LayoutBuilder(
@@ -160,6 +171,7 @@ class _CharacterStudioIdentityEditorState
                               FilteringTextInputFormatter.digitsOnly,
                             ],
                             onChanged: (_) {
+                              _markDirty();
                               if (_frameWidthError != null) {
                                 setState(() => _frameWidthError = null);
                               }
@@ -180,6 +192,7 @@ class _CharacterStudioIdentityEditorState
                               FilteringTextInputFormatter.digitsOnly,
                             ],
                             onChanged: (_) {
+                              _markDirty();
                               if (_frameHeightError != null) {
                                 setState(() => _frameHeightError = null);
                               }
@@ -196,6 +209,7 @@ class _CharacterStudioIdentityEditorState
                   controller: _tagsController,
                   fieldKey: const ValueKey<String>('character-identity-tags'),
                   hintText: 'héroïne, rival, marchand…',
+                  onChanged: (_) => _markDirty(),
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -289,14 +303,30 @@ class _CharacterStudioIdentityEditorState
   }
 
   void _loadCharacter() {
-    _nameController.text = widget.character.name;
-    _frameWidthController.text = '${widget.character.frameWidth}';
-    _frameHeightController.text = '${widget.character.frameHeight}';
-    _tagsController.text = widget.character.tags.join(', ');
-    _tilesetId = widget.character.tilesetId;
+    final draft = widget.initialDraft;
+    _nameController.text = draft?.name ?? widget.character.name;
+    _frameWidthController.text =
+        draft?.frameWidth ?? '${widget.character.frameWidth}';
+    _frameHeightController.text =
+        draft?.frameHeight ?? '${widget.character.frameHeight}';
+    _tagsController.text = draft?.tags ?? widget.character.tags.join(', ');
+    _tilesetId = draft?.tilesetId ?? widget.character.tilesetId;
     _nameError = null;
     _frameWidthError = null;
     _frameHeightError = null;
+  }
+
+  void _markDirty() {
+    widget.onDirtyChanged?.call(true);
+    widget.onDraftChanged?.call(
+      CharacterIdentityFormDraft(
+        name: _nameController.text,
+        tilesetId: _tilesetId,
+        frameWidth: _frameWidthController.text,
+        frameHeight: _frameHeightController.text,
+        tags: _tagsController.text,
+      ),
+    );
   }
 
   void _save() {

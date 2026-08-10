@@ -11,6 +11,7 @@ void main() {
     final project = _project();
     CharacterIdentityDraft? saved;
     var defaultRequests = 0;
+    var dirtyRequests = 0;
     await tester.pumpWidget(
       MaterialApp(
         theme: PokeMapTheme.dark(),
@@ -24,6 +25,9 @@ void main() {
               isDefaultCharacter: false,
               isSaving: false,
               onSave: (value) => saved = value,
+              onDirtyChanged: (dirty) {
+                if (dirty) dirtyRequests++;
+              },
               onSetDefault: () => defaultRequests++,
               onDelete: () {},
             ),
@@ -61,6 +65,7 @@ void main() {
     expect(saved?.frameWidth, 4);
     expect(saved?.frameHeight, 8);
     expect(saved?.tags, <String>['héroïne', 'jouable', 'guilde rouge']);
+    expect(dirtyRequests, greaterThan(0));
 
     await tester.tap(
       find.byKey(const ValueKey<String>('character-set-default')),

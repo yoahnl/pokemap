@@ -4,8 +4,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/character_studio_media_resolver.dart';
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
+import '../character_studio_character_metrics.dart';
+import '../preview/character_studio_sprite_thumbnail.dart';
 
 enum CharacterStudioLibraryFilter { all, players, npc, incomplete }
 
@@ -30,12 +33,24 @@ class CharacterStudioLibrary extends StatefulWidget {
     required this.selectedCharacterId,
     required this.onSelect,
     required this.onCreate,
+    this.isSaving = false,
+    this.resolveTilesetPath,
+    this.canCreate,
+    this.projectRootPath,
+    this.projectRevision = '0',
+    this.mediaResolver,
   });
 
   final ProjectManifest project;
   final String? selectedCharacterId;
   final ValueChanged<String> onSelect;
   final ValueChanged<CharacterCreateDraft> onCreate;
+  final bool isSaving;
+  final String? Function(String tilesetId)? resolveTilesetPath;
+  final Future<bool> Function()? canCreate;
+  final String? projectRootPath;
+  final String projectRevision;
+  final CharacterStudioMediaResolverContract? mediaResolver;
 
   @override
   State<CharacterStudioLibrary> createState() => _CharacterStudioLibraryState();
@@ -114,6 +129,22 @@ class _CharacterStudioLibraryState extends State<CharacterStudioLibrary> {
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final character = characters[index];
+                      final thumbnail = characterStudioThumbnailSelection(
+                        character,
+                      );
+                      final assetId = thumbnail.sourceAssetId;
+                      final root = widget.projectRootPath?.trim();
+                      final portableRequest =
+                          assetId != null &&
+                              root != null &&
+                              root.isNotEmpty &&
+                              widget.mediaResolver != null
+                          ? CharacterStudioMediaRequest(
+                              projectRootPath: root,
+                              assetId: assetId,
+                              projectRevision: widget.projectRevision,
+                            )
+                          : null;
                       return _CharacterLibraryCard(
                         character: character,
                         isSelected: character.id == widget.selectedCharacterId,
@@ -121,7 +152,27 @@ class _CharacterStudioLibraryState extends State<CharacterStudioLibrary> {
                             widget.project.settings.defaultPlayerCharacterId ==
                             character.id,
                         diagnostics: readiness.forCharacter(character.id),
-                        onTap: () => widget.onSelect(character.id),
+                        imagePath: portableRequest == null
+                            ? widget.resolveTilesetPath?.call(
+                                character.tilesetId,
+                              )
+                            : null,
+                        mediaResolver: portableRequest == null
+                            ? null
+                            : widget.mediaResolver,
+                        mediaRequest: widget.mediaResolver == null
+                            ? null
+                            : portableRequest,
+                        thumbnailSource: thumbnail.source,
+                        framePixelWidth:
+                            character.frameWidth *
+                            widget.project.settings.tileWidth,
+                        framePixelHeight:
+                            character.frameHeight *
+                            widget.project.settings.tileHeight,
+                        onTap: widget.isSaving
+                            ? null
+                            : () => widget.onSelect(character.id),
                       );
                     },
                   ),
@@ -129,11 +180,13 @@ class _CharacterStudioLibraryState extends State<CharacterStudioLibrary> {
           const SizedBox(height: 12),
           PokeMapButton(
             key: const ValueKey<String>('character-create-button'),
-            onPressed: widget.project.tilesets.isEmpty
+            onPressed: widget.project.tilesets.isEmpty || widget.isSaving
                 ? null
                 : () => unawaited(_createCharacter()),
             disabledReason: widget.project.tilesets.isEmpty
                 ? 'Importez d’abord un tileset de personnages.'
+                : widget.isSaving
+                ? 'Une sauvegarde est déjà en cours.'
                 : null,
             leading: const Icon(CupertinoIcons.add),
             child: const Text('Nouveau personnage'),
@@ -184,6 +237,8 @@ class _CharacterStudioLibraryState extends State<CharacterStudioLibrary> {
   }
 
   Future<void> _createCharacter() async {
+    if (widget.canCreate != null && !await widget.canCreate!()) return;
+    if (!mounted) return;
     final draft = await showCharacterCreateDialog(
       context: context,
       tilesets: widget.project.tilesets,
@@ -198,6 +253,12 @@ class _CharacterLibraryCard extends StatelessWidget {
     required this.isSelected,
     required this.isPlayer,
     required this.diagnostics,
+    required this.imagePath,
+    required this.mediaResolver,
+    required this.mediaRequest,
+    required this.thumbnailSource,
+    required this.framePixelWidth,
+    required this.framePixelHeight,
     required this.onTap,
   });
 
@@ -205,7 +266,13 @@ class _CharacterLibraryCard extends StatelessWidget {
   final bool isSelected;
   final bool isPlayer;
   final List<CharacterStudioReadinessDiagnostic> diagnostics;
-  final VoidCallback onTap;
+  final String? imagePath;
+  final CharacterStudioMediaResolverContract? mediaResolver;
+  final CharacterStudioMediaRequest? mediaRequest;
+  final TilesetSourceRect thumbnailSource;
+  final int framePixelWidth;
+  final int framePixelHeight;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -219,13 +286,16 @@ class _CharacterLibraryCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PokeMapIconTile(
-            icon: isPlayer
-                ? CupertinoIcons.game_controller_solid
-                : CupertinoIcons.person_crop_circle,
-            tone: isPlayer ? PokeMapTone.success : PokeMapTone.cinematic,
+          CharacterStudioSpriteThumbnail(
+            key: ValueKey<String>('character-sprite-thumbnail-${character.id}'),
+            semanticLabel: 'Aperçu du sprite de ${character.name}',
+            imagePath: imagePath,
+            mediaResolver: mediaResolver,
+            mediaRequest: mediaRequest,
+            source: thumbnailSource,
+            framePixelWidth: framePixelWidth,
+            framePixelHeight: framePixelHeight,
             size: 42,
-            iconSize: 19,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -256,7 +326,7 @@ class _CharacterLibraryCard extends StatelessWidget {
                 const SizedBox(height: 5),
                 Text(
                   '${character.portraits.length} portraits · '
-                  '${character.animations.length + character.customAnimations.length} animations',
+                  '${characterStudioAnimationCount(character)} animations',
                   style: TextStyle(
                     color: context.pokeMapColors.textMuted,
                     fontSize: 10,

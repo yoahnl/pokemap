@@ -567,10 +567,13 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     // their existing undo stack until a later lot opts into this contract.
     final usesNarrativeDocumentSession =
         workspaceMode == EditorWorkspaceMode.cutscene;
+    final usesSelfContainedWorkspaceHeader =
+        workspaceMode == EditorWorkspaceMode.characterStudio;
 
     final supportsRightInspector = switch (workspaceMode) {
       _ when isNarrativeWorkspace => false,
       EditorWorkspaceMode.encounter => false,
+      EditorWorkspaceMode.characterStudio => false,
       EditorWorkspaceMode.pokedex => false,
       EditorWorkspaceMode.smartTilesStudio => false,
       EditorWorkspaceMode.environmentStudio => false,
@@ -1289,7 +1292,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                 CrossAxisAlignment
                                                                     .stretch,
                                                             children: [
-                                                              if (!isNarrativeWorkspace) ...[
+                                                              if (!isNarrativeWorkspace &&
+                                                                  !usesSelfContainedWorkspaceHeader) ...[
                                                                 _WorkspaceStageHeader(
                                                                   title: shell
                                                                       .workspaceTitle,

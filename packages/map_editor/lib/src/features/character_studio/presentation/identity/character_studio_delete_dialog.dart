@@ -17,7 +17,9 @@ Future<CharacterDeleteDecision?> showCharacterDeleteDialog({
   required String characterName,
   required CharacterDeletePlan plan,
 }) {
-  var resolution = CharacterDeleteResolution.clear;
+  CharacterDeleteResolution? resolution = plan.requiresResolution
+      ? null
+      : CharacterDeleteResolution.clear;
   var replacementId = plan.replacementCandidates.firstOrNull?.id;
   return showDialog<CharacterDeleteDecision>(
     context: context,
@@ -42,12 +44,13 @@ Future<CharacterDeleteDecision?> showCharacterDeleteDialog({
             PokeMapButton(
               key: const ValueKey<String>('character-delete-confirm'),
               onPressed:
-                  resolution == CharacterDeleteResolution.replace &&
-                      replacementId == null
+                  resolution == null ||
+                      resolution == CharacterDeleteResolution.replace &&
+                          replacementId == null
                   ? null
                   : () => Navigator.of(dialogContext).pop(
                       CharacterDeleteDecision(
-                        resolution: resolution,
+                        resolution: resolution!,
                         replacementId:
                             resolution == CharacterDeleteResolution.replace
                             ? replacementId

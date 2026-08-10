@@ -12,6 +12,16 @@ import 'package:map_editor/src/theme/theme.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  test('resolver rejects a non-positive cache size in every build mode', () {
+    expect(
+      () => CharacterStudioMediaResolver(
+        source: _CountingSource(),
+        maxEntries: 0,
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('resolver cache is isolated by asset and project revision', () async {
     final source = _CountingSource();
     final resolver = CharacterStudioMediaResolver(source: source);
@@ -26,9 +36,53 @@ void main() {
     final refreshed = await resolver.resolve(
       request.copyWith(projectRevision: 'revision-b'),
     );
+    final otherAsset = await resolver.resolve(
+      const CharacterStudioMediaRequest(
+        projectRootPath: '/tmp/character-studio-media',
+        assetId: 'nox-portrait',
+        projectRevision: 'revision-a',
+      ),
+    );
 
     expect(first, same(second));
     expect(refreshed, isNot(same(first)));
+    expect(otherAsset, isNot(same(first)));
+    expect(source.loadCount, 3);
+  });
+
+  test('resolver evicts the least recently used media', () async {
+    final source = _CountingSource();
+    final resolver = CharacterStudioMediaResolver(
+      source: source,
+      maxEntries: 2,
+    );
+    CharacterStudioMediaRequest request(String assetId) =>
+        CharacterStudioMediaRequest(
+          projectRootPath: '/tmp/character-studio-media',
+          assetId: assetId,
+          projectRevision: 'revision-a',
+        );
+
+    await resolver.resolve(request('elia'));
+    await resolver.resolve(request('nox'));
+    await resolver.resolve(request('elia'));
+    await resolver.resolve(request('orme'));
+    await resolver.resolve(request('nox'));
+
+    expect(source.loadCount, 4);
+  });
+
+  test('resolver does not keep failed media in cache', () async {
+    final source = _FlakySource();
+    final resolver = CharacterStudioMediaResolver(source: source);
+    const request = CharacterStudioMediaRequest(
+      projectRootPath: '/tmp/character-studio-media',
+      assetId: 'elia-portrait',
+      projectRevision: 'revision-a',
+    );
+
+    await expectLater(resolver.resolve(request), throwsStateError);
+    expect(await resolver.resolve(request), orderedEquals(_greenPng));
     expect(source.loadCount, 2);
   });
 
@@ -148,6 +202,23 @@ void main() {
       find.byKey(const ValueKey<String>('pokemap-media-preview-checkerboard')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey<String>('character-studio-preview-zoom-label')),
+      findsOneWidget,
+    );
+    expect(find.text('100 %'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('character-studio-preview-zoom-in')),
+    );
+    await tester.pump();
+    expect(find.text('125 %'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('character-studio-preview-zoom-out')),
+    );
+    await tester.pump();
+    expect(find.text('100 %'), findsOneWidget);
   });
 }
 
@@ -184,6 +255,17 @@ final class _CountingSource implements CharacterStudioMediaSource {
   @override
   Future<Uint8List> load(CharacterStudioMediaRequest request) async {
     loadCount++;
+    return Uint8List.fromList(_greenPng);
+  }
+}
+
+final class _FlakySource implements CharacterStudioMediaSource {
+  int loadCount = 0;
+
+  @override
+  Future<Uint8List> load(CharacterStudioMediaRequest request) async {
+    loadCount++;
+    if (loadCount == 1) throw StateError('temporary failure');
     return Uint8List.fromList(_greenPng);
   }
 }

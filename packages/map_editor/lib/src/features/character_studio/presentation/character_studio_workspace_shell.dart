@@ -19,6 +19,7 @@ class CharacterStudioWorkspaceShell extends StatefulWidget {
     required this.canvas,
     required this.inspector,
     required this.isSaving,
+    this.hasUnsavedChanges = false,
     this.statusMessage,
   });
 
@@ -27,6 +28,7 @@ class CharacterStudioWorkspaceShell extends StatefulWidget {
   final Widget canvas;
   final Widget inspector;
   final bool isSaving;
+  final bool hasUnsavedChanges;
   final String? statusMessage;
 
   @override
@@ -36,8 +38,8 @@ class CharacterStudioWorkspaceShell extends StatefulWidget {
 
 class _CharacterStudioWorkspaceShellState
     extends State<CharacterStudioWorkspaceShell> {
-  static const _wideBreakpoint = 1480.0;
-  static const _mediumBreakpoint = 1040.0;
+  static const _wideBreakpoint = 1180.0;
+  static const _mediumBreakpoint = 760.0;
 
   _CharacterStudioSidePanel _mediumPanel = _CharacterStudioSidePanel.library;
 
@@ -63,6 +65,7 @@ class _CharacterStudioWorkspaceShellState
                       project: widget.project,
                       statusMessage: widget.statusMessage,
                       isSaving: widget.isSaving,
+                      hasUnsavedChanges: widget.hasUnsavedChanges,
                       showPanelControls: !isWide,
                       selectedPanel: isMedium ? _mediumPanel : null,
                       onLibraryPressed: () => isMedium
@@ -217,6 +220,7 @@ class _CharacterStudioHeader extends StatelessWidget {
     required this.project,
     required this.statusMessage,
     required this.isSaving,
+    required this.hasUnsavedChanges,
     required this.showPanelControls,
     required this.selectedPanel,
     required this.onLibraryPressed,
@@ -226,6 +230,7 @@ class _CharacterStudioHeader extends StatelessWidget {
   final ProjectManifest project;
   final String? statusMessage;
   final bool isSaving;
+  final bool hasUnsavedChanges;
   final bool showPanelControls;
   final _CharacterStudioSidePanel? selectedPanel;
   final VoidCallback onLibraryPressed;
@@ -233,7 +238,12 @@ class _CharacterStudioHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final readiness = analyzeCharacterStudioReadiness(manifest: project);
+    final readiness = analyzeCharacterStudioReadiness(
+      manifest: project,
+      requiredCharacterIds: project.characters
+          .map((character) => character.id)
+          .toSet(),
+    );
     final title = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -316,13 +326,19 @@ class _CharacterStudioHeader extends StatelessWidget {
         PokeMapBadge(
           label: isSaving
               ? 'Sauvegarde…'
+              : hasUnsavedChanges
+              ? 'Modifications non enregistrées'
               : statusMessage ?? 'Sauvegardé automatiquement',
           variant: isSaving
               ? PokeMapBadgeVariant.info
+              : hasUnsavedChanges
+              ? PokeMapBadgeVariant.warning
               : PokeMapBadgeVariant.neutral,
           icon: Icon(
             isSaving
                 ? CupertinoIcons.arrow_2_circlepath
+                : hasUnsavedChanges
+                ? CupertinoIcons.exclamationmark_triangle
                 : CupertinoIcons.checkmark_alt_circle,
           ),
         ),

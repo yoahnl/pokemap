@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/use_cases/character_use_cases.dart';
 import 'package:map_editor/src/features/character_studio/presentation/identity/character_studio_delete_dialog.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   test('delete plan parses dependencies and named replacements', () {
@@ -79,6 +80,14 @@ void main() {
     );
     expect(find.text('Personnage joueur par défaut'), findsOneWidget);
     expect(find.text('PNJ de carte · route_1:npc_3'), findsOneWidget);
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(const ValueKey<String>('character-delete-confirm')),
+          )
+          .onPressed,
+      isNull,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey<String>('character-delete-resolution-replace')),
