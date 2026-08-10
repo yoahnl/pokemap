@@ -206,7 +206,9 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'badges': instance.badges.map((e) => e.toJson()).toList(),
   'trainers': instance.trainers.map((e) => e.toJson()).toList(),
   'characters': instance.characters.map((e) => e.toJson()).toList(),
-  'characterStudioCatalog': instance.characterStudioCatalog.toJson(),
+  'characterStudioCatalog': ?_projectCharacterStudioCatalogToJson(
+    instance.characterStudioCatalog,
+  ),
   'settings': instance.settings.toJson(),
   'pokemon': instance.pokemon.toJson(),
   'newGame': instance.newGame.toJson(),
@@ -884,9 +886,11 @@ Map<String, dynamic> _$ProjectCharacterEntryToJson(
   'tilesetId': instance.tilesetId,
   'frameWidth': instance.frameWidth,
   'frameHeight': instance.frameHeight,
-  'portraits': instance.portraits.map((e) => e.toJson()).toList(),
+  'portraits': ?_characterPortraitsToJson(instance.portraits),
   'animations': instance.animations.map((e) => e.toJson()).toList(),
-  'customAnimations': instance.customAnimations.map((e) => e.toJson()).toList(),
+  'customAnimations': ?_characterCustomAnimationsToJson(
+    instance.customAnimations,
+  ),
   'tags': instance.tags,
   'sortOrder': instance.sortOrder,
 };

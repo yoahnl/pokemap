@@ -84,6 +84,34 @@ Map<String, Object?>? _projectSmartTileCatalogToJson(
   return catalog.isEmpty ? null : catalog.toJson();
 }
 
+Map<String, Object?>? _projectCharacterStudioCatalogToJson(
+  ProjectCharacterStudioCatalog catalog,
+) {
+  if (catalog.portraitStates.isEmpty &&
+      catalog.customAnimationDefinitions.isEmpty) {
+    return null;
+  }
+  return catalog.toJson();
+}
+
+List<Map<String, dynamic>>? _characterPortraitsToJson(
+  List<CharacterPortraitVariant> portraits,
+) {
+  if (portraits.isEmpty) {
+    return null;
+  }
+  return [for (final portrait in portraits) portrait.toJson()];
+}
+
+List<Map<String, dynamic>>? _characterCustomAnimationsToJson(
+  List<CharacterCustomAnimationClip> animations,
+) {
+  if (animations.isEmpty) {
+    return null;
+  }
+  return [for (final animation in animations) animation.toJson()];
+}
+
 /// JSON -> authoring Storylines.
 ///
 /// Missing or `null` keeps old projects readable as an empty list. This is
@@ -431,6 +459,10 @@ abstract class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectTrainerEntry> trainers,
     @Default([]) List<ProjectCharacterEntry> characters,
     @Default(ProjectCharacterStudioCatalog())
+    @JsonKey(
+      toJson: _projectCharacterStudioCatalogToJson,
+      includeIfNull: false,
+    )
     ProjectCharacterStudioCatalog characterStudioCatalog,
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
@@ -1029,9 +1061,13 @@ abstract class ProjectCharacterEntry with _$ProjectCharacterEntry {
     required String tilesetId,
     @Default(1) int frameWidth,
     @Default(2) int frameHeight,
-    @Default([]) List<CharacterPortraitVariant> portraits,
+    @Default([])
+    @JsonKey(toJson: _characterPortraitsToJson, includeIfNull: false)
+    List<CharacterPortraitVariant> portraits,
     @Default([]) List<CharacterAnimation> animations,
-    @Default([]) List<CharacterCustomAnimationClip> customAnimations,
+    @Default([])
+    @JsonKey(toJson: _characterCustomAnimationsToJson, includeIfNull: false)
+    List<CharacterCustomAnimationClip> customAnimations,
     @Default([]) List<String> tags,
     @Default(0) int sortOrder,
   }) = _ProjectCharacterEntry;
