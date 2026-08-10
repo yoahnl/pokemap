@@ -278,7 +278,6 @@ const _fillItems = <PokeMapDropdownItem<String>>[
   PokeMapDropdownItem(value: 'menuSurface', label: 'Couleur des menus'),
   PokeMapDropdownItem(value: 'dialogueSurface', label: 'Couleur des dialogues'),
   PokeMapDropdownItem(value: 'titleSurface', label: 'Couleur du titre'),
-  PokeMapDropdownItem(value: 'overworldHudSurface', label: 'Couleur du HUD'),
   PokeMapDropdownItem(value: 'battleHudSurface', label: 'Couleur du combat'),
 ];
 

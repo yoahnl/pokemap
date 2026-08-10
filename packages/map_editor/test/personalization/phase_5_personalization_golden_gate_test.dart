@@ -35,7 +35,7 @@ void main() {
       ),
     );
     expect(find.text('Contrastes validés'), findsOneWidget);
-    expect(find.text('HUD combat'), findsOneWidget);
+    expect(find.text('Combat'), findsOneWidget);
   });
 
   test('Phase 5 golden fixture packages every presentation category', () async {
@@ -154,35 +154,35 @@ void main() {
     final packagedTypography = packaged.typography!;
     expect(preview.titleLayoutVariant, packaged.branding.layoutVariant);
     expect(
-      preview.surface(PersonalizationPreviewSurface.title).backgroundHex,
+      preview.surface(PersonalizationStudioScene.title).backgroundHex,
       packagedTheme.titleSurface,
     );
     expect(
-      preview.surface(PersonalizationPreviewSurface.dialogue).backgroundHex,
+      preview.surface(PersonalizationStudioScene.dialogue).backgroundHex,
       packagedTheme.dialogueSurface,
     );
     expect(
-      preview.surface(PersonalizationPreviewSurface.menu).backgroundHex,
+      preview.surface(PersonalizationStudioScene.pause).backgroundHex,
       packagedTheme.menuSurface,
     );
     expect(
-      preview.surface(PersonalizationPreviewSurface.overworldHud).backgroundHex,
-      packagedTheme.overworldHudSurface,
+      preview.surface(PersonalizationStudioScene.globalStyle).backgroundHex,
+      packagedTheme.background,
     );
     expect(
-      preview.surface(PersonalizationPreviewSurface.battleHud).backgroundHex,
+      preview.surface(PersonalizationStudioScene.battle).backgroundHex,
       packagedTheme.battleHudSurface,
     );
     expect(
-      preview.surface(PersonalizationPreviewSurface.title).fontFamily,
+      preview.surface(PersonalizationStudioScene.title).fontFamily,
       packagedTypography.display.family,
     );
     expect(
-      preview.surface(PersonalizationPreviewSurface.dialogue).fontFamily,
+      preview.surface(PersonalizationStudioScene.dialogue).fontFamily,
       packagedTypography.dialogue.fallbackFamilies.single,
     );
     expect(
-      preview.surface(PersonalizationPreviewSurface.battleHud).fontFamily,
+      preview.surface(PersonalizationStudioScene.battle).fontFamily,
       packagedTypography.numbers.fallbackFamilies.single,
     );
   });

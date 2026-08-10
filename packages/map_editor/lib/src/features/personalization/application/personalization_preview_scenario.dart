@@ -17,7 +17,7 @@ final class PersonalizationPreviewScenario {
 
   final ProjectPresentationProfile draftProfile;
   final ProjectPresentationProfile? baselineProfile;
-  final PersonalizationPreviewSurface surface;
+  final PersonalizationStudioScene surface;
   final PersonalizationPreviewViewport viewport;
   final double textScale;
   final bool reducedMotion;
@@ -34,7 +34,7 @@ final class PersonalizationPreviewScenario {
   bool get showComparison => canCompare && comparisonEnabled;
 
   PersonalizationPreviewScenario copyWith({
-    PersonalizationPreviewSurface? surface,
+    PersonalizationStudioScene? surface,
     PersonalizationPreviewViewport? viewport,
     double? textScale,
     bool? reducedMotion,

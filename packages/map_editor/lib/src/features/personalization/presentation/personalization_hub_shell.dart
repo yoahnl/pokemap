@@ -276,7 +276,7 @@ class _CategoryDetail extends StatelessWidget {
           projectName: projectName,
           projectRootPath: projectRootPath,
           initialSurface:
-              PersonalizationPreviewSurfaceDescriptor.defaultForCategory(
+              PersonalizationStudioSceneDescriptor.defaultForCategory(
                 category,
               ).surface,
         ),

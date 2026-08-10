@@ -71,7 +71,7 @@ void main() {
       final comparison = compareProjectPresentation(baseline, current);
 
       expect(
-        preview.surface(PersonalizationPreviewSurface.battleHud).backgroundHex,
+        preview.surface(PersonalizationStudioScene.battle).backgroundHex,
         safeProjectSemanticTheme.battleHudSurface,
       );
       expect(preview.titleLayoutVariant, 'cinematic');

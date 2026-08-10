@@ -1481,8 +1481,8 @@ String _themeTokenName(String token) => switch (token) {
   'titleSurface' => 'Fond du titre',
   'dialogueSurface' => 'Fond des dialogues',
   'menuSurface' => 'Fond des menus',
-  'overworldHudSurface' => 'Fond du HUD exploration',
-  'battleHudSurface' => 'Fond du HUD combat',
+  'overworldHudSurface' => 'Surface exploration',
+  'battleHudSurface' => 'Fond du combat',
   _ => token,
 };
 

@@ -6,11 +6,11 @@ import '../application/personalization_preview_projection.dart';
 import '../application/personalization_preview_scenario.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
 
-typedef PersonalizationPreviewSurfaceBuilder =
+typedef PersonalizationStudioSceneBuilder =
     Widget Function({
       required ProjectPresentationProfile profile,
-      required PersonalizationPreviewSurface surface,
-      required PersonalizationPreviewSurfaceProjection projection,
+      required PersonalizationStudioScene surface,
+      required PersonalizationStudioSceneProjection projection,
       required double aspectRatio,
       required PersonalizationPreviewViewportMetrics metrics,
       required bool reducedMotion,
@@ -24,7 +24,7 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
   });
 
   final PersonalizationPreviewScenario scenario;
-  final PersonalizationPreviewSurfaceBuilder surfaceBuilder;
+  final PersonalizationStudioSceneBuilder surfaceBuilder;
 
   @override
   Widget build(BuildContext context) {

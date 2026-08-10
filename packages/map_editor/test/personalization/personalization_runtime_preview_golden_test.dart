@@ -13,7 +13,7 @@ void main() {
     PersonalizationPreviewViewport.landscape,
     PersonalizationPreviewViewport.portrait,
   ]) {
-    for (final surface in PersonalizationPreviewSurface.values) {
+    for (final surface in PersonalizationStudioScene.values) {
       testWidgets('certifies editor ${surface.name} in ${viewport.name}', (
         tester,
       ) async {

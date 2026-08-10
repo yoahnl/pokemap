@@ -90,7 +90,7 @@ void main() {
     expect(dialogueText.style?.fontFamily, 'Aurore Dialogue');
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('personalization-preview-menu')),
+      find.byKey(const ValueKey<String>('personalization-preview-pause')),
     );
     await tester.pumpAndSettle();
     expect(
@@ -107,9 +107,7 @@ void main() {
     expect(menuText.style?.fontFamily, 'Aurore Body');
   });
 
-  testWidgets('PST-042 composes overworld and battle HUD surfaces', (
-    tester,
-  ) async {
+  testWidgets('PST-042 exposes global style and battle scenes', (tester) async {
     await tester.pumpWidget(
       _app(
         PersonalizationRuntimePreview(
@@ -127,14 +125,12 @@ void main() {
     );
 
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-preview-overworldHud'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-preview-globalStyle')),
     );
     await tester.pumpAndSettle();
     expect(
       find.byKey(
-        const ValueKey<String>('personalization-overworld-hud-composition'),
+        const ValueKey<String>('personalization-global-style-composition'),
       ),
       findsOneWidget,
     );
@@ -142,13 +138,11 @@ void main() {
     expect(find.textContaining('Rejoins le laboratoire'), findsOneWidget);
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('personalization-preview-battleHud')),
+      find.byKey(const ValueKey<String>('personalization-preview-battle')),
     );
     await tester.pumpAndSettle();
     expect(
-      find.byKey(
-        const ValueKey<String>('personalization-battle-hud-composition'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-battle-composition')),
       findsOneWidget,
     );
     expect(find.text('BRINDIBOU'), findsOneWidget);
@@ -225,7 +219,7 @@ void main() {
     expect((dialogueDecoration.border! as Border).top.width, 2);
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('personalization-preview-menu')),
+      find.byKey(const ValueKey<String>('personalization-preview-pause')),
     );
     await tester.pumpAndSettle();
     final menu = tester.widget<Container>(
@@ -508,7 +502,9 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(
-      find.byKey(const ValueKey<String>('personalization-intro-composition')),
+      find.byKey(
+        const ValueKey<String>('personalization-global-style-composition'),
+      ),
       findsOneWidget,
     );
 
@@ -526,7 +522,9 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
     expect(
-      find.byKey(const ValueKey<String>('personalization-intro-composition')),
+      find.byKey(
+        const ValueKey<String>('personalization-global-style-composition'),
+      ),
       findsOneWidget,
     );
     semantics.dispose();

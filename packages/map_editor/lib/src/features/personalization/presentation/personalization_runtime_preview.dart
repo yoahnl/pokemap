@@ -26,7 +26,7 @@ class PersonalizationRuntimePreview extends StatefulWidget {
     required this.projectName,
     required this.projectRootPath,
     this.baselineProfile,
-    this.initialSurface = PersonalizationPreviewSurface.title,
+    this.initialSurface = PersonalizationStudioScene.title,
     this.initialViewport = PersonalizationPreviewViewport.landscape,
   });
 
@@ -34,7 +34,7 @@ class PersonalizationRuntimePreview extends StatefulWidget {
   final ProjectPresentationProfile? baselineProfile;
   final String projectName;
   final String projectRootPath;
-  final PersonalizationPreviewSurface initialSurface;
+  final PersonalizationStudioScene initialSurface;
   final PersonalizationPreviewViewport initialViewport;
 
   @override
@@ -44,7 +44,7 @@ class PersonalizationRuntimePreview extends StatefulWidget {
 
 class _PersonalizationRuntimePreviewState
     extends State<PersonalizationRuntimePreview> {
-  late PersonalizationPreviewSurface _surface;
+  late PersonalizationStudioScene _surface;
   late PersonalizationPreviewViewport _viewport;
   double _textScale = 1;
   bool _reducedMotion = false;
@@ -159,22 +159,22 @@ class _PersonalizationRuntimePreviewState
 
   Widget _buildSurfacePreview({
     required ProjectPresentationProfile profile,
-    required PersonalizationPreviewSurface surface,
-    required PersonalizationPreviewSurfaceProjection projection,
+    required PersonalizationStudioScene surface,
+    required PersonalizationStudioSceneProjection projection,
     required double aspectRatio,
     required PersonalizationPreviewViewportMetrics metrics,
     required bool reducedMotion,
   }) {
     final theme = profile.theme ?? safeProjectSemanticTheme;
     return switch (surface) {
-      PersonalizationPreviewSurface.intro => _IntroRuntimePreview(
+      PersonalizationStudioScene.intro => _IntroRuntimePreview(
         profile: profile.intro,
         projectRootPath: widget.projectRootPath,
         theme: theme,
         aspectRatio: aspectRatio,
         simulateReducedMotion: reducedMotion,
       ),
-      PersonalizationPreviewSurface.title => _TitleRuntimePreview(
+      PersonalizationStudioScene.title => _TitleRuntimePreview(
         projectName: widget.projectName,
         projectRootPath: widget.projectRootPath,
         branding: profile.branding,
@@ -186,7 +186,7 @@ class _PersonalizationRuntimePreviewState
         metrics: metrics,
         simulateReducedMotion: reducedMotion,
       ),
-      PersonalizationPreviewSurface.dialogue => _DialogueRuntimePreview(
+      PersonalizationStudioScene.dialogue => _DialogueRuntimePreview(
         projection: projection,
         theme: theme,
         windows: profile.windows,
@@ -194,7 +194,7 @@ class _PersonalizationRuntimePreviewState
         layouts: profile.layouts,
         metrics: metrics,
       ),
-      PersonalizationPreviewSurface.menu => _MenuRuntimePreview(
+      PersonalizationStudioScene.pause => _PauseRuntimePreview(
         projection: projection,
         theme: theme,
         labels: profile.menuLabels,
@@ -204,12 +204,12 @@ class _PersonalizationRuntimePreviewState
         layouts: profile.layouts,
         metrics: metrics,
       ),
-      PersonalizationPreviewSurface.overworldHud => _OverworldHudRuntimePreview(
+      PersonalizationStudioScene.globalStyle => _GlobalStyleRuntimePreview(
         projection: projection,
         theme: theme,
         aspectRatio: aspectRatio,
       ),
-      PersonalizationPreviewSurface.battleHud => _BattleHudRuntimePreview(
+      PersonalizationStudioScene.battle => _BattleRuntimePreview(
         projection: projection,
         theme: theme,
         aspectRatio: aspectRatio,
@@ -318,7 +318,7 @@ class _DialogueRuntimePreview extends StatelessWidget {
     required this.metrics,
   });
 
-  final PersonalizationPreviewSurfaceProjection projection;
+  final PersonalizationStudioSceneProjection projection;
   final ProjectSemanticThemeProfile theme;
   final ProjectPresentationWindowsProfile? windows;
   final double aspectRatio;
@@ -489,8 +489,8 @@ class _DialogueRuntimePreview extends StatelessWidget {
   }
 }
 
-class _MenuRuntimePreview extends StatelessWidget {
-  const _MenuRuntimePreview({
+class _PauseRuntimePreview extends StatelessWidget {
+  const _PauseRuntimePreview({
     required this.projection,
     required this.theme,
     required this.labels,
@@ -501,7 +501,7 @@ class _MenuRuntimePreview extends StatelessWidget {
     required this.metrics,
   });
 
-  final PersonalizationPreviewSurfaceProjection projection;
+  final PersonalizationStudioSceneProjection projection;
   final ProjectSemanticThemeProfile theme;
   final ProjectMenuLabelsProfile? labels;
   final ProjectPresentationWindowsProfile? windows;
@@ -813,14 +813,14 @@ class _PausePreviewNavigation extends StatelessWidget {
   }
 }
 
-class _OverworldHudRuntimePreview extends StatelessWidget {
-  const _OverworldHudRuntimePreview({
+class _GlobalStyleRuntimePreview extends StatelessWidget {
+  const _GlobalStyleRuntimePreview({
     required this.projection,
     required this.theme,
     required this.aspectRatio,
   });
 
-  final PersonalizationPreviewSurfaceProjection projection;
+  final PersonalizationStudioSceneProjection projection;
   final ProjectSemanticThemeProfile theme;
   final double aspectRatio;
 
@@ -835,7 +835,7 @@ class _OverworldHudRuntimePreview extends StatelessWidget {
     final outline = _previewColor(theme.outline, colors.borderStrong);
 
     return _RuntimeFrame(
-      key: const ValueKey<String>('personalization-overworld-hud-composition'),
+      key: const ValueKey<String>('personalization-global-style-composition'),
       background: world,
       aspectRatio: aspectRatio,
       child: Stack(
@@ -934,14 +934,14 @@ class _OverworldHudRuntimePreview extends StatelessWidget {
   }
 }
 
-class _BattleHudRuntimePreview extends StatelessWidget {
-  const _BattleHudRuntimePreview({
+class _BattleRuntimePreview extends StatelessWidget {
+  const _BattleRuntimePreview({
     required this.projection,
     required this.theme,
     required this.aspectRatio,
   });
 
-  final PersonalizationPreviewSurfaceProjection projection;
+  final PersonalizationStudioSceneProjection projection;
   final ProjectSemanticThemeProfile theme;
   final double aspectRatio;
 
@@ -957,7 +957,7 @@ class _BattleHudRuntimePreview extends StatelessWidget {
     final danger = _previewColor(theme.danger, colors.error);
 
     return _RuntimeFrame(
-      key: const ValueKey<String>('personalization-battle-hud-composition'),
+      key: const ValueKey<String>('personalization-battle-composition'),
       background: arena,
       aspectRatio: aspectRatio,
       child: Stack(
@@ -1040,7 +1040,7 @@ class _BattleStatusCard extends StatelessWidget {
   final String level;
   final String hpLabel;
   final double hpFraction;
-  final PersonalizationPreviewSurfaceProjection projection;
+  final PersonalizationStudioSceneProjection projection;
   final Color surface;
   final Color foreground;
   final Color secondary;

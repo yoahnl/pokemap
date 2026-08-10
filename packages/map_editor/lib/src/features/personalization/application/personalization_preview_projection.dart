@@ -63,15 +63,15 @@ final class PersonalizationPreviewViewportMetrics {
   double get availableHeight => logicalHeight - safeTop - safeBottom;
 }
 
-final class PersonalizationPreviewSurfaceProjection {
-  const PersonalizationPreviewSurfaceProjection({
+final class PersonalizationStudioSceneProjection {
+  const PersonalizationStudioSceneProjection({
     required this.surface,
     required this.backgroundHex,
     required this.textHex,
     required this.fontFamily,
   });
 
-  final PersonalizationPreviewSurface surface;
+  final PersonalizationStudioScene surface;
   final String backgroundHex;
   final String textHex;
   final String fontFamily;
@@ -85,24 +85,22 @@ final class PersonalizationPreviewProjection {
 
   String get titleLayoutVariant => profile.branding.layoutVariant;
 
-  PersonalizationPreviewSurfaceProjection surface(
-    PersonalizationPreviewSurface surface,
+  PersonalizationStudioSceneProjection surface(
+    PersonalizationStudioScene surface,
   ) {
     final theme = profile.theme ?? safeProjectSemanticTheme;
     final typography = profile.typography;
-    final descriptor = PersonalizationPreviewSurfaceDescriptor.forSurface(
-      surface,
-    );
+    final descriptor = PersonalizationStudioSceneDescriptor.forSurface(surface);
     final role = descriptor.typographyProfile(typography);
     final windowRole = switch (surface) {
-      PersonalizationPreviewSurface.dialogue => ProjectWindowRole.dialogue,
-      PersonalizationPreviewSurface.menu => ProjectWindowRole.pauseMenu,
+      PersonalizationStudioScene.dialogue => ProjectWindowRole.dialogue,
+      PersonalizationStudioScene.pause => ProjectWindowRole.pauseMenu,
       _ => null,
     };
     final windowStyle = profile.windows == null || windowRole == null
         ? null
         : profile.windows!.resolve(windowRole);
-    return PersonalizationPreviewSurfaceProjection(
+    return PersonalizationStudioSceneProjection(
       surface: surface,
       backgroundHex: windowStyle == null
           ? descriptor.backgroundHex(theme)

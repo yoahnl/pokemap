@@ -1,24 +1,24 @@
 import 'package:map_core/map_core.dart';
 
-enum PersonalizationPreviewSurface {
-  intro,
+enum PersonalizationStudioScene {
+  globalStyle,
   title,
+  intro,
+  pause,
   dialogue,
-  menu,
-  overworldHud,
-  battleHud,
+  battle,
 }
 
 enum PersonalizationPreviewThemeRole {
+  globalBackground,
   titleSurface,
   dialogueSurface,
   menuSurface,
-  overworldHudSurface,
-  battleHudSurface,
+  battleSurface,
 }
 
-final class PersonalizationPreviewSurfaceDescriptor {
-  const PersonalizationPreviewSurfaceDescriptor({
+final class PersonalizationStudioSceneDescriptor {
+  const PersonalizationStudioSceneDescriptor({
     required this.surface,
     required this.label,
     required this.themeRole,
@@ -27,23 +27,22 @@ final class PersonalizationPreviewSurfaceDescriptor {
     this.defaultCategory,
   });
 
-  final PersonalizationPreviewSurface surface;
+  final PersonalizationStudioScene surface;
   final String label;
   final ProjectPresentationCategory? defaultCategory;
   final PersonalizationPreviewThemeRole themeRole;
   final ProjectTypographyRole typographyRole;
   final bool supportsReducedMotion;
 
-  String backgroundHex(
-    ProjectSemanticThemeProfile theme,
-  ) => switch (themeRole) {
-    PersonalizationPreviewThemeRole.titleSurface => theme.titleSurface,
-    PersonalizationPreviewThemeRole.dialogueSurface => theme.dialogueSurface,
-    PersonalizationPreviewThemeRole.menuSurface => theme.menuSurface,
-    PersonalizationPreviewThemeRole.overworldHudSurface =>
-      theme.overworldHudSurface,
-    PersonalizationPreviewThemeRole.battleHudSurface => theme.battleHudSurface,
-  };
+  String backgroundHex(ProjectSemanticThemeProfile theme) =>
+      switch (themeRole) {
+        PersonalizationPreviewThemeRole.globalBackground => theme.background,
+        PersonalizationPreviewThemeRole.titleSurface => theme.titleSurface,
+        PersonalizationPreviewThemeRole.dialogueSurface =>
+          theme.dialogueSurface,
+        PersonalizationPreviewThemeRole.menuSurface => theme.menuSurface,
+        PersonalizationPreviewThemeRole.battleSurface => theme.battleHudSurface,
+      };
 
   ProjectTypographyRoleProfile? typographyProfile(
     ProjectTypographyProfile? typography,
@@ -54,66 +53,66 @@ final class PersonalizationPreviewSurfaceDescriptor {
     ProjectTypographyRole.numbers => typography?.numbers,
   };
 
-  static PersonalizationPreviewSurfaceDescriptor forSurface(
-    PersonalizationPreviewSurface surface,
+  static PersonalizationStudioSceneDescriptor forSurface(
+    PersonalizationStudioScene surface,
   ) => personalizationPreviewSurfaceDescriptors.singleWhere(
     (descriptor) => descriptor.surface == surface,
   );
 
-  static PersonalizationPreviewSurfaceDescriptor defaultForCategory(
+  static PersonalizationStudioSceneDescriptor defaultForCategory(
     ProjectPresentationCategory category,
   ) => category == ProjectPresentationCategory.layouts
-      ? forSurface(PersonalizationPreviewSurface.title)
+      ? forSurface(PersonalizationStudioScene.title)
       : personalizationPreviewSurfaceDescriptors.singleWhere(
           (descriptor) => descriptor.defaultCategory == category,
         );
 }
 
 const personalizationPreviewSurfaceDescriptors =
-    <PersonalizationPreviewSurfaceDescriptor>[
-      PersonalizationPreviewSurfaceDescriptor(
-        surface: PersonalizationPreviewSurface.intro,
+    <PersonalizationStudioSceneDescriptor>[
+      PersonalizationStudioSceneDescriptor(
+        surface: PersonalizationStudioScene.globalStyle,
+        label: 'Style global',
+        defaultCategory: ProjectPresentationCategory.theme,
+        themeRole: PersonalizationPreviewThemeRole.globalBackground,
+        typographyRole: ProjectTypographyRole.body,
+        supportsReducedMotion: false,
+      ),
+      PersonalizationStudioSceneDescriptor(
+        surface: PersonalizationStudioScene.title,
+        label: 'Écran titre',
+        defaultCategory: ProjectPresentationCategory.branding,
+        themeRole: PersonalizationPreviewThemeRole.titleSurface,
+        typographyRole: ProjectTypographyRole.display,
+        supportsReducedMotion: true,
+      ),
+      PersonalizationStudioSceneDescriptor(
+        surface: PersonalizationStudioScene.intro,
         label: 'Intro',
         defaultCategory: ProjectPresentationCategory.intro,
         themeRole: PersonalizationPreviewThemeRole.titleSurface,
         typographyRole: ProjectTypographyRole.display,
         supportsReducedMotion: true,
       ),
-      PersonalizationPreviewSurfaceDescriptor(
-        surface: PersonalizationPreviewSurface.title,
-        label: 'Titre',
-        defaultCategory: ProjectPresentationCategory.branding,
-        themeRole: PersonalizationPreviewThemeRole.titleSurface,
-        typographyRole: ProjectTypographyRole.display,
-        supportsReducedMotion: true,
+      PersonalizationStudioSceneDescriptor(
+        surface: PersonalizationStudioScene.pause,
+        label: 'Menu Pause',
+        themeRole: PersonalizationPreviewThemeRole.menuSurface,
+        typographyRole: ProjectTypographyRole.body,
+        supportsReducedMotion: false,
       ),
-      PersonalizationPreviewSurfaceDescriptor(
-        surface: PersonalizationPreviewSurface.dialogue,
+      PersonalizationStudioSceneDescriptor(
+        surface: PersonalizationStudioScene.dialogue,
         label: 'Dialogue',
         defaultCategory: ProjectPresentationCategory.typography,
         themeRole: PersonalizationPreviewThemeRole.dialogueSurface,
         typographyRole: ProjectTypographyRole.dialogue,
         supportsReducedMotion: false,
       ),
-      PersonalizationPreviewSurfaceDescriptor(
-        surface: PersonalizationPreviewSurface.menu,
-        label: 'Menu',
-        defaultCategory: ProjectPresentationCategory.theme,
-        themeRole: PersonalizationPreviewThemeRole.menuSurface,
-        typographyRole: ProjectTypographyRole.body,
-        supportsReducedMotion: false,
-      ),
-      PersonalizationPreviewSurfaceDescriptor(
-        surface: PersonalizationPreviewSurface.overworldHud,
-        label: 'HUD exploration',
-        themeRole: PersonalizationPreviewThemeRole.overworldHudSurface,
-        typographyRole: ProjectTypographyRole.body,
-        supportsReducedMotion: false,
-      ),
-      PersonalizationPreviewSurfaceDescriptor(
-        surface: PersonalizationPreviewSurface.battleHud,
-        label: 'HUD combat',
-        themeRole: PersonalizationPreviewThemeRole.battleHudSurface,
+      PersonalizationStudioSceneDescriptor(
+        surface: PersonalizationStudioScene.battle,
+        label: 'Combat',
+        themeRole: PersonalizationPreviewThemeRole.battleSurface,
         typographyRole: ProjectTypographyRole.numbers,
         supportsReducedMotion: false,
       ),

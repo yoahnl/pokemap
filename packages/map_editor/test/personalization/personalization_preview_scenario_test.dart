@@ -12,12 +12,12 @@ void main() {
     const unchangedScenario = PersonalizationPreviewScenario(
       draftProfile: baseline,
       baselineProfile: baseline,
-      surface: PersonalizationPreviewSurface.menu,
+      surface: PersonalizationStudioScene.pause,
     );
     const changedScenario = PersonalizationPreviewScenario(
       draftProfile: changed,
       baselineProfile: baseline,
-      surface: PersonalizationPreviewSurface.menu,
+      surface: PersonalizationStudioScene.pause,
       comparisonEnabled: true,
     );
 
@@ -33,7 +33,7 @@ void main() {
     );
     const scenario = PersonalizationPreviewScenario(
       draftProfile: draft,
-      surface: PersonalizationPreviewSurface.title,
+      surface: PersonalizationStudioScene.title,
     );
 
     final changed = scenario.copyWith(
@@ -44,7 +44,7 @@ void main() {
     );
 
     expect(changed.draftProfile, same(draft));
-    expect(changed.surface, PersonalizationPreviewSurface.title);
+    expect(changed.surface, PersonalizationStudioScene.title);
     expect(changed.viewport, PersonalizationPreviewViewport.portrait);
     expect(changed.textScale, 2);
     expect(changed.reducedMotion, isTrue);
@@ -56,12 +56,12 @@ void main() {
       const profile = ProjectPresentationProfile();
       const portrait = PersonalizationPreviewScenario(
         draftProfile: profile,
-        surface: PersonalizationPreviewSurface.title,
+        surface: PersonalizationStudioScene.title,
         viewport: PersonalizationPreviewViewport.portrait,
       );
       const landscape = PersonalizationPreviewScenario(
         draftProfile: profile,
-        surface: PersonalizationPreviewSurface.menu,
+        surface: PersonalizationStudioScene.pause,
         viewport: PersonalizationPreviewViewport.phoneLandscape,
       );
 

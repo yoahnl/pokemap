@@ -137,11 +137,13 @@ void main() {
     );
 
     expect(
-      find.byKey(const ValueKey<String>('personalization-preview-battleHud')),
+      find.byKey(const ValueKey<String>('personalization-preview-battle')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey<String>('personalization-menu-composition')),
+      find.byKey(
+        const ValueKey<String>('personalization-global-style-composition'),
+      ),
       findsOneWidget,
     );
     expect(

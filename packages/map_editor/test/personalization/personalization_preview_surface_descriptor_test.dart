@@ -3,59 +3,83 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
 
 void main() {
-  test('describes every preview surface exactly once', () {
+  test('describes the six studio scenes exactly once', () {
     expect(
       personalizationPreviewSurfaceDescriptors.map((value) => value.surface),
-      unorderedEquals(PersonalizationPreviewSurface.values),
+      orderedEquals(const <PersonalizationStudioScene>[
+        PersonalizationStudioScene.globalStyle,
+        PersonalizationStudioScene.title,
+        PersonalizationStudioScene.intro,
+        PersonalizationStudioScene.pause,
+        PersonalizationStudioScene.dialogue,
+        PersonalizationStudioScene.battle,
+      ]),
     );
     expect(
       personalizationPreviewSurfaceDescriptors
           .map((value) => value.label)
           .toSet(),
-      hasLength(PersonalizationPreviewSurface.values.length),
+      hasLength(6),
+    );
+    expect(
+      personalizationPreviewSurfaceDescriptors.map((value) => value.label),
+      orderedEquals(const <String>[
+        'Style global',
+        'Écran titre',
+        'Intro',
+        'Menu Pause',
+        'Dialogue',
+        'Combat',
+      ]),
     );
   });
 
   test('maps each authoring category to one contextual surface', () {
     expect(
-      PersonalizationPreviewSurfaceDescriptor.defaultForCategory(
+      PersonalizationStudioSceneDescriptor.defaultForCategory(
         ProjectPresentationCategory.branding,
       ).surface,
-      PersonalizationPreviewSurface.title,
+      PersonalizationStudioScene.title,
     );
     expect(
-      PersonalizationPreviewSurfaceDescriptor.defaultForCategory(
+      PersonalizationStudioSceneDescriptor.defaultForCategory(
         ProjectPresentationCategory.intro,
       ).surface,
-      PersonalizationPreviewSurface.intro,
+      PersonalizationStudioScene.intro,
     );
     expect(
-      PersonalizationPreviewSurfaceDescriptor.defaultForCategory(
+      PersonalizationStudioSceneDescriptor.defaultForCategory(
         ProjectPresentationCategory.typography,
       ).surface,
-      PersonalizationPreviewSurface.dialogue,
+      PersonalizationStudioScene.dialogue,
     );
     expect(
-      PersonalizationPreviewSurfaceDescriptor.defaultForCategory(
+      PersonalizationStudioSceneDescriptor.defaultForCategory(
         ProjectPresentationCategory.theme,
       ).surface,
-      PersonalizationPreviewSurface.menu,
+      PersonalizationStudioScene.globalStyle,
+    );
+    expect(
+      PersonalizationStudioSceneDescriptor.defaultForCategory(
+        ProjectPresentationCategory.layouts,
+      ).surface,
+      PersonalizationStudioScene.title,
     );
   });
 
   test('declares the projection roles and reduced motion support', () {
-    final title = PersonalizationPreviewSurfaceDescriptor.forSurface(
-      PersonalizationPreviewSurface.title,
+    final title = PersonalizationStudioSceneDescriptor.forSurface(
+      PersonalizationStudioScene.title,
     );
-    final menu = PersonalizationPreviewSurfaceDescriptor.forSurface(
-      PersonalizationPreviewSurface.menu,
+    final pause = PersonalizationStudioSceneDescriptor.forSurface(
+      PersonalizationStudioScene.pause,
     );
 
     expect(title.themeRole, PersonalizationPreviewThemeRole.titleSurface);
     expect(title.typographyRole, ProjectTypographyRole.display);
     expect(title.supportsReducedMotion, isTrue);
-    expect(menu.themeRole, PersonalizationPreviewThemeRole.menuSurface);
-    expect(menu.typographyRole, ProjectTypographyRole.body);
-    expect(menu.supportsReducedMotion, isFalse);
+    expect(pause.themeRole, PersonalizationPreviewThemeRole.menuSurface);
+    expect(pause.typographyRole, ProjectTypographyRole.body);
+    expect(pause.supportsReducedMotion, isFalse);
   });
 }
