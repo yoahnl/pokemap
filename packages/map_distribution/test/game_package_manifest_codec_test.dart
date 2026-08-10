@@ -272,6 +272,40 @@ void main() {
       );
     });
 
+    test('round-trips V4 responsive surface layouts', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 4,
+          'branding': <String, Object?>{'layoutVariant': 'cinematic'},
+          'layouts': _layoutsJson(),
+        };
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.presentation?.layouts?.title.expanded.slot, 'bottomLeft');
+      expect(manifest.presentation?.layouts?.pauseMenu.regular.slot, 'left');
+      expect(
+        manifest.presentation?.layouts?.dialogue.compact.width,
+        'wide',
+      );
+      expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('rejects layouts declared before presentation schema V4', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 3,
+          'branding': <String, Object?>{},
+          'layouts': _layoutsJson(),
+        };
+
+      _expectCode(
+        () => codec.decodeJson(json),
+        'presentationVersionUnsupported',
+        r'$.presentation.layouts',
+      );
+    });
+
     test('rejects invalid packaged menu labels', () {
       final json = _minimalManifestJson()
         ..['presentation'] = <String, Object?>{
@@ -664,6 +698,64 @@ void main() {
     });
   });
 }
+
+Map<String, Object?> _layoutsJson() => <String, Object?>{
+      'title': _responsiveLayoutJson(
+        compactSlot: 'bottomCenter',
+        regularSlot: 'center',
+        expandedSlot: 'bottomLeft',
+        expandedWidth: 'narrow',
+      ),
+      'pauseMenu': _responsiveLayoutJson(
+        compactSlot: 'fullScreen',
+        regularSlot: 'left',
+        expandedSlot: 'leftPane',
+      ),
+      'dialogue': _responsiveLayoutJson(
+        compactSlot: 'bottomCenter',
+        regularSlot: 'bottomCenter',
+        expandedSlot: 'topCenter',
+        compactWidth: 'wide',
+      ),
+    };
+
+Map<String, Object?> _responsiveLayoutJson({
+  required String compactSlot,
+  required String regularSlot,
+  required String expandedSlot,
+  String compactWidth = 'comfortable',
+  String expandedWidth = 'comfortable',
+}) =>
+    <String, Object?>{
+      'compact': _layoutVariantJson(
+        breakpoint: 'compact',
+        slot: compactSlot,
+        width: compactWidth,
+      ),
+      'regular': _layoutVariantJson(
+        breakpoint: 'regular',
+        slot: regularSlot,
+      ),
+      'expanded': _layoutVariantJson(
+        breakpoint: 'expanded',
+        slot: expandedSlot,
+        width: expandedWidth,
+      ),
+    };
+
+Map<String, Object?> _layoutVariantJson({
+  required String breakpoint,
+  required String slot,
+  String width = 'comfortable',
+}) =>
+    <String, Object?>{
+      'breakpoint': breakpoint,
+      'slot': slot,
+      'width': width,
+      'spacing': 'normal',
+      'screenMargin': 'compact',
+      'visibleSecondaryElements': <Object?>[],
+    };
 
 void _expectCode(
   void Function() operation,

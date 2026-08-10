@@ -12,13 +12,14 @@ void main() {
       branding: ProjectBrandingProfile(accentColor: 'purple'),
       theme: safeProjectSemanticTheme,
     );
+    final report = PersonalizationPublishReadiness.fromProfile(profile);
 
     await tester.pumpWidget(
       MaterialApp(
         theme: PokeMapTheme.light(),
         home: Scaffold(
           body: PersonalizationReadinessPanel(
-            report: PersonalizationPublishReadiness.fromProfile(profile),
+            report: report,
           ),
         ),
       ),
@@ -41,7 +42,17 @@ void main() {
       );
     }
     expect(find.text('À corriger'), findsOneWidget);
-    expect(find.text('Prêt'), findsNWidgets(3));
+    expect(
+      find.text('Prêt'),
+      findsNWidgets(
+        report.categories
+            .where(
+              (category) =>
+                  category.status == PersonalizationReadinessStatus.ready,
+            )
+            .length,
+      ),
+    );
   });
 
   testWidgets('explains blockers and exposes a direct correction action',
@@ -73,11 +84,12 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-readiness-correction-0'),
-      ),
+    final correction = find.byKey(
+      const ValueKey<String>('personalization-readiness-correction-0'),
     );
+    await tester.ensureVisible(correction);
+    expect(correction.hitTestable(), findsOneWidget);
+    await tester.tap(correction);
 
     expect(correctedIssue?.category, ProjectPresentationCategory.branding);
   });
@@ -181,11 +193,12 @@ void main() {
       ),
     );
     expect(exportButton.onPressed, isNotNull);
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-readiness-export'),
-      ),
+    final export = find.byKey(
+      const ValueKey<String>('personalization-readiness-export'),
     );
+    await tester.ensureVisible(export);
+    expect(export.hitTestable(), findsOneWidget);
+    await tester.tap(export);
     expect(exportCount, 1);
   });
 }

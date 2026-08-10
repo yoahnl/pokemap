@@ -104,6 +104,38 @@ void main() {
     expect(material.elevation, 3);
     expect(padding.padding, const EdgeInsets.all(12));
   });
+
+  testWidgets('authored dialogue layout resolves top position and visibility', (
+    tester,
+  ) async {
+    final base = suggestedProjectPresentationLayouts('standard');
+    final layouts = base.copyWith(
+      dialogue: base.dialogue.copyWith(
+        regular: base.dialogue.regular.copyWith(
+          slot: ProjectPresentationLayoutSlot.topCenter,
+          visibleSecondaryElements: const <ProjectPresentationSecondaryElement>[],
+        ),
+      ),
+    );
+    await tester.binding.setSurfaceSize(const Size(1024, 768));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(),
+      layouts: layouts,
+      portraitBuilder: (_) => const SizedBox(
+        key: ValueKey<String>('dialogue-portrait'),
+      ),
+      onCommand: (_) {},
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('player-dialogue-responsive-regular')),
+      findsOneWidget,
+    );
+    expect(
+        find.byKey(const ValueKey<String>('dialogue-portrait')), findsNothing);
+  });
 }
 
 Future<void> _pump(
@@ -113,6 +145,8 @@ Future<void> _pump(
   TextScaler textScaler = TextScaler.noScaling,
   PokeMapPlayerTypography? typography,
   ProjectPresentationWindowsProfile? windows,
+  ProjectPresentationLayoutsProfile? layouts,
+  Widget Function(String speaker)? portraitBuilder,
 }) {
   var theme = typography == null
       ? PokeMapPlayerTheme.dark()
@@ -123,6 +157,9 @@ Future<void> _pump(
   if (windows != null) {
     theme = PokeMapPlayerTheme.withWindowProfile(theme, windows);
   }
+  if (layouts != null) {
+    theme = PokeMapPlayerTheme.withLayoutProfile(theme, layouts);
+  }
   return tester.pumpWidget(
     MaterialApp(
       theme: theme,
@@ -132,6 +169,7 @@ Future<void> _pump(
           body: PlayerDialogueOverlay(
             snapshot: snapshot,
             onCommand: onCommand,
+            portraitBuilder: portraitBuilder,
           ),
         ),
       ),

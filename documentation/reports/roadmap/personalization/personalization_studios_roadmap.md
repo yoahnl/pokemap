@@ -140,7 +140,7 @@ Pendant l’audit, ce chantier parallèle a été commit sous :
 |---|---|---:|---|---|
 | PERS-L1 | La preview actuelle est fiable, accessible et acceptée dans la vraie app | M | Socle `337a97a6e` | **DONE — 2026-08-10** |
 | PERS-L2 | Window Studio personnalise réellement Pause et Dialogue | L | PERS-L1 | **DONE — 2026-08-10** |
-| PERS-L3 | Layout Studio place les contenus par variantes responsives sûres | L | PERS-L2 | Prêt |
+| PERS-L3 | Layout Studio place les contenus par variantes responsives sûres | L | PERS-L2 | **PARTIAL — 2026-08-10** |
 | PERS-L4 | Toutes les surfaces utilisent les contrats et les presets sont partageables | XL | PERS-L3 | Bloqué par L3 |
 
 La dépendance est stricte :
@@ -409,14 +409,20 @@ Les actions essentielles ne peuvent jamais être masquées par `optionalVisibili
 
 ### Scope
 
-- [ ] Ajouter le profil et un résolveur pur dans `map_core`.
-- [ ] Migrer `branding.layoutVariant` vers les nouveaux presets tout en le conservant en lecture pendant une version complète.
-- [ ] Ajouter le résolveur partagé côté player sans logique gameplay.
-- [ ] Adapter Title, Pause et Dialogue.
-- [ ] Construire un canvas contraint avec snap, reset, comparaison et presets.
-- [ ] Utiliser les scénarios de preview stabilisés au lot 1.
-- [ ] Étendre authoring, distribution, Hub, export et MCP.
-- [ ] Prouver focus, safe areas, text scale et fallbacks.
+- [x] Ajouter le profil et un résolveur pur dans `map_core`.
+- [x] Migrer `branding.layoutVariant` vers les nouveaux presets tout en le conservant en lecture pendant une version complète.
+- [x] Ajouter le résolveur partagé côté player sans logique gameplay.
+- [x] Adapter Title, Pause et Dialogue.
+- [x] Construire un canvas contraint avec snap, reset, comparaison et presets.
+- [x] Utiliser les scénarios de preview stabilisés au lot 1.
+- [x] Étendre authoring, distribution, Hub, export et MCP.
+- [x] Prouver focus, safe areas, text scale et fallbacks.
+
+### État exécuté le 2026-08-10
+
+Le contrat V4, le Studio guidé, le résolveur partagé, l’export certifié et le chargement Hub sont implémentés. La fixture unique `golden_personalization_slice/presentation.json` alimente les goldens editor/player et le parcours package installé. La matrice player couvre les 12 combinaisons de tailles et de text scale prévues, les safe areas et la conservation du focus après changement de breakpoint.
+
+Le lot reste `PARTIAL` pour une raison précise : le standalone historique ouvre encore `InGameMenuPage` et son dialogue Flame au lieu de `RuntimePlayerPauseShell` et `PlayerDialogueOverlay`. Le thème V4 est chargé et le Title canonique le consomme, mais déclarer la parité Pause/Dialogue standalone serait faux. La preuve MCP locale couvre `pokemap_describe`, `presentation.update` et la relecture V4 ; le serveur MCP configuré dans Codex pointe le checkout principal et ne pourra certifier ce commit en live qu’après intégration.
 
 ### Fichiers structurants
 
@@ -458,15 +464,15 @@ Les actions essentielles ne peuvent jamais être masquées par `optionalVisibili
 
 ### Gate de sortie
 
-- [ ] Le même résolveur sélectionne compact, regular ou expanded pour preview, standalone et Hub.
-- [ ] Portrait, paysage, fallback et projet legacy sont déterministes.
-- [ ] Aucun contenu ne quitte les safe areas.
-- [ ] Aucun overflow à 200 % de texte.
-- [ ] Le focus clavier/manette reste stable après changement de breakpoint et réordonnancement.
-- [ ] Snap, bornes, annulation et restauration sont couverts par interaction réelle.
-- [ ] Les goldens editor/player utilisent exactement la même fixture.
-- [ ] `branding.layoutVariant` conserve sa sémantique historique pendant la migration.
-- [ ] Les quatre transports et le package installé sont prouvés.
+- [ ] Le même résolveur sélectionne compact, regular ou expanded pour preview, standalone et Hub : Title est commun, Pause/Dialogue standalone restent historiques.
+- [x] Portrait, paysage, fallback et projet legacy sont déterministes.
+- [x] Aucun contenu ne quitte les safe areas.
+- [x] Aucun overflow à 200 % de texte.
+- [x] Le focus clavier/manette reste stable après changement de breakpoint et réordonnancement.
+- [x] Snap, bornes, annulation et restauration sont couverts par interaction réelle.
+- [x] Les goldens editor/player utilisent exactement la même fixture.
+- [x] `branding.layoutVariant` conserve sa sémantique historique pendant la migration.
+- [x] Les quatre transports et le package installé sont prouvés par les tests locaux ; la relecture MCP live attend l’intégration du worktree.
 
 ### Non-objectifs
 
@@ -702,4 +708,4 @@ Le point volontairement ambitieux est PERS-L4. S’il dépasse un seul commit r�
 
 ## 13. Prochaine action
 
-Commencer ensuite uniquement par **PERS-L2 — Window Studio V1**. PERS-L1 fournit désormais la baseline fiable ; PERS-L2 peut ajouter formes, bordures, densité et ombre sans mélanger les placements responsifs de PERS-L3.
+Fermer d’abord le dernier gate de **PERS-L3** en remplaçant le menu Pause et le dialogue spécifiques au standalone par les surfaces canoniques de `map_player_ui`, puis rejouer `pokemap_describe` live après intégration du worktree. **PERS-L4** reste bloqué jusque-là.

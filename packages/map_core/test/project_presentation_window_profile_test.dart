@@ -44,7 +44,7 @@ void main() {
       final decoded = ProjectPresentationProfile.fromJson(profile.toJson());
 
       expect(decoded, profile);
-      expect(decoded.schemaVersion, 3);
+      expect(decoded.schemaVersion, 4);
       expect(decoded.windows?.resolve(ProjectWindowRole.pauseMenu).id, 'pause');
       expect(
         decoded.windows?.resolve(ProjectWindowRole.dialogue).id,
@@ -65,7 +65,7 @@ void main() {
 
       final profile = ProjectPresentationProfile.fromJson(source);
 
-      expect(profile.schemaVersion, 3);
+      expect(profile.schemaVersion, 4);
       expect(profile.windows, isNull);
       expect(profile.toJson(), isNot(contains('windows')));
       expect(profile.effectiveWindows, legacyProjectPresentationWindows);
@@ -85,7 +85,7 @@ void main() {
         'branding': <String, dynamic>{'layoutVariant': 'standard'},
       });
 
-      expect(profile.schemaVersion, 3);
+      expect(profile.schemaVersion, 4);
       expect(profile.windows, isNull);
       expect(profile.effectiveWindows, legacyProjectPresentationWindows);
     });

@@ -162,6 +162,7 @@ class _PersonalizationRuntimePreviewState
     required PersonalizationPreviewSurface surface,
     required PersonalizationPreviewSurfaceProjection projection,
     required double aspectRatio,
+    required PersonalizationPreviewViewportMetrics metrics,
     required bool reducedMotion,
   }) {
     final theme = profile.theme ?? safeProjectSemanticTheme;
@@ -181,6 +182,8 @@ class _PersonalizationRuntimePreviewState
         theme: theme,
         typography: profile.typography,
         aspectRatio: aspectRatio,
+        layouts: profile.layouts,
+        metrics: metrics,
         simulateReducedMotion: reducedMotion,
       ),
       PersonalizationPreviewSurface.dialogue => _DialogueRuntimePreview(
@@ -188,6 +191,8 @@ class _PersonalizationRuntimePreviewState
         theme: theme,
         windows: profile.windows,
         aspectRatio: aspectRatio,
+        layouts: profile.layouts,
+        metrics: metrics,
       ),
       PersonalizationPreviewSurface.menu => _MenuRuntimePreview(
         projection: projection,
@@ -196,6 +201,8 @@ class _PersonalizationRuntimePreviewState
         windows: profile.windows,
         projectName: widget.projectName,
         aspectRatio: aspectRatio,
+        layouts: profile.layouts,
+        metrics: metrics,
       ),
       PersonalizationPreviewSurface.overworldHud => _OverworldHudRuntimePreview(
         projection: projection,
@@ -221,6 +228,8 @@ class _TitleRuntimePreview extends StatelessWidget {
     required this.typography,
     required this.aspectRatio,
     required this.simulateReducedMotion,
+    required this.layouts,
+    required this.metrics,
   });
 
   final String projectName;
@@ -231,22 +240,53 @@ class _TitleRuntimePreview extends StatelessWidget {
   final ProjectTypographyProfile? typography;
   final double aspectRatio;
   final bool simulateReducedMotion;
+  final ProjectPresentationLayoutsProfile? layouts;
+  final PersonalizationPreviewViewportMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
     final hasMotion =
         titleMotion?.promptLoop != null || titleMotion?.menuLoop != null;
+    final resolved = layouts == null
+        ? null
+        : const ProjectPresentationLayoutResolver().resolve(
+            layouts: layouts!,
+            role: ProjectPresentationSurfaceRole.title,
+            width: metrics.availableWidth,
+            height: metrics.availableHeight,
+          );
+    final previewBranding = resolved == null
+        ? branding
+        : branding.copyWith(
+            layoutVariant: switch (resolved.variant.slot) {
+              ProjectPresentationLayoutSlot.center => 'centered',
+              ProjectPresentationLayoutSlot.bottomCenter => 'cinematic',
+              ProjectPresentationLayoutSlot.bottomLeft => 'cinematic',
+              ProjectPresentationLayoutSlot.leftPane => 'standard',
+              _ => branding.layoutVariant,
+            },
+          );
     return Stack(
       children: <Widget>[
         ProjectBrandingTitlePreview(
           key: const ValueKey<String>('personalization-title-composition'),
           projectName: projectName,
           projectRootPath: projectRootPath,
-          branding: branding,
+          branding: previewBranding,
           theme: theme,
           typography: typography,
           aspectRatio: aspectRatio,
         ),
+        if (resolved != null)
+          Positioned(
+            left: 12,
+            top: 12,
+            child: PokeMapBadge(
+              key: const ValueKey<String>('personalization-layout-breakpoint'),
+              label: _breakpointPreviewLabel(resolved.breakpoint),
+              variant: PokeMapBadgeVariant.info,
+            ),
+          ),
         if (hasMotion)
           Positioned(
             top: 12,
@@ -274,12 +314,16 @@ class _DialogueRuntimePreview extends StatelessWidget {
     required this.theme,
     required this.windows,
     required this.aspectRatio,
+    required this.layouts,
+    required this.metrics,
   });
 
   final PersonalizationPreviewSurfaceProjection projection;
   final ProjectSemanticThemeProfile theme;
   final ProjectPresentationWindowsProfile? windows;
   final double aspectRatio;
+  final ProjectPresentationLayoutsProfile? layouts;
+  final PersonalizationPreviewViewportMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
@@ -297,6 +341,20 @@ class _DialogueRuntimePreview extends StatelessWidget {
             _semanticThemeToken(theme, windowStyle.borderToken),
             outline,
           );
+    final resolved = layouts == null
+        ? null
+        : const ProjectPresentationLayoutResolver().resolve(
+            layouts: layouts!,
+            role: ProjectPresentationSurfaceRole.dialogue,
+            width: metrics.availableWidth,
+            height: metrics.availableHeight,
+          );
+    final additionalMargin = resolved?.additionalSafeAreaPadding ?? 0;
+    final showPortrait =
+        resolved == null ||
+        resolved.variant.visibleSecondaryElements.contains(
+          ProjectPresentationSecondaryElement.dialoguePortrait,
+        );
 
     return _RuntimeFrame(
       key: const ValueKey<String>('personalization-dialogue-composition'),
@@ -314,95 +372,114 @@ class _DialogueRuntimePreview extends StatelessWidget {
             top: 28,
             child: Icon(Icons.home_outlined, size: 48, color: secondary),
           ),
-          Positioned(
-            left: windowStyle == null ? 0 : 8,
-            right: windowStyle == null ? 0 : 8,
-            bottom: windowStyle == null ? 0 : 8,
-            child: Container(
-              key: const ValueKey<String>('personalization-dialogue-window'),
-              padding: windowStyle == null
-                  ? const EdgeInsets.fromLTRB(16, 12, 16, 14)
-                  : EdgeInsets.all(windowStyle.contentPadding.toDouble()),
-              decoration: BoxDecoration(
-                color: surface,
-                border: windowStyle == null
-                    ? Border(top: BorderSide(color: outline, width: 2))
-                    : windowStyle.borderWidth == 0
-                    ? null
-                    : Border.all(
-                        color: windowOutline,
-                        width: windowStyle.borderWidth.toDouble(),
-                      ),
-                borderRadius: windowStyle == null
-                    ? null
-                    : BorderRadius.circular(
-                        windowStyle.cornerRadius.toDouble(),
-                      ),
-                boxShadow:
-                    windowStyle == null || windowStyle.shadowElevation == 0
-                    ? null
-                    : <BoxShadow>[
-                        BoxShadow(
-                          color: background.withValues(alpha: .28),
-                          blurRadius:
-                              windowStyle.shadowElevation.toDouble() * 1.5,
-                          offset: Offset(
-                            0,
-                            windowStyle.shadowElevation.toDouble() / 2,
-                          ),
-                        ),
-                      ],
+          Align(
+            alignment:
+                resolved?.variant.slot ==
+                    ProjectPresentationLayoutSlot.topCenter
+                ? Alignment.topCenter
+                : Alignment.bottomCenter,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                metrics.safeLeft + additionalMargin,
+                metrics.safeTop + additionalMargin,
+                metrics.safeRight + additionalMargin,
+                metrics.safeBottom + additionalMargin,
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: primary,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.person_outline,
-                      color: _previewColor(theme.onPrimary, colors.textInverse),
-                    ),
+              child: FractionallySizedBox(
+                widthFactor: resolved?.maxWidthFactor ?? 1,
+                child: Container(
+                  key: const ValueKey<String>(
+                    'personalization-dialogue-window',
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          'Professeure Saule',
-                          style: TextStyle(
+                  padding: windowStyle == null
+                      ? const EdgeInsets.fromLTRB(16, 12, 16, 14)
+                      : EdgeInsets.all(windowStyle.contentPadding.toDouble()),
+                  decoration: BoxDecoration(
+                    color: surface,
+                    border: windowStyle == null
+                        ? Border(top: BorderSide(color: outline, width: 2))
+                        : windowStyle.borderWidth == 0
+                        ? null
+                        : Border.all(
+                            color: windowOutline,
+                            width: windowStyle.borderWidth.toDouble(),
+                          ),
+                    borderRadius: windowStyle == null
+                        ? null
+                        : BorderRadius.circular(
+                            windowStyle.cornerRadius.toDouble(),
+                          ),
+                    boxShadow:
+                        windowStyle == null || windowStyle.shadowElevation == 0
+                        ? null
+                        : <BoxShadow>[
+                            BoxShadow(
+                              color: background.withValues(alpha: .28),
+                              blurRadius:
+                                  windowStyle.shadowElevation.toDouble() * 1.5,
+                              offset: Offset(
+                                0,
+                                windowStyle.shadowElevation.toDouble() / 2,
+                              ),
+                            ),
+                          ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      if (showPortrait)
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
                             color: primary,
-                            fontFamily: projection.fontFamily,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            Icons.person_outline,
+                            color: _previewColor(
+                              theme.onPrimary,
+                              colors.textInverse,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Le monde est peuplé de créatures étonnantes. '
-                          'Partons à leur rencontre !',
-                          key: const ValueKey<String>(
-                            'personalization-dialogue-sample-text',
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: foreground,
-                            fontFamily: projection.fontFamily,
-                            fontSize: 14,
-                            height: 1.25,
-                          ),
+                      if (showPortrait) const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(
+                              'Professeure Saule',
+                              style: TextStyle(
+                                color: primary,
+                                fontFamily: projection.fontFamily,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Le monde est peuplé de créatures étonnantes. '
+                              'Partons à leur rencontre !',
+                              key: const ValueKey<String>(
+                                'personalization-dialogue-sample-text',
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: foreground,
+                                fontFamily: projection.fontFamily,
+                                fontSize: 14,
+                                height: 1.25,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      Icon(Icons.arrow_drop_down, color: primary),
+                    ],
                   ),
-                  Icon(Icons.arrow_drop_down, color: primary),
-                ],
+                ),
               ),
             ),
           ),
@@ -420,6 +497,8 @@ class _MenuRuntimePreview extends StatelessWidget {
     required this.windows,
     required this.projectName,
     required this.aspectRatio,
+    required this.layouts,
+    required this.metrics,
   });
 
   final PersonalizationPreviewSurfaceProjection projection;
@@ -428,6 +507,8 @@ class _MenuRuntimePreview extends StatelessWidget {
   final ProjectPresentationWindowsProfile? windows;
   final String projectName;
   final double aspectRatio;
+  final ProjectPresentationLayoutsProfile? layouts;
+  final PersonalizationPreviewViewportMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
@@ -454,6 +535,14 @@ class _MenuRuntimePreview extends StatelessWidget {
         : Color.alphaBlend(
             colors.textPrimary.withValues(alpha: windows!.pauseBackdropOpacity),
             _previewColor(theme.background, colors.surfaceSubtle),
+          );
+    final resolved = layouts == null
+        ? null
+        : const ProjectPresentationLayoutResolver().resolve(
+            layouts: layouts!,
+            role: ProjectPresentationSurfaceRole.pauseMenu,
+            width: metrics.availableWidth,
+            height: metrics.availableHeight,
           );
 
     final entries = <(IconData, String)>[
@@ -484,73 +573,110 @@ class _MenuRuntimePreview extends StatelessWidget {
             windowStyle: windowStyle,
             windowOutline: windowOutline,
             fontFamily: projection.fontFamily,
+            showProjectName:
+                resolved == null ||
+                resolved.variant.visibleSecondaryElements.contains(
+                  ProjectPresentationSecondaryElement.pauseGameTitle,
+                ),
           );
-          if (aspectRatio < 1.3) {
+          final margin = resolved?.additionalSafeAreaPadding ?? 14;
+          if ((resolved == null && aspectRatio < 1.3) ||
+              resolved?.variant.slot ==
+                  ProjectPresentationLayoutSlot.fullScreen ||
+              resolved?.variant.slot ==
+                  ProjectPresentationLayoutSlot.bottomCenter) {
             return Padding(
-              padding: const EdgeInsets.all(14),
-              child: navigation,
+              padding: EdgeInsets.fromLTRB(
+                metrics.safeLeft + margin,
+                metrics.safeTop + margin,
+                metrics.safeRight + margin,
+                metrics.safeBottom + margin,
+              ),
+              child:
+                  resolved?.variant.slot ==
+                      ProjectPresentationLayoutSlot.bottomCenter
+                  ? Align(
+                      alignment: Alignment.bottomCenter,
+                      child: FractionallySizedBox(
+                        widthFactor: resolved?.maxWidthFactor,
+                        child: navigation,
+                      ),
+                    )
+                  : navigation,
             );
           }
+          final navigationFirst =
+              resolved?.variant.slot != ProjectPresentationLayoutSlot.right;
+          final navigationChild = Expanded(
+            flex: 4,
+            child: FractionallySizedBox(
+              alignment: navigationFirst
+                  ? Alignment.centerLeft
+                  : Alignment.centerRight,
+              widthFactor: resolved?.maxWidthFactor.clamp(.5, 1).toDouble(),
+              child: navigation,
+            ),
+          );
+          final contentChild = Expanded(
+            flex: 7,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: windowStyle == null ? elevated : panelSurface,
+                borderRadius: BorderRadius.circular(
+                  windowStyle?.cornerRadius.toDouble() ?? 12,
+                ),
+                border: windowStyle?.borderWidth == 0
+                    ? null
+                    : Border.all(
+                        color: windowOutline,
+                        width: windowStyle?.borderWidth.toDouble() ?? 1,
+                      ),
+                boxShadow: _windowShadow(windowStyle, frameBackground),
+              ),
+              child: Padding(
+                padding: windowStyle == null
+                    ? EdgeInsets.zero
+                    : EdgeInsets.all(windowStyle.contentPadding.toDouble()),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Icon(Icons.gamepad_rounded, color: secondary, size: 36),
+                    const SizedBox(height: 8),
+                    Text(
+                      labels?.pauseTitle ?? 'Pause',
+                      style: TextStyle(
+                        color: foreground,
+                        fontFamily: projection.fontFamily,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Sélectionnez une rubrique',
+                      style: TextStyle(
+                        color: secondary,
+                        fontFamily: projection.fontFamily,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
           return Padding(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.fromLTRB(
+              metrics.safeLeft + margin,
+              metrics.safeTop + margin,
+              metrics.safeRight + margin,
+              metrics.safeBottom + margin,
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Expanded(flex: 4, child: navigation),
+                if (navigationFirst) navigationChild else contentChild,
                 const SizedBox(width: 14),
-                Expanded(
-                  flex: 7,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: windowStyle == null ? elevated : panelSurface,
-                      borderRadius: BorderRadius.circular(
-                        windowStyle?.cornerRadius.toDouble() ?? 12,
-                      ),
-                      border: windowStyle?.borderWidth == 0
-                          ? null
-                          : Border.all(
-                              color: windowOutline,
-                              width: windowStyle?.borderWidth.toDouble() ?? 1,
-                            ),
-                      boxShadow: _windowShadow(windowStyle, frameBackground),
-                    ),
-                    child: Padding(
-                      padding: windowStyle == null
-                          ? EdgeInsets.zero
-                          : EdgeInsets.all(
-                              windowStyle.contentPadding.toDouble(),
-                            ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Icon(
-                            Icons.gamepad_rounded,
-                            color: secondary,
-                            size: 36,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            labels?.pauseTitle ?? 'Pause',
-                            style: TextStyle(
-                              color: foreground,
-                              fontFamily: projection.fontFamily,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Sélectionnez une rubrique',
-                            style: TextStyle(
-                              color: secondary,
-                              fontFamily: projection.fontFamily,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                if (navigationFirst) contentChild else navigationChild,
               ],
             ),
           );
@@ -573,6 +699,7 @@ class _PausePreviewNavigation extends StatelessWidget {
     required this.windowStyle,
     required this.windowOutline,
     required this.fontFamily,
+    required this.showProjectName,
   });
 
   final String title;
@@ -586,6 +713,7 @@ class _PausePreviewNavigation extends StatelessWidget {
   final ProjectWindowStyleProfile? windowStyle;
   final Color windowOutline;
   final String fontFamily;
+  final bool showProjectName;
 
   @override
   Widget build(BuildContext context) {
@@ -601,16 +729,17 @@ class _PausePreviewNavigation extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
-        Text(
-          projectName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: headingForeground,
-            fontFamily: fontFamily,
-            fontWeight: FontWeight.w600,
+        if (showProjectName)
+          Text(
+            projectName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: headingForeground,
+              fontFamily: fontFamily,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
         const SizedBox(height: 8),
         Expanded(
           child: Column(
@@ -1193,6 +1322,13 @@ Color _previewColor(String value, Color fallback) {
   if (!RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(normalized)) return fallback;
   return Color(0xff000000 | int.parse(normalized.substring(1), radix: 16));
 }
+
+String _breakpointPreviewLabel(ProjectPresentationBreakpoint breakpoint) =>
+    switch (breakpoint) {
+      ProjectPresentationBreakpoint.compact => 'Compact',
+      ProjectPresentationBreakpoint.regular => 'Standard',
+      ProjectPresentationBreakpoint.expanded => 'Grand écran',
+    };
 
 String _semanticThemeToken(ProjectSemanticThemeProfile theme, String token) =>
     switch (token) {

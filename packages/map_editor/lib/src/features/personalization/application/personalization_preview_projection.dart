@@ -5,13 +5,62 @@ import 'personalization_preview_surface_descriptor.dart';
 enum PersonalizationPreviewViewport {
   landscape,
   portrait,
-  square;
+  square,
+  phoneLandscape;
 
-  double get aspectRatio => switch (this) {
-    PersonalizationPreviewViewport.landscape => 16 / 9,
-    PersonalizationPreviewViewport.portrait => 9 / 16,
-    PersonalizationPreviewViewport.square => 1,
+  PersonalizationPreviewViewportMetrics get metrics => switch (this) {
+    PersonalizationPreviewViewport.landscape =>
+      const PersonalizationPreviewViewportMetrics(
+        logicalWidth: 1280,
+        logicalHeight: 720,
+      ),
+    PersonalizationPreviewViewport.portrait =>
+      const PersonalizationPreviewViewportMetrics(
+        logicalWidth: 390,
+        logicalHeight: 844,
+        safeTop: 44,
+        safeBottom: 34,
+      ),
+    PersonalizationPreviewViewport.square =>
+      const PersonalizationPreviewViewportMetrics(
+        logicalWidth: 768,
+        logicalHeight: 1024,
+        safeTop: 24,
+        safeBottom: 20,
+      ),
+    PersonalizationPreviewViewport.phoneLandscape =>
+      const PersonalizationPreviewViewportMetrics(
+        logicalWidth: 844,
+        logicalHeight: 390,
+        safeLeft: 44,
+        safeRight: 44,
+        safeBottom: 21,
+      ),
   };
+
+  double get aspectRatio => metrics.aspectRatio;
+}
+
+final class PersonalizationPreviewViewportMetrics {
+  const PersonalizationPreviewViewportMetrics({
+    required this.logicalWidth,
+    required this.logicalHeight,
+    this.safeLeft = 0,
+    this.safeTop = 0,
+    this.safeRight = 0,
+    this.safeBottom = 0,
+  });
+
+  final double logicalWidth;
+  final double logicalHeight;
+  final double safeLeft;
+  final double safeTop;
+  final double safeRight;
+  final double safeBottom;
+
+  double get aspectRatio => logicalWidth / logicalHeight;
+  double get availableWidth => logicalWidth - safeLeft - safeRight;
+  double get availableHeight => logicalHeight - safeTop - safeBottom;
 }
 
 final class PersonalizationPreviewSurfaceProjection {

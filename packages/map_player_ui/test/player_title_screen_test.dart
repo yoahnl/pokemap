@@ -113,6 +113,53 @@ void main() {
     expect(alignment.alignment, Alignment.bottomLeft);
   });
 
+  testWidgets('authored responsive title layout uses the shared regular slot', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 768);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final layouts = suggestedProjectPresentationLayouts('standard').copyWith(
+      title: suggestedProjectPresentationLayouts('standard').title.copyWith(
+            regular: suggestedProjectPresentationLayouts(
+              'standard',
+            ).title.regular.copyWith(
+                  slot: ProjectPresentationLayoutSlot.leftPane,
+                ),
+          ),
+    );
+    final theme = PokeMapPlayerTheme.withLayoutProfile(
+      PokeMapPlayerTheme.light(),
+      layouts,
+    );
+
+    await tester.pumpWidget(
+      _app(
+        PlayerTitleScreen(
+          data: PlayerTitleViewData(
+            gameTitle: 'Aube',
+            author: 'Studio',
+            actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
+              for (final action in PlayerTitleMenuAction.values)
+                action: PlayerActionAvailability.enabled,
+            },
+          ),
+          onSelected: (_) {},
+        ),
+        theme: theme,
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('player-title-responsive-regular')),
+      findsOneWidget,
+    );
+    final alignment = tester.widget<Align>(
+      find.byKey(const ValueKey<String>('player-title-content-alignment')),
+    );
+    expect(alignment.alignment, Alignment.centerLeft);
+  });
+
   testWidgets('title and menu consume their semantic typography roles',
       (tester) async {
     final theme = PokeMapPlayerTheme.withTypography(

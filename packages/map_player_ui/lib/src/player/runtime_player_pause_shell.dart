@@ -1,11 +1,13 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_layout_theme.dart';
 import '../theme/pokemap_player_window_theme.dart';
 import 'player_pause_menu.dart';
 import 'runtime_player_actions.dart';
@@ -142,7 +144,22 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final layout = classifyRuntimePlayerLayout(constraints);
+                  final resolved = context.playerLayoutTheme?.resolve(
+                    ProjectPresentationSurfaceRole.pauseMenu,
+                    constraints,
+                  );
+                  final layout = resolved == null
+                      ? classifyRuntimePlayerLayout(constraints)
+                      : switch (resolved.breakpoint) {
+                          ProjectPresentationBreakpoint.compact =>
+                            constraints.maxHeight > constraints.maxWidth
+                                ? RuntimePlayerLayoutClass.compactPortrait
+                                : RuntimePlayerLayoutClass.compactLandscape,
+                          ProjectPresentationBreakpoint.regular =>
+                            RuntimePlayerLayoutClass.compactLandscape,
+                          ProjectPresentationBreakpoint.expanded =>
+                            RuntimePlayerLayoutClass.expanded,
+                        };
                   if (_lastLayout != layout) {
                     _rememberScrollOffsets(_lastLayout);
                     _lastLayout = layout;
@@ -153,25 +170,28 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                     _restoreScrollOffsetsAfterLayout(layout);
                   }
                   return Stack(
-                    key: ValueKey<String>(
-                      'runtime-pause-layout-${layout.name}',
-                    ),
+                    key: ValueKey<String>(resolved == null
+                        ? 'runtime-pause-layout-${layout.name}'
+                        : 'runtime-pause-responsive-'
+                            '${resolved.breakpoint.name}'),
                     fit: StackFit.expand,
                     children: <Widget>[
                       switch (layout) {
                         RuntimePlayerLayoutClass.compactPortrait =>
-                          _compactPortrait(context, layout),
+                          _compactPortrait(context, layout, resolved),
                         RuntimePlayerLayoutClass.compactLandscape => _twoColumn(
                             context,
                             layout: layout,
                             widthFactor: .78,
                             navigationWidth: 220,
+                            resolved: resolved,
                           ),
                         RuntimePlayerLayoutClass.expanded => _twoColumn(
                             context,
                             layout: layout,
                             widthFactor: null,
                             navigationWidth: 280,
+                            resolved: resolved,
                           ),
                       },
                       if (layout != RuntimePlayerLayoutClass.expanded &&
@@ -245,24 +265,34 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   Widget _compactPortrait(
     BuildContext context,
     RuntimePlayerLayoutClass layout,
+    ProjectResolvedSurfaceLayout? resolved,
   ) {
+    final panelPadding = EdgeInsets.all(
+      PlayerSpacing.md * (resolved?.spacingScale ?? 1),
+    );
     if (widget.pauseSection != RuntimePlayerPauseSection.root) {
       return PlayerPanel(
         role: PlayerPanelRole.menu,
-        padding: const EdgeInsets.all(PlayerSpacing.md),
+        padding: panelPadding,
         child: _detailPane(context, layout),
       );
     }
+    final fullScreen =
+        resolved?.variant.slot == ProjectPresentationLayoutSlot.fullScreen;
+    final margin = resolved?.additionalSafeAreaPadding ?? 0;
     return Align(
-      alignment: Alignment.bottomCenter,
+      alignment: fullScreen ? Alignment.center : Alignment.bottomCenter,
       child: FractionallySizedBox(
-        heightFactor: .86,
-        widthFactor: 1,
-        child: PlayerPanel(
-          role: PlayerPanelRole.menu,
-          padding: const EdgeInsets.all(PlayerSpacing.md),
-          elevated: true,
-          child: _navigation(layout),
+        heightFactor: fullScreen ? 1 : .86,
+        widthFactor: resolved?.maxWidthFactor ?? 1,
+        child: Padding(
+          padding: EdgeInsets.all(margin),
+          child: PlayerPanel(
+            role: PlayerPanelRole.menu,
+            padding: panelPadding,
+            elevated: true,
+            child: _navigation(layout, resolved: resolved),
+          ),
         ),
       ),
     );
@@ -273,17 +303,30 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     required RuntimePlayerLayoutClass layout,
     required double? widthFactor,
     required double navigationWidth,
+    required ProjectResolvedSurfaceLayout? resolved,
   }) {
+    final effectiveWidthFactor = resolved?.maxWidthFactor ?? widthFactor;
+    final margin = resolved?.additionalSafeAreaPadding ?? PlayerSpacing.md;
+    final alignment = switch (resolved?.variant.slot) {
+      ProjectPresentationLayoutSlot.left ||
+      ProjectPresentationLayoutSlot.leftPane =>
+        Alignment.centerLeft,
+      ProjectPresentationLayoutSlot.center => Alignment.center,
+      ProjectPresentationLayoutSlot.right => Alignment.centerRight,
+      _ => Alignment.centerRight,
+    };
     Widget panel = ConstrainedBox(
-      key: widthFactor == null
+      key: effectiveWidthFactor == null
           ? const ValueKey<String>('runtime-pause-expanded-panel')
           : null,
       constraints: BoxConstraints(
-        maxWidth: widthFactor == null ? 820 : double.infinity,
+        maxWidth: effectiveWidthFactor == null ? 820 : double.infinity,
       ),
       child: PlayerPanel(
         role: PlayerPanelRole.menu,
-        padding: const EdgeInsets.all(PlayerSpacing.md),
+        padding: EdgeInsets.all(
+          PlayerSpacing.md * (resolved?.spacingScale ?? 1),
+        ),
         elevated: true,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -292,6 +335,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
               width: navigationWidth,
               child: _navigation(
                 layout,
+                resolved: resolved,
                 scrollKey: const ValueKey<String>(
                   'runtime-pause-navigation-scroll',
                 ),
@@ -303,16 +347,16 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         ),
       ),
     );
-    if (widthFactor != null) {
+    if (effectiveWidthFactor != null) {
       panel = FractionallySizedBox(
-        widthFactor: widthFactor,
+        widthFactor: effectiveWidthFactor,
         child: panel,
       );
     }
     return Padding(
-      padding: const EdgeInsets.all(PlayerSpacing.md),
+      padding: EdgeInsets.all(margin),
       child: Align(
-        alignment: Alignment.centerRight,
+        alignment: alignment,
         child: panel,
       ),
     );
@@ -321,6 +365,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   Widget _navigation(
     RuntimePlayerLayoutClass layout, {
     Key? scrollKey,
+    ProjectResolvedSurfaceLayout? resolved,
   }) {
     return PlayerPauseNavigation(
       gameTitle: widget.gameTitle,
@@ -335,6 +380,10 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       ),
       focusController: _focusController,
       labels: widget.labels,
+      showGameTitle: resolved == null ||
+          resolved.variant.visibleSecondaryElements.contains(
+            ProjectPresentationSecondaryElement.pauseGameTitle,
+          ),
     );
   }
 

@@ -236,7 +236,7 @@ void main() {
 
       expect(directEvidence, cliEvidence);
       expect(directEvidence['accentColor'], '#126E78');
-      expect(directEvidence['schemaVersion'], 3);
+      expect(directEvidence['schemaVersion'], 4);
       expect(
         directEvidence['introLandscape'],
         'presentation/intro-landscape.mp4',
@@ -249,6 +249,7 @@ void main() {
       expect(directEvidence['pauseWindowStyle'], 'pause-menu');
       expect(directEvidence['dialogueWindowStyle'], 'dialogue');
       expect(directEvidence['pauseBackdropOpacity'], .7);
+      expect(directEvidence['titleExpandedSlot'], 'bottomLeft');
     });
 
     test('projectPresentationProfile is a first-class query resource', () {
@@ -589,6 +590,8 @@ final class _GoldenHarness {
       'dialogueWindowStyle': manifest.presentation?.windows?.dialogueStyleId,
       'pauseBackdropOpacity':
           manifest.presentation?.windows?.pauseBackdropOpacity,
+      'titleExpandedSlot':
+          manifest.presentation?.layouts?.title.expanded.slot.name,
     };
   }
 
@@ -619,7 +622,7 @@ final class _GoldenHarness {
   }
 }
 
-const ProjectPresentationProfile _responsivePresentationProfile =
+final ProjectPresentationProfile _responsivePresentationProfile =
     ProjectPresentationProfile(
   branding: ProjectBrandingProfile(accentColor: '#126E78'),
   intro: ProjectIntroVideoProfile(
@@ -668,6 +671,7 @@ const ProjectPresentationProfile _responsivePresentationProfile =
     pokedex: 'Carnet de voyage',
   ),
   windows: legacyProjectPresentationWindows,
+  layouts: suggestedProjectPresentationLayouts('cinematic'),
 );
 
 AssetRecord _catalogAsset(

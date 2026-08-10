@@ -10,6 +10,9 @@ enum GamePackagePersonalizationCategory {
   titleMotion,
   typography,
   theme,
+  menuLabels,
+  windows,
+  layouts,
 }
 
 /// Immutable proof that an inspected package satisfies the presentation
@@ -204,8 +207,17 @@ final class GamePackagePersonalizationPreflight {
       }
     }
 
-    if (presentation?.theme != null || presentation?.windows != null) {
+    if (presentation?.theme != null) {
       categories.add(GamePackagePersonalizationCategory.theme);
+    }
+    if (presentation?.menuLabels != null) {
+      categories.add(GamePackagePersonalizationCategory.menuLabels);
+    }
+    if (presentation?.windows != null) {
+      categories.add(GamePackagePersonalizationCategory.windows);
+    }
+    if (presentation?.layouts != null) {
+      categories.add(GamePackagePersonalizationCategory.layouts);
     }
 
     return GamePackagePersonalizationPreflightReceipt(

@@ -23,6 +23,8 @@ final class PersonalizationPreviewScenario {
   final bool reducedMotion;
   final bool comparisonEnabled;
 
+  PersonalizationPreviewViewportMetrics get metrics => viewport.metrics;
+
   bool get canCompare {
     final baseline = baselineProfile;
     return baseline != null &&

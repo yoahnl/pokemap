@@ -138,6 +138,9 @@ void main() {
           GamePackagePersonalizationCategory.titleMotion,
           GamePackagePersonalizationCategory.typography,
           GamePackagePersonalizationCategory.theme,
+          GamePackagePersonalizationCategory.menuLabels,
+          GamePackagePersonalizationCategory.windows,
+          GamePackagePersonalizationCategory.layouts,
         ],
       );
       expect(
@@ -157,7 +160,7 @@ void main() {
         artifact.manifest.presentation?.theme?.titleSurface,
         profile.theme?.titleSurface,
       );
-      expect(artifact.manifest.presentation?.schemaVersion, 3);
+      expect(artifact.manifest.presentation?.schemaVersion, 4);
       expect(
         artifact.manifest.presentation?.windows?.pauseMenuStyleId,
         profile.windows?.pauseMenuStyleId,
@@ -165,6 +168,10 @@ void main() {
       expect(
         artifact.manifest.presentation?.windows?.pauseBackdropOpacity,
         profile.windows?.pauseBackdropOpacity,
+      );
+      expect(
+        artifact.manifest.presentation?.layouts?.title.expanded.slot,
+        'bottomLeft',
       );
     },
   );

@@ -464,6 +464,7 @@ String _categoryLabel(ProjectPresentationCategory category) =>
       ProjectPresentationCategory.intro => 'Intro du jeu',
       ProjectPresentationCategory.typography => 'Typographie',
       ProjectPresentationCategory.theme => 'Menus & interface',
+      ProjectPresentationCategory.layouts => 'Mise en page',
     };
 
 String _categoryDescription(ProjectPresentationCategory category) =>
@@ -473,6 +474,8 @@ String _categoryDescription(ProjectPresentationCategory category) =>
       ProjectPresentationCategory.typography => 'Polices et rôles de texte',
       ProjectPresentationCategory.theme =>
         'Libellés, fenêtres, couleurs et HUD',
+      ProjectPresentationCategory.layouts =>
+        'Position des contenus selon la taille d’écran',
     };
 
 String _emptyCategoryMessage(ProjectPresentationCategory category) =>
@@ -484,4 +487,5 @@ IconData _categoryIcon(ProjectPresentationCategory category) =>
       ProjectPresentationCategory.intro => Icons.movie_outlined,
       ProjectPresentationCategory.typography => Icons.font_download_outlined,
       ProjectPresentationCategory.theme => Icons.palette_outlined,
+      ProjectPresentationCategory.layouts => Icons.dashboard_customize_outlined,
     };

@@ -4,6 +4,15 @@ import 'dart:typed_data';
 import 'package:map_core/map_core.dart'
     show
         ProjectPresentationProfile,
+        ProjectPresentationBreakpoint,
+        ProjectPresentationContentWidth,
+        ProjectPresentationLayoutSlot,
+        ProjectPresentationLayoutsProfile,
+        ProjectPresentationScreenMargin,
+        ProjectPresentationSecondaryElement,
+        ProjectPresentationSpacing,
+        ProjectResponsiveSurfaceLayoutProfile,
+        ProjectSurfaceLayoutVariant,
         ProjectPresentationWindowsProfile,
         ProjectSemanticThemeProfile,
         ProjectWindowStyleProfile,
@@ -483,15 +492,19 @@ final class GamePackageManifestCodec {
         'theme',
         'menuLabels',
         'windows',
+        'layouts',
       },
     );
     final schemaVersion =
         _integer(json['schemaVersion'], '$path.schemaVersion');
-    if (schemaVersion != 1 && schemaVersion != 2 && schemaVersion != 3) {
+    if (schemaVersion != 1 &&
+        schemaVersion != 2 &&
+        schemaVersion != 3 &&
+        schemaVersion != 4) {
       _fail(
         'presentationVersionUnsupported',
         '$path.schemaVersion',
-        'Only presentation schema versions 1, 2 and 3 are supported.',
+        'Only presentation schema versions 1, 2, 3 and 4 are supported.',
       );
     }
     if (schemaVersion == 1 && json.containsKey('titleMotion')) {
@@ -513,6 +526,13 @@ final class GamePackageManifestCodec {
         'presentationVersionUnsupported',
         '$path.windows',
         'Window styles require presentation schema version 3.',
+      );
+    }
+    if (schemaVersion < 4 && json.containsKey('layouts')) {
+      _fail(
+        'presentationVersionUnsupported',
+        '$path.layouts',
+        'Responsive layouts require presentation schema version 4.',
       );
     }
     return GamePackagePresentation(
@@ -543,6 +563,164 @@ final class GamePackageManifestCodec {
       windows: json.containsKey('windows')
           ? _windows(json['windows'], path: '$path.windows')
           : null,
+      layouts: json.containsKey('layouts')
+          ? _layouts(json['layouts'], path: '$path.layouts')
+          : null,
+    );
+  }
+
+  GamePackagePresentationLayouts _layouts(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{'title', 'pauseMenu', 'dialogue'},
+      optional: const <String>{},
+    );
+    final title = _responsiveLayout(json['title'], path: '$path.title');
+    final pauseMenu = _responsiveLayout(
+      json['pauseMenu'],
+      path: '$path.pauseMenu',
+    );
+    final dialogue = _responsiveLayout(
+      json['dialogue'],
+      path: '$path.dialogue',
+    );
+    final projectLayouts = ProjectPresentationLayoutsProfile(
+      title: _projectResponsiveLayout(title),
+      pauseMenu: _projectResponsiveLayout(pauseMenu),
+      dialogue: _projectResponsiveLayout(dialogue),
+    );
+    final diagnostic = validateProjectPresentationProfile(
+      ProjectPresentationProfile(layouts: projectLayouts),
+    ).firstOrNull;
+    if (diagnostic != null) {
+      _fail(
+        'invalidPresentationLayout',
+        diagnostic.path.replaceFirst(r'$.presentation.layouts', path),
+        diagnostic.message,
+      );
+    }
+    return GamePackagePresentationLayouts(
+      title: title,
+      pauseMenu: pauseMenu,
+      dialogue: dialogue,
+    );
+  }
+
+  GamePackageResponsiveSurfaceLayout _responsiveLayout(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{'compact', 'regular', 'expanded'},
+      optional: const <String>{},
+    );
+    return GamePackageResponsiveSurfaceLayout(
+      compact: _layoutVariant(json['compact'], path: '$path.compact'),
+      regular: _layoutVariant(json['regular'], path: '$path.regular'),
+      expanded: _layoutVariant(json['expanded'], path: '$path.expanded'),
+    );
+  }
+
+  GamePackageSurfaceLayoutVariant _layoutVariant(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{
+        'breakpoint',
+        'slot',
+        'width',
+        'spacing',
+        'screenMargin',
+        'visibleSecondaryElements',
+      },
+      optional: const <String>{},
+    );
+    final secondary = _list(
+      json['visibleSecondaryElements'],
+      '$path.visibleSecondaryElements',
+    );
+    return GamePackageSurfaceLayoutVariant(
+      breakpoint: _string(json['breakpoint'], '$path.breakpoint'),
+      slot: _string(json['slot'], '$path.slot'),
+      width: _string(json['width'], '$path.width'),
+      spacing: _string(json['spacing'], '$path.spacing'),
+      screenMargin: _string(json['screenMargin'], '$path.screenMargin'),
+      visibleSecondaryElements: <String>[
+        for (var index = 0; index < secondary.length; index++)
+          _string(
+            secondary[index],
+            '$path.visibleSecondaryElements[$index]',
+          ),
+      ],
+    );
+  }
+
+  ProjectResponsiveSurfaceLayoutProfile _projectResponsiveLayout(
+    GamePackageResponsiveSurfaceLayout layout,
+  ) =>
+      ProjectResponsiveSurfaceLayoutProfile(
+        compact: _projectLayoutVariant(layout.compact),
+        regular: _projectLayoutVariant(layout.regular),
+        expanded: _projectLayoutVariant(layout.expanded),
+      );
+
+  ProjectSurfaceLayoutVariant _projectLayoutVariant(
+    GamePackageSurfaceLayoutVariant variant,
+  ) {
+    T named<T extends Enum>(List<T> values, String value, String field) {
+      for (final candidate in values) {
+        if (candidate.name == value) return candidate;
+      }
+      _fail(
+        'invalidPresentationLayout',
+        r'$.presentation.layouts.' + field,
+        'Unknown responsive layout value.',
+      );
+    }
+
+    return ProjectSurfaceLayoutVariant(
+      breakpoint: named(
+        ProjectPresentationBreakpoint.values,
+        variant.breakpoint,
+        'breakpoint',
+      ),
+      slot: named(
+        ProjectPresentationLayoutSlot.values,
+        variant.slot,
+        'slot',
+      ),
+      width: named(
+        ProjectPresentationContentWidth.values,
+        variant.width,
+        'width',
+      ),
+      spacing: named(
+        ProjectPresentationSpacing.values,
+        variant.spacing,
+        'spacing',
+      ),
+      screenMargin: named(
+        ProjectPresentationScreenMargin.values,
+        variant.screenMargin,
+        'screenMargin',
+      ),
+      visibleSecondaryElements: <ProjectPresentationSecondaryElement>[
+        for (final element in variant.visibleSecondaryElements)
+          named(
+            ProjectPresentationSecondaryElement.values,
+            element,
+            'visibleSecondaryElements',
+          ),
+      ],
     );
   }
 

@@ -42,13 +42,14 @@ void main() {
       final projectFile = File(p.join(root.path, 'project.json'));
       final project =
           jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
-      project['presentation'] = const ProjectPresentationProfile(
-        branding: ProjectBrandingProfile(
+      project['presentation'] = ProjectPresentationProfile(
+        branding: const ProjectBrandingProfile(
           iconPath: 'assets/icon.png',
           accentColor: '#126E78',
         ),
-        menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+        menuLabels: const ProjectMenuLabelsProfile(pokedex: 'Carnet'),
         windows: legacyProjectPresentationWindows,
+        layouts: suggestedProjectPresentationLayouts('cinematic'),
       ).toJson();
       await projectFile.writeAsString(jsonEncode(project), flush: true);
       const service = GamePackageExportService();
@@ -62,7 +63,7 @@ void main() {
       expect(first.certification.gameplayReadinessReport.isPlayable, isTrue);
       expect(first.manifest.gameId, profile.gameId);
       expect(first.manifest.title, profile.title);
-      expect(first.manifest.presentation?.schemaVersion, 3);
+      expect(first.manifest.presentation?.schemaVersion, 4);
       expect(first.manifest.usesLegacyBranding, isFalse);
       expect(first.manifest.branding?.icon, 'presentation/icon.png');
       expect(first.manifest.branding?.accentColor, '#126E78');
@@ -71,13 +72,11 @@ void main() {
         first.manifest.presentation?.windows?.pauseMenuStyleId,
         'pause-menu',
       );
+      expect(first.manifest.presentation?.windows?.dialogueStyleId, 'dialogue');
+      expect(first.manifest.presentation?.windows?.pauseBackdropOpacity, .7);
       expect(
-        first.manifest.presentation?.windows?.dialogueStyleId,
-        'dialogue',
-      );
-      expect(
-        first.manifest.presentation?.windows?.pauseBackdropOpacity,
-        .7,
+        first.manifest.presentation?.layouts?.title.expanded.slot,
+        'bottomLeft',
       );
       expect(
         first.manifest.compatibility.requiredCapabilities,

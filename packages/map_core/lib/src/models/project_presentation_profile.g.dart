@@ -297,6 +297,11 @@ _ProjectPresentationProfile _$ProjectPresentationProfileFromJson(
       : ProjectPresentationWindowsProfile.fromJson(
           json['windows'] as Map<String, dynamic>,
         ),
+  layouts: json['layouts'] == null
+      ? null
+      : ProjectPresentationLayoutsProfile.fromJson(
+          json['layouts'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectPresentationProfileToJson(
@@ -310,4 +315,5 @@ Map<String, dynamic> _$ProjectPresentationProfileToJson(
   'theme': ?instance.theme?.toJson(),
   'menuLabels': ?instance.menuLabels?.toJson(),
   'windows': ?instance.windows?.toJson(),
+  'layouts': ?instance.layouts?.toJson(),
 };

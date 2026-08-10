@@ -62,9 +62,11 @@ final class PersonalizationPreviewSurfaceDescriptor {
 
   static PersonalizationPreviewSurfaceDescriptor defaultForCategory(
     ProjectPresentationCategory category,
-  ) => personalizationPreviewSurfaceDescriptors.singleWhere(
-    (descriptor) => descriptor.defaultCategory == category,
-  );
+  ) => category == ProjectPresentationCategory.layouts
+      ? forSurface(PersonalizationPreviewSurface.title)
+      : personalizationPreviewSurfaceDescriptors.singleWhere(
+          (descriptor) => descriptor.defaultCategory == category,
+        );
 }
 
 const personalizationPreviewSurfaceDescriptors =

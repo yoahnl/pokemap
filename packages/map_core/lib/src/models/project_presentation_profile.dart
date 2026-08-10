@@ -4,13 +4,14 @@ import 'dart:math' as math;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'project_presentation_layout_profile.dart';
 import 'project_presentation_window_profile.dart';
 
 part 'project_presentation_profile.freezed.dart';
 part 'project_presentation_profile.g.dart';
 
 /// Stable sections exposed by the no-code Personalization Hub.
-enum ProjectPresentationCategory { branding, intro, typography, theme }
+enum ProjectPresentationCategory { branding, intro, typography, theme, layouts }
 
 enum ProjectPresentationDiagnosticSeverity { warning, error }
 
@@ -251,6 +252,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
     @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,
     @JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,
     @JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? windows,
+    @JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? layouts,
   }) = _ProjectPresentationProfile;
 
   factory ProjectPresentationProfile.fromJson(Map<String, dynamic> json) =>
@@ -258,7 +260,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         _migrateProjectPresentationProfileJson(json),
       );
 
-  static const int supportedSchemaVersion = 3;
+  static const int supportedSchemaVersion = 4;
 
   ProjectPresentationWindowsProfile get effectiveWindows =>
       windows ?? legacyProjectPresentationWindows;
@@ -271,6 +273,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         if (typography != null) ProjectPresentationCategory.typography,
         if (theme != null || menuLabels != null || windows != null)
           ProjectPresentationCategory.theme,
+        if (layouts != null) ProjectPresentationCategory.layouts,
       };
 }
 
@@ -398,7 +401,92 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
     profile.theme ?? safeProjectSemanticTheme,
     diagnostics,
   );
+  _validateLayouts(profile.layouts, diagnostics);
   return List<ProjectPresentationDiagnostic>.unmodifiable(diagnostics);
+}
+
+void _validateLayouts(
+  ProjectPresentationLayoutsProfile? layouts,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (layouts == null) return;
+  for (final entry
+      in <
+        ({
+          String field,
+          ProjectPresentationSurfaceRole role,
+          ProjectResponsiveSurfaceLayoutProfile profile,
+        })
+      >[
+        (
+          field: 'title',
+          role: ProjectPresentationSurfaceRole.title,
+          profile: layouts.title,
+        ),
+        (
+          field: 'pauseMenu',
+          role: ProjectPresentationSurfaceRole.pauseMenu,
+          profile: layouts.pauseMenu,
+        ),
+        (
+          field: 'dialogue',
+          role: ProjectPresentationSurfaceRole.dialogue,
+          profile: layouts.dialogue,
+        ),
+      ]) {
+    final variants = <ProjectSurfaceLayoutVariant>[
+      entry.profile.compact,
+      entry.profile.regular,
+      entry.profile.expanded,
+    ];
+    for (var index = 0; index < variants.length; index++) {
+      final variant = variants[index];
+      final expectedBreakpoint = ProjectPresentationBreakpoint.values[index];
+      final path =
+          '\$.presentation.layouts.${entry.field}.${expectedBreakpoint.name}';
+      if (variant.breakpoint != expectedBreakpoint) {
+        _presentationError(
+          diagnostics,
+          'presentationLayoutBreakpointMismatch',
+          ProjectPresentationCategory.layouts,
+          '$path.breakpoint',
+          'The layout variant must match its responsive size.',
+        );
+      }
+      if (!projectPresentationLayoutSlotsFor(
+        entry.role,
+        expectedBreakpoint,
+      ).contains(variant.slot)) {
+        _presentationError(
+          diagnostics,
+          'presentationLayoutSlotUnsupported',
+          ProjectPresentationCategory.layouts,
+          '$path.slot',
+          'Choose a position supported by this surface and size.',
+        );
+      }
+      final secondary = variant.visibleSecondaryElements;
+      if (secondary.toSet().length != secondary.length) {
+        _presentationError(
+          diagnostics,
+          'presentationLayoutSecondaryElementDuplicate',
+          ProjectPresentationCategory.layouts,
+          '$path.visibleSecondaryElements',
+          'Each secondary element may appear only once.',
+        );
+      }
+      final supported = projectPresentationSecondaryElementsFor(entry.role);
+      if (secondary.any((element) => !supported.contains(element))) {
+        _presentationError(
+          diagnostics,
+          'presentationLayoutSecondaryElementUnsupported',
+          ProjectPresentationCategory.layouts,
+          '$path.visibleSecondaryElements',
+          'Only secondary elements from this surface may be shown.',
+        );
+      }
+    }
+  }
 }
 
 void _validateWindows(
@@ -1178,22 +1266,25 @@ bool _hasBranding(ProjectBrandingProfile branding) =>
     branding.titleMusicPath != null ||
     branding.layoutVariant != 'standard';
 
-/// Normalizes released presentation schemas before generated decoding.
-///
-/// Keeping migration here means every transport (project load, direct API,
-/// JSONL, editor and package export) observes the exact same V3 document. The
-/// source map is never mutated, and the next serialization is always V3.
 Map<String, dynamic> _migrateProjectPresentationProfileJson(
   Map<String, dynamic> source,
 ) {
   final schemaVersion = source['schemaVersion'] ?? 1;
-  if (schemaVersion != ProjectPresentationProfile.supportedSchemaVersion &&
+  if (schemaVersion is int &&
+      schemaVersion < 3 &&
       source.containsKey('windows')) {
     throw const FormatException(
       'Presentation windows require schema version 3.',
     );
   }
-  if (schemaVersion == 2) {
+  if (schemaVersion is int &&
+      schemaVersion < 4 &&
+      source.containsKey('layouts')) {
+    throw const FormatException(
+      'Presentation layouts require schema version 4.',
+    );
+  }
+  if (schemaVersion == 2 || schemaVersion == 3) {
     return Map<String, dynamic>.from(source)
       ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion;
   }

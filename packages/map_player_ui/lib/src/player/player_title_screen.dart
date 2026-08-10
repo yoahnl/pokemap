@@ -1,12 +1,14 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_layout_theme.dart';
 import 'runtime_player_focus_controller.dart';
 
 enum PlayerTitleMenuAction {
@@ -112,7 +114,6 @@ class PlayerTitleScreen extends StatelessWidget {
     final cinematic = data.layoutVariant == PlayerTitleLayoutVariant.cinematic;
     final contentAlignment =
         cinematic ? Alignment.bottomLeft : Alignment.center;
-    final textAlignment = cinematic ? TextAlign.start : TextAlign.center;
     return Scaffold(
       body: DecoratedBox(
         decoration: BoxDecoration(
@@ -130,113 +131,175 @@ class PlayerTitleScreen extends StatelessWidget {
         ),
         child: SafeArea(
           child: LayoutBuilder(
-            builder: (context, constraints) => SingleChildScrollView(
-              key: const ValueKey<String>('player-title-scroll'),
-              padding: const EdgeInsets.all(PlayerSpacing.lg),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight > PlayerSpacing.xxl
-                      ? constraints.maxHeight - PlayerSpacing.xxl
-                      : 0,
+            builder: (context, constraints) {
+              final resolved = context.playerLayoutTheme?.resolve(
+                ProjectPresentationSurfaceRole.title,
+                constraints,
+              );
+              final variant = resolved?.variant;
+              final authoredAlignment = variant == null
+                  ? contentAlignment
+                  : switch (variant.slot) {
+                      ProjectPresentationLayoutSlot.center => Alignment.center,
+                      ProjectPresentationLayoutSlot.bottomCenter =>
+                        Alignment.bottomCenter,
+                      ProjectPresentationLayoutSlot.bottomLeft =>
+                        Alignment.bottomLeft,
+                      ProjectPresentationLayoutSlot.leftPane =>
+                        Alignment.centerLeft,
+                      _ => contentAlignment,
+                    };
+              final authoredTextAlignment = switch (authoredAlignment) {
+                Alignment.center || Alignment.bottomCenter => TextAlign.center,
+                _ => TextAlign.start,
+              };
+              final spacingScale = resolved?.spacingScale ?? 1;
+              final secondary = variant?.visibleSecondaryElements;
+              final showLogo = secondary == null ||
+                  secondary.contains(
+                    ProjectPresentationSecondaryElement.titleLogo,
+                  );
+              final showAuthor = secondary == null ||
+                  secondary.contains(
+                    ProjectPresentationSecondaryElement.titleAuthor,
+                  );
+              final showDescription = secondary == null ||
+                  secondary.contains(
+                    ProjectPresentationSecondaryElement.titleDescription,
+                  );
+              double gap(double value) => value * spacingScale;
+              return SingleChildScrollView(
+                key: const ValueKey<String>('player-title-scroll'),
+                padding: EdgeInsets.all(
+                  PlayerSpacing.lg + (resolved?.additionalSafeAreaPadding ?? 0),
                 ),
-                child: Align(
-                  key: const ValueKey<String>(
-                    'player-title-content-alignment',
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight > PlayerSpacing.xxl
+                        ? constraints.maxHeight - PlayerSpacing.xxl
+                        : 0,
                   ),
-                  alignment: contentAlignment,
-                  child: ConstrainedBox(
-                    key: ValueKey<String>(
-                      'player-title-layout-${data.layoutVariant.name}',
+                  child: Align(
+                    key: const ValueKey<String>(
+                      'player-title-content-alignment',
                     ),
-                    constraints: BoxConstraints(
-                      maxWidth: cinematic ? 680 : 560,
-                    ),
-                    child: PlayerPanel(
-                      elevated: true,
-                      role: PlayerPanelRole.title,
-                      child: FocusTraversalGroup(
-                        policy: OrderedTraversalPolicy(),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: cinematic
-                              ? CrossAxisAlignment.stretch
-                              : CrossAxisAlignment.center,
-                          children: <Widget>[
-                            if (data.logo != null)
-                              ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxHeight: 150),
-                                child: Image(
-                                  image: data.logo!,
-                                  fit: BoxFit.contain,
-                                  semanticLabel: data.gameTitle,
-                                ),
-                              )
-                            else
-                              Icon(
-                                Icons.explore_rounded,
-                                size: 64,
-                                color: accent,
-                              ),
-                            const SizedBox(height: PlayerSpacing.md),
-                            Text(
-                              data.gameTitle,
-                              textAlign: textAlignment,
-                              style: context.playerTypography.displayStyle(
-                                Theme.of(context).textTheme.displaySmall ??
-                                    const TextStyle(),
-                              ),
+                    alignment: authoredAlignment,
+                    child: KeyedSubtree(
+                      key: resolved == null
+                          ? null
+                          : ValueKey<String>(
+                              'player-title-responsive-'
+                              '${resolved.breakpoint.name}',
                             ),
-                            const SizedBox(height: PlayerSpacing.xs),
-                            Text(
-                              data.author,
-                              textAlign: textAlignment,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            if (data.description case final description?) ...[
-                              const SizedBox(height: PlayerSpacing.md),
-                              Text(
-                                description,
-                                textAlign: textAlignment,
-                                style: context.playerTypography.bodyStyle(
-                                  Theme.of(context).textTheme.bodyLarge ??
-                                      const TextStyle(),
+                      child: ConstrainedBox(
+                        key: ValueKey<String>(
+                          'player-title-layout-${data.layoutVariant.name}',
+                        ),
+                        constraints: BoxConstraints(
+                          maxWidth: resolved == null
+                              ? (cinematic ? 680 : 560)
+                              : math.min(
+                                  840,
+                                  constraints.maxWidth *
+                                      resolved.maxWidthFactor,
                                 ),
-                              ),
-                            ],
-                            const SizedBox(height: PlayerSpacing.xl),
-                            for (final action in PlayerTitleMenuAction.values)
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: PlayerSpacing.xs,
+                        ),
+                        child: PlayerPanel(
+                          elevated: true,
+                          role: PlayerPanelRole.title,
+                          child: FocusTraversalGroup(
+                            policy: OrderedTraversalPolicy(),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: cinematic ||
+                                      authoredTextAlignment == TextAlign.start
+                                  ? CrossAxisAlignment.stretch
+                                  : CrossAxisAlignment.center,
+                              children: <Widget>[
+                                if (showLogo && data.logo != null)
+                                  ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxHeight: 150),
+                                    child: Image(
+                                      image: data.logo!,
+                                      fit: BoxFit.contain,
+                                      semanticLabel: data.gameTitle,
+                                    ),
+                                  )
+                                else if (showLogo)
+                                  Icon(
+                                    Icons.explore_rounded,
+                                    size: 64,
+                                    color: accent,
+                                  ),
+                                SizedBox(height: gap(PlayerSpacing.md)),
+                                Text(
+                                  data.gameTitle,
+                                  textAlign: authoredTextAlignment,
+                                  style: context.playerTypography.displayStyle(
+                                    Theme.of(context).textTheme.displaySmall ??
+                                        const TextStyle(),
+                                  ),
                                 ),
-                                child: PlayerActionButton(
-                                  label: _label(context, action),
-                                  icon: _icon(action),
-                                  autofocus: action == firstEnabledAction,
-                                  secondary: action ==
-                                      PlayerTitleMenuAction.returnToHub,
-                                  disabledReason: _availability(context, action)
-                                      .disabledReason,
-                                  focusNode: _focusNode(action),
-                                  showFocusHighlight:
-                                      focusController?.showFocusHighlight ??
-                                          true,
-                                  selected: _isSelected(action),
-                                  onPressed:
-                                      _availability(context, action).isEnabled
+                                if (showAuthor) ...<Widget>[
+                                  SizedBox(height: gap(PlayerSpacing.xs)),
+                                  Text(
+                                    data.author,
+                                    textAlign: authoredTextAlignment,
+                                    style:
+                                        Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                ],
+                                if (showDescription)
+                                  if (data.description
+                                      case final description?) ...[
+                                    SizedBox(height: gap(PlayerSpacing.md)),
+                                    Text(
+                                      description,
+                                      textAlign: authoredTextAlignment,
+                                      style: context.playerTypography.bodyStyle(
+                                        Theme.of(context).textTheme.bodyLarge ??
+                                            const TextStyle(),
+                                      ),
+                                    ),
+                                  ],
+                                SizedBox(height: gap(PlayerSpacing.xl)),
+                                for (final action
+                                    in PlayerTitleMenuAction.values)
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: gap(PlayerSpacing.xs),
+                                    ),
+                                    child: PlayerActionButton(
+                                      label: _label(context, action),
+                                      icon: _icon(action),
+                                      autofocus: action == firstEnabledAction,
+                                      secondary: action ==
+                                          PlayerTitleMenuAction.returnToHub,
+                                      disabledReason:
+                                          _availability(context, action)
+                                              .disabledReason,
+                                      focusNode: _focusNode(action),
+                                      showFocusHighlight:
+                                          focusController?.showFocusHighlight ??
+                                              true,
+                                      selected: _isSelected(action),
+                                      onPressed: _availability(context, action)
+                                              .isEnabled
                                           ? () => _select(action)
                                           : null,
-                                ),
-                              ),
-                          ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),

@@ -133,6 +133,7 @@ final class GamePackagePresentation {
     this.theme,
     this.menuLabels,
     this.windows,
+    this.layouts,
   });
 
   final int schemaVersion;
@@ -143,6 +144,7 @@ final class GamePackagePresentation {
   final GamePackageSemanticTheme? theme;
   final GamePackageMenuLabels? menuLabels;
   final GamePackagePresentationWindows? windows;
+  final GamePackagePresentationLayouts? layouts;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'schemaVersion': schemaVersion,
@@ -154,6 +156,72 @@ final class GamePackagePresentation {
         if (theme != null) 'theme': theme!.toJson(),
         if (menuLabels != null) 'menuLabels': menuLabels!.toJson(),
         if (schemaVersion >= 3 && windows != null) 'windows': windows!.toJson(),
+        if (schemaVersion >= 4 && layouts != null) 'layouts': layouts!.toJson(),
+      };
+}
+
+final class GamePackageSurfaceLayoutVariant {
+  GamePackageSurfaceLayoutVariant({
+    required this.breakpoint,
+    required this.slot,
+    required this.width,
+    required this.spacing,
+    required this.screenMargin,
+    required Iterable<String> visibleSecondaryElements,
+  }) : visibleSecondaryElements = List<String>.unmodifiable(
+          visibleSecondaryElements,
+        );
+
+  final String breakpoint;
+  final String slot;
+  final String width;
+  final String spacing;
+  final String screenMargin;
+  final List<String> visibleSecondaryElements;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'breakpoint': breakpoint,
+        'slot': slot,
+        'width': width,
+        'spacing': spacing,
+        'screenMargin': screenMargin,
+        'visibleSecondaryElements': visibleSecondaryElements,
+      };
+}
+
+final class GamePackageResponsiveSurfaceLayout {
+  const GamePackageResponsiveSurfaceLayout({
+    required this.compact,
+    required this.regular,
+    required this.expanded,
+  });
+
+  final GamePackageSurfaceLayoutVariant compact;
+  final GamePackageSurfaceLayoutVariant regular;
+  final GamePackageSurfaceLayoutVariant expanded;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'compact': compact.toJson(),
+        'regular': regular.toJson(),
+        'expanded': expanded.toJson(),
+      };
+}
+
+final class GamePackagePresentationLayouts {
+  const GamePackagePresentationLayouts({
+    required this.title,
+    required this.pauseMenu,
+    required this.dialogue,
+  });
+
+  final GamePackageResponsiveSurfaceLayout title;
+  final GamePackageResponsiveSurfaceLayout pauseMenu;
+  final GamePackageResponsiveSurfaceLayout dialogue;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'title': title.toJson(),
+        'pauseMenu': pauseMenu.toJson(),
+        'dialogue': dialogue.toJson(),
       };
 }
 

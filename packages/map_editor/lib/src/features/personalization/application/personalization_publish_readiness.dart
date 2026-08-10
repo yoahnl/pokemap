@@ -236,4 +236,5 @@ String _categoryLabel(ProjectPresentationCategory category) =>
       ProjectPresentationCategory.intro => 'Intro vidéo',
       ProjectPresentationCategory.typography => 'Typographie',
       ProjectPresentationCategory.theme => 'Thème & HUD',
+      ProjectPresentationCategory.layouts => 'Mise en page',
     };

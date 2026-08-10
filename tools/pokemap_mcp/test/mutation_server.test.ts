@@ -851,7 +851,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     const presentationKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationProfile",
     );
-    assert.equal(Number(presentationKind?.version), 3);
+    assert.equal(Number(presentationKind?.version), 4);
     const presentationAction = (
       record(described.fullParity).mutationActions as JsonRecord[]
     ).find((action) => String(action.actionId) === "presentation.update");
@@ -872,7 +872,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       actionId: "presentation.update",
       parameters: {
         profile: {
-          schemaVersion: 3,
+          schemaVersion: 4,
           branding: { accentColor: "#126E78" },
           menuLabels: {
             pauseTitle: "Escale",
@@ -913,6 +913,23 @@ test("MCP applies and rereads the authored presentation profile", async () => {
             dialogueStyleId: "dialogue",
             pauseBackdropOpacity: 0.8,
           },
+          layouts: {
+            title: responsiveLayout(
+              "bottomCenter",
+              "center",
+              "bottomLeft",
+            ),
+            pauseMenu: responsiveLayout(
+              "fullScreen",
+              "left",
+              "right",
+            ),
+            dialogue: responsiveLayout(
+              "bottomCenter",
+              "topCenter",
+              "bottomCenter",
+            ),
+          },
         },
       },
       sequence: "avelune-cartridge-color",
@@ -937,6 +954,12 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.equal(
       record(record(project.presentation).windows).pauseMenuStyleId,
       "pause-menu",
+    );
+    assert.equal(
+      record(
+        record(record(record(project.presentation).layouts).title).expanded,
+      ).slot,
+      "bottomLeft",
     );
     const persisted = record(
       JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
@@ -981,6 +1004,29 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     await rm(fixture.root, { recursive: true, force: true });
   }
 });
+
+function responsiveLayout(
+  compactSlot: string,
+  regularSlot: string,
+  expandedSlot: string,
+): JsonRecord {
+  return {
+    compact: layoutVariant("compact", compactSlot),
+    regular: layoutVariant("regular", regularSlot),
+    expanded: layoutVariant("expanded", expandedSlot),
+  };
+}
+
+function layoutVariant(breakpoint: string, slot: string): JsonRecord {
+  return {
+    breakpoint,
+    slot,
+    width: "comfortable",
+    spacing: "normal",
+    screenMargin: "compact",
+    visibleSecondaryElements: [],
+  };
+}
 
 test("MCP exposes Event V2 activation and safe raw asset replacement", async () => {
   const fixture = await mutationFixture();

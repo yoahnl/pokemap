@@ -41,13 +41,15 @@ final class HubRuntimeStartupAdapter
     final theme = presentation?.theme;
     final menuLabels = presentation?.menuLabels;
     final windows = presentation?.windows;
+    final layouts = presentation?.layouts;
     if (branding == null &&
         intro == null &&
         titleMotion == null &&
         typography == null &&
         theme == null &&
         menuLabels == null &&
-        windows == null) {
+        windows == null &&
+        layouts == null) {
       return null;
     }
     return ProjectPresentationProfile(
@@ -138,6 +140,38 @@ final class HubRuntimeStartupAdapter
               dialogueStyleId: windows.dialogueStyleId,
               pauseBackdropOpacity: windows.pauseBackdropOpacity,
             ),
+      layouts: layouts == null ? null : _projectLayouts(layouts),
+    );
+  }
+
+  ProjectPresentationLayoutsProfile _projectLayouts(
+    GamePackagePresentationLayouts source,
+  ) {
+    ProjectSurfaceLayoutVariant variant(
+      GamePackageSurfaceLayoutVariant value,
+    ) => ProjectSurfaceLayoutVariant(
+      breakpoint: ProjectPresentationBreakpoint.values.byName(value.breakpoint),
+      slot: ProjectPresentationLayoutSlot.values.byName(value.slot),
+      width: ProjectPresentationContentWidth.values.byName(value.width),
+      spacing: ProjectPresentationSpacing.values.byName(value.spacing),
+      screenMargin: ProjectPresentationScreenMargin.values.byName(
+        value.screenMargin,
+      ),
+      visibleSecondaryElements: value.visibleSecondaryElements
+          .map(ProjectPresentationSecondaryElement.values.byName)
+          .toList(growable: false),
+    );
+    ProjectResponsiveSurfaceLayoutProfile responsive(
+      GamePackageResponsiveSurfaceLayout value,
+    ) => ProjectResponsiveSurfaceLayoutProfile(
+      compact: variant(value.compact),
+      regular: variant(value.regular),
+      expanded: variant(value.expanded),
+    );
+    return ProjectPresentationLayoutsProfile(
+      title: responsive(source.title),
+      pauseMenu: responsive(source.pauseMenu),
+      dialogue: responsive(source.dialogue),
     );
   }
 

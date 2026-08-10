@@ -80,6 +80,10 @@ void main() {
           .cornerRadius,
       24,
     );
+    expect(
+      presentation.layoutProfile?.title.expanded.slot,
+      ProjectPresentationLayoutSlot.bottomLeft,
+    );
   });
 
   testWidgets(
@@ -97,9 +101,13 @@ void main() {
       ),
       semantic,
     );
-    final theme = PokeMapPlayerTheme.withWindowProfile(
+    final windowTheme = PokeMapPlayerTheme.withWindowProfile(
       semanticTheme,
       profile.windows!,
+    );
+    final theme = PokeMapPlayerTheme.withLayoutProfile(
+      windowTheme,
+      profile.layouts!,
     );
 
     await tester.pumpWidget(
@@ -244,7 +252,7 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
       supported: const <String>['fr'],
     ),
     presentation: GamePackagePresentation(
-      schemaVersion: 3,
+      schemaVersion: profile.schemaVersion,
       branding: GamePackageBranding(
         icon: 'presentation/icon.png',
         hero: 'presentation/hero.png',
@@ -285,6 +293,7 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
       ),
       theme: _packageTheme(profile.theme!),
       windows: _packageWindows(profile.windows!),
+      layouts: _packageLayouts(profile.layouts!),
     ),
     content: GamePackageContent(
       fileCount: 0,
@@ -334,6 +343,35 @@ GamePackagePresentationWindows _packageWindows(
   pauseMenuStyleId: windows.pauseMenuStyleId,
   dialogueStyleId: windows.dialogueStyleId,
   pauseBackdropOpacity: windows.pauseBackdropOpacity,
+);
+
+GamePackagePresentationLayouts _packageLayouts(
+  ProjectPresentationLayoutsProfile layouts,
+) => GamePackagePresentationLayouts(
+  title: _packageResponsiveLayout(layouts.title),
+  pauseMenu: _packageResponsiveLayout(layouts.pauseMenu),
+  dialogue: _packageResponsiveLayout(layouts.dialogue),
+);
+
+GamePackageResponsiveSurfaceLayout _packageResponsiveLayout(
+  ProjectResponsiveSurfaceLayoutProfile layout,
+) => GamePackageResponsiveSurfaceLayout(
+  compact: _packageLayoutVariant(layout.compact),
+  regular: _packageLayoutVariant(layout.regular),
+  expanded: _packageLayoutVariant(layout.expanded),
+);
+
+GamePackageSurfaceLayoutVariant _packageLayoutVariant(
+  ProjectSurfaceLayoutVariant variant,
+) => GamePackageSurfaceLayoutVariant(
+  breakpoint: variant.breakpoint.name,
+  slot: variant.slot.name,
+  width: variant.width.name,
+  spacing: variant.spacing.name,
+  screenMargin: variant.screenMargin.name,
+  visibleSecondaryElements: <String>[
+    for (final element in variant.visibleSecondaryElements) element.name,
+  ],
 );
 
 RuntimeLoadedTypography _loadedTypography(ProjectTypographyProfile source) =>

@@ -43,6 +43,9 @@ final class ProjectPresentationPreset {
         menuLabels: profile.menuLabels,
         windows: profile.windows,
       ),
+      ProjectPresentationCategory.layouts => current.copyWith(
+        layouts: profile.layouts,
+      ),
     };
   }
 }
@@ -54,6 +57,7 @@ final cinematicPresentationPreset = ProjectPresentationPreset(
   categories: <ProjectPresentationCategory>{
     ProjectPresentationCategory.branding,
     ProjectPresentationCategory.theme,
+    ProjectPresentationCategory.layouts,
   },
   profile: ProjectPresentationProfile(
     branding: ProjectBrandingProfile(
@@ -79,6 +83,7 @@ final cinematicPresentationPreset = ProjectPresentationPreset(
       battleHudSurface: '#171F33',
     ),
     windows: softProjectWindowStylePreset.profile,
+    layouts: suggestedProjectPresentationLayouts('cinematic'),
   ),
 );
 
@@ -90,6 +95,7 @@ final classicPresentationPreset = ProjectPresentationPreset(
     ProjectPresentationCategory.branding,
     ProjectPresentationCategory.typography,
     ProjectPresentationCategory.theme,
+    ProjectPresentationCategory.layouts,
   },
   profile: ProjectPresentationProfile(
     branding: ProjectBrandingProfile(
@@ -99,6 +105,7 @@ final classicPresentationPreset = ProjectPresentationPreset(
     typography: ProjectTypographyProfile(),
     theme: safeProjectSemanticTheme,
     windows: legacyProjectPresentationWindows,
+    layouts: suggestedProjectPresentationLayouts('centered'),
   ),
 );
 
@@ -134,6 +141,7 @@ ProjectPresentationProfile resetProjectPresentationCategory(
     menuLabels: null,
     windows: null,
   ),
+  ProjectPresentationCategory.layouts => current.copyWith(layouts: null),
 };
 
 final class ProjectPresentationComparison {
@@ -184,6 +192,9 @@ ProjectPresentationComparison compareProjectPresentation(
   }
   if (!_jsonEqual(baseline.windows?.toJson(), current.windows?.toJson())) {
     changed.add(r'$.windows');
+  }
+  if (!_jsonEqual(baseline.layouts?.toJson(), current.layouts?.toJson())) {
+    changed.add(r'$.layouts');
   }
   return ProjectPresentationComparison(
     changedPaths: List<String>.unmodifiable(changed),

@@ -96,10 +96,14 @@ void main() {
       'Aube Display',
     );
     expect(built.manifest.presentation?.theme?.overworldHudSurface, '#FFFFFF');
-    expect(built.manifest.presentation?.schemaVersion, 3);
+    expect(built.manifest.presentation?.schemaVersion, 4);
     expect(
       built.manifest.presentation?.windows?.pauseMenuStyleId,
       'pause-menu',
+    );
+    expect(
+      built.manifest.presentation?.layouts?.title.expanded.slot,
+      'bottomLeft',
     );
     expect(
       built.manifest.presentation?.windows?.styles
@@ -128,6 +132,9 @@ void main() {
         GamePackagePersonalizationCategory.titleMotion,
         GamePackagePersonalizationCategory.typography,
         GamePackagePersonalizationCategory.theme,
+        GamePackagePersonalizationCategory.menuLabels,
+        GamePackagePersonalizationCategory.windows,
+        GamePackagePersonalizationCategory.layouts,
       ],
     );
     expect(built.manifest.presentation?.menuLabels?.pokedex, 'Carnet de route');

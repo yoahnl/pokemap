@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_layout_theme.dart';
 
 /// Boîte de dialogue joueur rendue en Flutter à partir du snapshot runtime.
 class PlayerDialogueOverlay extends StatelessWidget {
@@ -21,53 +23,82 @@ class PlayerDialogueOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(PlayerSpacing.sm),
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: LayoutBuilder(
-            builder: (context, constraints) => ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: 760,
-                maxHeight: constraints.maxHeight * 0.58,
-              ),
-              child: PlayerPanel(
-                elevated: true,
-                role: PlayerPanelRole.dialogue,
-                padding: const EdgeInsets.all(PlayerSpacing.md),
-                child: AnimatedSwitcher(
-                  duration: context.playerMotion.fast,
-                  child: Semantics(
-                    key: ValueKey<int>(snapshot.revision),
-                    container: true,
-                    liveRegion: true,
-                    label: _semanticLabel(snapshot),
-                    child: switch (snapshot.mode) {
-                      DialoguePresentationMode.line => GestureDetector(
-                          key: const ValueKey<String>('dialogue-tap-zone'),
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => onCommand(
-                            DialogueAdvanceCommand(
-                              snapshotRevision: snapshot.revision,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final resolved = context.playerLayoutTheme?.resolve(
+            ProjectPresentationSurfaceRole.dialogue,
+            constraints,
+          );
+          final margin =
+              PlayerSpacing.sm + (resolved?.additionalSafeAreaPadding ?? 0);
+          final showPortrait = resolved == null ||
+              resolved.variant.visibleSecondaryElements.contains(
+                ProjectPresentationSecondaryElement.dialoguePortrait,
+              );
+          final alignment =
+              resolved?.variant.slot == ProjectPresentationLayoutSlot.topCenter
+                  ? Alignment.topCenter
+                  : Alignment.bottomCenter;
+          return Padding(
+            padding: EdgeInsets.all(margin),
+            child: Align(
+              key: resolved == null
+                  ? null
+                  : ValueKey<String>(
+                      'player-dialogue-responsive-'
+                      '${resolved.breakpoint.name}',
+                    ),
+              alignment: alignment,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: resolved == null
+                      ? 760
+                      : constraints.maxWidth * resolved.maxWidthFactor,
+                  maxHeight: resolved == null
+                      ? constraints.maxHeight * 0.58
+                      : constraints.maxHeight - margin * 2,
+                ),
+                child: PlayerPanel(
+                  elevated: true,
+                  role: PlayerPanelRole.dialogue,
+                  padding: EdgeInsets.all(
+                    PlayerSpacing.md * (resolved?.spacingScale ?? 1),
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: context.playerMotion.fast,
+                    child: Semantics(
+                      key: ValueKey<int>(snapshot.revision),
+                      container: true,
+                      liveRegion: true,
+                      label: _semanticLabel(snapshot),
+                      child: switch (snapshot.mode) {
+                        DialoguePresentationMode.line => GestureDetector(
+                            key: const ValueKey<String>('dialogue-tap-zone'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => onCommand(
+                              DialogueAdvanceCommand(
+                                snapshotRevision: snapshot.revision,
+                              ),
+                            ),
+                            child: _DialogueLineContent(
+                              snapshot: snapshot,
+                              portraitBuilder:
+                                  showPortrait ? portraitBuilder : null,
                             ),
                           ),
-                          child: _DialogueLineContent(
+                        DialoguePresentationMode.choices =>
+                          _DialogueChoiceContent(
                             snapshot: snapshot,
-                            portraitBuilder: portraitBuilder,
+                            onCommand: onCommand,
                           ),
-                        ),
-                      DialoguePresentationMode.choices =>
-                        _DialogueChoiceContent(
-                          snapshot: snapshot,
-                          onCommand: onCommand,
-                        ),
-                    },
+                      },
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

@@ -26,6 +26,7 @@ import '../application/project_title_music_preview_controller.dart';
 import 'personalization_hub_shell.dart';
 import 'project_branding_editor.dart';
 import 'project_intro_video_editor.dart';
+import 'project_layout_studio.dart';
 import 'project_semantic_theme_editor.dart';
 import 'project_menu_labels_editor.dart';
 import 'project_theme_token_dialog.dart';
@@ -818,6 +819,25 @@ class _PersonalizationStudioWorkspaceState
         ),
       );
     }
+    if (category == ProjectPresentationCategory.layouts) {
+      return IgnorePointer(
+        ignoring: !canEdit,
+        child: ProjectLayoutStudio(
+          profile: profile.layouts,
+          brandingLayoutVariant: profile.branding.layoutVariant,
+          onChanged: (layouts) {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(layouts: layouts),
+                label: layouts == null
+                    ? 'Réinitialiser la mise en page du jeu'
+                    : 'Modifier la mise en page du jeu',
+              ),
+            );
+          },
+        ),
+      );
+    }
     return Text('Les réglages ${_categoryName(category)} apparaîtront ici.');
   }
 
@@ -1052,6 +1072,7 @@ String _categoryName(ProjectPresentationCategory category) =>
       ProjectPresentationCategory.intro => 'intro vidéo',
       ProjectPresentationCategory.typography => 'typographie',
       ProjectPresentationCategory.theme => 'thème et HUD',
+      ProjectPresentationCategory.layouts => 'mise en page',
     };
 
 ProjectTypographyRoleProfile _typographyRoleProfile(

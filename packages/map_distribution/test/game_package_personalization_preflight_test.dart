@@ -90,7 +90,7 @@ void main() {
       expect(
         firstReceipt.configuredCategories,
         <GamePackagePersonalizationCategory>[
-          GamePackagePersonalizationCategory.theme,
+          GamePackagePersonalizationCategory.windows,
         ],
       );
       expect(

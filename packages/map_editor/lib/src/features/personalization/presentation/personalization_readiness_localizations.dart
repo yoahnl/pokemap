@@ -61,6 +61,7 @@ final class PersonalizationReadinessCopy {
         ProjectPresentationCategory.typography =>
           l10n.personalizationCategoryTypography,
         ProjectPresentationCategory.theme => l10n.personalizationCategoryTheme,
+        ProjectPresentationCategory.layouts => 'Mise en page',
       };
 
   String correctionLabel(PersonalizationReadinessIssue issue) =>
@@ -68,9 +69,7 @@ final class PersonalizationReadinessCopy {
         PersonalizationCorrectionKind.useSafeTheme =>
           l10n.personalizationUseSafeTheme,
         PersonalizationCorrectionKind.openCategory =>
-          l10n.personalizationCorrectInCategory(
-            categoryLabel(issue.category),
-          ),
+          l10n.personalizationCorrectInCategory(categoryLabel(issue.category)),
       };
 
   String issueTitle(PersonalizationReadinessIssue issue) {

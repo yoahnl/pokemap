@@ -237,6 +237,9 @@ final class GamePackageExportService {
           windows: projection.presentation.windows == null
               ? null
               : _packageWindows(projection.presentation.windows!),
+          layouts: projection.presentation.layouts == null
+              ? null
+              : _packageLayouts(projection.presentation.layouts!),
         ),
         content: emptyContent,
       );
@@ -544,6 +547,35 @@ final class GamePackageExportService {
     pauseMenuStyleId: windows.pauseMenuStyleId,
     dialogueStyleId: windows.dialogueStyleId,
     pauseBackdropOpacity: windows.pauseBackdropOpacity,
+  );
+
+  static GamePackagePresentationLayouts _packageLayouts(
+    ProjectPresentationLayoutsProfile layouts,
+  ) => GamePackagePresentationLayouts(
+    title: _packageResponsiveLayout(layouts.title),
+    pauseMenu: _packageResponsiveLayout(layouts.pauseMenu),
+    dialogue: _packageResponsiveLayout(layouts.dialogue),
+  );
+
+  static GamePackageResponsiveSurfaceLayout _packageResponsiveLayout(
+    ProjectResponsiveSurfaceLayoutProfile layout,
+  ) => GamePackageResponsiveSurfaceLayout(
+    compact: _packageLayoutVariant(layout.compact),
+    regular: _packageLayoutVariant(layout.regular),
+    expanded: _packageLayoutVariant(layout.expanded),
+  );
+
+  static GamePackageSurfaceLayoutVariant _packageLayoutVariant(
+    ProjectSurfaceLayoutVariant variant,
+  ) => GamePackageSurfaceLayoutVariant(
+    breakpoint: variant.breakpoint.name,
+    slot: variant.slot.name,
+    width: variant.width.name,
+    spacing: variant.spacing.name,
+    screenMargin: variant.screenMargin.name,
+    visibleSecondaryElements: variant.visibleSecondaryElements.map(
+      (element) => element.name,
+    ),
   );
 
   static String _gameplayReadinessCreatorMessage(

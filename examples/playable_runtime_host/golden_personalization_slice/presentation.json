@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "branding": {
     "iconPath": "assets/presentation/icon.png",
     "coverPath": "assets/presentation/cover.png",
@@ -140,5 +140,93 @@
     "pauseMenuStyleId": "pause-menu",
     "dialogueStyleId": "dialogue",
     "pauseBackdropOpacity": 0.8
+  },
+  "layouts": {
+    "title": {
+      "compact": {
+        "breakpoint": "compact",
+        "slot": "bottomCenter",
+        "width": "comfortable",
+        "spacing": "normal",
+        "screenMargin": "compact",
+        "visibleSecondaryElements": ["titleLogo", "titleAuthor"]
+      },
+      "regular": {
+        "breakpoint": "regular",
+        "slot": "bottomLeft",
+        "width": "comfortable",
+        "spacing": "normal",
+        "screenMargin": "compact",
+        "visibleSecondaryElements": [
+          "titleLogo",
+          "titleAuthor",
+          "titleDescription"
+        ]
+      },
+      "expanded": {
+        "breakpoint": "expanded",
+        "slot": "bottomLeft",
+        "width": "narrow",
+        "spacing": "airy",
+        "screenMargin": "comfortable",
+        "visibleSecondaryElements": [
+          "titleLogo",
+          "titleAuthor",
+          "titleDescription"
+        ]
+      }
+    },
+    "pauseMenu": {
+      "compact": {
+        "breakpoint": "compact",
+        "slot": "fullScreen",
+        "width": "wide",
+        "spacing": "compact",
+        "screenMargin": "none",
+        "visibleSecondaryElements": ["pauseGameTitle"]
+      },
+      "regular": {
+        "breakpoint": "regular",
+        "slot": "left",
+        "width": "comfortable",
+        "spacing": "normal",
+        "screenMargin": "compact",
+        "visibleSecondaryElements": ["pauseGameTitle"]
+      },
+      "expanded": {
+        "breakpoint": "expanded",
+        "slot": "leftPane",
+        "width": "narrow",
+        "spacing": "airy",
+        "screenMargin": "comfortable",
+        "visibleSecondaryElements": ["pauseGameTitle"]
+      }
+    },
+    "dialogue": {
+      "compact": {
+        "breakpoint": "compact",
+        "slot": "bottomCenter",
+        "width": "wide",
+        "spacing": "compact",
+        "screenMargin": "compact",
+        "visibleSecondaryElements": ["dialoguePortrait"]
+      },
+      "regular": {
+        "breakpoint": "regular",
+        "slot": "bottomCenter",
+        "width": "wide",
+        "spacing": "normal",
+        "screenMargin": "compact",
+        "visibleSecondaryElements": ["dialoguePortrait"]
+      },
+      "expanded": {
+        "breakpoint": "expanded",
+        "slot": "bottomCenter",
+        "width": "comfortable",
+        "spacing": "airy",
+        "screenMargin": "comfortable",
+        "visibleSecondaryElements": ["dialoguePortrait"]
+      }
+    }
   }
 }

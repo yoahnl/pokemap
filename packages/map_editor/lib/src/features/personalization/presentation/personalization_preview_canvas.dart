@@ -12,6 +12,7 @@ typedef PersonalizationPreviewSurfaceBuilder =
       required PersonalizationPreviewSurface surface,
       required PersonalizationPreviewSurfaceProjection projection,
       required double aspectRatio,
+      required PersonalizationPreviewViewportMetrics metrics,
       required bool reducedMotion,
     });
 
@@ -38,6 +39,8 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
             constraints.maxWidth.clamp(0, 320).toDouble(),
           PersonalizationPreviewViewport.square =>
             constraints.maxWidth.clamp(0, 480).toDouble(),
+          PersonalizationPreviewViewport.phoneLandscape =>
+            constraints.maxWidth.clamp(0, 560).toDouble(),
         };
         return Center(
           child: ConstrainedBox(
@@ -66,6 +69,7 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
                             surface: scenario.surface,
                             projection: projection,
                             aspectRatio: scenario.viewport.aspectRatio,
+                            metrics: scenario.metrics,
                             reducedMotion: scenario.reducedMotion,
                           ),
                         )
@@ -74,6 +78,7 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
                           surface: scenario.surface,
                           projection: projection,
                           aspectRatio: scenario.viewport.aspectRatio,
+                          metrics: scenario.metrics,
                           reducedMotion: scenario.reducedMotion,
                         ),
                 ),
@@ -94,6 +99,7 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
         baseline,
       ).surface(scenario.surface),
       aspectRatio: scenario.viewport.aspectRatio,
+      metrics: scenario.metrics,
       reducedMotion: scenario.reducedMotion,
     );
   }

@@ -524,4 +524,5 @@ IconData _categoryIcon(ProjectPresentationCategory category) =>
       ProjectPresentationCategory.intro => Icons.movie_outlined,
       ProjectPresentationCategory.typography => Icons.font_download_outlined,
       ProjectPresentationCategory.theme => Icons.palette_outlined,
+      ProjectPresentationCategory.layouts => Icons.dashboard_customize_outlined,
     };

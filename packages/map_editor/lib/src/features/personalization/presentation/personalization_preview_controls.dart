@@ -106,6 +106,7 @@ String _viewportLabel(PersonalizationPreviewViewport viewport) =>
       PersonalizationPreviewViewport.landscape => 'Paysage',
       PersonalizationPreviewViewport.portrait => 'Portrait',
       PersonalizationPreviewViewport.square => 'Carré',
+      PersonalizationPreviewViewport.phoneLandscape => 'Téléphone paysage',
     };
 
 IconData _viewportIcon(PersonalizationPreviewViewport viewport) =>
@@ -113,4 +114,6 @@ IconData _viewportIcon(PersonalizationPreviewViewport viewport) =>
       PersonalizationPreviewViewport.landscape => Icons.stay_current_landscape,
       PersonalizationPreviewViewport.portrait => Icons.stay_current_portrait,
       PersonalizationPreviewViewport.square => Icons.crop_square,
+      PersonalizationPreviewViewport.phoneLandscape =>
+        Icons.stay_current_landscape,
     };

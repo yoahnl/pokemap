@@ -13,12 +13,12 @@ void main() {
         author: 'Studio Brume',
         description: 'Une aventure ferroviaire.',
       ),
-      profile: const ProjectPresentationProfile(
-        branding: ProjectBrandingProfile(
+      profile: ProjectPresentationProfile(
+        branding: const ProjectBrandingProfile(
           accentColor: '#A45F3A',
           layoutVariant: 'cinematic',
         ),
-        theme: ProjectSemanticThemeProfile(
+        theme: const ProjectSemanticThemeProfile(
           primary: '#003A44',
           onPrimary: '#FFFFFF',
           background: '#F4F7FB',
@@ -36,11 +36,12 @@ void main() {
           overworldHudSurface: '#FFFFFF',
           battleHudSurface: '#FFFFFF',
         ),
-        menuLabels: ProjectMenuLabelsProfile(
+        menuLabels: const ProjectMenuLabelsProfile(
           pauseTitle: 'Interlude',
           pokedex: 'Carnet',
         ),
         windows: legacyProjectPresentationWindows,
+        layouts: suggestedProjectPresentationLayouts('cinematic'),
       ),
       titleHero: const RuntimeStartupPresentationAsset(
         assetId: 'hero',
@@ -97,6 +98,20 @@ void main() {
           ?.profile,
       legacyProjectPresentationWindows,
     );
+    expect(
+      presentation.layoutProfile?.title.expanded.slot,
+      ProjectPresentationLayoutSlot.bottomLeft,
+    );
+    expect(
+      presentation
+          .applyTo(PokeMapPlayerTheme.light())
+          .extension<PokeMapPlayerLayoutTheme>()
+          ?.profile
+          .title
+          .expanded
+          .slot,
+      ProjectPresentationLayoutSlot.bottomLeft,
+    );
     expect(presentation.pauseMenuLabels.pauseTitle, 'Interlude');
     expect(presentation.pauseMenuLabels.pokedex, 'Carnet');
   });
@@ -133,6 +148,7 @@ void main() {
     expect(presentation.title.background, isNull);
     expect(presentation.semanticTheme, isNull);
     expect(presentation.windowProfile, isNull);
+    expect(presentation.layoutProfile, isNull);
     expect(presentation.typography.displayFamily, isNull);
     expect(presentation.pauseMenuLabels.pauseTitle, isNull);
   });

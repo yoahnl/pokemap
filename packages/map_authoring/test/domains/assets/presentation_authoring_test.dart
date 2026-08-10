@@ -202,6 +202,46 @@ void main() {
       );
     });
 
+    test('presentation.update carries responsive surface layouts', () {
+      final profile = ProjectPresentationProfile(
+        layouts: suggestedProjectPresentationLayouts('cinematic'),
+      );
+      final snapshot = _snapshot();
+      final request = AuthoringRequest(
+        requestId: 'request_presentation_layouts',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: 'ws_test',
+        parameters: <String, Object?>{'profile': profile.toJson()},
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'presentation-layouts',
+        dryRun: true,
+      );
+
+      final draft = const PresentationActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: request,
+          planId: 'plan_presentation_layouts',
+          seed: 42,
+        ),
+      );
+
+      expect(
+        draft.preview['profile'],
+        containsPair(
+          'layouts',
+          containsPair(
+            'title',
+            containsPair(
+              'expanded',
+              containsPair('slot', 'bottomLeft'),
+            ),
+          ),
+        ),
+      );
+    });
+
     test('validates every authored responsive intro and title loop asset', () {
       final profile = _profile().copyWith(
         titleMotion: const ProjectTitleMotionProfile(

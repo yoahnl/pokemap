@@ -147,6 +147,40 @@ void main() {
     expect(find.byKey(const ValueKey<String>('world')), findsOneWidget);
   });
 
+  testWidgets('authored pause layout uses the shared regular breakpoint', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1024, 768));
+    final base = suggestedProjectPresentationLayouts('standard');
+    final layouts = base.copyWith(
+      pauseMenu: base.pauseMenu.copyWith(
+        regular: base.pauseMenu.regular.copyWith(
+          slot: ProjectPresentationLayoutSlot.right,
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerPauseShell(
+          gameTitle: 'Aube',
+          pauseSection: RuntimePlayerPauseSection.party,
+          actions: _actions(),
+          onSelected: (_) {},
+          onBackToRoot: () {},
+          detail: const Text('DÉTAIL ÉQUIPE'),
+        ),
+        layouts: layouts,
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('runtime-pause-responsive-regular')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('text scale 2 keeps every action target at least 48 pixels',
       (tester) async {
     await _setSurface(tester, const Size(390, 844));
@@ -269,15 +303,24 @@ Widget _app(
   Widget child, {
   TextScaler textScaler = TextScaler.noScaling,
   ThemeData? theme,
-}) =>
-    MaterialApp(
-      locale: const Locale('fr'),
-      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: theme ?? PokeMapPlayerTheme.dark(),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
-        child: child!,
-      ),
-      home: child,
+  ProjectPresentationLayoutsProfile? layouts,
+}) {
+  var resolvedTheme = theme ?? PokeMapPlayerTheme.dark();
+  if (layouts != null) {
+    resolvedTheme = PokeMapPlayerTheme.withLayoutProfile(
+      resolvedTheme,
+      layouts,
     );
+  }
+  return MaterialApp(
+    locale: const Locale('fr'),
+    supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+    localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
+    theme: resolvedTheme,
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+      child: child!,
+    ),
+    home: child,
+  );
+}

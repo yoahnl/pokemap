@@ -49,4 +49,30 @@ void main() {
     expect(changed.textScale, 2);
     expect(changed.reducedMotion, isTrue);
   });
+
+  test(
+    'viewport scenarios carry deterministic logical sizes and safe areas',
+    () {
+      const profile = ProjectPresentationProfile();
+      const portrait = PersonalizationPreviewScenario(
+        draftProfile: profile,
+        surface: PersonalizationPreviewSurface.title,
+        viewport: PersonalizationPreviewViewport.portrait,
+      );
+      const landscape = PersonalizationPreviewScenario(
+        draftProfile: profile,
+        surface: PersonalizationPreviewSurface.menu,
+        viewport: PersonalizationPreviewViewport.phoneLandscape,
+      );
+
+      expect(portrait.metrics.logicalWidth, 390);
+      expect(portrait.metrics.logicalHeight, 844);
+      expect(portrait.metrics.safeTop, 44);
+      expect(portrait.metrics.safeBottom, 34);
+      expect(landscape.metrics.logicalWidth, 844);
+      expect(landscape.metrics.logicalHeight, 390);
+      expect(landscape.metrics.safeLeft, 44);
+      expect(landscape.metrics.safeBottom, 21);
+    },
+  );
 }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 
 import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_layout_theme.dart';
 import '../theme/pokemap_player_window_theme.dart';
 import 'runtime_player_focus_controller.dart';
 
@@ -84,7 +86,17 @@ class PlayerPauseMenu extends StatelessWidget {
       child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 720;
+            final resolved = context.playerLayoutTheme?.resolve(
+              ProjectPresentationSurfaceRole.pauseMenu,
+              constraints,
+            );
+            final wide = resolved == null
+                ? constraints.maxWidth >= 720
+                : resolved.breakpoint != ProjectPresentationBreakpoint.compact;
+            final showGameTitle = resolved == null ||
+                resolved.variant.visibleSecondaryElements.contains(
+                  ProjectPresentationSecondaryElement.pauseGameTitle,
+                );
             final content = <Widget>[
               Semantics(
                 header: true,
@@ -94,7 +106,11 @@ class PlayerPauseMenu extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: PlayerSpacing.xs),
-              Text(gameTitle, style: Theme.of(context).textTheme.titleMedium),
+              if (showGameTitle)
+                Text(
+                  gameTitle,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               const SizedBox(height: PlayerSpacing.lg),
               Expanded(
                 child: wide
@@ -127,16 +143,41 @@ class PlayerPauseMenu extends StatelessWidget {
                       ),
               ),
             ];
-            return Align(
-              alignment: wide ? Alignment.centerRight : Alignment.center,
+            final alignment = resolved == null
+                ? (wide ? Alignment.centerRight : Alignment.center)
+                : switch (resolved.variant.slot) {
+                    ProjectPresentationLayoutSlot.left ||
+                    ProjectPresentationLayoutSlot.leftPane =>
+                      Alignment.centerLeft,
+                    ProjectPresentationLayoutSlot.right =>
+                      Alignment.centerRight,
+                    ProjectPresentationLayoutSlot.bottomCenter =>
+                      Alignment.bottomCenter,
+                    _ => Alignment.center,
+                  };
+            final margin = resolved?.additionalSafeAreaPadding ?? 0;
+            final panel = Align(
+              key: resolved == null
+                  ? null
+                  : ValueKey<String>(
+                      'player-pause-responsive-${resolved.breakpoint.name}',
+                    ),
+              alignment: alignment,
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxWidth: wide ? 640 : 480,
-                  maxHeight: constraints.maxHeight,
+                  maxWidth: resolved == null
+                      ? (wide ? 640 : 480)
+                      : constraints.maxWidth * resolved.maxWidthFactor,
+                  maxHeight: constraints.maxHeight - margin * 2,
                 ),
                 child: PlayerPanel(
                   elevated: true,
                   role: PlayerPanelRole.menu,
+                  padding: resolved == null
+                      ? const EdgeInsets.all(PlayerSpacing.lg)
+                      : EdgeInsets.all(
+                          PlayerSpacing.lg * resolved.spacingScale,
+                        ),
                   child: FocusTraversalGroup(
                     policy: ReadingOrderTraversalPolicy(),
                     child: Column(
@@ -147,6 +188,9 @@ class PlayerPauseMenu extends StatelessWidget {
                 ),
               ),
             );
+            return margin == 0
+                ? panel
+                : Padding(padding: EdgeInsets.all(margin), child: panel);
           },
         ),
       ),
@@ -205,6 +249,7 @@ class PlayerPauseNavigation extends StatelessWidget {
     this.scrollController,
     this.focusController,
     this.labels = const PlayerPauseMenuLabels(),
+    this.showGameTitle = true,
   });
 
   final String gameTitle;
@@ -215,6 +260,7 @@ class PlayerPauseNavigation extends StatelessWidget {
   final ScrollController? scrollController;
   final RuntimePlayerFocusController? focusController;
   final PlayerPauseMenuLabels labels;
+  final bool showGameTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +285,8 @@ class PlayerPauseNavigation extends StatelessWidget {
             ),
           ),
           const SizedBox(height: PlayerSpacing.xs),
-          Text(gameTitle, style: Theme.of(context).textTheme.titleMedium),
+          if (showGameTitle)
+            Text(gameTitle, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: PlayerSpacing.lg),
           if (useGrid)
             GridView.builder(

@@ -253,6 +253,9 @@ ThemeData _playerTheme(ProjectPresentationProfile profile) {
   if (profile.windows case final windows?) {
     theme = PokeMapPlayerTheme.withWindowProfile(theme, windows);
   }
+  if (profile.layouts case final layouts?) {
+    theme = PokeMapPlayerTheme.withLayoutProfile(theme, layouts);
+  }
   return theme;
 }
 
