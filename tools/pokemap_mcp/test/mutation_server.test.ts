@@ -3624,9 +3624,49 @@ test("MCP completes a cold-start 34-element visual import", async () => {
   }
 });
 
-test("MCP authors and rereads a complete Character Studio character", async () => {
+test("CHS-053 live MCP certifies the complete Character Studio lifecycle", async () => {
   const fixture = await mutationFixture();
   try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = new Set(
+      (described.mutationActions as JsonRecord[]).map((action) =>
+        String(action.id),
+      ),
+    );
+    for (const actionId of [
+      "characterStudio.portraitState.create",
+      "characterStudio.character.create",
+      "characterStudio.character.setDefault",
+      "characterStudio.asset.import",
+      "characterStudio.character.portrait.assign",
+      "characterStudio.animationDefinition.create",
+      "characterStudio.animationClip.upsert",
+      "characterStudio.animationFrame.insert",
+      "cinematic.character_animation.upsert",
+    ]) {
+      assert.ok(actionIds.has(actionId), actionId);
+    }
+    const resourceKindIds = new Set(
+      (described.resourceKinds as JsonRecord[]).map((resource) =>
+        String(resource.id),
+      ),
+    );
+    for (const resourceKindId of [
+      "characterStudioCatalog",
+      "characterStudioCharacter",
+      "characterStudioDependency",
+      "characterStudioReadiness",
+    ]) {
+      assert.ok(resourceKindIds.has(resourceKindId), resourceKindId);
+    }
+    const templates = await fixture.client.listResourceTemplates();
+    assert.ok(
+      templates.resourceTemplates.some(
+        (template) =>
+          template.uriTemplate ===
+          "pokemap://project/{projectHandle}/catalog/{resourceKind}",
+      ),
+    );
     const projectDocument = record(
       JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
     );
@@ -3673,6 +3713,48 @@ test("MCP authors and rereads a complete Character Studio character", async () =
         })
       ).snapshotRevision,
     );
+    const catalogBeforeDryRun = await toolData(
+      fixture.client,
+      "pokemap_query",
+      {
+        projectHandle,
+        resourceKind: "characterStudioCatalog",
+        operation: "get",
+        view: "detail",
+        ids: ["catalog"],
+      },
+    );
+    const dryRun = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "character-studio-dry-run",
+        actionId: "characterStudio.portraitState.create",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: { displayName: "MCP Neutre" },
+        expectedRevision: revision,
+        idempotencyKey: "idem-character-studio-dry-run",
+        dryRun: true,
+      },
+    });
+    assert.equal(dryRun.applicable, false);
+    assert.equal(record(dryRun.plan).nonApplicableReason, "dry_run");
+    const catalogAfterDryRun = await toolData(
+      fixture.client,
+      "pokemap_query",
+      {
+        projectHandle,
+        resourceKind: "characterStudioCatalog",
+        operation: "get",
+        view: "detail",
+        ids: ["catalog"],
+      },
+    );
+    assert.deepEqual(catalogAfterDryRun.items, catalogBeforeDryRun.items);
+    assert.equal(
+      String(catalogAfterDryRun.snapshotRevision),
+      String(catalogBeforeDryRun.snapshotRevision),
+    );
     const actions: Array<{ id: string; parameters: JsonRecord }> = [
       {
         id: "characterStudio.portraitState.create",
@@ -3686,6 +3768,10 @@ test("MCP authors and rereads a complete Character Studio character", async () =
           frameWidth: 1,
           frameHeight: 1,
         },
+      },
+      {
+        id: "characterStudio.character.setDefault",
+        parameters: { characterId: "mcp-hero" },
       },
       {
         id: "characterStudio.asset.import",
@@ -3766,6 +3852,30 @@ test("MCP authors and rereads a complete Character Studio character", async () =
         .length,
       1,
     );
+    const readiness = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(reopened.projectHandle),
+      resourceKind: "characterStudioReadiness",
+      operation: "get",
+      view: "detail",
+      ids: ["mcp-hero"],
+    });
+    assert.equal(record((readiness.items as unknown[])[0]).id, "mcp-hero");
+    const resource = await fixture.client.readResource({
+      uri:
+        `pokemap://project/${encodeURIComponent(String(reopened.projectHandle))}` +
+        "/catalog/characterStudioCharacter",
+    });
+    const resourceContent = resource.contents[0];
+    assert.ok(resourceContent && "text" in resourceContent);
+    const resourcePage = record(JSON.parse(resourceContent.text));
+    assert.equal(
+      record((resourcePage.items as unknown[])[0]).id,
+      "mcp-hero",
+    );
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle: reopened.workspaceHandle,
+    });
   } finally {
     await fixture.client.close();
     await fixture.server.close();
