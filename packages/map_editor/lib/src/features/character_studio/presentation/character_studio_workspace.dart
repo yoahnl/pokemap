@@ -18,6 +18,7 @@ import 'identity/character_studio_identity_editor.dart';
 import 'identity/character_studio_inspector.dart';
 import 'library/character_studio_library.dart';
 import 'portraits/character_studio_portraits_tab.dart';
+import 'portraits/portrait_inspector.dart';
 import 'character_studio_workspace_shell.dart';
 
 class CharacterStudioWorkspace extends ConsumerStatefulWidget {
@@ -31,6 +32,7 @@ class CharacterStudioWorkspace extends ConsumerStatefulWidget {
 class _CharacterStudioWorkspaceState
     extends ConsumerState<CharacterStudioWorkspace> {
   CharacterStudioSection _section = CharacterStudioSection.identity;
+  String? _selectedPortraitStateId;
   final CharacterStudioMediaResolver _mediaResolver =
       CharacterStudioMediaResolver(
         source: const FileCharacterStudioMediaSource(),
@@ -76,6 +78,7 @@ class _CharacterStudioWorkspaceState
                 projectRootPath: projectRootPath,
                 characterId: selectedCharacterId,
               );
+    final selectedPortraitStateId = _portraitStateId(project);
 
     return CharacterStudioWorkspaceShell(
       key: const ValueKey<String>('character-studio-workspace'),
@@ -158,15 +161,67 @@ class _CharacterStudioWorkspaceState
                   ),
               onManageGlobalStates: () =>
                   unawaited(_showPortraitStateManager()),
+              selectedStateId: _selectedPortraitStateId,
+              onSelectionChanged: (stateId) =>
+                  setState(() => _selectedPortraitStateId = stateId),
             ),
           _ => _CharacterStudioSectionPlaceholder(section: _section),
         },
       ),
-      inspector: CharacterStudioInspector(
-        project: project,
-        character: selectedCharacter,
-      ),
+      inspector: switch ((_section, selectedCharacter)) {
+        (CharacterStudioSection.portraits, final character?)
+            when selectedPortraitStateId != null =>
+          PortraitInspector(
+            project: project,
+            character: character,
+            portraitStateId: selectedPortraitStateId,
+            projectRootPath: editorState.projectRootPath ?? '',
+            projectRevision: Object.hash(
+              project,
+              notifier.projectSessionRevision,
+            ).toString(),
+            mediaResolver: _mediaResolver,
+            isSaving: snapshot.isSaving,
+            onReplace: () => notifier.importCharacterPortrait(
+              characterId: character.id,
+              portraitStateId: selectedPortraitStateId,
+              fitMode:
+                  character.portraits
+                      .where(
+                        (portrait) =>
+                            portrait.portraitStateId == selectedPortraitStateId,
+                      )
+                      .firstOrNull
+                      ?.fitMode ??
+                  CharacterPortraitFitMode.contain,
+            ),
+            onFitChanged: (fitMode) => notifier.setCharacterPortraitFitMode(
+              characterId: character.id,
+              portraitStateId: selectedPortraitStateId,
+              fitMode: fitMode,
+            ),
+          ),
+        _ => CharacterStudioInspector(
+          project: project,
+          character: selectedCharacter,
+        ),
+      },
     );
+  }
+
+  String? _portraitStateId(ProjectManifest project) {
+    final states = project.characterStudioCatalog.portraitStates;
+    if (states.isEmpty) return null;
+    final selected = _selectedPortraitStateId;
+    if (selected != null && states.any((state) => state.id == selected)) {
+      return selected;
+    }
+    final sorted = states.toList()
+      ..sort((left, right) {
+        final order = left.sortOrder.compareTo(right.sortOrder);
+        return order != 0 ? order : left.id.compareTo(right.id);
+      });
+    return sorted.first.id;
   }
 
   void _updateIdentityDraft({

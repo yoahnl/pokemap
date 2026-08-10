@@ -27,6 +27,8 @@ class CharacterStudioPortraitsTab extends StatefulWidget {
     required this.onClear,
     required this.onFitChanged,
     required this.onManageGlobalStates,
+    this.selectedStateId,
+    this.onSelectionChanged,
   });
 
   final ProjectManifest project;
@@ -39,6 +41,8 @@ class CharacterStudioPortraitsTab extends StatefulWidget {
   final CharacterPortraitClearCallback onClear;
   final CharacterPortraitFitCallback onFitChanged;
   final VoidCallback onManageGlobalStates;
+  final String? selectedStateId;
+  final ValueChanged<String>? onSelectionChanged;
 
   @override
   State<CharacterStudioPortraitsTab> createState() =>
@@ -66,7 +70,7 @@ class _CharacterStudioPortraitsTabState
   String? get _effectiveStateId {
     final states = _states;
     if (states.isEmpty) return null;
-    final selected = _selectedStateId;
+    final selected = widget.selectedStateId ?? _selectedStateId;
     if (selected != null && states.any((state) => state.id == selected)) {
       return selected;
     }
@@ -391,7 +395,10 @@ class _CharacterStudioPortraitsTabState
                       keyboardInteractive: true,
                       semanticLabel:
                           '${state.displayName}, ${portrait == null ? 'non défini' : 'défini'}',
-                      onTap: () => setState(() => _selectedStateId = state.id),
+                      onTap: () {
+                        setState(() => _selectedStateId = state.id);
+                        widget.onSelectionChanged?.call(state.id);
+                      },
                       padding: const EdgeInsets.all(8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
