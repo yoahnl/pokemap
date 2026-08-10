@@ -209,6 +209,35 @@ final class CharacterStudioActionParameters {
     return value;
   }
 
+  int integer(String key) {
+    final value = values[key];
+    if (value is! int) {
+      throw CharacterStudioActionException(
+        'character_studio.parameters.int_required',
+        '$key must be an integer.',
+        details: <String, Object?>{'parameter': key},
+      );
+    }
+    return value;
+  }
+
+  int nonNegativeInt(String key) {
+    final value = integer(key);
+    if (value < 0) {
+      throw CharacterStudioActionException(
+        'character_studio.parameters.non_negative_int_required',
+        '$key must be a non-negative integer.',
+        details: <String, Object?>{'parameter': key},
+      );
+    }
+    return value;
+  }
+
+  int? optionalNonNegativeInt(String key) {
+    if (!values.containsKey(key) || values[key] == null) return null;
+    return nonNegativeInt(key);
+  }
+
   int? optionalPositiveInt(String key) {
     if (!values.containsKey(key) || values[key] == null) return null;
     return positiveInt(key);
