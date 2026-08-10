@@ -68,6 +68,7 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
   PersonalizationStudioSessionController({
     required NarrativeDocumentSession<ProjectManifest> session,
   }) : _session = session {
+    _session.setPersistenceGuard(_persistenceIssue);
     _session.addListener(_onSessionChanged);
   }
 
@@ -101,6 +102,19 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
 
   void setAutosaveEnabled(bool enabled) {
     _session.setAutosaveEnabled(enabled);
+  }
+
+  static String? _persistenceIssue(ProjectManifest document) {
+    final errors =
+        validateProjectPresentationProfile(
+          document.effectivePresentation,
+        ).where(
+          (diagnostic) =>
+              diagnostic.severity ==
+              ProjectPresentationDiagnosticSeverity.error,
+        );
+    if (errors.isEmpty) return null;
+    return 'Sauvegarde bloquée : ${errors.first.message}';
   }
 
   void _onSessionChanged() {

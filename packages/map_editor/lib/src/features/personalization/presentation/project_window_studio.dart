@@ -9,10 +9,12 @@ class ProjectWindowStudio extends StatefulWidget {
     super.key,
     required this.profile,
     required this.onChanged,
+    this.simplePresetsOnly = false,
   });
 
   final ProjectPresentationWindowsProfile profile;
   final ValueChanged<ProjectPresentationWindowsProfile?> onChanged;
+  final bool simplePresetsOnly;
 
   @override
   State<ProjectWindowStudio> createState() => _ProjectWindowStudioState();
@@ -23,6 +25,12 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.simplePresetsOnly) {
+      return _SimpleWindowShapePresets(
+        profile: widget.profile,
+        onChanged: widget.onChanged,
+      );
+    }
     final style = widget.profile.resolve(_target.role);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -255,6 +263,81 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
       ),
     );
   }
+}
+
+enum ProjectWindowShapePreset {
+  square('square', 'Carrée', 0, 0),
+  rounded('rounded', 'Arrondie', 16, 4),
+  soft('soft', 'Douce', 24, 8);
+
+  const ProjectWindowShapePreset(
+    this.id,
+    this.label,
+    this.cornerRadius,
+    this.shadowElevation,
+  );
+
+  final String id;
+  final String label;
+  final int cornerRadius;
+  final int shadowElevation;
+}
+
+ProjectPresentationWindowsProfile applyProjectWindowShapePreset(
+  ProjectPresentationWindowsProfile profile,
+  ProjectWindowShapePreset preset,
+) => profile.copyWith(
+  styles: profile.styles
+      .map(
+        (style) => style.copyWith(
+          cornerRadius: preset.cornerRadius,
+          shadowElevation: preset.shadowElevation,
+        ),
+      )
+      .toList(growable: false),
+);
+
+class _SimpleWindowShapePresets extends StatelessWidget {
+  const _SimpleWindowShapePresets({
+    required this.profile,
+    required this.onChanged,
+  });
+
+  final ProjectPresentationWindowsProfile profile;
+  final ValueChanged<ProjectPresentationWindowsProfile?> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: <Widget>[
+      const PokeMapSectionHeader(
+        title: 'Forme des fenêtres',
+        description:
+            'Appliquez la même silhouette au titre, aux menus et aux dialogues.',
+      ),
+      const SizedBox(height: 8),
+      PokeMapCard(
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            for (final preset in ProjectWindowShapePreset.values)
+              PokeMapButton(
+                key: ValueKey<String>('global-shape-${preset.id}'),
+                size: PokeMapButtonSize.small,
+                variant: PokeMapButtonVariant.secondary,
+                isSelected: profile.styles.every(
+                  (style) => style.cornerRadius == preset.cornerRadius,
+                ),
+                onPressed: () =>
+                    onChanged(applyProjectWindowShapePreset(profile, preset)),
+                child: Text(preset.label),
+              ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 enum _WindowTarget {

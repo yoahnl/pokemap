@@ -33,6 +33,7 @@ import 'personalization_live_preview.dart';
 import 'personalization_readiness_panel.dart';
 import 'personalization_section_actions.dart';
 import 'personalization_studio_shell_v2.dart';
+import 'inspectors/personalization_global_style_inspector.dart';
 import 'project_branding_editor.dart';
 import 'project_intro_video_editor.dart';
 import 'project_layout_studio.dart';
@@ -353,6 +354,7 @@ class _PersonalizationStudioWorkspaceState
     required ProjectPresentationProfile profile,
     required ProjectTypographyRole role,
     required EditorNotifier notifier,
+    bool applyToAllRoles = false,
   }) async {
     if (_isImportingAsset) return;
     final confirmed = await showPokeMapBinaryConfirmationDialog(
@@ -401,19 +403,30 @@ class _PersonalizationStudioWorkspaceState
             fontFile: File('$projectRootPath/${imported.fontPath}'),
             role: role,
           );
-      final updatedTypography = _replaceTypographyRole(
-        typography,
-        role,
-        imported,
-      );
+      final updatedTypography = applyToAllRoles
+          ? ProjectTypographyProfile(
+              display: imported,
+              body: imported,
+              dialogue: imported,
+              numbers: imported,
+            )
+          : _replaceTypographyRole(typography, role, imported);
       final applied = await notifier.applyPersonalizationStudioProfile(
         profile.copyWith(typography: updatedTypography),
-        label: 'Importer la fonte ${_typographyRoleName(role)}',
+        label: applyToAllRoles
+            ? 'Importer la police commune'
+            : 'Importer la fonte ${_typographyRoleName(role)}',
       );
       if (!mounted) return;
       setState(() {
         if (applied) {
-          _fontPreviewFamilies[role] = previewFamily;
+          if (applyToAllRoles) {
+            for (final typographyRole in ProjectTypographyRole.values) {
+              _fontPreviewFamilies[typographyRole] = previewFamily;
+            }
+          } else {
+            _fontPreviewFamilies[role] = previewFamily;
+          }
         }
         _assetFeedbackIsError = !applied;
         _assetFeedback = applied
@@ -484,6 +497,92 @@ class _PersonalizationStudioWorkspaceState
       profile.copyWith(branding: profile.branding.copyWith(accentColor: value)),
       label: 'Modifier la couleur de cartouche et d’accent',
     );
+  }
+
+  Future<void> _editGlobalStyleAccent({
+    required BuildContext context,
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+  }) async {
+    final theme = profile.theme ?? safeProjectSemanticTheme;
+    final currentValue = profile.branding.accentColor ?? theme.outline;
+    final value = await showProjectThemeTokenDialog(
+      context: context,
+      tokenLabel: 'l’accent',
+      currentValue: currentValue,
+    );
+    if (!mounted || value == null || value == currentValue) return;
+    await notifier.applyPersonalizationStudioProfile(
+      profile.copyWith(
+        branding: profile.branding.copyWith(accentColor: value),
+        theme: theme.copyWith(outline: value),
+      ),
+      label: 'Modifier la couleur d’accent commune',
+    );
+  }
+
+  Future<void> _editGlobalStyleThemeToken({
+    required BuildContext context,
+    required String token,
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+  }) async {
+    final theme = profile.theme ?? safeProjectSemanticTheme;
+    final currentValue = _themeTokenValue(theme, token);
+    final value = await showProjectThemeTokenDialog(
+      context: context,
+      tokenLabel: switch (token) {
+        'surface' => 'les fenêtres',
+        'textPrimary' => 'le texte',
+        'primary' => 'les boutons',
+        _ => _themeTokenName(token),
+      },
+      currentValue: currentValue,
+    );
+    if (!mounted || value == null || value == currentValue) return;
+    final updatedTheme = switch (token) {
+      'surface' => theme.copyWith(
+        surface: value,
+        surfaceElevated: value,
+        titleSurface: value,
+        dialogueSurface: value,
+        menuSurface: value,
+        overworldHudSurface: value,
+        battleHudSurface: value,
+      ),
+      _ => _replaceThemeToken(theme, token, value),
+    };
+    await notifier.applyPersonalizationStudioProfile(
+      profile.copyWith(theme: updatedTheme),
+      label: 'Modifier la couleur globale ${_themeTokenName(token)}',
+    );
+  }
+
+  Future<void> _useSystemCommonFont({
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+  }) async {
+    final typography = profile.typography ?? const ProjectTypographyProfile();
+    final updated = ProjectTypographyProfile(
+      display: ProjectTypographyRoleProfile(
+        fallbackFamilies: typography.display.fallbackFamilies,
+      ),
+      body: ProjectTypographyRoleProfile(
+        fallbackFamilies: typography.body.fallbackFamilies,
+      ),
+      dialogue: ProjectTypographyRoleProfile(
+        fallbackFamilies: typography.dialogue.fallbackFamilies,
+      ),
+      numbers: ProjectTypographyRoleProfile(
+        fallbackFamilies: typography.numbers.fallbackFamilies,
+      ),
+    );
+    final applied = await notifier.applyPersonalizationStudioProfile(
+      profile.copyWith(typography: updated),
+      label: 'Utiliser la police système commune',
+    );
+    if (!mounted || !applied) return;
+    setState(_fontPreviewFamilies.clear);
   }
 
   Future<void> _importIntroVideo({
@@ -1177,14 +1276,36 @@ class _PersonalizationStudioWorkspaceState
     required bool canManagePresets,
   }) {
     final editor = switch (target) {
-      GlobalColorsTarget() ||
+      GlobalColorsTarget() => _buildGlobalStyleTarget(
+        context: context,
+        section: PersonalizationGlobalStyleSection.colors,
+        profile: profile,
+        projectRootPath: projectRootPath,
+        notifier: notifier,
+        canEdit: canEdit,
+      ),
+      GlobalTypographyTarget() => _buildGlobalStyleTarget(
+        context: context,
+        section: PersonalizationGlobalStyleSection.typography,
+        profile: profile,
+        projectRootPath: projectRootPath,
+        notifier: notifier,
+        canEdit: canEdit,
+      ),
+      GlobalFormsTarget() => _buildGlobalStyleTarget(
+        context: context,
+        section: PersonalizationGlobalStyleSection.forms,
+        profile: profile,
+        projectRootPath: projectRootPath,
+        notifier: notifier,
+        canEdit: canEdit,
+      ),
       BattleAppearanceTarget() => _buildSemanticThemeTarget(
         context: context,
         profile: profile,
         notifier: notifier,
         canEdit: canEdit,
       ),
-      GlobalTypographyTarget() ||
       DialogueTypographyTarget() => _buildCategoryEditor(
         context: context,
         category: ProjectPresentationCategory.typography,
@@ -1196,7 +1317,6 @@ class _PersonalizationStudioWorkspaceState
         presets: presets,
         canManagePresets: canManagePresets,
       ),
-      GlobalFormsTarget() ||
       PauseAppearanceTarget() ||
       DialogueAppearanceTarget() => _buildWindowTarget(
         profile: profile,
@@ -1254,6 +1374,97 @@ class _PersonalizationStudioWorkspaceState
       child: editor,
     );
   }
+
+  Widget _buildGlobalStyleTarget({
+    required BuildContext context,
+    required PersonalizationGlobalStyleSection section,
+    required ProjectPresentationProfile profile,
+    required String projectRootPath,
+    required EditorNotifier notifier,
+    required bool canEdit,
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: <Widget>[
+      if (_isImportingAsset) ...<Widget>[
+        const PokeMapDiagnosticCallout(
+          key: ValueKey<String>('personalization-studio-asset-progress'),
+          severity: PokeMapDiagnosticSeverity.info,
+          message: 'Validation et copie sécurisée de la police en cours…',
+        ),
+        const SizedBox(height: 12),
+      ],
+      if (_assetFeedback != null) ...<Widget>[
+        PokeMapDiagnosticCallout(
+          key: const ValueKey<String>('personalization-studio-asset-feedback'),
+          severity: _assetFeedbackIsError
+              ? PokeMapDiagnosticSeverity.error
+              : PokeMapDiagnosticSeverity.info,
+          message: _assetFeedback!,
+        ),
+        const SizedBox(height: 12),
+      ],
+      IgnorePointer(
+        ignoring: !canEdit || _isImportingAsset,
+        child: PersonalizationGlobalStyleInspector(
+          profile: profile,
+          section: section,
+          previewFamilies: _fontPreviewFamilies,
+          onEditAccent: () {
+            unawaited(
+              _editGlobalStyleAccent(
+                context: context,
+                profile: profile,
+                notifier: notifier,
+              ),
+            );
+          },
+          onEditThemeToken: (token) {
+            unawaited(
+              _editGlobalStyleThemeToken(
+                context: context,
+                token: token,
+                profile: profile,
+                notifier: notifier,
+              ),
+            );
+          },
+          onUseSafeFallback: () {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(theme: safeProjectSemanticTheme),
+                label: 'Appliquer la palette sûre',
+              ),
+            );
+          },
+          onWindowsChanged: (windows) {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(windows: windows),
+                label: 'Modifier la forme globale des fenêtres',
+              ),
+            );
+          },
+          onImportCommonFont: () {
+            unawaited(
+              _importFont(
+                context: context,
+                projectRootPath: projectRootPath,
+                profile: profile,
+                role: ProjectTypographyRole.body,
+                notifier: notifier,
+                applyToAllRoles: true,
+              ),
+            );
+          },
+          onUseSystemCommonFont: () {
+            unawaited(
+              _useSystemCommonFont(profile: profile, notifier: notifier),
+            );
+          },
+        ),
+      ),
+    ],
+  );
 
   Widget _buildMenuLabelsTarget({
     required ProjectPresentationProfile profile,
@@ -1372,6 +1583,12 @@ class _PersonalizationStudioWorkspaceState
     final profile =
         studioSession?.draftProfile ?? project.effectivePresentation;
     final baselineProfile = studioSession?.savedProfile;
+    final hasBlockingDiagnostics = validateProjectPresentationProfile(profile)
+        .any(
+          (diagnostic) =>
+              diagnostic.severity ==
+              ProjectPresentationDiagnosticSeverity.error,
+        );
     final isPreflightStale =
         _preflightResult != null &&
         (_preflightProjectRootPath != projectRootPath ||
@@ -1411,6 +1628,15 @@ class _PersonalizationStudioWorkspaceState
                       key: ValueKey<String>('personalization-studio-clean'),
                       label: 'Enregistré',
                       variant: PokeMapBadgeVariant.success,
+                    ),
+                  if (hasBlockingDiagnostics)
+                    const PokeMapBadge(
+                      key: ValueKey<String>(
+                        'personalization-studio-validation-blocked',
+                      ),
+                      label: 'Contraste à corriger',
+                      variant: PokeMapBadgeVariant.error,
+                      icon: Icon(Icons.error_outline_rounded),
                     ),
                   PokeMapButton(
                     key: const ValueKey<String>('personalization-studio-undo'),
@@ -1458,7 +1684,10 @@ class _PersonalizationStudioWorkspaceState
                     size: PokeMapButtonSize.compact,
                     leading: const Icon(Icons.save_outlined),
                     isLoading: studioSession?.isSaving == true,
-                    onPressed: studioSession?.isDirty == true && canEdit
+                    onPressed:
+                        studioSession?.isDirty == true &&
+                            canEdit &&
+                            !hasBlockingDiagnostics
                         ? () {
                             unawaited(notifier.savePersonalizationStudio());
                           }
@@ -1564,7 +1793,10 @@ class _PersonalizationStudioWorkspaceState
                             );
                           }
                         : null,
-                    onSaveDraft: studioSession?.isDirty == true && canEdit
+                    onSaveDraft:
+                        studioSession?.isDirty == true &&
+                            canEdit &&
+                            !hasBlockingDiagnostics
                         ? () {
                             unawaited(notifier.savePersonalizationStudio());
                           }

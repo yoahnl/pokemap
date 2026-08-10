@@ -171,6 +171,45 @@ void main() {
       expect(gateway.durableDocument.presentation, profile);
       expect(controller.state.isDirty, isFalse);
     });
+
+    test('blocks persistence while presentation contrast is invalid', () async {
+      final project = buildShellChromeProject(name: 'Invalid contrast');
+      final gateway = _MemoryProjectGateway(project);
+      final scheduler = _ManualAutosaveScheduler();
+      final controller = PersonalizationStudioSessionController(
+        session: NarrativeDocumentSession<ProjectManifest>(
+          documentId: 'personalization-studio',
+          initialDocument: project,
+          gateway: gateway,
+          recoveryStore: _MemoryProjectRecoveryStore(),
+          autosaveScheduler: scheduler.schedule,
+        ),
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      final profile = ProjectPresentationProfile(
+        theme: safeProjectSemanticTheme.copyWith(
+          primary: '#EEEEEE',
+          onPrimary: '#FFFFFF',
+        ),
+      );
+
+      expect(
+        await controller.applyProfile(
+          profile,
+          operationId: 'invalid-contrast',
+          label: 'Modifier le contraste',
+        ),
+        isTrue,
+      );
+      controller.setAutosaveEnabled(true);
+
+      expect(controller.state.isDirty, isTrue);
+      expect(scheduler.activeTasks, isEmpty);
+      expect(await controller.save(operationId: 'blocked-save'), isFalse);
+      expect(controller.state.code, 'persistenceValidationFailed');
+      expect(gateway.saveCount, 0);
+    });
   });
 }
 

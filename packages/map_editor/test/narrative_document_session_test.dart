@@ -336,6 +336,46 @@ void main() {
           fixture.session.state.status, NarrativeDocumentSessionStatus.saved);
     });
 
+    test('persistence guard blocks manual save and autosave', () async {
+      final scheduler = _ManualScheduler();
+      final fixture = _fixture(
+        scheduler: scheduler.schedule,
+        persistenceGuard: (document) =>
+            document == 'invalid' ? 'Contrast is invalid.' : null,
+      );
+      await fixture.session.initialize();
+      fixture.session.setAutosaveEnabled(true);
+
+      expect(
+        await fixture.session.apply(
+          operationId: 'edit-invalid',
+          label: 'Modifier le contraste',
+          document: 'invalid',
+        ),
+        isTrue,
+      );
+      expect(scheduler.pending.where((task) => !task.cancelled), isEmpty);
+      expect(await fixture.session.save(operationId: 'save-invalid'), isFalse);
+      expect(fixture.gateway.saveCount, 0);
+      expect(
+        fixture.session.state.status,
+        NarrativeDocumentSessionStatus.dirty,
+      );
+      expect(fixture.session.state.code, 'persistenceValidationFailed');
+
+      expect(
+        await fixture.session.apply(
+          operationId: 'edit-valid',
+          label: 'Corriger le contraste',
+          document: 'valid',
+        ),
+        isTrue,
+      );
+      expect(scheduler.pending.where((task) => !task.cancelled), hasLength(1));
+      await scheduler.runLatest();
+      expect(fixture.gateway.saveCount, 1);
+    });
+
     test('discard restores the durable baseline and clears both histories',
         () async {
       final fixture = _fixture();
@@ -390,6 +430,7 @@ _Fixture _fixture({
   Future<NarrativeDocumentSaveResult<String>> Function(_SaveCall call)?
       saveHandler,
   NarrativeDocumentAutosaveScheduler? scheduler,
+  NarrativeDocumentPersistenceGuard<String>? persistenceGuard,
 }) {
   final gateway = _FakeGateway(
     version: NarrativeDocumentVersion(
@@ -409,6 +450,7 @@ _Fixture _fixture({
       recoveryStore: store,
       autosaveDelay: const Duration(seconds: 2),
       autosaveScheduler: scheduler,
+      persistenceGuard: persistenceGuard,
     ),
   );
 }

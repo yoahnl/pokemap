@@ -130,6 +130,8 @@ typedef NarrativeDocumentAutosaveScheduler = NarrativeDocumentAutosaveHandle
   Future<void> Function() callback,
 );
 
+typedef NarrativeDocumentPersistenceGuard<T> = String? Function(T document);
+
 @immutable
 final class NarrativeDocumentComparison<T> {
   const NarrativeDocumentComparison({
@@ -229,6 +231,7 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
     required NarrativeDocumentRecoveryStore<T> recoveryStore,
     this.autosaveDelay = const Duration(seconds: 3),
     NarrativeDocumentAutosaveScheduler? autosaveScheduler,
+    NarrativeDocumentPersistenceGuard<T>? persistenceGuard,
     bool autosaveEnabled = false,
     int historyCapacity = 100,
   })  : assert(historyCapacity > 0),
@@ -236,6 +239,7 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
         _recoveryStore = recoveryStore,
         _historyCapacity = historyCapacity,
         _autosaveScheduler = autosaveScheduler ?? _scheduleWithTimer,
+        _persistenceGuard = persistenceGuard,
         _state = NarrativeDocumentSessionState<T>(
           documentId: _requiredText(documentId, 'documentId'),
           document: initialDocument,
@@ -251,6 +255,7 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
   final NarrativeDocumentRecoveryStore<T> _recoveryStore;
   final int _historyCapacity;
   final NarrativeDocumentAutosaveScheduler _autosaveScheduler;
+  NarrativeDocumentPersistenceGuard<T>? _persistenceGuard;
   final Duration autosaveDelay;
 
   NarrativeDocumentSessionState<T> _state;
@@ -493,6 +498,18 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
       return true;
     }
 
+    final persistenceIssue = _persistenceGuard?.call(_state.document);
+    if (persistenceIssue != null) {
+      _publish(
+        _state.copyWith(
+          status: NarrativeDocumentSessionStatus.dirty,
+          code: 'persistenceValidationFailed',
+          message: persistenceIssue,
+        ),
+      );
+      return false;
+    }
+
     final normalizedOperationId = _requiredText(operationId, 'operationId');
     _cancelAutosave();
     final generation = ++_operationGeneration;
@@ -727,6 +744,15 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
     if (enabled) _scheduleAutosaveIfNeeded();
   }
 
+  void setPersistenceGuard(
+    NarrativeDocumentPersistenceGuard<T>? persistenceGuard,
+  ) {
+    if (_disposed || identical(_persistenceGuard, persistenceGuard)) return;
+    _cancelAutosave();
+    _persistenceGuard = persistenceGuard;
+    _scheduleAutosaveIfNeeded();
+  }
+
   bool _canMutateHistory() {
     return _state.isInitialized &&
         !_disposed &&
@@ -780,6 +806,7 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
   void _scheduleAutosaveIfNeeded() {
     if (!_state.autosaveEnabled ||
         !_state.isDirty ||
+        _persistenceGuard?.call(_state.document) != null ||
         _disposed ||
         _state.status == NarrativeDocumentSessionStatus.saving ||
         _state.status == NarrativeDocumentSessionStatus.conflicted) {

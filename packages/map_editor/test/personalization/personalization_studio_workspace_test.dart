@@ -333,6 +333,75 @@ void main() {
     },
   );
 
+  testWidgets('blocks save while a global color breaks contrast', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-studio-contrast-',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(name: 'Contrast Studio').copyWith(
+      presentation: const ProjectPresentationProfile(
+        theme: safeProjectSemanticTheme,
+      ),
+    );
+    File('${root.path}/project.json').writeAsStringSync(
+      jsonEncode(project.toJson()),
+      flush: true,
+    );
+    final gateway = _MemoryProjectGateway(project);
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1600, 900),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-studio-contrast',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: _MemoryProjectRecoveryStore(),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+    final notifier = container.read(editorNotifierProvider.notifier);
+    await notifier.initializePersonalizationStudioSession();
+    await notifier.applyPersonalizationStudioProfile(
+      ProjectPresentationProfile(
+        theme: safeProjectSemanticTheme.copyWith(
+          primary: '#EEEEEE',
+          onPrimary: '#FFFFFF',
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-validation-blocked'),
+      ),
+      findsOneWidget,
+    );
+    final saveButton = tester.widget<PokeMapButton>(
+      find.byKey(const ValueKey<String>('personalization-studio-save')),
+    );
+    expect(saveButton.onPressed, isNull);
+    expect(await notifier.savePersonalizationStudio(), isFalse);
+    expect(gateway.saveCount, 0);
+  });
+
   testWidgets('canvas displays the current project profile in read-only mode', (
     tester,
   ) async {
@@ -669,7 +738,7 @@ void main() {
   );
 
   testWidgets(
-    'typography category edits one role without changing the others',
+    'global typography exposes one common font and resets every role',
     (tester) async {
       final root = Directory.systemTemp.createTempSync(
         'personalization-studio-typography-',
@@ -751,15 +820,17 @@ void main() {
       await tester.pump();
 
       expect(find.byType(ProjectTypographyEditor), findsOneWidget);
-      for (final role in ProjectTypographyRole.values) {
-        expect(
-          find.byKey(ValueKey<String>('typography-import-${role.name}')),
-          findsOneWidget,
-        );
-      }
+      expect(
+        find.byKey(const ValueKey<String>('typography-import-common')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('typography-import-display')),
+        findsNothing,
+      );
 
       final useSystemDisplay = find.byKey(
-        const ValueKey<String>('typography-system-display'),
+        const ValueKey<String>('typography-system-common'),
       );
       await _dragUntilHitTestable(
         tester,
@@ -778,12 +849,15 @@ void main() {
           .typography;
       expect(draft?.display.fontPath, isNull);
       expect(draft?.display.fallbackFamilies, <String>['sans-serif']);
-      expect(draft?.body, body);
+      expect(draft?.body.fontPath, isNull);
+      expect(draft?.body.fallbackFamilies, <String>['serif']);
+      expect(draft?.dialogue.fontPath, isNull);
+      expect(draft?.numbers.fontPath, isNull);
       expect(projectFile.readAsStringSync(), durableJson);
     },
   );
 
-  testWidgets('theme category edits a semantic token through a guided dialog', (
+  testWidgets('global style edits the buttons color through a guided dialog', (
     tester,
   ) async {
     final root = Directory.systemTemp.createTempSync(
@@ -842,7 +916,7 @@ void main() {
 
     expect(find.byType(ProjectSemanticThemeEditor), findsOneWidget);
     final editPrimary = find.byKey(
-      const ValueKey<String>('theme-edit-primary'),
+      const ValueKey<String>('global-style-color-buttons'),
     );
     final detailScrollable = _detailScrollable('theme');
     await _dragUntilHitTestable(
@@ -986,7 +1060,7 @@ void main() {
     },
   );
 
-  testWidgets('guided font import confirms rights and updates only one role', (
+  testWidgets('guided font import confirms rights and updates every role', (
     tester,
   ) async {
     final root = Directory.systemTemp.createTempSync(
@@ -1060,7 +1134,7 @@ void main() {
     await tester.pump();
 
     final importBody = find.byKey(
-      const ValueKey<String>('typography-import-body'),
+      const ValueKey<String>('typography-import-common'),
     );
     await _dragUntilHitTestable(
       tester,
@@ -1087,7 +1161,9 @@ void main() {
       typography?.body.fontPath,
       'assets/presentation/fonts/body-test.otf',
     );
-    expect(typography?.display.fontPath, isNull);
+    expect(typography?.display, typography?.body);
+    expect(typography?.dialogue, typography?.body);
+    expect(typography?.numbers, typography?.body);
     expect(
       find.text('Fonte et licence importées dans le brouillon.'),
       findsOneWidget,

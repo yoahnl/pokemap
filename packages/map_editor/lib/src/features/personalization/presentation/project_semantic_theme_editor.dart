@@ -12,11 +12,13 @@ class ProjectSemanticThemeEditor extends StatelessWidget {
     required this.profile,
     required this.onEditToken,
     required this.onUseSafeFallback,
+    this.simple = false,
   });
 
   final ProjectSemanticThemeProfile profile;
   final ProjectThemeTokenSelection onEditToken;
   final VoidCallback onUseSafeFallback;
+  final bool simple;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +27,7 @@ class ProjectSemanticThemeEditor extends StatelessWidget {
       (diagnostic) =>
           diagnostic.severity == ProjectPresentationDiagnosticSeverity.error,
     );
-    final tokens = _tokens(profile);
+    final tokens = simple ? _simpleTokens(profile) : _tokens(profile);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -60,39 +62,47 @@ class ProjectSemanticThemeEditor extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        const PokeMapSectionHeader(
-          title: 'Aperçu des surfaces joueur',
-          description:
-              'Chaque zone utilise un token de surface et le texte sémantique.',
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: <Widget>[
-            _surfacePreview(
-              'Écran titre',
-              profile.titleSurface,
-              profile.textPrimary,
-            ),
-            _surfacePreview(
-              'Dialogues',
-              profile.dialogueSurface,
-              profile.textPrimary,
-            ),
-            _surfacePreview('Menus', profile.menuSurface, profile.textPrimary),
-            _surfacePreview(
-              'Combat',
-              profile.battleHudSurface,
-              profile.textPrimary,
-            ),
-          ],
-        ),
+        if (!simple) ...<Widget>[
+          const SizedBox(height: 12),
+          const PokeMapSectionHeader(
+            title: 'Aperçu des surfaces joueur',
+            description:
+                'Chaque zone utilise un token de surface et le texte sémantique.',
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: <Widget>[
+              _surfacePreview(
+                'Écran titre',
+                profile.titleSurface,
+                profile.textPrimary,
+              ),
+              _surfacePreview(
+                'Dialogues',
+                profile.dialogueSurface,
+                profile.textPrimary,
+              ),
+              _surfacePreview(
+                'Menus',
+                profile.menuSurface,
+                profile.textPrimary,
+              ),
+              _surfacePreview(
+                'Combat',
+                profile.battleHudSurface,
+                profile.textPrimary,
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 16),
-        const PokeMapSectionHeader(
-          title: 'Tokens sémantiques',
-          description: 'La sélection ouvre le choix guidé de couleur du hub.',
+        PokeMapSectionHeader(
+          title: simple ? 'Couleurs communes' : 'Tokens sémantiques',
+          description: simple
+              ? 'Quatre choix suffisent pour harmoniser toutes les scènes.'
+              : 'La sélection ouvre le choix guidé de couleur du hub.',
         ),
         const SizedBox(height: 8),
         for (final token in tokens.entries) ...<Widget>[
@@ -101,14 +111,20 @@ class ProjectSemanticThemeEditor extends StatelessWidget {
               children: <Widget>[
                 Expanded(
                   child: Text(
-                    _tokenLabel(token.key),
+                    simple
+                        ? _simpleTokenLabel(token.key)
+                        : _tokenLabel(token.key),
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ),
                 PokeMapBadge(label: token.value),
                 const SizedBox(width: 8),
                 PokeMapButton(
-                  key: ValueKey<String>('theme-edit-${token.key}'),
+                  key: ValueKey<String>(
+                    simple
+                        ? 'global-style-color-${_simpleTokenId(token.key)}'
+                        : 'theme-edit-${token.key}',
+                  ),
                   onPressed: () => onEditToken(token.key),
                   variant: PokeMapButtonVariant.secondary,
                   size: PokeMapButtonSize.small,
@@ -151,6 +167,27 @@ Map<String, String> _tokens(ProjectSemanticThemeProfile profile) =>
       'overworldHudSurface': profile.overworldHudSurface,
       'battleHudSurface': profile.battleHudSurface,
     };
+
+Map<String, String> _simpleTokens(ProjectSemanticThemeProfile profile) =>
+    <String, String>{
+      'surface': profile.surface,
+      'textPrimary': profile.textPrimary,
+      'primary': profile.primary,
+    };
+
+String _simpleTokenId(String token) => switch (token) {
+  'surface' => 'windows',
+  'textPrimary' => 'text',
+  'primary' => 'buttons',
+  _ => token,
+};
+
+String _simpleTokenLabel(String token) => switch (token) {
+  'surface' => 'Fenêtres',
+  'textPrimary' => 'Texte',
+  'primary' => 'Boutons',
+  _ => _tokenLabel(token),
+};
 
 String _tokenLabel(String token) => switch (token) {
   'primary' => 'Action principale',
