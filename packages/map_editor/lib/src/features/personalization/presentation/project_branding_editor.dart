@@ -25,6 +25,7 @@ class ProjectBrandingEditor extends StatelessWidget {
     this.onToggleTitleMusicPreview,
     this.onRemoveTitleMusic,
     this.isTitleMusicPreviewPlaying = false,
+    this.showPreview = true,
   });
 
   final ProjectBrandingProfile profile;
@@ -41,6 +42,7 @@ class ProjectBrandingEditor extends StatelessWidget {
   final VoidCallback? onToggleTitleMusicPreview;
   final VoidCallback? onRemoveTitleMusic;
   final bool isTitleMusicPreviewPlaying;
+  final bool showPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -48,14 +50,16 @@ class ProjectBrandingEditor extends StatelessWidget {
       key: const ValueKey<String>('project-branding-editor'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        ProjectBrandingTitlePreview(
-          projectName: projectName,
-          projectRootPath: projectRootPath,
-          branding: profile,
-          theme: theme,
-          typography: typography,
-        ),
-        const SizedBox(height: 18),
+        if (showPreview) ...<Widget>[
+          ProjectBrandingTitlePreview(
+            projectName: projectName,
+            projectRootPath: projectRootPath,
+            branding: profile,
+            theme: theme,
+            typography: typography,
+          ),
+          const SizedBox(height: 18),
+        ],
         const PokeMapSectionHeader(
           title: 'Images de marque',
           description:

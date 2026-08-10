@@ -37,7 +37,7 @@ void main() {
           project: project,
           workspaceMode: EditorWorkspaceMode.personalizationStudio,
         ),
-        surfaceSize: const Size(1200, 800),
+        surfaceSize: const Size(1600, 800),
         overrides: [
           personalizationStudioSessionControllerFactoryProvider
               .overrideWithValue(({
@@ -106,7 +106,7 @@ void main() {
           project: project,
           workspaceMode: EditorWorkspaceMode.personalizationStudio,
         ),
-        surfaceSize: const Size(1200, 900),
+        surfaceSize: const Size(1600, 900),
         overrides: [
           projectPresentationPreflightProvider.overrideWithValue(preflight),
           personalizationStudioExportLauncherProvider.overrideWithValue((
@@ -214,7 +214,7 @@ void main() {
           project: project,
           workspaceMode: EditorWorkspaceMode.personalizationStudio,
         ),
-        surfaceSize: const Size(1200, 800),
+        surfaceSize: const Size(1600, 800),
         overrides: [
           personalizationStudioSessionControllerFactoryProvider
               .overrideWithValue(({
@@ -350,23 +350,28 @@ void main() {
         project: project,
         workspaceMode: EditorWorkspaceMode.personalizationStudio,
       ),
-      surfaceSize: const Size(1200, 800),
+      surfaceSize: const Size(1600, 800),
     );
 
     expect(
       find.byKey(const Key('personalization-studio-workspace')),
       findsOneWidget,
     );
-    expect(find.byType(PersonalizationHubShell), findsOneWidget);
     expect(
-      find.text('Use a hexadecimal color such as #6750A4.'),
+      find.byKey(const ValueKey<String>('personalization-studio-shell-v2')),
       findsOneWidget,
     );
+    expect(find.byType(PersonalizationLivePreview), findsOneWidget);
 
-    final reset = tester.widget<PokeMapButton>(
-      find.byKey(const ValueKey<String>('personalization-reset-branding')),
+    final editorGuard = tester.widget<IgnorePointer>(
+      find
+          .ancestor(
+            of: find.byType(ProjectBrandingEditor),
+            matching: find.byType(IgnorePointer),
+          )
+          .first,
     );
-    expect(reset.onPressed, isNull);
+    expect(editorGuard.ignoring, isTrue);
   });
 
   testWidgets('branding accent and layout update only the studio draft', (
@@ -397,7 +402,7 @@ void main() {
         project: project,
         workspaceMode: EditorWorkspaceMode.personalizationStudio,
       ),
-      surfaceSize: const Size(1200, 1000),
+      surfaceSize: const Size(1600, 1000),
       overrides: [
         personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
           ({
@@ -487,7 +492,7 @@ void main() {
         project: project,
         workspaceMode: EditorWorkspaceMode.personalizationStudio,
       ),
-      surfaceSize: const Size(1200, 1000),
+      surfaceSize: const Size(1600, 1000),
       overrides: [
         personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
           ({
@@ -608,7 +613,7 @@ void main() {
           project: project,
           workspaceMode: EditorWorkspaceMode.personalizationStudio,
         ),
-        surfaceSize: const Size(1200, 800),
+        surfaceSize: const Size(1600, 800),
         overrides: [
           personalizationStudioSessionControllerFactoryProvider
               .overrideWithValue(({
@@ -632,12 +637,21 @@ void main() {
       await tester.pump();
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('personalization-category-intro')),
+        find.byKey(
+          const ValueKey<String>('personalization-studio-scene-intro'),
+        ),
       );
       await tester.pump();
 
       expect(find.byType(ProjectIntroVideoEditor), findsOneWidget);
-      await tester.tap(find.text('Autoriser “Rejouer”'));
+      final allowReplay = find.text('Autoriser “Rejouer”');
+      await _dragUntilHitTestable(
+        tester,
+        allowReplay,
+        _detailScrollable('intro'),
+        dy: -500,
+      );
+      await tester.tap(allowReplay.hitTestable());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 20));
 
@@ -698,7 +712,7 @@ void main() {
           project: project,
           workspaceMode: EditorWorkspaceMode.personalizationStudio,
         ),
-        surfaceSize: const Size(1200, 800),
+        surfaceSize: const Size(1600, 800),
         overrides: [
           personalizationStudioSessionControllerFactoryProvider
               .overrideWithValue(({
@@ -723,7 +737,15 @@ void main() {
 
       await tester.tap(
         find.byKey(
-          const ValueKey<String>('personalization-category-typography'),
+          const ValueKey<String>('personalization-studio-scene-globalStyle'),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>(
+            'personalization-inspector-target-globalTypography',
+          ),
         ),
       );
       await tester.pump();
@@ -736,9 +758,16 @@ void main() {
         );
       }
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('typography-system-display')),
+      final useSystemDisplay = find.byKey(
+        const ValueKey<String>('typography-system-display'),
       );
+      await _dragUntilHitTestable(
+        tester,
+        useSystemDisplay,
+        _detailScrollable('typography'),
+        dy: -500,
+      );
+      await tester.tap(useSystemDisplay.hitTestable());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 20));
 
@@ -780,7 +809,7 @@ void main() {
         project: project,
         workspaceMode: EditorWorkspaceMode.personalizationStudio,
       ),
-      surfaceSize: const Size(1200, 1400),
+      surfaceSize: const Size(1600, 1400),
       overrides: [
         personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
           ({
@@ -805,7 +834,9 @@ void main() {
     await tester.pump();
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('personalization-category-theme')),
+      find.byKey(
+        const ValueKey<String>('personalization-studio-scene-globalStyle'),
+      ),
     );
     await tester.pump();
 
@@ -894,7 +925,7 @@ void main() {
           project: project,
           workspaceMode: EditorWorkspaceMode.personalizationStudio,
         ),
-        surfaceSize: const Size(1200, 800),
+        surfaceSize: const Size(1600, 800),
         overrides: [
           personalizationStudioSessionControllerFactoryProvider
               .overrideWithValue(({
@@ -923,7 +954,9 @@ void main() {
           .initializePersonalizationStudioSession();
       await tester.pump();
       await tester.tap(
-        find.byKey(const ValueKey<String>('personalization-category-intro')),
+        find.byKey(
+          const ValueKey<String>('personalization-studio-scene-intro'),
+        ),
       );
       await tester.pump();
 
@@ -985,7 +1018,7 @@ void main() {
         project: project,
         workspaceMode: EditorWorkspaceMode.personalizationStudio,
       ),
-      surfaceSize: const Size(1200, 1000),
+      surfaceSize: const Size(1600, 1000),
       overrides: [
         personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
           ({
@@ -1012,15 +1045,30 @@ void main() {
         .initializePersonalizationStudioSession();
     await tester.pump();
     await tester.tap(
-      find.byKey(const ValueKey<String>('personalization-category-typography')),
+      find.byKey(
+        const ValueKey<String>('personalization-studio-scene-globalStyle'),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'personalization-inspector-target-globalTypography',
+        ),
+      ),
     );
     await tester.pump();
 
     final importBody = find.byKey(
       const ValueKey<String>('typography-import-body'),
     );
-    await tester.ensureVisible(importBody);
-    await tester.tap(importBody);
+    await _dragUntilHitTestable(
+      tester,
+      importBody,
+      _detailScrollable('typography'),
+      dy: -500,
+    );
+    await tester.tap(importBody.hitTestable());
     await tester.pumpAndSettle();
     expect(find.text('Droit de redistribution'), findsOneWidget);
     await tester.tap(find.text('Je confirme'));
@@ -1073,7 +1121,7 @@ void main() {
         project: project,
         workspaceMode: EditorWorkspaceMode.personalizationStudio,
       ),
-      surfaceSize: const Size(1200, 800),
+      surfaceSize: const Size(1600, 800),
       overrides: [
         personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
           ({
@@ -1098,7 +1146,7 @@ void main() {
         .initializePersonalizationStudioSession();
     await tester.pump();
     await tester.tap(
-      find.byKey(const ValueKey<String>('personalization-category-intro')),
+      find.byKey(const ValueKey<String>('personalization-studio-scene-intro')),
     );
     await tester.pump();
 
@@ -1125,6 +1173,98 @@ void main() {
     );
   });
 
+  testWidgets('routes player surface clicks to the contextual inspector', (
+    tester,
+  ) async {
+    final project = buildShellChromeProject(name: 'Contextual Studio').copyWith(
+      presentation: const ProjectPresentationProfile(
+        theme: safeProjectSemanticTheme,
+      ),
+    );
+    await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: '/tmp/personalization-contextual-studio',
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1600, 1000),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-studio-scene-pause')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'personalization-inspector-target-pauseAppearance',
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-target-editor-pauseAppearance'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('pause.party')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-target-editor-pauseLabels'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-scene-dialogue'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'personalization-inspector-target-dialogueTypography',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('dialogue-tap-zone')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'personalization-target-editor-dialogueAppearance',
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-studio-scene-battle')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'personalization-inspector-target-battleAppearance',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.text('ATTAQUE').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-target-editor-battleCommands'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('shows a dedicated state when no project is open', (
     tester,
   ) async {
@@ -1140,7 +1280,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Aucun projet ouvert'), findsOneWidget);
-    expect(find.byType(PersonalizationHubShell), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('personalization-studio-shell-v2')),
+      findsNothing,
+    );
   });
 
   testWidgets('shows a loading state while a project path is being restored', (
@@ -1159,7 +1302,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Chargement du projet…'), findsOneWidget);
-    expect(find.byType(PersonalizationHubShell), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('personalization-studio-shell-v2')),
+      findsNothing,
+    );
   });
 
   testWidgets('shows the project loading error instead of an empty hub', (
@@ -1178,26 +1324,21 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Manifest illisible'), findsOneWidget);
-    expect(find.byType(PersonalizationHubShell), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('personalization-studio-shell-v2')),
+      findsNothing,
+    );
   });
 }
 
-Finder _detailScrollable(String category) {
-  final ownedScrollView = find.byKey(
-    ValueKey<String>('personalization-category-detail-scroll-$category'),
-  );
-  if (ownedScrollView.evaluate().isNotEmpty) {
-    return find
-        .descendant(of: ownedScrollView, matching: find.byType(Scrollable))
-        .first;
-  }
-  final detail = find.byKey(
-    ValueKey<String>('personalization-category-detail-$category'),
-  );
-  final nested = find.descendant(of: detail, matching: find.byType(Scrollable));
-  if (nested.evaluate().isNotEmpty) return nested.first;
-  return find.ancestor(of: detail, matching: find.byType(Scrollable)).first;
-}
+Finder _detailScrollable(String _) => find
+    .descendant(
+      of: find.byKey(
+        const ValueKey<String>('personalization-studio-inspector-scroll'),
+      ),
+      matching: find.byType(Scrollable),
+    )
+    .first;
 
 Future<void> _dragUntilHitTestable(
   WidgetTester tester,

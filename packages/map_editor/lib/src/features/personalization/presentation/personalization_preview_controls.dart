@@ -40,11 +40,12 @@ class PersonalizationPreviewControls extends StatelessWidget {
               ),
           ],
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: <Widget>[
             const Text('Taille du texte'),
-            const SizedBox(width: 8),
             PokeMapSegmentedTabs(
               tabs: <PokeMapSegmentedTab>[
                 for (final entry in textScales)

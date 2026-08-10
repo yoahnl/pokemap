@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_editor/src/features/personalization/application/personalization_inspector_target.dart';
 import 'package:map_editor/src/features/personalization/application/personalization_preview_surface_descriptor.dart';
 import 'package:map_editor/src/features/personalization/presentation/personalization_studio_shell_v2.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
@@ -137,6 +138,8 @@ Future<void> _pumpShell(
             ),
             inspectorTitle: 'Style global',
             inspectorDescription: 'Réglages communs à toutes les scènes.',
+            selectedTarget: const GlobalColorsTarget(),
+            onTargetSelected: (_) {},
             inspector: const Text(
               'Inspecteur',
               key: ValueKey<String>('test-inspector'),

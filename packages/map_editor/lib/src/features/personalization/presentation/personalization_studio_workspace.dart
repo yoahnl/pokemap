@@ -18,6 +18,9 @@ import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../../ui/design_system/pokemap_toggle_tile.dart';
 import '../../../ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import '../../editor/state/editor_notifier.dart';
+import '../application/personalization_inspector_target.dart';
+import '../application/personalization_preview_surface_descriptor.dart';
+import '../application/personalization_publish_readiness.dart';
 import '../application/personalization_studio_asset_picker.dart';
 import '../application/project_branding_image_import_service.dart';
 import '../application/project_font_import_service.dart';
@@ -26,7 +29,10 @@ import '../application/project_presentation_preflight.dart';
 import '../application/project_title_music_import_service.dart';
 import '../application/project_title_music_preview_controller.dart';
 import '../application/project_title_motion_import_service.dart';
-import 'personalization_hub_shell.dart';
+import 'personalization_live_preview.dart';
+import 'personalization_readiness_panel.dart';
+import 'personalization_section_actions.dart';
+import 'personalization_studio_shell_v2.dart';
 import 'project_branding_editor.dart';
 import 'project_intro_video_editor.dart';
 import 'project_layout_studio.dart';
@@ -63,8 +69,9 @@ class PersonalizationStudioWorkspace extends ConsumerStatefulWidget {
 
 class _PersonalizationStudioWorkspaceState
     extends ConsumerState<PersonalizationStudioWorkspace> {
-  ProjectPresentationCategory _selectedCategory =
-      ProjectPresentationCategory.branding;
+  PersonalizationStudioScene _selectedScene = PersonalizationStudioScene.title;
+  PersonalizationInspectorTarget _selectedTarget =
+      const TitlePresentationTarget();
   String? _requestedProjectRootPath;
   bool _isImportingAsset = false;
   bool _isManagingPreset = false;
@@ -919,6 +926,7 @@ class _PersonalizationStudioWorkspaceState
                           );
                         },
                   isTitleMusicPreviewPlaying: _isTitleMusicPreviewPlaying,
+                  showPreview: false,
                 ),
                 const SizedBox(height: 18),
                 ProjectTitleMotionEditor(
@@ -1157,6 +1165,166 @@ class _PersonalizationStudioWorkspaceState
     return Text('Les réglages ${_categoryName(category)} apparaîtront ici.');
   }
 
+  Widget _buildInspectorEditor({
+    required BuildContext context,
+    required PersonalizationInspectorTarget target,
+    required ProjectPresentationProfile profile,
+    required String projectName,
+    required String projectRootPath,
+    required EditorNotifier notifier,
+    required bool canEdit,
+    required List<ProjectPresentationPresetRecord> presets,
+    required bool canManagePresets,
+  }) {
+    final editor = switch (target) {
+      GlobalColorsTarget() ||
+      BattleAppearanceTarget() => _buildSemanticThemeTarget(
+        context: context,
+        profile: profile,
+        notifier: notifier,
+        canEdit: canEdit,
+      ),
+      GlobalTypographyTarget() ||
+      DialogueTypographyTarget() => _buildCategoryEditor(
+        context: context,
+        category: ProjectPresentationCategory.typography,
+        profile: profile,
+        projectName: projectName,
+        projectRootPath: projectRootPath,
+        notifier: notifier,
+        canEdit: canEdit,
+        presets: presets,
+        canManagePresets: canManagePresets,
+      ),
+      GlobalFormsTarget() ||
+      PauseAppearanceTarget() ||
+      DialogueAppearanceTarget() => _buildWindowTarget(
+        profile: profile,
+        notifier: notifier,
+        canEdit: canEdit,
+      ),
+      TitlePresentationTarget() => _buildCategoryEditor(
+        context: context,
+        category: ProjectPresentationCategory.branding,
+        profile: profile,
+        projectName: projectName,
+        projectRootPath: projectRootPath,
+        notifier: notifier,
+        canEdit: canEdit,
+        presets: presets,
+        canManagePresets: canManagePresets,
+      ),
+      IntroPresentationTarget() => _buildCategoryEditor(
+        context: context,
+        category: ProjectPresentationCategory.intro,
+        profile: profile,
+        projectName: projectName,
+        projectRootPath: projectRootPath,
+        notifier: notifier,
+        canEdit: canEdit,
+        presets: presets,
+        canManagePresets: canManagePresets,
+      ),
+      PauseLabelsTarget() => _buildMenuLabelsTarget(
+        profile: profile,
+        notifier: notifier,
+        canEdit: canEdit,
+      ),
+      PauseLayoutTarget() || DialogueLayoutTarget() => _buildCategoryEditor(
+        context: context,
+        category: ProjectPresentationCategory.layouts,
+        profile: profile,
+        projectName: projectName,
+        projectRootPath: projectRootPath,
+        notifier: notifier,
+        canEdit: canEdit,
+        presets: presets,
+        canManagePresets: canManagePresets,
+      ),
+      BattleCommandsTarget() => const PokeMapDiagnosticCallout(
+        severity: PokeMapDiagnosticSeverity.info,
+        message:
+            'Les commandes de combat seront personnalisables dans la phase Combat.',
+      ),
+    };
+    return KeyedSubtree(
+      key: ValueKey<String>(
+        'personalization-target-editor-${_inspectorTargetId(target)}',
+      ),
+      child: editor,
+    );
+  }
+
+  Widget _buildMenuLabelsTarget({
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+    required bool canEdit,
+  }) => IgnorePointer(
+    ignoring: !canEdit,
+    child: ProjectMenuLabelsEditor(
+      profile: profile.menuLabels ?? const ProjectMenuLabelsProfile(),
+      onChanged: (menuLabels) {
+        unawaited(
+          notifier.applyPersonalizationStudioProfile(
+            profile.copyWith(menuLabels: menuLabels),
+            label: 'Modifier les libellés du menu Pause',
+          ),
+        );
+      },
+    ),
+  );
+
+  Widget _buildWindowTarget({
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+    required bool canEdit,
+  }) => IgnorePointer(
+    ignoring: !canEdit,
+    child: ProjectWindowStudio(
+      profile: profile.windows ?? legacyProjectPresentationWindows,
+      onChanged: (windows) {
+        unawaited(
+          notifier.applyPersonalizationStudioProfile(
+            profile.copyWith(windows: windows),
+            label: windows == null
+                ? 'Réinitialiser les fenêtres du jeu'
+                : 'Modifier les fenêtres du jeu',
+          ),
+        );
+      },
+    ),
+  );
+
+  Widget _buildSemanticThemeTarget({
+    required BuildContext context,
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+    required bool canEdit,
+  }) => IgnorePointer(
+    ignoring: !canEdit,
+    child: ProjectSemanticThemeEditor(
+      profile: profile.theme ?? safeProjectSemanticTheme,
+      onEditToken: (token) {
+        unawaited(
+          _editThemeToken(
+            context: context,
+            token: token,
+            profile: profile,
+            notifier: notifier,
+          ),
+        );
+      },
+      onUseSafeFallback: () {
+        unawaited(
+          notifier.applyPersonalizationStudioProfile(
+            profile.copyWith(theme: safeProjectSemanticTheme),
+            label: 'Appliquer la palette sûre',
+          ),
+        );
+      },
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final editorState = ref.watch(editorNotifierProvider);
@@ -1302,80 +1470,134 @@ class _PersonalizationStudioWorkspaceState
             ),
           ),
           Expanded(
-            child: PersonalizationHubShell(
+            child: PersonalizationStudioShellV2(
               key: const ValueKey<String>('personalization-studio-workspace'),
-              profile: profile,
-              baselineProfile: baselineProfile,
-              projectName: project.name,
-              projectRootPath: projectRootPath,
-              readinessReport: activePreflightResult?.report,
-              requiresPreflight: true,
-              hasCompletedPreflight: _preflightResult != null,
-              isPreflightRunning: _isPreflightRunning,
-              isPreflightStale: isPreflightStale,
-              hasUnsavedChanges: studioSession?.isDirty == true,
-              preflightError: _preflightError,
-              onRunPreflight: canEdit && !_isPreflightRunning
-                  ? () {
-                      unawaited(
-                        _runPreflight(
-                          projectRootPath: projectRootPath,
-                          profile: profile,
-                        ),
-                      );
-                    }
-                  : null,
-              onSaveDraft: studioSession?.isDirty == true && canEdit
-                  ? () {
-                      unawaited(notifier.savePersonalizationStudio());
-                    }
-                  : null,
-              canContinueToExport:
-                  activePreflightResult != null &&
-                  activePreflightResult.report.isReadyToExport &&
-                  studioSession?.isDirty != true &&
-                  !_isPreflightRunning &&
-                  _preflightError == null &&
-                  canEdit,
-              onContinueToExport:
-                  activePreflightResult != null &&
-                      activePreflightResult.report.isReadyToExport &&
-                      studioSession?.isDirty != true &&
-                      !_isPreflightRunning &&
-                      _preflightError == null &&
-                      canEdit
-                  ? () {
-                      unawaited(
-                        ref.read(personalizationStudioExportLauncherProvider)(
-                          context,
-                          projectRootPath: projectRootPath,
-                          projectName: project.name,
-                        ),
-                      );
-                    }
-                  : null,
-              selectedCategory: _selectedCategory,
-              onCategorySelected: (category) {
-                setState(() => _selectedCategory = category);
+              selectedScene: _selectedScene,
+              onSceneSelected: (scene) {
+                setState(() {
+                  _selectedScene = scene;
+                  _selectedTarget = _defaultInspectorTarget(scene);
+                });
               },
-              categoryBuilder: (context, category) => _buildCategoryEditor(
-                context: context,
-                category: category,
+              preview: PersonalizationLivePreview(
                 profile: profile,
                 projectName: project.name,
                 projectRootPath: projectRootPath,
-                notifier: notifier,
-                canEdit: canEdit,
-                presets: project.presentationPresets,
-                canManagePresets: canEdit && studioSession?.isDirty != true,
+                baselineProfile: baselineProfile,
+                scene: _selectedScene,
+                onTargeted: (target) {
+                  setState(() {
+                    _selectedScene = _sceneForInspectorTarget(target);
+                    _selectedTarget = target;
+                  });
+                },
               ),
-              onProfileChanged: canEdit
-                  ? (profile) {
-                      unawaited(
-                        notifier.applyPersonalizationStudioProfile(profile),
-                      );
-                    }
-                  : null,
+              inspectorTitle: PersonalizationStudioSceneDescriptor.forSurface(
+                _selectedScene,
+              ).label,
+              inspectorDescription: _sceneDescription(_selectedScene),
+              selectedTarget: _selectedTarget,
+              onTargetSelected: (target) {
+                setState(() => _selectedTarget = target);
+              },
+              inspector: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  PersonalizationSectionActions(
+                    profile: profile,
+                    category: _categoryForInspectorTarget(_selectedTarget),
+                    baselineProfile: baselineProfile,
+                    onProfileChanged: canEdit
+                        ? (updatedProfile) {
+                            unawaited(
+                              notifier.applyPersonalizationStudioProfile(
+                                updatedProfile,
+                              ),
+                            );
+                          }
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildInspectorEditor(
+                    context: context,
+                    target: _selectedTarget,
+                    profile: profile,
+                    projectName: project.name,
+                    projectRootPath: projectRootPath,
+                    notifier: notifier,
+                    canEdit: canEdit,
+                    presets: project.presentationPresets,
+                    canManagePresets: canEdit && studioSession?.isDirty != true,
+                  ),
+                  const SizedBox(height: 16),
+                  PersonalizationReadinessPanel(
+                    report:
+                        activePreflightResult?.report ??
+                        PersonalizationPublishReadiness.fromProfile(profile),
+                    onCorrectIssue: (issue) {
+                      setState(() {
+                        _selectedScene = _sceneForCategory(issue.category);
+                        _selectedTarget = _targetForCategory(issue.category);
+                      });
+                      if (issue.correctionKind ==
+                          PersonalizationCorrectionKind.useSafeTheme) {
+                        unawaited(
+                          notifier.applyPersonalizationStudioProfile(
+                            profile.copyWith(theme: safeProjectSemanticTheme),
+                          ),
+                        );
+                      }
+                    },
+                    requiresPreflight: true,
+                    hasCompletedPreflight: _preflightResult != null,
+                    isPreflightRunning: _isPreflightRunning,
+                    isPreflightStale: isPreflightStale,
+                    hasUnsavedChanges: studioSession?.isDirty == true,
+                    preflightError: _preflightError,
+                    onRunPreflight: canEdit && !_isPreflightRunning
+                        ? () {
+                            unawaited(
+                              _runPreflight(
+                                projectRootPath: projectRootPath,
+                                profile: profile,
+                              ),
+                            );
+                          }
+                        : null,
+                    onSaveDraft: studioSession?.isDirty == true && canEdit
+                        ? () {
+                            unawaited(notifier.savePersonalizationStudio());
+                          }
+                        : null,
+                    canContinueToExport:
+                        activePreflightResult != null &&
+                        activePreflightResult.report.isReadyToExport &&
+                        studioSession?.isDirty != true &&
+                        !_isPreflightRunning &&
+                        _preflightError == null &&
+                        canEdit,
+                    onContinueToExport:
+                        activePreflightResult != null &&
+                            activePreflightResult.report.isReadyToExport &&
+                            studioSession?.isDirty != true &&
+                            !_isPreflightRunning &&
+                            _preflightError == null &&
+                            canEdit
+                        ? () {
+                            unawaited(
+                              ref.read(
+                                personalizationStudioExportLauncherProvider,
+                              )(
+                                context,
+                                projectRootPath: projectRootPath,
+                                projectName: project.name,
+                              ),
+                            );
+                          }
+                        : null,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1383,6 +1605,105 @@ class _PersonalizationStudioWorkspaceState
     );
   }
 }
+
+PersonalizationInspectorTarget _defaultInspectorTarget(
+  PersonalizationStudioScene scene,
+) => switch (scene) {
+  PersonalizationStudioScene.globalStyle => const GlobalColorsTarget(),
+  PersonalizationStudioScene.title => const TitlePresentationTarget(),
+  PersonalizationStudioScene.intro => const IntroPresentationTarget(),
+  PersonalizationStudioScene.pause => const PauseLabelsTarget(),
+  PersonalizationStudioScene.dialogue => const DialogueAppearanceTarget(),
+  PersonalizationStudioScene.battle => const BattleCommandsTarget(),
+};
+
+PersonalizationStudioScene _sceneForInspectorTarget(
+  PersonalizationInspectorTarget target,
+) => switch (target) {
+  GlobalColorsTarget() ||
+  GlobalTypographyTarget() ||
+  GlobalFormsTarget() => PersonalizationStudioScene.globalStyle,
+  TitlePresentationTarget() => PersonalizationStudioScene.title,
+  IntroPresentationTarget() => PersonalizationStudioScene.intro,
+  PauseLabelsTarget() ||
+  PauseAppearanceTarget() ||
+  PauseLayoutTarget() => PersonalizationStudioScene.pause,
+  DialogueAppearanceTarget() ||
+  DialogueTypographyTarget() ||
+  DialogueLayoutTarget() => PersonalizationStudioScene.dialogue,
+  BattleCommandsTarget() ||
+  BattleAppearanceTarget() => PersonalizationStudioScene.battle,
+};
+
+ProjectPresentationCategory _categoryForInspectorTarget(
+  PersonalizationInspectorTarget target,
+) => switch (target) {
+  TitlePresentationTarget() => ProjectPresentationCategory.branding,
+  IntroPresentationTarget() => ProjectPresentationCategory.intro,
+  GlobalTypographyTarget() ||
+  DialogueTypographyTarget() => ProjectPresentationCategory.typography,
+  PauseLayoutTarget() ||
+  DialogueLayoutTarget() => ProjectPresentationCategory.layouts,
+  GlobalColorsTarget() ||
+  GlobalFormsTarget() ||
+  PauseLabelsTarget() ||
+  PauseAppearanceTarget() ||
+  DialogueAppearanceTarget() ||
+  BattleCommandsTarget() ||
+  BattleAppearanceTarget() => ProjectPresentationCategory.theme,
+};
+
+PersonalizationStudioScene _sceneForCategory(
+  ProjectPresentationCategory category,
+) => switch (category) {
+  ProjectPresentationCategory.branding => PersonalizationStudioScene.title,
+  ProjectPresentationCategory.intro => PersonalizationStudioScene.intro,
+  ProjectPresentationCategory.typography ||
+  ProjectPresentationCategory.theme => PersonalizationStudioScene.globalStyle,
+  ProjectPresentationCategory.layouts => PersonalizationStudioScene.pause,
+};
+
+PersonalizationInspectorTarget _targetForCategory(
+  ProjectPresentationCategory category,
+) => switch (category) {
+  ProjectPresentationCategory.branding => const TitlePresentationTarget(),
+  ProjectPresentationCategory.intro => const IntroPresentationTarget(),
+  ProjectPresentationCategory.typography => const GlobalTypographyTarget(),
+  ProjectPresentationCategory.theme => const GlobalColorsTarget(),
+  ProjectPresentationCategory.layouts => const PauseLayoutTarget(),
+};
+
+String _sceneDescription(PersonalizationStudioScene scene) => switch (scene) {
+  PersonalizationStudioScene.globalStyle =>
+    'Couleurs, formes et typographie communes.',
+  PersonalizationStudioScene.title =>
+    'Titre, visuels et présentation de l’écran d’accueil.',
+  PersonalizationStudioScene.intro =>
+    'Vidéo, poster et comportement d’introduction.',
+  PersonalizationStudioScene.pause =>
+    'Libellés, apparence et disposition du menu de pause.',
+  PersonalizationStudioScene.dialogue =>
+    'Bulle, texte et disposition des dialogues.',
+  PersonalizationStudioScene.battle =>
+    'Commandes et présentation de l’interface de combat.',
+};
+
+String _inspectorTargetId(PersonalizationInspectorTarget target) =>
+    switch (target) {
+      GlobalColorsTarget() => 'globalColors',
+      GlobalTypographyTarget() => 'globalTypography',
+      GlobalFormsTarget() => 'globalForms',
+      TitlePresentationTarget() => 'titlePresentation',
+      IntroPresentationTarget() => 'introPresentation',
+      PauseLabelsTarget() => 'pauseLabels',
+      PauseAppearanceTarget() => 'pauseAppearance',
+      PauseLayoutTarget() => 'pauseLayout',
+      DialogueAppearanceTarget() => 'dialogueAppearance',
+      DialogueTypographyTarget() => 'dialogueTypography',
+      DialogueLayoutTarget() => 'dialogueLayout',
+      BattleCommandsTarget() => 'battleCommands',
+      BattleAppearanceTarget() => 'battleAppearance',
+    };
 
 String _categoryName(ProjectPresentationCategory category) =>
     switch (category) {

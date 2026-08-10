@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../ui/design_system/design_system.dart';
+import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
 import 'personalization_scene_inspector.dart';
 import 'personalization_scene_navigation.dart';
@@ -13,6 +14,8 @@ class PersonalizationStudioShellV2 extends StatelessWidget {
     required this.preview,
     required this.inspectorTitle,
     required this.inspectorDescription,
+    required this.selectedTarget,
+    required this.onTargetSelected,
     required this.inspector,
   });
 
@@ -21,6 +24,8 @@ class PersonalizationStudioShellV2 extends StatelessWidget {
   final Widget preview;
   final String inspectorTitle;
   final String inspectorDescription;
+  final PersonalizationInspectorTarget selectedTarget;
+  final ValueChanged<PersonalizationInspectorTarget> onTargetSelected;
   final Widget inspector;
 
   @override
@@ -169,6 +174,9 @@ class PersonalizationStudioShellV2 extends StatelessWidget {
   );
 
   Widget _inspectorPane() => PersonalizationSceneInspector(
+    scene: selectedScene,
+    target: selectedTarget,
+    onTargetSelected: onTargetSelected,
     title: inspectorTitle,
     description: inspectorDescription,
     child: inspector,

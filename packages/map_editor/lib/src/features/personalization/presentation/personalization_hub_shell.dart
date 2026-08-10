@@ -8,9 +8,9 @@ import '../../../ui/design_system/pokemap_panel.dart';
 import '../../../ui/design_system/pokemap_sidebar_item.dart';
 import '../application/personalization_publish_readiness.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
-import '../application/project_presentation_presets.dart';
 import 'personalization_readiness_panel.dart';
 import 'personalization_runtime_preview.dart';
+import 'personalization_section_actions.dart';
 
 typedef PersonalizationCategoryBuilder =
     Widget Function(BuildContext context, ProjectPresentationCategory category);
@@ -259,7 +259,7 @@ class _CategoryDetail extends StatelessWidget {
           ),
         const SizedBox(height: 8),
       ],
-      _PersonalizationActions(
+      PersonalizationSectionActions(
         profile: profile,
         category: category,
         baselineProfile: baselineProfile,
@@ -377,84 +377,6 @@ class _CategoryWorkspace extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-class _PersonalizationActions extends StatelessWidget {
-  const _PersonalizationActions({
-    required this.profile,
-    required this.category,
-    required this.baselineProfile,
-    required this.onProfileChanged,
-  });
-
-  final ProjectPresentationProfile profile;
-  final ProjectPresentationCategory category;
-  final ProjectPresentationProfile? baselineProfile;
-  final ValueChanged<ProjectPresentationProfile>? onProfileChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final comparison = baselineProfile == null
-        ? null
-        : compareProjectPresentation(baselineProfile!, profile);
-    final presets = projectPresentationPresets
-        .where((preset) => preset.supports(category))
-        .toList(growable: false);
-    return PokeMapCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: <Widget>[
-              for (final preset in presets)
-                PokeMapButton(
-                  key: ValueKey<String>('personalization-preset-${preset.id}'),
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  leading: const Icon(Icons.auto_awesome_outlined),
-                  onPressed: onProfileChanged == null
-                      ? null
-                      : () =>
-                            onProfileChanged!(preset.apply(profile, category)),
-                  child: Text(preset.label),
-                ),
-              PokeMapButton(
-                key: ValueKey<String>('personalization-reset-${category.name}'),
-                variant: PokeMapButtonVariant.ghost,
-                size: PokeMapButtonSize.small,
-                leading: const Icon(Icons.restart_alt),
-                onPressed: onProfileChanged == null
-                    ? null
-                    : () => onProfileChanged!(
-                        resetProjectPresentationCategory(profile, category),
-                      ),
-                child: const Text('Réinitialiser cette section'),
-              ),
-              if (comparison != null)
-                PokeMapBadge(
-                  label: comparison.isIdentical
-                      ? 'Aucun changement'
-                      : '${comparison.changedPaths.length} changements',
-                  variant: comparison.isIdentical
-                      ? PokeMapBadgeVariant.success
-                      : PokeMapBadgeVariant.info,
-                ),
-            ],
-          ),
-          if (comparison != null && !comparison.isIdentical) ...<Widget>[
-            const SizedBox(height: 10),
-            Text(
-              comparison.changedPaths.join('  •  '),
-              key: const ValueKey<String>('personalization-comparison-paths'),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }
