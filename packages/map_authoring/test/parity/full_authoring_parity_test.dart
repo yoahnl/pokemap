@@ -159,6 +159,19 @@ void main() {
           <String>['cli', 'directApi', 'editor', 'mcp'],
         ),
       );
+      for (final actionId in <String>[
+        'campaign.encounter_table.upsert',
+        'campaign.encounter_table.delete',
+      ]) {
+        expect(
+          catalog.requireMutationAction(actionId).toJson(),
+          containsPair(
+            'endToEndVerifiedTransports',
+            <String>['cli', 'directApi', 'editor', 'mcp'],
+          ),
+          reason: actionId,
+        );
+      }
       expect(
         catalog.requireMutationAction('asset.delete').toJson(),
         containsPair('endToEndVerifiedTransports', isEmpty),
@@ -270,6 +283,30 @@ void main() {
         await direct.exportPresentationPresetDirect(),
         await cli.exportPresentationPresetThroughJsonl(),
       );
+    });
+
+    test('encounter tables have direct API and JSONL CLI parity', () async {
+      final direct = await _GoldenHarness.create('encounter-direct');
+      final cli = await _GoldenHarness.create('encounter-cli');
+      addTearDown(direct.dispose);
+      addTearDown(cli.dispose);
+
+      final directEvidence = await direct.applyEncounterDirect();
+      final cliEvidence = await cli.applyEncounterThroughJsonl();
+
+      expect(directEvidence, cliEvidence);
+      expect(
+        directEvidence['upsertActionId'],
+        'campaign.encounter_table.upsert',
+      );
+      expect(
+        directEvidence['deleteActionId'],
+        'campaign.encounter_table.delete',
+      );
+      final table = directEvidence['table']! as Map<String, Object?>;
+      expect(table['id'], 'route_one_grass');
+      expect(table['entries'], hasLength(2));
+      expect(directEvidence['remainingTableIds'], isEmpty);
     });
 
     test('projectPresentationProfile is a first-class query resource', () {
@@ -632,6 +669,149 @@ final class _GoldenHarness {
     return _presetEvidence(receipt);
   }
 
+  Future<Map<String, Object?>> applyEncounterDirect() async {
+    final opened = await readApi.open(root.path);
+    final workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
+    final project = ProjectHandle(opened['projectHandle']! as String);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: workspace,
+      projectHandle: project,
+    );
+    final snapshot = await snapshots.load(project);
+    final upsertPlan = await mutations.plan(
+      project,
+      _encounterRequest(
+        workspaceHandle: workspace.value,
+        revision: snapshot.revision,
+        actionId: 'campaign.encounter_table.upsert',
+        parameters: <String, Object?>{'value': _encounterTable.toJson()},
+        sequence: 'upsert',
+      ),
+    );
+    final upsert = await mutations.apply(
+      project,
+      planId: upsertPlan['planId']! as String,
+      operationId: 'pmcp085-encounter-direct-upsert',
+    );
+    final afterUpsert = await _readManifest();
+    final upsertReceipt = upsert['receipt']! as Map<String, Object?>;
+    final deletePlan = await mutations.plan(
+      project,
+      _encounterRequest(
+        workspaceHandle: workspace.value,
+        revision: upsert['snapshotRevision']! as String,
+        actionId: 'campaign.encounter_table.delete',
+        parameters: const <String, Object?>{'id': 'route_one_grass'},
+        sequence: 'delete',
+      ),
+    );
+    final confirmation = await mutations.confirm(
+      project,
+      planId: deletePlan['planId']! as String,
+    );
+    final deleted = await mutations.apply(
+      project,
+      planId: deletePlan['planId']! as String,
+      operationId: 'pmcp085-encounter-direct-delete',
+      confirmationToken: confirmation['confirmationToken']! as String,
+    );
+    return _encounterEvidence(
+      upsertReceipt: upsertReceipt,
+      deleteReceipt: deleted['receipt']! as Map<String, Object?>,
+      afterUpsert: afterUpsert,
+      afterDelete: await _readManifest(),
+    );
+  }
+
+  Future<Map<String, Object?>> applyEncounterThroughJsonl() async {
+    final opened = await _jsonl('open', {'projectRoot': root.path});
+    final workspaceHandle = opened['workspaceHandle']! as String;
+    final projectHandle = opened['projectHandle']! as String;
+    final snapshot = await snapshots.load(ProjectHandle(projectHandle));
+    final upsertPlan = await _jsonl('plan', <String, Object?>{
+      'projectHandle': projectHandle,
+      'request': _encounterRequest(
+        workspaceHandle: workspaceHandle,
+        revision: snapshot.revision,
+        actionId: 'campaign.encounter_table.upsert',
+        parameters: <String, Object?>{'value': _encounterTable.toJson()},
+        sequence: 'upsert',
+      ).toJson(),
+    });
+    final upsert = await _jsonl('apply', <String, Object?>{
+      'projectHandle': projectHandle,
+      'planId': upsertPlan['planId'],
+      'operationId': 'pmcp085-encounter-cli-upsert',
+    });
+    final afterUpsert = await _readManifest();
+    final upsertReceipt = upsert['receipt']! as Map<String, Object?>;
+    final deletePlan = await _jsonl('plan', <String, Object?>{
+      'projectHandle': projectHandle,
+      'request': _encounterRequest(
+        workspaceHandle: workspaceHandle,
+        revision: upsert['snapshotRevision']! as String,
+        actionId: 'campaign.encounter_table.delete',
+        parameters: const <String, Object?>{'id': 'route_one_grass'},
+        sequence: 'delete',
+      ).toJson(),
+    });
+    final confirmation = await _jsonl('confirm', <String, Object?>{
+      'projectHandle': projectHandle,
+      'planId': deletePlan['planId'],
+    });
+    final deleted = await _jsonl('apply', <String, Object?>{
+      'projectHandle': projectHandle,
+      'planId': deletePlan['planId'],
+      'operationId': 'pmcp085-encounter-cli-delete',
+      'confirmationToken': confirmation['confirmationToken'],
+    });
+    return _encounterEvidence(
+      upsertReceipt: upsertReceipt,
+      deleteReceipt: deleted['receipt']! as Map<String, Object?>,
+      afterUpsert: afterUpsert,
+      afterDelete: await _readManifest(),
+    );
+  }
+
+  AuthoringRequest _encounterRequest({
+    required String workspaceHandle,
+    required String revision,
+    required String actionId,
+    required Map<String, Object?> parameters,
+    required String sequence,
+  }) =>
+      AuthoringRequest(
+        requestId: 'pmcp085-encounter-$sequence',
+        actionId: actionId,
+        actionVersion: 1,
+        workspaceHandle: workspaceHandle,
+        parameters: parameters,
+        expectedRevision: revision,
+        idempotencyKey: 'pmcp085-encounter-$sequence',
+        dryRun: false,
+      );
+
+  Future<ProjectManifest> _readManifest() async => ProjectManifest.fromJson(
+        jsonDecode(await File('${root.path}/project.json').readAsString())
+            as Map<String, dynamic>,
+      );
+
+  Map<String, Object?> _encounterEvidence({
+    required Map<String, Object?> upsertReceipt,
+    required Map<String, Object?> deleteReceipt,
+    required ProjectManifest afterUpsert,
+    required ProjectManifest afterDelete,
+  }) =>
+      <String, Object?>{
+        'upsertActionId': upsertReceipt['actionId'],
+        'deleteActionId': deleteReceipt['actionId'],
+        'table': afterUpsert.encounterTables.single.toJson(),
+        'remainingTableIds': <String>[
+          for (final table in afterDelete.encounterTables) table.id,
+        ],
+      };
+
   AuthoringRequest _request(String workspaceHandle, String revision) =>
       AuthoringRequest(
         requestId: 'pmcp085-golden-request',
@@ -767,6 +947,28 @@ final class _GoldenHarness {
     if (await root.exists()) await root.delete(recursive: true);
   }
 }
+
+const ProjectEncounterTable _encounterTable = ProjectEncounterTable(
+  id: 'route_one_grass',
+  name: 'Route 1 — Hautes herbes',
+  encounterKind: EncounterKind.walk,
+  chancePerStep: 0.14,
+  entries: <ProjectEncounterEntry>[
+    ProjectEncounterEntry(
+      speciesId: 'rattata',
+      minLevel: 2,
+      maxLevel: 4,
+      weight: 3,
+    ),
+    ProjectEncounterEntry(
+      speciesId: 'pidgey',
+      minLevel: 3,
+      maxLevel: 5,
+      weight: 1,
+    ),
+  ],
+  tags: <String>['route', 'early-game'],
+);
 
 final ProjectPresentationProfile _responsivePresentationProfile =
     ProjectPresentationProfile(

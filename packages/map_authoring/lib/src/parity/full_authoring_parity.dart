@@ -335,6 +335,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
+  if (actionId == 'campaign.encounter_table.upsert' ||
+      actionId == 'campaign.encounter_table.delete') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/parity/full_authoring_parity_test.dart',
+      AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (actionId == 'presentation.preset.export') {
     return const {
       AuthoringTransport.directApi:

@@ -1183,6 +1183,136 @@ function layoutVariant(breakpoint: string, slot: string): JsonRecord {
   };
 }
 
+test("MCP authors, rereads, and safely deletes an encounter table", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = (described.mutationActions as JsonRecord[]).map(
+      (action) => String(action.id),
+    );
+    assert.ok(actionIds.includes("campaign.encounter_table.upsert"));
+    assert.ok(actionIds.includes("campaign.encounter_table.delete"));
+
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const validation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const afterUpsertRevision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: String(validation.snapshotRevision),
+      actionId: "campaign.encounter_table.upsert",
+      parameters: {
+        value: {
+          id: "route_one_grass",
+          name: "Route 1 — Hautes herbes",
+          encounterKind: "walk",
+          chancePerStep: 0.14,
+          conditions: [],
+          entries: [
+            {
+              speciesId: "rattata",
+              minLevel: 2,
+              maxLevel: 4,
+              weight: 3,
+            },
+            {
+              speciesId: "pidgey",
+              minLevel: 3,
+              maxLevel: 5,
+              weight: 1,
+            },
+          ],
+          tags: ["route", "early-game"],
+        },
+      },
+      sequence: "encounter-upsert",
+    });
+    const queried = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "project",
+      operation: "get",
+      view: "detail",
+      ids: ["project"],
+    });
+    const project = record((queried.items as unknown[])[0]);
+    const table = (project.encounterTables as JsonRecord[]).find(
+      (entry) => entry.id === "route_one_grass",
+    );
+    assert.ok(table);
+    assert.equal(table.encounterKind, "walk");
+    assert.equal((table.entries as unknown[]).length, 2);
+    assert.deepEqual(table.tags, ["route", "early-game"]);
+
+    const plannedDelete = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "mcp-encounter-delete",
+        actionId: "campaign.encounter_table.delete",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: { id: "route_one_grass" },
+        expectedRevision: afterUpsertRevision,
+        idempotencyKey: "idem-mcp-encounter-delete",
+        dryRun: false,
+      },
+    });
+    const rejected = await fixture.client.callTool({
+      name: "pokemap_apply",
+      arguments: {
+        operation: "apply",
+        projectHandle,
+        planId: plannedDelete.planId,
+        operationId: "operation-mcp-encounter-delete-unconfirmed",
+      },
+    });
+    assert.equal(rejected.isError, true);
+    assert.equal(
+      record(record(rejected.structuredContent).error).domainCode,
+      "confirmation.required",
+    );
+    const confirmation = await toolData(fixture.client, "pokemap_apply", {
+      operation: "confirm",
+      projectHandle,
+      planId: plannedDelete.planId,
+    });
+    const deleted = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: plannedDelete.planId,
+      operationId: "operation-mcp-encounter-delete",
+      confirmationToken: confirmation.confirmationToken,
+    });
+    assert.equal(
+      record(deleted.receipt).actionId,
+      "campaign.encounter_table.delete",
+    );
+    const persisted = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    assert.equal(
+      (persisted.encounterTables as JsonRecord[]).some(
+        (entry) => entry.id === "route_one_grass",
+      ),
+      false,
+    );
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle,
+    });
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP exposes Event V2 activation and safe raw asset replacement", async () => {
   const fixture = await mutationFixture();
   try {
