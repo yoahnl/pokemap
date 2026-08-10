@@ -23,6 +23,7 @@ import '../../../application/services/map_dependency_preflight_service.dart';
 import '../../../application/services/map_viewport_navigation.dart';
 import '../../../application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
 import '../../../application/use_cases/character_use_cases.dart';
+import '../../character_studio/application/character_animation_definition_use_cases.dart';
 import '../../../application/use_cases/environment_generator_apply_use_cases.dart';
 import '../../../application/use_cases/environment_generator_clear_use_cases.dart';
 import '../../../application/use_cases/environment_generator_regenerate_use_cases.dart';
@@ -14234,6 +14235,147 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(
         isSaving: false,
         errorMessage: 'Failed to delete portrait state: $error',
+      );
+    }
+  }
+
+  Future<void> createAnimationDefinition(
+    String displayName,
+    CharacterCustomAnimationMode mode,
+  ) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(createAnimationDefinitionUseCaseProvider)
+          .execute(
+            workspace,
+            project,
+            displayName: displayName,
+            mode: mode,
+          );
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Animation definition created',
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to create animation definition: $error',
+      );
+    }
+  }
+
+  Future<void> updateAnimationDefinition(
+    String id, {
+    String? displayName,
+    CharacterCustomAnimationMode? mode,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(updateAnimationDefinitionUseCaseProvider)
+          .execute(
+            workspace,
+            project,
+            id: id,
+            displayName: displayName,
+            mode: mode,
+          );
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Animation definition updated',
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to update animation definition: $error',
+      );
+    }
+  }
+
+  Future<void> reorderAnimationDefinitions(List<String> orderedIds) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(reorderAnimationDefinitionsUseCaseProvider)
+          .execute(workspace, project, orderedIds: orderedIds);
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Animation definitions reordered',
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to reorder animation definitions: $error',
+      );
+    }
+  }
+
+  Future<AnimationDefinitionDeletePlan?> previewDeleteAnimationDefinition(
+    String id,
+  ) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return null;
+    try {
+      final plan = await ref
+          .read(previewDeleteAnimationDefinitionUseCaseProvider)
+          .execute(workspace, project, id: id);
+      state = state.copyWith(errorMessage: null);
+      return plan;
+    } catch (error) {
+      state = state.copyWith(
+        errorMessage:
+            'Failed to inspect animation definition dependencies: $error',
+      );
+      return null;
+    }
+  }
+
+  Future<void> deleteAnimationDefinition(
+    String id, {
+    required AnimationDefinitionDeleteResolution resolution,
+    String? replacementId,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(deleteAnimationDefinitionUseCaseProvider)
+          .execute(
+            workspace,
+            project,
+            id: id,
+            resolution: resolution,
+            replacementId: replacementId,
+          );
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Animation definition deleted',
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to delete animation definition: $error',
       );
     }
   }

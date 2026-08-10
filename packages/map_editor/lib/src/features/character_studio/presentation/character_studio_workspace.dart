@@ -11,6 +11,7 @@ import '../../editor/state/editor_state.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/character_studio_media_resolver.dart';
+import 'catalog/animation_definition_manager.dart';
 import 'catalog/portrait_state_manager.dart';
 import 'identity/character_studio_delete_dialog.dart';
 import 'identity/character_studio_identity_draft_controller.dart';
@@ -165,6 +166,9 @@ class _CharacterStudioWorkspaceState
               onSelectionChanged: (stateId) =>
                   setState(() => _selectedPortraitStateId = stateId),
             ),
+          (CharacterStudioSection.animations, _) => _AnimationCatalogEntry(
+            onManage: _showAnimationDefinitionManager,
+          ),
           _ => _CharacterStudioSectionPlaceholder(section: _section),
         },
       ),
@@ -431,6 +435,65 @@ class _CharacterStudioWorkspaceState
       },
     );
   }
+
+  Future<void> _showAnimationDefinitionManager() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final project = ref.watch(editorProjectManifestProvider);
+            final isSaving = ref.watch(
+              editorNotifierProvider.select((state) => state.isSaving),
+            );
+            final notifier = ref.read(editorNotifierProvider.notifier);
+            return PokeMapDialog(
+              title: 'Animations globales du projet',
+              icon: CupertinoIcons.play_rectangle_fill,
+              maxWidth: 860,
+              footer: Align(
+                alignment: Alignment.centerRight,
+                child: PokeMapButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  variant: PokeMapButtonVariant.secondary,
+                  child: const Text('Fermer'),
+                ),
+              ),
+              child: SizedBox(
+                height: 680,
+                child: project == null
+                    ? const PokeMapEmptyState(
+                        title: 'Projet indisponible',
+                        description:
+                            'Rouvrez le projet pour gérer ses animations.',
+                      )
+                    : AnimationDefinitionManager(
+                        project: project,
+                        isSaving: isSaving,
+                        onCreate: notifier.createAnimationDefinition,
+                        onUpdate: (id, label, mode) =>
+                            notifier.updateAnimationDefinition(
+                              id,
+                              displayName: label,
+                              mode: mode,
+                            ),
+                        onReorder: notifier.reorderAnimationDefinitions,
+                        onPreviewDelete:
+                            notifier.previewDeleteAnimationDefinition,
+                        onDelete: (id, resolution, replacementId) =>
+                            notifier.deleteAnimationDefinition(
+                              id,
+                              resolution: resolution,
+                              replacementId: replacementId,
+                            ),
+                      ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 String _draftProjectKey(EditorState state) {
@@ -475,6 +538,45 @@ class _CharacterStudioSectionPlaceholder extends StatelessWidget {
       title: title,
       description: description,
       icon: Icon(icon),
+    );
+  }
+}
+
+class _AnimationCatalogEntry extends StatelessWidget {
+  const _AnimationCatalogEntry({required this.onManage});
+
+  final VoidCallback onManage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: PokeMapPanel(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const PokeMapEmptyState(
+                title: 'Matrice des animations',
+                description:
+                    'Le catalogue global est prêt. La matrice du personnage arrive dans le lot suivant.',
+                icon: Icon(CupertinoIcons.play_rectangle),
+                compact: true,
+              ),
+              const SizedBox(height: 16),
+              PokeMapButton(
+                key: const ValueKey<String>(
+                  'character-studio-manage-animation-definitions',
+                ),
+                onPressed: onManage,
+                leading: const Icon(CupertinoIcons.slider_horizontal_3),
+                child: const Text('Gérer les animations globales'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

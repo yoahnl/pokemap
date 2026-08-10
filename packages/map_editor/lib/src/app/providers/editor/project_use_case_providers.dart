@@ -12,6 +12,7 @@ import '../../../application/use_cases/project_tileset_library_use_cases.dart';
 import '../../../application/use_cases/project_tileset_use_cases.dart';
 import '../../../application/use_cases/trainer_use_cases.dart';
 import '../../../features/character_studio/application/character_studio_portrait_import_service.dart';
+import '../../../features/character_studio/application/character_animation_definition_use_cases.dart';
 import '../core/repository_providers.dart';
 
 part 'project_use_case_providers.g.dart';
@@ -361,6 +362,41 @@ ReorderPortraitStatesUseCase reorderPortraitStatesUseCase(Ref ref) {
 final previewDeletePortraitStateUseCaseProvider =
     Provider<PreviewDeletePortraitStateUseCase>((ref) {
       return PreviewDeletePortraitStateUseCase(
+        ref.watch(characterStudioAuthoringGatewayProvider),
+      );
+    });
+
+final createAnimationDefinitionUseCaseProvider =
+    Provider<CreateAnimationDefinitionUseCase>((ref) {
+      return CreateAnimationDefinitionUseCase(
+        ref.watch(characterStudioAuthoringGatewayProvider),
+      );
+    });
+
+final updateAnimationDefinitionUseCaseProvider =
+    Provider<UpdateAnimationDefinitionUseCase>((ref) {
+      return UpdateAnimationDefinitionUseCase(
+        ref.watch(characterStudioAuthoringGatewayProvider),
+      );
+    });
+
+final reorderAnimationDefinitionsUseCaseProvider =
+    Provider<ReorderAnimationDefinitionsUseCase>((ref) {
+      return ReorderAnimationDefinitionsUseCase(
+        ref.watch(characterStudioAuthoringGatewayProvider),
+      );
+    });
+
+final previewDeleteAnimationDefinitionUseCaseProvider =
+    Provider<PreviewDeleteAnimationDefinitionUseCase>((ref) {
+      return PreviewDeleteAnimationDefinitionUseCase(
+        ref.watch(characterStudioAuthoringGatewayProvider),
+      );
+    });
+
+final deleteAnimationDefinitionUseCaseProvider =
+    Provider<DeleteAnimationDefinitionUseCase>((ref) {
+      return DeleteAnimationDefinitionUseCase(
         ref.watch(characterStudioAuthoringGatewayProvider),
       );
     });
