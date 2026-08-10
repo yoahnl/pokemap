@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart'
+    show
+        ProjectPresentationLayoutsProfile,
+        ProjectPresentationWindowsProfile;
 import 'package:map_runtime/map_runtime.dart';
 
 import '../theme/pokemap_player_theme.dart';
