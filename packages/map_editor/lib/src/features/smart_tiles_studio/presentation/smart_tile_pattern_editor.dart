@@ -669,7 +669,7 @@ class SmartTilePatternAtlasPicker extends StatelessWidget {
                         fit: BoxFit.fill,
                         filterQuality: FilterQuality.none,
                         gaplessPlayback: true,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             ColoredBox(color: colors.surfaceSubtle),
                       )
                     else

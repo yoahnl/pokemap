@@ -136,7 +136,7 @@ class _TiledLayerModeDialogState extends State<_TiledLayerModeDialog> {
             Expanded(
               child: ListView.separated(
                 itemCount: choices.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final layer = choices[index];
                   return PokeMapCard(

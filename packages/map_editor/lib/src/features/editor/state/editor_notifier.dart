@@ -8321,7 +8321,7 @@ class EditorNotifier extends _$EditorNotifier
       <String, Object?>{
         'mapId': mapId,
         'layerId': layerId,
-        if (materialId case final value?) 'materialId': value,
+        'materialId': ?materialId,
         if (selection == null)
           'cells': <Map<String, int>>[
             for (final cell in cells) <String, int>{'x': cell.x, 'y': cell.y},
@@ -8453,7 +8453,7 @@ class EditorNotifier extends _$EditorNotifier
         'patternId': patternId!,
         'strokeId': identity,
         'selection': _smartTilePatternSelectionParameters(paintSelection!),
-        if (collisionLayerId != null) 'collisionLayerId': collisionLayerId,
+        'collisionLayerId': ?collisionLayerId,
       },
     };
     EditorAuthoringMutationResult? applied;

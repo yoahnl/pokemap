@@ -216,7 +216,7 @@ final class ProjectIntroVideoImportService
       files: <String, List<int>>{
         videoPath: videoBytes,
         posterPath: posterBytes,
-        if (captionsPath != null) captionsPath: captionsBytes!,
+        ?captionsPath: captionsBytes!,
       },
       token: digest,
     );

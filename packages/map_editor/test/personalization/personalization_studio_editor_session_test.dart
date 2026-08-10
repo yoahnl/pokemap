@@ -34,7 +34,7 @@ void main() {
     final firstContainer = ProviderContainer();
     final firstSubscription = firstContainer.listen<EditorState>(
       editorNotifierProvider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     final firstNotifier = firstContainer.read(editorNotifierProvider.notifier);
@@ -69,7 +69,7 @@ void main() {
     addTearDown(secondContainer.dispose);
     final secondSubscription = secondContainer.listen<EditorState>(
       editorNotifierProvider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(secondSubscription.close);
@@ -145,7 +145,7 @@ void main() {
     addTearDown(container.dispose);
     final subscription = container.listen<EditorState>(
       editorNotifierProvider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(subscription.close);

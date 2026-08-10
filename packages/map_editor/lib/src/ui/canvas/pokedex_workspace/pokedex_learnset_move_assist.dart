@@ -202,7 +202,7 @@ class _PokedexMoveCatalogPickerState extends State<_PokedexMoveCatalogPicker> {
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: suggestions.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 6),
+                separatorBuilder: (_, _) => const SizedBox(height: 6),
                 itemBuilder: (context, index) {
                   final entry = suggestions[index];
                   return _PokedexMoveSuggestionTile(

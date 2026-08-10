@@ -2182,7 +2182,7 @@ class MapGridPainter extends CustomPainter {
   }) {
     final sources = <String, ProjectTilesetSource>{
       for (final tileset in project?.tilesets ?? const <ProjectTilesetEntry>[])
-        if (tileset.source case final source?) tileset.id: source,
+        tileset.id: ?tileset.source,
     };
     late final MapPlacedTileVisualIndex index;
     try {

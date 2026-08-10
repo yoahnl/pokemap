@@ -41,7 +41,7 @@ void main() {
       addTearDown(container.dispose);
       final editorSubscription = container.listen(
         editorNotifierProvider,
-        (_, __) {},
+        (_, _) {},
       );
       addTearDown(editorSubscription.close);
       container.read(editorNotifierProvider.notifier).state = EditorState(
@@ -153,7 +153,7 @@ void main() {
       addTearDown(container.dispose);
       final editorSubscription = container.listen(
         editorNotifierProvider,
-        (_, __) {},
+        (_, _) {},
       );
       addTearDown(editorSubscription.close);
       container.read(editorNotifierProvider.notifier).state = EditorState(
@@ -256,7 +256,7 @@ void main() {
       addTearDown(container.dispose);
       final editorSubscription = container.listen(
         editorNotifierProvider,
-        (_, __) {},
+        (_, _) {},
       );
       addTearDown(editorSubscription.close);
       container.read(editorNotifierProvider.notifier).state = EditorState(
@@ -1091,7 +1091,7 @@ _pumpLineCanvas(
     ],
   );
   addTearDown(container.dispose);
-  final subscription = container.listen(editorNotifierProvider, (_, __) {});
+  final subscription = container.listen(editorNotifierProvider, (_, _) {});
   addTearDown(subscription.close);
   container.read(editorNotifierProvider.notifier).state = EditorState(
     projectRootPath: '/projects/border-line-test',

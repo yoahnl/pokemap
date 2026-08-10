@@ -264,8 +264,8 @@ String _spatialSourceLabel(
   final mapId = _mapId(source);
   final mapName = _mapName(project, mapId);
   return source.when(
-    entityInteract: (_, __) => 'Interaction avec une entité · $mapName',
-    triggerEnter: (_, __) => 'Entrée dans une zone · $mapName',
+    entityInteract: (_, _) => 'Interaction avec une entité · $mapName',
+    triggerEnter: (_, _) => 'Entrée dans une zone · $mapName',
     mapEnter: (_) => 'Entrée sur la map · $mapName',
     outcomeReceived: (_) => 'Event global',
   );

@@ -18,7 +18,7 @@ void main() {
         await _pumpPanel(
           tester,
           manifest: _manifest(elements: [_element(id: 'e1')]),
-          onSaved: (_, __, ___) {},
+          onSaved: (_, _, _) {},
         );
         await _openCreationPaletteStep(tester);
 
@@ -173,7 +173,7 @@ void main() {
           environmentPresets: [_preset(id: 'forest')],
           elements: [_element(id: 'e1')],
         ),
-        onSaved: (_, __, ___) => calls++,
+        onSaved: (_, _, _) => calls++,
       );
       await _openCreationPaletteStep(tester);
 
@@ -217,7 +217,7 @@ void main() {
       await _pumpPanel(
         tester,
         manifest: _manifest(elements: [_element(id: 'e1')]),
-        onSaved: (_, __, ___) => calls++,
+        onSaved: (_, _, _) => calls++,
       );
       await _openCreationPaletteStep(tester);
 
@@ -267,7 +267,7 @@ void main() {
             _element(id: 'rock_a', tilesetId: 'rocks'),
           ],
         ),
-        onSaved: (_, __, ___) => calls++,
+        onSaved: (_, _, _) => calls++,
       );
       await _openCreationPaletteStep(tester, tilesetId: 'grass');
 
@@ -329,7 +329,7 @@ void main() {
         tester,
         manifest: _manifest(elements: [_element(id: 'e1')]),
         knownTemplateIds: {'only_this'},
-        onSaved: (_, __, ___) => calls++,
+        onSaved: (_, _, _) => calls++,
       );
       await _openCreationPaletteStep(tester);
 
@@ -386,7 +386,7 @@ void main() {
         await _pumpPanel(
           tester,
           manifest: _manifest(elements: [_element(id: 'e1')]),
-          onSaved: (_, __, ___) {},
+          onSaved: (_, _, _) {},
         );
         await _openCreationPaletteStep(tester);
         await tester.enterText(
@@ -435,7 +435,7 @@ void main() {
         await _pumpPanel(
           tester,
           manifest: _manifest(elements: [_element(id: 'e1')]),
-          onSaved: (_, __, ___) => throw StateError('simulé'),
+          onSaved: (_, _, _) => throw StateError('simulé'),
         );
         await _openCreationPaletteStep(tester);
         await tester.enterText(

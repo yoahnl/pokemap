@@ -156,7 +156,7 @@ Future<void> _pumpGlobalStoryCanvas(
   addTearDown(container.dispose);
   final editorSubscription = container.listen(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
   );
   addTearDown(editorSubscription.close);
 

@@ -235,7 +235,7 @@ Future<_ShortcutHarness> _pumpCanvas(
 
 final class _ShortcutHarness {
   _ShortcutHarness() {
-    keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     reset();
   }
 

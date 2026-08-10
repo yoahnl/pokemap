@@ -88,7 +88,7 @@ void main() {
       final map = cutsceneStudioSimulatedPlayerMapId(
         startMapId: 'outdoor',
         predecessorBlocks: [t],
-        warpTargetMapId: (_, __) => null,
+        warpTargetMapId: (_, _) => null,
       );
       expect(map, 'indoor');
     });
@@ -104,7 +104,7 @@ void main() {
       final map = cutsceneStudioSimulatedPlayerMapId(
         startMapId: 'a',
         predecessorBlocks: [move],
-        warpTargetMapId: (_, __) => 'should_not_use',
+        warpTargetMapId: (_, _) => 'should_not_use',
       );
       expect(map, 'a');
     });

@@ -526,7 +526,7 @@ ProviderContainer _createContainer(EditorState initial) {
   final container = ProviderContainer();
   final keepAlive = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   container.read(editorNotifierProvider.notifier).state = initial;

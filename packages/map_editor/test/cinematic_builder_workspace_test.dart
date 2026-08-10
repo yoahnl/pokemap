@@ -20120,7 +20120,7 @@ CinematicAsset _cameraPreviewPlaybackCinematic({String? cameraMode}) {
     cinematicTimelineDraftMetadataSourceKey:
         cinematicTimelineDraftMetadataSourceValue,
     cinematicTimelineAuthoringBlockMetadataKey: 'camera',
-    if (cameraMode != null) cinematicTimelineCameraModeMetadataKey: cameraMode,
+    cinematicTimelineCameraModeMetadataKey: ?cameraMode,
   };
   return CinematicAsset(
     id: 'cinematic_camera_preview_playback',
@@ -20330,10 +20330,8 @@ Map<String, String> _cameraGeometryFocusMetadata({
     cinematicTimelineCameraModeMetadataKey: 'focus',
     cinematicTimelineCameraTargetKindMetadataKey: targetKind,
     cinematicTimelineCameraZoomPresetMetadataKey: zoomPreset,
-    if (targetActorId != null)
-      cinematicTimelineCameraTargetActorIdMetadataKey: targetActorId,
-    if (targetStagePointId != null)
-      cinematicTimelineCameraTargetStagePointIdMetadataKey: targetStagePointId,
+    cinematicTimelineCameraTargetActorIdMetadataKey: ?targetActorId,
+    cinematicTimelineCameraTargetStagePointIdMetadataKey: ?targetStagePointId,
   };
 }
 
@@ -20355,11 +20353,8 @@ CinematicAsset _cameraTargetZoomAuthoringCinematic({
     if (cameraMode == 'focus') ...{
       cinematicTimelineCameraTargetKindMetadataKey: targetKind,
       cinematicTimelineCameraZoomPresetMetadataKey: zoomPreset,
-      if (targetActorId != null)
-        cinematicTimelineCameraTargetActorIdMetadataKey: targetActorId,
-      if (targetStagePointId != null)
-        cinematicTimelineCameraTargetStagePointIdMetadataKey:
-            targetStagePointId,
+      cinematicTimelineCameraTargetActorIdMetadataKey: ?targetActorId,
+      cinematicTimelineCameraTargetStagePointIdMetadataKey: ?targetStagePointId,
     },
   };
   return CinematicAsset(

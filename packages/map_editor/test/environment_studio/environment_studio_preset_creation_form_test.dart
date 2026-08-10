@@ -458,7 +458,7 @@ Future<void> _pump(
           child: EnvironmentStudioPanel(
             manifest: manifest,
             resolveTilesetPathById: resolveTilesetPathById,
-            onEnvironmentPresetSaved: onSaved ?? (_, __, ___) {},
+            onEnvironmentPresetSaved: onSaved ?? (_, _, _) {},
           ),
         ),
       ),

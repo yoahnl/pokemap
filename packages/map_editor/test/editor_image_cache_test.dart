@@ -594,7 +594,7 @@ void main() {
     addTearDown(container.dispose);
     final subscription = container.listen(
       editorImageCacheProvider('/project/a'),
-      (_, __) {},
+      (_, _) {},
     );
     final cache = container.read(editorImageCacheProvider('/project/a'));
 
@@ -610,7 +610,7 @@ void main() {
     addTearDown(container.dispose);
     final subscription = container.listen(
       editorImageCacheProvider('/project/a'),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(subscription.close);

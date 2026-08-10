@@ -122,7 +122,7 @@ class _AssetHarness {
     );
     final subscription = container.listen<EditorState>(
       editorNotifierProvider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     const contextKey = EditorPaletteContextKey(

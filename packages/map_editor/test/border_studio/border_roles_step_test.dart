@@ -24,7 +24,7 @@ void main() {
         home: Scaffold(
           body: BorderRolesStep(
             state: state,
-            onRoleChanged: (_, __) {},
+            onRoleChanged: (_, _) {},
           ),
         ),
       ),
@@ -55,7 +55,7 @@ void main() {
                 ),
               ],
             ),
-            onRoleChanged: (_, __) {},
+            onRoleChanged: (_, _) {},
           ),
         ),
       ),

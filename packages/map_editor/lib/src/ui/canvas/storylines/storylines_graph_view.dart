@@ -1096,7 +1096,7 @@ class _GraphChapterNode extends StatelessWidget {
             node: stepNodes[step.id]!,
             selected: selectedNodeIds.contains('step:${step.id}'),
             onSelected: onNodeSelected,
-            onMoved: (_, __) {},
+            onMoved: (_, _) {},
             allowMove: false,
             child: _GraphStepChip(step: step),
           ),

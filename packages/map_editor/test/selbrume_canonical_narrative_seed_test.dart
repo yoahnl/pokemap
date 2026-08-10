@@ -491,7 +491,7 @@ void _expectPlayerServicesContract(
         (event) => event.source.when<String?>(
           entityInteract: (mapId, entityId) =>
               mapId == 'map_port_brisants' ? entityId : null,
-          triggerEnter: (_, __) => null,
+          triggerEnter: (_, _) => null,
           mapEnter: (_) => null,
           outcomeReceived: (_) => null,
         ),
@@ -802,8 +802,7 @@ void _expectCanonicalOutcomePolicies(ProjectManifest manifest) {
       for (final end in scene.graph.nodes
           .map((node) => node.payload)
           .whereType<SceneEndPayload>())
-        if (end.sceneOutcomeId case final outcomeId?)
-          outcomeId: end.outcomePolicy,
+        ?end.sceneOutcomeId: end.outcomePolicy,
     };
     expect(policiesByOutcome, entry.value, reason: entry.key);
   }
@@ -947,14 +946,13 @@ void _expectWorldStateContract(
 void _expectCanonicalEventProgression(ProjectManifest manifest) {
   final definitions = <String, NarrativeEventDefinition>{
     for (final record in manifest.eventRegistry!.records)
-      if (record.definitionOrNull case final definition?)
-        definition.id: definition,
+      ?record.definitionOrNull?.id: ?record.definitionOrNull,
   };
   Set<String> requiredTrueFacts(String eventId) => definitions[eventId]!
       .conditions
       .map((condition) => condition.when(
             fact: (factId, value) => value ? factId : null,
-            narrativeEventConsumed: (_, __) => null,
+            narrativeEventConsumed: (_, _) => null,
           ))
       .whereType<String>()
       .toSet();
@@ -968,7 +966,7 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
   expect(
     yvon.conditions.map((condition) => condition.when(
           fact: (factId, value) => (factId: factId, value: value),
-          narrativeEventConsumed: (_, __) => null,
+          narrativeEventConsumed: (_, _) => null,
         )),
     contains((factId: 'fact_cabin_quest_started', value: false)),
   );
@@ -989,7 +987,7 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
     expect(
       encounter.conditions.map((condition) => condition.when(
             fact: (factId, value) => (factId: factId, value: value),
-            narrativeEventConsumed: (_, __) => null,
+            narrativeEventConsumed: (_, _) => null,
           )),
       contains((factId: entry.value, value: false)),
       reason: '${entry.key} must close permanently after victory.',
@@ -1000,8 +998,8 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
       definitions['evt_019abcde-5000-7000-8000-000000000036']!;
   expect(mistDispersal.sceneId, 'scene_mist_disperses');
   mistDispersal.source.when(
-    entityInteract: (_, __) => fail('La dissipation vient du boss.'),
-    triggerEnter: (_, __) => fail('La dissipation vient du boss.'),
+    entityInteract: (_, _) => fail('La dissipation vient du boss.'),
+    triggerEnter: (_, _) => fail('La dissipation vient du boss.'),
     mapEnter: (_) => fail('La dissipation vient du boss.'),
     outcomeReceived: (outcome) {
       expect(outcome.producerKind, NarrativeOutcomeProducerKind.scene);
@@ -1030,7 +1028,7 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
   );
   final cabinKey = definitions['evt_019abcde-5000-7000-8000-000000000029']!;
   cabinKey.source.when(
-    entityInteract: (_, __) => fail('La clé doit être trouvée dans une zone.'),
+    entityInteract: (_, _) => fail('La clé doit être trouvée dans une zone.'),
     triggerEnter: (mapId, triggerId) {
       expect(mapId, 'map_phare_exterieur');
       expect(triggerId, 'tr_cabin_key_outside');
@@ -1424,7 +1422,7 @@ void _expectEventSourcesClose(
       condition.when(
         fact: (factId, _) =>
             expect(facts, contains(factId), reason: definition.id),
-        narrativeEventConsumed: (_, __) {},
+        narrativeEventConsumed: (_, _) {},
       );
     }
     definition.source.when(

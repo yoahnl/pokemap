@@ -45,7 +45,7 @@ void main() {
     final provider = narrativeValidatorReportProvider(request);
     final subscription = container.listen(
       provider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(subscription.close);
@@ -160,7 +160,7 @@ void main() {
     final provider = narrativeValidatorReportProvider(request);
     final subscription = container.listen(
       provider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(subscription.close);
@@ -292,7 +292,7 @@ void main() {
     final provider = narrativeValidatorReportProvider(request);
     final subscription = container.listen(
       provider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(subscription.close);
@@ -354,7 +354,7 @@ void main() {
     addTearDown(container.dispose);
     final subscription = container.listen(
       narrativeValidatorReportProvider(request),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(subscription.close);
@@ -428,7 +428,7 @@ void main() {
 
     final firstSubscription = container.listen(
       narrativeValidatorReportProvider(firstRequest),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     await executor.waitForExecutions(1);
@@ -436,7 +436,7 @@ void main() {
 
     final secondSubscription = container.listen(
       narrativeValidatorReportProvider(secondRequest),
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(secondSubscription.close);
@@ -488,9 +488,9 @@ void main() {
     );
     final provider = narrativeValidatorReportProvider(request);
 
-    final first = container.listen(provider, (_, __) {}, fireImmediately: true);
+    final first = container.listen(provider, (_, _) {}, fireImmediately: true);
     final second =
-        container.listen(provider, (_, __) {}, fireImmediately: true);
+        container.listen(provider, (_, _) {}, fireImmediately: true);
     await executor.waitForExecutions(1);
     expect(executor.works, hasLength(1));
 
@@ -500,7 +500,7 @@ void main() {
 
     second.close();
     final resumed =
-        container.listen(provider, (_, __) {}, fireImmediately: true);
+        container.listen(provider, (_, _) {}, fireImmediately: true);
     addTearDown(resumed.close);
     await container.pump();
     expect(executor.works, hasLength(1));
@@ -542,7 +542,7 @@ void main() {
     final provider = narrativeValidatorReportProvider(request);
     final subscription = container.listen(
       provider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(subscription.close);
@@ -598,7 +598,7 @@ void main() {
     final provider = narrativeValidatorReportProvider(request);
     final subscription = container.listen(
       provider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(subscription.close);
@@ -650,7 +650,7 @@ void main() {
     final provider = narrativeStudioValidationReportProvider(request);
     final subscription = container.listen(
       provider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(subscription.close);
@@ -705,14 +705,14 @@ void main() {
     final baseProvider = narrativeValidatorReportProvider(request);
     final baseSubscription = container.listen(
       baseProvider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(baseSubscription.close);
     final provider = narrativeStudioValidationReportProvider(request);
     final subscription = container.listen(
       provider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     addTearDown(subscription.close);

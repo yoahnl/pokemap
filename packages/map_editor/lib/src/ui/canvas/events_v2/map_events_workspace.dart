@@ -230,7 +230,7 @@ class _MapEventsWorkspaceState extends State<MapEventsWorkspace> {
       ),
       child: ListView.separated(
         itemCount: widget.readModel.maps.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 6),
+        separatorBuilder: (_, _) => const SizedBox(height: 6),
         itemBuilder: (context, index) {
           final map = widget.readModel.maps[index];
           return PokeMapCard(
@@ -405,7 +405,7 @@ class _MapEventsWorkspaceState extends State<MapEventsWorkspace> {
     }
     return ListView.separated(
       itemCount: rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 7),
+      separatorBuilder: (_, _) => const SizedBox(height: 7),
       itemBuilder: (context, index) => _sourceCard(context, rows[index]),
     );
   }
@@ -476,7 +476,7 @@ class _MapEventsWorkspaceState extends State<MapEventsWorkspace> {
     }
     return ListView.separated(
       itemCount: rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 7),
+      separatorBuilder: (_, _) => const SizedBox(height: 7),
       itemBuilder: (context, index) {
         final row = rows[index];
         final colors = context.pokeMapColors;
@@ -545,7 +545,7 @@ class _MapEventsWorkspaceState extends State<MapEventsWorkspace> {
     }
     return ListView.separated(
       itemCount: rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 7),
+      separatorBuilder: (_, _) => const SizedBox(height: 7),
       itemBuilder: (context, index) {
         final row = rows[index];
         final colors = context.pokeMapColors;

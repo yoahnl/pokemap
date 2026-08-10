@@ -66,7 +66,7 @@ final class MapContextMenuController extends Notifier<MapContextMenuState> {
           warpId: editor.selectedWarpId,
         ),
       ),
-      (_, __) => close(),
+      (_, _) => close(),
     );
     return const MapContextMenuClosed();
   }

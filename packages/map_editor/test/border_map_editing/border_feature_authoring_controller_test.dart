@@ -636,7 +636,7 @@ MapData _map({MapLayer? collision}) => MapData(
       version: ProjectVersion.v6,
       size: const GridSize(width: 5, height: 4),
       layers: <MapLayer>[
-        if (collision != null) collision,
+        ?collision,
         const MapLayer.border(id: 'borders', name: 'Bordures'),
       ],
     );

@@ -604,8 +604,8 @@ bool _isSpatialAndAvailable(NarrativeEventProjectSummary event) {
   final source = event.source.source;
   if (source == null || !event.source.available) return false;
   return source.when(
-    entityInteract: (_, __) => true,
-    triggerEnter: (_, __) => true,
+    entityInteract: (_, _) => true,
+    triggerEnter: (_, _) => true,
     mapEnter: (_) => true,
     outcomeReceived: (_) => false,
   );

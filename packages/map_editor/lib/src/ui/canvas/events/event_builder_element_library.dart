@@ -70,7 +70,7 @@ class _EventBuilderElementLibraryState
           Expanded(
             child: ListView.separated(
               itemCount: groups.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 6),
+              separatorBuilder: (_, _) => const SizedBox(height: 6),
               itemBuilder: (context, index) {
                 final group = groups[index];
                 return _ElementLibraryGroupCard(

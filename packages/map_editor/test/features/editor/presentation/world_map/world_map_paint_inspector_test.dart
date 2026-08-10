@@ -956,7 +956,7 @@ class _PaintHarness {
            ),
          ],
        ) {
-    keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     notifier.state = EditorState(
       projectRootPath: projectRootPath,
       project: project ?? _project,

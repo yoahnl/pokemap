@@ -594,7 +594,7 @@ final class _WorldMapLayerRow extends ConsumerWidget {
       label: [
         layer.name,
         'Type ${_layerTypeLabel(layer, hasAttachedEnvironment: row.hasAttachedEnvironmentLayers)}',
-        if (row.technicalEnvironmentSelectionLabel case final label?) label,
+        ?row.technicalEnvironmentSelectionLabel,
       ].join(', '),
       child: PokeMapPanel(
         key: ValueKey<String>('world-map-layer-card-$layerId'),
@@ -661,8 +661,7 @@ final class _WorldMapLayerRow extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    if (buildEnableEnvironmentAction() case final action?)
-                      action,
+                    ?buildEnableEnvironmentAction(),
                     PokeMapIconButton(
                       key: ValueKey<String>(
                           'world-map-layer-visibility-$layerId'),

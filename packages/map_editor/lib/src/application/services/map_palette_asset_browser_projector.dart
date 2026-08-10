@@ -193,7 +193,7 @@ class MapPaletteAssetBrowserProjector {
           isUnclassified ? 'Non classé' : folderPathById[normalizedFolderId]!;
       final categoryLabels = <String>{
         for (final element in elements)
-          if (categoryPathById[element.categoryId] case final path?) path,
+          ?categoryPathById[element.categoryId],
       }.toList(growable: false)
         ..sort(_compareFolded);
       final scopeLabel = _scopeLabel(project, tileset);
@@ -207,7 +207,7 @@ class MapPaletteAssetBrowserProjector {
           (element) => <String>[
             element.name,
             ...element.tags,
-            if (categoryPathById[element.categoryId] case final path?) path,
+            ?categoryPathById[element.categoryId],
           ],
         ),
       ];

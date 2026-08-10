@@ -33,7 +33,7 @@ void main() {
         rule: _rule(),
         layerWeights: const <String, int>{},
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_, __) async {},
+        onApply: (_, _) async {},
       ),
     );
 
@@ -48,7 +48,7 @@ void main() {
         rule: _rule(),
         layerWeights: const <String, int>{},
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_, __) async {},
+        onApply: (_, _) async {},
       ),
     );
 
@@ -69,7 +69,7 @@ void main() {
           'cand-2': 500,
         },
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_, __) async {},
+        onApply: (_, _) async {},
       ),
     );
 
@@ -118,7 +118,7 @@ void main() {
           'cand-2': 100,
         },
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_, __) async {},
+        onApply: (_, _) async {},
       ),
     );
 
@@ -142,7 +142,7 @@ void main() {
           'cand-2': 50,
         },
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_, __) async {},
+        onApply: (_, _) async {},
       ),
     );
 
@@ -157,7 +157,7 @@ void main() {
         rule: _rule(),
         layerWeights: const <String, int>{},
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_, __) async {},
+        onApply: (_, _) async {},
       ),
     );
 
@@ -181,7 +181,7 @@ void main() {
           'cand-2': 50,
         },
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_, __) async {},
+        onApply: (_, _) async {},
       ),
     );
 
@@ -225,7 +225,7 @@ void main() {
         rule: _rule(),
         layerWeights: const <String, int>{'cand-0': 900},
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_, __) async {},
+        onApply: (_, _) async {},
       ),
     );
 
@@ -277,7 +277,7 @@ void main() {
         rule: _rule(),
         layerWeights: const <String, int>{},
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_, __) async {},
+        onApply: (_, _) async {},
       ),
     );
 

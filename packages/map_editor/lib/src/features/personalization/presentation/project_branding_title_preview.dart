@@ -288,7 +288,7 @@ class _ProjectBrandingImage extends StatelessWidget {
           fit: fit,
           filterQuality: FilterQuality.medium,
           gaplessPlayback: true,
-          errorBuilder: (_, __, ___) => KeyedSubtree(
+          errorBuilder: (_, _, _) => KeyedSubtree(
             key: fallbackKey,
             child: fallback,
           ),

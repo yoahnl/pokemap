@@ -52,7 +52,7 @@ showSmartTileLayerPresetChangeFlow({
   };
   final targetMaterials = <ProjectSmartTileMaterial>[
     for (final id in targetPreset.allowedMaterialIds)
-      if (materials[id] case final material?) material,
+      ?materials[id],
   ];
   if (targetMaterials.isEmpty) {
     await showPokeMapNoticeDialog(

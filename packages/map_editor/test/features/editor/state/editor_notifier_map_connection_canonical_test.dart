@@ -62,7 +62,7 @@ void main() {
 
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    final keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     addTearDown(keepAlive.close);
     final notifier = container.read(editorNotifierProvider.notifier)
       ..state = EditorState(

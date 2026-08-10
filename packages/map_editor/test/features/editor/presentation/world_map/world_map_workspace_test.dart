@@ -1079,7 +1079,7 @@ Future<ProviderContainer> _pumpWorkspace(
   final container = ProviderContainer(overrides: overrides);
   final editorSubscription = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() async {

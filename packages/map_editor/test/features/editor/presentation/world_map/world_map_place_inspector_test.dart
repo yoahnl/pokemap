@@ -538,7 +538,7 @@ class _PlaceHarness {
            ),
          ],
        ) {
-    keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     notifier.state = EditorState(
       projectRootPath: '/virtual/project',
       project: project ?? _project,

@@ -449,7 +449,7 @@ Set<String> _recordEventDependencies(NarrativeEventRecord record) {
   return {
     for (final condition in conditions)
       ...condition.whenTyped(
-        fact: (_, __, ___) => const <String>{},
+        fact: (_, _, _) => const <String>{},
         narrativeEventConsumed: (eventId, _) => {eventId},
       ),
   };

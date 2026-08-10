@@ -28,7 +28,7 @@ void main() {
           ],
           elements: [_element(id: 'e1')],
         ),
-        onSaved: (_, __, ___) {},
+        onSaved: (_, _, _) {},
       );
 
       expect(find.byKey(const Key('environment-studio-edit-as-draft')),
@@ -75,7 +75,7 @@ void main() {
           ],
           elements: [_element(id: 'e1')],
         ),
-        onSaved: (_, __, ___) {},
+        onSaved: (_, _, _) {},
       );
 
       await tester
@@ -141,7 +141,7 @@ void main() {
           environmentPresets: [_preset(id: 'lock_id')],
           elements: [_element(id: 'e1')],
         ),
-        onSaved: (_, __, ___) {},
+        onSaved: (_, _, _) {},
       );
 
       await tester
@@ -239,7 +239,7 @@ void main() {
           environmentPresets: [_preset(id: 'solo')],
           elements: [_element(id: 'e1')],
         ),
-        onSaved: (_, __, ___) {},
+        onSaved: (_, _, _) {},
       );
 
       await tester
@@ -262,7 +262,7 @@ void main() {
           environmentPresets: [_preset(id: 'x')],
           elements: [_element(id: 'e1')],
         ),
-        onSaved: (_, __, ___) => calls++,
+        onSaved: (_, _, _) => calls++,
       );
 
       await tester
@@ -301,7 +301,7 @@ void main() {
           environmentPresets: [_preset(id: 'boom')],
           elements: [_element(id: 'e1')],
         ),
-        onSaved: (_, __, ___) => throw StateError('simulé'),
+        onSaved: (_, _, _) => throw StateError('simulé'),
       );
 
       await tester

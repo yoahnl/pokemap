@@ -42,8 +42,8 @@ Map<String, Object?> inspectBorderFeature({
       'error': map == null || project == null
           ? 'No active map or project.'
           : 'Border feature not found.',
-      if (requestedLayerId != null) 'layerId': requestedLayerId,
-      if (requestedFeatureId != null) 'featureId': requestedFeatureId,
+      'layerId': ?requestedLayerId,
+      'featureId': ?requestedFeatureId,
     };
   }
 

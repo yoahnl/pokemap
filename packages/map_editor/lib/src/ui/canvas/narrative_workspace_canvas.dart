@@ -81,7 +81,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     final baseSceneConsequenceCatalogs = sceneConsequenceCatalogsAsync.when(
       data: (catalogs) => catalogs,
       loading: () => const SceneConsequenceCatalogs.loading(),
-      error: (_, __) => const SceneConsequenceCatalogs(
+      error: (_, _) => const SceneConsequenceCatalogs(
         items: SceneConsequenceCatalogSection(
           status: SceneConsequenceCatalogStatus.failed,
           options: <SceneConsequenceCatalogOption>[],
@@ -569,7 +569,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             final publication = multidimensionalReport.when(
               data: (publication) => publication,
               loading: () => null,
-              error: (_, __) => null,
+              error: (_, _) => null,
             );
             final mergedReport = mergeNarrativePublicationDiagnostics(
               authoringReport: value,
@@ -3910,7 +3910,7 @@ class _NarrativeListCard extends StatelessWidget {
                   )
                 : ListView.separated(
                     itemBuilder: (context, index) => children[index],
-                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemCount: children.length,
                   ),
           ),

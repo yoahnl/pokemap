@@ -530,7 +530,7 @@ class _AssetBrowserResults extends StatelessWidget {
     return ListView.separated(
       key: MapPaletteAssetBrowserKeys.results,
       itemCount: projection.items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 4),
+      separatorBuilder: (_, _) => const SizedBox(height: 4),
       itemBuilder: (context, index) {
         final item = projection.items[index];
         final stateLabel = item.isAssigned
@@ -539,7 +539,7 @@ class _AssetBrowserResults extends StatelessWidget {
                 ? 'Disponible'
                 : 'Non disponible';
         final subtitle = <String>[
-          if (item.disabledReason case final reason?) reason,
+          ?item.disabledReason,
           item.folderPath,
           item.scopeLabel,
           stateLabel,
@@ -550,7 +550,7 @@ class _AssetBrowserResults extends StatelessWidget {
           if (item.isAssigned) 'Assignée au calque actif',
           if (item.isFavorite) 'Favori de cette session',
           if (!item.isCompatible) 'Désactivée',
-          if (item.disabledReason case final reason?) reason,
+          ?item.disabledReason,
           item.folderPath,
           item.scopeLabel,
         ].join('. ');

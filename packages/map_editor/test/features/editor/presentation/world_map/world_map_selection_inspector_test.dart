@@ -556,7 +556,7 @@ EditorState _stateFor(MapCanvasObjectKind kind) {
 
 class _SelectionHarness {
   _SelectionHarness(EditorState state) {
-    keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     notifier.state = state;
   }
 

@@ -744,8 +744,8 @@ class MacosAlertDialog extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       actions: [
-        if (secondaryButton != null) secondaryButton!,
-        if (primaryButton != null) primaryButton!,
+        ?secondaryButton,
+        ?primaryButton,
       ],
     );
   }

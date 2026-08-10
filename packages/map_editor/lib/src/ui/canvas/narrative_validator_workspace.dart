@@ -473,7 +473,7 @@ class _NarrativeValidatorWorkspaceState
                     controller: _diagnosticsScrollController,
                     padding: const EdgeInsets.all(10),
                     itemCount: diagnostics.length + resolvedSuppressions.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       if (index >= diagnostics.length) {
                         final suppression =
@@ -1004,7 +1004,7 @@ class _MapGroupsPanel extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.all(8),
         itemCount: views.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 6),
+        separatorBuilder: (_, _) => const SizedBox(height: 6),
         itemBuilder: (context, index) {
           final view = views[index];
           final key = _mapGroupKey(view);
@@ -1104,7 +1104,7 @@ class _MapEventEntriesPanel extends StatelessWidget {
           : ListView.separated(
               padding: const EdgeInsets.all(10),
               itemCount: view.events.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final event = view.events[index];
                 return PokeMapCard(

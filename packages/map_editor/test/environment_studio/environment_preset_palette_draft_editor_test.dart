@@ -808,7 +808,7 @@ Future<void> _pumpWithSave(
       home: CupertinoPageScaffold(
         child: EnvironmentStudioPanel(
           manifest: manifest,
-          onEnvironmentPresetSaved: onSaved ?? (_, __, ___) {},
+          onEnvironmentPresetSaved: onSaved ?? (_, _, _) {},
         ),
       ),
     ),

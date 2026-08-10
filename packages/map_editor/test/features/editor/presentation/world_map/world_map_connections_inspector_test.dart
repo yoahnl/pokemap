@@ -318,7 +318,7 @@ class _ConnectionsHarness {
           ),
       ],
     );
-    keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     notifier.state = EditorState(
       project: _project,
       activeMap: _activeMap,

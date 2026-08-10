@@ -110,7 +110,7 @@ class _ShopProjectListState extends State<ShopProjectList> {
                     key: const Key('shop-editor-list'),
                     padding: const EdgeInsets.all(8),
                     itemCount: visibleShops.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final shop = visibleShops[index];
                       return PokeMapCard(

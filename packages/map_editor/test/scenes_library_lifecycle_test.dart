@@ -136,7 +136,7 @@ SceneAsset _scene(
     tags: tags,
     declaredOutcomes: outcomes,
     metadata: {
-      if (folder != null) sceneLibraryFolderMetadataKey: folder,
+      sceneLibraryFolderMetadataKey: ?folder,
       if (archived) sceneLibraryArchivedMetadataKey: 'true',
     },
     graph: SceneGraph(

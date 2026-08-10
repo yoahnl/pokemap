@@ -739,7 +739,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
           }
         });
         binding.ensureVisualUpdate();
-      }, onError: (Object _, StackTrace __) {}),
+      }, onError: (Object _, StackTrace _) {}),
     );
   }
 
@@ -891,7 +891,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     );
     final tilesetPathsById = collectMapCanvasTilesetPaths(
       maps: [
-        if (activeMap != null) activeMap,
+        ?activeMap,
         ...?connectionContext?.neighbors.values.map((neighbor) => neighbor.map),
       ],
       resolveTilesetAbsolutePath: notifier.getTilesetAbsolutePathById,
@@ -959,7 +959,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         };
         final tilesetImageFailures = <String, EditorImageFailure>{
           for (final entry in tilesetImageResults.entries)
-            if (entry.value.failure case final failure?) entry.key: failure,
+            entry.key: ?entry.value.failure,
         };
         final tilesPerRowById = <String, int>{};
         if (settings.tileWidth > 0) {

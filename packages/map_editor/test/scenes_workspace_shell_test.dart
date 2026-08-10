@@ -4803,7 +4803,7 @@ Future<ProviderContainer> _pumpNarrativeShell(
   addTearDown(container.dispose);
   final editorSubscription = container.listen(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
   );
   addTearDown(editorSubscription.close);
 

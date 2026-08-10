@@ -102,8 +102,7 @@ final class CanonicalSmartTileReconstructionGateway
       maps: session.maps,
       mapRevisions: <String, String>{
         for (final map in session.maps)
-          if (session.resourceRevision('map:${map.id}') case final revision?)
-            map.id: revision,
+          map.id: ?session.resourceRevision('map:${map.id}'),
       },
     );
   }

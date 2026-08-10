@@ -219,12 +219,12 @@ void main() {
       final container = ProviderContainer();
       final editorSubscription = container.listen<EditorState>(
         editorNotifierProvider,
-        (_, __) {},
+        (_, _) {},
         fireImmediately: true,
       );
       final bridgeSubscription = container.listen<NarrativeEventMapBridgeState>(
         narrativeEventMapBridgeControllerProvider,
-        (_, __) {},
+        (_, _) {},
         fireImmediately: true,
       );
       addTearDown(() {
@@ -384,12 +384,12 @@ ProviderContainer _createGuidedDragContainer() {
   final container = ProviderContainer();
   final editorSubscription = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   final bridgeSubscription = container.listen<NarrativeEventMapBridgeState>(
     narrativeEventMapBridgeControllerProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() {

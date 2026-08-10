@@ -1326,7 +1326,7 @@ ProviderContainer _createContainer({MapRepository? mapRepository}) {
   );
   final subscription = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() {

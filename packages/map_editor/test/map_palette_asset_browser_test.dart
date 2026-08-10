@@ -124,7 +124,7 @@ void main() {
         mapId: 'town',
         layerId: 'ground',
       );
-      final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+      final keepAlive = container.listen(editorNotifierProvider, (_, _) {});
       addTearDown(keepAlive.close);
       final notifier = container.read(editorNotifierProvider.notifier)
         ..state = EditorState(
@@ -479,7 +479,7 @@ void main() {
   ) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    final keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       project: project,
       workspaceMode: EditorWorkspaceMode.map,
@@ -532,7 +532,7 @@ void main() {
         }),
       ],
     );
-    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    final keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     final notifier = container.read(editorNotifierProvider.notifier)
       ..state = EditorState(
         projectRootPath: p.join(
@@ -601,7 +601,7 @@ void main() {
 
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    final keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     final notifier = container.read(editorNotifierProvider.notifier)
       ..state = EditorState(
         projectRootPath: projectRoot.path,

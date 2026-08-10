@@ -393,12 +393,12 @@ ProviderContainer _container({
   );
   final editor = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   final bridge = container.listen<NarrativeEventMapBridgeState>(
     narrativeEventMapBridgeControllerProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() {

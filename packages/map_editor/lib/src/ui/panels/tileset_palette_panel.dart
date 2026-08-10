@@ -123,7 +123,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
           binding.addPostFrameCallback((_) => result.dispose());
           binding.ensureVisualUpdate();
         },
-        onError: (Object _, StackTrace __) {},
+        onError: (Object _, StackTrace _) {},
       ),
     );
   }
@@ -2936,7 +2936,7 @@ class _PlacedElementBehaviorsSectionState
                               itemCount: 1 +
                                   (selectedMissing ? 1 : 0) +
                                   filtered.length,
-                              separatorBuilder: (_, __) =>
+                              separatorBuilder: (_, _) =>
                                   const SizedBox(height: 6),
                               itemBuilder: (c, i) {
                                 if (i == 0) {
@@ -3185,7 +3185,7 @@ class _PlacedElementBehaviorsSectionState
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: widget.value.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 6),
+                separatorBuilder: (_, _) => const SizedBox(width: 6),
                 itemBuilder: (context, index) {
                   final behavior = widget.value[index];
                   final selectedChip = index == _selectedIndex;

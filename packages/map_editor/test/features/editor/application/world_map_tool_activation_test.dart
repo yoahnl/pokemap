@@ -762,7 +762,7 @@ ProviderContainer _createContainer() {
   final container = ProviderContainer();
   final keepAlive = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() {

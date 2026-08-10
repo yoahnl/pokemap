@@ -169,7 +169,7 @@ class _PokedexExternalBatchResolvedTargetsList extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         shrinkWrap: true,
         itemCount: selectionResult.targets.length,
-        separatorBuilder: (_, __) => Container(
+        separatorBuilder: (_, _) => Container(
           height: 1,
           color: EditorChrome.subtleSeparator(context),
         ),

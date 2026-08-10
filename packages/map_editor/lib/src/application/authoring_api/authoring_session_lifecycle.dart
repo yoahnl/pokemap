@@ -152,7 +152,7 @@ final class EditorAuthoringSessionLifecycle {
     final current = _transition.then((_) => operation());
     _transition = current.then<void>(
       (_) {},
-      onError: (Object _, StackTrace __) {},
+      onError: (Object _, StackTrace _) {},
     );
     return current;
   }

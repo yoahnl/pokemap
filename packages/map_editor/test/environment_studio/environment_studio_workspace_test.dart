@@ -105,7 +105,7 @@ void main() {
           environmentPresets: [_preset(id: 'x')],
           elements: [_element(id: 'elm')],
         ),
-        onEnvironmentPresetSaved: (_, __, ___) {},
+        onEnvironmentPresetSaved: (_, _, _) {},
       );
 
       expect(find.text('Nouveau preset'), findsOneWidget);

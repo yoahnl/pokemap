@@ -1324,7 +1324,7 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                   )
                 : ListView.separated(
                     itemCount: draft.steps.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final step = draft.steps[index];
                       return EditorSidebarListRow(

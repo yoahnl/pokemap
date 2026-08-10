@@ -133,7 +133,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     _narrativeSearchRevision++;
     final dependencyIndex = buildNarrativeDependencyIndex(
       project: project,
-      maps: [if (activeMap != null) activeMap],
+      maps: [?activeMap],
     );
     _narrativeSearchIndex = buildNarrativeGlobalSearchIndex(
       project: project,

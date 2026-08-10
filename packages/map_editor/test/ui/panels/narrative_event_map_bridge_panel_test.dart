@@ -593,7 +593,7 @@ ProviderContainer _testContainer({List<Override> overrides = const []}) {
   final container = ProviderContainer(overrides: overrides);
   final keepAlive = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
   );
   addTearDown(() {
     keepAlive.close();

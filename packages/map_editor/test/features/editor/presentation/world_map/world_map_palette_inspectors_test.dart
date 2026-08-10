@@ -228,7 +228,7 @@ class _InspectorHarness {
     required this.image,
     required String activeLayerId,
   }) {
-    keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     notifier.state = EditorState(
       projectRootPath: '/virtual/project',
       project: _project,

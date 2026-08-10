@@ -47,7 +47,7 @@ void main() {
       isTrue,
     );
     expect(
-      await File(p.join(project.path, profile.posterPath!)).exists(),
+      await File(p.join(project.path, profile.posterPath)).exists(),
       isTrue,
     );
   });

@@ -110,7 +110,7 @@ class _StatusBarState extends ConsumerState<StatusBar> {
     final installedVersionLabel =
         ref.watch(editorInstalledVersionProvider).when(
               data: (version) => 'v$version',
-              error: (_, __) => 'v…',
+              error: (_, _) => 'v…',
               loading: () => 'v…',
             );
     final colors = context.pokeMapColors;

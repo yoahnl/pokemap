@@ -169,7 +169,7 @@ class _PlacedInstancesSection extends StatelessWidget {
                       math.min(260, scope.instances.length * 67 + 6).toDouble(),
                   child: ListView.separated(
                     itemCount: scope.instances.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final instance = scope.instances[index];
                       return _PlacedInstanceCard(

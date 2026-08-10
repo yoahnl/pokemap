@@ -19,7 +19,7 @@ void main() {
       addTearDown(container.dispose);
       final subscription = container.listen(
         editorNotifierProvider,
-        (_, __) {},
+        (_, _) {},
       );
       addTearDown(subscription.close);
       container.read(editorNotifierProvider.notifier).state = const EditorState(
@@ -106,7 +106,7 @@ void main() {
     (tester) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      final subscription = container.listen(editorNotifierProvider, (_, __) {});
+      final subscription = container.listen(editorNotifierProvider, (_, _) {});
       addTearDown(subscription.close);
       container.read(editorNotifierProvider.notifier).state = const EditorState(
         project: _project,
@@ -179,7 +179,7 @@ void main() {
     (tester) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      final subscription = container.listen(editorNotifierProvider, (_, __) {});
+      final subscription = container.listen(editorNotifierProvider, (_, _) {});
       addTearDown(subscription.close);
       container.read(editorNotifierProvider.notifier).state = const EditorState(
         project: _project,
@@ -230,7 +230,7 @@ void main() {
     (tester) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      final subscription = container.listen(editorNotifierProvider, (_, __) {});
+      final subscription = container.listen(editorNotifierProvider, (_, _) {});
       addTearDown(subscription.close);
       container.read(editorNotifierProvider.notifier).state = const EditorState(
         project: _project,
@@ -272,7 +272,7 @@ void main() {
     (tester) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      final subscription = container.listen(editorNotifierProvider, (_, __) {});
+      final subscription = container.listen(editorNotifierProvider, (_, _) {});
       addTearDown(subscription.close);
       container.read(editorNotifierProvider.notifier).state = const EditorState(
         project: _project,
@@ -325,7 +325,7 @@ void main() {
     (tester) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
-      final subscription = container.listen(editorNotifierProvider, (_, __) {});
+      final subscription = container.listen(editorNotifierProvider, (_, _) {});
       addTearDown(subscription.close);
       container.read(editorNotifierProvider.notifier).state = EditorState(
         project: _environmentProject,

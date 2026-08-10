@@ -220,7 +220,7 @@ Map<String, dynamic> _projectJson({
           },
         ],
         'presetKind': 'building',
-        if (collisionProfile != null) 'collisionProfile': collisionProfile,
+        'collisionProfile': ?collisionProfile,
       },
     ],
   };

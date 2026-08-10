@@ -122,7 +122,7 @@ class _CellHarness {
     String layerId, {
     MapData map = _map,
   }) {
-    keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     notifier.state = EditorState(
       project: _project,
       activeMap: map,

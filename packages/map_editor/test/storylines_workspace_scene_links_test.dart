@@ -276,7 +276,7 @@ Future<_StorylinesHarness> _pumpStorylinesShell(
   addTearDown(container.dispose);
   final editorSubscription = container.listen(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
   );
   addTearDown(editorSubscription.close);
 

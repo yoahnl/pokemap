@@ -87,7 +87,7 @@ void main() {
       final catalog = AuthoringFullParityCatalog.canonical();
       for (final actionId in consumedActionIds) {
         expect(
-          catalog.requireMutationAction(actionId).transports,
+          catalog.requireMutationAction(actionId).adapterCapableTransports,
           contains(AuthoringTransport.editor),
           reason: actionId,
         );

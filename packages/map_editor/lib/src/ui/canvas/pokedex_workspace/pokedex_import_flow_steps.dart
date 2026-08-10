@@ -853,7 +853,7 @@ class _PokedexExternalBatchPreviewStep extends StatelessWidget {
             child: ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: selection.targets.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final target = selection.targets[index];
                 final entry = entriesBySpeciesId[target.speciesId];
@@ -1112,7 +1112,7 @@ class _PokedexExternalBatchExecutionResultStep extends StatelessWidget {
                 : ListView.separated(
                     padding: const EdgeInsets.all(12),
                     itemCount: selection.targets.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final target = selection.targets[index];
                       final entry = entriesBySpeciesId[target.speciesId];

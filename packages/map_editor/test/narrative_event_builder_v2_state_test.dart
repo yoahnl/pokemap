@@ -417,7 +417,7 @@ MapData _map({
         pos: const GridPos(x: 1, y: 1),
       ),
     ],
-    events: [if (legacyEvent != null) legacyEvent],
+    events: [?legacyEvent],
   );
 }
 

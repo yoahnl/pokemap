@@ -19,7 +19,7 @@ void main() {
     await _writeProject(root, before);
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    container.listen(editorNotifierProvider, (_, __) {});
+    container.listen(editorNotifierProvider, (_, _) {});
     final notifier = container.read(editorNotifierProvider.notifier);
     notifier.state = EditorState(projectRootPath: root.path, project: before);
 
@@ -86,7 +86,7 @@ void main() {
     await _writeProject(root, before);
 
     final firstContainer = ProviderContainer();
-    firstContainer.listen(editorNotifierProvider, (_, __) {});
+    firstContainer.listen(editorNotifierProvider, (_, _) {});
     final first = firstContainer.read(editorNotifierProvider.notifier);
     first.state = EditorState(projectRootPath: root.path, project: before);
     final applied = await first.applyNarrativeDocumentEdit(
@@ -105,7 +105,7 @@ void main() {
 
     final secondContainer = ProviderContainer();
     addTearDown(secondContainer.dispose);
-    secondContainer.listen(editorNotifierProvider, (_, __) {});
+    secondContainer.listen(editorNotifierProvider, (_, _) {});
     final second = secondContainer.read(editorNotifierProvider.notifier);
     second.state = EditorState(projectRootPath: root.path, project: before);
 
@@ -127,7 +127,7 @@ void main() {
     await _writeProject(root, before);
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    container.listen(editorNotifierProvider, (_, __) {});
+    container.listen(editorNotifierProvider, (_, _) {});
     final notifier = container.read(editorNotifierProvider.notifier);
     notifier.state = EditorState(projectRootPath: root.path, project: before);
     await notifier.initializeNarrativeDocumentSession();

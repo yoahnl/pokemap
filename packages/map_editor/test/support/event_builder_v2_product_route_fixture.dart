@@ -277,7 +277,7 @@ Future<ProviderContainer> pumpEventBuilderV2ProductRoute(
     ],
   );
   addTearDown(container.dispose);
-  final subscription = container.listen(editorNotifierProvider, (_, __) {});
+  final subscription = container.listen(editorNotifierProvider, (_, _) {});
   addTearDown(subscription.close);
 
   container.read(editorNotifierProvider.notifier).state = EditorState(
@@ -475,7 +475,7 @@ MapData _map({
         ),
       ),
     ],
-    events: [if (legacyEvent != null) legacyEvent],
+    events: [?legacyEvent],
   );
 }
 

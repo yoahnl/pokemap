@@ -362,7 +362,7 @@ Future<_Harness> _pumpHarness(
   final container = ProviderContainer();
   final editorKeepAlive = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   container.read(editorNotifierProvider.notifier).state = EditorState(
@@ -371,7 +371,7 @@ Future<_Harness> _pumpHarness(
   );
   final keepAlive = container.listen<MapContextMenuState>(
     mapContextMenuControllerProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   final invoker = FocusNode(debugLabel: 'map context menu test invoker');

@@ -1095,12 +1095,12 @@ ProviderContainer _createContainer() {
   final container = ProviderContainer();
   final editorKeepAlive = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   final sessionKeepAlive = container.listen<WorldMapWorkspaceSession>(
     worldMapWorkspaceSessionProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() {

@@ -77,7 +77,7 @@ void main() {
       (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    final keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     addTearDown(keepAlive.close);
     container.read(editorNotifierProvider.notifier).state = EditorState(
       projectRootPath: '/virtual/project',
@@ -129,7 +129,7 @@ void main() {
     );
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    final keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     addTearDown(keepAlive.close);
     container.read(editorNotifierProvider.notifier).state = EditorState(
       projectRootPath: '/virtual/project',

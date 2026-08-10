@@ -49,7 +49,7 @@ bool _visiblePlacedTilesNeedAnimation(
   if (project == null) return false;
   final sourceByTilesetId = <String, ProjectTilesetSource>{
     for (final tileset in project.tilesets)
-      if (tileset.source case final source?) tileset.id: source,
+      tileset.id: ?tileset.source,
   };
   for (final layer in map.layers.whereType<ObjectLayer>()) {
     if (!layer.isVisible || layer.opacity <= 0) continue;

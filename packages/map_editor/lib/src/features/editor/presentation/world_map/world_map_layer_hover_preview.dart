@@ -22,7 +22,7 @@ final class WorldMapLayerHoverPreviewController extends Notifier<String?> {
           mapId: state.activeMap?.id,
         ),
       ),
-      (_, __) => state = null,
+      (_, _) => state = null,
     );
     return null;
   }

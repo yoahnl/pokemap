@@ -99,7 +99,7 @@ final class WorldMapPaintInspectionIntentController
           layerId: editor.activeLayerId,
         ),
       ),
-      (_, __) => clear(),
+      (_, _) => clear(),
     );
     return null;
   }

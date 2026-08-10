@@ -185,7 +185,7 @@ Future<_CanvasHarness> _pumpCanvas(
   );
   final subscription = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   container.read(editorNotifierProvider.notifier).state = EditorState(

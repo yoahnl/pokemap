@@ -107,8 +107,8 @@ void main() {
     return PokedexWorkspace(
       loader: loader,
       detailLoader: detailLoader,
-      importPreviewer: (_, __) async => throw UnimplementedError(),
-      importer: (_, __) async => throw UnimplementedError(),
+      importPreviewer: (_, _) async => throw UnimplementedError(),
+      importer: (_, _) async => throw UnimplementedError(),
       externalSpeciesSearcher: (rawQuery) async =>
           const PokemonExternalSpeciesSearchResult.empty(
         rawQuery: '',
@@ -117,8 +117,8 @@ void main() {
       externalBatchSelectionResolver: externalBatchSelectionResolver,
       externalBatchPreviewer: externalBatchPreviewer,
       externalBatchImporter: externalBatchImporter,
-      externalImportPreviewer: (_, __) async => throw UnimplementedError(),
-      externalImporter: (_, __) async => throw UnimplementedError(),
+      externalImportPreviewer: (_, _) async => throw UnimplementedError(),
+      externalImporter: (_, _) async => throw UnimplementedError(),
     );
   }
 
@@ -142,7 +142,7 @@ void main() {
       container,
       child: buildWorkspace(
         loader: (_) async => const <PokemonDatabaseIndexEntry>[],
-        detailLoader: (_, __) async => _buildDetail(
+        detailLoader: (_, _) async => _buildDetail(
           id: 'pikachu',
           nationalDex: 25,
           primaryName: 'Pikachu',
@@ -271,8 +271,8 @@ void main() {
         },
         externalBatchSelectionResolver: (rawQuery) async =>
             _resolvedBatchSelection(),
-        externalBatchPreviewer: (_, __) async => _sampleBatchDryRunPreview(),
-        externalBatchImporter: (_, __, {onProgress}) async {
+        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, _, {onProgress}) async {
           importedDetailsById['pikachu'] = _buildDetail(
             id: 'pikachu',
             nationalDex: 25,
@@ -398,8 +398,8 @@ void main() {
         },
         externalBatchSelectionResolver: (rawQuery) async =>
             _resolvedBatchSelection(),
-        externalBatchPreviewer: (_, __) async => _sampleBatchDryRunPreview(),
-        externalBatchImporter: (_, __, {onProgress}) async {
+        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, _, {onProgress}) async {
           onProgress?.call(
             const PokemonExternalBatchImportProgress(
               totalCount: 2,
@@ -474,8 +474,8 @@ void main() {
         },
         externalBatchSelectionResolver: (rawQuery) async =>
             _resolvedBatchSelection(),
-        externalBatchPreviewer: (_, __) async => _sampleBatchDryRunPreview(),
-        externalBatchImporter: (_, __, {onProgress}) async {
+        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, _, {onProgress}) async {
           onProgress?.call(
             const PokemonExternalBatchImportProgress(
               totalCount: 2,
@@ -550,8 +550,8 @@ void main() {
         },
         externalBatchSelectionResolver: (rawQuery) async =>
             _resolvedBatchSelection(),
-        externalBatchPreviewer: (_, __) async => _sampleBatchDryRunPreview(),
-        externalBatchImporter: (_, __, {onProgress}) async {
+        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, _, {onProgress}) async {
           onProgress?.call(
             const PokemonExternalBatchImportProgress(
               totalCount: 2,

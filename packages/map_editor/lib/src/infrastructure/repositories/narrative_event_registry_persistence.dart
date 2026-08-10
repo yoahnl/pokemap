@@ -1025,9 +1025,9 @@ final class NarrativeEventRegistryPersistence {
     final registryStatus = result.eventRegistry.when(
       absent: () => null,
       decoded: (_) => null,
-      unsupported: (_, __) =>
+      unsupported: (_, _) =>
           NarrativeEventRegistryPersistenceStatus.unsupportedRegistry,
-      invalid: (_, __) =>
+      invalid: (_, _) =>
           NarrativeEventRegistryPersistenceStatus.invalidRegistry,
     );
     if (registryStatus != null) {

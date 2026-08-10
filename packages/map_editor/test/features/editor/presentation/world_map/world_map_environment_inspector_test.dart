@@ -178,7 +178,7 @@ final class _Harness {
     required String activeLayerId,
     String? selectedEnvironmentAreaId,
   }) : container = ProviderContainer() {
-    keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     notifier.state = EditorState(
       projectRootPath: '/virtual/project',
       project: _manifest(),

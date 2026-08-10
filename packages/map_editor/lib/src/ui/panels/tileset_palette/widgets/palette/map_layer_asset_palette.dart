@@ -115,7 +115,7 @@ class _MapLayerAssetPaletteState extends ConsumerState<MapLayerAssetPalette> {
           binding.addPostFrameCallback((_) => result.dispose());
           binding.ensureVisualUpdate();
         },
-        onError: (Object _, StackTrace __) {},
+        onError: (Object _, StackTrace _) {},
       ),
     );
   }
@@ -427,7 +427,7 @@ class _ElementAssetList extends StatelessWidget {
                   key: MapLayerAssetPaletteKeys.scroll,
                   padding: EdgeInsets.zero,
                   itemCount: elements.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 6),
+                  separatorBuilder: (_, _) => const SizedBox(height: 6),
                   itemBuilder: (context, index) {
                     final element = elements[index];
                     final presentation = MapLayerElementAssetPresentation(
@@ -542,7 +542,7 @@ class _PlacedElementAssetList extends StatelessWidget {
                   key: MapLayerAssetPaletteKeys.placedScroll,
                   padding: EdgeInsets.zero,
                   itemCount: instances.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 6),
+                  separatorBuilder: (_, _) => const SizedBox(height: 6),
                   itemBuilder: (context, index) {
                     final instance = instances[index];
                     final element = elementsById[instance.elementId];

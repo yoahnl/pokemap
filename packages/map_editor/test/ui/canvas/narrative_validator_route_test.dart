@@ -79,12 +79,12 @@ void main() {
             ),
           ),
           narrativeValidatorExecutionLoaderProvider.overrideWithValue(
-            (_, __, validationId) async =>
+            (_, _, validationId) async =>
                 _executionResult(report, validationId),
           ),
           narrativeValidatorMultidimensionalExecutionLoaderProvider
               .overrideWithValue(
-            (_, __) async => _multidimensionalExecutionResult(),
+            (_, _) async => _multidimensionalExecutionResult(),
           ),
         ],
       );
@@ -545,7 +545,7 @@ Future<ProviderContainer> _pumpValidatorShell(
         ),
       ),
       narrativeValidatorExecutionLoaderProvider.overrideWithValue(
-        (_, __, validationId) async => _executionResult(
+        (_, _, validationId) async => _executionResult(
           NarrativeProjectValidationReport(
             diagnostics: diagnostics,
             mapEventViews: const [],
@@ -555,7 +555,7 @@ Future<ProviderContainer> _pumpValidatorShell(
       ),
       narrativeValidatorMultidimensionalExecutionLoaderProvider
           .overrideWithValue(
-        (_, __) async => _multidimensionalExecutionResult(),
+        (_, _) async => _multidimensionalExecutionResult(),
       ),
     ],
   );

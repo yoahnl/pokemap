@@ -785,7 +785,7 @@ void main() {
         addTearDown(container.dispose);
         final editorSubscription = container.listen(
           editorNotifierProvider,
-          (_, __) {},
+          (_, _) {},
           fireImmediately: true,
         );
         addTearDown(editorSubscription.close);

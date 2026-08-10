@@ -18,7 +18,7 @@ void main() {
       );
     final subscription = container.listen(
       worldMapPaintInspectionIntentProvider,
-      (_, __) {},
+      (_, _) {},
     );
     addTearDown(subscription.close);
     final controller =
@@ -58,7 +58,7 @@ void main() {
       );
     final subscription = container.listen(
       worldMapPaintInspectionIntentProvider,
-      (_, __) {},
+      (_, _) {},
     );
     addTearDown(subscription.close);
     final controller =
@@ -95,7 +95,7 @@ void main() {
       );
     final subscription = container.listen(
       worldMapPaintInspectionIntentProvider,
-      (_, __) {},
+      (_, _) {},
     );
     addTearDown(subscription.close);
     final before = editor.state;
@@ -131,7 +131,7 @@ void main() {
       );
     final subscription = container.listen(
       worldMapPaintInspectionIntentProvider,
-      (_, __) {},
+      (_, _) {},
     );
     addTearDown(subscription.close);
     final controller =
@@ -169,7 +169,7 @@ void main() {
         );
       final subscription = container.listen(
         worldMapPaintInspectionIntentProvider,
-        (_, __) {},
+        (_, _) {},
       );
       addTearDown(subscription.close);
       final controller =

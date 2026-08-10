@@ -287,7 +287,7 @@ final class _FakeGateway implements SmartTileDraftPersistenceGateway {
           tilesets: const <ProjectTilesetEntry>[],
           smartTileCatalog: ProjectSmartTileCatalog(
             drafts: <ProjectSmartTileAuthoringDraft>[
-              if (_canonicalDraft case final draft?) draft,
+              ?_canonicalDraft,
             ],
           ),
         ),

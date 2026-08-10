@@ -49,7 +49,7 @@ Future<ProviderContainer> _pumpWorkspace(WidgetTester tester) async {
   addTearDown(inspectorFocus.dispose);
   final subscription = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() async {

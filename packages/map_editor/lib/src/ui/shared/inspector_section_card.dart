@@ -130,7 +130,7 @@ class InspectorSectionCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (headerTrailing != null) headerTrailing!,
+                ?headerTrailing,
                 if (hasBadge) ...[
                   PokeMapBadge(
                     label: badgeText,

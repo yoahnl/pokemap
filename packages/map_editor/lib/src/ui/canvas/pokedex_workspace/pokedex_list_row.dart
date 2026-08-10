@@ -170,7 +170,7 @@ class _PokedexPortraitThumbnail extends StatelessWidget {
                 key: Key('pokedex-row-portrait-$speciesId'),
                 fit: BoxFit.cover,
                 filterQuality: FilterQuality.medium,
-                errorBuilder: (_, __, ___) =>
+                errorBuilder: (_, _, _) =>
                     _PokedexPortraitPlaceholder(speciesId: speciesId),
               ),
       ),

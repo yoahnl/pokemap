@@ -39,11 +39,11 @@ void main() {
     var viewportNotifications = 0;
     final documentSubscription = container.listen(
       editorMapDocumentSnapshotProvider,
-      (_, __) => documentNotifications += 1,
+      (_, _) => documentNotifications += 1,
     );
     final viewportSubscription = container.listen(
       editorMapViewportSnapshotProvider,
-      (_, __) => viewportNotifications += 1,
+      (_, _) => viewportNotifications += 1,
     );
     addTearDown(() {
       documentSubscription.close();
@@ -512,7 +512,7 @@ ProviderContainer _container() {
   final container = ProviderContainer();
   final subscription = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() {
@@ -544,7 +544,7 @@ Future<void> _pumpWorkspace(
           home: CupertinoPageScaffold(
             child: Column(
               children: [
-                if (toolbelt != null) toolbelt,
+                ?toolbelt,
                 Expanded(
                   child: Row(
                     children: [

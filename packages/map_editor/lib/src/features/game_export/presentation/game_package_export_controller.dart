@@ -496,7 +496,7 @@ final class GamePackageExportController extends ChangeNotifier {
           'feature': 'game-export',
           'operation': operation,
           'code': code,
-          if (path != null) 'path': path,
+          'path': ?path,
           'cause': cause.toString(),
           'stackTrace': stackTrace.toString(),
         }),

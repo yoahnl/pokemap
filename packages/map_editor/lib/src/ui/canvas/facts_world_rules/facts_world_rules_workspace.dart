@@ -582,7 +582,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
             Expanded(
               child: ListView.separated(
                 itemCount: entry.usages.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final usage = entry.usages[index];
                   return PokeMapCard(
@@ -1916,7 +1916,7 @@ class _FactList extends StatelessWidget {
     }
     return ListView.separated(
       itemCount: facts.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final entry = facts[index];
         return PokeMapCard(
@@ -1984,7 +1984,7 @@ class _WorldRuleList extends StatelessWidget {
     }
     return ListView.separated(
       itemCount: rules.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final entry = rules[index];
         return PokeMapCard(

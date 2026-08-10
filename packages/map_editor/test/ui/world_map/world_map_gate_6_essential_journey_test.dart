@@ -483,7 +483,7 @@ final class _JourneyHarness {
       _image = image {
     keepAlive = container.listen<EditorState>(
       editorNotifierProvider,
-      (_, __) {},
+      (_, _) {},
       fireImmediately: true,
     );
     notifier.state = _initialState;

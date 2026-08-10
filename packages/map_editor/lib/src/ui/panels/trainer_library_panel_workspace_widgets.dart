@@ -426,7 +426,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
     return ListView.separated(
       key: const Key('trainer-library-roster-scroll'),
       itemCount: filtered.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
         final trainer = filtered[index];
         return _TrainerStudioRosterCard(

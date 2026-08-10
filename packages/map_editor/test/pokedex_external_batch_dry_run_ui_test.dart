@@ -88,9 +88,9 @@ void main() {
   }) {
     return PokedexWorkspace(
       loader: (_) async => const <PokemonDatabaseIndexEntry>[],
-      detailLoader: (_, __) async => _unusedDetail(),
-      importPreviewer: (_, __) async => throw UnimplementedError(),
-      importer: (_, __) async => throw UnimplementedError(),
+      detailLoader: (_, _) async => _unusedDetail(),
+      importPreviewer: (_, _) async => throw UnimplementedError(),
+      importer: (_, _) async => throw UnimplementedError(),
       externalSpeciesSearcher: (rawQuery) async =>
           const PokemonExternalSpeciesSearchResult.empty(
         rawQuery: '',
@@ -98,8 +98,8 @@ void main() {
       ),
       externalBatchSelectionResolver: externalBatchSelectionResolver,
       externalBatchPreviewer: externalBatchPreviewer,
-      externalImportPreviewer: (_, __) async => throw UnimplementedError(),
-      externalImporter: (_, __) async => throw UnimplementedError(),
+      externalImportPreviewer: (_, _) async => throw UnimplementedError(),
+      externalImporter: (_, _) async => throw UnimplementedError(),
     );
   }
 
@@ -127,7 +127,7 @@ void main() {
             normalizedQuery: rawQuery.trim(),
           );
         },
-        externalBatchPreviewer: (_, __) async => _sampleBatchDryRunPreview(),
+        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
       ),
     );
     await tester.pump();
@@ -205,7 +205,7 @@ void main() {
               'Le mode batch attend une liste explicite, une plage Pokédex '
               'ou une génération.',
         ),
-        externalBatchPreviewer: (_, __) async => _sampleBatchDryRunPreview(),
+        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
       ),
     );
     await tester.pump();

@@ -133,7 +133,7 @@ void _expectTransientOnly(_EraseHarness harness) {
 
 class _EraseHarness {
   _EraseHarness() {
-    keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     notifier.state = const EditorState(
       project: _project,
       activeMap: _map,

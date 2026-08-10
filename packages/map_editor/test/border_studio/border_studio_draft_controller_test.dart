@@ -892,7 +892,7 @@ void main() {
         );
         final subscription = container.listen(
           borderStudioDraftControllerProvider,
-          (_, __) {},
+          (_, _) {},
           fireImmediately: true,
         );
         addTearDown(() {
@@ -961,7 +961,7 @@ void main() {
         );
         final subscription = container.listen(
           borderStudioDraftControllerProvider,
-          (_, __) {},
+          (_, _) {},
           fireImmediately: true,
         );
         addTearDown(() {
@@ -1073,7 +1073,7 @@ void main() {
       addTearDown(container.dispose);
       final subscription = container.listen(
         borderStudioDraftControllerProvider,
-        (_, __) {},
+        (_, _) {},
         fireImmediately: true,
       );
       final controller = container.read(

@@ -1498,7 +1498,7 @@ void main() {
           (_) async => _movesCatalogView,
         ),
         pokedexSpeciesDetailLoaderProvider.overrideWithValue(
-          (_, __) async => throw StateError('detail loader exploded'),
+          (_, _) async => throw StateError('detail loader exploded'),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
           LoadPokemonItemsCatalogUseCase(

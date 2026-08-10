@@ -269,7 +269,7 @@ List<BorderDiagnostic> _snapshotPayloadDiagnostics(
   final validation = snapshotService.validatePreparedPayloads(
     snapshots: <BorderVisualSnapshot>[
       for (final snapshotId in referencedSnapshotIds)
-        if (snapshotsById[snapshotId] case final snapshot?) snapshot,
+        ?snapshotsById[snapshotId],
     ],
     files: request.files,
   );

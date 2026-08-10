@@ -628,7 +628,7 @@ class _ElementFramesEditorState extends State<_ElementFramesEditor> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: frames.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              separatorBuilder: (_, _) => const SizedBox(width: 6),
               itemBuilder: (context, index) {
                 final frame = frames[index];
                 final isSelected = index == _selectedIndex;

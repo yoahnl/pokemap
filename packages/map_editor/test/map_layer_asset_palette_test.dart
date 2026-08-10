@@ -270,7 +270,7 @@ class _PaletteHarness {
         ),
       ],
     );
-    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    final keepAlive = container.listen(editorNotifierProvider, (_, _) {});
     const contextKey = EditorPaletteContextKey(
       mapId: 'town',
       layerId: 'ground',

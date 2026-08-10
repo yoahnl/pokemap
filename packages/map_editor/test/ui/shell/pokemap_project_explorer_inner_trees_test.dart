@@ -86,7 +86,7 @@ void main() {
         tilesets: [],
       );
       final container = ProviderContainer();
-      final sub = container.listen(editorNotifierProvider, (_, __) {});
+      final sub = container.listen(editorNotifierProvider, (_, _) {});
       final notifier = container.read(editorNotifierProvider.notifier);
 
       addTearDown(() async {
@@ -132,7 +132,7 @@ void main() {
         (tester) async {
       final project = buildShellChromeProject(name: 'Test Project');
       final container = ProviderContainer();
-      final sub = container.listen(editorNotifierProvider, (_, __) {});
+      final sub = container.listen(editorNotifierProvider, (_, _) {});
       final notifier = container.read(editorNotifierProvider.notifier);
 
       addTearDown(() async {

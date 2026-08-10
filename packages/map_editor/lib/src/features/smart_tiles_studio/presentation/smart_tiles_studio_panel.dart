@@ -1616,7 +1616,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     return ListView.separated(
       padding: const EdgeInsets.all(18),
       itemCount: preset.rules.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final rule = preset.rules[index];
         final mask = smartTileMaskForSignature(
@@ -1792,7 +1792,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     return ListView.separated(
       padding: const EdgeInsets.all(18),
       itemCount: animations.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final animation = animations[index];
         final duration = animation.frames.fold<int>(
@@ -3521,7 +3521,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       guideId: _session.state.guideId?.name,
       clearGuide: _session.state.guideId == null,
       sourceTilesetIds: <String>[
-        if (_selectedSourceTilesetId case final id?) id,
+        ?_selectedSourceTilesetId,
       ],
     );
   }

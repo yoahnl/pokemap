@@ -1,4 +1,3 @@
-library personalization_hub;
 
 export 'src/features/personalization/application/project_font_import_service.dart';
 export 'src/features/personalization/application/project_intro_video_import_service.dart';

@@ -86,7 +86,7 @@ Future<ProviderContainer> pumpEditorShellPage(
   );
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() async {
@@ -195,7 +195,7 @@ Future<ProviderContainer> pumpEditorCanvasHostHarness(
   final container = ProviderContainer(overrides: overrides);
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() async {
@@ -239,7 +239,7 @@ Future<ProviderContainer> pumpTopToolbarHarness(
   final container = ProviderContainer();
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() async {
@@ -291,7 +291,7 @@ Future<ProviderContainer> pumpStatusBarHarness(
   );
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,
-    (_, __) {},
+    (_, _) {},
     fireImmediately: true,
   );
   addTearDown(() async {

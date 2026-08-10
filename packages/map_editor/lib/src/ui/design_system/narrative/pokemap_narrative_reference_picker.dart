@@ -529,7 +529,7 @@ String _semanticLabel(CanonicalNarrativeReferenceOption option) {
       NarrativeReferenceAvailability.missing => 'manquante',
     },
     if (option.breadcrumbLabels.isNotEmpty) option.breadcrumbLabels.join(' › '),
-    if (option.diagnostic case final diagnostic?) diagnostic,
+    ?option.diagnostic,
   ];
   return parts.join(', ');
 }

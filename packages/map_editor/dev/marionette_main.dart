@@ -85,7 +85,7 @@ void main() {
   );
   developer.registerExtension('ext.flutter.pokemap.marionette.projectContext', (
     _,
-    __,
+    _,
   ) async {
     final editor = container.read(editorNotifierProvider);
     return developer.ServiceExtensionResponse.result(
@@ -812,7 +812,7 @@ _reanalyzeSavePublishBorderBlueprint({
     return response(<String, Object?>{
       'ok': false,
       'stage': stage,
-      if (blueprintId != null) 'blueprintId': blueprintId,
+      'blueprintId': ?blueprintId,
       'reanalyzedPrimitiveCount': reanalyzedPrimitives.length,
       'reanalyzedPrimitives': reanalyzedPrimitives,
       'errorType': error.runtimeType.toString(),

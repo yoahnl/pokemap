@@ -160,7 +160,7 @@ class _PokedexExternalSpeciesAutocompleteFieldState
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 shrinkWrap: true,
                 itemCount: suggestions.length,
-                separatorBuilder: (_, __) => Container(
+                separatorBuilder: (_, _) => Container(
                   height: 1,
                   color: EditorChrome.subtleSeparator(context),
                 ),

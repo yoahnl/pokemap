@@ -359,7 +359,7 @@ Future<_WorkspaceHarness> _pumpWorkspace(
     ],
   );
   addTearDown(container.dispose);
-  container.listen(editorNotifierProvider, (_, __) {});
+  container.listen(editorNotifierProvider, (_, _) {});
   final notifier = container.read(editorNotifierProvider.notifier);
   notifier.state = EditorState(
     projectRootPath: root.path,

@@ -217,7 +217,7 @@ final class SmartTileAuthoringController {
     };
     final materials = <ProjectSmartTileMaterial>[
       for (final id in draft.allowedMaterialIds)
-        if (materialsById[id] case final material?) material,
+        ?materialsById[id],
     ];
     final mappings = <int, List<SmartTileCandidate>>{};
     final transitionCases = <SmartTileRule>[];
