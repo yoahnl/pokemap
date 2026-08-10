@@ -31,7 +31,7 @@ class CharacterAnimationSourceEditor extends StatefulWidget {
   final bool enabled;
   final Future<void> Function() onImportSource;
   final Future<void> Function(List<CharacterAnimationFrame> frames)
-  onFramesChanged;
+      onFramesChanged;
   final Future<void> Function(bool loop) onLoopChanged;
 
   @override
@@ -81,24 +81,27 @@ class _CharacterAnimationSourceEditorState
       return PokeMapPanel(
         key: const ValueKey<String>('animation-source-editor-empty'),
         padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const PokeMapEmptyState(
-              title: 'Aucune source portable',
-              description:
-                  'Importez un PNG pour découper et éditer ce slot précisément.',
-              icon: Icon(CupertinoIcons.photo_on_rectangle),
-              compact: true,
-            ),
-            const SizedBox(height: 14),
-            PokeMapButton(
-              key: const ValueKey<String>('animation-source-import'),
-              onPressed: widget.enabled ? widget.onImportSource : null,
-              leading: const Icon(CupertinoIcons.folder_open),
-              child: const Text('Choisir une source PNG'),
-            ),
-          ],
+        expandChild: true,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const PokeMapEmptyState(
+                title: 'Aucune source portable',
+                description:
+                    'Importez un PNG pour découper et éditer ce slot précisément.',
+                icon: Icon(CupertinoIcons.photo_on_rectangle),
+                compact: true,
+              ),
+              const SizedBox(height: 14),
+              PokeMapButton(
+                key: const ValueKey<String>('animation-source-import'),
+                onPressed: widget.enabled ? widget.onImportSource : null,
+                leading: const Icon(CupertinoIcons.folder_open),
+                child: const Text('Choisir une source PNG'),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -286,9 +289,8 @@ class _CharacterAnimationSourceEditorState
                   alignment: Alignment.centerRight,
                   child: PokeMapButton(
                     key: const ValueKey<String>('animation-grid-apply'),
-                    onPressed: widget.enabled
-                        ? () => _applyGrid(dimensions)
-                        : null,
+                    onPressed:
+                        widget.enabled ? () => _applyGrid(dimensions) : null,
                     leading: const Icon(CupertinoIcons.square_grid_3x2),
                     child: const Text('Appliquer la grille'),
                   ),

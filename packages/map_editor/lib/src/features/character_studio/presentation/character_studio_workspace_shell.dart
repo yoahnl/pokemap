@@ -57,7 +57,7 @@ class _CharacterStudioWorkspaceShellState
               final isWide = width >= _wideBreakpoint;
               final isMedium = width >= _mediumBreakpoint && !isWide;
               return FocusTraversalGroup(
-                policy: ReadingOrderTraversalPolicy(),
+                policy: OrderedTraversalPolicy(),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -89,8 +89,8 @@ class _CharacterStudioWorkspaceShellState
                       child: isWide
                           ? _buildWideLayout()
                           : isMedium
-                          ? _buildMediumLayout()
-                          : _buildCompactLayout(),
+                              ? _buildMediumLayout()
+                              : _buildCompactLayout(),
                     ),
                   ],
                 ),
@@ -143,6 +143,7 @@ class _CharacterStudioWorkspaceShellState
     return _CharacterStudioRegion(
       key: const ValueKey<String>('character-studio-library-region'),
       semanticLabel: 'Bibliothèque des personnages',
+      focusOrder: 1,
       child: widget.library,
     );
   }
@@ -151,6 +152,7 @@ class _CharacterStudioWorkspaceShellState
     return _CharacterStudioRegion(
       key: const ValueKey<String>('character-studio-canvas-region'),
       semanticLabel: 'Espace d’édition du personnage',
+      focusOrder: 2,
       child: widget.canvas,
     );
   }
@@ -159,6 +161,7 @@ class _CharacterStudioWorkspaceShellState
     return _CharacterStudioRegion(
       key: const ValueKey<String>('character-studio-inspector-region'),
       semanticLabel: 'Inspecteur Character Studio',
+      focusOrder: 3,
       child: widget.inspector,
     );
   }
@@ -190,25 +193,33 @@ class _CharacterStudioRegion extends StatelessWidget {
   const _CharacterStudioRegion({
     super.key,
     required this.semanticLabel,
+    required this.focusOrder,
     required this.child,
   });
 
   final String semanticLabel;
+  final double focusOrder;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      container: true,
-      explicitChildNodes: true,
-      label: semanticLabel,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: PokeMapPanel(
-          padding: EdgeInsets.zero,
-          borderRadius: 8,
-          expandChild: true,
-          child: child,
+    return FocusTraversalOrder(
+      order: NumericFocusOrder(focusOrder),
+      child: FocusTraversalGroup(
+        policy: ReadingOrderTraversalPolicy(),
+        child: Semantics(
+          container: true,
+          explicitChildNodes: true,
+          label: semanticLabel,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: PokeMapPanel(
+              padding: EdgeInsets.zero,
+              borderRadius: 8,
+              expandChild: true,
+              child: child,
+            ),
+          ),
         ),
       ),
     );
@@ -240,9 +251,8 @@ class _CharacterStudioHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final readiness = analyzeCharacterStudioReadiness(
       manifest: project,
-      requiredCharacterIds: project.characters
-          .map((character) => character.id)
-          .toSet(),
+      requiredCharacterIds:
+          project.characters.map((character) => character.id).toSet(),
     );
     final title = Row(
       mainAxisSize: MainAxisSize.min,
@@ -327,19 +337,19 @@ class _CharacterStudioHeader extends StatelessWidget {
           label: isSaving
               ? 'Sauvegarde…'
               : hasUnsavedChanges
-              ? 'Modifications non enregistrées'
-              : statusMessage ?? 'Sauvegardé automatiquement',
+                  ? 'Modifications non enregistrées'
+                  : statusMessage ?? 'Sauvegardé automatiquement',
           variant: isSaving
               ? PokeMapBadgeVariant.info
               : hasUnsavedChanges
-              ? PokeMapBadgeVariant.warning
-              : PokeMapBadgeVariant.neutral,
+                  ? PokeMapBadgeVariant.warning
+                  : PokeMapBadgeVariant.neutral,
           icon: Icon(
             isSaving
                 ? CupertinoIcons.arrow_2_circlepath
                 : hasUnsavedChanges
-                ? CupertinoIcons.exclamationmark_triangle
-                : CupertinoIcons.checkmark_alt_circle,
+                    ? CupertinoIcons.exclamationmark_triangle
+                    : CupertinoIcons.checkmark_alt_circle,
           ),
         ),
       ],
