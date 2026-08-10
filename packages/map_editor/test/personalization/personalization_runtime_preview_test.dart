@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
+import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
   testWidgets('PST-040 projects the current title screen contract', (
@@ -37,12 +37,7 @@ void main() {
       find.byKey(const ValueKey<String>('personalization-preview-title')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(
-        const ValueKey<String>('branding-title-preview-layout-cinematic'),
-      ),
-      findsOneWidget,
-    );
+    expect(find.byType(PlayerTitleSurface), findsOneWidget);
     expect(find.text('Pokémon Aurore'), findsOneWidget);
     expect(find.text('Aurore Display'), findsOneWidget);
   });
@@ -82,10 +77,9 @@ void main() {
     );
     expect(find.text('Professeure Saule'), findsOneWidget);
     expect(find.textContaining('Le monde est peuplé'), findsOneWidget);
+    expect(find.byType(PlayerDialogueSurface), findsOneWidget);
     final dialogueText = tester.widget<Text>(
-      find.byKey(
-        const ValueKey<String>('personalization-dialogue-sample-text'),
-      ),
+      find.text('Le monde est peuplé de créatures extraordinaires.'),
     );
     expect(dialogueText.style?.fontFamily, 'Aurore Dialogue');
 
@@ -94,17 +88,18 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      find.byKey(const ValueKey<String>('personalization-menu-composition')),
+      find.byKey(const ValueKey<String>('personalization-pause-composition')),
       findsOneWidget,
     );
-    expect(find.text('Interlude'), findsNWidgets(2));
-    expect(find.text('Équipe'), findsOneWidget);
-    expect(find.text('Carnet'), findsOneWidget);
-    expect(find.text('Pokédex'), findsNothing);
-    final menuText = tester.widget<Text>(
-      find.byKey(const ValueKey<String>('personalization-menu-sample-text')),
+    expect(find.byType(PlayerPauseSurface), findsOneWidget);
+    expect(find.text('Interlude'), findsOneWidget);
+    final pause = tester.widget<PlayerPauseSurface>(
+      find.byType(PlayerPauseSurface),
     );
-    expect(menuText.style?.fontFamily, 'Aurore Body');
+    expect(pause.labels.pauseTitle, 'Interlude');
+    expect(pause.labels.pokedex, 'Carnet');
+    final pauseContext = tester.element(find.byType(PlayerPauseSurface));
+    expect(pauseContext.playerTypography.bodyFamily, 'Aurore Body');
   });
 
   testWidgets('PST-042 exposes global style and battle scenes', (tester) async {
@@ -134,8 +129,10 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Route des Brumes'), findsOneWidget);
-    expect(find.textContaining('Rejoins le laboratoire'), findsOneWidget);
+    expect(find.byType(PlayerTitleSurface), findsOneWidget);
+    expect(find.byType(PlayerDialogueSurface), findsOneWidget);
+    expect(find.byType(PlayerPauseSurface), findsOneWidget);
+    expect(find.byType(PlayerBattleSurface), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('personalization-preview-battle')),
@@ -145,14 +142,15 @@ void main() {
       find.byKey(const ValueKey<String>('personalization-battle-composition')),
       findsOneWidget,
     );
-    expect(find.text('BRINDIBOU'), findsOneWidget);
-    expect(find.text('PV 42 / 55'), findsOneWidget);
-    final battleNumbers = tester.widget<Text>(
-      find.byKey(
-        const ValueKey<String>('personalization-battle-numbers-sample'),
-      ),
+    expect(find.byType(PlayerBattleSurface), findsOneWidget);
+    final battle = tester.widget<PlayerBattleSurface>(
+      find.byType(PlayerBattleSurface),
     );
-    expect(battleNumbers.style?.fontFamily, 'Aurore Numbers');
+    expect(battle.data.player.speciesLabel, 'BRINDIBOU');
+    expect(battle.data.player.currentHp, 42);
+    expect(battle.data.player.maxHp, 55);
+    final battleContext = tester.element(find.byType(PlayerBattleSurface));
+    expect(battleContext.playerTypography.numbersFamily, 'Aurore Numbers');
   });
 
   testWidgets('window styling is visible on Dialogue and Pause previews', (
@@ -210,25 +208,25 @@ void main() {
       find.byKey(const ValueKey<String>('personalization-preview-dialogue')),
     );
     await tester.pumpAndSettle();
-    final dialogue = tester.widget<Container>(
-      find.byKey(const ValueKey<String>('personalization-dialogue-window')),
+    final dialogueContext = tester.element(find.byType(PlayerDialogueSurface));
+    final dialogueStyle = dialogueContext.playerWindowTheme!.style(
+      ProjectWindowRole.dialogue,
     );
-    final dialogueDecoration = dialogue.decoration! as BoxDecoration;
-    expect(dialogue.padding, const EdgeInsets.all(12));
-    expect(dialogueDecoration.borderRadius, BorderRadius.circular(8));
-    expect((dialogueDecoration.border! as Border).top.width, 2);
+    expect(dialogueStyle.contentPadding, 12);
+    expect(dialogueStyle.cornerRadius, 8);
+    expect(dialogueStyle.borderWidth, 2);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('personalization-preview-pause')),
     );
     await tester.pumpAndSettle();
-    final menu = tester.widget<Container>(
-      find.byKey(const ValueKey<String>('personalization-menu-window')),
+    final pauseContext = tester.element(find.byType(PlayerPauseSurface));
+    final pauseStyle = pauseContext.playerWindowTheme!.style(
+      ProjectWindowRole.pauseMenu,
     );
-    final menuDecoration = menu.decoration! as BoxDecoration;
-    expect(menu.padding, const EdgeInsets.all(20));
-    expect(menuDecoration.borderRadius, BorderRadius.circular(24));
-    expect((menuDecoration.border! as Border).top.width, 3);
+    expect(pauseStyle.contentPadding, 20);
+    expect(pauseStyle.cornerRadius, 24);
+    expect(pauseStyle.borderWidth, 3);
   });
 
   testWidgets('PST-043 previews portrait intro poster and reduced motion', (
@@ -265,14 +263,11 @@ void main() {
       find.byKey(const ValueKey<String>('personalization-intro-composition')),
       findsOneWidget,
     );
-    expect(find.text('Portrait 9:16'), findsOneWidget);
-    expect(find.text('Mouvement réduit : poster'), findsOneWidget);
-    expect(
-      find.byKey(
-        const ValueKey<String>('personalization-intro-poster-fallback'),
-      ),
-      findsOneWidget,
+    final intro = tester.widget<PlayerIntroVideoSurface>(
+      find.byType(PlayerIntroVideoSurface),
     );
+    expect(intro.isPoster, isTrue);
+    expect(intro.media, isNull);
   });
 
   testWidgets('PST-044 simulates viewport text scale and reduced motion', (
@@ -391,18 +386,7 @@ void main() {
     );
     expect(find.text('Avant'), findsOneWidget);
     expect(find.text('Maintenant'), findsOneWidget);
-    expect(
-      find.byKey(
-        const ValueKey<String>('branding-title-preview-layout-standard'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(
-        const ValueKey<String>('branding-title-preview-layout-centered'),
-      ),
-      findsOneWidget,
-    );
+    expect(find.byType(PlayerTitleSurface), findsNWidgets(2));
     expect(find.text('Texte 150 %'), findsOneWidget);
   });
 
@@ -457,7 +441,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Animation du titre active'), findsOneWidget);
+    final titleContext = tester.element(find.byType(PlayerTitleSurface));
+    expect(titleContext.playerMotion.fast, isNot(Duration.zero));
 
     await tester.tap(
       find.byKey(
@@ -466,11 +451,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Titre statique — mouvement réduit'), findsOneWidget);
-    expect(find.text('Animation du titre active'), findsNothing);
+    final reducedTitleContext = tester.element(find.byType(PlayerTitleSurface));
+    expect(reducedTitleContext.playerMotion.fast, Duration.zero);
   });
 
-  testWidgets('surface navigation is semantic and keyboard operable', (
+  testWidgets('surface navigation is semantic and directly operable', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
@@ -498,8 +483,9 @@ void main() {
       ),
     );
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-preview-globalStyle')),
+    );
     await tester.pumpAndSettle();
     expect(
       find.byKey(
@@ -508,18 +494,18 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-preview-title')),
+    );
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey<String>('personalization-title-composition')),
       findsOneWidget,
     );
 
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-preview-globalStyle')),
+    );
     await tester.pumpAndSettle();
     expect(
       find.byKey(

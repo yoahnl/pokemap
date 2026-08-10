@@ -32,6 +32,8 @@ dependencies:
     path: ../map_distribution
   map_gameplay:
     path: ../map_gameplay
+  map_player_ui:
+    path: ../map_player_ui
   cupertino_icons: ^1.0.8
   http: ^1.2.2
   flame_audio: ^2.12.1

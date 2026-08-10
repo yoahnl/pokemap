@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core.dart'
-    show
-        ProjectPresentationLayoutsProfile,
-        ProjectPresentationWindowsProfile;
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../theme/pokemap_player_theme.dart';
@@ -11,6 +8,10 @@ import 'player_title_screen.dart';
 
 typedef RuntimePresentationImageResolver = ImageProvider? Function(
   RuntimeStartupPresentationAsset? asset,
+);
+
+typedef ProjectPresentationImageResolver = ImageProvider? Function(
+  String assetPath,
 );
 
 @immutable
@@ -47,6 +48,37 @@ final class RuntimePlayerPresentation {
       windowProfile: profile?.windows,
       layoutProfile: profile?.layouts,
       pauseMenuLabels: _pauseMenuLabels(profile?.menuLabels),
+    );
+  }
+
+  factory RuntimePlayerPresentation.fromProfile(
+    ProjectPresentationProfile profile, {
+    String author = '',
+    String? description,
+    ProjectPresentationImageResolver? imageForPath,
+  }) {
+    final branding = profile.branding;
+    final heroPath = branding.heroPath ?? branding.coverPath;
+    return RuntimePlayerPresentation(
+      title: RuntimePlayerTitlePresentation(
+        author: author,
+        description: description,
+        background: heroPath == null ? null : imageForPath?.call(heroPath),
+        logo: branding.iconPath == null
+            ? null
+            : imageForPath?.call(branding.iconPath!),
+        accentColor: PokeMapPlayerProjectColorResolver.tryHex(
+          branding.accentColor,
+        ),
+        layoutVariant: PlayerTitleLayoutVariant.fromManifest(
+          branding.layoutVariant,
+        ),
+      ),
+      typography: _typographyFromProfile(profile.typography),
+      semanticTheme: _semanticTheme(profile.theme),
+      windowProfile: profile.windows,
+      layoutProfile: profile.layouts,
+      pauseMenuLabels: _pauseMenuLabels(profile.menuLabels),
     );
   }
 
@@ -111,6 +143,24 @@ PokeMapPlayerTypography _typography(RuntimeLoadedTypography? source) {
     numbersFallback: numbers.fallbackFamilies,
   );
 }
+
+PokeMapPlayerTypography _typographyFromProfile(
+  ProjectTypographyProfile? source,
+) =>
+    PokeMapPlayerTypography(
+      displayFamily: source?.display.family,
+      displayFallback:
+          source?.display.fallbackFamilies ?? const <String>['sans-serif'],
+      bodyFamily: source?.body.family,
+      bodyFallback:
+          source?.body.fallbackFamilies ?? const <String>['sans-serif'],
+      dialogueFamily: source?.dialogue.family,
+      dialogueFallback:
+          source?.dialogue.fallbackFamilies ?? const <String>['sans-serif'],
+      numbersFamily: source?.numbers.family,
+      numbersFallback:
+          source?.numbers.fallbackFamilies ?? const <String>['monospace'],
+    );
 
 PokeMapPlayerSemanticTheme? _semanticTheme(
   ProjectSemanticThemeProfile? source,

@@ -9,10 +9,8 @@ import '../application/personalization_preview_surface_descriptor.dart';
 typedef PersonalizationStudioSceneBuilder =
     Widget Function({
       required ProjectPresentationProfile profile,
-      required PersonalizationStudioScene surface,
-      required PersonalizationStudioSceneProjection projection,
+      required PersonalizationStudioScene scene,
       required double aspectRatio,
-      required PersonalizationPreviewViewportMetrics metrics,
       required bool reducedMotion,
     });
 
@@ -28,9 +26,6 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final projection = PersonalizationPreviewProjection(
-      scenario.draftProfile,
-    ).surface(scenario.surface);
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = switch (scenario.viewport) {
@@ -66,19 +61,15 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
                           before: _buildBaseline(),
                           after: surfaceBuilder(
                             profile: scenario.draftProfile,
-                            surface: scenario.surface,
-                            projection: projection,
+                            scene: scenario.surface,
                             aspectRatio: scenario.viewport.aspectRatio,
-                            metrics: scenario.metrics,
                             reducedMotion: scenario.reducedMotion,
                           ),
                         )
                       : surfaceBuilder(
                           profile: scenario.draftProfile,
-                          surface: scenario.surface,
-                          projection: projection,
+                          scene: scenario.surface,
                           aspectRatio: scenario.viewport.aspectRatio,
-                          metrics: scenario.metrics,
                           reducedMotion: scenario.reducedMotion,
                         ),
                 ),
@@ -94,12 +85,8 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
     final baseline = scenario.baselineProfile!;
     return surfaceBuilder(
       profile: baseline,
-      surface: scenario.surface,
-      projection: PersonalizationPreviewProjection(
-        baseline,
-      ).surface(scenario.surface),
+      scene: scenario.surface,
       aspectRatio: scenario.viewport.aspectRatio,
-      metrics: scenario.metrics,
       reducedMotion: scenario.reducedMotion,
     );
   }
