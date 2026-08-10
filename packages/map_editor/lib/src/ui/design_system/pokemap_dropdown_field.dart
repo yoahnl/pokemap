@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 import '../../theme/theme.dart';
 
 class PokeMapDropdownItem<T> {
-  const PokeMapDropdownItem({
-    required this.value,
-    required this.label,
-  });
+  const PokeMapDropdownItem({required this.value, required this.label});
 
   final T value;
   final String label;
@@ -73,6 +70,9 @@ class PokeMapDropdownField<T> extends StatelessWidget {
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: colors.textPrimary,
+                    fontFamily: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.fontFamily,
                   ),
                   onChanged: canOpen
                       ? (next) {

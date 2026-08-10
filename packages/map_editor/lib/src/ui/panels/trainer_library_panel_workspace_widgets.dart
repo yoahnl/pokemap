@@ -842,6 +842,29 @@ class _TrainerStudioPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtle = EditorChrome.subtleLabel(context);
+    final heading = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: EditorChrome.primaryLabel(context),
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          style: TextStyle(
+            color: subtle,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            height: 1.3,
+          ),
+        ),
+      ],
+    );
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -858,36 +881,29 @@ class _TrainerStudioPane extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            if (headerAction == null)
+              heading
+            else
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 320) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        heading,
+                        const SizedBox(height: 8),
+                        headerAction!,
+                      ],
+                    );
+                  }
+                  return Row(
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          color: EditorChrome.primaryLabel(context),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          color: subtle,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          height: 1.3,
-                        ),
-                      ),
+                      Expanded(child: heading),
+                      headerAction!,
                     ],
-                  ),
-                ),
-                if (headerAction != null) headerAction!,
-              ],
-            ),
+                  );
+                },
+              ),
             const SizedBox(height: 12),
             Expanded(child: child),
           ],

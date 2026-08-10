@@ -13,7 +13,6 @@ import '../../features/editor/tools/editor_tool.dart';
 import '../../features/border_map_editing/presentation/border_layer_inspector_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_section_card.dart';
-import 'encounter_tables_panel.dart';
 import 'entity_properties_panel.dart';
 import 'event_properties_panel.dart';
 import 'gameplay_zone_properties_panel.dart';
@@ -41,7 +40,6 @@ enum _InspectorSectionId {
   triggers,
   warps,
   gameplayZones,
-  encounterTables,
 }
 
 class MapInspectorPanel extends ConsumerStatefulWidget {
@@ -189,10 +187,6 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
         state.activeTool == EditorToolType.gameplayZonePlacement ||
             state.selectedGameplayZoneId != null ||
             activeMap.gameplayZones.isNotEmpty;
-    final showEncounterTablesSection =
-        (state.project?.encounterTables.isNotEmpty ?? false) ||
-            showGameplayZoneSection;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final paletteHeight = constraints.maxHeight.isFinite
@@ -558,25 +552,6 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                   ),
                   expandedHeight: 520,
                   child: const GameplayZonePropertiesPanel(embedded: true),
-                ),
-              if (showEncounterTablesSection)
-                InspectorSectionCard(
-                  title: 'Tables de rencontres',
-                  subtitle:
-                      'Tables de rencontres au niveau du projet pour les Pokémon sauvages.',
-                  icon: CupertinoIcons.list_bullet,
-                  badgeText: '${state.project?.encounterTables.length ?? 0}',
-                  accentColor: EditorChrome.inspectorJoyCyan,
-                  expanded: _isExpanded(
-                    _InspectorSectionId.encounterTables,
-                    false,
-                  ),
-                  onToggle: () => _toggleSection(
-                    _InspectorSectionId.encounterTables,
-                    defaultExpanded: false,
-                  ),
-                  expandedHeight: 480,
-                  child: const EncounterTablesPanel(embedded: true),
                 ),
             ],
           ),

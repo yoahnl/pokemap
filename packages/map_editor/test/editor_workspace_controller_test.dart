@@ -74,6 +74,25 @@ void main() {
       );
     });
 
+    test('selectWildEncounterTableWorkspace targets the requested table', () {
+      const current = EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        encounterStudioSection: EncounterStudioSection.trainers,
+      );
+
+      final next = controller.selectWildEncounterTableWorkspace(
+        current,
+        'route_1_grass',
+      );
+
+      expect(next.workspaceMode, EditorWorkspaceMode.encounter);
+      expect(
+        next.encounterStudioSection,
+        EncounterStudioSection.wildEncounters,
+      );
+      expect(next.encounterStudioTableId, 'route_1_grass');
+    });
+
     test('selectDialogueWorkspace keeps project session and only changes mode',
         () {
       const current = EditorState(

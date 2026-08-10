@@ -67,6 +67,16 @@ class EditorWorkspaceController {
     );
   }
 
+  EditorState selectWildEncounterTableWorkspace(
+    EditorState current,
+    String tableId,
+  ) {
+    return selectEncounterStudioSection(
+      current.copyWith(encounterStudioTableId: tableId),
+      EncounterStudioSection.wildEncounters,
+    );
+  }
+
   EditorState selectNarrativeOverviewWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.narrativeOverview);
   }

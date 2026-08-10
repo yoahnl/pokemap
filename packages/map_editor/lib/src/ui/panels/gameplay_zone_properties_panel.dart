@@ -8,6 +8,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../design_system/design_system.dart';
 import 'battle_background_path_utils.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
@@ -305,12 +306,10 @@ class _GameplayZonePropertiesPanelState
         if (_selectedKind == GameplayZoneKind.encounter) ...[
           const _SectionDivider('Encounter'),
           const SizedBox(height: 8),
-          if (encounterTableOptions.isNotEmpty)
-            _buildEncounterTableDropdown(
-              context,
-              coral,
-              encounterTableOptions,
-            ),
+          _buildEncounterTablePicker(
+            notifier,
+            encounterTableOptions,
+          ),
           const SizedBox(height: 8),
           _buildEncounterKindDropdown(context, coral),
           const SizedBox(height: 8),
@@ -446,54 +445,80 @@ class _GameplayZonePropertiesPanelState
 
   // ── Payload dropdowns ──────────────────────────────────────────────────────
 
-  Widget _buildEncounterTableDropdown(
-    BuildContext context,
-    Color accent,
+  Widget _buildEncounterTablePicker(
+    EditorNotifier notifier,
     List<ProjectEncounterTable> options,
   ) {
-    if (widget.embedded) {
-      return InspectorEmbeddedDropdown(
-        accent: accent,
-        fieldLabel: 'Encounter Table',
-        valueLabel: _encounterTableId == null
-            ? '—'
-            : (options
-                .firstWhere(
-                  (t) => t.id == _encounterTableId,
-                  orElse: () => options.first,
-                )
-                .name),
-        orderedIds: ['', ...options.map((t) => t.id)],
-        selectedMenuValue: _encounterTableId ?? '',
-        selectedIdForCheck: _encounterTableId ?? '',
-        idToLabel: (id) => id.isEmpty
-            ? '— None —'
-            : (options
-                .firstWhere((t) => t.id == id, orElse: () => options.first)
-                .name),
-        onSelected: (id) => setState(
-          () => _encounterTableId = id.isEmpty ? null : id,
-        ),
-        tooltip: 'Encounter table',
-      );
+    ProjectEncounterTable? selectedTable;
+    for (final option in options) {
+      if (option.id == _encounterTableId) {
+        selectedTable = option;
+        break;
+      }
     }
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      alignment: Alignment.centerLeft,
-      onPressed: () async {
-        final picked = await showCupertinoListPicker<ProjectEncounterTable?>(
-          context: context,
-          title: 'Encounter Table',
-          items: [null, ...options],
-          labelOf: (t) => t == null ? '— None —' : t.name,
-        );
-        if (picked != null || _encounterTableId != null) {
-          setState(() => _encounterTableId = picked?.id);
-        }
-      },
-      child: Text(
-        'Encounter Table: ${_encounterTableId == null ? '—' : options.firstWhere((t) => t.id == _encounterTableId!, orElse: () => options.first).name}',
-      ),
+    final missingTableId = _encounterTableId != null && selectedTable == null
+        ? _encounterTableId
+        : null;
+    final selectedValue = _encounterTableId ?? '';
+    final items = <PokeMapDropdownItem<String>>[
+      const PokeMapDropdownItem(value: '', label: 'Aucune table'),
+      if (missingTableId != null)
+        PokeMapDropdownItem(
+          value: missingTableId,
+          label: 'Table supprimée : $missingTableId',
+        ),
+      for (final option in options)
+        PokeMapDropdownItem(value: option.id, label: option.name),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PokeMapDropdownField<String>(
+          key: const Key('gameplay-zone-encounter-table-picker'),
+          label: 'Table de rencontres',
+          value: selectedValue,
+          items: items,
+          onChanged: (id) => setState(
+            () => _encounterTableId = id.isEmpty ? null : id,
+          ),
+          compact: widget.embedded,
+        ),
+        if (missingTableId != null) ...[
+          const SizedBox(height: 8),
+          PokeMapDiagnosticCallout(
+            severity: PokeMapDiagnosticSeverity.error,
+            title: 'Table de rencontres introuvable',
+            message: 'Cette zone référence une table qui n’existe plus.',
+            actionLabel: 'Ouvrir Encounter Studio',
+            onAction: notifier.selectWildEncounterWorkspace,
+          ),
+        ] else if (options.isEmpty) ...[
+          const SizedBox(height: 8),
+          PokeMapDiagnosticCallout(
+            severity: PokeMapDiagnosticSeverity.info,
+            message:
+                'Créez d’abord une table dans Encounter Studio pour l’affecter à cette zone.',
+            actionLabel: 'Ouvrir Encounter Studio',
+            onAction: notifier.selectWildEncounterWorkspace,
+          ),
+        ] else if (selectedTable != null) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: PokeMapButton(
+              key: const Key('gameplay-zone-open-encounter-table'),
+              onPressed: () => notifier.selectWildEncounterTableWorkspace(
+                selectedTable!.id,
+              ),
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.arrow_up_right_square),
+              child: const Text('Ouvrir cette table'),
+            ),
+          ),
+        ],
+      ],
     );
   }
 

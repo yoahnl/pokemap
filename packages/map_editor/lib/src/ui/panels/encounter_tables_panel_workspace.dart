@@ -24,24 +24,33 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final library = _buildEncounterLibrary(
-          context: context,
-          notifier: notifier,
-          tables: tables,
+        final library = KeyedSubtree(
+          key: encounterWorkspaceLibraryKey,
+          child: _buildEncounterLibrary(
+            context: context,
+            notifier: notifier,
+            tables: tables,
+          ),
         );
-        final editor = _buildEncounterTableConfiguration(
-          context: context,
-          state: state,
-          notifier: notifier,
-          table: selectedTable,
-          references: references,
+        final editor = KeyedSubtree(
+          key: encounterWorkspaceTableKey,
+          child: _buildEncounterTableConfiguration(
+            context: context,
+            state: state,
+            notifier: notifier,
+            table: selectedTable,
+            references: references,
+          ),
         );
-        final inspector = _buildEncounterInspector(
-          context: context,
-          state: state,
-          notifier: notifier,
-          table: selectedTable,
-          references: references,
+        final inspector = KeyedSubtree(
+          key: encounterWorkspaceInspectorKey,
+          child: _buildEncounterInspector(
+            context: context,
+            state: state,
+            notifier: notifier,
+            table: selectedTable,
+            references: references,
+          ),
         );
 
         if (constraints.maxWidth < 1180) {
@@ -96,15 +105,20 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
           );
         }
 
-        final expanded = constraints.maxWidth >= 1450;
+        final libraryWidth = (constraints.maxWidth * 0.22)
+            .clamp(260.0, 320.0)
+            .toDouble();
+        final inspectorWidth = (constraints.maxWidth * 0.238)
+            .clamp(300.0, 345.0)
+            .toDouble();
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(width: expanded ? 300 : 270, child: library),
+            SizedBox(width: libraryWidth, child: library),
             const SizedBox(width: 12),
             Expanded(child: editor),
             const SizedBox(width: 12),
-            SizedBox(width: expanded ? 320 : 280, child: inspector),
+            SizedBox(width: inspectorWidth, child: inspector),
           ],
         );
       },
@@ -120,8 +134,10 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
     }
 
     ProjectEncounterTable? selected;
+    final requestedTableId = _pendingSelectedTableId;
+    _pendingSelectedTableId = null;
     for (final table in tables) {
-      if (table.id == _editingTableId) {
+      if (table.id == (requestedTableId ?? _editingTableId)) {
         selected = table;
         break;
       }
@@ -323,6 +339,8 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
     return PokeMapCard(
       key: Key('encounter-tables-table-toggle-${table.id}'),
       selected: selected,
+      keyboardInteractive: true,
+      semanticLabel: 'Table de rencontres ${table.name}',
       padding: const EdgeInsets.all(10),
       onTap: () => _selectTable(table),
       child: Column(
@@ -494,6 +512,12 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
     final runtimeCertified = _isRuntimeCertifiedEncounterKind(
       table.encounterKind,
     );
+    final canSave =
+        _validateEncounterTableName(_editTableNameController.text) == null &&
+        _validateEncounterChancePercent(
+              _editTableChancePercentController.text,
+            ) ==
+            null;
 
     return PokeMapPanel(
       borderRadius: 10,
@@ -504,13 +528,38 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
         child: PokeMapSectionHeader(
           title: table.name,
           description: 'Configuration de la table',
-          trailing: PokeMapBadge(
-            label: runtimeCertified
-                ? 'Runtime walk/surf certifié'
-                : 'Runtime non certifié',
-            variant: runtimeCertified
-                ? PokeMapBadgeVariant.success
-                : PokeMapBadgeVariant.warning,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PokeMapBadge(
+                label: runtimeCertified
+                    ? 'Runtime certifié'
+                    : 'Runtime non certifié',
+                variant: runtimeCertified
+                    ? PokeMapBadgeVariant.success
+                    : PokeMapBadgeVariant.warning,
+              ),
+              const SizedBox(width: 8),
+              PokeMapIconButton(
+                key: Key('encounter-tables-delete-table-button-${table.id}'),
+                onPressed: () => _confirmDeleteEncounterTable(
+                  context: context,
+                  notifier: notifier,
+                  table: table,
+                ),
+                icon: const Icon(Icons.delete_outline_rounded),
+                tooltip: 'Supprimer la table',
+                variant: PokeMapIconButtonVariant.danger,
+              ),
+              const SizedBox(width: 8),
+              PokeMapButton(
+                key: Key('encounter-tables-save-table-button-${table.id}'),
+                onPressed: canSave ? () => _updateTable(notifier, table) : null,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(Icons.save_outlined, size: 16),
+                child: const Text('Enregistrer'),
+              ),
+            ],
           ),
         ),
       ),
@@ -565,30 +614,28 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
     final canSave = nameError == null && rateError == null;
 
     return PokeMapCard(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const PokeMapSectionHeader(
-            title: 'Configuration de la table',
-            description:
-                'Le type, le taux et les conditions sont persistés par l’API d’authoring.',
-          ),
-          const SizedBox(height: 8),
-          PokeMapTextField(
-            label: 'Nom',
-            fieldKey: Key('encounter-tables-edit-name-field-${table.id}'),
-            controller: _editTableNameController,
-            errorText: nameError,
-            onChanged: (_) => _runLocalStateMutation(() {
-              _editTableValidationMessage = null;
-            }),
-          ),
-          const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
+                flex: 3,
+                child: PokeMapTextField(
+                  label: 'Nom',
+                  fieldKey: Key('encounter-tables-edit-name-field-${table.id}'),
+                  controller: _editTableNameController,
+                  errorText: nameError,
+                  onChanged: (_) => _runLocalStateMutation(() {
+                    _editTableValidationMessage = null;
+                  }),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
                 child: PokeMapDropdownField<EncounterKind>(
                   label: 'Type de rencontre',
                   value: _editTableKind,
@@ -599,9 +646,9 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
                   }),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               SizedBox(
-                width: 190,
+                width: 130,
                 child: PokeMapTextField(
                   label: 'Taux par pas (%)',
                   fieldKey: Key(
@@ -622,21 +669,30 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          PokeMapTextField(
-            label: 'Conditions — flags requis',
-            fieldKey: Key(
-              'encounter-tables-edit-required-flags-field-${table.id}',
-            ),
-            controller: _editTableRequiredFlagsController,
-            hintText: 'route_1_open, chapter_2',
-          ),
-          const SizedBox(height: 10),
-          PokeMapTextField(
-            label: 'Tags',
-            fieldKey: Key('encounter-tables-edit-tags-field-${table.id}'),
-            controller: _editTableTagsController,
-            hintText: 'extérieur, commun',
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: PokeMapTextField(
+                  label: 'Conditions — flags requis',
+                  fieldKey: Key(
+                    'encounter-tables-edit-required-flags-field-${table.id}',
+                  ),
+                  controller: _editTableRequiredFlagsController,
+                  hintText: 'route_1_open, chapter_2',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: PokeMapTextField(
+                  label: 'Tags',
+                  fieldKey: Key('encounter-tables-edit-tags-field-${table.id}'),
+                  controller: _editTableTagsController,
+                  hintText: 'extérieur, commun',
+                ),
+              ),
+            ],
           ),
           if (_editTableValidationMessage != null && canSave) ...[
             const SizedBox(height: 10),
@@ -645,32 +701,6 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
               message: _editTableValidationMessage!,
             ),
           ],
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              PokeMapButton(
-                key: Key('encounter-tables-delete-table-button-${table.id}'),
-                onPressed: () => _confirmDeleteEncounterTable(
-                  context: context,
-                  notifier: notifier,
-                  table: table,
-                ),
-                variant: PokeMapButtonVariant.danger,
-                size: PokeMapButtonSize.compact,
-                leading: const Icon(Icons.delete_outline_rounded, size: 17),
-                child: const Text('Supprimer'),
-              ),
-              const SizedBox(width: 8),
-              PokeMapButton(
-                key: Key('encounter-tables-save-table-button-${table.id}'),
-                onPressed: canSave ? () => _updateTable(notifier, table) : null,
-                size: PokeMapButtonSize.compact,
-                leading: const Icon(Icons.save_outlined, size: 17),
-                child: const Text('Enregistrer'),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -717,12 +747,31 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
               icon: Icon(Icons.rule_rounded),
             )
           : hasEntryDraft
-          ? _buildEncounterEntryInspectorForm(
-              context: context,
-              state: state,
-              notifier: notifier,
-              table: table,
-              references: references,
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _buildEncounterEntryInspectorForm(
+                    context: context,
+                    state: state,
+                    notifier: notifier,
+                    table: table,
+                    references: references,
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: PokeMapSectionHeader(title: 'Validation globale'),
+                ),
+                SizedBox(
+                  height: 130,
+                  child: _buildEncounterGlobalValidation(
+                    context: context,
+                    table: table,
+                    references: references,
+                  ),
+                ),
+              ],
             )
           : _buildEncounterGlobalValidation(
               context: context,
@@ -1017,6 +1066,9 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
                   key: Key(
                     'encounter-tables-entry-species-suggestion-${suggestion.id}',
                   ),
+                  keyboardInteractive: true,
+                  semanticLabel:
+                      'Choisir ${suggestion.primaryName}, ${suggestion.id}',
                   padding: const EdgeInsets.all(9),
                   onTap: () => _selectSuggestedSpecies(suggestion.id),
                   child: Row(
@@ -1300,7 +1352,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
     );
 
     return PokeMapCard(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1335,7 +1387,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
             ],
             for (var index = 0; index < table.entries.length; index++)
               Padding(
-                padding: const EdgeInsets.only(top: 7),
+                padding: const EdgeInsets.only(top: 5),
                 child: _buildEncounterRosterRow(
                   context: context,
                   table: table,
@@ -1377,8 +1429,11 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
     return PokeMapCard(
       key: Key('encounter-roster-entry-${table.id}-$entryIndex'),
       selected: selected,
+      keyboardInteractive: true,
+      semanticLabel:
+          'Entrée $speciesName, niveaux ${entry.minLevel} à ${entry.maxLevel}',
       onTap: onTap,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -1386,9 +1441,9 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
             key: Key('encounter-roster-sprite-${table.id}-$entryIndex'),
             semanticLabel: 'Portrait de $speciesName',
             imageFilePath: portraitPath,
-            size: 52,
+            size: 36,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1417,7 +1472,7 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
                       ],
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   '${entry.speciesId} · Lv. ${entry.minLevel}–${entry.maxLevel} · Poids ${entry.weight}',
                   style: TextStyle(
@@ -1441,13 +1496,6 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
                     ),
                   ),
                 ],
-                const SizedBox(height: 8),
-                if (relativeShare != null)
-                  PokeMapProgressBar(
-                    value: relativeShare,
-                    semanticLabel: 'Part relative de $speciesName',
-                    tone: PokeMapTone.map,
-                  ),
               ],
             ),
           ),
@@ -1484,6 +1532,15 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                if (relativeShare != null) ...[
+                  const SizedBox(height: 5),
+                  PokeMapProgressBar(
+                    value: relativeShare,
+                    semanticLabel: 'Part relative de $speciesName',
+                    height: 4,
+                    tone: PokeMapTone.map,
+                  ),
+                ],
               ],
             ),
           ),

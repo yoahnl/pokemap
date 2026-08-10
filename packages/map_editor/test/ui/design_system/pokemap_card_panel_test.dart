@@ -1,4 +1,7 @@
+import 'dart:ui' show PointerDeviceKind, Tristate;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
@@ -160,6 +163,59 @@ void main() {
           borderUnselected.top.color, isNot(equals(borderSelected.top.color)));
       expect(borderSelected.top.color,
           equals(capturedContext.pokeMapColors.brandPrimaryBorder));
+    });
+
+    testWidgets('PokeMapCard supports keyboard activation when opted in', (
+      tester,
+    ) async {
+      final semanticsHandle = tester.ensureSemantics();
+      var activations = 0;
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.dark(),
+          child: PokeMapCard(
+            keyboardInteractive: true,
+            semanticLabel: 'Table Route 1',
+            selected: true,
+            onTap: () => activations++,
+            child: const Text('Route 1'),
+          ),
+        ),
+      );
+
+      final initialDecoration = tester
+          .widget<AnimatedContainer>(find.byType(AnimatedContainer))
+          .decoration as BoxDecoration;
+      final initialBorder = initialDecoration.border as Border;
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      final focusedDecoration = tester
+          .widget<AnimatedContainer>(find.byType(AnimatedContainer))
+          .decoration as BoxDecoration;
+      final focusedBorder = focusedDecoration.border as Border;
+      expect(focusedBorder.top.width, greaterThan(initialBorder.top.width));
+
+      final pointer = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await pointer.addPointer(location: Offset.zero);
+      await pointer.moveTo(tester.getCenter(find.byType(PokeMapCard)));
+      await tester.pump();
+      final hoveredDecoration = tester
+          .widget<AnimatedContainer>(find.byType(AnimatedContainer))
+          .decoration as BoxDecoration;
+      expect(hoveredDecoration.color, isNot(initialDecoration.color));
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+
+      expect(activations, 2);
+      final semantics = tester.getSemantics(
+        find.bySemanticsLabel(RegExp('Table Route 1')),
+      );
+      expect(semantics.label, contains('Table Route 1'));
+      expect(semantics.flagsCollection.isButton, isTrue);
+      expect(semantics.flagsCollection.isSelected, Tristate.isTrue);
+      semanticsHandle.dispose();
     });
 
     testWidgets('PokeMapStatusLabel stays compact in dense list rows',

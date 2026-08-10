@@ -4170,6 +4170,13 @@ class EditorNotifier extends _$EditorNotifier
     state = _editorWorkspaceController.selectWildEncounterWorkspace(state);
   }
 
+  void selectWildEncounterTableWorkspace(String tableId) {
+    state = _editorWorkspaceController.selectWildEncounterTableWorkspace(
+      state,
+      tableId,
+    );
+  }
+
   /// Ouvre le workspace central "Aperçu" du Narrative Studio.
   ///
   /// Navigation pure de shell : les données affichées sont dérivées par le

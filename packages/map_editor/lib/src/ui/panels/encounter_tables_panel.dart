@@ -24,10 +24,20 @@ part 'encounter_tables_panel_workspace.dart';
 const PokemonSpeciesLookupService _encounterSpeciesLookupService =
     PokemonSpeciesLookupService();
 
-class EncounterTablesPanel extends ConsumerStatefulWidget {
-  const EncounterTablesPanel({super.key, this.embedded = false});
+const encounterWorkspaceLibraryKey = ValueKey<String>(
+  'encounter-workspace-library',
+);
+const encounterWorkspaceTableKey = ValueKey<String>(
+  'encounter-workspace-table',
+);
+const encounterWorkspaceInspectorKey = ValueKey<String>(
+  'encounter-workspace-inspector',
+);
 
-  final bool embedded;
+class EncounterTablesPanel extends ConsumerStatefulWidget {
+  const EncounterTablesPanel({super.key, this.selectedTableId});
+
+  final String? selectedTableId;
 
   @override
   ConsumerState<EncounterTablesPanel> createState() =>
@@ -55,6 +65,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   // -------------------------------------------------------------------------
 
   String? _editingTableId;
+  String? _pendingSelectedTableId;
   final _editTableNameController = TextEditingController();
   final _editTableChancePercentController = TextEditingController();
   final _editTableRequiredFlagsController = TextEditingController();
@@ -90,8 +101,14 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   @override
   void initState() {
     super.initState();
-    if (widget.embedded) {
-      _compactWorkspacePane = _EncounterWorkspacePane.library;
+    _pendingSelectedTableId = widget.selectedTableId;
+  }
+
+  @override
+  void didUpdateWidget(covariant EncounterTablesPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedTableId != oldWidget.selectedTableId) {
+      _pendingSelectedTableId = widget.selectedTableId;
     }
   }
 

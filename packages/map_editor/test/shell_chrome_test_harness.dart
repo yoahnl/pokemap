@@ -8,6 +8,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor_updates/application/editor_update_providers.dart';
+import 'package:map_editor/src/infrastructure/riverpod_retry_policy.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
@@ -40,6 +41,7 @@ ProjectManifest buildShellChromeProject({
   List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[],
   List<EnvironmentPreset> environmentPresets = const <EnvironmentPreset>[],
   List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
+  List<ProjectEncounterTable> encounterTables = const <ProjectEncounterTable>[],
 }) {
   return ProjectManifest(
     name: name,
@@ -48,6 +50,7 @@ ProjectManifest buildShellChromeProject({
     tilesets: tilesets,
     environmentPresets: environmentPresets,
     elements: elements,
+    encounterTables: encounterTables,
   );
 }
 
@@ -77,7 +80,10 @@ Future<ProviderContainer> pumpEditorShellPage(
   bool settleInitialFrame = true,
 }) async {
   _installMacosAccentColorMock();
-  final container = ProviderContainer(overrides: overrides);
+  final container = ProviderContainer(
+    overrides: overrides,
+    retry: disableAutomaticProviderRetry,
+  );
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,
     (_, __) {},

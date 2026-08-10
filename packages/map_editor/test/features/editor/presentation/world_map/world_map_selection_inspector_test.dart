@@ -146,6 +146,110 @@ void main() {
     );
   });
 
+  testWidgets('shows a deleted encounter table reference as invalid', (
+    tester,
+  ) async {
+    final harness = _SelectionHarness(
+      EditorState(
+        project: _encounterProject,
+        activeMap: _encounterMapWithDeletedReference,
+        activeLayerId: 'ground',
+        selectedGameplayZoneId: 'encounter-zone',
+      ),
+    );
+    addTearDown(harness.dispose);
+
+    await harness.pump(
+      tester,
+      WorldMapSelectionInspector(
+        target: _target(MapCanvasObjectKind.gameplayZone, 'encounter-zone'),
+      ),
+    );
+
+    expect(find.text('Table supprimée : missing_table'), findsWidgets);
+    expect(
+      find.text('Cette zone référence une table qui n’existe plus.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('opens the exact assigned table in Encounter Studio', (
+    tester,
+  ) async {
+    final harness = _SelectionHarness(
+      EditorState(
+        project: _encounterProject,
+        activeMap: _encounterMap,
+        activeLayerId: 'ground',
+        selectedGameplayZoneId: 'encounter-zone',
+      ),
+    );
+    addTearDown(harness.dispose);
+
+    await harness.pump(
+      tester,
+      WorldMapSelectionInspector(
+        target: _target(MapCanvasObjectKind.gameplayZone, 'encounter-zone'),
+      ),
+    );
+
+    expect(find.text('Route 1 — Hautes herbes'), findsWidgets);
+    await tester.tap(
+      find.byKey(const Key('gameplay-zone-open-encounter-table')),
+    );
+    await tester.pump();
+
+    expect(
+      harness.notifier.state.workspaceMode,
+      EditorWorkspaceMode.encounter,
+    );
+    expect(
+      harness.notifier.state.encounterStudioSection,
+      EncounterStudioSection.wildEncounters,
+    );
+    expect(harness.notifier.state.encounterStudioTableId, 'route_1_grass');
+  });
+
+  testWidgets('assigns an existing table without changing Smart Tiles layers', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final harness = _SelectionHarness(
+      EditorState(
+        project: _encounterProject,
+        activeMap: _encounterMap,
+        activeLayerId: 'ground',
+        selectedGameplayZoneId: 'encounter-zone',
+      ),
+    );
+    addTearDown(harness.dispose);
+    final layersBefore = harness.notifier.state.activeMap!.layers;
+
+    await harness.pump(
+      tester,
+      WorldMapSelectionInspector(
+        target: _target(MapCanvasObjectKind.gameplayZone, 'encounter-zone'),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const Key('gameplay-zone-encounter-table-picker')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Route 1 — Surf').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Enregistrer'));
+    await tester.pump();
+
+    final updatedMap = harness.notifier.state.activeMap!;
+    expect(
+      updatedMap.gameplayZones.single.encounter?.encounterTableId,
+      'route_1_surf',
+    );
+    expect(updatedMap.layers, equals(layersBefore));
+  });
+
   testWidgets('stale target shows callback-free guidance instead of a form',
       (tester) async {
     final harness = _SelectionHarness(
@@ -505,6 +609,61 @@ const _project = ProjectManifest(
           source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
         ),
       ],
+    ),
+  ],
+);
+
+const _encounterProject = ProjectManifest(
+  name: 'Encounter selection inspector',
+  maps: <ProjectMapEntry>[
+    ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
+  ],
+  tilesets: <ProjectTilesetEntry>[],
+  encounterTables: <ProjectEncounterTable>[
+    ProjectEncounterTable(
+      id: 'route_1_grass',
+      name: 'Route 1 — Hautes herbes',
+      encounterKind: EncounterKind.walk,
+    ),
+    ProjectEncounterTable(
+      id: 'route_1_surf',
+      name: 'Route 1 — Surf',
+      encounterKind: EncounterKind.surf,
+    ),
+  ],
+);
+
+const _encounterMap = MapData(
+  id: 'map',
+  name: 'Map',
+  size: GridSize(width: 4, height: 4),
+  layers: <MapLayer>[
+    TileLayer(
+      id: 'ground',
+      name: 'Ground',
+      cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ),
+  ],
+  gameplayZones: <MapGameplayZone>[
+    MapGameplayZone(
+      id: 'encounter-zone',
+      name: 'Hautes herbes',
+      kind: GameplayZoneKind.encounter,
+      area: MapRect(
+        pos: GridPos(x: 1, y: 1),
+        size: GridSize(width: 1, height: 1),
+      ),
+      encounter: EncounterZonePayload(
+        encounterTableId: 'route_1_grass',
+      ),
+    ),
+  ],
+);
+
+final _encounterMapWithDeletedReference = _encounterMap.copyWith(
+  gameplayZones: <MapGameplayZone>[
+    _encounterMap.gameplayZones.single.copyWith(
+      encounter: const EncounterZonePayload(encounterTableId: 'missing_table'),
     ),
   ],
 );

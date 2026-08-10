@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
@@ -20,7 +21,6 @@ void main() {
   Future<void> pumpEncounterPanel(
     WidgetTester tester,
     ProviderContainer container, {
-    bool embedded = false,
     double width = 1280,
     double height = 1800,
   }) async {
@@ -41,7 +41,7 @@ void main() {
               child: SizedBox(
                 width: width,
                 height: height,
-                child: EncounterTablesPanel(embedded: embedded),
+                child: const EncounterTablesPanel(),
               ),
             ),
           ),
@@ -141,7 +141,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Runtime walk/surf certifié'), findsOneWidget);
+      expect(find.text('Runtime certifié'), findsWidgets);
     },
   );
 
@@ -641,6 +641,7 @@ void main() {
   testWidgets(
     'creates a table and a valid encounter entry with local species assist',
     (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
       final repository = _FakeProjectRepository();
       const workspace = _FakeWorkspace();
       final container = ProviderContainer(
@@ -728,11 +729,24 @@ void main() {
         'bulba',
       );
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const Key('encounter-tables-entry-species-suggestion-bulbasaur'),
-        ),
+      final suggestion = find.byKey(
+        const Key('encounter-tables-entry-species-suggestion-bulbasaur'),
       );
+      expect(
+        find.bySemanticsLabel(RegExp('Choisir Bulbasaur, bulbasaur')),
+        findsOneWidget,
+      );
+      tester
+          .widget<FocusableActionDetector>(
+            find.descendant(
+              of: suggestion,
+              matching: find.byType(FocusableActionDetector),
+            ),
+          )
+          .focusNode!
+          .requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pumpAndSettle();
 
       await tester.enterText(
@@ -767,6 +781,7 @@ void main() {
       expect(find.text('Bulbasaur'), findsOneWidget);
       expect(find.textContaining('Lv. 2–4'), findsOneWidget);
       expect(find.text('100.0% du roster'), findsOneWidget);
+      semanticsHandle.dispose();
     },
   );
 
@@ -1033,61 +1048,6 @@ void main() {
         .project!
         .encounterTables;
     expect(remainingTables.map((table) => table.id), <String>['cave_floor']);
-  });
-
-  testWidgets('keeps the embedded world-map host usable until ENS-030', (
-    tester,
-  ) async {
-    final repository = _FakeProjectRepository();
-    const workspace = _FakeWorkspace();
-    final container = ProviderContainer(
-      overrides: [
-        projectRepositoryProvider.overrideWithValue(repository),
-        encounterTablePersistenceGatewayProvider.overrideWithValue(
-          _FakeEncounterTablePersistenceGateway(repository),
-        ),
-        projectWorkspaceFactoryProvider.overrideWithValue(
-          const _FakeWorkspaceFactory(workspace),
-        ),
-        pokedexEntryLoaderProvider.overrideWithValue(
-          (_) async => _speciesEntries,
-        ),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    container.read(editorNotifierProvider.notifier).state = const EditorState(
-      projectRootPath: '/tmp/encounter_embedded_test',
-      project: ProjectManifest(
-        name: 'encounter_embedded_test',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[],
-        encounterTables: <ProjectEncounterTable>[
-          ProjectEncounterTable(
-            id: 'grass_patch',
-            name: 'Grass Patch',
-            encounterKind: EncounterKind.walk,
-          ),
-        ],
-      ),
-    );
-
-    await pumpEncounterPanel(
-      tester,
-      container,
-      embedded: true,
-      width: 360,
-      height: 480,
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.text('Bibliothèque'), findsWidgets);
-    expect(
-      find.byKey(const Key('encounter-tables-table-toggle-grass_patch')),
-      findsOneWidget,
-    );
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('keeps the panel usable when the local species index is unavailable', (

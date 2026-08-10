@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/theme.dart';
 
 /// A customizable, styled container for PokeMap sections and settings.
@@ -16,6 +17,8 @@ class PokeMapCard extends StatefulWidget {
     this.selected = false,
     this.onTap,
     this.backgroundColor,
+    this.keyboardInteractive = false,
+    this.semanticLabel,
   });
 
   /// Main content within the card.
@@ -38,31 +41,45 @@ class PokeMapCard extends StatefulWidget {
   /// When provided, overrides the automatic theme-based surface color.
   final Color? backgroundColor;
 
+  final bool keyboardInteractive;
+
+  final String? semanticLabel;
+
   @override
   State<PokeMapCard> createState() => _PokeMapCardState();
 }
 
 class _PokeMapCardState extends State<PokeMapCard> {
   bool _isHovered = false;
+  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode(debugLabel: 'PokeMapCard');
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final baseBg = widget.backgroundColor ??
+    final baseBg =
+        widget.backgroundColor ??
         (isDark ? colors.cardSurface : colors.surfaceBase);
     final bg = (widget.onTap != null && _isHovered) ? colors.cardHover : baseBg;
 
+    final focused = widget.focused || _isFocused;
     final border = Border.all(
       color: widget.selected
           ? colors.brandPrimaryBorder
-          : (widget.focused
-              ? colors.brandPrimaryBorder
-              : (_isHovered && widget.onTap != null
-                  ? colors.controlBorder
-                  : colors.borderSubtle)),
-      width: widget.focused ? 1.8 : 1.2,
+          : (focused
+                ? colors.brandPrimaryBorder
+                : (_isHovered && widget.onTap != null
+                      ? colors.controlBorder
+                      : colors.borderSubtle)),
+      width: focused ? 1.8 : 1.2,
     );
 
     Widget content = Padding(
@@ -71,16 +88,50 @@ class _PokeMapCardState extends State<PokeMapCard> {
     );
 
     if (widget.onTap != null) {
-      content = MouseRegion(
+      Widget interactiveContent = MouseRegion(
         onEnter: (_) => setState(() => _isHovered = true),
         onExit: (_) => setState(() => _isHovered = false),
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
-          onTap: widget.onTap,
+          onTap: () {
+            if (widget.keyboardInteractive) {
+              _focusNode.requestFocus();
+            }
+            widget.onTap!();
+          },
           behavior: HitTestBehavior.opaque,
           child: content,
         ),
       );
+      if (widget.keyboardInteractive) {
+        interactiveContent = Semantics(
+          button: true,
+          selected: widget.selected,
+          label: widget.semanticLabel,
+          child: FocusableActionDetector(
+            focusNode: _focusNode,
+            onShowFocusHighlight: (focused) {
+              if (_isFocused != focused) {
+                setState(() => _isFocused = focused);
+              }
+            },
+            shortcuts: <ShortcutActivator, Intent>{
+              SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+              SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+            },
+            actions: <Type, Action<Intent>>{
+              ActivateIntent: CallbackAction<ActivateIntent>(
+                onInvoke: (_) {
+                  widget.onTap!();
+                  return null;
+                },
+              ),
+            },
+            child: interactiveContent,
+          ),
+        );
+      }
+      content = interactiveContent;
     }
 
     return AnimatedContainer(

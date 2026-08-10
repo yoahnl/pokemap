@@ -570,6 +570,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
 
     final supportsRightInspector = switch (workspaceMode) {
       _ when isNarrativeWorkspace => false,
+      EditorWorkspaceMode.encounter => false,
       EditorWorkspaceMode.pokedex => false,
       EditorWorkspaceMode.smartTilesStudio => false,
       EditorWorkspaceMode.environmentStudio => false,

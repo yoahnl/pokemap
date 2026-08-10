@@ -1,8 +1,11 @@
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show Key;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/encounter_studio_panel.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/panels/encounter_tables_panel.dart';
 import 'package:map_editor/src/ui/panels/trainer_library_panel.dart';
 
@@ -60,5 +63,46 @@ void main() {
       EncounterStudioSection.wildEncounters,
     );
     expect(find.byType(EncounterTablesPanel), findsOneWidget);
+  });
+
+  testWidgets('opens the exact table requested by a World Map deep link', (
+    tester,
+  ) async {
+    await pumpEditorCanvasHostHarness(
+      tester,
+      surfaceSize: const Size(1280, 900),
+      initialState: EditorState(
+        projectRootPath: '/tmp/encounter-studio-deep-link',
+        project: buildShellChromeProject(
+          encounterTables: const <ProjectEncounterTable>[
+            ProjectEncounterTable(
+              id: 'route_1_grass',
+              name: 'Route 1 — Hautes herbes',
+              encounterKind: EncounterKind.walk,
+            ),
+            ProjectEncounterTable(
+              id: 'route_1_surf',
+              name: 'Route 1 — Surf',
+              encounterKind: EncounterKind.surf,
+            ),
+          ],
+        ),
+        workspaceMode: EditorWorkspaceMode.encounter,
+        encounterStudioTableId: 'route_1_surf',
+      ),
+    );
+
+    final selectedCard = tester.widget<PokeMapCard>(
+      find.byKey(const Key('encounter-tables-table-toggle-route_1_surf')),
+    );
+    expect(selectedCard.selected, isTrue);
+    expect(
+      find.byKey(const Key('encounter-tables-edit-name-field-route_1_surf')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('encounter-tables-edit-name-field-route_1_grass')),
+      findsNothing,
+    );
   });
 }

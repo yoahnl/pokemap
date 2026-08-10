@@ -68,6 +68,7 @@ abstract class EditorState with _$EditorState {
     @Default(EditorWorkspaceMode.map) EditorWorkspaceMode workspaceMode,
     @Default(EncounterStudioSection.wildEncounters)
     EncounterStudioSection encounterStudioSection,
+    String? encounterStudioTableId,
     @Default(SmartTilesStudioLaunchContext.library())
     SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,
     @Default(PokemonCatalogSection.pokedex)
