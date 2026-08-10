@@ -622,7 +622,7 @@ $ProjectSurfaceLayoutVariantCopyWith<$Res> get expanded {
 /// @nodoc
 mixin _$ProjectPresentationLayoutsProfile {
 
- ProjectResponsiveSurfaceLayoutProfile get title; ProjectResponsiveSurfaceLayoutProfile get pauseMenu; ProjectResponsiveSurfaceLayoutProfile get dialogue;
+ ProjectResponsiveSurfaceLayoutProfile get title; ProjectResponsiveSurfaceLayoutProfile get pauseMenu; ProjectResponsiveSurfaceLayoutProfile get dialogue;@JsonKey(includeIfNull: false) ProjectResponsiveSurfaceLayoutProfile? get battle;
 /// Create a copy of ProjectPresentationLayoutsProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -635,16 +635,16 @@ $ProjectPresentationLayoutsProfileCopyWith<ProjectPresentationLayoutsProfile> ge
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPresentationLayoutsProfile&&(identical(other.title, title) || other.title == title)&&(identical(other.pauseMenu, pauseMenu) || other.pauseMenu == pauseMenu)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPresentationLayoutsProfile&&(identical(other.title, title) || other.title == title)&&(identical(other.pauseMenu, pauseMenu) || other.pauseMenu == pauseMenu)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.battle, battle) || other.battle == battle));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,pauseMenu,dialogue);
+int get hashCode => Object.hash(runtimeType,title,pauseMenu,dialogue,battle);
 
 @override
 String toString() {
-  return 'ProjectPresentationLayoutsProfile(title: $title, pauseMenu: $pauseMenu, dialogue: $dialogue)';
+  return 'ProjectPresentationLayoutsProfile(title: $title, pauseMenu: $pauseMenu, dialogue: $dialogue, battle: $battle)';
 }
 
 
@@ -655,11 +655,11 @@ abstract mixin class $ProjectPresentationLayoutsProfileCopyWith<$Res>  {
   factory $ProjectPresentationLayoutsProfileCopyWith(ProjectPresentationLayoutsProfile value, $Res Function(ProjectPresentationLayoutsProfile) _then) = _$ProjectPresentationLayoutsProfileCopyWithImpl;
 @useResult
 $Res call({
- ProjectResponsiveSurfaceLayoutProfile title, ProjectResponsiveSurfaceLayoutProfile pauseMenu, ProjectResponsiveSurfaceLayoutProfile dialogue
+ ProjectResponsiveSurfaceLayoutProfile title, ProjectResponsiveSurfaceLayoutProfile pauseMenu, ProjectResponsiveSurfaceLayoutProfile dialogue,@JsonKey(includeIfNull: false) ProjectResponsiveSurfaceLayoutProfile? battle
 });
 
 
-$ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get title;$ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get pauseMenu;$ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get dialogue;
+$ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get title;$ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get pauseMenu;$ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get dialogue;$ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>? get battle;
 
 }
 /// @nodoc
@@ -672,12 +672,13 @@ class _$ProjectPresentationLayoutsProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPresentationLayoutsProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? pauseMenu = null,Object? dialogue = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? pauseMenu = null,Object? dialogue = null,Object? battle = freezed,}) {
   return _then(_self.copyWith(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as ProjectResponsiveSurfaceLayoutProfile,pauseMenu: null == pauseMenu ? _self.pauseMenu : pauseMenu // ignore: cast_nullable_to_non_nullable
 as ProjectResponsiveSurfaceLayoutProfile,dialogue: null == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
-as ProjectResponsiveSurfaceLayoutProfile,
+as ProjectResponsiveSurfaceLayoutProfile,battle: freezed == battle ? _self.battle : battle // ignore: cast_nullable_to_non_nullable
+as ProjectResponsiveSurfaceLayoutProfile?,
   ));
 }
 /// Create a copy of ProjectPresentationLayoutsProfile
@@ -706,6 +707,18 @@ $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get dialogue {
 
   return $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>(_self.dialogue, (value) {
     return _then(_self.copyWith(dialogue: value));
+  });
+}/// Create a copy of ProjectPresentationLayoutsProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>? get battle {
+    if (_self.battle == null) {
+    return null;
+  }
+
+  return $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>(_self.battle!, (value) {
+    return _then(_self.copyWith(battle: value));
   });
 }
 }
@@ -789,10 +802,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ProjectResponsiveSurfaceLayoutProfile title,  ProjectResponsiveSurfaceLayoutProfile pauseMenu,  ProjectResponsiveSurfaceLayoutProfile dialogue)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ProjectResponsiveSurfaceLayoutProfile title,  ProjectResponsiveSurfaceLayoutProfile pauseMenu,  ProjectResponsiveSurfaceLayoutProfile dialogue, @JsonKey(includeIfNull: false)  ProjectResponsiveSurfaceLayoutProfile? battle)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectPresentationLayoutsProfile() when $default != null:
-return $default(_that.title,_that.pauseMenu,_that.dialogue);case _:
+return $default(_that.title,_that.pauseMenu,_that.dialogue,_that.battle);case _:
   return orElse();
 
 }
@@ -810,10 +823,10 @@ return $default(_that.title,_that.pauseMenu,_that.dialogue);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ProjectResponsiveSurfaceLayoutProfile title,  ProjectResponsiveSurfaceLayoutProfile pauseMenu,  ProjectResponsiveSurfaceLayoutProfile dialogue)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ProjectResponsiveSurfaceLayoutProfile title,  ProjectResponsiveSurfaceLayoutProfile pauseMenu,  ProjectResponsiveSurfaceLayoutProfile dialogue, @JsonKey(includeIfNull: false)  ProjectResponsiveSurfaceLayoutProfile? battle)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPresentationLayoutsProfile():
-return $default(_that.title,_that.pauseMenu,_that.dialogue);case _:
+return $default(_that.title,_that.pauseMenu,_that.dialogue,_that.battle);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -830,10 +843,10 @@ return $default(_that.title,_that.pauseMenu,_that.dialogue);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ProjectResponsiveSurfaceLayoutProfile title,  ProjectResponsiveSurfaceLayoutProfile pauseMenu,  ProjectResponsiveSurfaceLayoutProfile dialogue)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ProjectResponsiveSurfaceLayoutProfile title,  ProjectResponsiveSurfaceLayoutProfile pauseMenu,  ProjectResponsiveSurfaceLayoutProfile dialogue, @JsonKey(includeIfNull: false)  ProjectResponsiveSurfaceLayoutProfile? battle)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPresentationLayoutsProfile() when $default != null:
-return $default(_that.title,_that.pauseMenu,_that.dialogue);case _:
+return $default(_that.title,_that.pauseMenu,_that.dialogue,_that.battle);case _:
   return null;
 
 }
@@ -845,12 +858,13 @@ return $default(_that.title,_that.pauseMenu,_that.dialogue);case _:
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectPresentationLayoutsProfile extends ProjectPresentationLayoutsProfile {
-  const _ProjectPresentationLayoutsProfile({required this.title, required this.pauseMenu, required this.dialogue}): super._();
+  const _ProjectPresentationLayoutsProfile({required this.title, required this.pauseMenu, required this.dialogue, @JsonKey(includeIfNull: false) this.battle}): super._();
   factory _ProjectPresentationLayoutsProfile.fromJson(Map<String, dynamic> json) => _$ProjectPresentationLayoutsProfileFromJson(json);
 
 @override final  ProjectResponsiveSurfaceLayoutProfile title;
 @override final  ProjectResponsiveSurfaceLayoutProfile pauseMenu;
 @override final  ProjectResponsiveSurfaceLayoutProfile dialogue;
+@override@JsonKey(includeIfNull: false) final  ProjectResponsiveSurfaceLayoutProfile? battle;
 
 /// Create a copy of ProjectPresentationLayoutsProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -865,16 +879,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPresentationLayoutsProfile&&(identical(other.title, title) || other.title == title)&&(identical(other.pauseMenu, pauseMenu) || other.pauseMenu == pauseMenu)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPresentationLayoutsProfile&&(identical(other.title, title) || other.title == title)&&(identical(other.pauseMenu, pauseMenu) || other.pauseMenu == pauseMenu)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.battle, battle) || other.battle == battle));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,pauseMenu,dialogue);
+int get hashCode => Object.hash(runtimeType,title,pauseMenu,dialogue,battle);
 
 @override
 String toString() {
-  return 'ProjectPresentationLayoutsProfile(title: $title, pauseMenu: $pauseMenu, dialogue: $dialogue)';
+  return 'ProjectPresentationLayoutsProfile(title: $title, pauseMenu: $pauseMenu, dialogue: $dialogue, battle: $battle)';
 }
 
 
@@ -885,11 +899,11 @@ abstract mixin class _$ProjectPresentationLayoutsProfileCopyWith<$Res> implement
   factory _$ProjectPresentationLayoutsProfileCopyWith(_ProjectPresentationLayoutsProfile value, $Res Function(_ProjectPresentationLayoutsProfile) _then) = __$ProjectPresentationLayoutsProfileCopyWithImpl;
 @override @useResult
 $Res call({
- ProjectResponsiveSurfaceLayoutProfile title, ProjectResponsiveSurfaceLayoutProfile pauseMenu, ProjectResponsiveSurfaceLayoutProfile dialogue
+ ProjectResponsiveSurfaceLayoutProfile title, ProjectResponsiveSurfaceLayoutProfile pauseMenu, ProjectResponsiveSurfaceLayoutProfile dialogue,@JsonKey(includeIfNull: false) ProjectResponsiveSurfaceLayoutProfile? battle
 });
 
 
-@override $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get title;@override $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get pauseMenu;@override $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get dialogue;
+@override $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get title;@override $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get pauseMenu;@override $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get dialogue;@override $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>? get battle;
 
 }
 /// @nodoc
@@ -902,12 +916,13 @@ class __$ProjectPresentationLayoutsProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPresentationLayoutsProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? pauseMenu = null,Object? dialogue = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? pauseMenu = null,Object? dialogue = null,Object? battle = freezed,}) {
   return _then(_ProjectPresentationLayoutsProfile(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as ProjectResponsiveSurfaceLayoutProfile,pauseMenu: null == pauseMenu ? _self.pauseMenu : pauseMenu // ignore: cast_nullable_to_non_nullable
 as ProjectResponsiveSurfaceLayoutProfile,dialogue: null == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
-as ProjectResponsiveSurfaceLayoutProfile,
+as ProjectResponsiveSurfaceLayoutProfile,battle: freezed == battle ? _self.battle : battle // ignore: cast_nullable_to_non_nullable
+as ProjectResponsiveSurfaceLayoutProfile?,
   ));
 }
 
@@ -937,6 +952,18 @@ $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res> get dialogue {
 
   return $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>(_self.dialogue, (value) {
     return _then(_self.copyWith(dialogue: value));
+  });
+}/// Create a copy of ProjectPresentationLayoutsProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>? get battle {
+    if (_self.battle == null) {
+    return null;
+  }
+
+  return $ProjectResponsiveSurfaceLayoutProfileCopyWith<$Res>(_self.battle!, (value) {
+    return _then(_self.copyWith(battle: value));
   });
 }
 }

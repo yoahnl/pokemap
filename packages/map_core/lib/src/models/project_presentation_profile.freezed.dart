@@ -2057,7 +2057,7 @@ as List<String>,
 /// @nodoc
 mixin _$ProjectTypographyProfile {
 
- ProjectTypographyRoleProfile get display; ProjectTypographyRoleProfile get body; ProjectTypographyRoleProfile get dialogue; ProjectTypographyRoleProfile get numbers;
+ ProjectTypographyRoleProfile get display; ProjectTypographyRoleProfile get body; ProjectTypographyRoleProfile get dialogue; ProjectTypographyRoleProfile get numbers;@JsonKey(includeIfNull: false) ProjectTypographyRoleProfile? get combat;
 /// Create a copy of ProjectTypographyProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2070,16 +2070,16 @@ $ProjectTypographyProfileCopyWith<ProjectTypographyProfile> get copyWith => _$Pr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectTypographyProfile&&(identical(other.display, display) || other.display == display)&&(identical(other.body, body) || other.body == body)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.numbers, numbers) || other.numbers == numbers));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectTypographyProfile&&(identical(other.display, display) || other.display == display)&&(identical(other.body, body) || other.body == body)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.numbers, numbers) || other.numbers == numbers)&&(identical(other.combat, combat) || other.combat == combat));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,display,body,dialogue,numbers);
+int get hashCode => Object.hash(runtimeType,display,body,dialogue,numbers,combat);
 
 @override
 String toString() {
-  return 'ProjectTypographyProfile(display: $display, body: $body, dialogue: $dialogue, numbers: $numbers)';
+  return 'ProjectTypographyProfile(display: $display, body: $body, dialogue: $dialogue, numbers: $numbers, combat: $combat)';
 }
 
 
@@ -2090,11 +2090,11 @@ abstract mixin class $ProjectTypographyProfileCopyWith<$Res>  {
   factory $ProjectTypographyProfileCopyWith(ProjectTypographyProfile value, $Res Function(ProjectTypographyProfile) _then) = _$ProjectTypographyProfileCopyWithImpl;
 @useResult
 $Res call({
- ProjectTypographyRoleProfile display, ProjectTypographyRoleProfile body, ProjectTypographyRoleProfile dialogue, ProjectTypographyRoleProfile numbers
+ ProjectTypographyRoleProfile display, ProjectTypographyRoleProfile body, ProjectTypographyRoleProfile dialogue, ProjectTypographyRoleProfile numbers,@JsonKey(includeIfNull: false) ProjectTypographyRoleProfile? combat
 });
 
 
-$ProjectTypographyRoleProfileCopyWith<$Res> get display;$ProjectTypographyRoleProfileCopyWith<$Res> get body;$ProjectTypographyRoleProfileCopyWith<$Res> get dialogue;$ProjectTypographyRoleProfileCopyWith<$Res> get numbers;
+$ProjectTypographyRoleProfileCopyWith<$Res> get display;$ProjectTypographyRoleProfileCopyWith<$Res> get body;$ProjectTypographyRoleProfileCopyWith<$Res> get dialogue;$ProjectTypographyRoleProfileCopyWith<$Res> get numbers;$ProjectTypographyRoleProfileCopyWith<$Res>? get combat;
 
 }
 /// @nodoc
@@ -2107,13 +2107,14 @@ class _$ProjectTypographyProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectTypographyProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? display = null,Object? body = null,Object? dialogue = null,Object? numbers = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? display = null,Object? body = null,Object? dialogue = null,Object? numbers = null,Object? combat = freezed,}) {
   return _then(_self.copyWith(
 display: null == display ? _self.display : display // ignore: cast_nullable_to_non_nullable
 as ProjectTypographyRoleProfile,body: null == body ? _self.body : body // ignore: cast_nullable_to_non_nullable
 as ProjectTypographyRoleProfile,dialogue: null == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
 as ProjectTypographyRoleProfile,numbers: null == numbers ? _self.numbers : numbers // ignore: cast_nullable_to_non_nullable
-as ProjectTypographyRoleProfile,
+as ProjectTypographyRoleProfile,combat: freezed == combat ? _self.combat : combat // ignore: cast_nullable_to_non_nullable
+as ProjectTypographyRoleProfile?,
   ));
 }
 /// Create a copy of ProjectTypographyProfile
@@ -2151,6 +2152,18 @@ $ProjectTypographyRoleProfileCopyWith<$Res> get numbers {
 
   return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.numbers, (value) {
     return _then(_self.copyWith(numbers: value));
+  });
+}/// Create a copy of ProjectTypographyProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectTypographyRoleProfileCopyWith<$Res>? get combat {
+    if (_self.combat == null) {
+    return null;
+  }
+
+  return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.combat!, (value) {
+    return _then(_self.copyWith(combat: value));
   });
 }
 }
@@ -2234,10 +2247,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ProjectTypographyRoleProfile display,  ProjectTypographyRoleProfile body,  ProjectTypographyRoleProfile dialogue,  ProjectTypographyRoleProfile numbers)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ProjectTypographyRoleProfile display,  ProjectTypographyRoleProfile body,  ProjectTypographyRoleProfile dialogue,  ProjectTypographyRoleProfile numbers, @JsonKey(includeIfNull: false)  ProjectTypographyRoleProfile? combat)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectTypographyProfile() when $default != null:
-return $default(_that.display,_that.body,_that.dialogue,_that.numbers);case _:
+return $default(_that.display,_that.body,_that.dialogue,_that.numbers,_that.combat);case _:
   return orElse();
 
 }
@@ -2255,10 +2268,10 @@ return $default(_that.display,_that.body,_that.dialogue,_that.numbers);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ProjectTypographyRoleProfile display,  ProjectTypographyRoleProfile body,  ProjectTypographyRoleProfile dialogue,  ProjectTypographyRoleProfile numbers)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ProjectTypographyRoleProfile display,  ProjectTypographyRoleProfile body,  ProjectTypographyRoleProfile dialogue,  ProjectTypographyRoleProfile numbers, @JsonKey(includeIfNull: false)  ProjectTypographyRoleProfile? combat)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectTypographyProfile():
-return $default(_that.display,_that.body,_that.dialogue,_that.numbers);case _:
+return $default(_that.display,_that.body,_that.dialogue,_that.numbers,_that.combat);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2275,10 +2288,10 @@ return $default(_that.display,_that.body,_that.dialogue,_that.numbers);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ProjectTypographyRoleProfile display,  ProjectTypographyRoleProfile body,  ProjectTypographyRoleProfile dialogue,  ProjectTypographyRoleProfile numbers)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ProjectTypographyRoleProfile display,  ProjectTypographyRoleProfile body,  ProjectTypographyRoleProfile dialogue,  ProjectTypographyRoleProfile numbers, @JsonKey(includeIfNull: false)  ProjectTypographyRoleProfile? combat)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectTypographyProfile() when $default != null:
-return $default(_that.display,_that.body,_that.dialogue,_that.numbers);case _:
+return $default(_that.display,_that.body,_that.dialogue,_that.numbers,_that.combat);case _:
   return null;
 
 }
@@ -2289,14 +2302,15 @@ return $default(_that.display,_that.body,_that.dialogue,_that.numbers);case _:
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _ProjectTypographyProfile implements ProjectTypographyProfile {
-  const _ProjectTypographyProfile({this.display = const ProjectTypographyRoleProfile(), this.body = const ProjectTypographyRoleProfile(), this.dialogue = const ProjectTypographyRoleProfile(), this.numbers = const ProjectTypographyRoleProfile()});
+class _ProjectTypographyProfile extends ProjectTypographyProfile {
+  const _ProjectTypographyProfile({this.display = const ProjectTypographyRoleProfile(), this.body = const ProjectTypographyRoleProfile(), this.dialogue = const ProjectTypographyRoleProfile(), this.numbers = const ProjectTypographyRoleProfile(), @JsonKey(includeIfNull: false) this.combat}): super._();
   factory _ProjectTypographyProfile.fromJson(Map<String, dynamic> json) => _$ProjectTypographyProfileFromJson(json);
 
 @override@JsonKey() final  ProjectTypographyRoleProfile display;
 @override@JsonKey() final  ProjectTypographyRoleProfile body;
 @override@JsonKey() final  ProjectTypographyRoleProfile dialogue;
 @override@JsonKey() final  ProjectTypographyRoleProfile numbers;
+@override@JsonKey(includeIfNull: false) final  ProjectTypographyRoleProfile? combat;
 
 /// Create a copy of ProjectTypographyProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -2311,16 +2325,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectTypographyProfile&&(identical(other.display, display) || other.display == display)&&(identical(other.body, body) || other.body == body)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.numbers, numbers) || other.numbers == numbers));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectTypographyProfile&&(identical(other.display, display) || other.display == display)&&(identical(other.body, body) || other.body == body)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.numbers, numbers) || other.numbers == numbers)&&(identical(other.combat, combat) || other.combat == combat));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,display,body,dialogue,numbers);
+int get hashCode => Object.hash(runtimeType,display,body,dialogue,numbers,combat);
 
 @override
 String toString() {
-  return 'ProjectTypographyProfile(display: $display, body: $body, dialogue: $dialogue, numbers: $numbers)';
+  return 'ProjectTypographyProfile(display: $display, body: $body, dialogue: $dialogue, numbers: $numbers, combat: $combat)';
 }
 
 
@@ -2331,11 +2345,11 @@ abstract mixin class _$ProjectTypographyProfileCopyWith<$Res> implements $Projec
   factory _$ProjectTypographyProfileCopyWith(_ProjectTypographyProfile value, $Res Function(_ProjectTypographyProfile) _then) = __$ProjectTypographyProfileCopyWithImpl;
 @override @useResult
 $Res call({
- ProjectTypographyRoleProfile display, ProjectTypographyRoleProfile body, ProjectTypographyRoleProfile dialogue, ProjectTypographyRoleProfile numbers
+ ProjectTypographyRoleProfile display, ProjectTypographyRoleProfile body, ProjectTypographyRoleProfile dialogue, ProjectTypographyRoleProfile numbers,@JsonKey(includeIfNull: false) ProjectTypographyRoleProfile? combat
 });
 
 
-@override $ProjectTypographyRoleProfileCopyWith<$Res> get display;@override $ProjectTypographyRoleProfileCopyWith<$Res> get body;@override $ProjectTypographyRoleProfileCopyWith<$Res> get dialogue;@override $ProjectTypographyRoleProfileCopyWith<$Res> get numbers;
+@override $ProjectTypographyRoleProfileCopyWith<$Res> get display;@override $ProjectTypographyRoleProfileCopyWith<$Res> get body;@override $ProjectTypographyRoleProfileCopyWith<$Res> get dialogue;@override $ProjectTypographyRoleProfileCopyWith<$Res> get numbers;@override $ProjectTypographyRoleProfileCopyWith<$Res>? get combat;
 
 }
 /// @nodoc
@@ -2348,13 +2362,14 @@ class __$ProjectTypographyProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectTypographyProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? display = null,Object? body = null,Object? dialogue = null,Object? numbers = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? display = null,Object? body = null,Object? dialogue = null,Object? numbers = null,Object? combat = freezed,}) {
   return _then(_ProjectTypographyProfile(
 display: null == display ? _self.display : display // ignore: cast_nullable_to_non_nullable
 as ProjectTypographyRoleProfile,body: null == body ? _self.body : body // ignore: cast_nullable_to_non_nullable
 as ProjectTypographyRoleProfile,dialogue: null == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
 as ProjectTypographyRoleProfile,numbers: null == numbers ? _self.numbers : numbers // ignore: cast_nullable_to_non_nullable
-as ProjectTypographyRoleProfile,
+as ProjectTypographyRoleProfile,combat: freezed == combat ? _self.combat : combat // ignore: cast_nullable_to_non_nullable
+as ProjectTypographyRoleProfile?,
   ));
 }
 
@@ -2393,6 +2408,18 @@ $ProjectTypographyRoleProfileCopyWith<$Res> get numbers {
 
   return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.numbers, (value) {
     return _then(_self.copyWith(numbers: value));
+  });
+}/// Create a copy of ProjectTypographyProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectTypographyRoleProfileCopyWith<$Res>? get combat {
+    if (_self.combat == null) {
+    return null;
+  }
+
+  return $ProjectTypographyRoleProfileCopyWith<$Res>(_self.combat!, (value) {
+    return _then(_self.copyWith(combat: value));
   });
 }
 }

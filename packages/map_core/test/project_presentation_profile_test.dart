@@ -6,6 +6,49 @@ import 'package:test/test.dart';
 
 void main() {
   group('ProjectPresentationProfile', () {
+    test('round-trips combat typography and falls back to body', () {
+      const body = ProjectTypographyRoleProfile(family: 'Body Family');
+      const combat = ProjectTypographyRoleProfile(family: 'Combat Family');
+      const explicit = ProjectPresentationProfile(
+        typography: ProjectTypographyProfile(body: body, combat: combat),
+      );
+      const inherited = ProjectPresentationProfile(
+        typography: ProjectTypographyProfile(body: body),
+      );
+
+      final decoded = ProjectPresentationProfile.fromJson(explicit.toJson());
+
+      expect(decoded.schemaVersion, 5);
+      expect(decoded.typography?.resolve(ProjectTypographyRole.combat), combat);
+      expect(inherited.typography?.resolve(ProjectTypographyRole.combat), body);
+    });
+
+    test('does not smuggle V5 combat typography through schema V4', () {
+      final source = const ProjectPresentationProfile(
+        typography: ProjectTypographyProfile(
+          combat: ProjectTypographyRoleProfile(family: 'Combat Family'),
+        ),
+      ).toJson()..['schemaVersion'] = 4;
+
+      expect(
+        () => ProjectPresentationProfile.fromJson(source),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('migrates schema V4 without combat presentation fields', () {
+      final profile = ProjectPresentationProfile.fromJson(<String, dynamic>{
+        'schemaVersion': 4,
+        'branding': <String, dynamic>{'layoutVariant': 'standard'},
+        'typography': const ProjectTypographyProfile().toJson(),
+      });
+
+      expect(profile.schemaVersion, 5);
+      expect(profile.typography?.combat, isNull);
+      expect(profile.layouts, isNull);
+      expect(profile.windows, isNull);
+    });
+
     test('migrates V1 landscape intro before generated deserialization', () {
       final source = jsonDecode(
         File(
@@ -15,14 +58,14 @@ void main() {
 
       final profile = ProjectPresentationProfile.fromJson(source);
 
-      expect(profile.schemaVersion, 4);
+      expect(profile.schemaVersion, 5);
       expect(profile.intro!.media.landscape.videoPath,
           'assets/presentation/intro/landscape.mp4');
       expect(profile.intro!.media.landscape.focalX, 0.5);
       expect(profile.intro!.media.portrait, isNull);
       expect(profile.titleMotion, isNull);
       final encoded = profile.toJson();
-      expect(encoded['schemaVersion'], 4);
+      expect(encoded['schemaVersion'], 5);
       expect((encoded['intro']! as Map<String, dynamic>), contains('media'));
       expect((encoded['intro']! as Map<String, dynamic>),
           isNot(contains('videoPath')));

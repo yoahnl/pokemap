@@ -132,6 +132,11 @@ _ProjectPresentationLayoutsProfile _$ProjectPresentationLayoutsProfileFromJson(
   dialogue: ProjectResponsiveSurfaceLayoutProfile.fromJson(
     json['dialogue'] as Map<String, dynamic>,
   ),
+  battle: json['battle'] == null
+      ? null
+      : ProjectResponsiveSurfaceLayoutProfile.fromJson(
+          json['battle'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectPresentationLayoutsProfileToJson(
@@ -140,4 +145,5 @@ Map<String, dynamic> _$ProjectPresentationLayoutsProfileToJson(
   'title': instance.title.toJson(),
   'pauseMenu': instance.pauseMenu.toJson(),
   'dialogue': instance.dialogue.toJson(),
+  'battle': ?instance.battle?.toJson(),
 };

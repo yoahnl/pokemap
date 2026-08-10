@@ -5,7 +5,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'project_presentation_window_profile.freezed.dart';
 part 'project_presentation_window_profile.g.dart';
 
-enum ProjectWindowRole { standard, pauseMenu, dialogue }
+enum ProjectWindowRole { standard, pauseMenu, dialogue, battle }
 
 @Freezed(fromJson: true, toJson: true)
 abstract class ProjectWindowStyleProfile with _$ProjectWindowStyleProfile {
@@ -35,19 +35,20 @@ abstract class ProjectPresentationWindowsProfile
     required String defaultStyleId,
     required String pauseMenuStyleId,
     required String dialogueStyleId,
+    @JsonKey(includeIfNull: false) String? battleStyleId,
     required double pauseBackdropOpacity,
   }) = _ProjectPresentationWindowsProfile;
 
   factory ProjectPresentationWindowsProfile.fromJson(
     Map<String, dynamic> json,
-  ) =>
-      _$ProjectPresentationWindowsProfileFromJson(json);
+  ) => _$ProjectPresentationWindowsProfileFromJson(json);
 
   ProjectWindowStyleProfile resolve(ProjectWindowRole role) {
     final styleId = switch (role) {
       ProjectWindowRole.standard => defaultStyleId,
       ProjectWindowRole.pauseMenu => pauseMenuStyleId,
       ProjectWindowRole.dialogue => dialogueStyleId,
+      ProjectWindowRole.battle => battleStyleId ?? defaultStyleId,
     };
     return styles.singleWhere((style) => style.id == styleId);
   }

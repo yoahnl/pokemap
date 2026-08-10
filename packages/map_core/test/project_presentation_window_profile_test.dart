@@ -2,7 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Project presentation windows V3', () {
+  group('Project presentation windows V5', () {
     test('round-trips role-specific semantic window styles', () {
       const windows = ProjectPresentationWindowsProfile(
         styles: <ProjectWindowStyleProfile>[
@@ -33,10 +33,20 @@ void main() {
             contentPadding: 20,
             shadowElevation: 4,
           ),
+          ProjectWindowStyleProfile(
+            id: 'battle',
+            fillToken: 'battleHudSurface',
+            borderToken: 'primary',
+            borderWidth: 2,
+            cornerRadius: 12,
+            contentPadding: 16,
+            shadowElevation: 4,
+          ),
         ],
         defaultStyleId: 'default',
         pauseMenuStyleId: 'pause',
         dialogueStyleId: 'dialogue',
+        battleStyleId: 'battle',
         pauseBackdropOpacity: .8,
       );
       const profile = ProjectPresentationProfile(windows: windows);
@@ -44,12 +54,13 @@ void main() {
       final decoded = ProjectPresentationProfile.fromJson(profile.toJson());
 
       expect(decoded, profile);
-      expect(decoded.schemaVersion, 4);
+      expect(decoded.schemaVersion, 5);
       expect(decoded.windows?.resolve(ProjectWindowRole.pauseMenu).id, 'pause');
       expect(
         decoded.windows?.resolve(ProjectWindowRole.dialogue).id,
         'dialogue',
       );
+      expect(decoded.windows?.resolve(ProjectWindowRole.battle).id, 'battle');
       expect(
         decoded.configuredCategories,
         contains(ProjectPresentationCategory.theme),
@@ -65,7 +76,7 @@ void main() {
 
       final profile = ProjectPresentationProfile.fromJson(source);
 
-      expect(profile.schemaVersion, 4);
+      expect(profile.schemaVersion, 5);
       expect(profile.windows, isNull);
       expect(profile.toJson(), isNot(contains('windows')));
       expect(profile.effectiveWindows, legacyProjectPresentationWindows);
@@ -77,6 +88,10 @@ void main() {
         profile.effectiveWindows.resolve(ProjectWindowRole.dialogue).fillToken,
         'dialogueSurface',
       );
+      expect(
+        profile.effectiveWindows.resolve(ProjectWindowRole.battle).id,
+        profile.effectiveWindows.defaultStyleId,
+      );
     });
 
     test('migrates V1 without windows and keeps the legacy projection', () {
@@ -85,7 +100,7 @@ void main() {
         'branding': <String, dynamic>{'layoutVariant': 'standard'},
       });
 
-      expect(profile.schemaVersion, 4);
+      expect(profile.schemaVersion, 5);
       expect(profile.windows, isNull);
       expect(profile.effectiveWindows, legacyProjectPresentationWindows);
     });
@@ -271,6 +286,17 @@ void main() {
         throwsA(isA<FormatException>()),
       );
     });
+
+    test('does not smuggle V5 battle styles through schema V4', () {
+      final source = ProjectPresentationProfile(
+        windows: _windows(battleStyleId: 'default'),
+      ).toJson()..['schemaVersion'] = 4;
+
+      expect(
+        () => ProjectPresentationProfile.fromJson(source),
+        throwsA(isA<FormatException>()),
+      );
+    });
   });
 }
 
@@ -294,6 +320,7 @@ ProjectPresentationWindowsProfile _windows({
   ProjectWindowStyleProfile? style,
   List<ProjectWindowStyleProfile>? styles,
   double backdrop = .7,
+  String? battleStyleId,
 }) {
   final resolvedStyles =
       styles ?? <ProjectWindowStyleProfile>[style ?? _style()];
@@ -308,6 +335,7 @@ ProjectPresentationWindowsProfile _windows({
     dialogueStyleId: resolvedStyles.isEmpty
         ? 'missing'
         : resolvedStyles.first.id,
+    battleStyleId: battleStyleId,
     pauseBackdropOpacity: backdrop,
   );
 }

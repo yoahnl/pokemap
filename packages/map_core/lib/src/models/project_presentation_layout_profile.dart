@@ -79,6 +79,12 @@ Set<ProjectPresentationLayoutSlot> projectPresentationLayoutSlotsFor(
       ProjectPresentationLayoutSlot.topCenter,
       ProjectPresentationLayoutSlot.bottomCenter,
     },
+  (ProjectPresentationSurfaceRole.battleHud, _) =>
+    const <ProjectPresentationLayoutSlot>{
+      ProjectPresentationLayoutSlot.bottomCenter,
+      ProjectPresentationLayoutSlot.right,
+      ProjectPresentationLayoutSlot.fullScreen,
+    },
   _ => const <ProjectPresentationLayoutSlot>{},
 };
 
@@ -156,6 +162,8 @@ abstract class ProjectPresentationLayoutsProfile
     required ProjectResponsiveSurfaceLayoutProfile title,
     required ProjectResponsiveSurfaceLayoutProfile pauseMenu,
     required ProjectResponsiveSurfaceLayoutProfile dialogue,
+    @JsonKey(includeIfNull: false)
+    ProjectResponsiveSurfaceLayoutProfile? battle,
   }) = _ProjectPresentationLayoutsProfile;
 
   factory ProjectPresentationLayoutsProfile.fromJson(
@@ -171,6 +179,13 @@ abstract class ProjectPresentationLayoutsProfile
     ProjectPresentationSurfaceRole.titlePrompt => title,
     ProjectPresentationSurfaceRole.pauseMenu => pauseMenu,
     ProjectPresentationSurfaceRole.dialogue => dialogue,
+    ProjectPresentationSurfaceRole.battleHud =>
+      battle ??
+          (throw ArgumentError.value(
+            role,
+            'role',
+            'does not own an authored responsive layout',
+          )),
     _ => throw ArgumentError.value(
       role,
       'role',
@@ -267,6 +282,26 @@ ProjectPresentationLayoutsProfile suggestedProjectPresentationLayouts(
         secondary: const <ProjectPresentationSecondaryElement>[
           ProjectPresentationSecondaryElement.dialoguePortrait,
         ],
+      ),
+    ),
+    battle: ProjectResponsiveSurfaceLayoutProfile(
+      compact: _surfaceVariant(
+        ProjectPresentationBreakpoint.compact,
+        ProjectPresentationLayoutSlot.bottomCenter,
+        width: ProjectPresentationContentWidth.wide,
+        secondary: const <ProjectPresentationSecondaryElement>[],
+      ),
+      regular: _surfaceVariant(
+        ProjectPresentationBreakpoint.regular,
+        ProjectPresentationLayoutSlot.bottomCenter,
+        width: ProjectPresentationContentWidth.wide,
+        secondary: const <ProjectPresentationSecondaryElement>[],
+      ),
+      expanded: _surfaceVariant(
+        ProjectPresentationBreakpoint.expanded,
+        ProjectPresentationLayoutSlot.bottomCenter,
+        width: ProjectPresentationContentWidth.wide,
+        secondary: const <ProjectPresentationSecondaryElement>[],
       ),
     ),
   );

@@ -175,6 +175,11 @@ _ProjectTypographyProfile _$ProjectTypographyProfileFromJson(
       : ProjectTypographyRoleProfile.fromJson(
           json['numbers'] as Map<String, dynamic>,
         ),
+  combat: json['combat'] == null
+      ? null
+      : ProjectTypographyRoleProfile.fromJson(
+          json['combat'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectTypographyProfileToJson(
@@ -184,6 +189,7 @@ Map<String, dynamic> _$ProjectTypographyProfileToJson(
   'body': instance.body.toJson(),
   'dialogue': instance.dialogue.toJson(),
   'numbers': instance.numbers.toJson(),
+  'combat': ?instance.combat?.toJson(),
 };
 
 _ProjectSemanticThemeProfile _$ProjectSemanticThemeProfileFromJson(

@@ -181,7 +181,8 @@ const projectPresentationSurfaceAssignments =
       ProjectPresentationSurfaceAssignment(
         role: ProjectPresentationSurfaceRole.battleHud,
         themeToken: ProjectPresentationSurfaceThemeToken.battleHudSurface,
-        windowRole: ProjectWindowRole.standard,
+        windowRole: ProjectWindowRole.battle,
+        layoutRole: ProjectPresentationSurfaceRole.battleHud,
       ),
       ProjectPresentationSurfaceAssignment(
         role: ProjectPresentationSurfaceRole.battleResult,

@@ -296,7 +296,7 @@ as int,
 /// @nodoc
 mixin _$ProjectPresentationWindowsProfile {
 
- List<ProjectWindowStyleProfile> get styles; String get defaultStyleId; String get pauseMenuStyleId; String get dialogueStyleId; double get pauseBackdropOpacity;
+ List<ProjectWindowStyleProfile> get styles; String get defaultStyleId; String get pauseMenuStyleId; String get dialogueStyleId;@JsonKey(includeIfNull: false) String? get battleStyleId; double get pauseBackdropOpacity;
 /// Create a copy of ProjectPresentationWindowsProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -309,16 +309,16 @@ $ProjectPresentationWindowsProfileCopyWith<ProjectPresentationWindowsProfile> ge
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPresentationWindowsProfile&&const DeepCollectionEquality().equals(other.styles, styles)&&(identical(other.defaultStyleId, defaultStyleId) || other.defaultStyleId == defaultStyleId)&&(identical(other.pauseMenuStyleId, pauseMenuStyleId) || other.pauseMenuStyleId == pauseMenuStyleId)&&(identical(other.dialogueStyleId, dialogueStyleId) || other.dialogueStyleId == dialogueStyleId)&&(identical(other.pauseBackdropOpacity, pauseBackdropOpacity) || other.pauseBackdropOpacity == pauseBackdropOpacity));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPresentationWindowsProfile&&const DeepCollectionEquality().equals(other.styles, styles)&&(identical(other.defaultStyleId, defaultStyleId) || other.defaultStyleId == defaultStyleId)&&(identical(other.pauseMenuStyleId, pauseMenuStyleId) || other.pauseMenuStyleId == pauseMenuStyleId)&&(identical(other.dialogueStyleId, dialogueStyleId) || other.dialogueStyleId == dialogueStyleId)&&(identical(other.battleStyleId, battleStyleId) || other.battleStyleId == battleStyleId)&&(identical(other.pauseBackdropOpacity, pauseBackdropOpacity) || other.pauseBackdropOpacity == pauseBackdropOpacity));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(styles),defaultStyleId,pauseMenuStyleId,dialogueStyleId,pauseBackdropOpacity);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(styles),defaultStyleId,pauseMenuStyleId,dialogueStyleId,battleStyleId,pauseBackdropOpacity);
 
 @override
 String toString() {
-  return 'ProjectPresentationWindowsProfile(styles: $styles, defaultStyleId: $defaultStyleId, pauseMenuStyleId: $pauseMenuStyleId, dialogueStyleId: $dialogueStyleId, pauseBackdropOpacity: $pauseBackdropOpacity)';
+  return 'ProjectPresentationWindowsProfile(styles: $styles, defaultStyleId: $defaultStyleId, pauseMenuStyleId: $pauseMenuStyleId, dialogueStyleId: $dialogueStyleId, battleStyleId: $battleStyleId, pauseBackdropOpacity: $pauseBackdropOpacity)';
 }
 
 
@@ -329,7 +329,7 @@ abstract mixin class $ProjectPresentationWindowsProfileCopyWith<$Res>  {
   factory $ProjectPresentationWindowsProfileCopyWith(ProjectPresentationWindowsProfile value, $Res Function(ProjectPresentationWindowsProfile) _then) = _$ProjectPresentationWindowsProfileCopyWithImpl;
 @useResult
 $Res call({
- List<ProjectWindowStyleProfile> styles, String defaultStyleId, String pauseMenuStyleId, String dialogueStyleId, double pauseBackdropOpacity
+ List<ProjectWindowStyleProfile> styles, String defaultStyleId, String pauseMenuStyleId, String dialogueStyleId,@JsonKey(includeIfNull: false) String? battleStyleId, double pauseBackdropOpacity
 });
 
 
@@ -346,13 +346,14 @@ class _$ProjectPresentationWindowsProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPresentationWindowsProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? styles = null,Object? defaultStyleId = null,Object? pauseMenuStyleId = null,Object? dialogueStyleId = null,Object? pauseBackdropOpacity = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? styles = null,Object? defaultStyleId = null,Object? pauseMenuStyleId = null,Object? dialogueStyleId = null,Object? battleStyleId = freezed,Object? pauseBackdropOpacity = null,}) {
   return _then(_self.copyWith(
 styles: null == styles ? _self.styles : styles // ignore: cast_nullable_to_non_nullable
 as List<ProjectWindowStyleProfile>,defaultStyleId: null == defaultStyleId ? _self.defaultStyleId : defaultStyleId // ignore: cast_nullable_to_non_nullable
 as String,pauseMenuStyleId: null == pauseMenuStyleId ? _self.pauseMenuStyleId : pauseMenuStyleId // ignore: cast_nullable_to_non_nullable
 as String,dialogueStyleId: null == dialogueStyleId ? _self.dialogueStyleId : dialogueStyleId // ignore: cast_nullable_to_non_nullable
-as String,pauseBackdropOpacity: null == pauseBackdropOpacity ? _self.pauseBackdropOpacity : pauseBackdropOpacity // ignore: cast_nullable_to_non_nullable
+as String,battleStyleId: freezed == battleStyleId ? _self.battleStyleId : battleStyleId // ignore: cast_nullable_to_non_nullable
+as String?,pauseBackdropOpacity: null == pauseBackdropOpacity ? _self.pauseBackdropOpacity : pauseBackdropOpacity // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }
@@ -438,10 +439,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<ProjectWindowStyleProfile> styles,  String defaultStyleId,  String pauseMenuStyleId,  String dialogueStyleId,  double pauseBackdropOpacity)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<ProjectWindowStyleProfile> styles,  String defaultStyleId,  String pauseMenuStyleId,  String dialogueStyleId, @JsonKey(includeIfNull: false)  String? battleStyleId,  double pauseBackdropOpacity)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectPresentationWindowsProfile() when $default != null:
-return $default(_that.styles,_that.defaultStyleId,_that.pauseMenuStyleId,_that.dialogueStyleId,_that.pauseBackdropOpacity);case _:
+return $default(_that.styles,_that.defaultStyleId,_that.pauseMenuStyleId,_that.dialogueStyleId,_that.battleStyleId,_that.pauseBackdropOpacity);case _:
   return orElse();
 
 }
@@ -459,10 +460,10 @@ return $default(_that.styles,_that.defaultStyleId,_that.pauseMenuStyleId,_that.d
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<ProjectWindowStyleProfile> styles,  String defaultStyleId,  String pauseMenuStyleId,  String dialogueStyleId,  double pauseBackdropOpacity)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<ProjectWindowStyleProfile> styles,  String defaultStyleId,  String pauseMenuStyleId,  String dialogueStyleId, @JsonKey(includeIfNull: false)  String? battleStyleId,  double pauseBackdropOpacity)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPresentationWindowsProfile():
-return $default(_that.styles,_that.defaultStyleId,_that.pauseMenuStyleId,_that.dialogueStyleId,_that.pauseBackdropOpacity);case _:
+return $default(_that.styles,_that.defaultStyleId,_that.pauseMenuStyleId,_that.dialogueStyleId,_that.battleStyleId,_that.pauseBackdropOpacity);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -479,10 +480,10 @@ return $default(_that.styles,_that.defaultStyleId,_that.pauseMenuStyleId,_that.d
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<ProjectWindowStyleProfile> styles,  String defaultStyleId,  String pauseMenuStyleId,  String dialogueStyleId,  double pauseBackdropOpacity)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<ProjectWindowStyleProfile> styles,  String defaultStyleId,  String pauseMenuStyleId,  String dialogueStyleId, @JsonKey(includeIfNull: false)  String? battleStyleId,  double pauseBackdropOpacity)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPresentationWindowsProfile() when $default != null:
-return $default(_that.styles,_that.defaultStyleId,_that.pauseMenuStyleId,_that.dialogueStyleId,_that.pauseBackdropOpacity);case _:
+return $default(_that.styles,_that.defaultStyleId,_that.pauseMenuStyleId,_that.dialogueStyleId,_that.battleStyleId,_that.pauseBackdropOpacity);case _:
   return null;
 
 }
@@ -494,7 +495,7 @@ return $default(_that.styles,_that.defaultStyleId,_that.pauseMenuStyleId,_that.d
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectPresentationWindowsProfile extends ProjectPresentationWindowsProfile {
-  const _ProjectPresentationWindowsProfile({required final  List<ProjectWindowStyleProfile> styles, required this.defaultStyleId, required this.pauseMenuStyleId, required this.dialogueStyleId, required this.pauseBackdropOpacity}): _styles = styles,super._();
+  const _ProjectPresentationWindowsProfile({required final  List<ProjectWindowStyleProfile> styles, required this.defaultStyleId, required this.pauseMenuStyleId, required this.dialogueStyleId, @JsonKey(includeIfNull: false) this.battleStyleId, required this.pauseBackdropOpacity}): _styles = styles,super._();
   factory _ProjectPresentationWindowsProfile.fromJson(Map<String, dynamic> json) => _$ProjectPresentationWindowsProfileFromJson(json);
 
  final  List<ProjectWindowStyleProfile> _styles;
@@ -507,6 +508,7 @@ class _ProjectPresentationWindowsProfile extends ProjectPresentationWindowsProfi
 @override final  String defaultStyleId;
 @override final  String pauseMenuStyleId;
 @override final  String dialogueStyleId;
+@override@JsonKey(includeIfNull: false) final  String? battleStyleId;
 @override final  double pauseBackdropOpacity;
 
 /// Create a copy of ProjectPresentationWindowsProfile
@@ -522,16 +524,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPresentationWindowsProfile&&const DeepCollectionEquality().equals(other._styles, _styles)&&(identical(other.defaultStyleId, defaultStyleId) || other.defaultStyleId == defaultStyleId)&&(identical(other.pauseMenuStyleId, pauseMenuStyleId) || other.pauseMenuStyleId == pauseMenuStyleId)&&(identical(other.dialogueStyleId, dialogueStyleId) || other.dialogueStyleId == dialogueStyleId)&&(identical(other.pauseBackdropOpacity, pauseBackdropOpacity) || other.pauseBackdropOpacity == pauseBackdropOpacity));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPresentationWindowsProfile&&const DeepCollectionEquality().equals(other._styles, _styles)&&(identical(other.defaultStyleId, defaultStyleId) || other.defaultStyleId == defaultStyleId)&&(identical(other.pauseMenuStyleId, pauseMenuStyleId) || other.pauseMenuStyleId == pauseMenuStyleId)&&(identical(other.dialogueStyleId, dialogueStyleId) || other.dialogueStyleId == dialogueStyleId)&&(identical(other.battleStyleId, battleStyleId) || other.battleStyleId == battleStyleId)&&(identical(other.pauseBackdropOpacity, pauseBackdropOpacity) || other.pauseBackdropOpacity == pauseBackdropOpacity));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_styles),defaultStyleId,pauseMenuStyleId,dialogueStyleId,pauseBackdropOpacity);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_styles),defaultStyleId,pauseMenuStyleId,dialogueStyleId,battleStyleId,pauseBackdropOpacity);
 
 @override
 String toString() {
-  return 'ProjectPresentationWindowsProfile(styles: $styles, defaultStyleId: $defaultStyleId, pauseMenuStyleId: $pauseMenuStyleId, dialogueStyleId: $dialogueStyleId, pauseBackdropOpacity: $pauseBackdropOpacity)';
+  return 'ProjectPresentationWindowsProfile(styles: $styles, defaultStyleId: $defaultStyleId, pauseMenuStyleId: $pauseMenuStyleId, dialogueStyleId: $dialogueStyleId, battleStyleId: $battleStyleId, pauseBackdropOpacity: $pauseBackdropOpacity)';
 }
 
 
@@ -542,7 +544,7 @@ abstract mixin class _$ProjectPresentationWindowsProfileCopyWith<$Res> implement
   factory _$ProjectPresentationWindowsProfileCopyWith(_ProjectPresentationWindowsProfile value, $Res Function(_ProjectPresentationWindowsProfile) _then) = __$ProjectPresentationWindowsProfileCopyWithImpl;
 @override @useResult
 $Res call({
- List<ProjectWindowStyleProfile> styles, String defaultStyleId, String pauseMenuStyleId, String dialogueStyleId, double pauseBackdropOpacity
+ List<ProjectWindowStyleProfile> styles, String defaultStyleId, String pauseMenuStyleId, String dialogueStyleId,@JsonKey(includeIfNull: false) String? battleStyleId, double pauseBackdropOpacity
 });
 
 
@@ -559,13 +561,14 @@ class __$ProjectPresentationWindowsProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPresentationWindowsProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? styles = null,Object? defaultStyleId = null,Object? pauseMenuStyleId = null,Object? dialogueStyleId = null,Object? pauseBackdropOpacity = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? styles = null,Object? defaultStyleId = null,Object? pauseMenuStyleId = null,Object? dialogueStyleId = null,Object? battleStyleId = freezed,Object? pauseBackdropOpacity = null,}) {
   return _then(_ProjectPresentationWindowsProfile(
 styles: null == styles ? _self._styles : styles // ignore: cast_nullable_to_non_nullable
 as List<ProjectWindowStyleProfile>,defaultStyleId: null == defaultStyleId ? _self.defaultStyleId : defaultStyleId // ignore: cast_nullable_to_non_nullable
 as String,pauseMenuStyleId: null == pauseMenuStyleId ? _self.pauseMenuStyleId : pauseMenuStyleId // ignore: cast_nullable_to_non_nullable
 as String,dialogueStyleId: null == dialogueStyleId ? _self.dialogueStyleId : dialogueStyleId // ignore: cast_nullable_to_non_nullable
-as String,pauseBackdropOpacity: null == pauseBackdropOpacity ? _self.pauseBackdropOpacity : pauseBackdropOpacity // ignore: cast_nullable_to_non_nullable
+as String,battleStyleId: freezed == battleStyleId ? _self.battleStyleId : battleStyleId // ignore: cast_nullable_to_non_nullable
+as String?,pauseBackdropOpacity: null == pauseBackdropOpacity ? _self.pauseBackdropOpacity : pauseBackdropOpacity // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }

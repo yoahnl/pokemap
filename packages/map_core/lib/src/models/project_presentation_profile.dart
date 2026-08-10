@@ -16,7 +16,7 @@ enum ProjectPresentationCategory { branding, intro, typography, theme, layouts }
 
 enum ProjectPresentationDiagnosticSeverity { warning, error }
 
-enum ProjectTypographyRole { display, body, dialogue, numbers }
+enum ProjectTypographyRole { display, body, dialogue, numbers, combat }
 
 @freezed
 abstract class ProjectPresentationDiagnostic
@@ -178,6 +178,8 @@ abstract class ProjectTypographyRoleProfile
 
 @Freezed(fromJson: true, toJson: true)
 abstract class ProjectTypographyProfile with _$ProjectTypographyProfile {
+  const ProjectTypographyProfile._();
+
   @JsonSerializable(explicitToJson: true)
   const factory ProjectTypographyProfile({
     @Default(ProjectTypographyRoleProfile())
@@ -187,10 +189,20 @@ abstract class ProjectTypographyProfile with _$ProjectTypographyProfile {
     ProjectTypographyRoleProfile dialogue,
     @Default(ProjectTypographyRoleProfile())
     ProjectTypographyRoleProfile numbers,
+    @JsonKey(includeIfNull: false) ProjectTypographyRoleProfile? combat,
   }) = _ProjectTypographyProfile;
 
   factory ProjectTypographyProfile.fromJson(Map<String, dynamic> json) =>
       _$ProjectTypographyProfileFromJson(json);
+
+  ProjectTypographyRoleProfile resolve(ProjectTypographyRole role) =>
+      switch (role) {
+        ProjectTypographyRole.display => display,
+        ProjectTypographyRole.body => body,
+        ProjectTypographyRole.dialogue => dialogue,
+        ProjectTypographyRole.numbers => numbers,
+        ProjectTypographyRole.combat => combat ?? body,
+      };
 }
 
 @Freezed(fromJson: true, toJson: true)
@@ -261,7 +273,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         _migrateProjectPresentationProfileJson(json),
       );
 
-  static const int supportedSchemaVersion = 4;
+  static const int supportedSchemaVersion = 5;
 
   ProjectPresentationWindowsProfile get effectiveWindows =>
       windows ?? legacyProjectPresentationWindows;
@@ -434,6 +446,12 @@ void _validateLayouts(
           role: ProjectPresentationSurfaceRole.dialogue,
           profile: layouts.dialogue,
         ),
+        if (layouts.battle case final battle?)
+          (
+            field: 'battle',
+            role: ProjectPresentationSurfaceRole.battleHud,
+            profile: battle,
+          ),
       ]) {
     final variants = <ProjectSurfaceLayoutVariant>[
       entry.profile.compact,
@@ -616,6 +634,8 @@ void _validateWindows(
     (field: 'defaultStyleId', id: windows.defaultStyleId),
     (field: 'pauseMenuStyleId', id: windows.pauseMenuStyleId),
     (field: 'dialogueStyleId', id: windows.dialogueStyleId),
+    if (windows.battleStyleId case final battleStyleId?)
+      (field: 'battleStyleId', id: battleStyleId),
   ]) {
     if (ids.contains(reference.id)) continue;
     _presentationError(
@@ -1179,6 +1199,7 @@ void _validateTypography(
     'body': typography.body,
     'dialogue': typography.dialogue,
     'numbers': typography.numbers,
+    'combat': ?typography.combat,
   };
   for (final entry in roles.entries) {
     final roleName = entry.key;
@@ -1285,7 +1306,19 @@ Map<String, dynamic> _migrateProjectPresentationProfileJson(
       'Presentation layouts require schema version 4.',
     );
   }
-  if (schemaVersion == 2 || schemaVersion == 3) {
+  if (schemaVersion is int && schemaVersion < 5) {
+    final windows = source['windows'];
+    final layouts = source['layouts'];
+    final typography = source['typography'];
+    if ((windows is Map && windows.containsKey('battleStyleId')) ||
+        (layouts is Map && layouts.containsKey('battle')) ||
+        (typography is Map && typography.containsKey('combat'))) {
+      throw const FormatException(
+        'Combat presentation requires schema version 5.',
+      );
+    }
+  }
+  if (schemaVersion == 2 || schemaVersion == 3 || schemaVersion == 4) {
     return Map<String, dynamic>.from(source)
       ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion;
   }

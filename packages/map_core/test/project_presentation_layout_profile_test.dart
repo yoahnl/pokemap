@@ -2,7 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Project presentation layouts V4', () {
+  group('Project presentation layouts V5', () {
     test('round-trips semantic layouts for every player surface', () {
       final profile = ProjectPresentationProfile(
         branding: const ProjectBrandingProfile(layoutVariant: 'cinematic'),
@@ -12,7 +12,7 @@ void main() {
       final decoded = ProjectPresentationProfile.fromJson(profile.toJson());
 
       expect(decoded, profile);
-      expect(decoded.schemaVersion, 4);
+      expect(decoded.schemaVersion, 5);
       expect(decoded.branding.layoutVariant, 'cinematic');
       expect(
         decoded.configuredCategories,
@@ -28,7 +28,7 @@ void main() {
           'branding': <String, dynamic>{'layoutVariant': 'centered'},
         });
 
-        expect(profile.schemaVersion, 4);
+        expect(profile.schemaVersion, 5);
         expect(profile.layouts, isNull);
         expect(profile.toJson(), isNot(contains('layouts')));
         expect(profile.branding.layoutVariant, 'centered');
@@ -64,6 +64,79 @@ void main() {
       expect(
         () => ProjectPresentationProfile.fromJson(json),
         throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('restricts battle layouts to guided combat slots', () {
+      final layouts = _layouts().copyWith(
+        battle: _responsive(
+          compactSlot: ProjectPresentationLayoutSlot.bottomCenter,
+          regularSlot: ProjectPresentationLayoutSlot.right,
+          expandedSlot: ProjectPresentationLayoutSlot.fullScreen,
+        ),
+      );
+
+      expect(
+        validateProjectPresentationProfile(
+          ProjectPresentationProfile(layouts: layouts),
+        ).where(
+          (diagnostic) =>
+              diagnostic.code == 'presentationLayoutSlotUnsupported',
+        ),
+        isEmpty,
+      );
+
+      final invalid = layouts.copyWith(
+        battle: layouts.battle!.copyWith(
+          regular: _variant(
+            ProjectPresentationBreakpoint.regular,
+            slot: ProjectPresentationLayoutSlot.leftPane,
+          ),
+        ),
+      );
+      expect(
+        validateProjectPresentationProfile(
+          ProjectPresentationProfile(layouts: invalid),
+        ).map((diagnostic) => diagnostic.code),
+        contains('presentationLayoutSlotUnsupported'),
+      );
+    });
+
+    test('does not smuggle V5 battle layouts through schema V4', () {
+      final source = ProjectPresentationProfile(
+        layouts: _layouts().copyWith(
+          battle: _responsive(
+            compactSlot: ProjectPresentationLayoutSlot.bottomCenter,
+            regularSlot: ProjectPresentationLayoutSlot.bottomCenter,
+            expandedSlot: ProjectPresentationLayoutSlot.right,
+          ),
+        ),
+      ).toJson()..['schemaVersion'] = 4;
+
+      expect(
+        () => ProjectPresentationProfile.fromJson(source),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
+    test('rejects unknown battle layout enum values', () {
+      final source = ProjectPresentationProfile(
+        layouts: _layouts().copyWith(
+          battle: _responsive(
+            compactSlot: ProjectPresentationLayoutSlot.bottomCenter,
+            regularSlot: ProjectPresentationLayoutSlot.right,
+            expandedSlot: ProjectPresentationLayoutSlot.fullScreen,
+          ),
+        ),
+      ).toJson();
+      final layouts = source['layouts']! as Map<String, dynamic>;
+      final battle = layouts['battle']! as Map<String, dynamic>;
+      final regular = battle['regular']! as Map<String, dynamic>;
+      regular['slot'] = 'pixelPerfectAnywhere';
+
+      expect(
+        () => ProjectPresentationProfile.fromJson(source),
+        throwsA(isA<ArgumentError>()),
       );
     });
 
@@ -197,6 +270,19 @@ ProjectPresentationLayoutsProfile _layouts() =>
         ),
       ),
     );
+
+ProjectResponsiveSurfaceLayoutProfile _responsive({
+  required ProjectPresentationLayoutSlot compactSlot,
+  required ProjectPresentationLayoutSlot regularSlot,
+  required ProjectPresentationLayoutSlot expandedSlot,
+}) => ProjectResponsiveSurfaceLayoutProfile(
+  compact: _variant(ProjectPresentationBreakpoint.compact, slot: compactSlot),
+  regular: _variant(ProjectPresentationBreakpoint.regular, slot: regularSlot),
+  expanded: _variant(
+    ProjectPresentationBreakpoint.expanded,
+    slot: expandedSlot,
+  ),
+);
 
 ProjectSurfaceLayoutVariant _variant(
   ProjectPresentationBreakpoint breakpoint, {

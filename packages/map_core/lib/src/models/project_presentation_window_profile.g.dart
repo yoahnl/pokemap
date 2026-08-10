@@ -39,6 +39,7 @@ _ProjectPresentationWindowsProfile _$ProjectPresentationWindowsProfileFromJson(
   defaultStyleId: json['defaultStyleId'] as String,
   pauseMenuStyleId: json['pauseMenuStyleId'] as String,
   dialogueStyleId: json['dialogueStyleId'] as String,
+  battleStyleId: json['battleStyleId'] as String?,
   pauseBackdropOpacity: (json['pauseBackdropOpacity'] as num).toDouble(),
 );
 
@@ -49,5 +50,6 @@ Map<String, dynamic> _$ProjectPresentationWindowsProfileToJson(
   'defaultStyleId': instance.defaultStyleId,
   'pauseMenuStyleId': instance.pauseMenuStyleId,
   'dialogueStyleId': instance.dialogueStyleId,
+  'battleStyleId': ?instance.battleStyleId,
   'pauseBackdropOpacity': instance.pauseBackdropOpacity,
 };

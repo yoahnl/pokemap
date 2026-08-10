@@ -45,8 +45,13 @@ void main() {
     expect(
       projectPresentationSurfaceAssignment(
         ProjectPresentationSurfaceRole.battleHud,
-      ).themeToken,
-      ProjectPresentationSurfaceThemeToken.battleHudSurface,
+      ),
+      const ProjectPresentationSurfaceAssignment(
+        role: ProjectPresentationSurfaceRole.battleHud,
+        themeToken: ProjectPresentationSurfaceThemeToken.battleHudSurface,
+        windowRole: ProjectWindowRole.battle,
+        layoutRole: ProjectPresentationSurfaceRole.battleHud,
+      ),
     );
   });
 
