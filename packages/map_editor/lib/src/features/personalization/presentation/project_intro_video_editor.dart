@@ -127,6 +127,7 @@ class ProjectIntroVideoEditor extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         PokeMapToggleTile(
+          key: const ValueKey<String>('intro-allow-replay'),
           label: 'Autoriser “Rejouer”',
           description:
               'L’option reste disponible sur l’écran titre après la lecture.',
@@ -147,18 +148,18 @@ class ProjectIntroVideoEditor extends StatelessWidget {
             runSpacing: 8,
             children: <Widget>[
               PokeMapButton(
-                onPressed: () => onChanged(
-                  intro.copyWith(reducedMotionBehavior: 'poster'),
-                ),
+                key: const ValueKey<String>('intro-reduced-motion-poster'),
+                onPressed: () =>
+                    onChanged(intro.copyWith(reducedMotionBehavior: 'poster')),
                 variant: PokeMapButtonVariant.secondary,
                 isSelected: intro.reducedMotionBehavior == 'poster',
                 leading: const Icon(Icons.image_outlined),
                 child: const Text('Afficher le poster'),
               ),
               PokeMapButton(
-                onPressed: () => onChanged(
-                  intro.copyWith(reducedMotionBehavior: 'skip'),
-                ),
+                key: const ValueKey<String>('intro-reduced-motion-skip'),
+                onPressed: () =>
+                    onChanged(intro.copyWith(reducedMotionBehavior: 'skip')),
                 variant: PokeMapButtonVariant.secondary,
                 isSelected: intro.reducedMotionBehavior == 'skip',
                 leading: const Icon(Icons.skip_next_outlined),

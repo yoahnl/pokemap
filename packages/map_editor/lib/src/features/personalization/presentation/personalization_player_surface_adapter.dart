@@ -76,6 +76,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     PersonalizationStudioScene.intro => PlayerIntroVideoSurface(
       key: const ValueKey<String>('personalization-intro-composition'),
       media: _introSkipped ? null : _introMedia(),
+      caption: _introCaption,
       isPoster: true,
       failureMessage: _introSkipped
           ? 'Intro ignorée avec les animations réduites'
@@ -83,6 +84,9 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
           ? 'Aucune introduction configurée'
           : null,
       onSkip: () => _target(const IntroPresentationTarget()),
+      onReplay: profile.intro?.allowReplay == true && !_introSkipped
+          ? () => _target(const IntroPresentationTarget())
+          : null,
       onContinue: () => _target(const IntroPresentationTarget()),
     ),
     PersonalizationStudioScene.pause => RuntimePlayerPauseShell.root(
@@ -136,15 +140,27 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   );
 
   Widget? _introMedia() {
-    final intro = profile.intro;
-    if (intro == null) return null;
-    final variant = aspectRatio < 1
-        ? intro.media.portrait ?? intro.media.landscape
-        : intro.media.landscape;
+    final variant = _introVariant;
+    if (variant == null) return null;
     final poster = _fileForPath(variant.posterPath);
     if (poster == null || !poster.existsSync()) return null;
-    return Image.file(poster, fit: BoxFit.cover);
+    return Image.file(
+      poster,
+      fit: BoxFit.cover,
+      alignment: Alignment(variant.focalX * 2 - 1, variant.focalY * 2 - 1),
+    );
   }
+
+  ProjectVideoVariantProfile? get _introVariant {
+    final intro = profile.intro;
+    if (intro == null) return null;
+    return aspectRatio < 1
+        ? intro.media.portrait ?? intro.media.landscape
+        : intro.media.landscape;
+  }
+
+  String? get _introCaption =>
+      _introVariant?.captionsPath == null ? null : 'Exemple de sous-titre';
 
   Widget? _titleMotion() {
     final media = profile.titleMotion?.menuLoop;

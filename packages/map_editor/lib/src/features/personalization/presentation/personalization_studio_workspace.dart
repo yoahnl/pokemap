@@ -34,8 +34,8 @@ import 'personalization_readiness_panel.dart';
 import 'personalization_section_actions.dart';
 import 'personalization_studio_shell_v2.dart';
 import 'inspectors/personalization_global_style_inspector.dart';
+import 'inspectors/personalization_intro_inspector.dart';
 import 'inspectors/personalization_title_inspector.dart';
-import 'project_intro_video_editor.dart';
 import 'project_layout_studio.dart';
 import 'project_semantic_theme_editor.dart';
 import 'project_menu_labels_editor.dart';
@@ -1092,7 +1092,7 @@ class _PersonalizationStudioWorkspaceState
           ...feedback,
           IgnorePointer(
             ignoring: !canEdit || _isImportingAsset,
-            child: ProjectIntroVideoEditor(
+            child: PersonalizationIntroInspector(
               profile: profile.intro,
               onImportPressed: () {
                 unawaited(
