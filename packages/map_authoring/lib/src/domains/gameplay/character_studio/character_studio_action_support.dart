@@ -10,6 +10,7 @@ import '../../../transactions/authoring_plan.dart';
 import '../../../transactions/change_set.dart';
 import '../../../workspace/project_snapshot.dart';
 import '../../maps/map_lifecycle_adapter.dart';
+import '../../narrative/dialogue_source_store.dart';
 
 final class CharacterStudioActionException implements Exception {
   CharacterStudioActionException(
@@ -40,6 +41,7 @@ AuthoringActionDescriptor characterStudioActionDescriptor(
     riskLevel: risk,
     resourceKinds: const <String>[
       'project',
+      'dialogue',
       'characterStudioCatalog',
       'characterStudioDependency',
     ],
@@ -67,6 +69,7 @@ AuthoringMutationDraft characterStudioProjectDraft(
   Object? before,
   Object? after,
   Map<String, MapData> projectedMaps = const <String, MapData>{},
+  Map<String, List<int>> projectedDialogueSources = const <String, List<int>>{},
   Map<String, Object?> preview = const <String, Object?>{},
 }) {
   final project = AuthoringResourceRef(
@@ -112,6 +115,45 @@ AuthoringMutationDraft characterStudioProjectDraft(
       ),
     );
   }
+  final dialogueIds = projectedDialogueSources.keys.toList()..sort();
+  final dialogueChanges = <AuthoringResourceChange>[];
+  final dialogueDiffs = <AuthoringDiffEntry>[];
+  for (final dialogueId in dialogueIds) {
+    final identity = dialogueSourceResourceIdentity(dialogueId);
+    final revision = snapshot.resourceFingerprints[identity];
+    final storageKey = snapshot.resourceStorageKeys[identity];
+    if (revision == null || storageKey == null) {
+      throw CharacterStudioActionException(
+        'character_studio.dialogue_resource_unavailable',
+        'A referenced dialogue cannot be changed by Character Studio.',
+        details: <String, Object?>{'dialogueId': dialogueId},
+      );
+    }
+    final beforeBytes = snapshot.resourceBytes(identity);
+    final afterBytes = projectedDialogueSources[dialogueId]!;
+    final resource = AuthoringResourceRef(
+      kind: 'dialogue',
+      id: dialogueId,
+      revision: revision,
+    );
+    dialogueChanges.add(
+      AuthoringResourceChange(
+        resource: resource,
+        storageKey: storageKey,
+        beforeBytes: beforeBytes,
+        afterBytes: afterBytes,
+      ),
+    );
+    dialogueDiffs.add(
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.replace,
+        resource: resource,
+        path: '/portraitReferences',
+        before: const <String, Object?>{'portraitReferencesChanged': true},
+        after: const <String, Object?>{'portraitReferencesChanged': true},
+      ),
+    );
+  }
   return AuthoringMutationDraft(
     changeSet: AuthoringChangeSet(
       changes: <AuthoringResourceChange>[
@@ -122,6 +164,7 @@ AuthoringMutationDraft characterStudioProjectDraft(
           afterBytes: _encodeCharacterStudioProject(snapshot, projected),
         ),
         ...mapChanges,
+        ...dialogueChanges,
       ],
       diff: AuthoringDiff(<AuthoringDiffEntry>[
         AuthoringDiffEntry(
@@ -136,6 +179,7 @@ AuthoringMutationDraft characterStudioProjectDraft(
           after: after,
         ),
         ...mapDiffs,
+        ...dialogueDiffs,
       ]),
     ),
     preview: <String, Object?>{

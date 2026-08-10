@@ -132,8 +132,16 @@ void main() {
       );
     });
 
-    test('delete plan requires dry-run and reports stable dependencies', () {
-      final snapshot = _snapshot(withPortraitUsage: true);
+    test('delete plan reports exact character and dialogue dependencies', () {
+      final snapshot = _snapshot(
+        withPortraitUsage: true,
+        dialogueSource: '''title: Start
+---
+<<portrait elia neutral>>
+Élia: Bonjour.
+===
+''',
+      );
       final draft = const CharacterStudioPortraitStateActions().build(
         _context(
           snapshot: snapshot,
@@ -146,8 +154,15 @@ void main() {
 
       expect(draft.preview['requiresResolution'], isTrue);
       expect(draft.preview['choices'], <Object?>['replace', 'clear', 'cancel']);
-      expect(dependencies, hasLength(1));
-      expect((dependencies.single! as Map)['sourceId'], 'elia');
+      expect(dependencies, hasLength(2));
+      expect(
+        dependencies.map((entry) => (entry! as Map)['sourceId']),
+        containsAll(<Object?>['elia', 'intro']),
+      );
+      expect(
+        dependencies.map((entry) => (entry! as Map)['sourceKind']).toSet(),
+        containsAll(<Object?>['characterPortrait', 'dialogue']),
+      );
       expect(
         () => const CharacterStudioPortraitStateActions().build(
           _context(
@@ -166,8 +181,17 @@ void main() {
       );
     });
 
-    test('referenced deletion requires and applies clear atomically', () {
-      final snapshot = _snapshot(withPortraitUsage: true);
+    test('referenced deletion clears portrait slots and dialogue directives',
+        () {
+      final snapshot = _snapshot(
+        withPortraitUsage: true,
+        dialogueSource: '''title: Start
+---
+<<portrait elia neutral>>
+Élia: Bonjour.
+===
+''',
+      );
       expect(
         () => const CharacterStudioPortraitStateActions().build(
           _context(
@@ -199,14 +223,27 @@ void main() {
 
       expect(projected.characterStudioCatalog.portraitStates, isEmpty);
       expect(projected.characters.single.portraits, isEmpty);
-      expect(draft.changeSet.changes.single.beforeBytes,
-          snapshot.resourceBytes('project'));
-      expect(draft.preview['resolvedDependencyCount'], 1);
+      expect(draft.changeSet.changes, hasLength(2));
+      expect(
+        _dialogueAfter(draft),
+        '''title: Start
+---
+Élia: Bonjour.
+===
+''',
+      );
+      expect(draft.preview['resolvedDependencyCount'], 2);
     });
 
-    test('referenced deletion can replace every portrait transactionally', () {
+    test('referenced deletion replaces portrait and dialogue state IDs', () {
       final snapshot = _snapshot(
         withPortraitUsage: true,
+        dialogueSource: '''title: Start
+---
+<<portrait elia neutral>>
+Élia: Bonjour.
+===
+''',
         states: const <CharacterPortraitStateDefinition>[
           CharacterPortraitStateDefinition(
             id: 'neutral',
@@ -241,6 +278,8 @@ void main() {
         projected.characters.single.portraits.single.portraitStateId,
         'calm',
       );
+      expect(_dialogueAfter(draft), contains('<<portrait elia calm>>'));
+      expect(_dialogueAfter(draft), contains('Élia: Bonjour.'));
     });
 
     test('planner rejects a stale expected revision before action execution',
@@ -309,6 +348,7 @@ ProjectSnapshot _snapshot({
     CharacterPortraitStateDefinition(id: 'neutral', displayName: 'Neutre'),
   ],
   bool withPortraitUsage = false,
+  String? dialogueSource,
 }) {
   final manifest = ProjectManifest(
     name: 'Portrait state fixture',
@@ -331,29 +371,65 @@ ProjectSnapshot _snapshot({
         ],
       ),
     ],
+    dialogues: <ProjectDialogueEntry>[
+      if (dialogueSource != null)
+        const ProjectDialogueEntry(
+          id: 'intro',
+          name: 'Introduction',
+          relativePath: 'dialogues/intro.yarn',
+        ),
+    ],
   );
   final bytes = utf8.encode(jsonEncode(manifest.toJson()));
   final fingerprint = computeAuthoringBytesFingerprint(
     bytes,
     logicalName: 'project.json',
   );
+  final dialogueBytes =
+      dialogueSource == null ? null : utf8.encode(dialogueSource);
+  final dialogueFingerprint = dialogueBytes == null
+      ? null
+      : computeAuthoringBytesFingerprint(
+          dialogueBytes,
+          logicalName: 'dialogues/intro.yarn',
+        );
   return ProjectSnapshot(
     projectHandle: const ProjectHandle('portrait_state_project'),
     revision:
         'sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
     manifest: manifest,
     maps: const <MapData>[],
-    resourceFingerprints: <String, String>{'project': fingerprint},
-    resourceBytes: <String, List<int>>{'project': bytes},
-    resourceStorageKeys: const <String, String>{'project': 'project.json'},
+    resourceFingerprints: <String, String>{
+      'project': fingerprint,
+      if (dialogueFingerprint != null)
+        'dialogueSource:intro': dialogueFingerprint,
+    },
+    resourceBytes: <String, List<int>>{
+      'project': bytes,
+      if (dialogueBytes != null) 'dialogueSource:intro': dialogueBytes,
+    },
+    resourceStorageKeys: <String, String>{
+      'project': 'project.json',
+      if (dialogueSource != null)
+        'dialogueSource:intro': 'dialogues/intro.yarn',
+    },
   );
 }
 
 ProjectManifest _projected(AuthoringMutationDraft draft) {
+  final projectChange = draft.changeSet.changes.singleWhere(
+    (change) => change.resource.kind == 'project',
+  );
   return ProjectManifest.fromJson(
     Map<String, dynamic>.from(
-      jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!))
-          as Map,
+      jsonDecode(utf8.decode(projectChange.afterBytes!)) as Map,
     ),
   );
+}
+
+String _dialogueAfter(AuthoringMutationDraft draft) {
+  final dialogueChange = draft.changeSet.changes.singleWhere(
+    (change) => change.resource.kind == 'dialogue',
+  );
+  return utf8.decode(dialogueChange.afterBytes!);
 }

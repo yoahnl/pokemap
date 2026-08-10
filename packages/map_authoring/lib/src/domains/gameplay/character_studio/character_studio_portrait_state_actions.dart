@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
 import '../../../contracts/action_descriptor.dart';
 import '../../../transactions/action_planner.dart';
 import '../../../transactions/authoring_plan.dart';
+import '../../narrative/dialogue_source_store.dart';
 import 'character_studio_action_support.dart';
 
 final class CharacterStudioPortraitStateActions {
@@ -204,6 +207,11 @@ final class CharacterStudioPortraitStateActions {
     final before = states[index];
     final references = buildCharacterStudioReferenceIndex(manifest)
         .referencesTo(CharacterStudioReferenceTargetKind.portraitState, id);
+    final dialogueReferences = _dialoguePortraitReferences(
+      context,
+      portraitStateId: id,
+    );
+    final dependencyCount = references.length + dialogueReferences.length;
     final replacementCandidates = <Map<String, Object?>>[
       for (final state in states)
         if (state.id != id) state.toJson(),
@@ -213,8 +221,9 @@ final class CharacterStudioPortraitStateActions {
       'dependencies': <Object?>[
         for (final reference in references)
           characterStudioReferenceJson(reference),
+        ...dialogueReferences,
       ],
-      'requiresResolution': references.isNotEmpty,
+      'requiresResolution': dependencyCount > 0,
       'choices': const <Object?>['replace', 'clear', 'cancel'],
       'replacementCandidates': replacementCandidates,
     };
@@ -237,7 +246,7 @@ final class CharacterStudioPortraitStateActions {
       );
     }
     final resolution = parameters.optionalString('resolution');
-    if (references.isNotEmpty && resolution == null) {
+    if (dependencyCount > 0 && resolution == null) {
       throw CharacterStudioActionException(
         'character_studio.portrait_state.resolution_required',
         'Referenced portrait states require replace, clear, or cancel.',
@@ -296,21 +305,102 @@ final class CharacterStudioPortraitStateActions {
       ),
       characters: projectedCharacters,
     );
+    final projectedDialogueSources = <String, List<int>>{};
+    if (resolution == 'clear' || resolution == 'replace') {
+      for (final dialogue in manifest.dialogues) {
+        final identity = dialogueSourceResourceIdentity(dialogue.id);
+        final beforeBytes = context.snapshot.findResourceBytes(identity);
+        if (beforeBytes == null) continue;
+        final before = _decodeDialogueSource(dialogue.id, beforeBytes);
+        final after = _rewriteDialoguePortraitState(
+          before,
+          deletedId: id,
+          replacementId: replacementId,
+        );
+        if (after != before) {
+          projectedDialogueSources[dialogue.id] = utf8.encode(after);
+        }
+      }
+    }
     return characterStudioProjectDraft(
       context.snapshot,
       projected,
       operation: context.request.actionId,
       path: '/characterStudioCatalog/portraitStates/$id',
       before: before.toJson(),
+      projectedDialogueSources: projectedDialogueSources,
       preview: <String, Object?>{
         ...basePreview,
         'resolution': resolution,
         'replacementId': replacementId,
-        'resolvedDependencyCount': references.length,
+        'resolvedDependencyCount': dependencyCount,
       },
     );
   }
 }
+
+List<Map<String, Object?>> _dialoguePortraitReferences(
+  AuthoringPlanningContext context, {
+  required String portraitStateId,
+}) {
+  final references = <Map<String, Object?>>[];
+  for (final dialogue in context.snapshot.manifest.dialogues) {
+    final identity = dialogueSourceResourceIdentity(dialogue.id);
+    final bytes = context.snapshot.findResourceBytes(identity);
+    if (bytes == null) continue;
+    final source = _decodeDialogueSource(dialogue.id, bytes);
+    for (final match in _portraitDirectivePattern.allMatches(source)) {
+      if (match.group(2) != portraitStateId) continue;
+      final lineNumber =
+          '\n'.allMatches(source.substring(0, match.start)).length + 1;
+      references.add(<String, Object?>{
+        'sourceKind': 'dialogue',
+        'sourceId': dialogue.id,
+        'path': '\$.dialogues[${dialogue.id}].lines[$lineNumber]',
+        'targetKind': 'portraitState',
+        'targetId': portraitStateId,
+      });
+    }
+  }
+  return references;
+}
+
+String _decodeDialogueSource(String dialogueId, List<int> bytes) {
+  try {
+    return utf8.decode(bytes, allowMalformed: false);
+  } on Object {
+    throw CharacterStudioActionException(
+      'character_studio.dialogue_source_not_utf8',
+      'A dialogue using this portrait state is not valid UTF-8.',
+      details: <String, Object?>{'dialogueId': dialogueId},
+    );
+  }
+}
+
+String _rewriteDialoguePortraitState(
+  String source, {
+  required String deletedId,
+  required String? replacementId,
+}) {
+  final lines = source.split('\n');
+  final rewritten = <String>[];
+  for (final line in lines) {
+    final match = _portraitDirectivePattern.firstMatch(line);
+    if (match == null || match.group(2) != deletedId) {
+      rewritten.add(line);
+      continue;
+    }
+    if (replacementId != null) {
+      rewritten.add('${match.group(1)}$replacementId${match.group(3)}');
+    }
+  }
+  return rewritten.join('\n');
+}
+
+final RegExp _portraitDirectivePattern = RegExp(
+  r'^([ \t]*<<portrait\s+[^\s>]+\s+)([^\s>]+)(>>[ \t]*\r?)$',
+  multiLine: true,
+);
 
 List<CharacterPortraitVariant> _resolvePortraits(
   ProjectCharacterEntry character, {

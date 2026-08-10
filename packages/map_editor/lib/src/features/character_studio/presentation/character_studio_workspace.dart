@@ -10,6 +10,7 @@ import '../../editor/state/editor_state.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/character_studio_media_resolver.dart';
+import 'catalog/portrait_state_manager.dart';
 import 'identity/character_studio_delete_dialog.dart';
 import 'identity/character_studio_identity_draft_controller.dart';
 import 'identity/character_studio_identity_editor.dart';
@@ -120,6 +121,20 @@ class _CharacterStudioWorkspaceState
                   unawaited(notifier.setPlayerCharacter(character.id)),
               onDelete: () => unawaited(_deleteCharacter(character.id)),
             ),
+          (CharacterStudioSection.portraits, _) => PortraitStateManager(
+            project: project,
+            isSaving: snapshot.isSaving,
+            onCreate: notifier.createPortraitState,
+            onRename: notifier.renamePortraitState,
+            onReorder: notifier.reorderPortraitStates,
+            onPreviewDelete: notifier.previewDeletePortraitState,
+            onDelete: (id, resolution, replacementId) =>
+                notifier.deletePortraitState(
+                  id,
+                  resolution: resolution,
+                  replacementId: replacementId,
+                ),
+          ),
           _ => _CharacterStudioSectionPlaceholder(section: _section),
         },
       ),

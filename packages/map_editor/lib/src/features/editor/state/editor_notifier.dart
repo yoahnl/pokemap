@@ -14118,6 +14118,126 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  Future<void> createPortraitState(String displayName) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(createPortraitStateUseCaseProvider)
+          .execute(workspace, project, displayName: displayName);
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Portrait state created',
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to create portrait state: $error',
+      );
+    }
+  }
+
+  Future<void> renamePortraitState(String id, String displayName) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(renamePortraitStateUseCaseProvider)
+          .execute(workspace, project, id: id, displayName: displayName);
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Portrait state renamed',
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to rename portrait state: $error',
+      );
+    }
+  }
+
+  Future<void> reorderPortraitStates(List<String> orderedIds) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(reorderPortraitStatesUseCaseProvider)
+          .execute(workspace, project, orderedIds: orderedIds);
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Portrait states reordered',
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to reorder portrait states: $error',
+      );
+    }
+  }
+
+  Future<PortraitStateDeletePlan?> previewDeletePortraitState(String id) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return null;
+    try {
+      final plan = await ref
+          .read(previewDeletePortraitStateUseCaseProvider)
+          .execute(workspace, project, id: id);
+      state = state.copyWith(errorMessage: null);
+      return plan;
+    } catch (error) {
+      state = state.copyWith(
+        errorMessage: 'Failed to inspect portrait state dependencies: $error',
+      );
+      return null;
+    }
+  }
+
+  Future<void> deletePortraitState(
+    String id, {
+    required PortraitStateDeleteResolution resolution,
+    String? replacementId,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null || state.isSaving) return;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      final updated = await ref
+          .read(deletePortraitStateUseCaseProvider)
+          .execute(
+            workspace,
+            project,
+            id: id,
+            resolution: resolution,
+            replacementId: replacementId,
+          );
+      state = state.copyWith(
+        project: updated,
+        isSaving: false,
+        statusMessage: 'Portrait state deleted',
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Failed to delete portrait state: $error',
+      );
+    }
+  }
+
   Future<void> upsertCharacterAnimation({
     required String characterId,
     required CharacterAnimationState animState,

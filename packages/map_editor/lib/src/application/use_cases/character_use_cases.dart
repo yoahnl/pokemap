@@ -206,6 +206,201 @@ class PreviewDeleteCharacterUseCase {
   }
 }
 
+class CreatePortraitStateUseCase {
+  CreatePortraitStateUseCase(this._authoring);
+
+  final CharacterStudioAuthoringGateway _authoring;
+
+  Future<ProjectManifest> execute(
+    ProjectWorkspace workspace,
+    ProjectManifest project, {
+    required String displayName,
+  }) {
+    final label = displayName.trim();
+    if (label.isEmpty) {
+      throw const EditorValidationException(
+        'Portrait state display name cannot be empty',
+      );
+    }
+    return _authoring.apply(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      actionId: 'characterStudio.portraitState.create',
+      parameters: <String, Object?>{'displayName': label},
+      operationLabel: 'portrait_state_create',
+    );
+  }
+}
+
+class RenamePortraitStateUseCase {
+  RenamePortraitStateUseCase(this._authoring);
+
+  final CharacterStudioAuthoringGateway _authoring;
+
+  Future<ProjectManifest> execute(
+    ProjectWorkspace workspace,
+    ProjectManifest project, {
+    required String id,
+    required String displayName,
+  }) {
+    final label = displayName.trim();
+    if (label.isEmpty) {
+      throw const EditorValidationException(
+        'Portrait state display name cannot be empty',
+      );
+    }
+    return _authoring.apply(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      actionId: 'characterStudio.portraitState.update',
+      parameters: <String, Object?>{'id': id, 'displayName': label},
+      operationLabel: 'portrait_state_update_$id',
+    );
+  }
+}
+
+class ReorderPortraitStatesUseCase {
+  ReorderPortraitStatesUseCase(this._authoring);
+
+  final CharacterStudioAuthoringGateway _authoring;
+
+  Future<ProjectManifest> execute(
+    ProjectWorkspace workspace,
+    ProjectManifest project, {
+    required List<String> orderedIds,
+  }) {
+    return _authoring.apply(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      actionId: 'characterStudio.portraitState.reorder',
+      parameters: <String, Object?>{'orderedIds': orderedIds},
+      operationLabel: 'portrait_state_reorder',
+    );
+  }
+}
+
+enum PortraitStateDeleteResolution { replace, clear }
+
+final class PortraitStateDeleteDependency {
+  const PortraitStateDeleteDependency({
+    required this.sourceKind,
+    required this.sourceId,
+    required this.path,
+  });
+
+  final String sourceKind;
+  final String sourceId;
+  final String path;
+}
+
+final class PortraitStateReplacementCandidate {
+  const PortraitStateReplacementCandidate({
+    required this.id,
+    required this.displayName,
+  });
+
+  final String id;
+  final String displayName;
+}
+
+final class PortraitStateDeletePlan {
+  const PortraitStateDeletePlan({
+    required this.portraitStateId,
+    required this.requiresResolution,
+    required this.dependencies,
+    required this.replacementCandidates,
+  });
+
+  factory PortraitStateDeletePlan.fromPreview(Map<String, Object?> preview) {
+    final portraitStateId = _previewString(preview, 'portraitStateId');
+    if (portraitStateId.isEmpty) {
+      throw const EditorValidationException(
+        'Portrait state deletion preview is missing its state',
+      );
+    }
+    return PortraitStateDeletePlan(
+      portraitStateId: portraitStateId,
+      requiresResolution: preview['requiresResolution'] == true,
+      dependencies: <PortraitStateDeleteDependency>[
+        for (final raw in _previewMaps(preview['dependencies']))
+          PortraitStateDeleteDependency(
+            sourceKind: _previewString(raw, 'sourceKind'),
+            sourceId: _previewString(raw, 'sourceId'),
+            path: _previewString(raw, 'path'),
+          ),
+      ],
+      replacementCandidates: <PortraitStateReplacementCandidate>[
+        for (final raw in _previewMaps(preview['replacementCandidates']))
+          PortraitStateReplacementCandidate(
+            id: _previewString(raw, 'id'),
+            displayName: _previewString(raw, 'displayName'),
+          ),
+      ],
+    );
+  }
+
+  final String portraitStateId;
+  final bool requiresResolution;
+  final List<PortraitStateDeleteDependency> dependencies;
+  final List<PortraitStateReplacementCandidate> replacementCandidates;
+}
+
+class PreviewDeletePortraitStateUseCase {
+  PreviewDeletePortraitStateUseCase(this._authoring);
+
+  final CharacterStudioAuthoringGateway _authoring;
+
+  Future<PortraitStateDeletePlan> execute(
+    ProjectWorkspace workspace,
+    ProjectManifest project, {
+    required String id,
+  }) async {
+    final plan = await _authoring.preview(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      actionId: 'characterStudio.portraitState.deletePlan',
+      parameters: <String, Object?>{'id': id},
+      operationLabel: 'portrait_state_delete_plan_$id',
+    );
+    return PortraitStateDeletePlan.fromPreview(plan.preview);
+  }
+}
+
+class DeletePortraitStateUseCase {
+  DeletePortraitStateUseCase(this._authoring);
+
+  final CharacterStudioAuthoringGateway _authoring;
+
+  Future<ProjectManifest> execute(
+    ProjectWorkspace workspace,
+    ProjectManifest project, {
+    required String id,
+    required PortraitStateDeleteResolution resolution,
+    String? replacementId,
+  }) {
+    final normalizedReplacement = replacementId?.trim();
+    if (resolution == PortraitStateDeleteResolution.replace &&
+        (normalizedReplacement == null || normalizedReplacement.isEmpty)) {
+      throw const EditorValidationException(
+        'A replacement portrait state is required',
+      );
+    }
+    return _authoring.apply(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      actionId: 'characterStudio.portraitState.delete',
+      parameters: <String, Object?>{
+        'id': id,
+        'resolution': resolution.name,
+        if (normalizedReplacement != null && normalizedReplacement.isNotEmpty)
+          'replacementId': normalizedReplacement,
+      },
+      operationLabel: 'portrait_state_delete_$id',
+      requiresConfirmation: true,
+    );
+  }
+}
+
 Iterable<Map<String, Object?>> _previewMaps(Object? value) sync* {
   if (value is! List) return;
   for (final entry in value) {

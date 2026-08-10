@@ -317,6 +317,41 @@ final previewDeleteCharacterUseCaseProvider =
     });
 
 @riverpod
+CreatePortraitStateUseCase createPortraitStateUseCase(Ref ref) {
+  return CreatePortraitStateUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
+}
+
+@riverpod
+RenamePortraitStateUseCase renamePortraitStateUseCase(Ref ref) {
+  return RenamePortraitStateUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
+}
+
+@riverpod
+ReorderPortraitStatesUseCase reorderPortraitStatesUseCase(Ref ref) {
+  return ReorderPortraitStatesUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
+}
+
+final previewDeletePortraitStateUseCaseProvider =
+    Provider<PreviewDeletePortraitStateUseCase>((ref) {
+      return PreviewDeletePortraitStateUseCase(
+        ref.watch(characterStudioAuthoringGatewayProvider),
+      );
+    });
+
+@riverpod
+DeletePortraitStateUseCase deletePortraitStateUseCase(Ref ref) {
+  return DeletePortraitStateUseCase(
+    ref.watch(characterStudioAuthoringGatewayProvider),
+  );
+}
+
+@riverpod
 UpsertCharacterAnimationUseCase upsertCharacterAnimationUseCase(Ref ref) {
   return UpsertCharacterAnimationUseCase(
     ref.watch(characterStudioAuthoringGatewayProvider),
