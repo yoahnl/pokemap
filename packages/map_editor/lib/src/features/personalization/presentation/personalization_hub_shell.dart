@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/pokemap_badge.dart';
-import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
 import '../../../ui/design_system/pokemap_panel.dart';
 import '../../../ui/design_system/pokemap_sidebar_item.dart';
