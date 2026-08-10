@@ -13,6 +13,7 @@ import '../domains/assets/tiled_image_collection_packer.dart';
 import '../domains/assets/visual_organization_actions.dart';
 import '../domains/gameplay/pokemon_catalog_actions.dart';
 import '../domains/gameplay/campaign_content_actions.dart';
+import '../domains/gameplay/character_studio/character_studio_animation_definition_actions.dart';
 import '../domains/gameplay/character_studio/character_studio_portrait_state_actions.dart';
 import '../domains/narrative/dialogue_actions.dart';
 import '../domains/narrative/cinematic_actions.dart';
@@ -104,6 +105,8 @@ final class MapMutationDispatcher {
     );
     const pokemonCatalogs = PokemonCatalogActions();
     const campaignContent = CampaignContentActions();
+    const characterStudioAnimationDefinitions =
+        CharacterStudioAnimationDefinitionActions();
     const characterStudioPortraitStates = CharacterStudioPortraitStateActions();
     const dialogues = DialogueActions();
     const cinematics = CinematicActions();
@@ -238,6 +241,12 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: campaignContent.build,
+        ),
+      for (final descriptor
+          in CharacterStudioAnimationDefinitionActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: characterStudioAnimationDefinitions.build,
         ),
       for (final descriptor in CharacterStudioPortraitStateActions.descriptors)
         MapMutationActionRegistration(

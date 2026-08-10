@@ -54,6 +54,7 @@ export 'src/domains/gameplay/pokemon_catalog_actions.dart';
 export 'src/domains/gameplay/campaign_content_actions.dart';
 export 'src/domains/gameplay/character_studio/character_studio_resources.dart';
 export 'src/domains/gameplay/character_studio/character_studio_action_support.dart';
+export 'src/domains/gameplay/character_studio/character_studio_animation_definition_actions.dart';
 export 'src/domains/gameplay/character_studio/character_studio_portrait_state_actions.dart';
 export 'src/domains/gameplay/sandbox_player_state_actions.dart';
 export 'src/domains/gameplay/battle_actions.dart';
