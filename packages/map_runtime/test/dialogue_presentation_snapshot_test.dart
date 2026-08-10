@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/application/dialogue_portrait_resolver.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/presentation/flutter/dialogue_presentation_snapshot.dart';
 
@@ -77,5 +79,50 @@ void main() {
       ).rejection,
       DialoguePresentationCommandRejection.staleSnapshot,
     );
+  });
+
+  test('projects structured portrait metadata without changing legacy text',
+      () {
+    final session = DialogueSession.start(
+      <YarnNode>[
+        YarnNode(
+          title: 'portrait',
+          steps: <YarnStep>[
+            YarnStepLine(
+              'Élia: Attends… tu as vu ça ?',
+              characterId: 'elia',
+              portraitStateId: 'surprised',
+            ),
+          ],
+        ),
+      ],
+      'portrait',
+    )!;
+    const portrait = ResolvedDialoguePortrait(
+      characterId: 'elia',
+      characterName: 'Élia',
+      portraitStateId: 'surprised',
+      portraitStateName: 'Surprise',
+      assetId: 'portrait.elia.surprised',
+      absoluteFilePath: '/project/assets/.pokemap-store/portrait.blob',
+      fitMode: CharacterPortraitFitMode.cover,
+    );
+
+    final snapshot = buildDialoguePresentationSnapshot(
+      session: session,
+      revision: 9,
+      visibleText: 'Élia: Attends…',
+      isCurrentLineFullyRevealed: false,
+      resolvePortrait: ({
+        required characterId,
+        required portraitStateId,
+      }) =>
+          portrait,
+    );
+
+    expect(snapshot.speaker, 'Élia');
+    expect(snapshot.text, 'Attends…');
+    expect(snapshot.fullText, 'Attends… tu as vu ça ?');
+    expect(snapshot.portrait, portrait);
   });
 }

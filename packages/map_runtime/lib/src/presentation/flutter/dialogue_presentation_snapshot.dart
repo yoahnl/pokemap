@@ -1,4 +1,5 @@
 import '../../application/dialogue_runtime_models.dart';
+import '../../application/dialogue_portrait_resolver.dart';
 
 enum DialoguePresentationMode { line, choices }
 
@@ -26,6 +27,7 @@ class DialoguePresentationSnapshot {
     required this.isCurrentLineFullyRevealed,
     required this.isLastContent,
     required this.choices,
+    this.portrait,
   });
 
   final int revision;
@@ -37,6 +39,7 @@ class DialoguePresentationSnapshot {
   final bool isCurrentLineFullyRevealed;
   final bool isLastContent;
   final List<DialoguePresentationChoice> choices;
+  final ResolvedDialoguePortrait? portrait;
 }
 
 DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
@@ -44,11 +47,23 @@ DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
   required int revision,
   required String visibleText,
   required bool isCurrentLineFullyRevealed,
+  DialoguePortraitLookup? resolvePortrait,
 }) {
   final state = session.state;
   return switch (state) {
-    DialogueShowingLine(:final text) => () {
+    DialogueShowingLine(
+      :final text,
+      :final characterId,
+      :final portraitStateId,
+    ) =>
+      () {
         final fullLine = _splitDialogueLine(text);
+        final portrait = characterId == null || portraitStateId == null
+            ? null
+            : resolvePortrait?.call(
+                characterId: characterId,
+                portraitStateId: portraitStateId,
+              );
         final speakerPrefix =
             fullLine.speaker == null ? null : '${fullLine.speaker}:';
         final visibleBody = speakerPrefix == null
@@ -60,12 +75,13 @@ DialoguePresentationSnapshot buildDialoguePresentationSnapshot({
           revision: revision,
           mode: DialoguePresentationMode.line,
           nodeTitle: session.currentNodeTitle,
-          speaker: fullLine.speaker,
+          speaker: fullLine.speaker ?? portrait?.characterName,
           text: visibleBody,
           fullText: fullLine.text,
           isCurrentLineFullyRevealed: isCurrentLineFullyRevealed,
           isLastContent: session.isLastContent,
           choices: const <DialoguePresentationChoice>[],
+          portrait: portrait,
         );
       }(),
     DialogueWaitingForChoice(

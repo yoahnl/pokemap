@@ -110,6 +110,13 @@ export 'src/player/runtime_startup_coordinator.dart'
 
 export 'src/application/scene_runtime/narrative_command_runtime_capability_evidence.dart'
     show buildMapRuntimeNarrativeCommandConsumerAttestation;
+export 'src/application/dialogue_portrait_resolver.dart'
+    show
+        DialoguePortraitResolutionCode,
+        DialoguePortraitResolutionDiagnostic,
+        ResolvedDialoguePortrait,
+        DialoguePortraitLookup,
+        DialoguePortraitResolver;
 export 'src/presentation/flame/narrative_command_player_surface_capability_evidence.dart'
     show buildMapRuntimeNarrativeCommandPlayerSurfaceAttestation;
 export 'src/application/narrative_runtime_smoke_evidence.dart'

@@ -49,4 +49,36 @@ Guide: Bienvenue.
     expect(chosen.selectedOutcomeId, 'accepted');
     expect((chosen.state as DialogueShowingLine).text, 'Continuons.');
   });
+
+  test('keeps compiled portrait metadata in the runtime session', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'pokemap_compiled_portrait_dialogue_',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final document = const YarnDialogueCompiler().compile('''
+title: Start
+---
+<<portrait elia surprised>>
+Élia: Attends… tu as vu ça ?
+===
+''');
+    final file = File('${directory.path}/portrait.json');
+    await file.writeAsBytes(
+      const RuntimeDialogueDocumentCodec().encodeUtf8(document),
+      flush: true,
+    );
+
+    final session = await loadDialogueContent(
+      ResolvedDialogue(
+        absoluteFilePath: file.path,
+        dialogueId: 'portrait',
+        startNode: 'Start',
+      ),
+    );
+    final line = session!.state as DialogueShowingLine;
+
+    expect(line.text, 'Élia: Attends… tu as vu ça ?');
+    expect(line.characterId, 'elia');
+    expect(line.portraitStateId, 'surprised');
+  });
 }

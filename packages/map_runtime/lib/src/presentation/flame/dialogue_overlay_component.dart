@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import '../../application/dialogue_runtime_models.dart';
+import '../../application/dialogue_portrait_resolver.dart';
 import '../flutter/dialogue_presentation_snapshot.dart';
 import 'dialogue_text_speed.dart';
 
@@ -14,6 +15,7 @@ class DialogueOverlayComponent extends PositionComponent {
     required Vector2 viewportSize,
     this.textSpeed = RuntimeDialogueTextSpeed.instant,
     this.onPresentationSnapshotChanged,
+    this.portraitResolver,
     bool renderInFlame = true,
   })  : _session = session,
         _renderInFlame = renderInFlame,
@@ -27,6 +29,7 @@ class DialogueOverlayComponent extends PositionComponent {
   final OnDialogueFinished onFinished;
   final ValueChanged<DialoguePresentationSnapshot?>?
       onPresentationSnapshotChanged;
+  final DialoguePortraitResolver? portraitResolver;
   RuntimeDialogueTextSpeed textSpeed;
   bool _renderInFlame;
   int _visibleRuneCount = 0;
@@ -81,6 +84,7 @@ class DialogueOverlayComponent extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
+    await portraitResolver?.preload(_session);
     _cursorPainter = TextPainter(
       text: const TextSpan(
         text: '▶',
@@ -327,6 +331,7 @@ class DialogueOverlayComponent extends PositionComponent {
       revision: ++_presentationRevision,
       visibleText: visibleText,
       isCurrentLineFullyRevealed: isCurrentLineFullyRevealed,
+      resolvePortrait: portraitResolver?.resolve,
     );
     _currentPresentationSnapshot = snapshot;
     onPresentationSnapshotChanged?.call(snapshot);

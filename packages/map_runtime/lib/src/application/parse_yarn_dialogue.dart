@@ -18,7 +18,11 @@ YarnNode _node(RuntimeDialogueNode node) => YarnNode(
     );
 
 YarnStep _step(RuntimeDialogueStep step) => switch (step) {
-      RuntimeDialogueLine() => YarnStepLine(step.text),
+      RuntimeDialogueLine() => YarnStepLine(
+          step.text,
+          characterId: step.characterId,
+          portraitStateId: step.portraitStateId,
+        ),
       RuntimeDialogueJump() => YarnStepJump(step.targetNode),
       RuntimeDialogueChoiceBlock() => YarnStepChoiceBlock(
           step.choices

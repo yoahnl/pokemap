@@ -83,6 +83,7 @@ import '../../application/scenario_runtime/scenario_runtime_models.dart';
 import '../../application/scenario_runtime/scenario_battle_outcome_flags.dart';
 import '../../application/scenario_runtime_completion_gate.dart';
 import '../../application/script_runtime_controller.dart';
+import '../../application/dialogue_portrait_resolver.dart';
 import '../../application/script_runtime_state.dart';
 import '../../application/scripted_entity_movement_controller.dart';
 import '../../application/scripted_entity_movement_models.dart';
@@ -572,6 +573,33 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       const ScenarioRuntimeExecutor();
   ProjectManifest? _cachedNarrativeFactResolverManifest;
   NarrativeFactRuntimeResolver? _cachedNarrativeFactResolver;
+  ProjectManifest? _cachedDialoguePortraitResolverManifest;
+  String? _cachedDialoguePortraitResolverRoot;
+  DialoguePortraitResolver? _cachedDialoguePortraitResolver;
+
+  DialoguePortraitResolver get _dialoguePortraitResolver {
+    final manifest = _bundle.manifest;
+    final root = _bundle.projectRootDirectory;
+    if (!identical(_cachedDialoguePortraitResolverManifest, manifest) ||
+        _cachedDialoguePortraitResolverRoot != root ||
+        _cachedDialoguePortraitResolver == null) {
+      _cachedDialoguePortraitResolverManifest = manifest;
+      _cachedDialoguePortraitResolverRoot = root;
+      _cachedDialoguePortraitResolver = DialoguePortraitResolver(
+        manifest: manifest,
+        projectRootDirectory: root,
+        onDiagnostic: (diagnostic) {
+          debugPrint(
+            '[dialogue_portrait] code=${diagnostic.code.name} '
+            'character=${diagnostic.characterId} '
+            'state=${diagnostic.portraitStateId} '
+            'asset=${diagnostic.assetId}',
+          );
+        },
+      );
+    }
+    return _cachedDialoguePortraitResolver!;
+  }
 
   NarrativeFactRuntimeResolver get _narrativeFactResolver {
     final manifest = _bundle.manifest;
@@ -10278,6 +10306,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       textSpeed: _dialogueTextSpeed,
       renderInFlame: !_preferDialogueFlutterOverlay,
       onPresentationSnapshotChanged: _setDialoguePresentationSnapshot,
+      portraitResolver: _dialoguePortraitResolver,
       onFinished: (outcomeId) {
         debugPrint('[dialogue] dialogue closed');
         _dialogueOverlay = null;

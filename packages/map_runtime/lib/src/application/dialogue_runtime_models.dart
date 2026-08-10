@@ -1,8 +1,14 @@
 sealed class YarnStep {}
 
 class YarnStepLine extends YarnStep {
-  YarnStepLine(this.text);
+  YarnStepLine(
+    this.text, {
+    this.characterId,
+    this.portraitStateId,
+  });
   final String text;
+  final String? characterId;
+  final String? portraitStateId;
 }
 
 class YarnStepJump extends YarnStep {
@@ -31,8 +37,14 @@ class YarnNode {
 sealed class DialogueSessionState {}
 
 class DialogueShowingLine extends DialogueSessionState {
-  DialogueShowingLine({required this.text});
+  DialogueShowingLine({
+    required this.text,
+    this.characterId,
+    this.portraitStateId,
+  });
   final String text;
+  final String? characterId;
+  final String? portraitStateId;
 }
 
 class DialogueWaitingForChoice extends DialogueSessionState {
@@ -78,8 +90,16 @@ class DialogueSession {
     return DialogueSession._(
       nodes: mappedNodes.toList(growable: false),
       state: switch (state) {
-        DialogueShowingLine(:final text) =>
-          DialogueShowingLine(text: transform(text)),
+        DialogueShowingLine(
+          :final text,
+          :final characterId,
+          :final portraitStateId,
+        ) =>
+          DialogueShowingLine(
+            text: transform(text),
+            characterId: characterId,
+            portraitStateId: portraitStateId,
+          ),
         DialogueWaitingForChoice(:final choices, :final selectedIndex) =>
           DialogueWaitingForChoice(
             choices: choices
@@ -167,7 +187,16 @@ List<YarnStep> _mapSteps(
     steps
         .map(
           (step) => switch (step) {
-            YarnStepLine(:final text) => YarnStepLine(transform(text)),
+            YarnStepLine(
+              :final text,
+              :final characterId,
+              :final portraitStateId,
+            ) =>
+              YarnStepLine(
+                transform(text),
+                characterId: characterId,
+                portraitStateId: portraitStateId,
+              ),
             YarnStepJump(:final targetNode) => YarnStepJump(targetNode),
             YarnStepChoiceBlock(:final choices) => YarnStepChoiceBlock(
                 choices
@@ -199,10 +228,14 @@ DialogueSession? _resolveStep(
     if (currentIndex >= currentSteps.length) return null;
     final step = currentSteps[currentIndex];
     switch (step) {
-      case YarnStepLine():
+      case YarnStepLine(:final characterId, :final portraitStateId):
         return DialogueSession._(
           nodes: nodes,
-          state: DialogueShowingLine(text: step.text),
+          state: DialogueShowingLine(
+            text: step.text,
+            characterId: characterId,
+            portraitStateId: portraitStateId,
+          ),
           currentNodeTitle: currentTitle,
           currentSteps: currentSteps,
           stepIndex: currentIndex,
