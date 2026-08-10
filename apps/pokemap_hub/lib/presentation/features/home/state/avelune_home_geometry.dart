@@ -8,6 +8,8 @@ import 'package:pokemap_hub/presentation/design_system/foundation/avelune_breakp
 
 enum AveluneHomeSizeClass { compact, regular, large }
 
+enum AveluneHomeLayoutMode { portrait, landscape }
+
 @immutable
 final class AveluneInsertionTrajectory {
   const AveluneInsertionTrajectory({
@@ -39,6 +41,7 @@ final class AveluneHomeAnchors {
 @immutable
 final class AveluneHomeGeometry {
   const AveluneHomeGeometry._({
+    required this.layoutMode,
     required this.sizeClass,
     required this.viewportSize,
     required this.safeArea,
@@ -78,14 +81,22 @@ final class AveluneHomeGeometry {
 
     final contentWidth = viewportSize.width - safeArea.horizontal;
     final contentHeight = viewportSize.height - safeArea.vertical;
-    if (contentWidth < AveluneBreakpoints.minimumContentWidth ||
-        contentHeight < AveluneBreakpoints.minimumContentHeight) {
+    final availableSize = Size(contentWidth, contentHeight);
+    if (!AveluneBreakpoints.supports(availableSize)) {
+      final landscape = AveluneBreakpoints.usesLandscapeLayout(availableSize);
+      final minimumWidth =
+          landscape
+              ? AveluneBreakpoints.minimumLandscapeContentWidth
+              : AveluneBreakpoints.minimumContentWidth;
+      final minimumHeight =
+          landscape
+              ? AveluneBreakpoints.minimumLandscapeContentHeight
+              : AveluneBreakpoints.minimumContentHeight;
       throw ArgumentError.value(
         viewportSize,
         'viewportSize',
         'The Safe Area must leave at least '
-            '${AveluneBreakpoints.minimumContentWidth}x'
-            '${AveluneBreakpoints.minimumContentHeight} logical pixels.',
+            '${minimumWidth}x$minimumHeight logical pixels.',
       );
     }
 
@@ -95,44 +106,94 @@ final class AveluneHomeGeometry {
       contentWidth,
       contentHeight,
     );
+    final layoutMode =
+        AveluneBreakpoints.usesLandscapeLayout(contentRect.size)
+            ? AveluneHomeLayoutMode.landscape
+            : AveluneHomeLayoutMode.portrait;
     final sizeClass = _resolveSizeClass(contentRect.size);
     final metrics = _metricsFor(sizeClass);
-    final librarySheetTop = contentRect.top +
-        (contentRect.height * metrics.librarySheetTopFraction);
-    final sceneRect = Rect.fromLTRB(
-      contentRect.left,
-      contentRect.top,
-      contentRect.right,
-      librarySheetTop,
-    );
-    final navigationRect = Rect.fromLTRB(
-      contentRect.left,
-      contentRect.bottom - metrics.navigationHeight,
-      contentRect.right,
-      contentRect.bottom,
-    );
-    final shelfRect = Rect.fromLTRB(
-      contentRect.left,
-      librarySheetTop + metrics.libraryHeaderHeight,
-      contentRect.right,
-      navigationRect.top,
-    );
-    final librarySheetRect = Rect.fromLTRB(
-      0,
-      librarySheetTop,
-      viewportSize.width,
-      viewportSize.height,
-    );
-    final consoleLedgeRect = Rect.fromLTRB(
-      0,
-      librarySheetTop - metrics.consoleLedgeDepth,
-      viewportSize.width,
-      librarySheetTop,
-    );
+    final libraryHeaderHeight =
+        layoutMode == AveluneHomeLayoutMode.landscape &&
+                sizeClass == AveluneHomeSizeClass.compact
+            ? 70.0
+            : metrics.libraryHeaderHeight;
+    late final Rect sceneRect;
+    late final Rect navigationRect;
+    late final Rect shelfRect;
+    late final Rect librarySheetRect;
+    late final Rect consoleLedgeRect;
+
+    if (layoutMode == AveluneHomeLayoutMode.landscape) {
+      final librarySheetLeft = contentRect.left + contentRect.width * 0.60;
+      sceneRect = Rect.fromLTRB(
+        contentRect.left,
+        contentRect.top,
+        librarySheetLeft,
+        contentRect.bottom,
+      );
+      navigationRect = Rect.fromLTRB(
+        librarySheetLeft,
+        contentRect.bottom - metrics.navigationHeight,
+        contentRect.right,
+        contentRect.bottom,
+      );
+      shelfRect = Rect.fromLTRB(
+        librarySheetLeft,
+        contentRect.top + libraryHeaderHeight,
+        contentRect.right,
+        navigationRect.top,
+      );
+      librarySheetRect = Rect.fromLTRB(
+        librarySheetLeft,
+        0,
+        viewportSize.width,
+        viewportSize.height,
+      );
+      consoleLedgeRect = Rect.fromLTRB(
+        0,
+        contentRect.bottom - metrics.consoleLedgeDepth,
+        librarySheetLeft,
+        viewportSize.height,
+      );
+    } else {
+      final librarySheetTop =
+          contentRect.top +
+          (contentRect.height * metrics.librarySheetTopFraction);
+      sceneRect = Rect.fromLTRB(
+        contentRect.left,
+        contentRect.top,
+        contentRect.right,
+        librarySheetTop,
+      );
+      navigationRect = Rect.fromLTRB(
+        contentRect.left,
+        contentRect.bottom - metrics.navigationHeight,
+        contentRect.right,
+        contentRect.bottom,
+      );
+      shelfRect = Rect.fromLTRB(
+        contentRect.left,
+        librarySheetTop + libraryHeaderHeight,
+        contentRect.right,
+        navigationRect.top,
+      );
+      librarySheetRect = Rect.fromLTRB(
+        0,
+        librarySheetTop,
+        viewportSize.width,
+        viewportSize.height,
+      );
+      consoleLedgeRect = Rect.fromLTRB(
+        0,
+        librarySheetTop - metrics.consoleLedgeDepth,
+        viewportSize.width,
+        librarySheetTop,
+      );
+    }
     final cabinWindowRect = Rect.fromLTRB(
       contentRect.left + metrics.windowHorizontalInset,
       contentRect.top + metrics.windowTopInset,
-      contentRect.right - metrics.windowHorizontalInset,
+      sceneRect.right - metrics.windowHorizontalInset,
       consoleLedgeRect.top + metrics.windowLedgeOverlap,
     );
     final headerRect = Rect.fromLTWH(
@@ -151,20 +212,22 @@ final class AveluneHomeGeometry {
     );
 
     final consoleWidth = math.min(
-      contentRect.width * metrics.consoleWidthFraction,
+      sceneRect.width * metrics.consoleWidthFraction,
       _maximumConsoleWidth,
     );
     final consoleHeight = consoleWidth / kAveluneConsoleAspectRatio;
+    final consoleFootlineTarget =
+        layoutMode == AveluneHomeLayoutMode.landscape
+            ? consoleLedgeRect.top + metrics.consoleFootlineInset
+            : librarySheetRect.top - metrics.consoleFootlineInset;
     final consoleRect = Rect.fromLTWH(
-      contentRect.center.dx - (consoleWidth / 2),
-      librarySheetTop -
-          metrics.consoleFootlineInset -
-          (consoleHeight * kAveluneConsoleFootlineFraction),
+      sceneRect.center.dx - (consoleWidth / 2),
+      consoleFootlineTarget - (consoleHeight * kAveluneConsoleFootlineFraction),
       consoleWidth,
       consoleHeight,
     );
     final heroCartridgeRect = Rect.fromLTWH(
-      contentRect.center.dx - (heroCartridgeSize.width / 2),
+      sceneRect.center.dx - (heroCartridgeSize.width / 2),
       consoleRect.top - metrics.heroConsoleGap - heroCartridgeSize.height,
       heroCartridgeSize.width,
       heroCartridgeSize.height,
@@ -178,7 +241,8 @@ final class AveluneHomeGeometry {
       );
     }
 
-    final consoleSlotMouthY = consoleRect.top +
+    final consoleSlotMouthY =
+        consoleRect.top +
         (consoleRect.height * kAveluneConsoleSlotMouthFraction);
     final consoleSlotRect = Rect.fromCenter(
       center: Offset(
@@ -189,7 +253,8 @@ final class AveluneHomeGeometry {
       width: consoleRect.width * _consoleSlotWidthFactor,
       height: metrics.consoleSlotHeight,
     );
-    final consoleFootlineY = consoleRect.top +
+    final consoleFootlineY =
+        consoleRect.top +
         (consoleRect.height * kAveluneConsoleFootlineFraction);
     final shelfBaselineY = shelfRect.bottom - metrics.shelfBottomPadding;
     final shelfFirstCartridgeRect = Rect.fromLTWH(
@@ -231,10 +296,7 @@ final class AveluneHomeGeometry {
     final anchors = AveluneHomeAnchors(
       heroCenter: heroCartridgeRect.center,
       consoleSlotCenter: consoleSlotRect.center,
-      shelfBaseline: Offset(
-        shelfFirstCartridgeRect.center.dx,
-        shelfBaselineY,
-      ),
+      shelfBaseline: Offset(shelfFirstCartridgeRect.center.dx, shelfBaselineY),
       insertion: AveluneInsertionTrajectory(
         startCenter: heroCartridgeRect.center,
         alignedCenter: insertionAlignedCenter,
@@ -243,6 +305,7 @@ final class AveluneHomeGeometry {
     );
 
     return AveluneHomeGeometry._(
+      layoutMode: layoutMode,
       sizeClass: sizeClass,
       viewportSize: viewportSize,
       safeArea: safeArea,
@@ -274,6 +337,7 @@ final class AveluneHomeGeometry {
   static const double _consoleSlotWidthFactor = 0.34;
   static const double _sheetTextScaleThreshold = 1.4;
 
+  final AveluneHomeLayoutMode layoutMode;
   final AveluneHomeSizeClass sizeClass;
   final Size viewportSize;
   final EdgeInsets safeArea;
@@ -361,9 +425,7 @@ final class AveluneHomeGeometry {
     };
   }
 
-  static _AveluneHomeClassMetrics _metricsFor(
-    AveluneHomeSizeClass sizeClass,
-  ) =>
+  static _AveluneHomeClassMetrics _metricsFor(AveluneHomeSizeClass sizeClass) =>
       switch (sizeClass) {
         AveluneHomeSizeClass.compact => _compactMetrics,
         AveluneHomeSizeClass.regular => _regularMetrics,

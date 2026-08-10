@@ -99,9 +99,9 @@ class AveluneRoomScene extends StatelessWidget {
     final selected = selectedGame;
     final guideBeamWidth = geometry.heroCartridgeSize.width * 0.18;
     final guideBeamRect = Rect.fromLTRB(
-      geometry.viewportSize.width / 2 - guideBeamWidth / 2,
+      geometry.consoleSlotRect.center.dx - guideBeamWidth / 2,
       geometry.heroCartridgeRect.bottom - 3,
-      geometry.viewportSize.width / 2 + guideBeamWidth / 2,
+      geometry.consoleSlotRect.center.dx + guideBeamWidth / 2,
       geometry.consoleSlotMouthY + 2,
     );
     // [games] contains only shelf games: the selected cartridge is removed by
@@ -129,11 +129,11 @@ class AveluneRoomScene extends StatelessWidget {
           ),
           Positioned.fromRect(
             rect: roomLayout.librarySheetRect,
-            child: const _AveluneLibrarySheetSurface(),
+            child: _AveluneLibrarySheetSurface(layoutMode: geometry.layoutMode),
           ),
           Positioned(
             left: geometry.contentRect.left,
-            right: geometry.viewportSize.width - geometry.contentRect.right,
+            right: geometry.viewportSize.width - geometry.sceneRect.right,
             top: roomLayout.consoleSupportY - 0.5,
             height: 1,
             child: const SizedBox(
@@ -159,9 +159,10 @@ class AveluneRoomScene extends StatelessWidget {
             Positioned.fromRect(
               rect: guideBeamRect,
               child: AnimatedOpacity(
-                duration: MediaQuery.disableAnimationsOf(context)
-                    ? Duration.zero
-                    : context.aveluneMotion.detailsReveal,
+                duration:
+                    MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : context.aveluneMotion.detailsReveal,
                 curve: Curves.easeOutCubic,
                 opacity: showHero ? 1 : 0,
                 child: const _AveluneCartridgeSlotGuideBeam(),
@@ -202,9 +203,7 @@ class AveluneRoomScene extends StatelessWidget {
                   maintainSize: true,
                   maintainState: true,
                   child: AveluneCartridge(
-                    key: const ValueKey<String>(
-                      'avelune-room-hero-cartridge',
-                    ),
+                    key: const ValueKey<String>('avelune-room-hero-cartridge'),
                     gameId: selected.id,
                     title: selected.title,
                     subtitle: selected.subtitle,
@@ -244,9 +243,7 @@ class AveluneRoomScene extends StatelessWidget {
             Positioned.fromRect(
               rect: geometry.heroCartridgeRect,
               child: AveluneCartridge.addGame(
-                key: const ValueKey<String>(
-                  'avelune-room-hero-add-cartridge',
-                ),
+                key: const ValueKey<String>('avelune-room-hero-add-cartridge'),
                 displaySize: AveluneCartridgeDisplaySize.hero,
                 onPressed: onAddGame,
               ),
@@ -289,10 +286,7 @@ class AveluneRoomScene extends StatelessWidget {
 }
 
 class _AveluneCabinWindow extends StatelessWidget {
-  const _AveluneCabinWindow({
-    required this.background,
-    required this.finishId,
-  });
+  const _AveluneCabinWindow({required this.background, required this.finishId});
 
   final ImageProvider<Object> background;
   final String finishId;
@@ -356,8 +350,7 @@ class _AveluneCabinWindow extends StatelessWidget {
                     alignment: Alignment.center,
                     filterQuality: FilterQuality.high,
                     excludeFromSemantics: true,
-                    errorBuilder: (_, _, _) =>
-                        ColoredBox(color: colors.room),
+                    errorBuilder: (_, _, _) => ColoredBox(color: colors.room),
                   ),
                   IgnorePointer(
                     child: DecoratedBox(
@@ -403,9 +396,10 @@ class _AveluneConsoleLedge extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.aveluneColors;
     final finish = aveluneCabinFinishColor(colors, finishId);
-    final furnitureAsset = appearanceAssetPath(
-      AveluneAppearanceCatalog.furnitureFinish(finishId),
-    )!;
+    final furnitureAsset =
+        appearanceAssetPath(
+          AveluneAppearanceCatalog.furnitureFinish(finishId),
+        )!;
     return ClipRect(
       child: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
@@ -447,9 +441,7 @@ class _AveluneConsoleLedge extends StatelessWidget {
                   alignment: Alignment.topCenter,
                   child: Image.asset(
                     furnitureAsset,
-                    key: const ValueKey<String>(
-                      'avelune-room-furniture-layer',
-                    ),
+                    key: const ValueKey<String>('avelune-room-furniture-layer'),
                     width: constraints.maxWidth,
                     height: renderedHeight,
                     fit: BoxFit.fill,
@@ -507,9 +499,7 @@ class _AveluneCartridgeSlotGuideBeam extends StatelessWidget {
       child: IgnorePointer(
         child: RepaintBoundary(
           child: Stack(
-            key: const ValueKey<String>(
-              'avelune-cartridge-slot-guide-beam',
-            ),
+            key: const ValueKey<String>('avelune-cartridge-slot-guide-beam'),
             fit: StackFit.expand,
             children: <Widget>[
               DecoratedBox(
@@ -547,39 +537,50 @@ class _AveluneCartridgeSlotGuideBeam extends StatelessWidget {
 }
 
 class _AveluneLibrarySheetSurface extends StatelessWidget {
-  const _AveluneLibrarySheetSurface();
+  const _AveluneLibrarySheetSurface({required this.layoutMode});
+
+  final AveluneHomeLayoutMode layoutMode;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.aveluneColors;
+    final radius = Radius.circular(AveluneShapes.radiusXl + 10);
+    final landscape = layoutMode == AveluneHomeLayoutMode.landscape;
+    final borderRadius =
+        landscape
+            ? BorderRadius.only(topLeft: radius, bottomLeft: radius)
+            : BorderRadius.vertical(top: radius);
     return DecoratedBox(
       key: const ValueKey<String>('avelune-library-sheet'),
       decoration: BoxDecoration(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AveluneShapes.radiusXl + 10),
-        ),
+        borderRadius: borderRadius,
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: <Color>[colors.ivoryHighlight, colors.ivory],
         ),
-        border: Border(
-          top: BorderSide(
-            color: colors.ivoryHighlight.withValues(alpha: 0.96),
-          ),
-        ),
+        border:
+            landscape
+                ? Border(
+                  left: BorderSide(
+                    color: colors.ivoryHighlight.withValues(alpha: 0.96),
+                  ),
+                )
+                : Border(
+                  top: BorderSide(
+                    color: colors.ivoryHighlight.withValues(alpha: 0.96),
+                  ),
+                ),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: colors.canvas.withValues(alpha: 0.46),
             blurRadius: 24,
-            offset: const Offset(0, -8),
+            offset: landscape ? const Offset(-8, 0) : const Offset(0, -8),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AveluneShapes.radiusXl + 10),
-        ),
+        borderRadius: borderRadius,
         child: Opacity(
           opacity: 0.025,
           child: Image.asset(
@@ -639,9 +640,9 @@ class _AveluneLibraryHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: colors.accent,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    color: colors.accent,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               if (onAddGame case final callback?)
@@ -660,11 +661,12 @@ class _AveluneLibraryHeader extends StatelessWidget {
                       children: <Widget>[
                         Text(
                           french ? 'Ajouter' : 'Add',
-                          style:
-                              Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    color: colors.accent,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelLarge?.copyWith(
+                            color: colors.accent,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                         const SizedBox(width: AveluneSpacing.xs),
                         Icon(
@@ -684,9 +686,10 @@ class _AveluneLibraryHeader extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AveluneSpacing.lg),
             child: Row(
-              key: showPlayHint
-                  ? const ValueKey<String>('avelune-library-play-hint')
-                  : const ValueKey<String>('avelune-library-status-hint'),
+              key:
+                  showPlayHint
+                      ? const ValueKey<String>('avelune-library-play-hint')
+                      : const ValueKey<String>('avelune-library-status-hint'),
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 if (showPlayHint) ...<Widget>[
@@ -714,9 +717,9 @@ class _AveluneLibraryHeader extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: showPlayHint ? muted : foreground,
-                          letterSpacing: 0.15,
-                        ),
+                      color: showPlayHint ? muted : foreground,
+                      letterSpacing: 0.15,
+                    ),
                   ),
                 ),
               ],
@@ -744,8 +747,7 @@ class _AveluneSlotMouthClipper extends CustomClipper<Rect> {
 ImageProvider<Object> aveluneRoomBackgroundImage(
   AveluneAppearancePreferences appearance,
   ImageProvider<Object>? customBackground,
-) =>
-    _backgroundFor(appearance, customBackground);
+) => _backgroundFor(appearance, customBackground);
 
 ImageProvider<Object> _backgroundFor(
   AveluneAppearancePreferences appearance,

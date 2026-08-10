@@ -18,6 +18,64 @@ void main() {
       }
     });
 
+    test('uses a side-by-side composition on landscape viewports', () {
+      const scenarios = <(Size, EdgeInsets)>[
+        (Size(568, 320), EdgeInsets.zero),
+        (Size(844, 390), EdgeInsets.fromLTRB(47, 0, 47, 21)),
+        (Size(800, 360), EdgeInsets.fromLTRB(24, 0, 24, 0)),
+        (Size(1024, 768), EdgeInsets.fromLTRB(24, 24, 24, 20)),
+      ];
+
+      for (final (size, safeArea) in scenarios) {
+        final geometry = AveluneHomeGeometry.resolve(
+          viewportSize: size,
+          safeArea: safeArea,
+        );
+
+        expect(
+          geometry.layoutMode,
+          AveluneHomeLayoutMode.landscape,
+          reason: '$size',
+        );
+        expect(
+          geometry.sceneRect.right,
+          lessThanOrEqualTo(geometry.librarySheetRect.left),
+          reason: '$size',
+        );
+        expect(
+          geometry.cabinWindowRect.right,
+          lessThanOrEqualTo(geometry.librarySheetRect.left),
+          reason: '$size',
+        );
+        expect(
+          geometry.librarySheetRect.contains(geometry.shelfRect.center),
+          isTrue,
+          reason: '$size',
+        );
+        expect(
+          geometry.librarySheetRect.contains(geometry.navigationRect.center),
+          isTrue,
+          reason: '$size',
+        );
+        expect(
+          geometry.sceneRect.contains(geometry.heroCartridgeRect.center),
+          isTrue,
+          reason: '$size',
+        );
+        expect(
+          geometry.sceneRect.contains(geometry.consoleRect.center),
+          isTrue,
+          reason: '$size',
+        );
+        expect(
+          geometry.heroCartridgeRect.bottom,
+          lessThan(geometry.consoleRect.top),
+          reason: '$size',
+        );
+        expect(geometry.allowsVerticalScroll, isFalse, reason: '$size');
+      }
+    });
+
     test('nests the cabin above a contiguous library sheet', () {
       for (final scenario in _referenceViewports) {
         final geometry = scenario.resolve();
@@ -36,17 +94,27 @@ void main() {
         expect(geometry.sceneRect.bottom, geometry.librarySheetRect.top);
         expect(geometry.consoleLedgeRect.bottom, geometry.librarySheetRect.top);
         expect(
-            geometry.shelfRect.top, greaterThan(geometry.librarySheetRect.top));
+          geometry.shelfRect.top,
+          greaterThan(geometry.librarySheetRect.top),
+        );
         expect(geometry.shelfRect.bottom, geometry.navigationRect.top);
         expect(geometry.navigationRect.bottom, geometry.contentRect.bottom);
-        expect(geometry.headerRect.top,
-            greaterThanOrEqualTo(geometry.cabinWindowRect.top));
-        expect(geometry.headerRect.bottom,
-            lessThan(geometry.cabinWindowRect.bottom));
-        expect(geometry.cabinWindowRect.left,
-            greaterThan(geometry.contentRect.left));
-        expect(geometry.cabinWindowRect.right,
-            lessThan(geometry.contentRect.right));
+        expect(
+          geometry.headerRect.top,
+          greaterThanOrEqualTo(geometry.cabinWindowRect.top),
+        );
+        expect(
+          geometry.headerRect.bottom,
+          lessThan(geometry.cabinWindowRect.bottom),
+        );
+        expect(
+          geometry.cabinWindowRect.left,
+          greaterThan(geometry.contentRect.left),
+        );
+        expect(
+          geometry.cabinWindowRect.right,
+          lessThan(geometry.contentRect.right),
+        );
       }
     });
 
@@ -93,12 +161,14 @@ void main() {
       }
 
       for (final entry in geometriesByClass.entries) {
-        final shelfHeights = entry.value
-            .map((geometry) => geometry.shelfCartridgeSize.height)
-            .toSet();
-        final heroHeights = entry.value
-            .map((geometry) => geometry.heroCartridgeSize.height)
-            .toSet();
+        final shelfHeights =
+            entry.value
+                .map((geometry) => geometry.shelfCartridgeSize.height)
+                .toSet();
+        final heroHeights =
+            entry.value
+                .map((geometry) => geometry.heroCartridgeSize.height)
+                .toSet();
 
         expect(shelfHeights, hasLength(1), reason: '${entry.key}: shelf');
         expect(heroHeights, hasLength(1), reason: '${entry.key}: hero');
@@ -115,39 +185,67 @@ void main() {
         expect(anchors.consoleSlotCenter, geometry.consoleSlotRect.center);
         expect(geometry.sceneRect.contains(anchors.heroCenter), isTrue);
         expect(geometry.sceneRect.contains(anchors.consoleSlotCenter), isTrue);
-        expect(geometry.heroCartridgeRect.left,
-            greaterThanOrEqualTo(geometry.sceneRect.left));
-        expect(geometry.heroCartridgeRect.right,
-            lessThanOrEqualTo(geometry.sceneRect.right));
-        expect(geometry.consoleRect.left,
-            greaterThanOrEqualTo(geometry.sceneRect.left));
-        expect(geometry.consoleRect.right,
-            lessThanOrEqualTo(geometry.sceneRect.right));
-        expect(geometry.consoleRect.bottom,
-            lessThanOrEqualTo(geometry.sceneRect.bottom));
-        expect(geometry.consoleSlotRect.left,
-            greaterThanOrEqualTo(geometry.consoleRect.left));
-        expect(geometry.consoleSlotRect.right,
-            lessThanOrEqualTo(geometry.consoleRect.right));
-        expect(geometry.consoleSlotRect.top,
-            greaterThanOrEqualTo(geometry.consoleRect.top));
-        expect(geometry.consoleSlotRect.bottom,
-            lessThanOrEqualTo(geometry.consoleRect.bottom));
-        expect(geometry.heroCartridgeRect.bottom,
-            lessThan(geometry.consoleRect.top));
         expect(
-            geometry.heroCartridgeRect.overlaps(geometry.consoleRect), isFalse);
+          geometry.heroCartridgeRect.left,
+          greaterThanOrEqualTo(geometry.sceneRect.left),
+        );
+        expect(
+          geometry.heroCartridgeRect.right,
+          lessThanOrEqualTo(geometry.sceneRect.right),
+        );
+        expect(
+          geometry.consoleRect.left,
+          greaterThanOrEqualTo(geometry.sceneRect.left),
+        );
+        expect(
+          geometry.consoleRect.right,
+          lessThanOrEqualTo(geometry.sceneRect.right),
+        );
+        expect(
+          geometry.consoleRect.bottom,
+          lessThanOrEqualTo(geometry.sceneRect.bottom),
+        );
+        expect(
+          geometry.consoleSlotRect.left,
+          greaterThanOrEqualTo(geometry.consoleRect.left),
+        );
+        expect(
+          geometry.consoleSlotRect.right,
+          lessThanOrEqualTo(geometry.consoleRect.right),
+        );
+        expect(
+          geometry.consoleSlotRect.top,
+          greaterThanOrEqualTo(geometry.consoleRect.top),
+        );
+        expect(
+          geometry.consoleSlotRect.bottom,
+          lessThanOrEqualTo(geometry.consoleRect.bottom),
+        );
+        expect(
+          geometry.heroCartridgeRect.bottom,
+          lessThan(geometry.consoleRect.top),
+        );
+        expect(
+          geometry.heroCartridgeRect.overlaps(geometry.consoleRect),
+          isFalse,
+        );
         expect(insertion.startCenter, anchors.heroCenter);
         expect(insertion.alignedCenter.dx, anchors.consoleSlotCenter.dx);
         expect(insertion.latchedCenter.dx, anchors.consoleSlotCenter.dx);
         // Aligning is an anticipation beat: a small lift off the resting place
         // before the descent, not a move toward the slot.
-        expect(insertion.alignedCenter.dy,
-            lessThanOrEqualTo(insertion.startCenter.dy));
-        expect(insertion.startCenter.dy - insertion.alignedCenter.dy,
-            lessThanOrEqualTo(8));
-        expect(insertion.latchedCenter.dy,
-            greaterThan(insertion.alignedCenter.dy));
+        expect(
+          insertion.alignedCenter.dy,
+          lessThanOrEqualTo(insertion.startCenter.dy),
+        );
+        expect(
+          insertion.startCenter.dy - insertion.alignedCenter.dy,
+          lessThanOrEqualTo(8),
+        );
+        expect(
+          insertion.latchedCenter.dy,
+          greaterThan(insertion.alignedCenter.dy),
+        );
         expect(geometry.contentRect.contains(insertion.latchedCenter), isTrue);
       }
     });
@@ -161,7 +259,8 @@ void main() {
         expect(
           consoleWidthFraction,
           inInclusiveRange(0.66, 0.74),
-          reason: '${scenario.label}: the console is an object on the ledge, '
+          reason:
+              '${scenario.label}: the console is an object on the ledge, '
               'not a full-width slab.',
         );
       }
@@ -193,9 +292,7 @@ void main() {
 
     test('rejects geometry that cannot produce non-negative regions', () {
       expect(
-        () => AveluneHomeGeometry.resolve(
-          viewportSize: Size.zero,
-        ),
+        () => AveluneHomeGeometry.resolve(viewportSize: Size.zero),
         throwsArgumentError,
       );
       expect(

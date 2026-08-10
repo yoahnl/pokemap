@@ -14,6 +14,7 @@ import 'package:pokemap_hub/presentation/features/settings/pages/avelune_setting
 import 'package:pokemap_hub/presentation/features/settings/widgets/avelune_storage_panel.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_controller.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
 import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 import 'package:pokemap_hub/presentation/features/installation/widgets/hub_install_progress.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
@@ -89,59 +90,48 @@ class HubShell extends StatelessWidget {
                     ? constraints.maxHeight
                     : mediaQuery.size.height,
               );
-              final letterboxWidth =
-                  viewport.height * kAvelunePortraitAspectRatio;
-              final letterboxed = viewport.width > letterboxWidth + 0.5;
-              final sceneWidth = letterboxed ? letterboxWidth : viewport.width;
-              // A letterboxed scene no longer touches the left and right screen
-              // edges, so the horizontal display cutouts do not apply to it.
-              final padding =
-                  letterboxed
-                      ? mediaQuery.padding.copyWith(left: 0, right: 0)
-                      : mediaQuery.padding;
-
-              if (!_fitsConsole(Size(sceneWidth, viewport.height), padding)) {
+              final padding = mediaQuery.padding;
+              final availableSize = Size(
+                viewport.width - padding.horizontal,
+                viewport.height - padding.vertical,
+              );
+              final landscape = AveluneBreakpoints.usesLandscapeLayout(
+                availableSize,
+              );
+              if (!AveluneBreakpoints.supports(availableSize)) {
                 return HubViewportTooSmall(
-                  minimumWidth: AveluneBreakpoints.minimumContentWidth,
-                  minimumHeight: AveluneBreakpoints.minimumContentHeight,
+                  minimumWidth:
+                      landscape
+                          ? AveluneBreakpoints.minimumLandscapeContentWidth
+                          : AveluneBreakpoints.minimumContentWidth,
+                  minimumHeight:
+                      landscape
+                          ? AveluneBreakpoints.minimumLandscapeContentHeight
+                          : AveluneBreakpoints.minimumContentHeight,
                 );
               }
+
+              final geometry = AveluneHomeGeometry.resolve(
+                viewportSize: viewport,
+                safeArea: padding,
+                textScaleFactor: mediaQuery.textScaler.scale(1),
+              );
 
               final scene = MediaQuery(
                 data: mediaQuery.copyWith(
                   padding: padding,
                   viewPadding: padding,
                 ),
-                child: _consoleShell(context),
+                child: _consoleShell(
+                  context,
+                  navigationRect: geometry.navigationRect,
+                ),
               );
 
               return Stack(
                 fit: StackFit.expand,
                 children: <Widget>[
-                  if (letterboxed) ...<Widget>[
-                    AveluneLetterboxBackdrop(
-                      appearanceController: appearanceController,
-                    ),
-                    Center(
-                      child: SizedBox(
-                        width: sceneWidth,
-                        height: viewport.height,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            boxShadow: <BoxShadow>[
-                              BoxShadow(
-                                color: colors.canvas.withValues(alpha: 0.72),
-                                blurRadius: 48,
-                                spreadRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: scene,
-                        ),
-                      ),
-                    ),
-                  ] else
-                    scene,
+                  scene,
                   if (snapshot.status == HubDashboardStatus.installing)
                     HubInstallProgressScreen(
                       progress: snapshot.installProgress,
@@ -156,55 +146,50 @@ class HubShell extends StatelessWidget {
     );
   }
 
-  /// The room geometry rejects viewports below its minimum content box. Desktop
-  /// windows resize freely, so the shell has to check before handing it one.
-  bool _fitsConsole(Size scene, EdgeInsets padding) =>
-      scene.width - padding.horizontal >=
-          AveluneBreakpoints.minimumContentWidth &&
-      scene.height - padding.vertical >=
-          AveluneBreakpoints.minimumContentHeight;
-
-  Widget _consoleShell(BuildContext context) => Stack(
-    fit: StackFit.expand,
-    children: <Widget>[
-      _content(context),
-      // Floated, not stacked in a Column: the room geometry rejects a
-      // viewport it cannot fit the console into, so anything that shaved
-      // height off the scene would make the whole home throw.
-      if (_bannerDiagnostic case final diagnostic?)
-        Positioned(
-          left: 0,
-          right: 0,
-          top: 0,
-          child: HubStatusBanner(diagnostic: diagnostic),
-        ),
-      // The room scene owns the whole viewport and the navigation floats
-      // above it. Laying them out in a Column instead would remove the
-      // navigation height from the scene while AveluneHomeGeometry still
-      // subtracts the safe-area insets and reserves `navigationRect`,
-      // double-counting the same band and dropping a 393x852 iPhone to the
-      // compact class.
-      Positioned(
-        left: 0,
-        right: 0,
-        bottom: 0,
-        child: Builder(
-          // The approved sheet floats over the room, so opening settings is
-          // not a navigation change: the Home tab stays selected and the
-          // scene stays mounted behind the barrier.
-          builder:
-              (navContext) => AveluneBottomNavigation(
-                selectedItem: AveluneNavigationItem.home,
-                onItemSelected: (item) {
-                  if (item == AveluneNavigationItem.settings) {
-                    _openSettings(navContext);
-                  }
-                },
+  Widget _consoleShell(BuildContext context, {required Rect navigationRect}) =>
+      Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          _content(context),
+          // Floated, not stacked in a Column: the room geometry rejects a
+          // viewport it cannot fit the console into, so anything that shaved
+          // height off the scene would make the whole home throw.
+          if (_bannerDiagnostic case final diagnostic?)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              child: HubStatusBanner(diagnostic: diagnostic),
+            ),
+          // The room scene owns the whole viewport and the navigation floats
+          // above it. Laying them out in a Column instead would remove the
+          // navigation height from the scene while AveluneHomeGeometry still
+          // subtracts the safe-area insets and reserves `navigationRect`,
+          // double-counting the same band and dropping a 393x852 iPhone to the
+          // compact class.
+          Positioned.fromRect(
+            rect: navigationRect,
+            child: MediaQuery.removePadding(
+              context: context,
+              removeLeft: true,
+              removeTop: true,
+              removeRight: true,
+              removeBottom: true,
+              child: Builder(
+                builder:
+                    (navContext) => AveluneBottomNavigation(
+                      selectedItem: AveluneNavigationItem.home,
+                      onItemSelected: (item) {
+                        if (item == AveluneNavigationItem.settings) {
+                          _openSettings(navContext);
+                        }
+                      },
+                    ),
               ),
-        ),
-      ),
-    ],
-  );
+            ),
+          ),
+        ],
+      );
 
   /// Opens the approved settings sheet over the room.
   void _openSettings(BuildContext context) {
@@ -479,9 +464,3 @@ class HubShell extends StatelessWidget {
 Future<bool> _launchExternalUrl(Uri uri) {
   return launchUrl(uri, mode: LaunchMode.externalApplication);
 }
-
-/// Fills the space beside a letterboxed scene with the room itself, blurred.
-///
-/// A landscape window cannot hold the portrait console, so the sides were flat
-/// black bars. Extending the player's own chosen background reads as the rest of
-/// the room falling out of focus instead of as dead space.

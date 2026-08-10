@@ -14,14 +14,12 @@ import 'package:pub_semver/pub_semver.dart';
 /// room while desktop got a separate navigation rail, library grid, game detail
 /// view and preferences form. That second interface is gone; there is one home.
 ///
-/// Because the room geometry is portrait and scroll-free, and the credenza is
-/// sized off the content width, a landscape window letterboxes the scene rather
-/// than stretching it.
 void main() {
   setUpAll(_loadGoldenFonts);
 
-  testWidgets('desktop renders the Avelune room, not a legacy rail',
-      (tester) async {
+  testWidgets('desktop renders the Avelune room, not a legacy rail', (
+    tester,
+  ) async {
     await _pumpShell(tester, const Size(1440, 900));
 
     expect(find.byType(AveluneRoomScene), findsOneWidget);
@@ -34,21 +32,19 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
   });
 
-  testWidgets('wide windows letterbox the scene to the portrait ratio',
-      (tester) async {
+  testWidgets('wide windows use the full landscape canvas', (tester) async {
     const size = Size(1440, 900);
     await _pumpShell(tester, size);
 
     final sceneRect = tester.getRect(find.byType(AveluneRoomScene));
-    final expectedWidth = size.height * kAvelunePortraitAspectRatio;
-
-    expect(sceneRect.width, closeTo(expectedWidth, 0.5));
-    expect(sceneRect.height, closeTo(size.height, 0.5));
-    expect(
-      sceneRect.center.dx,
-      closeTo(size.width / 2, 0.5),
-      reason: 'The letterboxed scene must be centred in the window.',
+    final scene = tester.widget<AveluneRoomScene>(
+      find.byType(AveluneRoomScene),
     );
+
+    expect(sceneRect.width, closeTo(size.width, 0.5));
+    expect(sceneRect.height, closeTo(size.height, 0.5));
+    expect(scene.geometry.layoutMode, AveluneHomeLayoutMode.landscape);
+    expect(scene.geometry.librarySheetRect.left, greaterThan(size.width / 2));
   });
 
   testWidgets('portrait viewports are not letterboxed', (tester) async {
@@ -60,8 +56,9 @@ void main() {
     expect(sceneRect.height, closeTo(size.height, 0.5));
   });
 
-  testWidgets('the desktop home is byte-identical in structure to mobile',
-      (tester) async {
+  testWidgets('the desktop home is byte-identical in structure to mobile', (
+    tester,
+  ) async {
     await _pumpShell(tester, const Size(1280, 800));
 
     // The very keys the mobile gate asserts on.
@@ -80,16 +77,43 @@ void main() {
     expect(find.byType(AveluneConsole), findsOneWidget);
   });
 
-  testWidgets('the letterbox is filled with the room, not black bars',
-      (tester) async {
+  testWidgets('landscape phones render the console without letterboxing', (
+    tester,
+  ) async {
+    await _pumpShell(
+      tester,
+      const Size(844, 390),
+      insets: const EdgeInsets.fromLTRB(47, 0, 47, 21),
+    );
+
+    expect(find.byType(AveluneRoomScene), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('avelune-viewport-too-small')),
+      findsNothing,
+    );
     await _pumpShell(tester, const Size(1440, 900));
 
     expect(
       find.byKey(const ValueKey<String>('avelune-letterbox-backdrop')),
-      findsOneWidget,
-      reason: 'Flat black beside the scene reads as dead space on a desktop '
-          'window; the room extends into it instead.',
+      findsNothing,
     );
+  });
+
+  testWidgets('landscape library heading and play hint do not overlap', (
+    tester,
+  ) async {
+    await _pumpShell(
+      tester,
+      const Size(844, 390),
+      insets: const EdgeInsets.fromLTRB(47, 0, 47, 21),
+    );
+
+    final heading = tester.getRect(find.text('Bibliothèque'));
+    final hint = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-library-play-hint')),
+    );
+
+    expect(heading.bottom, lessThan(hint.top));
   });
 
   testWidgets('portrait viewports paint no backdrop', (tester) async {
@@ -111,14 +135,29 @@ void main() {
     );
   });
 
-  testWidgets('a window below the supported minimum explains itself',
-      (tester) async {
+  testWidgets('landscape phone visual gate', (tester) async {
+    await _pumpShell(
+      tester,
+      const Size(844, 390),
+      insets: const EdgeInsets.fromLTRB(47, 0, 47, 21),
+    );
+    await _precacheRoomMaterials(tester);
+    await expectLater(
+      find.byType(HubShell),
+      matchesGoldenFile('../../goldens/avelune/home_landscape_844x390.png'),
+    );
+  });
+
+  testWidgets('a window below the supported minimum explains itself', (
+    tester,
+  ) async {
     await _pumpShell(tester, const Size(240, 320));
 
     expect(
       find.byKey(const ValueKey<String>('avelune-viewport-too-small')),
       findsOneWidget,
-      reason: 'The room geometry rejects viewports under 280x480. Desktop '
+      reason:
+          'The room geometry rejects viewports under 280x480. Desktop '
           'windows are freely resizable, so the shell must say so instead of '
           'throwing.',
     );
@@ -126,7 +165,11 @@ void main() {
   });
 }
 
-Future<void> _pumpShell(WidgetTester tester, Size size) async {
+Future<void> _pumpShell(
+  WidgetTester tester,
+  Size size, {
+  EdgeInsets insets = EdgeInsets.zero,
+}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -148,24 +191,34 @@ Future<void> _pumpShell(WidgetTester tester, Size size) async {
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: () {
-        final theme =
-            applyAveluneTheme(PokeMapPlayerTheme.dark(reducedMotion: true));
+        final theme = applyAveluneTheme(
+          PokeMapPlayerTheme.dark(reducedMotion: true),
+        );
         return theme.copyWith(
           textTheme: theme.textTheme.apply(fontFamily: 'AveluneGoldenSans'),
-          primaryTextTheme:
-              theme.primaryTextTheme.apply(fontFamily: 'AveluneGoldenSans'),
+          primaryTextTheme: theme.primaryTextTheme.apply(
+            fontFamily: 'AveluneGoldenSans',
+          ),
         );
       }(),
-      home: HubShell(
-        productName: 'Avelune',
-        snapshot: snapshot,
-        actions: actions,
-        referenceTime: DateTime.utc(2026, 8, 4, 12),
-        homeController: AveluneHomeController(
-          snapshot: snapshot,
-          actions: actions,
-        ),
-        onSectionSelected: (_) {},
+      home: Builder(
+        builder:
+            (context) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(padding: insets, viewPadding: insets),
+              child: HubShell(
+                productName: 'Avelune',
+                snapshot: snapshot,
+                actions: actions,
+                referenceTime: DateTime.utc(2026, 8, 4, 12),
+                homeController: AveluneHomeController(
+                  snapshot: snapshot,
+                  actions: actions,
+                ),
+                onSectionSelected: (_) {},
+              ),
+            ),
       ),
     ),
   );
@@ -190,9 +243,7 @@ Future<void> _precacheRoomMaterials(WidgetTester tester) async {
         context,
       ),
       precacheImage(
-        const AssetImage(
-          'assets/avelune/room/furniture/credenza_walnut.webp',
-        ),
+        const AssetImage('assets/avelune/room/furniture/credenza_walnut.webp'),
         context,
       ),
     ]),
@@ -252,13 +303,16 @@ HubGameView _view({
 }
 
 Future<void> _loadGoldenFonts() async {
-  final bytes = await File(
-    '../../packages/map_editor/assets/fonts/pokemap_capture_sans_regular.ttf',
-  ).readAsBytes();
-  final textLoader = FontLoader('AveluneGoldenSans')
-    ..addFont(
-      Future<ByteData>.value(ByteData.sublistView(Uint8List.fromList(bytes))),
-    );
+  final bytes =
+      await File(
+        '../../packages/map_editor/assets/fonts/pokemap_capture_sans_regular.ttf',
+      ).readAsBytes();
+  final textLoader = FontLoader('AveluneGoldenSans')..addFont(
+    Future<ByteData>.value(ByteData.sublistView(Uint8List.fromList(bytes))),
+  );
+  final editorialLoader = FontLoader('AveluneEditorial')..addFont(
+    rootBundle.load('assets/avelune/fonts/CormorantGaramond-Variable.ttf'),
+  );
   final materialLoader = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
   // The Avelune surfaces draw Cupertino glyphs; without its font every icon
@@ -272,6 +326,7 @@ Future<void> _loadGoldenFonts() async {
     );
   await Future.wait<void>(<Future<void>>[
     textLoader.load(),
+    editorialLoader.load(),
     materialLoader.load(),
     cupertinoLoader.load(),
   ]);
