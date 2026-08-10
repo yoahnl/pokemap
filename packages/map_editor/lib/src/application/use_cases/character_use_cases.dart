@@ -417,7 +417,7 @@ class AssignCharacterPortraitUseCase {
     return _authoring.apply(
       projectRootPath: workspace.projectRoot,
       expectedProject: project,
-      actionId: 'characterStudio.character.assignPortrait',
+      actionId: 'characterStudio.character.portrait.assign',
       parameters: <String, Object?>{
         'characterId': characterId,
         'portraitStateId': portraitStateId,
@@ -443,7 +443,7 @@ class ClearCharacterPortraitUseCase {
     return _authoring.apply(
       projectRootPath: workspace.projectRoot,
       expectedProject: project,
-      actionId: 'characterStudio.character.clearPortrait',
+      actionId: 'characterStudio.character.portrait.clear',
       parameters: <String, Object?>{
         'characterId': characterId,
         'portraitStateId': portraitStateId,

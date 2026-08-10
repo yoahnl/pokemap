@@ -29,7 +29,7 @@ void main() {
       expect(gateway.stagedPath, '/outside/elia.png');
       expect(gateway.actions.map((entry) => entry.$1), <String>[
         'characterStudio.asset.import',
-        'characterStudio.character.assignPortrait',
+        'characterStudio.character.portrait.assign',
       ]);
       final assetParameters = gateway.actions.first.$2;
       final assignParameters = gateway.actions.last.$2;
@@ -121,7 +121,7 @@ final class _FakePortraitAssetGateway
     required String operationLabel,
   }) async {
     actions.add((actionId, parameters));
-    if (actionId != 'characterStudio.character.assignPortrait') {
+    if (actionId != 'characterStudio.character.portrait.assign') {
       return expectedProject;
     }
     final character = expectedProject.characters.single;

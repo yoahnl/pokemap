@@ -168,7 +168,7 @@ final class CharacterStudioPortraitImportService {
     return gateway.apply(
       projectRootPath: projectRootPath,
       expectedProject: withAsset,
-      actionId: 'characterStudio.character.assignPortrait',
+      actionId: 'characterStudio.character.portrait.assign',
       parameters: <String, Object?>{
         'characterId': characterId,
         'portraitStateId': portraitStateId,
