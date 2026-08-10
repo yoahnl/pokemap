@@ -34,14 +34,13 @@ import 'personalization_readiness_panel.dart';
 import 'personalization_section_actions.dart';
 import 'personalization_studio_shell_v2.dart';
 import 'inspectors/personalization_global_style_inspector.dart';
-import 'project_branding_editor.dart';
+import 'inspectors/personalization_title_inspector.dart';
 import 'project_intro_video_editor.dart';
 import 'project_layout_studio.dart';
 import 'project_semantic_theme_editor.dart';
 import 'project_menu_labels_editor.dart';
 import 'project_presentation_preset_library.dart';
 import 'project_theme_token_dialog.dart';
-import 'project_title_motion_editor.dart';
 import 'project_typography_editor.dart';
 import 'project_window_studio.dart';
 
@@ -930,12 +929,18 @@ class _PersonalizationStudioWorkspaceState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                ProjectBrandingEditor(
-                  profile: profile.branding,
+                PersonalizationTitleInspector(
+                  profile: profile,
                   projectName: projectName,
                   projectRootPath: projectRootPath,
-                  theme: profile.theme ?? safeProjectSemanticTheme,
-                  typography: profile.typography,
+                  onChanged: (nextProfile) {
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        nextProfile,
+                        label: 'Modifier la composition du titre',
+                      ),
+                    );
+                  },
                   onImportImage: (role) {
                     unawaited(
                       _importBrandingImage(
@@ -982,18 +987,6 @@ class _PersonalizationStudioWorkspaceState
                       ),
                     );
                   },
-                  onLayoutVariantChanged: (layoutVariant) {
-                    unawaited(
-                      notifier.applyPersonalizationStudioProfile(
-                        profile.copyWith(
-                          branding: profile.branding.copyWith(
-                            layoutVariant: layoutVariant,
-                          ),
-                        ),
-                        label: 'Modifier la disposition du titre',
-                      ),
-                    );
-                  },
                   onImportTitleMusic: () {
                     unawaited(
                       _importTitleMusic(
@@ -1025,12 +1018,7 @@ class _PersonalizationStudioWorkspaceState
                           );
                         },
                   isTitleMusicPreviewPlaying: _isTitleMusicPreviewPlaying,
-                  showPreview: false,
-                ),
-                const SizedBox(height: 18),
-                ProjectTitleMotionEditor(
-                  profile: profile.titleMotion,
-                  onImport: (role) {
+                  onImportMotion: (role) {
                     unawaited(
                       _importTitleMotionLoop(
                         projectRootPath: projectRootPath,
@@ -1040,7 +1028,7 @@ class _PersonalizationStudioWorkspaceState
                       ),
                     );
                   },
-                  onRemove: (role) {
+                  onRemoveMotion: (role) {
                     unawaited(
                       _removeTitleMotionLoop(
                         profile: profile,

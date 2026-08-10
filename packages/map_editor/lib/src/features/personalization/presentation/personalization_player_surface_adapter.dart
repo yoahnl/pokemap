@@ -33,6 +33,8 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   Widget build(BuildContext context) {
     final presentation = RuntimePlayerPresentation.fromProfile(
       profile,
+      author: 'Créé avec PokeMap',
+      description: 'Votre aventure commence ici.',
       imageForPath: _imageForPath,
     );
     final theme = presentation.applyTo(
@@ -64,7 +66,11 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   ) => switch (target) {
     PersonalizationStudioScene.title => PlayerTitleSurface(
       key: const ValueKey<String>('personalization-title-composition'),
-      data: PersonalizationPreviewFixtures.title(projectName, presentation),
+      data: PersonalizationPreviewFixtures.title(
+        projectName,
+        presentation,
+        backgroundContent: _titleMotion(),
+      ),
       onSelected: (_) => _target(const TitlePresentationTarget()),
     ),
     PersonalizationStudioScene.intro => PlayerIntroVideoSurface(
@@ -138,6 +144,29 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     final poster = _fileForPath(variant.posterPath);
     if (poster == null || !poster.existsSync()) return null;
     return Image.file(poster, fit: BoxFit.cover);
+  }
+
+  Widget? _titleMotion() {
+    final media = profile.titleMotion?.menuLoop;
+    if (media == null) return null;
+    final variant = aspectRatio < 1
+        ? media.portrait ?? media.landscape
+        : media.landscape;
+    final video = _fileForPath(variant.videoPath);
+    final poster = _fileForPath(variant.posterPath);
+    return PlayerTitleMotion(
+      source: video == null || !video.existsSync()
+          ? null
+          : PlayerIntroVideoSource(
+              videoUri: video.uri,
+              looping: true,
+              aspectRatio: variant.width / variant.height,
+              focalX: variant.focalX,
+              focalY: variant.focalY,
+            ),
+      poster: poster == null || !poster.existsSync() ? null : FileImage(poster),
+      reducedMotion: reducedMotion,
+    );
   }
 
   bool get _introSkipped =>

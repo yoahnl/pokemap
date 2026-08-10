@@ -1,14 +1,17 @@
+import 'package:flutter/widgets.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 abstract final class PersonalizationPreviewFixtures {
   static PlayerTitleSurfaceData title(
     String projectName,
-    RuntimePlayerPresentation presentation,
-  ) => PlayerTitleSurfaceData(
+    RuntimePlayerPresentation presentation, {
+    Widget? backgroundContent,
+  }) => PlayerTitleSurfaceData(
     gameTitle: projectName,
     author: presentation.title.author,
     description: presentation.title.description,
     background: presentation.title.background,
+    backgroundContent: backgroundContent,
     logo: presentation.title.logo,
     accentColor: presentation.title.accentColor,
     layoutVariant: presentation.title.layoutVariant,

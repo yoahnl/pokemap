@@ -31,6 +31,7 @@ export 'src/player/player_shop_overlay.dart';
 export 'src/player/pokemap_player_session_view.dart';
 export 'src/player/player_session_surfaces.dart';
 export 'src/player/player_title_screen.dart';
+export 'src/player/player_title_motion.dart';
 export 'src/player/player_title_options_surface.dart';
 export 'src/player/runtime_player_surface_router.dart';
 export 'src/player/runtime_player_actions.dart';

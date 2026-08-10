@@ -19,6 +19,46 @@ enum PlayerTitleMenuAction {
   returnToHub,
 }
 
+class _PlayerTitleBackground extends StatelessWidget {
+  const _PlayerTitleBackground({
+    required this.background,
+    required this.backgroundContent,
+    required this.backgroundColor,
+    required this.scrimColor,
+    required this.child,
+  });
+
+  final ImageProvider? background;
+  final Widget? backgroundContent;
+  final Color backgroundColor;
+  final Color scrimColor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              image: background == null
+                  ? null
+                  : DecorationImage(
+                      image: background!,
+                      fit: BoxFit.cover,
+                      colorFilter: ColorFilter.mode(
+                        scrimColor.withValues(alpha: 0.45),
+                        BlendMode.srcOver,
+                      ),
+                    ),
+            ),
+          ),
+          if (backgroundContent case final content?) content,
+          child,
+        ],
+      );
+}
+
 enum PlayerTitleLayoutVariant {
   standard,
   centered,
@@ -127,20 +167,11 @@ class PlayerTitleSurface extends StatelessWidget {
     final contentAlignment =
         cinematic ? Alignment.bottomLeft : Alignment.center;
     return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.background,
-          image: data.background == null
-              ? null
-              : DecorationImage(
-                  image: data.background!,
-                  fit: BoxFit.cover,
-                  colorFilter: ColorFilter.mode(
-                    colors.scrim.withValues(alpha: 0.45),
-                    BlendMode.srcOver,
-                  ),
-                ),
-        ),
+      body: _PlayerTitleBackground(
+        background: data.background,
+        backgroundContent: data.backgroundContent,
+        backgroundColor: colors.background,
+        scrimColor: colors.scrim,
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
