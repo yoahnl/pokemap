@@ -11,6 +11,7 @@ import '../../editor/state/editor_state.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/character_studio_media_resolver.dart';
+import 'animations/character_studio_animations_tab.dart';
 import 'catalog/animation_definition_manager.dart';
 import 'catalog/portrait_state_manager.dart';
 import 'identity/character_studio_delete_dialog.dart';
@@ -166,9 +167,12 @@ class _CharacterStudioWorkspaceState
               onSelectionChanged: (stateId) =>
                   setState(() => _selectedPortraitStateId = stateId),
             ),
-          (CharacterStudioSection.animations, _) => _AnimationCatalogEntry(
-            onManage: _showAnimationDefinitionManager,
-          ),
+          (CharacterStudioSection.animations, final character?) =>
+            CharacterStudioAnimationsTab(
+              project: project,
+              character: character,
+              onManageDefinitions: _showAnimationDefinitionManager,
+            ),
           _ => _CharacterStudioSectionPlaceholder(section: _section),
         },
       ),
@@ -538,45 +542,6 @@ class _CharacterStudioSectionPlaceholder extends StatelessWidget {
       title: title,
       description: description,
       icon: Icon(icon),
-    );
-  }
-}
-
-class _AnimationCatalogEntry extends StatelessWidget {
-  const _AnimationCatalogEntry({required this.onManage});
-
-  final VoidCallback onManage;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: PokeMapPanel(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const PokeMapEmptyState(
-                title: 'Matrice des animations',
-                description:
-                    'Le catalogue global est prêt. La matrice du personnage arrive dans le lot suivant.',
-                icon: Icon(CupertinoIcons.play_rectangle),
-                compact: true,
-              ),
-              const SizedBox(height: 16),
-              PokeMapButton(
-                key: const ValueKey<String>(
-                  'character-studio-manage-animation-definitions',
-                ),
-                onPressed: onManage,
-                leading: const Icon(CupertinoIcons.slider_horizontal_3),
-                child: const Text('Gérer les animations globales'),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
