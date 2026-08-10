@@ -128,9 +128,15 @@ void main() {
       final expectedProjectRevision = narrativeEventBytesFingerprint(
         await projectFile.readAsBytes(),
       );
-      const profile = ProjectPresentationProfile(
+      final profile = ProjectPresentationProfile(
         menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
-        windows: legacyProjectPresentationWindows,
+        typography: const ProjectTypographyProfile(
+          combat: ProjectTypographyRoleProfile(family: 'Battle Mono'),
+        ),
+        windows: legacyProjectPresentationWindows.copyWith(
+          battleStyleId: 'default',
+        ),
+        layouts: suggestedProjectPresentationLayouts('standard'),
       );
 
       final result = await fixture.mutations.savePresentation(
@@ -154,6 +160,12 @@ void main() {
         durable.presentation?.windows?.dialogueStyleId,
         'dialogue',
       );
+      expect(durable.presentation?.windows?.battleStyleId, 'default');
+      expect(
+        durable.presentation?.layouts?.battle?.regular.slot,
+        ProjectPresentationLayoutSlot.bottomCenter,
+      );
+      expect(durable.presentation?.typography?.combat?.family, 'Battle Mono');
     });
 
     test('exports, deletes, and reimports a shareable presentation preset',

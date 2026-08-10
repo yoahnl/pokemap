@@ -291,6 +291,140 @@ void main() {
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 
+    test('round-trips V5 combat presentation settings', () {
+      final layouts = _layoutsJson()
+        ..['battle'] = _responsiveLayoutJson(
+          compactSlot: 'bottomCenter',
+          regularSlot: 'right',
+          expandedSlot: 'fullScreen',
+        );
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 5,
+          'branding': <String, Object?>{},
+          'typography': <String, Object?>{
+            for (final role in <String>[
+              'display',
+              'body',
+              'dialogue',
+              'numbers',
+              'combat',
+            ])
+              role: <String, Object?>{
+                if (role == 'combat') ...<String, Object?>{
+                  'font': 'presentation/fonts/battle.ttf',
+                  'family': 'Battle Mono',
+                  'license': 'presentation/fonts/battle-license.txt',
+                },
+                'fallbackFamilies': <Object?>['sans-serif'],
+              },
+          },
+          'windows': <String, Object?>{
+            'styles': <Object?>[
+              <String, Object?>{
+                'id': 'default',
+                'fillToken': 'surface',
+                'borderToken': 'outline',
+                'borderWidth': 1,
+                'cornerRadius': 16,
+                'contentPadding': 16,
+                'shadowElevation': 8,
+              },
+              <String, Object?>{
+                'id': 'battle',
+                'fillToken': 'battleHudSurface',
+                'borderToken': 'primary',
+                'borderWidth': 2,
+                'cornerRadius': 12,
+                'contentPadding': 12,
+                'shadowElevation': 4,
+              },
+            ],
+            'defaultStyleId': 'default',
+            'pauseMenuStyleId': 'default',
+            'dialogueStyleId': 'default',
+            'battleStyleId': 'battle',
+            'pauseBackdropOpacityPermille': 700,
+          },
+          'layouts': layouts,
+        };
+      final content = json['content']! as Map<String, Object?>;
+      final projectFile =
+          (content['files']! as List<Object?>).single as Map<String, Object?>;
+      content
+        ..['fileCount'] = 3
+        ..['files'] = <Object?>[
+          _emptyFile('presentation/fonts/battle-license.txt'),
+          _emptyFile('presentation/fonts/battle.ttf'),
+          projectFile,
+        ];
+      content['treeSha256'] = _treeHashFromJson(content['files']!);
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.presentation?.windows?.battleStyleId, 'battle');
+      expect(manifest.presentation?.layouts?.battle?.regular.slot, 'right');
+      expect(manifest.presentation?.typography?.combat?.family, 'Battle Mono');
+      expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('rejects V5 combat fields declared in schema V4', () {
+      final cases = <({String path, Map<String, Object?> presentation})>[
+        (
+          path: r'$.presentation.windows.battleStyleId',
+          presentation: <String, Object?>{
+            'schemaVersion': 4,
+            'branding': <String, Object?>{},
+            'windows': <String, Object?>{
+              'styles': <Object?>[],
+              'defaultStyleId': 'default',
+              'pauseMenuStyleId': 'default',
+              'dialogueStyleId': 'default',
+              'battleStyleId': 'default',
+              'pauseBackdropOpacityPermille': 700,
+            },
+          },
+        ),
+        (
+          path: r'$.presentation.layouts.battle',
+          presentation: <String, Object?>{
+            'schemaVersion': 4,
+            'branding': <String, Object?>{},
+            'layouts': <String, Object?>{
+              ..._layoutsJson(),
+              'battle': _responsiveLayoutJson(
+                compactSlot: 'bottomCenter',
+                regularSlot: 'right',
+                expandedSlot: 'fullScreen',
+              ),
+            },
+          },
+        ),
+        (
+          path: r'$.presentation.typography.combat',
+          presentation: <String, Object?>{
+            'schemaVersion': 4,
+            'branding': <String, Object?>{},
+            'typography': <String, Object?>{
+              'combat': <String, Object?>{
+                'fallbackFamilies': <Object?>['sans-serif'],
+              },
+            },
+          },
+        ),
+      ];
+
+      for (final entry in cases) {
+        final json = _minimalManifestJson()
+          ..['presentation'] = entry.presentation;
+        _expectCode(
+          () => codec.decodeJson(json),
+          'presentationVersionUnsupported',
+          entry.path,
+        );
+      }
+    });
+
     test('rejects layouts declared before presentation schema V4', () {
       final json = _minimalManifestJson()
         ..['presentation'] = <String, Object?>{

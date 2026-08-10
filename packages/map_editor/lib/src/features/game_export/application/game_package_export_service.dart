@@ -216,6 +216,12 @@ final class GamePackageExportService {
                     projection,
                     ProjectTypographyRole.numbers,
                   ),
+                  combat: projection.presentation.typography!.combat == null
+                      ? null
+                      : _packageFontRole(
+                          projection,
+                          ProjectTypographyRole.combat,
+                        ),
                 ),
           theme: projection.presentation.theme == null
               ? null
@@ -548,6 +554,7 @@ final class GamePackageExportService {
     defaultStyleId: windows.defaultStyleId,
     pauseMenuStyleId: windows.pauseMenuStyleId,
     dialogueStyleId: windows.dialogueStyleId,
+    battleStyleId: windows.battleStyleId,
     pauseBackdropOpacity: windows.pauseBackdropOpacity,
   );
 
@@ -557,6 +564,9 @@ final class GamePackageExportService {
     title: _packageResponsiveLayout(layouts.title),
     pauseMenu: _packageResponsiveLayout(layouts.pauseMenu),
     dialogue: _packageResponsiveLayout(layouts.dialogue),
+    battle: layouts.battle == null
+        ? null
+        : _packageResponsiveLayout(layouts.battle!),
   );
 
   static GamePackageResponsiveSurfaceLayout _packageResponsiveLayout(

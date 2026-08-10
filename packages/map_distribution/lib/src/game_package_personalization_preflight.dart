@@ -172,6 +172,7 @@ final class GamePackagePersonalizationPreflight {
         'body': typography.body,
         'dialogue': typography.dialogue,
         'numbers': typography.numbers,
+        if (typography.combat case final combat?) 'combat': combat,
       };
       for (final roleEntry in roles.entries) {
         final role = roleEntry.value;

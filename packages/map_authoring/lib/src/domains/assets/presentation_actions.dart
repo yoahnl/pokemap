@@ -475,6 +475,7 @@ Iterable<_PresentationReference> _presentationReferences(
       'body': typography.body,
       'dialogue': typography.dialogue,
       'numbers': typography.numbers,
+      if (typography.combat case final combat?) 'combat': combat,
     };
     for (final entry in roles.entries) {
       if (entry.value.fontPath case final value?) {

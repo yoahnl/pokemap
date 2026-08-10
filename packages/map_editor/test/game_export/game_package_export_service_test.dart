@@ -74,7 +74,14 @@ void main() {
           accentColor: '#126E78',
         ),
         menuLabels: const ProjectMenuLabelsProfile(pokedex: 'Carnet'),
-        windows: legacyProjectPresentationWindows,
+        typography: const ProjectTypographyProfile(
+          combat: ProjectTypographyRoleProfile(
+            fallbackFamilies: <String>['monospace'],
+          ),
+        ),
+        windows: legacyProjectPresentationWindows.copyWith(
+          battleStyleId: 'default',
+        ),
         layouts: suggestedProjectPresentationLayouts('cinematic'),
       ).toJson();
       await projectFile.writeAsString(jsonEncode(project), flush: true);
@@ -89,7 +96,7 @@ void main() {
       expect(first.certification.gameplayReadinessReport.isPlayable, isTrue);
       expect(first.manifest.gameId, profile.gameId);
       expect(first.manifest.title, profile.title);
-      expect(first.manifest.presentation?.schemaVersion, 4);
+      expect(first.manifest.presentation?.schemaVersion, 5);
       expect(first.manifest.usesLegacyBranding, isFalse);
       expect(first.manifest.branding?.icon, 'presentation/icon.png');
       expect(first.manifest.branding?.accentColor, '#126E78');
@@ -99,10 +106,19 @@ void main() {
         'pause-menu',
       );
       expect(first.manifest.presentation?.windows?.dialogueStyleId, 'dialogue');
+      expect(first.manifest.presentation?.windows?.battleStyleId, 'default');
       expect(first.manifest.presentation?.windows?.pauseBackdropOpacity, .7);
       expect(
         first.manifest.presentation?.layouts?.title.expanded.slot,
         'bottomLeft',
+      );
+      expect(
+        first.manifest.presentation?.layouts?.battle?.expanded.slot,
+        'bottomCenter',
+      );
+      expect(
+        first.manifest.presentation?.typography?.combat?.fallbackFamilies,
+        <String>['monospace'],
       );
       expect(
         first.manifest.compatibility.requiredCapabilities,

@@ -12,6 +12,7 @@ void main() {
 
   test('roundtrips a deterministic licensed preset pack', () {
     final image = Uint8List.fromList(<int>[0x89, 0x50, 0x4e, 0x47]);
+    final font = Uint8List.fromList(<int>[0x00, 0x01, 0x00, 0x00]);
     final license = Uint8List.fromList(utf8.encode('CC-BY-4.0\n'));
     final pack = ProjectPresentationPresetPack(
       manifest: PresentationPresetPackManifest(
@@ -19,8 +20,8 @@ void main() {
         label: 'Train de nuit',
         description: 'Une présentation nocturne réutilisable.',
         compatibility: const PresentationPresetCompatibility(
-          minimumProfileSchemaVersion: 4,
-          maximumProfileSchemaVersion: 4,
+          minimumProfileSchemaVersion: 5,
+          maximumProfileSchemaVersion: 5,
         ),
         assets: <PresentationPresetAsset>[
           PresentationPresetAsset(
@@ -34,16 +35,43 @@ void main() {
             licenseSizeBytes: license.length,
             licenseSha256: sha256.convert(license).toString(),
           ),
+          PresentationPresetAsset(
+            projectPath: 'assets/presentation/fonts/battle.ttf',
+            archivePath: 'assets/battle.ttf',
+            mediaType: 'font/ttf',
+            sizeBytes: font.length,
+            sha256: sha256.convert(font).toString(),
+            licenseProjectPath: 'assets/presentation/licenses/font-license.txt',
+            licenseArchivePath: 'licenses/font.txt',
+            licenseSizeBytes: license.length,
+            licenseSha256: sha256.convert(license).toString(),
+          ),
         ],
       ),
       profile: const ProjectPresentationProfile(
         branding: ProjectBrandingProfile(
           iconPath: 'assets/presentation/branding/icon.png',
         ),
+        typography: ProjectTypographyProfile(
+          combat: ProjectTypographyRoleProfile(
+            fontPath: 'assets/presentation/fonts/battle.ttf',
+            family: 'Battle Mono',
+            licensePath: 'assets/presentation/licenses/font-license.txt',
+            redistributable: true,
+            glyphCoverage: <String>[
+              'latin',
+              'latinExtended',
+              'digits',
+              'punctuation',
+            ],
+          ),
+        ),
       ),
       files: <String, Uint8List>{
         'assets/icon.png': image,
+        'assets/battle.ttf': font,
         'licenses/icon.txt': license,
+        'licenses/font.txt': license,
       },
     );
 
@@ -55,6 +83,7 @@ void main() {
     expect(decoded.manifest.toJson(), pack.manifest.toJson());
     expect(decoded.profile, pack.profile);
     expect(decoded.files['assets/icon.png'], image);
+    expect(decoded.files['assets/battle.ttf'], font);
     expect(decoded.files['licenses/icon.txt'], license);
   });
 
@@ -76,6 +105,46 @@ void main() {
     );
   });
 
+  test('requires combat font assets and licenses in the preset pack', () {
+    expect(
+      () => ProjectPresentationPresetPack(
+        manifest: PresentationPresetPackManifest(
+          id: 'missing-combat-font',
+          label: 'Police combat manquante',
+          description: 'Le profil ne doit pas perdre sa police de combat.',
+          compatibility: const PresentationPresetCompatibility(
+            minimumProfileSchemaVersion: 5,
+            maximumProfileSchemaVersion: 5,
+          ),
+          assets: <PresentationPresetAsset>[],
+        ),
+        profile: const ProjectPresentationProfile(
+          typography: ProjectTypographyProfile(
+            combat: ProjectTypographyRoleProfile(
+              fontPath: 'assets/presentation/fonts/battle.ttf',
+              family: 'Battle Mono',
+              licensePath: 'assets/presentation/licenses/font-license.txt',
+              redistributable: true,
+              glyphCoverage: <String>[
+                'latin',
+                'latinExtended',
+                'digits',
+                'punctuation',
+              ],
+            ),
+          ),
+        ),
+      ),
+      throwsA(
+        isA<PresentationPresetPackException>().having(
+          (error) => error.code,
+          'code',
+          'presetPackProfileAssetMissing',
+        ),
+      ),
+    );
+  });
+
   test('requires a license for every redistributed asset', () {
     final image = Uint8List.fromList(<int>[0x89, 0x50, 0x4e, 0x47]);
     expect(
@@ -85,8 +154,8 @@ void main() {
           label: 'Sans licence',
           description: 'Doit être refusé.',
           compatibility: const PresentationPresetCompatibility(
-            minimumProfileSchemaVersion: 4,
-            maximumProfileSchemaVersion: 4,
+            minimumProfileSchemaVersion: 5,
+            maximumProfileSchemaVersion: 5,
           ),
           assets: <PresentationPresetAsset>[
             PresentationPresetAsset(
@@ -131,8 +200,8 @@ void main() {
           label: 'Altéré',
           description: 'Doit être refusé.',
           compatibility: const PresentationPresetCompatibility(
-            minimumProfileSchemaVersion: 4,
-            maximumProfileSchemaVersion: 4,
+            minimumProfileSchemaVersion: 5,
+            maximumProfileSchemaVersion: 5,
           ),
           assets: <PresentationPresetAsset>[asset],
         ),

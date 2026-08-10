@@ -860,7 +860,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     const presentationKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationProfile",
     );
-    assert.equal(Number(presentationKind?.version), 4);
+    assert.equal(Number(presentationKind?.version), 5);
     const presetKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationPreset",
     );
@@ -885,7 +885,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       actionId: "presentation.update",
       parameters: {
         profile: {
-          schemaVersion: 4,
+          schemaVersion: 5,
           branding: { accentColor: "#126E78" },
           menuLabels: {
             pauseTitle: "Escale",
@@ -920,10 +920,20 @@ test("MCP applies and rereads the authored presentation profile", async () => {
                 contentPadding: 12,
                 shadowElevation: 4,
               },
+              {
+                id: "battle",
+                fillToken: "battleHudSurface",
+                borderToken: "primary",
+                borderWidth: 2,
+                cornerRadius: 12,
+                contentPadding: 12,
+                shadowElevation: 4,
+              },
             ],
             defaultStyleId: "default",
             pauseMenuStyleId: "pause-menu",
             dialogueStyleId: "dialogue",
+            battleStyleId: "battle",
             pauseBackdropOpacity: 0.8,
           },
           layouts: {
@@ -942,6 +952,17 @@ test("MCP applies and rereads the authored presentation profile", async () => {
               "topCenter",
               "bottomCenter",
             ),
+            battle: responsiveLayout(
+              "bottomCenter",
+              "right",
+              "fullScreen",
+            ),
+          },
+          typography: {
+            combat: {
+              family: "Battle Mono",
+              fallbackFamilies: ["sans-serif"],
+            },
           },
         },
       },
@@ -969,6 +990,20 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       "pause-menu",
     );
     assert.equal(
+      record(record(project.presentation).windows).battleStyleId,
+      "battle",
+    );
+    assert.equal(
+      record(record(record(project.presentation).typography).combat).family,
+      "Battle Mono",
+    );
+    assert.equal(
+      record(
+        record(record(record(project.presentation).layouts).battle).regular,
+      ).slot,
+      "right",
+    );
+    assert.equal(
       record(
         record(record(record(project.presentation).layouts).title).expanded,
       ).slot,
@@ -988,6 +1023,10 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.equal(
       record(record(persisted.presentation).windows).dialogueStyleId,
       "dialogue",
+    );
+    assert.equal(
+      record(record(persisted.presentation).windows).battleStyleId,
+      "battle",
     );
     const presentationResource = await toolData(
       fixture.client,

@@ -152,11 +152,14 @@ final class GamePackagePresentation {
         if (intro != null) 'intro': intro!.toJson(legacy: schemaVersion == 1),
         if (schemaVersion >= 2 && titleMotion != null)
           'titleMotion': titleMotion!.toJson(),
-        if (typography != null) 'typography': typography!.toJson(),
+        if (typography != null)
+          'typography': typography!.toJson(includeCombat: schemaVersion >= 5),
         if (theme != null) 'theme': theme!.toJson(),
         if (menuLabels != null) 'menuLabels': menuLabels!.toJson(),
-        if (schemaVersion >= 3 && windows != null) 'windows': windows!.toJson(),
-        if (schemaVersion >= 4 && layouts != null) 'layouts': layouts!.toJson(),
+        if (schemaVersion >= 3 && windows != null)
+          'windows': windows!.toJson(includeBattle: schemaVersion >= 5),
+        if (schemaVersion >= 4 && layouts != null)
+          'layouts': layouts!.toJson(includeBattle: schemaVersion >= 5),
       };
 }
 
@@ -212,16 +215,19 @@ final class GamePackagePresentationLayouts {
     required this.title,
     required this.pauseMenu,
     required this.dialogue,
+    this.battle,
   });
 
   final GamePackageResponsiveSurfaceLayout title;
   final GamePackageResponsiveSurfaceLayout pauseMenu;
   final GamePackageResponsiveSurfaceLayout dialogue;
+  final GamePackageResponsiveSurfaceLayout? battle;
 
-  Map<String, Object?> toJson() => <String, Object?>{
+  Map<String, Object?> toJson({bool includeBattle = true}) => <String, Object?>{
         'title': title.toJson(),
         'pauseMenu': pauseMenu.toJson(),
         'dialogue': dialogue.toJson(),
+        if (includeBattle && battle != null) 'battle': battle!.toJson(),
       };
 }
 
@@ -261,6 +267,7 @@ final class GamePackagePresentationWindows {
     required this.defaultStyleId,
     required this.pauseMenuStyleId,
     required this.dialogueStyleId,
+    this.battleStyleId,
     required this.pauseBackdropOpacity,
   }) : styles = List<GamePackageWindowStyle>.unmodifiable(styles);
 
@@ -268,13 +275,16 @@ final class GamePackagePresentationWindows {
   final String defaultStyleId;
   final String pauseMenuStyleId;
   final String dialogueStyleId;
+  final String? battleStyleId;
   final double pauseBackdropOpacity;
 
-  Map<String, Object?> toJson() => <String, Object?>{
+  Map<String, Object?> toJson({bool includeBattle = true}) => <String, Object?>{
         'styles': <Object?>[for (final style in styles) style.toJson()],
         'defaultStyleId': defaultStyleId,
         'pauseMenuStyleId': pauseMenuStyleId,
         'dialogueStyleId': dialogueStyleId,
+        if (includeBattle && battleStyleId != null)
+          'battleStyleId': battleStyleId,
         'pauseBackdropOpacityPermille': (pauseBackdropOpacity * 1000).round(),
       };
 }
@@ -471,18 +481,21 @@ final class GamePackageTypography {
     this.numbers = const GamePackageFontRole(
       fallbackFamilies: <String>['monospace'],
     ),
+    this.combat,
   });
 
   final GamePackageFontRole display;
   final GamePackageFontRole body;
   final GamePackageFontRole dialogue;
   final GamePackageFontRole numbers;
+  final GamePackageFontRole? combat;
 
-  Map<String, Object?> toJson() => <String, Object?>{
+  Map<String, Object?> toJson({bool includeCombat = true}) => <String, Object?>{
         'display': display.toJson(),
         'body': body.toJson(),
         'dialogue': dialogue.toJson(),
         'numbers': numbers.toJson(),
+        if (includeCombat && combat != null) 'combat': combat!.toJson(),
       };
 }
 

@@ -133,6 +133,15 @@ void main() {
         ),
       );
       expect(
+        AuthoringResourceKindRegistry.canonical()
+            .resourceKinds
+            .singleWhere(
+              (descriptor) => descriptor.id == 'projectPresentationProfile',
+            )
+            .version,
+        5,
+      );
+      expect(
         catalog.requireMutationAction('presentation.preset.export').toJson(),
         containsPair(
           'endToEndVerifiedTransports',
@@ -256,7 +265,7 @@ void main() {
 
       expect(directEvidence, cliEvidence);
       expect(directEvidence['accentColor'], '#126E78');
-      expect(directEvidence['schemaVersion'], 4);
+      expect(directEvidence['schemaVersion'], 5);
       expect(
         directEvidence['introLandscape'],
         'presentation/intro-landscape.mp4',
@@ -268,8 +277,11 @@ void main() {
       expect(directEvidence['pokedexLabel'], 'Carnet de voyage');
       expect(directEvidence['pauseWindowStyle'], 'pause-menu');
       expect(directEvidence['dialogueWindowStyle'], 'dialogue');
+      expect(directEvidence['battleWindowStyle'], 'default');
       expect(directEvidence['pauseBackdropOpacity'], .7);
       expect(directEvidence['titleExpandedSlot'], 'bottomLeft');
+      expect(directEvidence['battleExpandedSlot'], 'bottomCenter');
+      expect(directEvidence['combatFontFamily'], 'Battle Mono');
     });
 
     test('presentation preset export has direct API and JSONL CLI parity',
@@ -914,10 +926,14 @@ final class _GoldenHarness {
       'pokedexLabel': manifest.presentation?.menuLabels?.pokedex,
       'pauseWindowStyle': manifest.presentation?.windows?.pauseMenuStyleId,
       'dialogueWindowStyle': manifest.presentation?.windows?.dialogueStyleId,
+      'battleWindowStyle': manifest.presentation?.windows?.battleStyleId,
       'pauseBackdropOpacity':
           manifest.presentation?.windows?.pauseBackdropOpacity,
       'titleExpandedSlot':
           manifest.presentation?.layouts?.title.expanded.slot.name,
+      'battleExpandedSlot':
+          manifest.presentation?.layouts?.battle?.expanded.slot.name,
+      'combatFontFamily': manifest.presentation?.typography?.combat?.family,
     };
   }
 
@@ -1018,7 +1034,12 @@ final ProjectPresentationProfile _responsivePresentationProfile =
     pauseTitle: 'Escale',
     pokedex: 'Carnet de voyage',
   ),
-  windows: legacyProjectPresentationWindows,
+  typography: ProjectTypographyProfile(
+    combat: ProjectTypographyRoleProfile(family: 'Battle Mono'),
+  ),
+  windows: legacyProjectPresentationWindows.copyWith(
+    battleStyleId: 'default',
+  ),
   layouts: suggestedProjectPresentationLayouts('cinematic'),
 );
 

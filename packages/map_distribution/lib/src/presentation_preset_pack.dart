@@ -491,6 +491,7 @@ Map<String, Uint8List> _validatePackFiles(
       typography.body,
       typography.dialogue,
       typography.numbers,
+      if (typography.combat case final combat?) combat,
     ]) {
       add(role.fontPath);
       if (role.licensePath case final path?) licenses.add(path);

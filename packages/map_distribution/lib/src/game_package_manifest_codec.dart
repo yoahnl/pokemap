@@ -500,11 +500,12 @@ final class GamePackageManifestCodec {
     if (schemaVersion != 1 &&
         schemaVersion != 2 &&
         schemaVersion != 3 &&
-        schemaVersion != 4) {
+        schemaVersion != 4 &&
+        schemaVersion != 5) {
       _fail(
         'presentationVersionUnsupported',
         '$path.schemaVersion',
-        'Only presentation schema versions 1, 2, 3 and 4 are supported.',
+        'Only presentation schema versions 1, 2, 3, 4 and 5 are supported.',
       );
     }
     if (schemaVersion == 1 && json.containsKey('titleMotion')) {
@@ -534,6 +535,32 @@ final class GamePackageManifestCodec {
         '$path.layouts',
         'Responsive layouts require presentation schema version 4.',
       );
+    }
+    if (schemaVersion < 5) {
+      final windows = json['windows'];
+      if (windows is Map && windows.containsKey('battleStyleId')) {
+        _fail(
+          'presentationVersionUnsupported',
+          '$path.windows.battleStyleId',
+          'Combat window styles require presentation schema version 5.',
+        );
+      }
+      final layouts = json['layouts'];
+      if (layouts is Map && layouts.containsKey('battle')) {
+        _fail(
+          'presentationVersionUnsupported',
+          '$path.layouts.battle',
+          'Combat layouts require presentation schema version 5.',
+        );
+      }
+      final typography = json['typography'];
+      if (typography is Map && typography.containsKey('combat')) {
+        _fail(
+          'presentationVersionUnsupported',
+          '$path.typography.combat',
+          'Combat typography requires presentation schema version 5.',
+        );
+      }
     }
     return GamePackagePresentation(
       schemaVersion: schemaVersion,
@@ -577,7 +604,7 @@ final class GamePackageManifestCodec {
       value,
       path,
       required: const <String>{'title', 'pauseMenu', 'dialogue'},
-      optional: const <String>{},
+      optional: const <String>{'battle'},
     );
     final title = _responsiveLayout(json['title'], path: '$path.title');
     final pauseMenu = _responsiveLayout(
@@ -588,10 +615,14 @@ final class GamePackageManifestCodec {
       json['dialogue'],
       path: '$path.dialogue',
     );
+    final battle = json.containsKey('battle')
+        ? _responsiveLayout(json['battle'], path: '$path.battle')
+        : null;
     final projectLayouts = ProjectPresentationLayoutsProfile(
       title: _projectResponsiveLayout(title),
       pauseMenu: _projectResponsiveLayout(pauseMenu),
       dialogue: _projectResponsiveLayout(dialogue),
+      battle: battle == null ? null : _projectResponsiveLayout(battle),
     );
     final diagnostic = validateProjectPresentationProfile(
       ProjectPresentationProfile(layouts: projectLayouts),
@@ -607,6 +638,7 @@ final class GamePackageManifestCodec {
       title: title,
       pauseMenu: pauseMenu,
       dialogue: dialogue,
+      battle: battle,
     );
   }
 
@@ -738,7 +770,7 @@ final class GamePackageManifestCodec {
         'dialogueStyleId',
         'pauseBackdropOpacityPermille',
       },
-      optional: const <String>{},
+      optional: const <String>{'battleStyleId'},
     );
     final styles = <GamePackageWindowStyle>[];
     final projectStyles = <ProjectWindowStyleProfile>[];
@@ -811,6 +843,9 @@ final class GamePackageManifestCodec {
       json['dialogueStyleId'],
       '$path.dialogueStyleId',
     );
+    final battleStyleId = json.containsKey('battleStyleId')
+        ? _string(json['battleStyleId'], '$path.battleStyleId')
+        : null;
     final pauseBackdropOpacity = _integer(
           json['pauseBackdropOpacityPermille'],
           '$path.pauseBackdropOpacityPermille',
@@ -821,6 +856,7 @@ final class GamePackageManifestCodec {
       defaultStyleId: defaultStyleId,
       pauseMenuStyleId: pauseMenuStyleId,
       dialogueStyleId: dialogueStyleId,
+      battleStyleId: battleStyleId,
       pauseBackdropOpacity: pauseBackdropOpacity,
     );
     final diagnostic = validateProjectPresentationProfile(
@@ -838,6 +874,7 @@ final class GamePackageManifestCodec {
       defaultStyleId: defaultStyleId,
       pauseMenuStyleId: pauseMenuStyleId,
       dialogueStyleId: dialogueStyleId,
+      battleStyleId: battleStyleId,
       pauseBackdropOpacity: pauseBackdropOpacity,
     );
   }
@@ -1180,13 +1217,16 @@ final class GamePackageManifestCodec {
       value,
       path,
       required: const <String>{'display', 'body', 'dialogue', 'numbers'},
-      optional: const <String>{},
+      optional: const <String>{'combat'},
     );
     return GamePackageTypography(
       display: _fontRole(json['display'], path: '$path.display'),
       body: _fontRole(json['body'], path: '$path.body'),
       dialogue: _fontRole(json['dialogue'], path: '$path.dialogue'),
       numbers: _fontRole(json['numbers'], path: '$path.numbers'),
+      combat: json.containsKey('combat')
+          ? _fontRole(json['combat'], path: '$path.combat')
+          : null,
     );
   }
 

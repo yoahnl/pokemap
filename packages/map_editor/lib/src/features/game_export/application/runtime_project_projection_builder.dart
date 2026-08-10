@@ -379,11 +379,15 @@ final class RuntimeProjectProjectionBuilder {
     final typography = presentation.typography;
     if (typography != null) {
       for (final role in ProjectTypographyRole.values) {
+        if (role == ProjectTypographyRole.combat && typography.combat == null) {
+          continue;
+        }
         final roleProfile = switch (role) {
           ProjectTypographyRole.display => typography.display,
           ProjectTypographyRole.body => typography.body,
           ProjectTypographyRole.dialogue => typography.dialogue,
           ProjectTypographyRole.numbers => typography.numbers,
+          ProjectTypographyRole.combat => typography.combat!,
         };
         typographyRoles[role] = await _addTypographyRole(
           payload,

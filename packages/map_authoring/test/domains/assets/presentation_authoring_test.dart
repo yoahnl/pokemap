@@ -162,8 +162,10 @@ void main() {
     });
 
     test('presentation.update carries validated project window styles', () {
-      const profile = ProjectPresentationProfile(
-        windows: legacyProjectPresentationWindows,
+      final profile = ProjectPresentationProfile(
+        windows: legacyProjectPresentationWindows.copyWith(
+          battleStyleId: 'default',
+        ),
       );
       final snapshot = _snapshot();
       final request = AuthoringRequest(
@@ -198,6 +200,13 @@ void main() {
         containsPair(
           'windows',
           containsPair('dialogueStyleId', 'dialogue'),
+        ),
+      );
+      expect(
+        draft.preview['profile'],
+        containsPair(
+          'windows',
+          containsPair('battleStyleId', 'default'),
         ),
       );
     });
@@ -237,6 +246,58 @@ void main() {
               'expanded',
               containsPair('slot', 'bottomLeft'),
             ),
+          ),
+        ),
+      );
+      expect(
+        draft.preview['profile'],
+        containsPair(
+          'layouts',
+          containsPair(
+            'battle',
+            containsPair(
+              'expanded',
+              containsPair('slot', 'bottomCenter'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('presentation.update carries combat typography', () {
+      const profile = ProjectPresentationProfile(
+        typography: ProjectTypographyProfile(
+          combat: ProjectTypographyRoleProfile(family: 'Battle Mono'),
+        ),
+      );
+      final snapshot = _snapshot();
+      final request = AuthoringRequest(
+        requestId: 'request_presentation_combat_typography',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: 'ws_test',
+        parameters: <String, Object?>{'profile': profile.toJson()},
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'presentation-combat-typography',
+        dryRun: true,
+      );
+
+      final draft = const PresentationActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: request,
+          planId: 'plan_presentation_combat_typography',
+          seed: 42,
+        ),
+      );
+
+      expect(
+        draft.preview['profile'],
+        containsPair(
+          'typography',
+          containsPair(
+            'combat',
+            containsPair('family', 'Battle Mono'),
           ),
         ),
       );
