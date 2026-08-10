@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_inspector_target.dart';
+import '../application/personalization_preview_fixtures.dart';
 import '../application/personalization_preview_projection.dart';
 import '../application/personalization_preview_scenario.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
@@ -25,6 +26,7 @@ class PersonalizationLivePreview extends StatefulWidget {
     this.showDialoguePortrait = true,
     this.showDialogueName = true,
     this.showDialogueChoices = false,
+    this.battleState = PersonalizationBattlePreviewState.commands,
   });
 
   final ProjectPresentationProfile profile;
@@ -38,6 +40,7 @@ class PersonalizationLivePreview extends StatefulWidget {
   final bool showDialoguePortrait;
   final bool showDialogueName;
   final bool showDialogueChoices;
+  final PersonalizationBattlePreviewState battleState;
 
   @override
   State<PersonalizationLivePreview> createState() =>
@@ -123,6 +126,7 @@ class _PersonalizationLivePreviewState
               showDialoguePortrait: widget.showDialoguePortrait,
               showDialogueName: widget.showDialogueName,
               showDialogueChoices: widget.showDialogueChoices,
+              battleState: widget.battleState,
             ),
       ),
     );

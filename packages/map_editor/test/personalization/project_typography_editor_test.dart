@@ -22,6 +22,7 @@ void main() {
     expect(find.text('Titres & affichage'), findsOneWidget);
     expect(find.text('Texte courant'), findsOneWidget);
     expect(find.text('Dialogues'), findsOneWidget);
+    expect(find.text('Combats'), findsOneWidget);
     expect(find.text('Nombres'), findsOneWidget);
 
     await tester.tap(

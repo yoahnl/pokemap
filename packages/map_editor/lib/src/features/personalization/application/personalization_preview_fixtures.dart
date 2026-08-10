@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
+enum PersonalizationBattlePreviewState { commands, moves, target, message }
+
 abstract final class PersonalizationPreviewFixtures {
   static PlayerTitleSurfaceData title(
     String projectName,
@@ -75,22 +77,37 @@ abstract final class PersonalizationPreviewFixtures {
           choices: const <PlayerDialogueChoiceViewData>[],
         );
 
-  static const battle = PlayerBattleViewData(
+  static const battle = _battleCommands;
+
+  static PlayerBattleViewData battleFor(
+    PersonalizationBattlePreviewState state,
+  ) => switch (state) {
+    PersonalizationBattlePreviewState.commands => _battleCommands,
+    PersonalizationBattlePreviewState.moves => _battleMoves,
+    PersonalizationBattlePreviewState.target => _battleTarget,
+    PersonalizationBattlePreviewState.message => _battleMessage,
+  };
+
+  static const _enemy = PlayerBattleHudViewData(
+    ownerLabel: 'DRESSEUR',
+    speciesLabel: 'ROUCOOL',
+    level: 7,
+    currentHp: 31,
+    maxHp: 31,
+  );
+
+  static const _player = PlayerBattleHudViewData(
+    ownerLabel: 'JOUEUR',
+    speciesLabel: 'BRINDIBOU',
+    level: 8,
+    currentHp: 42,
+    maxHp: 55,
+  );
+
+  static const _battleCommands = PlayerBattleViewData(
     revision: 1,
-    enemy: PlayerBattleHudViewData(
-      ownerLabel: 'DRESSEUR',
-      speciesLabel: 'ROUCOOL',
-      level: 7,
-      currentHp: 31,
-      maxHp: 31,
-    ),
-    player: PlayerBattleHudViewData(
-      ownerLabel: 'JOUEUR',
-      speciesLabel: 'BRINDIBOU',
-      level: 8,
-      currentHp: 42,
-      maxHp: 55,
-    ),
+    enemy: _enemy,
+    player: _player,
     battleLabel: 'Combat sauvage',
     title: 'Que doit faire BRINDIBOU ?',
     prompt: 'Choisissez une action.',
@@ -130,6 +147,99 @@ abstract final class PersonalizationPreviewFixtures {
       ),
     ],
     interactionsEnabled: true,
+    canGoBack: false,
+  );
+
+  static const _battleMoves = PlayerBattleViewData(
+    revision: 2,
+    enemy: _enemy,
+    player: _player,
+    battleLabel: 'Combat sauvage',
+    title: 'Capacités de BRINDIBOU',
+    prompt: 'Choisissez une capacité.',
+    narrationLines: <String>[],
+    commands: <PlayerBattleCommandViewData>[
+      PlayerBattleCommandViewData(
+        index: 0,
+        primaryLabel: 'Feuillage',
+        secondaryLabel: 'PLANTE · PP 18/25',
+        enabled: true,
+        selected: true,
+        tone: PlayerBattleEntryTone.attack,
+      ),
+      PlayerBattleCommandViewData(
+        index: 1,
+        primaryLabel: 'Charge',
+        secondaryLabel: 'NORMAL · PP 30/35',
+        enabled: true,
+        selected: false,
+        tone: PlayerBattleEntryTone.neutral,
+      ),
+      PlayerBattleCommandViewData(
+        index: 2,
+        primaryLabel: 'Éco-Sphère',
+        secondaryLabel: 'PLANTE · PP 0/10',
+        statusLabel: 'Indisponible',
+        enabled: false,
+        selected: false,
+        tone: PlayerBattleEntryTone.disabled,
+      ),
+      PlayerBattleCommandViewData(
+        index: 3,
+        primaryLabel: 'Picpic',
+        secondaryLabel: 'VOL · PP 20/20',
+        enabled: true,
+        selected: false,
+        tone: PlayerBattleEntryTone.special,
+      ),
+    ],
+    interactionsEnabled: true,
+    canGoBack: true,
+  );
+
+  static const _battleTarget = PlayerBattleViewData(
+    revision: 3,
+    enemy: _enemy,
+    player: _player,
+    battleLabel: 'Combat sauvage',
+    title: 'Choisissez une cible',
+    prompt: 'Qui doit recevoir cette capacité ?',
+    narrationLines: <String>[],
+    commands: <PlayerBattleCommandViewData>[
+      PlayerBattleCommandViewData(
+        index: 0,
+        primaryLabel: 'ROUCOOL adverse',
+        secondaryLabel: 'Cible valide',
+        enabled: true,
+        selected: true,
+        tone: PlayerBattleEntryTone.attack,
+      ),
+      PlayerBattleCommandViewData(
+        index: 1,
+        primaryLabel: 'BRINDIBOU allié',
+        secondaryLabel: 'Cible invalide',
+        enabled: false,
+        selected: false,
+        tone: PlayerBattleEntryTone.disabled,
+      ),
+    ],
+    interactionsEnabled: true,
+    canGoBack: true,
+  );
+
+  static const _battleMessage = PlayerBattleViewData(
+    revision: 4,
+    enemy: _enemy,
+    player: _player,
+    battleLabel: 'Combat sauvage',
+    title: 'Le combat continue',
+    prompt: 'Le vent se lève et traverse le champ de bataille.',
+    narrationLines: <String>[
+      'ROUCOOL prend de l’altitude tandis que BRINDIBOU reste concentré.',
+      'Les commandes reviendront après la fin du message.',
+    ],
+    commands: <PlayerBattleCommandViewData>[],
+    interactionsEnabled: false,
     canGoBack: false,
   );
 }

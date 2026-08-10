@@ -52,6 +52,7 @@ void main() {
       ),
       typography: ProjectTypographyProfile(
         dialogue: ProjectTypographyRoleProfile(family: 'Studio Dialogue'),
+        combat: ProjectTypographyRoleProfile(family: 'Studio Combat'),
       ),
     );
     await tester.pumpWidget(
@@ -68,6 +69,19 @@ void main() {
     final context = tester.element(find.byType(PlayerDialogueSurface));
     expect(context.playerColors.primary, const Color(0xFF123456));
     expect(context.playerTypography.dialogueFamily, 'Studio Dialogue');
+
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationPlayerSurfaceAdapter(
+          profile: profile,
+          projectName: 'Aube',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.battle,
+        ),
+      ),
+    );
+    final battleContext = tester.element(find.byType(PlayerBattleSurface));
+    expect(battleContext.playerTypography.combatFamily, 'Studio Combat');
   });
 }
 

@@ -30,7 +30,7 @@ void main() {
     );
 
     expect(find.text('Profil Hanazuki'), findsOneWidget);
-    expect(find.text('v4'), findsOneWidget);
+    expect(find.text('v5'), findsOneWidget);
     expect(find.textContaining('.pokemapstyle'), findsOneWidget);
 
     await tester.tap(

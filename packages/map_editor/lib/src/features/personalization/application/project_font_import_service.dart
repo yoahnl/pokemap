@@ -181,6 +181,7 @@ final class ProjectFontImportService implements ProjectFontImporter {
       ProjectTypographyRole.body => ProjectTypographyProfile(body: profile),
       ProjectTypographyRole.dialogue =>
         ProjectTypographyProfile(dialogue: profile),
+      ProjectTypographyRole.combat => ProjectTypographyProfile(combat: profile),
       ProjectTypographyRole.numbers =>
         ProjectTypographyProfile(numbers: profile),
     };

@@ -20,6 +20,7 @@ import '../../../ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import '../../editor/state/editor_notifier.dart';
 import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_inspector_target.dart';
+import '../application/personalization_preview_fixtures.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
 import '../application/personalization_publish_readiness.dart';
 import '../application/personalization_studio_asset_picker.dart';
@@ -34,6 +35,7 @@ import 'personalization_live_preview.dart';
 import 'personalization_readiness_panel.dart';
 import 'personalization_section_actions.dart';
 import 'personalization_studio_shell_v2.dart';
+import 'inspectors/personalization_battle_inspector.dart';
 import 'inspectors/personalization_global_style_inspector.dart';
 import 'inspectors/personalization_dialogue_inspector.dart';
 import 'inspectors/personalization_intro_inspector.dart';
@@ -87,6 +89,8 @@ class _PersonalizationStudioWorkspaceState
   bool _showDialoguePortrait = true;
   bool _showDialogueName = true;
   bool _showDialogueChoices = false;
+  PersonalizationBattlePreviewState _battlePreviewState =
+      PersonalizationBattlePreviewState.commands;
   final Map<ProjectTypographyRole, String> _fontPreviewFamilies =
       <ProjectTypographyRole, String>{};
   ProjectPresentationPreflightResult? _preflightResult;
@@ -414,6 +418,7 @@ class _PersonalizationStudioWorkspaceState
               display: imported,
               body: imported,
               dialogue: imported,
+              combat: imported,
               numbers: imported,
             )
           : _replaceTypographyRole(typography, role, imported);
@@ -578,6 +583,10 @@ class _PersonalizationStudioWorkspaceState
       ),
       dialogue: ProjectTypographyRoleProfile(
         fallbackFamilies: typography.dialogue.fallbackFamilies,
+      ),
+      combat: ProjectTypographyRoleProfile(
+        fallbackFamilies:
+            (typography.combat ?? typography.body).fallbackFamilies,
       ),
       numbers: ProjectTypographyRoleProfile(
         fallbackFamilies: typography.numbers.fallbackFamilies,
@@ -1296,9 +1305,10 @@ class _PersonalizationStudioWorkspaceState
         notifier: notifier,
         canEdit: canEdit,
       ),
-      BattleAppearanceTarget() => _buildSemanticThemeTarget(
+      BattleCommandsTarget() || BattleAppearanceTarget() => _buildBattleTarget(
         context: context,
         profile: profile,
+        projectRootPath: projectRootPath,
         notifier: notifier,
         canEdit: canEdit,
       ),
@@ -1342,11 +1352,6 @@ class _PersonalizationStudioWorkspaceState
         canEdit: canEdit,
         presets: presets,
         canManagePresets: canManagePresets,
-      ),
-      BattleCommandsTarget() => const PokeMapDiagnosticCallout(
-        severity: PokeMapDiagnosticSeverity.info,
-        message:
-            'Les commandes de combat seront personnalisables dans la phase Combat.',
       ),
     };
     return KeyedSubtree(
@@ -1626,35 +1631,92 @@ class _PersonalizationStudioWorkspaceState
     );
   }
 
-  Widget _buildSemanticThemeTarget({
+  Widget _buildBattleTarget({
     required BuildContext context,
     required ProjectPresentationProfile profile,
+    required String projectRootPath,
     required EditorNotifier notifier,
     required bool canEdit,
-  }) => IgnorePointer(
-    ignoring: !canEdit,
-    child: ProjectSemanticThemeEditor(
-      profile: profile.theme ?? safeProjectSemanticTheme,
-      onEditToken: (token) {
-        unawaited(
-          _editThemeToken(
-            context: context,
-            token: token,
+  }) {
+    final typography = profile.typography ?? const ProjectTypographyProfile();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (_isImportingAsset) ...<Widget>[
+          const PokeMapDiagnosticCallout(
+            severity: PokeMapDiagnosticSeverity.info,
+            message: 'Validation et copie sécurisée de la police en cours…',
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (_assetFeedback != null) ...<Widget>[
+          PokeMapDiagnosticCallout(
+            severity: _assetFeedbackIsError
+                ? PokeMapDiagnosticSeverity.error
+                : PokeMapDiagnosticSeverity.info,
+            message: _assetFeedback!,
+          ),
+          const SizedBox(height: 12),
+        ],
+        IgnorePointer(
+          ignoring: !canEdit || _isImportingAsset,
+          child: PersonalizationBattleInspector(
             profile: profile,
-            notifier: notifier,
+            previewState: _battlePreviewState,
+            previewFamilies: _fontPreviewFamilies,
+            onPreviewStateChanged: (state) {
+              setState(() => _battlePreviewState = state);
+            },
+            onWindowsChanged: (windows) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(windows: windows),
+                  label: 'Modifier l’apparence du menu de combat',
+                ),
+              );
+            },
+            onLayoutsChanged: (layouts) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(layouts: layouts),
+                  label: 'Modifier la disposition du menu de combat',
+                ),
+              );
+            },
+            onImportCombatFont: () {
+              unawaited(
+                _importFont(
+                  context: context,
+                  projectRootPath: projectRootPath,
+                  profile: profile,
+                  role: ProjectTypographyRole.combat,
+                  notifier: notifier,
+                ),
+              );
+            },
+            onUseSystemCombatFont: () {
+              final current = typography.combat ?? typography.body;
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(
+                    typography: typography.copyWith(
+                      combat: ProjectTypographyRoleProfile(
+                        fallbackFamilies: current.fallbackFamilies,
+                      ),
+                    ),
+                  ),
+                  label: 'Utiliser le fallback Combats',
+                ),
+              );
+              setState(
+                () => _fontPreviewFamilies.remove(ProjectTypographyRole.combat),
+              );
+            },
           ),
-        );
-      },
-      onUseSafeFallback: () {
-        unawaited(
-          notifier.applyPersonalizationStudioProfile(
-            profile.copyWith(theme: safeProjectSemanticTheme),
-            label: 'Appliquer la palette sûre',
-          ),
-        );
-      },
-    ),
-  );
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1853,6 +1915,7 @@ class _PersonalizationStudioWorkspaceState
                 showDialoguePortrait: _showDialoguePortrait,
                 showDialogueName: _showDialogueName,
                 showDialogueChoices: _showDialogueChoices,
+                battleState: _battlePreviewState,
                 onTargeted: (target) {
                   setState(() {
                     _selectedScene = _sceneForInspectorTarget(target);
@@ -2104,6 +2167,7 @@ ProjectTypographyRoleProfile _typographyRoleProfile(
   ProjectTypographyRole.display => profile.display,
   ProjectTypographyRole.body => profile.body,
   ProjectTypographyRole.dialogue => profile.dialogue,
+  ProjectTypographyRole.combat => profile.combat ?? profile.body,
   ProjectTypographyRole.numbers => profile.numbers,
 };
 
@@ -2115,6 +2179,7 @@ ProjectTypographyProfile _replaceTypographyRole(
   ProjectTypographyRole.display => profile.copyWith(display: replacement),
   ProjectTypographyRole.body => profile.copyWith(body: replacement),
   ProjectTypographyRole.dialogue => profile.copyWith(dialogue: replacement),
+  ProjectTypographyRole.combat => profile.copyWith(combat: replacement),
   ProjectTypographyRole.numbers => profile.copyWith(numbers: replacement),
 };
 
@@ -2122,6 +2187,7 @@ String _typographyRoleName(ProjectTypographyRole role) => switch (role) {
   ProjectTypographyRole.display => 'Titres & affichage',
   ProjectTypographyRole.body => 'Texte courant',
   ProjectTypographyRole.dialogue => 'Dialogues',
+  ProjectTypographyRole.combat => 'Combats',
   ProjectTypographyRole.numbers => 'Nombres',
 };
 

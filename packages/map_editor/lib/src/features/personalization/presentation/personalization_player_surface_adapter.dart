@@ -24,6 +24,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     this.showDialoguePortrait = true,
     this.showDialogueName = true,
     this.showDialogueChoices = false,
+    this.battleState = PersonalizationBattlePreviewState.commands,
   });
 
   final ProjectPresentationProfile profile;
@@ -37,6 +38,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   final bool showDialoguePortrait;
   final bool showDialogueName;
   final bool showDialogueChoices;
+  final PersonalizationBattlePreviewState battleState;
 
   @override
   Widget build(BuildContext context) {
@@ -123,7 +125,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     ),
     PersonalizationStudioScene.battle => PlayerBattleSurface(
       key: const ValueKey<String>('personalization-battle-composition'),
-      data: PersonalizationPreviewFixtures.battle,
+      data: PersonalizationPreviewFixtures.battleFor(battleState),
       onAction: (_) => _target(const BattleCommandsTarget()),
     ),
     PersonalizationStudioScene.globalStyle => throw StateError(
@@ -153,7 +155,11 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     child: FittedBox(
       fit: BoxFit.cover,
       clipBehavior: Clip.hardEdge,
-      child: SizedBox(width: 960, height: 540, child: child),
+      child: SizedBox(
+        width: aspectRatio < 1 ? 450 : 960,
+        height: aspectRatio < 1 ? 800 : 540,
+        child: child,
+      ),
     ),
   );
 

@@ -42,6 +42,7 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
           title: switch (widget.fixedRole) {
             ProjectWindowRole.pauseMenu => 'Apparence du menu Pause',
             ProjectWindowRole.dialogue => 'Apparence de la bulle',
+            ProjectWindowRole.battle => 'Apparence du menu de combat',
             _ => 'Fenêtres du jeu',
           },
           description: switch (widget.fixedRole) {
@@ -49,6 +50,8 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
               'Réglez la forme, les couleurs, les contours et la profondeur du menu.',
             ProjectWindowRole.dialogue =>
               'Réglez la forme, les couleurs, le contour et la profondeur de la bulle.',
+            ProjectWindowRole.battle =>
+              'Réglez la forme, les couleurs, le contour et la profondeur des commandes de combat.',
             _ =>
               'Façonnez les cadres du menu Pause et des dialogues. Le grand aperçu reflète chaque changement immédiatement.',
           },

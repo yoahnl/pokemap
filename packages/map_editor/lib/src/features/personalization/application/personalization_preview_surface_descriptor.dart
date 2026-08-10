@@ -50,6 +50,7 @@ final class PersonalizationStudioSceneDescriptor {
     ProjectTypographyRole.display => typography?.display,
     ProjectTypographyRole.body => typography?.body,
     ProjectTypographyRole.dialogue => typography?.dialogue,
+    ProjectTypographyRole.combat => typography?.combat ?? typography?.body,
     ProjectTypographyRole.numbers => typography?.numbers,
   };
 

@@ -3,7 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/design_system.dart';
 
-/// Four-role no-code typography editor with live loaded-font previews.
+/// No-code typography editor with live loaded-font previews.
 class ProjectTypographyEditor extends StatelessWidget {
   const ProjectTypographyEditor({
     super.key,
@@ -33,9 +33,19 @@ class ProjectTypographyEditor extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const PokeMapSectionHeader(
-            title: 'Typographie du dialogue',
-            description: 'Choisissez la police utilisée pour les répliques.',
+          PokeMapSectionHeader(
+            title: switch (role) {
+              ProjectTypographyRole.dialogue => 'Typographie du dialogue',
+              ProjectTypographyRole.combat => 'Typographie des combats',
+              _ => 'Typographie ${_label(role).toLowerCase()}',
+            },
+            description: switch (role) {
+              ProjectTypographyRole.dialogue =>
+                'Choisissez la police utilisée pour les répliques.',
+              ProjectTypographyRole.combat =>
+                'Choisissez la police des commandes, messages et statuts de combat.',
+              _ => 'Choisissez la police utilisée pour ce rôle.',
+            },
           ),
           const SizedBox(height: 8),
           _RoleEditor(
@@ -100,6 +110,7 @@ class _CommonTypographyEditor extends StatelessWidget {
       profile.display,
       profile.body,
       profile.dialogue,
+      profile.combat ?? profile.body,
       profile.numbers,
     ];
     final families = roles
@@ -280,6 +291,7 @@ ProjectTypographyRoleProfile _profileForRole(
   ProjectTypographyRole.display => profile.display,
   ProjectTypographyRole.body => profile.body,
   ProjectTypographyRole.dialogue => profile.dialogue,
+  ProjectTypographyRole.combat => profile.combat ?? profile.body,
   ProjectTypographyRole.numbers => profile.numbers,
 };
 
@@ -287,6 +299,7 @@ String _label(ProjectTypographyRole role) => switch (role) {
   ProjectTypographyRole.display => 'Titres & affichage',
   ProjectTypographyRole.body => 'Texte courant',
   ProjectTypographyRole.dialogue => 'Dialogues',
+  ProjectTypographyRole.combat => 'Combats',
   ProjectTypographyRole.numbers => 'Nombres',
 };
 
@@ -296,6 +309,8 @@ String _sample(ProjectTypographyRole role) => switch (role) {
     'Explorez le monde, découvrez ses secrets et rencontrez ses habitants.',
   ProjectTypographyRole.dialogue =>
     '« Prêt pour le départ ? Écoute bien : tout commence ici. »',
+  ProjectTypographyRole.combat =>
+    'Que doit faire BRINDIBOU ? · Attaquer · Sac · Équipe · Fuite',
   ProjectTypographyRole.numbers => 'Niveau 42 · PV 128 / 160 · 9 999 ₽',
 };
 
@@ -303,5 +318,6 @@ IconData _icon(ProjectTypographyRole role) => switch (role) {
   ProjectTypographyRole.display => Icons.title_outlined,
   ProjectTypographyRole.body => Icons.subject_outlined,
   ProjectTypographyRole.dialogue => Icons.chat_bubble_outline,
+  ProjectTypographyRole.combat => Icons.sports_martial_arts_outlined,
   ProjectTypographyRole.numbers => Icons.numbers_outlined,
 };
