@@ -70,8 +70,10 @@ void main() {
             label: 'Aventure sûre',
             description: 'Palette et placements sûrs.',
             compatibility: const PresentationPresetCompatibility(
-              minimumProfileSchemaVersion: 4,
-              maximumProfileSchemaVersion: 4,
+              minimumProfileSchemaVersion:
+                  ProjectPresentationProfile.supportedSchemaVersion,
+              maximumProfileSchemaVersion:
+                  ProjectPresentationProfile.supportedSchemaVersion,
             ),
           ),
           profile: profile,
