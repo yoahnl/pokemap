@@ -13,6 +13,7 @@ final class GoldenItemSystemJourneyReceipt {
   const GoldenItemSystemJourneyReceipt({
     required this.schemaVersion,
     required this.projectId,
+    required this.sourceRevision,
     required this.rngSeed,
     required this.fixtureSha256,
     required this.finalStateSha256,
@@ -29,6 +30,7 @@ final class GoldenItemSystemJourneyReceipt {
 
   final int schemaVersion;
   final String projectId;
+  final String sourceRevision;
   final int rngSeed;
   final String fixtureSha256;
   final String finalStateSha256;
@@ -45,6 +47,7 @@ final class GoldenItemSystemJourneyReceipt {
   Map<String, Object> toJson() => <String, Object>{
     'schemaVersion': schemaVersion,
     'projectId': projectId,
+    'sourceRevision': sourceRevision,
     'rngSeed': rngSeed,
     'fixtureSha256': fixtureSha256,
     'finalStateSha256': finalStateSha256,
@@ -81,8 +84,13 @@ final class GoldenItemSystemJourney {
   static Future<GoldenItemSystemJourneyReceipt> run({
     required String projectRootDirectory,
     required String saveRootDirectory,
+    required String sourceRevision,
     required int rngSeed,
   }) async {
+    _require(
+      RegExp(r'^[0-9a-f]{40,64}$').hasMatch(sourceRevision),
+      'Invalid source revision.',
+    );
     final root = p.normalize(p.absolute(projectRootDirectory));
     final walkthrough = await _loadWalkthrough(root);
     final projectId = _requiredString(walkthrough, 'projectId');
@@ -351,6 +359,7 @@ final class GoldenItemSystemJourney {
     return GoldenItemSystemJourneyReceipt(
       schemaVersion: 1,
       projectId: projectId,
+      sourceRevision: sourceRevision,
       rngSeed: rngSeed,
       fixtureSha256: await _fixtureDigest(root),
       finalStateSha256: _stateDigest(state),

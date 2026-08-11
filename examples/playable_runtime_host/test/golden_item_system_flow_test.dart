@@ -23,17 +23,20 @@ void main() {
     final first = await GoldenItemSystemJourney.run(
       projectRootDirectory: fixtureRoot,
       saveRootDirectory: firstSaveRoot.path,
+      sourceRevision: '0000000000000000000000000000000000000047',
       rngSeed: 47,
     );
     final second = await GoldenItemSystemJourney.run(
       projectRootDirectory: fixtureRoot,
       saveRootDirectory: secondSaveRoot.path,
+      sourceRevision: '0000000000000000000000000000000000000047',
       rngSeed: 47,
     );
 
     expect(first.toJson(), second.toJson());
     expect(first.schemaVersion, 1);
     expect(first.projectId, 'golden_item_system');
+    expect(first.sourceRevision, '0000000000000000000000000000000000000047');
     expect(first.rngSeed, 47);
     expect(first.fixtureSha256, hasLength(64));
     expect(first.finalStateSha256, hasLength(64));

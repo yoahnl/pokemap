@@ -29,6 +29,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   lints: ^6.1.0
+  pokemap_loader:
+    path: ../../examples/playable_runtime_host
 
 flutter:
   uses-material-design: true
