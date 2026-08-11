@@ -203,6 +203,29 @@ void main() {
       );
     });
 
+    test('CHS-059 certifies all 25 Character Studio actions', () {
+      final catalog = AuthoringFullParityCatalog.canonical();
+      final actions = catalog.mutationActions
+          .where((action) => action.actionId.startsWith('characterStudio.'))
+          .toList();
+
+      expect(actions, hasLength(25));
+      expect(
+        actions.map((action) => action.actionId).toSet(),
+        _characterStudioActionIds,
+      );
+      for (final action in actions) {
+        expect(
+          action.toJson(),
+          containsPair(
+            'endToEndVerifiedTransports',
+            <String>['cli', 'directApi', 'editor', 'mcp'],
+          ),
+          reason: action.actionId,
+        );
+      }
+    });
+
     test('matches runtime and editor consumer inventories automatically', () {
       final catalog = AuthoringFullParityCatalog.canonical();
       final repositoryRoot = Directory.current.parent.parent;
@@ -394,6 +417,34 @@ void main() {
     });
   });
 }
+
+const Set<String> _characterStudioActionIds = <String>{
+  'characterStudio.character.create',
+  'characterStudio.character.update',
+  'characterStudio.character.delete',
+  'characterStudio.character.deletePlan',
+  'characterStudio.character.setDefault',
+  'characterStudio.character.portrait.assign',
+  'characterStudio.character.portrait.clear',
+  'characterStudio.portraitState.create',
+  'characterStudio.portraitState.update',
+  'characterStudio.portraitState.reorder',
+  'characterStudio.portraitState.delete',
+  'characterStudio.portraitState.deletePlan',
+  'characterStudio.animationDefinition.create',
+  'characterStudio.animationDefinition.update',
+  'characterStudio.animationDefinition.reorder',
+  'characterStudio.animationDefinition.delete',
+  'characterStudio.animationDefinition.deletePlan',
+  'characterStudio.animationClip.upsert',
+  'characterStudio.animationClip.delete',
+  'characterStudio.animationFrame.insert',
+  'characterStudio.animationFrame.update',
+  'characterStudio.animationFrame.reorder',
+  'characterStudio.animationFrame.delete',
+  'characterStudio.asset.import',
+  'characterStudio.asset.replace',
+};
 
 final Set<String> _approvedResourceKinds = {
   'project',

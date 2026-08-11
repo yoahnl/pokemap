@@ -4281,6 +4281,37 @@ test("CHS-058 live MCP certifies animation frame and asset transports", async ()
   }
 });
 
+test("CHS-059 live MCP publishes all Character Studio transport evidence", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actions = (
+      record(described.fullParity).mutationActions as JsonRecord[]
+    ).filter((action) => String(action.actionId).startsWith("characterStudio."));
+    assert.equal(actions.length, 25);
+    for (const action of actions) {
+      assert.deepEqual(action.endToEndVerifiedTransports, [
+        "cli",
+        "directApi",
+        "editor",
+        "mcp",
+      ]);
+      assert.deepEqual(Object.keys(record(action.endToEndEvidence)).sort(), [
+        "cli",
+        "directApi",
+        "editor",
+        "mcp",
+      ]);
+    }
+    assert.equal(record(record(described.fullParity).summary).transportCertificationComplete, false);
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("CHS-053 live MCP certifies the complete Character Studio lifecycle", async () => {
   const fixture = await mutationFixture();
   try {

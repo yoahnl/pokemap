@@ -298,6 +298,18 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (_characterStudioTransportCertifiedActionIds.contains(actionId)) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/parity/character_studio_full_parity_test.dart',
+      AuthoringTransport.cli:
+          'test/parity/character_studio_full_parity_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/features/character_studio/'
+          'character_studio_authoring_adapter_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (actionId.startsWith('item.')) {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
@@ -381,6 +393,34 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   }
   return const {};
 }
+
+const Set<String> _characterStudioTransportCertifiedActionIds = <String>{
+  'characterStudio.character.create',
+  'characterStudio.character.update',
+  'characterStudio.character.delete',
+  'characterStudio.character.deletePlan',
+  'characterStudio.character.setDefault',
+  'characterStudio.character.portrait.assign',
+  'characterStudio.character.portrait.clear',
+  'characterStudio.portraitState.create',
+  'characterStudio.portraitState.update',
+  'characterStudio.portraitState.reorder',
+  'characterStudio.portraitState.delete',
+  'characterStudio.portraitState.deletePlan',
+  'characterStudio.animationDefinition.create',
+  'characterStudio.animationDefinition.update',
+  'characterStudio.animationDefinition.reorder',
+  'characterStudio.animationDefinition.delete',
+  'characterStudio.animationDefinition.deletePlan',
+  'characterStudio.animationClip.upsert',
+  'characterStudio.animationClip.delete',
+  'characterStudio.animationFrame.insert',
+  'characterStudio.animationFrame.update',
+  'characterStudio.animationFrame.reorder',
+  'characterStudio.animationFrame.delete',
+  'characterStudio.asset.import',
+  'characterStudio.asset.replace',
+};
 
 List<String> _transportNames(Iterable<AuthoringTransport> transports) =>
     transports.map((transport) => transport.name).toList()..sort();
