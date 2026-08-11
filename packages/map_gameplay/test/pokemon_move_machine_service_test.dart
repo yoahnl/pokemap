@@ -31,6 +31,16 @@ void main() {
       <String, int>{'tackle': 30, 'growl': 40, 'protect': 10},
     );
     expect(result.state.bag.entries.single.quantity, 1);
+    expect(
+      result.consumptionReceipt,
+      const ItemConsumptionReceipt(
+        itemId: 'tm-protect',
+        quantity: 1,
+        quantityBefore: 2,
+        quantityAfter: 1,
+        reason: ItemConsumptionReason.appliedEffect,
+      ),
+    );
     final reloaded = GameState.fromJson(
       jsonDecode(jsonEncode(result.state.toJson())) as Map<String, dynamic>,
     );
@@ -129,6 +139,7 @@ void main() {
 
     expect(first.status, PokemonMoveMachineUseStatus.learned);
     expect(first.state.bag.entries.single.quantity, 1);
+    expect(first.consumptionReceipt, isNull);
     expect(duplicate.status, PokemonMoveMachineUseStatus.failed);
     expect(duplicate.failure, PokemonMoveMachineUseFailure.alreadyKnown);
     expect(duplicate.state, same(first.state));

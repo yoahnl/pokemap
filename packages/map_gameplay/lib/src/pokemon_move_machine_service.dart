@@ -1,5 +1,8 @@
 import 'package:map_core/map_core.dart';
 
+import 'items/bag_operation_result.dart';
+import 'items/bag_operations.dart';
+
 const _maximumKnownMoveCount = 4;
 
 final class PokemonMoveMachineCandidate {
@@ -86,12 +89,14 @@ final class PokemonMoveMachineUseResult {
     required this.status,
     this.failure,
     this.replacedMoveId,
+    this.consumptionReceipt,
   });
 
   final GameState state;
   final PokemonMoveMachineUseStatus status;
   final PokemonMoveMachineUseFailure? failure;
   final String? replacedMoveId;
+  final ItemConsumptionReceipt? consumptionReceipt;
 
   bool get isSuccess =>
       status == PokemonMoveMachineUseStatus.learned ||
@@ -101,6 +106,8 @@ final class PokemonMoveMachineUseResult {
 /// Applies a compatibility-resolved TM/HM decision as one pure transaction.
 final class PokemonMoveMachineService {
   const PokemonMoveMachineService();
+
+  static const _bagOperations = BagOperations();
 
   PokemonMoveMachineUseResult apply(
     GameState state, {
@@ -121,10 +128,7 @@ final class PokemonMoveMachineService {
         PokemonMoveMachineUseFailure.invalidTarget,
       );
     }
-    final hasItem = state.bag.normalized().entries.any(
-          (entry) => entry.itemId == machine.itemId && entry.quantity > 0,
-        );
-    if (!hasItem) {
+    if (_bagOperations.quantityOf(state.bag, machine.itemId) <= 0) {
       return _failed(
         state,
         PokemonMoveMachineUseFailure.insufficientQuantity,
@@ -170,15 +174,23 @@ final class PokemonMoveMachineService {
     };
     if (replacedMoveId != null) ppByMoveId.remove(replacedMoveId);
     ppByMoveId[machine.moveId] = machine.maxPp;
-    final nextBag = machine.consumable
-        ? _consumeMachine(state.bag, machine.itemId)
-        : state.bag;
-    if (nextBag == null) {
+    final consumption = machine.consumable
+        ? _bagOperations.consume(
+            BagConsumeRequest(
+              bag: state.bag,
+              itemId: machine.itemId,
+              quantity: 1,
+              reason: ItemConsumptionReason.appliedEffect,
+            ),
+          )
+        : null;
+    if (consumption != null && !consumption.isSuccess) {
       return _failed(
         state,
         PokemonMoveMachineUseFailure.insufficientQuantity,
       );
     }
+    final nextBag = consumption?.bag ?? state.bag;
     final nextMembers = [...state.party.members];
     nextMembers[partyIndex] = pokemon.copyWith(
       knownMoveIds: moves,
@@ -193,6 +205,7 @@ final class PokemonMoveMachineService {
           ? PokemonMoveMachineUseStatus.learned
           : PokemonMoveMachineUseStatus.replaced,
       replacedMoveId: replacedMoveId,
+      consumptionReceipt: consumption?.consumptionReceipt,
     );
   }
 
@@ -206,20 +219,4 @@ final class PokemonMoveMachineService {
       failure: failure,
     );
   }
-}
-
-Bag? _consumeMachine(Bag bag, String itemId) {
-  final entries = <BagEntry>[];
-  var consumed = false;
-  for (final entry in bag.normalized().entries) {
-    if (!consumed && entry.itemId == itemId) {
-      consumed = true;
-      if (entry.quantity > 1) {
-        entries.add(entry.copyWith(quantity: entry.quantity - 1));
-      }
-    } else {
-      entries.add(entry);
-    }
-  }
-  return consumed ? Bag(entries: entries).normalized() : null;
 }

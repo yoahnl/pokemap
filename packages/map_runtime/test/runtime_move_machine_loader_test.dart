@@ -34,12 +34,20 @@ void main() {
       pokemonConfig: _config,
       itemId: 'potion',
     );
+    final incompatible = await loader.loadCandidate(
+      projectRootDirectory: root.path,
+      pokemonConfig: _config,
+      itemId: 'tm-protect',
+      speciesRef: 'incompatible',
+      fallbackSpeciesId: 'incompatible',
+    );
 
     expect(tm?.moveId, 'protect');
     expect(tm?.consumable, isTrue);
     expect(hm?.moveId, 'surf');
     expect(hm?.consumable, isFalse);
     expect(unknown, isNull);
+    expect(incompatible, isNull);
   });
 
   test('fails closed on malformed machine metadata', () async {
@@ -136,6 +144,18 @@ Future<void> _writeFixtures(Directory root) async {
       'hm': <Object?>[
         <String, String>{'moveId': 'surf'},
       ],
+    },
+  );
+  await _writeJson(
+    root,
+    'custom/learnsets/incompatible.json',
+    <String, Object?>{
+      'speciesId': 'incompatible',
+      'startingMoves': <String>[],
+      'relearnMoves': <String>[],
+      'levelUp': <Object?>[],
+      'tm': <Object?>[],
+      'hm': <Object?>[],
     },
   );
   await _writeJson(

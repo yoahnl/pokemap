@@ -739,7 +739,7 @@ Résultat attendu : exit code 0 et All tests passed.
 
 ### ITM-035 — TM/HM unifiées
 
-- [ ] **Résultat :** machine metadata est lue depuis ProjectItemDefinition.
+- [x] **Résultat :** machine metadata est lue depuis ProjectItemDefinition.
 - **Fichiers à modifier :**
   - packages/map_runtime/lib/src/application/runtime_move_machine_loader.dart
   - packages/map_gameplay/lib/src/pokemon_move_machine_service.dart
@@ -748,6 +748,8 @@ Résultat attendu : exit code 0 et All tests passed.
   - packages/map_gameplay/test/pokemon_move_machine_service_test.dart
 - **Gate :** TM consommable, HM réutilisable, compatibilité, remplacement exact et refus atomique.
 - **Dépendances :** ITM-014 et ITM-022.
+
+**Preuves ITM-035 :** `RuntimeMoveMachineLoader` résout exclusivement `ProjectItemDefinition.machine`, puis vérifie la compatibilité TM/HM dans le learnset et la présence de l'attaque dans le catalogue canonique. `PokemonMoveMachineService` délègue la consommation des TM à `BagOperations` et retourne l'unique `ItemConsumptionReceipt`; les HM restent réutilisables. Les tests couvrent apprentissage, PP, remplacement exact, refus atomiques, doublon, save/load, incompatibilité d'espèce et métadonnées invalides. Les suites ciblées terminent avec 4 tests gameplay et 2 tests runtime réussis, et les analyses ciblées ne remontent aucune issue.
 
 ### ITM-036 — Objets d’évolution
 
