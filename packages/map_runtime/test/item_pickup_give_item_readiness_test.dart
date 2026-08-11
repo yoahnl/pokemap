@@ -12,7 +12,7 @@ import 'package:path/path.dart' as p;
 
 const String _testMapId = 'test_map';
 const String _testPickupEntityId = 'test_pickup_entity';
-const String _testItemId = 'test_item_potion';
+const String _testItemId = 'test_custom_passive_thread';
 const String _testPickupFact = 'test_pickup_done_fact';
 const String _testPickupStep = 'test_step_pickup_done';
 

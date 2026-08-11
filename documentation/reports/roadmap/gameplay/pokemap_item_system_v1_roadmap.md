@@ -832,7 +832,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-041 — GiveItem, TakeItem et pickups
 
-- [ ] **Résultat :** scripts, scènes et pickups passent par BagOperations.
+- [x] **Résultat :** scripts, scènes et pickups passent par BagOperations.
 - **Fichiers à modifier :**
   - packages/map_runtime/lib/src/application/script_command_executor.dart
   - packages/map_runtime/lib/src/application/scenario_runtime/scenario_runtime_executor.dart
@@ -842,6 +842,8 @@ Résultat attendu : exit code 0 pour chaque commande.
   - packages/map_editor/test/scenes_workspace_shell_test.dart
 - **Gate :** pickup unique, take insuffisant, save/reload et objet custom passif.
 - **Dépendances :** ITM-024.
+
+**Preuves ITM-041 :** les commandes de script, conséquences de scène et nœuds de scénario délèguent tous leurs mutations à `GameStateMutations`, lui-même adossé à `BagOperations`. `giveItem` rejette désormais une quantité nulle ou négative avant tout commit, tandis que `takeItem` insuffisant reste atomique. Les preuves couvrent un pickup unique de `test_custom_passive_thread`, sa persistance après save/reload, les créations et éditions guidées `giveItem`/`takeItem`, ainsi que l'absence de duplication. Les suites runtime ciblées terminent avec 12 puis 40 tests réussis et les 4 scénarios editor ciblés réussissent. La suite editor complète atteint 80 tests réussis mais reste rouge sur 9 goldens historiques absents du dépôt, sans lien avec ce lot.
 
 ### ITM-042 — Battle rewards et trainer rewards
 
