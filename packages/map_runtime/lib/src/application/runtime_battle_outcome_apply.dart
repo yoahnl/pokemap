@@ -6,8 +6,6 @@ import 'battle_start_request.dart';
 import 'runtime_battle_status_bridge.dart';
 import 'story_flags_manager.dart';
 
-const _runtimeCapturePokeBallItemId = 'poke-ball';
-
 /// Contexte runtime strictement nécessaire pour faire le write-back post-combat.
 ///
 /// Invariant critique :
@@ -167,14 +165,16 @@ final class RuntimeBattleCaptureAttemptSubmission<T> {
     required this.updatedGameState,
     required this.engineResult,
     required this.receipt,
+    required this.consumptionReceipt,
   });
 
   final GameState updatedGameState;
   final T engineResult;
   final RuntimeBattleCaptureAttemptReceipt? receipt;
+  final ItemConsumptionReceipt consumptionReceipt;
 }
 
-/// Charges exactly one Poké Ball iff [submitToEngine] completes successfully.
+/// Charges exactly one selected capture item iff [submitToEngine] completes.
 ///
 /// The input [GameState] is immutable. The charged state is returned only
 /// after engine submission succeeds, so a thrown engine/application error
@@ -183,9 +183,12 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required bool captureAllowed,
+  required String itemId,
+  required ItemCatalogSnapshot itemCatalog,
   required T Function() submitToEngine,
 }) {
-  if (context.request is! WildBattleStartRequest || !captureAllowed) {
+  final request = context.request;
+  if (request is! WildBattleStartRequest || !captureAllowed) {
     throw StateError('Capture is not allowed for this battle.');
   }
   if (gameState.party.members.length >= maxPlayerPartySize &&
@@ -194,10 +197,26 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
           null) {
     throw StateError('Pokemon storage is full. Capture cannot be attempted.');
   }
-  final chargedBag = _consumeOneCaptureItemOrThrow(
-    gameState.bag,
-    _runtimeCapturePokeBallItemId,
+  final definition = itemCatalog.definitionFor(itemId);
+  final capture = definition?.capture;
+  if (definition == null ||
+      capture == null ||
+      !capture.allowedEncounterKinds.contains(request.encounterKind)) {
+    throw StateError('The selected item cannot capture this encounter.');
+  }
+  final consumption = const BagOperations().consume(
+    BagConsumeRequest(
+      bag: gameState.bag,
+      itemId: itemId,
+      quantity: 1,
+      itemTags: definition.tags,
+      reason: ItemConsumptionReason.captureAttempt,
+    ),
   );
+  final consumptionReceipt = consumption.consumptionReceipt;
+  if (!consumption.isSuccess || consumptionReceipt == null) {
+    throw StateError('The selected capture item is unavailable.');
+  }
   final result = submitToEngine();
   final captureAttempt = switch (result) {
     BattleSession session => _extractLegacyBattleCaptureAttempt(session),
@@ -209,12 +228,13 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
   };
   if (captureAttempt != null &&
       (captureAttempt.attemptId.trim().isEmpty ||
-          captureAttempt.itemId != _runtimeCapturePokeBallItemId)) {
+          captureAttempt.itemId != itemId)) {
     throw StateError('The engine returned an invalid capture attempt proof.');
   }
   return RuntimeBattleCaptureAttemptSubmission<T>(
-    updatedGameState: gameState.copyWith(bag: chargedBag),
+    updatedGameState: gameState.copyWith(bag: consumption.bag),
     engineResult: result,
+    consumptionReceipt: consumptionReceipt,
     receipt: captureAttempt == null
         ? null
         : RuntimeBattleCaptureAttemptReceipt._(
@@ -461,11 +481,11 @@ RuntimeBattleCaptureAttemptReceipt _validatedCaptureReceipt({
   if (receipt == null ||
       receipt._isClaimed ||
       receipt.requestId != request.requestId ||
-      receipt.itemId != _runtimeCapturePokeBallItemId ||
-      outcome.captureItemId != _runtimeCapturePokeBallItemId ||
+      receipt.itemId.trim().isEmpty ||
+      receipt.itemId != outcome.captureItemId ||
       receipt.attemptId != outcome.captureAttemptId) {
     throw StateError(
-      'BattleOutcomeType.captured requires a matching charged poke-ball attempt receipt.',
+      'BattleOutcomeType.captured requires a matching charged capture attempt receipt.',
     );
   }
   return receipt;
@@ -532,45 +552,6 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
       metLevel: enemy.level,
     ),
   );
-}
-
-/// Consomme exactement une Poké Ball du bag runtime.
-///
-/// Ce helper est appelé par la transaction de soumission, avant le commit du
-/// nouvel état runtime. Le write-back terminal ne consomme plus rien.
-///
-/// Le lot 14 reste volontairement minimal :
-/// - une seule ressource est concernée (`poke-ball` / `items`) ;
-/// - aucune UI d'inventaire n'est ouverte ;
-/// - aucun autre item n'est touché ;
-/// - aucune entrée à quantité 0 ne doit survivre, car `BagEntry` l'interdit.
-Bag _consumeOneCaptureItemOrThrow(Bag bag, String itemId) {
-  final nextEntries = <BagEntry>[];
-  var didConsumePokeBall = false;
-
-  for (final entry in bag.entries) {
-    final isCaptureBall = entry.itemId.trim() == itemId;
-    if (!isCaptureBall || didConsumePokeBall) {
-      nextEntries.add(entry);
-      continue;
-    }
-
-    didConsumePokeBall = true;
-    final nextQuantity = entry.quantity - 1;
-    if (nextQuantity > 0) {
-      nextEntries.add(
-        entry.copyWith(quantity: nextQuantity),
-      );
-    }
-  }
-
-  if (!didConsumePokeBall) {
-    throw StateError(
-      'Impossible d’appliquer BattleOutcomeType.captured sans Poké Ball dans le bag du joueur.',
-    );
-  }
-
-  return Bag(entries: nextEntries).normalized();
 }
 
 /// Réécrit les PV des combattants joueur réellement engagés dans la vraie party.

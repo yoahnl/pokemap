@@ -42,6 +42,8 @@ sealed class BattleDecision {
 
   const factory BattleDecision.capture({
     required String itemId,
+    required int rateNumerator,
+    required int rateDenominator,
   }) = BattleCaptureDecision;
 
   const factory BattleDecision.shift({
@@ -104,9 +106,15 @@ final class BattleFleeDecision extends BattleDecision {
 }
 
 final class BattleCaptureDecision extends BattleDecision {
-  const BattleCaptureDecision({required this.itemId});
+  const BattleCaptureDecision({
+    required this.itemId,
+    required this.rateNumerator,
+    required this.rateDenominator,
+  });
 
   final String itemId;
+  final int rateNumerator;
+  final int rateDenominator;
 }
 
 final class BattleShiftDecision extends BattleDecision {
@@ -286,7 +294,11 @@ final class BattleEngineDecisionRequest {
         for (final choice in switchChoices)
           BattleDecision.switchPokemon(partyIndex: choice.partyIndex),
         if (canCapture)
-          const BattleDecision.capture(itemId: canonicalPokeBallItemId),
+          const BattleDecision.capture(
+            itemId: canonicalPokeBallItemId,
+            rateNumerator: 1,
+            rateDenominator: 1,
+          ),
         if (canFlee) const BattleDecision.flee(),
       ],
     );
@@ -307,8 +319,15 @@ final class BattleEngineDecisionRequest {
                 (targetPartyIndex >= 0 && targetPartyIndex < partySize)),
       BattleMegaDecision() => false,
       BattleFleeDecision() => canFlee,
-      BattleCaptureDecision(:final itemId) =>
-        canCapture && itemId == canonicalPokeBallItemId,
+      BattleCaptureDecision(
+        :final itemId,
+        :final rateNumerator,
+        :final rateDenominator,
+      ) =>
+        canCapture &&
+            itemId.trim().isNotEmpty &&
+            rateNumerator > 0 &&
+            rateDenominator > 0,
       BattleShiftDecision() => false,
       BattleNoActionDecision() => false,
     };

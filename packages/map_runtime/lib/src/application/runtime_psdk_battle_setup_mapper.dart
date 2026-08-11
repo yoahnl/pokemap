@@ -198,6 +198,7 @@ final class RuntimePsdkBattleSetupMapper {
           playerHasAtLeastOneRuntimeCaptureItem(
             gameState.bag,
             ItemCapabilityResolver(resolvedItemCatalog),
+            encounterKind: request.encounterKind,
           ),
       isTrainerBattle: request is TrainerBattleStartRequest,
     );

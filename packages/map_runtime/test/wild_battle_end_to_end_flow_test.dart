@@ -693,6 +693,8 @@ void main() {
         gameState: stateWithSeen,
         context: context,
         captureAllowed: setup.allowCapture,
+        itemId: canonicalPokeBallItemId,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         submitToEngine: () => createBattleSession(
           setup,
           rng: const BattleScriptedRng(<int>[1]),
@@ -802,6 +804,8 @@ void main() {
         gameState: stateWithSeen,
         context: context,
         captureAllowed: setup.allowCapture,
+        itemId: canonicalPokeBallItemId,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         submitToEngine: () => session.applyChoice(pickedChoice!),
       );
       final outcome = attempt.engineResult.state.outcome!;

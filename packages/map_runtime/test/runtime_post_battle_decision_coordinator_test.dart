@@ -693,7 +693,7 @@ GameState _captureState({required int partySize}) {
     saveId: 'capture-state',
     bag: const Bag(
       entries: <BagEntry>[
-        BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+        BagEntry(itemId: 'poke-ball', quantity: 2),
       ],
     ),
     party: PlayerParty(
@@ -719,6 +719,8 @@ RuntimeBattleCaptureAttemptSubmission<BattleSession>
     gameState: state,
     context: _captureContext(),
     captureAllowed: true,
+    itemId: canonicalPokeBallItemId,
+    itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     submitToEngine: () => createBattleSession(
       const BattleSetup(
         playerPokemon: BattleCombatantData(

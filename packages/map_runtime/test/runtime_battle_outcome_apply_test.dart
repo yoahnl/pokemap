@@ -676,8 +676,8 @@ void main() {
         updatedState.bag.entries,
         equals(
           const <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
       );
@@ -757,7 +757,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'poke-ball',
-              categoryId: 'items',
               quantity: 1,
             ),
           ],
@@ -784,6 +783,8 @@ void main() {
         gameState: captureGameState,
         context: context,
         captureAllowed: true,
+        itemId: canonicalPokeBallItemId,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         submitToEngine: () =>
             battle.applyChoice(const PlayerBattleChoiceCapture()),
       );
@@ -816,8 +817,8 @@ void main() {
         gameState: _baseState().copyWith(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+              BagEntry(itemId: 'poke-ball', quantity: 1),
+              BagEntry(itemId: 'potion', quantity: 3),
             ],
           ),
         ),
@@ -842,7 +843,7 @@ void main() {
         updatedState.bag.entries,
         equals(
           const <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
       );
@@ -947,21 +948,19 @@ void main() {
         updatedState.bag.entries,
         equals(
           const <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
       );
     });
 
-    test('capture submission is rejected without a ball and calls no engine',
-        () {
+    test('capture submission rejects a non-capture item before the engine', () {
       final initialState = _baseState().copyWith(
         bag: const Bag(
           entries: <BagEntry>[
             BagEntry(
               itemId: 'potion',
-              categoryId: 'medicine',
               quantity: 3,
             ),
           ],
@@ -976,6 +975,8 @@ void main() {
             playerPartyIndex: 0,
           ),
           captureAllowed: true,
+          itemId: 'potion',
+          itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
           submitToEngine: () => engineCalled = true,
         ),
         throwsA(isA<StateError>()),
@@ -1026,6 +1027,8 @@ void main() {
             playerPartyIndex: 0,
           ),
           captureAllowed: true,
+          itemId: canonicalPokeBallItemId,
+          itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
           submitToEngine: () => engineCalled = true,
         ),
         throwsA(
@@ -1053,11 +1056,23 @@ void main() {
           playerPartyIndex: 0,
         ),
         captureAllowed: true,
+        itemId: canonicalPokeBallItemId,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         submitToEngine: () => _legacyCaptureResult(caught: false),
       );
 
       expect(submission.engineResult.state.outcome, isNull);
       expect(submission.receipt, isNull);
+      expect(
+        submission.consumptionReceipt,
+        const ItemConsumptionReceipt(
+          itemId: 'poke-ball',
+          quantity: 1,
+          quantityBefore: 2,
+          quantityAfter: 1,
+          reason: ItemConsumptionReason.captureAttempt,
+        ),
+      );
       expect(
         submission.updatedGameState.bag.entries
             .singleWhere((entry) => entry.itemId == 'poke-ball')
@@ -1093,6 +1108,8 @@ void main() {
           playerPartyIndex: 0,
         ),
         captureAllowed: true,
+        itemId: canonicalPokeBallItemId,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         submitToEngine: () => adapter.submitPlayerChoice(
           const PlayerBattleChoiceCapture(),
         ),
@@ -1152,16 +1169,45 @@ void main() {
         request: _wildRequest(),
         playerPartyIndex: 0,
       );
+      final catalog = ItemCatalogSnapshot.fromCatalog(
+        const ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: <ProjectItemDefinition>[
+            ProjectItemDefinition(
+              id: 'aurora-orb',
+              displayName: 'Aurora Orb',
+              pocketId: 'relics',
+              capture: ProjectCaptureItemDefinition(
+                rateNumerator: 5,
+                rateDenominator: 2,
+                allowedEncounterKinds: <EncounterKind>{EncounterKind.walk},
+              ),
+            ),
+          ],
+        ),
+      );
       final adapter = RuntimePsdkBattleSessionAdapter.fromSetup(
         _psdkCaptureSetup(caught: true),
       );
       final submission =
           submitRuntimeBattleCaptureAttempt<BattleEngineTurnResult>(
-        gameState: _baseState(),
+        gameState: _baseState().copyWith(
+          bag: const Bag(
+            entries: <BagEntry>[
+              BagEntry(itemId: 'aurora-orb', quantity: 2),
+            ],
+          ),
+        ),
         context: context,
         captureAllowed: true,
+        itemId: 'aurora-orb',
+        itemCatalog: catalog,
         submitToEngine: () => adapter.submitPlayerChoice(
-          const PlayerBattleChoiceCapture(),
+          const PlayerBattleChoiceCapture(
+            itemId: 'aurora-orb',
+            rateNumerator: 5,
+            rateDenominator: 2,
+          ),
         ),
       );
       final outcome = adapter.createLegacyOutcome(
@@ -1170,6 +1216,10 @@ void main() {
       );
 
       expect(submission.receipt, isNotNull);
+      expect(submission.receipt!.itemId, 'aurora-orb');
+      expect(submission.consumptionReceipt.itemId, 'aurora-orb');
+      expect(submission.updatedGameState.bag.entries.single.quantity, 1);
+      expect(outcome.captureItemId, 'aurora-orb');
       expect(outcome.captureAttemptId, 'capture-attempt-1');
       final updated = applyRuntimeBattleOutcomeToGameState(
         gameState: submission.updatedGameState,
@@ -1178,6 +1228,10 @@ void main() {
         captureAttemptReceipt: submission.receipt,
       );
       expect(updated.party.members.last.speciesId, 'receipt-wild');
+      expect(
+        updated.party.members.last.provenance?.ballItemId,
+        'aurora-orb',
+      );
       expect(
         () => applyRuntimeBattleOutcomeToGameState(
           gameState: updated,
@@ -1277,6 +1331,8 @@ void main() {
             playerPartyIndex: 0,
           ),
           captureAllowed: true,
+          itemId: canonicalPokeBallItemId,
+          itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
           submitToEngine: () => throw StateError('engine rejected'),
         ),
         throwsA(isA<StateError>()),
@@ -1304,6 +1360,8 @@ void main() {
               playerPartyIndex: 0,
             ),
             captureAllowed: scenario.allowed,
+            itemId: canonicalPokeBallItemId,
+            itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
             submitToEngine: () {},
           ),
           throwsA(isA<StateError>()),
@@ -1452,8 +1510,8 @@ GameState _baseState() {
     saveId: 'save-1',
     bag: Bag(
       entries: <BagEntry>[
-        BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
-        BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+        BagEntry(itemId: 'poke-ball', quantity: 2),
+        BagEntry(itemId: 'potion', quantity: 3),
       ],
     ),
     party: PlayerParty(
@@ -1542,6 +1600,8 @@ RuntimeBattleCaptureAttemptSubmission<BattleSession> _acceptedCaptureAttempt({
     gameState: gameState,
     context: context,
     captureAllowed: true,
+    itemId: canonicalPokeBallItemId,
+    itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     submitToEngine: () => _legacyCaptureResult(caught: true),
   );
 }

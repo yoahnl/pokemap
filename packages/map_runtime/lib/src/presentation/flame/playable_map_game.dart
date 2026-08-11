@@ -7686,6 +7686,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         playerHasAtLeastOneRuntimeCaptureItem(
           _battleRuntimeGameState.bag,
           ItemCapabilityResolver(_itemCatalogSnapshot),
+          encounterKind: request.encounterKind,
         );
   }
 
@@ -7808,11 +7809,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           final submission = submitRuntimeBattleCaptureAttempt(
             gameState: _battleRuntimeGameState,
             context: activeContext,
-            captureAllowed: psdkSession.decisionRequest.allows(
-              const BattleDecision.capture(
-                itemId: canonicalPokeBallItemId,
-              ),
-            ),
+            captureAllowed: psdkSession.allowsPlayerChoice(choice),
+            itemId: choice.itemId,
+            itemCatalog: _itemCatalogSnapshot,
             submitToEngine: () => psdkSession.submitPlayerChoice(choice),
           );
           _replaceBattleRuntimeGameState(submission.updatedGameState);
@@ -7843,6 +7842,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             gameState: _battleRuntimeGameState,
             context: activeContext,
             captureAllowed: _battleSession!.decisionRequest.allows(choice),
+            itemId: choice.itemId,
+            itemCatalog: _itemCatalogSnapshot,
             submitToEngine: () => _battleSession!.applyChoice(choice),
           );
           _replaceBattleRuntimeGameState(submission.updatedGameState);

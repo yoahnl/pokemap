@@ -235,7 +235,15 @@ BattleBagMenuEntry _buildCaptureEntry({
             gameState: gameState,
             session: session,
           ),
-    action: isSelectable ? BattleBagMenuActionCapture(captureChoice) : null,
+    action: isSelectable
+        ? BattleBagMenuActionCapture(
+            PlayerBattleChoiceCapture(
+              itemId: bagEntry.itemId,
+              rateNumerator: definition.capture!.rateNumerator,
+              rateDenominator: definition.capture!.rateDenominator,
+            ),
+          )
+        : null,
   );
 }
 

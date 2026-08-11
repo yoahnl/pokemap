@@ -684,7 +684,7 @@ Résultat attendu : exit code 0 et All tests passed.
 
 ### ITM-032 — Capture items génériques
 
-- [ ] **Résultat :** la formule reçoit les métadonnées de la Ball choisie.
+- [x] **Résultat :** la formule reçoit les métadonnées de la Ball choisie.
 - **Fichiers à modifier :**
   - packages/map_battle/lib/src/capture_formula.dart
   - packages/map_battle/lib/src/domain/action/battle_capture_action_handler.dart
@@ -704,6 +704,8 @@ Résultat attendu : exit code 0 et All tests passed.
   - tentative réussie consommée.
 - **Gate :** aucune constante de catégorie ou de Ball ne subsiste dans map_runtime.
 - **Dépendances :** ITM-013 et ITM-031.
+
+**Preuves ITM-032 :** la décision de capture transporte désormais l'identifiant exact de l'objet choisi et son ratio canonique jusqu'aux moteurs legacy et PSDK. La formule applique ce ratio sous forme rationnelle, puis le runtime valide l'objet contre le catalogue et le type de rencontre avant toute mutation. Une tentative produit exactement un `ItemConsumptionReceipt` concordant avec l'événement moteur, qu'elle échoue ou réussisse ; le stockage d'un Pokémon capturé reste couvert lorsque l'équipe est pleine. Les tests synthétiques prouvent les ratios 1/1 et 5/2 avec `aurora-orb`, ainsi que le rejet des objets non capturants et des combats de dresseur. Les suites ciblées terminent avec 13 tests `map_battle`, 76 tests de modèles/setup/application runtime, 17 tests du flux wild, 10 tests d'intégration post-combat et 9 tests du coordinateur réussis ; les analyses ciblées des deux packages ne remontent aucune issue. La recherche du gate ne trouve plus aucune constante de Ball ou de catégorie dans `packages/map_runtime/lib`.
 
 ### ITM-033 — Key Item Gates
 

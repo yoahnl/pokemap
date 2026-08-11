@@ -74,10 +74,23 @@ final class RuntimePsdkBattleSessionAdapter {
       type: _legacyOutcomeType(),
       finalState: finalState,
       captureItemId: state.outcome?.kind == BattleEngineOutcomeKind.captured
-          ? canonicalPokeBallItemId
+          ? _capturedItemId()
           : null,
       captureAttemptId: state.outcome?.captureAttemptId,
     );
+  }
+
+  String _capturedItemId() {
+    final attemptId = state.outcome?.captureAttemptId;
+    final events = _lastTurnResult?.timeline.events
+            .whereType<BattleCaptureAttemptTimelineEvent>()
+            .where((event) => event.caught && event.attemptId == attemptId)
+            .toList(growable: false) ??
+        const <BattleCaptureAttemptTimelineEvent>[];
+    if (attemptId == null || events.length != 1) {
+      throw StateError('Captured outcome is missing its exact item event.');
+    }
+    return events.single.ballId;
   }
 
   BattleEngineTurnResult submitDecision(BattleDecision decision) {
@@ -128,8 +141,15 @@ final class RuntimePsdkBattleSessionAdapter {
           partyIndex: _partyIndexForReserveChoice(reserveIndex),
         ),
       PlayerBattleChoiceRun() => const BattleDecision.flee(),
-      PlayerBattleChoiceCapture() => const BattleDecision.capture(
-          itemId: canonicalPokeBallItemId,
+      PlayerBattleChoiceCapture(
+        :final itemId,
+        :final rateNumerator,
+        :final rateDenominator,
+      ) =>
+        BattleDecision.capture(
+          itemId: itemId,
+          rateNumerator: rateNumerator,
+          rateDenominator: rateDenominator,
         ),
       PlayerBattleChoiceContinue() => const BattleDecision.noAction(),
     };

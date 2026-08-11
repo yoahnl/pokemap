@@ -52,6 +52,8 @@ final class BattleCaptureActionHandler {
       targetMaxHp: opponent.maxHp,
       catchRate: catchRate,
       ballId: action.itemId,
+      ballRateNumerator: action.rateNumerator,
+      ballRateDenominator: action.rateDenominator,
       status: _captureStatus(opponent.majorStatus),
       rng: BattleSeededRng(state: context.rng.generic.seed),
     );

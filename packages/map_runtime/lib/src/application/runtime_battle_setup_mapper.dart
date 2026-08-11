@@ -213,11 +213,12 @@ class RuntimeBattleSetupMapper {
       // - combat sauvage uniquement ;
       // - capture autorisée si la party est pleine, car P5-06 fournit un
       //   storage minimal persistant ;
-      // - aucune capture sans Poké Ball réelle dans le bag du joueur.
+      // - aucune capture sans objet compatible avec la rencontre dans le bag.
       allowCapture: request is WildBattleStartRequest &&
           playerHasAtLeastOneRuntimeCaptureItem(
             gameState.bag,
             ItemCapabilityResolver(resolvedItemCatalog),
+            encounterKind: request.encounterKind,
           ),
       allowFlee: request.allowsPlayerFlee,
     );
@@ -344,23 +345,23 @@ final class _RuntimeBattleEnemyLineup {
   final List<RuntimeBattleCombatantSeed> reserve;
 }
 
-/// Retourne `true` si le bag runtime contient au moins une Poké Ball exploitable.
+/// Retourne `true` si le bag contient un objet de capture compatible.
 ///
 /// Le guard vit ici plutôt que dans `map_battle` car :
 /// - le moteur battle ne doit pas dépendre du système de bag ;
 /// - le runtime est déjà la frontière qui décide si `allowCapture` peut être
 ///   activé pour une rencontre donnée ;
 /// - le lot 14 n'ouvre pas un inventaire global ni une politique de capture.
-///
-/// On tolère des IDs non normalisés en mémoire (`" poke-ball "`) pour rester
-/// robuste face à un état runtime pas encore passé par le pipeline save/load.
 bool playerHasAtLeastOneRuntimeCaptureItem(
   Bag bag,
-  ItemCapabilityResolver resolver,
-) {
+  ItemCapabilityResolver resolver, {
+  required EncounterKind encounterKind,
+}) {
   for (final entry in bag.entries) {
+    final capture = resolver.definitionFor(entry.itemId)?.capture;
     if (entry.quantity > 0 &&
-        resolver.definitionFor(entry.itemId)?.capture != null) {
+        capture != null &&
+        capture.allowedEncounterKinds.contains(encounterKind)) {
       return true;
     }
   }

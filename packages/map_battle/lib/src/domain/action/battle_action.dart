@@ -59,9 +59,13 @@ final class PsdkBattleCaptureAction extends PsdkBattleAction {
   const PsdkBattleCaptureAction({
     required PsdkBattleSlotRef user,
     required this.itemId,
+    required this.rateNumerator,
+    required this.rateDenominator,
   }) : super(kind: PsdkBattleActionKind.capture, user: user);
 
   final String itemId;
+  final int rateNumerator;
+  final int rateDenominator;
 }
 
 final class PsdkBattleShiftAction extends PsdkBattleAction {

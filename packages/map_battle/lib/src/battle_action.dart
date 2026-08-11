@@ -1,4 +1,5 @@
 import 'battle_move.dart';
+import 'capture_formula.dart';
 
 /// Choix disponible pour le joueur.
 ///
@@ -57,7 +58,15 @@ class PlayerBattleChoiceRun extends PlayerBattleChoice {
 ///   pourra écrire honnêtement dans la vraie party du joueur.
 class PlayerBattleChoiceCapture extends PlayerBattleChoice {
   /// Crée un choix de capture.
-  const PlayerBattleChoiceCapture();
+  const PlayerBattleChoiceCapture({
+    this.itemId = canonicalPokeBallItemId,
+    this.rateNumerator = 1,
+    this.rateDenominator = 1,
+  });
+
+  final String itemId;
+  final int rateNumerator;
+  final int rateDenominator;
 }
 
 /// Continuer un tour forcé sans sélectionner un nouveau move.

@@ -807,19 +807,21 @@ class BattleSession {
         targetCurrentHp: state.enemy.currentHp,
         targetMaxHp: state.enemy.maxHp,
         catchRate: state.enemy.catchRate!,
-        ballId: canonicalPokeBallItemId,
+        ballId: choice.itemId,
+        ballRateNumerator: choice.rateNumerator,
+        ballRateDenominator: choice.rateDenominator,
         status: _captureStatusForLegacy(state.enemy.majorStatus),
         rng: rng,
       );
       final captureEvent = BattleCaptureAttemptEvent(
         attemptId: captureAttemptId,
         targetSpeciesId: state.enemy.writeBackSpeciesId,
-        ballId: canonicalPokeBallItemId,
+        ballId: choice.itemId,
         caught: capture.caught,
       );
       final captureAction = BattleActionCapture(
         attemptId: captureAttemptId,
-        itemId: canonicalPokeBallItemId,
+        itemId: choice.itemId,
         caught: capture.caught,
       );
       if (!capture.caught) {
@@ -859,7 +861,7 @@ class BattleSession {
           outcome: BattleOutcome(
             type: BattleOutcomeType.captured,
             finalState: finalState,
-            captureItemId: canonicalPokeBallItemId,
+            captureItemId: choice.itemId,
             captureAttemptId: captureAttemptId,
           ),
           playerParticipantLineupIndexes: state.playerParticipantLineupIndexes,

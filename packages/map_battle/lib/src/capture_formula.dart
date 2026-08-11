@@ -1,8 +1,6 @@
 import 'battle_rng.dart';
 
-/// The only capture item supported by FG-049.
-///
-/// Other ball ids are rejected instead of being assigned an inferred bonus.
+/// Baseline capture item used by the legacy battle choice projection.
 const String canonicalPokeBallItemId = 'poke-ball';
 
 /// Stable identifier for one capture attempt inside a battle session.
@@ -51,11 +49,11 @@ final class BattleCaptureAttemptResult {
 /// - burn/poison/paralysis: `3/2`;
 /// - no status: `1/1`.
 ///
-/// The canonical `poke-ball` multiplier is exactly `1/1`. The numerator is
-/// clamped to the denominator, so high-rate/low-HP/status combinations can be
-/// guaranteed. Every valid attempt consumes exactly one [BattleRng.nextChance]
-/// draw, including a guaranteed attempt. Invalid inputs consume none because
-/// validation happens before the RNG call.
+/// The selected capture item's multiplier is an exact positive rational. The
+/// numerator is clamped to the denominator, so high-rate/low-HP/status
+/// combinations can be guaranteed. Every valid attempt consumes exactly one
+/// [BattleRng.nextChance] draw, including a guaranteed attempt. Invalid inputs
+/// consume none because validation happens before the RNG call.
 final class BattleCaptureFormula {
   const BattleCaptureFormula();
 
@@ -64,14 +62,30 @@ final class BattleCaptureFormula {
     required int targetMaxHp,
     required int catchRate,
     required String ballId,
+    required int ballRateNumerator,
+    required int ballRateDenominator,
     required BattleCaptureStatus status,
     required BattleRng rng,
   }) {
-    if (ballId != canonicalPokeBallItemId) {
+    if (ballId.trim().isEmpty) {
       throw ArgumentError.value(
         ballId,
         'ballId',
-        'FG-049 only supports the canonical poke-ball item id.',
+        'must not be empty',
+      );
+    }
+    if (ballRateNumerator < 1) {
+      throw ArgumentError.value(
+        ballRateNumerator,
+        'ballRateNumerator',
+        'must be positive',
+      );
+    }
+    if (ballRateDenominator < 1) {
+      throw ArgumentError.value(
+        ballRateDenominator,
+        'ballRateDenominator',
+        'must be positive',
       );
     }
     if (targetMaxHp < 1) {
@@ -107,9 +121,12 @@ final class BattleCaptureFormula {
         (numerator: 3, denominator: 2),
       BattleCaptureStatus.none => (numerator: 1, denominator: 1),
     };
-    final chanceDenominator = 3 * targetMaxHp * 255 * denominator;
-    final rawNumerator =
-        (3 * targetMaxHp - 2 * targetCurrentHp) * catchRate * numerator;
+    final chanceDenominator =
+        3 * targetMaxHp * 255 * denominator * ballRateDenominator;
+    final rawNumerator = (3 * targetMaxHp - 2 * targetCurrentHp) *
+        catchRate *
+        numerator *
+        ballRateNumerator;
     final chanceNumerator = rawNumerator.clamp(0, chanceDenominator);
     final roll = rng.nextChance(
       numerator: chanceNumerator,

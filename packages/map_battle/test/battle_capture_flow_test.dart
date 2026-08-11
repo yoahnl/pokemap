@@ -98,7 +98,11 @@ void main() {
       );
 
       final result = engine.submit(
-        const BattleDecision.capture(itemId: canonicalPokeBallItemId),
+        const BattleDecision.capture(
+          itemId: canonicalPokeBallItemId,
+          rateNumerator: 1,
+          rateDenominator: 1,
+        ),
       );
       final attempt = result.timeline.events
           .whereType<BattleCaptureAttemptTimelineEvent>()
@@ -123,11 +127,22 @@ void main() {
       );
 
       final result = engine.submit(
-        const BattleDecision.capture(itemId: canonicalPokeBallItemId),
+        const BattleDecision.capture(
+          itemId: 'aurora-orb',
+          rateNumerator: 5,
+          rateDenominator: 2,
+        ),
       );
 
       expect(result.outcome?.kind, BattleEngineOutcomeKind.captured);
       expect(result.outcome?.captureAttemptId, 'capture-attempt-1');
+      expect(
+        result.timeline.events
+            .whereType<BattleCaptureAttemptTimelineEvent>()
+            .single
+            .ballId,
+        'aurora-orb',
+      );
       expect(
         result.timeline.events
             .whereType<BattleCaptureAttemptTimelineEvent>()

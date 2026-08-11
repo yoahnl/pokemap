@@ -162,9 +162,7 @@ void main() {
       expect(model.hasSelectableEntries, isFalse);
     });
 
-    test(
-        'wild battle with poke-ball and allowed capture exposes a selectable capture entry',
-        () {
+    test('wild battle projects the selected capture item metadata', () {
       final session = _session(
         player: _combatant(
           speciesId: 'sproutle',
@@ -178,36 +176,51 @@ void main() {
         ),
         allowCapture: true,
       );
+      final resolver = ItemCapabilityResolver(
+        ItemCatalogSnapshot.fromCatalog(
+          const ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: <ProjectItemDefinition>[
+              ProjectItemDefinition(
+                id: 'aurora-orb',
+                displayName: 'Aurora Orb',
+                pocketId: 'relics',
+                capture: ProjectCaptureItemDefinition(
+                  rateNumerator: 5,
+                  rateDenominator: 2,
+                  allowedEncounterKinds: <EncounterKind>{EncounterKind.walk},
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 
       final model = buildBattleBagMenuModel(
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'poke-ball', quantity: 3),
+              _entry(itemId: 'aurora-orb', quantity: 3),
             ],
           ),
         ),
         session: session,
-        resolver: _resolver,
+        resolver: resolver,
       );
 
       final entry = model.entries.single;
       expect(model.mode, equals(BattleBagMenuMode.available));
       expect(model.hasEntries, isTrue);
       expect(model.hasSelectableEntries, isTrue);
-      expect(entry.itemId, equals('poke-ball'));
+      expect(entry.itemId, equals('aurora-orb'));
       expect(entry.quantity, equals(3));
       expect(entry.kind, equals(BattleBagItemKind.captureBall));
       expect(entry.isSelectable, isTrue);
       expect(entry.disabledReason, isNull);
-      expect(
-        entry.action,
-        isA<BattleBagMenuActionCapture>().having(
-          (action) => action.playerChoice,
-          'playerChoice',
-          isA<PlayerBattleChoiceCapture>(),
-        ),
-      );
+      final action = entry.action! as BattleBagMenuActionCapture;
+      expect(action.playerChoice.itemId, 'aurora-orb');
+      expect(action.playerChoice.rateNumerator, 5);
+      expect(action.playerChoice.rateDenominator, 2);
     });
 
     test('trainer battle keeps poke-ball visible but disabled', () {

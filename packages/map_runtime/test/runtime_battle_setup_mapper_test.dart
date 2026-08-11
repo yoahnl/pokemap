@@ -455,6 +455,7 @@ void main() {
       final setup = await mapper.map(
         bundle: bundle,
         gameState: _playerStateForTests(),
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         request: _wildRequest(
           speciesId: 'sparkitten',
           level: 10,
@@ -955,7 +956,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'poke-ball',
-              categoryId: 'items',
               quantity: 2,
             ),
           ],
@@ -980,6 +980,7 @@ void main() {
       final setup = await mapper.map(
         bundle: bundle,
         gameState: fullPartyState,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         request: _wildRequest(
           speciesId: 'sparkitten',
           level: 10,
@@ -1742,7 +1743,6 @@ GameState _playerStateForTests({
     entries: <BagEntry>[
       BagEntry(
         itemId: 'poke-ball',
-        categoryId: 'items',
         quantity: 2,
       ),
     ],
