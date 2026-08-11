@@ -283,10 +283,10 @@ void main() {
           'releaseCandidateCommit': releaseCandidateCommit,
           'workingTreeClean': true,
           'dirtyPaths': const <String>[],
-          'presentationFixture': <String, Object?>{
+          'acceptanceProject': <String, Object?>{
             'relativePath':
-                'examples/playable_runtime_host/golden_personalization_slice/'
-                'presentation.json',
+                'examples/playable_runtime_host/golden_personalization_v3/'
+                'project.json',
             'sha256': presentationFixtureSha256.toString(),
           },
           'package': <String, Object?>{
@@ -353,9 +353,11 @@ void main() {
 }
 
 Future<ProjectPresentationProfile> _readGoldenPresentation() async {
+  final project =
+      jsonDecode(await _goldenPresentationFile().readAsString())
+          as Map<String, dynamic>;
   final profile = ProjectPresentationProfile.fromJson(
-    jsonDecode(await _goldenPresentationFile().readAsString())
-        as Map<String, dynamic>,
+    Map<String, dynamic>.from(project['presentation'] as Map),
   );
   if (validateProjectPresentationProfile(profile).isNotEmpty) {
     throw StateError('The Phase 6 golden presentation must remain valid.');
@@ -370,8 +372,8 @@ File _goldenPresentationFile() => File(
     '..',
     'examples',
     'playable_runtime_host',
-    'golden_personalization_slice',
-    'presentation.json',
+    'golden_personalization_v3',
+    'project.json',
   ),
 );
 

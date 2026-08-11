@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
@@ -9,6 +9,10 @@ import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(_loadFixtureFont);
+
   for (final viewport in <PersonalizationPreviewViewport>[
     PersonalizationPreviewViewport.landscape,
     PersonalizationPreviewViewport.portrait,
@@ -23,19 +27,19 @@ void main() {
         await tester.binding.setSurfaceSize(size);
         addTearDown(() => tester.binding.setSurfaceSize(null));
         final fixture = _fixtureDirectory();
-        final profile = await tester.runAsync(() => _readProfile(fixture));
+        final fixtureData = await tester.runAsync(() => _readFixture(fixture));
 
         await tester.pumpWidget(
           MaterialApp(
             debugShowCheckedModeBanner: false,
-            theme: PokeMapTheme.light(),
+            theme: _readableEditorTheme(),
             home: Scaffold(
               body: RepaintBoundary(
                 key: const ValueKey<String>('personalization-editor-golden'),
                 child: SingleChildScrollView(
                   child: PersonalizationRuntimePreview(
-                    profile: profile!,
-                    projectName: 'Le train de 17h42',
+                    profile: fixtureData!.profile,
+                    projectName: fixtureData.projectName,
                     projectRootPath: fixture.path,
                     initialSurface: surface,
                     initialViewport: viewport,
@@ -67,15 +71,69 @@ Directory _fixtureDirectory() => Directory(
     '..',
     'examples',
     'playable_runtime_host',
-    'golden_personalization_slice',
+    'golden_personalization_v3',
   ),
 );
 
-Future<ProjectPresentationProfile> _readProfile(Directory fixture) async {
-  final decoded = jsonDecode(
-    await File(p.join(fixture.path, 'presentation.json')).readAsString(),
+Future<({ProjectPresentationProfile profile, String projectName})> _readFixture(
+  Directory fixture,
+) async {
+  final decoded =
+      jsonDecode(
+            await File(p.join(fixture.path, 'project.json')).readAsString(),
+          )
+          as Map<String, dynamic>;
+  return (
+    profile: ProjectPresentationProfile.fromJson(
+      Map<String, dynamic>.from(decoded['presentation'] as Map),
+    ),
+    projectName: decoded['name']! as String,
   );
-  return ProjectPresentationProfile.fromJson(
-    Map<String, dynamic>.from(decoded as Map),
+}
+
+Future<void> _loadFixtureFont() async {
+  final bytes = await File(
+    p.join(
+      _fixtureDirectory().path,
+      'assets',
+      'presentation',
+      'fonts',
+      'display.ttf',
+    ),
+  ).readAsBytes();
+  await _loadFont('Aube Display', bytes);
+  await _loadFont('Avenir Next', bytes);
+  final flutterCache = _flutterCacheDirectory();
+  final iconBytes = await File(
+    p.join(
+      flutterCache.path,
+      'artifacts',
+      'material_fonts',
+      'MaterialIcons-Regular.otf',
+    ),
+  ).readAsBytes();
+  await _loadFont('MaterialIcons', iconBytes);
+}
+
+Future<void> _loadFont(String family, Uint8List bytes) async {
+  await (FontLoader(
+    family,
+  )..addFont(Future<ByteData>.value(ByteData.sublistView(bytes)))).load();
+}
+
+Directory _flutterCacheDirectory() {
+  var current = File(Platform.resolvedExecutable).parent;
+  while (current.parent.path != current.path) {
+    if (current.path.endsWith('${Platform.pathSeparator}cache')) return current;
+    current = current.parent;
+  }
+  throw StateError('Flutter cache directory not found.');
+}
+
+ThemeData _readableEditorTheme() {
+  final theme = PokeMapTheme.light();
+  return theme.copyWith(
+    textTheme: theme.textTheme.apply(fontFamily: 'Aube Display'),
+    primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: 'Aube Display'),
   );
 }

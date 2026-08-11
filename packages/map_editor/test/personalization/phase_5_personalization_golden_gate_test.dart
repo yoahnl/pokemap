@@ -43,40 +43,7 @@ void main() {
     final presentation = ProjectPresentationProfile.fromJson(presentationJson);
     final root = await createAuthorProject(withDialogue: false);
     addTearDown(() => root.delete(recursive: true));
-    final assets = Directory(p.join(root.path, 'assets', 'presentation'));
-    final intro = Directory(p.join(assets.path, 'intro'));
-    final fonts = Directory(p.join(assets.path, 'fonts'));
-    await intro.create(recursive: true);
-    await fonts.create(recursive: true);
-    for (final name in <String>['icon.png', 'cover.png', 'hero.png']) {
-      await File(p.join(assets.path, name)).writeAsBytes(onePixelPng);
-    }
-    await File(
-      p.join(assets.path, 'title.ogg'),
-    ).writeAsBytes(utf8.encode('OggS phase-5-title'));
-    final introBytes = <int>[
-      0,
-      0,
-      0,
-      24,
-      ...utf8.encode('ftypisom'),
-      0,
-      0,
-      0,
-      0,
-      ...utf8.encode('isomavc1mp4a'),
-    ];
-    await File(p.join(intro.path, 'intro.mp4')).writeAsBytes(introBytes);
-    await File(p.join(intro.path, 'poster.png')).writeAsBytes(onePixelPng);
-    await File(
-      p.join(intro.path, 'captions.vtt'),
-    ).writeAsString('WEBVTT\n\n00:00.000 --> 00:01.000\nBienvenue à Aube.\n');
-    await File(
-      p.join(fonts.path, 'display.ttf'),
-    ).writeAsBytes(<int>[0, 1, 0, 0, 0, 0, 0, 0]);
-    await File(
-      p.join(fonts.path, 'display-license.txt'),
-    ).writeAsString('Redistribution permitted.');
+    await _copyAcceptanceAssets(root);
 
     final projectFile = File(p.join(root.path, 'project.json'));
     final project =
@@ -197,16 +164,36 @@ void main() {
 }
 
 Future<Map<String, dynamic>> _readGoldenPresentation() async {
-  final fixture = File(
-    p.join(
-      Directory.current.path,
-      '..',
-      '..',
-      'examples',
-      'playable_runtime_host',
-      'golden_personalization_slice',
-      'presentation.json',
-    ),
-  );
-  return jsonDecode(await fixture.readAsString()) as Map<String, dynamic>;
+  final fixture = File(p.join(_acceptanceFixture.path, 'project.json'));
+  final project =
+      jsonDecode(await fixture.readAsString()) as Map<String, dynamic>;
+  return Map<String, dynamic>.from(project['presentation'] as Map);
 }
+
+Future<void> _copyAcceptanceAssets(Directory projectRoot) async {
+  for (final relativePath in <String>[
+    'assets/presentation/icon.png',
+    'assets/presentation/cover.png',
+    'assets/presentation/hero.png',
+    'assets/presentation/intro/intro.mp4',
+    'assets/presentation/intro/poster.png',
+    'assets/presentation/intro/captions.vtt',
+    'assets/presentation/fonts/display.ttf',
+    'assets/presentation/fonts/display-license.txt',
+  ]) {
+    final target = File(p.join(projectRoot.path, relativePath));
+    await target.parent.create(recursive: true);
+    await File(p.join(_acceptanceFixture.path, relativePath)).copy(target.path);
+  }
+}
+
+final _acceptanceFixture = Directory(
+  p.join(
+    Directory.current.path,
+    '..',
+    '..',
+    'examples',
+    'playable_runtime_host',
+    'golden_personalization_v3',
+  ),
+);

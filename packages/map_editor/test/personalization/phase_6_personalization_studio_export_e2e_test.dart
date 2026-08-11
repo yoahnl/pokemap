@@ -196,126 +196,74 @@ void main() {
 }
 
 Future<ProjectPresentationProfile> _readGoldenPresentation() async {
-  final file = File(
-    p.join(
-      Directory.current.path,
-      '..',
-      '..',
-      'examples',
-      'playable_runtime_host',
-      'golden_personalization_slice',
-      'presentation.json',
-    ),
-  );
+  final file = File(p.join(_acceptanceFixture.path, 'project.json'));
+  final project = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
   final profile = ProjectPresentationProfile.fromJson(
-    jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+    Map<String, dynamic>.from(project['presentation'] as Map),
   );
   expect(validateProjectPresentationProfile(profile), isEmpty);
   return profile;
 }
 
 Future<void> _writePresentationAssets(Directory projectRoot) async {
-  final assets = Directory(p.join(projectRoot.path, 'assets', 'presentation'));
-  final intro = Directory(p.join(assets.path, 'intro'));
-  final fonts = Directory(p.join(assets.path, 'fonts'));
-  await intro.create(recursive: true);
-  await fonts.create(recursive: true);
-  for (final name in <String>['icon.png', 'cover.png', 'hero.png']) {
-    await File(
-      p.join(assets.path, name),
-    ).writeAsBytes(onePixelPng, flush: true);
+  for (final relativePath in _presentationAssetMediaTypes.keys) {
+    final target = File(p.join(projectRoot.path, relativePath));
+    await target.parent.create(recursive: true);
+    await File(p.join(_acceptanceFixture.path, relativePath)).copy(target.path);
   }
-  await File(
-    p.join(assets.path, 'title.ogg'),
-  ).writeAsBytes(utf8.encode('OggS phase-6-title'), flush: true);
-  await File(p.join(intro.path, 'intro.mp4')).writeAsBytes(<int>[
-    0,
-    0,
-    0,
-    24,
-    ...utf8.encode('ftypisom'),
-    0,
-    0,
-    0,
-    0,
-    ...utf8.encode('isomavc1mp4a'),
-  ], flush: true);
-  await File(
-    p.join(intro.path, 'poster.png'),
-  ).writeAsBytes(onePixelPng, flush: true);
-  await File(p.join(intro.path, 'captions.vtt')).writeAsString(
-    'WEBVTT\n\n00:00.000 --> 00:01.000\nBienvenue à Aube.\n',
-    flush: true,
-  );
-  await File(
-    p.join(fonts.path, 'display.ttf'),
-  ).writeAsBytes(<int>[0, 1, 0, 0, 0, 0, 0, 0], flush: true);
-  await File(
-    p.join(fonts.path, 'display-license.txt'),
-  ).writeAsString('Redistribution permitted.', flush: true);
 
   final catalog = AssetCatalog(
     records: <AssetRecord>[
-      await _catalogAsset(
-        projectRoot,
-        id: 'phase6-icon',
-        logicalPath: 'assets/presentation/icon.png',
-        mediaType: 'image/png',
-      ),
-      await _catalogAsset(
-        projectRoot,
-        id: 'phase6-cover',
-        logicalPath: 'assets/presentation/cover.png',
-        mediaType: 'image/png',
-      ),
-      await _catalogAsset(
-        projectRoot,
-        id: 'phase6-hero',
-        logicalPath: 'assets/presentation/hero.png',
-        mediaType: 'image/png',
-      ),
-      await _catalogAsset(
-        projectRoot,
-        id: 'phase6-title-music',
-        logicalPath: 'assets/presentation/title.ogg',
-        mediaType: 'audio/ogg',
-      ),
-      await _catalogAsset(
-        projectRoot,
-        id: 'phase6-intro-video',
-        logicalPath: 'assets/presentation/intro/intro.mp4',
-        mediaType: 'video/mp4',
-      ),
-      await _catalogAsset(
-        projectRoot,
-        id: 'phase6-intro-poster',
-        logicalPath: 'assets/presentation/intro/poster.png',
-        mediaType: 'image/png',
-      ),
-      await _catalogAsset(
-        projectRoot,
-        id: 'phase6-intro-captions',
-        logicalPath: 'assets/presentation/intro/captions.vtt',
-        mediaType: 'text/vtt',
-      ),
-      await _catalogAsset(
-        projectRoot,
-        id: 'phase6-display-font',
-        logicalPath: 'assets/presentation/fonts/display.ttf',
-        mediaType: 'font/ttf',
-      ),
-      await _catalogAsset(
-        projectRoot,
-        id: 'phase6-display-license',
-        logicalPath: 'assets/presentation/fonts/display-license.txt',
-        mediaType: 'text/plain',
-      ),
+      for (final entry in _presentationAssetMediaTypes.entries)
+        await _catalogAsset(
+          projectRoot,
+          id: entry.value.id,
+          logicalPath: entry.key,
+          mediaType: entry.value.mediaType,
+        ),
     ],
   );
   final catalogFile = File(p.join(projectRoot.path, assetCatalogStorageKey));
   await catalogFile.create(recursive: true);
   await catalogFile.writeAsString(jsonEncode(catalog.toJson()), flush: true);
 }
+
+final _acceptanceFixture = Directory(
+  p.join(
+    Directory.current.path,
+    '..',
+    '..',
+    'examples',
+    'playable_runtime_host',
+    'golden_personalization_v3',
+  ),
+);
+
+const _presentationAssetMediaTypes = <String, ({String id, String mediaType})>{
+  'assets/presentation/icon.png': (id: 'phase6-icon', mediaType: 'image/png'),
+  'assets/presentation/cover.png': (id: 'phase6-cover', mediaType: 'image/png'),
+  'assets/presentation/hero.png': (id: 'phase6-hero', mediaType: 'image/png'),
+  'assets/presentation/intro/intro.mp4': (
+    id: 'phase6-intro-video',
+    mediaType: 'video/mp4',
+  ),
+  'assets/presentation/intro/poster.png': (
+    id: 'phase6-intro-poster',
+    mediaType: 'image/png',
+  ),
+  'assets/presentation/intro/captions.vtt': (
+    id: 'phase6-intro-captions',
+    mediaType: 'text/vtt',
+  ),
+  'assets/presentation/fonts/display.ttf': (
+    id: 'phase6-display-font',
+    mediaType: 'font/ttf',
+  ),
+  'assets/presentation/fonts/display-license.txt': (
+    id: 'phase6-display-license',
+    mediaType: 'text/plain',
+  ),
+};
 
 Future<AssetRecord> _catalogAsset(
   Directory projectRoot, {

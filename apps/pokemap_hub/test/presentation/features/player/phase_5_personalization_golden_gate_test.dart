@@ -197,12 +197,14 @@ Future<ProjectPresentationProfile> _readGoldenPresentation() async {
       '..',
       'examples',
       'playable_runtime_host',
-      'golden_personalization_slice',
-      'presentation.json',
+      'golden_personalization_v3',
+      'project.json',
     ),
   );
-  final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-  final profile = ProjectPresentationProfile.fromJson(json);
+  final project = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+  final profile = ProjectPresentationProfile.fromJson(
+    Map<String, dynamic>.from(project['presentation'] as Map),
+  );
   if (validateProjectPresentationProfile(profile).isNotEmpty) {
     throw StateError('The Phase 5 golden presentation must remain valid.');
   }
