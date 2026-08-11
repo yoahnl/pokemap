@@ -15,6 +15,7 @@ import '../../../../ui/canvas/map_canvas.dart';
 import 'world_map_layer_mutation_dialogs.dart';
 import 'world_map_layer_hover_preview.dart';
 import 'world_map_paint_inspection_intent.dart';
+import 'world_map_smart_tile_preset_picker.dart';
 import 'world_map_workspace_session.dart';
 
 enum WorldMapLayerCreationKind {
@@ -958,10 +959,12 @@ Future<void> _addSmartTileLayerFromPreset({
           final order = left.sortOrder.compareTo(right.sortOrder);
           return order != 0 ? order : left.name.compareTo(right.name);
         });
-  final preset = await _showWorldMapSmartTilePresetDialog(
+  final preset = await showWorldMapSmartTilePresetPicker(
     context: context,
+    project: project,
     presets: presets,
     usage: usage,
+    projectRootPath: ref.read(editorNotifierProvider).projectRootPath,
   );
   if (preset == null || !context.mounted) return;
 
@@ -997,62 +1000,6 @@ Future<void> _addSmartTileLayerFromPreset({
       subtool,
     );
   }
-}
-
-Future<ProjectSmartTilePreset?> _showWorldMapSmartTilePresetDialog({
-  required BuildContext context,
-  required List<ProjectSmartTilePreset> presets,
-  required SmartTileUsage usage,
-}) {
-  final hasPresets = presets.isNotEmpty;
-  final noun = switch (usage) {
-    SmartTileUsage.terrain => 'terrain',
-    SmartTileUsage.path => 'chemin',
-    SmartTileUsage.forestSurface => 'surface forestière',
-  };
-  return showPokeMapConfirmationDialog<ProjectSmartTilePreset?>(
-    context: context,
-    title: 'Ajouter un $noun',
-    message: hasPresets
-        ? 'Choisissez un $noun publié. Le nouveau calque sera sélectionné '
-            'et prêt à peindre immédiatement.'
-        : 'Aucun $noun publié. Créez-en un dans Smart Tiles Studio, '
-            'publiez-le, puis ajoutez-le ici.',
-    details: hasPresets
-        ? Builder(
-            builder: (dialogContext) => Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final preset in presets) ...[
-                  PokeMapButton(
-                    key: ValueKey<String>(
-                      'world-map-smart-${usage.name}-preset-${preset.id}',
-                    ),
-                    onPressed: () => Navigator.of(dialogContext).pop(preset),
-                    variant: PokeMapButtonVariant.secondary,
-                    leading: const Icon(Icons.auto_awesome_mosaic_outlined),
-                    child: Text(preset.name),
-                  ),
-                  if (preset != presets.last) const SizedBox(height: 8),
-                ],
-              ],
-            ),
-          )
-        : const PokeMapEmptyState(
-            icon: Icon(Icons.auto_awesome_mosaic_outlined),
-            title: 'Aucun preset publié',
-            description:
-                'Créez et publiez d’abord votre preset dans Smart Tiles '
-                'Studio. Il sera ensuite disponible directement ici.',
-          ),
-    actions: const <PokeMapDialogAction<ProjectSmartTilePreset?>>[
-      PokeMapDialogAction<ProjectSmartTilePreset?>(
-        label: 'Fermer',
-        value: null,
-      ),
-    ],
-    barrierLabel: 'Fermer le choix de $noun',
-  );
 }
 
 /// Lets the author pick the TileLayer an Environment layer decorates.

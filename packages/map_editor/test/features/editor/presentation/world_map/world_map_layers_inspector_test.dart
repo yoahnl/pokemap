@@ -1028,7 +1028,7 @@ void main() {
       project: _smartTileProject,
     );
     addTearDown(harness.dispose);
-    await harness.pump(tester);
+    await harness.pump(tester, size: const Size(1000, 760));
 
     final add = tester.widget<PokeMapSplitButton<WorldMapLayerCreationKind>>(
       find.byKey(const ValueKey<String>('world-map-layer-add')),
@@ -1046,13 +1046,67 @@ void main() {
     expect(find.text('Ajouter un terrain'), findsOneWidget);
     expect(
       find.byKey(
+        const ValueKey<String>('world-map-smart-tile-preset-picker-sheet'),
+      ),
+      findsOneWidget,
+    );
+    final sideSheet = find.byType(PokeMapDesktopSideSheet);
+    expect(sideSheet, findsOneWidget);
+    expect(
+      tester.getTopRight(sideSheet).dx,
+      closeTo(
+        tester.view.physicalSize.width / tester.view.devicePixelRatio,
+        0.1,
+      ),
+    );
+    expect(
+      find.byKey(
         const ValueKey<String>('world-map-smart-terrain-preset-prairie'),
       ),
       findsOneWidget,
     );
+    final thumbnail = find.byKey(
+      const ValueKey<String>(
+        'world-map-smart-terrain-preset-prairie-atlas-thumbnail',
+      ),
+    );
+    expect(thumbnail, findsOneWidget);
     expect(harness.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(),
         isEmpty);
-    await tester.tap(find.text('Fermer'));
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(tester.getCenter(thumbnail));
+    await tester.pump();
+
+    final hoverPreview = find.byKey(
+      const ValueKey<String>(
+        'world-map-smart-terrain-preset-prairie-atlas-hover-preview',
+      ),
+    );
+    expect(hoverPreview, findsOneWidget);
+    expect(
+      find.descendant(of: hoverPreview, matching: find.text('Atlas utilisé')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: hoverPreview, matching: find.text('Atlas principal')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: hoverPreview,
+        matching: find.text('1 zone utilisée par ce preset'),
+      ),
+      findsOneWidget,
+    );
+
+    await mouse.moveTo(Offset.zero);
+    await tester.pump();
+    expect(hoverPreview, findsNothing);
+
+    await tester.tap(find.byTooltip('Fermer'));
     await tester.pumpAndSettle();
   });
 
@@ -1064,7 +1118,7 @@ void main() {
       project: _smartTileProject,
     );
     addTearDown(harness.dispose);
-    await harness.pump(tester);
+    await harness.pump(tester, size: const Size(1000, 760));
 
     final add = tester.widget<PokeMapSplitButton<WorldMapLayerCreationKind>>(
       find.byKey(const ValueKey<String>('world-map-layer-add')),
@@ -1082,13 +1136,27 @@ void main() {
     expect(find.text('Ajouter un chemin'), findsOneWidget);
     expect(
       find.byKey(
+        const ValueKey<String>('world-map-smart-tile-preset-picker-sheet'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
         const ValueKey<String>('world-map-smart-path-preset-path'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'world-map-smart-path-preset-path-atlas-thumbnail',
+        ),
       ),
       findsOneWidget,
     );
     expect(harness.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(),
         isEmpty);
-    await tester.tap(find.text('Fermer'));
+    await tester.tap(find.byTooltip('Fermer'));
     await tester.pumpAndSettle();
   });
 
@@ -1844,8 +1912,25 @@ final _smartTileProject = ProjectManifest(
   name: 'Smart project',
   version: ProjectVersion.v6,
   maps: const <ProjectMapEntry>[],
-  tilesets: const <ProjectTilesetEntry>[],
+  tilesets: const <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'main-tileset',
+      name: 'Tileset principal',
+      relativePath: 'tilesets/main.png',
+    ),
+  ],
   smartTileCatalog: ProjectSmartTileCatalog(
+    atlases: const <ProjectSmartTileAtlas>[
+      ProjectSmartTileAtlas(
+        id: 'main-atlas',
+        name: 'Atlas principal',
+        tilesetId: 'main-tileset',
+        cellWidth: 1,
+        cellHeight: 1,
+        columns: 1,
+        rows: 1,
+      ),
+    ],
     materials: const <ProjectSmartTileMaterial>[
       ProjectSmartTileMaterial(
         id: 'grass',
@@ -1867,6 +1952,28 @@ final _smartTileProject = ProjectManifest(
         status: SmartTilePresetStatus.published,
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],
+        rules: <SmartTileRule>[
+          SmartTileRule(
+            id: 'prairie-rule',
+            centerMatch: SmartTileSlotMatch.any(),
+            candidates: <SmartTileCandidate>[
+              SmartTileCandidate(
+                id: 'prairie-candidate',
+                parts: <SmartTileVisualPart>[
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(
+                        atlasId: 'main-atlas',
+                        column: 0,
+                        row: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
       ProjectSmartTilePreset(
         id: 'draft-terrain',
@@ -1894,6 +2001,28 @@ final _smartTileProject = ProjectManifest(
         status: SmartTilePresetStatus.published,
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],
+        rules: <SmartTileRule>[
+          SmartTileRule(
+            id: 'path-rule',
+            centerMatch: SmartTileSlotMatch.any(),
+            candidates: <SmartTileCandidate>[
+              SmartTileCandidate(
+                id: 'path-candidate',
+                parts: <SmartTileVisualPart>[
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(
+                        atlasId: 'main-atlas',
+                        column: 0,
+                        row: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   ),
