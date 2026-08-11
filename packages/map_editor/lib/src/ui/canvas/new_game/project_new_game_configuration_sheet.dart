@@ -787,7 +787,7 @@ class _ProjectNewGameConfigurationFormState
         _initialBag[index] = current.copyWith(quantity: current.quantity + 1);
       } else {
         _initialBag.add(
-          BagEntry(itemId: id, categoryId: 'items', quantity: 1),
+          BagEntry(itemId: id, quantity: 1),
         );
       }
       _selectedBagItemId = '';
