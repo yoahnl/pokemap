@@ -259,9 +259,19 @@ void main() {
           overworldHudSurface: '#FFFFFF',
           battleHudSurface: '#FFFFFF',
         ),
-        menuLabels: const ProjectMenuLabelsProfile(
-          pauseTitle: 'Interlude',
-          pokedex: 'Carnet',
+        pause: const ProjectPausePresentationProfile(
+          title: 'Interlude',
+          actions: <ProjectPauseActionProfile>[
+            ProjectPauseActionProfile(
+              id: ProjectPauseActionId.resume,
+              icon: ProjectPauseActionIcon.play,
+            ),
+            ProjectPauseActionProfile(
+              id: ProjectPauseActionId.pokedex,
+              label: 'Carnet',
+              icon: ProjectPauseActionIcon.book,
+            ),
+          ],
         ),
         windows: legacyProjectPresentationWindows,
         layouts: suggestedProjectPresentationLayouts('cinematic'),
@@ -341,8 +351,11 @@ void main() {
           .slot,
       ProjectPresentationLayoutSlot.bottomLeft,
     );
-    expect(presentation.pauseMenuLabels.pauseTitle, 'Interlude');
-    expect(presentation.pauseMenuLabels.pokedex, 'Carnet');
+    expect(presentation.pausePresentation.title, 'Interlude');
+    expect(
+      presentation.pausePresentation.actionLabels[PlayerPauseAction.pokedex],
+      'Carnet',
+    );
   });
 
   test('invalid or absent project presentation uses neutral fallbacks', () {
@@ -380,5 +393,7 @@ void main() {
     expect(presentation.layoutProfile, isNull);
     expect(presentation.typography.displayFamily, isNull);
     expect(presentation.pauseMenuLabels.pauseTitle, isNull);
+    expect(presentation.pausePresentation.visibleActions,
+        PlayerPauseAction.values);
   });
 }

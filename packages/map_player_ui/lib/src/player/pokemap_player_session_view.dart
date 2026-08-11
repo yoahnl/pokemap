@@ -105,6 +105,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.controlProfile,
     this.onControlProfileChanged,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
+    this.pausePresentation,
   });
 
   final RuntimePlayerViewController controller;
@@ -142,6 +143,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final PlayerControlProfile? controlProfile;
   final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
   final PlayerPauseMenuLabels pauseMenuLabels;
+  final PlayerPausePresentation? pausePresentation;
 
   @override
   State<PokeMapPlayerSessionView> createState() =>
@@ -452,6 +454,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
           snapshot: snapshot,
           titlePresentation: widget.titlePresentation,
           pauseMenuLabels: widget.pauseMenuLabels,
+          pausePresentation: widget.pausePresentation,
           gameSceneBuilder: widget.gameSceneBuilder,
           onShowDiagnostics: widget.onShowDiagnostics,
           gameplayTouchMenuEnabled: acceptsOverworldTouch,

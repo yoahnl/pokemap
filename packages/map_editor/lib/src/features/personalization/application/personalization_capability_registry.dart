@@ -162,12 +162,12 @@ final personalizationCapabilityRegistry =
         'typography-import-common',
       ),
       _project(
-        'pause.labels',
+        'pause.actions',
         PersonalizationStudioScene.pause,
-        'Libellés du menu Pause',
-        '/presentation/menuLabels',
+        'Contenu et actions du menu Pause',
+        '/presentation/pause',
         'RuntimePlayerPauseShell',
-        'menu-label-pokedex',
+        'pause-action-label-pokedex',
       ),
       _project(
         'dialogue.layout',

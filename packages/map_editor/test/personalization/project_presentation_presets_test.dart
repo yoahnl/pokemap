@@ -17,9 +17,15 @@ const _titleMotion = ProjectTitleMotionProfile(
   ),
 );
 
-const _menuLabels = ProjectMenuLabelsProfile(
-  pauseTitle: 'Escale',
-  resume: 'Repartir',
+const _pause = ProjectPausePresentationProfile(
+  title: 'Escale',
+  actions: <ProjectPauseActionProfile>[
+    ProjectPauseActionProfile(
+      id: ProjectPauseActionId.resume,
+      label: 'Repartir',
+      icon: ProjectPauseActionIcon.play,
+    ),
+  ],
 );
 
 void main() {
@@ -82,13 +88,13 @@ void main() {
     },
   );
 
-  test('comparison detects menu label changes', () {
+  test('comparison detects pause action changes', () {
     const baseline = ProjectPresentationProfile();
-    const current = ProjectPresentationProfile(menuLabels: _menuLabels);
+    const current = ProjectPresentationProfile(pause: _pause);
 
     final comparison = compareProjectPresentation(baseline, current);
 
-    expect(comparison.changedPaths, contains(r'$.menuLabels'));
+    expect(comparison.changedPaths, contains(r'$.pause'));
   });
 
   test('comparison detects title motion changes', () {
@@ -161,7 +167,7 @@ void main() {
       branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
       titleMotion: _titleMotion,
       theme: safeProjectSemanticTheme,
-      menuLabels: _menuLabels,
+      pause: _pause,
     );
 
     final updated = resetProjectPresentationCategory(
@@ -172,17 +178,17 @@ void main() {
     expect(updated.branding, const ProjectBrandingProfile());
     expect(updated.titleMotion, isNull);
     expect(updated.theme, safeProjectSemanticTheme);
-    expect(updated.menuLabels, _menuLabels);
+    expect(updated.pause, _pause);
   });
 
-  test('interface preset replaces theme and menu labels together', () {
+  test('interface preset replaces theme and pause actions together', () {
     const preset = ProjectPresentationPreset(
       id: 'interface-copy',
       label: 'Interface ferroviaire',
       description: 'Palette et libellés du menu.',
       profile: ProjectPresentationProfile(
         theme: safeProjectSemanticTheme,
-        menuLabels: _menuLabels,
+        pause: _pause,
         windows: legacyProjectPresentationWindows,
       ),
       categories: <ProjectPresentationCategory>{
@@ -197,7 +203,7 @@ void main() {
     final updated = preset.apply(current, ProjectPresentationCategory.theme);
 
     expect(updated.theme, safeProjectSemanticTheme);
-    expect(updated.menuLabels, _menuLabels);
+    expect(updated.pause, _pause);
     expect(updated.windows, legacyProjectPresentationWindows);
     expect(
       updated.branding,
@@ -206,12 +212,12 @@ void main() {
     expect(updated.titleMotion, _titleMotion);
   });
 
-  test('interface reset clears theme and menu labels together', () {
+  test('interface reset clears theme and pause actions together', () {
     const current = ProjectPresentationProfile(
       branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
       titleMotion: _titleMotion,
       theme: safeProjectSemanticTheme,
-      menuLabels: _menuLabels,
+      pause: _pause,
       windows: legacyProjectPresentationWindows,
     );
 
@@ -221,7 +227,7 @@ void main() {
     );
 
     expect(updated.theme, isNull);
-    expect(updated.menuLabels, isNull);
+    expect(updated.pause, isNull);
     expect(updated.windows, isNull);
     expect(
       updated.branding,

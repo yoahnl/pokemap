@@ -338,6 +338,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     controller: viewController,
     titlePresentation: presentation.title,
     pauseMenuLabels: presentation.pauseMenuLabels,
+    pausePresentation: presentation.pausePresentation,
     gameplayInputRoute: _sessions?.handleInput,
     gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
     dialoguePresentation: _mountedGame?.dialoguePresentationListenable,

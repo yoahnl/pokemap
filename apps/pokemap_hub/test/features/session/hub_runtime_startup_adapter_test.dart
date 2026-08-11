@@ -51,8 +51,10 @@ void main() {
       expect(profile?.typography?.combat?.family, 'Train Combat');
       expect(profile?.theme?.titleSurface, '#D9F4F6');
       expect(profile?.surfacePalettes?.title?.surface, '#102030');
-      expect(profile?.menuLabels?.pauseTitle, 'Interlude');
-      expect(profile?.menuLabels?.pokedex, 'Carnet');
+      expect(profile?.pause?.title, 'Interlude');
+      expect(profile?.pause?.actions?.first.id, ProjectPauseActionId.pokedex);
+      expect(profile?.pause?.actions?.first.label, 'Carnet');
+      expect(profile?.pause?.actions?.last.visible, isFalse);
       expect(
         profile?.windows?.resolve(ProjectWindowRole.pauseMenu).cornerRadius,
         24,
@@ -143,7 +145,7 @@ final _manifest = GamePackageManifest(
     supported: const <String>['fr'],
   ),
   presentation: GamePackagePresentation(
-    schemaVersion: 7,
+    schemaVersion: 8,
     title: const GamePackageTitlePresentation(
       title: 'Aube sur Hanazuki',
       subtitle: 'Studio Brume',
@@ -221,9 +223,13 @@ final _manifest = GamePackageManifest(
         selection: '#FFD166',
       ),
     ),
-    menuLabels: const GamePackageMenuLabels(
-      pauseTitle: 'Interlude',
-      pokedex: 'Carnet',
+    pause: GamePackagePausePresentation(
+      title: 'Interlude',
+      actions: const <GamePackagePauseAction>[
+        GamePackagePauseAction(id: 'pokedex', label: 'Carnet', icon: 'book'),
+        GamePackagePauseAction(id: 'resume', icon: 'play'),
+        GamePackagePauseAction(id: 'map', icon: 'map', visible: false),
+      ],
     ),
     windows: GamePackagePresentationWindows(
       styles: const <GamePackageWindowStyle>[

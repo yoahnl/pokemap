@@ -41,7 +41,8 @@ final class ProjectPresentationPreset {
       ),
       ProjectPresentationCategory.theme => current.copyWith(
         theme: profile.theme,
-        menuLabels: profile.menuLabels,
+        pause: profile.pause,
+        menuLabels: null,
         windows: profile.windows,
       ),
       ProjectPresentationCategory.layouts => current.copyWith(
@@ -140,6 +141,7 @@ ProjectPresentationProfile resetProjectPresentationCategory(
   ProjectPresentationCategory.typography => current.copyWith(typography: null),
   ProjectPresentationCategory.theme => current.copyWith(
     theme: null,
+    pause: null,
     menuLabels: null,
     windows: null,
   ),
@@ -189,11 +191,8 @@ ProjectPresentationComparison compareProjectPresentation(
   if (!_jsonEqual(baseline.theme?.toJson(), current.theme?.toJson())) {
     changed.add(r'$.theme');
   }
-  if (!_jsonEqual(
-    baseline.menuLabels?.toJson(),
-    current.menuLabels?.toJson(),
-  )) {
-    changed.add(r'$.menuLabels');
+  if (!_jsonEqual(baseline.pause?.toJson(), current.pause?.toJson())) {
+    changed.add(r'$.pause');
   }
   if (!_jsonEqual(baseline.windows?.toJson(), current.windows?.toJson())) {
     changed.add(r'$.windows');

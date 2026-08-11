@@ -12,7 +12,10 @@ void main() {
       final decoded = ProjectPresentationProfile.fromJson(profile.toJson());
 
       expect(decoded, profile);
-      expect(decoded.schemaVersion, 7);
+      expect(
+        decoded.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(decoded.branding.layoutVariant, 'cinematic');
       expect(
         decoded.configuredCategories,
@@ -28,7 +31,10 @@ void main() {
           'branding': <String, dynamic>{'layoutVariant': 'centered'},
         });
 
-        expect(profile.schemaVersion, 7);
+        expect(
+          profile.schemaVersion,
+          ProjectPresentationProfile.supportedSchemaVersion,
+        );
         expect(profile.layouts, isNull);
         expect(profile.toJson(), isNot(contains('layouts')));
         expect(profile.branding.layoutVariant, 'centered');

@@ -18,7 +18,10 @@ void main() {
 
       final decoded = ProjectPresentationProfile.fromJson(explicit.toJson());
 
-      expect(decoded.schemaVersion, 7);
+      expect(
+        decoded.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(decoded.typography?.resolve(ProjectTypographyRole.combat), combat);
       expect(inherited.typography?.resolve(ProjectTypographyRole.combat), body);
     });
@@ -43,7 +46,10 @@ void main() {
         'typography': const ProjectTypographyProfile().toJson(),
       });
 
-      expect(profile.schemaVersion, 7);
+      expect(
+        profile.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(profile.typography?.combat, isNull);
       expect(profile.layouts, isNull);
       expect(profile.windows, isNull);
@@ -60,7 +66,10 @@ void main() {
 
       final profile = ProjectPresentationProfile.fromJson(source);
 
-      expect(profile.schemaVersion, 7);
+      expect(
+        profile.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(
         profile.intro!.media.landscape.videoPath,
         'assets/presentation/intro/landscape.mp4',
@@ -69,7 +78,10 @@ void main() {
       expect(profile.intro!.media.portrait, isNull);
       expect(profile.titleMotion, isNull);
       final encoded = profile.toJson();
-      expect(encoded['schemaVersion'], 7);
+      expect(
+        encoded['schemaVersion'],
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect((encoded['intro']! as Map<String, dynamic>), contains('media'));
       expect(
         (encoded['intro']! as Map<String, dynamic>),

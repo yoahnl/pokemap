@@ -142,7 +142,7 @@ void main() {
           GamePackagePersonalizationCategory.titleMotion,
           GamePackagePersonalizationCategory.typography,
           GamePackagePersonalizationCategory.theme,
-          GamePackagePersonalizationCategory.menuLabels,
+          GamePackagePersonalizationCategory.pause,
           GamePackagePersonalizationCategory.windows,
           GamePackagePersonalizationCategory.layouts,
         ],
@@ -153,7 +153,9 @@ void main() {
       );
       expect(artifact.manifest.presentation?.intro?.allowReplay, isTrue);
       expect(
-        artifact.manifest.presentation?.menuLabels?.pokedex,
+        artifact.manifest.presentation?.pause?.actions
+            ?.firstWhere((action) => action.id == 'pokedex')
+            .label,
         'Carnet de route',
       );
       expect(
@@ -164,7 +166,10 @@ void main() {
         artifact.manifest.presentation?.theme?.titleSurface,
         profile.theme?.titleSurface,
       );
-      expect(artifact.manifest.presentation?.schemaVersion, 7);
+      expect(
+        artifact.manifest.presentation?.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(
         artifact.manifest.presentation?.windows?.pauseMenuStyleId,
         profile.windows?.pauseMenuStyleId,

@@ -83,7 +83,7 @@
     ]
   },
   "presentation": {
-    "schemaVersion": 5,
+    "schemaVersion": 8,
     "branding": {
       "iconPath": "assets/presentation/icon.png",
       "coverPath": "assets/presentation/cover.png",
@@ -148,16 +148,19 @@
       "overworldHudSurface": "#FFFFFF",
       "battleHudSurface": "#FFFFFF"
     },
-    "menuLabels": {
-      "pauseTitle": "Carnet de voyage",
-      "resume": "Reprendre",
-      "party": "Compagnons",
-      "bag": "Sacoche",
-      "pokedex": "Bestiaire",
-      "map": "Région",
-      "save": "Consigner",
-      "options": "Réglages",
-      "returnToTitle": "Retour au titre"
+    "pause": {
+      "title": "Carnet de voyage",
+      "hint": "Entrée / bouton A. Pause",
+      "actions": [
+        {"id": "resume", "label": "Reprendre", "icon": "play", "visible": true},
+        {"id": "party", "label": "Compagnons", "icon": "party", "visible": true},
+        {"id": "bag", "label": "Sacoche", "icon": "bag", "visible": true},
+        {"id": "pokedex", "label": "Bestiaire", "icon": "book", "visible": true},
+        {"id": "map", "label": "Région", "icon": "map", "visible": true},
+        {"id": "save", "label": "Consigner", "icon": "save", "visible": true},
+        {"id": "options", "label": "Réglages", "icon": "settings", "visible": true},
+        {"id": "returnToTitle", "label": "Retour au titre", "icon": "exit", "visible": true}
+      ]
     }
   },
   "globalProperties": {

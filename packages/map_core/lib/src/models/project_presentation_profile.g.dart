@@ -136,6 +136,66 @@ const _$ProjectTitleActionIconEnumMap = {
   ProjectTitleActionIcon.home: 'home',
 };
 
+_ProjectPauseActionProfile _$ProjectPauseActionProfileFromJson(
+  Map<String, dynamic> json,
+) => _ProjectPauseActionProfile(
+  id: $enumDecode(_$ProjectPauseActionIdEnumMap, json['id']),
+  label: json['label'] as String?,
+  icon: $enumDecodeNullable(_$ProjectPauseActionIconEnumMap, json['icon']),
+  visible: json['visible'] as bool? ?? true,
+);
+
+Map<String, dynamic> _$ProjectPauseActionProfileToJson(
+  _ProjectPauseActionProfile instance,
+) => <String, dynamic>{
+  'id': _$ProjectPauseActionIdEnumMap[instance.id]!,
+  'label': ?instance.label,
+  'icon': ?_$ProjectPauseActionIconEnumMap[instance.icon],
+  'visible': instance.visible,
+};
+
+const _$ProjectPauseActionIdEnumMap = {
+  ProjectPauseActionId.resume: 'resume',
+  ProjectPauseActionId.party: 'party',
+  ProjectPauseActionId.bag: 'bag',
+  ProjectPauseActionId.pokedex: 'pokedex',
+  ProjectPauseActionId.map: 'map',
+  ProjectPauseActionId.save: 'save',
+  ProjectPauseActionId.options: 'options',
+  ProjectPauseActionId.returnToTitle: 'returnToTitle',
+};
+
+const _$ProjectPauseActionIconEnumMap = {
+  ProjectPauseActionIcon.play: 'play',
+  ProjectPauseActionIcon.party: 'party',
+  ProjectPauseActionIcon.bag: 'bag',
+  ProjectPauseActionIcon.book: 'book',
+  ProjectPauseActionIcon.map: 'map',
+  ProjectPauseActionIcon.save: 'save',
+  ProjectPauseActionIcon.settings: 'settings',
+  ProjectPauseActionIcon.exit: 'exit',
+};
+
+_ProjectPausePresentationProfile _$ProjectPausePresentationProfileFromJson(
+  Map<String, dynamic> json,
+) => _ProjectPausePresentationProfile(
+  title: json['title'] as String?,
+  hint: json['hint'] as String?,
+  actions: (json['actions'] as List<dynamic>?)
+      ?.map(
+        (e) => ProjectPauseActionProfile.fromJson(e as Map<String, dynamic>),
+      )
+      .toList(),
+);
+
+Map<String, dynamic> _$ProjectPausePresentationProfileToJson(
+  _ProjectPausePresentationProfile instance,
+) => <String, dynamic>{
+  'title': ?instance.title,
+  'hint': ?instance.hint,
+  'actions': ?instance.actions?.map((e) => e.toJson()).toList(),
+};
+
 _ProjectTitlePresentationProfile _$ProjectTitlePresentationProfileFromJson(
   Map<String, dynamic> json,
 ) => _ProjectTitlePresentationProfile(
@@ -367,6 +427,11 @@ _ProjectPresentationProfile _$ProjectPresentationProfileFromJson(
       : ProjectPresentationSurfacePalettesProfile.fromJson(
           json['surfacePalettes'] as Map<String, dynamic>,
         ),
+  pause: json['pause'] == null
+      ? null
+      : ProjectPausePresentationProfile.fromJson(
+          json['pause'] as Map<String, dynamic>,
+        ),
   menuLabels: json['menuLabels'] == null
       ? null
       : ProjectMenuLabelsProfile.fromJson(
@@ -395,6 +460,7 @@ Map<String, dynamic> _$ProjectPresentationProfileToJson(
   'typography': ?instance.typography?.toJson(),
   'theme': ?instance.theme?.toJson(),
   'surfacePalettes': ?instance.surfacePalettes?.toJson(),
+  'pause': ?instance.pause?.toJson(),
   'menuLabels': ?instance.menuLabels?.toJson(),
   'windows': ?instance.windows?.toJson(),
   'layouts': ?instance.layouts?.toJson(),

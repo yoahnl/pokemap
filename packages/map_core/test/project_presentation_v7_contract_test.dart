@@ -13,7 +13,10 @@ void main() {
 
       final decoded = ProjectPresentationProfile.fromJson(profile.toJson());
 
-      expect(decoded.schemaVersion, 7);
+      expect(
+        decoded.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(decoded.title, copy);
       expect(copy.resolveTitle('Nom du projet'), 'Pokémon Aurore');
       expect(
@@ -48,7 +51,10 @@ void main() {
         'branding': <String, dynamic>{'layoutVariant': 'standard'},
       });
 
-      expect(profile.schemaVersion, 7);
+      expect(
+        profile.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(profile.title, isNull);
     });
 

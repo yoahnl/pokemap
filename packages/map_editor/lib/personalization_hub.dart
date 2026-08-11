@@ -31,5 +31,6 @@ export 'src/features/personalization/presentation/project_intro_video_editor.dar
 export 'src/features/personalization/presentation/project_layout_studio.dart';
 export 'src/features/personalization/presentation/project_semantic_theme_editor.dart';
 export 'src/features/personalization/presentation/project_menu_labels_editor.dart';
+export 'src/features/personalization/presentation/project_pause_actions_editor.dart';
 export 'src/features/personalization/presentation/project_typography_editor.dart';
 export 'src/features/personalization/presentation/project_window_studio.dart';

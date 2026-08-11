@@ -114,7 +114,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
         key: const ValueKey<String>('personalization-pause-composition'),
         gameTitle: projectName,
         actions: PersonalizationPreviewFixtures.pauseActions,
-        labels: presentation.pauseMenuLabels,
+        presentation: presentation.pausePresentation,
         onSelected: (action) =>
             _target(PauseLabelsTarget(actionName: action.name)),
         detail: const Center(child: Text('Sélectionnez une section')),

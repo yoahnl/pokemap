@@ -24,8 +24,8 @@ void main() {
             return SingleChildScrollView(
               child: PersonalizationPauseInspector(
                 profile: profile,
-                onMenuLabelsChanged: (labels) => setHostState(
-                  () => profile = profile.copyWith(menuLabels: labels),
+                onPauseChanged: (pause) => setHostState(
+                  () => profile = profile.copyWith(pause: pause),
                 ),
                 onWindowsChanged: (windows) => setHostState(
                   () => profile = profile.copyWith(windows: windows),
@@ -63,8 +63,15 @@ void main() {
       find.byKey(const ValueKey<String>('typography-import-common')),
       findsOneWidget,
     );
-    for (final label in <String>[
-      'pauseTitle',
+    expect(
+      find.byKey(const ValueKey<String>('pause-presentation-title')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('pause-presentation-hint')),
+      findsOneWidget,
+    );
+    for (final action in <String>[
       'resume',
       'party',
       'bag',
@@ -74,8 +81,23 @@ void main() {
       'options',
       'returnToTitle',
     ]) {
-      expect(find.byKey(ValueKey<String>('menu-label-$label')), findsOneWidget);
+      expect(
+        find.byKey(ValueKey<String>('pause-action-label-$action')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(ValueKey<String>('pause-action-icon-$action')),
+        findsOneWidget,
+      );
     }
+    expect(
+      find.byKey(const ValueKey<String>('pause-action-visible-resume')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('pause-action-visible-pokedex')),
+      findsOneWidget,
+    );
 
     final left = find.byKey(const ValueKey<String>('pause-layout-left'));
     await tester.ensureVisible(left);
@@ -142,8 +164,8 @@ void main() {
                   child: SingleChildScrollView(
                     child: PersonalizationPauseInspector(
                       profile: profile,
-                      onMenuLabelsChanged: (labels) => setHostState(
-                        () => profile = profile.copyWith(menuLabels: labels),
+                      onPauseChanged: (pause) => setHostState(
+                        () => profile = profile.copyWith(pause: pause),
                       ),
                       onWindowsChanged: (windows) => setHostState(
                         () => profile = profile.copyWith(windows: windows),
@@ -171,7 +193,9 @@ void main() {
       ),
     );
 
-    final pokedex = find.byKey(const ValueKey<String>('menu-label-pokedex'));
+    final pokedex = find.byKey(
+      const ValueKey<String>('pause-action-label-pokedex'),
+    );
     await tester.ensureVisible(pokedex);
     await tester.pumpAndSettle();
     expect(pokedex.hitTestable(), findsOneWidget);

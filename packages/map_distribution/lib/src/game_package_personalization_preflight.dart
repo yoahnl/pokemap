@@ -10,6 +10,7 @@ enum GamePackagePersonalizationCategory {
   titleMotion,
   typography,
   theme,
+  pause,
   menuLabels,
   windows,
   layouts,
@@ -210,6 +211,9 @@ final class GamePackagePersonalizationPreflight {
 
     if (presentation?.theme != null) {
       categories.add(GamePackagePersonalizationCategory.theme);
+    }
+    if (presentation?.pause != null) {
+      categories.add(GamePackagePersonalizationCategory.pause);
     }
     if (presentation?.menuLabels != null) {
       categories.add(GamePackagePersonalizationCategory.menuLabels);

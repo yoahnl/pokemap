@@ -248,6 +248,22 @@ final class GamePackageExportService {
               : _packageSurfacePalettes(
                   projection.presentation.surfacePalettes!,
                 ),
+          pause: projection.presentation.pause == null
+              ? null
+              : GamePackagePausePresentation(
+                  title: projection.presentation.pause!.title,
+                  hint: projection.presentation.pause!.hint,
+                  actions: projection.presentation.pause!.actions
+                      ?.map(
+                        (action) => GamePackagePauseAction(
+                          id: action.id.name,
+                          label: action.label,
+                          icon: action.icon?.name,
+                          visible: action.visible,
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
           menuLabels: projection.presentation.menuLabels == null
               ? null
               : GamePackageMenuLabels(

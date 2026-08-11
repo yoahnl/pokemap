@@ -42,7 +42,12 @@ void main() {
       'portrait-leo-happy',
     );
     expect(manifest.encounterTables.single.id, 'vermeil_grass');
-    expect(manifest.presentation?.menuLabels?.pokedex, 'Bestiaire');
+    expect(
+      manifest.presentation?.pause?.actions
+          ?.firstWhere((action) => action.id == ProjectPauseActionId.pokedex)
+          .label,
+      'Bestiaire',
+    );
     expect(manifest.presentation?.intro, isNotNull);
   });
 

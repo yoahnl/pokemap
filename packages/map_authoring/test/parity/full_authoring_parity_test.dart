@@ -139,7 +139,7 @@ void main() {
               (descriptor) => descriptor.id == 'projectPresentationProfile',
             )
             .version,
-        7,
+        8,
       );
       expect(
         catalog.requireMutationAction('presentation.preset.export').toJson(),
@@ -265,7 +265,7 @@ void main() {
 
       expect(directEvidence, cliEvidence);
       expect(directEvidence['accentColor'], '#126E78');
-      expect(directEvidence['schemaVersion'], 7);
+      expect(directEvidence['schemaVersion'], 8);
       expect(directEvidence['titleCopy'], 'Aube sur Hanazuki');
       expect(directEvidence['titleSubtitle'], 'Studio Brume');
       expect(directEvidence['titlePrompt'], 'Appuyez pour commencer');
@@ -276,6 +276,14 @@ void main() {
       ]);
       expect(directEvidence['titleNewGameLabel'], 'Commencer');
       expect(directEvidence['titleOptionsVisible'], isFalse);
+      expect(directEvidence['pauseTitle'], 'Escale');
+      expect(directEvidence['pauseActionOrder'], <String>[
+        'pokedex',
+        'resume',
+        'map',
+      ]);
+      expect(directEvidence['pausePokedexLabel'], 'Carnet de voyage');
+      expect(directEvidence['pauseMapVisible'], isFalse);
       expect(
         directEvidence['introLandscape'],
         'presentation/intro-landscape.mp4',
@@ -284,7 +292,6 @@ void main() {
         directEvidence['promptPortrait'],
         'presentation/prompt-portrait.mp4',
       );
-      expect(directEvidence['pokedexLabel'], 'Carnet de voyage');
       expect(directEvidence['pauseWindowStyle'], 'pause-menu');
       expect(directEvidence['dialogueWindowStyle'], 'dialogue');
       expect(directEvidence['battleWindowStyle'], 'default');
@@ -954,7 +961,16 @@ final class _GoldenHarness {
       'introLandscape': manifest.presentation?.intro?.media.landscape.videoPath,
       'promptPortrait':
           manifest.presentation?.titleMotion?.promptLoop?.portrait?.videoPath,
-      'pokedexLabel': manifest.presentation?.menuLabels?.pokedex,
+      'pauseTitle': manifest.presentation?.pause?.title,
+      'pauseActionOrder': manifest.presentation?.pause?.actions
+          ?.map((action) => action.id.name)
+          .toList(growable: false),
+      'pausePokedexLabel': manifest.presentation?.pause?.actions
+          ?.firstWhere((action) => action.id == ProjectPauseActionId.pokedex)
+          .label,
+      'pauseMapVisible': manifest.presentation?.pause?.actions
+          ?.firstWhere((action) => action.id == ProjectPauseActionId.map)
+          .visible,
       'pauseWindowStyle': manifest.presentation?.windows?.pauseMenuStyleId,
       'dialogueWindowStyle': manifest.presentation?.windows?.dialogueStyleId,
       'battleWindowStyle': manifest.presentation?.windows?.battleStyleId,
@@ -1093,9 +1109,24 @@ final ProjectPresentationProfile _responsivePresentationProfile =
       ),
     ),
   ),
-  menuLabels: ProjectMenuLabelsProfile(
-    pauseTitle: 'Escale',
-    pokedex: 'Carnet de voyage',
+  pause: ProjectPausePresentationProfile(
+    title: 'Escale',
+    actions: <ProjectPauseActionProfile>[
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.pokedex,
+        label: 'Carnet de voyage',
+        icon: ProjectPauseActionIcon.book,
+      ),
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.resume,
+        icon: ProjectPauseActionIcon.play,
+      ),
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.map,
+        icon: ProjectPauseActionIcon.map,
+        visible: false,
+      ),
+    ],
   ),
   typography: ProjectTypographyProfile(
     combat: ProjectTypographyRoleProfile(

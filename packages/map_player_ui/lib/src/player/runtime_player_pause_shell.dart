@@ -30,6 +30,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.focusController,
     this.saveMessage,
     this.labels = const PlayerPauseMenuLabels(),
+    this.presentation,
   });
 
   const RuntimePlayerPauseShell.root({
@@ -44,6 +45,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.focusController,
     this.saveMessage,
     this.labels = const PlayerPauseMenuLabels(),
+    this.presentation,
   })  : pauseSection = RuntimePlayerPauseSection.root,
         onBackToRoot = _noop;
 
@@ -59,6 +61,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final RuntimePlayerFocusController? focusController;
   final String? saveMessage;
   final PlayerPauseMenuLabels labels;
+  final PlayerPausePresentation? presentation;
 
   static void _noop() {}
 
@@ -411,6 +414,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
       ),
       focusController: _focusController,
       labels: widget.labels,
+      presentation: widget.presentation,
       showGameTitle: resolved == null ||
           resolved.variant.visibleSecondaryElements.contains(
             ProjectPresentationSecondaryElement.pauseGameTitle,
@@ -443,7 +447,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
               child: Text(
                 hasDetail
                     ? _sectionLabel(context, widget.pauseSection)
-                    : widget.labels.title(context.playerL10n),
+                    : _presentation.resolvedTitle(context.playerL10n),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
@@ -463,7 +467,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                 ? widget.detail
                 : PlayerEmptyState(
                     icon: Icons.gamepad_rounded,
-                    title: widget.labels.title(context.playerL10n),
+                    title: _presentation.resolvedTitle(context.playerL10n),
                     message: context.playerL10n.actionUnavailable,
                   ),
           ),
@@ -523,19 +527,22 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   ) {
     final l10n = context.playerL10n;
     return switch (section) {
-      RuntimePlayerPauseSection.root => widget.labels.title(l10n),
+      RuntimePlayerPauseSection.root => _presentation.resolvedTitle(l10n),
       RuntimePlayerPauseSection.party =>
-        widget.labels.action(PlayerPauseAction.party, l10n),
+        _presentation.label(PlayerPauseAction.party, l10n),
       RuntimePlayerPauseSection.bag =>
-        widget.labels.action(PlayerPauseAction.bag, l10n),
+        _presentation.label(PlayerPauseAction.bag, l10n),
       RuntimePlayerPauseSection.pokedex =>
-        widget.labels.action(PlayerPauseAction.pokedex, l10n),
+        _presentation.label(PlayerPauseAction.pokedex, l10n),
       RuntimePlayerPauseSection.map =>
-        widget.labels.action(PlayerPauseAction.map, l10n),
+        _presentation.label(PlayerPauseAction.map, l10n),
       RuntimePlayerPauseSection.options =>
-        widget.labels.action(PlayerPauseAction.options, l10n),
+        _presentation.label(PlayerPauseAction.options, l10n),
     };
   }
+
+  PlayerPausePresentation get _presentation =>
+      widget.presentation ?? PlayerPausePresentation.fromLabels(widget.labels);
 
   ProjectPresentationSurfaceRole _surfaceRoleFor(
     RuntimePlayerPauseSection section,

@@ -85,7 +85,20 @@ void main() {
           iconPath: 'assets/icon.png',
           accentColor: '#126E78',
         ),
-        menuLabels: const ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+        pause: const ProjectPausePresentationProfile(
+          title: 'Interlude',
+          actions: <ProjectPauseActionProfile>[
+            ProjectPauseActionProfile(
+              id: ProjectPauseActionId.pokedex,
+              label: 'Carnet',
+              icon: ProjectPauseActionIcon.book,
+            ),
+            ProjectPauseActionProfile(
+              id: ProjectPauseActionId.resume,
+              icon: ProjectPauseActionIcon.play,
+            ),
+          ],
+        ),
         typography: const ProjectTypographyProfile(
           combat: ProjectTypographyRoleProfile(
             fallbackFamilies: <String>['monospace'],
@@ -108,7 +121,7 @@ void main() {
       expect(first.certification.gameplayReadinessReport.isPlayable, isTrue);
       expect(first.manifest.gameId, profile.gameId);
       expect(first.manifest.title, profile.title);
-      expect(first.manifest.presentation?.schemaVersion, 7);
+      expect(first.manifest.presentation?.schemaVersion, 8);
       expect(first.manifest.presentation?.title?.title, 'Aube sur Hanazuki');
       expect(first.manifest.presentation?.title?.subtitle, 'Studio Brume');
       expect(
@@ -122,7 +135,11 @@ void main() {
       expect(first.manifest.usesLegacyBranding, isFalse);
       expect(first.manifest.branding?.icon, 'presentation/icon.png');
       expect(first.manifest.branding?.accentColor, '#126E78');
-      expect(first.manifest.presentation?.menuLabels?.pokedex, 'Carnet');
+      expect(first.manifest.presentation?.pause?.title, 'Interlude');
+      expect(
+        first.manifest.presentation?.pause?.actions?.first.label,
+        'Carnet',
+      );
       expect(
         first.manifest.presentation?.windows?.pauseMenuStyleId,
         'pause-menu',

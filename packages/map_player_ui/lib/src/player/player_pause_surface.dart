@@ -62,6 +62,117 @@ final class PlayerPauseMenuLabels {
       };
 }
 
+@immutable
+final class PlayerPausePresentation {
+  const PlayerPausePresentation({
+    this.title,
+    this.hint,
+    this.actionOrder,
+    this.actionLabels = const <PlayerPauseAction, String>{},
+    this.actionIcons = const <PlayerPauseAction, ProjectPauseActionIcon>{},
+    this.hiddenActions = const <PlayerPauseAction>{},
+  });
+
+  factory PlayerPausePresentation.fromProfile(
+    ProjectPausePresentationProfile? profile,
+  ) {
+    if (profile == null) return const PlayerPausePresentation();
+    final actions = profile.effectiveActions;
+    return PlayerPausePresentation(
+      title: profile.title,
+      hint: profile.hint,
+      actionOrder: <PlayerPauseAction>[
+        for (final action in actions) _pauseAction(action.id),
+      ],
+      actionLabels: <PlayerPauseAction, String>{
+        for (final action in actions)
+          if (action.label case final label?) _pauseAction(action.id): label,
+      },
+      actionIcons: <PlayerPauseAction, ProjectPauseActionIcon>{
+        for (final action in actions)
+          if (action.icon case final icon?) _pauseAction(action.id): icon,
+      },
+      hiddenActions: <PlayerPauseAction>{
+        for (final action in actions)
+          if (!action.visible) _pauseAction(action.id),
+      },
+    );
+  }
+
+  factory PlayerPausePresentation.fromLabels(PlayerPauseMenuLabels labels) =>
+      PlayerPausePresentation(
+        title: labels.pauseTitle,
+        actionLabels: <PlayerPauseAction, String>{
+          if (labels.resume case final value?) PlayerPauseAction.resume: value,
+          if (labels.party case final value?) PlayerPauseAction.party: value,
+          if (labels.bag case final value?) PlayerPauseAction.bag: value,
+          if (labels.pokedex case final value?)
+            PlayerPauseAction.pokedex: value,
+          if (labels.map case final value?) PlayerPauseAction.map: value,
+          if (labels.save case final value?) PlayerPauseAction.save: value,
+          if (labels.options case final value?)
+            PlayerPauseAction.options: value,
+          if (labels.returnToTitle case final value?)
+            PlayerPauseAction.returnToTitle: value,
+        },
+      );
+
+  final String? title;
+  final String? hint;
+  final List<PlayerPauseAction>? actionOrder;
+  final Map<PlayerPauseAction, String> actionLabels;
+  final Map<PlayerPauseAction, ProjectPauseActionIcon> actionIcons;
+  final Set<PlayerPauseAction> hiddenActions;
+
+  List<PlayerPauseAction> get visibleActions =>
+      List<PlayerPauseAction>.unmodifiable(
+        (actionOrder ?? PlayerPauseAction.values).where(
+          (action) => !hiddenActions.contains(action),
+        ),
+      );
+
+  String resolvedTitle(PokeMapPlayerLocalizations l10n) => title ?? l10n.pause;
+
+  String label(PlayerPauseAction action, PokeMapPlayerLocalizations l10n) =>
+      actionLabels[action] ??
+      const PlayerPauseMenuLabels().action(action, l10n);
+
+  IconData icon(PlayerPauseAction action) =>
+      switch (actionIcons[action] ?? _defaultPauseActionIcon(action)) {
+        ProjectPauseActionIcon.play => Icons.play_arrow_rounded,
+        ProjectPauseActionIcon.party => Icons.groups_rounded,
+        ProjectPauseActionIcon.bag => Icons.backpack_rounded,
+        ProjectPauseActionIcon.book => Icons.menu_book_rounded,
+        ProjectPauseActionIcon.map => Icons.map_rounded,
+        ProjectPauseActionIcon.save => Icons.save_rounded,
+        ProjectPauseActionIcon.settings => Icons.tune_rounded,
+        ProjectPauseActionIcon.exit => Icons.logout_rounded,
+      };
+}
+
+PlayerPauseAction _pauseAction(ProjectPauseActionId id) => switch (id) {
+      ProjectPauseActionId.resume => PlayerPauseAction.resume,
+      ProjectPauseActionId.party => PlayerPauseAction.party,
+      ProjectPauseActionId.bag => PlayerPauseAction.bag,
+      ProjectPauseActionId.pokedex => PlayerPauseAction.pokedex,
+      ProjectPauseActionId.map => PlayerPauseAction.map,
+      ProjectPauseActionId.save => PlayerPauseAction.save,
+      ProjectPauseActionId.options => PlayerPauseAction.options,
+      ProjectPauseActionId.returnToTitle => PlayerPauseAction.returnToTitle,
+    };
+
+ProjectPauseActionIcon _defaultPauseActionIcon(PlayerPauseAction action) =>
+    switch (action) {
+      PlayerPauseAction.resume => ProjectPauseActionIcon.play,
+      PlayerPauseAction.party => ProjectPauseActionIcon.party,
+      PlayerPauseAction.bag => ProjectPauseActionIcon.bag,
+      PlayerPauseAction.pokedex => ProjectPauseActionIcon.book,
+      PlayerPauseAction.map => ProjectPauseActionIcon.map,
+      PlayerPauseAction.save => ProjectPauseActionIcon.save,
+      PlayerPauseAction.options => ProjectPauseActionIcon.settings,
+      PlayerPauseAction.returnToTitle => ProjectPauseActionIcon.exit,
+    };
+
 class PlayerPauseSurface extends StatelessWidget {
   const PlayerPauseSurface({
     super.key,
@@ -69,18 +180,21 @@ class PlayerPauseSurface extends StatelessWidget {
     required this.actions,
     required this.onSelected,
     this.labels = const PlayerPauseMenuLabels(),
+    this.presentation,
   }) : child = null;
 
   const PlayerPauseSurface.composed({super.key, required this.child})
       : gameTitle = '',
         actions = const <PlayerPauseAction, PlayerActionAvailability>{},
         onSelected = null,
-        labels = const PlayerPauseMenuLabels();
+        labels = const PlayerPauseMenuLabels(),
+        presentation = null;
 
   final String gameTitle;
   final Map<PlayerPauseAction, PlayerActionAvailability> actions;
   final ValueChanged<PlayerPauseAction>? onSelected;
   final PlayerPauseMenuLabels labels;
+  final PlayerPausePresentation? presentation;
   final Widget? child;
 
   @override
@@ -93,7 +207,10 @@ class PlayerPauseSurface extends StatelessWidget {
   }
 
   Widget _build(BuildContext context) {
-    final firstEnabledAction = PlayerPauseAction.values
+    final pausePresentation =
+        presentation ?? PlayerPausePresentation.fromLabels(labels);
+    final visibleActions = pausePresentation.visibleActions;
+    final firstEnabledAction = visibleActions
         .where((action) => _availability(context, action).isEnabled)
         .firstOrNull;
     return Material(
@@ -117,7 +234,7 @@ class PlayerPauseSurface extends StatelessWidget {
               Semantics(
                 header: true,
                 child: Text(
-                  labels.title(context.playerL10n),
+                  pausePresentation.resolvedTitle(context.playerL10n),
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ),
@@ -132,7 +249,7 @@ class PlayerPauseSurface extends StatelessWidget {
                 child: wide
                     ? GridView.builder(
                         key: const ValueKey<String>('player-pause-grid'),
-                        itemCount: PlayerPauseAction.values.length,
+                        itemCount: visibleActions.length,
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
@@ -142,19 +259,21 @@ class PlayerPauseSurface extends StatelessWidget {
                         ),
                         itemBuilder: (context, index) => _action(
                           context,
-                          PlayerPauseAction.values[index],
+                          visibleActions[index],
                           firstEnabledAction,
+                          pausePresentation,
                         ),
                       )
                     : ListView.separated(
                         key: const ValueKey<String>('player-pause-list'),
-                        itemCount: PlayerPauseAction.values.length,
+                        itemCount: visibleActions.length,
                         separatorBuilder: (_, __) =>
                             const SizedBox(height: PlayerSpacing.xs),
                         itemBuilder: (context, index) => _action(
                           context,
-                          PlayerPauseAction.values[index],
+                          visibleActions[index],
                           firstEnabledAction,
+                          pausePresentation,
                         ),
                       ),
               ),
@@ -217,11 +336,12 @@ class PlayerPauseSurface extends StatelessWidget {
     BuildContext context,
     PlayerPauseAction action,
     PlayerPauseAction? firstEnabledAction,
+    PlayerPausePresentation presentation,
   ) {
     final availability = _availability(context, action);
     return PlayerActionButton(
-      label: _label(context, action),
-      icon: _icon(action),
+      label: presentation.label(action, context.playerL10n),
+      icon: presentation.icon(action),
       autofocus: action == firstEnabledAction,
       secondary: action == PlayerPauseAction.returnToTitle,
       disabledReason: availability.disabledReason,
@@ -237,20 +357,6 @@ class PlayerPauseSurface extends StatelessWidget {
       PlayerActionAvailability.disabled(
         context.playerL10n.actionUnavailable,
       );
-
-  String _label(BuildContext context, PlayerPauseAction action) =>
-      labels.action(action, context.playerL10n);
-
-  IconData _icon(PlayerPauseAction action) => switch (action) {
-        PlayerPauseAction.resume => Icons.play_arrow_rounded,
-        PlayerPauseAction.party => Icons.groups_rounded,
-        PlayerPauseAction.bag => Icons.backpack_rounded,
-        PlayerPauseAction.pokedex => Icons.menu_book_rounded,
-        PlayerPauseAction.map => Icons.map_rounded,
-        PlayerPauseAction.save => Icons.save_rounded,
-        PlayerPauseAction.options => Icons.tune_rounded,
-        PlayerPauseAction.returnToTitle => Icons.logout_rounded,
-      };
 }
 
 /// Root navigation reused inside the responsive runtime-owned pause shell.
@@ -265,6 +371,7 @@ class PlayerPauseNavigation extends StatelessWidget {
     this.scrollController,
     this.focusController,
     this.labels = const PlayerPauseMenuLabels(),
+    this.presentation,
     this.showGameTitle = true,
   });
 
@@ -276,11 +383,15 @@ class PlayerPauseNavigation extends StatelessWidget {
   final ScrollController? scrollController;
   final RuntimePlayerFocusController? focusController;
   final PlayerPauseMenuLabels labels;
+  final PlayerPausePresentation? presentation;
   final bool showGameTitle;
 
   @override
   Widget build(BuildContext context) {
-    final firstEnabledAction = PlayerPauseAction.values
+    final pausePresentation =
+        presentation ?? PlayerPausePresentation.fromLabels(labels);
+    final visibleActions = pausePresentation.visibleActions;
+    final firstEnabledAction = visibleActions
         .where((action) => _availability(context, action).isEnabled)
         .firstOrNull;
     return SingleChildScrollView(
@@ -296,7 +407,7 @@ class PlayerPauseNavigation extends StatelessWidget {
           Semantics(
             header: true,
             child: Text(
-              labels.title(context.playerL10n),
+              pausePresentation.resolvedTitle(context.playerL10n),
               style: Theme.of(context).textTheme.headlineMedium,
             ),
           ),
@@ -308,7 +419,7 @@ class PlayerPauseNavigation extends StatelessWidget {
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: PlayerPauseAction.values.length,
+              itemCount: visibleActions.length,
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 mainAxisExtent: 68,
@@ -317,20 +428,22 @@ class PlayerPauseNavigation extends StatelessWidget {
               ),
               itemBuilder: (context, index) => _action(
                 context,
-                PlayerPauseAction.values[index],
+                visibleActions[index],
                 firstEnabledAction,
+                pausePresentation,
               ),
             )
           else
             for (var index = 0;
-                index < PlayerPauseAction.values.length;
+                index < visibleActions.length;
                 index++) ...<Widget>[
               _action(
                 context,
-                PlayerPauseAction.values[index],
+                visibleActions[index],
                 firstEnabledAction,
+                pausePresentation,
               ),
-              if (index != PlayerPauseAction.values.length - 1)
+              if (index != visibleActions.length - 1)
                 const SizedBox(height: PlayerSpacing.xs),
             ],
         ],
@@ -342,17 +455,19 @@ class PlayerPauseNavigation extends StatelessWidget {
     BuildContext context,
     PlayerPauseAction action,
     PlayerPauseAction? firstEnabledAction,
+    PlayerPausePresentation presentation,
   ) {
     final availability = _availability(context, action);
     final logicalId = _logicalId(action);
     final controller = focusController;
     return PlayerActionButton(
       key: ValueKey<String>(logicalId),
-      label: _label(context, action),
-      icon: _icon(action),
+      label: presentation.label(action, context.playerL10n),
+      icon: presentation.icon(action),
       focusNode: controller?.nodeFor(
         logicalId,
-        debugLabel: 'Player action: ${_label(context, action)}',
+        debugLabel:
+            'Player action: ${presentation.label(action, context.playerL10n)}',
       ),
       showFocusHighlight: controller?.showFocusHighlight ?? true,
       selected: controller?.logicalSelectionId == logicalId,
@@ -381,20 +496,6 @@ class PlayerPauseNavigation extends StatelessWidget {
       PlayerActionAvailability.disabled(
         context.playerL10n.actionUnavailable,
       );
-
-  String _label(BuildContext context, PlayerPauseAction action) =>
-      labels.action(action, context.playerL10n);
-
-  IconData _icon(PlayerPauseAction action) => switch (action) {
-        PlayerPauseAction.resume => Icons.play_arrow_rounded,
-        PlayerPauseAction.party => Icons.groups_rounded,
-        PlayerPauseAction.bag => Icons.backpack_rounded,
-        PlayerPauseAction.pokedex => Icons.menu_book_rounded,
-        PlayerPauseAction.map => Icons.map_rounded,
-        PlayerPauseAction.save => Icons.save_rounded,
-        PlayerPauseAction.options => Icons.tune_rounded,
-        PlayerPauseAction.returnToTitle => Icons.logout_rounded,
-      };
 
   String _logicalId(PlayerPauseAction action) => 'pause.${action.name}';
 }

@@ -4,6 +4,10 @@ import 'dart:typed_data';
 import 'package:map_core/map_core.dart'
     show
         ProjectPresentationProfile,
+        ProjectPauseActionIcon,
+        ProjectPauseActionId,
+        ProjectPauseActionProfile,
+        ProjectPausePresentationProfile,
         ProjectPresentationBreakpoint,
         ProjectPresentationContentWidth,
         ProjectPresentationLayoutSlot,
@@ -503,6 +507,7 @@ final class GamePackageManifestCodec {
         'typography',
         'theme',
         'surfacePalettes',
+        'pause',
         'menuLabels',
         'windows',
         'layouts',
@@ -516,11 +521,12 @@ final class GamePackageManifestCodec {
         schemaVersion != 4 &&
         schemaVersion != 5 &&
         schemaVersion != 6 &&
-        schemaVersion != 7) {
+        schemaVersion != 7 &&
+        schemaVersion != 8) {
       _fail(
         'presentationVersionUnsupported',
         '$path.schemaVersion',
-        'Only presentation schema versions 1 through 7 are supported.',
+        'Only presentation schema versions 1 through 8 are supported.',
       );
     }
     if (schemaVersion == 1 && json.containsKey('titleMotion')) {
@@ -622,6 +628,13 @@ final class GamePackageManifestCodec {
         'Title copy requires presentation schema version 7.',
       );
     }
+    if (schemaVersion < 8 && json.containsKey('pause')) {
+      _fail(
+        'presentationVersionUnsupported',
+        '$path.pause',
+        'Pause actions require presentation schema version 8.',
+      );
+    }
     final typography = json.containsKey('typography')
         ? _typography(
             json['typography'],
@@ -661,6 +674,9 @@ final class GamePackageManifestCodec {
       typography: typography,
       theme: theme,
       surfacePalettes: surfacePalettes,
+      pause: json.containsKey('pause')
+          ? _pausePresentation(json['pause'], path: '$path.pause')
+          : null,
       menuLabels: json.containsKey('menuLabels')
           ? _menuLabels(json['menuLabels'], path: '$path.menuLabels')
           : null,
@@ -1131,6 +1147,101 @@ final class GamePackageManifestCodec {
       options: label('options'),
       returnToTitle: label('returnToTitle'),
     );
+  }
+
+  GamePackagePausePresentation _pausePresentation(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{},
+      optional: const <String>{'title', 'hint', 'actions'},
+    );
+    String? copy(String field) =>
+        json.containsKey(field) ? _string(json[field], '$path.$field') : null;
+    final packagedActions = <GamePackagePauseAction>[];
+    final projectActions = <ProjectPauseActionProfile>[];
+    if (json.containsKey('actions')) {
+      final values = _list(json['actions'], '$path.actions');
+      for (var index = 0; index < values.length; index++) {
+        final actionPath = '$path.actions[$index]';
+        final action = _object(
+          values[index],
+          actionPath,
+          required: const <String>{'id'},
+          optional: const <String>{'label', 'icon', 'visible'},
+        );
+        final idName = _string(action['id'], '$actionPath.id');
+        final iconName = action.containsKey('icon')
+            ? _string(action['icon'], '$actionPath.icon')
+            : null;
+        final id = _pauseActionId(idName, '$actionPath.id');
+        final icon = iconName == null
+            ? null
+            : _pauseActionIcon(iconName, '$actionPath.icon');
+        final label = action.containsKey('label')
+            ? _string(action['label'], '$actionPath.label')
+            : null;
+        final visible = action.containsKey('visible')
+            ? _boolean(action['visible'], '$actionPath.visible')
+            : true;
+        projectActions.add(
+          ProjectPauseActionProfile(
+            id: id,
+            label: label,
+            icon: icon,
+            visible: visible,
+          ),
+        );
+        packagedActions.add(
+          GamePackagePauseAction(
+            id: idName,
+            label: label,
+            icon: iconName,
+            visible: visible,
+          ),
+        );
+      }
+    }
+    final title = copy('title');
+    final hint = copy('hint');
+    final diagnostic = validateProjectPresentationProfile(
+      ProjectPresentationProfile(
+        pause: ProjectPausePresentationProfile(
+          title: title,
+          hint: hint,
+          actions: json.containsKey('actions') ? projectActions : null,
+        ),
+      ),
+    ).firstOrNull;
+    if (diagnostic != null) {
+      _fail(
+        'invalidPausePresentation',
+        diagnostic.path.replaceFirst(r'$.presentation.pause', path),
+        diagnostic.message,
+      );
+    }
+    return GamePackagePausePresentation(
+      title: title,
+      hint: hint,
+      actions: json.containsKey('actions') ? packagedActions : null,
+    );
+  }
+
+  ProjectPauseActionId _pauseActionId(String value, String path) {
+    for (final id in ProjectPauseActionId.values) {
+      if (id.name == value) return id;
+    }
+    _fail('invalidPausePresentation', path, 'Unknown pause action id.');
+  }
+
+  ProjectPauseActionIcon _pauseActionIcon(String value, String path) {
+    for (final icon in ProjectPauseActionIcon.values) {
+      if (icon.name == value) return icon;
+    }
+    _fail('invalidPausePresentation', path, 'Unknown pause action icon.');
   }
 
   GamePackageIntroVideo _intro(

@@ -45,7 +45,7 @@ import 'inspectors/personalization_pause_inspector.dart';
 import 'inspectors/personalization_title_inspector.dart';
 import 'project_layout_studio.dart';
 import 'project_semantic_theme_editor.dart';
-import 'project_menu_labels_editor.dart';
+import 'project_pause_actions_editor.dart';
 import 'project_presentation_preset_library.dart';
 import 'project_theme_token_dialog.dart';
 import 'project_typography_editor.dart';
@@ -1231,13 +1231,15 @@ class _PersonalizationStudioWorkspaceState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            ProjectMenuLabelsEditor(
-              profile: profile.menuLabels ?? const ProjectMenuLabelsProfile(),
-              onChanged: (menuLabels) {
+            ProjectPauseActionsEditor(
+              profile:
+                  profile.effectivePause ??
+                  const ProjectPausePresentationProfile(),
+              onChanged: (pause) {
                 unawaited(
                   notifier.applyPersonalizationStudioProfile(
-                    profile.copyWith(menuLabels: menuLabels),
-                    label: 'Modifier les libellés du menu Pause',
+                    profile.copyWith(pause: pause, menuLabels: null),
+                    label: 'Modifier les actions du menu Pause',
                   ),
                 );
               },
@@ -1568,11 +1570,11 @@ class _PersonalizationStudioWorkspaceState
         child: PersonalizationPauseInspector(
           profile: profile,
           previewFamilies: _fontPreviewFamilies,
-          onMenuLabelsChanged: (menuLabels) {
+          onPauseChanged: (pause) {
             unawaited(
               notifier.applyPersonalizationStudioProfile(
-                profile.copyWith(menuLabels: menuLabels),
-                label: 'Modifier les libellés du menu Pause',
+                profile.copyWith(pause: pause, menuLabels: null),
+                label: 'Modifier les actions du menu Pause',
               ),
             );
           },

@@ -178,6 +178,63 @@ void main() {
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 
+    test('round-trips V8 ordered pause actions', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 8,
+          'branding': <String, Object?>{},
+          'pause': <String, Object?>{
+            'title': 'Interlude',
+            'hint': 'A pour choisir',
+            'actions': <Object?>[
+              <String, Object?>{
+                'id': 'pokedex',
+                'label': 'Bestiaire',
+                'icon': 'book',
+                'visible': true,
+              },
+              <String, Object?>{
+                'id': 'resume',
+                'icon': 'play',
+                'visible': true,
+              },
+              <String, Object?>{
+                'id': 'map',
+                'icon': 'map',
+                'visible': false,
+              },
+            ],
+          },
+        };
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.presentation?.pause?.title, 'Interlude');
+      expect(manifest.presentation?.pause?.actions?.first.id, 'pokedex');
+      expect(manifest.presentation?.pause?.actions?.first.label, 'Bestiaire');
+      expect(manifest.presentation?.pause?.actions?.last.visible, isFalse);
+      expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('rejects pause actions declared before presentation schema V8', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 7,
+          'branding': <String, Object?>{},
+          'pause': <String, Object?>{
+            'actions': <Object?>[
+              <String, Object?>{'id': 'resume'},
+            ],
+          },
+        };
+
+      _expectCode(
+        () => codec.decodeJson(json),
+        'presentationVersionUnsupported',
+        r'$.presentation.pause',
+      );
+    });
+
     test('round-trips V3 project window styles', () {
       final json = _minimalManifestJson()
         ..['presentation'] = <String, Object?>{

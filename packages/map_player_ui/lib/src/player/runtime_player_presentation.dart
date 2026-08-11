@@ -24,6 +24,7 @@ final class RuntimePlayerPresentation {
     this.windowProfile,
     this.layoutProfile,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
+    this.pausePresentation = const PlayerPausePresentation(),
   });
 
   factory RuntimePlayerPresentation.fromRuntime(
@@ -57,6 +58,9 @@ final class RuntimePlayerPresentation {
       windowProfile: profile?.windows,
       layoutProfile: profile?.layouts,
       pauseMenuLabels: _pauseMenuLabels(profile?.menuLabels),
+      pausePresentation: PlayerPausePresentation.fromProfile(
+        profile?.effectivePause,
+      ),
     );
   }
 
@@ -96,6 +100,9 @@ final class RuntimePlayerPresentation {
       windowProfile: profile.windows,
       layoutProfile: profile.layouts,
       pauseMenuLabels: _pauseMenuLabels(profile.menuLabels),
+      pausePresentation: PlayerPausePresentation.fromProfile(
+        profile.effectivePause,
+      ),
     );
   }
 
@@ -106,6 +113,7 @@ final class RuntimePlayerPresentation {
   final ProjectPresentationWindowsProfile? windowProfile;
   final ProjectPresentationLayoutsProfile? layoutProfile;
   final PlayerPauseMenuLabels pauseMenuLabels;
+  final PlayerPausePresentation pausePresentation;
 
   ThemeData applyTo(ThemeData theme) {
     var resolved = PokeMapPlayerTheme.withTypography(theme, typography);

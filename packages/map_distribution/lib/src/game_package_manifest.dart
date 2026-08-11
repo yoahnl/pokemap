@@ -162,6 +162,48 @@ final class GamePackageMenuLabels {
       };
 }
 
+final class GamePackagePauseAction {
+  const GamePackagePauseAction({
+    required this.id,
+    this.label,
+    this.icon,
+    this.visible = true,
+  });
+
+  final String id;
+  final String? label;
+  final String? icon;
+  final bool visible;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'id': id,
+        if (label != null) 'label': label,
+        if (icon != null) 'icon': icon,
+        'visible': visible,
+      };
+}
+
+final class GamePackagePausePresentation {
+  GamePackagePausePresentation({
+    this.title,
+    this.hint,
+    Iterable<GamePackagePauseAction>? actions,
+  }) : actions = actions == null
+            ? null
+            : List<GamePackagePauseAction>.unmodifiable(actions);
+
+  final String? title;
+  final String? hint;
+  final List<GamePackagePauseAction>? actions;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        if (title != null) 'title': title,
+        if (hint != null) 'hint': hint,
+        if (actions != null)
+          'actions': actions!.map((action) => action.toJson()).toList(),
+      };
+}
+
 /// Runtime-facing projection of the project-owned presentation contract.
 ///
 /// Package paths replace authoring paths here; the project manifest remains
@@ -176,6 +218,7 @@ final class GamePackagePresentation {
     this.typography,
     this.theme,
     this.surfacePalettes,
+    this.pause,
     this.menuLabels,
     this.windows,
     this.layouts,
@@ -189,6 +232,7 @@ final class GamePackagePresentation {
   final GamePackageTypography? typography;
   final GamePackageSemanticTheme? theme;
   final GamePackagePresentationSurfacePalettes? surfacePalettes;
+  final GamePackagePausePresentation? pause;
   final GamePackageMenuLabels? menuLabels;
   final GamePackagePresentationWindows? windows;
   final GamePackagePresentationLayouts? layouts;
@@ -208,6 +252,7 @@ final class GamePackagePresentation {
         if (theme != null) 'theme': theme!.toJson(),
         if (schemaVersion >= 6 && surfacePalettes != null)
           'surfacePalettes': surfacePalettes!.toJson(),
+        if (schemaVersion >= 8 && pause != null) 'pause': pause!.toJson(),
         if (menuLabels != null) 'menuLabels': menuLabels!.toJson(),
         if (schemaVersion >= 3 && windows != null)
           'windows': windows!.toJson(

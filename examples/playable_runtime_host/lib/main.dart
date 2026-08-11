@@ -1295,6 +1295,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
             controller: viewController,
             titlePresentation: playerPresentation.title,
             pauseMenuLabels: playerPresentation.pauseMenuLabels,
+            pausePresentation: playerPresentation.pausePresentation,
             gameplayInputRoute: host.sessionController.handleInput,
             gameplayInputAuthority: game.inputAuthorityListenable,
             dialoguePresentation: game.dialoguePresentationListenable,

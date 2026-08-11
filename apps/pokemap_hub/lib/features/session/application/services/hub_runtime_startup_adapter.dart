@@ -39,6 +39,7 @@ final class HubRuntimeStartupAdapter
     final typography = presentation?.typography;
     final theme = presentation?.theme;
     final surfacePalettes = presentation?.surfacePalettes;
+    final pause = presentation?.pause;
     final menuLabels = presentation?.menuLabels;
     final windows = presentation?.windows;
     final layouts = presentation?.layouts;
@@ -49,6 +50,7 @@ final class HubRuntimeStartupAdapter
         typography == null &&
         theme == null &&
         surfacePalettes == null &&
+        pause == null &&
         menuLabels == null &&
         windows == null &&
         layouts == null) {
@@ -150,6 +152,28 @@ final class HubRuntimeStartupAdapter
                 pauseMenu: _projectSurfacePalette(surfacePalettes.pauseMenu),
                 dialogue: _projectSurfacePalette(surfacePalettes.dialogue),
                 battle: _projectSurfacePalette(surfacePalettes.battle),
+              ),
+      pause:
+          pause == null
+              ? null
+              : ProjectPausePresentationProfile(
+                title: pause.title,
+                hint: pause.hint,
+                actions: pause.actions
+                    ?.map(
+                      (action) => ProjectPauseActionProfile(
+                        id: ProjectPauseActionId.values.byName(action.id),
+                        label: action.label,
+                        icon:
+                            action.icon == null
+                                ? null
+                                : ProjectPauseActionIcon.values.byName(
+                                  action.icon!,
+                                ),
+                        visible: action.visible,
+                      ),
+                    )
+                    .toList(growable: false),
               ),
       menuLabels:
           menuLabels == null

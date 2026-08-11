@@ -860,7 +860,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     const presentationKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationProfile",
     );
-    assert.equal(Number(presentationKind?.version), 7);
+    assert.equal(Number(presentationKind?.version), 8);
     const presetKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationPreset",
     );
@@ -885,7 +885,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       actionId: "presentation.update",
       parameters: {
         profile: {
-          schemaVersion: 7,
+          schemaVersion: 8,
           branding: { accentColor: "#126E78" },
           title: {
             title: "Aube sur Hanazuki",
@@ -907,9 +907,19 @@ test("MCP applies and rereads the authored presentation profile", async () => {
               { id: "options", visible: false },
             ],
           },
-          menuLabels: {
-            pauseTitle: "Escale",
-            pokedex: "Carnet de voyage",
+          pause: {
+            title: "Escale",
+            hint: "A pour choisir",
+            actions: [
+              {
+                id: "pokedex",
+                label: "Carnet de voyage",
+                icon: "book",
+                visible: true,
+              },
+              { id: "resume", icon: "play", visible: true },
+              { id: "map", icon: "map", visible: false },
+            ],
           },
           windows: {
             styles: [
@@ -1028,7 +1038,9 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       ["newGame", "continueGame", "options"],
     );
     assert.equal(
-      record(record(project.presentation).menuLabels).pokedex,
+      record(
+        (record(record(project.presentation).pause).actions as unknown[])[0],
+      ).label,
       "Carnet de voyage",
     );
     assert.equal(
@@ -1093,7 +1105,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       false,
     );
     assert.equal(
-      record(record(persisted.presentation).menuLabels).pauseTitle,
+      record(record(persisted.presentation).pause).title,
       "Escale",
     );
     assert.equal(

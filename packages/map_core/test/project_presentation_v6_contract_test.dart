@@ -128,7 +128,10 @@ void main() {
         },
       });
 
-      expect(profile.schemaVersion, 7);
+      expect(
+        profile.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(profile.surfacePalettes, isNull);
       expect(profile.typography?.body.metrics, isNull);
       expect(profile.windows?.styles.single.shape, ProjectWindowShape.rounded);

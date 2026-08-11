@@ -117,11 +117,21 @@ void main() {
       expect(ids, containsAll({'presentation.update', 'presentation.delete'}));
     });
 
-    test('presentation.update carries project-owned menu labels', () {
+    test('presentation.update carries project-owned pause actions', () {
       const profile = ProjectPresentationProfile(
-        menuLabels: ProjectMenuLabelsProfile(
-          pauseTitle: 'Interlude',
-          pokedex: 'Carnet',
+        pause: ProjectPausePresentationProfile(
+          title: 'Interlude',
+          actions: <ProjectPauseActionProfile>[
+            ProjectPauseActionProfile(
+              id: ProjectPauseActionId.pokedex,
+              label: 'Carnet',
+              icon: ProjectPauseActionIcon.book,
+            ),
+            ProjectPauseActionProfile(
+              id: ProjectPauseActionId.resume,
+              icon: ProjectPauseActionIcon.play,
+            ),
+          ],
         ),
       );
       final snapshot = _snapshot();
@@ -148,15 +158,18 @@ void main() {
       expect(
         draft.preview['profile'],
         containsPair(
-          'menuLabels',
-          containsPair('pokedex', 'Carnet'),
+          'pause',
+          containsPair('title', 'Interlude'),
         ),
       );
       expect(
         draft.changeSet.diff.entries.single.after,
         containsPair(
-          'menuLabels',
-          containsPair('pauseTitle', 'Interlude'),
+          'pause',
+          containsPair(
+            'actions',
+            contains(containsPair('label', 'Carnet')),
+          ),
         ),
       );
     });

@@ -201,6 +201,97 @@ const List<ProjectTitleActionProfile> defaultProjectTitleActions =
       ),
     ];
 
+enum ProjectPauseActionId {
+  resume,
+  party,
+  bag,
+  pokedex,
+  map,
+  save,
+  options,
+  returnToTitle,
+}
+
+enum ProjectPauseActionIcon {
+  play,
+  party,
+  bag,
+  book,
+  map,
+  save,
+  settings,
+  exit,
+}
+
+@Freezed(fromJson: true, toJson: true)
+abstract class ProjectPauseActionProfile with _$ProjectPauseActionProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectPauseActionProfile({
+    required ProjectPauseActionId id,
+    @JsonKey(includeIfNull: false) String? label,
+    @JsonKey(includeIfNull: false) ProjectPauseActionIcon? icon,
+    @Default(true) bool visible,
+  }) = _ProjectPauseActionProfile;
+
+  factory ProjectPauseActionProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectPauseActionProfileFromJson(json);
+}
+
+const List<ProjectPauseActionProfile> defaultProjectPauseActions =
+    <ProjectPauseActionProfile>[
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.resume,
+        icon: ProjectPauseActionIcon.play,
+      ),
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.party,
+        icon: ProjectPauseActionIcon.party,
+      ),
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.bag,
+        icon: ProjectPauseActionIcon.bag,
+      ),
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.pokedex,
+        icon: ProjectPauseActionIcon.book,
+      ),
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.map,
+        icon: ProjectPauseActionIcon.map,
+      ),
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.save,
+        icon: ProjectPauseActionIcon.save,
+      ),
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.options,
+        icon: ProjectPauseActionIcon.settings,
+      ),
+      ProjectPauseActionProfile(
+        id: ProjectPauseActionId.returnToTitle,
+        icon: ProjectPauseActionIcon.exit,
+      ),
+    ];
+
+@Freezed(fromJson: true, toJson: true)
+abstract class ProjectPausePresentationProfile
+    with _$ProjectPausePresentationProfile {
+  const ProjectPausePresentationProfile._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectPausePresentationProfile({
+    @JsonKey(includeIfNull: false) String? title,
+    @JsonKey(includeIfNull: false) String? hint,
+    @JsonKey(includeIfNull: false) List<ProjectPauseActionProfile>? actions,
+  }) = _ProjectPausePresentationProfile;
+
+  factory ProjectPausePresentationProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectPausePresentationProfileFromJson(json);
+
+  List<ProjectPauseActionProfile> get effectiveActions =>
+      actions ?? defaultProjectPauseActions;
+}
+
 @Freezed(fromJson: true, toJson: true)
 abstract class ProjectTitlePresentationProfile
     with _$ProjectTitlePresentationProfile {
@@ -330,6 +421,29 @@ abstract class ProjectMenuLabelsProfile with _$ProjectMenuLabelsProfile {
       _$ProjectMenuLabelsProfileFromJson(json);
 }
 
+ProjectPausePresentationProfile? projectPausePresentationFromMenuLabels(
+  ProjectMenuLabelsProfile? labels,
+) {
+  if (labels == null) return null;
+  final actionLabels = <ProjectPauseActionId, String?>{
+    ProjectPauseActionId.resume: labels.resume,
+    ProjectPauseActionId.party: labels.party,
+    ProjectPauseActionId.bag: labels.bag,
+    ProjectPauseActionId.pokedex: labels.pokedex,
+    ProjectPauseActionId.map: labels.map,
+    ProjectPauseActionId.save: labels.save,
+    ProjectPauseActionId.options: labels.options,
+    ProjectPauseActionId.returnToTitle: labels.returnToTitle,
+  };
+  return ProjectPausePresentationProfile(
+    title: labels.pauseTitle,
+    actions: <ProjectPauseActionProfile>[
+      for (final action in defaultProjectPauseActions)
+        action.copyWith(label: actionLabels[action.id]),
+    ],
+  );
+}
+
 @Freezed(fromJson: true, toJson: true)
 abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
   const ProjectPresentationProfile._();
@@ -346,6 +460,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
     @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,
     @JsonKey(includeIfNull: false)
     ProjectPresentationSurfacePalettesProfile? surfacePalettes,
+    @JsonKey(includeIfNull: false) ProjectPausePresentationProfile? pause,
     @JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,
     @JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? windows,
     @JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? layouts,
@@ -356,10 +471,13 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         _migrateProjectPresentationProfileJson(json),
       );
 
-  static const int supportedSchemaVersion = 7;
+  static const int supportedSchemaVersion = 8;
 
   ProjectPresentationWindowsProfile get effectiveWindows =>
       windows ?? legacyProjectPresentationWindows;
+
+  ProjectPausePresentationProfile? get effectivePause =>
+      pause ?? projectPausePresentationFromMenuLabels(menuLabels);
 
   Set<ProjectPresentationCategory> get configuredCategories =>
       <ProjectPresentationCategory>{
@@ -369,6 +487,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         if (typography != null) ProjectPresentationCategory.typography,
         if (theme != null ||
             surfacePalettes != null ||
+            pause != null ||
             menuLabels != null ||
             windows != null)
           ProjectPresentationCategory.theme,
@@ -421,6 +540,9 @@ const int projectTitleCopyMaxLength = 80;
 const int projectTitleSubtitleMaxLength = 120;
 const int projectTitlePromptMaxLength = 160;
 const int projectTitleActionLabelMaxLength = 40;
+const int projectPauseTitleMaxLength = 80;
+const int projectPauseHintMaxLength = 160;
+const int projectPauseActionLabelMaxLength = 40;
 const int projectTitleMaxLines = 2;
 const int projectTitleSubtitleMaxLines = 2;
 const int projectTitlePromptMaxLines = 3;
@@ -521,6 +643,7 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
     profile.theme ?? safeProjectSemanticTheme,
     diagnostics,
   );
+  _validatePause(profile.effectivePause, diagnostics);
   _validateMenuLabels(profile.menuLabels, diagnostics);
   _validateWindows(
     profile.windows,
@@ -904,6 +1027,130 @@ void _validateMenuLabels(
         'Menu labels must remain on one readable line.',
       );
     }
+  }
+}
+
+void _validatePause(
+  ProjectPausePresentationProfile? pause,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (pause == null) return;
+  _validatePauseCopy(
+    pause.title,
+    field: 'title',
+    emptyCode: 'pauseTitleEmpty',
+    lengthCode: 'pauseTitleTooLong',
+    controlCode: 'pauseTitleContainsControlCharacters',
+    maximum: projectPauseTitleMaxLength,
+    diagnostics: diagnostics,
+  );
+  _validatePauseCopy(
+    pause.hint,
+    field: 'hint',
+    emptyCode: 'pauseHintEmpty',
+    lengthCode: 'pauseHintTooLong',
+    controlCode: 'pauseHintContainsControlCharacters',
+    maximum: projectPauseHintMaxLength,
+    diagnostics: diagnostics,
+  );
+  final actions = pause.actions;
+  if (actions == null) return;
+  final seen = <ProjectPauseActionId>{};
+  var hasVisibleResume = false;
+  for (var index = 0; index < actions.length; index++) {
+    final action = actions[index];
+    final path = '\$.presentation.pause.actions[$index]';
+    if (!seen.add(action.id)) {
+      _presentationError(
+        diagnostics,
+        'pauseActionDuplicate',
+        ProjectPresentationCategory.theme,
+        '$path.id',
+        'Pause actions must use unique identifiers.',
+      );
+    }
+    if (action.id == ProjectPauseActionId.resume && action.visible) {
+      hasVisibleResume = true;
+    }
+    final label = action.label;
+    if (label == null) continue;
+    if (label.trim().isEmpty) {
+      _presentationError(
+        diagnostics,
+        'pauseActionLabelEmpty',
+        ProjectPresentationCategory.theme,
+        '$path.label',
+        'Pause action labels must not be empty.',
+      );
+    }
+    if (label.runes.length > projectPauseActionLabelMaxLength) {
+      _presentationError(
+        diagnostics,
+        'pauseActionLabelTooLong',
+        ProjectPresentationCategory.theme,
+        '$path.label',
+        'Pause action labels must use at most '
+            '$projectPauseActionLabelMaxLength characters.',
+      );
+    }
+    if (RegExp(r'[\u0000-\u001F\u007F]').hasMatch(label)) {
+      _presentationError(
+        diagnostics,
+        'pauseActionLabelContainsControlCharacters',
+        ProjectPresentationCategory.theme,
+        '$path.label',
+        'Pause action labels must remain on one readable line.',
+      );
+    }
+  }
+  if (!hasVisibleResume) {
+    _presentationError(
+      diagnostics,
+      'pauseResumeRequired',
+      ProjectPresentationCategory.theme,
+      r'$.presentation.pause.actions',
+      'The resume action must remain visible.',
+    );
+  }
+}
+
+void _validatePauseCopy(
+  String? value, {
+  required String field,
+  required String emptyCode,
+  required String lengthCode,
+  required String controlCode,
+  required int maximum,
+  required List<ProjectPresentationDiagnostic> diagnostics,
+}) {
+  if (value == null) return;
+  final path = '\$.presentation.pause.$field';
+  if (value.trim().isEmpty) {
+    _presentationError(
+      diagnostics,
+      emptyCode,
+      ProjectPresentationCategory.theme,
+      path,
+      'Pause copy must not be empty.',
+    );
+  }
+  if (value.runes.length > maximum) {
+    _presentationError(
+      diagnostics,
+      lengthCode,
+      ProjectPresentationCategory.theme,
+      path,
+      'Pause copy must use at most $maximum characters.',
+    );
+  }
+  if (RegExp(r'[\u0000-\u001F\u007F]').hasMatch(value)) {
+    _presentationError(
+      diagnostics,
+      controlCode,
+      ProjectPresentationCategory.theme,
+      path,
+      'Pause copy must remain on one readable line.',
+    );
   }
 }
 
@@ -1792,20 +2039,33 @@ Map<String, dynamic> _migrateProjectPresentationProfileJson(
       source.containsKey('title')) {
     throw const FormatException('Title copy requires schema version 7.');
   }
+  if (schemaVersion is int &&
+      schemaVersion < 8 &&
+      source.containsKey('pause')) {
+    throw const FormatException(
+      'Pause presentation requires schema version 8.',
+    );
+  }
+  if (schemaVersion == 8) {
+    return _migrateProjectPausePresentation(Map<String, dynamic>.from(source));
+  }
   if (schemaVersion == 2 ||
       schemaVersion == 3 ||
       schemaVersion == 4 ||
       schemaVersion == 5 ||
-      schemaVersion == 6) {
-    return Map<String, dynamic>.from(source)
-      ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion;
+      schemaVersion == 6 ||
+      schemaVersion == 7) {
+    return _migrateProjectPausePresentation(
+      Map<String, dynamic>.from(source)
+        ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion,
+    );
   }
   if (schemaVersion != 1) return Map<String, dynamic>.from(source);
 
   final migrated = Map<String, dynamic>.from(source)
     ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion;
   final rawIntro = source['intro'];
-  if (rawIntro is! Map) return migrated;
+  if (rawIntro is! Map) return _migrateProjectPausePresentation(migrated);
 
   final intro = Map<String, dynamic>.from(rawIntro);
   final reducedMotionBehavior = intro.remove('reducedMotionBehavior');
@@ -1821,6 +2081,38 @@ Map<String, dynamic> _migrateProjectPresentationProfileJson(
     if (reducedMotionBehavior != null)
       'reducedMotionBehavior': reducedMotionBehavior,
     if (allowReplay != null) 'allowReplay': allowReplay,
+  };
+  return _migrateProjectPausePresentation(migrated);
+}
+
+Map<String, dynamic> _migrateProjectPausePresentation(
+  Map<String, dynamic> migrated,
+) {
+  final rawLabels = migrated.remove('menuLabels');
+  if (rawLabels is! Map || migrated.containsKey('pause')) return migrated;
+  String? label(String field) => rawLabels[field] as String?;
+  final labels = <String, String?>{
+    'resume': label('resume'),
+    'party': label('party'),
+    'bag': label('bag'),
+    'pokedex': label('pokedex'),
+    'map': label('map'),
+    'save': label('save'),
+    'options': label('options'),
+    'returnToTitle': label('returnToTitle'),
+  };
+  migrated['pause'] = <String, Object?>{
+    if (label('pauseTitle') case final title?) 'title': title,
+    'actions': <Object?>[
+      for (final action in defaultProjectPauseActions)
+        <String, Object?>{
+          'id': action.id.name,
+          if (labels[action.id.name] case final actionLabel?)
+            'label': actionLabel,
+          if (action.icon case final icon?) 'icon': icon.name,
+          'visible': true,
+        },
+    ],
   };
   return migrated;
 }

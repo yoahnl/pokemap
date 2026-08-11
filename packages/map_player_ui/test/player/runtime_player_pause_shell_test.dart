@@ -258,6 +258,63 @@ void main() {
     expect(find.text('Pokédex'), findsNothing);
   });
 
+  testWidgets('authored action order visibility and identity drive navigation',
+      (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1280, 800));
+    final selected = <PlayerPauseAction>[];
+    final presentation = PlayerPausePresentation.fromProfile(
+      const ProjectPausePresentationProfile(
+        title: 'Interlude',
+        actions: <ProjectPauseActionProfile>[
+          ProjectPauseActionProfile(
+            id: ProjectPauseActionId.pokedex,
+            label: 'Bestiaire',
+            icon: ProjectPauseActionIcon.book,
+          ),
+          ProjectPauseActionProfile(
+            id: ProjectPauseActionId.resume,
+            label: 'Continuer',
+            icon: ProjectPauseActionIcon.play,
+          ),
+          ProjectPauseActionProfile(
+            id: ProjectPauseActionId.party,
+            visible: false,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerPauseShell(
+          gameTitle: 'Aube',
+          pauseSection: RuntimePlayerPauseSection.root,
+          actions: _actions(),
+          presentation: presentation,
+          onSelected: selected.add,
+          onBackToRoot: () {},
+          detail: const SizedBox.shrink(),
+        ),
+      ),
+    );
+
+    final buttons = tester
+        .widgetList<PlayerActionButton>(find.byType(PlayerActionButton))
+        .toList(growable: false);
+    expect(buttons.map((button) => button.label), <String>[
+      'Bestiaire',
+      'Continuer',
+    ]);
+    expect(find.text('Équipe'), findsNothing);
+    expect(
+        FocusManager.instance.primaryFocus?.debugLabel, contains('Bestiaire'));
+
+    await tester.tap(find.text('Bestiaire'));
+    expect(selected, <PlayerPauseAction>[PlayerPauseAction.pokedex]);
+  });
+
   testWidgets('installed runtime shell consumes authored window styling',
       (tester) async {
     await _setSurface(tester, const Size(1280, 800));

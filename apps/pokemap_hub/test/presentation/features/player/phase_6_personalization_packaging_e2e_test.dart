@@ -182,8 +182,16 @@ void main() {
         presentation.layoutProfile?.pauseMenu.expanded.slot,
         ProjectPresentationLayoutSlot.leftPane,
       );
-      expect(runtimeProfile.schemaVersion, 7);
-      expect(runtimeProfile.menuLabels?.pokedex, 'Carnet de route');
+      expect(
+        runtimeProfile.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
+      expect(
+        runtimeProfile.pause?.actions
+            ?.firstWhere((action) => action.id == ProjectPauseActionId.pokedex)
+            .label,
+        'Carnet de route',
+      );
       expect(presentation.typography.combatFallback, <String>['monospace']);
       expect(
         presentation.windowProfile
@@ -502,7 +510,7 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
         ),
       ),
       theme: _packageTheme(profile.theme!),
-      menuLabels: _packageMenuLabels(profile.menuLabels!),
+      pause: _packagePause(profile.pause!),
       windows: _packageWindows(profile.windows!),
       layouts: _packageLayouts(profile.layouts!),
     ),
@@ -535,18 +543,20 @@ GamePackageSemanticTheme _packageTheme(ProjectSemanticThemeProfile theme) =>
       battleHudSurface: theme.battleHudSurface,
     );
 
-GamePackageMenuLabels _packageMenuLabels(ProjectMenuLabelsProfile labels) =>
-    GamePackageMenuLabels(
-      pauseTitle: labels.pauseTitle,
-      resume: labels.resume,
-      party: labels.party,
-      bag: labels.bag,
-      pokedex: labels.pokedex,
-      map: labels.map,
-      save: labels.save,
-      options: labels.options,
-      returnToTitle: labels.returnToTitle,
-    );
+GamePackagePausePresentation _packagePause(
+  ProjectPausePresentationProfile pause,
+) => GamePackagePausePresentation(
+  title: pause.title,
+  hint: pause.hint,
+  actions: pause.actions?.map(
+    (action) => GamePackagePauseAction(
+      id: action.id.name,
+      label: action.label,
+      icon: action.icon?.name,
+      visible: action.visible,
+    ),
+  ),
+);
 
 GamePackagePresentationWindows _packageWindows(
   ProjectPresentationWindowsProfile windows,

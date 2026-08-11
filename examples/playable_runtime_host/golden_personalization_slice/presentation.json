@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 8,
   "branding": {
     "iconPath": "assets/presentation/icon.png",
     "coverPath": "assets/presentation/cover.png",
@@ -100,16 +100,19 @@
     "overworldHudSurface": "#FFFFFF",
     "battleHudSurface": "#FFFFFF"
   },
-  "menuLabels": {
-    "pauseTitle": "Escale",
-    "resume": "Reprendre le voyage",
-    "party": "Compagnons",
-    "bag": "Sac de voyage",
-    "pokedex": "Carnet de route",
-    "map": "Itinéraire",
-    "save": "Consigner",
-    "options": "Réglages",
-    "returnToTitle": "Quitter le train"
+  "pause": {
+    "title": "Escale",
+    "hint": "Entrée / bouton A. Pause",
+    "actions": [
+      {"id": "resume", "label": "Reprendre le voyage", "icon": "play", "visible": true},
+      {"id": "party", "label": "Compagnons", "icon": "party", "visible": true},
+      {"id": "bag", "label": "Sac de voyage", "icon": "bag", "visible": true},
+      {"id": "pokedex", "label": "Carnet de route", "icon": "book", "visible": true},
+      {"id": "map", "label": "Itinéraire", "icon": "map", "visible": true},
+      {"id": "save", "label": "Consigner", "icon": "save", "visible": true},
+      {"id": "options", "label": "Réglages", "icon": "settings", "visible": true},
+      {"id": "returnToTitle", "label": "Quitter le train", "icon": "exit", "visible": true}
+    ]
   },
   "windows": {
     "styles": [
