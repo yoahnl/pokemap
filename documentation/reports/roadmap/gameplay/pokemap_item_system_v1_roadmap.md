@@ -12,7 +12,10 @@
 
 ## 1. Statut, autorité et règle de portée
 
-- [ ] IN_PROGRESS — ITM-001 et la phase 0 sont terminés ; les phases 1 à 7 restent à exécuter.
+- [ ] IN_PROGRESS — les phases 0 à 5 sont clôturées ; la phase 6 est la prochaine vague exécutable et la phase 7 reste bloquée par ITM-062.
+- Dernière mise à jour : 11 août 2026, après rebase de `codex/item-system-phase-0` sur le `main` local `6ea3b7e8fd09` et validation du HEAD produit `dbc93a7dd`.
+- Avancement : 33 lots DONE, 1 lot DEFERRED_BY_PRODUCT et 8 lots TODO sur 42 lots uniques.
+- La phase 3 est clôturée sur le périmètre V1 signé ; ITM-034 Repel reste explicitement différé avec FG-065 et ne bloque ni la phase 6, ni la capture minimale.
 - Ce document est la roadmap dédiée à la refonte Item System V1.
 - La roadmap mécanique racine reste l’autorité des statuts FG-050 et FG-060 à FG-079.
 - Les identifiants ITM-* découpent l’implémentation technique sans remplacer les identifiants FG-*.
@@ -24,9 +27,9 @@
 
 ## 2. Résumé exécutif
 
-Le système actuel possède des briques réelles et testées : persistance du Bag, soins hors combat, objets de combat génériques, capture minimale, boutiques, récompenses, pickups, machines et objets tenus. Le problème n’est donc pas l’absence de fonctionnalités, mais l’absence d’une autorité commune.
+À l’ouverture de cette roadmap, le système possédait déjà des briques réelles et testées : persistance du Bag, soins hors combat, objets de combat génériques, capture minimale, boutiques, récompenses, pickups, machines et objets tenus. Le problème initial n’était donc pas l’absence de fonctionnalités, mais l’absence d’une autorité commune.
 
-Aujourd’hui :
+Le diagnostic de départ était le suivant :
 
 - BagEntry persiste itemId, categoryId et quantity ;
 - Bag.normalized fusionne par le couple categoryId/itemId ;
@@ -47,6 +50,22 @@ La stratégie retenue est un remplacement progressif du code, livré comme une r
 5. livrer l’authoring no-code et la parité MCP ;
 6. supprimer intégralement les chemins historiques ;
 7. certifier le tout sur une golden slice générique.
+
+### 2.1 État livré après la phase 5
+
+| Domaine | État au 11 août 2026 | Autorité actuelle |
+|---|---|---|
+| Catalogue et codec | DONE — schéma V1 strict, définitions exécutables, validation et ports partagés | `ProjectItemCatalog` dans map_core |
+| Bag et sauvegarde | DONE fonctionnel — piles par itemId, opérations atomiques, receipts et refus typé des anciens saves ; suppression physique finale réservée à ITM-062 | `BagOperations` et `UnsupportedSaveSchema` |
+| Gameplay | DONE sur le périmètre V1 — overworld, battle, capture minimale, key items, TM/HM, évolution et held items | `ItemCatalogSnapshot`, `ItemCapabilityResolver` et services spécialisés |
+| Producteurs et économie | DONE — New Game, événements, pickups, rewards et shops utilisent les contrats canoniques | `BagOperations` et `ProjectItemReferenceIndex` |
+| Authoring et MCP | DONE — lectures, mutations, Item Studio, pickers, JSONL, Editor et MCP sont raccordés | map_authoring et ses adaptateurs de transport |
+| Suppression historique | TODO — les façades, wrappers et preuves historiques doivent encore être retirés physiquement | ITM-060 à ITM-062 |
+| Certification produit | BLOCKED_BY_ITM_062 — aucune golden slice Item System V1 consolidée n’existe encore | ITM-070 à ITM-074 |
+
+### 2.2 Décision de continuation
+
+La prochaine vague est strictement séquentielle : ITM-060 retire les décisions historiques par catégorie, ITM-061 retire les registries et wrappers devenus inutiles, puis ITM-062 certifie l’absence de l’ancien wire Bag. La phase 7 ne commence qu’après cette suppression. ITM-034 reste hors vague tant que la décision produit FG-065 n’est pas explicitement réouverte. Cette synthèse ne modifie aucun statut FG de la roadmap mécanique racine : leur recertification reste réservée à ITM-074.
 
 ## 3. Audit initial vérifié
 
@@ -105,6 +124,28 @@ Ces fichiers ne doivent pas être fusionnés artificiellement dans un mega-servi
 | analyses ciblées map_runtime et map_editor | aucune issue |
 
 Cette baseline prouve les slices existantes. Elle ne prouve pas leur intégration avec des catégories de catalogue arbitraires.
+
+### 3.5 État frais après la phase 5 et le rebase
+
+- Branche vérifiée : `codex/item-system-phase-0`.
+- Base locale vérifiée : `main` à `6ea3b7e8fd09`, ancêtre du HEAD de la branche.
+- HEAD produit vérifié avant cette mise à jour documentaire : `dbc93a7dd`.
+- Écart vérifié : 40 commits de la branche et aucun commit de `main` absent après le rebase.
+- État Git initial de cette mise à jour : worktree propre.
+
+| Vérification fraîche | Résultat exact |
+|---|---:|
+| `cd packages/map_authoring && dart test` | 562 tests réussis |
+| `cd packages/map_authoring && dart analyze` | aucune issue |
+| `cd packages/map_editor && flutter test test/item_studio_workspace_test.dart test/authoring_api/item_authoring_transport_test.dart` | 7 tests réussis |
+| `cd packages/map_editor && flutter analyze` | aucune issue |
+| `cd packages/map_runtime && flutter test test/player_service_runtime_controller_test.dart test/player/runtime_shop_service_test.dart` | 12 tests réussis |
+| `cd examples/playable_runtime_host && flutter test test/evaluation/evaluation_playtest_adapter_test.dart --plain-name "bounded player-state service drives Bag commands without durable writes"` | 1 test réussi |
+| `cd examples/playable_runtime_host && flutter analyze lib/main.dart` | aucune issue |
+| `cd tools/pokemap_mcp && node --import tsx --test test/item_authoring.test.ts test/playtest_player_state.test.ts` | 2 tests réussis |
+| `cd tools/pokemap_mcp && npm run check` | aucune erreur TypeScript |
+
+L’analyse globale de `examples/playable_runtime_host` conserve un exit code non nul causé par 26 lints de niveau `info` déjà présents et hors périmètre Item System. Le fichier recomposé par le rebase, `lib/main.dart`, est analysé sans issue. Cette dette n’est donc ni masquée, ni attribuée à la phase 5.
 
 ## 4. Contrat produit non négociable
 
@@ -290,16 +331,29 @@ ItemCatalogSnapshot compose la définition d’objet avec les références exter
 
 ## 7. Vue d’ensemble des phases
 
-| Phase | Lots | Résultat livrable | Dépend de |
-|---|---|---|---|
-| 0 — Vérité et inventaire de rupture | ITM-001 | Les comportements à conserver et les chemins à supprimer sont verrouillés | — |
-| 1 — Contrats canoniques | ITM-010 à ITM-014 | Catalogue strict, codec et validation partagés | Phase 0 |
-| 2 — Bag transactionnel | ITM-020 à ITM-024 | Nouveau wire Bag par itemId, receipts atomiques et version gate | Phase 1 |
-| 3 — Consommateurs gameplay | ITM-025 à ITM-038 | Classification, diagnostics, overworld, battle, capture minimale, key items, machines et held items unifiés | Phase 2 |
-| 4 — Producteurs et économie | ITM-040 à ITM-044 | New Game, scènes, pickups, rewards et shops utilisent la même autorité | Phase 2 |
-| 5 — Authoring et MCP | ITM-050 à ITM-055 | Item Studio no-code et parité transports | Phases 1, 3 et 4 |
-| 6 — Suppression historique | ITM-060 à ITM-062 | Anciens chemins et anciens formats physiquement absents | Phase 5 |
-| 7 — Certification | ITM-070 à ITM-074 | Golden slice générique et statuts FG recertifiés | Phase 6 |
+| Phase | Lots | Statut | Résultat livrable | Dépend de |
+|---|---|---|---|---|
+| 0 — Vérité et inventaire de rupture | ITM-001 | DONE | Les comportements à conserver et les chemins à supprimer sont verrouillés | — |
+| 1 — Contrats canoniques | ITM-010 à ITM-014 | DONE | Catalogue strict, codec et validation partagés | Phase 0 |
+| 2 — Bag transactionnel | ITM-020 à ITM-024 | DONE | Nouveau wire Bag par itemId, receipts atomiques et version gate | Phase 1 |
+| 3 — Consommateurs gameplay | ITM-025 à ITM-038 | DONE_SCOPE_V1 — ITM-034 différé | Classification, diagnostics, overworld, battle, capture minimale, key items, machines et held items unifiés | Phase 2 |
+| 4 — Producteurs et économie | ITM-040 à ITM-044 | DONE | New Game, scènes, pickups, rewards et shops utilisent la même autorité | Phase 2 |
+| 5 — Authoring et MCP | ITM-050 à ITM-055 | DONE | Item Studio no-code et parité transports | Phases 1, 3 et 4 |
+| 6 — Suppression historique | ITM-060 à ITM-062 | NEXT | Anciens chemins et anciens formats physiquement absents | Phase 5 |
+| 7 — Certification | ITM-070 à ITM-074 | BLOCKED_BY_ITM_062 | Golden slice générique et statuts FG recertifiés | Phase 6 |
+
+### 7.1 Preuves Git après rebase
+
+| Phase | Commits rebased de preuve |
+|---|---|
+| 0 | `a07f0b0a3` |
+| 1 | `a42813236` à `df01da0c0` |
+| 2 | `963f95403` à `df8efd489` |
+| 3 | `0f80d69a8` à `62fa55b94` |
+| 4 | `e616cb5a3` à `985c544f5` |
+| 5 | `208fdbe19` à `73810116b`, puis intégration post-rebase `dbc93a7dd` |
+
+Ces identifiants remplacent les hashes antérieurs au rebase. Ils prouvent l’historique de la branche dédiée ; ils ne remplacent pas les commandes fraîches exigées pour clôturer les phases 6 et 7.
 
 Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modifient save_data.dart, le codec de catalogue ou les registries partagés restent séquentiels.
 
@@ -1002,9 +1056,13 @@ Résultat attendu : exit code 0 pour chaque commande.
 - **Gate :** catalog mutations et player-state mutations ont des permissions et receipts distincts.
 - **Dépendances :** ITM-054.
 
-**Preuves ITM-055 :** `PlaytestPlayerStateService` est l'unique frontière publique pour `bag.give` et `bag.consume` côté playtest. Il exige une session vivante liée aux mêmes `WorkspaceHandle` et `ProjectHandle`, sépare `playtest.run` de `playtest.control`, réserve atomiquement chaque identifiant de session et libère les sessions terminales après un échec de commande ou d'arrêt. Il n'accepte aucun chemin de sauvegarde et retourne un receipt non durable `playtest_player_state`. Les deux commandes traversent réellement `RuntimePlaytestPort`, `EvaluationPlaytestDriver` et l'unique `EvaluationCommandDispatcher` avant d'appliquer `GameStateMutations` ; `item.*` et `campaign.new_game.update` restent des mutations de projet avec `project.write` et receipts authoring journalisés. L'ancien catalogue de descripteurs `sandbox.*`, non exécutable, a été supprimé sans alias. Le describe MCP n'annonce aucune mutation Bag ; `bag.give` et `sandbox.bag.give` sont refusés avec le code `map.action_unsupported`, y compris avec un `savePath`, sans modifier le fichier témoin hors `projectRoot`. Le catalogue canonique accompagne désormais toute requête shop jusqu'au host et les stocks utilisent exclusivement la clé `shopId::stateId::itemId`, sans cas spécial historique. La suite `map_authoring` complète termine avec 557 tests réussis et `dart analyze` sans problème. Les preuves runtime et host ciblées terminent respectivement avec 12 et 10 tests réussis, sans erreur d'analyse dans les fichiers touchés. La suite MCP sérialisée termine avec 42 tests réussis en 195,4 secondes ; `npm run check` ne signale aucune erreur TypeScript.
+**Preuves ITM-055 :** `PlaytestPlayerStateService` est l'unique frontière publique pour `bag.give` et `bag.consume` côté playtest. Il exige une session vivante liée aux mêmes `WorkspaceHandle` et `ProjectHandle`, sépare `playtest.run` de `playtest.control`, réserve atomiquement chaque identifiant de session et libère les sessions terminales après un échec de commande ou d'arrêt. Il n'accepte aucun chemin de sauvegarde et retourne un receipt non durable `playtest_player_state`. Les deux commandes traversent réellement `RuntimePlaytestPort`, `EvaluationPlaytestDriver` et l'unique `EvaluationCommandDispatcher` avant d'appliquer `GameStateMutations` ; `item.*` et `campaign.new_game.update` restent des mutations de projet avec `project.write` et receipts authoring journalisés. L'ancien catalogue de descripteurs `sandbox.*`, non exécutable, a été supprimé sans alias. Le describe MCP n'annonce aucune mutation Bag ; `bag.give` et `sandbox.bag.give` sont refusés avec le code `map.action_unsupported`, y compris avec un `savePath`, sans modifier le fichier témoin hors `projectRoot`. Le catalogue canonique accompagne désormais toute requête shop jusqu'au host et les stocks utilisent exclusivement la clé `shopId::stateId::itemId`, sans cas spécial historique. Après rebase, la suite `map_authoring` complète termine avec 562 tests réussis et `dart analyze` sans problème. Les preuves runtime et host ciblées du lot terminaient respectivement avec 12 et 10 tests réussis ; la validation post-rebase confirme à nouveau les 12 tests runtime et le scénario host borné. La suite MCP sérialisée du lot termine avec 42 tests réussis en 195,4 secondes ; les deux scénarios Item/playtest repassent après rebase et `npm run check` ne signale aucune erreur TypeScript.
+
+**Gate de phase 5 :** DONE. ITM-050 à ITM-055 sont clôturés, les quatre transports sont couverts et les mutations de catalogue restent séparées des mutations temporaires de session joueur. Le rebase a conservé les ressources Item et les nouveaux contrats de présentation de `main`; le commit d’intégration `dbc93a7dd` réconcilie le barrel local, le registre de ressources et le golden JSONL. Aucun droit d’écriture arbitraire dans une sauvegarde utilisateur n’a été introduit.
 
 ## 14. Phase 6 — Suppression totale des chemins historiques
+
+**Statut de phase :** NEXT. Exécuter ITM-060, ITM-061 puis ITM-062 dans cet ordre. Les occurrences `categoryId` propres aux catégories visuelles, Smart Tiles ou imports externes ne relèvent pas de ce nettoyage ; seuls le wire Bag et les décisions Item gameplay sont concernés.
 
 ### ITM-060 — Retirer les guards de catégories
 
@@ -1043,6 +1101,8 @@ Résultat attendu : exit code 0 pour chaque commande.
 - **Dépendances :** ITM-060 et ITM-023.
 
 ## 15. Phase 7 — Certification et clôture
+
+**Statut de phase :** BLOCKED_BY_ITM_062. Aucun lot de certification ne doit contourner les suppressions de la phase 6 ni certifier une façade historique encore présente.
 
 ### ITM-070 — Fixture Golden Item System
 
@@ -1123,16 +1183,16 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ## 16. Vagues d’exécution recommandées
 
-| Vague | Lots | Peut être parallélisé logiquement | Point de synchronisation |
-|---|---|---|---|
-| A | ITM-001 | Non | Inventaire de rupture |
-| B | ITM-010 → ITM-014 | ITM-012 et ITM-013 après ITM-011 | Codec partagé |
-| C | ITM-020 → ITM-024 | ITM-022 et ITM-023 après ITM-021 | Bag API stable |
-| D1 | ITM-025 → ITM-038 hors ITM-034 différé | Classification, capture, machines et held après resolver | Consommateurs |
-| D2 | ITM-040 → ITM-044 | Rewards et shops après BagOperations | Producteurs |
-| E | ITM-050 → ITM-055 | UI après actions ; transports après contrats | Parité |
-| F | ITM-060 → ITM-062 | Non | Suppression historique |
-| G | ITM-070 → ITM-074 | Non | Certification |
+| Vague | Lots | Statut | Peut être parallélisé logiquement | Point de synchronisation |
+|---|---|---|---|---|
+| A | ITM-001 | DONE | Non | Inventaire de rupture |
+| B | ITM-010 → ITM-014 | DONE | ITM-012 et ITM-013 après ITM-011 | Codec partagé |
+| C | ITM-020 → ITM-024 | DONE | ITM-022 et ITM-023 après ITM-021 | Bag API stable |
+| D1 | ITM-025 → ITM-038 hors ITM-034 différé | DONE_SCOPE_V1 | Classification, capture, machines et held après resolver | Consommateurs |
+| D2 | ITM-040 → ITM-044 | DONE | Rewards et shops après BagOperations | Producteurs |
+| E | ITM-050 → ITM-055 | DONE | UI après actions ; transports après contrats | Parité |
+| F | ITM-060 → ITM-062 | NEXT | Non | Suppression historique |
+| G | ITM-070 → ITM-074 | BLOCKED_BY_ITM_062 | Non | Certification |
 
 Une vague n’autorise pas plusieurs modifications concurrentes du même modèle généré, du même codec ou de save_data.dart.
 
@@ -1140,7 +1200,7 @@ Une vague n’autorise pas plusieurs modifications concurrentes du même modèle
 
 | Capacité | Core | Gameplay | Runtime | Editor | Authoring/MCP | Golden |
 |---|---:|---:|---:|---:|---:|---:|
-| Catalogue v2 | requis | requis | requis | requis | requis | requis |
+| Catalogue V1 | requis | requis | requis | requis | requis | requis |
 | Bag give/take | requis | requis | requis | picker | service borné | requis |
 | Heal/cure/revive | contrat | requis | requis | preview | simulate | requis |
 | PP | contrat | requis | requis | preview | simulate | requis |
@@ -1209,11 +1269,13 @@ N/A signifie réellement non applicable ; il ne doit pas masquer une exposition 
 - [ ] État Git final consigné.
 - [ ] Statut ITM et proposition de statut FG rapportés sans les maquiller.
 
-## 21. Choix d’exécution
+## 21. Prochaine exécution
 
-Cette roadmap doit être exécutée par lots, avec un checkpoint après chaque phase.
+Cette roadmap continue d’être exécutée lot par lot, avec un checkpoint après chaque phase.
 
-1. **Exécution pilotée lot par lot** — recommandée : un lot, tests, review et validation avant le suivant.
-2. **Exécution inline par vagues** — acceptable pour les lots courts d’une même phase, avec checkpoint obligatoire avant changement de package ou de schéma.
+1. **ITM-060 — retirer les guards de catégories :** transférer les dernières assertions métier utiles vers les suites canoniques, puis supprimer les décisions Item fondées sur les catégories historiques.
+2. **ITM-061 — retirer les registries et wrappers dupliqués :** supprimer les façades devenues inutiles sans alias, fallback ni API temporaire.
+3. **ITM-062 — supprimer définitivement l’ancien wire Bag :** conserver uniquement la détection nécessaire au refus typé des anciens saves et prouver qu’aucun chemin de lecture réussie ou de conversion n’existe.
+4. **Checkpoint de phase 6 :** recherches statiques, suites package, analyses et état Git exacts avant toute création de fixture de certification.
 
-Le premier lot à exécuter est ITM-001. ITM-010 ne commence qu’après obtention d’une caractérisation verte et d’un inventaire exhaustif des chemins à supprimer.
+ITM-070 ne commence qu’après clôture d’ITM-062. ITM-034 reste différé et ne doit pas être glissé discrètement dans cette vague sous prétexte qu’un Repel « n’a pas l’air bien méchant » — c’est exactement ainsi que les petits lots se transforment en marécages.
