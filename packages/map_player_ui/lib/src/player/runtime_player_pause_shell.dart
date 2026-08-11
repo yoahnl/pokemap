@@ -123,7 +123,20 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     if (widget.activeInputSource case final source?) {
       _focusController.noteInputSource(source);
     }
-    _focusController.restoreSelection(widget.logicalSelectionId);
+    _focusController.restoreSelection(
+      _availableSelectionId(widget.logicalSelectionId),
+    );
+  }
+
+  String? _availableSelectionId(String? preferred) {
+    final availableSelectionIds = _presentation.visibleActions
+        .where((action) => widget.actions[action]?.isEnabled == true)
+        .map((action) => 'pause.${action.name}')
+        .toList(growable: false);
+    if (availableSelectionIds.contains(preferred)) return preferred;
+    final current = _focusController.logicalSelectionId;
+    if (availableSelectionIds.contains(current)) return current;
+    return availableSelectionIds.firstOrNull;
   }
 
   void _onFocusStateChanged() {
@@ -199,8 +212,10 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                     _rememberScrollOffsets(_lastLayout);
                     _lastLayout = layout;
                     _focusController.restoreSelection(
-                      widget.logicalSelectionId ??
-                          _focusController.logicalSelectionId,
+                      _availableSelectionId(
+                        widget.logicalSelectionId ??
+                            _focusController.logicalSelectionId,
+                      ),
                     );
                     _restoreScrollOffsetsAfterLayout(layout);
                   }

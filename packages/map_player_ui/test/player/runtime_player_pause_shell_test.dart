@@ -317,6 +317,88 @@ void main() {
     expect(selected, <PlayerPauseAction>[PlayerPauseAction.pokedex]);
   });
 
+  testWidgets('controller focus follows visible authored order only', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1280, 800));
+    final selected = <PlayerPauseAction>[];
+    final focusController = RuntimePlayerFocusController(
+      logicalSelectionId: 'pause.party',
+      activeInputSource: PlayerInputSource.controller,
+    );
+    addTearDown(focusController.dispose);
+    final presentation = PlayerPausePresentation.fromProfile(
+      const ProjectPausePresentationProfile(
+        actions: <ProjectPauseActionProfile>[
+          ProjectPauseActionProfile(
+            id: ProjectPauseActionId.pokedex,
+            label: 'Bestiaire',
+          ),
+          ProjectPauseActionProfile(
+            id: ProjectPauseActionId.resume,
+            label: 'Continuer',
+          ),
+          ProjectPauseActionProfile(
+            id: ProjectPauseActionId.party,
+            visible: false,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerPauseShell.root(
+          gameTitle: 'Aube',
+          actions: _actions(),
+          onSelected: selected.add,
+          detail: const SizedBox.shrink(),
+          focusController: focusController,
+          logicalSelectionId: 'pause.party',
+          activeInputSource: PlayerInputSource.controller,
+          presentation: presentation,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(focusController.logicalSelectionId, 'pause.pokedex');
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('Bestiaire'),
+    );
+    expect(find.byKey(const ValueKey<String>('pause.party')), findsNothing);
+
+    final actionsContext = tester.element(
+      find.byKey(const ValueKey<String>('runtime-player-actions-context')),
+    );
+    Actions.invoke(
+      actionsContext,
+      const RuntimePlayerLogicalIntent(
+        PlayerInputAction.down,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pump();
+
+    expect(focusController.logicalSelectionId, 'pause.resume');
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('Continuer'),
+    );
+
+    Actions.invoke(
+      actionsContext,
+      const RuntimePlayerLogicalIntent(
+        PlayerInputAction.confirm,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pump();
+
+    expect(selected, <PlayerPauseAction>[PlayerPauseAction.resume]);
+  });
+
   testWidgets('authored expanded composition controls entries and root panel', (
     tester,
   ) async {
