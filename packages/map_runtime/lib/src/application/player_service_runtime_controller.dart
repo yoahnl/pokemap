@@ -389,12 +389,35 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       );
     }
     final state = _currentGameState();
+    if (command.kind == RuntimePlayerPauseCommandKind.unequipHeldItem) {
+      return _applyHeldItemTransfer(
+        const HeldItemOperations().unequip(
+          state,
+          partyIndex: partyIndex,
+        ),
+      );
+    }
     final itemCatalog = await _resolveItemCatalog();
     final definition = itemCatalog.definitionFor(command.itemTargetId);
     if (definition == null) {
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
         safeMessage: 'La définition de cet objet est absente ou invalide.',
+      );
+    }
+    if (command.kind == RuntimePlayerPauseCommandKind.equipHeldItem) {
+      if (definition.heldEffectId == null) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Cet objet ne possède aucun effet tenu.',
+        );
+      }
+      return _applyHeldItemTransfer(
+        const HeldItemOperations().equip(
+          state,
+          partyIndex: partyIndex,
+          itemId: definition.id,
+        ),
       );
     }
     if (definition.machine != null) {
@@ -492,6 +515,43 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     );
     _itemCatalog = loaded;
     return loaded;
+  }
+
+  Future<RuntimePlayerPauseCommandResult> _applyHeldItemTransfer(
+    HeldItemTransferResult result,
+  ) async {
+    if (!result.isSuccess) {
+      return RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: switch (result.failure!) {
+          HeldItemTransferFailure.invalidRequest ||
+          HeldItemTransferFailure.invalidTarget =>
+            'Cette cible ou cet objet n’est plus disponible.',
+          HeldItemTransferFailure.itemMissing =>
+            'Cet objet n’est plus présent dans le sac.',
+          HeldItemTransferFailure.noHeldItem =>
+            'Ce Pokémon ne tient aucun objet.',
+          HeldItemTransferFailure.alreadyEquipped =>
+            'Ce Pokémon tient déjà cet objet.',
+          HeldItemTransferFailure.quantityOverflow =>
+            'Le sac ne peut pas récupérer l’objet actuellement tenu.',
+        },
+      );
+    }
+    try {
+      await _commitAndSave(result.state);
+      return RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.accepted,
+        safeMessage: result.status == HeldItemTransferStatus.unequipped
+            ? 'Objet retiré et progression sauvegardée.'
+            : 'Objet tenu modifié et progression sauvegardée.',
+      );
+    } catch (_) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.failed,
+        safeMessage: 'L’objet tenu n’a pas pu être modifié ni sauvegardé.',
+      );
+    }
   }
 
   Future<RuntimePlayerPauseCommandResult?> _useMoveMachineOutsideBattle({

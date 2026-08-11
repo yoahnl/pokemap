@@ -3,8 +3,10 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
+import 'package:map_runtime/src/application/player_service_runtime_controller.dart';
 import 'package:map_runtime/src/application/runtime_battle_combatant_seed_builder.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
+import 'package:map_runtime/src/player/runtime_player_pause_data.dart';
 
 void main() {
   group('runtime held item bridge v0', () {
@@ -112,6 +114,98 @@ void main() {
       expect(
         result.party.members.map((pokemon) => pokemon.heldItemId),
         <String>['oran-berry', '', '', 'leftovers'],
+      );
+    });
+
+    test('pause commands equip, swap and unequip canonical held items',
+        () async {
+      var state = const GameState(
+        saveId: 'held-item-transfer',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              heldItemId: 'oran-charm',
+            ),
+          ],
+        ),
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'leftovers-charm', quantity: 1),
+            BagEntry(itemId: 'pretty-ribbon', quantity: 1),
+          ],
+        ),
+      );
+      final commits = <GameState>[];
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (next) async {
+          commits.add(next);
+          state = next;
+        },
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: <int, int>{0: 20},
+        ),
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(
+          const ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: <ProjectItemDefinition>[
+              ProjectItemDefinition(
+                id: 'leftovers-charm',
+                displayName: 'Leftovers Charm',
+                pocketId: 'held-items',
+                heldEffectId: 'leftovers',
+              ),
+              ProjectItemDefinition(
+                id: 'oran-charm',
+                displayName: 'Oran Charm',
+                pocketId: 'held-items',
+                heldEffectId: 'oran_berry',
+              ),
+              ProjectItemDefinition(
+                id: 'pretty-ribbon',
+                displayName: 'Pretty Ribbon',
+                pocketId: 'treasures',
+              ),
+            ],
+          ),
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      final equipped = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.equipHeldItem(
+          itemTargetId: 'leftovers-charm',
+          partyTargetId: 'party.0',
+        ),
+      );
+      final unequipped = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.unequipHeldItem(
+          partyTargetId: 'party.0',
+        ),
+      );
+      final passive = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.equipHeldItem(
+          itemTargetId: 'pretty-ribbon',
+          partyTargetId: 'party.0',
+        ),
+      );
+
+      expect(equipped.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(unequipped.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(passive.status, RuntimePlayerPauseCommandStatus.unavailable);
+      expect(commits, hasLength(2));
+      expect(state.party.members.single.heldItemId, isEmpty);
+      expect(
+        state.bag.entries.map((entry) => (entry.itemId, entry.quantity)),
+        containsAll(<(String, int)>[
+          ('leftovers-charm', 1),
+          ('oran-charm', 1),
+          ('pretty-ribbon', 1),
+        ]),
       );
     });
   });

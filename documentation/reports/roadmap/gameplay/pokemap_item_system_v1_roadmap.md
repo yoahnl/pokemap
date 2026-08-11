@@ -767,7 +767,7 @@ Résultat attendu : exit code 0 et All tests passed.
 
 ### ITM-037 — Equip/unequip d’objets tenus
 
-- [ ] **Résultat :** transfert atomique Bag ↔ party member avec persistance.
+- [x] **Résultat :** transfert atomique Bag ↔ party member avec persistance.
 - **Fichiers à créer :**
   - packages/map_gameplay/lib/src/items/held_item_operations.dart
 - **Fichiers à modifier :**
@@ -780,6 +780,8 @@ Résultat attendu : exit code 0 et All tests passed.
 - **Cas obligatoires :** equip, swap, unequip, cible invalide, objet absent, held effect inconnu et save/load.
 - **Gate :** aucune quantité n’est perdue pendant un swap.
 - **Dépendances :** ITM-021 et ITM-013.
+
+**Preuves ITM-037 :** `HeldItemOperations` possède désormais les transactions pures equip, swap et unequip. Chaque chemin compose `BagOperations`, conserve l'état original en cas de cible invalide, objet absent, doublon ou overflow, et ne perd aucune quantité lors d'un échange. Les commandes pause runtime exposent explicitement equip et unequip, refusent les définitions absentes et les objets passifs sans `heldEffectId`, puis sauvegardent une seule fois la mutation réussie. Le bridge battle existant continue de hydrater et réconcilier les objets inchangés, consommés, retirés ou reçus. Les suites ciblées terminent avec 5 tests gameplay et 12 tests runtime réussis, et les analyses ciblées ne remontent aucune issue.
 
 ### ITM-038 — Réconciliation avec ItemEffectRegistry battle
 

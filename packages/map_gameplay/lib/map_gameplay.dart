@@ -150,6 +150,7 @@ export 'src/player_item_effects.dart';
 export 'src/items/bag_operation_result.dart';
 export 'src/items/bag_operations.dart';
 export 'src/items/item_catalog_snapshot.dart';
+export 'src/items/held_item_operations.dart';
 export 'src/items/item_capability_resolver.dart';
 export 'src/items/mvp_item_catalog.dart';
 export 'src/items/player_item_use_service.dart';
