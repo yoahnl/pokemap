@@ -1,0 +1,40 @@
+{
+  "id": "vermeil_village",
+  "name": "Village de Vermeil",
+  "size": {"width": 12, "height": 8},
+  "version": "v6",
+  "entities": [
+    {
+      "id": "spawn_village",
+      "name": "Arrivée au village",
+      "kind": "spawn",
+      "pos": {"x": 4, "y": 5},
+      "blocksMovement": false,
+      "spawn": {"role": "player_start", "facing": "north"}
+    },
+    {
+      "id": "npc_leo",
+      "name": "Léo",
+      "kind": "npc",
+      "pos": {"x": 6, "y": 4},
+      "npc": {
+        "displayName": "Léo",
+        "facing": "west",
+        "dialogueId": "welcome_leo"
+      }
+    }
+  ],
+  "gameplayZones": [
+    {
+      "id": "vermeil_grass_zone",
+      "name": "Herbes de Vermeil",
+      "kind": "encounter",
+      "area": {"pos": {"x": 8, "y": 1}, "size": {"width": 3, "height": 3}},
+      "encounter": {
+        "encounterTableId": "vermeil_grass",
+        "encounterKind": "walk"
+      }
+    }
+  ],
+  "mapMetadata": {"defaultSpawnId": "spawn_village"}
+}

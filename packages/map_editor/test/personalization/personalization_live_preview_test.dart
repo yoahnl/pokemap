@@ -6,6 +6,28 @@ import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets('states source fidelity and local simulation honestly', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationLivePreview(
+          profile: ProjectPresentationProfile(theme: safeProjectSemanticTheme),
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.dialogue,
+        ),
+      ),
+    );
+
+    expect(find.text('Aperçu'), findsOneWidget);
+    expect(find.text('Données de démonstration'), findsOneWidget);
+    expect(find.text('Interface du jeu'), findsOneWidget);
+    expect(find.text('Aperçu uniquement'), findsOneWidget);
+    expect(find.text('Aperçu en direct'), findsNothing);
+    expect(find.text('Preview réelle'), findsNothing);
+  });
+
   testWidgets('exposes only the simple product simulation controls', (
     tester,
   ) async {

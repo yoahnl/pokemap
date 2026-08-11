@@ -1,0 +1,150 @@
+{
+  "name": "L’Aube de Vermeil",
+  "version": "v6",
+  "maps": [
+    {
+      "id": "vermeil_village",
+      "name": "Village de Vermeil",
+      "relativePath": "maps/vermeil_village.json",
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "tilesets": [],
+  "dialogues": [
+    {
+      "id": "welcome_leo",
+      "name": "Bienvenue de Léo",
+      "relativePath": "dialogues/welcome_leo.yarn",
+      "defaultStartNode": "Start"
+    }
+  ],
+  "encounterTables": [
+    {
+      "id": "vermeil_grass",
+      "name": "Herbes de Vermeil",
+      "encounterKind": "walk",
+      "entries": [
+        {
+          "speciesId": "roucool",
+          "minLevel": 7,
+          "maxLevel": 7,
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "characters": [
+    {
+      "id": "leo",
+      "name": "Léo",
+      "tilesetId": "leo-overworld",
+      "sortOrder": 0
+    }
+  ],
+  "characterStudioCatalog": {
+    "portraitStates": [
+      {
+        "id": "happy",
+        "displayName": "Heureux",
+        "sortOrder": 0
+      }
+    ]
+  },
+  "settings": {
+    "tileWidth": 16,
+    "tileHeight": 16,
+    "displayScale": 2,
+    "defaultMapWidth": 12,
+    "defaultMapHeight": 8,
+    "defaultPlayerCharacterId": "leo"
+  },
+  "presentation": {
+    "schemaVersion": 5,
+    "branding": {
+      "iconPath": "assets/presentation/icon.png",
+      "coverPath": "assets/presentation/cover.png",
+      "heroPath": "assets/presentation/hero.png",
+      "accentColor": "#A33A2B",
+      "layoutVariant": "cinematic"
+    },
+    "intro": {
+      "media": {
+        "landscape": {
+          "videoPath": "assets/presentation/intro.mp4",
+          "posterPath": "assets/presentation/poster.png",
+          "captionsPath": "assets/presentation/captions.vtt",
+          "durationMilliseconds": 1200,
+          "width": 1280,
+          "height": 720,
+          "bitrateKbps": 128,
+          "sizeBytes": 25,
+          "videoCodec": "h264",
+          "audioCodec": "none",
+          "focalX": 0.5,
+          "focalY": 0.5
+        }
+      },
+      "reducedMotionBehavior": "poster",
+      "allowReplay": true
+    },
+    "typography": {
+      "display": {
+        "fontPath": "assets/presentation/pokemap-sans.ttf",
+        "family": "PokeMap Capture Sans",
+        "licensePath": "assets/presentation/font-license.txt",
+        "redistributable": true,
+        "fallbackFamilies": ["sans-serif"],
+        "glyphCoverage": [
+          "latin",
+          "latinExtended",
+          "digits",
+          "punctuation"
+        ]
+      },
+      "body": {"fallbackFamilies": ["sans-serif"]},
+      "dialogue": {"fallbackFamilies": ["sans-serif"]},
+      "combat": {"fallbackFamilies": ["sans-serif"]},
+      "numbers": {"fallbackFamilies": ["monospace"]}
+    },
+    "theme": {
+      "primary": "#003A44",
+      "onPrimary": "#FFFFFF",
+      "background": "#F4F7FB",
+      "surface": "#FFFFFF",
+      "surfaceElevated": "#EAF0F8",
+      "textPrimary": "#101827",
+      "textSecondary": "#526176",
+      "outline": "#65758B",
+      "success": "#16794B",
+      "warning": "#8A5100",
+      "danger": "#B4233C",
+      "titleSurface": "#D9F4F6",
+      "dialogueSurface": "#FFFFFF",
+      "menuSurface": "#EAF0F8",
+      "overworldHudSurface": "#FFFFFF",
+      "battleHudSurface": "#FFFFFF"
+    },
+    "menuLabels": {
+      "pauseTitle": "Carnet de voyage",
+      "resume": "Reprendre",
+      "party": "Compagnons",
+      "bag": "Sacoche",
+      "pokedex": "Bestiaire",
+      "map": "Région",
+      "save": "Consigner",
+      "options": "Réglages",
+      "returnToTitle": "Retour au titre"
+    }
+  },
+  "globalProperties": {
+    "personalizationAcceptanceScenes": [
+      "globalStyle",
+      "title",
+      "intro",
+      "pause",
+      "dialogue",
+      "battle"
+    ]
+  }
+}

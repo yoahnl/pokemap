@@ -43,7 +43,7 @@ class PersonalizationSceneInspector extends StatelessWidget {
                 ),
               ),
               const PokeMapBadge(
-                label: 'En direct',
+                label: 'Interface du jeu',
                 variant: PokeMapBadgeVariant.mapAccent,
               ),
             ],

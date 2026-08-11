@@ -8,6 +8,8 @@ export 'src/features/personalization/application/project_presentation_presets.da
 export 'src/features/personalization/application/project_window_style_presets.dart';
 export 'src/features/personalization/application/personalization_publish_readiness.dart';
 export 'src/features/personalization/application/personalization_inspector_target.dart';
+export 'src/features/personalization/application/personalization_capability_descriptor.dart';
+export 'src/features/personalization/application/personalization_capability_registry.dart';
 export 'src/features/personalization/application/personalization_character_preview_source.dart';
 export 'src/features/personalization/application/personalization_preview_projection.dart';
 export 'src/features/personalization/application/personalization_preview_scenario.dart';

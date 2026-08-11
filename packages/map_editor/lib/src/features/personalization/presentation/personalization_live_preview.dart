@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/design_system.dart';
+import '../application/personalization_capability_descriptor.dart';
 import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_fixtures.dart';
@@ -27,6 +28,9 @@ class PersonalizationLivePreview extends StatefulWidget {
     this.showDialogueName = true,
     this.showDialogueChoices = false,
     this.battleState = PersonalizationBattlePreviewState.commands,
+    this.contentSource = PersonalizationPreviewContentSource.demonstration,
+    this.surfaceFidelity =
+        PersonalizationPreviewSurfaceFidelity.playerInterface,
   });
 
   final ProjectPresentationProfile profile;
@@ -41,6 +45,8 @@ class PersonalizationLivePreview extends StatefulWidget {
   final bool showDialogueName;
   final bool showDialogueChoices;
   final PersonalizationBattlePreviewState battleState;
+  final PersonalizationPreviewContentSource contentSource;
+  final PersonalizationPreviewSurfaceFidelity surfaceFidelity;
 
   @override
   State<PersonalizationLivePreview> createState() =>
@@ -92,11 +98,54 @@ class _PersonalizationLivePreviewState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Text(
-              'Aperçu en direct',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    'Aperçu',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                PokeMapBadge(
+                  key: const ValueKey<String>(
+                    'personalization-preview-content-source',
+                  ),
+                  label: switch (widget.contentSource) {
+                    PersonalizationPreviewContentSource.demonstration =>
+                      'Données de démonstration',
+                    PersonalizationPreviewContentSource.project =>
+                      'Données du projet',
+                  },
+                  variant:
+                      widget.contentSource ==
+                          PersonalizationPreviewContentSource.project
+                      ? PokeMapBadgeVariant.success
+                      : PokeMapBadgeVariant.warning,
+                ),
+                const SizedBox(width: 8),
+                PokeMapBadge(
+                  key: const ValueKey<String>(
+                    'personalization-preview-surface-fidelity',
+                  ),
+                  label: switch (widget.surfaceFidelity) {
+                    PersonalizationPreviewSurfaceFidelity.playerInterface =>
+                      'Interface du jeu',
+                    PersonalizationPreviewSurfaceFidelity.editorBackdrop =>
+                      'Interface du jeu · décor éditeur',
+                  },
+                  variant: PokeMapBadgeVariant.mapAccent,
+                ),
+                const SizedBox(width: 8),
+                const PokeMapBadge(
+                  key: ValueKey<String>(
+                    'personalization-preview-local-controls',
+                  ),
+                  label: 'Aperçu uniquement',
+                  variant: PokeMapBadgeVariant.info,
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             PersonalizationPreviewControls(
