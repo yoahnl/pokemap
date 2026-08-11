@@ -7,6 +7,7 @@ import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_world_service_models.dart';
 import 'runtime_move_catalog_loader.dart';
 import 'runtime_move_machine_loader.dart';
+import 'runtime_item_catalog_loader.dart';
 import 'runtime_player_pokemon_progression_hydrator.dart';
 import 'runtime_pokemon_evolution_loader.dart';
 import 'runtime_pokemon_species_loader.dart';
@@ -155,6 +156,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimePokemonEvolutionLoader? evolutionLoader,
     RuntimeMoveMachineLoader? moveMachineLoader,
     RuntimePokemonSpeciesLoader? pokemonSpeciesLoader,
+    ItemCatalogSnapshot? itemCatalog,
+    RuntimeItemCatalogLoader itemCatalogLoader =
+        const RuntimeItemCatalogLoader(),
   })  : _currentGameState = currentGameState,
         _host = host,
         _commitAndSave = commitAndSave,
@@ -164,6 +168,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities),
         _projectRootDirectory = projectRootDirectory,
         _pokemonConfig = pokemonConfig,
+        _itemCatalog = itemCatalog,
+        _itemCatalogLoader = itemCatalogLoader,
         _evolutionLoader = evolutionLoader ?? RuntimePokemonEvolutionLoader(),
         _moveMachineLoader = moveMachineLoader ?? RuntimeMoveMachineLoader(),
         _pokemonSpeciesLoader =
@@ -181,6 +187,9 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     RuntimePokemonEvolutionLoader? evolutionLoader,
     RuntimeMoveMachineLoader? moveMachineLoader,
     RuntimePokemonSpeciesLoader? pokemonSpeciesLoader,
+    ItemCatalogSnapshot? itemCatalog,
+    RuntimeItemCatalogLoader itemCatalogLoader =
+        const RuntimeItemCatalogLoader(),
   })  : _currentGameState = currentGameState,
         _host = null,
         _commitAndSave = commitAndSave,
@@ -190,6 +199,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         _grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities),
         _projectRootDirectory = projectRootDirectory,
         _pokemonConfig = pokemonConfig,
+        _itemCatalog = itemCatalog,
+        _itemCatalogLoader = itemCatalogLoader,
         _evolutionLoader = evolutionLoader ?? RuntimePokemonEvolutionLoader(),
         _moveMachineLoader = moveMachineLoader ?? RuntimeMoveMachineLoader(),
         _pokemonSpeciesLoader =
@@ -204,6 +215,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   final Set<String> _grantedCapabilities;
   final String? _projectRootDirectory;
   final ProjectPokemonConfig? _pokemonConfig;
+  ItemCatalogSnapshot? _itemCatalog;
+  final RuntimeItemCatalogLoader _itemCatalogLoader;
   final RuntimePokemonEvolutionLoader _evolutionLoader;
   final RuntimeMoveMachineLoader _moveMachineLoader;
   final RuntimePokemonSpeciesLoader _pokemonSpeciesLoader;
@@ -376,30 +389,41 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       );
     }
     final state = _currentGameState();
-    final effect =
-        const PlayerItemEffectRegistry.mvp().effectFor(command.itemTargetId);
-    if (effect == null) {
+    final itemCatalog = await _resolveItemCatalog();
+    final definition = itemCatalog.definitionFor(command.itemTargetId);
+    if (definition == null) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'La définition de cet objet est absente ou invalide.',
+      );
+    }
+    if (definition.machine != null) {
       final moveMachineResult = await _useMoveMachineOutsideBattle(
         state: state,
         itemId: command.itemTargetId,
+        machine: definition.machine!,
         partyIndex: partyIndex,
         replacementMoveId: command.moveTargetId,
       );
       if (moveMachineResult != null) return moveMachineResult;
+    }
+    final capability = ItemCapabilityResolver(itemCatalog).resolveUse(
+      itemId: command.itemTargetId,
+      context: ProjectItemUseContext.overworld,
+    );
+    if (!capability.isAvailable) {
+      if (definition.tags.contains('key-item') || definition.capture != null) {
+        return const RuntimePlayerPauseCommandResult(
+          status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Cet objet ne peut pas être utilisé ici.',
+        );
+      }
       return _useEvolutionItemOutsideBattle(
         state: state,
         itemId: command.itemTargetId,
         partyIndex: partyIndex,
       );
     }
-    if (effect.kind == PlayerItemEffectKind.keyItem ||
-        effect.kind == PlayerItemEffectKind.ballMetadata) {
-      return const RuntimePlayerPauseCommandResult(
-        status: RuntimePlayerPauseCommandStatus.unavailable,
-        safeMessage: 'Cet objet ne peut pas être utilisé ici.',
-      );
-    }
-
     if (partyIndex >= state.party.members.length) {
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
@@ -415,14 +439,17 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           safeMessage: 'Les données de la cible sont incomplètes.',
         );
       }
-      final result = const PlayerItemOperations().useOnPartyMember(
-        state,
-        itemId: command.itemTargetId,
-        partyIndex: partyIndex,
-        maxHp: maxHp,
-        moveId: command.moveTargetId,
-        maxPpByMoveId:
-            caps.maxPpByPartyIndex[partyIndex] ?? const <String, int>{},
+      final result = PlayerItemUseService(snapshot: itemCatalog).use(
+        PlayerItemUseRequest(
+          state: state,
+          itemId: command.itemTargetId,
+          context: ProjectItemUseContext.overworld,
+          partyIndex: partyIndex,
+          maxHp: maxHp,
+          moveId: command.moveTargetId,
+          maxPpByMoveId:
+              caps.maxPpByPartyIndex[partyIndex] ?? const <String, int>{},
+        ),
       );
       if (!result.isSuccess) {
         return RuntimePlayerPauseCommandResult(
@@ -443,9 +470,28 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     }
   }
 
+  Future<ItemCatalogSnapshot> _resolveItemCatalog() async {
+    final current = _itemCatalog;
+    if (current != null) {
+      return current;
+    }
+    final projectRootDirectory = _projectRootDirectory;
+    final pokemonConfig = _pokemonConfig;
+    if (projectRootDirectory == null || pokemonConfig == null) {
+      return ItemCatalogSnapshot.empty();
+    }
+    final loaded = await _itemCatalogLoader.loadSnapshot(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    );
+    _itemCatalog = loaded;
+    return loaded;
+  }
+
   Future<RuntimePlayerPauseCommandResult?> _useMoveMachineOutsideBattle({
     required GameState state,
     required String itemId,
+    required ProjectMoveMachineItemDefinition machine,
     required int partyIndex,
     required String? replacementMoveId,
   }) async {
@@ -453,12 +499,6 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     final pokemonConfig = _pokemonConfig;
     if (projectRootDirectory == null || pokemonConfig == null) return null;
     try {
-      final definition = await _moveMachineLoader.loadDefinition(
-        projectRootDirectory: projectRootDirectory,
-        pokemonConfig: pokemonConfig,
-        itemId: itemId,
-      );
-      if (definition == null) return null;
       if (partyIndex >= state.party.members.length) {
         return const RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
@@ -471,10 +511,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         pokemonConfig: pokemonConfig,
         speciesId: pokemon.speciesId,
       );
-      final candidate = await _moveMachineLoader.loadCandidate(
+      final candidate =
+          await _moveMachineLoader.learnsetLoader.loadMoveMachineCandidate(
         projectRootDirectory: projectRootDirectory,
         pokemonConfig: pokemonConfig,
         itemId: itemId,
+        moveId: machine.moveId,
+        machineKind: machine.kind.name,
+        consumable: machine.consumable,
         speciesRef: species.learnsetRef,
         fallbackSpeciesId: pokemon.speciesId,
       );
@@ -1367,7 +1411,6 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       shop: session.request.shop,
       expectedStateId: session.resolved.stateId,
       itemId: itemId,
-      categoryId: _categoryForShopItem(itemId),
       quantity: quantity,
       conditionContext: session.request.conditionContext,
     );
@@ -1419,6 +1462,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       expectedStateId: session.resolved.stateId,
       itemId: itemId,
       quantity: quantity,
+      itemCatalog: _itemCatalog ?? ItemCatalogSnapshot.empty(),
       conditionContext: session.request.conditionContext,
     );
     if (!result.isSuccess) {
@@ -1587,6 +1631,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       final unavailableReason = _shopSaleUnavailableReason(
         bagEntry: bagEntry,
         shopEntry: shopEntry,
+        itemCatalog: _itemCatalog ?? ItemCatalogSnapshot.empty(),
       );
       return RuntimeShopEntrySnapshot(
         itemId: bagEntry.itemId,
@@ -1720,18 +1765,6 @@ final class _PcTransferTarget {
   final String? boxId;
 }
 
-String _categoryForShopItem(String itemId) {
-  final effect = const PlayerItemEffectRegistry.mvp().effectFor(itemId);
-  return switch (effect?.kind) {
-    PlayerItemEffectKind.healHp ||
-    PlayerItemEffectKind.cureStatus ||
-    PlayerItemEffectKind.revive ||
-    PlayerItemEffectKind.restorePp =>
-      'medicine',
-    _ => 'items',
-  };
-}
-
 String _shopFailureMessage(ShopPurchaseFailure failure) => switch (failure) {
       ShopPurchaseFailure.invalidRequest => 'Achat invalide.',
       ShopPurchaseFailure.unknownItem => 'Objet inconnu.',
@@ -1756,21 +1789,16 @@ String _shopSaleFailureMessage(ShopSaleFailure failure) => switch (failure) {
 String? _shopSaleUnavailableReason({
   required BagEntry bagEntry,
   required ShopEntryDefinition? shopEntry,
+  required ItemCatalogSnapshot itemCatalog,
 }) {
-  if (_isShopKeyItemCategory(bagEntry.categoryId)) {
+  if (itemCatalog.definitionFor(bagEntry.itemId)?.tags.contains('key-item') ??
+      false) {
     return 'Les objets importants sont invendables.';
   }
   if (shopEntry?.sellPrice == null) {
     return 'Cette boutique ne reprend pas cet objet.';
   }
   return null;
-}
-
-bool _isShopKeyItemCategory(String categoryId) {
-  final normalized = categoryId.trim().toLowerCase().replaceAll('_', '-');
-  return normalized == 'key-item' ||
-      normalized == 'key-items' ||
-      normalized == 'important-items';
 }
 
 String _shopItemLabel(String itemId) => itemId
@@ -1810,12 +1838,19 @@ String _bagItemFailureMessage(PlayerItemUseFailure failure) =>
       PlayerItemUseFailure.invalidRequest ||
       PlayerItemUseFailure.invalidTarget =>
         'Cette cible n’est plus disponible.',
-      PlayerItemUseFailure.unknownItem => 'Cet objet n’est pas pris en charge.',
+      PlayerItemUseFailure.unknownDefinition =>
+        'La définition de cet objet est absente ou invalide.',
       PlayerItemUseFailure.insufficientQuantity =>
         'Vous ne possédez plus cet objet.',
       PlayerItemUseFailure.wrongTarget =>
         'Cet objet ne convient pas à cette cible.',
       PlayerItemUseFailure.noEffect => 'Cet objet n’aurait aucun effet.',
+      PlayerItemUseFailure.unavailableInContext =>
+        'Cet objet ne peut pas être utilisé ici.',
+      PlayerItemUseFailure.unsupportedCapability =>
+        'Cette capacité d’objet n’est pas encore prise en charge.',
+      PlayerItemUseFailure.protectedKeyItem =>
+        'Cet objet important ne peut pas être consommé.',
     };
 
 /// Resolves the real HP and PP caps needed by Bag and healing screens.

@@ -652,7 +652,7 @@ Résultat attendu : exit code 0 et All tests passed.
 
 ### ITM-030 — Menu Bag overworld
 
-- [ ] **Résultat :** présentation, cible et utilisabilité proviennent de ItemCapabilityResolver.
+- [x] **Résultat :** présentation, cible et utilisabilité proviennent de ItemCapabilityResolver.
 - **Fichiers à modifier :**
   - packages/map_runtime/lib/src/player/runtime_player_pause_data_builder.dart
   - packages/map_runtime/lib/src/application/player_service_runtime_controller.dart
@@ -662,6 +662,8 @@ Résultat attendu : exit code 0 et All tests passed.
 - **Cas obligatoires :** custom pocket, objet passif, objet invalide, mauvaise cible, no-effect et chaque failure reason.
 - **Gate :** aucune classification par catégorie et aucune lecture de catalogue déclenchée par une ligne de Bag.
 - **Dépendances :** ITM-022 et ITM-014.
+
+**Preuves ITM-030 :** la projection pause et le contrôleur d'usage partagent le catalogue V1 et résolvent présentation, cible, contexte et effet depuis la définition canonique. Le contrôleur ne délègue plus au registre MVP et les CT réutilisent leurs métadonnées déjà chargées au lieu de relire le catalogue. Les tests couvrent un pocket personnalisé, la mauvaise cible sans mutation, un objet passif, une définition absente, un contexte indisponible, une capacité non supportée, un no-effect, une évolution et une CT. Les huit tests ciblés passent et l'analyse statique des deux chemins runtime et de leurs tests ne remonte aucune issue.
 
 ### ITM-031 — Objets génériques en combat
 

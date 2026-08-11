@@ -3,8 +3,18 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
+
+ItemCatalogSnapshot _catalogWith(List<ProjectItemDefinition> entries) {
+  return ItemCatalogSnapshot.fromCatalog(
+    ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: <ProjectItemDefinition>[...mvpItemCatalog.entries, ...entries],
+    ),
+  );
+}
 
 void main() {
   test('pause bag item use commits one effect and consumes exactly one item',
@@ -25,12 +35,10 @@ void main() {
         entries: <BagEntry>[
           BagEntry(
             itemId: 'potion',
-            categoryId: 'medicine',
             quantity: 2,
           ),
           BagEntry(
             itemId: 'harbor-pass',
-            categoryId: 'key-items',
             quantity: 1,
           ),
         ],
@@ -46,6 +54,16 @@ void main() {
       setInputLocked: (_) {},
       loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
         maxHpByPartyIndex: <int, int>{0: 30},
+      ),
+      itemCatalog: _catalogWith(
+        const <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'harbor-pass',
+            displayName: 'Harbor Pass',
+            pocketId: 'key-items',
+            tags: <String>{'key-item', 'passive'},
+          ),
+        ],
       ),
     );
     addTearDown(controller.dispose);
@@ -84,6 +102,86 @@ void main() {
     );
   });
 
+  test('pause bag uses a custom pocket item through its authored capability',
+      () async {
+    var state = const GameState(
+      saveId: 'custom-pocket-use',
+      party: PlayerParty(
+        members: <PlayerPokemon>[
+          PlayerPokemon(
+            speciesId: 'lead',
+            natureId: 'hardy',
+            abilityId: 'steadfast',
+            currentHp: 5,
+          ),
+        ],
+      ),
+      bag: Bag(
+        entries: <BagEntry>[
+          BagEntry(itemId: 'field-tonic', quantity: 1),
+        ],
+      ),
+    );
+    final commits = <GameState>[];
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async {
+        commits.add(next);
+        state = next;
+      },
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{0: 30},
+      ),
+      itemCatalog: _catalogWith(
+        const <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'field-tonic',
+            displayName: 'Field Tonic',
+            pocketId: 'expedition-supplies',
+            uses: <ProjectItemUseDefinition>[
+              ProjectItemUseDefinition(
+                contexts: <ProjectItemUseContext>{
+                  ProjectItemUseContext.overworld,
+                },
+                target: ProjectItemTargetKind.partyMember,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: ProjectItemEffectDefinition.healHp(
+                  mode: ProjectItemAmountMode.flat,
+                  amount: 17,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    final refused = await controller.useBagItemOutsideBattle(
+      const RuntimePlayerPauseCommand.useBagItem(
+        itemTargetId: 'field-tonic',
+        partyTargetId: 'party.9',
+      ),
+    );
+
+    expect(refused.status, RuntimePlayerPauseCommandStatus.unavailable);
+    expect(commits, isEmpty);
+    expect(state.bag.entries.single.quantity, 1);
+
+    final used = await controller.useBagItemOutsideBattle(
+      const RuntimePlayerPauseCommand.useBagItem(
+        itemTargetId: 'field-tonic',
+        partyTargetId: 'party.0',
+      ),
+    );
+
+    expect(used.status, RuntimePlayerPauseCommandStatus.accepted);
+    expect(commits, hasLength(1));
+    expect(state.party.members.single.currentHp, 22);
+    expect(state.bag.entries, isEmpty);
+  });
+
   test('pause bag does not consume an item when it would have no effect',
       () async {
     const state = GameState(
@@ -102,7 +200,6 @@ void main() {
         entries: <BagEntry>[
           BagEntry(
             itemId: 'potion',
-            categoryId: 'medicine',
             quantity: 1,
           ),
         ],
@@ -115,6 +212,7 @@ void main() {
       loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
         maxHpByPartyIndex: <int, int>{0: 30},
       ),
+      itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     );
     addTearDown(controller.dispose);
 
@@ -156,7 +254,6 @@ void main() {
         entries: <BagEntry>[
           BagEntry(
             itemId: 'leaf-stone',
-            categoryId: 'evolution-items',
             quantity: 1,
           ),
         ],
@@ -177,6 +274,16 @@ void main() {
       pokemonConfig: const ProjectPokemonConfig(
         evolutionsDir: 'custom/evolutions',
         speciesDir: 'custom/species',
+      ),
+      itemCatalog: _catalogWith(
+        const <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'leaf-stone',
+            displayName: 'Leaf Stone',
+            pocketId: 'evolution-items',
+            tags: <String>{'evolution'},
+          ),
+        ],
       ),
     );
     addTearDown(controller.dispose);
@@ -231,7 +338,6 @@ void main() {
         entries: <BagEntry>[
           BagEntry(
             itemId: 'tm-protect',
-            categoryId: 'machines',
             quantity: 1,
           ),
         ],
@@ -250,6 +356,20 @@ void main() {
       ),
       projectRootDirectory: root.path,
       pokemonConfig: _machineConfig,
+      itemCatalog: _catalogWith(
+        const <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'tm-protect',
+            displayName: 'TM Protect',
+            pocketId: 'machines',
+            machine: ProjectMoveMachineItemDefinition(
+              moveId: 'protect',
+              kind: ProjectMoveMachineKind.tm,
+              consumable: true,
+            ),
+          ),
+        ],
+      ),
     );
     addTearDown(controller.dispose);
 
