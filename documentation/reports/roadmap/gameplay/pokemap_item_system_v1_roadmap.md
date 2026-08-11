@@ -879,13 +879,15 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-044 — Références et usages d’objets
 
-- [ ] **Résultat :** indexer New Game, scènes, scripts, shops, rewards, pickups, machines, évolutions et held items.
+- [x] **Résultat :** indexer New Game, scènes, scripts, shops, rewards, pickups, machines, évolutions et held items.
 - **Fichiers à créer :**
   - packages/map_core/lib/src/read_models/project_item_reference_index.dart
 - **Tests à créer :**
   - packages/map_core/test/project_item_reference_index_test.dart
 - **Gate :** suppression ou rename d’un item retourne toutes les dépendances avec leur chemin éditable.
 - **Dépendances :** ITM-040 à ITM-043.
+
+**Preuves ITM-044 :** `ProjectItemReferenceIndex` fournit une vue immuable, triée et dédupliquée des usages par `itemId`, avec le type de référence, la source, le chemin éditable et le caractère bloquant pour une suppression. L’index collecte les Bags et held items de New Game, les actions et conditions de scènes, les commandes de scripts et scénarios, les profils de shops et leurs conditions, les récompenses et held items de dresseurs, les pickups de maps, les conditions narratives et les capacités machine du catalogue. Les références d’évolution peuvent être composées de façon typée depuis leur autorité externe au manifest core ; elles restent bloquantes, tandis que la capacité machine portée par la définition supprimée ne bloque pas sa propre suppression. La fixture synthétique certifie 17 usages couvrant les 15 catégories, dont 16 dépendances bloquantes, ainsi que les chemins éditables, le tri et la déduplication déterministes. Les suites ciblées terminent avec 50 tests réussis. La suite `map_core` complète atteint 4 114 tests réussis, 1 test ignoré et 7 échecs hors scope ; le premier échec isolé est l’inventaire Smart Tiles qui n’attend pas encore `smart_tile.layer.change_preset` et `smart_tile.layer.set_animation_activation` déjà présents dans le catalogue produit.
 
 ## 13. Phase 5 — Authoring no-code et MCP
 
