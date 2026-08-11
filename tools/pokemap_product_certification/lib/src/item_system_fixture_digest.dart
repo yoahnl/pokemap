@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -10,7 +11,7 @@ Future<String> computeItemSystemFixtureSha256(Directory root) async {
   }
   final files = await root
       .list(recursive: true, followLinks: false)
-      .where((entity) => entity is File)
+      .where((entity) => entity is File && p.extension(entity.path) == '.json')
       .cast<File>()
       .toList();
   files.sort((left, right) {
@@ -23,12 +24,11 @@ Future<String> computeItemSystemFixtureSha256(Directory root) async {
   }
   final input = BytesBuilder(copy: false);
   for (final file in files) {
-    final relativePath = p.posix.joinAll(
-      p.split(p.relative(file.path, from: root.path)),
-    );
-    final bytes = await file.readAsBytes();
-    input.add('$relativePath:${bytes.length}:'.codeUnits);
-    input.add(bytes);
+    input
+      ..add(utf8.encode(p.relative(file.path, from: root.path)))
+      ..addByte(0)
+      ..add(await file.readAsBytes())
+      ..addByte(0);
   }
   return sha256.convert(input.takeBytes()).toString();
 }

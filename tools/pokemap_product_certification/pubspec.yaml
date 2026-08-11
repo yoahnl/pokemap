@@ -23,6 +23,8 @@ dependencies:
   map_runtime:
     path: ../../packages/map_runtime
   path: ^1.9.0
+  pokemap_loader:
+    path: ../../examples/playable_runtime_host
   pokemap_hub:
     path: ../../apps/pokemap_hub
   pub_semver: ^2.2.0
@@ -31,8 +33,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   lints: ^6.1.0
-  pokemap_loader:
-    path: ../../examples/playable_runtime_host
 
 flutter:
   uses-material-design: true
