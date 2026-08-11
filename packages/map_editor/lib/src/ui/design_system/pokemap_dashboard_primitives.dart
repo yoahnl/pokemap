@@ -403,6 +403,7 @@ class PokeMapSegmentedTab {
     required this.label,
     required this.selected,
     this.icon,
+    this.semanticLabel,
     this.onTap,
   });
 
@@ -410,6 +411,7 @@ class PokeMapSegmentedTab {
   final String label;
   final bool selected;
   final IconData? icon;
+  final String? semanticLabel;
   final VoidCallback? onTap;
 }
 
@@ -419,10 +421,12 @@ class PokeMapSegmentedTabs extends StatelessWidget {
     super.key,
     required this.tabs,
     this.minimumHeight,
+    this.expandTabs = false,
   });
 
   final List<PokeMapSegmentedTab> tabs;
   final double? minimumHeight;
+  final bool expandTabs;
 
   @override
   Widget build(BuildContext context) {
@@ -434,29 +438,47 @@ class PokeMapSegmentedTabs extends StatelessWidget {
         border: Border.all(color: colors.controlBorder),
       ),
       padding: const EdgeInsets.all(3),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final tab in tabs)
-              _PokeMapSegmentedTabButton(
-                tab: tab,
-                minimumHeight: minimumHeight,
+      child: expandTabs
+          ? Row(
+              children: <Widget>[
+                for (final tab in tabs)
+                  Expanded(
+                    child: _PokeMapSegmentedTabButton(
+                      tab: tab,
+                      minimumHeight: minimumHeight,
+                      expandContent: true,
+                    ),
+                  ),
+              ],
+            )
+          : SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  for (final tab in tabs)
+                    _PokeMapSegmentedTabButton(
+                      tab: tab,
+                      minimumHeight: minimumHeight,
+                      expandContent: false,
+                    ),
+                ],
               ),
-          ],
-        ),
-      ),
+            ),
     );
   }
 }
 
 class _PokeMapSegmentedTabButton extends StatefulWidget {
-  _PokeMapSegmentedTabButton({required this.tab, required this.minimumHeight})
-    : super(key: tab.key);
+  _PokeMapSegmentedTabButton({
+    required this.tab,
+    required this.minimumHeight,
+    required this.expandContent,
+  }) : super(key: tab.key);
 
   final PokeMapSegmentedTab tab;
   final double? minimumHeight;
+  final bool expandContent;
 
   @override
   State<_PokeMapSegmentedTabButton> createState() =>
@@ -496,6 +518,7 @@ class _PokeMapSegmentedTabButtonState
           ),
         },
         child: Semantics(
+          label: tab.semanticLabel,
           button: true,
           selected: active,
           enabled: enabled,
@@ -518,22 +541,18 @@ class _PokeMapSegmentedTabButtonState
               ),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize: widget.expandContent
+                    ? MainAxisSize.max
+                    : MainAxisSize.min,
                 children: [
                   if (tab.icon != null) ...[
                     Icon(tab.icon, size: 14, color: foreground),
                     const SizedBox(width: 6),
                   ],
-                  Text(
-                    tab.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: foreground,
-                      fontSize: 12,
-                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-                    ),
-                  ),
+                  if (widget.expandContent)
+                    Expanded(child: _label(tab, foreground, active))
+                  else
+                    _label(tab, foreground, active),
                 ],
               ),
             ),
@@ -542,6 +561,18 @@ class _PokeMapSegmentedTabButtonState
       ),
     );
   }
+
+  Widget _label(PokeMapSegmentedTab tab, Color foreground, bool active) => Text(
+    tab.label,
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    textAlign: widget.expandContent ? TextAlign.center : null,
+    style: TextStyle(
+      color: foreground,
+      fontSize: 12,
+      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+    ),
+  );
 }
 
 class _PokeMapCountPill extends StatelessWidget {

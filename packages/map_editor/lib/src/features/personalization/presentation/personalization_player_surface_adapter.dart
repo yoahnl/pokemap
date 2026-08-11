@@ -7,6 +7,7 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../theme/theme.dart';
+import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_preview_fixtures.dart';
 import '../application/personalization_inspector_target.dart';
@@ -58,6 +59,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final editorColors = context.pokeMapColors;
+    final editorTheme = Theme.of(context);
     final presentation = RuntimePlayerPresentation.fromProfile(
       profile,
       author: 'Créé avec PokeMap',
@@ -74,7 +76,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
         ),
         behavior: HitTestBehavior.opaque,
         onTap: () => _target(const GlobalColorsTarget()),
-        child: _globalStyle(presentation, editorColors),
+        child: _globalStyle(presentation, editorColors, editorTheme),
       ),
       _ => _surface(scene, presentation, editorColors),
     };
@@ -193,6 +195,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   Widget _globalStyle(
     RuntimePlayerPresentation presentation,
     PokeMapColorTokens editorColors,
+    ThemeData editorTheme,
   ) => ColoredBox(
     key: const ValueKey<String>('personalization-global-style-composition'),
     color: presentation
@@ -204,47 +207,81 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
       childAspectRatio: aspectRatio,
       children: <Widget>[
         _miniature(
+          'title',
+          'Écran titre',
           _surface(
             PersonalizationStudioScene.title,
             presentation,
             editorColors,
           ),
+          editorTheme,
         ),
         _miniature(
+          'dialogue',
+          'Dialogue',
           _surface(
             PersonalizationStudioScene.dialogue,
             presentation,
             editorColors,
           ),
+          editorTheme,
         ),
         _miniature(
+          'pause',
+          'Menu Pause',
           _surface(
             PersonalizationStudioScene.pause,
             presentation,
             editorColors,
           ),
+          editorTheme,
         ),
         _miniature(
+          'battle',
+          'Combat',
           _surface(
             PersonalizationStudioScene.battle,
             presentation,
             editorColors,
           ),
+          editorTheme,
         ),
       ],
     ),
   );
 
-  Widget _miniature(Widget child) => IgnorePointer(
-    child: FittedBox(
-      fit: BoxFit.cover,
-      clipBehavior: Clip.hardEdge,
-      child: SizedBox(
-        width: aspectRatio < 1 ? 450 : 960,
-        height: aspectRatio < 1 ? 800 : 540,
-        child: child,
+  Widget _miniature(
+    String id,
+    String label,
+    Widget child,
+    ThemeData editorTheme,
+  ) => Stack(
+    fit: StackFit.expand,
+    children: <Widget>[
+      IgnorePointer(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: aspectRatio < 1 ? 450 : 960,
+            height: aspectRatio < 1 ? 800 : 540,
+            child: child,
+          ),
+        ),
       ),
-    ),
+      Positioned(
+        top: 8,
+        left: 8,
+        child: Theme(
+          data: editorTheme,
+          child: PokeMapBadge(
+            key: ValueKey<String>('personalization-global-preview-$id'),
+            label: label,
+            variant: PokeMapBadgeVariant.info,
+          ),
+        ),
+      ),
+    ],
   );
 
   Widget? _introMedia() {

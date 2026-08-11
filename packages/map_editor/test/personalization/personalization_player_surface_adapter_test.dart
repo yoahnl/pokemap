@@ -83,6 +83,28 @@ void main() {
     final battleContext = tester.element(find.byType(PlayerBattleSurface));
     expect(battleContext.playerTypography.combatFamily, 'Studio Combat');
   });
+
+  testWidgets('labels every runtime surface in the global style collage', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(_adapter(PersonalizationStudioScene.globalStyle)),
+    );
+    await tester.pump();
+
+    for (final scene in <String>[
+      'Écran titre',
+      'Dialogue',
+      'Menu Pause',
+      'Combat',
+    ]) {
+      expect(find.text(scene), findsOneWidget);
+    }
+    expect(find.byType(PlayerTitleSurface), findsOneWidget);
+    expect(find.byType(PlayerDialogueSurface), findsOneWidget);
+    expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
+    expect(find.byType(PlayerBattleSurface), findsOneWidget);
+  });
 }
 
 PersonalizationPlayerSurfaceAdapter _adapter(

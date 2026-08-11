@@ -880,11 +880,7 @@ void main() {
       );
       await tester.pump();
       await tester.tap(
-        find.byKey(
-          const ValueKey<String>(
-            'personalization-inspector-target-globalTypography',
-          ),
-        ),
+        find.byKey(const ValueKey<String>('global-style-tab-typography')),
       );
       await tester.pump();
 
@@ -1032,6 +1028,40 @@ void main() {
           .theme
           ?.primary,
       '#123456',
+    );
+
+    final resetColors = find.byKey(
+      const ValueKey<String>('global-style-reset-colors'),
+    );
+    await _dragUntilHitTestable(tester, resetColors, detailScrollable, dy: 500);
+    await tester.tap(resetColors.hitTestable());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(
+      container.read(editorNotifierProvider).project?.presentation?.theme,
+      isNull,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-studio-undo')),
+    );
+    await tester.pump();
+    expect(
+      container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .theme
+          ?.primary,
+      '#123456',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-studio-redo')),
+    );
+    await tester.pump();
+    expect(
+      container.read(editorNotifierProvider).project?.presentation?.theme,
+      isNull,
     );
     expect(projectFile.readAsStringSync(), durableJson);
   });
@@ -1194,11 +1224,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>(
-          'personalization-inspector-target-globalTypography',
-        ),
-      ),
+      find.byKey(const ValueKey<String>('global-style-tab-typography')),
     );
     await tester.pump();
 

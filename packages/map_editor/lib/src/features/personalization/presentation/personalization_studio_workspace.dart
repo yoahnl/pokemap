@@ -602,6 +602,18 @@ class _PersonalizationStudioWorkspaceState
     setState(_fontPreviewFamilies.clear);
   }
 
+  Future<void> _resetGlobalTypography({
+    required ProjectPresentationProfile profile,
+    required EditorNotifier notifier,
+  }) async {
+    final applied = await notifier.applyPersonalizationStudioProfile(
+      profile.copyWith(typography: null),
+      label: 'Réinitialiser la typographie globale',
+    );
+    if (!mounted || !applied) return;
+    setState(_fontPreviewFamilies.clear);
+  }
+
   Future<void> _importIntroVideo({
     required String projectRootPath,
     required ProjectPresentationProfile profile,
@@ -1420,6 +1432,18 @@ class _PersonalizationStudioWorkspaceState
           profile: profile,
           section: section,
           previewFamilies: _fontPreviewFamilies,
+          onSectionChanged: (selectedSection) {
+            setState(
+              () => _selectedTarget = switch (selectedSection) {
+                PersonalizationGlobalStyleSection.colors =>
+                  const GlobalColorsTarget(),
+                PersonalizationGlobalStyleSection.forms =>
+                  const GlobalFormsTarget(),
+                PersonalizationGlobalStyleSection.typography =>
+                  const GlobalTypographyTarget(),
+              },
+            );
+          },
           onEditAccent: () {
             unawaited(
               _editGlobalStyleAccent(
@@ -1470,6 +1494,30 @@ class _PersonalizationStudioWorkspaceState
           onUseSystemCommonFont: () {
             unawaited(
               _useSystemCommonFont(profile: profile, notifier: notifier),
+            );
+          },
+          onResetColors: () {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(
+                  branding: profile.branding.copyWith(accentColor: null),
+                  theme: null,
+                ),
+                label: 'Réinitialiser les couleurs globales',
+              ),
+            );
+          },
+          onResetWindows: () {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(windows: null),
+                label: 'Réinitialiser les fenêtres globales',
+              ),
+            );
+          },
+          onResetTypography: () {
+            unawaited(
+              _resetGlobalTypography(profile: profile, notifier: notifier),
             );
           },
           onCommonMetricsChanged: (metrics) {

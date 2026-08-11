@@ -50,24 +50,26 @@ class PersonalizationSceneInspector extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(description),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              for (final destination in _targetsForScene(scene))
-                PokeMapButton(
-                  key: ValueKey<String>(
-                    'personalization-inspector-target-${_targetId(destination)}',
+          if (scene != PersonalizationStudioScene.globalStyle) ...<Widget>[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                for (final destination in _targetsForScene(scene))
+                  PokeMapButton(
+                    key: ValueKey<String>(
+                      'personalization-inspector-target-${_targetId(destination)}',
+                    ),
+                    size: PokeMapButtonSize.large,
+                    variant: PokeMapButtonVariant.secondary,
+                    isSelected: destination.runtimeType == target.runtimeType,
+                    onPressed: () => onTargetSelected(destination),
+                    child: Text(_targetLabel(destination)),
                   ),
-                  size: PokeMapButtonSize.large,
-                  variant: PokeMapButtonVariant.secondary,
-                  isSelected: destination.runtimeType == target.runtimeType,
-                  onPressed: () => onTargetSelected(destination),
-                  child: Text(_targetLabel(destination)),
-                ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     ),
@@ -129,7 +131,7 @@ String _targetId(PersonalizationInspectorTarget target) => switch (target) {
 String _targetLabel(PersonalizationInspectorTarget target) => switch (target) {
   GlobalColorsTarget() => 'Couleurs',
   GlobalTypographyTarget() => 'Typographie',
-  GlobalFormsTarget() => 'Formes',
+  GlobalFormsTarget() => 'Fenêtres',
   TitlePresentationTarget() => 'Écran titre',
   IntroPresentationTarget() => 'Média',
   PauseLabelsTarget() => 'Libellés',

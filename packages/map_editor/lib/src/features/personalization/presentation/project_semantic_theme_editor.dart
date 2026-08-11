@@ -106,37 +106,65 @@ class ProjectSemanticThemeEditor extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         for (final token in tokens.entries) ...<Widget>[
-          PokeMapCard(
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    simple
-                        ? _simpleTokenLabel(token.key)
-                        : _tokenLabel(token.key),
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
-                PokeMapBadge(label: token.value),
-                const SizedBox(width: 8),
-                PokeMapButton(
-                  key: ValueKey<String>(
-                    simple
-                        ? 'global-style-color-${_simpleTokenId(token.key)}'
-                        : 'theme-edit-${token.key}',
-                  ),
-                  onPressed: () => onEditToken(token.key),
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  leading: const Icon(Icons.palette_outlined),
-                  child: const Text('Modifier'),
-                ),
-              ],
-            ),
-          ),
+          _tokenCard(context, token),
           const SizedBox(height: 8),
         ],
       ],
+    );
+  }
+
+  Widget _tokenCard(BuildContext context, MapEntry<String, String> token) {
+    final label = simple
+        ? _simpleTokenLabel(token.key)
+        : _tokenLabel(token.key);
+    final button = PokeMapButton(
+      key: ValueKey<String>(
+        simple
+            ? 'global-style-color-${_simpleTokenId(token.key)}'
+            : 'theme-edit-${token.key}',
+      ),
+      onPressed: () => onEditToken(token.key),
+      variant: PokeMapButtonVariant.secondary,
+      size: PokeMapButtonSize.small,
+      leading: const Icon(Icons.palette_outlined),
+      child: const Text('Modifier'),
+    );
+    return PokeMapCard(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact =
+              constraints.maxWidth < 340 ||
+              MediaQuery.textScalerOf(context).scale(14) > 20;
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(label, style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PokeMapBadge(label: token.value),
+                ),
+                const SizedBox(height: 8),
+                button,
+              ],
+            );
+          }
+          return Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              PokeMapBadge(label: token.value),
+              const SizedBox(width: 8),
+              button,
+            ],
+          );
+        },
+      ),
     );
   }
 

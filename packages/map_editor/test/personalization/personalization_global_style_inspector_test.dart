@@ -7,6 +7,134 @@ import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets('navigates through the three global style tabs', (tester) async {
+    var section = PersonalizationGlobalStyleSection.colors;
+    late StateSetter setHostState;
+    await tester.pumpWidget(
+      _app(
+        StatefulBuilder(
+          builder: (context, setState) {
+            setHostState = setState;
+            return PersonalizationGlobalStyleInspector(
+              profile: const ProjectPresentationProfile(
+                theme: safeProjectSemanticTheme,
+              ),
+              section: section,
+              onSectionChanged: (value) {
+                setHostState(() => section = value);
+              },
+              onEditAccent: () {},
+              onEditThemeToken: (_) {},
+              onUseSafeFallback: () {},
+              onWindowsChanged: (_) {},
+              onImportCommonFont: () {},
+              onUseSystemCommonFont: () {},
+              onResetColors: () {},
+              onResetWindows: () {},
+              onResetTypography: () {},
+            );
+          },
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('global-style-tab-colors')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('global-style-tab-windows')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('global-style-tab-typography')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('global-style-color-accent')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-tab-windows')),
+    );
+    await tester.pumpAndSettle();
+    expect(section, PersonalizationGlobalStyleSection.forms);
+    expect(
+      find.byKey(const ValueKey<String>('global-shape-rounded')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-tab-typography')),
+    );
+    await tester.pumpAndSettle();
+    expect(section, PersonalizationGlobalStyleSection.typography);
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-common')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('offers an explicit reset for every global section', (
+    tester,
+  ) async {
+    final resets = <PersonalizationGlobalStyleSection>[];
+    var section = PersonalizationGlobalStyleSection.colors;
+    late StateSetter setHostState;
+    await tester.pumpWidget(
+      _app(
+        StatefulBuilder(
+          builder: (context, setState) {
+            setHostState = setState;
+            return PersonalizationGlobalStyleInspector(
+              profile: const ProjectPresentationProfile(
+                theme: safeProjectSemanticTheme,
+              ),
+              section: section,
+              onSectionChanged: (value) {
+                setHostState(() => section = value);
+              },
+              onEditAccent: () {},
+              onEditThemeToken: (_) {},
+              onUseSafeFallback: () {},
+              onWindowsChanged: (_) {},
+              onImportCommonFont: () {},
+              onUseSystemCommonFont: () {},
+              onResetColors: () =>
+                  resets.add(PersonalizationGlobalStyleSection.colors),
+              onResetWindows: () =>
+                  resets.add(PersonalizationGlobalStyleSection.forms),
+              onResetTypography: () =>
+                  resets.add(PersonalizationGlobalStyleSection.typography),
+            );
+          },
+        ),
+      ),
+    );
+
+    for (final entry in <(String, PersonalizationGlobalStyleSection)>[
+      ('colors', PersonalizationGlobalStyleSection.colors),
+      ('windows', PersonalizationGlobalStyleSection.forms),
+      ('typography', PersonalizationGlobalStyleSection.typography),
+    ]) {
+      await tester.tap(
+        find.byKey(ValueKey<String>('global-style-tab-${entry.$1}')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(ValueKey<String>('global-style-reset-${entry.$1}')),
+      );
+      await tester.pump();
+    }
+
+    expect(resets, <PersonalizationGlobalStyleSection>[
+      PersonalizationGlobalStyleSection.colors,
+      PersonalizationGlobalStyleSection.forms,
+      PersonalizationGlobalStyleSection.typography,
+    ]);
+  });
+
   testWidgets('exposes exactly four simple global color controls', (
     tester,
   ) async {
@@ -18,12 +146,16 @@ void main() {
             theme: safeProjectSemanticTheme,
           ),
           section: PersonalizationGlobalStyleSection.colors,
+          onSectionChanged: (_) {},
           onEditAccent: () => edited.add('accent'),
           onEditThemeToken: edited.add,
           onUseSafeFallback: () {},
           onWindowsChanged: (_) {},
           onImportCommonFont: () {},
           onUseSystemCommonFont: () {},
+          onResetColors: () {},
+          onResetWindows: () {},
+          onResetTypography: () {},
         ),
       ),
     );
@@ -78,6 +210,7 @@ void main() {
                   child: PersonalizationGlobalStyleInspector(
                     profile: profile,
                     section: PersonalizationGlobalStyleSection.forms,
+                    onSectionChanged: (_) {},
                     onEditAccent: () {},
                     onEditThemeToken: (_) {},
                     onUseSafeFallback: () {},
@@ -88,6 +221,9 @@ void main() {
                     },
                     onImportCommonFont: () {},
                     onUseSystemCommonFont: () {},
+                    onResetColors: () {},
+                    onResetWindows: () {},
+                    onResetTypography: () {},
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -162,12 +298,16 @@ void main() {
             theme: safeProjectSemanticTheme,
           ),
           section: PersonalizationGlobalStyleSection.typography,
+          onSectionChanged: (_) {},
           onEditAccent: () {},
           onEditThemeToken: (_) {},
           onUseSafeFallback: () {},
           onWindowsChanged: (_) {},
           onImportCommonFont: () => importCalls += 1,
           onUseSystemCommonFont: () {},
+          onResetColors: () {},
+          onResetWindows: () {},
+          onResetTypography: () {},
         ),
       ),
     );
@@ -178,6 +318,100 @@ void main() {
       find.byKey(const ValueKey<String>('typography-import-common')),
     );
     expect(importCalls, 1);
+  });
+
+  testWidgets('keeps contrast errors visible in the colors tab', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: PersonalizationGlobalStyleInspector(
+            profile: ProjectPresentationProfile(
+              theme: safeProjectSemanticTheme.copyWith(
+                primary: '#111111',
+                onPrimary: '#111111',
+              ),
+            ),
+            section: PersonalizationGlobalStyleSection.colors,
+            onSectionChanged: (_) {},
+            onEditAccent: () {},
+            onEditThemeToken: (_) {},
+            onUseSafeFallback: () {},
+            onWindowsChanged: (_) {},
+            onImportCommonFont: () {},
+            onUseSystemCommonFont: () {},
+            onResetColors: () {},
+            onResetWindows: () {},
+            onResetTypography: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('global-style-contrast-gate')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Corrigez les contrastes avant de pouvoir enregistrer.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('remains usable at narrow width and 200 percent text scale', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      _app(
+        MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+          child: SingleChildScrollView(
+            child: PersonalizationGlobalStyleInspector(
+              profile: const ProjectPresentationProfile(
+                theme: safeProjectSemanticTheme,
+              ),
+              section: PersonalizationGlobalStyleSection.colors,
+              onSectionChanged: (_) {},
+              onEditAccent: () {},
+              onEditThemeToken: (_) {},
+              onUseSafeFallback: () {},
+              onWindowsChanged: (_) {},
+              onImportCommonFont: () {},
+              onUseSystemCommonFont: () {},
+              onResetColors: () {},
+              onResetWindows: () {},
+              onResetTypography: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    final tabSemantics = tester
+        .widgetList<Semantics>(
+          find.descendant(
+            of: find.byKey(const ValueKey<String>('global-style-tab-colors')),
+            matching: find.byType(Semantics),
+          ),
+        )
+        .map((widget) => widget.properties.label);
+    final resetSemantics = tester
+        .widgetList<Semantics>(
+          find.descendant(
+            of: find.byKey(const ValueKey<String>('global-style-reset-colors')),
+            matching: find.byType(Semantics),
+          ),
+        )
+        .map((widget) => widget.properties.label);
+    expect(tabSemantics, contains('Onglet Couleurs'));
+    expect(resetSemantics, contains('Réinitialiser les couleurs'));
+    semantics.dispose();
   });
 }
 

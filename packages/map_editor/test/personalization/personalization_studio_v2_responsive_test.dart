@@ -65,16 +65,20 @@ void main() {
             );
           } else {
             expect(
-              tester
-                  .getSize(
-                    find.byKey(
-                      const ValueKey<String>(
-                        'personalization-inspector-target-globalColors',
-                      ),
-                    ),
-                  )
-                  .height,
-              greaterThanOrEqualTo(48),
+              find.byKey(
+                const ValueKey<String>(
+                  'personalization-inspector-target-globalColors',
+                ),
+              ),
+              findsNothing,
+            );
+            expect(
+              find.byKey(
+                const ValueKey<String>(
+                  'personalization-studio-inspector-scroll',
+                ),
+              ),
+              findsOneWidget,
             );
           }
           expect(find.bySemanticsLabel('Style global'), findsOneWidget);
