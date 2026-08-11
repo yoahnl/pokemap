@@ -308,10 +308,80 @@ void main() {
       expect(
         validateProjectPresentationProfile(
           ProjectPresentationProfile(
+            windows: windows(ProjectWindowShape.rounded, opacity: 1.01),
+          ),
+        ).map((diagnostic) => diagnostic.code),
+        contains('windowFillOpacityOutOfRange'),
+      );
+      expect(
+        validateProjectPresentationProfile(
+          ProjectPresentationProfile(
             windows: windows(ProjectWindowShape.rounded, opacity: double.nan),
           ),
         ).map((diagnostic) => diagnostic.code),
         contains('windowFillOpacityOutOfRange'),
+      );
+      for (final opacity in <double>[
+        projectWindowMinFillOpacity,
+        projectWindowMaxFillOpacity,
+      ]) {
+        expect(
+          validateProjectPresentationProfile(
+            ProjectPresentationProfile(
+              windows: windows(ProjectWindowShape.rounded, opacity: opacity),
+            ),
+          ).map((diagnostic) => diagnostic.code),
+          isNot(contains('windowFillOpacityOutOfRange')),
+        );
+      }
+
+      const roleSpecific = ProjectPresentationWindowsProfile(
+        styles: <ProjectWindowStyleProfile>[
+          ProjectWindowStyleProfile(
+            id: 'short',
+            fillToken: 'surface',
+            borderToken: 'outline',
+            borderWidth: 1,
+            cornerRadius: 16,
+            contentPadding: 16,
+            shadowElevation: 4,
+            shape: ProjectWindowShape.capsule,
+          ),
+          ProjectWindowStyleProfile(
+            id: 'multiline',
+            fillToken: 'surface',
+            borderToken: 'outline',
+            borderWidth: 1,
+            cornerRadius: 16,
+            contentPadding: 16,
+            shadowElevation: 4,
+          ),
+          ProjectWindowStyleProfile(
+            id: 'speech',
+            fillToken: 'dialogueSurface',
+            borderToken: 'outline',
+            borderWidth: 1,
+            cornerRadius: 16,
+            contentPadding: 16,
+            shadowElevation: 4,
+            shape: ProjectWindowShape.speech,
+          ),
+        ],
+        defaultStyleId: 'short',
+        pauseMenuStyleId: 'multiline',
+        dialogueStyleId: 'speech',
+        battleStyleId: 'multiline',
+        pauseBackdropOpacity: .7,
+      );
+      expect(
+        validateProjectPresentationProfile(
+          const ProjectPresentationProfile(windows: roleSpecific),
+        ).where(
+          (diagnostic) =>
+              diagnostic.code == 'windowCapsuleShapeRoleUnsupported' ||
+              diagnostic.code == 'windowSpeechShapeRoleUnsupported',
+        ),
+        isEmpty,
       );
     });
   });
