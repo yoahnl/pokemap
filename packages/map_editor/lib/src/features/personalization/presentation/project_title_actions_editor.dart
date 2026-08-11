@@ -230,9 +230,13 @@ List<ProjectTitleActionProfile> _effectiveActions(
   if (authored == null) return List.of(defaultProjectTitleActions);
   final ids = authored.map((action) => action.id).toSet();
   return <ProjectTitleActionProfile>[
-    ...authored,
+    for (final action in authored)
+      action.id == ProjectTitleActionId.newGame
+          ? action.copyWith(visible: true)
+          : action,
     for (final action in defaultProjectTitleActions)
-      if (!ids.contains(action.id)) action.copyWith(visible: false),
+      if (!ids.contains(action.id))
+        action.copyWith(visible: action.id == ProjectTitleActionId.newGame),
   ];
 }
 
