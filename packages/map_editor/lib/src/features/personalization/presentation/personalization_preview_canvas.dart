@@ -131,37 +131,25 @@ class _ComparisonPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final beforePreview = _LabeledPreview(
-          key: const ValueKey<String>('personalization-preview-before'),
-          label: 'Avant',
-          child: before,
-        );
-        final afterPreview = _LabeledPreview(
-          key: const ValueKey<String>('personalization-preview-after'),
-          label: 'Maintenant',
-          child: after,
-        );
-        if (constraints.maxWidth >= 720) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(child: beforePreview),
-              const SizedBox(width: 12),
-              Expanded(child: afterPreview),
-            ],
-          );
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            beforePreview,
-            const SizedBox(height: 12),
-            afterPreview,
-          ],
-        );
-      },
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Expanded(
+          child: _LabeledPreview(
+            key: const ValueKey<String>('personalization-preview-before'),
+            label: 'Avant',
+            child: before,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _LabeledPreview(
+            key: const ValueKey<String>('personalization-preview-after'),
+            label: 'Maintenant',
+            child: after,
+          ),
+        ),
+      ],
     );
   }
 }
