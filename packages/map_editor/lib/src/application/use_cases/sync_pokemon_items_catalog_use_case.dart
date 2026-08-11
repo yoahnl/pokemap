@@ -6,7 +6,6 @@ import 'package:path/path.dart' as p;
 import '../errors/application_errors.dart';
 import '../models/pokemon_project_data_models.dart';
 import '../ports/pokemon_external_source_repository.dart';
-import '../ports/pokemon_read_repository.dart';
 import '../ports/pokemon_write_repository.dart';
 import '../ports/project_workspace.dart';
 
@@ -41,12 +40,10 @@ class PokemonItemsCatalogSyncResult {
 class SyncExternalPokemonItemsCatalogUseCase {
   const SyncExternalPokemonItemsCatalogUseCase({
     required this.externalSourceRepository,
-    required this.readRepository,
     required this.writeRepository,
   });
 
   final PokemonExternalSourceRepository externalSourceRepository;
-  final PokemonReadRepository readRepository;
   final PokemonWriteRepository writeRepository;
 
   Future<PokemonItemsCatalogSyncResult> execute(

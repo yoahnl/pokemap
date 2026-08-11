@@ -306,7 +306,6 @@ final syncExternalPokemonItemsCatalogUseCaseProvider =
   return SyncExternalPokemonItemsCatalogUseCase(
     externalSourceRepository:
         ref.watch(pokemonExternalSourceRepositoryProvider),
-    readRepository: ref.watch(pokemonReadRepositoryProvider),
     writeRepository: ref.watch(pokemonWriteRepositoryProvider),
   );
 });
