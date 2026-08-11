@@ -32,7 +32,7 @@ void main() {
     expect(result.state.bag, save.bag.normalized());
   });
 
-  test('rejects every old schema with a typed diagnostic and no mutation', () {
+  test('rejects unsupported item save wire with no mutation', () {
     final fixtures = <({
       Map<String, dynamic> json,
       Object? detectedVersion,
@@ -64,6 +64,19 @@ void main() {
         },
         detectedVersion: 1,
         path: r'$.bag.entries[0].categoryId',
+      ),
+      (
+        json: {
+          'saveId': 'unknown-entry-field',
+          'itemSystemSchemaVersion': 1,
+          'bag': {
+            'entries': [
+              {'itemId': 'potion', 'quantity': 1, 'unexpected': true},
+            ],
+          },
+        },
+        detectedVersion: 1,
+        path: r'$.bag.entries[0].unexpected',
       ),
     ];
 

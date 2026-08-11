@@ -596,6 +596,7 @@ abstract class TrainerProfile with _$TrainerProfile {
 
 const currentItemSystemSaveSchemaVersion = 1;
 const maximumBagEntryQuantity = 0x7fffffffffffffff;
+const _bagEntryJsonKeys = <String>{'itemId', 'quantity'};
 
 final class UnsupportedSaveSchema implements Exception {
   const UnsupportedSaveSchema({
@@ -764,13 +765,22 @@ void _validateItemSystemSaveSchema(Map<String, dynamic> json) {
   }
   for (var index = 0; index < entries.length; index += 1) {
     final entry = entries[index];
-    if (entry is Map<String, dynamic> && entry.containsKey('categoryId')) {
-      throw UnsupportedSaveSchema(
-        schemaVersion: schemaVersion,
-        expectedSchemaVersion: currentItemSystemSaveSchemaVersion,
-        path: '\$.bag.entries[$index].categoryId',
-      );
+    if (entry is! Map<String, dynamic>) {
+      continue;
     }
+    final unknownKeys =
+        entry.keys
+            .where((key) => !_bagEntryJsonKeys.contains(key))
+            .toList(growable: false)
+          ..sort();
+    if (unknownKeys.isEmpty) {
+      continue;
+    }
+    throw UnsupportedSaveSchema(
+      schemaVersion: schemaVersion,
+      expectedSchemaVersion: currentItemSystemSaveSchemaVersion,
+      path: '\$.bag.entries[$index].${unknownKeys.first}',
+    );
   }
 }
 

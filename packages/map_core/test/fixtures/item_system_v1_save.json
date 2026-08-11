@@ -1,0 +1,20 @@
+{
+  "saveId": "item-system-v1-golden",
+  "itemSystemSchemaVersion": 1,
+  "bag": {
+    "entries": [
+      {
+        "itemId": "potion",
+        "quantity": 2
+      },
+      {
+        "itemId": "poke-ball",
+        "quantity": 5
+      },
+      {
+        "itemId": "antidote",
+        "quantity": 1
+      }
+    ]
+  }
+}

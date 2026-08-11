@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -69,6 +72,28 @@ void main() {
       });
     });
 
+    test('loads the golden Item System V1 save', () {
+      final json = jsonDecode(
+        File('test/fixtures/item_system_v1_save.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+
+      final save = SaveData.fromJson(json).normalized();
+
+      expect(save.itemSystemSchemaVersion, currentItemSystemSaveSchemaVersion);
+      expect(save.bag.entries, const [
+        BagEntry(itemId: 'antidote', quantity: 1),
+        BagEntry(itemId: 'poke-ball', quantity: 5),
+        BagEntry(itemId: 'potion', quantity: 2),
+      ]);
+      expect(save.toJson()['bag'], {
+        'entries': [
+          {'itemId': 'antidote', 'quantity': 1},
+          {'itemId': 'poke-ball', 'quantity': 5},
+          {'itemId': 'potion', 'quantity': 2},
+        ],
+      });
+    });
+
     test('refuses a legacy save containing categoryId', () {
       final legacyJson = <String, dynamic>{
         'saveId': 'slot-1',
@@ -95,6 +120,29 @@ void main() {
                 'path',
                 r'$.bag.entries[0].categoryId',
               ),
+        ),
+      );
+    });
+
+    test('refuses every unknown BagEntry field', () {
+      final json = <String, dynamic>{
+        'saveId': 'slot-1',
+        'itemSystemSchemaVersion': 1,
+        'bag': {
+          'entries': [
+            {'itemId': 'potion', 'quantity': 2, 'unexpected': true},
+          ],
+        },
+      };
+
+      expect(
+        () => SaveData.fromJson(json),
+        throwsA(
+          isA<UnsupportedSaveSchema>().having(
+            (error) => error.path,
+            'path',
+            r'$.bag.entries[0].unexpected',
+          ),
         ),
       );
     });

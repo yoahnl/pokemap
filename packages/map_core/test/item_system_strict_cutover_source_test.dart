@@ -40,4 +40,13 @@ void main() {
 
     expect(violations, isEmpty, reason: violations.join('\n'));
   });
+
+  test('the save codec has no knowledge of the legacy bag wire', () {
+    final source = File('lib/src/models/save_data.dart').readAsStringSync();
+
+    expect(source, isNot(contains('categoryId')));
+    expect(source, isNot(contains('LegacyBag')));
+    expect(source, isNot(contains('migrateBag')));
+    expect(source, isNot(contains('convertBag')));
+  });
 }
