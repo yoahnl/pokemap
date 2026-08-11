@@ -12,11 +12,11 @@
 
 ## 1. Statut, autorité et règle de portée
 
-- [ ] IN_PROGRESS — les phases 0 à 6 sont clôturées ; ITM-070 à ITM-073 sont livrés, ITM-074 est le dernier lot de certification.
-- Dernière mise à jour : 11 août 2026, après exécution et consignation de la matrice complète du lot ITM-073.
-- Avancement : 40 lots DONE, 1 lot DEFERRED_BY_PRODUCT et 1 lot TODO sur 42 lots uniques.
-- Phases : 7 phases réalisées sur 8 ; seule la phase 7 reste à exécuter.
-- Travail restant : 1 lot immédiatement exécutable (`ITM-074`) et 1 lot différé (`ITM-034`) qui ne doit pas être compté comme une tâche de la prochaine vague.
+- [x] DONE_SCOPE_V1 — les phases 0 à 7 sont clôturées ; les limites joueur, MCP live, HM et Selbrume restent explicitement PARTIAL.
+- Dernière mise à jour : 11 août 2026, après recertification de la roadmap mécanique au lot ITM-074.
+- Avancement : 41 lots DONE, 1 lot DEFERRED_BY_PRODUCT et 0 lot TODO sur 42 lots uniques.
+- Phases : 8 phases réalisées sur 8 dans le périmètre V1 signé.
+- Travail restant : aucun lot immédiatement exécutable dans cette roadmap ; seul `ITM-034` reste différé et exige une nouvelle décision produit.
 - Unité de suivi : cette roadmap ne maintient pas un second registre de tâches atomiques ; les unités d’exécution officielles sont les lots `ITM-*`.
 - La phase 3 est clôturée sur le périmètre V1 signé ; ITM-034 Repel reste explicitement différé avec FG-065 et ne bloque ni la phase 6, ni la capture minimale.
 - Ce document est la roadmap dédiée à la refonte Item System V1.
@@ -64,11 +64,11 @@ La stratégie retenue est un remplacement progressif du code, livré comme une r
 | Producteurs et économie | DONE — New Game, événements, pickups, rewards et shops utilisent les contrats canoniques | `BagOperations` et `ProjectItemReferenceIndex` |
 | Authoring et MCP | DONE — lectures, mutations, Item Studio, pickers, JSONL, Editor et MCP sont raccordés | map_authoring et ses adaptateurs de transport |
 | Suppression historique | DONE — décisions par catégorie, registries, wrappers dupliqués et ancien wire Bag retirés | ITM-060 à ITM-062 |
-| Certification produit | IN_PROGRESS — matrice exécutée ; L4 UX et L5 transports restent PARTIAL, notamment parce que le MCP live est antérieur au catalogue Item | ITM-074 |
+| Certification produit | DONE_SCOPE_V1 — L0 à L3 et L6 prouvés ; L4 UX et L5 transports restent honnêtement PARTIAL | ITM-070 à ITM-074 |
 
 ### 2.2 Décision de continuation
 
-ITM-060 à ITM-062 ont retiré les décisions historiques par catégorie, les registries, les wrappers devenus inutiles et l’ancien wire Bag. ITM-070 fournit la fixture synthétique stricte, ITM-071 l’exécute par les API de production avec un receipt lié au commit et aux digests, ITM-072 évalue ce receipt dans un profil L0-L6 indépendant des indicateurs génériques de parité, puis ITM-073 confronte ces preuves aux suites, analyses, builds et transports réels. ITM-034 reste hors vague tant que la décision produit FG-065 n’est pas explicitement réouverte. Cette synthèse ne modifie aucun statut FG de la roadmap mécanique racine : leur recertification reste réservée à ITM-074.
+ITM-060 à ITM-062 ont retiré les décisions historiques par catégorie, les registries, les wrappers devenus inutiles et l’ancien wire Bag. ITM-070 fournit la fixture synthétique stricte, ITM-071 l’exécute par les API de production avec un receipt lié au commit et aux digests, ITM-072 évalue ce receipt dans un profil L0-L6 indépendant des indicateurs génériques de parité, ITM-073 confronte ces preuves aux suites, analyses, builds et transports réels, puis ITM-074 recertifie chaque lot FG concerné. ITM-034 reste hors vague tant que la décision produit FG-065 n’est pas explicitement réouverte. La V1 technique est fermée sans transformer les limites L4/L5 en faux statuts CERTIFIED.
 
 ## 3. Audit initial vérifié
 
@@ -343,10 +343,10 @@ ItemCatalogSnapshot compose la définition d’objet avec les références exter
 | 4 — Producteurs et économie | 5 | 5 | 0 | 0 | `ITM-040` à `ITM-044` | — | DONE |
 | 5 — Authoring et MCP | 6 | 6 | 0 | 0 | `ITM-050` à `ITM-055` | — | DONE |
 | 6 — Suppression historique | 3 | 3 | 0 | 0 | `ITM-060` à `ITM-062` | — | DONE |
-| 7 — Certification | 5 | 4 | 1 | 0 | `ITM-070` à `ITM-073` | `ITM-074` | IN_PROGRESS |
-| **Total** | **42** | **40** | **1** | **1** | **Phases 0 à 6 + ITM-070 à ITM-073** | **ITM-074 + ITM-034 différé** | **IN_PROGRESS** |
+| 7 — Certification | 5 | 5 | 0 | 0 | `ITM-070` à `ITM-074` | — | DONE |
+| **Total** | **42** | **41** | **0** | **1** | **Phases 0 à 7 hors ITM-034** | **ITM-034 différé** | **DONE_SCOPE_V1** |
 
-Le reste à faire immédiatement représente donc 1 lot dans la phase 7. Le nombre de lots non-DONE est de 2 uniquement si le lot produit différé `ITM-034` est inclus ; ce dernier n’entre pas dans la prochaine vague tant que FG-065 reste DEFERRED.
+Il ne reste aucun lot immédiatement exécutable. Le seul lot non-DONE est `ITM-034`, explicitement différé avec FG-065 ; il ne doit pas être réintroduit sans nouvelle décision produit.
 
 ### 7.1 Preuves Git après rebase
 
@@ -359,7 +359,7 @@ Le reste à faire immédiatement représente donc 1 lot dans la phase 7. Le nomb
 | 4 | `e616cb5a3` à `985c544f5` |
 | 5 | `208fdbe19` à `73810116b`, puis intégration post-rebase `dbc93a7dd` |
 | 6 | `6f9e454fb`, `091c60a11`, correctif de revue `5db84a28a`, puis clôture `9fb30476f` |
-| 7 | — |
+| 7 | `7980897a1`, `6a03ab0e0`, `9dfd652c2`, `6de69184f`, puis clôture ITM-074 dans le commit de cette mise à jour |
 
 Ces identifiants remplacent les hashes antérieurs au rebase. Ils prouvent l’historique de la branche dédiée ; ils ne remplacent pas les commandes fraîches exigées pour clôturer les phases 6 et 7.
 
@@ -1118,7 +1118,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ## 15. Phase 7 — Certification et clôture
 
-**Statut de phase :** IN_PROGRESS. ITM-070 à ITM-073 sont clôturés ; ITM-074 doit maintenant recertifier la roadmap mécanique sans promouvoir les surfaces encore PARTIAL.
+**Statut de phase :** DONE_SCOPE_V1. ITM-070 à ITM-074 sont clôturés ; L4 et L5 restent PARTIAL par construction fail-closed, sans bloquer la livraison du périmètre technique signé.
 
 ### ITM-070 — Fixture Golden Item System
 
@@ -1218,7 +1218,7 @@ Le lot est DONE parce que la matrice demandée a été réellement exécutée et
 
 ### ITM-074 — Recertification de la roadmap mécanique
 
-- [ ] **Résultat :** proposer les statuts FG avec preuves fraîches.
+- [x] **Résultat :** proposer les statuts FG avec preuves fraîches.
 - **Lots à auditer :**
   - FG-050 ;
   - FG-060 à FG-070 ;
@@ -1227,6 +1227,10 @@ Le lot est DONE parce que la matrice demandée a été réellement exécutée et
 - **Règle :** FG-065 et FG-066 conservent leur décision produit DEFERRED tant que cette décision n’est pas explicitement changée ; la capture minimale reste néanmoins certifiée.
 - **Gate :** chaque statut cite fichiers, commandes, résultats, limites et scénario de preuve.
 - **Dépendances :** ITM-073.
+
+**Preuves ITM-074 :** la roadmap mécanique racine contient désormais une ligne de recertification datée et sourcée pour chacun des vingt lots demandés. FG-050, FG-064 et FG-067 passent de TODO à DONE sur les moteurs génériques, le gate key item direct et le pickup visible idempotent. FG-060 à FG-063, FG-069/070 et FG-074 à FG-078 restent DONE avec preuves fraîches. FG-065 et FG-066 restent DEFERRED ; la Poké Ball minimale est néanmoins exécutée. FG-068 reste TODO faute de hidden item dédié. FG-072 reste PARTIAL car equip/swap/unequip existent dans gameplay/runtime mais aucun contrôle correspondant n’est rendu par `map_player_ui`. FG-073 reste PARTIAL car la TM est jouable et la policy HM est testée, sans parcours joueur HM bout en bout. FG-079 passe de DONE historique à PARTIAL : le shop synthétique passe 5/5, mais la golden Selbrume échoue avant le scénario sur `smart_tile_v6_project_required (expected=v6, actual=v2)`.
+
+Les commandes ciblées de recertification terminent avec 11 tests Core, 43 Gameplay, 41 Runtime, 14 Editor et 6 Host réussis. Le test Selbrume ciblé termine avec 0 réussite et 1 échec de setup. Ces résultats complètent, sans la remplacer, la matrice globale ITM-073. Le verdict final des niveaux de preuve est L0 schema CERTIFIED, L1 authoring CERTIFIED sur le code source, L2 persistence CERTIFIED, L3 runtime CERTIFIED, L4 player UX PARTIAL, L5 transports PARTIAL et L6 golden flow CERTIFIED. Le serveur MCP live chargé dans cette session reste antérieur au worktree et n’expose aucune ressource Item ni action `item.*`.
 
 ## 16. Vagues d’exécution recommandées
 
@@ -1239,7 +1243,7 @@ Le lot est DONE parce que la matrice demandée a été réellement exécutée et
 | D2 | ITM-040 → ITM-044 | DONE | Rewards et shops après BagOperations | Producteurs |
 | E | ITM-050 → ITM-055 | DONE | UI après actions ; transports après contrats | Parité |
 | F | ITM-060 → ITM-062 | DONE | Non | Suppression historique |
-| G | ITM-070 → ITM-074 | IN_PROGRESS — ITM-070 DONE | Non | Certification |
+| G | ITM-070 → ITM-074 | DONE_SCOPE_V1 | Non | Certification |
 
 Une vague n’autorise pas plusieurs modifications concurrentes du même modèle généré, du même codec ou de save_data.dart.
 
@@ -1316,10 +1320,14 @@ N/A signifie réellement non applicable ; il ne doit pas masquer une exposition 
 - [ ] État Git final consigné.
 - [ ] Statut ITM et proposition de statut FG rapportés sans les maquiller.
 
-## 21. Prochaine exécution
+## 21. Suites hors périmètre V1
 
-Cette roadmap continue d’être exécutée lot par lot, avec un checkpoint après chaque lot de certification.
+La roadmap Item System V1 est clôturée. Les suites éventuelles nécessitent de nouveaux lots explicitement autorisés :
 
-1. **ITM-074 — recertification mécanique :** proposer les statuts FG finaux uniquement à partir des preuves fraîches de la golden slice et de la matrice complète.
+1. ajouter les contrôles joueur equip/unequip pour fermer L4 et FG-072 ;
+2. prouver un parcours joueur HM complet pour fermer FG-073 ;
+3. recharger un build MCP issu de cette branche et exécuter les neuf actions Item sur les quatre transports pour fermer L5 ;
+4. migrer séparément Selbrume de V2 vers V6 avant de recertifier FG-079 ;
+5. rouvrir ITM-034 uniquement si la décision produit FG-065 change.
 
-ITM-034 reste différé et ne doit pas être glissé discrètement dans la certification sous prétexte qu’un Repel « n’a pas l’air bien méchant » — c’est exactement ainsi que les petits lots se transforment en marécages.
+ITM-034 reste différé et ne doit pas être glissé discrètement dans une maintenance sous prétexte qu’un Repel « n’a pas l’air bien méchant » — c’est exactement ainsi que les petits lots se transforment en marécages.
