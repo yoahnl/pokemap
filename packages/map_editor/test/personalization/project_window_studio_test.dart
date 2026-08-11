@@ -93,6 +93,64 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('authors dialogue silhouettes and fill opacity', (tester) async {
+    ProjectPresentationWindowsProfile? value;
+    await tester.pumpWidget(
+      _app(
+        ProjectWindowStudio(
+          profile: legacyProjectPresentationWindows,
+          fixedRole: ProjectWindowRole.dialogue,
+          onChanged: (next) => value = next,
+        ),
+      ),
+    );
+
+    _changeDropdown<ProjectWindowShape>(
+      tester,
+      const ValueKey<String>('window-field-shape'),
+      ProjectWindowShape.speech,
+    );
+    expect(
+      value?.resolve(ProjectWindowRole.dialogue).shape,
+      ProjectWindowShape.speech,
+    );
+
+    _changeDropdown<double>(
+      tester,
+      const ValueKey<String>('window-field-fill-opacity'),
+      .8,
+    );
+    expect(value?.resolve(ProjectWindowRole.dialogue).fillOpacity, .8);
+  });
+
+  testWidgets('hides shapes that are invalid for a multiline Pause window', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        ProjectWindowStudio(
+          profile: legacyProjectPresentationWindows,
+          fixedRole: ProjectWindowRole.pauseMenu,
+          onChanged: (_) {},
+        ),
+      ),
+    );
+
+    final dropdown = tester.widget<DropdownButton<ProjectWindowShape>>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('window-field-shape')),
+        matching: find.byType(DropdownButton<ProjectWindowShape>),
+      ),
+    );
+    final values = dropdown.items!.map((item) => item.value).toSet();
+
+    expect(values, contains(ProjectWindowShape.rectangle));
+    expect(values, contains(ProjectWindowShape.rounded));
+    expect(values, contains(ProjectWindowShape.cutCorner));
+    expect(values, isNot(contains(ProjectWindowShape.speech)));
+    expect(values, isNot(contains(ProjectWindowShape.capsule)));
+  });
 }
 
 void _changeDropdown<T>(WidgetTester tester, Key fieldKey, T value) {

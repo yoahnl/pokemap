@@ -158,6 +158,74 @@ void main() {
     expect(material.color?.a, closeTo(.8, .001));
   });
 
+  testWidgets('renders an authored dialogue bubble with a visible tail', (
+    tester,
+  ) async {
+    const style = ProjectWindowStyleProfile(
+      id: 'speech',
+      fillToken: 'dialogueSurface',
+      borderToken: 'outline',
+      borderWidth: 1,
+      cornerRadius: 16,
+      contentPadding: 16,
+      shadowElevation: 4,
+      shape: ProjectWindowShape.speech,
+    );
+    const windows = ProjectPresentationWindowsProfile(
+      styles: <ProjectWindowStyleProfile>[
+        ProjectWindowStyleProfile(
+          id: 'default',
+          fillToken: 'surface',
+          borderToken: 'outline',
+          borderWidth: 1,
+          cornerRadius: 16,
+          contentPadding: 16,
+          shadowElevation: 4,
+        ),
+        style,
+      ],
+      defaultStyleId: 'default',
+      pauseMenuStyleId: 'default',
+      dialogueStyleId: 'speech',
+      pauseBackdropOpacity: .7,
+    );
+    final theme = PokeMapPlayerTheme.withWindowProfile(
+      PokeMapPlayerTheme.light(),
+      windows,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: const Scaffold(
+          body: PlayerPanel(
+            key: ValueKey<String>('speech-window'),
+            role: PlayerPanelRole.dialogue,
+            surfaceRole: ProjectPresentationSurfaceRole.dialogue,
+            child: Text('Dialogue'),
+          ),
+        ),
+      ),
+    );
+
+    final material = tester.widget<Material>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('speech-window')),
+        matching: find.byType(Material),
+      ),
+    );
+    final dimensions = material.shape!.dimensions.resolve(TextDirection.ltr);
+
+    expect(dimensions.bottom, 11);
+    expect(
+      material.shape!
+          .getOuterPath(const Rect.fromLTWH(0, 0, 200, 100))
+          .getBounds()
+          .bottom,
+      100,
+    );
+  });
+
   testWidgets('resolves Dialogue independently from Pause', (tester) async {
     final theme = PokeMapPlayerTheme.withWindowProfile(
       PokeMapPlayerTheme.withSemanticTheme(

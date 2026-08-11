@@ -139,6 +139,25 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
                         onChanged: (value) =>
                             _replace(style.copyWith(fillToken: value)),
                       ),
+                      _field<double>(
+                        width: width,
+                        key: 'fill-opacity',
+                        label: 'Opacité de la fenêtre',
+                        value: style.fillOpacity,
+                        items: const <PokeMapDropdownItem<double>>[
+                          PokeMapDropdownItem(value: 1, label: 'Opaque'),
+                          PokeMapDropdownItem(value: .9, label: 'Très légère'),
+                          PokeMapDropdownItem(value: .8, label: 'Légère'),
+                          PokeMapDropdownItem(value: .65, label: 'Équilibrée'),
+                          PokeMapDropdownItem(value: .5, label: 'Transparente'),
+                          PokeMapDropdownItem(
+                            value: .35,
+                            label: 'Très transparente',
+                          ),
+                        ],
+                        onChanged: (value) =>
+                            _replace(style.copyWith(fillOpacity: value)),
+                      ),
                       _field<String>(
                         width: width,
                         key: 'border-color',
@@ -157,6 +176,15 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
                         onChanged: (value) =>
                             _replace(style.copyWith(borderWidth: value)),
                       ),
+                      _field<ProjectWindowShape>(
+                        width: width,
+                        key: 'shape',
+                        label: 'Silhouette',
+                        value: style.shape,
+                        items: _shapeItems(role),
+                        onChanged: (value) =>
+                            _replace(style.copyWith(shape: value)),
+                      ),
                       _field<int>(
                         width: width,
                         key: 'corner-radius',
@@ -171,7 +199,7 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
                             value: 24,
                             label: 'Très arrondis',
                           ),
-                          PokeMapDropdownItem(value: 32, label: 'Capsule'),
+                          PokeMapDropdownItem(value: 32, label: 'Maximaux'),
                         ],
                         onChanged: (value) =>
                             _replace(style.copyWith(cornerRadius: value)),
@@ -322,19 +350,21 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
 }
 
 enum ProjectWindowShapePreset {
-  square('square', 'Carrée', 0, 0),
-  rounded('rounded', 'Arrondie', 16, 4),
-  soft('soft', 'Douce', 24, 8);
+  square('square', 'Carrée', ProjectWindowShape.rectangle, 0, 0),
+  rounded('rounded', 'Arrondie', ProjectWindowShape.rounded, 16, 4),
+  soft('soft', 'Douce', ProjectWindowShape.rounded, 24, 8);
 
   const ProjectWindowShapePreset(
     this.id,
     this.label,
+    this.shape,
     this.cornerRadius,
     this.shadowElevation,
   );
 
   final String id;
   final String label;
+  final ProjectWindowShape shape;
   final int cornerRadius;
   final int shadowElevation;
 }
@@ -346,6 +376,7 @@ ProjectPresentationWindowsProfile applyProjectWindowShapePreset(
   styles: profile.styles
       .map(
         (style) => style.copyWith(
+          shape: preset.shape,
           cornerRadius: preset.cornerRadius,
           shadowElevation: preset.shadowElevation,
         ),
@@ -383,7 +414,9 @@ class _SimpleWindowShapePresets extends StatelessWidget {
                 size: PokeMapButtonSize.small,
                 variant: PokeMapButtonVariant.secondary,
                 isSelected: profile.styles.every(
-                  (style) => style.cornerRadius == preset.cornerRadius,
+                  (style) =>
+                      style.shape == preset.shape &&
+                      style.cornerRadius == preset.cornerRadius,
                 ),
                 onPressed: () =>
                     onChanged(applyProjectWindowShapePreset(profile, preset)),
@@ -426,6 +459,28 @@ const _borderItems = <PokeMapDropdownItem<String>>[
   PokeMapDropdownItem(value: 'success', label: 'Succès'),
   PokeMapDropdownItem(value: 'warning', label: 'Avertissement'),
   PokeMapDropdownItem(value: 'danger', label: 'Danger'),
+];
+
+List<PokeMapDropdownItem<ProjectWindowShape>> _shapeItems(
+  ProjectWindowRole role,
+) => <PokeMapDropdownItem<ProjectWindowShape>>[
+  const PokeMapDropdownItem(
+    value: ProjectWindowShape.rectangle,
+    label: 'Rectangulaire',
+  ),
+  const PokeMapDropdownItem(
+    value: ProjectWindowShape.rounded,
+    label: 'Arrondie',
+  ),
+  const PokeMapDropdownItem(
+    value: ProjectWindowShape.cutCorner,
+    label: 'Angles coupés',
+  ),
+  if (role == ProjectWindowRole.dialogue)
+    const PokeMapDropdownItem(
+      value: ProjectWindowShape.speech,
+      label: 'Bulle avec pointe',
+    ),
 ];
 
 List<PokeMapDropdownItem<int>> _intItems(
