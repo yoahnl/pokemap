@@ -153,6 +153,7 @@ export 'src/items/item_catalog_snapshot.dart';
 export 'src/items/item_capability_resolver.dart';
 export 'src/items/mvp_item_catalog.dart';
 export 'src/items/player_item_use_service.dart';
+export 'src/items/save_item_schema_guard.dart';
 export 'src/player_defeat_recovery.dart';
 export 'src/runtime_map_projection.dart'
     show

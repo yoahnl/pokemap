@@ -560,7 +560,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-023 — Version gate de sauvegarde et diagnostic de rupture
 
-- [ ] **Résultat :** accepter uniquement le nouveau schéma de sauvegarde et refuser les anciennes structures sans mutation.
+- [x] **Résultat :** accepter uniquement le nouveau schéma de sauvegarde et refuser les anciennes structures sans mutation.
 - **Fichiers à créer :**
   - packages/map_gameplay/lib/src/items/save_item_schema_guard.dart
 - **Tests à créer :**
@@ -573,6 +573,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
   - état joueur original inchangé.
 - **Gate :** nouveau save → save → load est stable ; chaque ancienne fixture est refusée sans produire de nouvel état.
 - **Dépendances :** ITM-020 et ITM-021.
+
+**Preuves ITM-023 :** les 2 tests dédiés passent et l'analyse ciblée est sans issue. `SaveItemSchemaGuard` recharge un save V1 canonique en conservant un JSON stable et retourne le `SaveData` et le `GameState` reconstruits. Les fixtures sans version, avec mauvaise version ou avec `categoryId` sont refusées avec le code `UnsupportedSaveSchema`, la version détectée, la version attendue et le premier chemin incompatible ; le résultat conserve exactement l'instance d'état originale et ne produit aucun `SaveData` partiel.
 
 ### ITM-024 — Adapter GameStateMutations
 
