@@ -8,7 +8,7 @@ import '../project_window_studio.dart';
 
 enum PersonalizationGlobalStyleSection { colors, forms, typography }
 
-class PersonalizationGlobalStyleInspector extends StatelessWidget {
+class PersonalizationGlobalStyleInspector extends StatefulWidget {
   static const capabilityIds = <String>{
     'global.colors',
     'global.windows',
@@ -30,6 +30,9 @@ class PersonalizationGlobalStyleInspector extends StatelessWidget {
     required this.onResetWindows,
     required this.onResetTypography,
     this.onCommonMetricsChanged,
+    this.onImportRole,
+    this.onUseSystemFont,
+    this.onMetricsChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
 
@@ -46,10 +49,32 @@ class PersonalizationGlobalStyleInspector extends StatelessWidget {
   final VoidCallback onResetWindows;
   final VoidCallback onResetTypography;
   final ValueChanged<ProjectTypographyMetricsProfile>? onCommonMetricsChanged;
+  final ValueChanged<ProjectTypographyRole>? onImportRole;
+  final ValueChanged<ProjectTypographyRole>? onUseSystemFont;
+  final ProjectTypographyMetricsChanged? onMetricsChanged;
   final Map<ProjectTypographyRole, String> previewFamilies;
 
   @override
+  State<PersonalizationGlobalStyleInspector> createState() =>
+      _PersonalizationGlobalStyleInspectorState();
+}
+
+class _PersonalizationGlobalStyleInspectorState
+    extends State<PersonalizationGlobalStyleInspector> {
+  bool _showMore = false;
+
+  @override
+  void didUpdateWidget(PersonalizationGlobalStyleInspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.section != widget.section) {
+      _showMore = false;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final profile = widget.profile;
+    final section = widget.section;
     final theme = profile.theme ?? safeProjectSemanticTheme;
     final diagnostics = validateProjectSemanticTheme(theme);
     final blocked = diagnostics.any(
@@ -83,6 +108,24 @@ class PersonalizationGlobalStyleInspector extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Align(
+          alignment: Alignment.centerLeft,
+          child: PokeMapButton(
+            key: const ValueKey<String>('global-style-more-settings'),
+            semanticLabel: _showMore
+                ? 'Masquer les réglages avancés'
+                : 'Afficher plus de réglages',
+            size: PokeMapButtonSize.small,
+            variant: PokeMapButtonVariant.secondary,
+            isSelected: _showMore,
+            onPressed: () => setState(() => _showMore = !_showMore),
+            leading: Icon(
+              _showMore ? Icons.expand_less_rounded : Icons.tune_rounded,
+            ),
+            child: Text(_showMore ? 'Réglages essentiels' : 'Plus de réglages'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Align(
           alignment: Alignment.centerRight,
           child: PokeMapButton(
             key: ValueKey<String>('global-style-reset-${_sectionKey(section)}'),
@@ -109,19 +152,20 @@ class PersonalizationGlobalStyleInspector extends StatelessWidget {
           PersonalizationGlobalStyleSection.colors => _colors(theme),
           PersonalizationGlobalStyleSection.forms => ProjectWindowStudio(
             profile: profile.windows ?? legacyProjectPresentationWindows,
-            simplePresetsOnly: true,
-            onChanged: onWindowsChanged,
+            simplePresetsOnly: !_showMore,
+            onChanged: widget.onWindowsChanged,
           ),
           PersonalizationGlobalStyleSection.typography =>
             ProjectTypographyEditor(
               profile: profile.typography ?? const ProjectTypographyProfile(),
-              previewFamilies: previewFamilies,
-              commonOnly: true,
-              onImportRole: (_) {},
-              onUseSystemFont: (_) {},
-              onImportCommonFont: onImportCommonFont,
-              onUseSystemCommonFont: onUseSystemCommonFont,
-              onCommonMetricsChanged: onCommonMetricsChanged,
+              previewFamilies: widget.previewFamilies,
+              commonOnly: !_showMore,
+              onImportRole: (role) => widget.onImportRole?.call(role),
+              onUseSystemFont: (role) => widget.onUseSystemFont?.call(role),
+              onImportCommonFont: widget.onImportCommonFont,
+              onUseSystemCommonFont: widget.onUseSystemCommonFont,
+              onMetricsChanged: widget.onMetricsChanged,
+              onCommonMetricsChanged: widget.onCommonMetricsChanged,
             ),
         },
       ],
@@ -136,15 +180,16 @@ class PersonalizationGlobalStyleInspector extends StatelessWidget {
     key: ValueKey<String>('global-style-tab-$keyName'),
     label: label,
     semanticLabel: 'Onglet $label',
-    selected: this.section == section,
-    onTap: () => onSectionChanged(section),
+    selected: widget.section == section,
+    onTap: () => widget.onSectionChanged(section),
   );
 
   VoidCallback _resetCallback(PersonalizationGlobalStyleSection section) =>
       switch (section) {
-        PersonalizationGlobalStyleSection.colors => onResetColors,
-        PersonalizationGlobalStyleSection.forms => onResetWindows,
-        PersonalizationGlobalStyleSection.typography => onResetTypography,
+        PersonalizationGlobalStyleSection.colors => widget.onResetColors,
+        PersonalizationGlobalStyleSection.forms => widget.onResetWindows,
+        PersonalizationGlobalStyleSection.typography =>
+          widget.onResetTypography,
       };
 
   Widget _colors(ProjectSemanticThemeProfile theme) => Column(
@@ -157,13 +202,13 @@ class PersonalizationGlobalStyleInspector extends StatelessWidget {
                 constraints.maxWidth < 340 ||
                 MediaQuery.textScalerOf(context).scale(14) > 20;
             final badge = PokeMapBadge(
-              label: profile.branding.accentColor ?? theme.outline,
+              label: widget.profile.branding.accentColor ?? theme.outline,
             );
             final button = PokeMapButton(
               key: const ValueKey<String>('global-style-color-accent'),
               size: PokeMapButtonSize.small,
               variant: PokeMapButtonVariant.secondary,
-              onPressed: onEditAccent,
+              onPressed: widget.onEditAccent,
               leading: const Icon(Icons.palette_outlined),
               child: const Text('Modifier'),
             );
@@ -201,9 +246,9 @@ class PersonalizationGlobalStyleInspector extends StatelessWidget {
       const SizedBox(height: 8),
       ProjectSemanticThemeEditor(
         profile: theme,
-        simple: true,
-        onEditToken: onEditThemeToken,
-        onUseSafeFallback: onUseSafeFallback,
+        simple: !_showMore,
+        onEditToken: widget.onEditThemeToken,
+        onUseSafeFallback: widget.onUseSafeFallback,
       ),
     ],
   );
