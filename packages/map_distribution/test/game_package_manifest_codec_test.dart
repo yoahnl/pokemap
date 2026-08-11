@@ -242,6 +242,14 @@ void main() {
             'nameplateSurfaceColor': '#334455',
             'nameplateBorderColor': '#778899',
             'nameplateTextColor': '#FFFFFF',
+            'choiceSpacing': 14.0,
+            'choiceShape': 'cutCorner',
+            'choiceDisabledOpacity': .35,
+            'choiceSelectedColor': '#FFAA00',
+            'progressIndicator': 'dots',
+            'progressIndicatorColor': '#00FFAA',
+            'portraitTransition': 'slide',
+            'portraitTransitionMilliseconds': 320,
           },
         };
 
@@ -265,6 +273,9 @@ void main() {
       expect(manifest.presentation?.dialogue?.portraitSide, 'end');
       expect(manifest.presentation?.dialogue?.portraitShape, 'circle');
       expect(manifest.presentation?.dialogue?.nameplateStyle, 'floating');
+      expect(manifest.presentation?.dialogue?.choiceShape, 'cutCorner');
+      expect(manifest.presentation?.dialogue?.progressIndicator, 'dots');
+      expect(manifest.presentation?.dialogue?.portraitTransition, 'slide');
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 

@@ -214,6 +214,19 @@ final class HubRuntimeStartupAdapter
                 nameplateSurfaceColor: dialogue.nameplateSurfaceColor,
                 nameplateBorderColor: dialogue.nameplateBorderColor,
                 nameplateTextColor: dialogue.nameplateTextColor,
+                choiceSpacing: dialogue.choiceSpacing,
+                choiceShape: ProjectDialogueChoiceShape.values.byName(
+                  dialogue.choiceShape,
+                ),
+                choiceDisabledOpacity: dialogue.choiceDisabledOpacity,
+                choiceSelectedColor: dialogue.choiceSelectedColor,
+                progressIndicator: ProjectDialogueProgressIndicator.values
+                    .byName(dialogue.progressIndicator),
+                progressIndicatorColor: dialogue.progressIndicatorColor,
+                portraitTransition: ProjectDialoguePortraitTransition.values
+                    .byName(dialogue.portraitTransition),
+                portraitTransitionMilliseconds:
+                    dialogue.portraitTransitionMilliseconds,
               ),
       menuLabels:
           menuLabels == null

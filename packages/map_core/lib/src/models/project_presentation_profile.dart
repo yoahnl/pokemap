@@ -1158,6 +1158,27 @@ void _validateDialogue(
           code: 'dialogueNameplateBorderWidthOutOfRange',
           field: 'nameplateBorderWidth',
         ),
+        (
+          value: dialogue.choiceSpacing,
+          minimum: projectDialogueMinChoiceSpacing,
+          maximum: projectDialogueMaxChoiceSpacing,
+          code: 'dialogueChoiceSpacingOutOfRange',
+          field: 'choiceSpacing',
+        ),
+        (
+          value: dialogue.choiceDisabledOpacity,
+          minimum: projectDialogueMinChoiceDisabledOpacity,
+          maximum: projectDialogueMaxChoiceDisabledOpacity,
+          code: 'dialogueChoiceDisabledOpacityOutOfRange',
+          field: 'choiceDisabledOpacity',
+        ),
+        (
+          value: dialogue.portraitTransitionMilliseconds,
+          minimum: projectDialogueMinPortraitTransitionMilliseconds,
+          maximum: projectDialogueMaxPortraitTransitionMilliseconds,
+          code: 'dialoguePortraitTransitionDurationOutOfRange',
+          field: 'portraitTransitionMilliseconds',
+        ),
       ]) {
     if (range.value.isFinite &&
         range.value >= range.minimum &&
@@ -1180,6 +1201,8 @@ void _validateDialogue(
     (field: 'nameplateSurfaceColor', value: dialogue.nameplateSurfaceColor),
     (field: 'nameplateBorderColor', value: dialogue.nameplateBorderColor),
     (field: 'nameplateTextColor', value: dialogue.nameplateTextColor),
+    (field: 'choiceSelectedColor', value: dialogue.choiceSelectedColor),
+    (field: 'progressIndicatorColor', value: dialogue.progressIndicatorColor),
   ]) {
     if (color.value == null || _parseOpaqueProjectColor(color.value!) != null) {
       continue;

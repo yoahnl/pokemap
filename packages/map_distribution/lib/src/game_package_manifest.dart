@@ -336,6 +336,14 @@ final class GamePackageDialoguePresentation {
     this.nameplateSurfaceColor,
     this.nameplateBorderColor,
     this.nameplateTextColor,
+    this.choiceSpacing = 8,
+    this.choiceShape = 'rounded',
+    this.choiceDisabledOpacity = .5,
+    this.choiceSelectedColor,
+    this.progressIndicator = 'chevron',
+    this.progressIndicatorColor,
+    this.portraitTransition = 'fade',
+    this.portraitTransitionMilliseconds = 180,
   });
 
   final String placement;
@@ -359,6 +367,14 @@ final class GamePackageDialoguePresentation {
   final String? nameplateSurfaceColor;
   final String? nameplateBorderColor;
   final String? nameplateTextColor;
+  final double choiceSpacing;
+  final String choiceShape;
+  final double choiceDisabledOpacity;
+  final String? choiceSelectedColor;
+  final String progressIndicator;
+  final String? progressIndicatorColor;
+  final String portraitTransition;
+  final int portraitTransitionMilliseconds;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'placement': placement,
@@ -386,6 +402,16 @@ final class GamePackageDialoguePresentation {
           'nameplateBorderColor': nameplateBorderColor,
         if (nameplateTextColor != null)
           'nameplateTextColor': nameplateTextColor,
+        'choiceSpacing': choiceSpacing,
+        'choiceShape': choiceShape,
+        'choiceDisabledOpacity': choiceDisabledOpacity,
+        if (choiceSelectedColor != null)
+          'choiceSelectedColor': choiceSelectedColor,
+        'progressIndicator': progressIndicator,
+        if (progressIndicatorColor != null)
+          'progressIndicatorColor': progressIndicatorColor,
+        'portraitTransition': portraitTransition,
+        'portraitTransitionMilliseconds': portraitTransitionMilliseconds,
       };
 }
 

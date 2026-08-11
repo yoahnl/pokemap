@@ -12,6 +12,9 @@ class PersonalizationDialogueInspector extends StatelessWidget {
     'dialogue.colors',
     'dialogue.portrait',
     'dialogue.nameplate',
+    'dialogue.choices',
+    'dialogue.progress',
+    'dialogue.motion',
     'dialogue.typography',
     'dialogue.previewCharacter',
     'dialogue.previewPortrait',
@@ -107,6 +110,12 @@ class PersonalizationDialogueInspector extends StatelessWidget {
       _portraitEditor(context),
       const SizedBox(height: 18),
       _nameplateEditor(context),
+      const SizedBox(height: 18),
+      _choiceEditor(context),
+      const SizedBox(height: 18),
+      _progressEditor(context),
+      const SizedBox(height: 18),
+      _motionEditor(context),
       const SizedBox(height: 18),
       ProjectTypographyEditor(
         profile: profile.typography ?? const ProjectTypographyProfile(),
@@ -356,6 +365,202 @@ class PersonalizationDialogueInspector extends StatelessWidget {
     );
   }
 
+  Widget _choiceEditor(BuildContext context) {
+    final dialogue =
+        profile.dialogue ?? const ProjectDialoguePresentationProfile();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const PokeMapSectionHeader(
+          title: 'Choix de réponse',
+          description: 'Réglez la forme, l’espace et les états des réponses.',
+        ),
+        const SizedBox(height: 8),
+        PokeMapCard(
+          key: const ValueKey<String>('dialogue-choice-editor'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              PokeMapDropdownField<ProjectDialogueChoiceShape>(
+                key: const ValueKey<String>('dialogue-choice-shape'),
+                label: 'Forme des réponses',
+                value: dialogue.choiceShape,
+                items: const <PokeMapDropdownItem<ProjectDialogueChoiceShape>>[
+                  PokeMapDropdownItem(
+                    value: ProjectDialogueChoiceShape.rounded,
+                    label: 'Arrondie',
+                  ),
+                  PokeMapDropdownItem(
+                    value: ProjectDialogueChoiceShape.pill,
+                    label: 'Pilule',
+                  ),
+                  PokeMapDropdownItem(
+                    value: ProjectDialogueChoiceShape.rectangle,
+                    label: 'Rectangulaire',
+                  ),
+                  PokeMapDropdownItem(
+                    value: ProjectDialogueChoiceShape.cutCorner,
+                    label: 'Angles coupés',
+                  ),
+                ],
+                onChanged: (shape) =>
+                    onDialogueChanged(dialogue.copyWith(choiceShape: shape)),
+              ),
+              const SizedBox(height: 12),
+              PokeMapGuidedSlider(
+                key: const ValueKey<String>('dialogue-choice-spacing'),
+                label: 'Espace entre les réponses',
+                min: 4,
+                max: 24,
+                value: dialogue.choiceSpacing.round(),
+                onChanged: (value) => onDialogueChanged(
+                  dialogue.copyWith(choiceSpacing: value.toDouble()),
+                ),
+              ),
+              const SizedBox(height: 12),
+              PokeMapGuidedSlider(
+                key: const ValueKey<String>('dialogue-choice-disabled-opacity'),
+                label: 'Visibilité d’une réponse indisponible',
+                min: 25,
+                max: 100,
+                value: (dialogue.choiceDisabledOpacity * 100).round(),
+                onChanged: (value) => onDialogueChanged(
+                  dialogue.copyWith(choiceDisabledOpacity: value / 100),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _colorControl(context, dialogue, _DialogueColor.choiceSelected),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _progressEditor(BuildContext context) {
+    final dialogue =
+        profile.dialogue ?? const ProjectDialoguePresentationProfile();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const PokeMapSectionHeader(
+          title: 'Indicateur de progression',
+          description: 'Choisissez le repère affiché pour continuer.',
+        ),
+        const SizedBox(height: 8),
+        PokeMapCard(
+          key: const ValueKey<String>('dialogue-progress-editor'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              PokeMapDropdownField<ProjectDialogueProgressIndicator>(
+                key: const ValueKey<String>('dialogue-progress-kind'),
+                label: 'Indicateur',
+                value: dialogue.progressIndicator,
+                items:
+                    const <
+                      PokeMapDropdownItem<ProjectDialogueProgressIndicator>
+                    >[
+                      PokeMapDropdownItem(
+                        value: ProjectDialogueProgressIndicator.chevron,
+                        label: 'Chevron',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialogueProgressIndicator.arrow,
+                        label: 'Flèche',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialogueProgressIndicator.dots,
+                        label: 'Points',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialogueProgressIndicator.none,
+                        label: 'Aucun',
+                      ),
+                    ],
+                onChanged: (indicator) => onDialogueChanged(
+                  dialogue.copyWith(progressIndicator: indicator),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _colorControl(
+                context,
+                dialogue,
+                _DialogueColor.progressIndicator,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _motionEditor(BuildContext context) {
+    final dialogue =
+        profile.dialogue ?? const ProjectDialoguePresentationProfile();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const PokeMapSectionHeader(
+          title: 'Transition du portrait',
+          description:
+              'Animez le passage d’une expression à une autre. Le mouvement '
+              'réduit reste prioritaire dans le jeu.',
+        ),
+        const SizedBox(height: 8),
+        PokeMapCard(
+          key: const ValueKey<String>('dialogue-motion-editor'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              PokeMapDropdownField<ProjectDialoguePortraitTransition>(
+                key: const ValueKey<String>('dialogue-motion-transition'),
+                label: 'Animation',
+                value: dialogue.portraitTransition,
+                items:
+                    const <
+                      PokeMapDropdownItem<ProjectDialoguePortraitTransition>
+                    >[
+                      PokeMapDropdownItem(
+                        value: ProjectDialoguePortraitTransition.none,
+                        label: 'Aucune',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialoguePortraitTransition.fade,
+                        label: 'Fondu',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialoguePortraitTransition.scale,
+                        label: 'Zoom doux',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialoguePortraitTransition.slide,
+                        label: 'Glissement',
+                      ),
+                    ],
+                onChanged: (transition) => onDialogueChanged(
+                  dialogue.copyWith(portraitTransition: transition),
+                ),
+              ),
+              const SizedBox(height: 12),
+              PokeMapGuidedSlider(
+                key: const ValueKey<String>('dialogue-motion-duration'),
+                label: 'Durée',
+                description: 'Durée en millisecondes.',
+                min: 0,
+                max: 800,
+                value: dialogue.portraitTransitionMilliseconds,
+                onChanged: (value) => onDialogueChanged(
+                  dialogue.copyWith(portraitTransitionMilliseconds: value),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   PersonalizationCharacterPreviewOption get _resolvedCharacter =>
       characterOptions.firstWhere(
         (option) => option.id == _resolvedCharacterId,
@@ -558,6 +763,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
         dialogue.nameplateBorderColor ?? palette?.border ?? theme.outline,
       _DialogueColor.nameplateText =>
         dialogue.nameplateTextColor ?? theme.primary,
+      _DialogueColor.choiceSelected =>
+        dialogue.choiceSelectedColor ?? palette?.selection ?? theme.primary,
+      _DialogueColor.progressIndicator =>
+        dialogue.progressIndicatorColor ?? palette?.accent ?? theme.primary,
     };
   }
 
@@ -580,6 +789,12 @@ class PersonalizationDialogueInspector extends StatelessWidget {
     ),
     _DialogueColor.nameplateText => dialogue.copyWith(
       nameplateTextColor: value,
+    ),
+    _DialogueColor.choiceSelected => dialogue.copyWith(
+      choiceSelectedColor: value,
+    ),
+    _DialogueColor.progressIndicator => dialogue.copyWith(
+      progressIndicatorColor: value,
     ),
   };
 
@@ -610,6 +825,8 @@ enum _DialogueColor {
   nameplateSurface,
   nameplateBorder,
   nameplateText,
+  choiceSelected,
+  progressIndicator,
 }
 
 String _colorLabel(_DialogueColor color) => switch (color) {
@@ -620,4 +837,6 @@ String _colorLabel(_DialogueColor color) => switch (color) {
   _DialogueColor.nameplateSurface => 'Fond du cartouche',
   _DialogueColor.nameplateBorder => 'Contour du cartouche',
   _DialogueColor.nameplateText => 'Texte du cartouche',
+  _DialogueColor.choiceSelected => 'Réponse sélectionnée',
+  _DialogueColor.progressIndicator => 'Indicateur',
 };

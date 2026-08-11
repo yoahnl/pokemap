@@ -528,6 +528,9 @@ void main() {
       expect(directEvidence['dialoguePortraitSide'], 'end');
       expect(directEvidence['dialoguePortraitShape'], 'circle');
       expect(directEvidence['dialogueNameplateStyle'], 'floating');
+      expect(directEvidence['dialogueChoiceShape'], 'cutCorner');
+      expect(directEvidence['dialogueProgressIndicator'], 'dots');
+      expect(directEvidence['dialoguePortraitTransition'], 'slide');
     });
 
     test('presentation preset export has direct API and JSONL CLI parity',
@@ -1262,6 +1265,11 @@ final class _GoldenHarness {
           manifest.presentation?.dialogue?.portraitShape.name,
       'dialogueNameplateStyle':
           manifest.presentation?.dialogue?.nameplateStyle.name,
+      'dialogueChoiceShape': manifest.presentation?.dialogue?.choiceShape.name,
+      'dialogueProgressIndicator':
+          manifest.presentation?.dialogue?.progressIndicator.name,
+      'dialoguePortraitTransition':
+          manifest.presentation?.dialogue?.portraitTransition.name,
     };
   }
 
@@ -1427,6 +1435,14 @@ final ProjectPresentationProfile _responsivePresentationProfile =
     nameplateSurfaceColor: '#334455',
     nameplateBorderColor: '#778899',
     nameplateTextColor: '#FFFFFF',
+    choiceSpacing: 14,
+    choiceShape: ProjectDialogueChoiceShape.cutCorner,
+    choiceDisabledOpacity: .35,
+    choiceSelectedColor: '#FFAA00',
+    progressIndicator: ProjectDialogueProgressIndicator.dots,
+    progressIndicatorColor: '#00FFAA',
+    portraitTransition: ProjectDialoguePortraitTransition.slide,
+    portraitTransitionMilliseconds: 320,
   ),
   typography: ProjectTypographyProfile(
     combat: ProjectTypographyRoleProfile(

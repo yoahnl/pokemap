@@ -47,6 +47,7 @@ class PlayerDialogueOverlay extends StatelessWidget {
               index: choice.index,
               label: choice.label,
               selected: choice.selected,
+              enabled: choice.enabled,
             ),
         ],
       ),

@@ -68,6 +68,18 @@ void main() {
         ProjectDialogueNameplateStyle.floating,
       );
       expect(
+        profile?.dialogue?.choiceShape,
+        ProjectDialogueChoiceShape.cutCorner,
+      );
+      expect(
+        profile?.dialogue?.progressIndicator,
+        ProjectDialogueProgressIndicator.dots,
+      );
+      expect(
+        profile?.dialogue?.portraitTransition,
+        ProjectDialoguePortraitTransition.slide,
+      );
+      expect(
         profile?.pause?.composition?.expanded.entrySize,
         ProjectPauseEntrySize.large,
       );
@@ -292,6 +304,14 @@ final _manifest = GamePackageManifest(
       nameplateSurfaceColor: '#334455',
       nameplateBorderColor: '#778899',
       nameplateTextColor: '#FFFFFF',
+      choiceSpacing: 14,
+      choiceShape: 'cutCorner',
+      choiceDisabledOpacity: .35,
+      choiceSelectedColor: '#FFAA00',
+      progressIndicator: 'dots',
+      progressIndicatorColor: '#00FFAA',
+      portraitTransition: 'slide',
+      portraitTransitionMilliseconds: 320,
     ),
     windows: GamePackagePresentationWindows(
       styles: const <GamePackageWindowStyle>[

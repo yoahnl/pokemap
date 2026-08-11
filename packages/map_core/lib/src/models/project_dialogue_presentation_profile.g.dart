@@ -53,6 +53,31 @@ _$ProjectDialoguePresentationProfileFromJson(Map<String, dynamic> json) =>
       nameplateSurfaceColor: json['nameplateSurfaceColor'] as String?,
       nameplateBorderColor: json['nameplateBorderColor'] as String?,
       nameplateTextColor: json['nameplateTextColor'] as String?,
+      choiceSpacing: (json['choiceSpacing'] as num?)?.toDouble() ?? 8,
+      choiceShape:
+          $enumDecodeNullable(
+            _$ProjectDialogueChoiceShapeEnumMap,
+            json['choiceShape'],
+          ) ??
+          ProjectDialogueChoiceShape.rounded,
+      choiceDisabledOpacity:
+          (json['choiceDisabledOpacity'] as num?)?.toDouble() ?? .5,
+      choiceSelectedColor: json['choiceSelectedColor'] as String?,
+      progressIndicator:
+          $enumDecodeNullable(
+            _$ProjectDialogueProgressIndicatorEnumMap,
+            json['progressIndicator'],
+          ) ??
+          ProjectDialogueProgressIndicator.chevron,
+      progressIndicatorColor: json['progressIndicatorColor'] as String?,
+      portraitTransition:
+          $enumDecodeNullable(
+            _$ProjectDialoguePortraitTransitionEnumMap,
+            json['portraitTransition'],
+          ) ??
+          ProjectDialoguePortraitTransition.fade,
+      portraitTransitionMilliseconds:
+          (json['portraitTransitionMilliseconds'] as num?)?.toInt() ?? 180,
     );
 
 Map<String, dynamic> _$ProjectDialoguePresentationProfileToJson(
@@ -81,6 +106,16 @@ Map<String, dynamic> _$ProjectDialoguePresentationProfileToJson(
   'nameplateSurfaceColor': ?instance.nameplateSurfaceColor,
   'nameplateBorderColor': ?instance.nameplateBorderColor,
   'nameplateTextColor': ?instance.nameplateTextColor,
+  'choiceSpacing': instance.choiceSpacing,
+  'choiceShape': _$ProjectDialogueChoiceShapeEnumMap[instance.choiceShape]!,
+  'choiceDisabledOpacity': instance.choiceDisabledOpacity,
+  'choiceSelectedColor': ?instance.choiceSelectedColor,
+  'progressIndicator':
+      _$ProjectDialogueProgressIndicatorEnumMap[instance.progressIndicator]!,
+  'progressIndicatorColor': ?instance.progressIndicatorColor,
+  'portraitTransition':
+      _$ProjectDialoguePortraitTransitionEnumMap[instance.portraitTransition]!,
+  'portraitTransitionMilliseconds': instance.portraitTransitionMilliseconds,
 };
 
 const _$ProjectDialoguePlacementEnumMap = {
@@ -113,4 +148,25 @@ const _$ProjectDialogueNameplateStyleEnumMap = {
   ProjectDialogueNameplateStyle.inline: 'inline',
   ProjectDialogueNameplateStyle.badge: 'badge',
   ProjectDialogueNameplateStyle.floating: 'floating',
+};
+
+const _$ProjectDialogueChoiceShapeEnumMap = {
+  ProjectDialogueChoiceShape.rounded: 'rounded',
+  ProjectDialogueChoiceShape.pill: 'pill',
+  ProjectDialogueChoiceShape.rectangle: 'rectangle',
+  ProjectDialogueChoiceShape.cutCorner: 'cutCorner',
+};
+
+const _$ProjectDialogueProgressIndicatorEnumMap = {
+  ProjectDialogueProgressIndicator.chevron: 'chevron',
+  ProjectDialogueProgressIndicator.arrow: 'arrow',
+  ProjectDialogueProgressIndicator.dots: 'dots',
+  ProjectDialogueProgressIndicator.none: 'none',
+};
+
+const _$ProjectDialoguePortraitTransitionEnumMap = {
+  ProjectDialoguePortraitTransition.none: 'none',
+  ProjectDialoguePortraitTransition.fade: 'fade',
+  ProjectDialoguePortraitTransition.scale: 'scale',
+  ProjectDialoguePortraitTransition.slide: 'slide',
 };

@@ -79,6 +79,15 @@ void main() {
       'dialogue-nameplate-editor',
       'dialogue-nameplate-style',
       'dialogue-nameplate-border-width',
+      'dialogue-choice-editor',
+      'dialogue-choice-shape',
+      'dialogue-choice-spacing',
+      'dialogue-choice-disabled-opacity',
+      'dialogue-progress-editor',
+      'dialogue-progress-kind',
+      'dialogue-motion-editor',
+      'dialogue-motion-transition',
+      'dialogue-motion-duration',
     ]) {
       expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
     }
