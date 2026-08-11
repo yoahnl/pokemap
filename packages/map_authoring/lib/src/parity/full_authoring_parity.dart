@@ -27,6 +27,73 @@ enum AuthoringParityCapability {
 
 enum AuthoringTransport { directApi, editor, cli, mcp }
 
+final class AuthoringTransportExecutionReceipt {
+  AuthoringTransportExecutionReceipt({
+    required String receiptId,
+    required String actionId,
+    required this.transport,
+    required String evidenceRevision,
+    required String fixtureDigest,
+    required String observedReceiptId,
+    required String evidencePath,
+  })  : receiptId = _required(receiptId, 'receiptId'),
+        actionId = _required(actionId, 'actionId'),
+        evidenceRevision = _sha256(evidenceRevision, 'evidenceRevision'),
+        fixtureDigest = _sha256(fixtureDigest, 'fixtureDigest'),
+        observedReceiptId = _required(observedReceiptId, 'observedReceiptId'),
+        evidencePath = _required(evidencePath, 'evidencePath');
+
+  factory AuthoringTransportExecutionReceipt.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final transportName = json['transport'];
+    if (transportName is! String) {
+      throw const FormatException('transport must be a string');
+    }
+    final transport = AuthoringTransport.values.where(
+      (candidate) => candidate.name == transportName,
+    );
+    if (transport.length != 1) {
+      throw FormatException('Unknown authoring transport: $transportName');
+    }
+    try {
+      return AuthoringTransportExecutionReceipt(
+        receiptId: json['receiptId'] as String,
+        actionId: json['actionId'] as String,
+        transport: transport.single,
+        evidenceRevision: json['evidenceRevision'] as String,
+        fixtureDigest: json['fixtureDigest'] as String,
+        observedReceiptId: json['observedReceiptId'] as String,
+        evidencePath: json['evidencePath'] as String,
+      );
+    } on TypeError {
+      throw const FormatException(
+        'Transport execution receipt fields must be strings.',
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
+    }
+  }
+
+  final String receiptId;
+  final String actionId;
+  final AuthoringTransport transport;
+  final String evidenceRevision;
+  final String fixtureDigest;
+  final String observedReceiptId;
+  final String evidencePath;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'receiptId': receiptId,
+        'actionId': actionId,
+        'transport': transport.name,
+        'evidenceRevision': evidenceRevision,
+        'fixtureDigest': fixtureDigest,
+        'observedReceiptId': observedReceiptId,
+        'evidencePath': evidencePath,
+      };
+}
+
 final class AuthoringParityCell {
   AuthoringParityCell.supported({
     required this.capability,
@@ -118,6 +185,8 @@ final class AuthoringMutationParityEvidence {
     required Map<AuthoringTransport, String> adapterEvidence,
     required String contractTestPath,
     Map<AuthoringTransport, String> endToEndEvidence = const {},
+    Map<AuthoringTransport, AuthoringTransportExecutionReceipt>
+        transportExecutionReceipts = const {},
   })  : actionId = _required(actionId, 'actionId'),
         declaredTransports = Set.unmodifiable(declaredTransports),
         adapterEvidence = Map.unmodifiable({
@@ -128,6 +197,10 @@ final class AuthoringMutationParityEvidence {
         endToEndEvidence = Map.unmodifiable({
           for (final entry in endToEndEvidence.entries)
             entry.key: _required(entry.value, 'endToEndEvidence'),
+        }),
+        transportExecutionReceipts = Map.unmodifiable({
+          for (final entry in transportExecutionReceipts.entries)
+            entry.key: entry.value,
         }) {
     final undeclaredAdapters =
         this.adapterEvidence.keys.toSet().difference(this.declaredTransports);
@@ -150,6 +223,28 @@ final class AuthoringMutationParityEvidence {
         'must reference adapter-capable transports',
       );
     }
+    final unadaptedReceipts = this
+        .transportExecutionReceipts
+        .keys
+        .toSet()
+        .difference(this.adapterEvidence.keys.toSet());
+    if (unadaptedReceipts.isNotEmpty) {
+      throw ArgumentError.value(
+        unadaptedReceipts,
+        'transportExecutionReceipts',
+        'must reference adapter-capable transports',
+      );
+    }
+    for (final entry in this.transportExecutionReceipts.entries) {
+      if (entry.value.actionId != this.actionId ||
+          entry.value.transport != entry.key) {
+        throw ArgumentError.value(
+          entry.value,
+          'transportExecutionReceipts',
+          'must match the action and transport binding',
+        );
+      }
+    }
   }
 
   final String actionId;
@@ -157,12 +252,17 @@ final class AuthoringMutationParityEvidence {
   final Map<AuthoringTransport, String> adapterEvidence;
   final String contractTestPath;
   final Map<AuthoringTransport, String> endToEndEvidence;
+  final Map<AuthoringTransport, AuthoringTransportExecutionReceipt>
+      transportExecutionReceipts;
 
   Set<AuthoringTransport> get adapterCapableTransports =>
       Set.unmodifiable(adapterEvidence.keys);
 
   Set<AuthoringTransport> get endToEndVerifiedTransports =>
-      Set.unmodifiable(endToEndEvidence.keys);
+      Set.unmodifiable(<AuthoringTransport>{
+        ...endToEndEvidence.keys,
+        ...transportExecutionReceipts.keys,
+      });
 
   @Deprecated('Use adapterCapableTransports or endToEndVerifiedTransports.')
   Set<AuthoringTransport> get transports => adapterCapableTransports;
@@ -176,6 +276,9 @@ final class AuthoringMutationParityEvidence {
         'endToEndVerifiedTransports':
             _transportNames(endToEndVerifiedTransports),
         'endToEndEvidence': _transportEvidenceJson(endToEndEvidence),
+        'transportExecutionReceipts': _transportReceiptJson(
+          transportExecutionReceipts,
+        ),
       };
 }
 
@@ -197,9 +300,20 @@ final class AuthoringFullParityCatalog {
 
   factory AuthoringFullParityCatalog.canonical({
     Set<String>? queryableResourceKinds,
+    Iterable<AuthoringTransportExecutionReceipt> transportExecutionReceipts =
+        const [],
+    String? transportEvidenceRevision,
+    String? transportFixtureDigest,
   }) {
     final publishedQueryableKinds =
         queryableResourceKinds ?? canonicalQueryableResourceKindIds;
+    final descriptors = AuthoringMutationDispatcher.canonical().descriptors;
+    final receipts = _validatedTransportReceipts(
+      transportExecutionReceipts,
+      knownActionIds: descriptors.map((descriptor) => descriptor.id).toSet(),
+      expectedRevision: transportEvidenceRevision,
+      expectedFixtureDigest: transportFixtureDigest,
+    );
     final resources = <AuthoringResourceParity>[
       for (final entry in _semanticOwners.entries)
         _resourceParity(
@@ -209,14 +323,21 @@ final class AuthoringFullParityCatalog {
         ),
     ];
     final actions = [
-      for (final descriptor
-          in AuthoringMutationDispatcher.canonical().descriptors)
+      for (final descriptor in descriptors)
         AuthoringMutationParityEvidence(
           actionId: descriptor.id,
           declaredTransports: AuthoringTransport.values,
           adapterEvidence: _canonicalAdapterEvidence,
           contractTestPath: _contractTestFor(descriptor.id),
-          endToEndEvidence: _endToEndEvidenceFor(descriptor.id),
+          endToEndEvidence: descriptor.id.startsWith('item.')
+              ? const <AuthoringTransport, String>{}
+              : _endToEndEvidenceFor(descriptor.id),
+          transportExecutionReceipts: <AuthoringTransport,
+              AuthoringTransportExecutionReceipt>{
+            for (final receipt
+                in receipts.where((item) => item.actionId == descriptor.id))
+              receipt.transport: receipt,
+          },
         ),
     ];
     return AuthoringFullParityCatalog._(
@@ -284,6 +405,13 @@ final class AuthoringFullParityCatalog {
                 action.endToEndVerifiedTransports.length ==
                 action.declaredTransports.length,
           ),
+          'itemTransportCertificationComplete': mutationActions
+              .where((action) => action.actionId.startsWith('item.'))
+              .every(
+                (action) =>
+                    action.endToEndVerifiedTransports.length ==
+                    action.declaredTransports.length,
+              ),
         },
       };
 }
@@ -308,18 +436,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'character_studio_authoring_adapter_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
-    };
-  }
-  if (actionId == 'item.create') {
-    return const <AuthoringTransport, String>{
-      AuthoringTransport.directApi:
-          'test/domains/gameplay/item_catalog_jsonl_test.dart',
-      AuthoringTransport.cli:
-          'test/domains/gameplay/item_catalog_jsonl_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/item_authoring_transport_test.dart',
-      AuthoringTransport.mcp:
-          '../../tools/pokemap_mcp/test/item_authoring.test.ts',
     };
   }
   if (actionId == 'smart_tile.layer.set_animation_activation') {
@@ -434,6 +550,80 @@ Map<String, String> _transportEvidenceJson(
           .toList()
         ..sort((left, right) => left.key.compareTo(right.key)),
     );
+
+Map<String, Object?> _transportReceiptJson(
+  Map<AuthoringTransport, AuthoringTransportExecutionReceipt> receipts,
+) =>
+    Map.fromEntries(
+      receipts.entries
+          .map((entry) => MapEntry(entry.key.name, entry.value.toJson()))
+          .toList()
+        ..sort((left, right) => left.key.compareTo(right.key)),
+    );
+
+List<AuthoringTransportExecutionReceipt> _validatedTransportReceipts(
+  Iterable<AuthoringTransportExecutionReceipt> receipts, {
+  required Set<String> knownActionIds,
+  required String? expectedRevision,
+  required String? expectedFixtureDigest,
+}) {
+  final values = receipts.toList(growable: false);
+  if (values.isEmpty) {
+    if (expectedRevision != null || expectedFixtureDigest != null) {
+      throw ArgumentError(
+        'Transport evidence binding requires at least one receipt.',
+      );
+    }
+    return const <AuthoringTransportExecutionReceipt>[];
+  }
+  if (expectedRevision == null || expectedFixtureDigest == null) {
+    throw ArgumentError(
+      'Transport receipts require revision and fixture bindings.',
+    );
+  }
+  final revision = _sha256(expectedRevision, 'transportEvidenceRevision');
+  final fixture = _sha256(
+    expectedFixtureDigest,
+    'transportFixtureDigest',
+  );
+  final bindings = <String>{};
+  final receiptIds = <String>{};
+  for (final receipt in values) {
+    if (!knownActionIds.contains(receipt.actionId) ||
+        !receipt.actionId.startsWith('item.')) {
+      throw ArgumentError.value(
+        receipt.actionId,
+        'transportExecutionReceipts',
+        'must reference one canonical item action',
+      );
+    }
+    if (receipt.evidenceRevision != revision ||
+        receipt.fixtureDigest != fixture) {
+      throw ArgumentError.value(
+        receipt.receiptId,
+        'transportExecutionReceipts',
+        'must match the requested revision and fixture',
+      );
+    }
+    final binding = '${receipt.actionId}/${receipt.transport.name}';
+    if (!bindings.add(binding) || !receiptIds.add(receipt.receiptId)) {
+      throw ArgumentError.value(
+        receipt.receiptId,
+        'transportExecutionReceipts',
+        'must have unique receipt and action/transport bindings',
+      );
+    }
+  }
+  return List.unmodifiable(values);
+}
+
+String _sha256(String value, String name) {
+  final normalized = _required(value, name);
+  if (!RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(normalized)) {
+    throw ArgumentError.value(value, name, 'must be a SHA-256 digest');
+  }
+  return normalized;
+}
 
 AuthoringResourceParity _resourceParity(
   String kind,

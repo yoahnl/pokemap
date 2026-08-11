@@ -181,17 +181,8 @@ void main() {
           reason: actionId,
         );
       }
-      expect(
-        catalog.requireMutationAction('item.create').toJson(),
-        containsPair(
-          'endToEndVerifiedTransports',
-          <String>['cli', 'directApi', 'editor', 'mcp'],
-        ),
-      );
       for (final action in catalog.mutationActions.where(
-        (action) =>
-            action.actionId.startsWith('item.') &&
-            action.actionId != 'item.create',
+        (action) => action.actionId.startsWith('item.'),
       )) {
         expect(
           action.toJson(),
@@ -230,6 +221,153 @@ void main() {
           reason: action.actionId,
         );
       }
+    });
+
+    test('binds item transport receipts to action revision and fixture', () {
+      final catalog = AuthoringFullParityCatalog.canonical(
+        transportExecutionReceipts: _completeItemTransportReceipts(),
+        transportEvidenceRevision: _sha256('c'),
+        transportFixtureDigest: _sha256('f'),
+      );
+
+      for (final actionId in _itemActionIds) {
+        final action = catalog.requireMutationAction(actionId);
+        expect(
+          action.endToEndVerifiedTransports,
+          AuthoringTransport.values.toSet(),
+          reason: actionId,
+        );
+        expect(action.transportExecutionReceipts, hasLength(4));
+      }
+      expect(
+        catalog.toJson()['summary'],
+        containsPair('itemTransportCertificationComplete', true),
+      );
+      expect(
+        catalog.toJson()['summary'],
+        containsPair('transportCertificationComplete', false),
+      );
+    });
+
+    test('missing item transport receipt leaves only its action incomplete',
+        () {
+      final receipts = _completeItemTransportReceipts()
+        ..removeWhere(
+          (receipt) =>
+              receipt.actionId == 'item.clone' &&
+              receipt.transport == AuthoringTransport.editor,
+        );
+      final catalog = AuthoringFullParityCatalog.canonical(
+        transportExecutionReceipts: receipts,
+        transportEvidenceRevision: _sha256('c'),
+        transportFixtureDigest: _sha256('f'),
+      );
+
+      expect(
+        catalog.requireMutationAction('item.clone').endToEndVerifiedTransports,
+        isNot(contains(AuthoringTransport.editor)),
+      );
+      expect(
+        catalog.requireMutationAction('item.update').endToEndVerifiedTransports,
+        AuthoringTransport.values.toSet(),
+      );
+      expect(
+        catalog.toJson()['summary'],
+        containsPair('itemTransportCertificationComplete', false),
+      );
+    });
+
+    test('rejects receipts from another action revision or fixture', () {
+      final valid = _transportReceipt(
+        actionId: 'item.create',
+        transport: AuthoringTransport.directApi,
+      );
+
+      expect(
+        () => AuthoringFullParityCatalog.canonical(
+          transportExecutionReceipts: <AuthoringTransportExecutionReceipt>[
+            valid,
+            _transportReceipt(
+              actionId: 'item.create',
+              transport: AuthoringTransport.directApi,
+              receiptId: 'duplicate-binding',
+            ),
+          ],
+          transportEvidenceRevision: _sha256('c'),
+          transportFixtureDigest: _sha256('f'),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => AuthoringFullParityCatalog.canonical(
+          transportExecutionReceipts: <AuthoringTransportExecutionReceipt>[
+            valid,
+          ],
+          transportEvidenceRevision: _sha256('d'),
+          transportFixtureDigest: _sha256('f'),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => AuthoringFullParityCatalog.canonical(
+          transportExecutionReceipts: <AuthoringTransportExecutionReceipt>[
+            valid,
+          ],
+          transportEvidenceRevision: _sha256('c'),
+          transportFixtureDigest: _sha256('e'),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => AuthoringFullParityCatalog.canonical(
+          transportExecutionReceipts: <AuthoringTransportExecutionReceipt>[
+            _transportReceipt(
+              actionId: 'item.unknown',
+              transport: AuthoringTransport.directApi,
+            ),
+          ],
+          transportEvidenceRevision: _sha256('c'),
+          transportFixtureDigest: _sha256('f'),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('PMCP tool consumes one revision-bound transport receipt bundle',
+        () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'pmcp-item-receipts-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final bundle = File('${directory.path}/receipts.json');
+      await bundle.writeAsString(
+        jsonEncode(<String, Object?>{
+          'evidenceRevision': _sha256('c'),
+          'fixtureDigest': _sha256('f'),
+          'receipts': <Object?>[
+            for (final receipt in _completeItemTransportReceipts())
+              receipt.toJson(),
+          ],
+        }),
+      );
+
+      final result = await Process.run(
+        Platform.resolvedExecutable,
+        <String>[
+          'run',
+          'tool/pmcp085_conformance.dart',
+          '--transport-receipts',
+          bundle.path,
+        ],
+      );
+      final output =
+          jsonDecode(result.stdout as String) as Map<String, dynamic>;
+
+      expect(result.exitCode, 0, reason: result.stderr as String);
+      expect(
+        output['summary'],
+        containsPair('itemTransportCertificationComplete', true),
+      );
     });
 
     test('matches runtime and editor consumer inventories automatically', () {
@@ -1277,3 +1415,49 @@ Map<String, Object?> _stableReceipt(Object? raw) {
     ],
   };
 }
+
+const Set<String> _itemActionIds = <String>{
+  'item.create',
+  'item.update',
+  'item.clone',
+  'item.delete_apply',
+  'item.set_overworld_effect',
+  'item.set_battle_effect',
+  'item.set_held_effect',
+  'item.set_capture_effect',
+  'item.set_tm_hm_move',
+};
+
+List<AuthoringTransportExecutionReceipt> _completeItemTransportReceipts() => [
+      for (final actionId in _itemActionIds)
+        for (final transport in AuthoringTransport.values)
+          _transportReceipt(actionId: actionId, transport: transport),
+    ];
+
+AuthoringTransportExecutionReceipt _transportReceipt({
+  required String actionId,
+  required AuthoringTransport transport,
+  String? receiptId,
+}) {
+  final sourcePath = switch (transport) {
+    AuthoringTransport.directApi ||
+    AuthoringTransport.cli =>
+      'test/domains/gameplay/item_catalog_jsonl_test.dart',
+    AuthoringTransport.editor =>
+      '../map_editor/test/authoring_api/item_authoring_transport_test.dart',
+    AuthoringTransport.mcp =>
+      '../../tools/pokemap_mcp/test/item_authoring.test.ts',
+  };
+  return AuthoringTransportExecutionReceipt(
+    receiptId: receiptId ?? 'receipt-$actionId-${transport.name}',
+    actionId: actionId,
+    transport: transport,
+    evidenceRevision: _sha256('c'),
+    fixtureDigest: _sha256('f'),
+    observedReceiptId: 'observed-$actionId-${transport.name}',
+    evidencePath: sourcePath,
+  );
+}
+
+String _sha256(String character) =>
+    'sha256:${List<String>.filled(64, character).join()}';
