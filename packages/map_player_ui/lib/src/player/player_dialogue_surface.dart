@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_dialogue_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_layout_theme.dart';
 
@@ -91,36 +92,50 @@ class PlayerDialogueSurface extends StatelessWidget {
     return SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {
+          final dialogue = context.playerDialogueProfile;
           final resolved = context.playerLayoutTheme?.resolve(
             ProjectPresentationSurfaceRole.dialogue,
             constraints,
           );
-          final margin =
+          final margin = dialogue?.margin ??
               PlayerSpacing.sm + (resolved?.additionalSafeAreaPadding ?? 0);
           final showPortrait = resolved == null ||
               resolved.variant.visibleSecondaryElements.contains(
                 ProjectPresentationSecondaryElement.dialoguePortrait,
               );
-          final alignment = switch (resolved?.variant.slot) {
-            ProjectPresentationLayoutSlot.topCenter => Alignment.topCenter,
-            ProjectPresentationLayoutSlot.center => Alignment.center,
-            _ => Alignment.bottomCenter,
-          };
+          final alignment = dialogue == null
+              ? switch (resolved?.variant.slot) {
+                  ProjectPresentationLayoutSlot.topCenter =>
+                    Alignment.topCenter,
+                  ProjectPresentationLayoutSlot.center => Alignment.center,
+                  _ => Alignment.bottomCenter,
+                }
+              : switch (dialogue.placement) {
+                  ProjectDialoguePlacement.top => Alignment.topCenter,
+                  ProjectDialoguePlacement.center => Alignment.center,
+                  ProjectDialoguePlacement.bottom => Alignment.bottomCenter,
+                };
           return Padding(
             padding: EdgeInsets.all(margin),
             child: Align(
-              key: resolved == null
-                  ? null
-                  : ValueKey<String>(
-                      'player-dialogue-responsive-'
-                      '${resolved.breakpoint.name}',
-                    ),
+              key: dialogue != null
+                  ? const ValueKey<String>('player-dialogue-authored-bubble')
+                  : resolved == null
+                      ? null
+                      : ValueKey<String>(
+                          'player-dialogue-responsive-'
+                          '${resolved.breakpoint.name}',
+                        ),
               alignment: alignment,
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   maxWidth: resolved == null
-                      ? 760
-                      : constraints.maxWidth * resolved.maxWidthFactor,
+                      ? dialogue == null
+                          ? 760
+                          : constraints.maxWidth * dialogue.maxWidthFactor
+                      : dialogue == null
+                          ? constraints.maxWidth * resolved.maxWidthFactor
+                          : constraints.maxWidth * dialogue.maxWidthFactor,
                   maxHeight: resolved == null
                       ? constraints.maxHeight * 0.58
                       : constraints.maxHeight - margin * 2,
@@ -130,7 +145,33 @@ class PlayerDialogueSurface extends StatelessWidget {
                   role: PlayerPanelRole.dialogue,
                   surfaceRole: ProjectPresentationSurfaceRole.dialogue,
                   padding: EdgeInsets.all(
-                    PlayerSpacing.md * (resolved?.spacingScale ?? 1),
+                    dialogue?.contentPadding ??
+                        PlayerSpacing.md * (resolved?.spacingScale ?? 1),
+                  ),
+                  windowStyleOverride: dialogue == null
+                      ? null
+                      : ProjectWindowStyleProfile(
+                          id: 'dialogue-v9',
+                          shape: dialogue.shape,
+                          borderWidth: dialogue.borderWidth.round(),
+                          cornerRadius: dialogue.cornerRadius.round(),
+                          contentPadding: dialogue.contentPadding.round(),
+                          shadowElevation: 8,
+                          fillOpacity: dialogue.fillOpacity,
+                          fillToken: 'dialogueSurface',
+                          borderToken: 'outline',
+                        ),
+                  surfaceColorOverride:
+                      PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                    dialogue?.surfaceColor,
+                  ),
+                  borderColorOverride:
+                      PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                    dialogue?.borderColor,
+                  ),
+                  textColorOverride:
+                      PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                    dialogue?.textColor,
                   ),
                   child: AnimatedSwitcher(
                     duration: context.playerMotion.fast,

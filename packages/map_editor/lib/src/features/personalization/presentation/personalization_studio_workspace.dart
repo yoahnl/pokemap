@@ -1802,27 +1802,11 @@ class _PersonalizationStudioWorkspaceState
             onShowChoicesChanged: (value) {
               setState(() => _showDialogueChoices = value);
             },
-            onWindowsChanged: (windows) {
+            onDialogueChanged: (dialogue) {
               unawaited(
                 notifier.applyPersonalizationStudioProfile(
-                  profile.copyWith(windows: windows),
-                  label: 'Modifier l’apparence de la bulle de dialogue',
-                ),
-              );
-            },
-            onSurfacePalettesChanged: (surfacePalettes) {
-              unawaited(
-                notifier.applyPersonalizationStudioProfile(
-                  profile.copyWith(surfacePalettes: surfacePalettes),
-                  label: 'Modifier les couleurs des dialogues',
-                ),
-              );
-            },
-            onLayoutsChanged: (layouts) {
-              unawaited(
-                notifier.applyPersonalizationStudioProfile(
-                  profile.copyWith(layouts: layouts),
-                  label: 'Modifier la disposition de la bulle de dialogue',
+                  profile.copyWith(dialogue: dialogue),
+                  label: 'Modifier la bulle de dialogue',
                 ),
               );
             },

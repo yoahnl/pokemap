@@ -264,6 +264,7 @@ final class GamePackagePresentation {
     this.theme,
     this.surfacePalettes,
     this.pause,
+    this.dialogue,
     this.menuLabels,
     this.windows,
     this.layouts,
@@ -278,6 +279,7 @@ final class GamePackagePresentation {
   final GamePackageSemanticTheme? theme;
   final GamePackagePresentationSurfacePalettes? surfacePalettes;
   final GamePackagePausePresentation? pause;
+  final GamePackageDialoguePresentation? dialogue;
   final GamePackageMenuLabels? menuLabels;
   final GamePackagePresentationWindows? windows;
   final GamePackagePresentationLayouts? layouts;
@@ -298,6 +300,8 @@ final class GamePackagePresentation {
         if (schemaVersion >= 6 && surfacePalettes != null)
           'surfacePalettes': surfacePalettes!.toJson(),
         if (schemaVersion >= 8 && pause != null) 'pause': pause!.toJson(),
+        if (schemaVersion >= 9 && dialogue != null)
+          'dialogue': dialogue!.toJson(),
         if (menuLabels != null) 'menuLabels': menuLabels!.toJson(),
         if (schemaVersion >= 3 && windows != null)
           'windows': windows!.toJson(
@@ -306,6 +310,48 @@ final class GamePackagePresentation {
           ),
         if (schemaVersion >= 4 && layouts != null)
           'layouts': layouts!.toJson(includeBattle: schemaVersion >= 5),
+      };
+}
+
+final class GamePackageDialoguePresentation {
+  const GamePackageDialoguePresentation({
+    required this.placement,
+    required this.maxWidthFactor,
+    required this.margin,
+    required this.contentPadding,
+    required this.shape,
+    required this.cornerRadius,
+    required this.borderWidth,
+    required this.fillOpacity,
+    this.surfaceColor,
+    this.borderColor,
+    this.textColor,
+  });
+
+  final String placement;
+  final double maxWidthFactor;
+  final double margin;
+  final double contentPadding;
+  final String shape;
+  final double cornerRadius;
+  final double borderWidth;
+  final double fillOpacity;
+  final String? surfaceColor;
+  final String? borderColor;
+  final String? textColor;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'placement': placement,
+        'maxWidthFactor': maxWidthFactor,
+        'margin': margin,
+        'contentPadding': contentPadding,
+        'shape': shape,
+        'cornerRadius': cornerRadius,
+        'borderWidth': borderWidth,
+        'fillOpacity': fillOpacity,
+        if (surfaceColor != null) 'surfaceColor': surfaceColor,
+        if (borderColor != null) 'borderColor': borderColor,
+        if (textColor != null) 'textColor': textColor,
       };
 }
 
@@ -600,10 +646,7 @@ final class GamePackageVideoVariant {
 }
 
 final class GamePackageResponsiveVideo {
-  const GamePackageResponsiveVideo({
-    required this.landscape,
-    this.portrait,
-  });
+  const GamePackageResponsiveVideo({required this.landscape, this.portrait});
 
   final GamePackageVideoVariant landscape;
   final GamePackageVideoVariant? portrait;
@@ -620,10 +663,7 @@ final class GamePackageResponsiveVideo {
 }
 
 final class GamePackageTitleMotion {
-  const GamePackageTitleMotion({
-    this.promptLoop,
-    this.menuLoop,
-  });
+  const GamePackageTitleMotion({this.promptLoop, this.menuLoop});
 
   final GamePackageResponsiveVideo? promptLoop;
   final GamePackageResponsiveVideo? menuLoop;

@@ -55,6 +55,9 @@ void main() {
       expect(profile?.pause?.actions?.first.id, ProjectPauseActionId.pokedex);
       expect(profile?.pause?.actions?.first.label, 'Carnet');
       expect(profile?.pause?.actions?.last.visible, isFalse);
+      expect(profile?.dialogue?.placement, ProjectDialoguePlacement.top);
+      expect(profile?.dialogue?.maxWidthFactor, .64);
+      expect(profile?.dialogue?.surfaceColor, '#102030');
       expect(
         profile?.pause?.composition?.expanded.entrySize,
         ProjectPauseEntrySize.large,
@@ -149,7 +152,7 @@ final _manifest = GamePackageManifest(
     supported: const <String>['fr'],
   ),
   presentation: GamePackagePresentation(
-    schemaVersion: 8,
+    schemaVersion: 9,
     title: const GamePackageTitlePresentation(
       title: 'Aube sur Hanazuki',
       subtitle: 'Studio Brume',
@@ -257,6 +260,19 @@ final _manifest = GamePackageManifest(
           showRootDetailPanel: true,
         ),
       ),
+    ),
+    dialogue: const GamePackageDialoguePresentation(
+      placement: 'top',
+      maxWidthFactor: .64,
+      margin: 20,
+      contentPadding: 24,
+      shape: 'speech',
+      cornerRadius: 18,
+      borderWidth: 3,
+      fillOpacity: .82,
+      surfaceColor: '#102030',
+      borderColor: '#A0B0C0',
+      textColor: '#F0F0F0',
     ),
     windows: GamePackagePresentationWindows(
       styles: const <GamePackageWindowStyle>[

@@ -25,7 +25,7 @@ void main() {
               child: PersonalizationDialogueInspector(
                 profile: profile,
                 characterOptions: _characters,
-                selectedCharacterId: 'leo',
+                selectedCharacterId: 'leo:happy',
                 showPortrait: true,
                 showName: true,
                 showChoices: false,
@@ -33,11 +33,8 @@ void main() {
                 onShowPortraitChanged: (_) {},
                 onShowNameChanged: (_) {},
                 onShowChoicesChanged: (_) {},
-                onWindowsChanged: (windows) => setHostState(
-                  () => profile = profile.copyWith(windows: windows),
-                ),
-                onLayoutsChanged: (layouts) => setHostState(
-                  () => profile = profile.copyWith(layouts: layouts),
+                onDialogueChanged: (dialogue) => setHostState(
+                  () => profile = profile.copyWith(dialogue: dialogue),
                 ),
                 onImportDialogueFont: () {},
                 onUseSystemDialogueFont: () {},
@@ -54,22 +51,20 @@ void main() {
         findsOneWidget,
       );
     }
-    expect(
-      find.byKey(const ValueKey<String>('window-target-pause')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('window-field-corner-radius')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('window-field-border-width')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('window-field-fill')),
-      findsOneWidget,
-    );
+    for (final field in <String>[
+      'shape',
+      'width',
+      'margin',
+      'padding',
+      'radius',
+      'border',
+      'opacity',
+    ]) {
+      expect(
+        find.byKey(ValueKey<String>('dialogue-geometry-$field')),
+        findsOneWidget,
+      );
+    }
     expect(
       find.byKey(const ValueKey<String>('typography-import-dialogue')),
       findsOneWidget,
@@ -84,18 +79,7 @@ void main() {
     await tester.tap(centered);
     await tester.pumpAndSettle();
 
-    expect(
-      profile.layouts?.dialogue.compact.slot,
-      ProjectPresentationLayoutSlot.center,
-    );
-    expect(
-      profile.layouts?.dialogue.regular.slot,
-      ProjectPresentationLayoutSlot.center,
-    );
-    expect(
-      profile.layouts?.dialogue.expanded.slot,
-      ProjectPresentationLayoutSlot.center,
-    );
+    expect(profile.dialogue?.placement, ProjectDialoguePlacement.center);
   });
 
   testWidgets('preview toggles drive the shared dialogue surface', (
@@ -122,7 +106,7 @@ void main() {
                     child: PersonalizationDialogueInspector(
                       profile: const ProjectPresentationProfile(),
                       characterOptions: _characters,
-                      selectedCharacterId: 'leo',
+                      selectedCharacterId: 'leo:happy',
                       showPortrait: showPortrait,
                       showName: showName,
                       showChoices: showChoices,
@@ -133,8 +117,7 @@ void main() {
                           setHostState(() => showName = value),
                       onShowChoicesChanged: (value) =>
                           setHostState(() => showChoices = value),
-                      onWindowsChanged: (_) {},
-                      onLayoutsChanged: (_) {},
+                      onDialogueChanged: (_) {},
                       onImportDialogueFont: () {},
                       onUseSystemDialogueFont: () {},
                     ),
