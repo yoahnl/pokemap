@@ -223,7 +223,7 @@ void main() {
       expect(validateProjectPresentationProfile(profile), isEmpty);
     });
 
-    test('round-trips project-owned pause menu label overrides', () {
+    test('migrates project-owned menu labels to canonical pause actions', () {
       const profile = ProjectPresentationProfile(
         menuLabels: ProjectMenuLabelsProfile(
           pauseTitle: 'Interruption',
@@ -238,12 +238,31 @@ void main() {
         ),
       );
 
-      expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile);
+      final decoded = ProjectPresentationProfile.fromJson(profile.toJson());
+
+      expect(decoded.menuLabels, isNull);
+      expect(decoded.pause?.title, 'Interruption');
       expect(
-        profile.configuredCategories,
+        <ProjectPauseActionId, String?>{
+          for (final action in decoded.pause!.effectiveActions)
+            action.id: action.label,
+        },
+        <ProjectPauseActionId, String?>{
+          ProjectPauseActionId.resume: 'Continuer',
+          ProjectPauseActionId.party: 'Compagnons',
+          ProjectPauseActionId.bag: 'Inventaire',
+          ProjectPauseActionId.pokedex: 'Carnet de voyage',
+          ProjectPauseActionId.map: 'Région',
+          ProjectPauseActionId.save: 'Mémoriser',
+          ProjectPauseActionId.options: 'Réglages',
+          ProjectPauseActionId.returnToTitle: 'Quitter la partie',
+        },
+      );
+      expect(
+        decoded.configuredCategories,
         contains(ProjectPresentationCategory.theme),
       );
-      expect(validateProjectPresentationProfile(profile), isEmpty);
+      expect(validateProjectPresentationProfile(decoded), isEmpty);
     });
 
     test('rejects empty, oversized and control-character menu labels', () {
