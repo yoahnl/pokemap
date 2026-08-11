@@ -14,7 +14,7 @@
 
 - [ ] IN_PROGRESS — les phases 0 à 5 sont clôturées ; la phase 6 est la prochaine vague exécutable et la phase 7 reste bloquée par ITM-062.
 - Dernière mise à jour : 11 août 2026, après rebase de `codex/item-system-phase-0` sur le `main` local `6ea3b7e8fd09` et validation du HEAD produit `dbc93a7dd`.
-- Avancement : 33 lots DONE, 1 lot DEFERRED_BY_PRODUCT et 8 lots TODO sur 42 lots uniques.
+- Avancement : 34 lots DONE, 1 lot DEFERRED_BY_PRODUCT et 7 lots TODO sur 42 lots uniques.
 - La phase 3 est clôturée sur le périmètre V1 signé ; ITM-034 Repel reste explicitement différé avec FG-065 et ne bloque ni la phase 6, ni la capture minimale.
 - Ce document est la roadmap dédiée à la refonte Item System V1.
 - La roadmap mécanique racine reste l’autorité des statuts FG-050 et FG-060 à FG-079.
@@ -60,7 +60,7 @@ La stratégie retenue est un remplacement progressif du code, livré comme une r
 | Gameplay | DONE sur le périmètre V1 — overworld, battle, capture minimale, key items, TM/HM, évolution et held items | `ItemCatalogSnapshot`, `ItemCapabilityResolver` et services spécialisés |
 | Producteurs et économie | DONE — New Game, événements, pickups, rewards et shops utilisent les contrats canoniques | `BagOperations` et `ProjectItemReferenceIndex` |
 | Authoring et MCP | DONE — lectures, mutations, Item Studio, pickers, JSONL, Editor et MCP sont raccordés | map_authoring et ses adaptateurs de transport |
-| Suppression historique | TODO — les façades, wrappers et preuves historiques doivent encore être retirés physiquement | ITM-060 à ITM-062 |
+| Suppression historique | IN_PROGRESS — décisions par catégorie retirées ; façades, wrappers et ancien wire restent à supprimer | ITM-061 et ITM-062 |
 | Certification produit | BLOCKED_BY_ITM_062 — aucune golden slice Item System V1 consolidée n’existe encore | ITM-070 à ITM-074 |
 
 ### 2.2 Décision de continuation
@@ -339,7 +339,7 @@ ItemCatalogSnapshot compose la définition d’objet avec les références exter
 | 3 — Consommateurs gameplay | ITM-025 à ITM-038 | DONE_SCOPE_V1 — ITM-034 différé | Classification, diagnostics, overworld, battle, capture minimale, key items, machines et held items unifiés | Phase 2 |
 | 4 — Producteurs et économie | ITM-040 à ITM-044 | DONE | New Game, scènes, pickups, rewards et shops utilisent la même autorité | Phase 2 |
 | 5 — Authoring et MCP | ITM-050 à ITM-055 | DONE | Item Studio no-code et parité transports | Phases 1, 3 et 4 |
-| 6 — Suppression historique | ITM-060 à ITM-062 | NEXT | Anciens chemins et anciens formats physiquement absents | Phase 5 |
+| 6 — Suppression historique | ITM-060 à ITM-062 | IN_PROGRESS — ITM-060 DONE | Anciens chemins et anciens formats physiquement absents | Phase 5 |
 | 7 — Certification | ITM-070 à ITM-074 | BLOCKED_BY_ITM_062 | Golden slice générique et statuts FG recertifiés | Phase 6 |
 
 ### 7.1 Preuves Git après rebase
@@ -1062,11 +1062,11 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ## 14. Phase 6 — Suppression totale des chemins historiques
 
-**Statut de phase :** NEXT. Exécuter ITM-060, ITM-061 puis ITM-062 dans cet ordre. Les occurrences `categoryId` propres aux catégories visuelles, Smart Tiles ou imports externes ne relèvent pas de ce nettoyage ; seuls le wire Bag et les décisions Item gameplay sont concernés.
+**Statut de phase :** IN_PROGRESS. ITM-060 est clôturé ; exécuter ITM-061 puis ITM-062 dans cet ordre. Les occurrences `categoryId` propres aux catégories visuelles, Smart Tiles ou imports externes ne relèvent pas de ce nettoyage ; seuls le wire Bag et les décisions Item gameplay sont concernés.
 
 ### ITM-060 — Retirer les guards de catégories
 
-- [ ] **Résultat :** aucune décision gameplay ne dépend de medicine, items, healing ou standard-balls.
+- [x] **Résultat :** aucune décision gameplay ne dépend de medicine, items, healing ou standard-balls.
 - **Nettoyage de caractérisation :** transférer les assertions métier toujours valides vers les suites canoniques, puis supprimer les assertions et fixtures qui décrivent le succès des anciens formats dans :
   - packages/map_gameplay/test/item_system_current_behavior_characterization_test.dart
   - packages/map_runtime/test/item_system_current_behavior_characterization_test.dart
@@ -1076,6 +1076,8 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 - **Résultat attendu :** aucun résultat dans les chemins produit ; seules les fixtures de rejet de schéma peuvent contenir ces chaînes.
 - **Dépendances :** ITM-030 à ITM-043, hors ITM-034 tant que FG-065 reste DEFERRED.
+
+**Preuves ITM-060 :** les deux suites `item_system_current_behavior_characterization_test.dart`, créées pour ITM-001, ont été supprimées après comparaison avec les suites canoniques. Les valeurs et métadonnées MVP restent couvertes par `mvp_item_catalog_test.dart`, l’application et la consommation par `player_item_use_service_test.dart`, et la classification runtime par capacité par `item_capability_classification_test.dart`, `battle_bag_menu_model_test.dart` et `runtime_generic_battle_items_v0_test.dart`. Les 11 tests gameplay et les 24 tests runtime de remplacement passent ; les analyses ciblées des chemins Item gameplay et runtime ne remontent aucune issue. La recherche statique ciblée ne trouve ni décision `categoryId`/`pocketId` sur les anciennes valeurs, ni fichier de caractérisation transitoire restant. Les occurrences de `medicine` ou `healing` conservées dans les définitions canoniques sont des métadonnées de présentation ou des tags, jamais des branches métier.
 
 ### ITM-061 — Retirer les registries et wrappers dupliqués
 
@@ -1191,7 +1193,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 | D1 | ITM-025 → ITM-038 hors ITM-034 différé | DONE_SCOPE_V1 | Classification, capture, machines et held après resolver | Consommateurs |
 | D2 | ITM-040 → ITM-044 | DONE | Rewards et shops après BagOperations | Producteurs |
 | E | ITM-050 → ITM-055 | DONE | UI après actions ; transports après contrats | Parité |
-| F | ITM-060 → ITM-062 | NEXT | Non | Suppression historique |
+| F | ITM-060 → ITM-062 | IN_PROGRESS — ITM-060 DONE | Non | Suppression historique |
 | G | ITM-070 → ITM-074 | BLOCKED_BY_ITM_062 | Non | Certification |
 
 Une vague n’autorise pas plusieurs modifications concurrentes du même modèle généré, du même codec ou de save_data.dart.
@@ -1273,9 +1275,8 @@ N/A signifie réellement non applicable ; il ne doit pas masquer une exposition 
 
 Cette roadmap continue d’être exécutée lot par lot, avec un checkpoint après chaque phase.
 
-1. **ITM-060 — retirer les guards de catégories :** transférer les dernières assertions métier utiles vers les suites canoniques, puis supprimer les décisions Item fondées sur les catégories historiques.
-2. **ITM-061 — retirer les registries et wrappers dupliqués :** supprimer les façades devenues inutiles sans alias, fallback ni API temporaire.
-3. **ITM-062 — supprimer définitivement l’ancien wire Bag :** conserver uniquement la détection nécessaire au refus typé des anciens saves et prouver qu’aucun chemin de lecture réussie ou de conversion n’existe.
-4. **Checkpoint de phase 6 :** recherches statiques, suites package, analyses et état Git exacts avant toute création de fixture de certification.
+1. **ITM-061 — retirer les registries et wrappers dupliqués :** supprimer les façades devenues inutiles sans alias, fallback ni API temporaire.
+2. **ITM-062 — supprimer définitivement l’ancien wire Bag :** conserver uniquement la détection nécessaire au refus typé des anciens saves et prouver qu’aucun chemin de lecture réussie ou de conversion n’existe.
+3. **Checkpoint de phase 6 :** recherches statiques, suites package, analyses et état Git exacts avant toute création de fixture de certification.
 
 ITM-070 ne commence qu’après clôture d’ITM-062. ITM-034 reste différé et ne doit pas être glissé discrètement dans cette vague sous prétexte qu’un Repel « n’a pas l’air bien méchant » — c’est exactement ainsi que les petits lots se transforment en marécages.
