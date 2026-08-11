@@ -43,6 +43,7 @@ class PersonalizationLivePreview extends StatefulWidget {
     this.contextsErrorMessage,
     this.projectManifest,
     this.resolveTilesetPath,
+    this.introDriverFactory,
   });
 
   final ProjectPresentationProfile profile;
@@ -64,6 +65,7 @@ class PersonalizationLivePreview extends StatefulWidget {
   final String? contextsErrorMessage;
   final ProjectManifest? projectManifest;
   final String? Function(String tilesetId)? resolveTilesetPath;
+  final PlayerIntroPlaybackFactory? introDriverFactory;
 
   @override
   State<PersonalizationLivePreview> createState() =>
@@ -80,6 +82,8 @@ class _PersonalizationLivePreviewState
       PersonalizationTitlePreviewStage.menu;
   final PlayerTitleMotionController _titleMotionController =
       PlayerTitleMotionController();
+  final PlayerIntroVideoPreviewController _introPreviewController =
+      PlayerIntroVideoPreviewController();
   final Map<PersonalizationPreviewContextKind, String?> _selectedContextIds =
       <PersonalizationPreviewContextKind, String?>{};
 
@@ -99,12 +103,14 @@ class _PersonalizationLivePreviewState
     if (oldWidget.scene != widget.scene) {
       _comparisonEnabled = false;
       unawaited(_titleMotionController.releasePlayback());
+      unawaited(_introPreviewController.releasePlayback());
     }
   }
 
   @override
   void dispose() {
     unawaited(_titleMotionController.releasePlayback());
+    unawaited(_introPreviewController.releasePlayback());
     super.dispose();
   }
 
@@ -276,6 +282,10 @@ class _PersonalizationLivePreviewState
                   ? null
                   : _titleMotionController,
               allowMediaPlayback: !scenario.showComparison,
+              introPreviewController: scenario.showComparison
+                  ? null
+                  : _introPreviewController,
+              introDriverFactory: widget.introDriverFactory,
             ),
       ),
     );

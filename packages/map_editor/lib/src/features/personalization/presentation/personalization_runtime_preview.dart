@@ -27,6 +27,7 @@ class PersonalizationRuntimePreview extends StatefulWidget {
     this.baselineProfile,
     this.initialSurface = PersonalizationStudioScene.title,
     this.initialViewport = PersonalizationPreviewViewport.landscape,
+    this.introDriverFactory,
   });
 
   final ProjectPresentationProfile profile;
@@ -35,6 +36,7 @@ class PersonalizationRuntimePreview extends StatefulWidget {
   final String projectRootPath;
   final PersonalizationStudioScene initialSurface;
   final PersonalizationPreviewViewport initialViewport;
+  final PlayerIntroPlaybackFactory? introDriverFactory;
 
   @override
   State<PersonalizationRuntimePreview> createState() =>
@@ -52,6 +54,8 @@ class _PersonalizationRuntimePreviewState
       PersonalizationTitlePreviewStage.menu;
   final PlayerTitleMotionController _titleMotionController =
       PlayerTitleMotionController();
+  final PlayerIntroVideoPreviewController _introPreviewController =
+      PlayerIntroVideoPreviewController();
 
   @override
   void initState() {
@@ -67,6 +71,7 @@ class _PersonalizationRuntimePreviewState
       _surface = widget.initialSurface;
       _comparisonEnabled = false;
       unawaited(_titleMotionController.releasePlayback());
+      unawaited(_introPreviewController.releasePlayback());
     }
     if (oldWidget.initialViewport != widget.initialViewport) {
       _viewport = widget.initialViewport;
@@ -77,6 +82,7 @@ class _PersonalizationRuntimePreviewState
   @override
   void dispose() {
     unawaited(_titleMotionController.releasePlayback());
+    unawaited(_introPreviewController.releasePlayback());
     super.dispose();
   }
 
@@ -188,11 +194,14 @@ class _PersonalizationRuntimePreviewState
     titleStage: _titleStage,
     titleMotionController: _comparisonEnabled ? null : _titleMotionController,
     allowMediaPlayback: !_comparisonEnabled,
+    introPreviewController: _comparisonEnabled ? null : _introPreviewController,
+    introDriverFactory: widget.introDriverFactory,
   );
 
   void _selectSurface(PersonalizationStudioScene surface) {
     if (_surface == surface) return;
     unawaited(_titleMotionController.releasePlayback());
+    unawaited(_introPreviewController.releasePlayback());
     setState(() => _surface = surface);
   }
 }

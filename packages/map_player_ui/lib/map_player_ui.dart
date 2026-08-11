@@ -17,6 +17,7 @@ export 'src/player/player_display_strings.dart';
 export 'src/player/player_heal_confirmation.dart';
 export 'src/player/player_intro_video_surface.dart';
 export 'src/player/player_intro_video_player.dart';
+export 'src/player/player_intro_video_preview.dart';
 export 'src/player/player_startup_media.dart';
 export 'src/player/player_runtime_splash_surface.dart';
 export 'src/player/player_runtime_startup_shell.dart';

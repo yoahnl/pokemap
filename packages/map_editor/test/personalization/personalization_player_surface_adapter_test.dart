@@ -223,6 +223,105 @@ void main() {
       expect(drivers.last.disposeCalls, 1);
     },
   );
+
+  testWidgets('plays the responsive intro with real captions and focal point', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync('intro-preview-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    for (final path in <String>[
+      'intro-landscape.mp4',
+      'intro-landscape.png',
+      'intro-portrait.mp4',
+      'intro-portrait.png',
+    ]) {
+      File('${root.path}/$path').writeAsBytesSync(<int>[0]);
+    }
+    File(
+      '${root.path}/captions.vtt',
+    ).writeAsStringSync('WEBVTT\n\n00:00.000 --> 00:02.000\nBienvenue à Aube.');
+    final sources = <PlayerIntroVideoSource>[];
+    final drivers = <_PlaybackDriver>[];
+    PlayerIntroPlaybackDriver createDriver(PlayerIntroVideoSource source) {
+      sources.add(source);
+      final driver = _PlaybackDriver();
+      drivers.add(driver);
+      return driver;
+    }
+
+    const profile = ProjectPresentationProfile(
+      intro: ProjectIntroVideoProfile(
+        media: ProjectResponsiveVideoProfile(
+          landscape: ProjectVideoVariantProfile(
+            videoPath: 'intro-landscape.mp4',
+            posterPath: 'intro-landscape.png',
+            captionsPath: 'captions.vtt',
+            durationMilliseconds: 2000,
+            width: 1600,
+            height: 900,
+            bitrateKbps: 1200,
+            sizeBytes: 1,
+            videoCodec: 'h264',
+            focalX: .25,
+            focalY: .75,
+          ),
+          portrait: ProjectVideoVariantProfile(
+            videoPath: 'intro-portrait.mp4',
+            posterPath: 'intro-portrait.png',
+            captionsPath: 'captions.vtt',
+            durationMilliseconds: 2000,
+            width: 900,
+            height: 1600,
+            bitrateKbps: 1200,
+            sizeBytes: 1,
+            videoCodec: 'h264',
+            focalX: .6,
+            focalY: .3,
+          ),
+        ),
+      ),
+      theme: safeProjectSemanticTheme,
+    );
+
+    Widget preview(double ratio) => _app(
+      PersonalizationPlayerSurfaceAdapter(
+        profile: profile,
+        projectName: 'Aube',
+        projectRootPath: root.path,
+        scene: PersonalizationStudioScene.intro,
+        aspectRatio: ratio,
+        introDriverFactory: createDriver,
+      ),
+    );
+
+    await tester.pumpWidget(preview(16 / 9));
+    await tester.pump();
+    expect(find.byType(PlayerIntroVideoPreview), findsOneWidget);
+    expect(sources.single.videoUri.path, endsWith('intro-landscape.mp4'));
+    final captions = await tester.runAsync(sources.single.captionsLoader!);
+    expect(captions, contains('Bienvenue à Aube.'));
+    drivers.single.snapshot.value = const PlayerIntroPlaybackSnapshot(
+      isInitialized: true,
+      caption: 'Bienvenue à Aube.',
+    );
+    await tester.pump();
+    expect(find.text('Bienvenue à Aube.'), findsOneWidget);
+    expect(
+      tester.widget<FittedBox>(find.byType(FittedBox)).alignment,
+      const Alignment(-.5, .5),
+    );
+
+    await tester.pumpWidget(preview(9 / 16));
+    await tester.pump();
+    expect(drivers.first.disposeCalls, 1);
+    expect(sources.last.videoUri.path, endsWith('intro-portrait.mp4'));
+
+    await tester.pumpWidget(
+      _app(_adapter(PersonalizationStudioScene.dialogue)),
+    );
+    await tester.pump();
+    expect(drivers.last.disposeCalls, 1);
+  });
 }
 
 final class _PlaybackDriver implements PlayerIntroPlaybackDriver {

@@ -39,6 +39,8 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     this.titleStage = PersonalizationTitlePreviewStage.menu,
     this.titleMotionController,
     this.titleMotionDriverFactory,
+    this.introPreviewController,
+    this.introDriverFactory,
     this.allowMediaPlayback = true,
   });
 
@@ -63,6 +65,8 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   final PersonalizationTitlePreviewStage titleStage;
   final PlayerTitleMotionController? titleMotionController;
   final PlayerIntroPlaybackFactory? titleMotionDriverFactory;
+  final PlayerIntroVideoPreviewController? introPreviewController;
+  final PlayerIntroPlaybackFactory? introDriverFactory;
   final bool allowMediaPlayback;
 
   @override
@@ -105,22 +109,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   ) {
     final surface = switch (target) {
       PersonalizationStudioScene.title => _titleSurface(presentation),
-      PersonalizationStudioScene.intro => PlayerIntroVideoSurface(
-        key: const ValueKey<String>('personalization-intro-composition'),
-        media: _introSkipped ? null : _introMedia(),
-        caption: _introCaption,
-        isPoster: true,
-        failureMessage: _introSkipped
-            ? 'Intro ignorée avec les animations réduites'
-            : profile.intro == null
-            ? 'Aucune introduction configurée'
-            : null,
-        onSkip: () => _target(const IntroPresentationTarget()),
-        onReplay: profile.intro?.allowReplay == true && !_introSkipped
-            ? () => _target(const IntroPresentationTarget())
-            : null,
-        onContinue: () => _target(const IntroPresentationTarget()),
-      ),
+      PersonalizationStudioScene.intro => _introSurface(),
       PersonalizationStudioScene.pause => RuntimePlayerPauseShell.root(
         key: const ValueKey<String>('personalization-pause-composition'),
         gameTitle: projectName,
@@ -285,28 +274,56 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     ],
   );
 
-  Widget? _introMedia() {
+  Widget _introSurface() {
+    final intro = profile.intro;
+    if (intro == null) {
+      return PlayerIntroVideoSurface(
+        key: const ValueKey<String>('personalization-intro-composition'),
+        media: null,
+        isPoster: true,
+        failureMessage: 'Aucune introduction configurée',
+        onSkip: () => _target(const IntroPresentationTarget()),
+        onContinue: () => _target(const IntroPresentationTarget()),
+      );
+    }
     final variant = _introVariant;
-    if (variant == null) return null;
+    final video = _fileForPath(variant.videoPath);
     final poster = _fileForPath(variant.posterPath);
-    if (poster == null || !poster.existsSync()) return null;
-    return Image.file(
-      poster,
-      fit: BoxFit.cover,
-      alignment: Alignment(variant.focalX * 2 - 1, variant.focalY * 2 - 1),
+    final captions = variant.captionsPath == null
+        ? null
+        : _fileForPath(variant.captionsPath!);
+    return PlayerIntroVideoPreview(
+      key: const ValueKey<String>('personalization-intro-composition'),
+      controller: introPreviewController,
+      source: video == null || !video.existsSync()
+          ? null
+          : PlayerIntroVideoSource(
+              videoUri: video.uri,
+              captionsLoader: captions == null || !captions.existsSync()
+                  ? null
+                  : captions.readAsString,
+              aspectRatio: variant.width / variant.height,
+              focalX: variant.focalX,
+              focalY: variant.focalY,
+            ),
+      poster: poster == null || !poster.existsSync() ? null : FileImage(poster),
+      driverFactory: introDriverFactory,
+      reducedMotion: reducedMotion || !allowMediaPlayback,
+      reducedMotionBehavior:
+          allowMediaPlayback && intro.reducedMotionBehavior == 'skip'
+          ? PlayerIntroPreviewReducedMotionBehavior.skip
+          : PlayerIntroPreviewReducedMotionBehavior.poster,
+      allowReplay: intro.allowReplay,
+      onInteraction: () => _target(const IntroPresentationTarget()),
     );
   }
 
-  ProjectVideoVariantProfile? get _introVariant {
-    final intro = profile.intro;
-    if (intro == null) return null;
+  ProjectVideoVariantProfile get _introVariant {
+    final intro = profile.intro!;
     return aspectRatio < 1
         ? intro.media.portrait ?? intro.media.landscape
         : intro.media.landscape;
   }
-
-  String? get _introCaption =>
-      _introVariant?.captionsPath == null ? null : 'Exemple de sous-titre';
 
   Widget _titleSurface(RuntimePlayerPresentation presentation) =>
       switch (titleStage) {
@@ -356,9 +373,6 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
       reducedMotion: reducedMotion || !allowMediaPlayback,
     );
   }
-
-  bool get _introSkipped =>
-      reducedMotion && profile.intro?.reducedMotionBehavior == 'skip';
 
   Widget _dialoguePortrait() {
     final bytes = dialogueCharacter?.portraitBytes;

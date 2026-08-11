@@ -18,4 +18,7 @@ final class PlayerIntroVideoStrings {
   String get unavailable => _isFrench
       ? 'La vidéo ne peut pas être lue.'
       : 'Video playback is unavailable.';
+  String get reducedMotionSkipped => _isFrench
+      ? 'Intro ignorée avec les animations réduites'
+      : 'Intro skipped with reduced motion';
 }

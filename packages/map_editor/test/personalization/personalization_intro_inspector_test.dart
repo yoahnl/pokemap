@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -33,9 +36,7 @@ void main() {
       findsOneWidget,
     );
 
-    final topRight = find.byKey(
-      const ValueKey<String>('intro-focal-topRight'),
-    );
+    final topRight = find.byKey(const ValueKey<String>('intro-focal-topRight'));
     await tester.ensureVisible(topRight);
     await tester.pumpAndSettle();
     expect(topRight.hitTestable(), findsOneWidget);
@@ -54,24 +55,66 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+      final root = Directory.systemTemp.createTempSync('real-intro-preview-');
+      addTearDown(() => root.deleteSync(recursive: true));
+      for (final path in <String>[
+        'assets/presentation/intro/landscape.mp4',
+        'assets/presentation/intro/landscape.png',
+        'assets/presentation/intro/portrait.mp4',
+        'assets/presentation/intro/portrait.png',
+      ]) {
+        File('${root.path}/$path')
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(<int>[0]);
+      }
+      for (final path in <String>[
+        'assets/presentation/intro/landscape.vtt',
+        'assets/presentation/intro/portrait.vtt',
+      ]) {
+        File('${root.path}/$path')
+          ..createSync(recursive: true)
+          ..writeAsStringSync(
+            'WEBVTT\n\n00:00.000 --> 00:02.000\nBienvenue à Aube.',
+          );
+      }
+      final drivers = <_PlaybackDriver>[];
       await tester.pumpWidget(
         _app(
           PersonalizationLivePreview(
             profile: ProjectPresentationProfile(intro: _intro()),
             projectName: 'Pokémon Aurore',
-            projectRootPath: '',
+            projectRootPath: root.path,
             scene: PersonalizationStudioScene.intro,
+            introDriverFactory: (source) {
+              final driver = _PlaybackDriver();
+              drivers.add(driver);
+              return driver;
+            },
           ),
         ),
       );
+      await tester.pump();
 
+      expect(find.byType(PlayerIntroVideoPreview), findsOneWidget);
       expect(find.byType(PlayerIntroVideoSurface), findsOneWidget);
-      var surface = tester.widget<PlayerIntroVideoSurface>(
+      drivers.single.snapshot.value = const PlayerIntroPlaybackSnapshot(
+        isInitialized: true,
+        caption: 'Bienvenue à Aube.',
+      );
+      await tester.pump();
+      expect(find.text('Bienvenue à Aube.'), findsOneWidget);
+
+      drivers.single.snapshot.value = const PlayerIntroPlaybackSnapshot(
+        isInitialized: true,
+        isCompleted: true,
+      );
+      await tester.pump();
+      final completedSurface = tester.widget<PlayerIntroVideoSurface>(
         find.byType(PlayerIntroVideoSurface),
       );
-      expect(surface.caption, 'Exemple de sous-titre');
-      expect(surface.onReplay, isNotNull);
-      expect(surface.isPoster, isTrue);
+      expect(completedSurface.isPoster, isTrue);
+      expect(completedSurface.onReplay, isNotNull);
+      expect(find.text('Rejouer'), findsOneWidget);
 
       await tester.tap(
         find.byKey(
@@ -80,7 +123,7 @@ void main() {
       );
       await tester.pump();
 
-      surface = tester.widget<PlayerIntroVideoSurface>(
+      final surface = tester.widget<PlayerIntroVideoSurface>(
         find.byType(PlayerIntroVideoSurface),
       );
       expect(
@@ -89,6 +132,32 @@ void main() {
       );
     },
   );
+}
+
+final class _PlaybackDriver implements PlayerIntroPlaybackDriver {
+  final snapshot = ValueNotifier<PlayerIntroPlaybackSnapshot>(
+    const PlayerIntroPlaybackSnapshot(),
+  );
+
+  @override
+  ValueListenable<PlayerIntroPlaybackSnapshot> get snapshots => snapshot;
+
+  @override
+  Widget buildVideo() => const ColoredBox(color: Colors.black);
+
+  @override
+  Future<void> initialize() async {
+    snapshot.value = const PlayerIntroPlaybackSnapshot(isInitialized: true);
+  }
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> play() async {}
+
+  @override
+  Future<void> dispose() async => snapshot.dispose();
 }
 
 ProjectIntroVideoProfile _intro() => const ProjectIntroVideoProfile(
@@ -120,6 +189,9 @@ ProjectIntroVideoProfile _intro() => const ProjectIntroVideoProfile(
 );
 
 Widget _app(Widget child) => MaterialApp(
+  locale: const Locale('fr'),
+  supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+  localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
   theme: PokeMapTheme.light(),
   home: Scaffold(body: child),
 );

@@ -343,10 +343,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Mouvement réduit actif'), findsOneWidget);
-    expect(
-      find.text('Intro ignorée avec les animations réduites'),
-      findsOneWidget,
-    );
+    expect(find.text('La vidéo ne peut pas être lue.'), findsOneWidget);
   });
 
   testWidgets('PST-045 compares baseline and draft with identical simulation', (
@@ -603,6 +600,9 @@ void main() {
 }
 
 Widget _app(Widget child) => MaterialApp(
+  locale: const Locale('fr'),
+  supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+  localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
   theme: PokeMapTheme.light(),
   home: Scaffold(body: SingleChildScrollView(child: child)),
 );

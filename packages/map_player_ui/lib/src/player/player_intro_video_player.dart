@@ -219,6 +219,7 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
       : Image(
           image: widget.poster!,
           fit: BoxFit.cover,
+          alignment: widget.source.focalAlignment,
           errorBuilder: (_, __, ___) => const SizedBox.expand(),
         );
 

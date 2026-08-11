@@ -693,6 +693,48 @@ void main() {
     expect(stopped, isTrue);
   });
 
+  testWidgets('controller input skips the real intro through runtime policy', (
+    tester,
+  ) async {
+    final controller = PlayerRuntimeStartupShellController();
+    final commands = <RuntimeStartupCommand>[];
+    await tester.pumpWidget(
+      _app(
+        PlayerRuntimeStartupShell(
+          controller: controller,
+          branding: branding,
+          snapshot: _startup(
+            RuntimeStartupPhase.intro,
+            introPhase: RuntimeIntroPhase.playing,
+          ),
+          titlePresentation: presentation,
+          introSource: PlayerIntroVideoSource(
+            videoUri: Uri.parse('file:///installed/intro.mp4'),
+          ),
+          introDriverFactory: (_) => _GatePlaybackDriver(
+            Completer<void>()..complete(),
+          ),
+          onStartupCommand: commands.add,
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      controller.handle(
+        const PlayerInputCommand.press(
+          PlayerInputAction.confirm,
+          source: PlayerInputSource.controller,
+        ),
+      ),
+      isTrue,
+    );
+    expect(commands.single.action, RuntimeStartupAction.skipIntro);
+  });
+
   testWidgets('uses distinct looping media for prompt and menu',
       (tester) async {
     final drivers = <_GatePlaybackDriver>[];
