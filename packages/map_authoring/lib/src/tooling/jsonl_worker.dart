@@ -12,6 +12,7 @@ import '../contracts/json_contract_support.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
+import '../domains/gameplay/character_studio/character_studio_action_support.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
 import '../history/authoring_history.dart';
@@ -176,6 +177,14 @@ final class JsonlWorker {
       result = _failure(
         requestId,
         code: _visualDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
+      );
+    } on CharacterStudioActionException catch (error) {
+      result = _failure(
+        requestId,
+        code: _characterStudioDomainErrorCode(error.code),
         domainCode: error.code,
         message: error.message,
         details: _safeDetails(error.details),
@@ -660,6 +669,14 @@ AuthoringErrorCode _artifactDomainErrorCode(String code) => switch (code) {
       _ when code.endsWith('_unsupported') => AuthoringErrorCode.unsupported,
       _ => AuthoringErrorCode.validationFailed,
     };
+
+AuthoringErrorCode _characterStudioDomainErrorCode(String code) {
+  if (code.endsWith('_unsupported')) return AuthoringErrorCode.unsupported;
+  if (code.endsWith('_not_found') || code.endsWith('.not_found')) {
+    return AuthoringErrorCode.notFound;
+  }
+  return AuthoringErrorCode.validationFailed;
+}
 
 AuthoringErrorCode _assetDomainErrorCode(String code) => switch (code) {
       'artifact.unknown' => AuthoringErrorCode.notFound,

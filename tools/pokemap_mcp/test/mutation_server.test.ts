@@ -3624,6 +3624,271 @@ test("MCP completes a cold-start 34-element visual import", async () => {
   }
 });
 
+test("CHS-057 live MCP certifies identity and portrait transports", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = new Set(
+      (described.mutationActions as JsonRecord[]).map((action) =>
+        String(action.id),
+      ),
+    );
+    const identityPortraitActionIds = [
+      "characterStudio.character.create",
+      "characterStudio.character.update",
+      "characterStudio.character.delete",
+      "characterStudio.character.deletePlan",
+      "characterStudio.character.setDefault",
+      "characterStudio.character.portrait.assign",
+      "characterStudio.character.portrait.clear",
+      "characterStudio.portraitState.create",
+      "characterStudio.portraitState.update",
+      "characterStudio.portraitState.reorder",
+      "characterStudio.portraitState.delete",
+      "characterStudio.portraitState.deletePlan",
+    ];
+    for (const actionId of identityPortraitActionIds) {
+      assert.ok(actionIds.has(actionId), actionId);
+    }
+    const projectDocument = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    const tilesets = Array.isArray(projectDocument.tilesets)
+      ? (projectDocument.tilesets as JsonRecord[])
+      : [];
+    const tilesetId =
+      tilesets.length > 0 ? String(record(tilesets[0]).id) : "mcp-characters";
+    if (tilesets.length === 0) {
+      projectDocument.tilesets = [
+        {
+          id: tilesetId,
+          name: "MCP Characters",
+          relativePath: "assets/mcp-characters.png",
+        },
+      ];
+      await writeFile(
+        join(fixture.root, "project.json"),
+        JSON.stringify(projectDocument),
+      );
+    }
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const initialRevision = String(
+      (
+        await toolData(fixture.client, "pokemap_validate", {
+          projectHandle,
+        })
+      ).snapshotRevision,
+    );
+    let revision = initialRevision;
+    let sequence = 0;
+
+    const plan = async (
+      actionId: string,
+      parameters: JsonRecord,
+      options: { dryRun?: boolean; expectedRevision?: string } = {},
+    ): Promise<JsonRecord> =>
+      toolData(fixture.client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: `chs057-plan-${sequence}`,
+          actionId,
+          actionVersion: 1,
+          workspaceHandle,
+          parameters,
+          expectedRevision: options.expectedRevision ?? revision,
+          idempotencyKey: `idem-chs057-plan-${sequence++}`,
+          dryRun: options.dryRun ?? false,
+        },
+      });
+
+    const apply = async (
+      actionId: string,
+      parameters: JsonRecord,
+      requiresConfirmation = false,
+    ): Promise<void> => {
+      const planned = await plan(actionId, parameters);
+      const confirmation = requiresConfirmation
+        ? await toolData(fixture.client, "pokemap_apply", {
+            operation: "confirm",
+            projectHandle,
+            planId: planned.planId,
+          })
+        : undefined;
+      const applied = await toolData(fixture.client, "pokemap_apply", {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId: `operation-chs057-${sequence}`,
+        ...(confirmation
+          ? { confirmationToken: confirmation.confirmationToken }
+          : {}),
+      });
+      assert.equal(record(applied.receipt).actionId, actionId);
+      revision = String(
+        (
+          await toolData(fixture.client, "pokemap_validate", {
+            projectHandle,
+          })
+        ).snapshotRevision,
+      );
+    };
+
+    await apply("characterStudio.portraitState.create", {
+      displayName: "MCP Neutre",
+    });
+    const revisionAfterFirstMutation = revision;
+    for (const failure of [
+      {
+        actionId: "characterStudio.portraitState.create",
+        parameters: { displayName: "MCP Neutre" },
+        expectedRevision: revision,
+        domainCode: "character_studio.portrait_state.id_conflict",
+      },
+      {
+        actionId: "characterStudio.portraitState.create",
+        parameters: { displayName: "MCP Obsolète" },
+        expectedRevision: initialRevision,
+        domainCode: "plan.stale",
+      },
+    ]) {
+      const rejected = await fixture.client.callTool({
+        name: "pokemap_plan",
+        arguments: {
+          projectHandle,
+          request: {
+            requestId: `chs057-rejected-${sequence}`,
+            actionId: failure.actionId,
+            actionVersion: 1,
+            workspaceHandle,
+            parameters: failure.parameters,
+            expectedRevision: failure.expectedRevision,
+            idempotencyKey: `idem-chs057-rejected-${sequence++}`,
+            dryRun: false,
+          },
+        },
+      });
+      assert.equal(rejected.isError, true);
+      assert.equal(
+        record(record(rejected.structuredContent).error).domainCode,
+        failure.domainCode,
+      );
+      const validated = await toolData(fixture.client, "pokemap_validate", {
+        projectHandle,
+      });
+      assert.equal(validated.snapshotRevision, revisionAfterFirstMutation);
+    }
+    await apply("characterStudio.portraitState.create", {
+      displayName: "MCP Joyeux",
+    });
+    await apply("characterStudio.portraitState.update", {
+      id: "mcp-joyeux",
+      displayName: "MCP Heureux",
+    });
+    await apply("characterStudio.portraitState.reorder", {
+      orderedIds: ["mcp-joyeux", "mcp-neutre"],
+    });
+    await apply("characterStudio.character.create", {
+      name: "MCP Hero",
+      tilesetId,
+      frameWidth: 1,
+      frameHeight: 1,
+    });
+    await apply("characterStudio.character.update", {
+      characterId: "mcp-hero",
+      name: "MCP Heroïne",
+      tags: ["player"],
+    });
+    await apply("characterStudio.character.setDefault", {
+      characterId: "mcp-hero",
+    });
+    const portraitAssignment = {
+      characterId: "mcp-hero",
+      portraitStateId: "mcp-neutre",
+      assetId: "mcp-hero-neutral",
+      fitMode: "cover",
+    };
+    await apply(
+      "characterStudio.character.portrait.assign",
+      portraitAssignment,
+    );
+    await apply("characterStudio.character.portrait.clear", {
+      characterId: "mcp-hero",
+      portraitStateId: "mcp-neutre",
+    });
+    await apply(
+      "characterStudio.character.portrait.assign",
+      portraitAssignment,
+    );
+    const portraitDeletePlan = await plan(
+      "characterStudio.portraitState.deletePlan",
+      { id: "mcp-neutre" },
+      { dryRun: true },
+    );
+    assert.equal(record(record(portraitDeletePlan.plan).preview).requiresResolution, true);
+    await apply(
+      "characterStudio.portraitState.delete",
+      {
+        id: "mcp-neutre",
+        resolution: "replace",
+        replacementId: "mcp-joyeux",
+      },
+      true,
+    );
+    const characterDeletePlan = await plan(
+      "characterStudio.character.deletePlan",
+      { characterId: "mcp-hero" },
+      { dryRun: true },
+    );
+    assert.equal(record(record(characterDeletePlan.plan).preview).requiresResolution, true);
+    await apply(
+      "characterStudio.character.delete",
+      { characterId: "mcp-hero", resolution: "clear" },
+      true,
+    );
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle,
+    });
+    const reopened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const characters = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(reopened.projectHandle),
+      resourceKind: "characterStudioCharacter",
+      operation: "list",
+      view: "detail",
+    });
+    assert.deepEqual(characters.items, []);
+    const catalog = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(reopened.projectHandle),
+      resourceKind: "characterStudioCatalog",
+      operation: "get",
+      view: "detail",
+      ids: ["catalog"],
+    });
+    const catalogItem = record((catalog.items as unknown[])[0]);
+    assert.deepEqual(
+      (catalogItem.portraitStates as JsonRecord[]).map((state) => state.id),
+      ["mcp-joyeux"],
+    );
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle: reopened.workspaceHandle,
+    });
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("CHS-053 live MCP certifies the complete Character Studio lifecycle", async () => {
   const fixture = await mutationFixture();
   try {

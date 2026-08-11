@@ -131,8 +131,152 @@ void main() {
       expect(durable.name, 'External edit');
       expect(durable.characters, isEmpty);
     });
+
+    test('CHS-057 certifies every identity and portrait action', () async {
+      final fixture = await _CharacterStudioFixture.create();
+      addTearDown(fixture.dispose);
+      var project = fixture.project;
+      final observedActionIds = <String>{};
+      var sequence = 0;
+
+      Future<void> apply(
+        String actionId,
+        Map<String, Object?> parameters, {
+        bool requiresConfirmation = false,
+      }) async {
+        project = await fixture.gateway.apply(
+          projectRootPath: fixture.root.path,
+          expectedProject: project,
+          actionId: actionId,
+          parameters: parameters,
+          operationLabel: 'chs057_${sequence++}',
+          requiresConfirmation: requiresConfirmation,
+        );
+        expect(fixture.mutations.lastAppliedReceipt?.actionId, actionId);
+        observedActionIds.add(actionId);
+      }
+
+      Future<EditorAuthoringMutationPlan> preview(
+        String actionId,
+        Map<String, Object?> parameters,
+      ) async {
+        final plan = await fixture.gateway.preview(
+          projectRootPath: fixture.root.path,
+          expectedProject: project,
+          actionId: actionId,
+          parameters: parameters,
+          operationLabel: 'chs057_preview_${sequence++}',
+        );
+        expect(plan.receipt.actionId, actionId);
+        observedActionIds.add(actionId);
+        return plan;
+      }
+
+      await apply(
+        'characterStudio.portraitState.create',
+        const <String, Object?>{'displayName': 'Joyeux'},
+      );
+      await apply(
+        'characterStudio.portraitState.update',
+        const <String, Object?>{'id': 'joyeux', 'displayName': 'Heureux'},
+      );
+      await apply(
+        'characterStudio.portraitState.reorder',
+        const <String, Object?>{
+          'orderedIds': <String>['joyeux', 'neutral'],
+        },
+      );
+      await apply('characterStudio.character.create', const <String, Object?>{
+        'name': 'Élia',
+        'tilesetId': 'characters',
+        'frameWidth': 4,
+        'frameHeight': 8,
+      });
+      await apply('characterStudio.character.update', const <String, Object?>{
+        'characterId': 'elia',
+        'name': 'Élia la Rouge',
+        'tags': <String>['heroine'],
+      });
+      await apply(
+        'characterStudio.character.setDefault',
+        const <String, Object?>{'characterId': 'elia'},
+      );
+      await apply(
+        'characterStudio.character.portrait.assign',
+        const <String, Object?>{
+          'characterId': 'elia',
+          'portraitStateId': 'neutral',
+          'assetId': 'elia-neutral',
+          'fitMode': 'cover',
+        },
+      );
+      await apply(
+        'characterStudio.character.portrait.clear',
+        const <String, Object?>{
+          'characterId': 'elia',
+          'portraitStateId': 'neutral',
+        },
+      );
+      await apply(
+        'characterStudio.character.portrait.assign',
+        const <String, Object?>{
+          'characterId': 'elia',
+          'portraitStateId': 'neutral',
+          'assetId': 'elia-neutral',
+        },
+      );
+      final portraitDeletePlan = await preview(
+        'characterStudio.portraitState.deletePlan',
+        const <String, Object?>{'id': 'neutral'},
+      );
+      expect(portraitDeletePlan.preview['requiresResolution'], isTrue);
+      await apply(
+        'characterStudio.portraitState.delete',
+        const <String, Object?>{
+          'id': 'neutral',
+          'resolution': 'replace',
+          'replacementId': 'joyeux',
+        },
+        requiresConfirmation: true,
+      );
+      final characterDeletePlan = await preview(
+        'characterStudio.character.deletePlan',
+        const <String, Object?>{'characterId': 'elia'},
+      );
+      expect(characterDeletePlan.preview['requiresResolution'], isTrue);
+      await apply('characterStudio.character.delete', const <String, Object?>{
+        'characterId': 'elia',
+        'resolution': 'clear',
+      }, requiresConfirmation: true);
+
+      expect(observedActionIds, _identityPortraitActionIds);
+      final durable = await FileProjectRepository().loadProject(
+        p.join(fixture.root.path, 'project.json'),
+      );
+      expect(durable.characters, isEmpty);
+      expect(durable.settings.defaultPlayerCharacterId, isNull);
+      expect(
+        durable.characterStudioCatalog.portraitStates.single.displayName,
+        'Heureux',
+      );
+    });
   });
 }
+
+const Set<String> _identityPortraitActionIds = <String>{
+  'characterStudio.character.create',
+  'characterStudio.character.update',
+  'characterStudio.character.delete',
+  'characterStudio.character.deletePlan',
+  'characterStudio.character.setDefault',
+  'characterStudio.character.portrait.assign',
+  'characterStudio.character.portrait.clear',
+  'characterStudio.portraitState.create',
+  'characterStudio.portraitState.update',
+  'characterStudio.portraitState.reorder',
+  'characterStudio.portraitState.delete',
+  'characterStudio.portraitState.deletePlan',
+};
 
 final class _CharacterStudioFixture {
   _CharacterStudioFixture({
