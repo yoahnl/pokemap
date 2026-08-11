@@ -613,7 +613,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-026 — Unifier les valeurs des effets MVP
 
-- [ ] **Résultat :** une seule valeur autoritaire par Potion, cure, revive et restore PP.
+- [x] **Résultat :** une seule valeur autoritaire par Potion, cure, revive et restore PP.
 - **Fichiers principaux :**
   - packages/map_gameplay/lib/src/player_item_effects.dart
   - packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart
@@ -621,6 +621,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 - **Cas obligatoire :** Hyper Potion produit exactement le même delta hors combat, en battle PSDK et dans le texte de résultat.
 - **Gate :** un test paramétré compare les trois chemins pour Potion, Super Potion, Hyper Potion et Max Potion.
 - **Dépendances :** ITM-025.
+
+**Preuves ITM-026 :** les wrappers battle legacy et PSDK résolvent désormais leur effet dans le même `ItemCatalogSnapshot` que `PlayerItemUseService` ; les constantes runtime 20/50/200 ont été supprimées. Le test paramétré compare Potion, Super Potion, Hyper Potion et Max Potion sur les chemins overworld, battle legacy, battle PSDK et narration. Les 14 tests ciblés passent, notamment Hyper Potion à 120 PV sur les quatre projections.
 
 ### ITM-027 — Diagnostic honnête utilisable/passif/unsupported
 

@@ -6,6 +6,9 @@ import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
+import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+
+final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
 
 BattleStatsSnapshot _stats() {
   return const BattleStatsSnapshot(
@@ -223,7 +226,7 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(itemId: 'potion', quantity: 2),
             ],
           ),
           partyMembers: <PlayerPokemon>[
@@ -235,6 +238,7 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -253,7 +257,7 @@ void main() {
       expect(
         result.updatedGameState.bag.entries,
         const <BagEntry>[
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          BagEntry(itemId: 'potion', quantity: 1),
         ],
       );
     });
@@ -277,7 +281,7 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(itemId: 'potion', quantity: 2),
             ],
           ),
           partyMembers: <PlayerPokemon>[
@@ -289,6 +293,7 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -319,10 +324,9 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(itemId: 'potion', quantity: 2),
               BagEntry(
                 itemId: 'super-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
             ],
@@ -336,6 +340,7 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -353,10 +358,9 @@ void main() {
       expect(
         result.updatedGameState.bag.entries,
         const <BagEntry>[
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'potion', quantity: 2),
           BagEntry(
             itemId: 'super-potion',
-            categoryId: 'medicine',
             quantity: 1,
           ),
         ],
@@ -384,7 +388,6 @@ void main() {
             entries: <BagEntry>[
               BagEntry(
                 itemId: 'super-potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
             ],
@@ -398,6 +401,7 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -408,7 +412,7 @@ void main() {
     });
 
     test(
-        'hyper potion heals a damaged active target by 200 and consumes only hyper potion',
+        'hyper potion heals a damaged active target by 120 and consumes only hyper potion',
         () {
       final result = tryApplyRuntimeBattleHyperPotionUse(
         session: _session(
@@ -428,15 +432,13 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(itemId: 'potion', quantity: 2),
               BagEntry(
                 itemId: 'super-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
               BagEntry(
                 itemId: 'hyper-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
             ],
@@ -450,10 +452,11 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(200));
+      expect(result!.healedAmount, equals(120));
       expect(
         result.updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
@@ -462,22 +465,20 @@ void main() {
           equals(BattleBagHpHealItemKind.hyperPotion),
         ),
       );
-      expect(result.updatedSession.state.player.currentHp, equals(212));
+      expect(result.updatedSession.state.player.currentHp, equals(132));
       expect(
-          result.updatedGameState.party.members.first.currentHp, equals(212));
+          result.updatedGameState.party.members.first.currentHp, equals(132));
       expect(
         result.updatedGameState.bag.entries,
         const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(itemId: 'potion', quantity: 2),
             BagEntry(
               itemId: 'super-potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
             BagEntry(
               itemId: 'hyper-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -506,7 +507,6 @@ void main() {
             entries: <BagEntry>[
               BagEntry(
                 itemId: 'hyper-potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
             ],
@@ -520,6 +520,7 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -551,20 +552,17 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(itemId: 'potion', quantity: 2),
               BagEntry(
                 itemId: 'super-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
               BagEntry(
                 itemId: 'hyper-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
               BagEntry(
                 itemId: 'max-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
             ],
@@ -578,6 +576,7 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -603,20 +602,17 @@ void main() {
         result.updatedGameState.bag.entries,
         const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(itemId: 'potion', quantity: 2),
             BagEntry(
               itemId: 'super-potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
             BagEntry(
               itemId: 'hyper-potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
             BagEntry(
               itemId: 'max-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -645,7 +641,6 @@ void main() {
             entries: <BagEntry>[
               BagEntry(
                 itemId: 'max-potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
             ],
@@ -659,6 +654,7 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -701,7 +697,7 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              BagEntry(itemId: 'potion', quantity: 1),
             ],
           ),
           partyMembers: <PlayerPokemon>[
@@ -714,6 +710,7 @@ void main() {
           lineupPartyIndices: const <int>[1, 0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -733,7 +730,7 @@ void main() {
       final fullHpState = _gameState(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -764,6 +761,7 @@ void main() {
             lineupPartyIndices: const <int>[0],
           ),
           targetLineupIndex: 0,
+          itemCatalog: _itemCatalog,
         ),
         isNull,
       );
@@ -774,7 +772,7 @@ void main() {
       final faintedState = _gameState(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -805,6 +803,7 @@ void main() {
             lineupPartyIndices: const <int>[0],
           ),
           targetLineupIndex: 0,
+          itemCatalog: _itemCatalog,
         ),
         isNull,
       );
@@ -817,7 +816,7 @@ void main() {
       final fullHpState = _gameState(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'max-potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'max-potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -848,6 +847,7 @@ void main() {
             lineupPartyIndices: const <int>[0],
           ),
           targetLineupIndex: 0,
+          itemCatalog: _itemCatalog,
         ),
         isNull,
       );
@@ -858,7 +858,7 @@ void main() {
       final faintedState = _gameState(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'max-potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'max-potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -889,6 +889,7 @@ void main() {
             lineupPartyIndices: const <int>[0],
           ),
           targetLineupIndex: 0,
+          itemCatalog: _itemCatalog,
         ),
         isNull,
       );
@@ -952,7 +953,6 @@ void main() {
               entries: <BagEntry>[
                 BagEntry(
                   itemId: itemCase.itemId,
-                  categoryId: 'medicine',
                   quantity: 1,
                 ),
               ],
@@ -970,6 +970,7 @@ void main() {
           ),
           itemId: itemCase.itemId,
           targetLineupIndex: 0,
+          itemCatalog: _itemCatalog,
           isTrainerBattle: true,
           trainerId: 'trainer',
         );
@@ -984,6 +985,128 @@ void main() {
         expect(
           psdkSession.state.psdkState.battlerAt(psdkPlayerSlot).currentHp,
           itemCase.expectedHp,
+        );
+      }
+    });
+
+    test('canonical HP values match overworld, legacy, PSDK and narration', () {
+      const cases = <(String, int)>[
+        ('potion', 20),
+        ('super-potion', 50),
+        ('hyper-potion', 120),
+        ('max-potion', 220),
+      ];
+
+      for (final (itemId, expectedDelta) in cases) {
+        final bag = Bag(
+          entries: <BagEntry>[BagEntry(itemId: itemId, quantity: 1)],
+        );
+        final state = _gameState(
+          bag: bag,
+          partyMembers: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 30),
+          ],
+        );
+        final overworldResult =
+            PlayerItemUseService(snapshot: _itemCatalog).use(
+          PlayerItemUseRequest(
+            state: state,
+            itemId: itemId,
+            context: ProjectItemUseContext.overworld,
+            partyIndex: 0,
+            maxHp: 250,
+          ),
+        );
+        final legacySession = _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 30,
+            maxHp: 250,
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+          ),
+        );
+        final legacyResult = switch (itemId) {
+          'potion' => tryApplyRuntimeBattlePotionUse(
+              session: legacySession,
+              gameState: state,
+              context: _context(
+                playerPartyIndex: 0,
+                lineupPartyIndices: const <int>[0],
+              ),
+              targetLineupIndex: 0,
+              itemCatalog: _itemCatalog,
+            ),
+          'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+              session: legacySession,
+              gameState: state,
+              context: _context(
+                playerPartyIndex: 0,
+                lineupPartyIndices: const <int>[0],
+              ),
+              targetLineupIndex: 0,
+              itemCatalog: _itemCatalog,
+            ),
+          'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+              session: legacySession,
+              gameState: state,
+              context: _context(
+                playerPartyIndex: 0,
+                lineupPartyIndices: const <int>[0],
+              ),
+              targetLineupIndex: 0,
+              itemCatalog: _itemCatalog,
+            ),
+          'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
+              session: legacySession,
+              gameState: state,
+              context: _context(
+                playerPartyIndex: 0,
+                lineupPartyIndices: const <int>[0],
+              ),
+              targetLineupIndex: 0,
+              itemCatalog: _itemCatalog,
+            ),
+          _ => null,
+        };
+        final psdkSession = _psdkSession(currentHp: 30, maxHp: 250);
+        final psdkResult = tryApplyRuntimePsdkBattleBagHpHealItemUse(
+          psdkSession: psdkSession,
+          displaySession: psdkSession.createLegacyDisplaySession(
+            isTrainerBattle: true,
+            trainerId: 'trainer',
+          ),
+          gameState: state,
+          context: _context(
+            playerPartyIndex: 0,
+            lineupPartyIndices: const <int>[0],
+          ),
+          itemId: itemId,
+          targetLineupIndex: 0,
+          isTrainerBattle: true,
+          trainerId: 'trainer',
+          itemCatalog: _itemCatalog,
+        );
+
+        expect(overworldResult.isSuccess, isTrue, reason: itemId);
+        expect(
+          overworldResult.state.party.members.first.currentHp - 30,
+          expectedDelta,
+          reason: itemId,
+        );
+        expect(legacyResult!.healedAmount, expectedDelta, reason: itemId);
+        expect(psdkResult!.healedAmount, expectedDelta, reason: itemId);
+        expect(
+          buildBattleTurnLinesForOverlay(
+            legacyResult.updatedSession.state.currentTurn!,
+          ),
+          contains('sproutle récupère $expectedDelta PV'),
+          reason: itemId,
         );
       }
     });
@@ -1008,7 +1131,7 @@ void main() {
       final gameState = _gameState(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -1027,6 +1150,7 @@ void main() {
         ),
         itemId: 'potion',
         targetLineupIndex: 1,
+        itemCatalog: _itemCatalog,
         isTrainerBattle: true,
         trainerId: 'trainer',
       );

@@ -55,6 +55,7 @@ import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_move_catalog_loader.dart';
+import '../../application/runtime_item_catalog_loader.dart';
 import '../../application/runtime_player_pokemon_progression_hydrator.dart';
 import '../../application/runtime_pokemon_learnset_loader.dart';
 import '../../application/runtime_pokemon_evolution_loader.dart';
@@ -7973,24 +7974,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             gameState: _battleRuntimeGameState,
             context: activeBattleContext,
             targetLineupIndex: entry.lineupIndex,
+            itemCatalog: _itemCatalogSnapshot,
           ),
         'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
             session: battleSession,
             gameState: _battleRuntimeGameState,
             context: activeBattleContext,
             targetLineupIndex: entry.lineupIndex,
+            itemCatalog: _itemCatalogSnapshot,
           ),
         'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
             session: battleSession,
             gameState: _battleRuntimeGameState,
             context: activeBattleContext,
             targetLineupIndex: entry.lineupIndex,
+            itemCatalog: _itemCatalogSnapshot,
           ),
         'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
             session: battleSession,
             gameState: _battleRuntimeGameState,
             context: activeBattleContext,
             targetLineupIndex: entry.lineupIndex,
+            itemCatalog: _itemCatalogSnapshot,
           ),
         _ => null,
       };

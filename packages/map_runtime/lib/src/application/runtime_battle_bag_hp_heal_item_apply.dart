@@ -5,10 +5,6 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'runtime_battle_outcome_apply.dart';
 import 'runtime_psdk_battle_session_adapter.dart';
 
-const _runtimeBattlePotionHealAmount = 20;
-const _runtimeBattleSuperPotionHealAmount = 50;
-const _runtimeBattleHyperPotionHealAmount = 200;
-
 class RuntimeBattleBagHpHealItemApplyResult {
   const RuntimeBattleBagHpHealItemApplyResult({
     required this.updatedSession,
@@ -81,12 +77,16 @@ RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattlePotionUse({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required int targetLineupIndex,
+  required ItemCatalogSnapshot itemCatalog,
 }) {
   return _tryApplyRuntimeBattleBagHpHealItemUse(
     session: session,
     gameState: gameState,
     context: context,
-    itemSpec: _runtimeItemSpec(BattleBagHpHealItemKind.potion),
+    itemSpec: _runtimeItemSpec(
+      BattleBagHpHealItemKind.potion,
+      itemCatalog,
+    ),
     targetLineupIndex: targetLineupIndex,
   );
 }
@@ -100,12 +100,16 @@ RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleSuperPotionUse({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required int targetLineupIndex,
+  required ItemCatalogSnapshot itemCatalog,
 }) {
   return _tryApplyRuntimeBattleBagHpHealItemUse(
     session: session,
     gameState: gameState,
     context: context,
-    itemSpec: _runtimeItemSpec(BattleBagHpHealItemKind.superPotion),
+    itemSpec: _runtimeItemSpec(
+      BattleBagHpHealItemKind.superPotion,
+      itemCatalog,
+    ),
     targetLineupIndex: targetLineupIndex,
   );
 }
@@ -122,12 +126,16 @@ RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleHyperPotionUse({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required int targetLineupIndex,
+  required ItemCatalogSnapshot itemCatalog,
 }) {
   return _tryApplyRuntimeBattleBagHpHealItemUse(
     session: session,
     gameState: gameState,
     context: context,
-    itemSpec: _runtimeItemSpec(BattleBagHpHealItemKind.hyperPotion),
+    itemSpec: _runtimeItemSpec(
+      BattleBagHpHealItemKind.hyperPotion,
+      itemCatalog,
+    ),
     targetLineupIndex: targetLineupIndex,
   );
 }
@@ -141,12 +149,16 @@ RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleMaxPotionUse({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required int targetLineupIndex,
+  required ItemCatalogSnapshot itemCatalog,
 }) {
   return _tryApplyRuntimeBattleBagHpHealItemUse(
     session: session,
     gameState: gameState,
     context: context,
-    itemSpec: _runtimeItemSpec(BattleBagHpHealItemKind.maxPotion),
+    itemSpec: _runtimeItemSpec(
+      BattleBagHpHealItemKind.maxPotion,
+      itemCatalog,
+    ),
     targetLineupIndex: targetLineupIndex,
   );
 }
@@ -164,7 +176,7 @@ RuntimePsdkBattleBagHpHealItemApplyResult?
   String? trainerId,
   bool allowCapture = false,
 }) {
-  final itemSpec = _runtimeItemSpecForItemId(itemId);
+  final itemSpec = _runtimeItemSpecForItemId(itemId, itemCatalog);
   if (itemSpec == null) {
     return null;
   }
@@ -585,43 +597,45 @@ int _runtimeLineupIndexFromPsdkId(String id) {
 
 _RuntimeBattleBagHpHealItemSpec _runtimeItemSpec(
   BattleBagHpHealItemKind kind,
+  ItemCatalogSnapshot itemCatalog,
 ) {
-  return switch (kind) {
-    BattleBagHpHealItemKind.potion => const _RuntimeBattleBagHpHealItemSpec(
-        kind: BattleBagHpHealItemKind.potion,
-        itemId: 'potion',
-        label: 'Potion',
-        effect: BattleBagFlatHpHealEffect(_runtimeBattlePotionHealAmount),
-      ),
-    BattleBagHpHealItemKind.superPotion =>
-      const _RuntimeBattleBagHpHealItemSpec(
-        kind: BattleBagHpHealItemKind.superPotion,
-        itemId: 'super-potion',
-        label: 'Super Potion',
-        effect: BattleBagFlatHpHealEffect(_runtimeBattleSuperPotionHealAmount),
-      ),
-    BattleBagHpHealItemKind.hyperPotion =>
-      const _RuntimeBattleBagHpHealItemSpec(
-        kind: BattleBagHpHealItemKind.hyperPotion,
-        itemId: 'hyper-potion',
-        label: 'Hyper Potion',
-        effect: BattleBagFlatHpHealEffect(_runtimeBattleHyperPotionHealAmount),
-      ),
-    BattleBagHpHealItemKind.maxPotion => const _RuntimeBattleBagHpHealItemSpec(
-        kind: BattleBagHpHealItemKind.maxPotion,
-        itemId: 'max-potion',
-        label: 'Max Potion',
-        effect: BattleBagRestoreToFullHpHealEffect(),
-      ),
+  final itemId = switch (kind) {
+    BattleBagHpHealItemKind.potion => 'potion',
+    BattleBagHpHealItemKind.superPotion => 'super-potion',
+    BattleBagHpHealItemKind.hyperPotion => 'hyper-potion',
+    BattleBagHpHealItemKind.maxPotion => 'max-potion',
   };
+  final definition = itemCatalog.definitionFor(itemId);
+  final use = ItemCapabilityResolver(itemCatalog).resolveUse(
+    itemId: itemId,
+    context: ProjectItemUseContext.battle,
+  );
+  final effect = use.use?.effect;
+  if (definition == null || effect is! ProjectItemHealHpEffectDefinition) {
+    throw StateError('Missing canonical battle HP-heal definition: $itemId.');
+  }
+  return _RuntimeBattleBagHpHealItemSpec(
+    kind: kind,
+    itemId: itemId,
+    label: definition.displayName,
+    effect: effect.mode == ProjectItemAmountMode.full
+        ? const BattleBagRestoreToFullHpHealEffect()
+        : BattleBagFlatHpHealEffect(effect.amount!),
+  );
 }
 
-_RuntimeBattleBagHpHealItemSpec? _runtimeItemSpecForItemId(String itemId) {
+_RuntimeBattleBagHpHealItemSpec? _runtimeItemSpecForItemId(
+  String itemId,
+  ItemCatalogSnapshot itemCatalog,
+) {
   return switch (itemId) {
-    'potion' => _runtimeItemSpec(BattleBagHpHealItemKind.potion),
-    'super-potion' => _runtimeItemSpec(BattleBagHpHealItemKind.superPotion),
-    'hyper-potion' => _runtimeItemSpec(BattleBagHpHealItemKind.hyperPotion),
-    'max-potion' => _runtimeItemSpec(BattleBagHpHealItemKind.maxPotion),
+    'potion' => _runtimeItemSpec(BattleBagHpHealItemKind.potion, itemCatalog),
+    'super-potion' =>
+      _runtimeItemSpec(BattleBagHpHealItemKind.superPotion, itemCatalog),
+    'hyper-potion' =>
+      _runtimeItemSpec(BattleBagHpHealItemKind.hyperPotion, itemCatalog),
+    'max-potion' =>
+      _runtimeItemSpec(BattleBagHpHealItemKind.maxPotion, itemCatalog),
     _ => null,
   };
 }

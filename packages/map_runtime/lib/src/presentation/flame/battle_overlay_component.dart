@@ -5,6 +5,7 @@ import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/runtime_move_catalog_loader.dart';
 import '../flutter/battle_command_overlay_snapshot.dart';
