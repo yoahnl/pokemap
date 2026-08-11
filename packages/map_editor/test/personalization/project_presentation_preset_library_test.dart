@@ -30,7 +30,10 @@ void main() {
     );
 
     expect(find.text('Profil Hanazuki'), findsOneWidget);
-    expect(find.text('v6'), findsOneWidget);
+    expect(
+      find.text('v${ProjectPresentationProfile.supportedSchemaVersion}'),
+      findsOneWidget,
+    );
     expect(find.textContaining('.pokemapstyle'), findsOneWidget);
 
     await tester.tap(

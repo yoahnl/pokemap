@@ -28,6 +28,7 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final metrics = scenario.metrics;
         final maxWidth = switch (scenario.viewport) {
           PersonalizationPreviewViewport.landscape => constraints.maxWidth,
           PersonalizationPreviewViewport.portrait =>
@@ -39,43 +40,65 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
         };
         return Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            child: MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: TextScaler.linear(scenario.textScale)),
-              child: KeyedSubtree(
-                key: ValueKey<String>(
-                  'personalization-preview-viewport-frame-'
-                  '${scenario.viewport.name}',
-                ),
-                child: AnimatedSwitcher(
-                  duration:
-                      scenario.effectiveReducedMotion ||
-                          MediaQuery.disableAnimationsOf(context)
-                      ? Duration.zero
-                      : const Duration(milliseconds: 160),
-                  child: scenario.showComparison
-                      ? _ComparisonPreview(
-                          key: ValueKey<String>(
-                            'personalization-comparison-'
-                            '${scenario.surface.name}-'
-                            '${scenario.viewport.name}',
-                          ),
-                          before: _buildBaseline(),
-                          after: surfaceBuilder(
-                            profile: scenario.draftProfile,
-                            scene: scenario.surface,
-                            aspectRatio: scenario.viewport.aspectRatio,
-                            reducedMotion: scenario.effectiveReducedMotion,
-                          ),
-                        )
-                      : surfaceBuilder(
-                          profile: scenario.draftProfile,
-                          scene: scenario.surface,
-                          aspectRatio: scenario.viewport.aspectRatio,
-                          reducedMotion: scenario.effectiveReducedMotion,
-                        ),
+            constraints: BoxConstraints(
+              maxWidth: maxWidth,
+              maxHeight: constraints.maxHeight,
+            ),
+            child: AspectRatio(
+              aspectRatio: metrics.aspectRatio,
+              child: FittedBox(
+                fit: BoxFit.contain,
+                clipBehavior: Clip.hardEdge,
+                child: SizedBox(
+                  width: metrics.logicalWidth,
+                  height: metrics.logicalHeight,
+                  child: MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      size: Size(metrics.logicalWidth, metrics.logicalHeight),
+                      padding: EdgeInsets.fromLTRB(
+                        metrics.safeLeft,
+                        metrics.safeTop,
+                        metrics.safeRight,
+                        metrics.safeBottom,
+                      ),
+                      textScaler: TextScaler.linear(scenario.textScale),
+                    ),
+                    child: KeyedSubtree(
+                      key: ValueKey<String>(
+                        'personalization-preview-viewport-frame-'
+                        '${scenario.viewport.name}',
+                      ),
+                      child: AnimatedSwitcher(
+                        duration:
+                            scenario.effectiveReducedMotion ||
+                                MediaQuery.disableAnimationsOf(context)
+                            ? Duration.zero
+                            : const Duration(milliseconds: 160),
+                        child: scenario.showComparison
+                            ? _ComparisonPreview(
+                                key: ValueKey<String>(
+                                  'personalization-comparison-'
+                                  '${scenario.surface.name}-'
+                                  '${scenario.viewport.name}',
+                                ),
+                                before: _buildBaseline(),
+                                after: surfaceBuilder(
+                                  profile: scenario.draftProfile,
+                                  scene: scenario.surface,
+                                  aspectRatio: scenario.viewport.aspectRatio,
+                                  reducedMotion:
+                                      scenario.effectiveReducedMotion,
+                                ),
+                              )
+                            : surfaceBuilder(
+                                profile: scenario.draftProfile,
+                                scene: scenario.surface,
+                                aspectRatio: scenario.viewport.aspectRatio,
+                                reducedMotion: scenario.effectiveReducedMotion,
+                              ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
