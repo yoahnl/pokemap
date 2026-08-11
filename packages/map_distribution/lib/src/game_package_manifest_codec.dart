@@ -1282,6 +1282,14 @@ final class GamePackageManifestCodec {
         'nameplateSurfaceColor',
         'nameplateBorderColor',
         'nameplateTextColor',
+        'choiceSpacing',
+        'choiceShape',
+        'choiceDisabledOpacity',
+        'choiceSelectedColor',
+        'progressIndicator',
+        'progressIndicatorColor',
+        'portraitTransition',
+        'portraitTransitionMilliseconds',
       },
     );
     final profile = ProjectDialoguePresentationProfile.fromJson(
@@ -1319,6 +1327,14 @@ final class GamePackageManifestCodec {
       nameplateSurfaceColor: profile.nameplateSurfaceColor,
       nameplateBorderColor: profile.nameplateBorderColor,
       nameplateTextColor: profile.nameplateTextColor,
+      choiceSpacing: profile.choiceSpacing,
+      choiceShape: profile.choiceShape.name,
+      choiceDisabledOpacity: profile.choiceDisabledOpacity,
+      choiceSelectedColor: profile.choiceSelectedColor,
+      progressIndicator: profile.progressIndicator.name,
+      progressIndicatorColor: profile.progressIndicatorColor,
+      portraitTransition: profile.portraitTransition.name,
+      portraitTransitionMilliseconds: profile.portraitTransitionMilliseconds,
     );
   }
 

@@ -205,6 +205,87 @@ void main() {
       const Color(0xFFF0F0F0),
     );
   });
+
+  for (final count in <int>[2, 4, 8]) {
+    testWidgets('styles $count dialogue choices including disabled state', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(320, 568));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final snapshot = _choiceSnapshotForCount(count);
+      await _pump(
+        tester,
+        snapshot: snapshot,
+        textScaler: const TextScaler.linear(1.5),
+        dialogue: const ProjectDialoguePresentationProfile(
+          choiceSpacing: 14,
+          choiceShape: ProjectDialogueChoiceShape.cutCorner,
+          choiceDisabledOpacity: .35,
+          choiceSelectedColor: '#FFAA00',
+        ),
+        onCommand: (_) {},
+      );
+
+      expect(find.byType(PlayerActionButton), findsNWidgets(count));
+      final selected = tester.widget<PlayerActionButton>(
+        find.byKey(const ValueKey<String>('dialogue-choice-0')),
+      );
+      final disabled = tester.widget<PlayerActionButton>(
+        find.byKey(const ValueKey<String>('dialogue-choice-1')),
+      );
+      expect(selected.selected, isTrue);
+      expect(selected.shape, isA<BeveledRectangleBorder>());
+      expect(selected.backgroundColor, const Color(0xFFFFAA00));
+      expect(disabled.onPressed, isNull);
+      expect(disabled.disabledOpacity, .35);
+      expect(
+        tester
+            .getSize(
+              find.byKey(const ValueKey<String>('dialogue-choice-spacing-0')),
+            )
+            .height,
+        14,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final indicator in ProjectDialogueProgressIndicator.values) {
+    testWidgets('renders the ${indicator.name} dialogue progress indicator', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        snapshot: _lineSnapshot(),
+        dialogue: ProjectDialoguePresentationProfile(
+          progressIndicator: indicator,
+          progressIndicatorColor: '#00FFAA',
+        ),
+        onCommand: (_) {},
+      );
+
+      expect(
+        find.byKey(
+          ValueKey<String>('dialogue-progress-indicator-${indicator.name}'),
+        ),
+        findsOneWidget,
+      );
+      if (indicator != ProjectDialogueProgressIndicator.none) {
+        expect(
+          tester
+              .widget<Icon>(
+                find.byKey(
+                  ValueKey<String>(
+                    'dialogue-progress-indicator-${indicator.name}',
+                  ),
+                ),
+              )
+              .color,
+          const Color(0xFF00FFAA),
+        );
+      }
+    });
+  }
 }
 
 Future<void> _pump(
@@ -217,11 +298,12 @@ Future<void> _pump(
   ProjectPresentationLayoutsProfile? layouts,
   ProjectDialoguePresentationProfile? dialogue,
   Widget Function(String speaker)? portraitBuilder,
+  bool reducedMotion = false,
 }) {
   var theme = typography == null
-      ? PokeMapPlayerTheme.dark()
+      ? PokeMapPlayerTheme.dark(reducedMotion: reducedMotion)
       : PokeMapPlayerTheme.withTypography(
-          PokeMapPlayerTheme.dark(),
+          PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
           typography,
         );
   if (windows != null) {
@@ -289,6 +371,28 @@ DialoguePresentationSnapshot _choiceSnapshot() {
         label: 'Prendre Bulbizarre',
         selected: false,
       ),
+    ],
+  );
+}
+
+DialoguePresentationSnapshot _choiceSnapshotForCount(int count) {
+  return DialoguePresentationSnapshot(
+    revision: 18,
+    mode: DialoguePresentationMode.choices,
+    nodeTitle: 'many-choices',
+    speaker: null,
+    text: '',
+    fullText: '',
+    isCurrentLineFullyRevealed: true,
+    isLastContent: false,
+    choices: <DialoguePresentationChoice>[
+      for (var index = 0; index < count; index++)
+        DialoguePresentationChoice(
+          index: index,
+          label: 'Option ${index + 1} avec un libellé volontairement très long',
+          selected: index == 0,
+          enabled: index != 1,
+        ),
     ],
   );
 }

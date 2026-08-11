@@ -248,6 +248,14 @@ void main() {
           nameplateSurfaceColor: '#334455',
           nameplateBorderColor: '#778899',
           nameplateTextColor: '#FFFFFF',
+          choiceSpacing: 14,
+          choiceShape: ProjectDialogueChoiceShape.cutCorner,
+          choiceDisabledOpacity: .35,
+          choiceSelectedColor: '#FFAA00',
+          progressIndicator: ProjectDialogueProgressIndicator.dots,
+          progressIndicatorColor: '#00FFAA',
+          portraitTransition: ProjectDialoguePortraitTransition.slide,
+          portraitTransitionMilliseconds: 320,
         ),
       );
       final snapshot = _snapshot();
@@ -292,6 +300,14 @@ void main() {
       expect(
         (draft.preview['profile']! as Map)['dialogue'],
         containsPair('nameplateStyle', 'floating'),
+      );
+      expect(
+        (draft.preview['profile']! as Map)['dialogue'],
+        containsPair('choiceShape', 'cutCorner'),
+      );
+      expect(
+        (draft.preview['profile']! as Map)['dialogue'],
+        containsPair('portraitTransition', 'slide'),
       );
     });
 

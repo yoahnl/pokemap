@@ -15,6 +15,12 @@ enum ProjectDialoguePortraitShape { circle, rounded, square, cutCorner }
 
 enum ProjectDialogueNameplateStyle { inline, badge, floating }
 
+enum ProjectDialogueChoiceShape { rounded, pill, rectangle, cutCorner }
+
+enum ProjectDialogueProgressIndicator { chevron, arrow, dots, none }
+
+enum ProjectDialoguePortraitTransition { none, fade, scale, slide }
+
 const double projectDialogueMinWidthFactor = .4;
 const double projectDialogueMaxWidthFactor = .96;
 const double projectDialogueMinMargin = 0;
@@ -33,6 +39,12 @@ const double projectDialogueMinPortraitFrameWidth = 0;
 const double projectDialogueMaxPortraitFrameWidth = 8;
 const double projectDialogueMinNameplateBorderWidth = 0;
 const double projectDialogueMaxNameplateBorderWidth = 6;
+const double projectDialogueMinChoiceSpacing = 4;
+const double projectDialogueMaxChoiceSpacing = 24;
+const double projectDialogueMinChoiceDisabledOpacity = .25;
+const double projectDialogueMaxChoiceDisabledOpacity = 1;
+const int projectDialogueMinPortraitTransitionMilliseconds = 0;
+const int projectDialogueMaxPortraitTransitionMilliseconds = 800;
 
 @Freezed(fromJson: true, toJson: true)
 abstract class ProjectDialoguePresentationProfile
@@ -64,6 +76,17 @@ abstract class ProjectDialoguePresentationProfile
     @JsonKey(includeIfNull: false) String? nameplateSurfaceColor,
     @JsonKey(includeIfNull: false) String? nameplateBorderColor,
     @JsonKey(includeIfNull: false) String? nameplateTextColor,
+    @Default(8) double choiceSpacing,
+    @Default(ProjectDialogueChoiceShape.rounded)
+    ProjectDialogueChoiceShape choiceShape,
+    @Default(.5) double choiceDisabledOpacity,
+    @JsonKey(includeIfNull: false) String? choiceSelectedColor,
+    @Default(ProjectDialogueProgressIndicator.chevron)
+    ProjectDialogueProgressIndicator progressIndicator,
+    @JsonKey(includeIfNull: false) String? progressIndicatorColor,
+    @Default(ProjectDialoguePortraitTransition.fade)
+    ProjectDialoguePortraitTransition portraitTransition,
+    @Default(180) int portraitTransitionMilliseconds,
   }) = _ProjectDialoguePresentationProfile;
 
   factory ProjectDialoguePresentationProfile.fromJson(

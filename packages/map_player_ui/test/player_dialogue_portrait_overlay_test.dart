@@ -244,6 +244,78 @@ void main() {
     expect(find.bySemanticsLabel('Portrait de Élia'), findsOneWidget);
   });
 
+  testWidgets('reduced motion swaps portrait state without a transition', (
+    tester,
+  ) async {
+    final first = (await tester.runAsync(
+      () => _portrait('elia-first', assetId: 'portrait.elia.first'),
+    ))!;
+    final second = (await tester.runAsync(
+      () => _portrait('elia-second', assetId: 'portrait.elia.second'),
+    ))!;
+    addTearDown(
+      () => File(first.absoluteFilePath).parent.delete(recursive: true),
+    );
+    addTearDown(
+      () => File(second.absoluteFilePath).parent.delete(recursive: true),
+    );
+    const dialogue = ProjectDialoguePresentationProfile(
+      portraitTransition: ProjectDialoguePortraitTransition.slide,
+      portraitTransitionMilliseconds: 600,
+    );
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(portrait: first),
+      dialogue: dialogue,
+      theme: PokeMapPlayerTheme.dark(reducedMotion: true),
+    );
+
+    final reduced = tester.widget<AnimatedSwitcher>(
+      find.byKey(
+        const ValueKey<String>('dialogue-portrait-transition-none'),
+      ),
+    );
+    expect(reduced.duration, Duration.zero);
+
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(portrait: second),
+      dialogue: dialogue,
+      theme: PokeMapPlayerTheme.dark(reducedMotion: true),
+    );
+    expect(
+      tester
+          .widget<Image>(
+            find.byKey(
+              const ValueKey<String>('dialogue-portrait-portrait.elia.second'),
+            ),
+          )
+          .image,
+      isA<FileImage>().having(
+        (image) => image.file.path,
+        'path',
+        second.absoluteFilePath,
+      ),
+    );
+
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(portrait: second),
+      dialogue: dialogue,
+    );
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(
+      tester
+          .widget<AnimatedSwitcher>(
+            find.byKey(
+              const ValueKey<String>('dialogue-portrait-transition-slide'),
+            ),
+          )
+          .duration,
+      const Duration(milliseconds: 600),
+    );
+  });
+
   for (final theme in <({String name, ThemeData theme})>[
     (name: 'light', theme: PokeMapPlayerTheme.light()),
     (name: 'dark', theme: PokeMapPlayerTheme.dark()),
@@ -356,7 +428,10 @@ DialoguePresentationSnapshot _choiceSnapshot({
   );
 }
 
-Future<ResolvedDialoguePortrait> _portrait(String suffix) async {
+Future<ResolvedDialoguePortrait> _portrait(
+  String suffix, {
+  String assetId = 'portrait.elia.surprised',
+}) async {
   final directory = await Directory.systemTemp.createTemp('player_portrait_');
   final file = File('${directory.path}/$suffix.png');
   await file.writeAsBytes(
@@ -369,7 +444,7 @@ Future<ResolvedDialoguePortrait> _portrait(String suffix) async {
     characterName: 'Élia',
     portraitStateId: 'surprised',
     portraitStateName: 'Surprise',
-    assetId: 'portrait.elia.surprised',
+    assetId: assetId,
     absoluteFilePath: file.path,
     fitMode: CharacterPortraitFitMode.cover,
   );

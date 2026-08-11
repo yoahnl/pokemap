@@ -27,6 +27,14 @@ void main() {
           nameplateSurfaceColor: '#334455',
           nameplateBorderColor: '#778899',
           nameplateTextColor: '#FFFFFF',
+          choiceSpacing: 14,
+          choiceShape: ProjectDialogueChoiceShape.cutCorner,
+          choiceDisabledOpacity: .35,
+          choiceSelectedColor: '#FFAA00',
+          progressIndicator: ProjectDialogueProgressIndicator.dots,
+          progressIndicatorColor: '#00FFAA',
+          portraitTransition: ProjectDialoguePortraitTransition.slide,
+          portraitTransitionMilliseconds: 320,
         ),
       );
 
@@ -79,6 +87,11 @@ void main() {
           nameplateSurfaceColor: '#FFFFFF80',
           nameplateBorderColor: 'black',
           nameplateTextColor: '#FFF',
+          choiceSpacing: 40,
+          choiceDisabledOpacity: .1,
+          choiceSelectedColor: 'orange',
+          progressIndicatorColor: '#FFF',
+          portraitTransitionMilliseconds: 1200,
         ),
       );
 
@@ -96,6 +109,9 @@ void main() {
           'dialoguePortraitSizeOutOfRange',
           'dialoguePortraitFrameWidthOutOfRange',
           'dialogueNameplateBorderWidthOutOfRange',
+          'dialogueChoiceSpacingOutOfRange',
+          'dialogueChoiceDisabledOpacityOutOfRange',
+          'dialoguePortraitTransitionDurationOutOfRange',
           'dialogueColorInvalid',
         }),
       );

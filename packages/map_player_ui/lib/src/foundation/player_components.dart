@@ -299,7 +299,12 @@ class PlayerActionButton extends StatefulWidget {
     this.selected = false,
     this.shortcutLabel,
     this.minimumHeight = 48,
-  }) : assert(minimumHeight >= 48);
+    this.shape,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.disabledOpacity = 1,
+  })  : assert(minimumHeight >= 48),
+        assert(disabledOpacity >= 0 && disabledOpacity <= 1);
 
   final String label;
   final IconData icon;
@@ -315,6 +320,10 @@ class PlayerActionButton extends StatefulWidget {
   final bool selected;
   final String? shortcutLabel;
   final double minimumHeight;
+  final OutlinedBorder? shape;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  final double disabledOpacity;
 
   @override
   State<PlayerActionButton> createState() => _PlayerActionButtonState();
@@ -390,7 +399,9 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
             autofocus: widget.autofocus,
             style: TextButton.styleFrom(
               alignment: Alignment.centerLeft,
-              foregroundColor: colors.textSecondary,
+              foregroundColor: widget.foregroundColor ?? colors.textSecondary,
+              backgroundColor: widget.backgroundColor,
+              shape: widget.shape,
             ),
             child: buttonChild,
           )
@@ -399,12 +410,22 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
                 onPressed: widget.onPressed,
                 focusNode: _focusNode,
                 autofocus: widget.autofocus,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: widget.foregroundColor,
+                  backgroundColor: widget.backgroundColor,
+                  shape: widget.shape,
+                ),
                 child: buttonChild,
               )
             : FilledButton(
                 onPressed: widget.onPressed,
                 focusNode: _focusNode,
                 autofocus: widget.autofocus,
+                style: FilledButton.styleFrom(
+                  foregroundColor: widget.foregroundColor,
+                  backgroundColor: widget.backgroundColor,
+                  shape: widget.shape,
+                ),
                 child: buttonChild,
               );
     return Semantics(
@@ -430,7 +451,10 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
               width: _focused && widget.showFocusHighlight ? 3 : 1,
             ),
           ),
-          child: SizedBox(width: double.infinity, child: button),
+          child: Opacity(
+            opacity: enabled ? 1 : widget.disabledOpacity,
+            child: SizedBox(width: double.infinity, child: button),
+          ),
         ),
       ),
     );

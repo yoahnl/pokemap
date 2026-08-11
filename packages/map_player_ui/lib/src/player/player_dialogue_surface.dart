@@ -16,11 +16,13 @@ final class PlayerDialogueChoiceViewData {
     required this.index,
     required this.label,
     required this.selected,
+    this.enabled = true,
   });
 
   final int index;
   final String label;
   final bool selected;
+  final bool enabled;
 }
 
 @immutable
@@ -345,6 +347,7 @@ class _DialogueLineWithAuthoredPortrait extends StatelessWidget {
           final portrait = this.portrait;
           if (portrait == null) return text;
           final framedPortrait = _DialoguePortraitFrame(
+            key: portrait.key,
             dimension: portraitDimension,
             shape: dialogue.portraitShape,
             borderWidth: dialogue.portraitFrameWidth,
@@ -354,12 +357,43 @@ class _DialogueLineWithAuthoredPortrait extends StatelessWidget {
                 context.playerColors.outline,
             child: portrait,
           );
+          final motionDisabled = context.playerMotion.fast == Duration.zero;
+          final transition = motionDisabled
+              ? ProjectDialoguePortraitTransition.none
+              : dialogue.portraitTransition;
+          final transitionedPortrait = AnimatedSwitcher(
+            key: ValueKey<String>(
+              'dialogue-portrait-transition-${transition.name}',
+            ),
+            duration: transition == ProjectDialoguePortraitTransition.none
+                ? Duration.zero
+                : Duration(
+                    milliseconds: dialogue.portraitTransitionMilliseconds,
+                  ),
+            transitionBuilder: (child, animation) => switch (transition) {
+              ProjectDialoguePortraitTransition.none => child,
+              ProjectDialoguePortraitTransition.fade =>
+                FadeTransition(opacity: animation, child: child),
+              ProjectDialoguePortraitTransition.scale => ScaleTransition(
+                  scale: Tween<double>(begin: .9, end: 1).animate(animation),
+                  child: child,
+                ),
+              ProjectDialoguePortraitTransition.slide => SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(.08, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+            },
+            child: framedPortrait,
+          );
           final semanticPortrait = data.speaker == null || showSpeakerName
-              ? ExcludeSemantics(child: framedPortrait)
+              ? ExcludeSemantics(child: transitionedPortrait)
               : Semantics(
                   image: true,
                   label: 'Portrait de ${data.speaker}',
-                  child: framedPortrait,
+                  child: transitionedPortrait,
                 );
           final portraitKey = ValueKey<String>(
             'dialogue-portrait-${dialogue.portraitSide.name}',
@@ -401,6 +435,7 @@ class _DialogueLineWithAuthoredPortrait extends StatelessWidget {
 
 class _DialoguePortraitFrame extends StatelessWidget {
   const _DialoguePortraitFrame({
+    super.key,
     required this.dimension,
     required this.shape,
     required this.borderWidth,
@@ -579,15 +614,34 @@ class _DialogueAdvanceLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dialogue = context.playerDialogueProfile;
+    final kind = data.isCurrentLineFullyRevealed
+        ? dialogue?.progressIndicator ??
+            ProjectDialogueProgressIndicator.chevron
+        : ProjectDialogueProgressIndicator.arrow;
+    final color = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+      dialogue?.progressIndicatorColor,
+    );
+    final icon = switch (kind) {
+      ProjectDialogueProgressIndicator.chevron => Icons.navigate_next_rounded,
+      ProjectDialogueProgressIndicator.arrow => Icons.arrow_forward_rounded,
+      ProjectDialogueProgressIndicator.dots => Icons.more_horiz_rounded,
+      ProjectDialogueProgressIndicator.none => null,
+    };
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: <Widget>[
-        Icon(
-          data.isCurrentLineFullyRevealed
-              ? Icons.navigate_next_rounded
-              : Icons.fast_forward_rounded,
-        ),
-        const SizedBox(width: PlayerSpacing.xxs),
+        if (icon != null) ...<Widget>[
+          Icon(
+            icon,
+            key: ValueKey<String>('dialogue-progress-indicator-${kind.name}'),
+            color: color,
+          ),
+          const SizedBox(width: PlayerSpacing.xxs),
+        ] else
+          const SizedBox.shrink(
+            key: ValueKey<String>('dialogue-progress-indicator-none'),
+          ),
         Text(
           !data.isCurrentLineFullyRevealed
               ? context.playerL10n.showFullText
@@ -611,6 +665,26 @@ class _DialogueChoiceContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dialogue = context.playerDialogueProfile;
+    final spacing = dialogue?.choiceSpacing ?? PlayerSpacing.xs;
+    final selectedColor = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+      dialogue?.choiceSelectedColor,
+    );
+    final selectedForeground = selectedColor == null
+        ? null
+        : ThemeData.estimateBrightnessForColor(selectedColor) == Brightness.dark
+            ? context.playerColors.onPrimary
+            : context.playerColors.textPrimary;
+    final shape = switch (dialogue?.choiceShape) {
+      ProjectDialogueChoiceShape.pill => const StadiumBorder(),
+      ProjectDialogueChoiceShape.rectangle => const RoundedRectangleBorder(),
+      ProjectDialogueChoiceShape.cutCorner => const BeveledRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(10)),
+        ),
+      _ => const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+    };
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -629,16 +703,27 @@ class _DialogueChoiceContent extends StatelessWidget {
                   ? Icons.radio_button_checked_rounded
                   : Icons.radio_button_unchecked_rounded,
               autofocus: choice.selected,
+              selected: choice.selected,
               secondary: !choice.selected,
-              onPressed: () => onAction(
-                PlayerDialogueSelectChoiceAction(
-                  snapshotRevision: data.revision,
-                  choiceIndex: choice.index,
-                ),
-              ),
+              shape: shape,
+              backgroundColor: choice.selected ? selectedColor : null,
+              foregroundColor: choice.selected ? selectedForeground : null,
+              disabledOpacity: dialogue?.choiceDisabledOpacity ?? 1,
+              onPressed: choice.enabled
+                  ? () => onAction(
+                        PlayerDialogueSelectChoiceAction(
+                          snapshotRevision: data.revision,
+                          choiceIndex: choice.index,
+                        ),
+                      )
+                  : null,
             ),
             if (choice != data.choices.last)
-              const SizedBox(height: PlayerSpacing.xs),
+              SizedBox(
+                key:
+                    ValueKey<String>('dialogue-choice-spacing-${choice.index}'),
+                height: spacing,
+              ),
           ],
         ],
       ),
