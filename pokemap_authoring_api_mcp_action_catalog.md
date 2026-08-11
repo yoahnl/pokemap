@@ -621,6 +621,9 @@ asset.thumbnail
 
 Les données binaires passent par des handles d’artefacts avec digest, MIME,
 taille et expiration ; elles ne sont pas injectées comme de gros blobs JSON.
+`asset.delete` peut recevoir la liste exacte `acknowledgedUsages` pour confirmer
+des usages déclaratifs périmés ; toute référence réellement dérivée du projet ou
+d'une map continue de bloquer la suppression.
 
 ### 9.2 Images et atlas
 
@@ -1041,6 +1044,7 @@ smart_tile.preset.draft.delete
 smart_tile.preset.draft.upsert
 smart_tile.preset.publish
 tileset.tiled.import
+tileset.tiled.wang_bundle.delete
 ```
 
 Les champs `cell`, `edge`, `corner` et `mixed` sont peignables par geste
@@ -1067,6 +1071,10 @@ scène, son tileset atlas régulier et les Wang Sets sélectionnés vers le cata
 Smart Tiles natif. Un clic, y compris depuis Smart Tiles Studio, produit un seul
 plan et un seul reçu récupérable. Tiled n'est ni lancé ni requis au runtime ; les
 usages PokeMap des Wang Sets restent des choix explicites de l'auteur.
+
+`tileset.tiled.wang_bundle.delete` supprime atomiquement un import Wang complet :
+asset, blob, tileset, atlas, matériaux, animations et presets. La suppression est
+refusée tant qu'une couche de carte référence encore l'un de ses presets.
 
 `smart_tile.layer.reconstruct` analyse une couche visuelle littérale à partir
 d'un preset publié, puis propose une couche Smart Tile native masquée sans

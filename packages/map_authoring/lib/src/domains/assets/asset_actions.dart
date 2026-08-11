@@ -198,23 +198,27 @@ final class AssetActions {
           logicalPath: parameters.string('logicalPath'),
         );
       case 'asset.delete':
-        parameters.allow(const {'assetId'});
+        parameters.allow(const {'assetId', 'acknowledgedUsages'});
         final current = state.catalog.require(parameters.string('assetId'));
         final derivedUsages = deriveAssetUsages(
           manifest: context.snapshot.manifest,
           maps: context.snapshot.maps,
           asset: current,
         );
-        final before = current.copyWith(
-          usages: {...current.usages, ...derivedUsages},
-        );
-        final catalogWithVerifiedUsages = _replace(state.catalog, before);
+        if (derivedUsages.isNotEmpty) {
+          throw AssetActionException(
+            'asset.references_blocking',
+            'The asset is still referenced and cannot be deleted safely.',
+            details: {'assetId': current.id, 'usages': derivedUsages},
+          );
+        }
         result = delete(
-          catalogWithVerifiedUsages,
-          assetId: before.id,
+          state.catalog,
+          assetId: current.id,
           blobBytes: context.snapshot.findResourceBytes(
-            assetBlobResourceIdentity(before.artifact.digest),
+            assetBlobResourceIdentity(current.artifact.digest),
           ),
+          acknowledgedUsages: parameters.strings('acknowledgedUsages'),
         );
       default:
         throw AssetActionException(
@@ -290,9 +294,12 @@ final class AssetActions {
     AssetCatalog catalog, {
     required String assetId,
     List<int>? blobBytes,
+    Iterable<String> acknowledgedUsages = const [],
   }) {
     final before = catalog.require(assetId);
-    if (before.usages.isNotEmpty) {
+    final acknowledged = acknowledgedUsages.toSet();
+    if (before.usages.toSet().difference(acknowledged).isNotEmpty ||
+        acknowledged.difference(before.usages.toSet()).isNotEmpty) {
       throw AssetActionException(
         'asset.references_blocking',
         'The asset is still referenced and cannot be deleted safely.',

@@ -39,6 +39,20 @@ final class TiledTilesetImportActions {
           'smartTilePreset',
         ],
       ),
+      visualLibraryDescriptor(
+        'tileset.tiled.wang_bundle.delete',
+        'Delete one unreferenced imported Tiled Wang bundle',
+        risk: AuthoringRiskLevel.high,
+        resourceKinds: const <String>[
+          'project',
+          'asset',
+          'tileset',
+          'smartTileAtlas',
+          'smartTileMaterial',
+          'smartTileAnimation',
+          'smartTilePreset',
+        ],
+      ),
     ],
   );
 
@@ -47,19 +61,33 @@ final class TiledTilesetImportActions {
   ) async {
     final parameters = _TiledTilesetImportParameters(
       context.request.parameters,
-    )..allow(const <String>{
-        'artifactHandle',
-        'imageArtifacts',
-        'assetId',
-        'logicalPath',
-        'tilesetId',
-        'displayName',
-        'importId',
-        'tsx',
-        'selections',
-        'tags',
-        'usages',
-      });
+    );
+    if (context.request.actionId == 'tileset.tiled.wang_bundle.delete') {
+      parameters.allow(const <String>{'importId'});
+      return const TiledTilesetImportProjector().deleteWangBundle(
+        snapshot: context.snapshot,
+        importId: parameters.string('importId'),
+      );
+    }
+    if (context.request.actionId != 'tileset.tiled.import') {
+      throw semanticFailure(
+        'tileset.tiled.action_unsupported',
+        'The requested Tiled tileset action is unsupported.',
+      );
+    }
+    parameters.allow(const <String>{
+      'artifactHandle',
+      'imageArtifacts',
+      'assetId',
+      'logicalPath',
+      'tilesetId',
+      'displayName',
+      'importId',
+      'tsx',
+      'selections',
+      'tags',
+      'usages',
+    });
     final document = _parseTileset(parameters.text('tsx'));
     return switch (document.layout) {
       TiledRegularAtlasLayout() => _buildRegular(

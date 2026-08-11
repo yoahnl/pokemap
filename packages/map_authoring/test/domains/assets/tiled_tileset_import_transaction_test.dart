@@ -101,6 +101,10 @@ void main() {
         actions.map((action) => action['id']),
         contains('tileset.tiled.import'),
       );
+      expect(
+        actions.map((action) => action['id']),
+        contains('tileset.tiled.wang_bundle.delete'),
+      );
 
       final request = await setup.request();
       final planned = await setup.mutations.plan(setup.projectHandle, request);
@@ -191,6 +195,180 @@ void main() {
             'smart_tile.tiled_wang.id_conflict',
           ),
         ),
+      );
+    });
+
+    test('deletes one imported Wang bundle atomically', () async {
+      final setup = await _TiledImportSetup.create();
+      addTearDown(setup.dispose);
+
+      final importRequest = await setup.request();
+      final imported = await setup.mutations.plan(
+        setup.projectHandle,
+        importRequest,
+      );
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: imported['planId']! as String,
+        operationId: 'operation-import-before-delete',
+      );
+
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      final projectBeforeDelete =
+          await File('${setup.root.path}/project.json').readAsBytes();
+      final assetCatalogBeforeDelete =
+          await File('${setup.root.path}/$assetCatalogStorageKey')
+              .readAsBytes();
+      final blobPath =
+          '${setup.root.path}/${assetBlobStorageKey(setup.artifact)}';
+      final blobBeforeDelete = await File(blobPath).readAsBytes();
+      final deleteRequest = AuthoringRequest(
+        requestId: 'request-delete-wang-bundle',
+        actionId: 'tileset.tiled.wang_bundle.delete',
+        actionVersion: 1,
+        workspaceHandle: setup.workspaceHandle.value,
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'delete-wang-bundle',
+        parameters: const <String, Object?>{'importId': 'road'},
+      );
+      final planned = await setup.mutations.plan(
+        setup.projectHandle,
+        deleteRequest,
+      );
+      final preview = Map<String, Object?>.from(
+        Map<String, Object?>.from(planned['plan']! as Map)['preview']! as Map,
+      );
+      expect(preview['operation'], 'tileset.tiled.wang_bundle.delete');
+      expect(preview['presetCount'], 1);
+      expect(preview['materialCount'], 1);
+      expect(preview['animationCount'], 1);
+      expect(preview['blobDeleted'], isTrue);
+
+      final confirmation = await setup.mutations.confirm(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+      );
+      final deleted = await setup.mutations.apply(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+        operationId: 'operation-delete-wang-bundle',
+        confirmationToken: confirmation['confirmationToken']! as String,
+      );
+
+      final reopened = await setup.snapshots.load(setup.projectHandle);
+      expect(reopened.manifest.tilesets, isEmpty);
+      expect(reopened.manifest.smartTileCatalog.atlases, isEmpty);
+      expect(reopened.manifest.smartTileCatalog.materials, isEmpty);
+      expect(reopened.manifest.smartTileCatalog.animations, isEmpty);
+      expect(reopened.manifest.smartTileCatalog.presets, isEmpty);
+      final catalog = AssetCatalog.fromJson(
+        jsonDecode(
+          await File('${setup.root.path}/$assetCatalogStorageKey')
+              .readAsString(),
+        ) as Map<String, dynamic>,
+      );
+      expect(catalog.records, isEmpty);
+      expect(
+        await File(blobPath).exists(),
+        isFalse,
+      );
+
+      final receipt = Map<String, Object?>.from(
+          deleted['receipt']! as Map<String, Object?>);
+      await setup.mutations.undo(
+        setup.projectHandle,
+        entryId: receipt['receiptId']! as String,
+        idempotencyKey: 'undo-delete-wang-bundle',
+      );
+      expect(
+        await File('${setup.root.path}/project.json').readAsBytes(),
+        projectBeforeDelete,
+      );
+      expect(
+        await File('${setup.root.path}/$assetCatalogStorageKey').readAsBytes(),
+        assetCatalogBeforeDelete,
+      );
+      expect(await File(blobPath).readAsBytes(), blobBeforeDelete);
+    });
+
+    test('refuses to delete a Wang bundle referenced by a map layer', () async {
+      final setup = await _TiledImportSetup.create();
+      addTearDown(setup.dispose);
+
+      final imported = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(),
+      );
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: imported['planId']! as String,
+        operationId: 'operation-import-before-referenced-delete',
+      );
+      final importedSnapshot = await setup.snapshots.load(setup.projectHandle);
+      final manifest = importedSnapshot.manifest.copyWith(
+        maps: const <ProjectMapEntry>[
+          ProjectMapEntry(
+            id: 'fixture',
+            name: 'Fixture',
+            relativePath: 'maps/fixture.json',
+          ),
+        ],
+      );
+      const map = MapData(
+        id: 'fixture',
+        name: 'Fixture',
+        version: ProjectVersion.v6,
+        size: GridSize(width: 1, height: 1),
+        layers: <MapLayer>[
+          SmartTileLayer(
+            id: 'road-layer',
+            name: 'Road',
+            presetId: 'road-w0-preset',
+            usage: SmartTileUsage.path,
+            materialPalette: <String>['', 'road-w0-material'],
+            field: SmartTileField.cell(semanticCells: <int>[1]),
+          ),
+        ],
+      );
+      await File('${setup.root.path}/project.json').writeAsBytes(
+        _encode(manifest.toJson()),
+        flush: true,
+      );
+      await Directory('${setup.root.path}/maps').create();
+      await File('${setup.root.path}/maps/fixture.json').writeAsBytes(
+        _encode(map.toJson()),
+        flush: true,
+      );
+      final referencedSnapshot =
+          await setup.snapshots.load(setup.projectHandle);
+      final request = AuthoringRequest(
+        requestId: 'request-delete-referenced-wang-bundle',
+        actionId: 'tileset.tiled.wang_bundle.delete',
+        actionVersion: 1,
+        workspaceHandle: setup.workspaceHandle.value,
+        expectedRevision: referencedSnapshot.revision,
+        idempotencyKey: 'delete-referenced-wang-bundle',
+        parameters: const <String, Object?>{'importId': 'road'},
+      );
+
+      await expectLater(
+        () => setup.mutations.plan(setup.projectHandle, request),
+        throwsA(
+          isA<VisualLibraryException>().having(
+            (error) => error.code,
+            'code',
+            'tileset.tiled.bundle_references_blocking',
+          ),
+        ),
+      );
+
+      final reopened = await setup.snapshots.load(setup.projectHandle);
+      expect(reopened.manifest.tilesets.single.id, 'road');
+      expect(
+          reopened.manifest.smartTileCatalog.atlases.single.id, 'road-atlas');
+      expect(
+        reopened.manifest.smartTileCatalog.presets.single.id,
+        'road-w0-preset',
       );
     });
 

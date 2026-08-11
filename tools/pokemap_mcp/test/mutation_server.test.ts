@@ -2718,6 +2718,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       "smart_tile.preset.publish",
       "gameplay_zone.smart_tile.sync",
       "tileset.tiled.import",
+      "tileset.tiled.wang_bundle.delete",
     ]) {
       assert.ok(actionIds.includes(actionId), actionId);
     }

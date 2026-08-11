@@ -242,6 +242,247 @@ final class TiledTilesetImportProjector {
     );
   }
 
+  AuthoringMutationDraft deleteWangBundle({
+    required ProjectSnapshot snapshot,
+    required String importId,
+  }) {
+    final normalizedImportId = importId.trim();
+    if (normalizedImportId.isEmpty || normalizedImportId != importId) {
+      throw VisualLibraryException(
+        'tileset.tiled.bundle_id_invalid',
+        'The Tiled Wang bundle identity is invalid.',
+      );
+    }
+    final manifest = snapshot.manifest;
+    final catalog = manifest.smartTileCatalog;
+    final atlasId = '$importId-atlas';
+    final atlas =
+        catalog.atlases.where((item) => item.id == atlasId).firstOrNull;
+    if (atlas == null) {
+      throw VisualLibraryException(
+        'tileset.tiled.bundle_unknown',
+        'The imported Tiled Wang bundle is unknown.',
+        details: <String, Object?>{'importId': importId},
+      );
+    }
+    final tileset = manifest.tilesets
+        .where((item) => item.id == atlas.tilesetId)
+        .firstOrNull;
+    final source = tileset?.source;
+    if (tileset == null || source is! ProjectRegularAtlasTilesetSource) {
+      throw VisualLibraryException(
+        'tileset.tiled.bundle_invalid',
+        'The imported Tiled Wang bundle no longer owns a regular tileset.',
+        details: <String, Object?>{'importId': importId},
+      );
+    }
+    final presetPrefix = '$importId-w';
+    final animationPrefix = '$importId-animation-';
+    final presetIds = catalog.presets
+        .where((item) => item.id.startsWith(presetPrefix))
+        .map((item) => item.id)
+        .toSet();
+    final materialIds = catalog.materials
+        .where((item) => item.id.startsWith(presetPrefix))
+        .map((item) => item.id)
+        .toSet();
+    final animationIds = catalog.animations
+        .where((item) => item.id.startsWith(animationPrefix))
+        .map((item) => item.id)
+        .toSet();
+    if (presetIds.isEmpty || materialIds.isEmpty) {
+      throw VisualLibraryException(
+        'tileset.tiled.bundle_invalid',
+        'The imported Tiled Wang bundle is structurally incomplete.',
+        details: <String, Object?>{'importId': importId},
+      );
+    }
+    final referencedLayers = <String>[
+      for (final map in snapshot.maps)
+        for (final layer in map.layers.whereType<SmartTileLayer>())
+          if (presetIds.contains(layer.presetId)) '${map.id}:${layer.id}',
+    ];
+    if (referencedLayers.isNotEmpty) {
+      throw VisualLibraryException(
+        'tileset.tiled.bundle_references_blocking',
+        'The imported Tiled Wang bundle is still referenced by map layers.',
+        details: <String, Object?>{
+          'importId': importId,
+          'references': referencedLayers,
+        },
+      );
+    }
+    final projectedCatalog = ProjectSmartTileCatalog(
+      categories: catalog.categories,
+      atlases: catalog.atlases
+          .where((item) => item.id != atlasId)
+          .toList(growable: false),
+      materials: catalog.materials
+          .where((item) => !materialIds.contains(item.id))
+          .toList(growable: false),
+      animations: catalog.animations
+          .where((item) => !animationIds.contains(item.id))
+          .toList(growable: false),
+      presets: catalog.presets
+          .where((item) => !presetIds.contains(item.id))
+          .toList(growable: false),
+      patterns: catalog.patterns,
+      drafts: catalog.drafts,
+    );
+    final withoutBundle = manifest.copyWith(
+      smartTileCatalog: projectedCatalog,
+    );
+    final projectedManifest = const TilesetActions().delete(
+      withoutBundle,
+      maps: snapshot.maps,
+      tilesetId: tileset.id,
+    );
+    final catalogBeforeBytes =
+        snapshot.findResourceBytes(assetCatalogResourceIdentity);
+    final assetCatalog = _decodeAssetCatalog(catalogBeforeBytes);
+    final asset = assetCatalog.require(source.assetId);
+    final derivedUsages = deriveAssetUsages(
+      manifest: projectedManifest,
+      maps: snapshot.maps,
+      asset: asset,
+    );
+    if (derivedUsages.isNotEmpty) {
+      throw VisualLibraryException(
+        'tileset.tiled.bundle_references_blocking',
+        'The imported Tiled Wang bundle asset is still referenced.',
+        details: <String, Object?>{
+          'importId': importId,
+          'references': derivedUsages,
+        },
+      );
+    }
+    final remainingAssets = assetCatalog.records
+        .where((item) => item.id != asset.id)
+        .toList(growable: false);
+    final projectedAssets = AssetCatalog(records: remainingAssets);
+    final deletesBlob = !remainingAssets.any(
+      (item) => item.artifact.digest == asset.artifact.digest,
+    );
+    final blobBytes = snapshot.findResourceBytes(
+      assetBlobResourceIdentity(asset.artifact.digest),
+    );
+    if (deletesBlob && blobBytes == null) {
+      throw AssetActionException(
+        'asset.rollback_blob_required',
+        'Deleting the last bundle asset requires its exact blob pre-image.',
+        details: <String, Object?>{'assetId': asset.id},
+      );
+    }
+    try {
+      ProjectValidator.validate(projectedManifest);
+    } on Object catch (error) {
+      throw VisualLibraryException(
+        'visual.projected_state_invalid',
+        'Deleting the Tiled Wang bundle would invalidate the project.',
+        details: <String, Object?>{
+          'validationType': error.runtimeType.toString(),
+        },
+      );
+    }
+    preflightNativeSmartTileMutation(
+      snapshot: snapshot,
+      projectedManifest: projectedManifest,
+    );
+    final assetCatalogResource = AuthoringResourceRef(
+      kind: 'assetCatalog',
+      id: 'project',
+      revision: snapshot.resourceFingerprints[assetCatalogResourceIdentity],
+    );
+    final projectResource = AuthoringResourceRef(
+      kind: 'project',
+      id: 'project',
+      revision: snapshot.resourceFingerprints['project'],
+    );
+    final changes = <AuthoringResourceChange>[
+      AuthoringResourceChange(
+        resource: assetCatalogResource,
+        storageKey: assetCatalogStorageKey,
+        beforeBytes: catalogBeforeBytes,
+        afterBytes: _encodeAssetCatalog(projectedAssets),
+      ),
+      if (deletesBlob)
+        AuthoringResourceChange(
+          resource: AuthoringResourceRef(
+            kind: 'assetBlob',
+            id: asset.artifact.digest,
+            revision: snapshot.resourceFingerprints[
+                assetBlobResourceIdentity(asset.artifact.digest)],
+          ),
+          storageKey: assetBlobStorageKey(asset.artifact),
+          beforeBytes: blobBytes,
+          afterBytes: null,
+        ),
+      AuthoringResourceChange(
+        resource: projectResource,
+        storageKey: 'project.json',
+        beforeBytes: snapshot.resourceBytes('project'),
+        afterBytes: _encodeProjectWithSmartTileCatalog(
+          snapshot,
+          projectedManifest,
+        ),
+      ),
+    ];
+    final diff = <AuthoringDiffEntry>[
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.remove,
+        resource: assetCatalogResource,
+        path: '/records/${asset.id}',
+        before: asset.toJson(),
+      ),
+      if (deletesBlob)
+        AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.remove,
+          resource: changes[1].resource,
+          path: '/',
+          before: asset.artifact.toJson(),
+        ),
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.remove,
+        resource: projectResource,
+        path: '/smartTileBundles/$importId',
+        before: <String, Object?>{
+          'atlasId': atlasId,
+          'tilesetId': tileset.id,
+          'presetIds': presetIds.toList()..sort(),
+          'materialIds': materialIds.toList()..sort(),
+          'animationIds': animationIds.toList()..sort(),
+        },
+      ),
+    ];
+    return AuthoringMutationDraft(
+      changeSet: AuthoringChangeSet(
+        changes: changes,
+        diff: AuthoringDiff(diff),
+      ),
+      preview: <String, Object?>{
+        'operation': 'tileset.tiled.wang_bundle.delete',
+        'importId': importId,
+        'assetId': asset.id,
+        'tilesetId': tileset.id,
+        'atlasId': atlasId,
+        'presetCount': presetIds.length,
+        'materialCount': materialIds.length,
+        'animationCount': animationIds.length,
+        'blobDeleted': deletesBlob,
+      },
+      referenceImpact: <String, Object?>{
+        'removedResourceIds': <String>[
+          asset.id,
+          tileset.id,
+          atlasId,
+          ...presetIds,
+          ...materialIds,
+          ...animationIds,
+        ],
+      },
+    );
+  }
+
   /// Projects generated image-collection pages, their asset records and the
   /// canonical tileset through one recoverable multi-resource transaction.
   AuthoringMutationDraft projectImageCollection({
@@ -352,9 +593,8 @@ final class TiledTilesetImportProjector {
         ),
     ];
     final emittedDigests = <String>{};
-    final existingDigests = catalogBefore.records
-        .map((asset) => asset.artifact.digest)
-        .toSet();
+    final existingDigests =
+        catalogBefore.records.map((asset) => asset.artifact.digest).toSet();
     for (final page in source.pages) {
       final asset = assetsById[page.assetId]!;
       final bytes = pageBytes[page.id]!;
@@ -498,6 +738,20 @@ List<int> _encodeAssetCatalog(AssetCatalog catalog) => List<int>.unmodifiable(
         '${const JsonEncoder.withIndent('  ').convert(catalog.toJson())}\n',
       ),
     );
+
+List<int> _encodeProjectWithSmartTileCatalog(
+  ProjectSnapshot snapshot,
+  ProjectManifest manifest,
+) {
+  final encoded = encodeProjectAuthoringDocument(snapshot, manifest);
+  final decoded = Map<String, Object?>.from(
+    jsonDecode(utf8.decode(encoded)) as Map,
+  );
+  decoded['smartTileCatalog'] = manifest.smartTileCatalog.toJson();
+  return List<int>.unmodifiable(
+    utf8.encode('${const JsonEncoder.withIndent('  ').convert(decoded)}\n'),
+  );
+}
 
 void _validateDeduplicatedBlob(
   AssetRecord asset,
