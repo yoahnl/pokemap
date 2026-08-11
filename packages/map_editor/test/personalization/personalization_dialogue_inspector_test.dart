@@ -208,10 +208,13 @@ Future<void> _toggle(WidgetTester tester, String key) async {
 
 const _characters = <PersonalizationCharacterPreviewOption>[
   PersonalizationCharacterPreviewOption(
+    id: 'leo:happy',
     characterId: 'leo',
     displayName: 'Léo',
     portraitPath: null,
     expressionId: 'happy',
+    expressionLabel: 'Joyeux',
+    workspaceRevision: 'revision',
   ),
 ];
 

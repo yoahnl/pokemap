@@ -31,6 +31,7 @@ void main() {
       expect(source.loadedRoot, '/project');
       expect(options, hasLength(1));
       expect(options.single.characterId, 'leo');
+      expect(options.single.id, 'leo:happy');
       expect(options.single.displayName, 'Léo');
       expect(options.single.portraitPath, 'characters/leo/happy.png');
       expect(options.single.expressionId, 'happy');
@@ -39,10 +40,13 @@ void main() {
 
   test('character preview data never enters presentation json', () {
     const option = PersonalizationCharacterPreviewOption(
+      id: 'leo:happy',
       characterId: 'leo',
       displayName: 'Léo',
       portraitPath: 'characters/leo/happy.png',
       expressionId: 'happy',
+      expressionLabel: 'Joyeux',
+      workspaceRevision: 'revision',
     );
     final encoded = jsonEncode(const ProjectPresentationProfile().toJson());
 
@@ -50,6 +54,82 @@ void main() {
     expect(encoded, isNot(contains('characterId')));
     expect(encoded, isNot(contains('portraitPath')));
     expect(encoded, isNot(contains('expressionId')));
+  });
+
+  test('catalog projection keeps characters whose portrait is missing', () {
+    final options = PersonalizationCharacterPreviewCatalogProjection.project(
+      workspaceRevision: 'revision-1',
+      portraitStates: const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'neutral',
+          'displayName': 'Neutre',
+          'sortOrder': 0,
+        },
+      ],
+      characters: const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'nox',
+          'name': 'Nox',
+          'sortOrder': 0,
+          'portraits': <Object?>[],
+        },
+      ],
+      assets: const <String, PersonalizationCharacterPreviewAsset>{},
+    );
+
+    expect(options, hasLength(1));
+    expect(options.single.id, 'nox:neutral');
+    expect(options.single.expressionLabel, 'Neutre');
+    expect(options.single.portraitPath, isNull);
+    expect(options.single.diagnosticCodes, contains('portraitMissing'));
+  });
+
+  test('catalog projection exposes deleted expressions without ambiguity', () {
+    final options = PersonalizationCharacterPreviewCatalogProjection.project(
+      workspaceRevision: 'revision-2',
+      portraitStates: const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'happy',
+          'displayName': 'Joyeux',
+          'sortOrder': 0,
+        },
+      ],
+      characters: const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'leo',
+          'name': 'Léo',
+          'sortOrder': 0,
+          'portraits': <Object?>[
+            <String, Object?>{
+              'portraitStateId': 'happy',
+              'assetId': 'leo-happy',
+            },
+            <String, Object?>{
+              'portraitStateId': 'angry',
+              'assetId': 'leo-angry',
+            },
+          ],
+        },
+      ],
+      assets: const <String, PersonalizationCharacterPreviewAsset>{
+        'leo-happy': PersonalizationCharacterPreviewAsset(
+          path: 'characters/leo-happy.png',
+          bytes: <int>[1],
+        ),
+        'leo-angry': PersonalizationCharacterPreviewAsset(
+          path: 'characters/leo-angry.png',
+          bytes: <int>[2],
+        ),
+      },
+    );
+
+    expect(options.map((option) => option.id), <String>[
+      'leo:happy',
+      'leo:angry',
+    ]);
+    expect(options.first.expressionLabel, 'Joyeux');
+    expect(options.last.expressionLabel, 'angry');
+    expect(options.last.diagnosticCodes, contains('portraitStateDeleted'));
   });
 
   test(
@@ -62,6 +142,9 @@ void main() {
       final source = AuthoringPersonalizationPreviewContextSource(
         queries: queries,
       );
+      final characterSource = AuthoringPersonalizationCharacterPreviewSource(
+        queries: queries,
+      );
       final projectRoot = p.join(
         Directory.current.parent.parent.path,
         'examples',
@@ -70,6 +153,7 @@ void main() {
       );
 
       final contexts = await source.load(projectRoot);
+      final characterOptions = await characterSource.load(projectRoot);
 
       expect(
         contexts.map((context) => context.id),
@@ -107,6 +191,17 @@ void main() {
         contexts.map((context) => context.id),
         isNot(contains('character-studio-placeholder')),
       );
+      expect(
+        characterOptions.map((option) => option.id),
+        contains('leo:happy'),
+      );
+      final happy = characterOptions.firstWhere(
+        (option) => option.id == 'leo:happy',
+      );
+      expect(happy.expressionLabel, 'Heureux');
+      expect(happy.portraitPath, 'assets/characters/leo-happy.png');
+      expect(happy.portraitBytes, isNotEmpty);
+      expect(happy.workspaceRevision, isNotEmpty);
     },
   );
 }
@@ -121,10 +216,13 @@ final class _CharacterSource implements PersonalizationCharacterPreviewSource {
     loadedRoot = projectRoot;
     return const <PersonalizationCharacterPreviewOption>[
       PersonalizationCharacterPreviewOption(
+        id: 'leo:happy',
         characterId: 'leo',
         displayName: 'Léo',
         portraitPath: 'characters/leo/happy.png',
         expressionId: 'happy',
+        expressionLabel: 'Joyeux',
+        workspaceRevision: 'revision',
       ),
     ];
   }

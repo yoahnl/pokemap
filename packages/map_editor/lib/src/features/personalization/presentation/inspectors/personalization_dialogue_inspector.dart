@@ -138,16 +138,33 @@ class PersonalizationDialogueInspector extends StatelessWidget {
             if (characterOptions.isNotEmpty) ...<Widget>[
               PokeMapDropdownField<String>(
                 key: const ValueKey<String>('dialogue-preview-character'),
-                label: 'Personnage de test',
+                label: 'Personnage et expression de test',
                 value: _resolvedCharacterId,
                 items: <PokeMapDropdownItem<String>>[
                   for (final option in characterOptions)
                     PokeMapDropdownItem<String>(
-                      value: option.characterId,
-                      label: option.displayName,
+                      value: option.id,
+                      label: option.pickerLabel,
                     ),
                 ],
                 onChanged: onCharacterSelected,
+              ),
+              if (!_resolvedCharacter.isReady) ...<Widget>[
+                const SizedBox(height: 8),
+                const PokeMapDiagnosticCallout(
+                  severity: PokeMapDiagnosticSeverity.warning,
+                  message:
+                      'Ce portrait est incomplet dans Character Studio. '
+                      'La prévisualisation utilise un remplacement neutre.',
+                ),
+              ],
+              const SizedBox(height: 8),
+            ] else ...<Widget>[
+              const PokeMapDiagnosticCallout(
+                severity: PokeMapDiagnosticSeverity.warning,
+                message:
+                    'Aucun personnage n’est disponible. Créez-en un dans '
+                    'Character Studio pour tester un portrait.',
               ),
               const SizedBox(height: 8),
             ],
@@ -176,13 +193,16 @@ class PersonalizationDialogueInspector extends StatelessWidget {
   );
 
   String get _resolvedCharacterId {
-    if (characterOptions.any(
-      (option) => option.characterId == selectedCharacterId,
-    )) {
+    if (characterOptions.any((option) => option.id == selectedCharacterId)) {
       return selectedCharacterId!;
     }
-    return characterOptions.first.characterId;
+    return characterOptions.first.id;
   }
+
+  PersonalizationCharacterPreviewOption get _resolvedCharacter =>
+      characterOptions.firstWhere(
+        (option) => option.id == _resolvedCharacterId,
+      );
 
   Widget _placementButton({
     required String id,
