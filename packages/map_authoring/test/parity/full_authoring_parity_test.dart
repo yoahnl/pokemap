@@ -181,6 +181,18 @@ void main() {
           reason: actionId,
         );
       }
+      for (final action in catalog.mutationActions.where(
+        (action) => action.actionId.startsWith('item.'),
+      )) {
+        expect(
+          action.toJson(),
+          containsPair(
+            'endToEndVerifiedTransports',
+            <String>['cli', 'directApi', 'editor', 'mcp'],
+          ),
+          reason: action.actionId,
+        );
+      }
       expect(
         catalog.requireMutationAction('asset.delete').toJson(),
         containsPair('endToEndVerifiedTransports', isEmpty),

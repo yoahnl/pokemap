@@ -298,6 +298,18 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId.startsWith('item.')) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/gameplay/item_catalog_jsonl_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/gameplay/item_catalog_jsonl_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/item_authoring_transport_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/item_authoring.test.ts',
+    };
+  }
   if (actionId == 'smart_tile.layer.set_animation_activation') {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:

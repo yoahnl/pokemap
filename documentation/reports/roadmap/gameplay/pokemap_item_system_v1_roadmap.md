@@ -969,7 +969,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-054 — Transport JSONL/CLI et MCP
 
-- [ ] **Résultat :** les ressources/actions Item traversent direct API, CLI, editor et MCP.
+- [x] **Résultat :** les ressources/actions Item traversent direct API, CLI, editor et MCP.
 - **Fichiers à modifier :**
   - packages/map_authoring/lib/src/tooling/jsonl_worker.dart
   - packages/map_authoring/lib/src/registry/action_registry.dart
@@ -983,6 +983,8 @@ Résultat attendu : exit code 0 pour chaque commande.
   - tools/pokemap_mcp/test/item_authoring.test.ts.
 - **Gate :** describe live annonce item resources/actions et chaque transport possède une preuve end-to-end.
 - **Dépendances :** ITM-051 et ITM-052.
+
+**Preuves ITM-054 :** les adaptateurs génériques JSONL, Editor et MCP acheminaient déjà les contrats canoniques sans branche spécifique au domaine Item. Les preuves end-to-end ouvrent un vrai projet strict, annoncent les quatre ressources Item et les neuf mutations durables, interrogent la simulation canonique, appliquent `item.create`, relisent le résultat et vérifient l'undo côté Editor. Le registre de parité associe désormais chaque action `item.*` aux quatre transports `directApi`, `cli`, `editor` et `mcp`. Les suites ciblées Authoring terminent avec 11 tests réussis, le test Editor avec 1 test réussi et le test MCP avec 1 test réussi ; le build TypeScript termine sans erreur.
 
 ### ITM-055 — Séparer authoring et mutation de save
 
