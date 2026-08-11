@@ -471,6 +471,15 @@ class PsdkBattleTerrainChangedEvent extends PsdkBattleEvent {
 }
 
 class PsdkBattleItemEvent extends PsdkBattleEvent {
+  const PsdkBattleItemEvent.used({
+    this.turn,
+    required this.user,
+    this.target,
+    this.partyIndex,
+    required this.itemId,
+  })  : action = 'used',
+        super(kind: 'item_used');
+
   const PsdkBattleItemEvent.consumed({
     this.turn,
     required this.user,

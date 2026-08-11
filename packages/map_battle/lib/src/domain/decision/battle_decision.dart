@@ -31,6 +31,7 @@ sealed class BattleDecision {
     required PsdkBattleSlotRef target,
     int? targetPartyIndex,
     required PsdkBattleItemActionEffect effect,
+    bool consumeItem,
     bool highPriority,
   }) = BattleItemDecision;
 
@@ -83,6 +84,7 @@ final class BattleItemDecision extends BattleDecision {
     required this.target,
     this.targetPartyIndex,
     required this.effect,
+    this.consumeItem = true,
     this.highPriority = false,
   });
 
@@ -90,6 +92,7 @@ final class BattleItemDecision extends BattleDecision {
   final PsdkBattleSlotRef target;
   final int? targetPartyIndex;
   final PsdkBattleItemActionEffect effect;
+  final bool consumeItem;
   final bool highPriority;
 }
 

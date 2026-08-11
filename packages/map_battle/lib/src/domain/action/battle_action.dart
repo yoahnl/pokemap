@@ -154,6 +154,7 @@ final class PsdkBattleItemAction extends PsdkBattleAction {
     required this.target,
     this.targetPartyIndex,
     required this.effect,
+    this.consumeItem = true,
     this.highPriority = false,
   }) : super(
           kind: highPriority
@@ -166,6 +167,7 @@ final class PsdkBattleItemAction extends PsdkBattleAction {
   final PsdkBattleSlotRef target;
   final int? targetPartyIndex;
   final PsdkBattleItemActionEffect effect;
+  final bool consumeItem;
   final bool highPriority;
 }
 

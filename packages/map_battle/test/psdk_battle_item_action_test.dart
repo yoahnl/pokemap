@@ -95,6 +95,38 @@ void main() {
       );
     });
 
+    test('reusable item emits usage without a consumption event', () {
+      final engine = BattleEngine(
+        setup: _setup(
+          player: _combatant(
+            id: 'player-eevee',
+            speciesId: 'eevee',
+            hp: 100,
+            currentHp: 30,
+          ),
+          opponentMoves: <PsdkBattleMoveData>[_move(id: 'wait', power: 0)],
+        ),
+      );
+
+      final result = engine.submit(
+        const BattleDecision.item(
+          itemId: 'reusable-tonic',
+          target: psdkPlayerSlot,
+          effect: PsdkBattleHpHealItemEffect.flat(20),
+          consumeItem: false,
+          highPriority: true,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 50);
+      expect(
+        result.timeline.events.whereType<BattleItemTimelineEvent>().single,
+        isA<BattleItemTimelineEvent>()
+            .having((event) => event.kind, 'kind', 'item_used')
+            .having((event) => event.itemId, 'itemId', 'reusable-tonic'),
+      );
+    });
+
     test('illegal item target fails without mutating the turn', () {
       final engine = BattleEngine(
         setup: _setup(

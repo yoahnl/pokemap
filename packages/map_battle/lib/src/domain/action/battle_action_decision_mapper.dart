@@ -37,6 +37,7 @@ final class PsdkBattleActionDecisionMapper {
         :final target,
         :final targetPartyIndex,
         :final effect,
+        :final consumeItem,
         :final highPriority,
       ) =>
         PsdkBattleItemAction(
@@ -45,6 +46,7 @@ final class PsdkBattleActionDecisionMapper {
           target: target,
           targetPartyIndex: targetPartyIndex,
           effect: effect,
+          consumeItem: consumeItem,
           highPriority: highPriority,
         ),
       BattleMegaDecision(:final form) => PsdkBattleMegaAction(

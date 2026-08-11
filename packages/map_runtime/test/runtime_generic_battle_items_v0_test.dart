@@ -60,6 +60,22 @@ final _itemCatalog = ItemCatalogSnapshot.fromCatalog(
           ),
         ],
       ),
+      const ProjectItemDefinition(
+        id: 'reusable-tonic',
+        displayName: 'Reusable Tonic',
+        pocketId: 'field-tools',
+        uses: <ProjectItemUseDefinition>[
+          ProjectItemUseDefinition(
+            contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+            target: ProjectItemTargetKind.partyMember,
+            consumption: ProjectItemConsumptionPolicy.never,
+            effect: ProjectItemEffectDefinition.healHp(
+              mode: ProjectItemAmountMode.flat,
+              amount: 13,
+            ),
+          ),
+        ],
+      ),
     ],
   ),
 );
@@ -101,8 +117,8 @@ void main() {
       expect(result.appliedAmount, 13);
       expect(result.updatedGameState.party.members.single.currentHp, 73);
       expect(result.updatedGameState.bag.entries, isEmpty);
-      expect(result.consumptionReceipt.itemId, 'battle-tonic');
-      expect(result.consumptionReceipt.quantity, 1);
+      expect(result.consumptionReceipt!.itemId, 'battle-tonic');
+      expect(result.consumptionReceipt!.quantity, 1);
     });
 
     test('a custom cure clears a compatible status and returns one receipt',
@@ -146,7 +162,7 @@ void main() {
       expect(result.updatedDisplaySession.state.player.majorStatus, isNull);
       expect(result.updatedGameState.party.members.single.statusId, isEmpty);
       expect(result.updatedGameState.bag.entries, isEmpty);
-      expect(result.consumptionReceipt.itemId, 'toxin-sponge');
+      expect(result.consumptionReceipt!.itemId, 'toxin-sponge');
       expect(
         psdkSession.state.psdkState.battlerAt(psdkPlayerSlot).majorStatus,
         isNull,
@@ -200,7 +216,7 @@ void main() {
       );
       expect(result.updatedGameState.party.members[1].currentHp, 40);
       expect(result.updatedGameState.bag.entries, isEmpty);
-      expect(result.consumptionReceipt.itemId, 'dawn-feather');
+      expect(result.consumptionReceipt!.itemId, 'dawn-feather');
       expect(
         psdkSession.state.psdkState
             .partyForBank(psdkPlayerSlot.bank)[1]
@@ -244,6 +260,69 @@ void main() {
       expect(psdkSession.state.turnNumber, 0);
       expect(gameState.party.members.single.currentHp, 80);
       expect(gameState.bag.entries.single.quantity, 1);
+    });
+
+    test('a reusable healing item works through both battle engines', () {
+      final legacyBridge = _session(
+        player: _combatant(
+          id: 'player_0',
+          speciesId: 'sproutle',
+          currentHp: 60,
+        ),
+      );
+      final legacyResult = tryApplyRuntimeBattleItemUse(
+        session: legacyBridge.createLegacyDisplaySession(
+          isTrainerBattle: true,
+          trainerId: 'trainer',
+        ),
+        gameState: _gameState(
+          itemId: 'reusable-tonic',
+          members: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 60),
+          ],
+        ),
+        context: _context(const <int>[0]),
+        itemId: 'reusable-tonic',
+        targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
+      );
+
+      expect(legacyResult, isNotNull);
+      expect(legacyResult!.appliedAmount, 13);
+      expect(legacyResult.updatedGameState.bag.entries.single.quantity, 1);
+      expect(legacyResult.consumptionReceipt, isNull);
+
+      final psdkSession = _session(
+        player: _combatant(
+          id: 'player_0',
+          speciesId: 'sproutle',
+          currentHp: 60,
+        ),
+      );
+      final psdkResult = tryApplyRuntimePsdkBattleItemUse(
+        psdkSession: psdkSession,
+        displaySession: psdkSession.createLegacyDisplaySession(
+          isTrainerBattle: true,
+          trainerId: 'trainer',
+        ),
+        gameState: _gameState(
+          itemId: 'reusable-tonic',
+          members: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 60),
+          ],
+        ),
+        context: _context(const <int>[0]),
+        itemId: 'reusable-tonic',
+        targetLineupIndex: 0,
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+        itemCatalog: _itemCatalog,
+      );
+
+      expect(psdkResult, isNotNull);
+      expect(psdkResult!.appliedAmount, 13);
+      expect(psdkResult.updatedGameState.bag.entries.single.quantity, 1);
+      expect(psdkResult.consumptionReceipt, isNull);
     });
   });
 }

@@ -22,7 +22,7 @@ class RuntimeBattleItemApplyResult {
   final String targetSpeciesId;
   final int targetLineupIndex;
   final int appliedAmount;
-  final ItemConsumptionReceipt consumptionReceipt;
+  final ItemConsumptionReceipt? consumptionReceipt;
 }
 
 class RuntimePsdkBattleItemApplyResult {
@@ -44,7 +44,7 @@ class RuntimePsdkBattleItemApplyResult {
   final String targetSpeciesId;
   final int targetLineupIndex;
   final int appliedAmount;
-  final ItemConsumptionReceipt consumptionReceipt;
+  final ItemConsumptionReceipt? consumptionReceipt;
 }
 
 enum RuntimeBattleItemEffectKind { healHp, cureStatus, revive, restorePp }
@@ -99,6 +99,8 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     return null;
   }
   final effect = capability.use!.effect;
+  final shouldConsume =
+      capability.use!.consumption == ProjectItemConsumptionPolicy.onApplied;
 
   final party = psdkSession.state.psdkState.partyForBank(psdkPlayerSlot.bank);
   final targetPartyIndex = party.indexWhere(
@@ -138,8 +140,11 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     ),
   );
   final consumptionReceipt = itemUseResult.consumptionReceipt;
-  if (!itemUseResult.isSuccess || consumptionReceipt == null) {
+  if (!itemUseResult.isSuccess) {
     return null;
+  }
+  if (shouldConsume != (consumptionReceipt != null)) {
+    throw StateError('Item consumption does not match its canonical policy.');
   }
 
   final turn = psdkSession.submitBattleItem(
@@ -147,19 +152,21 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     displayName: definition.displayName,
     targetPartyIndex: targetPartyIndex,
     effect: battleEffect,
+    consumeItem: shouldConsume,
   );
-  final receipts = turn.timeline.events
+  final itemEvents = turn.timeline.events
       .whereType<BattleItemTimelineEvent>()
       .where(
         (event) =>
-            event.kind == 'item_consumed' &&
-            event.itemId == itemId &&
-            event.partyIndex == targetPartyIndex,
+            event.itemId == itemId && event.partyIndex == targetPartyIndex,
       )
       .toList(growable: false);
-  if (receipts.length != 1) {
+  final expectedItemEventKind = shouldConsume ? 'item_consumed' : 'item_used';
+  if (itemEvents.length != 1 ||
+      itemEvents.single.kind != expectedItemEventKind) {
     throw StateError(
-      'Accepted battle item must emit one matching consumed receipt.',
+      'Accepted battle item must emit one event matching its consumption '
+      'policy.',
     );
   }
 
@@ -249,8 +256,13 @@ RuntimeBattleItemApplyResult? _tryApplyRuntimeBattleHpHealItemUse({
     ),
   );
   final consumptionReceipt = itemUseResult.consumptionReceipt;
-  if (!itemUseResult.isSuccess || consumptionReceipt == null) {
+  if (!itemUseResult.isSuccess) {
     return null;
+  }
+  final shouldConsume =
+      itemSpec.consumption == ProjectItemConsumptionPolicy.onApplied;
+  if (shouldConsume != (consumptionReceipt != null)) {
+    throw StateError('Item consumption does not match its canonical policy.');
   }
 
   final updatedSession = session.applyBagHpHealItemTurn(
@@ -406,6 +418,7 @@ _RuntimeBattleHpHealItemSpec? _runtimeHpHealItemSpecForItemId(
     catalog: itemCatalog,
     itemId: itemId,
     displayName: definition.displayName,
+    consumption: use.use!.consumption,
     effect: effect.mode == ProjectItemAmountMode.full
         ? const BattleBagRestoreToFullHpHealEffect()
         : BattleBagFlatHpHealEffect(effect.amount!),
@@ -417,11 +430,13 @@ class _RuntimeBattleHpHealItemSpec {
     required this.catalog,
     required this.itemId,
     required this.displayName,
+    required this.consumption,
     required this.effect,
   });
 
   final ItemCatalogSnapshot catalog;
   final String itemId;
   final String displayName;
+  final ProjectItemConsumptionPolicy consumption;
   final BattleBagHpHealEffect effect;
 }

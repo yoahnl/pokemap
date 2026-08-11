@@ -110,6 +110,7 @@ final class RuntimePsdkBattleSessionAdapter {
     required String displayName,
     required int? targetPartyIndex,
     required PsdkBattleItemActionEffect effect,
+    required bool consumeItem,
   }) {
     _itemDisplayNames[itemId] = displayName;
     return submitDecision(
@@ -118,6 +119,7 @@ final class RuntimePsdkBattleSessionAdapter {
         target: psdkPlayerSlot,
         targetPartyIndex: targetPartyIndex,
         effect: effect,
+        consumeItem: consumeItem,
         highPriority: true,
       ),
     );
