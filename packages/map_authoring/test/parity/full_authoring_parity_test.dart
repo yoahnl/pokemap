@@ -181,15 +181,21 @@ void main() {
           reason: actionId,
         );
       }
+      expect(
+        catalog.requireMutationAction('item.create').toJson(),
+        containsPair(
+          'endToEndVerifiedTransports',
+          <String>['cli', 'directApi', 'editor', 'mcp'],
+        ),
+      );
       for (final action in catalog.mutationActions.where(
-        (action) => action.actionId.startsWith('item.'),
+        (action) =>
+            action.actionId.startsWith('item.') &&
+            action.actionId != 'item.create',
       )) {
         expect(
           action.toJson(),
-          containsPair(
-            'endToEndVerifiedTransports',
-            <String>['cli', 'directApi', 'editor', 'mcp'],
-          ),
+          containsPair('endToEndVerifiedTransports', isEmpty),
           reason: action.actionId,
         );
       }

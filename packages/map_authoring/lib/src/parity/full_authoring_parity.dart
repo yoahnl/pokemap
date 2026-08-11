@@ -310,7 +310,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
-  if (actionId.startsWith('item.')) {
+  if (actionId == 'item.create') {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
           'test/domains/gameplay/item_catalog_jsonl_test.dart',
