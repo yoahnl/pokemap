@@ -114,7 +114,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
           ],

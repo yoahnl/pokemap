@@ -127,7 +127,7 @@ RuntimeMapBundle _bundle() {
         playerAvatarCharacterIds: <String>['hero_a', 'hero_b'],
         startingMoney: 420,
         initialBag: <BagEntry>[
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          BagEntry(itemId: 'potion', quantity: 1),
         ],
         existingPartyFactId: 'fact_existing_party',
       ),

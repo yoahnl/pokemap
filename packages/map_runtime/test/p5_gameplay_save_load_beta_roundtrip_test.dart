@@ -90,7 +90,6 @@ void main() {
           equals(<BagEntry>[
             const BagEntry(
               itemId: _medicineItemId,
-              categoryId: 'items',
               quantity: 1,
             ),
           ]),

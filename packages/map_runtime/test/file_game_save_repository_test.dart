@@ -57,8 +57,8 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 10),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 10),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
         progression: PlayerProgression(
@@ -135,8 +135,8 @@ void main() {
         currentMapId: 'field_map',
         bag: Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
         party: PlayerParty(
@@ -176,8 +176,8 @@ void main() {
         loadedState.bag.entries,
         equals(
           const <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
       );
@@ -272,7 +272,7 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+            BagEntry(itemId: 'poke-ball', quantity: 5),
           ],
         ),
         storyFlags: StoryFlags(activeFlags: {
@@ -330,7 +330,7 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+            BagEntry(itemId: 'poke-ball', quantity: 5),
           ],
         ),
         progression: PlayerProgression(
@@ -431,9 +431,9 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: ' potion ', categoryId: ' medicine ', quantity: 2),
-            BagEntry(itemId: ' poke-ball ', categoryId: ' items ', quantity: 5),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: ' potion ', quantity: 2),
+            BagEntry(itemId: ' poke-ball ', quantity: 5),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
       );
@@ -455,12 +455,10 @@ void main() {
       expect(entries, [
         {
           'itemId': 'poke-ball',
-          'categoryId': 'items',
           'quantity': 5,
         },
         {
           'itemId': 'potion',
-          'categoryId': 'medicine',
           'quantity': 5,
         },
       ]);

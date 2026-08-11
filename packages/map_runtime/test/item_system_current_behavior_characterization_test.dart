@@ -9,67 +9,83 @@ import 'package:map_runtime/src/presentation/flame/battle_bag_menu_model.dart';
 
 void main() {
   group('current runtime item classification', () {
-    test('capture and medicine support depend on exact legacy categories', () {
+    test('capture and medicine support depend on canonical capabilities', () {
+      final resolver = ItemCapabilityResolver(
+        ItemCatalogSnapshot.fromCatalog(
+          const ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: <ProjectItemDefinition>[
+              ProjectItemDefinition(
+                id: 'aurora-orb',
+                displayName: 'Aurora Orb',
+                pocketId: 'relics',
+                capture: ProjectCaptureItemDefinition(
+                  rateNumerator: 1,
+                  rateDenominator: 1,
+                  allowedEncounterKinds: <EncounterKind>{EncounterKind.walk},
+                ),
+              ),
+              ProjectItemDefinition(
+                id: 'decorative-orb',
+                displayName: 'Decorative Orb',
+                pocketId: 'balls',
+              ),
+              ProjectItemDefinition(
+                id: 'field-tonic',
+                displayName: 'Field Tonic',
+                pocketId: 'relics',
+                uses: <ProjectItemUseDefinition>[
+                  ProjectItemUseDefinition(
+                    contexts: <ProjectItemUseContext>{
+                      ProjectItemUseContext.battle,
+                    },
+                    target: ProjectItemTargetKind.partyMember,
+                    consumption: ProjectItemConsumptionPolicy.onApplied,
+                    effect: ProjectItemEffectDefinition.healHp(
+                      mode: ProjectItemAmountMode.flat,
+                      amount: 20,
+                    ),
+                  ),
+                ],
+              ),
+              ProjectItemDefinition(
+                id: 'souvenir-tonic',
+                displayName: 'Souvenir Tonic',
+                pocketId: 'medicine',
+              ),
+            ],
+          ),
+        ),
+      );
       final model = buildBattleBagMenuModel(
         gameState: _gameState(
           entries: const <BagEntry>[
-            BagEntry(
-              itemId: 'poke-ball',
-              categoryId: 'items',
-              quantity: 2,
-            ),
-            BagEntry(
-              itemId: 'poke-ball',
-              categoryId: 'synthetic-balls',
-              quantity: 2,
-            ),
-            BagEntry(
-              itemId: 'potion',
-              categoryId: 'medicine',
-              quantity: 2,
-            ),
-            BagEntry(
-              itemId: 'potion',
-              categoryId: 'synthetic-heals',
-              quantity: 2,
-            ),
+            BagEntry(itemId: 'aurora-orb', quantity: 2),
+            BagEntry(itemId: 'decorative-orb', quantity: 2),
+            BagEntry(itemId: 'field-tonic', quantity: 2),
+            BagEntry(itemId: 'souvenir-tonic', quantity: 2),
           ],
         ),
         session: _battleSession(allowCapture: true),
+        resolver: resolver,
       );
 
-      final canonicalBall = _entry(
-        model,
-        itemId: 'poke-ball',
-        categoryId: 'items',
-      );
-      final customBall = _entry(
-        model,
-        itemId: 'poke-ball',
-        categoryId: 'synthetic-balls',
-      );
-      final canonicalMedicine = _entry(
-        model,
-        itemId: 'potion',
-        categoryId: 'medicine',
-      );
-      final customMedicine = _entry(
-        model,
-        itemId: 'potion',
-        categoryId: 'synthetic-heals',
-      );
+      final captureItem = _entry(model, itemId: 'aurora-orb');
+      final inertBallPocketItem = _entry(model, itemId: 'decorative-orb');
+      final medicine = _entry(model, itemId: 'field-tonic');
+      final inertMedicinePocketItem = _entry(model, itemId: 'souvenir-tonic');
 
-      expect(canonicalBall.kind, BattleBagItemKind.captureBall);
-      expect(canonicalBall.isSelectable, isTrue);
-      expect(customBall.kind, BattleBagItemKind.unsupported);
-      expect(customBall.disabledReason,
-          BattleBagMenuDisabledReason.unsupportedItem);
-      expect(canonicalMedicine.kind, BattleBagItemKind.medicine);
-      expect(canonicalMedicine.isSelectable, isTrue);
-      expect(customMedicine.kind, BattleBagItemKind.unsupported);
+      expect(captureItem.kind, BattleBagItemKind.captureBall);
+      expect(captureItem.isSelectable, isTrue);
+      expect(inertBallPocketItem.kind, BattleBagItemKind.unsupported);
+      expect(inertBallPocketItem.disabledReason,
+          BattleBagMenuDisabledReason.passive);
+      expect(medicine.kind, BattleBagItemKind.medicine);
+      expect(medicine.isSelectable, isTrue);
+      expect(inertMedicinePocketItem.kind, BattleBagItemKind.unsupported);
       expect(
-        customMedicine.disabledReason,
-        BattleBagMenuDisabledReason.unsupportedItem,
+        inertMedicinePocketItem.disabledReason,
+        BattleBagMenuDisabledReason.passive,
       );
     });
   });
@@ -88,8 +104,8 @@ void main() {
       ),
       _RuntimeHealCase(
         itemId: 'hyper-potion',
-        expectedHealedAmount: 200,
-        expectedHp: 210,
+        expectedHealedAmount: 120,
+        expectedHp: 130,
       ),
       _RuntimeHealCase(
         itemId: 'max-potion',
@@ -120,10 +136,9 @@ void main() {
 BattleBagMenuEntry _entry(
   BattleBagMenuModel model, {
   required String itemId,
-  required String categoryId,
 }) {
   return model.entries.singleWhere(
-    (entry) => entry.itemId == itemId && entry.categoryId == categoryId,
+    (entry) => entry.itemId == itemId,
   );
 }
 
@@ -131,7 +146,7 @@ RuntimeBattleBagHpHealItemApplyResult? _applyLegacyHeal(String itemId) {
   final session = _battleSession(currentHp: 10, maxHp: 500);
   final state = _gameState(
     entries: <BagEntry>[
-      BagEntry(itemId: itemId, categoryId: 'medicine', quantity: 2),
+      BagEntry(itemId: itemId, quantity: 2),
     ],
     currentHp: 10,
   );
@@ -159,24 +174,28 @@ RuntimeBattleBagHpHealItemApplyResult? _applyLegacyHeal(String itemId) {
         gameState: state,
         context: context,
         targetLineupIndex: 0,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
       ),
     'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
         session: session,
         gameState: state,
         context: context,
         targetLineupIndex: 0,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
       ),
     'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
         session: session,
         gameState: state,
         context: context,
         targetLineupIndex: 0,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
       ),
     'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
         session: session,
         gameState: state,
         context: context,
         targetLineupIndex: 0,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
       ),
     _ => throw ArgumentError.value(itemId, 'itemId'),
   };

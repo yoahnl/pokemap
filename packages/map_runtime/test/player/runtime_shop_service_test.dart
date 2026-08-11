@@ -2,7 +2,32 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+
+final _shopItemCatalog = ItemCatalogSnapshot.fromCatalog(
+  const ProjectItemCatalog(
+    schemaVersion: 1,
+    entries: <ProjectItemDefinition>[
+      ProjectItemDefinition(
+        id: 'potion',
+        displayName: 'Potion',
+        pocketId: 'medicine',
+      ),
+      ProjectItemDefinition(
+        id: 'bike-pass',
+        displayName: 'Bike Pass',
+        pocketId: 'quest-tools',
+        tags: <String>{'key-item', 'passive'},
+      ),
+      ProjectItemDefinition(
+        id: 'nugget',
+        displayName: 'Nugget',
+        pocketId: 'treasures',
+      ),
+    ],
+  ),
+);
 
 void main() {
   test('contextual shop keeps pricing and purchase authority in the runtime',
@@ -23,6 +48,7 @@ void main() {
       loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
         maxHpByPartyIndex: <int, int>{},
       ),
+      itemCatalog: _shopItemCatalog,
     );
     addTearDown(controller.dispose);
 
@@ -143,9 +169,9 @@ void main() {
       trainerProfile: TrainerProfile(name: 'Leaf', money: 100),
       bag: Bag(
         entries: <BagEntry>[
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
-          BagEntry(itemId: 'bike-pass', categoryId: 'key-items', quantity: 1),
-          BagEntry(itemId: 'nugget', categoryId: 'items', quantity: 1),
+          BagEntry(itemId: 'potion', quantity: 3),
+          BagEntry(itemId: 'bike-pass', quantity: 1),
+          BagEntry(itemId: 'nugget', quantity: 1),
         ],
       ),
     );
@@ -160,6 +186,7 @@ void main() {
       loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
         maxHpByPartyIndex: <int, int>{},
       ),
+      itemCatalog: _shopItemCatalog,
     );
     addTearDown(controller.dispose);
 

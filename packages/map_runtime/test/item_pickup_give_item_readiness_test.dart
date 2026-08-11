@@ -49,7 +49,6 @@ void main() {
           entries: [
             BagEntry(
               itemId: _testItemId,
-              categoryId: 'items',
               quantity: 3,
             ),
           ],
