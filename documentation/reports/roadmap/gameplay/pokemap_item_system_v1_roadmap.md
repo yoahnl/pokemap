@@ -817,7 +817,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-040 — New Game initial Bag
 
-- [ ] **Résultat :** le picker ajoute un itemId et laisse pocket et effets au catalogue.
+- [x] **Résultat :** le picker ajoute un itemId et laisse pocket et effets au catalogue.
 - **Fichiers à modifier :**
   - packages/map_editor/lib/src/ui/canvas/new_game/project_new_game_configuration_sheet.dart
   - packages/map_core/lib/src/models/project_new_game_config.dart
@@ -827,6 +827,8 @@ Résultat attendu : exit code 0 pour chaque commande.
   - packages/map_gameplay/test/project_new_game_state_builder_test.dart
 - **Gate :** aucun categoryId hardcodé dans le formulaire ou le builder.
 - **Dépendances :** ITM-021 et ITM-014.
+
+**Preuves ITM-040 :** le modèle `ProjectNewGameConfig` persiste exclusivement une liste de `BagEntry(itemId, quantity)`, le formulaire ajoute l'identifiant sélectionné depuis le catalogue guidé et `createNewGameStateFromProject` normalise directement ces stacks sans connaître pocket, catégorie ou effet. La preuve utilise `custom-passive-thread`, un objet synthétique sans sémantique MVP, puis vérifie son round-trip save/load. Les suites ciblées terminent avec 7 tests gameplay et 3 tests editor réussis. La recherche statique de `categoryId` sur le modèle, le formulaire, le builder et leurs tests ne retourne aucun résultat.
 
 ### ITM-041 — GiveItem, TakeItem et pickups
 
