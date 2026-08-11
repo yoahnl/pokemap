@@ -164,14 +164,15 @@ void main() {
   );
 
   test('standalone forwards the complete V8 presentation', () async {
+    final acceptanceProject =
+        jsonDecode(
+              await File(
+                '${Directory.current.path}/golden_personalization_v3/project.json',
+              ).readAsString(),
+            )
+            as Map<String, dynamic>;
     final profile = ProjectPresentationProfile.fromJson(
-      jsonDecode(
-            await File(
-              '${Directory.current.path}/golden_personalization_slice/'
-              'presentation.json',
-            ).readAsString(),
-          )
-          as Map<String, dynamic>,
+      Map<String, dynamic>.from(acceptanceProject['presentation'] as Map),
     );
     final projectFilePath = _goldenProjectPath();
     final manifest = (await _loadManifest(
@@ -207,6 +208,20 @@ void main() {
       presentation.layoutProfile?.battle?.regular.slot,
       ProjectPresentationLayoutSlot.right,
     );
+  });
+
+  test('standalone loads the complete V3 acceptance project', () async {
+    final projectFilePath =
+        '${Directory.current.path}/golden_personalization_v3/project.json';
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: projectFilePath,
+      mapId: 'vermeil_village',
+    );
+
+    expect(bundle.manifest.name, 'L’Aube de Vermeil');
+    expect(bundle.map.id, 'vermeil_village');
+    expect(bundle.map.entities.map((entity) => entity.id), contains('npc_leo'));
+    expect(bundle.manifest.presentation?.schemaVersion, 8);
   });
 
   test(

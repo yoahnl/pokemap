@@ -21,6 +21,7 @@ void main() {
       jsonDecode(File(p.join(root.path, 'project.json')).readAsStringSync())
           as Map<String, dynamic>,
     );
+    expect(() => ProjectValidator.validate(manifest), returnsNormally);
     final scenes =
         (manifest.globalProperties['personalizationAcceptanceScenes']
                 as List<Object?>)
@@ -46,7 +47,7 @@ void main() {
       manifest.presentation?.pause?.actions
           ?.firstWhere((action) => action.id == ProjectPauseActionId.pokedex)
           .label,
-      'Bestiaire',
+      'Carnet de route',
     );
     expect(manifest.presentation?.intro, isNotNull);
   });
@@ -81,11 +82,11 @@ void main() {
       'assets/presentation/icon.png',
       'assets/presentation/cover.png',
       'assets/presentation/hero.png',
-      'assets/presentation/poster.png',
-      'assets/presentation/intro.mp4',
-      'assets/presentation/captions.vtt',
-      'assets/presentation/pokemap-sans.ttf',
-      'assets/presentation/font-license.txt',
+      'assets/presentation/intro/poster.png',
+      'assets/presentation/intro/intro.mp4',
+      'assets/presentation/intro/captions.vtt',
+      'assets/presentation/fonts/display.ttf',
+      'assets/presentation/fonts/display-license.txt',
       'assets/characters/leo-happy.png',
       'assets/.pokemap-assets.json',
     ];
@@ -99,7 +100,7 @@ void main() {
     }
     expect(
       File(
-        p.join(root.path, 'assets', 'presentation', 'pokemap-sans.ttf'),
+        p.join(root.path, 'assets', 'presentation', 'fonts', 'display.ttf'),
       ).readAsBytesSync().take(4),
       <int>[0, 1, 0, 0],
     );
