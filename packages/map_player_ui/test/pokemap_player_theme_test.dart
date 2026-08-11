@@ -193,6 +193,15 @@ void main() {
 
     expect(tester.getSize(find.byType(PlayerActionButton)).height,
         greaterThanOrEqualTo(48));
+    expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).style, isNull);
+    expect(
+      find.descendant(
+        of: find.byType(PlayerActionButton),
+        matching: find.byType(Opacity),
+      ),
+      findsNothing,
+    );
     final frame = tester.widget<AnimatedContainer>(
       find.byKey(const ValueKey<String>('player-action-focus-frame')),
     );

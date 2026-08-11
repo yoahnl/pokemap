@@ -392,6 +392,9 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
         ],
       ],
     );
+    final hasStyleOverride = widget.foregroundColor != null ||
+        widget.backgroundColor != null ||
+        widget.shape != null;
     final button = widget.quiet
         ? TextButton(
             onPressed: widget.onPressed,
@@ -410,22 +413,26 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
                 onPressed: widget.onPressed,
                 focusNode: _focusNode,
                 autofocus: widget.autofocus,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: widget.foregroundColor,
-                  backgroundColor: widget.backgroundColor,
-                  shape: widget.shape,
-                ),
+                style: hasStyleOverride
+                    ? OutlinedButton.styleFrom(
+                        foregroundColor: widget.foregroundColor,
+                        backgroundColor: widget.backgroundColor,
+                        shape: widget.shape,
+                      )
+                    : null,
                 child: buttonChild,
               )
             : FilledButton(
                 onPressed: widget.onPressed,
                 focusNode: _focusNode,
                 autofocus: widget.autofocus,
-                style: FilledButton.styleFrom(
-                  foregroundColor: widget.foregroundColor,
-                  backgroundColor: widget.backgroundColor,
-                  shape: widget.shape,
-                ),
+                style: hasStyleOverride
+                    ? FilledButton.styleFrom(
+                        foregroundColor: widget.foregroundColor,
+                        backgroundColor: widget.backgroundColor,
+                        shape: widget.shape,
+                      )
+                    : null,
                 child: buttonChild,
               );
     return Semantics(
@@ -451,10 +458,12 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
               width: _focused && widget.showFocusHighlight ? 3 : 1,
             ),
           ),
-          child: Opacity(
-            opacity: enabled ? 1 : widget.disabledOpacity,
-            child: SizedBox(width: double.infinity, child: button),
-          ),
+          child: !enabled && widget.disabledOpacity < 1
+              ? Opacity(
+                  opacity: widget.disabledOpacity,
+                  child: SizedBox(width: double.infinity, child: button),
+                )
+              : SizedBox(width: double.infinity, child: button),
         ),
       ),
     );
