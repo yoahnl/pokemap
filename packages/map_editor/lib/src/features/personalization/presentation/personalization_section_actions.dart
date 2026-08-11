@@ -23,6 +23,9 @@ class PersonalizationSectionActions extends StatelessWidget {
     final comparison = baselineProfile == null
         ? null
         : compareProjectPresentation(baselineProfile!, profile);
+    final changedSections = comparison == null
+        ? const <String>[]
+        : _changedSectionLabels(comparison.changedPaths);
     final presets = projectPresentationPresets
         .where((preset) => preset.supports(category))
         .toList(growable: false);
@@ -63,7 +66,9 @@ class PersonalizationSectionActions extends StatelessWidget {
                 PokeMapBadge(
                   label: comparison.isIdentical
                       ? 'Aucun changement'
-                      : '${comparison.changedPaths.length} changements',
+                      : changedSections.length == 1
+                      ? '1 section modifiée'
+                      : '${changedSections.length} sections modifiées',
                   variant: comparison.isIdentical
                       ? PokeMapBadgeVariant.success
                       : PokeMapBadgeVariant.info,
@@ -73,7 +78,7 @@ class PersonalizationSectionActions extends StatelessWidget {
           if (comparison != null && !comparison.isIdentical) ...<Widget>[
             const SizedBox(height: 10),
             Text(
-              comparison.changedPaths.join('  •  '),
+              changedSections.join('  •  '),
               key: const ValueKey<String>('personalization-comparison-paths'),
             ),
           ],
@@ -81,4 +86,25 @@ class PersonalizationSectionActions extends StatelessWidget {
       ),
     );
   }
+}
+
+List<String> _changedSectionLabels(List<String> paths) => <String>{
+  for (final path in paths) _changedSectionLabel(path),
+}.toList(growable: false);
+
+String _changedSectionLabel(String path) {
+  if (path.startsWith(r'$.branding')) return 'Identité visuelle';
+  if (path.startsWith(r'$.titleMotion')) return 'Animations du titre';
+  if (path.startsWith(r'$.title')) return 'Écran titre';
+  if (path.startsWith(r'$.intro')) return 'Introduction';
+  if (path.startsWith(r'$.typography')) return 'Typographie';
+  if (path.startsWith(r'$.theme')) return 'Couleurs globales';
+  if (path.startsWith(r'$.surfacePalettes')) {
+    return 'Couleurs des interfaces';
+  }
+  if (path.startsWith(r'$.pause')) return 'Menu Pause';
+  if (path.startsWith(r'$.menuLabels')) return 'Libellés des menus';
+  if (path.startsWith(r'$.windows')) return 'Forme des fenêtres';
+  if (path.startsWith(r'$.layouts')) return 'Disposition';
+  return 'Autres réglages';
 }

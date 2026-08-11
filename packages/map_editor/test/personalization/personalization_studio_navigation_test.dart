@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_icon_button.dart';
 
 import '../shell_chrome_test_harness.dart';
 
@@ -34,6 +35,24 @@ void main() {
     );
     expect(
       find.byKey(const Key('personalization-studio-title')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('project-explorer-toggle')),
+    );
+    await tester.pumpAndSettle();
+
+    final reopen = find.byKey(
+      const ValueKey<String>('project-explorer-reopen-toggle'),
+    );
+    final accessibleButton = find.descendant(
+      of: reopen,
+      matching: find.byType(PokeMapIconButton),
+    );
+    expect(accessibleButton, findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Rouvrir l’explorateur global'),
       findsOneWidget,
     );
   });

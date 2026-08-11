@@ -191,8 +191,20 @@ ProjectPresentationComparison compareProjectPresentation(
   if (!_jsonEqual(baseline.theme?.toJson(), current.theme?.toJson())) {
     changed.add(r'$.theme');
   }
+  if (!_jsonEqual(
+    baseline.surfacePalettes?.toJson(),
+    current.surfacePalettes?.toJson(),
+  )) {
+    changed.add(r'$.surfacePalettes');
+  }
   if (!_jsonEqual(baseline.pause?.toJson(), current.pause?.toJson())) {
     changed.add(r'$.pause');
+  }
+  if (!_jsonEqual(
+    baseline.menuLabels?.toJson(),
+    current.menuLabels?.toJson(),
+  )) {
+    changed.add(r'$.menuLabels');
   }
   if (!_jsonEqual(baseline.windows?.toJson(), current.windows?.toJson())) {
     changed.add(r'$.windows');

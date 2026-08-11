@@ -20,11 +20,14 @@ void main() {
       ),
     );
 
-    expect(find.text('Aperçu'), findsOneWidget);
-    expect(find.text('Données de démonstration'), findsOneWidget);
-    expect(find.text('Interface du jeu'), findsOneWidget);
-    expect(find.text('Aperçu uniquement'), findsOneWidget);
-    expect(find.text('Aperçu en direct'), findsNothing);
+    expect(find.text('Aperçu en direct'), findsOneWidget);
+    expect(find.text('Démonstration'), findsOneWidget);
+    expect(find.text('Widgets du jeu'), findsOneWidget);
+    expect(find.text('Réglages d’essai'), findsOneWidget);
+    expect(find.text('Aperçu'), findsNothing);
+    expect(find.text('Données de démonstration'), findsNothing);
+    expect(find.text('Interface du jeu'), findsNothing);
+    expect(find.text('Aperçu uniquement'), findsNothing);
     expect(find.text('Preview réelle'), findsNothing);
   });
 
@@ -251,8 +254,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Données du projet'), findsOneWidget);
-    expect(find.text('Interface du jeu · décor éditeur'), findsOneWidget);
+    expect(find.text('Projet réel'), findsOneWidget);
+    expect(find.text('Widgets du jeu sur la carte du projet'), findsOneWidget);
     expect(
       find.byKey(
         const ValueKey<String>('personalization-project-map-backdrop'),

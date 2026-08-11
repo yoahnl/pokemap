@@ -1422,11 +1422,12 @@ class EditorNotifier extends _$EditorNotifier
 
     final errorMessage = switch (sessionState.status) {
       NarrativeDocumentSessionStatus.failed =>
-        'Brouillon de personnalisation conservé : '
-            '${sessionState.message ?? sessionState.code ?? 'échec inconnu'}',
+        'Enregistrement impossible. Vos modifications sont conservées dans '
+            'le Studio. '
+            '${sessionState.message ?? sessionState.code ?? 'Réessayez plus tard.'}',
       NarrativeDocumentSessionStatus.conflicted =>
-        'Conflit de personnalisation détecté : '
-            '${sessionState.message ?? 'une version externe existe.'}',
+        'La personnalisation a été modifiée ailleurs. Vos changements sont '
+            'conservés ; rouvrez le projet avant d’enregistrer.',
       _ => null,
     };
     final statusMessage = switch (sessionState.status) {
