@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/character_studio/application/character_studio_media_resolver.dart';
+import 'package:map_editor/src/features/character_studio/presentation/character_studio_workspace.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
@@ -178,15 +182,155 @@ void main() {
       );
     });
   }
+
+  testWidgets('renders real sprite pixels in the library matrix and player', (
+    tester,
+  ) async {
+    await loadNarrativeStudioCaptureFonts(
+      textFamilies: const <String>[_captureFontFamily],
+    );
+    final mediaResolver = _MemorySpriteResolver(_spritePreviewAtlasBytes());
+    final project = _spritePreviewProject();
+    await pumpEditorShellPage(
+      tester,
+      initialState: _studioState(
+        project,
+        projectRootPath: '/character-studio-real-sprites',
+      ),
+      surfaceSize: const Size(1920, 1080),
+      fontFamily: _captureFontFamily,
+      cupertinoFontFamily: _captureFontFamily,
+      overrides: [
+        characterStudioMediaResolverProvider.overrideWithValue(mediaResolver),
+      ],
+    );
+    final shellContext = tester.element(find.byType(EditorShellPage));
+    await tester.runAsync(
+      () => precacheImage(MemoryImage(mediaResolver.bytes), shellContext),
+    );
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('character-studio-tab-animations')),
+    );
+    await tester.pump();
+    for (var attempt = 0; attempt < 3; attempt++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pump();
+    }
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('character-header-sprite-thumbnail-elia'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('character-studio-sprite-thumbnail-content'),
+      ),
+      findsAtLeastNWidgets(6),
+    );
+    expect(
+      find.byKey(const ValueKey<String>('animation-preview-frame-0')),
+      findsOneWidget,
+    );
+    await expectLater(
+      find.byType(EditorShellPage),
+      matchesGoldenFile(
+        '../../goldens/character_studio/'
+        'character_studio_real-sprite-previews_1920x1080.png',
+      ),
+    );
+  });
 }
 
-EditorState _studioState(ProjectManifest project) => EditorState(
-  projectRootPath: '/tmp/character-studio-responsive',
+EditorState _studioState(
+  ProjectManifest project, {
+  String projectRootPath = '/tmp/character-studio-responsive',
+}) => EditorState(
+  projectRootPath: projectRootPath,
   project: project,
   workspaceMode: EditorWorkspaceMode.characterStudio,
   selectedCharacterId: project.characters.firstOrNull?.id,
   statusMessage: 'Sauvegardé à l’instant',
 );
+
+ProjectManifest _spritePreviewProject() =>
+    buildShellChromeProject(
+      name: 'Projet previews sprites',
+      tilesets: const <ProjectTilesetEntry>[
+        ProjectTilesetEntry(
+          id: 'characters_main',
+          name: 'Sprites de prévisualisation',
+          relativePath: 'tilesets/characters.png',
+        ),
+      ],
+    ).copyWith(
+      characters: <ProjectCharacterEntry>[
+        ProjectCharacterEntry(
+          id: 'elia',
+          name: 'Élia — Sprite QA',
+          tilesetId: 'characters_main',
+          frameWidth: 1,
+          frameHeight: 1,
+          tags: const <String>['jouable', 'preview'],
+          animations: <CharacterAnimation>[
+            for (final direction in EntityFacing.values)
+              CharacterAnimation(
+                state: CharacterAnimationState.idle,
+                direction: direction,
+                sourceAssetId: 'qa-sprite-atlas',
+                frames: <CharacterAnimationFrame>[
+                  CharacterAnimationFrame(
+                    source: TilesetSourceRect(
+                      x: 0,
+                      y: direction.index * 16,
+                      width: 16,
+                      height: 16,
+                    ),
+                  ),
+                ],
+              ),
+            for (final direction in EntityFacing.values)
+              CharacterAnimation(
+                state: CharacterAnimationState.walk,
+                direction: direction,
+                sourceAssetId: 'qa-sprite-atlas',
+                frames: <CharacterAnimationFrame>[
+                  for (var frame = 1; frame <= 3; frame++)
+                    CharacterAnimationFrame(
+                      source: TilesetSourceRect(
+                        x: frame * 16,
+                        y: direction.index * 16,
+                        width: 16,
+                        height: 16,
+                      ),
+                      durationMs: 125,
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ],
+      settings: const ProjectSettings(defaultPlayerCharacterId: 'elia'),
+    );
+
+Uint8List _spritePreviewAtlasBytes() => base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABsUlEQVR4nO3YsUoDQRSF4TOHdD6AD6BgbyNYWaSItYWNxXaphK1k2SdYUy3pLAIptDCQ2hQWMYVgYy9oZeUDWCsICjsMc11GDOHkq8KFPwkJXGbWIWBza/8jNH97uXeh+V+/x39+PiHOhYbvD9fBX29j7/hX/8Aq9YQ4QhwhjhDn/EE3fw4ukG+39XZ0EXUroy+Mfmz0mdHPjL7X7AlxhDhCHCGOENfxB6+L05/XT483XxtzZ/cwulkb/SSxHyb2ZbueEEeIc6Hh+nmAELfq9/nUnhBHiCPEEeKcP+jn8+ip66I+iC6ifmX0hdGPjT4z+pnR95o9IY4QR4gjxBHiOv5gvjhPuo/PJ4n9MLEv2/WEOEKcCw3XzwOEuFW/z6f2hDhCHCGOEOf8wSC/jJ66zuqT6CIaVEZfGP3Y6DOjnxl9r9kT4ghxhDhCHCGu4w9Gi6uk+/hoktgPE/uyXU+II8S50HD9PECIW/X7fGpPiCPEEeIIcc4fTPMqeuo6qovoIppWRl8Y/djoM6OfGX2v2RPiCHGEOEIcIa7jD8rFXdJ9vJwk9sPEvmzXE+K47C+wbJ8xmR7ESBnctwAAAABJRU5ErkJggg==',
+);
+
+final class _MemorySpriteResolver
+    implements CharacterStudioMediaResolverContract {
+  const _MemorySpriteResolver(this.bytes);
+
+  final Uint8List bytes;
+
+  @override
+  Future<Uint8List> resolve(CharacterStudioMediaRequest request) async => bytes;
+}
 
 ProjectManifest _emptyProject() => buildShellChromeProject(
   name: 'Projet sans personnage',

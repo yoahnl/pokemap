@@ -26,6 +26,13 @@ import 'preview/character_studio_sprite_thumbnail.dart';
 import 'character_studio_character_metrics.dart';
 import 'character_studio_workspace_shell.dart';
 
+final characterStudioMediaResolverProvider =
+    Provider<CharacterStudioMediaResolverContract>(
+      (ref) => CharacterStudioMediaResolver(
+        source: const FileCharacterStudioMediaSource(),
+      ),
+    );
+
 class CharacterStudioWorkspace extends ConsumerStatefulWidget {
   const CharacterStudioWorkspace({super.key});
 
@@ -38,10 +45,6 @@ class _CharacterStudioWorkspaceState
     extends ConsumerState<CharacterStudioWorkspace> {
   CharacterStudioSection _section = CharacterStudioSection.identity;
   String? _selectedPortraitStateId;
-  final CharacterStudioMediaResolver _mediaResolver =
-      CharacterStudioMediaResolver(
-        source: const FileCharacterStudioMediaSource(),
-      );
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +77,7 @@ class _CharacterStudioWorkspaceState
     final selectedCharacterId = selectedCharacter?.id;
     final notifier = ref.read(editorNotifierProvider.notifier);
     final editorState = ref.watch(editorNotifierProvider);
+    final mediaResolver = ref.watch(characterStudioMediaResolverProvider);
     final projectRootPath = _draftProjectKey(editorState);
     final identityDraft = selectedCharacterId == null
         ? null
@@ -110,7 +114,7 @@ class _CharacterStudioWorkspaceState
         canCreate: _discardIdentityChangesIfNeeded,
         projectRootPath: editorState.projectRootPath,
         projectRevision: projectRevision,
-        mediaResolver: _mediaResolver,
+        mediaResolver: mediaResolver,
         onSelect: (characterId) => unawaited(_selectCharacter(characterId)),
         onCreate: (draft) => unawaited(_createCharacter(draft)),
       ),
@@ -126,6 +130,7 @@ class _CharacterStudioWorkspaceState
           legacyImagePath: selectedCharacter == null
               ? null
               : existingTilesetPath(selectedCharacter.tilesetId),
+          mediaResolver: mediaResolver,
         ),
         activeSection: _section,
         onSectionChanged: (section) => unawaited(_selectSection(section)),
@@ -154,7 +159,7 @@ class _CharacterStudioWorkspaceState
               character: character,
               projectRootPath: editorState.projectRootPath ?? '',
               projectRevision: projectRevision,
-              mediaResolver: _mediaResolver,
+              mediaResolver: mediaResolver,
               isSaving: snapshot.isSaving,
               onImport: (stateId) => notifier.importCharacterPortrait(
                 characterId: character.id,
@@ -190,7 +195,7 @@ class _CharacterStudioWorkspaceState
               character: character,
               projectRootPath: editorState.projectRootPath ?? '',
               projectRevision: projectRevision,
-              mediaResolver: _mediaResolver,
+              mediaResolver: mediaResolver,
               isSaving: snapshot.isSaving,
               onManageDefinitions: _showAnimationDefinitionManager,
               onCreateDefinition: () =>
@@ -221,7 +226,7 @@ class _CharacterStudioWorkspaceState
             portraitStateId: selectedPortraitStateId,
             projectRootPath: editorState.projectRootPath ?? '',
             projectRevision: projectRevision,
-            mediaResolver: _mediaResolver,
+            mediaResolver: mediaResolver,
             isSaving: snapshot.isSaving,
             onReplace: () => notifier.importCharacterPortrait(
               characterId: character.id,
@@ -271,6 +276,7 @@ class _CharacterStudioWorkspaceState
     required String? projectRootPath,
     required String projectRevision,
     required String? legacyImagePath,
+    required CharacterStudioMediaResolverContract mediaResolver,
   }) {
     if (character == null) return null;
     final selection = characterStudioThumbnailSelection(character);
@@ -291,7 +297,7 @@ class _CharacterStudioWorkspaceState
       ),
       semanticLabel: 'Aperçu du sprite de ${character.name}',
       imagePath: imagePath,
-      mediaResolver: mediaRequest == null ? null : _mediaResolver,
+      mediaResolver: mediaRequest == null ? null : mediaResolver,
       mediaRequest: mediaRequest,
       source: selection.source,
       framePixelWidth: character.frameWidth * project.settings.tileWidth,
