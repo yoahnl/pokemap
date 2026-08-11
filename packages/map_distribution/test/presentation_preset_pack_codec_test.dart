@@ -20,8 +20,10 @@ void main() {
         label: 'Train de nuit',
         description: 'Une présentation nocturne réutilisable.',
         compatibility: const PresentationPresetCompatibility(
-          minimumProfileSchemaVersion: 5,
-          maximumProfileSchemaVersion: 5,
+          minimumProfileSchemaVersion:
+              ProjectPresentationProfile.supportedSchemaVersion,
+          maximumProfileSchemaVersion:
+              ProjectPresentationProfile.supportedSchemaVersion,
         ),
         assets: <PresentationPresetAsset>[
           PresentationPresetAsset(
@@ -49,6 +51,15 @@ void main() {
         ],
       ),
       profile: const ProjectPresentationProfile(
+        title: ProjectTitlePresentationProfile(
+          actions: <ProjectTitleActionProfile>[
+            ProjectTitleActionProfile(
+              id: ProjectTitleActionId.newGame,
+              label: 'Commencer',
+              icon: ProjectTitleActionIcon.sparkles,
+            ),
+          ],
+        ),
         branding: ProjectBrandingProfile(
           iconPath: 'assets/presentation/branding/icon.png',
         ),
@@ -82,6 +93,7 @@ void main() {
     expect(second, first);
     expect(decoded.manifest.toJson(), pack.manifest.toJson());
     expect(decoded.profile, pack.profile);
+    expect(decoded.profile.title?.actions?.single.label, 'Commencer');
     expect(decoded.files['assets/icon.png'], image);
     expect(decoded.files['assets/battle.ttf'], font);
     expect(decoded.files['licenses/icon.txt'], license);
@@ -113,8 +125,10 @@ void main() {
           label: 'Police combat manquante',
           description: 'Le profil ne doit pas perdre sa police de combat.',
           compatibility: const PresentationPresetCompatibility(
-            minimumProfileSchemaVersion: 5,
-            maximumProfileSchemaVersion: 5,
+            minimumProfileSchemaVersion:
+                ProjectPresentationProfile.supportedSchemaVersion,
+            maximumProfileSchemaVersion:
+                ProjectPresentationProfile.supportedSchemaVersion,
           ),
           assets: <PresentationPresetAsset>[],
         ),
@@ -154,8 +168,10 @@ void main() {
           label: 'Sans licence',
           description: 'Doit être refusé.',
           compatibility: const PresentationPresetCompatibility(
-            minimumProfileSchemaVersion: 5,
-            maximumProfileSchemaVersion: 5,
+            minimumProfileSchemaVersion:
+                ProjectPresentationProfile.supportedSchemaVersion,
+            maximumProfileSchemaVersion:
+                ProjectPresentationProfile.supportedSchemaVersion,
           ),
           assets: <PresentationPresetAsset>[
             PresentationPresetAsset(
@@ -200,8 +216,10 @@ void main() {
           label: 'Altéré',
           description: 'Doit être refusé.',
           compatibility: const PresentationPresetCompatibility(
-            minimumProfileSchemaVersion: 5,
-            maximumProfileSchemaVersion: 5,
+            minimumProfileSchemaVersion:
+                ProjectPresentationProfile.supportedSchemaVersion,
+            maximumProfileSchemaVersion:
+                ProjectPresentationProfile.supportedSchemaVersion,
           ),
           assets: <PresentationPresetAsset>[asset],
         ),
