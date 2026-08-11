@@ -23,6 +23,7 @@ final class RuntimePlayerPresentation {
     this.surfacePalettes,
     this.windowProfile,
     this.layoutProfile,
+    this.dialogueProfile,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
     this.pausePresentation = const PlayerPausePresentation(),
   });
@@ -57,6 +58,7 @@ final class RuntimePlayerPresentation {
       surfacePalettes: profile?.surfacePalettes,
       windowProfile: profile?.windows,
       layoutProfile: profile?.layouts,
+      dialogueProfile: profile?.dialogue,
       pauseMenuLabels: _pauseMenuLabels(profile?.menuLabels),
       pausePresentation: PlayerPausePresentation.fromProfile(
         profile?.effectivePause,
@@ -99,6 +101,7 @@ final class RuntimePlayerPresentation {
       surfacePalettes: profile.surfacePalettes,
       windowProfile: profile.windows,
       layoutProfile: profile.layouts,
+      dialogueProfile: profile.dialogue,
       pauseMenuLabels: _pauseMenuLabels(profile.menuLabels),
       pausePresentation: PlayerPausePresentation.fromProfile(
         profile.effectivePause,
@@ -112,6 +115,7 @@ final class RuntimePlayerPresentation {
   final ProjectPresentationSurfacePalettesProfile? surfacePalettes;
   final ProjectPresentationWindowsProfile? windowProfile;
   final ProjectPresentationLayoutsProfile? layoutProfile;
+  final ProjectDialoguePresentationProfile? dialogueProfile;
   final PlayerPauseMenuLabels pauseMenuLabels;
   final PlayerPausePresentation pausePresentation;
 
@@ -129,6 +133,9 @@ final class RuntimePlayerPresentation {
     }
     if (layoutProfile case final layouts?) {
       resolved = PokeMapPlayerTheme.withLayoutProfile(resolved, layouts);
+    }
+    if (dialogueProfile case final dialogue?) {
+      resolved = PokeMapPlayerTheme.withDialogueProfile(resolved, dialogue);
     }
     return resolved;
   }

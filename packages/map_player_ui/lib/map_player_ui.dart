@@ -47,6 +47,7 @@ export 'src/player/runtime_player_pause_shell.dart';
 export 'src/player/runtime_player_touch_controls.dart';
 export 'src/preferences/player_preferences.dart';
 export 'src/theme/pokemap_player_theme.dart';
+export 'src/theme/pokemap_player_dialogue_theme.dart';
 export 'src/theme/pokemap_player_layout_theme.dart';
 export 'src/theme/pokemap_player_surface_palette_theme.dart';
 export 'src/theme/pokemap_player_window_theme.dart';

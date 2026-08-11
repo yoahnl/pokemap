@@ -40,6 +40,7 @@ final class HubRuntimeStartupAdapter
     final theme = presentation?.theme;
     final surfacePalettes = presentation?.surfacePalettes;
     final pause = presentation?.pause;
+    final dialogue = presentation?.dialogue;
     final menuLabels = presentation?.menuLabels;
     final windows = presentation?.windows;
     final layouts = presentation?.layouts;
@@ -51,6 +52,7 @@ final class HubRuntimeStartupAdapter
         theme == null &&
         surfacePalettes == null &&
         pause == null &&
+        dialogue == null &&
         menuLabels == null &&
         windows == null &&
         layouts == null) {
@@ -178,6 +180,24 @@ final class HubRuntimeStartupAdapter
                     pause.composition == null
                         ? null
                         : _projectPauseComposition(pause.composition!),
+              ),
+      dialogue:
+          dialogue == null
+              ? null
+              : ProjectDialoguePresentationProfile(
+                placement: ProjectDialoguePlacement.values.byName(
+                  dialogue.placement,
+                ),
+                maxWidthFactor: dialogue.maxWidthFactor,
+                margin: dialogue.margin,
+                contentPadding: dialogue.contentPadding,
+                shape: ProjectWindowShape.values.byName(dialogue.shape),
+                cornerRadius: dialogue.cornerRadius,
+                borderWidth: dialogue.borderWidth,
+                fillOpacity: dialogue.fillOpacity,
+                surfaceColor: dialogue.surfaceColor,
+                borderColor: dialogue.borderColor,
+                textColor: dialogue.textColor,
               ),
       menuLabels:
           menuLabels == null

@@ -479,7 +479,10 @@ void main() {
 
       expect(directEvidence, cliEvidence);
       expect(directEvidence['accentColor'], '#126E78');
-      expect(directEvidence['schemaVersion'], 8);
+      expect(
+        directEvidence['schemaVersion'],
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(directEvidence['titleCopy'], 'Aube sur Hanazuki');
       expect(directEvidence['titleSubtitle'], 'Studio Brume');
       expect(directEvidence['titlePrompt'], 'Appuyez pour commencer');
@@ -519,6 +522,9 @@ void main() {
       expect(directEvidence['battlePaletteSurface'], '#102030');
       expect(directEvidence['pauseWindowShape'], 'cutCorner');
       expect(directEvidence['pauseWindowFillOpacity'], .8);
+      expect(directEvidence['dialoguePlacement'], 'top');
+      expect(directEvidence['dialogueMaxWidthFactor'], .64);
+      expect(directEvidence['dialogueSurfaceColor'], '#102030');
     });
 
     test('presentation preset export has direct API and JSONL CLI parity',
@@ -1244,6 +1250,9 @@ final class _GoldenHarness {
       'pauseWindowFillOpacity': manifest.presentation?.windows
           ?.resolve(ProjectWindowRole.pauseMenu)
           .fillOpacity,
+      'dialoguePlacement': manifest.presentation?.dialogue?.placement.name,
+      'dialogueMaxWidthFactor': manifest.presentation?.dialogue?.maxWidthFactor,
+      'dialogueSurfaceColor': manifest.presentation?.dialogue?.surfaceColor,
     };
   }
 
@@ -1386,6 +1395,19 @@ final ProjectPresentationProfile _responsivePresentationProfile =
         showRootDetailPanel: false,
       ),
     ),
+  ),
+  dialogue: ProjectDialoguePresentationProfile(
+    placement: ProjectDialoguePlacement.top,
+    maxWidthFactor: .64,
+    margin: 20,
+    contentPadding: 24,
+    shape: ProjectWindowShape.speech,
+    cornerRadius: 18,
+    borderWidth: 3,
+    fillOpacity: .82,
+    surfaceColor: '#102030',
+    borderColor: '#A0B0C0',
+    textColor: '#F0F0F0',
   ),
   typography: ProjectTypographyProfile(
     combat: ProjectTypographyRoleProfile(

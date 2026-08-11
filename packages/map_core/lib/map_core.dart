@@ -32,6 +32,7 @@ export 'src/read_models/character_studio_reference_index.dart';
 export 'src/read_models/project_item_reference_index.dart';
 export 'src/models/project_tileset_source.dart';
 export 'src/models/project_presentation_profile.dart';
+export 'src/models/project_dialogue_presentation_profile.dart';
 export 'src/models/project_presentation_preset.dart';
 export 'src/models/project_presentation_layout_profile.dart';
 export 'src/models/project_presentation_surface_role.dart';

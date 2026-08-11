@@ -895,7 +895,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       actionId: "presentation.update",
       parameters: {
         profile: {
-          schemaVersion: 8,
+          schemaVersion: 9,
           branding: { accentColor: "#126E78" },
           title: {
             title: "Aube sur Hanazuki",
@@ -953,6 +953,19 @@ test("MCP applies and rereads the authored presentation profile", async () => {
                 showRootDetailPanel: false,
               },
             },
+          },
+          dialogue: {
+            placement: "top",
+            maxWidthFactor: 0.64,
+            margin: 20,
+            contentPadding: 24,
+            shape: "speech",
+            cornerRadius: 18,
+            borderWidth: 3,
+            fillOpacity: 0.82,
+            surfaceColor: "#102030",
+            borderColor: "#A0B0C0",
+            textColor: "#F0F0F0",
           },
           windows: {
             styles: [
@@ -1092,6 +1105,14 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       "battle",
     );
     assert.equal(
+      record(record(project.presentation).dialogue).placement,
+      "top",
+    );
+    assert.equal(
+      record(record(project.presentation).dialogue).surfaceColor,
+      "#102030",
+    );
+    assert.equal(
       record(record(record(project.presentation).typography).combat).family,
       "Battle Mono",
     );
@@ -1163,6 +1184,10 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       record(record(persisted.presentation).windows).battleStyleId,
       "battle",
     );
+    assert.equal(
+      record(record(persisted.presentation).dialogue).maxWidthFactor,
+      0.64,
+    );
     const presentationResource = await toolData(
       fixture.client,
       "pokemap_query",
@@ -1179,6 +1204,10 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.equal(
       record(record(presentationItem.profile).windows).pauseBackdropOpacity,
       0.8,
+    );
+    assert.equal(
+      record(record(presentationItem.profile).dialogue).shape,
+      "speech",
     );
     const finalValidation = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,

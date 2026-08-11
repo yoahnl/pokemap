@@ -508,6 +508,11 @@ _ProjectPresentationProfile _$ProjectPresentationProfileFromJson(
       : ProjectPausePresentationProfile.fromJson(
           json['pause'] as Map<String, dynamic>,
         ),
+  dialogue: json['dialogue'] == null
+      ? null
+      : ProjectDialoguePresentationProfile.fromJson(
+          json['dialogue'] as Map<String, dynamic>,
+        ),
   menuLabels: json['menuLabels'] == null
       ? null
       : ProjectMenuLabelsProfile.fromJson(
@@ -537,6 +542,7 @@ Map<String, dynamic> _$ProjectPresentationProfileToJson(
   'theme': ?instance.theme?.toJson(),
   'surfacePalettes': ?instance.surfacePalettes?.toJson(),
   'pause': ?instance.pause?.toJson(),
+  'dialogue': ?instance.dialogue?.toJson(),
   'menuLabels': ?instance.menuLabels?.toJson(),
   'windows': ?instance.windows?.toJson(),
   'layouts': ?instance.layouts?.toJson(),

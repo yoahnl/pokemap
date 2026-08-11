@@ -224,6 +224,59 @@ void main() {
       );
     });
 
+    test('presentation.update carries complete V9 dialogue geometry', () {
+      const profile = ProjectPresentationProfile(
+        dialogue: ProjectDialoguePresentationProfile(
+          placement: ProjectDialoguePlacement.top,
+          maxWidthFactor: .64,
+          margin: 20,
+          contentPadding: 24,
+          shape: ProjectWindowShape.speech,
+          cornerRadius: 18,
+          borderWidth: 3,
+          fillOpacity: .82,
+          surfaceColor: '#102030',
+          borderColor: '#A0B0C0',
+          textColor: '#F0F0F0',
+        ),
+      );
+      final snapshot = _snapshot();
+      final request = AuthoringRequest(
+        requestId: 'request_presentation_dialogue',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: 'ws_test',
+        parameters: <String, Object?>{'profile': profile.toJson()},
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'presentation-dialogue',
+        dryRun: true,
+      );
+
+      final draft = const PresentationActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: request,
+          planId: 'plan_presentation_dialogue',
+          seed: 42,
+        ),
+      );
+
+      expect(
+        draft.preview['profile'],
+        containsPair(
+          'dialogue',
+          containsPair('placement', 'top'),
+        ),
+      );
+      expect(
+        draft.changeSet.diff.entries.single.after,
+        containsPair(
+          'dialogue',
+          containsPair('surfaceColor', '#102030'),
+        ),
+      );
+    });
+
     test('presentation.update carries responsive surface layouts', () {
       final profile = ProjectPresentationProfile(
         layouts: suggestedProjectPresentationLayouts('cinematic'),

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'project_dialogue_presentation_profile.dart';
 import 'project_presentation_layout_profile.dart';
 import 'project_presentation_surface_role.dart';
 import 'project_presentation_visual_profile.dart';
@@ -515,6 +516,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
     @JsonKey(includeIfNull: false)
     ProjectPresentationSurfacePalettesProfile? surfacePalettes,
     @JsonKey(includeIfNull: false) ProjectPausePresentationProfile? pause,
+    @JsonKey(includeIfNull: false) ProjectDialoguePresentationProfile? dialogue,
     @JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,
     @JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? windows,
     @JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? layouts,
@@ -525,7 +527,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         _migrateProjectPresentationProfileJson(json),
       );
 
-  static const int supportedSchemaVersion = 8;
+  static const int supportedSchemaVersion = 9;
 
   ProjectPresentationWindowsProfile get effectiveWindows =>
       windows ?? legacyProjectPresentationWindows;
@@ -542,6 +544,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         if (theme != null ||
             surfacePalettes != null ||
             pause != null ||
+            dialogue != null ||
             menuLabels != null ||
             windows != null)
           ProjectPresentationCategory.theme,
@@ -698,6 +701,7 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
     diagnostics,
   );
   _validatePause(profile.effectivePause, diagnostics);
+  _validateDialogue(profile.dialogue, diagnostics);
   _validateMenuLabels(profile.menuLabels, diagnostics);
   _validateWindows(
     profile.windows,
@@ -1081,6 +1085,87 @@ void _validateMenuLabels(
         'Menu labels must remain on one readable line.',
       );
     }
+  }
+}
+
+void _validateDialogue(
+  ProjectDialoguePresentationProfile? dialogue,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (dialogue == null) return;
+  for (final range
+      in <({num value, num minimum, num maximum, String code, String field})>[
+        (
+          value: dialogue.maxWidthFactor,
+          minimum: projectDialogueMinWidthFactor,
+          maximum: projectDialogueMaxWidthFactor,
+          code: 'dialogueMaxWidthFactorOutOfRange',
+          field: 'maxWidthFactor',
+        ),
+        (
+          value: dialogue.margin,
+          minimum: projectDialogueMinMargin,
+          maximum: projectDialogueMaxMargin,
+          code: 'dialogueMarginOutOfRange',
+          field: 'margin',
+        ),
+        (
+          value: dialogue.contentPadding,
+          minimum: projectDialogueMinContentPadding,
+          maximum: projectDialogueMaxContentPadding,
+          code: 'dialogueContentPaddingOutOfRange',
+          field: 'contentPadding',
+        ),
+        (
+          value: dialogue.cornerRadius,
+          minimum: projectDialogueMinCornerRadius,
+          maximum: projectDialogueMaxCornerRadius,
+          code: 'dialogueCornerRadiusOutOfRange',
+          field: 'cornerRadius',
+        ),
+        (
+          value: dialogue.borderWidth,
+          minimum: projectDialogueMinBorderWidth,
+          maximum: projectDialogueMaxBorderWidth,
+          code: 'dialogueBorderWidthOutOfRange',
+          field: 'borderWidth',
+        ),
+        (
+          value: dialogue.fillOpacity,
+          minimum: projectDialogueMinFillOpacity,
+          maximum: projectDialogueMaxFillOpacity,
+          code: 'dialogueFillOpacityOutOfRange',
+          field: 'fillOpacity',
+        ),
+      ]) {
+    if (range.value.isFinite &&
+        range.value >= range.minimum &&
+        range.value <= range.maximum) {
+      continue;
+    }
+    _presentationError(
+      diagnostics,
+      range.code,
+      ProjectPresentationCategory.theme,
+      '\$.presentation.dialogue.${range.field}',
+      'Dialogue geometry is outside the supported range.',
+    );
+  }
+  for (final color in <({String field, String? value})>[
+    (field: 'surfaceColor', value: dialogue.surfaceColor),
+    (field: 'borderColor', value: dialogue.borderColor),
+    (field: 'textColor', value: dialogue.textColor),
+  ]) {
+    if (color.value == null || _parseOpaqueProjectColor(color.value!) != null) {
+      continue;
+    }
+    _presentationError(
+      diagnostics,
+      'dialogueColorInvalid',
+      ProjectPresentationCategory.theme,
+      '\$.presentation.dialogue.${color.field}',
+      'Use an opaque hexadecimal color such as #086D7A.',
+    );
   }
 }
 
@@ -2100,8 +2185,21 @@ Map<String, dynamic> _migrateProjectPresentationProfileJson(
       'Pause presentation requires schema version 8.',
     );
   }
-  if (schemaVersion == 8) {
+  if (schemaVersion is int &&
+      schemaVersion < 9 &&
+      source.containsKey('dialogue')) {
+    throw const FormatException(
+      'Dialogue presentation requires schema version 9.',
+    );
+  }
+  if (schemaVersion == 9) {
     return _migrateProjectPausePresentation(Map<String, dynamic>.from(source));
+  }
+  if (schemaVersion == 8) {
+    return _migrateProjectPausePresentation(
+      Map<String, dynamic>.from(source)
+        ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion,
+    );
   }
   if (schemaVersion == 2 ||
       schemaVersion == 3 ||

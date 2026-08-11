@@ -28,7 +28,10 @@ void main() {
 
       final decoded = ProjectPresentationProfile.fromJson(profile.toJson());
 
-      expect(decoded.schemaVersion, 8);
+      expect(
+        decoded.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(decoded.pause, pause);
       expect(decoded.pause?.actions?.first.id, ProjectPauseActionId.resume);
       expect(validateProjectPresentationProfile(decoded), isEmpty);
@@ -44,7 +47,10 @@ void main() {
         },
       });
 
-      expect(profile.schemaVersion, 8);
+      expect(
+        profile.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(profile.pause?.title, 'Interlude');
       expect(
         profile.pause?.actions,

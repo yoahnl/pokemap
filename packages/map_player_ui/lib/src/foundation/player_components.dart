@@ -43,6 +43,10 @@ class PlayerPanel extends StatelessWidget {
     this.elevated = false,
     this.role = PlayerPanelRole.standard,
     this.surfaceRole,
+    this.windowStyleOverride,
+    this.surfaceColorOverride,
+    this.borderColorOverride,
+    this.textColorOverride,
   });
 
   final Widget child;
@@ -50,6 +54,10 @@ class PlayerPanel extends StatelessWidget {
   final bool elevated;
   final PlayerPanelRole role;
   final ProjectPresentationSurfaceRole? surfaceRole;
+  final ProjectWindowStyleProfile? windowStyleOverride;
+  final Color? surfaceColorOverride;
+  final Color? borderColorOverride;
+  final Color? textColorOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -67,9 +75,10 @@ class PlayerPanel extends StatelessWidget {
           PlayerPanelRole.menu => ProjectWindowRole.pauseMenu,
           _ => null,
         };
-    final windowStyle = windowTheme == null || windowRole == null
+    final inheritedWindowStyle = windowTheme == null || windowRole == null
         ? null
         : windowTheme.style(windowRole);
+    final windowStyle = windowStyleOverride ?? inheritedWindowStyle;
     final surface = assignment == null
         ? switch (role) {
             PlayerPanelRole.standard =>
@@ -101,11 +110,13 @@ class PlayerPanel extends StatelessWidget {
     final paletteText = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
       palette?.text,
     );
-    final resolvedSurface = paletteSurface ??
+    final resolvedSurface = surfaceColorOverride ??
+        paletteSurface ??
         (windowStyle == null
             ? surface
             : windowTheme!.resolveToken(windowStyle.fillToken, semantic));
-    final resolvedBorder = paletteBorder ??
+    final resolvedBorder = borderColorOverride ??
+        paletteBorder ??
         (windowStyle == null
             ? colors.outline
             : windowTheme!.resolveToken(windowStyle.borderToken, semantic));
@@ -126,7 +137,9 @@ class PlayerPanel extends StatelessWidget {
       shadowColor: Theme.of(context).colorScheme.shadow,
       shape: shape,
       child: DefaultTextStyle.merge(
-        style: paletteText == null ? null : TextStyle(color: paletteText),
+        style: textColorOverride == null && paletteText == null
+            ? null
+            : TextStyle(color: textColorOverride ?? paletteText),
         child: Padding(
           padding: windowStyle == null
               ? padding
@@ -135,11 +148,23 @@ class PlayerPanel extends StatelessWidget {
         ),
       ),
     );
-    if (palette == null) return panel;
-    return Theme(
-      data: PokeMapPlayerTheme.withSurfacePalette(Theme.of(context), palette),
-      child: panel,
-    );
+    var resolvedTheme = Theme.of(context);
+    if (palette != null) {
+      resolvedTheme = PokeMapPlayerTheme.withSurfacePalette(
+        resolvedTheme,
+        palette,
+      );
+    }
+    if (textColorOverride case final textColor?) {
+      resolvedTheme = resolvedTheme.copyWith(
+        textTheme: resolvedTheme.textTheme.apply(
+          bodyColor: textColor,
+          displayColor: textColor,
+        ),
+      );
+    }
+    if (palette == null && textColorOverride == null) return panel;
+    return Theme(data: resolvedTheme, child: panel);
   }
 }
 

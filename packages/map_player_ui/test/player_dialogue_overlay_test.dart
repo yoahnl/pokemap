@@ -136,6 +136,75 @@ void main() {
     expect(
         find.byKey(const ValueKey<String>('dialogue-portrait')), findsNothing);
   });
+
+  testWidgets('V9 dialogue geometry overrides every legacy surface measure', (
+    tester,
+  ) async {
+    const dialogue = ProjectDialoguePresentationProfile(
+      placement: ProjectDialoguePlacement.top,
+      maxWidthFactor: .64,
+      margin: 20,
+      contentPadding: 24,
+      shape: ProjectWindowShape.speech,
+      cornerRadius: 18,
+      borderWidth: 3,
+      fillOpacity: .82,
+      surfaceColor: '#102030',
+      borderColor: '#A0B0C0',
+      textColor: '#F0F0F0',
+    );
+    await tester.binding.setSurfaceSize(const Size(1000, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(),
+      dialogue: dialogue,
+      onCommand: (_) {},
+    );
+
+    final align = tester.widget<Align>(
+      find.byKey(const ValueKey<String>('player-dialogue-authored-bubble')),
+    );
+    final constrained = tester.widget<ConstrainedBox>(
+      find
+          .descendant(
+            of: find.byKey(
+              const ValueKey<String>('player-dialogue-authored-bubble'),
+            ),
+            matching: find.byType(ConstrainedBox),
+          )
+          .first,
+    );
+    final material = tester.widget<Material>(
+      find.descendant(
+        of: find.byType(PlayerPanel),
+        matching: find.byType(Material),
+      ),
+    );
+    final padding = tester.widget<Padding>(
+      find.descendant(
+        of: find.byType(PlayerPanel),
+        matching: find.byType(Padding),
+      ),
+    );
+
+    expect(align.alignment, Alignment.topCenter);
+    expect(constrained.constraints.maxWidth, 640);
+    expect(
+      material.color,
+      const Color(0xFF102030).withValues(alpha: .82),
+    );
+    expect(
+      material.shape?.dimensions.resolve(TextDirection.ltr).bottom,
+      13,
+    );
+    expect(padding.padding, const EdgeInsets.all(24));
+    expect(
+      tester.widget<Text>(find.text('Bienvenue à PokeMap.')).style?.color,
+      const Color(0xFFF0F0F0),
+    );
+  });
 }
 
 Future<void> _pump(
@@ -146,6 +215,7 @@ Future<void> _pump(
   PokeMapPlayerTypography? typography,
   ProjectPresentationWindowsProfile? windows,
   ProjectPresentationLayoutsProfile? layouts,
+  ProjectDialoguePresentationProfile? dialogue,
   Widget Function(String speaker)? portraitBuilder,
 }) {
   var theme = typography == null
@@ -159,6 +229,9 @@ Future<void> _pump(
   }
   if (layouts != null) {
     theme = PokeMapPlayerTheme.withLayoutProfile(theme, layouts);
+  }
+  if (dialogue != null) {
+    theme = PokeMapPlayerTheme.withDialogueProfile(theme, dialogue);
   }
   return tester
       .pumpWidget(
