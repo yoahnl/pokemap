@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "potion",
+      "displayName": "Potion",
+      "pocketId": "medicine",
+      "description": "Restores 20 HP.",
+      "buyPrice": 300,
+      "sellPrice": 150,
+      "tags": [
+        "healing"
+      ],
+      "uses": [
+        {
+          "contexts": [
+            "overworld",
+            "battle"
+          ],
+          "target": "party_member",
+          "consumption": "on_applied",
+          "effect": {
+            "kind": "heal_hp",
+            "mode": "flat",
+            "amount": 20
+          }
+        }
+      ]
+    },
+    {
+      "id": "antidote",
+      "displayName": "Antidote",
+      "pocketId": "medicine",
+      "description": "Cures poison.",
+      "buyPrice": 100,
+      "sellPrice": 50,
+      "tags": [
+        "status-cure"
+      ],
+      "uses": [
+        {
+          "contexts": [
+            "overworld",
+            "battle"
+          ],
+          "target": "party_member",
+          "consumption": "on_applied",
+          "effect": {
+            "kind": "cure_status",
+            "mode": "listed",
+            "statusIds": [
+              "poison"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "revive",
+      "displayName": "Revive",
+      "pocketId": "medicine",
+      "description": "Revives a fainted party member at half HP.",
+      "buyPrice": 1500,
+      "sellPrice": 750,
+      "tags": [
+        "revive"
+      ],
+      "uses": [
+        {
+          "contexts": [
+            "overworld",
+            "battle"
+          ],
+          "target": "party_member",
+          "consumption": "on_applied",
+          "effect": {
+            "kind": "revive",
+            "rateNumerator": 1,
+            "rateDenominator": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "ether",
+      "displayName": "Ether",
+      "pocketId": "medicine",
+      "description": "Restores 10 PP to one move.",
+      "buyPrice": 1200,
+      "sellPrice": 600,
+      "tags": [
+        "pp-restore"
+      ],
+      "uses": [
+        {
+          "contexts": [
+            "overworld"
+          ],
+          "target": "party_move",
+          "consumption": "on_applied",
+          "effect": {
+            "kind": "restore_pp",
+            "mode": "flat",
+            "amount": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "poke-ball",
+      "displayName": "Poké Ball",
+      "pocketId": "balls",
+      "description": "Attempts to capture a wild Pokémon.",
+      "buyPrice": 200,
+      "sellPrice": 100,
+      "tags": [
+        "capture"
+      ],
+      "capture": {
+        "rateNumerator": 1,
+        "rateDenominator": 1,
+        "allowedEncounterKinds": [
+          "walk"
+        ]
+      }
+    },
+    {
+      "id": "lab-key",
+      "displayName": "Lab Key",
+      "pocketId": "key-items",
+      "description": "A non-consumable quest key.",
+      "tags": [
+        "key-item"
+      ]
+    },
+    {
+      "id": "tm-protect",
+      "displayName": "TM Protect",
+      "pocketId": "machines",
+      "description": "Teaches Protect.",
+      "buyPrice": 1000,
+      "sellPrice": 500,
+      "tags": [
+        "machine"
+      ],
+      "machine": {
+        "moveId": "protect",
+        "kind": "tm",
+        "consumable": true
+      }
+    },
+    {
+      "id": "leftovers",
+      "displayName": "Leftovers",
+      "pocketId": "held-items",
+      "description": "Restores HP during battle.",
+      "buyPrice": 2000,
+      "sellPrice": 1000,
+      "tags": [
+        "held-item"
+      ],
+      "heldEffectId": "leftovers"
+    },
+    {
+      "id": "lucky-charm",
+      "displayName": "Lucky Charm",
+      "pocketId": "items",
+      "description": "A project-defined passive collectible.",
+      "buyPrice": 400,
+      "sellPrice": 200,
+      "tags": [
+        "passive",
+        "custom"
+      ]
+    }
+  ]
+}

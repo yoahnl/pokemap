@@ -1,0 +1,15 @@
+{
+  "speciesId": "sproutle",
+  "startingMoves": [
+    "tackle",
+    "growl"
+  ],
+  "relearnMoves": [],
+  "levelUp": [],
+  "tm": [
+    {
+      "moveId": "protect"
+    }
+  ],
+  "hm": []
+}

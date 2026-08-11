@@ -1,0 +1,29 @@
+{
+  "id": "sproutle",
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 49,
+    "def": 49,
+    "spa": 65,
+    "spd": 65,
+    "spe": 45
+  },
+  "abilities": {
+    "primary": "overgrow",
+    "secondary": null,
+    "hidden": null
+  },
+  "progression": {
+    "growthRateId": "medium",
+    "baseExp": 64,
+    "catchRate": 45
+  },
+  "refs": {
+    "learnset": "sproutle"
+  }
+}

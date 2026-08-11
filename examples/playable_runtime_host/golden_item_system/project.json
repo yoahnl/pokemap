@@ -1,0 +1,238 @@
+{
+  "name": "Golden Item System",
+  "version": "v6",
+  "maps": [
+    {
+      "id": "golden_item_lab",
+      "name": "Golden Item Lab",
+      "relativePath": "maps/golden_item_lab.json",
+      "role": "interior",
+      "sortOrder": 0
+    }
+  ],
+  "tilesets": [],
+  "encounterTables": [
+    {
+      "id": "golden_item_encounter",
+      "name": "Golden Item Encounter",
+      "encounterKind": "walk",
+      "entries": [
+        {
+          "speciesId": "sparkitten",
+          "minLevel": 4,
+          "maxLevel": 4,
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "golden_item_pickup_flow",
+      "name": "Golden Ether Pickup",
+      "scope": "localEventFlow",
+      "entryNodeId": "golden_item_pickup_start",
+      "nodes": [
+        {
+          "id": "golden_item_pickup_start",
+          "type": "start"
+        },
+        {
+          "id": "golden_item_pickup_source",
+          "type": "reference",
+          "binding": {
+            "mapId": "golden_item_lab",
+            "entityId": "item_ether_pickup"
+          },
+          "payload": {
+            "actionKind": "sourceEntityInteract"
+          }
+        },
+        {
+          "id": "golden_item_pickup_give",
+          "type": "action",
+          "payload": {
+            "actionKind": "giveItem",
+            "params": {
+              "itemId": "ether",
+              "quantity": "1"
+            }
+          }
+        },
+        {
+          "id": "golden_item_pickup_flag",
+          "type": "action",
+          "binding": {
+            "flagName": "golden_item.pickup_collected"
+          },
+          "payload": {
+            "actionKind": "setFlag"
+          }
+        },
+        {
+          "id": "golden_item_pickup_step",
+          "type": "action",
+          "payload": {
+            "actionKind": "completeStep",
+            "params": {
+              "stepId": "golden_item.pickup"
+            }
+          }
+        },
+        {
+          "id": "golden_item_pickup_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "golden_item_pickup_source_give",
+          "fromNodeId": "golden_item_pickup_source",
+          "toNodeId": "golden_item_pickup_give"
+        },
+        {
+          "id": "golden_item_pickup_give_flag",
+          "fromNodeId": "golden_item_pickup_give",
+          "toNodeId": "golden_item_pickup_flag"
+        },
+        {
+          "id": "golden_item_pickup_flag_step",
+          "fromNodeId": "golden_item_pickup_flag",
+          "toNodeId": "golden_item_pickup_step"
+        },
+        {
+          "id": "golden_item_pickup_step_end",
+          "fromNodeId": "golden_item_pickup_step",
+          "toNodeId": "golden_item_pickup_end"
+        }
+      ]
+    }
+  ],
+  "shops": [
+    {
+      "id": "golden_item_shop",
+      "label": "Golden Item Shop",
+      "entries": [
+        {
+          "itemId": "potion",
+          "price": 300,
+          "sellPrice": 150
+        },
+        {
+          "itemId": "antidote",
+          "price": 100,
+          "sellPrice": 50
+        },
+        {
+          "itemId": "poke-ball",
+          "price": 200,
+          "sellPrice": 100
+        }
+      ]
+    }
+  ],
+  "trainers": [
+    {
+      "id": "golden_item_trainer",
+      "name": "Mira",
+      "trainerClass": "Researcher",
+      "battleDifficulty": 2,
+      "moneyReward": 240,
+      "rewardItemGrants": [
+        {
+          "itemId": "revive",
+          "quantity": 1
+        }
+      ],
+      "team": [
+        {
+          "speciesId": "sparkitten",
+          "level": 4,
+          "moves": [
+            "tackle",
+            "growl"
+          ]
+        }
+      ]
+    }
+  ],
+  "pokemon": {
+    "enabled": true,
+    "dataRoot": "data/pokemon",
+    "speciesDir": "data/pokemon/species",
+    "learnsetsDir": "data/pokemon/learnsets",
+    "evolutionsDir": "data/pokemon/evolutions",
+    "mediaDir": "data/pokemon/media",
+    "catalogFiles": {
+      "items": "data/pokemon/catalogs/items.json",
+      "moves": "data/pokemon/catalogs/moves.json"
+    }
+  },
+  "newGame": {
+    "enabled": true,
+    "startMapId": "golden_item_lab",
+    "startSpawnId": "spawn_item_lab",
+    "playerName": "Golden Item Player",
+    "startingMoney": 1000,
+    "initialBag": [
+      {
+        "itemId": "potion",
+        "quantity": 2
+      },
+      {
+        "itemId": "antidote",
+        "quantity": 1
+      },
+      {
+        "itemId": "ether",
+        "quantity": 1
+      },
+      {
+        "itemId": "poke-ball",
+        "quantity": 3
+      },
+      {
+        "itemId": "lab-key",
+        "quantity": 1
+      },
+      {
+        "itemId": "tm-protect",
+        "quantity": 1
+      },
+      {
+        "itemId": "leftovers",
+        "quantity": 1
+      },
+      {
+        "itemId": "lucky-charm",
+        "quantity": 1
+      }
+    ],
+    "initialParty": [
+      {
+        "speciesId": "sproutle",
+        "natureId": "hardy",
+        "abilityId": "overgrow",
+        "level": 5,
+        "knownMoveIds": [
+          "tackle",
+          "growl"
+        ],
+        "currentHp": 8,
+        "currentPpByMoveId": {
+          "tackle": 20,
+          "growl": 30
+        }
+      }
+    ],
+    "initialFacts": {},
+    "starterOptions": []
+  },
+  "settings": {
+    "tileWidth": 16,
+    "tileHeight": 16,
+    "displayScale": 2,
+    "defaultMapWidth": 6,
+    "defaultMapHeight": 4
+  }
+}
