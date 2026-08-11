@@ -50,6 +50,7 @@ class RuntimePsdkBattleItemApplyResult {
     required this.targetSpeciesId,
     required this.targetLineupIndex,
     required this.appliedAmount,
+    required this.consumptionReceipt,
   });
 
   final BattleSession updatedDisplaySession;
@@ -59,6 +60,7 @@ class RuntimePsdkBattleItemApplyResult {
   final String targetSpeciesId;
   final int targetLineupIndex;
   final int appliedAmount;
+  final ItemConsumptionReceipt consumptionReceipt;
 }
 
 enum RuntimeBattleItemEffectKind { healHp, cureStatus, revive, restorePp }
@@ -232,9 +234,6 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     return null;
   }
   final effect = capability.use!.effect;
-  if (!_hasMedicineAvailable(bag: gameState.bag, itemId: itemId)) {
-    return null;
-  }
 
   final party = psdkSession.state.psdkState.partyForBank(psdkPlayerSlot.bank);
   final targetPartyIndex = party.indexWhere(
@@ -250,6 +249,31 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     target: targetBefore,
   );
   if (battleEffect == null) {
+    return null;
+  }
+  final runtimePartyIndex = _runtimePartyIndexForLineup(
+    context: context,
+    targetLineupIndex: targetLineupIndex,
+  );
+  if (runtimePartyIndex == null) {
+    return null;
+  }
+  final projectedGameState = writePlayerBattleLineupBackToPartySlots(
+    gameState: gameState,
+    context: context,
+    battleState: displaySession.state,
+  );
+  final itemUseResult = PlayerItemUseService(snapshot: itemCatalog).use(
+    PlayerItemUseRequest(
+      state: projectedGameState,
+      itemId: itemId,
+      context: ProjectItemUseContext.battle,
+      partyIndex: runtimePartyIndex,
+      maxHp: targetBefore.maxHp,
+    ),
+  );
+  final consumptionReceipt = itemUseResult.consumptionReceipt;
+  if (!itemUseResult.isSuccess || consumptionReceipt == null) {
     return null;
   }
 
@@ -282,20 +306,14 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     allowFlee: displaySession.setup.allowFlee,
   );
   final withWriteBack = writePlayerBattleLineupBackToPartySlots(
-    gameState: gameState,
+    gameState: itemUseResult.state,
     context: context,
     battleState: updatedDisplaySession.state,
-  );
-  final updatedGameState = withWriteBack.copyWith(
-    bag: _consumeOneMedicineOrThrow(
-      bag: withWriteBack.bag,
-      itemId: itemId,
-    ),
   );
 
   return RuntimePsdkBattleItemApplyResult(
     updatedDisplaySession: updatedDisplaySession,
-    updatedGameState: updatedGameState,
+    updatedGameState: withWriteBack,
     itemId: itemId,
     effectKind: _runtimeEffectKind(effect),
     targetSpeciesId: targetAfter.speciesId,
@@ -304,7 +322,22 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
       0,
       targetAfter.maxHp,
     ),
+    consumptionReceipt: consumptionReceipt,
   );
+}
+
+int? _runtimePartyIndexForLineup({
+  required RuntimeActiveBattleContext context,
+  required int targetLineupIndex,
+}) {
+  final mapping = context.playerPartySlotIndicesByLineupIndex;
+  if (mapping.isEmpty) {
+    return targetLineupIndex == 0 ? context.playerPartyIndex : null;
+  }
+  if (targetLineupIndex < 0 || targetLineupIndex >= mapping.length) {
+    return null;
+  }
+  return mapping[targetLineupIndex];
 }
 
 RuntimeBattleBagHpHealItemApplyResult? _tryApplyRuntimeBattleBagHpHealItemUse({
@@ -468,39 +501,6 @@ Bag _consumeOneBagHpHealItemOrThrow({
   return Bag(entries: nextEntries).normalized();
 }
 
-bool _hasMedicineAvailable({
-  required Bag bag,
-  required String itemId,
-}) {
-  return bag.normalized().entries.any(
-        (entry) => entry.itemId == itemId && entry.quantity > 0,
-      );
-}
-
-Bag _consumeOneMedicineOrThrow({
-  required Bag bag,
-  required String itemId,
-}) {
-  final nextEntries = <BagEntry>[];
-  var consumed = false;
-  for (final entry in bag.normalized().entries) {
-    if (!consumed && entry.itemId == itemId) {
-      consumed = true;
-      if (entry.quantity > 1) {
-        nextEntries.add(entry.copyWith(quantity: entry.quantity - 1));
-      }
-    } else {
-      nextEntries.add(entry);
-    }
-  }
-  if (!consumed) {
-    throw StateError(
-      'Accepted battle item $itemId is absent from the medicine bag.',
-    );
-  }
-  return Bag(entries: nextEntries).normalized();
-}
-
 PsdkBattleItemActionEffect? _battleItemEffectFor({
   required ProjectItemEffectDefinition effect,
   required PsdkBattleCombatant target,
@@ -554,8 +554,7 @@ PsdkBattleStatusCureItemEffect? _statusCureEffectFor({
 bool _isSupportedBattleMedicineEffect(ProjectItemEffectDefinition effect) {
   return effect is ProjectItemHealHpEffectDefinition ||
       effect is ProjectItemCureStatusEffectDefinition ||
-      effect is ProjectItemReviveEffectDefinition ||
-      effect is ProjectItemRestorePpEffectDefinition;
+      effect is ProjectItemReviveEffectDefinition;
 }
 
 RuntimeBattleItemEffectKind _runtimeEffectKind(

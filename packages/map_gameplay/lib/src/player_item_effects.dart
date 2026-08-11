@@ -125,9 +125,8 @@ PlayerItemEffectApplication _applyHpHealing(
       PlayerItemUseFailure.noEffect,
     );
   }
-  final healedHp = mode == ProjectItemAmountMode.full
-      ? maxHp
-      : target.currentHp + amount!;
+  final healedHp =
+      mode == ProjectItemAmountMode.full ? maxHp : target.currentHp + amount!;
   return PlayerItemEffectApplication.applied(
     target.copyWith(currentHp: healedHp > maxHp ? maxHp : healedHp),
   );
@@ -144,13 +143,26 @@ PlayerItemEffectApplication _applyStatusCure(
       PlayerItemUseFailure.noEffect,
     );
   }
+  final canonicalStatusId = _canonicalItemStatusId(statusId);
   if (mode == ProjectItemStatusCureMode.listed &&
-      !statusIds.contains(statusId)) {
+      !statusIds.map(_canonicalItemStatusId).contains(canonicalStatusId)) {
     return const PlayerItemEffectApplication.failed(
       PlayerItemUseFailure.wrongTarget,
     );
   }
   return PlayerItemEffectApplication.applied(target.copyWith(statusId: ''));
+}
+
+String _canonicalItemStatusId(String statusId) {
+  return switch (statusId.trim()) {
+    'par' || 'paralyzed' => 'paralysis',
+    'brn' => 'burn',
+    'psn' => 'poison',
+    'tox' => 'badly-poisoned',
+    'slp' => 'sleep',
+    'frz' || 'frozen' => 'freeze',
+    final normalized => normalized,
+  };
 }
 
 PlayerItemEffectApplication _applyRevive(
@@ -197,9 +209,8 @@ PlayerItemEffectApplication _applyPpRestore(
       PlayerItemUseFailure.noEffect,
     );
   }
-  final restored = mode == ProjectItemAmountMode.full
-      ? maxPp
-      : currentPp + amount!;
+  final restored =
+      mode == ProjectItemAmountMode.full ? maxPp : currentPp + amount!;
   return PlayerItemEffectApplication.applied(
     target.copyWith(
       currentPpByMoveId: <String, int>{

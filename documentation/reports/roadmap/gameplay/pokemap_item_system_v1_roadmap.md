@@ -667,7 +667,7 @@ Résultat attendu : exit code 0 et All tests passed.
 
 ### ITM-031 — Objets génériques en combat
 
-- [ ] **Résultat :** FG-050 est réellement câblé du Bag au moteur battle.
+- [x] **Résultat :** FG-050 est réellement câblé du Bag au moteur battle.
 - **Fichiers à modifier :**
   - packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
   - packages/map_runtime/lib/src/presentation/flame/battle_medicine_target_menu_model.dart
@@ -679,6 +679,8 @@ Résultat attendu : exit code 0 et All tests passed.
   - packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
 - **Gate :** heal, cure et revive utilisent tous ItemUseResult et un seul receipt de consommation.
 - **Dépendances :** ITM-022 et ITM-030.
+
+**Preuves ITM-031 :** le runtime projette d'abord la lineup battle dans le `GameState`, puis délègue heal, cure et revive à `PlayerItemUseService`. Une réussite transporte exactement un `ItemConsumptionReceipt`, et le runtime exige en parallèle exactement un événement `item_consumed` concordant dans la timeline moteur avant le write-back. Trois objets synthétiques dans des pockets arbitraires prouvent le soin, la cure et le revive sans identifiant MVP codé en dur ; les no-effect restent atomiques. La restauration de PP, non encore câblée côté moteur battle, est honnêtement classée unsupported. Les suites ciblées terminent avec 5 tests `map_battle`, 8 tests `map_gameplay`, 29 tests de modèles/application runtime et 17 tests du flux wild réussis ; les analyses ciblées des trois packages ne remontent aucune issue.
 
 ### ITM-032 — Capture items génériques
 

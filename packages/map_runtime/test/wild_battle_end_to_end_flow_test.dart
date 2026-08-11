@@ -371,7 +371,7 @@ void main() {
         saveId: 'wild-flow-psdk-capture-save',
         bag: Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+            BagEntry(itemId: 'poke-ball', quantity: 2),
           ],
         ),
         party: PlayerParty(
@@ -473,7 +473,7 @@ void main() {
         saveId: 'wild-flow-psdk-potion-save',
         bag: Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         party: PlayerParty(
@@ -721,7 +721,7 @@ void main() {
         updatedState.bag.entries,
         equals(
           const <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            BagEntry(itemId: 'poke-ball', quantity: 1),
           ],
         ),
       );
@@ -779,6 +779,9 @@ void main() {
       final overlay = BattleOverlayComponent(
         session: session,
         gameState: stateWithSeen,
+        itemCapabilityResolver: ItemCapabilityResolver(
+          ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+        ),
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
@@ -826,7 +829,7 @@ void main() {
         snapshot.bag.entries,
         equals(
           const <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            BagEntry(itemId: 'poke-ball', quantity: 1),
           ],
         ),
       );
@@ -928,6 +931,9 @@ void main() {
       final overlay = BattleOverlayComponent(
         session: createBattleSession(setup),
         gameState: fullPartyState,
+        itemCapabilityResolver: ItemCapabilityResolver(
+          ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+        ),
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
@@ -978,7 +984,7 @@ void main() {
         saveId: 'wild-flow-potion-save',
         bag: Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         party: PlayerParty(
@@ -1091,7 +1097,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'super-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -1206,7 +1211,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'hyper-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -1321,7 +1325,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'max-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -1561,7 +1564,7 @@ Future<void> _acknowledgePostBattleAndWaitForOverworld(
 GameState _playerState({
   Bag bag = const Bag(
     entries: <BagEntry>[
-      BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+      BagEntry(itemId: 'poke-ball', quantity: 2),
     ],
   ),
 }) {
@@ -1673,6 +1676,7 @@ Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
       mediaDir: 'data/pokemon/media',
       catalogFiles: <String, String>{
         'moves': 'data/pokemon/catalogs/moves.json',
+        'items': 'data/pokemon/catalogs/items.json',
       },
     ),
   );
@@ -1856,6 +1860,11 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         ),
       ],
     },
+  );
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'data/pokemon/catalogs/items.json',
+    mvpItemCatalog.toJson(),
   );
 }
 
