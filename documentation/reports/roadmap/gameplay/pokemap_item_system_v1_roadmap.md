@@ -534,7 +534,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-022 — PlayerItemUseService
 
-- [ ] **Résultat :** remplacer PlayerItemOperations par un service fondé sur ItemCatalogSnapshot.
+- [x] **Résultat :** remplacer PlayerItemOperations par un service fondé sur ItemCatalogSnapshot.
 - **Fichiers à créer :**
   - packages/map_gameplay/lib/src/items/item_catalog_snapshot.dart
   - packages/map_gameplay/lib/src/items/item_capability_resolver.dart
@@ -555,6 +555,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
   - receipt de consommation exact.
 - **Gate :** le service ne lit ni catégorie, ni fichier, ni dépendance Flutter.
 - **Dépendances :** ITM-012 et ITM-021.
+
+**Preuves ITM-022 :** les 19 tests cumulés du snapshot, du catalogue MVP, de `BagOperations` et du nouveau service passent ; l'analyse ciblée des six fichiers source/test est sans issue. `PlayerItemUseService` résout la définition et le contexte via `ItemCatalogSnapshot` et `ItemCapabilityResolver`, applique les heals plats/complets, cures listées/globales, revive et PP ciblés, puis consomme atomiquement selon la policy canonique. Les mauvaises cibles, contextes absents, no-effect, définitions inconnues et stocks insuffisants conservent l'état original et n'émettent aucun receipt. Une recherche ciblée confirme l'absence de `categoryId`, `dart:io`, Flutter, `PlayerItemEffectRegistry` et `PlayerItemOperations` dans le nouveau chemin.
 
 ### ITM-023 — Version gate de sauvegarde et diagnostic de rupture
 

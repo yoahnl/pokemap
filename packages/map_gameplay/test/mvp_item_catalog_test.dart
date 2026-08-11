@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
-import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_gameplay/src/items/item_capability_resolver.dart';
+import 'package:map_gameplay/src/items/item_catalog_snapshot.dart';
+import 'package:map_gameplay/src/items/mvp_item_catalog.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -77,23 +79,24 @@ void main() {
       );
     });
 
-    test('projects the legacy overworld registry from canonical definitions',
-        () {
-      const registry = PlayerItemEffectRegistry.mvp();
+    test('resolves canonical definitions without a projected registry', () {
+      final snapshot = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
+      final resolver = ItemCapabilityResolver(snapshot);
 
-      expect(registry.effects.keys.toSet(), {
+      expect(snapshot.definitions.map((item) => item.id).toSet(), {
         for (final item in mvpItemCatalog.entries) item.id,
       });
-      expect(registry.effectFor('potion')?.amount, 20);
-      expect(registry.effectFor('hyper-potion')?.amount, 120);
-      expect(registry.effectFor('max-potion')?.amount, 0x7fffffff);
-      expect(registry.effectFor('full-heal')?.curesAnyStatus, isTrue);
-      expect(registry.effectFor('revive')?.revivePercent, 50);
-      expect(registry.effectFor('max-ether')?.amount, 0x7fffffff);
-      expect(registry.effectFor('poke-ball')?.ballMultiplier, 1);
+      expect(snapshot.definitionFor('poke-ball')?.capture?.rateNumerator, 1);
+      expect(snapshot.definitionFor('key-item')?.tags, contains('key-item'));
       expect(
-        registry.effectFor('key-item')?.kind,
-        PlayerItemEffectKind.keyItem,
+        resolver
+            .resolveUse(
+              itemId: 'potion',
+              context: ProjectItemUseContext.overworld,
+            )
+            .use
+            ?.effect,
+        _flatHp(20),
       );
     });
   });
