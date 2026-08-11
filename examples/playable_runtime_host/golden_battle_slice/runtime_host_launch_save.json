@@ -1,4 +1,5 @@
 {
+  "itemSystemSchemaVersion": 1,
   "saveId": "phase-a-golden-slice",
   "currentMapId": "golden_field",
   "playerPosition": {
@@ -49,7 +50,6 @@
     "entries": [
       {
         "itemId": "poke-ball",
-        "categoryId": "items",
         "quantity": 2
       }
     ]

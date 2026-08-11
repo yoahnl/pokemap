@@ -4,6 +4,23 @@ import 'package:test/test.dart';
 
 void main() {
   const mutations = GameStateMutations();
+  final itemCatalog = ItemCatalogSnapshot.fromCatalog(
+    const ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: <ProjectItemDefinition>[
+        ProjectItemDefinition(
+          id: 'potion',
+          displayName: 'Potion',
+          pocketId: 'medicine',
+        ),
+        ProjectItemDefinition(
+          id: 'revive',
+          displayName: 'Revive',
+          pocketId: 'medicine',
+        ),
+      ],
+    ),
+  );
 
   PlayerPokemon pokemon({
     String speciesId = 'p5_reward_species',
@@ -34,7 +51,7 @@ void main() {
       party: PlayerParty(members: members),
       bag: const Bag(
         entries: [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'potion', quantity: 2),
         ],
       ),
       storyFlags: StoryFlags(activeFlags: storyFlags),
@@ -169,6 +186,7 @@ void main() {
           badgeId: 'p5_roundtrip_badge',
           fieldAbilityUnlock: FieldAbility.surf,
         ),
+        itemCatalog: itemCatalog,
       );
       final saveData = saveDataFromGameState(rewarded);
       final reloaded =
@@ -191,6 +209,40 @@ void main() {
         contains(FieldAbility.surf),
       );
       expect(reloaded.metadata, state.metadata);
+    });
+
+    test('rejects an unknown item before applying any reward', () {
+      final state = rewardState(money: 25);
+
+      expect(
+        () => mutations.applyBattleRewards(
+          state,
+          reward: BattleReward(
+            sourceKind: BattleRewardSourceKind.trainer,
+            trainerId: 'p5_atomic_trainer',
+            money: 75,
+            itemGrants: const <BattleRewardItemGrant>[
+              BattleRewardItemGrant(itemId: 'revive', quantity: 1),
+              BattleRewardItemGrant(itemId: 'missing_reward', quantity: 1),
+            ],
+            flagIds: const <String>{'trainer_defeated:p5_atomic_trainer'},
+          ),
+          itemCatalog: itemCatalog,
+        ),
+        throwsA(
+          isA<BattleRewardApplicationException>()
+              .having(
+                (error) => error.failure,
+                'failure',
+                BattleRewardApplicationFailure.unknownItem,
+              )
+              .having((error) => error.itemId, 'itemId', 'missing_reward'),
+        ),
+      );
+      expect(state.trainerProfile.money, 25);
+      expect(state.bag.entries, hasLength(1));
+      expect(state.bag.entries.single.itemId, 'potion');
+      expect(state.storyFlags.activeFlags, isEmpty);
     });
 
     test('does not hardcode any Selbrume ids', () {

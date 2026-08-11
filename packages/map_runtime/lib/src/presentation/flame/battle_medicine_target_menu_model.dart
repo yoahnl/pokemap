@@ -1,5 +1,5 @@
 import 'package:map_battle/map_battle.dart';
-import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_core/map_core.dart';
 
 enum BattleMedicineTargetDisabledReason {
   fainted,
@@ -40,14 +40,14 @@ class BattleMedicineTargetEntry {
 class BattleMedicineTargetMenuModel {
   const BattleMedicineTargetMenuModel({
     required this.itemId,
-    required this.categoryId,
+    required this.displayName,
     required this.activeEntry,
     required this.reserveEntries,
     required this.entries,
   });
 
   final String itemId;
-  final String categoryId;
+  final String displayName;
   final BattleMedicineTargetEntry activeEntry;
   final List<BattleMedicineTargetEntry> reserveEntries;
   final List<BattleMedicineTargetEntry> entries;
@@ -61,13 +61,12 @@ class BattleMedicineTargetMenuModel {
 BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
   required BattleSession session,
   required String itemId,
-  required String categoryId,
+  required String displayName,
+  required ProjectItemUseDefinition use,
   bool Function(BattleCombatant combatant)? isTargetAllowed,
-  PlayerItemEffectRegistry registry = const PlayerItemEffectRegistry.mvp(),
 }) {
   final allowsTargeting = session.decisionRequest is BattleTurnChoiceRequest;
   final allowsCombatant = isTargetAllowed ?? (_) => true;
-  final effect = registry.effectFor(itemId);
 
   BattleMedicineTargetEntry buildEntry({
     required int visualIndex,
@@ -79,7 +78,7 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
     final targetAllowed = allowsCombatant(combatant);
     final effectDisabledReason = _effectDisabledReason(
       combatant: combatant,
-      effect: effect,
+      effect: use.effect,
     );
     final isSelectable =
         allowsTargeting && targetAllowed && effectDisabledReason == null;
@@ -123,7 +122,7 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
 
   return BattleMedicineTargetMenuModel(
     itemId: itemId,
-    categoryId: categoryId,
+    displayName: displayName,
     activeEntry: activeEntry,
     reserveEntries: List<BattleMedicineTargetEntry>.unmodifiable(
       reserveEntries,
@@ -136,40 +135,38 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
 
 BattleMedicineTargetDisabledReason? _effectDisabledReason({
   required BattleCombatant combatant,
-  required PlayerItemEffectDefinition? effect,
+  required ProjectItemEffectDefinition effect,
 }) {
-  if (effect == null) {
-    return BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest;
-  }
-  return switch (effect.kind) {
-    PlayerItemEffectKind.healHp => combatant.isFainted
+  return switch (effect) {
+    ProjectItemHealHpEffectDefinition() => combatant.isFainted
         ? BattleMedicineTargetDisabledReason.fainted
         : combatant.currentHp >= combatant.maxHp
             ? BattleMedicineTargetDisabledReason.fullHp
             : null,
-    PlayerItemEffectKind.cureStatus => combatant.isFainted
+    ProjectItemCureStatusEffectDefinition() => combatant.isFainted
         ? BattleMedicineTargetDisabledReason.fainted
         : _effectCuresStatus(effect, combatant.majorStatus)
             ? null
             : BattleMedicineTargetDisabledReason.noCompatibleStatus,
-    PlayerItemEffectKind.revive => combatant.isFainted
+    ProjectItemReviveEffectDefinition() => combatant.isFainted
         ? null
         : BattleMedicineTargetDisabledReason.notFainted,
-    PlayerItemEffectKind.restorePp ||
-    PlayerItemEffectKind.keyItem ||
-    PlayerItemEffectKind.ballMetadata =>
+    ProjectItemRestorePpEffectDefinition() ||
+    ProjectItemRepelEffectDefinition() ||
+    ProjectItemSemanticActionEffectDefinition() =>
       BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest,
+    _ => BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest,
   };
 }
 
 bool _effectCuresStatus(
-  PlayerItemEffectDefinition effect,
+  ProjectItemCureStatusEffectDefinition effect,
   BattleMajorStatusState? status,
 ) {
   if (status == null) {
     return false;
   }
-  if (effect.curesAnyStatus) {
+  if (effect.mode == ProjectItemStatusCureMode.all) {
     return true;
   }
   return _gameplayStatusIds(status.id).any(effect.statusIds.contains);

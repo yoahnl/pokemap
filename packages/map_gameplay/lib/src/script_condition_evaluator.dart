@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'items/bag_operations.dart';
+
 /// Évaluateur pur de conditions de script.
 ///
 /// Prend un [GameState] et un contexte optionnel,
@@ -9,6 +11,8 @@ import 'package:map_core/map_core.dart';
 /// Totalement testable et déterministe.
 class ScriptConditionEvaluator {
   const ScriptConditionEvaluator();
+
+  static const _bagOperations = BagOperations();
 
   /// Évalue une condition contre un état de partie.
   bool evaluate(
@@ -228,13 +232,7 @@ class ScriptConditionEvaluator {
     if (!_isCanonicalId(itemId) || quantity == null) {
       return false;
     }
-    var available = 0;
-    for (final entry in state.bag.entries) {
-      if (entry.itemId == itemId) {
-        available += entry.quantity;
-      }
-    }
-    return available >= quantity;
+    return _bagOperations.quantityOf(state.bag, itemId!) >= quantity;
   }
 
   bool _evaluateMoneyAtLeast(

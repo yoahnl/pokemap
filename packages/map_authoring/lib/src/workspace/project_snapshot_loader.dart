@@ -82,6 +82,9 @@ final class ProjectSnapshotDecodeExecutor {
   Future<AssetCatalog> decodeAssetCatalog(List<int> bytes) =>
       _execute(bytes, _decodeAssetCatalog);
 
+  Future<ProjectItemCatalog> decodeItemCatalog(List<int> bytes) =>
+      _execute(bytes, _decodeItemCatalog);
+
   Future<T> _execute<T>(
     List<int> bytes,
     T Function(List<int>) decode,
@@ -225,6 +228,7 @@ final class ProjectSnapshotLoader {
       ),
     ];
     final maps = <MapData>[];
+    ProjectItemCatalog? itemCatalog;
     final loadDiagnostics = <ProjectSnapshotLoadDiagnostic>[];
     profiler?.recordDecodeModel(manifestDecodeTimer!);
 
@@ -264,10 +268,62 @@ final class ProjectSnapshotLoader {
       profiler?.recordDecodeModel(mapDecodeTimer!);
     }
 
-    final dialogueValidationTimer = profiler?.startStage();
     final occupiedPaths = <String>{
       for (final resource in resources) resource.relativePath,
     };
+    final itemCatalogPath = manifest.pokemon.catalogFiles['items'];
+    if (manifest.pokemon.enabled && itemCatalogPath != null) {
+      final normalizedItemCatalogPath =
+          validateProjectRelativePath(itemCatalogPath).join('/');
+      if (!occupiedPaths.add(normalizedItemCatalogPath)) {
+        throw const ProjectSnapshotException(
+          'project.resource_path_conflict',
+          'Two project resources resolve to the same storage path.',
+        );
+      }
+      final itemCatalogReadTimer = profiler?.startStage();
+      final itemCatalogBytes = await _readOptional(
+        access,
+        normalizedItemCatalogPath,
+      );
+      profiler?.recordInitialRead(itemCatalogReadTimer!);
+      if (itemCatalogBytes == null) {
+        final references = buildProjectItemReferenceIndex(
+          project: manifest,
+          maps: maps,
+        ).references;
+        if (policy == ProjectSnapshotLoadPolicy.strict &&
+            references.isNotEmpty) {
+          throw const ProjectSnapshotException(
+            'project.item_catalog_missing',
+            'The project references items but its canonical item catalog is missing.',
+          );
+        }
+        if (references.isNotEmpty) {
+          loadDiagnostics.add(
+            ProjectSnapshotLoadDiagnostic(
+              code: 'project.item_catalog_missing',
+              resourceKind: 'itemCatalog',
+              resourceId: 'items',
+            ),
+          );
+        }
+      } else {
+        final itemCatalogDecodeTimer = profiler?.startStage();
+        itemCatalog = await _decodeExecutor.decodeItemCatalog(
+          itemCatalogBytes.bytes,
+        );
+        resources.add(
+          _LoadedProjectResource(
+            relativePath: normalizedItemCatalogPath,
+            identity: itemCatalogResourceIdentity,
+            bytes: itemCatalogBytes,
+          ),
+        );
+        profiler?.recordDecodeModel(itemCatalogDecodeTimer!);
+      }
+    }
+    final dialogueValidationTimer = profiler?.startStage();
     final dialogueEntries = _validatedDialogueEntries(manifest.dialogues);
     profiler?.recordDecodeModel(dialogueValidationTimer!);
 
@@ -461,6 +517,7 @@ final class ProjectSnapshotLoader {
       revision: revision,
       manifest: manifest,
       maps: maps,
+      itemCatalog: itemCatalog,
       resourceFingerprints: resourceFingerprints,
       ownedResourceBytes: {
         for (final resource in resources) resource.identity: resource.bytes,
@@ -590,6 +647,19 @@ AssetCatalog _decodeAssetCatalog(List<int> bytes) {
     throw const ProjectSnapshotException(
       'project.asset_catalog_invalid',
       'The project asset catalog is invalid.',
+    );
+  }
+}
+
+ProjectItemCatalog _decodeItemCatalog(List<int> bytes) {
+  try {
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is! Map) throw const FormatException();
+    return decodeProjectItemCatalog(Map<String, dynamic>.from(decoded));
+  } on Object {
+    throw const ProjectSnapshotException(
+      'project.item_catalog_invalid',
+      'The project item catalog is invalid.',
     );
   }
 }

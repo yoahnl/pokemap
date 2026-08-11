@@ -124,12 +124,13 @@ lot ou de phase :
    encore ouvert, sinon produire une modification documentaire distincte.
 ```
 
-Dernère mise à jour : **2026-07-23** — phase MVP 3, services joueur.
-`FG-026`, `FG-027`, `FG-028`, `FG-061`, `FG-062` et `FG-070` sont fermés par
-les UI Party/Bag/shop et leur transaction runtime + sauvegarde. `FG-029` reste
-partiel faute d'accès Summary depuis le PC ; `FG-071` reste partiel jusqu'à la
-commande Scene `HealParty`. Les commits de preuve sont `12a8af78`, `f44ab359`
-et celui du lot 3.5 créé avec cette mise à jour.
+Dernière mise à jour : **2026-08-11** — recertification Item System V1, ITM-074.
+`FG-050`, `FG-060` à `FG-064`, `FG-067`, `FG-069`, `FG-070` et `FG-074` à
+`FG-078` sont recertifiés sur les contrats canoniques stricts. `FG-072` et
+`FG-073` restent partiels faute de parcours joueur complet, `FG-079` redevient
+partiel tant que la fixture Selbrume V2 est refusée par le runtime V6, et
+`FG-068` reste ouvert. `FG-065` et `FG-066` conservent leur décision produit
+DEFERRED ; la capture par Poké Ball minimale est néanmoins prouvée.
 
 ---
 
@@ -256,8 +257,8 @@ Le MVP est atteint quand un créateur peut faire ceci dans PokeMap :
 | 3 | Rewards combat + argent + badges | Les trainers ne structurent pas encore l’aventure | `✅ DONE` pour le contrat et l’application post-combat MVP |
 | 4 | Event command catalog | Sans actions no-code, l’éditeur reste trop technique | `⬜ TODO` |
 | 5 | Field moves hors Surf | Sans gates environnementaux, la progression map est plate | `⬜ TODO` |
-| 6 | Shops / heal center / pickups | Sans économie et recovery, le jeu ne vit pas | `🟡 PARTIAL` — shop et soin menu fermés ; pickups et commande Scene heal restent ouverts |
-| 7 | Battle write-back complet | PP/status/held items doivent survivre au combat | `🟡 PARTIAL` : HP/PP/status/progression fermés ; mutation held item non ouverte |
+| 6 | Shops / heal center / pickups | Sans économie et recovery, le jeu ne vit pas | `🟡 PARTIAL` — shop, soin menu et pickup visible fermés ; hidden item et commande Scene heal restent ouverts |
+| 7 | Battle write-back complet | PP/status/held items doivent survivre au combat | `🟡 PARTIAL` : HP/PP/status/progression et bridge held fermés ; contrôles joueur equip/unequip absents |
 | 8 | Encounter types élargis | Statics, gifts, fishing, headbutt donnent la vraie saveur Pokémon | `⬜ TODO` |
 | 9 | Runtime menus | Pause, party, bag, Pokédex, options sont indispensables | `🟡 PARTIAL` — pause, Party, Bag, Pokédex, options, shop, PC et soin prouvés |
 | 10 | Validation jeu jouable | Le créateur doit savoir si son projet est cassé avant le runtime | `⬜ TODO` |
@@ -271,8 +272,8 @@ Le MVP est atteint quand un créateur peut faire ceci dans PokeMap :
 | Phase 0 | FG-000 → FG-009 | Audit et contrats de suivi | Aucun | `⬜ TODO` |
 | Phase 1 | FG-010 → FG-019 | New Game, starter, save/load, pause shell | Phase 0 | `⬜ TODO` |
 | Phase 2 | FG-020 → FG-039 | Party, PC, capture crédible | Phase 1 | `🟡 PARTIAL` — 10/11 lots fermés, FG-029 partiel |
-| Phase 3 | FG-040 → FG-059 | Battle persistence, rewards, XP, level-up, évolutions | Phase 2 | `🟡 PARTIAL` — FG-040 à FG-049 et FG-051 fermés |
-| Phase 4 | FG-060 → FG-079 | Bag, items, shops, centre Pokémon | Phase 2 | `🟡 PARTIAL` — FG-060/061/062/063/069/070 fermés ; FG-071 partiel |
+| Phase 3 | FG-040 → FG-059 | Battle persistence, rewards, XP, level-up, évolutions | Phase 2 | `🟡 PARTIAL` — FG-040 à FG-051 fermés ; FG-052/053 ouverts |
+| Phase 4 | FG-060 → FG-079 | Bag, items, shops, centre Pokémon | Phase 2 | `🟡 PARTIAL` — FG-060 à FG-064, FG-067, FG-069/070 et FG-074 à FG-078 fermés ; FG-071/072/073/079 partiels, FG-068 ouvert |
 | Phase 5 | FG-080 → FG-099 | Event commands no-code | Phases 1–4 selon commandes | `⬜ TODO` |
 | Phase 6 | FG-100 → FG-119 | Encounters élargis | Phases 2, 5 | `⬜ TODO` |
 | Phase 7 | FG-120 → FG-139 | Field moves / environmental gates | Phases 2, 5 | `⬜ TODO` |
@@ -728,7 +729,7 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 | FG-047 | Evolution Check V0 | `✅ DONE` | Évolution niveau, acceptation/refus et préservation d’état, `ce8812bdb` |
 | FG-048 | Post-battle Reward Presentation V0 | `✅ DONE` | Queue ordonnée et overlay décisionnel transactionnel, `c410ac59c` |
 | FG-049 | Capture Formula V0 | `✅ DONE` | Formule HP/ball/status à RNG injecté, `ae187f67b` |
-| FG-050 | Generic Battle Item Handling V0 | `⬜ TODO` | — |
+| FG-050 | Generic Battle Item Handling V0 | `✅ DONE` | Effets combat génériques, consommation atomique et capture canonique ; Golden Item System + 9 tests runtime ciblés, ITM-074 |
 | FG-051 | Trainer Rewards / Money / Badges V0 | `✅ DONE` | Récompenses différées, idempotence trainer et messages, `f07362f0b` + `c410ac59c` |
 | FG-052 | Switch/Faint Replacement UX Hardening | `⬜ TODO` | — |
 | FG-053 | Battle Parity Target Document | `⬜ TODO` | — |
@@ -878,10 +879,10 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 ### DoD
 
 ```md
-- [ ] Registry d’effets battle item.
-- [ ] Potion, status cure, revive si supportés.
-- [ ] Poké Ball reste cohérente avec capture formula.
-- [ ] Consommation item unique et testée.
+- [x] Résolution canonique des effets battle item.
+- [x] Potion, status cure et revive supportés.
+- [x] Poké Ball cohérente avec capture formula.
+- [x] Consommation item unique et testée.
 ```
 
 ## FG-051 — Trainer Rewards / Money / Badges V0
@@ -939,26 +940,26 @@ FG-* ci-dessous.
 
 | ID | Lot | Statut | Preuve |
 |---|---|---|---|
-| FG-060 | Item Use Effect Registry V0 | `✅ DONE` | Registry pur HP/statut/revive/PP/key item/Ball et erreurs typées ; lot 3.2 |
-| FG-061 | Overworld Bag Menu V0 | `✅ DONE` | Catégories, quantités, utilisabilité et action joueur testées ; lot 3.3 |
-| FG-062 | Medicine Outside Battle V0 | `✅ DONE` | Picker item/cible, consommation exacte et transaction sauvegardée ; lots 3.2–3.5 |
-| FG-063 | Status Cure / Revive V0 | `✅ DONE` | Antidote, réveil, anti-para, burn/ice/full heal et revive testés ; lot 3.2 |
-| FG-064 | Key Item Gates V0 | `⬜ TODO` | — |
+| FG-060 | Item Use Effect Registry V0 | `✅ DONE` | Catalogue strict, resolver et service purs HP/statut/revive/PP/key item/Ball ; 468 tests gameplay, ITM-074 |
+| FG-061 | Overworld Bag Menu V0 | `✅ DONE` | Pockets, quantités, utilisabilité et action joueur ; 218 tests `map_player_ui`, ITM-074 |
+| FG-062 | Medicine Outside Battle V0 | `✅ DONE` | Cible, consommation exacte, sauvegarde et Golden Item System, ITM-074 |
+| FG-063 | Status Cure / Revive V0 | `✅ DONE` | Cure et revive transactionnels en gameplay/runtime et Golden Item System, ITM-074 |
+| FG-064 | Key Item Gates V0 | `✅ DONE` | Condition directe sur le Bag, non-consommation et save/reload ; 43 gameplay + 41 runtime ciblés, ITM-074 |
 | FG-065 | Repel V0 | `⏸ DEFERRED` | Hors MVP signé le 2026-07-22. |
 | FG-066 | Poké Ball Families V0 | `⏸ DEFERRED` | Familles complètes hors MVP ; une Poké Ball minimale reste requise. |
-| FG-067 | Item Pickup Event V0 | `⬜ TODO` | — |
+| FG-067 | Item Pickup Event V0 | `✅ DONE` | Entité item jouable, scénario idempotent, masquage et save/reload ; 41 runtime ciblés + Golden Item System, ITM-074 |
 | FG-068 | Hidden Item Event V0 | `⬜ TODO` | — |
 | FG-069 | Shop Model V0 | `✅ DONE` | Shops persistants, prix/stock et validation catalogue ; lot 3.1, Core 4381/4381 |
 | FG-070 | Shop Runtime V0 | `✅ DONE` | Prix/stock/argent/quantité, UI et transaction sauvegardée ; lots 3.2–3.5 |
 | FG-071 | Heal Center Flow V0 | `🟡 PARTIAL` | Soin complet menu + sauvegarde livré ; commande Scene `HealParty` encore absente |
-| FG-072 | Held Item Operations V0 | `⬜ TODO` | — |
-| FG-073 | TM/HM Item Support V0 | `⬜ TODO` | — |
+| FG-072 | Held Item Operations V0 | `🟡 PARTIAL` | Equip/swap/unequip atomiques et save/load prouvés ; aucun contrôle equip/unequip dans `map_player_ui`, ITM-074 |
+| FG-073 | TM/HM Item Support V0 | `🟡 PARTIAL` | TM joueur et politiques HM pures prouvées ; aucun parcours joueur HM bout en bout, ITM-074 |
 | FG-074 | Shop State Model & Compatibility V0 | `✅ DONE` | Modèle versionné, compatibilité catalogue statique et round-trip JSON ; `22797f4b0` |
 | FG-075 | Shop State Resolver & Stock V0 | `✅ DONE` | Résolution prioritaire pure, contexte de progression et stock isolé par état ; `c46dfcf4d` |
 | FG-076 | Dynamic Shop Runtime V0 | `✅ DONE` | Ouverture sur profil résolu, revalidation transactionnelle et fermeture authored ; `f59770e8f` |
 | FG-077 | Dynamic Shop No-Code Builder V0 | `✅ DONE` | Builder quatre zones, catalogue, conditions guidées et inspecteur ; `4a766eb97` |
 | FG-078 | Shop State Validator & Simulator V0 | `✅ DONE` | Diagnostics, simulation d'états et prévention des configurations ambiguës ; `c81d8d04c` |
-| FG-079 | Selbrume Dynamic Shop Golden Slice V0 | `✅ DONE` | Quatre profils Selbrume, achats exacts, fermeture, save/load, vérificateur MVP-16 et QA visuelle ; rapport FG-079 |
+| FG-079 | Selbrume Dynamic Shop Golden Slice V0 | `🟡 PARTIAL` | Preuve historique conservée, mais le test frais est bloqué par `expected=v6, actual=v2` ; ITM-074 |
 
 ## FG-060 — Item Use Effect Registry V0
 
@@ -967,8 +968,9 @@ FG-* ci-dessous.
 ### DoD
 
 ```md
-- [x] Registry pur testable.
+- [x] Resolver et service canoniques purs testables.
 - [x] Effets : heal HP, cure status, revive, key item no-op/trigger, ball metadata.
+- [x] Restauration PP hors combat.
 - [x] Erreurs : item inconnu, mauvaise cible, quantité insuffisante.
 - [x] Pas d’UI.
 ```
@@ -980,7 +982,7 @@ FG-* ci-dessous.
 ### DoD
 
 ```md
-- [x] Catégories affichées.
+- [x] Pockets canoniques affichés.
 - [x] Quantités affichées.
 - [x] Action utiliser disponible ; jeter n'est pas retenu dans le MVP.
 - [x] Items non utilisables indiqués clairement.
@@ -1019,9 +1021,9 @@ FG-* ci-dessous.
 ### DoD
 
 ```md
-- [ ] Key items représentés dans bag.
-- [ ] Conditions scripts peuvent vérifier présence.
-- [ ] Pas de consommation par défaut.
+- [x] Key items représentés dans bag.
+- [x] Conditions scripts peuvent vérifier présence.
+- [x] Pas de consommation par défaut.
 ```
 
 ## FG-065 — Repel V0
@@ -1056,10 +1058,10 @@ FG-* ci-dessous.
 ### DoD
 
 ```md
-- [ ] Commande ajoute item au bag.
-- [ ] Event consommé après pickup.
-- [ ] Objet disparaît ou devient inactif.
-- [ ] Tests save/reload : pas de duplication.
+- [x] Commande ajoute item au bag.
+- [x] Event consommé après pickup.
+- [x] Objet disparaît ou devient inactif.
+- [x] Tests save/reload : pas de duplication.
 ```
 
 ## FG-068 — Hidden Item Event V0
@@ -1097,7 +1099,7 @@ FG-* ci-dessous.
 ```md
 - [x] Hook shop accessible depuis le menu pause runtime.
 - [x] Buy vérifie argent et stock.
-- [x] Sell non autorisé par le modèle MVP ; aucun faux parcours exposé.
+- [x] Sell vérifie quantité, prix authored, sellability et key items.
 - [x] Money mutations testées.
 ```
 
@@ -1122,8 +1124,8 @@ FG-* ci-dessous.
 
 ```md
 - [ ] Give/take held item depuis party summary ou bag.
-- [ ] Bag quantity mise à jour.
-- [ ] Held item persiste save/load.
+- [x] Bag quantity mise à jour.
+- [x] Held item persiste save/load.
 ```
 
 ## FG-073 — TM/HM Item Support V0
@@ -1133,10 +1135,11 @@ FG-* ci-dessous.
 ### DoD
 
 ```md
-- [ ] Vérifie compatibilité Pokémon/move.
-- [ ] Gère 4 moves max.
-- [ ] HM/key move policy documentée.
-- [ ] FieldAbility unlock ne dépend pas naïvement du simple move si badge requis.
+- [x] Vérifie compatibilité Pokémon/move.
+- [x] Gère 4 moves max.
+- [x] HM/key move policy documentée.
+- [x] FieldAbility unlock ne dépend pas naïvement du simple move si badge requis.
+- [ ] Parcours joueur HM complet prouvé de la sélection à la non-consommation.
 ```
 
 ## FG-074 à FG-079 — Dynamic Shop State Builder V0
@@ -1154,15 +1157,58 @@ jeu, sans code ni identifiants de progression parallèles.
 - [x] Le stock reste isolé par profil et persiste après sauvegarde/chargement.
 - [x] Le Narrative Studio fournit un builder no-code, des diagnostics et un
       simulateur de progression.
-- [x] Selbrume prouve les états default, after-lysa, lighthouse-alert et
+- [ ] Selbrume prouve les états default, after-lysa, lighthouse-alert et
       story-finished dans le parcours joueur.
-- [x] La preuve inclut achats, argent, inventaire, stock, fermeture authored,
+- [ ] La preuve fraîche inclut achats, argent, inventaire, stock, fermeture authored,
       save/load et capture réelle du Shop Builder.
 ```
 
-**Limite de clôture :** les échecs globaux historiques du validateur narratif
-Selbrume et les doublons de source Lysa restent suivis séparément ; ils ne sont
-pas introduits par le modèle ou le runtime de boutique dynamique.
+**Limite de clôture :** FG-074 à FG-078 restent DONE sur leurs preuves
+synthétiques ciblées. FG-079 est PARTIAL : `selbrume_dynamic_shop_e2e_test.dart`
+échoue au chargement avec `smart_tile_v6_project_required (expected=v6,
+actual=v2)`, avant toute transaction de boutique. Les dettes narratives
+Selbrume restent suivies séparément.
+
+### Recertification Item System V1 — ITM-074
+
+| FG | Statut recertifié | Preuve fraîche et limite |
+|---|---|---|
+| FG-050 | `✅ DONE` | `runtime_generic_battle_items_v0_test.dart` couvre heal, cure, revive, no-effect et consommation générique ; 9/9. `golden_item_system_flow_test.dart` couvre Potion combat et capture déterministe. |
+| FG-060 | `✅ DONE` | `mvp_item_catalog_test.dart`, `player_item_use_service_test.dart` et la suite gameplay complète passent, 468/468. Ether est volontairement overworld-only tant que le runtime combat ne supporte pas `restore_pp`. |
+| FG-061 | `✅ DONE` | `runtime_pause_bag_item_service_test.dart` est vert dans les 41 tests runtime ciblés ; `map_player_ui` passe 218/218 avec les états `usable` et `passive`. |
+| FG-062 | `✅ DONE` | `player_item_use_service_test.dart`, `runtime_pause_bag_item_service_test.dart` et la Golden Item System prouvent cible, effet exact, consommation et persistance. |
+| FG-063 | `✅ DONE` | Cure et revive passent dans les 43 tests gameplay, les 9 tests battle item runtime et le K.O. puis Revive de la Golden Item System. |
+| FG-064 | `✅ DONE` | `key_item_gate_test.dart` et `key_item_door_gate_readiness_test.dart` prouvent présence directe dans le Bag, branche bloquée/ouverte, non-consommation et save/load. |
+| FG-065 | `⏸ DEFERRED` | Décision produit inchangée ; aucun état Repel n’est inventé pour fermer la V1. |
+| FG-066 | `⏸ DEFERRED` | Les familles Great/Ultra restent hors périmètre. La Poké Ball minimale et sa formule sont néanmoins exécutées dans la Golden Item System. |
+| FG-067 | `✅ DONE` | `item_pickup_give_item_readiness_test.dart` prouve l’entité jouable, le flag, le step, le masquage et l’idempotence ; la Golden Item System confirme save/reload sans duplication. |
+| FG-068 | `⬜ TODO` | Aucun parcours dédié d’objet caché invisible/inspectable n’est exécuté par la Golden Item System ou la matrice. |
+| FG-069 | `✅ DONE` | 11 tests Core de modèle/état/validation et 43 tests gameplay Item/shop passent avec catalogue canonique et prix authored. |
+| FG-070 | `✅ DONE` | `runtime_shop_service_test.dart` et `in_game_shop_page_test.dart` passent : 41 tests runtime ciblés et 5/5 host shop, avec achat, vente, stock, profil stale et fermeture. |
+| FG-072 | `🟡 PARTIAL` | `held_item_operations_test.dart`, `runtime_held_item_bridge_v0_test.dart` et la Golden Item System prouvent equip/swap/unequip, Bag, combat et save/load. `map_player_ui/lib` n’expose cependant aucun contrôle equip/unequip. |
+| FG-073 | `🟡 PARTIAL` | `pokemon_move_machine_service_test.dart` et `runtime_move_machine_loader_test.dart` prouvent compatibilité, remplacement, TM consommable et HM réutilisable. La route joueur prouve le remplacement TM, pas un parcours HM complet. |
+| FG-074 | `✅ DONE` | `shop_definition_test.dart` et `shop_state_definition_test.dart` passent dans les 11 tests Core ciblés, avec round-trip et catalogue par défaut. |
+| FG-075 | `✅ DONE` | `shop_state_resolver_test.dart` et `shop_state_resolution_validator_test.dart` passent dans les 43 tests gameplay ciblés, avec priorité, tie déterministe et stock isolé. |
+| FG-076 | `✅ DONE` | `runtime_shop_service_test.dart` et `in_game_shop_page_test.dart` prouvent résolution, revalidation transactionnelle, fermeture et refus stale. |
+| FG-077 | `✅ DONE` | Les 14 tests Editor ciblés couvrent route Narrative Studio, builder quatre zones, catalogue guidé, états, diagnostics et responsive. |
+| FG-078 | `✅ DONE` | Les validations Core/gameplay et les contrôleurs de preview/simulation Editor passent dans les lots ciblés 11 + 43 + 14. |
+| FG-079 | `🟡 PARTIAL` | `in_game_shop_page_test.dart` passe 5/5 sur fixture synthétique, mais `selbrume_dynamic_shop_e2e_test.dart` échoue 0/1 au setup sur le manifeste V2 refusé par le runtime V6. |
+
+Commandes fraîches de recertification :
+
+```text
+cd packages/map_core && dart test test/shop_definition_test.dart test/shop_state_definition_test.dart test/shop_state_validator_test.dart
+cd packages/map_gameplay && dart test test/key_item_gate_test.dart test/held_item_operations_test.dart test/pokemon_move_machine_service_test.dart test/player_item_use_service_test.dart test/shop_operations_test.dart test/shop_state_resolution_validator_test.dart test/shop_state_resolver_test.dart
+cd packages/map_runtime && flutter test test/item_pickup_give_item_readiness_test.dart test/key_item_door_gate_readiness_test.dart test/player/runtime_pause_bag_item_service_test.dart test/runtime_held_item_bridge_v0_test.dart test/runtime_move_machine_loader_test.dart test/player/runtime_shop_service_test.dart
+cd packages/map_editor && flutter test test/narrative_studio_shop_route_test.dart test/shop_editor_controller_test.dart test/shop_editor_panel_test.dart test/shop_state_preview_strip_test.dart test/shop_state_simulation_controller_test.dart
+cd examples/playable_runtime_host && flutter test test/golden_item_system_flow_test.dart test/in_game_shop_page_test.dart
+cd examples/playable_runtime_host && flutter test test/selbrume_dynamic_shop_e2e_test.dart
+```
+
+Résultats exacts : 11 Core, 43 Gameplay, 41 Runtime, 14 Editor et 6 Host
+réussis ; la commande Selbrume échoue au setup avec 0 test réussi et 1 échec.
+La matrice globale, les analyses et les deux builds macOS sont consignés dans
+ITM-073 de la roadmap Item System V1.
 
 ---
 

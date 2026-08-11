@@ -14,13 +14,13 @@ import '../../application/models/pokemon_database_index.dart';
 import '../../application/models/pokemon_project_data_models.dart';
 import '../../application/ports/project_workspace.dart';
 import '../../application/services/local_catalog_lookup_service.dart';
-import '../../application/services/pokemon_items_catalog_lookup_service.dart';
 import '../../application/services/pokemon_moves_catalog_lookup_service.dart';
 import '../../application/services/pokemon_species_lookup_service.dart';
 import '../../application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import '../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../features/gameplay/items/item_capability_picker.dart';
 import 'battle_background_path_utils.dart';
 import '../design_system/pokemap_button.dart';
 import '../design_system/pokemap_card.dart';
@@ -44,8 +44,6 @@ const PokemonSpeciesLookupService _speciesLookupService =
     PokemonSpeciesLookupService();
 const PokemonMovesCatalogLookupService _movesLookupService =
     PokemonMovesCatalogLookupService();
-const PokemonItemsCatalogLookupService _itemsLookupService =
-    PokemonItemsCatalogLookupService();
 const String _trainerLevelValidationMessage =
     'Level must be between 1 and 100.';
 const List<String> _trainerFallbackGenderValues = <String>[
@@ -1371,15 +1369,13 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       }
     }
 
-    if (references.itemsCatalogView.isAvailable &&
+    if (references.isItemCatalogAvailable &&
         draft.heldItemId != null &&
         draft.heldItemId!.isNotEmpty &&
-        _itemsLookupService.findById(
-              references.itemsCatalogView.entries,
-              draft.heldItemId!,
-            ) ==
-            null) {
-      return 'Held item "${draft.heldItemId}" is not present in the local items catalog.';
+        !references.heldItemDefinitions.any(
+          (definition) => definition.id == draft.heldItemId,
+        )) {
+      return 'Held item "${draft.heldItemId}" is not compatible with held-item usage.';
     }
 
     final availableForms = speciesDetail == null

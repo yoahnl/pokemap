@@ -2,7 +2,32 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+
+final _shopItemCatalog = ItemCatalogSnapshot.fromCatalog(
+  const ProjectItemCatalog(
+    schemaVersion: 1,
+    entries: <ProjectItemDefinition>[
+      ProjectItemDefinition(
+        id: 'potion',
+        displayName: 'Potion',
+        pocketId: 'medicine',
+      ),
+      ProjectItemDefinition(
+        id: 'bike-pass',
+        displayName: 'Bike Pass',
+        pocketId: 'quest-tools',
+        tags: <String>{'key-item', 'passive'},
+      ),
+      ProjectItemDefinition(
+        id: 'nugget',
+        displayName: 'Nugget',
+        pocketId: 'treasures',
+      ),
+    ],
+  ),
+);
 
 void main() {
   test('contextual shop keeps pricing and purchase authority in the runtime',
@@ -23,6 +48,7 @@ void main() {
       loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
         maxHpByPartyIndex: <int, int>{},
       ),
+      itemCatalog: _shopItemCatalog,
     );
     addTearDown(controller.dispose);
 
@@ -136,6 +162,99 @@ void main() {
     expect(controller.worldServiceSnapshot?.revision, 0);
   });
 
+  test('default shop reads stock from the strict state-qualified key',
+      () async {
+    const state = GameState(
+      saveId: 'shop-default-stock',
+      trainerProfile: TrainerProfile(name: 'Leaf', money: 500),
+      progression: PlayerProgression(
+        shopPurchaseCounts: <String, int>{'mart::default::potion': 2},
+      ),
+    );
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (_) async {},
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+      itemCatalog: _shopItemCatalog,
+    );
+    addTearDown(controller.dispose);
+
+    final open = controller.openShop(
+      const ShopDefinition(
+        id: 'mart',
+        label: 'Boutique',
+        entries: <ShopEntryDefinition>[
+          ShopEntryDefinition(itemId: 'potion', price: 60, stock: 3),
+        ],
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final snapshot = controller.worldServiceSnapshot!;
+    final content = snapshot.content! as RuntimeShopServiceContent;
+    expect(content.entries.single.remainingStock, 1);
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.close,
+        snapshotRevision: snapshot.revision,
+      ),
+    );
+    await open;
+  });
+
+  test('unknown catalog entries cannot debit money or enter the bag', () async {
+    var state = const GameState(
+      saveId: 'shop-unknown-item',
+      trainerProfile: TrainerProfile(name: 'Leaf', money: 500),
+    );
+    final commits = <GameState>[];
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async {
+        state = next;
+        commits.add(next);
+      },
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+      itemCatalog: _shopItemCatalog,
+    );
+    addTearDown(controller.dispose);
+
+    unawaited(
+      controller.openShop(
+        const ShopDefinition(
+          id: 'mart',
+          label: 'Boutique',
+          entries: <ShopEntryDefinition>[
+            ShopEntryDefinition(itemId: 'missing-thread', price: 60),
+          ],
+        ),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    final snapshot = controller.worldServiceSnapshot!;
+
+    final result = await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.confirm,
+        snapshotRevision: snapshot.revision,
+        targetId: 'missing-thread',
+        quantity: 1,
+      ),
+    );
+
+    expect(result.status, RuntimeWorldServiceCommandStatus.unavailable);
+    expect(state.trainerProfile.money, 500);
+    expect(state.bag.entries, isEmpty);
+    expect(state.progression.shopPurchaseCounts, isEmpty);
+    expect(commits, isEmpty);
+  });
+
   test('contextual shop sells guided quantities and protects key items',
       () async {
     var state = const GameState(
@@ -143,9 +262,9 @@ void main() {
       trainerProfile: TrainerProfile(name: 'Leaf', money: 100),
       bag: Bag(
         entries: <BagEntry>[
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
-          BagEntry(itemId: 'bike-pass', categoryId: 'key-items', quantity: 1),
-          BagEntry(itemId: 'nugget', categoryId: 'items', quantity: 1),
+          BagEntry(itemId: 'potion', quantity: 3),
+          BagEntry(itemId: 'bike-pass', quantity: 1),
+          BagEntry(itemId: 'nugget', quantity: 1),
         ],
       ),
     );
@@ -160,6 +279,7 @@ void main() {
       loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
         maxHpByPartyIndex: <int, int>{},
       ),
+      itemCatalog: _shopItemCatalog,
     );
     addTearDown(controller.dispose);
 

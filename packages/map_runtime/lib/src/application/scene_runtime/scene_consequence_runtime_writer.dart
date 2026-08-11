@@ -238,11 +238,10 @@ final class SceneConsequenceRuntimeWriter {
     if (validation != null) {
       return validation;
     }
-    final availableQuantity = gameState.bag
-        .normalized()
-        .entries
-        .where((entry) => entry.itemId.trim() == consequence.itemId)
-        .fold<int>(0, (total, entry) => total + entry.quantity);
+    final availableQuantity = mutations.itemQuantity(
+      gameState,
+      consequence.itemId,
+    );
     if (availableQuantity < consequence.quantity) {
       return _SceneConsequenceRuntimeWriteStep.failed(
         SceneConsequenceRuntimeWriteErrorCode.insufficientItemQuantity,

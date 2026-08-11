@@ -48,8 +48,10 @@ final class ProjectQueryService {
     final connectionActionPage = _queryConnectionAction(snapshot, request);
     if (connectionActionPage != null) return connectionActionPage;
     final worldGraphActionRecords = _worldGraphActionRecords(snapshot, request);
+    final itemActionRecords = _itemQueryActionRecords(snapshot, request);
     if (request.extensions['actionId'] != null &&
-        worldGraphActionRecords == null) {
+        worldGraphActionRecords == null &&
+        itemActionRecords == null) {
       throw const AuthoringQueryException(
         'query.action_resource_mismatch',
         'The query action is not supported by the requested resource kind.',
@@ -57,6 +59,7 @@ final class ProjectQueryService {
     }
     final characterStudioRecords = _characterStudioRecords(snapshot, request);
     var records = worldGraphActionRecords ??
+        itemActionRecords ??
         characterStudioRecords ??
         _records(snapshot, request.resourceKind);
     records = _applyOperation(records, request);
@@ -97,6 +100,130 @@ final class ProjectQueryService {
       nextCursor: nextCursor,
     );
   }
+}
+
+List<_QueryRecord>? _itemQueryActionRecords(
+  ProjectSnapshot snapshot,
+  AuthoringQueryRequest request,
+) {
+  final actionId = request.extensions['actionId'];
+  if (actionId is! String || !actionId.startsWith('item.')) return null;
+  final rawParameters = request.extensions['parameters'];
+  if (rawParameters is! Map ||
+      rawParameters.keys.any((key) => key is! String) ||
+      request.extensions.keys.any(
+        (key) => key != 'actionId' && key != 'parameters',
+      )) {
+    throw const AuthoringQueryException(
+      'query.item_action_invalid',
+      'The item query action and parameters are invalid.',
+    );
+  }
+  final parameters = Map<String, Object?>.from(rawParameters);
+  switch (actionId) {
+    case 'item.delete_plan':
+      _requireExactKeys(
+        parameters,
+        const <String>{'itemId'},
+        code: 'query.item_parameters_invalid',
+      );
+      final itemId = _requiredItemQueryString(parameters, 'itemId');
+      if (request.resourceKind != 'itemUsage' ||
+          request.operation != AuthoringQueryOperation.list ||
+          request.ids.isNotEmpty) {
+        throw const AuthoringQueryException(
+          'query.action_resource_mismatch',
+          'Item deletion planning requires an itemUsage list query.',
+        );
+      }
+      return _itemUsageRecords(snapshot)
+          .where((record) => record.detail['itemId'] == itemId)
+          .toList(growable: false);
+    case 'item.validate':
+      _requireExactKeys(
+        parameters,
+        const <String>{'itemId'},
+        code: 'query.item_parameters_invalid',
+      );
+      final itemId = _requiredItemQueryString(parameters, 'itemId');
+      if (request.resourceKind != 'itemReadiness' ||
+          request.operation != AuthoringQueryOperation.get ||
+          request.ids.singleOrNull != itemId) {
+        throw const AuthoringQueryException(
+          'query.action_resource_mismatch',
+          'Item validation requires the matching itemReadiness resource.',
+        );
+      }
+      return _itemReadinessRecords(snapshot);
+    case 'item.simulate':
+      _requireExactKeys(
+        parameters,
+        const <String>{'itemId', 'context'},
+        code: 'query.item_parameters_invalid',
+      );
+      final itemId = _requiredItemQueryString(parameters, 'itemId');
+      final contextName = _requiredItemQueryString(parameters, 'context');
+      final context = ProjectItemUseContext.values
+          .where((candidate) => candidate.name == contextName)
+          .singleOrNull;
+      if (context == null) {
+        throw const AuthoringQueryException(
+          'query.item_context_invalid',
+          'Item simulation context must be overworld or battle.',
+        );
+      }
+      if (request.resourceKind != 'itemDefinition' ||
+          request.operation != AuthoringQueryOperation.get ||
+          request.ids.singleOrNull != itemId) {
+        throw const AuthoringQueryException(
+          'query.action_resource_mismatch',
+          'Item simulation requires the matching itemDefinition resource.',
+        );
+      }
+      final definition = snapshot.itemCatalog?.entries
+          .where((candidate) => candidate.id == itemId)
+          .singleOrNull;
+      if (definition == null) return _itemDefinitionRecords(snapshot);
+      final use = definition.uses
+          .where((candidate) => candidate.contexts.contains(context))
+          .singleOrNull;
+      final records = _itemDefinitionRecords(snapshot);
+      return <_QueryRecord>[
+        for (final record in records)
+          if (record.id == itemId)
+            _QueryRecord(
+              summary: record.summary,
+              detail: <String, Object?>{
+                ...record.detail,
+                'simulation': <String, Object?>{
+                  'status': use == null ? 'passive' : 'configured',
+                  'context': context.name,
+                  'consumption': use?.consumption.name,
+                  'target': use?.target.name,
+                  'effect': use?.effect.toJson(),
+                },
+              },
+            )
+          else
+            record,
+      ];
+    default:
+      throw const AuthoringQueryException(
+        'query.item_action_unsupported',
+        'The requested item query action is unsupported.',
+      );
+  }
+}
+
+String _requiredItemQueryString(Map<String, Object?> values, String key) {
+  final value = values[key];
+  if (value is! String || value.trim().isEmpty || value != value.trim()) {
+    throw const AuthoringQueryException(
+      'query.item_parameters_invalid',
+      'A required item query parameter is invalid.',
+    );
+  }
+  return value;
 }
 
 List<_QueryRecord>? _characterStudioRecords(
@@ -596,6 +723,14 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
         for (final context in contexts)
           _QueryRecord(summary: context.summary, detail: context.detail),
       ];
+    case 'itemCatalog':
+      return _itemCatalogRecords(snapshot);
+    case 'itemDefinition':
+      return _itemDefinitionRecords(snapshot);
+    case 'itemUsage':
+      return _itemUsageRecords(snapshot);
+    case 'itemReadiness':
+      return _itemReadinessRecords(snapshot);
     case 'map':
       return [
         for (final map in snapshot.maps)
@@ -918,6 +1053,210 @@ Map<String, Object?> _projectDetail(ProjectSnapshot snapshot) {
     ..['resourceKind'] = 'project';
   return detail;
 }
+
+List<_QueryRecord> _itemCatalogRecords(ProjectSnapshot snapshot) {
+  final catalog = snapshot.itemCatalog;
+  if (catalog == null) return const [];
+  final report = validateProjectItemCatalog(
+    catalog,
+    capabilityTruth: _itemAuthoringCapabilityTruth(catalog),
+  );
+  final summary = <String, Object?>{
+    'id': 'items',
+    'name': 'Items',
+    'resourceKind': 'itemCatalog',
+    'schemaVersion': catalog.schemaVersion,
+    'definitionCount': catalog.entries.length,
+    'blockingDiagnosticCount':
+        report.diagnostics.where((diagnostic) => diagnostic.isBlocking).length,
+  };
+  return <_QueryRecord>[
+    _QueryRecord(
+      summary: summary,
+      detail: <String, Object?>{
+        ...summary,
+        'catalog': encodeProjectItemCatalog(catalog),
+        'diagnostics': <Object?>[
+          for (final diagnostic in report.diagnostics)
+            _itemDiagnosticJson(diagnostic),
+        ],
+      },
+    ),
+  ];
+}
+
+List<_QueryRecord> _itemDefinitionRecords(ProjectSnapshot snapshot) {
+  final catalog = snapshot.itemCatalog;
+  if (catalog == null) return const [];
+  final index = buildProjectItemReferenceIndex(
+    project: snapshot.manifest,
+    maps: snapshot.maps,
+    itemCatalog: catalog,
+    additionalReferences: snapshot.additionalItemReferences,
+  );
+  return <_QueryRecord>[
+    for (final definition in catalog.entries)
+      _QueryRecord(
+        summary: <String, Object?>{
+          'id': definition.id,
+          'name': definition.displayName,
+          'resourceKind': 'itemDefinition',
+          'pocketId': definition.pocketId,
+          'buyPrice': definition.buyPrice,
+          'sellPrice': definition.sellPrice,
+          'hasOverworldUse': definition.uses.any(
+            (use) => use.contexts.contains(ProjectItemUseContext.overworld),
+          ),
+          'hasBattleUse': definition.uses.any(
+            (use) => use.contexts.contains(ProjectItemUseContext.battle),
+          ),
+          'hasCapture': definition.capture != null,
+          'hasMachine': definition.machine != null,
+          'hasHeldEffect': definition.heldEffectId != null,
+        },
+        detail: <String, Object?>{
+          ...definition.toJson(),
+          'name': definition.displayName,
+          'resourceKind': 'itemDefinition',
+          'usageCount': index.referencesFor(definition.id).length,
+          'blockingUsageCount':
+              index.blockingReferencesFor(definition.id).length,
+        },
+      ),
+  ];
+}
+
+List<_QueryRecord> _itemUsageRecords(ProjectSnapshot snapshot) {
+  final index = buildProjectItemReferenceIndex(
+    project: snapshot.manifest,
+    maps: snapshot.maps,
+    itemCatalog: snapshot.itemCatalog,
+    additionalReferences: snapshot.additionalItemReferences,
+  );
+  return <_QueryRecord>[
+    for (final reference in index.references)
+      _QueryRecord(
+        summary: <String, Object?>{
+          'id': _itemUsageId(reference),
+          'name': '${reference.itemId} — ${reference.kind.name}',
+          'resourceKind': 'itemUsage',
+          'itemId': reference.itemId,
+          'kind': reference.kind.name,
+          'sourceKind': reference.sourceKind,
+          'sourceId': reference.sourceId,
+          'blocksDeletion': reference.blocksDeletion,
+        },
+        detail: <String, Object?>{
+          'id': _itemUsageId(reference),
+          'name': '${reference.itemId} — ${reference.kind.name}',
+          'resourceKind': 'itemUsage',
+          'itemId': reference.itemId,
+          'kind': reference.kind.name,
+          'sourceKind': reference.sourceKind,
+          'sourceId': reference.sourceId,
+          'editablePath': reference.editablePath,
+          'blocksDeletion': reference.blocksDeletion,
+        },
+      ),
+  ];
+}
+
+List<_QueryRecord> _itemReadinessRecords(ProjectSnapshot snapshot) {
+  final catalog = snapshot.itemCatalog;
+  if (catalog == null) return const [];
+  final report = validateProjectItemCatalog(
+    catalog,
+    capabilityTruth: _itemAuthoringCapabilityTruth(catalog),
+  );
+  final index = buildProjectItemReferenceIndex(
+    project: snapshot.manifest,
+    maps: snapshot.maps,
+    itemCatalog: catalog,
+    additionalReferences: snapshot.additionalItemReferences,
+  );
+  final seen = <String>{};
+  return <_QueryRecord>[
+    for (final definition in catalog.entries)
+      if (seen.add(definition.id))
+        _itemReadinessRecord(definition, report, index),
+  ];
+}
+
+_QueryRecord _itemReadinessRecord(
+  ProjectItemDefinition definition,
+  ProjectItemCatalogValidationReport report,
+  ProjectItemReferenceIndex index,
+) {
+  final diagnostics = report.diagnostics
+      .where(
+        (diagnostic) =>
+            diagnostic.itemId == null || diagnostic.itemId == definition.id,
+      )
+      .toList(growable: false);
+  final ready = diagnostics.every((diagnostic) => !diagnostic.isBlocking);
+  final summary = <String, Object?>{
+    'id': definition.id,
+    'name': definition.displayName,
+    'resourceKind': 'itemReadiness',
+    'ready': ready,
+    'diagnosticCount': diagnostics.length,
+    'blockingUsageCount': index.blockingReferencesFor(definition.id).length,
+  };
+  return _QueryRecord(
+    summary: summary,
+    detail: <String, Object?>{
+      ...summary,
+      'diagnostics': <Object?>[
+        for (final diagnostic in diagnostics) _itemDiagnosticJson(diagnostic),
+      ],
+      'usages': <Object?>[
+        for (final reference in index.referencesFor(definition.id))
+          <String, Object?>{
+            'kind': reference.kind.name,
+            'sourceKind': reference.sourceKind,
+            'sourceId': reference.sourceId,
+            'editablePath': reference.editablePath,
+            'blocksDeletion': reference.blocksDeletion,
+          },
+      ],
+    },
+  );
+}
+
+ItemCapabilityTruth _itemAuthoringCapabilityTruth(ProjectItemCatalog catalog) {
+  return ItemCapabilityTruth(
+    supportedUseContexts: ProjectItemUseContext.values.toSet(),
+    supportedEffects: ProjectItemEffectCapability.values.toSet(),
+    supportedSemanticActionIds: <String>{
+      for (final definition in catalog.entries)
+        for (final use in definition.uses)
+          if (use.effect is ProjectItemSemanticActionEffectDefinition)
+            (use.effect as ProjectItemSemanticActionEffectDefinition).actionId,
+    },
+    supportedHeldEffectIds: <String>{
+      for (final definition in catalog.entries)
+        if (definition.heldEffectId != null) definition.heldEffectId!,
+    },
+    supportsCapture: true,
+    supportsMoveMachines: true,
+  );
+}
+
+Map<String, Object?> _itemDiagnosticJson(
+  ProjectItemCatalogDiagnostic diagnostic,
+) =>
+    <String, Object?>{
+      'code': diagnostic.code.name,
+      'severity': diagnostic.severity.name,
+      'message': diagnostic.message,
+      'path': diagnostic.path,
+      if (diagnostic.entryIndex != null) 'entryIndex': diagnostic.entryIndex,
+      if (diagnostic.itemId != null) 'itemId': diagnostic.itemId,
+    };
+
+String _itemUsageId(ProjectItemReference reference) =>
+    '${reference.itemId}:${reference.kind.name}:${reference.sourceKind}:'
+    '${reference.sourceId}:${reference.editablePath}';
 
 Map<String, Object?> _mapSummary(MapData map) => {
       'id': map.id,

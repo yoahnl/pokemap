@@ -63,7 +63,7 @@ class FileGameSaveRepository implements GameSaveRepository {
               narrativeEventProgress: normalizedSaveData.narrativeEventProgress,
               metadata: normalizedSaveData.properties,
             );
-            final json = normalizedState.toJson();
+            final json = strictGameStateSaveJson(normalizedState);
             final encoded = await _codecExecutor.encodeJson(json);
             if (kDebugMode) {
               debugPrint(

@@ -1,316 +1,222 @@
 import 'package:map_core/map_core.dart';
 
-enum PlayerItemEffectKind {
-  healHp,
-  cureStatus,
-  revive,
-  restorePp,
-  keyItem,
-  ballMetadata,
-}
-
-final class PlayerItemEffectDefinition {
-  const PlayerItemEffectDefinition({
-    required this.kind,
-    this.amount = 0,
-    this.statusIds = const <String>{},
-    this.curesAnyStatus = false,
-    this.revivePercent = 0,
-    this.ballMultiplier = 0,
-  });
-
-  final PlayerItemEffectKind kind;
-  final int amount;
-  final Set<String> statusIds;
-  final bool curesAnyStatus;
-  final int revivePercent;
-  final double ballMultiplier;
-}
-
-const Map<String, PlayerItemEffectDefinition> _mvpPlayerItemEffects = {
-  'potion': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.healHp,
-    amount: 20,
-  ),
-  'super-potion': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.healHp,
-    amount: 50,
-  ),
-  'hyper-potion': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.healHp,
-    amount: 120,
-  ),
-  'max-potion': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.healHp,
-    amount: 0x7fffffff,
-  ),
-  'antidote': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    statusIds: <String>{'poison', 'badly-poisoned'},
-  ),
-  'awakening': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    statusIds: <String>{'sleep'},
-  ),
-  'paralyze-heal': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    statusIds: <String>{'paralysis', 'paralyzed'},
-  ),
-  'burn-heal': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    statusIds: <String>{'burn'},
-  ),
-  'ice-heal': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    statusIds: <String>{'freeze', 'frozen'},
-  ),
-  'full-heal': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    curesAnyStatus: true,
-  ),
-  'revive': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.revive,
-    revivePercent: 50,
-  ),
-  'ether': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.restorePp,
-    amount: 10,
-  ),
-  'max-ether': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.restorePp,
-    amount: 0x7fffffff,
-  ),
-  'key-item': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.keyItem,
-  ),
-  'poke-ball': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.ballMetadata,
-    ballMultiplier: 1,
-  ),
-};
-
-final class PlayerItemEffectRegistry {
-  const PlayerItemEffectRegistry({
-    this.effects = const <String, PlayerItemEffectDefinition>{},
-  });
-
-  const PlayerItemEffectRegistry.mvp() : effects = _mvpPlayerItemEffects;
-
-  final Map<String, PlayerItemEffectDefinition> effects;
-
-  PlayerItemEffectDefinition? effectFor(String itemId) =>
-      effects[itemId.trim()];
-}
+import 'items/bag_operation_result.dart';
 
 enum PlayerItemUseFailure {
   invalidRequest,
-  unknownItem,
+  unknownDefinition,
   invalidTarget,
   insufficientQuantity,
   wrongTarget,
+  unavailableInContext,
   noEffect,
+  unsupportedCapability,
+  protectedKeyItem,
 }
 
 final class PlayerItemUseResult {
   const PlayerItemUseResult._({
     required this.state,
-    this.failure,
+    required this.failure,
+    required this.consumptionReceipt,
   });
 
-  const PlayerItemUseResult.success(GameState state) : this._(state: state);
+  const PlayerItemUseResult.success({
+    required GameState state,
+    ItemConsumptionReceipt? consumptionReceipt,
+  }) : this._(
+          state: state,
+          failure: null,
+          consumptionReceipt: consumptionReceipt,
+        );
 
   const PlayerItemUseResult.failed(
     GameState state,
     PlayerItemUseFailure failure,
-  ) : this._(state: state, failure: failure);
+  ) : this._(
+          state: state,
+          failure: failure,
+          consumptionReceipt: null,
+        );
 
   final GameState state;
   final PlayerItemUseFailure? failure;
+  final ItemConsumptionReceipt? consumptionReceipt;
 
   bool get isSuccess => failure == null;
 }
 
-final class PlayerItemOperations {
-  const PlayerItemOperations({
-    this.registry = const PlayerItemEffectRegistry.mvp(),
+final class PlayerItemEffectApplication {
+  const PlayerItemEffectApplication._({
+    required this.pokemon,
+    required this.failure,
   });
 
-  final PlayerItemEffectRegistry registry;
+  const PlayerItemEffectApplication.applied(PlayerPokemon pokemon)
+      : this._(pokemon: pokemon, failure: null);
 
-  PlayerItemUseResult useOnPartyMember(
-    GameState state, {
-    required String itemId,
-    required int partyIndex,
-    required int maxHp,
-    String? moveId,
-    Map<String, int> maxPpByMoveId = const {},
-  }) {
-    final normalizedItemId = itemId.trim();
-    if (normalizedItemId.isEmpty || maxHp <= 0) {
-      return PlayerItemUseResult.failed(
-        state,
-        PlayerItemUseFailure.invalidRequest,
-      );
-    }
-    final effect = registry.effectFor(normalizedItemId);
-    if (effect == null) {
-      return PlayerItemUseResult.failed(
-        state,
-        PlayerItemUseFailure.unknownItem,
-      );
-    }
-    if (partyIndex < 0 || partyIndex >= state.party.members.length) {
-      return PlayerItemUseResult.failed(
-        state,
-        PlayerItemUseFailure.invalidTarget,
-      );
-    }
-    final hasItem = state.bag.normalized().entries.any(
-          (entry) => entry.itemId == normalizedItemId && entry.quantity > 0,
-        );
-    if (!hasItem) {
-      return PlayerItemUseResult.failed(
-        state,
-        PlayerItemUseFailure.insufficientQuantity,
-      );
-    }
-
-    final target = state.party.members[partyIndex];
-    final resolution = _applyEffect(
-      target,
-      effect: effect,
-      maxHp: maxHp,
-      moveId: moveId?.trim(),
-      maxPpByMoveId: maxPpByMoveId,
-    );
-    if (resolution.failure != null) {
-      return PlayerItemUseResult.failed(state, resolution.failure!);
-    }
-
-    final nextBag = _consumeOne(state.bag, normalizedItemId);
-    if (nextBag == null) {
-      return PlayerItemUseResult.failed(
-        state,
-        PlayerItemUseFailure.insufficientQuantity,
-      );
-    }
-    final nextMembers = [...state.party.members];
-    nextMembers[partyIndex] = resolution.pokemon!;
-    return PlayerItemUseResult.success(
-      state.copyWith(
-        party: PlayerParty(members: nextMembers).normalized(),
-        bag: nextBag,
-      ),
-    );
-  }
-}
-
-final class _PlayerItemEffectResolution {
-  const _PlayerItemEffectResolution.success(this.pokemon) : failure = null;
-
-  const _PlayerItemEffectResolution.failed(this.failure) : pokemon = null;
+  const PlayerItemEffectApplication.failed(PlayerItemUseFailure failure)
+      : this._(pokemon: null, failure: failure);
 
   final PlayerPokemon? pokemon;
   final PlayerItemUseFailure? failure;
+
+  bool get isApplied => failure == null;
 }
 
-_PlayerItemEffectResolution _applyEffect(
+PlayerItemEffectApplication applyPlayerItemEffect(
   PlayerPokemon target, {
-  required PlayerItemEffectDefinition effect,
+  required ProjectItemUseDefinition use,
   required int maxHp,
   required String? moveId,
   required Map<String, int> maxPpByMoveId,
 }) {
-  switch (effect.kind) {
-    case PlayerItemEffectKind.healHp:
-      if (target.isFainted) {
-        return const _PlayerItemEffectResolution.failed(
-          PlayerItemUseFailure.wrongTarget,
-        );
-      }
-      if (target.currentHp >= maxHp) {
-        return const _PlayerItemEffectResolution.failed(
-          PlayerItemUseFailure.noEffect,
-        );
-      }
-      final healedHp = target.currentHp + effect.amount;
-      return _PlayerItemEffectResolution.success(
-        target.copyWith(currentHp: healedHp > maxHp ? maxHp : healedHp),
-      );
-    case PlayerItemEffectKind.cureStatus:
-      final statusId = target.statusId.trim();
-      if (statusId.isEmpty) {
-        return const _PlayerItemEffectResolution.failed(
-          PlayerItemUseFailure.noEffect,
-        );
-      }
-      if (!effect.curesAnyStatus && !effect.statusIds.contains(statusId)) {
-        return const _PlayerItemEffectResolution.failed(
-          PlayerItemUseFailure.wrongTarget,
-        );
-      }
-      return _PlayerItemEffectResolution.success(
-        target.copyWith(statusId: ''),
-      );
-    case PlayerItemEffectKind.revive:
-      if (!target.isFainted) {
-        return const _PlayerItemEffectResolution.failed(
-          PlayerItemUseFailure.wrongTarget,
-        );
-      }
-      final revivedHp = (maxHp * effect.revivePercent + 99) ~/ 100;
-      return _PlayerItemEffectResolution.success(
-        target.copyWith(currentHp: revivedHp < 1 ? 1 : revivedHp),
-      );
-    case PlayerItemEffectKind.restorePp:
-      final normalizedMoveId = moveId ?? '';
-      final currentPpByMoveId = target.currentPpByMoveId;
-      final maxPp = maxPpByMoveId[normalizedMoveId];
-      if (normalizedMoveId.isEmpty ||
-          currentPpByMoveId == null ||
-          !target.knownMoveIds.contains(normalizedMoveId) ||
-          !currentPpByMoveId.containsKey(normalizedMoveId) ||
-          maxPp == null ||
-          maxPp <= 0) {
-        return const _PlayerItemEffectResolution.failed(
-          PlayerItemUseFailure.wrongTarget,
-        );
-      }
-      final currentPp = currentPpByMoveId[normalizedMoveId]!;
-      if (currentPp >= maxPp) {
-        return const _PlayerItemEffectResolution.failed(
-          PlayerItemUseFailure.noEffect,
-        );
-      }
-      final restored = currentPp + effect.amount;
-      return _PlayerItemEffectResolution.success(
-        target.copyWith(
-          currentPpByMoveId: <String, int>{
-            ...currentPpByMoveId,
-            normalizedMoveId: restored > maxPp ? maxPp : restored,
-          },
-        ),
-      );
-    case PlayerItemEffectKind.keyItem:
-    case PlayerItemEffectKind.ballMetadata:
-      return const _PlayerItemEffectResolution.failed(
-        PlayerItemUseFailure.wrongTarget,
-      );
-  }
+  return switch (use.effect) {
+    ProjectItemHealHpEffectDefinition(:final mode, :final amount) =>
+      _applyHpHealing(target, mode: mode, amount: amount, maxHp: maxHp),
+    ProjectItemCureStatusEffectDefinition(:final mode, :final statusIds) =>
+      _applyStatusCure(
+        target,
+        mode: mode,
+        statusIds: statusIds,
+      ),
+    ProjectItemReviveEffectDefinition(
+      :final rateNumerator,
+      :final rateDenominator,
+    ) =>
+      _applyRevive(
+        target,
+        maxHp: maxHp,
+        rateNumerator: rateNumerator,
+        rateDenominator: rateDenominator,
+      ),
+    ProjectItemRestorePpEffectDefinition(:final mode, :final amount) =>
+      _applyPpRestore(
+        target,
+        mode: mode,
+        amount: amount,
+        moveId: moveId,
+        maxPpByMoveId: maxPpByMoveId,
+      ),
+    ProjectItemRepelEffectDefinition() ||
+    ProjectItemSemanticActionEffectDefinition() =>
+      const PlayerItemEffectApplication.failed(
+        PlayerItemUseFailure.unsupportedCapability,
+      ),
+    _ => const PlayerItemEffectApplication.failed(
+        PlayerItemUseFailure.unsupportedCapability,
+      ),
+  };
 }
 
-Bag? _consumeOne(Bag bag, String itemId) {
-  final nextEntries = <BagEntry>[];
-  var consumed = false;
-  for (final entry in bag.normalized().entries) {
-    if (!consumed && entry.itemId == itemId) {
-      consumed = true;
-      if (entry.quantity > 1) {
-        nextEntries.add(entry.copyWith(quantity: entry.quantity - 1));
-      }
-    } else {
-      nextEntries.add(entry);
-    }
+PlayerItemEffectApplication _applyHpHealing(
+  PlayerPokemon target, {
+  required ProjectItemAmountMode mode,
+  required int? amount,
+  required int maxHp,
+}) {
+  if (target.isFainted) {
+    return const PlayerItemEffectApplication.failed(
+      PlayerItemUseFailure.wrongTarget,
+    );
   }
-  return consumed ? Bag(entries: nextEntries).normalized() : null;
+  if (target.currentHp >= maxHp) {
+    return const PlayerItemEffectApplication.failed(
+      PlayerItemUseFailure.noEffect,
+    );
+  }
+  final healedHp =
+      mode == ProjectItemAmountMode.full ? maxHp : target.currentHp + amount!;
+  return PlayerItemEffectApplication.applied(
+    target.copyWith(currentHp: healedHp > maxHp ? maxHp : healedHp),
+  );
+}
+
+PlayerItemEffectApplication _applyStatusCure(
+  PlayerPokemon target, {
+  required ProjectItemStatusCureMode mode,
+  required Set<String> statusIds,
+}) {
+  final statusId = target.statusId.trim();
+  if (statusId.isEmpty) {
+    return const PlayerItemEffectApplication.failed(
+      PlayerItemUseFailure.noEffect,
+    );
+  }
+  final canonicalStatusId = _canonicalItemStatusId(statusId);
+  if (mode == ProjectItemStatusCureMode.listed &&
+      !statusIds.map(_canonicalItemStatusId).contains(canonicalStatusId)) {
+    return const PlayerItemEffectApplication.failed(
+      PlayerItemUseFailure.wrongTarget,
+    );
+  }
+  return PlayerItemEffectApplication.applied(target.copyWith(statusId: ''));
+}
+
+String _canonicalItemStatusId(String statusId) {
+  return switch (statusId.trim()) {
+    'par' || 'paralyzed' => 'paralysis',
+    'brn' => 'burn',
+    'psn' => 'poison',
+    'tox' => 'badly-poisoned',
+    'slp' => 'sleep',
+    'frz' || 'frozen' => 'freeze',
+    final normalized => normalized,
+  };
+}
+
+PlayerItemEffectApplication _applyRevive(
+  PlayerPokemon target, {
+  required int maxHp,
+  required int rateNumerator,
+  required int rateDenominator,
+}) {
+  if (!target.isFainted) {
+    return const PlayerItemEffectApplication.failed(
+      PlayerItemUseFailure.wrongTarget,
+    );
+  }
+  final revivedHp =
+      (maxHp * rateNumerator + rateDenominator - 1) ~/ rateDenominator;
+  return PlayerItemEffectApplication.applied(
+    target.copyWith(currentHp: revivedHp < 1 ? 1 : revivedHp),
+  );
+}
+
+PlayerItemEffectApplication _applyPpRestore(
+  PlayerPokemon target, {
+  required ProjectItemAmountMode mode,
+  required int? amount,
+  required String? moveId,
+  required Map<String, int> maxPpByMoveId,
+}) {
+  final normalizedMoveId = moveId?.trim() ?? '';
+  final currentPpByMoveId = target.currentPpByMoveId;
+  final maxPp = maxPpByMoveId[normalizedMoveId];
+  if (normalizedMoveId.isEmpty ||
+      currentPpByMoveId == null ||
+      !target.knownMoveIds.contains(normalizedMoveId) ||
+      !currentPpByMoveId.containsKey(normalizedMoveId) ||
+      maxPp == null ||
+      maxPp <= 0) {
+    return const PlayerItemEffectApplication.failed(
+      PlayerItemUseFailure.wrongTarget,
+    );
+  }
+  final currentPp = currentPpByMoveId[normalizedMoveId]!;
+  if (currentPp >= maxPp) {
+    return const PlayerItemEffectApplication.failed(
+      PlayerItemUseFailure.noEffect,
+    );
+  }
+  final restored =
+      mode == ProjectItemAmountMode.full ? maxPp : currentPp + amount!;
+  return PlayerItemEffectApplication.applied(
+    target.copyWith(
+      currentPpByMoveId: <String, int>{
+        ...currentPpByMoveId,
+        normalizedMoveId: restored > maxPp ? maxPp : restored,
+      },
+    ),
+  );
 }

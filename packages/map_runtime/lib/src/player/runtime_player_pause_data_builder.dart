@@ -6,6 +6,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import '../application/runtime_pokemon_evolution_loader.dart';
+import '../application/runtime_item_catalog_loader.dart';
 import '../application/runtime_move_machine_loader.dart';
 import 'runtime_player_pause_data.dart';
 
@@ -24,7 +25,13 @@ final class RuntimePlayerPauseDataBuilder {
     required String locale,
     bool mapEnabled = false,
     List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
+    ItemCatalogSnapshot? itemCatalog,
   }) async {
+    final resolvedItemCatalog = itemCatalog ??
+        await const RuntimeItemCatalogLoader().loadSnapshot(
+          projectRootDirectory: projectRootDirectory,
+          pokemonConfig: pokemonConfig,
+        );
     final species = await _loadSpeciesCatalog(
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
@@ -49,6 +56,7 @@ final class RuntimePlayerPauseDataBuilder {
       speciesById,
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
+      itemCatalog: resolvedItemCatalog,
     );
 
     return immutableRuntimePlayerPauseDetails(
@@ -65,6 +73,7 @@ final class RuntimePlayerPauseDataBuilder {
           targets: bagTargets,
           evolutionItemIds: evolutionItemIds,
           moveMachines: moveMachines,
+          itemCatalog: resolvedItemCatalog,
         ),
         if (pokemonConfig.enabled)
           RuntimePlayerPauseSection.pokedex: _buildPokedex(
@@ -209,60 +218,64 @@ final class RuntimePlayerPauseDataBuilder {
     required List<RuntimePlayerBagPartyTargetSnapshot> targets,
     required Set<String> evolutionItemIds,
     required _RuntimeMoveMachineAvailability moveMachines,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
+    final resolver = ItemCapabilityResolver(itemCatalog);
     final entries =
         gameState.bag.entries.where((entry) => entry.quantity > 0).map((entry) {
-      final effect =
-          const PlayerItemEffectRegistry.mvp().effectFor(entry.itemId);
-      final isKeyItem = effect?.kind == PlayerItemEffectKind.keyItem ||
-          _isKeyItemCategory(entry.categoryId);
+      final definition = resolver.definitionFor(entry.itemId);
+      final capability = resolver.resolveUse(
+        itemId: entry.itemId,
+        context: ProjectItemUseContext.overworld,
+      );
+      final effect = capability.use?.effect;
+      final isKeyItem = definition?.tags.contains('key-item') ?? false;
       final isEvolutionItem = evolutionItemIds.contains(entry.itemId);
       final isMoveMachine = moveMachines.itemIds.contains(entry.itemId);
       final targetKind = isMoveMachine
           ? RuntimePlayerBagUseTargetKind.partyMoveReplacement
-          : effect?.kind == PlayerItemEffectKind.restorePp
+          : effect is ProjectItemRestorePpEffectDefinition
               ? RuntimePlayerBagUseTargetKind.partyMove
               : RuntimePlayerBagUseTargetKind.partyMember;
-      final unavailableReason = isKeyItem
-          ? (isFrench
-              ? 'Cet objet clé s’utilise automatiquement et '
-                  'n’est pas consommé.'
-              : 'This key item is used automatically and is not consumed.')
-          : switch (effect?.kind) {
-              PlayerItemEffectKind.healHp ||
-              PlayerItemEffectKind.cureStatus ||
-              PlayerItemEffectKind.revive when targets.isEmpty =>
-                isFrench
-                    ? 'Aucun Pokémon ne peut être ciblé.'
-                    : 'No Pokémon can be targeted.',
-              PlayerItemEffectKind.restorePp
-                  when !targets.any((target) => target.moves.isNotEmpty) =>
-                isFrench
-                    ? 'Aucune capacité ne peut être ciblée.'
-                    : 'No move can be targeted.',
-              PlayerItemEffectKind.ballMetadata => isFrench
-                  ? 'Cet objet s’utilise uniquement en combat.'
-                  : 'This item can only be used in battle.',
-              null
-                  when isMoveMachine &&
-                      !moveMachines.compatibleItemIds.contains(entry.itemId) =>
-                isFrench
-                    ? 'Aucun Pokémon de l’équipe n’est compatible.'
-                    : 'No party Pokémon is compatible.',
-              null when !isEvolutionItem && !isMoveMachine => isFrench
-                  ? 'Cet objet n’a pas d’effet utilisable ici.'
-                  : 'This item has no usable effect here.',
-              _ => null,
-            };
+      var usability = resolver.classifyUse(
+        itemId: entry.itemId,
+        context: ProjectItemUseContext.overworld,
+      );
+      if (isKeyItem) {
+        usability = ItemUsabilityState.passive;
+      } else if (isMoveMachine || isEvolutionItem) {
+        usability = !isMoveMachine ||
+                moveMachines.compatibleItemIds.contains(entry.itemId)
+            ? ItemUsabilityState.usable
+            : ItemUsabilityState.unavailableInContext;
+      } else if (capability.isAvailable &&
+          !_isSupportedOverworldEffect(effect)) {
+        usability = ItemUsabilityState.unsupportedCapability;
+      } else if (capability.isAvailable &&
+          effect is ProjectItemRestorePpEffectDefinition &&
+          !targets.any((target) => target.moves.isNotEmpty)) {
+        usability = ItemUsabilityState.unavailableInContext;
+      } else if (capability.isAvailable && targets.isEmpty) {
+        usability = ItemUsabilityState.unavailableInContext;
+      }
+      final unavailableReason = _bagUnavailableReason(
+        usability,
+        isFrench: isFrench,
+        isKeyItem: isKeyItem,
+        isMoveMachine: isMoveMachine,
+      );
       return RuntimePlayerDetailEntrySnapshot(
-        id: 'bag.${entry.categoryId}.${entry.itemId}',
-        title: _humanize(entry.itemId),
-        subtitle: _humanize(entry.categoryId),
+        id: 'bag.${entry.itemId}',
+        title: definition?.displayName ?? _humanize(entry.itemId),
+        subtitle: definition == null
+            ? (isFrench ? 'Définition invalide' : 'Invalid definition')
+            : _humanize(definition.pocketId),
         trailingLabel: '×${entry.quantity}',
         bagAction: RuntimePlayerBagItemActionSnapshot(
           itemTargetId: entry.itemId,
           targetKind: targetKind,
-          isEnabled: unavailableReason == null,
+          usability: usability,
+          isEnabled: usability == ItemUsabilityState.usable,
           unavailableReason: unavailableReason,
         ),
       );
@@ -277,11 +290,50 @@ final class RuntimePlayerPauseDataBuilder {
     );
   }
 
+  bool _isSupportedOverworldEffect(ProjectItemEffectDefinition? effect) {
+    return effect is ProjectItemHealHpEffectDefinition ||
+        effect is ProjectItemCureStatusEffectDefinition ||
+        effect is ProjectItemReviveEffectDefinition ||
+        effect is ProjectItemRestorePpEffectDefinition;
+  }
+
+  String? _bagUnavailableReason(
+    ItemUsabilityState usability, {
+    required bool isFrench,
+    required bool isKeyItem,
+    required bool isMoveMachine,
+  }) {
+    return switch (usability) {
+      ItemUsabilityState.usable => null,
+      ItemUsabilityState.passive => isKeyItem
+          ? isFrench
+              ? 'Cet objet clé s’utilise automatiquement et n’est pas consommé.'
+              : 'This key item is used automatically and is not consumed.'
+          : isFrench
+              ? 'Cet objet est passif et ne s’utilise pas depuis le sac.'
+              : 'This item is passive and cannot be used from the bag.',
+      ItemUsabilityState.unavailableInContext => isMoveMachine
+          ? isFrench
+              ? 'Aucun Pokémon de l’équipe n’est compatible.'
+              : 'No party Pokémon is compatible.'
+          : isFrench
+              ? 'Cet objet n’est pas utilisable dans ce contexte.'
+              : 'This item cannot be used in this context.',
+      ItemUsabilityState.invalidDefinition => isFrench
+          ? 'La définition de cet objet est invalide ou absente.'
+          : 'This item definition is invalid or missing.',
+      ItemUsabilityState.unsupportedCapability => isFrench
+          ? 'Cette capacité d’objet n’est pas encore prise en charge.'
+          : 'This item capability is not supported yet.',
+    };
+  }
+
   Future<_RuntimeMoveMachineAvailability> _loadMoveMachineAvailability(
     GameState gameState,
     Map<String, _RuntimeSpeciesPresentation> speciesById, {
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
+    required ItemCatalogSnapshot itemCatalog,
   }) async {
     final loader = RuntimeMoveMachineLoader();
     final itemIds = <String>{};
@@ -289,18 +341,18 @@ final class RuntimePlayerPauseDataBuilder {
     for (final entry
         in gameState.bag.entries.where((entry) => entry.quantity > 0)) {
       try {
-        final definition = await loader.loadDefinition(
-          projectRootDirectory: projectRootDirectory,
-          pokemonConfig: pokemonConfig,
-          itemId: entry.itemId,
-        );
-        if (definition == null) continue;
+        final machine = itemCatalog.definitionFor(entry.itemId)?.machine;
+        if (machine == null) continue;
         itemIds.add(entry.itemId);
         for (final pokemon in gameState.party.members) {
-          final candidate = await loader.loadCandidate(
+          final candidate =
+              await loader.learnsetLoader.loadMoveMachineCandidate(
             projectRootDirectory: projectRootDirectory,
             pokemonConfig: pokemonConfig,
             itemId: entry.itemId,
+            moveId: machine.moveId,
+            machineKind: machine.kind.name,
+            consumable: machine.consumable,
             speciesRef: speciesById[pokemon.speciesId]?.learnsetRef ??
                 pokemon.speciesId,
             fallbackSpeciesId: pokemon.speciesId,
@@ -393,13 +445,6 @@ final class RuntimePlayerPauseDataBuilder {
         }).toList(growable: false),
       );
     }).toList(growable: false);
-  }
-
-  bool _isKeyItemCategory(String categoryId) {
-    final normalized = categoryId.trim().toLowerCase().replaceAll('_', '-');
-    return normalized == 'key-item' ||
-        normalized == 'key-items' ||
-        normalized == 'important-items';
   }
 
   RuntimePlayerPauseDetailSnapshot _buildPokedex(

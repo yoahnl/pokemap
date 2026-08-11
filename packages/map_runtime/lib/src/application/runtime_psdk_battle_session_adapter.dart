@@ -33,6 +33,7 @@ final class RuntimePsdkBattleSessionAdapter {
   static const _statusBridge = RuntimeBattleStatusBridge();
   BattleDecision? _lastDecision;
   BattleEngineTurnResult? _lastTurnResult;
+  final Map<String, String> _itemDisplayNames = <String, String>{};
 
   BattlePublicState get state => _facade.state;
   BattleEngineDecisionRequest get decisionRequest => _facade.decisionRequest;
@@ -74,10 +75,23 @@ final class RuntimePsdkBattleSessionAdapter {
       type: _legacyOutcomeType(),
       finalState: finalState,
       captureItemId: state.outcome?.kind == BattleEngineOutcomeKind.captured
-          ? canonicalPokeBallItemId
+          ? _capturedItemId()
           : null,
       captureAttemptId: state.outcome?.captureAttemptId,
     );
+  }
+
+  String _capturedItemId() {
+    final attemptId = state.outcome?.captureAttemptId;
+    final events = _lastTurnResult?.timeline.events
+            .whereType<BattleCaptureAttemptTimelineEvent>()
+            .where((event) => event.caught && event.attemptId == attemptId)
+            .toList(growable: false) ??
+        const <BattleCaptureAttemptTimelineEvent>[];
+    if (attemptId == null || events.length != 1) {
+      throw StateError('Captured outcome is missing its exact item event.');
+    }
+    return events.single.ballId;
   }
 
   BattleEngineTurnResult submitDecision(BattleDecision decision) {
@@ -91,28 +105,21 @@ final class RuntimePsdkBattleSessionAdapter {
     return submitDecision(decisionForPlayerChoice(choice));
   }
 
-  BattleEngineTurnResult submitHpHealItem({
-    required String itemId,
-    required PsdkBattleItemActionEffect effect,
-  }) {
-    return submitBattleItem(
-      itemId: itemId,
-      targetPartyIndex: null,
-      effect: effect,
-    );
-  }
-
   BattleEngineTurnResult submitBattleItem({
     required String itemId,
+    required String displayName,
     required int? targetPartyIndex,
     required PsdkBattleItemActionEffect effect,
+    required bool consumeItem,
   }) {
+    _itemDisplayNames[itemId] = displayName;
     return submitDecision(
       BattleDecision.item(
         itemId: itemId,
         target: psdkPlayerSlot,
         targetPartyIndex: targetPartyIndex,
         effect: effect,
+        consumeItem: consumeItem,
         highPriority: true,
       ),
     );
@@ -128,8 +135,15 @@ final class RuntimePsdkBattleSessionAdapter {
           partyIndex: _partyIndexForReserveChoice(reserveIndex),
         ),
       PlayerBattleChoiceRun() => const BattleDecision.flee(),
-      PlayerBattleChoiceCapture() => const BattleDecision.capture(
-          itemId: canonicalPokeBallItemId,
+      PlayerBattleChoiceCapture(
+        :final itemId,
+        :final rateNumerator,
+        :final rateDenominator,
+      ) =>
+        BattleDecision.capture(
+          itemId: itemId,
+          rateNumerator: rateNumerator,
+          rateDenominator: rateDenominator,
         ),
       PlayerBattleChoiceContinue() => const BattleDecision.noAction(),
     };
@@ -158,14 +172,11 @@ final class RuntimePsdkBattleSessionAdapter {
         timeline.add(BattleTurnExecutionEvent(execution));
       } else if (event is BattleHealTimelineEvent &&
           event.moveId?.startsWith('item:') == true) {
-        final itemKind = _legacyHpHealItemKind(
-          event.moveId!.substring('item:'.length),
-        );
-        if (itemKind == null) {
-          continue;
-        }
         final itemEvent = _toLegacyBagHpHealItemEvent(
-          itemKind: itemKind,
+          itemId: event.moveId!.substring('item:'.length),
+          displayName:
+              _itemDisplayNames[event.moveId!.substring('item:'.length)] ??
+                  event.moveId!.substring('item:'.length),
           event: event,
           targetPartyIndex:
               decision is BattleItemDecision ? decision.targetPartyIndex : null,
@@ -235,7 +246,8 @@ final class RuntimePsdkBattleSessionAdapter {
   }
 
   BattleBagHpHealItemEvent _toLegacyBagHpHealItemEvent({
-    required BattleBagHpHealItemKind itemKind,
+    required String itemId,
+    required String displayName,
     required BattleHealTimelineEvent event,
     required int? targetPartyIndex,
   }) {
@@ -249,7 +261,8 @@ final class RuntimePsdkBattleSessionAdapter {
           )
         : state.psdkState.partyForBank(event.target.bank)[targetPartyIndex];
     return BattleBagHpHealItemEvent(
-      itemKind: itemKind,
+      itemId: itemId,
+      displayName: displayName,
       side: side,
       targetLineupIndex: _lineupIndexFromPsdkId(target.id),
       targetSpeciesId: target.speciesId,
@@ -323,8 +336,8 @@ final class RuntimePsdkBattleSessionAdapter {
   }) {
     return switch (effect) {
       final PsdkBattleHpHealItemEffect hpEffect => BattleActionBagHpHealItemUse(
-          itemKind:
-              _legacyHpHealItemKind(itemId) ?? BattleBagHpHealItemKind.potion,
+          itemId: itemId,
+          displayName: _itemDisplayNames[itemId] ?? itemId,
           targetLineupIndex: _lineupIndexFromPsdkId(
             targetPartyIndex == null
                 ? state.psdkState.battlerAt(target).id
@@ -415,16 +428,6 @@ final class RuntimePsdkBattleSessionAdapter {
 
   bool _samePosition(BattlePositionRef position, PsdkBattleSlotRef slot) {
     return position.bank == slot.bank && position.position == slot.position;
-  }
-
-  BattleBagHpHealItemKind? _legacyHpHealItemKind(String itemId) {
-    return switch (itemId) {
-      'potion' => BattleBagHpHealItemKind.potion,
-      'super-potion' => BattleBagHpHealItemKind.superPotion,
-      'hyper-potion' => BattleBagHpHealItemKind.hyperPotion,
-      'max-potion' => BattleBagHpHealItemKind.maxPotion,
-      _ => null,
-    };
   }
 
   int _partyIndexForReserveChoice(int reserveIndex) {

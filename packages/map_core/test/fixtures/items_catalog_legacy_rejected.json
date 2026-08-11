@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "custom-item",
+      "displayName": "Custom Item",
+      "pocketId": "items"
+    },
+    {
+      "id": "potion",
+      "displayName": "Potion",
+      "pocketId": "medicine",
+      "categoryId": "medicine",
+      "effectText": "Restores 20 HP."
+    }
+  ]
+}

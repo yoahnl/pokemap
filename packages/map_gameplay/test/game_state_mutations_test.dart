@@ -15,17 +15,15 @@ void main() {
 
       final newState = mutations.giveItem(initialState, 'potion', 2);
 
-      // Verify item was added to the bag
       expect(newState.bag.entries.length, equals(1));
       expect(newState.bag.entries[0].itemId, equals('potion'));
-      expect(newState.bag.entries[0].categoryId, equals('medicine'));
       expect(newState.bag.entries[0].quantity, equals(2));
 
-      // Verify metadata remains unchanged
       expect(newState.metadata, equals({'existing_meta': 'some_value'}));
     });
 
-    test('giveItem adds a new item of default category items', () {
+    test('giveItem adds a new item without inferring presentation metadata',
+        () {
       final initialState = GameState(
         saveId: 'test-save',
         bag: const Bag(entries: []),
@@ -35,7 +33,6 @@ void main() {
 
       expect(newState.bag.entries.length, equals(1));
       expect(newState.bag.entries[0].itemId, equals('poke-ball'));
-      expect(newState.bag.entries[0].categoryId, equals('items'));
       expect(newState.bag.entries[0].quantity, equals(3));
     });
 
@@ -44,7 +41,7 @@ void main() {
         saveId: 'test-save',
         bag: const Bag(
           entries: [
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(itemId: 'potion', quantity: 2),
           ],
         ),
       );
@@ -61,8 +58,8 @@ void main() {
         saveId: 'test-save',
         bag: const Bag(
           entries: [
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(itemId: 'poke-ball', quantity: 5),
+            BagEntry(itemId: 'potion', quantity: 2),
           ],
         ),
       );
@@ -71,7 +68,6 @@ void main() {
 
       expect(newState.bag.entries.length, equals(2));
 
-      // Entries are normalized and sorted by category then itemId
       final pokeBallEntry =
           newState.bag.entries.firstWhere((e) => e.itemId == 'poke-ball');
       final potionEntry =
@@ -86,17 +82,15 @@ void main() {
         saveId: 'test-save',
         bag: const Bag(
           entries: [
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(itemId: 'potion', quantity: 2),
           ],
         ),
         metadata: {'some': 'meta'},
       );
 
-      // giveItem with quantity = 0
       final newState1 = mutations.giveItem(initialState, 'potion', 0);
       expect(newState1, same(initialState));
 
-      // giveItem with quantity = -5
       final newState2 = mutations.giveItem(initialState, 'potion', -5);
       expect(newState2, same(initialState));
     });
@@ -108,7 +102,7 @@ void main() {
         saveId: 'test-save',
         bag: const Bag(
           entries: [
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(itemId: 'potion', quantity: 2),
           ],
         ),
       );

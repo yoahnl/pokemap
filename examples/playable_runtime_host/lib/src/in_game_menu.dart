@@ -69,6 +69,7 @@ class InGameMenuPage extends StatefulWidget {
     required this.onOptionsChanged,
     required this.onQuitRequested,
     required this.onCloseRequested,
+    required this.itemCatalog,
     this.projectMaps = const <ProjectMapEntry>[],
     this.recoveryCaps = const RuntimePlayerServiceRecoveryCaps(
       maxHpByPartyIndex: <int, int>{},
@@ -85,6 +86,7 @@ class InGameMenuPage extends StatefulWidget {
   final ValueChanged<RuntimePlayerOptions> onOptionsChanged;
   final VoidCallback onQuitRequested;
   final VoidCallback onCloseRequested;
+  final ItemCatalogSnapshot itemCatalog;
   final List<ProjectMapEntry> projectMaps;
   final RuntimePlayerServiceRecoveryCaps recoveryCaps;
   final Future<void> Function(GameState state)? onPlayerStateCommitted;
@@ -242,6 +244,7 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
                       ),
                     InGameMenuSection.bag => _BagSection(
                         gameState: gameState,
+                        itemCatalog: widget.itemCatalog,
                         recoveryCaps: widget.recoveryCaps,
                         onStateCommitted: _commitPlayerState,
                       ),
@@ -793,11 +796,13 @@ class _PokedexDetail extends StatelessWidget {
 class _BagSection extends StatefulWidget {
   const _BagSection({
     required this.gameState,
+    required this.itemCatalog,
     required this.recoveryCaps,
     required this.onStateCommitted,
   });
 
   final GameState gameState;
+  final ItemCatalogSnapshot itemCatalog;
   final RuntimePlayerServiceRecoveryCaps recoveryCaps;
   final Future<void> Function(GameState state) onStateCommitted;
 
@@ -806,12 +811,17 @@ class _BagSection extends StatefulWidget {
 }
 
 class _BagSectionState extends State<_BagSection> {
-  static const _operations = PlayerItemOperations();
-  static const _registry = PlayerItemEffectRegistry.mvp();
+  late final PlayerItemUseService _itemUseService;
 
   bool _busy = false;
   String? _feedback;
   bool _feedbackIsError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _itemUseService = PlayerItemUseService(snapshot: widget.itemCatalog);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -823,13 +833,14 @@ class _BagSectionState extends State<_BagSection> {
       );
     }
 
-    final entriesByCategory = <String, List<BagEntry>>{};
+    final entriesByPocket = <String, List<BagEntry>>{};
     for (final entry in gameState.bag.entries) {
-      entriesByCategory.putIfAbsent(entry.categoryId, () => <BagEntry>[]).add(
-            entry,
-          );
+      final pocketId = widget.itemCatalog.definitionFor(entry.itemId)?.pocketId;
+      entriesByPocket
+          .putIfAbsent(pocketId ?? 'invalid-items', () => <BagEntry>[])
+          .add(entry);
     }
-    final sortedCategories = entriesByCategory.keys.toList()..sort();
+    final sortedPockets = entriesByPocket.keys.toList()..sort();
 
     return ListView(
       key: const Key('in-game-bag-section'),
@@ -839,28 +850,28 @@ class _BagSectionState extends State<_BagSection> {
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         const SizedBox(height: 16),
-        for (final category in sortedCategories) ...[
+        for (final pocket in sortedPockets) ...[
           Text(
-            category,
+            pocket,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
           Card(
             child: Column(
-              children: entriesByCategory[category]!.map(
+              children: entriesByPocket[pocket]!.map(
                 (entry) {
-                  final effect = _registry.effectFor(entry.itemId);
-                  final usable = effect != null &&
-                      (effect.kind == PlayerItemEffectKind.healHp ||
-                          effect.kind == PlayerItemEffectKind.cureStatus ||
-                          effect.kind == PlayerItemEffectKind.revive);
+                  final capability = _itemUseService.resolver.resolveUse(
+                    itemId: entry.itemId,
+                    context: ProjectItemUseContext.overworld,
+                  );
+                  final usable = capability.isAvailable &&
+                      capability.use!.target ==
+                          ProjectItemTargetKind.partyMember;
                   return ListTile(
                     key: Key('bag-entry-${entry.itemId}'),
                     title: Text(_itemLabel(entry.itemId)),
                     subtitle: Text(
-                      usable
-                          ? 'Utilisable sur un Pokémon de l’équipe.'
-                          : 'Non utilisable depuis ce menu.',
+                      _itemAvailabilityLabel(capability, usable: usable),
                     ),
                     trailing: Wrap(
                       spacing: 12,
@@ -937,13 +948,16 @@ class _BagSectionState extends State<_BagSection> {
       });
       return;
     }
-    final result = _operations.useOnPartyMember(
-      widget.gameState,
-      itemId: itemId,
-      partyIndex: targetIndex,
-      maxHp: maxHp,
-      maxPpByMoveId:
-          widget.recoveryCaps.maxPpByPartyIndex[targetIndex] ?? const {},
+    final result = _itemUseService.use(
+      PlayerItemUseRequest(
+        state: widget.gameState,
+        itemId: itemId,
+        context: ProjectItemUseContext.overworld,
+        partyIndex: targetIndex,
+        maxHp: maxHp,
+        maxPpByMoveId:
+            widget.recoveryCaps.maxPpByPartyIndex[targetIndex] ?? const {},
+      ),
     );
     if (!result.isSuccess) {
       setState(() {
@@ -969,6 +983,27 @@ class _BagSectionState extends State<_BagSection> {
         _feedback = 'Échec de l’utilisation : $error';
       });
     }
+  }
+
+  String _itemLabel(String itemId) {
+    return widget.itemCatalog.definitionFor(itemId)?.displayName ?? itemId;
+  }
+
+  String _itemAvailabilityLabel(
+    ItemUseCapabilityResolution capability, {
+    required bool usable,
+  }) {
+    if (usable) {
+      return 'Utilisable sur un Pokémon de l’équipe.';
+    }
+    return switch (capability.failure) {
+      ItemUseCapabilityFailure.unknownDefinition => 'Définition invalide.',
+      ItemUseCapabilityFailure.unavailableInContext =>
+        capability.item!.uses.isEmpty
+            ? 'Objet passif, non consommé.'
+            : 'Indisponible hors combat.',
+      null => 'Cible non prise en charge depuis ce menu.',
+    };
   }
 }
 
@@ -1203,24 +1238,20 @@ class _PartyPokemonCard extends StatelessWidget {
   }
 }
 
-String _itemLabel(String itemId) => switch (itemId) {
-      'potion' => 'Potion',
-      'super-potion' => 'Super Potion',
-      'hyper-potion' => 'Hyper Potion',
-      'max-potion' => 'Potion Max',
-      'antidote' => 'Antidote',
-      'revive' => 'Rappel',
-      _ => itemId,
-    };
-
 String _itemFailureLabel(PlayerItemUseFailure failure) => switch (failure) {
       PlayerItemUseFailure.invalidRequest => 'Utilisation invalide.',
-      PlayerItemUseFailure.unknownItem => 'Objet inconnu.',
+      PlayerItemUseFailure.unknownDefinition => 'Définition invalide.',
       PlayerItemUseFailure.invalidTarget => 'Cible invalide.',
       PlayerItemUseFailure.insufficientQuantity => 'Objet indisponible.',
       PlayerItemUseFailure.wrongTarget =>
         'Cet objet ne convient pas à la cible.',
+      PlayerItemUseFailure.unavailableInContext =>
+        'Cet objet est indisponible hors combat.',
       PlayerItemUseFailure.noEffect => 'Cet objet n’aurait aucun effet.',
+      PlayerItemUseFailure.unsupportedCapability =>
+        'Cette capacité n’est pas prise en charge.',
+      PlayerItemUseFailure.protectedKeyItem =>
+        'Cet objet important ne peut pas être consommé.',
     };
 
 class _PokemonInfoChip extends StatelessWidget {

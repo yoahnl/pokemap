@@ -355,112 +355,34 @@ class BattleSession {
     );
   }
 
-  /// Commit une vraie action de tour `Potion`.
-  ///
-  /// Lot 9-f conserve cette façade explicite pour éviter de vendre une API
-  /// générique d'objets : l'implémentation factorise en interne avec
-  /// `Super Potion`, `Hyper Potion` et `Max Potion`, mais l'appelant reste bien
-  /// sur un objet concret.
-  BattleSession applyPotionTurn({
-    required int targetLineupIndex,
-    required int healAmount,
-  }) {
-    _requirePositiveBagHpHealAmount(
-      itemLabel: BattleBagHpHealItemKind.potion.label,
-      healAmount: healAmount,
-    );
-    return _applyBagHpHealItemTurn(
-      itemKind: BattleBagHpHealItemKind.potion,
-      targetLineupIndex: targetLineupIndex,
-      effect: BattleBagFlatHpHealEffect(healAmount),
-    );
-  }
-
-  /// Commit une vraie action de tour `Super Potion`.
-  ///
-  /// Frontière volontaire :
-  /// - on n'étend pas cette API à toutes les medicines ;
-  /// - on ajoute seulement le deuxième objet explicitement demandé par 9-f ;
-  /// - l'effet reste committé via le même scheduler honnête que `Potion`.
-  BattleSession applySuperPotionTurn({
-    required int targetLineupIndex,
-    required int healAmount,
-  }) {
-    _requirePositiveBagHpHealAmount(
-      itemLabel: BattleBagHpHealItemKind.superPotion.label,
-      healAmount: healAmount,
-    );
-    return _applyBagHpHealItemTurn(
-      itemKind: BattleBagHpHealItemKind.superPotion,
-      targetLineupIndex: targetLineupIndex,
-      effect: BattleBagFlatHpHealEffect(healAmount),
-    );
-  }
-
-  /// Commit une vraie action de tour `Hyper Potion`.
-  ///
-  /// Lot 9-g étend la mini-famille bornée sans franchir la frontière vers un
-  /// système générique :
-  /// - aucune autre medicine n'est implicitement supportée ;
-  /// - le scheduler et la timeline restent ceux déjà prouvés par 9-e/9-f ;
-  /// - l'appelant reste sur une façade explicite par objet.
-  BattleSession applyHyperPotionTurn({
-    required int targetLineupIndex,
-    required int healAmount,
-  }) {
-    _requirePositiveBagHpHealAmount(
-      itemLabel: BattleBagHpHealItemKind.hyperPotion.label,
-      healAmount: healAmount,
-    );
-    return _applyBagHpHealItemTurn(
-      itemKind: BattleBagHpHealItemKind.hyperPotion,
-      targetLineupIndex: targetLineupIndex,
-      effect: BattleBagFlatHpHealEffect(healAmount),
-    );
-  }
-
-  /// Commit une vraie action de tour `Max Potion`.
-  ///
-  /// Contrairement aux trois objets précédents, cette façade ne prend pas de
-  /// `healAmount` : le lot 9-h modélise explicitement "restore-to-full" pour ne
-  /// pas déguiser `Max Potion` en soin plat arbitraire.
-  BattleSession applyMaxPotionTurn({
-    required int targetLineupIndex,
-  }) {
-    return _applyBagHpHealItemTurn(
-      itemKind: BattleBagHpHealItemKind.maxPotion,
-      targetLineupIndex: targetLineupIndex,
-      effect: const BattleBagRestoreToFullHpHealEffect(),
-    );
-  }
-
-  /// Commit une vraie action de tour pour la famille ultra-bornée
-  /// `Potion` + `Super Potion` + `Hyper Potion` + `Max Potion`.
-  ///
-  /// Ce helper interne factorise seulement ce qui était devenu duplication :
-  /// - même validation de requête ;
-  /// - même ciblage par `lineupIndex` ;
-  /// - même scheduler de tour ;
-  /// - même narration battle.
-  ///
-  /// Il ne doit pas dériver vers un système d'items générique.
-  BattleSession _applyBagHpHealItemTurn({
-    required BattleBagHpHealItemKind itemKind,
+  BattleSession applyBagHpHealItemTurn({
+    required String itemId,
+    required String displayName,
     required int targetLineupIndex,
     required BattleBagHpHealEffect effect,
   }) {
+    final normalizedItemId = itemId.trim();
+    final normalizedDisplayName = displayName.trim();
+    if (normalizedItemId.isEmpty) {
+      throw ArgumentError.value(itemId, 'itemId', 'must not be empty');
+    }
+    if (normalizedDisplayName.isEmpty) {
+      throw ArgumentError.value(
+          displayName, 'displayName', 'must not be empty');
+    }
+    if (effect case BattleBagFlatHpHealEffect(:final amount)) {
+      _requirePositiveBagHpHealAmount(
+        itemLabel: normalizedItemId,
+        healAmount: amount,
+      );
+    }
     final request = decisionRequest;
     if (request is! BattleTurnChoiceRequest) {
       throw StateError(
-        '${itemKind.label} ne peut être engagée que pendant un vrai BattleTurnChoiceRequest '
+        '$normalizedItemId ne peut être engagé que pendant un vrai BattleTurnChoiceRequest '
         '(request=${request.runtimeType}).',
       );
     }
-    _requireBagHpHealEffectMatchesItemKind(
-      itemKind: itemKind,
-      effect: effect,
-    );
-
     _requireUsableBagHpHealItemTarget(
       side: state.playerSide,
       targetLineupIndex: targetLineupIndex,
@@ -468,7 +390,8 @@ class BattleSession {
 
     return _applyCommittedPlayerAction(
       playerAction: BattleActionBagHpHealItemUse(
-        itemKind: itemKind,
+        itemId: normalizedItemId,
+        displayName: normalizedDisplayName,
         targetLineupIndex: targetLineupIndex,
         effect: effect,
       ),
@@ -807,19 +730,21 @@ class BattleSession {
         targetCurrentHp: state.enemy.currentHp,
         targetMaxHp: state.enemy.maxHp,
         catchRate: state.enemy.catchRate!,
-        ballId: canonicalPokeBallItemId,
+        ballId: choice.itemId,
+        ballRateNumerator: choice.rateNumerator,
+        ballRateDenominator: choice.rateDenominator,
         status: _captureStatusForLegacy(state.enemy.majorStatus),
         rng: rng,
       );
       final captureEvent = BattleCaptureAttemptEvent(
         attemptId: captureAttemptId,
         targetSpeciesId: state.enemy.writeBackSpeciesId,
-        ballId: canonicalPokeBallItemId,
+        ballId: choice.itemId,
         caught: capture.caught,
       );
       final captureAction = BattleActionCapture(
         attemptId: captureAttemptId,
-        itemId: canonicalPokeBallItemId,
+        itemId: choice.itemId,
         caught: capture.caught,
       );
       if (!capture.caught) {
@@ -859,7 +784,7 @@ class BattleSession {
           outcome: BattleOutcome(
             type: BattleOutcomeType.captured,
             finalState: finalState,
-            captureItemId: canonicalPokeBallItemId,
+            captureItemId: choice.itemId,
             captureAttemptId: captureAttemptId,
           ),
           playerParticipantLineupIndexes: state.playerParticipantLineupIndexes,
@@ -1002,20 +927,23 @@ class BattleSession {
   }
 
   _ResolvedBagHpHealItemUseAction _resolveBagHpHealItemUseAction({
-    required BattleBagHpHealItemKind itemKind,
+    required String itemId,
+    required String displayName,
     required BattleSideState side,
     required int targetLineupIndex,
     required BattleBagHpHealEffect effect,
   }) {
     if (side.id != BattleSideId.player) {
       throw StateError(
-        'BattleActionBagHpHealItemUse reste limité au côté joueur dans le lot 9-h.',
+        'BattleActionBagHpHealItemUse reste limité au côté joueur.',
       );
     }
-    _requireBagHpHealEffectMatchesItemKind(
-      itemKind: itemKind,
-      effect: effect,
-    );
+    if (effect case BattleBagFlatHpHealEffect(:final amount)) {
+      _requirePositiveBagHpHealAmount(
+        itemLabel: itemId,
+        healAmount: amount,
+      );
+    }
 
     final targetCombatant = _requireUsableBagHpHealItemTarget(
       side: side,
@@ -1036,7 +964,8 @@ class BattleSession {
         updatedCombatant: healedCombatant,
       ),
       event: BattleBagHpHealItemEvent(
-        itemKind: itemKind,
+        itemId: itemId,
+        displayName: displayName,
         side: side.id,
         targetLineupIndex: healedCombatant.lineupIndex,
         targetSpeciesId: healedCombatant.speciesId,
@@ -1044,35 +973,6 @@ class BattleSession {
         hpAfter: healedCombatant.currentHp,
       ),
     );
-  }
-
-  void _requireBagHpHealEffectMatchesItemKind({
-    required BattleBagHpHealItemKind itemKind,
-    required BattleBagHpHealEffect effect,
-  }) {
-    // Garde-fou runtime, pas seulement `assert` debug :
-    // - les trois premiers objets restent des soins plats ;
-    // - `Max Potion` reste le seul restore-to-full ;
-    // - on refuse donc les combinaisons qui mentiraient à la timeline ou au
-    //   write-back runtime en release.
-    switch (effect) {
-      case BattleBagFlatHpHealEffect(:final amount):
-        _requirePositiveBagHpHealAmount(
-          itemLabel: itemKind.label,
-          healAmount: amount,
-        );
-        if (itemKind == BattleBagHpHealItemKind.maxPotion) {
-          throw StateError(
-            'Max Potion must use a restore-to-full HP heal effect.',
-          );
-        }
-      case BattleBagRestoreToFullHpHealEffect():
-        if (itemKind != BattleBagHpHealItemKind.maxPotion) {
-          throw StateError(
-            'Restore-to-full HP heal effect is reserved for Max Potion.',
-          );
-        }
-    }
   }
 
   void _requirePositiveBagHpHealAmount({

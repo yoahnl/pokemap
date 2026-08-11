@@ -103,7 +103,7 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 3),
           ],
         ),
         progression: PlayerProgression(
@@ -174,8 +174,8 @@ void main() {
         ),
         bag: const Bag(
           entries: [
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+            BagEntry(itemId: 'potion', quantity: 2),
+            BagEntry(itemId: 'poke-ball', quantity: 5),
           ],
         ),
         progression: const PlayerProgression(
@@ -412,6 +412,60 @@ void main() {
       expect(
         updated.progression.seenSpeciesIds,
         equals(['bulbasaur', 'zubat']),
+      );
+    });
+  });
+
+  group('strict Item System game-state wire', () {
+    test('writes the schema marker and round-trips canonical Bag entries', () {
+      const state = GameState(
+        saveId: 'strict_item_wire',
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'potion', quantity: 2),
+          ],
+        ),
+      );
+
+      final json = strictGameStateSaveJson(state);
+      final entries =
+          (json['bag'] as Map<String, dynamic>)['entries'] as List<dynamic>;
+      final restored = gameStateFromStrictSaveJson(json);
+
+      expect(
+        json['itemSystemSchemaVersion'],
+        currentItemSystemSaveSchemaVersion,
+      );
+      expect(
+        (entries.single as Map<String, dynamic>).keys.toSet(),
+        const <String>{'itemId', 'quantity'},
+      );
+      expect(restored.bag, state.bag);
+    });
+
+    test('rejects missing schema and non-canonical Bag fields', () {
+      final missingSchema = const GameState(saveId: 'missing').toJson();
+      final extraBagField = strictGameStateSaveJson(
+        const GameState(
+          saveId: 'extra_bag_field',
+          bag: Bag(
+            entries: <BagEntry>[
+              BagEntry(itemId: 'potion', quantity: 1),
+            ],
+          ),
+        ),
+      );
+      final entries = (extraBagField['bag']
+          as Map<String, dynamic>)['entries'] as List<dynamic>;
+      (entries.single as Map<String, dynamic>)['categoryId'] = 'medicine';
+
+      expect(
+        () => gameStateFromStrictSaveJson(missingSchema),
+        throwsA(isA<UnsupportedSaveSchema>()),
+      );
+      expect(
+        () => gameStateFromStrictSaveJson(extraBagField),
+        throwsA(isA<UnsupportedSaveSchema>()),
       );
     });
   });

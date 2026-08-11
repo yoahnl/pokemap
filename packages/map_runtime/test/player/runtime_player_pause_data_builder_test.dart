@@ -3,7 +3,18 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_runtime/map_runtime.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/src/player/runtime_player_pause_data.dart';
+import 'package:map_runtime/src/player/runtime_player_pause_data_builder.dart';
+
+ItemCatalogSnapshot _catalogWith(List<ProjectItemDefinition> entries) {
+  return ItemCatalogSnapshot.fromCatalog(
+    ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: <ProjectItemDefinition>[...mvpItemCatalog.entries, ...entries],
+    ),
+  );
+}
 
 void main() {
   test('builds party bag and Pokedex details from the live game state',
@@ -68,12 +79,10 @@ void main() {
         entries: <BagEntry>[
           BagEntry(
             itemId: 'potion',
-            categoryId: 'medicine',
             quantity: 3,
           ),
           BagEntry(
             itemId: 'harbor-pass',
-            categoryId: 'key-items',
             quantity: 1,
           ),
         ],
@@ -112,6 +121,16 @@ void main() {
           sortOrder: 30,
         ),
       ],
+      itemCatalog: _catalogWith(
+        const <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'harbor-pass',
+            displayName: 'Harbor Pass',
+            pocketId: 'key-items',
+            tags: <String>{'key-item', 'passive'},
+          ),
+        ],
+      ),
     );
 
     final party = details[RuntimePlayerPauseSection.party]!;
@@ -256,7 +275,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'tm-protect',
-              categoryId: 'machines',
               quantity: 1,
             ),
           ],
@@ -265,6 +283,20 @@ void main() {
       projectRootDirectory: projectRoot.path,
       pokemonConfig: const ProjectPokemonConfig(),
       locale: 'fr',
+      itemCatalog: _catalogWith(
+        const <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'tm-protect',
+            displayName: 'TM Protect',
+            pocketId: 'machines',
+            machine: ProjectMoveMachineItemDefinition(
+              moveId: 'protect',
+              kind: ProjectMoveMachineKind.tm,
+              consumable: true,
+            ),
+          ),
+        ],
+      ),
     );
 
     final action =
@@ -274,6 +306,128 @@ void main() {
       action.targetKind,
       RuntimePlayerBagUseTargetKind.partyMoveReplacement,
     );
+  });
+
+  test('reports the five canonical item usability states', () async {
+    final projectRoot = await Directory.systemTemp.createTemp(
+      'pokemap-runtime-item-diagnostics-',
+    );
+    addTearDown(() => projectRoot.delete(recursive: true));
+    final catalog = ItemCatalogSnapshot.fromCatalog(
+      const ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'field-tonic',
+            displayName: 'Field Tonic',
+            pocketId: 'custom-medicine',
+            uses: <ProjectItemUseDefinition>[
+              ProjectItemUseDefinition(
+                contexts: <ProjectItemUseContext>{
+                  ProjectItemUseContext.overworld,
+                },
+                target: ProjectItemTargetKind.partyMember,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: ProjectItemEffectDefinition.healHp(
+                  mode: ProjectItemAmountMode.flat,
+                  amount: 12,
+                ),
+              ),
+            ],
+          ),
+          ProjectItemDefinition(
+            id: 'lucky-charm',
+            displayName: 'Lucky Charm',
+            pocketId: 'charms',
+            tags: <String>{'passive'},
+          ),
+          ProjectItemDefinition(
+            id: 'battle-tonic',
+            displayName: 'Battle Tonic',
+            pocketId: 'custom-medicine',
+            uses: <ProjectItemUseDefinition>[
+              ProjectItemUseDefinition(
+                contexts: <ProjectItemUseContext>{
+                  ProjectItemUseContext.battle,
+                },
+                target: ProjectItemTargetKind.partyMember,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: ProjectItemEffectDefinition.healHp(
+                  mode: ProjectItemAmountMode.flat,
+                  amount: 24,
+                ),
+              ),
+            ],
+          ),
+          ProjectItemDefinition(
+            id: 'camp-whistle',
+            displayName: 'Camp Whistle',
+            pocketId: 'tools',
+            uses: <ProjectItemUseDefinition>[
+              ProjectItemUseDefinition(
+                contexts: <ProjectItemUseContext>{
+                  ProjectItemUseContext.overworld,
+                },
+                target: ProjectItemTargetKind.none,
+                consumption: ProjectItemConsumptionPolicy.never,
+                effect: ProjectItemEffectDefinition.semanticAction(
+                  actionId: 'camp_whistle',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    final details = await const RuntimePlayerPauseDataBuilder().build(
+      gameState: const GameState(
+        saveId: 'diagnostics',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              currentHp: 10,
+            ),
+          ],
+        ),
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'field-tonic', quantity: 1),
+            BagEntry(itemId: 'lucky-charm', quantity: 1),
+            BagEntry(itemId: 'battle-tonic', quantity: 1),
+            BagEntry(itemId: 'camp-whistle', quantity: 1),
+            BagEntry(itemId: 'missing-item', quantity: 1),
+          ],
+        ),
+      ),
+      projectRootDirectory: projectRoot.path,
+      pokemonConfig: const ProjectPokemonConfig(),
+      locale: 'fr',
+      itemCatalog: catalog,
+    );
+
+    final actions = <String, RuntimePlayerBagItemActionSnapshot>{
+      for (final entry in details[RuntimePlayerPauseSection.bag]!.entries)
+        entry.bagAction!.itemTargetId: entry.bagAction!,
+    };
+    expect(actions['field-tonic']!.usability, ItemUsabilityState.usable);
+    expect(actions['lucky-charm']!.usability, ItemUsabilityState.passive);
+    expect(
+      actions['battle-tonic']!.usability,
+      ItemUsabilityState.unavailableInContext,
+    );
+    expect(
+      actions['missing-item']!.usability,
+      ItemUsabilityState.invalidDefinition,
+    );
+    expect(
+      actions['camp-whistle']!.usability,
+      ItemUsabilityState.unsupportedCapability,
+    );
+    expect(actions['field-tonic']!.isEnabled, isTrue);
+    expect(actions['lucky-charm']!.unavailableReason, contains('passif'));
   });
 }
 

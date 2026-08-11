@@ -1,16 +1,15 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import 'battle_start_request.dart';
 import 'runtime_battle_combatant_seed_builder.dart';
 import 'runtime_battle_setup_exception.dart';
+import 'runtime_item_catalog_loader.dart';
 import 'runtime_map_bundle.dart';
 import 'runtime_move_catalog_loader.dart';
 
 export 'runtime_battle_setup_exception.dart' show RuntimeBattleSetupException;
-
-const _runtimeCapturePokeBallItemId = 'poke-ball';
-const _runtimeCapturePokeBallCategoryId = 'items';
 
 /// Mapper runtime unique vers [BattleSetup].
 ///
@@ -39,12 +38,16 @@ const _runtimeCapturePokeBallCategoryId = 'items';
 class RuntimeBattleSetupMapper {
   RuntimeBattleSetupMapper({
     RuntimeMoveCatalogLoader? moveCatalogLoader,
+    RuntimeItemCatalogLoader? itemCatalogLoader,
     RuntimeBattleCombatantSeedBuilder? combatantSeedBuilder,
   })  : moveCatalogLoader = moveCatalogLoader ?? RuntimeMoveCatalogLoader(),
+        itemCatalogLoader =
+            itemCatalogLoader ?? const RuntimeItemCatalogLoader(),
         combatantSeedBuilder =
             combatantSeedBuilder ?? RuntimeBattleCombatantSeedBuilder();
 
   final RuntimeMoveCatalogLoader moveCatalogLoader;
+  final RuntimeItemCatalogLoader itemCatalogLoader;
   final RuntimeBattleCombatantSeedBuilder combatantSeedBuilder;
 
   Future<BattleSetup> map({
@@ -52,7 +55,13 @@ class RuntimeBattleSetupMapper {
     required GameState gameState,
     required BattleStartRequest request,
     int? playerPartyIndex,
+    ItemCatalogSnapshot? itemCatalog,
   }) async {
+    final resolvedItemCatalog = itemCatalog ??
+        await itemCatalogLoader.loadSnapshot(
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
+        );
     final movesCatalog = await moveCatalogLoader.load(
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
@@ -204,9 +213,13 @@ class RuntimeBattleSetupMapper {
       // - combat sauvage uniquement ;
       // - capture autorisée si la party est pleine, car P5-06 fournit un
       //   storage minimal persistant ;
-      // - aucune capture sans Poké Ball réelle dans le bag du joueur.
+      // - aucune capture sans objet compatible avec la rencontre dans le bag.
       allowCapture: request is WildBattleStartRequest &&
-          playerHasAtLeastOneRuntimePokeBall(gameState.bag),
+          playerHasAtLeastOneRuntimeCaptureItem(
+            gameState.bag,
+            ItemCapabilityResolver(resolvedItemCatalog),
+            encounterKind: request.encounterKind,
+          ),
       allowFlee: request.allowsPlayerFlee,
     );
   }
@@ -332,21 +345,23 @@ final class _RuntimeBattleEnemyLineup {
   final List<RuntimeBattleCombatantSeed> reserve;
 }
 
-/// Retourne `true` si le bag runtime contient au moins une Poké Ball exploitable.
+/// Retourne `true` si le bag contient un objet de capture compatible.
 ///
 /// Le guard vit ici plutôt que dans `map_battle` car :
 /// - le moteur battle ne doit pas dépendre du système de bag ;
 /// - le runtime est déjà la frontière qui décide si `allowCapture` peut être
 ///   activé pour une rencontre donnée ;
 /// - le lot 14 n'ouvre pas un inventaire global ni une politique de capture.
-///
-/// On tolère des IDs non normalisés en mémoire (`" poke-ball "`) pour rester
-/// robuste face à un état runtime pas encore passé par le pipeline save/load.
-bool playerHasAtLeastOneRuntimePokeBall(Bag bag) {
+bool playerHasAtLeastOneRuntimeCaptureItem(
+  Bag bag,
+  ItemCapabilityResolver resolver, {
+  required EncounterKind encounterKind,
+}) {
   for (final entry in bag.entries) {
-    if (entry.itemId.trim() == _runtimeCapturePokeBallItemId &&
-        entry.categoryId.trim() == _runtimeCapturePokeBallCategoryId &&
-        entry.quantity > 0) {
+    final capture = resolver.definitionFor(entry.itemId)?.capture;
+    if (entry.quantity > 0 &&
+        capture != null &&
+        capture.allowedEncounterKinds.contains(encounterKind)) {
       return true;
     }
   }

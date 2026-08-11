@@ -22,6 +22,7 @@ final class SelbrumeEvaluationDriver
     implements
         EvaluationDriver,
         EvaluationPlayerServiceAutomation,
+        EvaluationBagMutationAutomation,
         EvaluationRosterAutomation,
         EvaluationBattleAutomation,
         EvaluationPlayerShellProvider {
@@ -181,6 +182,8 @@ final class SelbrumeEvaluationDriver
         narrativeFactResolver:
             NarrativeFactRuntimeResolver.fromFacts(bundle.manifest.facts),
       ),
+      projectRootDirectory: bundle.projectRootDirectory,
+      pokemonConfig: bundle.manifest.pokemon,
     );
     game.setPlayerServiceRuntimeController(playerServiceController);
     final driver = SelbrumeEvaluationDriver._(
@@ -1161,18 +1164,23 @@ final class SelbrumeEvaluationDriver
   ) async {
     final shop =
         project.shops.where((candidate) => candidate.id == shopId).firstOrNull;
-    _require(
-      shop != null,
-      operation: 'service.shop.sell',
-      message: 'Shop "$shopId" does not exist.',
+   _require(
+     shop != null,
+     operation: 'service.shop.sell',
+     message: 'Shop "$shopId" does not exist.',
+   );
+    final itemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
+      projectRootDirectory: projectRoot.path,
+      pokemonConfig: project.pokemon,
     );
-    final result = const GameStateMutations().sellToResolvedShop(
+   final result = const GameStateMutations().sellToResolvedShop(
       state,
       shop: shop!,
-      expectedStateId: expectedStateId,
-      itemId: itemId,
-      quantity: quantity,
-      conditionContext: ScriptEvaluationContext(
+     expectedStateId: expectedStateId,
+     itemId: itemId,
+     quantity: quantity,
+      itemCatalog: itemCatalog,
+     conditionContext: ScriptEvaluationContext(
         narrativeFactResolver:
             NarrativeFactRuntimeResolver.fromFacts(project.facts),
       ),
@@ -1415,6 +1423,22 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
+  Future<void> giveBagItem(String itemId, int quantity) async {
+    await _commitProbeState(
+      const GameStateMutations().giveItem(state, itemId, quantity),
+      operation: 'bag.give',
+    );
+  }
+
+  @override
+  Future<void> consumeBagItem(String itemId, int quantity) async {
+    await _commitProbeState(
+      const GameStateMutations().consumeItem(state, itemId, quantity),
+      operation: 'bag.consume',
+    );
+  }
+
+  @override
   Future<void> probeSeedBag(Map<String, int> quantities) async {
     _require(
       quantities.values.every((quantity) => quantity > 0),
@@ -1428,7 +1452,6 @@ final class SelbrumeEvaluationDriver
             for (final entry in quantities.entries)
               BagEntry(
                 itemId: entry.key,
-                categoryId: _categoryForItem(entry.key),
                 quantity: entry.value,
               ),
           ],
@@ -2155,9 +2178,3 @@ RuntimeInputControl _controlForConnection(MapConnectionDirection direction) {
 
 String _edgeKey(GridPos from, Direction direction) =>
     '${from.x}:${from.y}:${direction.name}';
-
-String _categoryForItem(String itemId) => switch (itemId) {
-      'potion' || 'super-potion' || 'antidote' => 'medicine',
-      'poke-ball' || 'great-ball' || 'ultra-ball' => 'capture',
-      _ => 'items',
-    };

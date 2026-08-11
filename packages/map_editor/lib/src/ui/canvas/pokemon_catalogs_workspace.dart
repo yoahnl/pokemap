@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../features/gameplay/items/item_studio_workspace.dart';
 import 'pokedex_workspace.dart';
-import 'pokemon_catalogs_workspace/items_catalog_workspace.dart';
 import 'pokemon_catalogs_workspace/moves_catalog_workspace.dart';
 
 class PokemonCatalogsWorkspace extends ConsumerWidget {
@@ -19,7 +19,7 @@ class PokemonCatalogsWorkspace extends ConsumerWidget {
       child: switch (section) {
         PokemonCatalogSection.pokedex => const PokedexWorkspace(),
         PokemonCatalogSection.moves => const PokemonMovesCatalogWorkspace(),
-        PokemonCatalogSection.items => const PokemonItemsCatalogWorkspace(),
+        PokemonCatalogSection.items => const ItemStudioWorkspace(),
       },
     );
   }

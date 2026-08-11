@@ -6,6 +6,9 @@ import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
+import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+
+final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
 
 BattleStatsSnapshot _stats() {
   return const BattleStatsSnapshot(
@@ -202,10 +205,11 @@ PsdkBattleMoveData _psdkMove({
 }
 
 void main() {
-  group('tryApplyRuntimeBattleBagHpHealItemUse', () {
+  group('tryApplyRuntimeBattleItemUse', () {
     test('potion heals a damaged active target by 20 and consumes one item',
         () {
-      final result = tryApplyRuntimeBattlePotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -223,7 +227,7 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(itemId: 'potion', quantity: 2),
             ],
           ),
           partyMembers: <PlayerPokemon>[
@@ -235,17 +239,18 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(20));
+      expect(result!.appliedAmount, equals(20));
       expect(result.updatedSession.state.currentTurn, isNotNull);
       expect(
         result.updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.potion),
+          equals('potion'),
         ),
       );
       expect(result.updatedSession.state.player.currentHp, equals(32));
@@ -253,13 +258,14 @@ void main() {
       expect(
         result.updatedGameState.bag.entries,
         const <BagEntry>[
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          BagEntry(itemId: 'potion', quantity: 1),
         ],
       );
     });
 
     test('potion heal is capped at max hp', () {
-      final result = tryApplyRuntimeBattlePotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -277,7 +283,7 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(itemId: 'potion', quantity: 2),
             ],
           ),
           partyMembers: <PlayerPokemon>[
@@ -289,10 +295,11 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(5));
+      expect(result!.appliedAmount, equals(5));
       expect(result.updatedSession.state.currentTurn, isNotNull);
       expect(result.updatedSession.state.player.currentHp, equals(40));
       expect(result.updatedGameState.party.members.first.currentHp, equals(40));
@@ -301,7 +308,8 @@ void main() {
     test(
         'super potion heals a damaged active target by 50 and consumes only super potion',
         () {
-      final result = tryApplyRuntimeBattleSuperPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'super-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -319,10 +327,9 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(itemId: 'potion', quantity: 2),
               BagEntry(
                 itemId: 'super-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
             ],
@@ -336,16 +343,17 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(50));
+      expect(result!.appliedAmount, equals(50));
       expect(
         result.updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.superPotion),
+          equals('super-potion'),
         ),
       );
       expect(result.updatedSession.state.player.currentHp, equals(62));
@@ -353,10 +361,9 @@ void main() {
       expect(
         result.updatedGameState.bag.entries,
         const <BagEntry>[
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'potion', quantity: 2),
           BagEntry(
             itemId: 'super-potion',
-            categoryId: 'medicine',
             quantity: 1,
           ),
         ],
@@ -364,7 +371,8 @@ void main() {
     });
 
     test('super potion heal is capped at max hp', () {
-      final result = tryApplyRuntimeBattleSuperPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'super-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -384,7 +392,6 @@ void main() {
             entries: <BagEntry>[
               BagEntry(
                 itemId: 'super-potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
             ],
@@ -398,19 +405,21 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(20));
+      expect(result!.appliedAmount, equals(20));
       expect(result.updatedSession.state.player.currentHp, equals(80));
       expect(result.updatedGameState.party.members.first.currentHp, equals(80));
       expect(result.updatedGameState.bag.entries, isEmpty);
     });
 
     test(
-        'hyper potion heals a damaged active target by 200 and consumes only hyper potion',
+        'hyper potion heals a damaged active target by 120 and consumes only hyper potion',
         () {
-      final result = tryApplyRuntimeBattleHyperPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'hyper-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -428,15 +437,13 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(itemId: 'potion', quantity: 2),
               BagEntry(
                 itemId: 'super-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
               BagEntry(
                 itemId: 'hyper-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
             ],
@@ -450,34 +457,33 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(200));
+      expect(result!.appliedAmount, equals(120));
       expect(
         result.updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.hyperPotion),
+          equals('hyper-potion'),
         ),
       );
-      expect(result.updatedSession.state.player.currentHp, equals(212));
+      expect(result.updatedSession.state.player.currentHp, equals(132));
       expect(
-          result.updatedGameState.party.members.first.currentHp, equals(212));
+          result.updatedGameState.party.members.first.currentHp, equals(132));
       expect(
         result.updatedGameState.bag.entries,
         const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(itemId: 'potion', quantity: 2),
             BagEntry(
               itemId: 'super-potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
             BagEntry(
               itemId: 'hyper-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -486,7 +492,8 @@ void main() {
     });
 
     test('hyper potion heal is capped at max hp', () {
-      final result = tryApplyRuntimeBattleHyperPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'hyper-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -506,7 +513,6 @@ void main() {
             entries: <BagEntry>[
               BagEntry(
                 itemId: 'hyper-potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
             ],
@@ -520,10 +526,11 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(70));
+      expect(result!.appliedAmount, equals(70));
       expect(result.updatedSession.state.player.currentHp, equals(260));
       expect(
           result.updatedGameState.party.members.first.currentHp, equals(260));
@@ -533,7 +540,8 @@ void main() {
     test(
         'max potion heals a damaged active target to max hp and consumes only max potion',
         () {
-      final result = tryApplyRuntimeBattleMaxPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'max-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -551,20 +559,17 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(itemId: 'potion', quantity: 2),
               BagEntry(
                 itemId: 'super-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
               BagEntry(
                 itemId: 'hyper-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
               BagEntry(
                 itemId: 'max-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
             ],
@@ -578,17 +583,18 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(248));
+      expect(result!.appliedAmount, equals(248));
       expect(
         result.updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>()
             .having(
-              (action) => action.itemKind,
+              (action) => action.itemId,
               'itemKind',
-              equals(BattleBagHpHealItemKind.maxPotion),
+              equals('max-potion'),
             )
             .having(
               (action) => action.effect,
@@ -603,20 +609,17 @@ void main() {
         result.updatedGameState.bag.entries,
         const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(itemId: 'potion', quantity: 2),
             BagEntry(
               itemId: 'super-potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
             BagEntry(
               itemId: 'hyper-potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
             BagEntry(
               itemId: 'max-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -625,7 +628,8 @@ void main() {
     });
 
     test('max potion removes the bag entry when quantity reaches zero', () {
-      final result = tryApplyRuntimeBattleMaxPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'max-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -645,7 +649,6 @@ void main() {
             entries: <BagEntry>[
               BagEntry(
                 itemId: 'max-potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
             ],
@@ -659,10 +662,11 @@ void main() {
           lineupPartyIndices: const <int>[0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(70));
+      expect(result!.appliedAmount, equals(70));
       expect(result.updatedSession.state.player.currentHp, equals(260));
       expect(
           result.updatedGameState.party.members.first.currentHp, equals(260));
@@ -672,7 +676,8 @@ void main() {
     test(
         'potion use removes the bag entry when quantity reaches zero and targets the intended reserve by lineup identity',
         () {
-      final result = tryApplyRuntimeBattlePotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -701,7 +706,7 @@ void main() {
         gameState: _gameState(
           bag: const Bag(
             entries: <BagEntry>[
-              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              BagEntry(itemId: 'potion', quantity: 1),
             ],
           ),
           partyMembers: <PlayerPokemon>[
@@ -714,10 +719,11 @@ void main() {
           lineupPartyIndices: const <int>[1, 0],
         ),
         targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(5));
+      expect(result!.appliedAmount, equals(5));
       expect(result.updatedSession.state.currentTurn, isNotNull);
       expect(result.updatedSession.state.player.currentHp, equals(22));
       expect(
@@ -733,7 +739,7 @@ void main() {
       final fullHpState = _gameState(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -756,7 +762,8 @@ void main() {
       );
 
       expect(
-        tryApplyRuntimeBattlePotionUse(
+        tryApplyRuntimeBattleItemUse(
+          itemId: 'potion',
           session: fullHpSession,
           gameState: fullHpState,
           context: _context(
@@ -764,6 +771,7 @@ void main() {
             lineupPartyIndices: const <int>[0],
           ),
           targetLineupIndex: 0,
+          itemCatalog: _itemCatalog,
         ),
         isNull,
       );
@@ -774,7 +782,7 @@ void main() {
       final faintedState = _gameState(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -797,7 +805,8 @@ void main() {
       );
 
       expect(
-        tryApplyRuntimeBattlePotionUse(
+        tryApplyRuntimeBattleItemUse(
+          itemId: 'potion',
           session: faintedSession,
           gameState: faintedState,
           context: _context(
@@ -805,6 +814,7 @@ void main() {
             lineupPartyIndices: const <int>[0],
           ),
           targetLineupIndex: 0,
+          itemCatalog: _itemCatalog,
         ),
         isNull,
       );
@@ -817,7 +827,7 @@ void main() {
       final fullHpState = _gameState(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'max-potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'max-potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -840,7 +850,8 @@ void main() {
       );
 
       expect(
-        tryApplyRuntimeBattleMaxPotionUse(
+        tryApplyRuntimeBattleItemUse(
+          itemId: 'max-potion',
           session: fullHpSession,
           gameState: fullHpState,
           context: _context(
@@ -848,6 +859,7 @@ void main() {
             lineupPartyIndices: const <int>[0],
           ),
           targetLineupIndex: 0,
+          itemCatalog: _itemCatalog,
         ),
         isNull,
       );
@@ -858,7 +870,7 @@ void main() {
       final faintedState = _gameState(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'max-potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'max-potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -881,7 +893,8 @@ void main() {
       );
 
       expect(
-        tryApplyRuntimeBattleMaxPotionUse(
+        tryApplyRuntimeBattleItemUse(
+          itemId: 'max-potion',
           session: faintedSession,
           gameState: faintedState,
           context: _context(
@@ -889,6 +902,7 @@ void main() {
             lineupPartyIndices: const <int>[0],
           ),
           targetLineupIndex: 0,
+          itemCatalog: _itemCatalog,
         ),
         isNull,
       );
@@ -900,35 +914,35 @@ void main() {
     test('PSDK HP medicines update battle state and runtime bag', () {
       const cases = <({
         String itemId,
-        BattleBagHpHealItemKind kind,
+        String kind,
         int currentHp,
         int maxHp,
         int expectedHp,
       })>[
         (
           itemId: 'potion',
-          kind: BattleBagHpHealItemKind.potion,
+          kind: 'potion',
           currentHp: 30,
           maxHp: 100,
           expectedHp: 50,
         ),
         (
           itemId: 'super-potion',
-          kind: BattleBagHpHealItemKind.superPotion,
+          kind: 'super-potion',
           currentHp: 30,
           maxHp: 100,
           expectedHp: 80,
         ),
         (
           itemId: 'hyper-potion',
-          kind: BattleBagHpHealItemKind.hyperPotion,
+          kind: 'hyper-potion',
           currentHp: 30,
           maxHp: 100,
           expectedHp: 100,
         ),
         (
           itemId: 'max-potion',
-          kind: BattleBagHpHealItemKind.maxPotion,
+          kind: 'max-potion',
           currentHp: 30,
           maxHp: 100,
           expectedHp: 100,
@@ -944,7 +958,7 @@ void main() {
           isTrainerBattle: true,
           trainerId: 'trainer',
         );
-        final result = tryApplyRuntimePsdkBattleBagHpHealItemUse(
+        final result = tryApplyRuntimePsdkBattleItemUse(
           psdkSession: psdkSession,
           displaySession: displaySession,
           gameState: _gameState(
@@ -952,7 +966,6 @@ void main() {
               entries: <BagEntry>[
                 BagEntry(
                   itemId: itemCase.itemId,
-                  categoryId: 'medicine',
                   quantity: 1,
                 ),
               ],
@@ -970,12 +983,13 @@ void main() {
           ),
           itemId: itemCase.itemId,
           targetLineupIndex: 0,
+          itemCatalog: _itemCatalog,
           isTrainerBattle: true,
           trainerId: 'trainer',
         );
 
         expect(result, isNotNull, reason: itemCase.itemId);
-        expect(result!.itemKind, itemCase.kind);
+        expect(result!.itemId, itemCase.kind);
         expect(result.updatedDisplaySession.state.player.currentHp,
             itemCase.expectedHp);
         expect(result.updatedGameState.party.members.first.currentHp,
@@ -984,6 +998,132 @@ void main() {
         expect(
           psdkSession.state.psdkState.battlerAt(psdkPlayerSlot).currentHp,
           itemCase.expectedHp,
+        );
+      }
+    });
+
+    test('canonical HP values match overworld, legacy, PSDK and narration', () {
+      const cases = <(String, int)>[
+        ('potion', 20),
+        ('super-potion', 50),
+        ('hyper-potion', 120),
+        ('max-potion', 220),
+      ];
+
+      for (final (itemId, expectedDelta) in cases) {
+        final bag = Bag(
+          entries: <BagEntry>[BagEntry(itemId: itemId, quantity: 1)],
+        );
+        final state = _gameState(
+          bag: bag,
+          partyMembers: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 30),
+          ],
+        );
+        final overworldResult =
+            PlayerItemUseService(snapshot: _itemCatalog).use(
+          PlayerItemUseRequest(
+            state: state,
+            itemId: itemId,
+            context: ProjectItemUseContext.overworld,
+            partyIndex: 0,
+            maxHp: 250,
+          ),
+        );
+        final legacySession = _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 30,
+            maxHp: 250,
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+          ),
+        );
+        final legacyResult = switch (itemId) {
+          'potion' => tryApplyRuntimeBattleItemUse(
+              itemId: 'potion',
+              session: legacySession,
+              gameState: state,
+              context: _context(
+                playerPartyIndex: 0,
+                lineupPartyIndices: const <int>[0],
+              ),
+              targetLineupIndex: 0,
+              itemCatalog: _itemCatalog,
+            ),
+          'super-potion' => tryApplyRuntimeBattleItemUse(
+              itemId: 'super-potion',
+              session: legacySession,
+              gameState: state,
+              context: _context(
+                playerPartyIndex: 0,
+                lineupPartyIndices: const <int>[0],
+              ),
+              targetLineupIndex: 0,
+              itemCatalog: _itemCatalog,
+            ),
+          'hyper-potion' => tryApplyRuntimeBattleItemUse(
+              itemId: 'hyper-potion',
+              session: legacySession,
+              gameState: state,
+              context: _context(
+                playerPartyIndex: 0,
+                lineupPartyIndices: const <int>[0],
+              ),
+              targetLineupIndex: 0,
+              itemCatalog: _itemCatalog,
+            ),
+          'max-potion' => tryApplyRuntimeBattleItemUse(
+              itemId: 'max-potion',
+              session: legacySession,
+              gameState: state,
+              context: _context(
+                playerPartyIndex: 0,
+                lineupPartyIndices: const <int>[0],
+              ),
+              targetLineupIndex: 0,
+              itemCatalog: _itemCatalog,
+            ),
+          _ => null,
+        };
+        final psdkSession = _psdkSession(currentHp: 30, maxHp: 250);
+        final psdkResult = tryApplyRuntimePsdkBattleItemUse(
+          psdkSession: psdkSession,
+          displaySession: psdkSession.createLegacyDisplaySession(
+            isTrainerBattle: true,
+            trainerId: 'trainer',
+          ),
+          gameState: state,
+          context: _context(
+            playerPartyIndex: 0,
+            lineupPartyIndices: const <int>[0],
+          ),
+          itemId: itemId,
+          targetLineupIndex: 0,
+          isTrainerBattle: true,
+          trainerId: 'trainer',
+          itemCatalog: _itemCatalog,
+        );
+
+        expect(overworldResult.isSuccess, isTrue, reason: itemId);
+        expect(
+          overworldResult.state.party.members.first.currentHp - 30,
+          expectedDelta,
+          reason: itemId,
+        );
+        expect(legacyResult!.appliedAmount, expectedDelta, reason: itemId);
+        expect(psdkResult!.appliedAmount, expectedDelta, reason: itemId);
+        expect(
+          buildBattleTurnLinesForOverlay(
+            legacyResult.updatedSession.state.currentTurn!,
+          ),
+          contains('sproutle récupère $expectedDelta PV'),
+          reason: itemId,
         );
       }
     });
@@ -1008,7 +1148,7 @@ void main() {
       final gameState = _gameState(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -1017,7 +1157,7 @@ void main() {
         ],
       );
 
-      final result = tryApplyRuntimePsdkBattleBagHpHealItemUse(
+      final result = tryApplyRuntimePsdkBattleItemUse(
         psdkSession: psdkSession,
         displaySession: displaySession,
         gameState: gameState,
@@ -1027,6 +1167,7 @@ void main() {
         ),
         itemId: 'potion',
         targetLineupIndex: 1,
+        itemCatalog: _itemCatalog,
         isTrainerBattle: true,
         trainerId: 'trainer',
       );

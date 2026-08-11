@@ -16,7 +16,40 @@ void main() {
       ),
       ShopEntryDefinition(itemId: 'poke-ball', price: 200),
       ShopEntryDefinition(itemId: 'bike-pass', price: 100, sellPrice: 50),
+      ShopEntryDefinition(
+        itemId: 'custom-passive-thread',
+        price: 77,
+        stock: 1,
+      ),
     ],
+  );
+  final itemCatalog = ItemCatalogSnapshot.fromCatalog(
+    const ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: <ProjectItemDefinition>[
+        ProjectItemDefinition(
+          id: 'potion',
+          displayName: 'Potion',
+          pocketId: 'medicine',
+        ),
+        ProjectItemDefinition(
+          id: 'poke-ball',
+          displayName: 'Poké Ball',
+          pocketId: 'balls',
+        ),
+        ProjectItemDefinition(
+          id: 'bike-pass',
+          displayName: 'Bike Pass',
+          pocketId: 'key-items',
+          tags: <String>{'key-item'},
+        ),
+        ProjectItemDefinition(
+          id: 'custom-passive-thread',
+          displayName: 'Custom Passive Thread',
+          pocketId: 'custom-pocket',
+        ),
+      ],
+    ),
   );
 
   GameState state({int money = 1000}) => GameState(
@@ -83,8 +116,8 @@ void main() {
         state(),
         shop: shop,
         itemId: ' potion ',
-        categoryId: 'medicine',
         quantity: 2,
+        itemCatalog: itemCatalog,
       );
       final reloaded = normalizeLoadedGameState(
         gameStateFromSaveData(saveDataFromGameState(first.state)),
@@ -93,8 +126,8 @@ void main() {
         reloaded,
         shop: shop,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(first.isSuccess, isTrue);
@@ -110,7 +143,9 @@ void main() {
     test('rejects depleted stock without a partial debit or grant', () {
       final initial = state(money: 2000).copyWith(
         progression: const PlayerProgression(
-          shopPurchaseCounts: <String, int>{'selbrume-mart::potion': 3},
+          shopPurchaseCounts: <String, int>{
+            'selbrume-mart::default::potion': 3,
+          },
         ),
       );
 
@@ -118,8 +153,8 @@ void main() {
         initial,
         shop: shop,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopPurchaseFailure.outOfStock);
@@ -134,22 +169,22 @@ void main() {
         initial,
         shop: shop,
         itemId: 'revive',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
       final invalid = mutations.purchaseFromShop(
         initial,
         shop: shop,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 0,
+        itemCatalog: itemCatalog,
       );
       final poor = mutations.purchaseFromShop(
         initial,
         shop: shop,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(unknown.failure, ShopPurchaseFailure.unknownItem);
@@ -165,17 +200,57 @@ void main() {
         state(),
         shop: shop,
         itemId: 'poke-ball',
-        categoryId: 'items',
         quantity: 2,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isTrue);
       expect(result.remainingStock, isNull);
       expect(result.state.progression.shopPurchaseCounts, isEmpty);
     });
+
+    test('purchases a custom passive item at its authored price', () {
+      final result = mutations.purchaseFromShop(
+        state(),
+        shop: shop,
+        itemId: 'custom-passive-thread',
+        quantity: 1,
+        itemCatalog: itemCatalog,
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.totalCost, 77);
+      expect(result.state.trainerProfile.money, 923);
+      expect(result.state.bag.entries.single.itemId, 'custom-passive-thread');
+      expect(
+        result.state.progression.shopPurchaseCounts,
+        <String, int>{
+          'selbrume-mart::default::custom-passive-thread': 1,
+        },
+      );
+    });
   });
 
   group('GameStateMutations.purchaseFromResolvedShop', () {
+    test('rejects a shop entry missing from the canonical item catalog', () {
+      final initial = mutations.setFlag(state(), 'lysa_defeated');
+
+      final result = mutations.purchaseFromResolvedShop(
+        initial,
+        shop: dynamicShop(),
+        expectedStateId: 'after-lysa',
+        itemId: 'antidote',
+        quantity: 1,
+        itemCatalog: itemCatalog,
+      );
+
+      expect(result.failure, ShopPurchaseFailure.unknownItem);
+      expect(result.state, same(initial));
+      expect(result.state.trainerProfile.money, 1000);
+      expect(result.state.bag.entries, isEmpty);
+      expect(result.state.progression.shopPurchaseCounts, isEmpty);
+    });
+
     test('rejects an item outside the resolved state', () {
       final initial = mutations.setFlag(state(), 'lysa_defeated');
 
@@ -184,8 +259,8 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'after-lysa',
         itemId: 'poke-ball',
-        categoryId: 'items',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopPurchaseFailure.unknownItem);
@@ -200,8 +275,8 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'lighthouse-alert',
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopPurchaseFailure.shopClosed);
@@ -216,8 +291,8 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopPurchaseFailure.shopStateChanged);
@@ -232,8 +307,8 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'after-lysa',
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isTrue);
@@ -245,20 +320,20 @@ void main() {
       );
     });
 
-    test('keeps the legacy stock key for the default state', () {
+    test('uses an explicit stock key for the default state', () {
       final result = mutations.purchaseFromResolvedShop(
         state(),
         shop: dynamicShop(),
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isTrue);
       expect(
         result.state.progression.shopPurchaseCounts,
-        <String, int>{'selbrume-mart::potion': 1},
+        <String, int>{'selbrume-mart::default::potion': 1},
       );
     });
 
@@ -269,8 +344,8 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'after-lysa',
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
       final ending = mutations.setFlag(first.state, 'story_finished');
       final atEnding = mutations.purchaseFromResolvedShop(
@@ -278,8 +353,8 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'story-finished',
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
       final returned = mutations.clearFlag(
         atEnding.state,
@@ -290,8 +365,8 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'after-lysa',
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(first.isSuccess, isTrue);
@@ -310,15 +385,14 @@ void main() {
 
   group('GameStateMutations.sellToResolvedShop', () {
     GameState bagState({
-      String categoryId = 'medicine',
+      String itemId = 'potion',
       int quantity = 3,
     }) =>
         state(money: 100).copyWith(
           bag: Bag(
             entries: <BagEntry>[
               BagEntry(
-                itemId: categoryId == 'key-items' ? 'bike-pass' : 'potion',
-                categoryId: categoryId,
+                itemId: itemId,
                 quantity: quantity,
               ),
             ],
@@ -333,6 +407,7 @@ void main() {
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'potion',
         quantity: 2,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isTrue);
@@ -346,7 +421,7 @@ void main() {
       final initial = bagState().copyWith(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+            BagEntry(itemId: 'poke-ball', quantity: 2),
           ],
         ),
       );
@@ -357,6 +432,7 @@ void main() {
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'poke-ball',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopSaleFailure.unsellable);
@@ -364,7 +440,7 @@ void main() {
     });
 
     test('protects key items even when a sale price was authored', () {
-      final initial = bagState(categoryId: 'key-items');
+      final initial = bagState(itemId: 'bike-pass');
 
       final result = mutations.sellToResolvedShop(
         initial,
@@ -372,6 +448,7 @@ void main() {
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'bike-pass',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopSaleFailure.keyItem);
@@ -387,6 +464,7 @@ void main() {
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'potion',
         quantity: 2,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopSaleFailure.insufficientQuantity);
@@ -403,6 +481,7 @@ void main() {
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'potion',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopSaleFailure.shopStateChanged);

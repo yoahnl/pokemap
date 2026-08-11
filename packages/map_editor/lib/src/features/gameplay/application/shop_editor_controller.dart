@@ -1,10 +1,15 @@
 import 'package:map_core/map_core.dart';
 
 final class ShopEditorItemOption {
-  const ShopEditorItemOption({required this.id, required this.label});
+  const ShopEditorItemOption({
+    required this.id,
+    required this.label,
+    this.definition,
+  });
 
   final String id;
   final String label;
+  final ProjectItemDefinition? definition;
 }
 
 final class ShopSceneReference {

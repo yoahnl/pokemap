@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 import 'package:map_runtime/src/presentation/flame/battle_bag_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_bag_item_icon_resolver.dart';
@@ -18,6 +19,10 @@ import 'package:path/path.dart' as p;
 
 const String _tinyPngBase64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9tsAAAAASUVORK5CYII=';
+
+final _itemCapabilityResolver = ItemCapabilityResolver(
+  ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+);
 
 BattleStatsSnapshot _stats() {
   return const BattleStatsSnapshot(
@@ -96,12 +101,10 @@ GameState _gameState({
 
 BagEntry _bagEntry({
   required String itemId,
-  required String categoryId,
   required int quantity,
 }) {
   return BagEntry(
     itemId: itemId,
-    categoryId: categoryId,
     quantity: quantity,
   );
 }
@@ -442,6 +445,7 @@ void main() {
   group('Battle command menu interaction', () {
     test('overlay root navigation moves in a real 2x2 grid', () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -489,6 +493,7 @@ void main() {
         () async {
       PlayerBattleChoice? pickedChoice;
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -530,6 +535,7 @@ void main() {
         'fight submenu supports left and right navigation on a real 2x2 move grid',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -574,6 +580,7 @@ void main() {
         'battle party submenu opens from root POKÉMON when switch choices exist',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -622,6 +629,7 @@ void main() {
     test('battle bag submenu opens from root BAG when bag can be inspected',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -643,7 +651,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+              _bagEntry(itemId: 'poke-ball', quantity: 3),
             ],
           ),
         ),
@@ -668,6 +676,7 @@ void main() {
         'battle bag submenu renders supported medicines and disables unknown items',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -688,15 +697,13 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              _bagEntry(itemId: 'potion', quantity: 2),
               _bagEntry(
                 itemId: 'antidote',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
               _bagEntry(
                 itemId: 'rare-candy',
-                categoryId: 'items',
                 quantity: 1,
               ),
             ],
@@ -723,13 +730,14 @@ void main() {
       );
       expect(
         panel.currentBagStatusLabels,
-        const <String>['OK', 'OK', 'Unsupported item'],
+        const <String>['OK', 'OK', 'Invalid definition'],
       );
     });
 
     test('battle medicine target submenu shows active and reserve pokemon',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -772,7 +780,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              _bagEntry(itemId: 'potion', quantity: 2),
             ],
           ),
         ),
@@ -809,6 +817,7 @@ void main() {
     test('battle medicine target submenu does not mask active full hp status',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -831,7 +840,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              _bagEntry(itemId: 'potion', quantity: 1),
             ],
           ),
         ),
@@ -860,6 +869,7 @@ void main() {
         'battle bag submenu keeps poke ball visible but disabled in trainer battle',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -880,7 +890,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+              _bagEntry(itemId: 'poke-ball', quantity: 2),
             ],
           ),
         ),
@@ -902,6 +912,7 @@ void main() {
 
     test('battle bag submenu handles an empty bag', () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -938,6 +949,7 @@ void main() {
     test('battle bag submenu layout survives portrait and landscape', () async {
       Future<BattleCommandPanelComponent> loadPanel(Vector2 viewport) async {
         final overlay = BattleOverlayComponent(
+          itemCapabilityResolver: _itemCapabilityResolver,
           session: _session(
             player: _combatant(
               speciesId: 'lead_player',
@@ -959,10 +971,8 @@ void main() {
           gameState: _gameState(
             bag: Bag(
               entries: <BagEntry>[
-                _bagEntry(
-                    itemId: 'poke-ball', categoryId: 'items', quantity: 3),
-                _bagEntry(
-                    itemId: 'potion', categoryId: 'medicine', quantity: 2),
+                _bagEntry(itemId: 'poke-ball', quantity: 3),
+                _bagEntry(itemId: 'potion', quantity: 2),
               ],
             ),
           ),
@@ -987,6 +997,7 @@ void main() {
     test('battle party submenu keeps fainted reserves visible but disabled',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -1034,6 +1045,7 @@ void main() {
         () async {
       PlayerBattleChoice? pickedChoice;
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -1089,6 +1101,7 @@ void main() {
     test('party submenu layout survives portrait and landscape', () async {
       Future<BattleCommandPanelComponent> loadPanel(Vector2 viewport) async {
         final overlay = BattleOverlayComponent(
+          itemCapabilityResolver: _itemCapabilityResolver,
           session: _session(
             player: _combatant(
               speciesId: 'lead_player',
@@ -1302,27 +1315,26 @@ void main() {
       final gameState = _gameState(
         bag: Bag(
           entries: <BagEntry>[
-            _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+            _bagEntry(itemId: 'poke-ball', quantity: 3),
             _bagEntry(
               itemId: 'hyper-potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
             _bagEntry(
               itemId: 'super-potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
-            _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
-            _bagEntry(itemId: 'antidote', categoryId: 'medicine', quantity: 1),
-            _bagEntry(itemId: 'rare-candy', categoryId: 'items', quantity: 1),
-            _bagEntry(itemId: 'repel', categoryId: 'items', quantity: 1),
+            _bagEntry(itemId: 'potion', quantity: 2),
+            _bagEntry(itemId: 'antidote', quantity: 1),
+            _bagEntry(itemId: 'rare-candy', quantity: 1),
+            _bagEntry(itemId: 'repel', quantity: 1),
           ],
         ),
       );
       final bagMenuModel = buildBattleBagMenuModel(
         gameState: gameState,
         session: session,
+        resolver: _itemCapabilityResolver,
       );
       var selectedBagIndex = 0;
       late BattleCommandPanelComponent panel;
@@ -1414,27 +1426,26 @@ void main() {
       final gameState = _gameState(
         bag: Bag(
           entries: <BagEntry>[
-            _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+            _bagEntry(itemId: 'poke-ball', quantity: 3),
             _bagEntry(
               itemId: 'hyper-potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
             _bagEntry(
               itemId: 'super-potion',
-              categoryId: 'medicine',
               quantity: 2,
             ),
-            _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
-            _bagEntry(itemId: 'antidote', categoryId: 'medicine', quantity: 1),
-            _bagEntry(itemId: 'rare-candy', categoryId: 'items', quantity: 1),
-            _bagEntry(itemId: 'repel', categoryId: 'items', quantity: 1),
+            _bagEntry(itemId: 'potion', quantity: 2),
+            _bagEntry(itemId: 'antidote', quantity: 1),
+            _bagEntry(itemId: 'rare-candy', quantity: 1),
+            _bagEntry(itemId: 'repel', quantity: 1),
           ],
         ),
       );
       final bagMenuModel = buildBattleBagMenuModel(
         gameState: gameState,
         session: session,
+        resolver: _itemCapabilityResolver,
       );
       BattleBagMenuEntry? selectedEntry;
       final panel = BattleCommandPanelComponent(
@@ -1518,6 +1529,7 @@ void main() {
       );
       final visualAssetCache = BattleVisualAssetCache();
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charmander',
@@ -1539,13 +1551,12 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+              _bagEntry(itemId: 'poke-ball', quantity: 2),
               _bagEntry(
                 itemId: 'hyper-potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              _bagEntry(itemId: 'potion', quantity: 1),
             ],
           ),
         ),
@@ -1575,6 +1586,7 @@ void main() {
 
     test('forced continue shows a dedicated CONTINUE action', () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemCapabilityResolver,
         session: _session(
           player: _combatant(
             speciesId: 'charizard',

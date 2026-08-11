@@ -1,6 +1,37 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/battle_medicine_target_menu_model.dart';
+
+const _healUse = ProjectItemUseDefinition(
+  contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+  target: ProjectItemTargetKind.partyMember,
+  consumption: ProjectItemConsumptionPolicy.onApplied,
+  effect: ProjectItemEffectDefinition.healHp(
+    mode: ProjectItemAmountMode.flat,
+    amount: 20,
+  ),
+);
+
+const _cureUse = ProjectItemUseDefinition(
+  contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+  target: ProjectItemTargetKind.partyMember,
+  consumption: ProjectItemConsumptionPolicy.onApplied,
+  effect: ProjectItemEffectDefinition.cureStatus(
+    mode: ProjectItemStatusCureMode.listed,
+    statusIds: <String>{'poison'},
+  ),
+);
+
+const _reviveUse = ProjectItemUseDefinition(
+  contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+  target: ProjectItemTargetKind.partyMember,
+  consumption: ProjectItemConsumptionPolicy.onApplied,
+  effect: ProjectItemEffectDefinition.revive(
+    rateNumerator: 1,
+    rateDenominator: 2,
+  ),
+);
 
 BattleStatsSnapshot _stats() {
   return const BattleStatsSnapshot(
@@ -98,11 +129,12 @@ void main() {
           ),
         ),
         itemId: 'potion',
-        categoryId: 'medicine',
+        displayName: 'Potion',
+        use: _healUse,
       );
 
       expect(model.itemId, equals('potion'));
-      expect(model.categoryId, equals('medicine'));
+      expect(model.displayName, equals('Potion'));
       expect(model.entries.map((entry) => entry.speciesId), const <String>[
         'sproutle',
         'bench_one',
@@ -142,7 +174,8 @@ void main() {
           ),
         ),
         itemId: 'potion',
-        categoryId: 'medicine',
+        displayName: 'Potion',
+        use: _healUse,
       );
 
       expect(model.activeEntry.isSelectable, isTrue);
@@ -168,11 +201,12 @@ void main() {
           ),
         ),
         itemId: 'max-potion',
-        categoryId: 'medicine',
+        displayName: 'Max Potion',
+        use: _healUse,
       );
 
       expect(model.itemId, equals('max-potion'));
-      expect(model.categoryId, equals('medicine'));
+      expect(model.displayName, equals('Max Potion'));
       expect(model.activeEntry.isSelectable, isTrue);
       expect(model.activeEntry.disabledReason, isNull);
     });
@@ -194,7 +228,8 @@ void main() {
           ),
         ),
         itemId: 'potion',
-        categoryId: 'medicine',
+        displayName: 'Potion',
+        use: _healUse,
       );
 
       expect(model.activeEntry.isSelectable, isFalse);
@@ -230,7 +265,8 @@ void main() {
           ),
         ),
         itemId: 'potion',
-        categoryId: 'medicine',
+        displayName: 'Potion',
+        use: _healUse,
       );
 
       expect(model.reserveEntries.single.isSelectable, isFalse);
@@ -267,7 +303,8 @@ void main() {
           ),
         ),
         itemId: 'potion',
-        categoryId: 'medicine',
+        displayName: 'Potion',
+        use: _healUse,
         isTargetAllowed: (combatant) => combatant.lineupIndex == 0,
       );
 
@@ -314,7 +351,8 @@ void main() {
           ),
         ),
         itemId: 'potion',
-        categoryId: 'medicine',
+        displayName: 'Potion',
+        use: _healUse,
       );
 
       expect(model.hasSelectableEntries, isFalse);
@@ -349,7 +387,8 @@ void main() {
           ),
         ),
         itemId: 'antidote',
-        categoryId: 'medicine',
+        displayName: 'Antidote',
+        use: _cureUse,
       );
 
       expect(model.activeEntry.isSelectable, isTrue);
@@ -386,7 +425,8 @@ void main() {
           ),
         ),
         itemId: 'revive',
-        categoryId: 'medicine',
+        displayName: 'Revive',
+        use: _reviveUse,
       );
 
       expect(model.activeEntry.isSelectable, isFalse);

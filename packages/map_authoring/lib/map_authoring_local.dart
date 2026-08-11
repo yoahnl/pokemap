@@ -3,6 +3,7 @@ library;
 
 export 'map_authoring_api.dart';
 export 'src/api/local_map_authoring_mutation_api.dart';
+export 'src/domains/assets/asset_store.dart' show assetBlobResourceIdentity;
 export 'src/domains/assets/tiled_image_collection_packer.dart'
     show TiledImageCollectionRasterCodec;
 export 'src/ports/artifact_store.dart' show LocalArtifactStore;

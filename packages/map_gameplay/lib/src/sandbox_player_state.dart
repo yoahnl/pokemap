@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'game_state_mutations.dart';
+import 'items/item_catalog_snapshot.dart';
 import 'player_storage_operations.dart';
 
 final class SandboxIsolationException implements Exception {
@@ -219,15 +220,15 @@ final class SandboxPlayerStateService {
     SandboxPlayerState sandbox, {
     required ShopDefinition shop,
     required String itemId,
-    required String categoryId,
     required int quantity,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
     final result = mutations.purchaseFromShop(
       sandbox.state,
       shop: shop,
       itemId: itemId,
-      categoryId: categoryId,
       quantity: quantity,
+      itemCatalog: itemCatalog,
     );
     return _next(
       sandbox,
@@ -244,6 +245,7 @@ final class SandboxPlayerStateService {
     required String expectedStateId,
     required String itemId,
     required int quantity,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
     final result = mutations.sellToResolvedShop(
       sandbox.state,
@@ -251,6 +253,7 @@ final class SandboxPlayerStateService {
       expectedStateId: expectedStateId,
       itemId: itemId,
       quantity: quantity,
+      itemCatalog: itemCatalog,
     );
     return _next(
       sandbox,

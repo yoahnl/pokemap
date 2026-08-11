@@ -3,11 +3,9 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'battle_start_request.dart';
+import 'runtime_battle_combatant_seed_builder.dart';
 import 'runtime_battle_status_bridge.dart';
 import 'story_flags_manager.dart';
-
-const _runtimeCapturePokeBallItemId = 'poke-ball';
-const _runtimeCapturePokeBallCategoryId = 'items';
 
 /// Contexte runtime strictement nécessaire pour faire le write-back post-combat.
 ///
@@ -168,14 +166,16 @@ final class RuntimeBattleCaptureAttemptSubmission<T> {
     required this.updatedGameState,
     required this.engineResult,
     required this.receipt,
+    required this.consumptionReceipt,
   });
 
   final GameState updatedGameState;
   final T engineResult;
   final RuntimeBattleCaptureAttemptReceipt? receipt;
+  final ItemConsumptionReceipt consumptionReceipt;
 }
 
-/// Charges exactly one Poké Ball iff [submitToEngine] completes successfully.
+/// Charges exactly one selected capture item iff [submitToEngine] completes.
 ///
 /// The input [GameState] is immutable. The charged state is returned only
 /// after engine submission succeeds, so a thrown engine/application error
@@ -184,9 +184,12 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required bool captureAllowed,
+  required String itemId,
+  required ItemCatalogSnapshot itemCatalog,
   required T Function() submitToEngine,
 }) {
-  if (context.request is! WildBattleStartRequest || !captureAllowed) {
+  final request = context.request;
+  if (request is! WildBattleStartRequest || !captureAllowed) {
     throw StateError('Capture is not allowed for this battle.');
   }
   if (gameState.party.members.length >= maxPlayerPartySize &&
@@ -195,7 +198,26 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
           null) {
     throw StateError('Pokemon storage is full. Capture cannot be attempted.');
   }
-  final chargedBag = _consumeOnePokeBallOrThrow(gameState.bag);
+  final definition = itemCatalog.definitionFor(itemId);
+  final capture = definition?.capture;
+  if (definition == null ||
+      capture == null ||
+      !capture.allowedEncounterKinds.contains(request.encounterKind)) {
+    throw StateError('The selected item cannot capture this encounter.');
+  }
+  final consumption = const BagOperations().consume(
+    BagConsumeRequest(
+      bag: gameState.bag,
+      itemId: itemId,
+      quantity: 1,
+      itemTags: definition.tags,
+      reason: ItemConsumptionReason.captureAttempt,
+    ),
+  );
+  final consumptionReceipt = consumption.consumptionReceipt;
+  if (!consumption.isSuccess || consumptionReceipt == null) {
+    throw StateError('The selected capture item is unavailable.');
+  }
   final result = submitToEngine();
   final captureAttempt = switch (result) {
     BattleSession session => _extractLegacyBattleCaptureAttempt(session),
@@ -207,12 +229,13 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
   };
   if (captureAttempt != null &&
       (captureAttempt.attemptId.trim().isEmpty ||
-          captureAttempt.itemId != _runtimeCapturePokeBallItemId)) {
+          captureAttempt.itemId != itemId)) {
     throw StateError('The engine returned an invalid capture attempt proof.');
   }
   return RuntimeBattleCaptureAttemptSubmission<T>(
-    updatedGameState: gameState.copyWith(bag: chargedBag),
+    updatedGameState: gameState.copyWith(bag: consumption.bag),
     engineResult: result,
+    consumptionReceipt: consumptionReceipt,
     receipt: captureAttempt == null
         ? null
         : RuntimeBattleCaptureAttemptReceipt._(
@@ -459,11 +482,11 @@ RuntimeBattleCaptureAttemptReceipt _validatedCaptureReceipt({
   if (receipt == null ||
       receipt._isClaimed ||
       receipt.requestId != request.requestId ||
-      receipt.itemId != _runtimeCapturePokeBallItemId ||
-      outcome.captureItemId != _runtimeCapturePokeBallItemId ||
+      receipt.itemId.trim().isEmpty ||
+      receipt.itemId != outcome.captureItemId ||
       receipt.attemptId != outcome.captureAttemptId) {
     throw StateError(
-      'BattleOutcomeType.captured requires a matching charged poke-ball attempt receipt.',
+      'BattleOutcomeType.captured requires a matching charged capture attempt receipt.',
     );
   }
   return receipt;
@@ -530,47 +553,6 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
       metLevel: enemy.level,
     ),
   );
-}
-
-/// Consomme exactement une Poké Ball du bag runtime.
-///
-/// Ce helper est appelé par la transaction de soumission, avant le commit du
-/// nouvel état runtime. Le write-back terminal ne consomme plus rien.
-///
-/// Le lot 14 reste volontairement minimal :
-/// - une seule ressource est concernée (`poke-ball` / `items`) ;
-/// - aucune UI d'inventaire n'est ouverte ;
-/// - aucun autre item n'est touché ;
-/// - aucune entrée à quantité 0 ne doit survivre, car `BagEntry` l'interdit.
-Bag _consumeOnePokeBallOrThrow(Bag bag) {
-  final nextEntries = <BagEntry>[];
-  var didConsumePokeBall = false;
-
-  for (final entry in bag.entries) {
-    final isCaptureBall =
-        entry.itemId.trim() == _runtimeCapturePokeBallItemId &&
-            entry.categoryId.trim() == _runtimeCapturePokeBallCategoryId;
-    if (!isCaptureBall || didConsumePokeBall) {
-      nextEntries.add(entry);
-      continue;
-    }
-
-    didConsumePokeBall = true;
-    final nextQuantity = entry.quantity - 1;
-    if (nextQuantity > 0) {
-      nextEntries.add(
-        entry.copyWith(quantity: nextQuantity),
-      );
-    }
-  }
-
-  if (!didConsumePokeBall) {
-    throw StateError(
-      'Impossible d’appliquer BattleOutcomeType.captured sans Poké Ball dans le bag du joueur.',
-    );
-  }
-
-  return Bag(entries: nextEntries).normalized();
 }
 
 /// Réécrit les PV des combattants joueur réellement engagés dans la vraie party.
@@ -717,13 +699,14 @@ GameState writePlayerBattleLineupBackToPartySlots({
 
 /// Réconcilie le cycle de vie des objets tenus PSDK avec les slots save.
 ///
-/// L'ID save original est conservé tant que l'objet moteur normalisé n'a pas
-/// changé. Une consommation ou un retrait vide le slot ; un objet reçu ou volé
-/// est persisté avec son ID PSDK final.
+/// L'ID save original est conservé tant que l'effet moteur n'a pas changé.
+/// Une consommation ou un retrait vide le slot ; un objet reçu ou volé est
+/// reconverti vers l'unique itemId canonique qui porte cet effet.
 GameState writePlayerPsdkHeldItemsBackToPartySlots({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required PsdkBattleState psdkState,
+  required ItemCatalogSnapshot itemCatalog,
 }) {
   final lineup = psdkState.partyForBank(psdkPlayerSlot.bank);
   final mapping = context.playerPartySlotIndicesByLineupIndex;
@@ -750,20 +733,57 @@ GameState writePlayerPsdkHeldItemsBackToPartySlots({
     }
     final battler = lineup[lineupIndex];
     final saved = members[partyIndex];
-    final finalEngineItemId =
-        battler.itemConsumed ? null : battler.heldItemId?.trim();
-    final savedEngineItemId = _normalizePsdkHeldItemId(saved.heldItemId);
+    final finalEngineItemId = battler.itemConsumed
+        ? null
+        : _normalizePsdkHeldItemId(battler.heldItemId);
+    final savedItemId = saved.heldItemId.trim();
+    final savedResolution = savedItemId.isEmpty
+        ? null
+        : resolveRuntimeHeldItemEffect(
+            itemCatalog: itemCatalog,
+            itemId: savedItemId,
+          );
     final nextSavedItemId = finalEngineItemId == null
         ? ''
-        : finalEngineItemId == savedEngineItemId
-            ? saved.heldItemId.trim()
-            : finalEngineItemId;
+        : savedResolution?.status == RuntimeHeldItemSupportStatus.supported &&
+                savedResolution?.heldEffectId == finalEngineItemId
+            ? savedItemId
+            : _canonicalItemIdForHeldEffect(
+                itemCatalog: itemCatalog,
+                heldEffectId: finalEngineItemId,
+              );
     members[partyIndex] = saved.copyWith(heldItemId: nextSavedItemId);
   }
 
   return gameState.copyWith(
     party: gameState.party.copyWith(members: members),
   );
+}
+
+String _canonicalItemIdForHeldEffect({
+  required ItemCatalogSnapshot itemCatalog,
+  required String heldEffectId,
+}) {
+  final matches = itemCatalog.definitions
+      .map(
+        (definition) => resolveRuntimeHeldItemEffect(
+          itemCatalog: itemCatalog,
+          itemId: definition.id,
+        ),
+      )
+      .where(
+        (resolution) =>
+            resolution.status == RuntimeHeldItemSupportStatus.supported &&
+            resolution.heldEffectId == heldEffectId,
+      )
+      .toList(growable: false);
+  if (matches.length != 1) {
+    throw StateError(
+      'Le write-back held-item exige une définition canonique unique pour '
+      'heldEffectId=$heldEffectId, matches=${matches.length}.',
+    );
+  }
+  return matches.single.itemId;
 }
 
 String? _normalizePsdkHeldItemId(String? itemId) {

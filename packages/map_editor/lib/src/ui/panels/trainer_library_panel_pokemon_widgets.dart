@@ -33,14 +33,14 @@ class _TrainerPokemonSummaryRow extends StatelessWidget {
       );
       return match == null ? '$moveId (?)' : match.name;
     }).toList(growable: false);
-    final resolvedItemLabel = pokemon.heldItemId == null ||
-            pokemon.heldItemId!.trim().isEmpty ||
-            !itemCatalogView.isAvailable
-        ? pokemon.heldItemId?.trim()
-        : _itemsLookupService
-                .findById(itemCatalogView.entries, pokemon.heldItemId!.trim())
-                ?.name ??
-            '${pokemon.heldItemId!.trim()} (?)';
+    final heldItemId = pokemon.heldItemId?.trim();
+    final resolvedItemLabel = heldItemId == null || heldItemId.isEmpty
+        ? null
+        : itemCatalogView.canonicalCatalog?.entries
+                .where((definition) => definition.id == heldItemId)
+                .map((definition) => definition.displayName)
+                .firstOrNull ??
+            'Référence indisponible';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 6, 4),
@@ -378,13 +378,6 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
               ],
               const SizedBox(height: 10),
               _TrainerInlineField(
-                label: 'ID d’objet brut (secours)',
-                fieldKey: const Key('trainer-library-pokemon-item-field'),
-                controller: widget.itemController,
-                placeholder: 'oran_berry',
-              ),
-              const SizedBox(height: 10),
-              _TrainerInlineField(
                 label: 'ID de forme brut (secours)',
                 fieldKey: const Key('trainer-library-pokemon-form-field'),
                 controller: widget.formController,
@@ -411,13 +404,9 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
           )
         : null;
     final speciesCatalogReady = widget.references.isSpeciesAvailable;
-    final resolvedItem =
-        widget.references.itemsCatalogView.isAvailable && heldItemId.isNotEmpty
-            ? _itemsLookupService.findById(
-                widget.references.itemsCatalogView.entries,
-                heldItemId,
-              )
-            : null;
+    final resolvedItem = widget.references.heldItemDefinitions
+        .where((definition) => definition.id == heldItemId)
+        .firstOrNull;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -531,10 +520,10 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                 final itemStatus = heldItemId.isEmpty
                     ? 'Aucun objet tenu sélectionné.'
                     : resolvedItem == null
-                        ? widget.references.itemsCatalogView.isAvailable
-                            ? 'La valeur actuelle de l’objet tenu n’est pas résolue dans le catalogue d’objets local.'
-                            : 'Catalogue d’objets local indisponible. La valeur brute est conservée telle quelle.'
-                        : 'Objet sélectionné : ${resolvedItem.name} • ${resolvedItem.id}';
+                        ? widget.references.isItemCatalogAvailable
+                            ? 'La valeur actuelle n’est pas compatible avec un objet tenu.'
+                            : 'Le catalogue canonique des objets est indisponible.'
+                        : 'Objet sélectionné : ${resolvedItem.displayName}';
                 final formStatus = formId.isEmpty
                     ? 'Aucune forme spécifique sélectionnée.'
                     : availableForms.contains(formId)
@@ -641,43 +630,19 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                     const SizedBox(height: 12),
                     const InspectorEmbeddedSectionLabel('ITEM / FORM'),
                     const SizedBox(height: 8),
-                    _TrainerSearchableDropdown<PokemonItemCatalogEntryView>(
-                      keyPrefix: 'trainer-library-pokemon-item',
+                    ItemCapabilityPicker(
+                      fieldKey: const Key(
+                        'trainer-library-pokemon-item-dropdown-button',
+                      ),
                       label: 'Objet tenu',
-                      description: widget
-                              .references.itemsCatalogView.isAvailable
-                          ? 'Recherchez dans le catalogue d’objets local pour choisir un objet tenu. Fonction avancée disponible, hors cutline MVP ; validation complète prévue par RM-053.'
-                          : _buildAuthorFacingCatalogUnavailableMessage(
-                              subjectLabel: 'des objets',
-                              fallbackMessage:
-                                  'Vous pouvez utiliser l’ID brut de l’objet si nécessaire.',
-                              technicalMessage:
-                                  widget.references.itemsCatalogView.message,
-                            ),
-                      entries: widget.references.itemsCatalogView.entries,
-                      lookupService: _itemsLookupService,
-                      enabled: widget.references.itemsCatalogView.isAvailable,
-                      disabledLabel: 'Catalogue d’objets local indisponible',
-                      emptySelectionLabel: 'Sélectionnez un objet tenu',
-                      searchPlaceholder: 'Filtrer les objets locaux',
-                      selectedLabel: resolvedItem?.name ?? heldItemId,
-                      selectedSubtitle: resolvedItem == null
-                          ? (heldItemId.isEmpty
-                              ? null
-                              : widget.references.itemsCatalogView.isAvailable
-                                  ? 'ID d’objet brut non résolu localement'
-                                  : 'ID d’objet brut conservé tel quel')
-                          : resolvedItem.id,
-                      emptyResultsLabel: 'Aucun objet local ne correspond.',
-                      subtitleBuilder: (entry) => entry.id,
-                      onSelected: (entry) {
-                        widget.itemController.text = entry.id;
-                      },
-                      onClear: heldItemId.isEmpty
-                          ? null
-                          : () {
-                              widget.itemController.clear();
-                            },
+                      definitions: widget.references.itemDefinitions,
+                      requirement: ItemCapabilityRequirement.held,
+                      value: heldItemId,
+                      enabled: widget.references.isItemCatalogAvailable,
+                      allowEmpty: true,
+                      onChanged: (value) => setState(() {
+                        widget.itemController.text = value ?? '';
+                      }),
                     ),
                     const SizedBox(height: 6),
                     Text(

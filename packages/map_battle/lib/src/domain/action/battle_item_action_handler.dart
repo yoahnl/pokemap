@@ -65,7 +65,7 @@ final class BattleItemActionHandler {
       rng: context.rng,
       amount: amount,
       events: <PsdkBattleEvent>[
-        _consumedEvent(context, action, partyIndex),
+        _itemEvent(context, action, partyIndex),
         PsdkBattleHealEvent(
           user: action.user,
           target: action.target,
@@ -121,7 +121,7 @@ final class BattleItemActionHandler {
       state: state,
       rng: context.rng,
       events: <PsdkBattleEvent>[
-        _consumedEvent(context, action, partyIndex),
+        _itemEvent(context, action, partyIndex),
         PsdkBattleStatusCureEvent(
           user: action.user,
           target: action.target,
@@ -159,23 +159,31 @@ final class BattleItemActionHandler {
       rng: context.rng,
       amount: revived.currentHp,
       events: <PsdkBattleEvent>[
-        _consumedEvent(context, action, partyIndex),
+        _itemEvent(context, action, partyIndex),
       ],
     );
   }
 
-  PsdkBattleItemEvent _consumedEvent(
+  PsdkBattleItemEvent _itemEvent(
     BattleHandlerContext context,
     PsdkBattleItemAction action,
     int partyIndex,
   ) {
-    return PsdkBattleItemEvent.consumed(
-      turn: context.turn,
-      user: action.user,
-      target: action.target,
-      partyIndex: partyIndex,
-      itemId: action.itemId,
-    );
+    return action.consumeItem
+        ? PsdkBattleItemEvent.consumed(
+            turn: context.turn,
+            user: action.user,
+            target: action.target,
+            partyIndex: partyIndex,
+            itemId: action.itemId,
+          )
+        : PsdkBattleItemEvent.used(
+            turn: context.turn,
+            user: action.user,
+            target: action.target,
+            partyIndex: partyIndex,
+            itemId: action.itemId,
+          );
   }
 
   void _validateTarget({

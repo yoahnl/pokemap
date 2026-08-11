@@ -464,6 +464,7 @@ Future<RuntimePostBattleCoordinatorResult> _begin(
     bundle: _bundle(),
     runtimeContext: _context(),
     outcome: _outcome(),
+    itemCatalog: ItemCatalogSnapshot.empty(),
   );
 }
 

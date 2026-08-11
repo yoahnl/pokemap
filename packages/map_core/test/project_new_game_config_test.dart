@@ -27,7 +27,7 @@ void main() {
         playerPronounSet: PlayerPronounSet.feminine,
         startingMoney: 500,
         initialBag: [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'potion', quantity: 2),
         ],
         initialParty: [
           PlayerPokemon(
@@ -145,7 +145,7 @@ void main() {
           enabled: true,
           startMapId: 'map_start',
           initialBag: [
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 0),
+            BagEntry(itemId: 'potion', quantity: 0),
           ],
         ),
         const ProjectNewGameConfig(

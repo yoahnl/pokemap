@@ -55,6 +55,7 @@ import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_move_catalog_loader.dart';
+import '../../application/runtime_item_catalog_loader.dart';
 import '../../application/runtime_player_pokemon_progression_hydrator.dart';
 import '../../application/runtime_pokemon_learnset_loader.dart';
 import '../../application/runtime_pokemon_evolution_loader.dart';
@@ -527,6 +528,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final GridPathfinder _followPathfinder = const GridPathfinder();
   final RuntimeMoveCatalogLoader _battleMoveCatalogLoader =
       RuntimeMoveCatalogLoader();
+  final RuntimeItemCatalogLoader _runtimeItemCatalogLoader =
+      const RuntimeItemCatalogLoader();
+  ItemCatalogSnapshot _itemCatalogSnapshot = ItemCatalogSnapshot.empty();
   final RuntimePokemonSpeciesLoader _battleSpeciesLoader =
       RuntimePokemonSpeciesLoader();
   late final RuntimePokemonLearnsetLoader _battleLearnsetLoader =
@@ -3494,6 +3498,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final hydratedGameState =
           _hydrateOwnedPlayerPokemonProgression(_gameState);
       final rootBorderAssets = _loadBorderRuntimeAssets(_bundle);
+      final itemCatalog = _runtimeItemCatalogLoader.loadSnapshot(
+        projectRootDirectory: _bundle.projectRootDirectory,
+        pokemonConfig: _bundle.manifest.pokemon,
+      );
       debugPrint(
           '[runtime_game] tileset image load start map=${_bundle.map.id}');
       final tilesetImages =
@@ -3503,6 +3511,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           hydratedGameState,
           rootBorderAssets,
           tilesetImages,
+          itemCatalog,
         ],
         eagerError: false,
       );
@@ -3510,6 +3519,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final loadedRootBorderAssets =
           bootResources[1]! as BorderRuntimeAssetBundle;
       final images = bootResources[2]! as Map<String, RuntimeTilesetImage>;
+      _itemCatalogSnapshot = bootResources[3]! as ItemCatalogSnapshot;
       await afterInitialTilesetImagesLoaded?.call();
       if (_isRemoved) return;
       // The coordinator was constructed before asynchronous catalogue loading.
@@ -7601,6 +7611,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           visualAssetCache: _battleVisualAssetCache,
           fxBundleCache: _battleFxBundleCache,
           bagItemIconResolver: _battleBagItemIconResolver,
+          itemCapabilityResolver: ItemCapabilityResolver(
+            _itemCatalogSnapshot,
+          ),
           genderResolver: genderResolver,
           onPlayerChoice: _onPlayerBattleChoice,
           onBagHpHealItemUseRequested: _onBattleBagHpHealItemUseRequested,
@@ -7651,6 +7664,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       gameState: _battleRuntimeGameState,
       request: request,
       playerPartyIndex: playerPartyIndex,
+      itemCatalog: _itemCatalogSnapshot,
     );
   }
 
@@ -7663,12 +7677,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       gameState: _battleRuntimeGameState,
       request: request,
       playerPartyIndex: playerPartyIndex,
+      itemCatalog: _itemCatalogSnapshot,
     );
   }
 
   bool _battleRequestAllowsCapture(BattleStartRequest? request) {
     return request is WildBattleStartRequest &&
-        playerHasAtLeastOneRuntimePokeBall(_battleRuntimeGameState.bag);
+        playerHasAtLeastOneRuntimeCaptureItem(
+          _battleRuntimeGameState.bag,
+          ItemCapabilityResolver(_itemCatalogSnapshot),
+          encounterKind: request.encounterKind,
+        );
   }
 
   void _cancelBattleHandoff({
@@ -7790,11 +7809,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           final submission = submitRuntimeBattleCaptureAttempt(
             gameState: _battleRuntimeGameState,
             context: activeContext,
-            captureAllowed: psdkSession.decisionRequest.allows(
-              const BattleDecision.capture(
-                itemId: canonicalPokeBallItemId,
-              ),
-            ),
+            captureAllowed: psdkSession.allowsPlayerChoice(choice),
+            itemId: choice.itemId,
+            itemCatalog: _itemCatalogSnapshot,
             submitToEngine: () => psdkSession.submitPlayerChoice(choice),
           );
           _replaceBattleRuntimeGameState(submission.updatedGameState);
@@ -7825,6 +7842,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             gameState: _battleRuntimeGameState,
             context: activeContext,
             captureAllowed: _battleSession!.decisionRequest.allows(choice),
+            itemId: choice.itemId,
+            itemCatalog: _itemCatalogSnapshot,
             submitToEngine: () => _battleSession!.applyChoice(choice),
           );
           _replaceBattleRuntimeGameState(submission.updatedGameState);
@@ -7911,6 +7930,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           isTrainerBattle: isTrainerBattle,
           trainerId: trainerId,
           allowCapture: _battleRequestAllowsCapture(request),
+          itemCatalog: _itemCatalogSnapshot,
         );
         if (result == null) {
           return false;
@@ -7943,39 +7963,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return true;
       }
 
-      // Lots 9-e à 9-h gardent `PlayableMapGame` comme propriétaire honnête
-      // du runtime autour du moteur battle :
-      // - le moteur battle produit un `currentTurn` et une timeline honnêtes ;
-      // - le runtime reste propriétaire du bag réel et du write-back party ;
-      // - on reste borné à `Potion` + `Super Potion` + `Hyper Potion` + `Max Potion`,
-      //   sans API item générique.
-      final result = switch (action.itemId) {
-        'potion' => tryApplyRuntimeBattlePotionUse(
-            session: battleSession,
-            gameState: _battleRuntimeGameState,
-            context: activeBattleContext,
-            targetLineupIndex: entry.lineupIndex,
-          ),
-        'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
-            session: battleSession,
-            gameState: _battleRuntimeGameState,
-            context: activeBattleContext,
-            targetLineupIndex: entry.lineupIndex,
-          ),
-        'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
-            session: battleSession,
-            gameState: _battleRuntimeGameState,
-            context: activeBattleContext,
-            targetLineupIndex: entry.lineupIndex,
-          ),
-        'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
-            session: battleSession,
-            gameState: _battleRuntimeGameState,
-            context: activeBattleContext,
-            targetLineupIndex: entry.lineupIndex,
-          ),
-        _ => null,
-      };
+      final result = tryApplyRuntimeBattleItemUse(
+        session: battleSession,
+        gameState: _battleRuntimeGameState,
+        context: activeBattleContext,
+        itemId: action.itemId,
+        targetLineupIndex: entry.lineupIndex,
+        itemCatalog: _itemCatalogSnapshot,
+      );
       if (result == null) {
         return false;
       }
@@ -8062,6 +8057,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               gameState: _battleRuntimeGameState,
               context: activeBattleContext,
               psdkState: psdkState,
+              itemCatalog: _itemCatalogSnapshot,
             );
       final result = await _postBattleDecisionCoordinator.begin(
         transactionBaseState: transactionBaseState,
@@ -8069,6 +8065,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         runtimeContext: activeBattleContext,
         outcome: outcome,
         captureAttemptReceipt: _captureAttemptReceipt,
+        itemCatalog: _itemCatalogSnapshot,
       );
       if (generation != _postBattleFlowGeneration ||
           _flowPhase != _RuntimeFlowPhase.battle ||

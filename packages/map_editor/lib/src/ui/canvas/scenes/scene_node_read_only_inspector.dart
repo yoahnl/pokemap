@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../features/narrative/application/narrative_workspace_projection.dart';
+import '../../../features/gameplay/items/item_capability_picker.dart';
 import '../../../features/narrative/state/scene_consequence_catalog_providers.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
@@ -1743,15 +1744,18 @@ class _GameplayConsequenceEditSheetState
         consequence is SceneTakeItemConsequence) {
       final quantity = int.tryParse(_quantityController.text.trim());
       return [
-        PokeMapDropdownField<String>(
-          key: const ValueKey('scene-gameplay-consequence-item-picker'),
+        ItemCapabilityPicker(
+          fieldKey:
+              const ValueKey('scene-gameplay-consequence-item-picker'),
           label: 'Objet',
-          value: _selectedItemId ?? '',
-          items: [
+          definitions: <ProjectItemDefinition>[
             for (final option in widget.catalogs.items.options)
-              PokeMapDropdownItem(value: option.id, label: option.label),
+              if (option.itemDefinition != null) option.itemDefinition!,
           ],
+          requirement: ItemCapabilityRequirement.any,
+          value: _selectedItemId ?? '',
           enabled: widget.catalogs.items.options.isNotEmpty,
+          allowEmpty: true,
           onChanged: (value) => setState(() => _selectedItemId = value),
         ),
         const SizedBox(height: 12),

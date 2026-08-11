@@ -594,7 +594,6 @@ void main() {
           entries: [
             BagEntry(
               itemId: 'item_ticket',
-              categoryId: 'items',
               quantity: 2,
             ),
           ],
@@ -665,7 +664,6 @@ void main() {
           entries: [
             BagEntry(
               itemId: 'item_ticket',
-              categoryId: 'items',
               quantity: 1,
             ),
           ],
@@ -727,7 +725,6 @@ void main() {
           entries: [
             BagEntry(
               itemId: 'item_ticket',
-              categoryId: 'items',
               quantity: 1,
             ),
           ],

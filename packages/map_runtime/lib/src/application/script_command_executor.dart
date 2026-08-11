@@ -214,7 +214,7 @@ class ScriptCommandExecutor {
     Map<String, String> params,
     GameState state,
   ) {
-    final itemId = params['itemId'];
+    final itemId = params['itemId']?.trim();
     final quantityStr = params['quantity'] ?? '1';
 
     if (itemId == null || itemId.isEmpty) {
@@ -222,6 +222,11 @@ class ScriptCommandExecutor {
     }
 
     final quantity = int.tryParse(quantityStr) ?? 1;
+    if (quantity <= 0) {
+      return const ScriptCommandResult.error(
+        'Item quantity must be positive',
+      );
+    }
     final newState = _mutations.giveItem(state, itemId, quantity);
     _commitGameState(newState);
     return const ScriptCommandResult.completed();

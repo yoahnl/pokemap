@@ -519,7 +519,7 @@ GameState _captureState() {
   return _state().copyWith(
     bag: const Bag(
       entries: <BagEntry>[
-        BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+        BagEntry(itemId: 'poke-ball', quantity: 2),
       ],
     ),
   );
@@ -534,6 +534,8 @@ RuntimeBattleCaptureAttemptSubmission<BattleSession>
     gameState: state,
     context: context,
     captureAllowed: true,
+    itemId: canonicalPokeBallItemId,
+    itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     submitToEngine: () => createBattleSession(
       const BattleSetup(
         playerPokemon: BattleCombatantData(

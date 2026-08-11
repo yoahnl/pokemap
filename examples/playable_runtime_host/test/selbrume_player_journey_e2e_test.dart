@@ -529,7 +529,6 @@ void main() {
         contains(
           const BagEntry(
             itemId: 'super-potion',
-            categoryId: 'medicine',
             quantity: 1,
           ),
         ),

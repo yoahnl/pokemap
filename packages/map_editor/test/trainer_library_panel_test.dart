@@ -10,7 +10,6 @@ import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
-import 'package:map_editor/src/application/ports/pokemon_read_repository.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
@@ -225,13 +224,7 @@ void main() {
               (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -330,16 +323,17 @@ void main() {
           )
           .first,
     );
+    final heldItemPicker = tester.widget<PokeMapDropdownField<String>>(
+      find.byKey(
+        const Key('trainer-library-pokemon-item-dropdown-button'),
+      ),
+    );
     expect(
-      find.textContaining('hors cutline MVP'),
-      findsOneWidget,
+      heldItemPicker.items.map((item) => item.label),
+      <String>['Aucun objet', 'Oran Berry'],
     );
-    await selectTrainerDropdownSuggestion(
-      tester,
-      'trainer-library-pokemon-item',
-      'oran_berry',
-      query: 'oran',
-    );
+    heldItemPicker.onChanged('oran_berry');
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(
         const Key('trainer-library-pokemon-form-suggestion-blossom'),
@@ -393,13 +387,7 @@ void main() {
               (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -488,13 +476,7 @@ void main() {
               (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -534,13 +516,18 @@ void main() {
       'story:misty_defeated, story:cerulean_open',
     );
 
-    tester
-        .widget<PokeMapDropdownField<String>>(
-          find.byKey(
-            const Key('trainer-library-edit-reward-item-dropdown'),
-          ),
-        )
-        .onChanged('oran_berry');
+    final rewardItemPicker = tester.widget<PokeMapDropdownField<String>>(
+      find.byKey(const Key('trainer-library-edit-reward-item-dropdown')),
+    );
+    expect(
+      rewardItemPicker.items.map((item) => item.label),
+      <String>['Sélectionner un objet du catalogue', 'Oran Berry'],
+    );
+    expect(
+      rewardItemPicker.items.map((item) => item.label),
+      isNot(contains('oran_berry')),
+    );
+    rewardItemPicker.onChanged('oran_berry');
     await settleTrainerUi(tester);
     await tester.enterText(
       find.byKey(
@@ -840,13 +827,7 @@ void main() {
               (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -968,13 +949,7 @@ void main() {
               (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -1072,13 +1047,7 @@ void main() {
               (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -1179,13 +1148,7 @@ void main() {
               (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -1318,13 +1281,7 @@ void main() {
               : (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -1417,13 +1374,7 @@ void main() {
               : (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -1501,13 +1452,7 @@ void main() {
           (_, _) async => throw StateError('detail loader exploded'),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -1629,12 +1574,14 @@ void main() {
       'keeps the trainer surface usable when moves and items lookups fail unexpectedly',
       (tester) async {
     final repository = _FakeProjectRepository();
-    const workspace = _FakeWorkspace();
+    final workspace = _FakeWorkspace(
+      itemCatalogError: StateError('items loader exploded'),
+    );
     final container = ProviderContainer(
       overrides: [
         projectRepositoryProvider.overrideWithValue(repository),
         projectWorkspaceFactoryProvider.overrideWithValue(
-          const _FakeWorkspaceFactory(workspace),
+          _FakeWorkspaceFactory(workspace),
         ),
         pokedexEntryLoaderProvider.overrideWithValue(
           (_) async => _speciesEntries,
@@ -1648,11 +1595,7 @@ void main() {
               (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogError: StateError('items loader exploded'),
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -1728,19 +1671,9 @@ void main() {
       find.byKey(const Key('trainer-library-pokemon-move-0-field')),
       'missing_move',
     );
-    await tester.scrollUntilVisible(
+    expect(
       find.byKey(const Key('trainer-library-pokemon-item-field')),
-      200,
-      scrollable: find
-          .descendant(
-            of: find.byKey(const Key('trainer-library-editor-scroll')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.enterText(
-      find.byKey(const Key('trainer-library-pokemon-item-field')),
-      'mystery_item',
+      findsNothing,
     );
 
     final savePokemonButton = tester.widget<CupertinoButton>(
@@ -1755,7 +1688,7 @@ void main() {
     expect(pokemon.speciesId, 'bulbasaur');
     expect(pokemon.level, 10);
     expect(pokemon.moves, <String>['missing_move']);
-    expect(pokemon.heldItemId, 'mystery_item');
+    expect(pokemon.heldItemId, isNull);
   });
 
   testWidgets(
@@ -1781,13 +1714,7 @@ void main() {
               : (throw EditorNotFoundException('Missing detail: $speciesId')),
         ),
         loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
-          LoadPokemonItemsCatalogUseCase(
-            readRepository: _FakePokemonReadRepository(
-              catalogByKey: <String, PokemonCatalogFile>{
-                'items': _itemsCatalog,
-              },
-            ),
-          ),
+          const LoadPokemonItemsCatalogUseCase(),
         ),
       ],
     );
@@ -1924,20 +1851,6 @@ const PokemonMovesCatalogView _movesCatalogView = PokemonMovesCatalogView(
   description: 'Catalogue local des attaques.',
 );
 
-const PokemonCatalogFile _itemsCatalog = PokemonCatalogFile(
-  schemaVersion: 1,
-  kind: 'pokemon_catalog',
-  catalog: 'items',
-  meta: PokemonDataMeta(description: 'Catalogue local des objets.'),
-  entries: <Map<String, dynamic>>[
-    <String, dynamic>{
-      'id': 'oran_berry',
-      'name': 'Oran Berry',
-      'aliases': <String>['oran'],
-    },
-  ],
-);
-
 final Map<String, PokedexSpeciesDetail> _detailsById =
     <String, PokedexSpeciesDetail>{
   'bulbasaur': _buildDetail(),
@@ -2058,9 +1971,27 @@ class _FakeWorkspaceFactory implements ProjectWorkspaceFactory {
 }
 
 class _FakeWorkspace implements ProjectWorkspace {
-  const _FakeWorkspace();
+  const _FakeWorkspace({this.itemCatalogError});
 
   static const String projectRootValue = '/tmp';
+  static const String _itemCatalogPath =
+      '$projectRootValue/data/pokemon/catalogs/items.json';
+  static const String _itemCatalogJson = '''
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "oran_berry",
+      "displayName": "Oran Berry",
+      "aliases": ["oran"],
+      "pocketId": "berries",
+      "heldEffectId": "oran-berry"
+    }
+  ]
+}
+''';
+
+  final Object? itemCatalogError;
 
   @override
   String get projectManifestPath => '$projectRootValue/project.json';
@@ -2084,7 +2015,7 @@ class _FakeWorkspace implements ProjectWorkspace {
   Future<void> ensureDirectoryExists(String path) async {}
 
   @override
-  Future<bool> fileExists(String path) async => false;
+  Future<bool> fileExists(String path) async => path == _itemCatalogPath;
 
   @override
   String getMapPath(String mapId) => '$projectRootValue/$mapId.json';
@@ -2107,7 +2038,15 @@ class _FakeWorkspace implements ProjectWorkspace {
   Future<void> moveFile(String sourcePath, String destinationPath) async {}
 
   @override
-  Future<String> readTextFile(String path) async => '';
+  Future<String> readTextFile(String path) async {
+    if (path == _itemCatalogPath) {
+      if (itemCatalogError != null) {
+        throw itemCatalogError!;
+      }
+      return _itemCatalogJson;
+    }
+    return '';
+  }
 
   @override
   String resolveMapPath(String relativePath) =>
@@ -2123,109 +2062,4 @@ class _FakeWorkspace implements ProjectWorkspace {
 
   @override
   Future<void> writeTextFile(String path, String contents) async {}
-}
-
-class _FakePokemonReadRepository implements PokemonReadRepository {
-  _FakePokemonReadRepository({
-    this.catalogByKey = const <String, PokemonCatalogFile>{},
-    this.catalogError,
-  });
-
-  final Map<String, PokemonCatalogFile> catalogByKey;
-  final Object? catalogError;
-
-  @override
-  Future<PokemonCatalogFile> readCatalogByKey(
-    ProjectWorkspace workspace,
-    String catalogKey,
-  ) async {
-    if (catalogError != null) {
-      throw catalogError!;
-    }
-    final catalog = catalogByKey[catalogKey];
-    if (catalog == null) {
-      throw EditorNotFoundException('Missing catalog: $catalogKey');
-    }
-    return catalog;
-  }
-
-  @override
-  Future<PokemonDataManifest> readManifest(ProjectWorkspace workspace) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<PokemonSpeciesIndexEntry>> listSpeciesIndexEntries(
-    ProjectWorkspace workspace,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<PokemonDatabaseIndexEntry>> listDatabaseIndexEntries(
-    ProjectWorkspace workspace, {
-    required String speciesDirectoryRelativePath,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> listSpeciesFiles(ProjectWorkspace workspace) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonSpeciesFile> readSpeciesByRelativePath(
-    ProjectWorkspace workspace,
-    String relativePath,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonSpeciesFile> readSpeciesById(
-    ProjectWorkspace workspace,
-    String speciesId,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> listLearnsetIds(ProjectWorkspace workspace) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonLearnsetFile> readLearnsetById(
-    ProjectWorkspace workspace,
-    String speciesId,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> listEvolutionIds(ProjectWorkspace workspace) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonEvolutionFile> readEvolutionById(
-    ProjectWorkspace workspace,
-    String speciesId,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> listMediaIds(ProjectWorkspace workspace) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonMediaFile> readMediaById(
-    ProjectWorkspace workspace,
-    String speciesId,
-  ) {
-    throw UnimplementedError();
-  }
 }

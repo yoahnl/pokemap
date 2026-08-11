@@ -3205,7 +3205,6 @@ SaveData _battleReadySaveData({
       entries: <BagEntry>[
         BagEntry(
           itemId: 'poke-ball',
-          categoryId: 'items',
           quantity: 3,
         ),
       ],

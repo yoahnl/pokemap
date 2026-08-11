@@ -1,0 +1,11 @@
+{
+  "speciesId": "sparkitten",
+  "startingMoves": [
+    "tackle",
+    "growl"
+  ],
+  "relearnMoves": [],
+  "levelUp": [],
+  "tm": [],
+  "hm": []
+}

@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flame/components.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_gameplay/src/direction.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
 import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
@@ -205,12 +205,10 @@ GameState _gameState({
 
 BagEntry _bagEntry({
   required String itemId,
-  required String categoryId,
   required int quantity,
 }) {
   return BagEntry(
     itemId: itemId,
-    categoryId: categoryId,
     quantity: quantity,
   );
 }
@@ -362,6 +360,7 @@ void main() {
     test('post-battle handoff permanently rejects battle commands', () async {
       var submitted = 0;
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'lead_player',
@@ -775,6 +774,7 @@ void main() {
         'uses a stable fallback background when no runtime context is injected',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -803,6 +803,7 @@ void main() {
         'mounts a structured battle scene with backdrop, battler zones, huds, command box and narration box by default',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -842,6 +843,7 @@ void main() {
     test('consumes the pure scene layout with stable battler relations',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'squirtle',
@@ -902,6 +904,7 @@ void main() {
 
     test('bounds RMXP screen animations above the command panel', () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'mew',
@@ -946,6 +949,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(720, 960),
         onPlayerChoice: (_) {},
@@ -983,6 +987,7 @@ void main() {
     test('keeps battler scale stable on wider landscape viewports', () async {
       Future<BattleSceneLayout> loadLayout(Vector2 viewportSize) async {
         final overlay = BattleOverlayComponent(
+          itemCapabilityResolver: _itemResolver,
           session: _session(
             player: _combatant(
               speciesId: 'squirtle',
@@ -1030,6 +1035,7 @@ void main() {
         'switches to a mobile-friendly bottom panel layout on narrow viewports',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'squirtle',
@@ -1069,6 +1075,7 @@ void main() {
         'can publish a Flutter command overlay snapshot without mounting the Flame command panel',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'squirtle',
@@ -1087,7 +1094,7 @@ void main() {
         ),
         gameState: _gameState(
           bag: Bag(entries: <BagEntry>[
-            _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            _bagEntry(itemId: 'potion', quantity: 2),
           ]),
         ),
         viewportSize: Vector2(390, 844),
@@ -1141,6 +1148,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: session,
         viewportSize: Vector2(390, 844),
         onPlayerChoice: (_) {},
@@ -1173,6 +1181,7 @@ void main() {
 
     test('keeps portrait HUDs inset and readable on 390x844', () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'squirtle',
@@ -1221,6 +1230,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) {},
@@ -1263,6 +1273,7 @@ void main() {
     test('reflows the battle scene when the viewport changes orientation',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'squirtle',
@@ -1296,6 +1307,7 @@ void main() {
         'Flutter command overlay snapshot reflows with the battle scene on viewport changes',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'squirtle',
@@ -1334,6 +1346,7 @@ void main() {
     test('mounts the resolved background family inside the backdrop layer',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -1387,6 +1400,7 @@ void main() {
     test('keeps the debug panel opt-in and separate from the normal battle UI',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -1430,6 +1444,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) {},
@@ -1485,6 +1500,7 @@ void main() {
         () async {
       PlayerBattleChoice? pickedChoice;
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -1501,7 +1517,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+              _bagEntry(itemId: 'poke-ball', quantity: 3),
             ],
           ),
         ),
@@ -1540,11 +1556,12 @@ void main() {
         allowCapture: true,
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: session,
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+              _bagEntry(itemId: 'poke-ball', quantity: 1),
             ],
           ),
         ),
@@ -1568,7 +1585,7 @@ void main() {
         _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+              _bagEntry(itemId: 'poke-ball', quantity: 1),
             ],
           ),
         ).bag.entries.single.quantity,
@@ -1583,6 +1600,7 @@ void main() {
         () async {
       PlayerBattleChoice? pickedChoice;
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -1599,7 +1617,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+              _bagEntry(itemId: 'poke-ball', quantity: 2),
             ],
           ),
         ),
@@ -1621,6 +1639,7 @@ void main() {
         () async {
       PlayerBattleChoice? pickedChoice;
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -1636,7 +1655,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              _bagEntry(itemId: 'potion', quantity: 1),
             ],
           ),
         ),
@@ -1693,7 +1712,7 @@ void main() {
       final gameState = _gameState(
         bag: Bag(
           entries: <BagEntry>[
-            _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            _bagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         partyMembers: <PlayerPokemon>[
@@ -1703,13 +1722,15 @@ void main() {
       );
       late BattleOverlayComponent overlay;
       overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: session,
         gameState: gameState,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
         onBagHpHealItemUseRequested: (action, entry) {
           final result = switch (action.itemId) {
-            'potion' => tryApplyRuntimeBattlePotionUse(
+            'potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1730,8 +1751,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0, 1],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            'super-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'super-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1752,8 +1775,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0, 1],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            'hyper-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'hyper-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1774,6 +1799,7 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0, 1],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
             _ => null,
           };
@@ -1803,9 +1829,9 @@ void main() {
       expect(
         overlay.debugSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.potion),
+          equals('potion'),
         ),
       );
       expect(overlay.debugSession.state.player.currentHp, equals(32));
@@ -1831,6 +1857,7 @@ void main() {
       PlayerBattleChoice? pickedChoice;
       late BattleOverlayComponent overlay;
       overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -1857,7 +1884,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              _bagEntry(itemId: 'potion', quantity: 2),
             ],
           ),
           partyMembers: <PlayerPokemon>[
@@ -1869,7 +1896,8 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
         onBagHpHealItemUseRequested: (action, entry) {
           final result = switch (action.itemId) {
-            'potion' => tryApplyRuntimeBattlePotionUse(
+            'potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1890,8 +1918,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[1, 0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            'super-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'super-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1912,8 +1942,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[1, 0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            'hyper-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'hyper-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1934,6 +1966,7 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[1, 0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
             _ => null,
           };
@@ -1964,9 +1997,9 @@ void main() {
       expect(
         overlay.debugSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.potion),
+          equals('potion'),
         ),
       );
       expect(overlay.debugSession.state.player.currentHp, equals(22));
@@ -2004,7 +2037,6 @@ void main() {
           entries: <BagEntry>[
             _bagEntry(
               itemId: 'super-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -2015,13 +2047,15 @@ void main() {
       );
       late BattleOverlayComponent overlay;
       overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: session,
         gameState: gameState,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
         onBagHpHealItemUseRequested: (action, entry) {
           final result = switch (action.itemId) {
-            'potion' => tryApplyRuntimeBattlePotionUse(
+            'potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2042,8 +2076,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            'super-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'super-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2064,8 +2100,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            'hyper-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'hyper-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2086,6 +2124,7 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
             _ => null,
           };
@@ -2116,9 +2155,9 @@ void main() {
       expect(
         overlay.debugSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.superPotion),
+          equals('super-potion'),
         ),
       );
       expect(overlay.debugSession.state.player.currentHp, equals(72));
@@ -2159,7 +2198,6 @@ void main() {
           entries: <BagEntry>[
             _bagEntry(
               itemId: 'hyper-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -2170,13 +2208,15 @@ void main() {
       );
       late BattleOverlayComponent overlay;
       overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: session,
         gameState: gameState,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
         onBagHpHealItemUseRequested: (action, entry) {
           final result = switch (action.itemId) {
-            'potion' => tryApplyRuntimeBattlePotionUse(
+            'potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2197,8 +2237,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            'super-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'super-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2219,8 +2261,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            'hyper-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'hyper-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2241,6 +2285,7 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
             _ => null,
           };
@@ -2271,15 +2316,15 @@ void main() {
       expect(
         overlay.debugSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.hyperPotion),
+          equals('hyper-potion'),
         ),
       );
-      expect(overlay.debugSession.state.player.currentHp, equals(222));
+      expect(overlay.debugSession.state.player.currentHp, equals(142));
       expect(
         overlay.debugGameState.party.members.first.currentHp,
-        equals(222),
+        equals(142),
       );
       expect(overlay.debugGameState.bag.entries, isEmpty);
       expect(overlay.isTurnPresentationActive, isTrue);
@@ -2291,7 +2336,7 @@ void main() {
       expect(overlay.validateSelectedChoice(), isFalse);
 
       overlay.updateTree(0.50);
-      expect(overlay.currentPromptText, equals('sproutle récupère 200 PV.'));
+      expect(overlay.currentPromptText, equals('sproutle récupère 120 PV.'));
     });
 
     test(
@@ -2317,7 +2362,6 @@ void main() {
           entries: <BagEntry>[
             _bagEntry(
               itemId: 'max-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -2328,13 +2372,15 @@ void main() {
       );
       late BattleOverlayComponent overlay;
       overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: session,
         gameState: gameState,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
         onBagHpHealItemUseRequested: (action, entry) {
           final result = switch (action.itemId) {
-            'potion' => tryApplyRuntimeBattlePotionUse(
+            'potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2355,8 +2401,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            'super-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'super-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2377,8 +2425,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            'hyper-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'hyper-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2399,8 +2449,10 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
-            'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
+            'max-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'max-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2421,6 +2473,7 @@ void main() {
                   playerPartySlotIndicesByLineupIndex: <int>[0],
                 ),
                 targetLineupIndex: entry.lineupIndex,
+                itemCatalog: _itemCatalog,
               ),
             _ => null,
           };
@@ -2453,9 +2506,9 @@ void main() {
         playerAction,
         isA<BattleActionBagHpHealItemUse>()
             .having(
-              (action) => action.itemKind,
+              (action) => action.itemId,
               'itemKind',
-              equals(BattleBagHpHealItemKind.maxPotion),
+              equals('max-potion'),
             )
             .having(
               (action) => action.effect,
@@ -2483,6 +2536,7 @@ void main() {
 
     test('full hp medicine targets stay visible but non-selectable', () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -2509,7 +2563,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              _bagEntry(itemId: 'potion', quantity: 1),
             ],
           ),
         ),
@@ -2536,6 +2590,7 @@ void main() {
 
     test('fainted medicine targets stay visible but non-selectable', () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -2562,7 +2617,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              _bagEntry(itemId: 'potion', quantity: 1),
             ],
           ),
         ),
@@ -2593,6 +2648,7 @@ void main() {
     test('escape from medicine target returns to bag and then to root',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -2610,7 +2666,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              _bagEntry(itemId: 'potion', quantity: 1),
             ],
           ),
         ),
@@ -2634,6 +2690,7 @@ void main() {
 
     test('touch back control mirrors escape navigation for submenus', () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -2651,7 +2708,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              _bagEntry(itemId: 'potion', quantity: 1),
             ],
           ),
         ),
@@ -2687,11 +2744,12 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              _bagEntry(itemId: 'potion', quantity: 1),
             ],
           ),
         ),
@@ -2713,8 +2771,8 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
-              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 4),
+              _bagEntry(itemId: 'poke-ball', quantity: 2),
+              _bagEntry(itemId: 'potion', quantity: 4),
             ],
           ),
         ),
@@ -2752,6 +2810,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
@@ -2814,6 +2873,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
@@ -2878,6 +2938,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
@@ -2900,6 +2961,7 @@ void main() {
     test('does not repeat the main prompt again in the narration body',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -2932,6 +2994,7 @@ void main() {
     test('opens a wild battle with a Pokemon-like encounter narration',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -2973,6 +3036,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) {},
@@ -2994,6 +3058,7 @@ void main() {
     test('shows resolved gender symbols in both hud labels when known',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -3045,6 +3110,7 @@ void main() {
         isTrainerBattle: true,
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         genderResolver: const BattleCombatantGenderResolver(
@@ -3090,6 +3156,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: session,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) {},
@@ -3176,6 +3243,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) {},
@@ -3211,6 +3279,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) {},
@@ -3255,6 +3324,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) {},
@@ -3290,6 +3360,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (_) {},
@@ -3352,6 +3423,7 @@ void main() {
         ),
       );
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: initialSession,
         viewportSize: Vector2(960, 540),
         fxBundleCache: fxBundleCache,
@@ -3385,6 +3457,7 @@ void main() {
     test('keeps weather and trick room ambience in sync with the field state',
         () async {
       final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -3419,3 +3492,6 @@ void main() {
     });
   });
 }
+
+final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
+final _itemResolver = ItemCapabilityResolver(_itemCatalog);

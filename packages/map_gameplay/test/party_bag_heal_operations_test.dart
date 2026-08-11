@@ -4,6 +4,18 @@ import 'package:test/test.dart';
 
 void main() {
   const mutations = GameStateMutations();
+  final itemCatalog = ItemCatalogSnapshot.fromCatalog(
+    const ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: <ProjectItemDefinition>[
+        ProjectItemDefinition(
+          id: 'potion',
+          displayName: 'Potion',
+          pocketId: 'medicine',
+        ),
+      ],
+    ),
+  );
 
   PlayerPokemon pokemon({
     String speciesId = 'p5_starter_species',
@@ -50,8 +62,8 @@ void main() {
       final state = partyBagState(
         members: [pokemon()],
         bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 5),
-          BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+          BagEntry(itemId: 'potion', quantity: 5),
+          BagEntry(itemId: 'poke-ball', quantity: 2),
         ],
       );
 
@@ -68,7 +80,7 @@ void main() {
     test('removes an entry when quantity reaches zero', () {
       final state = partyBagState(
         bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'potion', quantity: 2),
         ],
       );
 
@@ -82,7 +94,7 @@ void main() {
       final state = partyBagState(
         members: [firstPokemon],
         bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          BagEntry(itemId: 'potion', quantity: 3),
         ],
       );
 
@@ -100,7 +112,7 @@ void main() {
     test('handles missing item, blank id and invalid quantity safely', () {
       final state = partyBagState(
         bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          BagEntry(itemId: 'potion', quantity: 1),
         ],
       );
 
@@ -117,7 +129,7 @@ void main() {
       final state = partyBagState(
         members: [pokemon(currentHp: 6)],
         bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'potion', quantity: 2),
         ],
       );
 
@@ -138,7 +150,7 @@ void main() {
       final state = partyBagState(
         members: [pokemon(currentHp: 17)],
         bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          BagEntry(itemId: 'potion', quantity: 1),
         ],
       );
 
@@ -159,7 +171,7 @@ void main() {
       final state = partyBagState(
         members: [pokemon(currentHp: 20)],
         bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          BagEntry(itemId: 'potion', quantity: 1),
         ],
       );
 
@@ -232,7 +244,7 @@ void main() {
           pokemon(speciesId: 'p5_species_b', currentHp: 0, statusId: 'sleep'),
         ],
         bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          BagEntry(itemId: 'potion', quantity: 1),
         ],
       );
 
@@ -274,7 +286,7 @@ void main() {
       final state = partyBagState(
         members: [pokemon(currentHp: 4, statusId: 'poison')],
         bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'potion', quantity: 2),
         ],
       );
 
@@ -307,7 +319,6 @@ void main() {
         bagEntries: const [
           BagEntry(
             itemId: 'p5_generic_medicine',
-            categoryId: 'medicine',
             quantity: 1,
           ),
         ],
@@ -326,245 +337,21 @@ void main() {
     });
   });
 
-  group('PlayerItemOperations', () {
-    const operations = PlayerItemOperations();
-
-    test('registry exposes heal, cure, revive, PP and inert metadata', () {
-      const registry = PlayerItemEffectRegistry.mvp();
-
-      expect(registry.effectFor('potion')?.kind, PlayerItemEffectKind.healHp);
-      expect(
-        registry.effectFor('antidote')?.kind,
-        PlayerItemEffectKind.cureStatus,
-      );
-      expect(registry.effectFor('revive')?.kind, PlayerItemEffectKind.revive);
-      expect(registry.effectFor('ether')?.kind, PlayerItemEffectKind.restorePp);
-      expect(
-        registry.effectFor('poke-ball')?.kind,
-        PlayerItemEffectKind.ballMetadata,
-      );
-      expect(
-          registry.effectFor('key-item')?.kind, PlayerItemEffectKind.keyItem);
-    });
-
-    test('heals a valid target and consumes exactly one Potion', () {
-      final state = partyBagState(
-        members: [pokemon(currentHp: 5)],
-        bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
-        ],
-      );
-
-      final result = operations.useOnPartyMember(
-        state,
-        itemId: 'potion',
-        partyIndex: 0,
-        maxHp: 30,
-      );
-
-      expect(result.isSuccess, isTrue);
-      expect(result.state.party.members.single.currentHp, 25);
-      expect(result.state.bag.entries.single.quantity, 1);
-    });
-
-    test('does not consume Potion on a full-HP or fainted target', () {
-      final full = partyBagState(
-        members: [pokemon(currentHp: 20)],
-        bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
-        ],
-      );
-      final fainted = full.copyWith(
-        party: PlayerParty(members: [pokemon(currentHp: 0)]),
-      );
-
-      final fullResult = operations.useOnPartyMember(
-        full,
-        itemId: 'potion',
-        partyIndex: 0,
-        maxHp: 20,
-      );
-      final faintedResult = operations.useOnPartyMember(
-        fainted,
-        itemId: 'potion',
-        partyIndex: 0,
-        maxHp: 20,
-      );
-
-      expect(fullResult.failure, PlayerItemUseFailure.noEffect);
-      expect(faintedResult.failure, PlayerItemUseFailure.wrongTarget);
-      expect(fullResult.state, same(full));
-      expect(faintedResult.state, same(fainted));
-    });
-
-    test('Antidote cures only poison and Revive targets only a KO', () {
-      final poisoned = partyBagState(
-        members: [pokemon(currentHp: 5, statusId: 'poison')],
-        bagEntries: const [
-          BagEntry(itemId: 'antidote', categoryId: 'medicine', quantity: 1),
-          BagEntry(itemId: 'revive', categoryId: 'medicine', quantity: 1),
-        ],
-      );
-      final cured = operations.useOnPartyMember(
-        poisoned,
-        itemId: 'antidote',
-        partyIndex: 0,
-        maxHp: 20,
-      );
-      final awake = poisoned.copyWith(
-        party: PlayerParty(
-          members: [pokemon(currentHp: 5, statusId: 'sleep')],
-        ),
-      );
-      final wrongStatus = operations.useOnPartyMember(
-        awake,
-        itemId: 'antidote',
-        partyIndex: 0,
-        maxHp: 20,
-      );
-      final knockedOut = poisoned.copyWith(
-        party: PlayerParty(members: [pokemon(currentHp: 0)]),
-      );
-      final revived = operations.useOnPartyMember(
-        knockedOut,
-        itemId: 'revive',
-        partyIndex: 0,
-        maxHp: 21,
-      );
-
-      expect(cured.state.party.members.single.statusId, isEmpty);
-      expect(wrongStatus.failure, PlayerItemUseFailure.wrongTarget);
-      expect(wrongStatus.state, same(awake));
-      expect(revived.state.party.members.single.currentHp, 11);
-    });
-
-    test('status medicines cure their authored status and Full Heal cures any',
-        () {
-      const cases = <(String, String)>[
-        ('antidote', 'badly-poisoned'),
-        ('awakening', 'sleep'),
-        ('paralyze-heal', 'paralysis'),
-        ('burn-heal', 'burn'),
-        ('ice-heal', 'freeze'),
-        ('full-heal', 'confusion'),
-      ];
-
-      for (final (itemId, statusId) in cases) {
-        final state = partyBagState(
-          members: [pokemon(currentHp: 5, statusId: statusId)],
-          bagEntries: [
-            BagEntry(itemId: itemId, categoryId: 'medicine', quantity: 1),
-          ],
-        );
-
-        final result = operations.useOnPartyMember(
-          state,
-          itemId: itemId,
-          partyIndex: 0,
-          maxHp: 20,
-        );
-
-        expect(result.isSuccess, isTrue,
-            reason: '$itemId should cure $statusId');
-        expect(result.state.party.members.single.statusId, isEmpty);
-        expect(result.state.bag.entries, isEmpty);
-      }
-    });
-
-    test('Ether restores one persisted move PP and rejects no-effect use', () {
-      final state = partyBagState(
-        members: [
-          pokemon(
-            knownMoveIds: const ['p5_tackle'],
-            currentPpByMoveId: const {'p5_tackle': 2},
-          ),
-        ],
-        bagEntries: const [
-          BagEntry(itemId: 'ether', categoryId: 'medicine', quantity: 2),
-        ],
-      );
-
-      final restored = operations.useOnPartyMember(
-        state,
-        itemId: 'ether',
-        partyIndex: 0,
-        maxHp: 20,
-        moveId: 'p5_tackle',
-        maxPpByMoveId: const {'p5_tackle': 35},
-      );
-      final noEffect = operations.useOnPartyMember(
-        restored.state,
-        itemId: 'ether',
-        partyIndex: 0,
-        maxHp: 20,
-        moveId: 'p5_tackle',
-        maxPpByMoveId: const {'p5_tackle': 12},
-      );
-
-      expect(
-        restored.state.party.members.single.currentPpByMoveId,
-        const {'p5_tackle': 12},
-      );
-      expect(restored.state.bag.entries.single.quantity, 1);
-      expect(noEffect.failure, PlayerItemUseFailure.noEffect);
-      expect(noEffect.state, same(restored.state));
-    });
-
-    test('returns typed failures for unknown item, bad target and no stock',
-        () {
-      final state = partyBagState(members: [pokemon()]);
-
-      expect(
-        operations
-            .useOnPartyMember(
-              state,
-              itemId: 'missing',
-              partyIndex: 0,
-              maxHp: 20,
-            )
-            .failure,
-        PlayerItemUseFailure.unknownItem,
-      );
-      expect(
-        operations
-            .useOnPartyMember(
-              state,
-              itemId: 'potion',
-              partyIndex: 9,
-              maxHp: 20,
-            )
-            .failure,
-        PlayerItemUseFailure.invalidTarget,
-      );
-      expect(
-        operations
-            .useOnPartyMember(
-              state,
-              itemId: 'potion',
-              partyIndex: 0,
-              maxHp: 20,
-            )
-            .failure,
-        PlayerItemUseFailure.insufficientQuantity,
-      );
-    });
-  });
-
   group('GameStateMutations.purchaseItem', () {
     test('atomically pays for and grants the requested item quantity', () {
       final state = partyBagState(
         money: 1000,
         bagEntries: const [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          BagEntry(itemId: 'potion', quantity: 1),
         ],
       );
 
       final result = mutations.purchaseItem(
         state,
         itemId: ' potion ',
-        categoryId: 'medicine',
         quantity: 2,
         unitPrice: 300,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isTrue);
@@ -582,9 +369,9 @@ void main() {
       final result = mutations.purchaseItem(
         state,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
         unitPrice: 300,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isFalse);
@@ -600,30 +387,23 @@ void main() {
         mutations.purchaseItem(
           state,
           itemId: ' ',
-          categoryId: 'medicine',
           quantity: 1,
           unitPrice: 100,
+          itemCatalog: itemCatalog,
         ),
         mutations.purchaseItem(
           state,
           itemId: 'potion',
-          categoryId: ' ',
-          quantity: 1,
-          unitPrice: 100,
-        ),
-        mutations.purchaseItem(
-          state,
-          itemId: 'potion',
-          categoryId: 'medicine',
           quantity: 0,
           unitPrice: 100,
+          itemCatalog: itemCatalog,
         ),
         mutations.purchaseItem(
           state,
           itemId: 'potion',
-          categoryId: 'medicine',
           quantity: 1,
           unitPrice: 0,
+          itemCatalog: itemCatalog,
         ),
       ]) {
         expect(result.failure, ShopPurchaseFailure.invalidRequest);

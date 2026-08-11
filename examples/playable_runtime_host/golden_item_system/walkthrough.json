@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "projectId": "golden_item_system",
+  "steps": [
+    {
+      "id": "new_game",
+      "operation": "new_game"
+    },
+    {
+      "id": "initial_items",
+      "operation": "assert_initial_bag"
+    },
+    {
+      "id": "pickup",
+      "operation": "give_item",
+      "entityId": "item_ether_pickup",
+      "itemId": "ether",
+      "quantity": 1
+    },
+    {
+      "id": "overworld_heal",
+      "operation": "use_item",
+      "itemId": "potion",
+      "partyIndex": 0
+    },
+    {
+      "id": "buy",
+      "operation": "shop_buy",
+      "shopId": "golden_item_shop",
+      "itemId": "potion",
+      "quantity": 1
+    },
+    {
+      "id": "sell",
+      "operation": "shop_sell",
+      "shopId": "golden_item_shop",
+      "itemId": "potion",
+      "quantity": 1
+    },
+    {
+      "id": "battle_item",
+      "operation": "use_battle_item",
+      "itemId": "potion",
+      "partyIndex": 0,
+      "damageBeforeUse": 10
+    },
+    {
+      "id": "capture_attempt",
+      "operation": "capture",
+      "itemId": "poke-ball",
+      "encounterTableId": "golden_item_encounter"
+    },
+    {
+      "id": "equip_held_item",
+      "operation": "equip_held_item",
+      "itemId": "leftovers",
+      "partyIndex": 0
+    },
+    {
+      "id": "learn_move_tm",
+      "operation": "use_move_machine",
+      "itemId": "tm-protect",
+      "partyIndex": 0
+    },
+    {
+      "id": "battle_reward",
+      "operation": "apply_trainer_reward",
+      "trainerId": "golden_item_trainer"
+    },
+    {
+      "id": "save_reload",
+      "operation": "save_reload"
+    }
+  ]
+}

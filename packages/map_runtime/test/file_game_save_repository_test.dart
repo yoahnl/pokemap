@@ -57,8 +57,8 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 10),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 10),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
         progression: PlayerProgression(
@@ -135,8 +135,8 @@ void main() {
         currentMapId: 'field_map',
         bag: Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
         party: PlayerParty(
@@ -176,8 +176,8 @@ void main() {
         loadedState.bag.entries,
         equals(
           const <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
       );
@@ -191,9 +191,7 @@ void main() {
       );
     });
 
-    test(
-        'load migrates legacy progression.storyFlags into storyFlags.activeFlags',
-        () async {
+    test('load rejects a save without the strict item-system schema', () async {
       final filePath = await repository.exposedSaveFilePath();
       final file = File(filePath);
       final legacyJson = <String, dynamic>{
@@ -213,13 +211,15 @@ void main() {
       await file.writeAsString(
           const JsonEncoder.withIndent('  ').convert(legacyJson));
 
-      final loadedState = await repository.load();
-
-      expect(loadedState, isNotNull);
-      expect(loadedState!.storyFlags.activeFlags, contains('met_professor'));
-      expect(
-        loadedState.storyFlags.activeFlags,
-        contains('trainer_defeated:jean_michel'),
+      await expectLater(
+        repository.load,
+        throwsA(
+          isA<GameSaveException>().having(
+            (error) => error.message,
+            'message',
+            contains('UnsupportedSaveSchema'),
+          ),
+        ),
       );
     });
 
@@ -272,7 +272,7 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+            BagEntry(itemId: 'poke-ball', quantity: 5),
           ],
         ),
         storyFlags: StoryFlags(activeFlags: {
@@ -288,6 +288,8 @@ void main() {
       final json = jsonDecode(content) as Map<String, dynamic>;
 
       expect(json['saveId'], equals('test_save_005'));
+      expect(
+          json['itemSystemSchemaVersion'], currentItemSystemSaveSchemaVersion);
       expect(json['currentMapId'], equals('test_map'));
       expect(json['playerPosition'], isA<Map<String, dynamic>>());
       expect(json['playerFacing'], equals('east'));
@@ -297,6 +299,13 @@ void main() {
       expect(json['progression'], isA<Map<String, dynamic>>());
       expect(json['storyFlags'], isA<Map<String, dynamic>>());
 
+      final bagEntries =
+          (json['bag'] as Map<String, dynamic>)['entries'] as List<dynamic>;
+      expect(
+        (bagEntries.single as Map<String, dynamic>).keys.toSet(),
+        const <String>{'itemId', 'quantity'},
+      );
+
       final storyFlags = json['storyFlags'] as Map<String, dynamic>;
       expect(storyFlags['activeFlags'], isA<List>());
       expect(
@@ -305,7 +314,7 @@ void main() {
           isTrue);
     });
 
-    test('load migrates legacy party members and preserves supported metadata',
+    test('load normalizes partial party members on the strict V1 wire',
         () async {
       const originalState = GameState(
         saveId: 'legacy_phase_9',
@@ -330,7 +339,7 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+            BagEntry(itemId: 'poke-ball', quantity: 5),
           ],
         ),
         progression: PlayerProgression(
@@ -348,6 +357,8 @@ void main() {
         metadata: {'testKey': 'testValue'},
       );
       final legacyJson = originalState.toJson();
+      legacyJson['itemSystemSchemaVersion'] =
+          currentItemSystemSaveSchemaVersion;
       final party = legacyJson['party'] as Map<String, dynamic>;
       final members = party['members'] as List<dynamic>;
       final member = members.single as Map<String, dynamic>;
@@ -431,9 +442,9 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: ' potion ', categoryId: ' medicine ', quantity: 2),
-            BagEntry(itemId: ' poke-ball ', categoryId: ' items ', quantity: 5),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: ' potion ', quantity: 2),
+            BagEntry(itemId: ' poke-ball ', quantity: 5),
+            BagEntry(itemId: 'potion', quantity: 3),
           ],
         ),
       );
@@ -455,12 +466,10 @@ void main() {
       expect(entries, [
         {
           'itemId': 'poke-ball',
-          'categoryId': 'items',
           'quantity': 5,
         },
         {
           'itemId': 'potion',
-          'categoryId': 'medicine',
           'quantity': 5,
         },
       ]);

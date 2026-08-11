@@ -240,13 +240,11 @@ const _$PlayerPronounSetEnumMap = {
 
 _BagEntry _$BagEntryFromJson(Map<String, dynamic> json) => _BagEntry(
   itemId: json['itemId'] as String,
-  categoryId: json['categoryId'] as String,
   quantity: (json['quantity'] as num).toInt(),
 );
 
 Map<String, dynamic> _$BagEntryToJson(_BagEntry instance) => <String, dynamic>{
   'itemId': instance.itemId,
-  'categoryId': instance.categoryId,
   'quantity': instance.quantity,
 };
 
@@ -264,6 +262,9 @@ Map<String, dynamic> _$BagToJson(_Bag instance) => <String, dynamic>{
 
 _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
   saveId: json['saveId'] as String,
+  itemSystemSchemaVersion:
+      (json['itemSystemSchemaVersion'] as num?)?.toInt() ??
+      currentItemSystemSaveSchemaVersion,
   currentMapId: json['currentMapId'] as String? ?? '',
   playerPosition: json['playerPosition'] == null
       ? const GridPos(x: 0, y: 0)
@@ -309,6 +310,7 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
 
 Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'saveId': instance.saveId,
+  'itemSystemSchemaVersion': instance.itemSystemSchemaVersion,
   'currentMapId': instance.currentMapId,
   'playerPosition': instance.playerPosition.toJson(),
   'playerFacing': _$EntityFacingEnumMap[instance.playerFacing]!,

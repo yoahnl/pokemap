@@ -59,9 +59,13 @@ final class PsdkBattleCaptureAction extends PsdkBattleAction {
   const PsdkBattleCaptureAction({
     required PsdkBattleSlotRef user,
     required this.itemId,
+    required this.rateNumerator,
+    required this.rateDenominator,
   }) : super(kind: PsdkBattleActionKind.capture, user: user);
 
   final String itemId;
+  final int rateNumerator;
+  final int rateDenominator;
 }
 
 final class PsdkBattleShiftAction extends PsdkBattleAction {
@@ -150,6 +154,7 @@ final class PsdkBattleItemAction extends PsdkBattleAction {
     required this.target,
     this.targetPartyIndex,
     required this.effect,
+    this.consumeItem = true,
     this.highPriority = false,
   }) : super(
           kind: highPriority
@@ -162,6 +167,7 @@ final class PsdkBattleItemAction extends PsdkBattleAction {
   final PsdkBattleSlotRef target;
   final int? targetPartyIndex;
   final PsdkBattleItemActionEffect effect;
+  final bool consumeItem;
   final bool highPriority;
 }
 

@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/shop_editor_controller.dart';
+import '../items/item_capability_picker.dart';
 
 final class ShopCatalogEntryDraft {
   const ShopCatalogEntryDraft({
@@ -173,20 +174,19 @@ class _ShopStateCatalogEditorState extends State<ShopStateCatalogEditor> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  PokeMapDropdownField<String>(
-                    key: const Key('shop-item-picker'),
+                  ItemCapabilityPicker(
+                    fieldKey: const Key('shop-item-picker'),
                     label: 'Objet du catalogue',
+                    definitions: <ProjectItemDefinition>[
+                      for (final option in widget.itemOptions)
+                        if (option.definition != null) option.definition!,
+                    ],
+                    requirement: ItemCapabilityRequirement.any,
                     value: _selectedItemId ?? widget.itemOptions.first.id,
                     enabled: _editingItemId == null,
-                    items: [
-                      for (final option in widget.itemOptions)
-                        PokeMapDropdownItem(
-                          value: option.id,
-                          label: option.label,
-                        ),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _selectedItemId = value),
+                    onChanged: (value) => setState(
+                      () => _selectedItemId = value,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(

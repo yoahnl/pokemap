@@ -110,8 +110,10 @@ final class RuntimePostBattleTransaction {
     required this.pendingPartyMoveIds,
     required this.captureDestination,
     required this.finalState,
+    required ItemCatalogSnapshot? itemCatalog,
     required BattleProgressionResult? progression,
-  }) : _progression = progression;
+  })  : _itemCatalog = itemCatalog,
+        _progression = progression;
 
   final GameState originalState;
   final RuntimeActiveBattleContext runtimeContext;
@@ -126,6 +128,7 @@ final class RuntimePostBattleTransaction {
 
   /// Null until every exact decision has been resolved and rewards finalized.
   final GameState? finalState;
+  final ItemCatalogSnapshot? _itemCatalog;
   final BattleProgressionResult? _progression;
 
   bool get isReadyToCommit => finalState != null;
@@ -156,6 +159,7 @@ final class RuntimePostBattleDecisionCoordinator {
     required RuntimeMapBundle bundle,
     required RuntimeActiveBattleContext runtimeContext,
     required BattleOutcome outcome,
+    required ItemCatalogSnapshot itemCatalog,
     RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
   }) async {
     try {
@@ -173,6 +177,7 @@ final class RuntimePostBattleDecisionCoordinator {
             runtimeContext: runtimeContext,
             outcome: outcome,
             bundle: bundle,
+            itemCatalog: itemCatalog,
           ),
         );
       }
@@ -183,6 +188,10 @@ final class RuntimePostBattleDecisionCoordinator {
         runtimeContext: runtimeContext,
         outcome: outcome,
       );
+      _mutations.validateBattleRewardItems(
+        reward: resolution.progression.appliedReward,
+        itemCatalog: itemCatalog,
+      );
       final messages = _initialVictoryMessages(
         resolution: resolution,
       );
@@ -191,6 +200,7 @@ final class RuntimePostBattleDecisionCoordinator {
         runtimeContext: runtimeContext,
         outcome: outcome,
         bundle: bundle,
+        itemCatalog: itemCatalog,
         reward: resolution.reward,
         messages: messages,
         pendingMoveLearning: resolution.progression.pendingMoveLearning,
@@ -202,6 +212,15 @@ final class RuntimePostBattleDecisionCoordinator {
       );
       return RuntimePostBattleCoordinatorResult.success(
         _advanceOrFinalize(transaction),
+      );
+    } on BattleRewardApplicationException catch (error) {
+      return RuntimePostBattleCoordinatorResult.failure(
+        failure: RuntimePostBattleCoordinatorFailure(
+          code: RuntimePostBattleCoordinatorFailureCode.rewardResolution,
+          message: 'Récompense objet inconnue : ${error.itemId}.',
+          originalState: transactionBaseState,
+          cause: error,
+        ),
       );
     } on RuntimePostBattleResolutionException catch (error) {
       return RuntimePostBattleCoordinatorResult.failure(
@@ -251,6 +270,7 @@ final class RuntimePostBattleDecisionCoordinator {
         runtimeContext: transaction.runtimeContext,
         outcome: transaction.outcome,
         bundle: transaction.bundle,
+        itemCatalog: transaction._itemCatalog,
         reward: transaction.reward,
         messages: newMessages,
         pendingMoveLearning: nextProgression.pendingMoveLearning,
@@ -296,6 +316,7 @@ final class RuntimePostBattleDecisionCoordinator {
         runtimeContext: transaction.runtimeContext,
         outcome: transaction.outcome,
         bundle: transaction.bundle,
+        itemCatalog: transaction._itemCatalog,
         reward: transaction.reward,
         messages: newMessages,
         pendingMoveLearning: nextProgression.pendingMoveLearning,
@@ -372,6 +393,7 @@ final class RuntimePostBattleDecisionCoordinator {
     var finalState = _mutations.applyBattleRewards(
       progression.state,
       reward: progression.appliedReward,
+      itemCatalog: transaction._itemCatalog,
     );
     final rewardMessages = _rewardMessages(progression.appliedReward);
     final request = transaction.runtimeContext.request;
@@ -395,6 +417,7 @@ final class RuntimePostBattleDecisionCoordinator {
       runtimeContext: transaction.runtimeContext,
       outcome: transaction.outcome,
       bundle: transaction.bundle,
+      itemCatalog: transaction._itemCatalog,
       reward: transaction.reward,
       messages: List<RuntimePostBattleMessage>.unmodifiable(
         <RuntimePostBattleMessage>[
@@ -419,6 +442,7 @@ RuntimePostBattleTransaction _nonVictoryTransaction({
   required RuntimeActiveBattleContext runtimeContext,
   required BattleOutcome outcome,
   required RuntimeMapBundle bundle,
+  required ItemCatalogSnapshot itemCatalog,
 }) {
   final messages = <RuntimePostBattleMessage>[
     switch (outcome.type) {
@@ -461,6 +485,7 @@ RuntimePostBattleTransaction _nonVictoryTransaction({
     runtimeContext: runtimeContext,
     outcome: outcome,
     bundle: bundle,
+    itemCatalog: itemCatalog,
     reward: BattleReward(
       sourceKind: runtimeContext.request is TrainerBattleStartRequest
           ? BattleRewardSourceKind.trainer
@@ -613,6 +638,7 @@ RuntimePostBattleTransaction _copyWithMessages(
     runtimeContext: transaction.runtimeContext,
     outcome: transaction.outcome,
     bundle: transaction.bundle,
+    itemCatalog: transaction._itemCatalog,
     reward: transaction.reward,
     messages: List<RuntimePostBattleMessage>.unmodifiable(messages),
     pendingMoveLearning: transaction.pendingMoveLearning,

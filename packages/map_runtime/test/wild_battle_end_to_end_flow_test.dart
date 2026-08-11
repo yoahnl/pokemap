@@ -371,7 +371,7 @@ void main() {
         saveId: 'wild-flow-psdk-capture-save',
         bag: Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+            BagEntry(itemId: 'poke-ball', quantity: 2),
           ],
         ),
         party: PlayerParty(
@@ -473,7 +473,7 @@ void main() {
         saveId: 'wild-flow-psdk-potion-save',
         bag: Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         party: PlayerParty(
@@ -693,6 +693,8 @@ void main() {
         gameState: stateWithSeen,
         context: context,
         captureAllowed: setup.allowCapture,
+        itemId: canonicalPokeBallItemId,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         submitToEngine: () => createBattleSession(
           setup,
           rng: const BattleScriptedRng(<int>[1]),
@@ -721,7 +723,7 @@ void main() {
         updatedState.bag.entries,
         equals(
           const <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            BagEntry(itemId: 'poke-ball', quantity: 1),
           ],
         ),
       );
@@ -779,6 +781,9 @@ void main() {
       final overlay = BattleOverlayComponent(
         session: session,
         gameState: stateWithSeen,
+        itemCapabilityResolver: ItemCapabilityResolver(
+          ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+        ),
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
@@ -799,6 +804,8 @@ void main() {
         gameState: stateWithSeen,
         context: context,
         captureAllowed: setup.allowCapture,
+        itemId: canonicalPokeBallItemId,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         submitToEngine: () => session.applyChoice(pickedChoice!),
       );
       final outcome = attempt.engineResult.state.outcome!;
@@ -826,7 +833,7 @@ void main() {
         snapshot.bag.entries,
         equals(
           const <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            BagEntry(itemId: 'poke-ball', quantity: 1),
           ],
         ),
       );
@@ -928,6 +935,9 @@ void main() {
       final overlay = BattleOverlayComponent(
         session: createBattleSession(setup),
         gameState: fullPartyState,
+        itemCapabilityResolver: ItemCapabilityResolver(
+          ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+        ),
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
       );
@@ -978,7 +988,7 @@ void main() {
         saveId: 'wild-flow-potion-save',
         bag: Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            BagEntry(itemId: 'potion', quantity: 1),
           ],
         ),
         party: PlayerParty(
@@ -1030,15 +1040,15 @@ void main() {
       expect(
         currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.potion),
+          equals('potion'),
         ),
       );
       expect(currentTurn.bagHpHealItemEvents, hasLength(1));
       expect(
-        currentTurn.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.potion),
+        currentTurn.bagHpHealItemEvents.single.itemId,
+        equals('potion'),
       );
       expect(
         currentTurn.bagHpHealItemEvents.single.hpAfter,
@@ -1091,7 +1101,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'super-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -1145,15 +1154,15 @@ void main() {
       expect(
         currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.superPotion),
+          equals('super-potion'),
         ),
       );
       expect(currentTurn.bagHpHealItemEvents, hasLength(1));
       expect(
-        currentTurn.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.superPotion),
+        currentTurn.bagHpHealItemEvents.single.itemId,
+        equals('super-potion'),
       );
       expect(
         currentTurn.bagHpHealItemEvents.single.hpAfter,
@@ -1206,7 +1215,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'hyper-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -1260,15 +1268,15 @@ void main() {
       expect(
         currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.hyperPotion),
+          equals('hyper-potion'),
         ),
       );
       expect(currentTurn.bagHpHealItemEvents, hasLength(1));
       expect(
-        currentTurn.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.hyperPotion),
+        currentTurn.bagHpHealItemEvents.single.itemId,
+        equals('hyper-potion'),
       );
       expect(
         currentTurn.bagHpHealItemEvents.single.hpAfter,
@@ -1321,7 +1329,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'max-potion',
-              categoryId: 'medicine',
               quantity: 1,
             ),
           ],
@@ -1373,9 +1380,9 @@ void main() {
         currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>()
             .having(
-              (action) => action.itemKind,
+              (action) => action.itemId,
               'itemKind',
-              equals(BattleBagHpHealItemKind.maxPotion),
+              equals('max-potion'),
             )
             .having(
               (action) => action.effect,
@@ -1385,8 +1392,8 @@ void main() {
       );
       expect(currentTurn.bagHpHealItemEvents, hasLength(1));
       expect(
-        currentTurn.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.maxPotion),
+        currentTurn.bagHpHealItemEvents.single.itemId,
+        equals('max-potion'),
       );
       expect(
         currentTurn.bagHpHealItemEvents.single.hpAfter,
@@ -1561,7 +1568,7 @@ Future<void> _acknowledgePostBattleAndWaitForOverworld(
 GameState _playerState({
   Bag bag = const Bag(
     entries: <BagEntry>[
-      BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+      BagEntry(itemId: 'poke-ball', quantity: 2),
     ],
   ),
 }) {
@@ -1673,6 +1680,7 @@ Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
       mediaDir: 'data/pokemon/media',
       catalogFiles: <String, String>{
         'moves': 'data/pokemon/catalogs/moves.json',
+        'items': 'data/pokemon/catalogs/items.json',
       },
     ),
   );
@@ -1856,6 +1864,11 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         ),
       ],
     },
+  );
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'data/pokemon/catalogs/items.json',
+    mvpItemCatalog.toJson(),
   );
 }
 

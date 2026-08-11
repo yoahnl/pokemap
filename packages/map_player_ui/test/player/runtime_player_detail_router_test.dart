@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -106,6 +107,7 @@ void main() {
           bagAction: RuntimePlayerBagItemActionSnapshot(
             itemTargetId: 'potion',
             targetKind: RuntimePlayerBagUseTargetKind.partyMember,
+            usability: ItemUsabilityState.usable,
             isEnabled: true,
           ),
         ),
@@ -116,6 +118,7 @@ void main() {
           bagAction: RuntimePlayerBagItemActionSnapshot(
             itemTargetId: 'harbor-pass',
             targetKind: RuntimePlayerBagUseTargetKind.partyMember,
+            usability: ItemUsabilityState.passive,
             isEnabled: false,
             unavailableReason:
                 'Cet objet clé s’utilise automatiquement et n’est pas consommé.',
@@ -187,6 +190,7 @@ void main() {
           bagAction: RuntimePlayerBagItemActionSnapshot(
             itemTargetId: 'tm-protect',
             targetKind: RuntimePlayerBagUseTargetKind.partyMoveReplacement,
+            usability: ItemUsabilityState.usable,
             isEnabled: true,
           ),
         ),

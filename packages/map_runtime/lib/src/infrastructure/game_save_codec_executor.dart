@@ -90,7 +90,7 @@ Future<T> _runGameSaveCodecWorker<T>(T Function() operation) {
 
 GameState _decodeAndNormalizeGameState(List<int> bytes) {
   final json = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-  return normalizeLoadedGameState(GameState.fromJson(json));
+  return gameStateFromStrictSaveJson(json);
 }
 
 /// Estimation bornée par [budget] : la décision d'offload est uniquement

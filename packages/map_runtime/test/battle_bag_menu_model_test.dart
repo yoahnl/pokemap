@@ -1,7 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/presentation/flame/battle_bag_menu_model.dart';
+
+final _resolver = ItemCapabilityResolver(
+  ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+);
 
 BattleStatsSnapshot _stats() {
   return const BattleStatsSnapshot(
@@ -120,12 +125,10 @@ GameState _gameState({
 
 BagEntry _entry({
   required String itemId,
-  required String categoryId,
   required int quantity,
 }) {
   return BagEntry(
     itemId: itemId,
-    categoryId: categoryId,
     quantity: quantity,
   );
 }
@@ -150,6 +153,7 @@ void main() {
       final model = buildBattleBagMenuModel(
         gameState: _gameState(),
         session: session,
+        resolver: _resolver,
       );
 
       expect(model.mode, equals(BattleBagMenuMode.empty));
@@ -158,9 +162,7 @@ void main() {
       expect(model.hasSelectableEntries, isFalse);
     });
 
-    test(
-        'wild battle with poke-ball and allowed capture exposes a selectable capture entry',
-        () {
+    test('wild battle projects the selected capture item metadata', () {
       final session = _session(
         player: _combatant(
           speciesId: 'sproutle',
@@ -174,35 +176,51 @@ void main() {
         ),
         allowCapture: true,
       );
+      final resolver = ItemCapabilityResolver(
+        ItemCatalogSnapshot.fromCatalog(
+          const ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: <ProjectItemDefinition>[
+              ProjectItemDefinition(
+                id: 'aurora-orb',
+                displayName: 'Aurora Orb',
+                pocketId: 'relics',
+                capture: ProjectCaptureItemDefinition(
+                  rateNumerator: 5,
+                  rateDenominator: 2,
+                  allowedEncounterKinds: <EncounterKind>{EncounterKind.walk},
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 
       final model = buildBattleBagMenuModel(
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+              _entry(itemId: 'aurora-orb', quantity: 3),
             ],
           ),
         ),
         session: session,
+        resolver: resolver,
       );
 
       final entry = model.entries.single;
       expect(model.mode, equals(BattleBagMenuMode.available));
       expect(model.hasEntries, isTrue);
       expect(model.hasSelectableEntries, isTrue);
-      expect(entry.itemId, equals('poke-ball'));
+      expect(entry.itemId, equals('aurora-orb'));
       expect(entry.quantity, equals(3));
       expect(entry.kind, equals(BattleBagItemKind.captureBall));
       expect(entry.isSelectable, isTrue);
       expect(entry.disabledReason, isNull);
-      expect(
-        entry.action,
-        isA<BattleBagMenuActionCapture>().having(
-          (action) => action.playerChoice,
-          'playerChoice',
-          isA<PlayerBattleChoiceCapture>(),
-        ),
-      );
+      final action = entry.action! as BattleBagMenuActionCapture;
+      expect(action.playerChoice.itemId, 'aurora-orb');
+      expect(action.playerChoice.rateNumerator, 5);
+      expect(action.playerChoice.rateDenominator, 2);
     });
 
     test('trainer battle keeps poke-ball visible but disabled', () {
@@ -224,11 +242,12 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+              _entry(itemId: 'poke-ball', quantity: 2),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       final entry = model.entries.single;
@@ -262,7 +281,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+              _entry(itemId: 'poke-ball', quantity: 1),
             ],
           ),
           partyMembers: <PlayerPokemon>[
@@ -275,6 +294,7 @@ void main() {
           ],
         ),
         session: session,
+        resolver: _resolver,
       );
 
       final entry = model.entries.single;
@@ -313,11 +333,12 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+              _entry(itemId: 'poke-ball', quantity: 1),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       expect(model.mode, equals(BattleBagMenuMode.unavailable));
@@ -357,11 +378,12 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+              _entry(itemId: 'poke-ball', quantity: 2),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       expect(model.hasSelectableEntries, isFalse);
@@ -393,11 +415,12 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'potion', categoryId: 'medicine', quantity: 4),
+              _entry(itemId: 'potion', quantity: 4),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       final entry = model.entries.single;
@@ -409,11 +432,6 @@ void main() {
         entry.action,
         isA<BattleBagMenuActionMedicineTarget>()
             .having((action) => action.itemId, 'itemId', equals('potion'))
-            .having(
-              (action) => action.categoryId,
-              'categoryId',
-              equals('medicine'),
-            )
             .having((action) => action.quantity, 'quantity', equals(4)),
       );
     });
@@ -441,13 +459,13 @@ void main() {
             entries: <BagEntry>[
               _entry(
                 itemId: 'super-potion',
-                categoryId: 'medicine',
                 quantity: 2,
               ),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       final entry = model.entries.single;
@@ -462,11 +480,6 @@ void main() {
               (action) => action.itemId,
               'itemId',
               equals('super-potion'),
-            )
-            .having(
-              (action) => action.categoryId,
-              'categoryId',
-              equals('medicine'),
             )
             .having((action) => action.quantity, 'quantity', equals(2)),
       );
@@ -495,13 +508,13 @@ void main() {
             entries: <BagEntry>[
               _entry(
                 itemId: 'hyper-potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       final entry = model.entries.single;
@@ -516,11 +529,6 @@ void main() {
               (action) => action.itemId,
               'itemId',
               equals('hyper-potion'),
-            )
-            .having(
-              (action) => action.categoryId,
-              'categoryId',
-              equals('medicine'),
             )
             .having((action) => action.quantity, 'quantity', equals(1)),
       );
@@ -549,13 +557,13 @@ void main() {
             entries: <BagEntry>[
               _entry(
                 itemId: 'max-potion',
-                categoryId: 'medicine',
                 quantity: 3,
               ),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       final entry = model.entries.single;
@@ -570,11 +578,6 @@ void main() {
               (action) => action.itemId,
               'itemId',
               equals('max-potion'),
-            )
-            .having(
-              (action) => action.categoryId,
-              'categoryId',
-              equals('medicine'),
             )
             .having((action) => action.quantity, 'quantity', equals(3)),
       );
@@ -599,23 +602,22 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
-              _entry(itemId: 'poke-ball', categoryId: 'items', quantity: 4),
+              _entry(itemId: 'potion', quantity: 2),
+              _entry(itemId: 'poke-ball', quantity: 4),
               _entry(
                 itemId: 'super-potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
               _entry(
                 itemId: 'max-potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
-              _entry(itemId: 'x-attack', categoryId: 'items', quantity: 1),
+              _entry(itemId: 'x-attack', quantity: 1),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       expect(
@@ -659,11 +661,12 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'antidote', categoryId: 'medicine', quantity: 2),
+              _entry(itemId: 'antidote', quantity: 2),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       final entry = model.entries.single;
@@ -674,7 +677,6 @@ void main() {
       expect(entry.action, isA<BattleBagMenuActionMedicineTarget>());
       final action = entry.action! as BattleBagMenuActionMedicineTarget;
       expect(action.itemId, 'antidote');
-      expect(action.categoryId, 'medicine');
       expect(action.quantity, 2);
     });
 
@@ -704,11 +706,12 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+              _entry(itemId: 'potion', quantity: 1),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       final entry = model.entries.single;
@@ -721,7 +724,8 @@ void main() {
       expect(entry.action, isNull);
     });
 
-    test('unknown items stay visible but unsupported', () {
+    test('unknown items stay visible with an invalid definition diagnostic',
+        () {
       final session = _session(
         player: _combatant(
           speciesId: 'sproutle',
@@ -739,19 +743,21 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'mystery-box', categoryId: 'quest', quantity: 1),
+              _entry(itemId: 'mystery-box', quantity: 1),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       final entry = model.entries.single;
       expect(entry.kind, equals(BattleBagItemKind.unsupported));
+      expect(entry.usability, ItemUsabilityState.invalidDefinition);
       expect(entry.isSelectable, isFalse);
       expect(
         entry.disabledReason,
-        equals(BattleBagMenuDisabledReason.unsupportedItem),
+        equals(BattleBagMenuDisabledReason.invalidDefinition),
       );
       expect(entry.action, isNull);
     });
@@ -774,14 +780,15 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
-              _entry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
-              _entry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
-              _entry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+              _entry(itemId: 'potion', quantity: 1),
+              _entry(itemId: 'potion', quantity: 3),
+              _entry(itemId: 'poke-ball', quantity: 2),
+              _entry(itemId: 'poke-ball', quantity: 1),
             ],
           ),
         ),
         session: session,
+        resolver: _resolver,
       );
 
       expect(model.entries, hasLength(2));
@@ -812,7 +819,7 @@ void main() {
         gameState: _gameState(
           bag: Bag(
             entries: <BagEntry>[
-              _entry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+              _entry(itemId: 'poke-ball', quantity: 2),
             ],
           ),
           partyMembers: <PlayerPokemon>[
@@ -821,6 +828,7 @@ void main() {
           ],
         ),
         session: session,
+        resolver: _resolver,
       );
 
       final entry = model.entries.single;

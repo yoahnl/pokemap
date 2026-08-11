@@ -5,6 +5,7 @@ import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/runtime_move_catalog_loader.dart';
 import '../flutter/battle_command_overlay_snapshot.dart';
@@ -97,7 +98,7 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
       case BattleTurnBagHpHealItemEvent(:final event):
         final actor = _overlayCombatantLabelForSide(event.side);
         lines.add(
-          '$actor utilise ${event.itemKind.label} sur ${event.targetSpeciesId}',
+          '$actor utilise ${event.displayName} sur ${event.targetSpeciesId}',
         );
         lines.add('${event.targetSpeciesId} récupère ${event.healedAmount} PV');
       case BattleTurnCaptureAttemptEvent(:final event):
@@ -235,13 +236,7 @@ String buildBattleMedicineTargetPromptForOverlay(
   if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
     return feedbackMessage;
   }
-  final supportedItemLabel = _overlaySupportedMedicineLabel(
-    medicineTargetMenuModel.itemId,
-  );
-  if (supportedItemLabel != null) {
-    return 'Choisis une cible pour $supportedItemLabel.';
-  }
-  return 'Choisis un Pokémon.';
+  return 'Choisis une cible pour ${medicineTargetMenuModel.displayName}.';
 }
 
 List<String> buildBattleMedicineTargetNarrationLinesForOverlay(
@@ -380,16 +375,6 @@ String _overlayCombatantLabelForSide(BattleSideId side) {
   return side == BattleSideId.player ? 'Joueur' : 'Ennemi';
 }
 
-String? _overlaySupportedMedicineLabel(String itemId) {
-  return switch (itemId) {
-    'potion' => 'Potion',
-    'super-potion' => 'Super Potion',
-    'hyper-potion' => 'Hyper Potion',
-    'max-potion' => 'Max Potion',
-    _ => null,
-  };
-}
-
 String _overlayWeatherLabel(BattleWeatherId weather) {
   return switch (weather) {
     BattleWeatherId.rain => 'la pluie',
@@ -436,6 +421,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.onBagHpHealItemUseRequested,
     this.onCommandOverlaySnapshotChanged,
     GameState gameState = const GameState(saveId: 'battle-overlay'),
+    ItemCapabilityResolver? itemCapabilityResolver,
     this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
     this.spriteResolver,
     this.visualAssetCache,
@@ -450,6 +436,8 @@ class BattleOverlayComponent extends PositionComponent {
     bool allowMedicineReserveTargets = true,
   })  : _session = session,
         _gameState = gameState,
+        _itemCapabilityResolver = itemCapabilityResolver ??
+            ItemCapabilityResolver(ItemCatalogSnapshot.empty()),
         _moveCatalog = moveCatalog ??
             RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
         _fxBundleCache = fxBundleCache ?? BattleFxBundleCache(),
@@ -467,6 +455,7 @@ class BattleOverlayComponent extends PositionComponent {
 
   BattleSession _session;
   GameState _gameState;
+  final ItemCapabilityResolver _itemCapabilityResolver;
 
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
   final bool Function(
@@ -1652,7 +1641,7 @@ class BattleOverlayComponent extends PositionComponent {
                 (entry) => BattleCommandOverlayEntry(
                   index: entry.key,
                   kind: BattleCommandOverlayEntryKind.bag,
-                  primaryLabel: _humanizeBattleBagItemId(entry.value.itemId),
+                  primaryLabel: entry.value.displayName,
                   secondaryLabel: _overlayBagEntryTypeLabel(entry.value),
                   tertiaryLabel: null,
                   trailingLabel: 'x${entry.value.quantity}',
@@ -1882,8 +1871,7 @@ class BattleOverlayComponent extends PositionComponent {
       return false;
     }
     final selectedMedicineAction = _selectedMedicineAction;
-    if (selectedMedicineAction == null ||
-        _overlaySupportedMedicineLabel(selectedMedicineAction.itemId) == null) {
+    if (selectedMedicineAction == null) {
       return false;
     }
 
@@ -1969,12 +1957,20 @@ class BattleOverlayComponent extends PositionComponent {
     return buildBattleBagMenuModel(
       gameState: _gameState,
       session: _session,
+      resolver: _itemCapabilityResolver,
     );
   }
 
   BattleMedicineTargetMenuModel? _currentMedicineTargetMenuModel() {
     final selectedMedicineAction = _selectedMedicineAction;
     if (selectedMedicineAction == null) {
+      return null;
+    }
+    final capability = _itemCapabilityResolver.resolveUse(
+      itemId: selectedMedicineAction.itemId,
+      context: ProjectItemUseContext.battle,
+    );
+    if (!capability.isAvailable) {
       return null;
     }
     // Le ciblage medicine reste borné à la vérité battle courante :
@@ -1984,7 +1980,8 @@ class BattleOverlayComponent extends PositionComponent {
     return buildBattleMedicineTargetMenuModel(
       session: _session,
       itemId: selectedMedicineAction.itemId,
-      categoryId: selectedMedicineAction.categoryId,
+      displayName: selectedMedicineAction.displayName,
+      use: capability.use!,
       isTargetAllowed: (combatant) =>
           _allowMedicineReserveTargets ||
           combatant.lineupIndex == _session.state.player.lineupIndex,
@@ -2951,10 +2948,16 @@ BattleCommandOverlayEntryTone _overlayEntryToneForBagEntry(
 }
 
 String _overlayBagEntryTypeLabel(BattleBagMenuEntry entry) {
-  return switch (entry.kind) {
-    BattleBagItemKind.captureBall => 'Capture',
-    BattleBagItemKind.medicine => 'Medicine',
-    BattleBagItemKind.unsupported => 'Unsupported',
+  return switch (entry.usability) {
+    ItemUsabilityState.passive => 'Passive',
+    ItemUsabilityState.unavailableInContext => 'Unavailable here',
+    ItemUsabilityState.invalidDefinition => 'Invalid definition',
+    ItemUsabilityState.unsupportedCapability => 'Unsupported capability',
+    ItemUsabilityState.usable => switch (entry.kind) {
+        BattleBagItemKind.captureBall => 'Capture',
+        BattleBagItemKind.medicine => 'Medicine',
+        BattleBagItemKind.unsupported => 'Unsupported',
+      },
   };
 }
 
@@ -2970,6 +2973,11 @@ String _overlayBagEntryStatusLabel(BattleBagMenuEntry entry) {
     BattleBagMenuDisabledReason.medicineNotImplemented => 'Not implemented',
     BattleBagMenuDisabledReason.unsupportedMedicine => 'Unsupported',
     BattleBagMenuDisabledReason.unsupportedItem => 'Unsupported',
+    BattleBagMenuDisabledReason.passive => 'Passive',
+    BattleBagMenuDisabledReason.unavailableInContext => 'Unavailable here',
+    BattleBagMenuDisabledReason.invalidDefinition => 'Invalid definition',
+    BattleBagMenuDisabledReason.unsupportedCapability =>
+      'Unsupported capability',
     null => 'Unavailable',
   };
 }
@@ -2998,19 +3006,4 @@ String _overlayMedicineTargetStatusLabel(BattleMedicineTargetEntry entry) {
     return 'OK';
   }
   return 'Unavailable';
-}
-
-String _humanizeBattleBagItemId(String itemId) {
-  final trimmed = itemId.trim();
-  if (trimmed.isEmpty) {
-    return 'Item';
-  }
-  return trimmed
-      .split('-')
-      .where((segment) => segment.isNotEmpty)
-      .map(
-        (segment) =>
-            '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}',
-      )
-      .join(' ');
 }

@@ -24,6 +24,7 @@ void main() {
         bundle: _bundle(),
         runtimeContext: _context(_trainerRequest()),
         outcome: outcome,
+        itemCatalog: _itemCatalog(),
       );
 
       expect(started.isSuccess, isTrue);
@@ -143,6 +144,7 @@ void main() {
         bundle: _bundle(),
         runtimeContext: _context(_trainerRequest()),
         outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
       ))
           .transaction!;
       final pendingMove = transaction.pendingMoveLearning!;
@@ -197,6 +199,7 @@ void main() {
         bundle: _bundle(),
         runtimeContext: _context(_trainerRequest()),
         outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
       );
 
       final transaction = started.transaction!;
@@ -240,6 +243,7 @@ void main() {
         bundle: _bundle(),
         runtimeContext: _context(_trainerRequest()),
         outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
       );
 
       expect(started.isSuccess, isFalse);
@@ -267,6 +271,7 @@ void main() {
         bundle: _bundle(),
         runtimeContext: _context(_trainerRequest()),
         outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
       ))
           .transaction!;
 
@@ -310,6 +315,7 @@ void main() {
           bundle: _bundle(),
           runtimeContext: _context(_wildRequest()),
           outcome: _outcome(type: type),
+          itemCatalog: _itemCatalog(),
         );
 
         expect(started.isSuccess, isTrue);
@@ -342,6 +348,7 @@ void main() {
         runtimeContext: _captureContext(),
         outcome: partyCapture.engineResult.state.outcome!,
         captureAttemptReceipt: partyCapture.receipt,
+        itemCatalog: _itemCatalog(),
       );
       expect(partyResult.isSuccess, isTrue);
       expect(partyResult.transaction!.captureDestination!.destination,
@@ -355,6 +362,7 @@ void main() {
         runtimeContext: _captureContext(),
         outcome: partyCapture.engineResult.state.outcome!,
         captureAttemptReceipt: partyCapture.receipt,
+        itemCatalog: _itemCatalog(),
       );
       expect(previewReplay.isSuccess, isTrue);
       expect(partyCapture.updatedGameState.party.members, hasLength(1));
@@ -371,6 +379,7 @@ void main() {
         runtimeContext: _captureContext(),
         outcome: partyCapture.engineResult.state.outcome!,
         captureAttemptReceipt: partyCapture.receipt,
+        itemCatalog: _itemCatalog(),
       );
       expect(committedReplay.isSuccess, isFalse);
       expect(
@@ -387,6 +396,7 @@ void main() {
         runtimeContext: _captureContext(),
         outcome: storageCapture.engineResult.state.outcome!,
         captureAttemptReceipt: storageCapture.receipt,
+        itemCatalog: _itemCatalog(),
       );
       expect(storageResult.transaction!.captureDestination!.destination,
           CaptureDestinationKind.storage);
@@ -407,6 +417,7 @@ void main() {
         bundle: _bundle(),
         runtimeContext: _context(_trainerRequest()),
         outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
       ))
           .transaction!;
 
@@ -420,6 +431,52 @@ void main() {
               <String>['story:iris_won', 'trainer_defeated:trainer_iris']));
       expect(
           restored.party.members.single.knownMoveIds, contains('quick_attack'));
+    });
+
+    test('rejects an unknown item reward before creating a transaction',
+        () async {
+      final base = _state();
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: ({
+          required bundle,
+          required postWriteBackState,
+          required runtimeContext,
+          required outcome,
+        }) =>
+            _multiLevelAutomaticMoveResolution(
+          bundle: bundle,
+          postWriteBackState: postWriteBackState,
+          runtimeContext: runtimeContext,
+          outcome: outcome,
+          rewardItemId: 'missing_reward',
+        ),
+      );
+
+      final result = await coordinator.begin(
+        transactionBaseState: base,
+        bundle: _bundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      );
+
+      expect(result.isSuccess, isFalse);
+      expect(result.transaction, isNull);
+      expect(
+        result.failure!.code,
+        RuntimePostBattleCoordinatorFailureCode.rewardResolution,
+      );
+      expect(result.failure!.originalState, same(base));
+      expect(
+        result.failure!.cause,
+        isA<BattleRewardApplicationException>()
+            .having(
+              (error) => error.failure,
+              'failure',
+              BattleRewardApplicationFailure.unknownItem,
+            )
+            .having((error) => error.itemId, 'itemId', 'missing_reward'),
+      );
     });
   });
 }
@@ -472,8 +529,9 @@ Future<RuntimeBattleRewardResolution> _multiLevelAutomaticMoveResolution({
   required GameState postWriteBackState,
   required RuntimeActiveBattleContext runtimeContext,
   required BattleOutcome outcome,
+  String rewardItemId = 'potion',
 }) async {
-  final reward = _trainerReward();
+  final reward = _trainerReward(itemId: rewardItemId);
   final context = BattleProgressionContext(
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
@@ -506,17 +564,30 @@ Future<RuntimeBattleRewardResolution> _multiLevelAutomaticMoveResolution({
   );
 }
 
-BattleReward _trainerReward() {
+BattleReward _trainerReward({String itemId = 'potion'}) {
   return BattleReward(
     sourceKind: BattleRewardSourceKind.trainer,
     trainerId: 'trainer_iris',
     money: 480,
-    itemGrants: const <BattleRewardItemGrant>[
-      BattleRewardItemGrant(itemId: 'potion', quantity: 2),
+    itemGrants: <BattleRewardItemGrant>[
+      BattleRewardItemGrant(itemId: itemId, quantity: 2),
     ],
     flagIds: const <String>['story:iris_won'],
   );
 }
+
+ItemCatalogSnapshot _itemCatalog() => ItemCatalogSnapshot.fromCatalog(
+      const ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'potion',
+            displayName: 'Potion',
+            pocketId: 'medicine',
+          ),
+        ],
+      ),
+    );
 
 BattleProgressionPartySlotMetadata _metadata() {
   return const BattleProgressionPartySlotMetadata(
@@ -693,7 +764,7 @@ GameState _captureState({required int partySize}) {
     saveId: 'capture-state',
     bag: const Bag(
       entries: <BagEntry>[
-        BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+        BagEntry(itemId: 'poke-ball', quantity: 2),
       ],
     ),
     party: PlayerParty(
@@ -719,6 +790,8 @@ RuntimeBattleCaptureAttemptSubmission<BattleSession>
     gameState: state,
     context: _captureContext(),
     captureAllowed: true,
+    itemId: canonicalPokeBallItemId,
+    itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     submitToEngine: () => createBattleSession(
       const BattleSetup(
         playerPokemon: BattleCombatantData(

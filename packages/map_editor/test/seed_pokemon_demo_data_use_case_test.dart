@@ -91,6 +91,13 @@ void main() {
           'data/pokemon/catalogs/abilities.json',
         ),
       );
+      final itemsCatalog = decodeProjectItemCatalog(
+        await _readJsonMap(
+          workspace.resolveProjectRelativePath(
+            'data/pokemon/catalogs/items.json',
+          ),
+        ),
+      );
       final typesCatalog = await _readJsonMap(
         workspace
             .resolveProjectRelativePath('data/pokemon/catalogs/types.json'),
@@ -149,6 +156,17 @@ void main() {
             .map((e) => e['id'])
             .toSet(),
         containsAll(<String>{'overgrow', 'chlorophyll'}),
+      );
+      expect(
+        itemsCatalog.entries.map((item) => item.id),
+        containsAll(<String>{
+          'potion',
+          'antidote',
+          'revive',
+          'ether',
+          'poke-ball',
+          'key-item',
+        }),
       );
       expect(
         (typesCatalog['entries'] as List<dynamic>).map((e) => e['id']).toSet(),

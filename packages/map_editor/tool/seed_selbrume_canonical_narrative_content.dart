@@ -3333,7 +3333,7 @@ void _seedNewGameConfig(Map<String, dynamic> project) {
     playerName: 'Joueur',
     startingMoney: 500,
     initialBag: <BagEntry>[
-      BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+      BagEntry(itemId: 'potion', quantity: 3),
     ],
     initialParty: <PlayerPokemon>[],
     initialFacts: <String, bool>{},

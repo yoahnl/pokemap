@@ -2,6 +2,19 @@ import '../models/enums.dart';
 import '../models/game_state.dart';
 import '../models/save_data.dart';
 
+Map<String, dynamic> strictGameStateSaveJson(GameState state) {
+  final normalized = normalizeLoadedGameState(state);
+  return <String, dynamic>{
+    'itemSystemSchemaVersion': currentItemSystemSaveSchemaVersion,
+    ...normalized.toJson(),
+  };
+}
+
+GameState gameStateFromStrictSaveJson(Map<String, dynamic> json) {
+  validateItemSystemSaveSchema(json);
+  return normalizeLoadedGameState(GameState.fromJson(json));
+}
+
 GameState gameStateFromSaveData(SaveData saveData) {
   final normalizedSaveData = saveData.normalized();
   final normalizedProgression = _normalizePokedexProgression(
@@ -62,7 +75,6 @@ SaveData saveDataFromGameState(GameState gameState) {
     properties: gameState.metadata,
   ).normalized();
 }
-
 GameState normalizeLoadedGameState(GameState state) {
   final normalizedProgression = _normalizePokedexProgression(
     progression: state.progression,

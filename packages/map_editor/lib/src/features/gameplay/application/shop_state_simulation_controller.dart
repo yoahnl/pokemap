@@ -115,7 +115,7 @@ final class ShopStateSimulationController {
       for (final entry in _draftGameState.bag.entries)
         if (entry.itemId != itemId) entry,
       if (quantity > 0)
-        BagEntry(itemId: itemId, categoryId: 'items', quantity: quantity),
+        BagEntry(itemId: itemId, quantity: quantity),
     ];
     _draftGameState = _draftGameState.copyWith(
       bag: Bag(entries: entries).normalized(),

@@ -256,16 +256,12 @@ void main() {
         '''
 {
   "schemaVersion": 1,
-  "kind": "pokemon_catalog",
-  "catalog": "items",
-  "meta": {
-    "description": "Local item catalog."
-  },
   "entries": [
     {
       "id": "oran_berry",
-      "name": "Oran Berry",
-      "aliases": ["oran"]
+      "displayName": "Oran Berry",
+      "aliases": ["oran"],
+      "pocketId": "berries"
     }
   ]
 }
@@ -276,9 +272,7 @@ void main() {
       final movesLoader = LoadPokemonMovesCatalogUseCase(
         readRepository: repository,
       );
-      final itemsLoader = LoadPokemonItemsCatalogUseCase(
-        readRepository: repository,
-      );
+      const itemsLoader = LoadPokemonItemsCatalogUseCase();
 
       final detail = await detailLoader.execute(workspace, 'bulbasaur');
       final movesCatalog = await movesLoader.execute(workspace);

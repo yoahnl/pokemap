@@ -46,6 +46,8 @@ final class EvaluationCommandDispatcher {
     'service.pc.swap',
     'party.swap',
     'party.setLead',
+    'bag.give',
+    'bag.consume',
     'bag.use',
     'player.pause',
     'player.resume',
@@ -165,6 +167,14 @@ final class EvaluationCommandDispatcher {
       'party.setLead' => _roster(driver, operation).setLeadPokemon(
           values.requireNonNegativeInt('partyIndex'),
         ),
+      'bag.give' => _bag(driver, operation).giveBagItem(
+          values.requireString('itemId'),
+          values.requirePositiveInt('quantity'),
+        ),
+      'bag.consume' => _bag(driver, operation).consumeBagItem(
+          values.requireString('itemId'),
+          values.requirePositiveInt('quantity'),
+        ),
       'bag.use' => _roster(driver, operation).useBagItem(
           values.requireString('itemId'),
           values.requireNonNegativeInt('partyIndex'),
@@ -224,6 +234,18 @@ final class EvaluationCommandDispatcher {
     }
     throw EvaluationScenarioExecutionError(
       'Operation "$operation" requires roster runtime automation.',
+    );
+  }
+
+  EvaluationBagMutationAutomation _bag(
+    EvaluationDriver driver,
+    String operation,
+  ) {
+    if (driver is EvaluationBagMutationAutomation) {
+      return driver as EvaluationBagMutationAutomation;
+    }
+    throw EvaluationScenarioExecutionError(
+      'Operation "$operation" requires Bag mutation automation.',
     );
   }
 

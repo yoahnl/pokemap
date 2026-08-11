@@ -179,13 +179,25 @@ sealed class BattleTimelineEvent {
       );
     }
     if (event is PsdkBattleItemEvent) {
-      return BattleItemTimelineEvent.consumed(
-        turn: event.turn,
-        user: _fromPsdkSlot(event.user),
-        target: event.target == null ? null : _fromPsdkSlot(event.target!),
-        partyIndex: event.partyIndex,
-        itemId: event.itemId,
-      );
+      return switch (event.action) {
+        'consumed' => BattleItemTimelineEvent.consumed(
+            turn: event.turn,
+            user: _fromPsdkSlot(event.user),
+            target: event.target == null ? null : _fromPsdkSlot(event.target!),
+            partyIndex: event.partyIndex,
+            itemId: event.itemId,
+          ),
+        'used' => BattleItemTimelineEvent.used(
+            turn: event.turn,
+            user: _fromPsdkSlot(event.user),
+            target: event.target == null ? null : _fromPsdkSlot(event.target!),
+            partyIndex: event.partyIndex,
+            itemId: event.itemId,
+          ),
+        _ => throw UnsupportedError(
+            'Unsupported PSDK battle item action ${event.action}.',
+          ),
+      };
     }
     if (event is PsdkBattleEndedEvent) {
       return BattleEndedTimelineEvent(outcome: event.outcome);
@@ -1008,16 +1020,23 @@ final class BattleItemTimelineEvent extends BattleTimelineEvent {
 
   @override
   PsdkBattleEvent? toPsdkEvent() {
-    if (kind != 'item_consumed') {
-      return null;
-    }
-    return PsdkBattleItemEvent.consumed(
-      turn: turn,
-      user: _toPsdkSlot(user),
-      target: target == null ? null : _toPsdkSlot(target!),
-      partyIndex: partyIndex,
-      itemId: itemId,
-    );
+    return switch (kind) {
+      'item_consumed' => PsdkBattleItemEvent.consumed(
+          turn: turn,
+          user: _toPsdkSlot(user),
+          target: target == null ? null : _toPsdkSlot(target!),
+          partyIndex: partyIndex,
+          itemId: itemId,
+        ),
+      'item_used' => PsdkBattleItemEvent.used(
+          turn: turn,
+          user: _toPsdkSlot(user),
+          target: target == null ? null : _toPsdkSlot(target!),
+          partyIndex: partyIndex,
+          itemId: itemId,
+        ),
+      _ => null,
+    };
   }
 }
 

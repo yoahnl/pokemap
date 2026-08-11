@@ -4,6 +4,18 @@ import 'package:test/test.dart';
 
 void main() {
   const service = BattleProgressionService();
+  final itemCatalog = ItemCatalogSnapshot.fromCatalog(
+    const ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: <ProjectItemDefinition>[
+        ProjectItemDefinition(
+          id: 'potion',
+          displayName: 'Potion',
+          pocketId: 'medicine',
+        ),
+      ],
+    ),
+  );
 
   group('BattleProgressionService', () {
     test('awards canonical wild XP only to an actual participant', () {
@@ -60,6 +72,7 @@ void main() {
           ],
         ),
         reward: reward,
+        itemCatalog: itemCatalog,
       );
 
       expect(

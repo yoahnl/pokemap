@@ -147,6 +147,31 @@ void main() {
         expect(lastGameState.playerPosition, const GridPos(x: 2, y: 3));
       });
 
+      test('giveItem rejects a non-positive quantity without committing', () {
+        var updateCount = 0;
+        final context = ScriptExecutionContext(
+          gameState: lastGameState,
+          onGameStateUpdated: (state) {
+            updateCount += 1;
+            lastGameState = state;
+          },
+        );
+        final executor = ScriptCommandExecutor(context: context);
+        const command = ScriptCommand(
+          type: ScriptCommandType.giveItem,
+          params: <String, String>{
+            'itemId': 'custom-passive-thread',
+            'quantity': '0',
+          },
+        );
+
+        final result = executor.execute(command, context.gameState);
+
+        expect(result, isA<ScriptCommandResultError>());
+        expect(updateCount, 0);
+        expect(lastGameState.bag.entries, isEmpty);
+      });
+
       test('unlockFieldAbility command updates progression', () {
         final context = createTestContext();
         final executor = ScriptCommandExecutor(context: context);

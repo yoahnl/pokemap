@@ -7,9 +7,122 @@ import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_appl
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 
+final _itemCatalog = ItemCatalogSnapshot.fromCatalog(
+  ProjectItemCatalog(
+    schemaVersion: 1,
+    entries: <ProjectItemDefinition>[
+      ...mvpItemCatalog.entries,
+      const ProjectItemDefinition(
+        id: 'battle-tonic',
+        displayName: 'Battle Tonic',
+        pocketId: 'expedition-supplies',
+        uses: <ProjectItemUseDefinition>[
+          ProjectItemUseDefinition(
+            contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+            target: ProjectItemTargetKind.partyMember,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.healHp(
+              mode: ProjectItemAmountMode.flat,
+              amount: 13,
+            ),
+          ),
+        ],
+      ),
+      const ProjectItemDefinition(
+        id: 'toxin-sponge',
+        displayName: 'Toxin Sponge',
+        pocketId: 'field-tools',
+        uses: <ProjectItemUseDefinition>[
+          ProjectItemUseDefinition(
+            contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+            target: ProjectItemTargetKind.partyMember,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.cureStatus(
+              mode: ProjectItemStatusCureMode.listed,
+              statusIds: <String>{'poison'},
+            ),
+          ),
+        ],
+      ),
+      const ProjectItemDefinition(
+        id: 'dawn-feather',
+        displayName: 'Dawn Feather',
+        pocketId: 'relics',
+        uses: <ProjectItemUseDefinition>[
+          ProjectItemUseDefinition(
+            contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+            target: ProjectItemTargetKind.partyMember,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.revive(
+              rateNumerator: 1,
+              rateDenominator: 2,
+            ),
+          ),
+        ],
+      ),
+      const ProjectItemDefinition(
+        id: 'reusable-tonic',
+        displayName: 'Reusable Tonic',
+        pocketId: 'field-tools',
+        uses: <ProjectItemUseDefinition>[
+          ProjectItemUseDefinition(
+            contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+            target: ProjectItemTargetKind.partyMember,
+            consumption: ProjectItemConsumptionPolicy.never,
+            effect: ProjectItemEffectDefinition.healHp(
+              mode: ProjectItemAmountMode.flat,
+              amount: 13,
+            ),
+          ),
+        ],
+      ),
+    ],
+  ),
+);
+
 void main() {
   group('runtime generic battle items v0', () {
-    test('antidote clears a compatible status then consumes one item', () {
+    test('a custom healing item applies once and returns one receipt', () {
+      final psdkSession = _session(
+        player: _combatant(
+          id: 'player_0',
+          speciesId: 'sproutle',
+          currentHp: 60,
+        ),
+      );
+      final displaySession = psdkSession.createLegacyDisplaySession(
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+      );
+
+      final result = tryApplyRuntimePsdkBattleItemUse(
+        psdkSession: psdkSession,
+        displaySession: displaySession,
+        gameState: _gameState(
+          itemId: 'battle-tonic',
+          members: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 60),
+          ],
+        ),
+        context: _context(const <int>[0]),
+        itemId: 'battle-tonic',
+        targetLineupIndex: 0,
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+        itemCatalog: _itemCatalog,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.effectKind, RuntimeBattleItemEffectKind.healHp);
+      expect(result.appliedAmount, 13);
+      expect(result.updatedGameState.party.members.single.currentHp, 73);
+      expect(result.updatedGameState.bag.entries, isEmpty);
+      expect(result.consumptionReceipt!.itemId, 'battle-tonic');
+      expect(result.consumptionReceipt!.quantity, 1);
+    });
+
+    test('a custom cure clears a compatible status and returns one receipt',
+        () {
       final psdkSession = _session(
         player: _combatant(
           id: 'player_0',
@@ -27,7 +140,7 @@ void main() {
         psdkSession: psdkSession,
         displaySession: displaySession,
         gameState: _gameState(
-          itemId: 'antidote',
+          itemId: 'toxin-sponge',
           members: <PlayerPokemon>[
             _partyMember(
               speciesId: 'sproutle',
@@ -37,10 +150,11 @@ void main() {
           ],
         ),
         context: _context(const <int>[0]),
-        itemId: 'antidote',
+        itemId: 'toxin-sponge',
         targetLineupIndex: 0,
         isTrainerBattle: true,
         trainerId: 'trainer',
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -48,6 +162,7 @@ void main() {
       expect(result.updatedDisplaySession.state.player.majorStatus, isNull);
       expect(result.updatedGameState.party.members.single.statusId, isEmpty);
       expect(result.updatedGameState.bag.entries, isEmpty);
+      expect(result.consumptionReceipt!.itemId, 'toxin-sponge');
       expect(
         psdkSession.state.psdkState.battlerAt(psdkPlayerSlot).majorStatus,
         isNull,
@@ -78,17 +193,18 @@ void main() {
         psdkSession: psdkSession,
         displaySession: displaySession,
         gameState: _gameState(
-          itemId: 'revive',
+          itemId: 'dawn-feather',
           members: <PlayerPokemon>[
             _partyMember(speciesId: 'sproutle', currentHp: 60),
             _partyMember(speciesId: 'benchmon', currentHp: 0),
           ],
         ),
         context: _context(const <int>[0, 1]),
-        itemId: 'revive',
+        itemId: 'dawn-feather',
         targetLineupIndex: 1,
         isTrainerBattle: true,
         trainerId: 'trainer',
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -100,6 +216,7 @@ void main() {
       );
       expect(result.updatedGameState.party.members[1].currentHp, 40);
       expect(result.updatedGameState.bag.entries, isEmpty);
+      expect(result.consumptionReceipt!.itemId, 'dawn-feather');
       expect(
         psdkSession.state.psdkState
             .partyForBank(psdkPlayerSlot.bank)[1]
@@ -136,12 +253,76 @@ void main() {
         targetLineupIndex: 0,
         isTrainerBattle: true,
         trainerId: 'trainer',
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNull);
       expect(psdkSession.state.turnNumber, 0);
       expect(gameState.party.members.single.currentHp, 80);
       expect(gameState.bag.entries.single.quantity, 1);
+    });
+
+    test('a reusable healing item works through both battle engines', () {
+      final legacyBridge = _session(
+        player: _combatant(
+          id: 'player_0',
+          speciesId: 'sproutle',
+          currentHp: 60,
+        ),
+      );
+      final legacyResult = tryApplyRuntimeBattleItemUse(
+        session: legacyBridge.createLegacyDisplaySession(
+          isTrainerBattle: true,
+          trainerId: 'trainer',
+        ),
+        gameState: _gameState(
+          itemId: 'reusable-tonic',
+          members: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 60),
+          ],
+        ),
+        context: _context(const <int>[0]),
+        itemId: 'reusable-tonic',
+        targetLineupIndex: 0,
+        itemCatalog: _itemCatalog,
+      );
+
+      expect(legacyResult, isNotNull);
+      expect(legacyResult!.appliedAmount, 13);
+      expect(legacyResult.updatedGameState.bag.entries.single.quantity, 1);
+      expect(legacyResult.consumptionReceipt, isNull);
+
+      final psdkSession = _session(
+        player: _combatant(
+          id: 'player_0',
+          speciesId: 'sproutle',
+          currentHp: 60,
+        ),
+      );
+      final psdkResult = tryApplyRuntimePsdkBattleItemUse(
+        psdkSession: psdkSession,
+        displaySession: psdkSession.createLegacyDisplaySession(
+          isTrainerBattle: true,
+          trainerId: 'trainer',
+        ),
+        gameState: _gameState(
+          itemId: 'reusable-tonic',
+          members: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 60),
+          ],
+        ),
+        context: _context(const <int>[0]),
+        itemId: 'reusable-tonic',
+        targetLineupIndex: 0,
+        isTrainerBattle: true,
+        trainerId: 'trainer',
+        itemCatalog: _itemCatalog,
+      );
+
+      expect(psdkResult, isNotNull);
+      expect(psdkResult!.appliedAmount, 13);
+      expect(psdkResult.updatedGameState.bag.entries.single.quantity, 1);
+      expect(psdkResult.consumptionReceipt, isNull);
     });
   });
 }
@@ -218,7 +399,7 @@ GameState _gameState({
     saveId: 'generic-battle-items-v0',
     bag: Bag(
       entries: <BagEntry>[
-        BagEntry(itemId: itemId, categoryId: 'medicine', quantity: 1),
+        BagEntry(itemId: itemId, quantity: 1),
       ],
     ),
     party: PlayerParty(members: members),

@@ -34,12 +34,20 @@ void main() {
       pokemonConfig: _config,
       itemId: 'potion',
     );
+    final incompatible = await loader.loadCandidate(
+      projectRootDirectory: root.path,
+      pokemonConfig: _config,
+      itemId: 'tm-protect',
+      speciesRef: 'incompatible',
+      fallbackSpeciesId: 'incompatible',
+    );
 
     expect(tm?.moveId, 'protect');
     expect(tm?.consumable, isTrue);
     expect(hm?.moveId, 'surf');
     expect(hm?.consumable, isFalse);
     expect(unknown, isNull);
+    expect(incompatible, isNull);
   });
 
   test('fails closed on malformed machine metadata', () async {
@@ -50,10 +58,12 @@ void main() {
       root,
       'custom/catalogs/items.json',
       <String, Object?>{
-        'catalog': 'items',
+        'schemaVersion': 1,
         'entries': <Object?>[
           <String, Object?>{
             'id': 'hm-surf',
+            'displayName': 'HM Surf',
+            'pocketId': 'machines',
             'machine': <String, Object?>{
               'kind': 'hm',
               'moveId': 'surf',
@@ -87,28 +97,38 @@ Future<void> _writeFixtures(Directory root) async {
   await _writeJson(
     root,
     'custom/catalogs/items.json',
-    <String, Object?>{
-      'catalog': 'items',
-      'entries': <Object?>[
-        <String, Object?>{
-          'id': 'tm-protect',
-          'machine': <String, Object?>{
-            'kind': 'tm',
-            'moveId': 'protect',
-            'consumable': true,
-          },
-        },
-        <String, Object?>{
-          'id': 'hm-surf',
-          'machine': <String, Object?>{
-            'kind': 'hm',
-            'moveId': 'surf',
-            'consumable': false,
-          },
-        },
-        <String, Object?>{'id': 'potion'},
-      ],
-    },
+    encodeProjectItemCatalog(
+      ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: [
+          ProjectItemDefinition(
+            id: 'tm-protect',
+            displayName: 'TM Protect',
+            pocketId: 'machines',
+            machine: const ProjectMoveMachineItemDefinition(
+              kind: ProjectMoveMachineKind.tm,
+              moveId: 'protect',
+              consumable: true,
+            ),
+          ),
+          ProjectItemDefinition(
+            id: 'hm-surf',
+            displayName: 'HM Surf',
+            pocketId: 'machines',
+            machine: const ProjectMoveMachineItemDefinition(
+              kind: ProjectMoveMachineKind.hm,
+              moveId: 'surf',
+              consumable: false,
+            ),
+          ),
+          ProjectItemDefinition(
+            id: 'potion',
+            displayName: 'Potion',
+            pocketId: 'medicine',
+          ),
+        ],
+      ).normalized(),
+    ),
   );
   await _writeJson(
     root,
@@ -124,6 +144,18 @@ Future<void> _writeFixtures(Directory root) async {
       'hm': <Object?>[
         <String, String>{'moveId': 'surf'},
       ],
+    },
+  );
+  await _writeJson(
+    root,
+    'custom/learnsets/incompatible.json',
+    <String, Object?>{
+      'speciesId': 'incompatible',
+      'startingMoves': <String>[],
+      'relearnMoves': <String>[],
+      'levelUp': <Object?>[],
+      'tm': <Object?>[],
+      'hm': <Object?>[],
     },
   );
   await _writeJson(

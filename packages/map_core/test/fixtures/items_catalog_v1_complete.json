@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "potion",
+      "displayName": "Potion",
+      "aliases": ["Potion"],
+      "pocketId": "medicine",
+      "description": "Restores 20 HP.",
+      "buyPrice": 300,
+      "sellPrice": 150,
+      "tags": ["healing"],
+      "uses": [
+        {
+          "contexts": ["overworld", "battle"],
+          "target": "party_member",
+          "consumption": "on_applied",
+          "effect": {
+            "kind": "heal_hp",
+            "mode": "flat",
+            "amount": 20
+          }
+        }
+      ],
+      "capture": null,
+      "machine": null,
+      "heldEffectId": null
+    },
+    {
+      "id": "poke-ball",
+      "displayName": "Poké Ball",
+      "aliases": [],
+      "pocketId": "balls",
+      "description": null,
+      "buyPrice": 200,
+      "sellPrice": 100,
+      "tags": ["capture"],
+      "uses": [],
+      "capture": {
+        "rateNumerator": 1,
+        "rateDenominator": 1,
+        "allowedEncounterKinds": ["walk", "surf"]
+      },
+      "machine": null,
+      "heldEffectId": null
+    },
+    {
+      "id": "escape-rope",
+      "displayName": "Escape Rope",
+      "aliases": [],
+      "pocketId": "items",
+      "description": null,
+      "buyPrice": null,
+      "sellPrice": null,
+      "tags": ["field"],
+      "uses": [
+        {
+          "contexts": ["overworld"],
+          "target": "world",
+          "consumption": "on_applied",
+          "effect": {
+            "kind": "semantic_action",
+            "actionId": "world.escape"
+          }
+        }
+      ],
+      "capture": null,
+      "machine": null,
+      "heldEffectId": null
+    },
+    {
+      "id": "cut-hm",
+      "displayName": "HM Cut",
+      "aliases": [],
+      "pocketId": "machines",
+      "description": null,
+      "buyPrice": null,
+      "sellPrice": null,
+      "tags": ["machine"],
+      "uses": [],
+      "capture": null,
+      "machine": {
+        "moveId": "cut",
+        "kind": "hm",
+        "consumable": false
+      },
+      "heldEffectId": null
+    }
+  ]
+}

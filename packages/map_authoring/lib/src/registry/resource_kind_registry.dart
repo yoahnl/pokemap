@@ -414,6 +414,37 @@ final class AuthoringResourceKindRegistry {
         summary: 'Deterministic battle, outcome and progression preview',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'itemCatalog',
+        version: 1,
+        displayName: 'Item catalog',
+        summary: 'Canonical project-owned item catalog',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'itemDefinition',
+        version: 1,
+        displayName: 'Item definition',
+        summary: 'One canonical item definition and its capabilities',
+        extensions: const <String, Object?>{
+          'queryActions': <String>[
+            'item.delete_plan',
+            'item.simulate',
+            'item.validate',
+          ],
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'itemUsage',
+        version: 1,
+        displayName: 'Item usage',
+        summary: 'One editable project dependency on an item',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'itemReadiness',
+        version: 1,
+        displayName: 'Item readiness',
+        summary: 'Validation and dependency readiness for one item',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'tilesetFolder',
         version: 1,
         displayName: 'Tileset folder',
@@ -441,6 +472,10 @@ final class AuthoringResourceKindRegistry {
       'elementCategory',
       'eventV2',
       'fact',
+      'itemCatalog',
+      'itemDefinition',
+      'itemReadiness',
+      'itemUsage',
       'map',
       'mapConnection',
       'project',

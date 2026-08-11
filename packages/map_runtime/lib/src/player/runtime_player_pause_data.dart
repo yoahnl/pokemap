@@ -1,5 +1,7 @@
 import 'dart:collection';
 
+import 'package:map_gameplay/map_gameplay.dart';
+
 enum RuntimePlayerPauseSection {
   root,
   party,
@@ -19,6 +21,7 @@ final class RuntimePlayerBagItemActionSnapshot {
   RuntimePlayerBagItemActionSnapshot({
     required this.itemTargetId,
     required this.targetKind,
+    required this.usability,
     required this.isEnabled,
     this.unavailableReason,
   }) {
@@ -39,6 +42,7 @@ final class RuntimePlayerBagItemActionSnapshot {
 
   final String itemTargetId;
   final RuntimePlayerBagUseTargetKind targetKind;
+  final ItemUsabilityState usability;
   final bool isEnabled;
   final String? unavailableReason;
 }
@@ -152,12 +156,27 @@ final class RuntimePlayerPauseCommand {
     required this.itemTargetId,
     required this.partyTargetId,
     this.moveTargetId,
-  });
+  }) : kind = RuntimePlayerPauseCommandKind.useBagItem;
 
+  const RuntimePlayerPauseCommand.equipHeldItem({
+    required this.itemTargetId,
+    required this.partyTargetId,
+  })  : kind = RuntimePlayerPauseCommandKind.equipHeldItem,
+        moveTargetId = null;
+
+  const RuntimePlayerPauseCommand.unequipHeldItem({
+    required this.partyTargetId,
+  })  : kind = RuntimePlayerPauseCommandKind.unequipHeldItem,
+        itemTargetId = '',
+        moveTargetId = null;
+
+  final RuntimePlayerPauseCommandKind kind;
   final String itemTargetId;
   final String partyTargetId;
   final String? moveTargetId;
 }
+
+enum RuntimePlayerPauseCommandKind { useBagItem, equipHeldItem, unequipHeldItem }
 
 enum RuntimePlayerPauseCommandStatus { accepted, unavailable, failed }
 

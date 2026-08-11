@@ -1823,7 +1823,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               manifest: editor.project!,
               itemOptions: [
                 for (final option in baseSceneConsequenceCatalogs.items.options)
-                  ShopEditorItemOption(id: option.id, label: option.label),
+                  ShopEditorItemOption(
+                    id: option.id,
+                    label: option.label,
+                    definition: option.itemDefinition,
+                  ),
               ],
             ),
             catalogMessage: baseSceneConsequenceCatalogs.items.message,

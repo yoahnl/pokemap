@@ -108,6 +108,7 @@ void main() {
     });
     final save = SaveData.fromJson({
       'saveId': 'old',
+      'itemSystemSchemaVersion': 1,
       'progression': {
         'storyFlags': ['legacy_flag'],
       },
@@ -128,6 +129,7 @@ void main() {
     expect(
       () => SaveData.fromJson({
         'saveId': 'bad',
+        'itemSystemSchemaVersion': 1,
         'narrativeEventProgress': null,
       }),
       throwsFormatException,

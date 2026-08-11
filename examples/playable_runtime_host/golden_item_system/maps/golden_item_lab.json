@@ -1,0 +1,91 @@
+{
+  "id": "golden_item_lab",
+  "name": "Golden Item Lab",
+  "size": {
+    "width": 6,
+    "height": 4
+  },
+  "version": "v6",
+  "entities": [
+    {
+      "id": "spawn_item_lab",
+      "name": "Item Lab Spawn",
+      "kind": "spawn",
+      "pos": {
+        "x": 1,
+        "y": 2
+      },
+      "blocksMovement": false,
+      "spawn": {
+        "role": "player_start",
+        "facing": "east"
+      }
+    },
+    {
+      "id": "item_ether_pickup",
+      "name": "Ether Pickup",
+      "kind": "item",
+      "pos": {
+        "x": 2,
+        "y": 2
+      },
+      "item": {
+        "gameItemId": "ether",
+        "quantity": 1,
+        "pickupMode": "once",
+        "respawnPolicy": "none"
+      }
+    },
+    {
+      "id": "npc_item_shopkeeper",
+      "name": "Item Shopkeeper",
+      "kind": "npc",
+      "pos": {
+        "x": 3,
+        "y": 2
+      },
+      "npc": {
+        "displayName": "Item Shopkeeper",
+        "facing": "south"
+      }
+    },
+    {
+      "id": "npc_item_trainer",
+      "name": "Researcher Mira",
+      "kind": "npc",
+      "pos": {
+        "x": 4,
+        "y": 2
+      },
+      "npc": {
+        "displayName": "Mira",
+        "trainerId": "golden_item_trainer",
+        "facing": "west"
+      }
+    }
+  ],
+  "gameplayZones": [
+    {
+      "id": "golden_item_encounter_zone",
+      "name": "Capture Test Zone",
+      "kind": "encounter",
+      "area": {
+        "pos": {
+          "x": 1,
+          "y": 0
+        },
+        "size": {
+          "width": 2,
+          "height": 1
+        }
+      },
+      "encounter": {
+        "encounterTableId": "golden_item_encounter",
+        "encounterKind": "walk"
+      }
+    }
+  ],
+  "mapMetadata": {
+    "defaultSpawnId": "spawn_item_lab"
+  }
+}

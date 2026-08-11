@@ -50,6 +50,17 @@ class _TrainerReferenceData {
   final String speciesMessage;
   final PokemonMovesCatalogView movesCatalogView;
   final PokemonItemsCatalogView itemsCatalogView;
+
+  List<ProjectItemDefinition> get itemDefinitions =>
+      itemsCatalogView.canonicalCatalog?.entries ??
+      const <ProjectItemDefinition>[];
+
+  List<ProjectItemDefinition> get heldItemDefinitions => itemDefinitions
+      .where((definition) => definition.heldEffectId != null)
+      .toList(growable: false);
+
+  bool get isItemCatalogAvailable =>
+      itemsCatalogView.isAvailable && itemsCatalogView.canonicalCatalog != null;
 }
 
 class _TrainerPokemonDraft {

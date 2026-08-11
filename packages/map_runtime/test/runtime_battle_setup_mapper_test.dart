@@ -17,6 +17,32 @@ import 'package:map_runtime/src/application/runtime_pokemon_learnset_loader.dart
 import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
 import 'package:path/path.dart' as p;
 
+final _heldItemCatalog = ItemCatalogSnapshot.fromCatalog(
+  const ProjectItemCatalog(
+    schemaVersion: 1,
+    entries: <ProjectItemDefinition>[
+      ProjectItemDefinition(
+        id: 'custom-leftovers',
+        displayName: 'Custom Leftovers',
+        pocketId: 'held-items',
+        heldEffectId: 'leftovers',
+      ),
+      ProjectItemDefinition(
+        id: 'custom-mystic-water',
+        displayName: 'Custom Mystic Water',
+        pocketId: 'held-items',
+        heldEffectId: 'mystic_water',
+      ),
+      ProjectItemDefinition(
+        id: 'custom-oran',
+        displayName: 'Custom Oran',
+        pocketId: 'held-items',
+        heldEffectId: 'oran_berry',
+      ),
+    ],
+  ),
+);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -63,7 +89,7 @@ void main() {
                   'gastro_acid': 10,
                 },
                 currentHp: 23,
-                heldItemId: 'leftovers',
+                heldItemId: 'custom-leftovers',
               ),
             ],
           ),
@@ -72,6 +98,7 @@ void main() {
           speciesId: 'sparkitten',
           level: 10,
         ),
+        itemCatalog: _heldItemCatalog,
       );
 
       expect(
@@ -115,13 +142,13 @@ void main() {
                 speciesId: 'aquafi',
                 level: 18,
                 moves: <String>['growl'],
-                heldItemId: 'mystic-water',
+                heldItemId: 'custom-mystic-water',
               ),
               ProjectTrainerPokemonEntry(
                 speciesId: 'sparkitten',
                 level: 17,
                 moves: <String>['ember'],
-                heldItemId: 'oran-berry',
+                heldItemId: 'custom-oran',
               ),
             ],
           ),
@@ -149,6 +176,7 @@ void main() {
           ),
         ),
         request: _trainerRequest(),
+        itemCatalog: _heldItemCatalog,
       );
 
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(setup);
@@ -455,6 +483,7 @@ void main() {
       final setup = await mapper.map(
         bundle: bundle,
         gameState: _playerStateForTests(),
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         request: _wildRequest(
           speciesId: 'sparkitten',
           level: 10,
@@ -955,7 +984,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'poke-ball',
-              categoryId: 'items',
               quantity: 2,
             ),
           ],
@@ -980,6 +1008,7 @@ void main() {
       final setup = await mapper.map(
         bundle: bundle,
         gameState: fullPartyState,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
         request: _wildRequest(
           speciesId: 'sparkitten',
           level: 10,
@@ -1742,7 +1771,6 @@ GameState _playerStateForTests({
     entries: <BagEntry>[
       BagEntry(
         itemId: 'poke-ball',
-        categoryId: 'items',
         quantity: 2,
       ),
     ],

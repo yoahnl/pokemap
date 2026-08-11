@@ -4,13 +4,11 @@ import 'package:test/test.dart';
 void main() {
   group('generic battle items v0', () {
     test('heals an explicit reserve party target', () {
-      final session = _session(
-        reserve: _combatant(id: 'reserve', hp: 20),
-      );
+      final session = _session(reserve: _combatant(id: 'reserve', hp: 20));
 
       final result = session.submit(
         const BattleDecision.item(
-          itemId: 'potion',
+          itemId: 'battle-tonic',
           target: psdkPlayerSlot,
           targetPartyIndex: 1,
           effect: PsdkBattleHpHealItemEffect.flat(20),
@@ -28,31 +26,26 @@ void main() {
             .whereType<BattleItemTimelineEvent>()
             .single
             .itemId,
-        'potion',
+        'battle-tonic',
       );
     });
 
     test('cures a compatible major status on an explicit target', () {
-      final session = _session(
-        playerStatus: PsdkBattleMajorStatus.poison,
-      );
+      final session = _session(playerStatus: PsdkBattleMajorStatus.poison);
 
       final result = session.submit(
         const BattleDecision.item(
-          itemId: 'antidote',
+          itemId: 'toxin-sponge',
           target: psdkPlayerSlot,
           targetPartyIndex: 0,
-          effect: PsdkBattleStatusCureItemEffect.only(
-            <PsdkBattleMajorStatus>{PsdkBattleMajorStatus.poison},
-          ),
+          effect: PsdkBattleStatusCureItemEffect.only(<PsdkBattleMajorStatus>{
+            PsdkBattleMajorStatus.poison,
+          }),
           highPriority: true,
         ),
       );
 
-      expect(
-        result.state.battlerAt(psdkPlayerSlot).majorStatus,
-        isNull,
-      );
+      expect(result.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
       expect(
         result.timeline.events.whereType<BattleItemTimelineEvent>(),
         hasLength(1),
@@ -60,13 +53,11 @@ void main() {
     });
 
     test('revives a fainted reserve to the requested HP percentage', () {
-      final session = _session(
-        reserve: _combatant(id: 'reserve', hp: 0),
-      );
+      final session = _session(reserve: _combatant(id: 'reserve', hp: 0));
 
       final result = session.submit(
         const BattleDecision.item(
-          itemId: 'revive',
+          itemId: 'dawn-feather',
           target: psdkPlayerSlot,
           targetPartyIndex: 1,
           effect: PsdkBattleReviveItemEffect(percent: 50),
@@ -90,7 +81,7 @@ void main() {
       expect(
         () => session.submit(
           const BattleDecision.item(
-            itemId: 'potion',
+            itemId: 'battle-tonic',
             target: psdkPlayerSlot,
             targetPartyIndex: 8,
             effect: PsdkBattleHpHealItemEffect.flat(20),
@@ -108,7 +99,7 @@ void main() {
       expect(
         () => session.submit(
           const BattleDecision.item(
-            itemId: 'potion',
+            itemId: 'battle-tonic',
             target: psdkPlayerSlot,
             targetPartyIndex: 0,
             effect: PsdkBattleHpHealItemEffect.flat(20),
@@ -130,14 +121,8 @@ BattleSessionFacade _session({
 }) {
   return BattleSessionFacade.fromPsdkSetup(
     setup: PsdkBattleSetup.singles(
-      player: _combatant(
-        id: 'player',
-        hp: playerHp,
-        status: playerStatus,
-      ),
-      playerReserves: <PsdkBattleCombatantSetup>[
-        if (reserve != null) reserve,
-      ],
+      player: _combatant(id: 'player', hp: playerHp, status: playerStatus),
+      playerReserves: <PsdkBattleCombatantSetup>[if (reserve != null) reserve],
       opponent: _combatant(id: 'opponent', hp: 80),
       isTrainerBattle: true,
       rngSeeds: const PsdkBattleRngSeeds(

@@ -6,12 +6,11 @@ import 'package:riverpod/misc.dart' show Override;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
-import 'package:map_editor/src/app/providers/pokemon_items/pokemon_items_workspace_providers.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
-import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/narrative/state/scene_consequence_catalog_providers.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
@@ -686,25 +685,11 @@ void main() {
             projectWorkspaceFactoryProvider.overrideWithValue(
               const _SceneTestWorkspaceFactory(),
             ),
-            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-              (_) async => const PokemonItemsCatalogView(
-                entries: [
-                  PokemonItemCatalogEntryView(
-                    id: 'item_antidote',
-                    name: 'Antidote',
-                    shortDesc: 'Soigne le poison.',
-                    pocketId: 'medicine',
-                  ),
-                  PokemonItemCatalogEntryView(
-                    id: 'item_potion',
-                    name: 'Potion',
-                    shortDesc: 'Restaure quelques PV.',
-                    pocketId: 'medicine',
-                  ),
-                ],
-                isAvailable: true,
-                description: 'Objets du projet.',
-              ),
+            sceneItemDefinitionLoaderProvider.overrideWithValue(
+              (_) async => const <ProjectItemDefinition>[
+                _itemAntidote,
+                _itemPotion,
+              ],
             ),
             pokedexEntryLoaderProvider.overrideWithValue(
               (_) async => const <PokemonDatabaseIndexEntry>[],
@@ -913,14 +898,8 @@ void main() {
           projectWorkspaceFactoryProvider.overrideWithValue(
             const _SceneTestWorkspaceFactory(),
           ),
-          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-            (_) async => const PokemonItemsCatalogView(
-              entries: [
-                PokemonItemCatalogEntryView(id: 'item_potion', name: 'Potion'),
-              ],
-              isAvailable: true,
-              description: 'Objets du projet.',
-            ),
+          sceneItemDefinitionLoaderProvider.overrideWithValue(
+            (_) async => const <ProjectItemDefinition>[_itemPotion],
           ),
           pokedexEntryLoaderProvider.overrideWithValue(
             (_) async => const <PokemonDatabaseIndexEntry>[],
@@ -985,12 +964,8 @@ void main() {
             projectWorkspaceFactoryProvider.overrideWithValue(
               const _SceneTestWorkspaceFactory(),
             ),
-            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-              (_) async => const PokemonItemsCatalogView(
-                entries: <PokemonItemCatalogEntryView>[],
-                isAvailable: false,
-                description: 'Aucun objet.',
-              ),
+            sceneItemDefinitionLoaderProvider.overrideWithValue(
+              (_) async => const <ProjectItemDefinition>[],
             ),
             pokedexEntryLoaderProvider.overrideWithValue(
               (_) async => const [
@@ -1287,18 +1262,8 @@ void main() {
             projectWorkspaceFactoryProvider.overrideWithValue(
               const _SceneTestWorkspaceFactory(),
             ),
-            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-              (_) async => const PokemonItemsCatalogView(
-                entries: [
-                  PokemonItemCatalogEntryView(
-                    id: 'item_potion',
-                    name: 'Potion',
-                    shortDesc: 'Restaure quelques PV.',
-                  ),
-                ],
-                isAvailable: true,
-                description: 'Objets du projet.',
-              ),
+            sceneItemDefinitionLoaderProvider.overrideWithValue(
+              (_) async => const <ProjectItemDefinition>[_itemPotion],
             ),
             pokedexEntryLoaderProvider.overrideWithValue(
               (_) async => const <PokemonDatabaseIndexEntry>[],
@@ -1371,17 +1336,8 @@ void main() {
             projectWorkspaceFactoryProvider.overrideWithValue(
               const _SceneTestWorkspaceFactory(),
             ),
-            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-              (_) async => const PokemonItemsCatalogView(
-                entries: [
-                  PokemonItemCatalogEntryView(
-                    id: 'item_potion',
-                    name: 'Potion',
-                  ),
-                ],
-                isAvailable: true,
-                description: 'Objets du projet.',
-              ),
+            sceneItemDefinitionLoaderProvider.overrideWithValue(
+              (_) async => const <ProjectItemDefinition>[_itemPotion],
             ),
             pokedexEntryLoaderProvider.overrideWithValue(
               (_) async => const <PokemonDatabaseIndexEntry>[],
@@ -1534,12 +1490,8 @@ void main() {
             projectWorkspaceFactoryProvider.overrideWithValue(
               const _SceneTestWorkspaceFactory(),
             ),
-            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-              (_) async => const PokemonItemsCatalogView(
-                entries: <PokemonItemCatalogEntryView>[],
-                isAvailable: false,
-                description: 'Aucun objet.',
-              ),
+            sceneItemDefinitionLoaderProvider.overrideWithValue(
+              (_) async => const <ProjectItemDefinition>[],
             ),
             pokedexEntryLoaderProvider.overrideWithValue(
               (_) async => const [
@@ -1714,17 +1666,8 @@ void main() {
             projectWorkspaceFactoryProvider.overrideWithValue(
               const _SceneTestWorkspaceFactory(),
             ),
-            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-              (_) async => const PokemonItemsCatalogView(
-                entries: [
-                  PokemonItemCatalogEntryView(
-                    id: 'item_potion',
-                    name: 'Potion',
-                  ),
-                ],
-                isAvailable: true,
-                description: 'Objets du projet.',
-              ),
+            sceneItemDefinitionLoaderProvider.overrideWithValue(
+              (_) async => const <ProjectItemDefinition>[_itemPotion],
             ),
             pokedexEntryLoaderProvider.overrideWithValue(
               (_) async => const <PokemonDatabaseIndexEntry>[],
@@ -4787,6 +4730,20 @@ void main() {
     });
   });
 }
+
+const _itemAntidote = ProjectItemDefinition(
+  id: 'item_antidote',
+  displayName: 'Antidote',
+  pocketId: 'medicine',
+  description: 'Soigne le poison.',
+);
+
+const _itemPotion = ProjectItemDefinition(
+  id: 'item_potion',
+  displayName: 'Potion',
+  pocketId: 'medicine',
+  description: 'Restaure quelques PV.',
+);
 
 Future<ProviderContainer> _pumpNarrativeShell(
   WidgetTester tester, {

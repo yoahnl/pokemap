@@ -167,13 +167,23 @@ export 'src/application/runtime_battle_move_bridge_diagnostics.dart'
     show RuntimeBattleMoveBridgeDiagnostics;
 export 'src/application/runtime_battle_setup_exception.dart'
     show RuntimeBattleSetupException;
+export 'src/application/runtime_item_catalog_loader.dart'
+    show RuntimeItemCatalogLoader;
+export 'src/application/runtime_move_machine_loader.dart'
+    show
+        RuntimeMoveMachineKind,
+        RuntimeMoveMachineDefinition,
+        RuntimeMoveMachineLoader;
+export 'src/application/runtime_battle_bag_hp_heal_item_apply.dart'
+    show RuntimeBattleItemApplyResult, tryApplyRuntimeBattleItemUse;
 export 'src/application/runtime_battle_outcome_apply.dart'
     show
         RuntimeActiveBattleContext,
         RuntimeBattleCaptureAttemptReceipt,
         RuntimeBattleCaptureAttemptSubmission,
         submitRuntimeBattleCaptureAttempt,
-        commitRuntimeBattleCaptureAttemptReceipt;
+        commitRuntimeBattleCaptureAttemptReceipt,
+        applyRuntimeBattleOutcomeToGameState;
 export 'src/application/runtime_battle_authoring_capability_truth.dart'
     show
         RuntimeBattleAuthoringSupportStatus,
@@ -216,7 +226,9 @@ export 'src/application/load_runtime_map_bundle.dart'
         RuntimeMapBundleLoadProfileSink,
         RuntimeMapBundleLoadProgressSink,
         RuntimeMapBundleLoadStage,
-        loadRuntimeMapBundle;
+        loadRuntimeMapBundle,
+        loadProjectManifestFromFile,
+        loadMapDataFromFile;
 export 'src/application/authoring_preview/runtime_authoring_map_render_adapter.dart'
     show RuntimeAuthoringMapRenderAdapter;
 export 'src/application/runtime_map_bundle.dart' show RuntimeMapBundle;

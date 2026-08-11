@@ -416,7 +416,7 @@ GameState _gameState() => const GameState(
       trainerProfile: TrainerProfile(name: 'Leaf', money: 100),
       bag: Bag(
         entries: [
-          BagEntry(itemId: 'ticket', categoryId: 'items', quantity: 2),
+          BagEntry(itemId: 'ticket', quantity: 2),
         ],
       ),
       party: PlayerParty(

@@ -298,6 +298,18 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId.startsWith('item.')) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/gameplay/item_catalog_jsonl_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/gameplay/item_catalog_jsonl_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/item_authoring_transport_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/item_authoring.test.ts',
+    };
+  }
   if (actionId == 'smart_tile.layer.set_animation_activation') {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
@@ -638,6 +650,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/gameplay/pokemon_catalog_authoring_test.dart',
   ),
   _ContractEvidenceRule(
+    ['item.'],
+    'test/domains/gameplay/item_catalog_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['campaign.'],
     'test/domains/gameplay/campaign_content_authoring_test.dart',
   ),
@@ -742,6 +758,10 @@ const _semanticOwners = <String, String>{
   'pokemonItem': 'pokemonDocument',
   'pokemonType': 'pokemonDocument',
   'pokemonCatalog': 'pokemonDocument',
+  'itemCatalog': 'itemCatalog',
+  'itemDefinition': 'itemCatalog',
+  'itemUsage': 'itemCatalog',
+  'itemReadiness': 'itemCatalog',
   'gameSave': 'sandboxPlayerState',
   'gamePackage': 'project',
 };
@@ -751,6 +771,10 @@ const _requiredDirectReadResourceKinds = <String>{
   'characterStudioCharacter',
   'characterStudioDependency',
   'characterStudioReadiness',
+  'itemCatalog',
+  'itemDefinition',
+  'itemUsage',
+  'itemReadiness',
   'mapConnection',
   'presentationPreviewContext',
 };

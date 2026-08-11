@@ -63,8 +63,13 @@ void main() {
             status: SceneConsequenceCatalogStatus.ready,
             options: <SceneConsequenceCatalogOption>[
               SceneConsequenceCatalogOption(
-                id: 'potion',
-                label: 'Potion',
+                id: 'custom-passive-thread',
+                label: 'Fil mystique',
+                itemDefinition: ProjectItemDefinition(
+                  id: 'custom-passive-thread',
+                  displayName: 'Fil mystique',
+                  pocketId: 'items',
+                ),
               ),
             ],
             message: '1 objet local disponible.',
@@ -102,7 +107,11 @@ void main() {
         'new-game-starter-scene-picker',
         'scene_starter_choice',
       );
-      _selectDropdown(tester, 'new-game-bag-item-picker', 'potion');
+      _selectDropdown(
+        tester,
+        'new-game-bag-item-picker',
+        'custom-passive-thread',
+      );
       _selectDropdown(
         tester,
         'new-game-initial-fact-picker',
@@ -150,7 +159,9 @@ void main() {
       await tester.pump();
 
       expect(
-        find.byKey(const ValueKey('new-game-bag-entry-potion')),
+        find.byKey(
+          const ValueKey('new-game-bag-entry-custom-passive-thread'),
+        ),
         findsOneWidget,
       );
       expect(
@@ -175,7 +186,7 @@ void main() {
       expect(saved!.startingMoney, 750);
       expect(saved!.existingPartyFactId, 'fact_existing_party');
       expect(saved!.starterSelectionSceneId, 'scene_starter_choice');
-      expect(saved!.initialBag.single.itemId, 'potion');
+      expect(saved!.initialBag.single.itemId, 'custom-passive-thread');
       expect(saved!.initialFacts, <String, bool>{'fact_intro_active': false});
       expect(saved!.starterOptions.single.pokemon.speciesId, 'bulbasaur');
       expect(find.text('Configuration sauvegardée.'), findsOneWidget);
