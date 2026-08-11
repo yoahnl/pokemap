@@ -209,6 +209,80 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('safe areas and long labels keep controller focus visible', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(390, 844));
+    final focusController = RuntimePlayerFocusController(
+      activeInputSource: PlayerInputSource.controller,
+    );
+    addTearDown(focusController.dispose);
+    const safePadding = EdgeInsets.fromLTRB(24, 59, 18, 34);
+    final presentation = PlayerPausePresentation.fromProfile(
+      ProjectPausePresentationProfile(
+        hint: 'Bouton A pour sélectionner une entrée',
+        actions: <ProjectPauseActionProfile>[
+          for (final action in defaultProjectPauseActions)
+            action.copyWith(
+              label: '${action.id.name} — libellé volontairement très long',
+            ),
+        ],
+        composition: const ProjectResponsivePauseCompositionProfile(
+          compactPortrait: ProjectPauseCompositionVariantProfile(
+            entrySize: ProjectPauseEntrySize.large,
+            entrySpacing: ProjectPauseEntrySpacing.airy,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        MediaQuery(
+          data: const MediaQueryData(
+            size: Size(390, 844),
+            padding: safePadding,
+          ),
+          child: RuntimePlayerPauseShell.root(
+            gameTitle: 'Aube',
+            actions: _actions(),
+            onSelected: (_) {},
+            detail: const SizedBox.shrink(),
+            focusController: focusController,
+            activeInputSource: PlayerInputSource.controller,
+            presentation: presentation,
+          ),
+        ),
+        textScaler: const TextScaler.linear(2),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final actionsContext = tester.element(
+      find.byKey(const ValueKey<String>('runtime-player-actions-context')),
+    );
+    for (var index = 1; index < PlayerPauseAction.values.length; index++) {
+      Actions.invoke(
+        actionsContext,
+        const RuntimePlayerLogicalIntent(
+          PlayerInputAction.down,
+          source: PlayerInputSource.controller,
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    expect(focusController.logicalSelectionId, 'pause.returnToTitle');
+    final focusedRect = tester.getRect(
+      find.byKey(const ValueKey<String>('pause.returnToTitle')),
+    );
+    expect(focusedRect.left, greaterThanOrEqualTo(safePadding.left));
+    expect(focusedRect.right, lessThanOrEqualTo(390 - safePadding.right));
+    expect(focusedRect.top, greaterThanOrEqualTo(safePadding.top));
+    expect(focusedRect.bottom, lessThanOrEqualTo(844 - safePadding.bottom));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('mobile touch menu stays mounted and dims after controller input',
       (tester) async {
     await _setSurface(tester, const Size(844, 390));
