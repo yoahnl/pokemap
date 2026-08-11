@@ -122,6 +122,7 @@ final class ItemSystemExecutionReceipt {
   factory ItemSystemExecutionReceipt.fromJson(
     Map<String, Object?> json, {
     required String expectedSourceRevision,
+    required String expectedFixtureSha256,
   }) {
     _exactKeys(json, const <String>{
       'schemaVersion',
@@ -155,6 +156,16 @@ final class ItemSystemExecutionReceipt {
         'Execution receipt source revision does not match the runner revision.',
       );
     }
+    final fixtureSha256 = _sha256(
+      _string(json['fixtureSha256'], 'fixtureSha256'),
+      'fixtureSha256',
+    );
+    if (fixtureSha256 !=
+        _sha256(expectedFixtureSha256, 'expectedFixtureSha256')) {
+      throw const FormatException(
+        'Execution receipt fixture digest does not match the runner fixture.',
+      );
+    }
     final payload = json['payload'];
     if (payload is! Map<String, Object?>) {
       throw const FormatException('payload must be a JSON object.');
@@ -167,7 +178,7 @@ final class ItemSystemExecutionReceipt {
     final receipt = ItemSystemExecutionReceipt.record(
       level: levels.single,
       sourceRevision: sourceRevision,
-      fixtureSha256: _string(json['fixtureSha256'], 'fixtureSha256'),
+      fixtureSha256: fixtureSha256,
       payload: payload,
       attemptedCapabilities: _stringList(
         json['attemptedCapabilities'],
@@ -248,19 +259,19 @@ Object? _canonicalJson(Object? value, String path) {
     return value;
   }
   if (value is List) {
-    return <Object?>[
+    return List<Object?>.unmodifiable(<Object?>[
       for (var index = 0; index < value.length; index += 1)
         _canonicalJson(value[index], '$path[$index]'),
-    ];
+    ]);
   }
   if (value is Map) {
     if (value.keys.any((key) => key is! String)) {
       throw FormatException('$path must contain only string object keys.');
     }
     final keys = value.keys.cast<String>().toList()..sort();
-    return <String, Object?>{
+    return Map<String, Object?>.unmodifiable(<String, Object?>{
       for (final key in keys) key: _canonicalJson(value[key], '$path.$key'),
-    };
+    });
   }
   throw FormatException('$path contains a non-JSON value.');
 }

@@ -37,6 +37,7 @@ void main() {
       ItemSystemExecutionReceipt.fromJson(
         receipt.toJson(),
         expectedSourceRevision: sourceRevision,
+        expectedFixtureSha256: receipt.fixtureSha256,
       ).payloadSha256,
       receipt.payloadSha256,
     );

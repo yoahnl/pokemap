@@ -31,6 +31,7 @@ void main() {
       final decoded = ItemSystemExecutionReceipt.fromJson(
         source.toJson(),
         expectedSourceRevision: _revision,
+        expectedFixtureSha256: _sha('fixture'),
       );
 
       expect(decoded.toJson(), source.toJson());
@@ -40,6 +41,7 @@ void main() {
         () => ItemSystemExecutionReceipt.fromJson(
           forgedDigest,
           expectedSourceRevision: _revision,
+          expectedFixtureSha256: _sha('fixture'),
         ),
         throwsFormatException,
       );
@@ -47,6 +49,15 @@ void main() {
         () => ItemSystemExecutionReceipt.fromJson(
           source.toJson(),
           expectedSourceRevision: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+          expectedFixtureSha256: _sha('fixture'),
+        ),
+        throwsFormatException,
+      );
+      expect(
+        () => ItemSystemExecutionReceipt.fromJson(
+          source.toJson(),
+          expectedSourceRevision: _revision,
+          expectedFixtureSha256: _sha('another-fixture'),
         ),
         throwsFormatException,
       );
@@ -93,10 +104,37 @@ void main() {
           () => ItemSystemExecutionReceipt.fromJson(
             invalid,
             expectedSourceRevision: _revision,
+            expectedFixtureSha256: _sha('fixture'),
           ),
           throwsFormatException,
         );
       }
+    });
+
+    test('deep-freezes the canonical payload after hashing it', () {
+      final nested = <Object?>[
+        <String, Object?>{'value': 1},
+      ];
+      final receipt = _completeReceipt(
+        payload: <String, Object?>{'nested': nested},
+      );
+
+      nested.add(2);
+      final payload = receipt.toJson()['payload']! as Map<String, Object?>;
+      final frozenList = payload['nested']! as List<Object?>;
+      final frozenMap = frozenList.single as Map<String, Object?>;
+
+      expect(frozenList, hasLength(1));
+      expect(() => frozenList.add(2), throwsUnsupportedError);
+      expect(() => frozenMap['value'] = 2, throwsUnsupportedError);
+      expect(
+        ItemSystemExecutionReceipt.fromJson(
+          receipt.toJson(),
+          expectedSourceRevision: _revision,
+          expectedFixtureSha256: _sha('fixture'),
+        ).payloadSha256,
+        receipt.payloadSha256,
+      );
     });
 
     test('derives partial and failed verdicts from observed outcomes', () {
