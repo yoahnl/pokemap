@@ -6,7 +6,15 @@ void main() {
   test('comparison follows the current baseline and draft profiles', () {
     const baseline = ProjectPresentationProfile();
     const changed = ProjectPresentationProfile(
-      menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+      pause: ProjectPausePresentationProfile(
+        actions: <ProjectPauseActionProfile>[
+          ProjectPauseActionProfile(id: ProjectPauseActionId.resume),
+          ProjectPauseActionProfile(
+            id: ProjectPauseActionId.pokedex,
+            label: 'Carnet',
+          ),
+        ],
+      ),
     );
 
     const unchangedScenario = PersonalizationPreviewScenario(

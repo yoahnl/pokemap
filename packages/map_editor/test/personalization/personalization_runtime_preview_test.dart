@@ -96,8 +96,11 @@ void main() {
     final pause = tester.widget<RuntimePlayerPauseShell>(
       find.byType(RuntimePlayerPauseShell),
     );
-    expect(pause.labels.pauseTitle, 'Interlude');
-    expect(pause.labels.pokedex, 'Carnet');
+    expect(pause.presentation?.title, 'Interlude');
+    expect(
+      pause.presentation?.actionLabels[PlayerPauseAction.pokedex],
+      'Carnet',
+    );
     final pauseContext = tester.element(find.byType(PlayerPauseSurface));
     expect(pauseContext.playerTypography.bodyFamily, 'Aurore Body');
   });

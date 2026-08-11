@@ -163,7 +163,7 @@ void main() {
     },
   );
 
-  test('standalone forwards the complete V5 presentation', () async {
+  test('standalone forwards the complete V8 presentation', () async {
     final profile = ProjectPresentationProfile.fromJson(
       jsonDecode(
             await File(
@@ -191,7 +191,11 @@ void main() {
       presentation.title.layoutVariant,
       player_ui.PlayerTitleLayoutVariant.cinematic,
     );
-    expect(presentation.pauseMenuLabels.pokedex, 'Carnet de route');
+    final pauseActions = presentation.pausePresentation.actionLabels;
+    expect(
+      pauseActions[player_ui.PlayerPauseAction.pokedex],
+      'Carnet de route',
+    );
     expect(presentation.typography.combatFallback, <String>['monospace']);
     expect(
       presentation.windowProfile

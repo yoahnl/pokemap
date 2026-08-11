@@ -1,6 +1,8 @@
 /// Reusable player-facing UI for PokeMap games and the PokeMap Hub.
 library;
 
+export 'package:map_runtime/map_runtime.dart'
+    show PlayerInputAction, PlayerInputSource;
 export 'player_surfaces.dart';
 export 'src/foundation/player_action_availability.dart';
 export 'src/foundation/player_asset_preloader.dart';
@@ -26,6 +28,7 @@ export 'src/player/player_startup_strings.dart';
 export 'src/player/player_title_prompt_surface.dart';
 export 'src/player/player_notification_overlay.dart';
 export 'src/player/player_pause_menu.dart';
+export 'src/player/player_pause_preview_shell.dart';
 export 'src/player/player_pc_overlay.dart';
 export 'src/player/player_post_battle_overlay.dart';
 export 'src/player/player_shop_overlay.dart';

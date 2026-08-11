@@ -23,7 +23,7 @@ void main() {
         'pause.layout',
         'pause.windows',
         'pause.typography',
-        'pause.labels',
+        'pause.actions',
         'dialogue.layout',
         'dialogue.windows',
         'dialogue.typography',

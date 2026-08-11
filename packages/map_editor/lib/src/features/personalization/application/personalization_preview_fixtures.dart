@@ -33,6 +33,109 @@ abstract final class PersonalizationPreviewFixtures {
           action: PlayerActionAvailability.enabled,
       };
 
+  static const pauseDetails = <PlayerPauseAction, PlayerPausePreviewDetailData>{
+    PlayerPauseAction.resume: PlayerPausePreviewDetailData(
+      action: PlayerPauseAction.resume,
+      title: 'Reprendre la partie',
+      message: 'Dans le jeu, cette commande ferme immédiatement le menu Pause.',
+    ),
+    PlayerPauseAction.party: PlayerPausePreviewDetailData(
+      action: PlayerPauseAction.party,
+      title: 'Équipe de démonstration',
+      message: 'Données de groupe fictives.',
+      entries: <PlayerPausePreviewEntryData>[
+        PlayerPausePreviewEntryData(
+          id: 'preview-party-brindibou',
+          title: 'Brindibou',
+          subtitle: 'Niveau 18 · En pleine forme',
+          trailingLabel: '52 / 52 PV',
+          progress: 1,
+        ),
+        PlayerPausePreviewEntryData(
+          id: 'preview-party-pikachu',
+          title: 'Pikachu',
+          subtitle: 'Niveau 16 · Paralysé',
+          trailingLabel: '27 / 43 PV',
+          progress: .63,
+        ),
+      ],
+    ),
+    PlayerPauseAction.bag: PlayerPausePreviewDetailData(
+      action: PlayerPauseAction.bag,
+      title: 'Sac de démonstration',
+      message: 'Objets fictifs.',
+      entries: <PlayerPausePreviewEntryData>[
+        PlayerPausePreviewEntryData(
+          id: 'preview-bag-potion',
+          title: 'Potion',
+          subtitle: 'Restaure 20 PV à un Pokémon.',
+          trailingLabel: '× 3',
+        ),
+        PlayerPausePreviewEntryData(
+          id: 'preview-bag-pokeball',
+          title: 'Poké Ball',
+          subtitle: 'Permet de capturer un Pokémon sauvage.',
+          trailingLabel: '× 6',
+        ),
+      ],
+    ),
+    PlayerPauseAction.pokedex: PlayerPausePreviewDetailData(
+      action: PlayerPauseAction.pokedex,
+      title: 'Pokédex de démonstration',
+      message: 'Entrées fictives.',
+      entries: <PlayerPausePreviewEntryData>[
+        PlayerPausePreviewEntryData(
+          id: 'preview-pokedex-roucool',
+          title: '#016 Roucool',
+          subtitle: 'Pokémon Minoiseau',
+          trailingLabel: 'Capturé',
+        ),
+        PlayerPausePreviewEntryData(
+          id: 'preview-pokedex-mystery',
+          title: '#025 ???',
+          subtitle: 'Silhouette aperçue',
+          trailingLabel: 'Vu',
+        ),
+      ],
+    ),
+    PlayerPauseAction.map: PlayerPausePreviewDetailData(
+      action: PlayerPauseAction.map,
+      title: 'Carte de démonstration',
+      message: 'Position actuelle : Route de Hanazuki',
+      entries: <PlayerPausePreviewEntryData>[
+        PlayerPausePreviewEntryData(
+          id: 'preview-map-village',
+          title: 'Village de Hanazuki',
+          subtitle: 'Dernière visite : aujourd’hui',
+          trailingLabel: 'Visité',
+        ),
+        PlayerPausePreviewEntryData(
+          id: 'preview-map-station',
+          title: 'Gare de Hanazuki',
+          subtitle: 'Destination principale',
+          trailingLabel: 'Nouveau',
+        ),
+      ],
+    ),
+    PlayerPauseAction.save: PlayerPausePreviewDetailData(
+      action: PlayerPauseAction.save,
+      title: 'Sauvegarder la partie',
+      message:
+          'Dans le jeu, cette commande enregistre la progression dans le slot actif.',
+    ),
+    PlayerPauseAction.options: PlayerPausePreviewDetailData(
+      action: PlayerPauseAction.options,
+      title: 'Options de démonstration',
+      message: 'Préférences fictives.',
+    ),
+    PlayerPauseAction.returnToTitle: PlayerPausePreviewDetailData(
+      action: PlayerPauseAction.returnToTitle,
+      title: 'Retourner à l’écran titre',
+      message:
+          'Dans le jeu, cette commande demande confirmation avant de quitter la partie.',
+    ),
+  };
+
   static const dialogue = PlayerDialogueViewData(
     revision: 1,
     mode: PlayerDialogueMode.line,

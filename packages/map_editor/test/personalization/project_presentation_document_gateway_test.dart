@@ -105,7 +105,15 @@ void main() {
       );
       final before = await gateway.read();
       const profile = ProjectPresentationProfile(
-        menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+        pause: ProjectPausePresentationProfile(
+          actions: <ProjectPauseActionProfile>[
+            ProjectPauseActionProfile(id: ProjectPauseActionId.resume),
+            ProjectPauseActionProfile(
+              id: ProjectPauseActionId.pokedex,
+              label: 'Carnet',
+            ),
+          ],
+        ),
       );
 
       final result = await gateway.save(

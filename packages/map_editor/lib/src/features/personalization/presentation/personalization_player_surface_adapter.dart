@@ -110,14 +110,14 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     final surface = switch (target) {
       PersonalizationStudioScene.title => _titleSurface(presentation),
       PersonalizationStudioScene.intro => _introSurface(),
-      PersonalizationStudioScene.pause => RuntimePlayerPauseShell.root(
+      PersonalizationStudioScene.pause => PlayerPausePreviewShell(
         key: const ValueKey<String>('personalization-pause-composition'),
         gameTitle: projectName,
         actions: PersonalizationPreviewFixtures.pauseActions,
         presentation: presentation.pausePresentation,
+        details: PersonalizationPreviewFixtures.pauseDetails,
         onSelected: (action) =>
             _target(PauseLabelsTarget(actionName: action.name)),
-        detail: const Center(child: Text('Sélectionnez une section')),
       ),
       PersonalizationStudioScene.dialogue => PlayerDialogueSurface(
         key: const ValueKey<String>('personalization-dialogue-composition'),

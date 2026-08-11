@@ -29,6 +29,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.logicalSelectionId,
     this.focusController,
     this.saveMessage,
+    this.detailTitle,
+    this.detailSurfaceRole,
     this.labels = const PlayerPauseMenuLabels(),
     this.presentation,
   });
@@ -44,6 +46,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.logicalSelectionId,
     this.focusController,
     this.saveMessage,
+    this.detailTitle,
+    this.detailSurfaceRole,
     this.labels = const PlayerPauseMenuLabels(),
     this.presentation,
   })  : pauseSection = RuntimePlayerPauseSection.root,
@@ -60,6 +64,8 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final String? logicalSelectionId;
   final RuntimePlayerFocusController? focusController;
   final String? saveMessage;
+  final String? detailTitle;
+  final ProjectPresentationSurfaceRole? detailSurfaceRole;
   final PlayerPauseMenuLabels labels;
   final PlayerPausePresentation? presentation;
 
@@ -313,7 +319,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     if (widget.pauseSection != RuntimePlayerPauseSection.root) {
       return PlayerPanel(
         role: PlayerPanelRole.menu,
-        surfaceRole: _surfaceRoleFor(widget.pauseSection),
+        surfaceRole:
+            widget.detailSurfaceRole ?? _surfaceRoleFor(widget.pauseSection),
         padding: panelPadding,
         child: _detailPane(context, layout),
       );
@@ -503,7 +510,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             Expanded(
               child: Text(
                 hasDetail
-                    ? _sectionLabel(context, widget.pauseSection)
+                    ? widget.detailTitle ??
+                        _sectionLabel(context, widget.pauseSection)
                     : _presentation.resolvedTitle(context.playerL10n),
                 style: Theme.of(context).textTheme.titleLarge,
               ),

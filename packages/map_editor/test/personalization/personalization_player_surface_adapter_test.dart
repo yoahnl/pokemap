@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
@@ -108,6 +109,132 @@ void main() {
     expect(find.byType(PlayerDialogueSurface), findsOneWidget);
     expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
     expect(find.byType(PlayerBattleSurface), findsOneWidget);
+  });
+
+  testWidgets('opens every pause action in a preview-only runtime detail', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final targetedActions = <String>[];
+    await tester.pumpWidget(
+      _app(
+        PersonalizationPlayerSurfaceAdapter(
+          profile: const ProjectPresentationProfile(
+            theme: safeProjectSemanticTheme,
+          ),
+          projectName: 'Aube',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.pause,
+          onTargeted: (target) {
+            if (target case PauseLabelsTarget(actionName: final actionName?)) {
+              targetedActions.add(actionName);
+            }
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (final action in PlayerPauseAction.values) {
+      final actionButton = find.byKey(ValueKey<String>('pause.${action.name}'));
+      await tester.ensureVisible(actionButton);
+      await tester.pumpAndSettle();
+      await tester.tap(actionButton);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
+      expect(
+        find.byKey(
+          ValueKey<String>('player-pause-preview-detail-${action.name}'),
+        ),
+        findsOneWidget,
+        reason: action.name,
+      );
+      expect(find.text('Aperçu uniquement'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('runtime-pause-back-to-root')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          ValueKey<String>('player-pause-preview-detail-${action.name}'),
+        ),
+        findsNothing,
+      );
+      final restoredButton = tester.widget<PlayerActionButton>(actionButton);
+      expect(restoredButton.selected, isTrue);
+      expect(
+        FocusManager.instance.primaryFocus,
+        same(restoredButton.focusNode),
+      );
+    }
+
+    expect(
+      targetedActions,
+      PlayerPauseAction.values.map((action) => action.name).toList(),
+    );
+  });
+
+  testWidgets('keeps pause keyboard and controller navigation operational', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app(_adapter(PersonalizationStudioScene.pause)));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('player-pause-preview-detail-resume')),
+      findsOneWidget,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<PlayerActionButton>(
+            find.byKey(const ValueKey<String>('pause.resume')),
+          )
+          .selected,
+      isTrue,
+    );
+
+    final actionsContext = tester.element(
+      find.byKey(const ValueKey<String>('runtime-player-actions-context')),
+    );
+    Actions.invoke(
+      actionsContext,
+      const RuntimePlayerLogicalIntent(
+        PlayerInputAction.down,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pumpAndSettle();
+    Actions.invoke(
+      actionsContext,
+      const RuntimePlayerLogicalIntent(
+        PlayerInputAction.confirm,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('player-pause-preview-detail-party')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<PlayerActionButton>(
+            find.byKey(const ValueKey<String>('pause.party')),
+          )
+          .selected,
+      isTrue,
+    );
   });
 
   testWidgets(
