@@ -893,7 +893,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-050 — Ressources de lecture Item
 
-- [ ] **Résultat :** itemCatalog, itemDefinition, itemUsage et itemReadiness sont queryables.
+- [x] **Résultat :** itemCatalog, itemDefinition, itemUsage et itemReadiness sont queryables.
 - **Fichiers à modifier :**
   - packages/map_authoring/lib/src/registry/resource_kind_registry.dart
   - packages/map_authoring/lib/src/workspace/project_query_service.dart
@@ -903,6 +903,8 @@ Résultat attendu : exit code 0 pour chaque commande.
   - packages/map_authoring/test/parity/full_authoring_parity_test.dart
 - **Gate :** list/get/search/summary, field masks, pagination et stabilité de révision.
 - **Dépendances :** ITM-014 et ITM-044.
+
+**Preuves ITM-050 :** le snapshot authoring charge le catalogue configuré `pokemon.catalogFiles.items` comme ressource cohérente, fingerprintée et liée à la révision. Un projet qui référence un objet sans catalogue canonique échoue en lecture stricte avec `project.item_catalog_missing`; la projection editor conserve un diagnostic réparable. `itemCatalog`, `itemDefinition`, `itemUsage` et `itemReadiness` sont enregistrés comme ressources queryables et projetés par `ProjectQueryService` avec recherche, filtres, field masks, pagination et chemins éditables issus de `ProjectItemReferenceIndex`. La parité PMCP-085 les exige désormais comme lectures directes. Les suites ciblées terminent avec 47 tests réussis et l’analyse ciblée ne signale aucun problème.
 
 ### ITM-051 — Mutations sémantiques Item
 

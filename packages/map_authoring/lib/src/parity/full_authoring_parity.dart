@@ -742,6 +742,10 @@ const _semanticOwners = <String, String>{
   'pokemonItem': 'pokemonDocument',
   'pokemonType': 'pokemonDocument',
   'pokemonCatalog': 'pokemonDocument',
+  'itemCatalog': 'itemCatalog',
+  'itemDefinition': 'itemCatalog',
+  'itemUsage': 'itemCatalog',
+  'itemReadiness': 'itemCatalog',
   'gameSave': 'sandboxPlayerState',
   'gamePackage': 'project',
 };
@@ -751,6 +755,10 @@ const _requiredDirectReadResourceKinds = <String>{
   'characterStudioCharacter',
   'characterStudioDependency',
   'characterStudioReadiness',
+  'itemCatalog',
+  'itemDefinition',
+  'itemUsage',
+  'itemReadiness',
   'mapConnection',
   'presentationPreviewContext',
 };

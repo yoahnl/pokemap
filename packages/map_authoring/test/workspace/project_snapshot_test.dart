@@ -146,6 +146,71 @@ void main() {
       );
     });
 
+    test('rejects a missing item catalog when the project references items',
+        () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_snapshot_items_missing_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await _writeProject(
+        sandbox,
+        mapEntries: const [],
+        maps: const [],
+        initialBag: const <Map<String, Object?>>[
+          <String, Object?>{'itemId': 'thread-charm', 'quantity': 1},
+        ],
+      );
+      final harness = await _SnapshotHarness.create(allowedRoot: sandbox);
+      final opened = await harness.openService.openProject(project.path);
+
+      await expectLater(
+        () => harness.loader.load(opened.projectHandle),
+        throwsA(
+          isA<ProjectSnapshotException>().having(
+            (error) => error.code,
+            'code',
+            'project.item_catalog_missing',
+          ),
+        ),
+      );
+    });
+
+    test('loads the strict item catalog into the coherent snapshot', () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_snapshot_items_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await _writeProject(
+        sandbox,
+        mapEntries: const [],
+        maps: const [],
+        itemCatalog: const <String, Object?>{
+          'schemaVersion': 1,
+          'entries': <Object?>[
+            <String, Object?>{
+              'id': 'thread-charm',
+              'displayName': 'Thread Charm',
+              'pocketId': 'custom',
+            },
+          ],
+        },
+      );
+      final harness = await _SnapshotHarness.create(allowedRoot: sandbox);
+      final opened = await harness.openService.openProject(project.path);
+
+      final snapshot = await harness.loader.load(opened.projectHandle);
+
+      expect(snapshot.itemCatalog!.entries.single.id, 'thread-charm');
+      expect(
+        snapshot.resourceFingerprints,
+        contains(itemCatalogResourceIdentity),
+      );
+      expect(
+        snapshot.resourceStorageKeys[itemCatalogResourceIdentity],
+        'data/pokemon/catalogs/items.json',
+      );
+    });
+
     test('rejects duplicate manifest map IDs', () async {
       final sandbox = await Directory.systemTemp.createTemp(
         'pokemap_snapshot_duplicate_',
@@ -423,6 +488,8 @@ Future<Directory> _writeProject(
   required List<Map<String, Object?>> maps,
   List<Map<String, Object?>> dialogueEntries = const [],
   Map<String, String> dialogueSources = const {},
+  List<Map<String, Object?>> initialBag = const [],
+  Map<String, Object?>? itemCatalog,
 }) async {
   final project = await Directory(_join(sandbox.path, 'project')).create();
   final mapsDirectory =
@@ -433,6 +500,7 @@ Future<Directory> _writeProject(
     'maps': mapEntries,
     'tilesets': <Object?>[],
     'dialogues': dialogueEntries,
+    'newGame': <String, Object?>{'initialBag': initialBag},
   };
   await File(_join(project.path, 'project.json'))
       .writeAsString(jsonEncode(manifest));
@@ -446,6 +514,13 @@ Future<Directory> _writeProject(
     final file = File(_join(project.path, entry.key));
     await file.parent.create(recursive: true);
     await file.writeAsString(entry.value);
+  }
+  if (itemCatalog != null) {
+    final file = File(
+      _join(project.path, 'data', 'pokemon', 'catalogs/items.json'),
+    );
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(itemCatalog));
   }
   return project;
 }

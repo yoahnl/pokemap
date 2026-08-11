@@ -596,6 +596,14 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
         for (final context in contexts)
           _QueryRecord(summary: context.summary, detail: context.detail),
       ];
+    case 'itemCatalog':
+      return _itemCatalogRecords(snapshot);
+    case 'itemDefinition':
+      return _itemDefinitionRecords(snapshot);
+    case 'itemUsage':
+      return _itemUsageRecords(snapshot);
+    case 'itemReadiness':
+      return _itemReadinessRecords(snapshot);
     case 'map':
       return [
         for (final map in snapshot.maps)
@@ -918,6 +926,210 @@ Map<String, Object?> _projectDetail(ProjectSnapshot snapshot) {
     ..['resourceKind'] = 'project';
   return detail;
 }
+
+List<_QueryRecord> _itemCatalogRecords(ProjectSnapshot snapshot) {
+  final catalog = snapshot.itemCatalog;
+  if (catalog == null) return const [];
+  final report = validateProjectItemCatalog(
+    catalog,
+    capabilityTruth: _itemAuthoringCapabilityTruth(catalog),
+  );
+  final summary = <String, Object?>{
+    'id': 'items',
+    'name': 'Items',
+    'resourceKind': 'itemCatalog',
+    'schemaVersion': catalog.schemaVersion,
+    'definitionCount': catalog.entries.length,
+    'blockingDiagnosticCount':
+        report.diagnostics.where((diagnostic) => diagnostic.isBlocking).length,
+  };
+  return <_QueryRecord>[
+    _QueryRecord(
+      summary: summary,
+      detail: <String, Object?>{
+        ...summary,
+        'catalog': encodeProjectItemCatalog(catalog),
+        'diagnostics': <Object?>[
+          for (final diagnostic in report.diagnostics)
+            _itemDiagnosticJson(diagnostic),
+        ],
+      },
+    ),
+  ];
+}
+
+List<_QueryRecord> _itemDefinitionRecords(ProjectSnapshot snapshot) {
+  final catalog = snapshot.itemCatalog;
+  if (catalog == null) return const [];
+  final index = buildProjectItemReferenceIndex(
+    project: snapshot.manifest,
+    maps: snapshot.maps,
+    itemCatalog: catalog,
+    additionalReferences: snapshot.additionalItemReferences,
+  );
+  return <_QueryRecord>[
+    for (final definition in catalog.entries)
+      _QueryRecord(
+        summary: <String, Object?>{
+          'id': definition.id,
+          'name': definition.displayName,
+          'resourceKind': 'itemDefinition',
+          'pocketId': definition.pocketId,
+          'buyPrice': definition.buyPrice,
+          'sellPrice': definition.sellPrice,
+          'hasOverworldUse': definition.uses.any(
+            (use) => use.contexts.contains(ProjectItemUseContext.overworld),
+          ),
+          'hasBattleUse': definition.uses.any(
+            (use) => use.contexts.contains(ProjectItemUseContext.battle),
+          ),
+          'hasCapture': definition.capture != null,
+          'hasMachine': definition.machine != null,
+          'hasHeldEffect': definition.heldEffectId != null,
+        },
+        detail: <String, Object?>{
+          ...definition.toJson(),
+          'name': definition.displayName,
+          'resourceKind': 'itemDefinition',
+          'usageCount': index.referencesFor(definition.id).length,
+          'blockingUsageCount':
+              index.blockingReferencesFor(definition.id).length,
+        },
+      ),
+  ];
+}
+
+List<_QueryRecord> _itemUsageRecords(ProjectSnapshot snapshot) {
+  final index = buildProjectItemReferenceIndex(
+    project: snapshot.manifest,
+    maps: snapshot.maps,
+    itemCatalog: snapshot.itemCatalog,
+    additionalReferences: snapshot.additionalItemReferences,
+  );
+  return <_QueryRecord>[
+    for (final reference in index.references)
+      _QueryRecord(
+        summary: <String, Object?>{
+          'id': _itemUsageId(reference),
+          'name': '${reference.itemId} — ${reference.kind.name}',
+          'resourceKind': 'itemUsage',
+          'itemId': reference.itemId,
+          'kind': reference.kind.name,
+          'sourceKind': reference.sourceKind,
+          'sourceId': reference.sourceId,
+          'blocksDeletion': reference.blocksDeletion,
+        },
+        detail: <String, Object?>{
+          'id': _itemUsageId(reference),
+          'name': '${reference.itemId} — ${reference.kind.name}',
+          'resourceKind': 'itemUsage',
+          'itemId': reference.itemId,
+          'kind': reference.kind.name,
+          'sourceKind': reference.sourceKind,
+          'sourceId': reference.sourceId,
+          'editablePath': reference.editablePath,
+          'blocksDeletion': reference.blocksDeletion,
+        },
+      ),
+  ];
+}
+
+List<_QueryRecord> _itemReadinessRecords(ProjectSnapshot snapshot) {
+  final catalog = snapshot.itemCatalog;
+  if (catalog == null) return const [];
+  final report = validateProjectItemCatalog(
+    catalog,
+    capabilityTruth: _itemAuthoringCapabilityTruth(catalog),
+  );
+  final index = buildProjectItemReferenceIndex(
+    project: snapshot.manifest,
+    maps: snapshot.maps,
+    itemCatalog: catalog,
+    additionalReferences: snapshot.additionalItemReferences,
+  );
+  final seen = <String>{};
+  return <_QueryRecord>[
+    for (final definition in catalog.entries)
+      if (seen.add(definition.id))
+        _itemReadinessRecord(definition, report, index),
+  ];
+}
+
+_QueryRecord _itemReadinessRecord(
+  ProjectItemDefinition definition,
+  ProjectItemCatalogValidationReport report,
+  ProjectItemReferenceIndex index,
+) {
+  final diagnostics = report.diagnostics
+      .where(
+        (diagnostic) =>
+            diagnostic.itemId == null || diagnostic.itemId == definition.id,
+      )
+      .toList(growable: false);
+  final ready = diagnostics.every((diagnostic) => !diagnostic.isBlocking);
+  final summary = <String, Object?>{
+    'id': definition.id,
+    'name': definition.displayName,
+    'resourceKind': 'itemReadiness',
+    'ready': ready,
+    'diagnosticCount': diagnostics.length,
+    'blockingUsageCount': index.blockingReferencesFor(definition.id).length,
+  };
+  return _QueryRecord(
+    summary: summary,
+    detail: <String, Object?>{
+      ...summary,
+      'diagnostics': <Object?>[
+        for (final diagnostic in diagnostics) _itemDiagnosticJson(diagnostic),
+      ],
+      'usages': <Object?>[
+        for (final reference in index.referencesFor(definition.id))
+          <String, Object?>{
+            'kind': reference.kind.name,
+            'sourceKind': reference.sourceKind,
+            'sourceId': reference.sourceId,
+            'editablePath': reference.editablePath,
+            'blocksDeletion': reference.blocksDeletion,
+          },
+      ],
+    },
+  );
+}
+
+ItemCapabilityTruth _itemAuthoringCapabilityTruth(ProjectItemCatalog catalog) {
+  return ItemCapabilityTruth(
+    supportedUseContexts: ProjectItemUseContext.values.toSet(),
+    supportedEffects: ProjectItemEffectCapability.values.toSet(),
+    supportedSemanticActionIds: <String>{
+      for (final definition in catalog.entries)
+        for (final use in definition.uses)
+          if (use.effect is ProjectItemSemanticActionEffectDefinition)
+            (use.effect as ProjectItemSemanticActionEffectDefinition).actionId,
+    },
+    supportedHeldEffectIds: <String>{
+      for (final definition in catalog.entries)
+        if (definition.heldEffectId != null) definition.heldEffectId!,
+    },
+    supportsCapture: true,
+    supportsMoveMachines: true,
+  );
+}
+
+Map<String, Object?> _itemDiagnosticJson(
+  ProjectItemCatalogDiagnostic diagnostic,
+) =>
+    <String, Object?>{
+      'code': diagnostic.code.name,
+      'severity': diagnostic.severity.name,
+      'message': diagnostic.message,
+      'path': diagnostic.path,
+      if (diagnostic.entryIndex != null) 'entryIndex': diagnostic.entryIndex,
+      if (diagnostic.itemId != null) 'itemId': diagnostic.itemId,
+    };
+
+String _itemUsageId(ProjectItemReference reference) =>
+    '${reference.itemId}:${reference.kind.name}:${reference.sourceKind}:'
+    '${reference.sourceId}:${reference.editablePath}';
 
 Map<String, Object?> _mapSummary(MapData map) => {
       'id': map.id,

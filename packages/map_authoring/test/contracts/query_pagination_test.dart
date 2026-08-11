@@ -177,6 +177,65 @@ void main() {
   });
 
   group('ProjectQueryService operations', () {
+    test('queries canonical item catalog definitions usages and readiness', () {
+      final snapshot = _snapshot(withItems: true);
+      const service = ProjectQueryService();
+
+      final catalog = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'itemCatalog',
+          operation: AuthoringQueryOperation.summary,
+          fieldMask: const ['definitionCount', 'schemaVersion'],
+        ),
+      );
+      final definitions = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'itemDefinition',
+          operation: AuthoringQueryOperation.search,
+          searchTerm: 'thread',
+          view: AuthoringQueryView.detail,
+          pageSize: 1,
+        ),
+      );
+      final usages = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'itemUsage',
+          operation: AuthoringQueryOperation.list,
+          filters: const {'itemId': 'custom-passive-thread'},
+          view: AuthoringQueryView.detail,
+        ),
+      );
+      final readiness = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'itemReadiness',
+          operation: AuthoringQueryOperation.get,
+          ids: const ['custom-passive-thread'],
+          view: AuthoringQueryView.detail,
+        ),
+      );
+
+      expect(catalog.items.single, {
+        'id': 'items',
+        'name': 'Items',
+        'resourceKind': 'itemCatalog',
+        'schemaVersion': 1,
+        'definitionCount': 2,
+      });
+      expect(definitions.totalAvailable, 1);
+      expect(definitions.items.single['id'], 'custom-passive-thread');
+      expect(definitions.items.single['pocketId'], 'custom');
+      expect(
+          usages.items.single['editablePath'], 'newGame.initialBag[0].itemId');
+      expect(usages.items.single['blocksDeletion'], isTrue);
+      expect(readiness.items.single['ready'], isTrue);
+      expect(readiness.items.single['diagnostics'], isEmpty);
+      expect(readiness.snapshotRevision, snapshot.revision);
+    });
+
     test('lists visual folders and categories as first-class resources', () {
       const service = ProjectQueryService();
       final snapshot = _snapshot();
@@ -743,6 +802,7 @@ ProjectSnapshot _snapshot({
   bool withConnections = false,
   bool withBrokenConnection = false,
   bool withGameplayZone = false,
+  bool withItems = false,
 }) {
   final maps = [
     _map(
@@ -827,6 +887,13 @@ ProjectSnapshot _snapshot({
     settings: ProjectSettings(
       mistralApiKey: withApiKey ? 'super-secret' : null,
     ),
+    newGame: withItems
+        ? const ProjectNewGameConfig(
+            initialBag: <BagEntry>[
+              BagEntry(itemId: 'custom-passive-thread', quantity: 1),
+            ],
+          )
+        : const ProjectNewGameConfig(),
   );
   return ProjectSnapshot(
     projectHandle: const ProjectHandle('prj_query'),
@@ -839,6 +906,25 @@ ProjectSnapshot _snapshot({
         'map:${map.id}':
             'sha256:${List.filled(64, map.id.codeUnitAt(0).isEven ? '2' : '3').join()}',
     },
+    itemCatalog: withItems
+        ? const ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: <ProjectItemDefinition>[
+              ProjectItemDefinition(
+                id: 'custom-passive-thread',
+                displayName: 'Thread Charm',
+                pocketId: 'custom',
+                buyPrice: 100,
+              ),
+              ProjectItemDefinition(
+                id: 'field-tonic',
+                displayName: 'Field Tonic',
+                pocketId: 'medicine',
+                buyPrice: 200,
+              ),
+            ],
+          )
+        : null,
   );
 }
 

@@ -450,6 +450,10 @@ final Set<String> _approvedResourceKinds = {
   'pokemonItem',
   'pokemonType',
   'pokemonCatalog',
+  'itemCatalog',
+  'itemDefinition',
+  'itemUsage',
+  'itemReadiness',
   'gameSave',
   'gamePackage',
 };

@@ -2,6 +2,8 @@ import 'package:map_core/map_core.dart';
 
 import 'workspace_handle_store.dart';
 
+const String itemCatalogResourceIdentity = 'itemCatalog';
+
 final class ProjectSnapshotException implements Exception {
   const ProjectSnapshotException(this.code, this.message);
 
@@ -51,11 +53,14 @@ final class ProjectSnapshot {
     required this.manifest,
     required Iterable<MapData> maps,
     required Map<String, String> resourceFingerprints,
+    ProjectItemCatalog? itemCatalog,
+    Iterable<ProjectItemReference> additionalItemReferences = const [],
     Map<String, List<int>> resourceBytes = const {},
     Map<String, ProjectResourceBytes> ownedResourceBytes = const {},
     Map<String, String> resourceStorageKeys = const {},
     Iterable<ProjectSnapshotLoadDiagnostic> loadDiagnostics = const [],
-  })  : maps = List.unmodifiable(
+  })  : itemCatalog = itemCatalog?.normalized(),
+        maps = List.unmodifiable(
           maps.toList()..sort((left, right) => left.id.compareTo(right.id)),
         ),
         resourceFingerprints = Map.unmodifiable(
@@ -64,6 +69,9 @@ final class ProjectSnapshot {
                   ..sort((left, right) => left.key.compareTo(right.key)))
                 .map((entry) => MapEntry(entry.key, entry.value)),
           ),
+        ),
+        additionalItemReferences = List.unmodifiable(
+          additionalItemReferences.map((reference) => reference.normalized()),
         ),
         _resourceBytes = _freezeResourceBytes(
           resourceBytes: resourceBytes,
@@ -135,6 +143,8 @@ final class ProjectSnapshot {
     required ProjectSnapshot source,
   })  : revision = source.revision,
         manifest = source.manifest,
+        itemCatalog = source.itemCatalog,
+        additionalItemReferences = source.additionalItemReferences,
         maps = source.maps,
         resourceFingerprints = source.resourceFingerprints,
         resourceStorageKeys = source.resourceStorageKeys,
@@ -151,6 +161,8 @@ final class ProjectSnapshot {
     required Map<String, List<int>> resourceBytes,
   })  : projectHandle = source.projectHandle,
         manifest = source.manifest,
+        itemCatalog = source.itemCatalog,
+        additionalItemReferences = source.additionalItemReferences,
         maps = List.unmodifiable(
           maps.toList()..sort((left, right) => left.id.compareTo(right.id)),
         ),
@@ -164,6 +176,8 @@ final class ProjectSnapshot {
   final ProjectHandle projectHandle;
   final String revision;
   final ProjectManifest manifest;
+  final ProjectItemCatalog? itemCatalog;
+  final List<ProjectItemReference> additionalItemReferences;
   final List<MapData> maps;
   final Map<String, String> resourceFingerprints;
   final Map<String, String> resourceStorageKeys;
