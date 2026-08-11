@@ -709,7 +709,7 @@ Résultat attendu : exit code 0 et All tests passed.
 
 ### ITM-033 — Key Item Gates
 
-- [ ] **Résultat :** les conditions gameplay interrogent les capacités du Bag sans consommer l’objet.
+- [x] **Résultat :** les conditions gameplay interrogent les capacités du Bag sans consommer l’objet.
 - **Fichiers à modifier :**
   - packages/map_gameplay/lib/src/game_state_mutations.dart
   - packages/map_runtime/lib/src/application/scene_runtime/scene_consequence_runtime_writer.dart
@@ -719,6 +719,8 @@ Résultat attendu : exit code 0 et All tests passed.
   - packages/map_gameplay/test/key_item_gate_test.dart
 - **Gate :** présence, absence, quantité, invendabilité et save/load sont prouvés.
 - **Dépendances :** ITM-021 et ITM-013.
+
+**Preuves ITM-033 :** `BagOperations.quantityOf` est désormais l'unique requête de quantité utilisée par `GameStateMutations`, `ScriptConditionEvaluator` et le writer de conséquences. Le scénario de porte interroge directement `itemQuantityAtLeast` : le pickup ne crée plus de flag miroir, l'ouverture ne consomme pas l'objet et la quantité reste stable. Un objet-clé synthétique dans un pocket libre prouve présence, absence, seuil de quantité, invendabilité malgré un prix de vente authoré et roundtrip save/load. Les suites ciblées terminent avec 33 tests gameplay et 38 tests runtime réussis ; les deux analyses ciblées ne remontent aucune issue.
 
 ### ITM-034 — Repel
 

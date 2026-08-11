@@ -9,7 +9,6 @@ const String _testMapId = 'test_map';
 const String _testLockedGateId = 'test_locked_gate';
 const String _testKeyPickupId = 'test_key_pickup';
 const String _testItemKeyId = 'test_item_key';
-const String _testKeyFact = 'test_key_fact';
 const String _testGateUnlockedFact = 'test_gate_unlocked_fact';
 const String _testGateUnlockedStep = 'test_step_gate_unlocked';
 
@@ -17,7 +16,7 @@ void main() {
   group('Key Item / Door Gate authoring readiness', () {
     const executor = ScenarioRuntimeExecutor();
 
-    test('door gate stays blocked without required key fact', () {
+    test('door gate stays blocked without required key item', () {
       var state = createNewGameState(startMapId: _testMapId);
       final messages = <String>[];
 
@@ -40,7 +39,7 @@ void main() {
       );
     });
 
-    test('bag key alone does not satisfy the derived fact gate', () {
+    test('bag key satisfies the gate without a derived story fact', () {
       var state = const GameState(
         saveId: 'test_save',
         currentMapId: _testMapId,
@@ -48,7 +47,6 @@ void main() {
           entries: [
             BagEntry(
               itemId: _testItemKeyId,
-              categoryId: 'items',
               quantity: 1,
             ),
           ],
@@ -63,15 +61,15 @@ void main() {
         messages: messages,
       );
 
-      expect(result.status, ScenarioRuntimeExecutionStatus.executedEffect);
-      expect(result.stopNodeId, 'test_gate_blocked_message');
-      expect(messages, ['test_blocked_dialogue']);
-      expect(
-          state.storyFlags.activeFlags, isNot(contains(_testGateUnlockedFact)));
+      expect(result.status, ScenarioRuntimeExecutionStatus.reachedEnd);
+      expect(result.stopNodeId, 'test_gate_end');
+      expect(messages, isEmpty);
+      expect(state.storyFlags.activeFlags, contains(_testGateUnlockedFact));
+      expect(state.bag.entries.single.quantity, 1);
     });
 
-    test('door gate opens with required key fact', () {
-      var state = _stateWithKeyFact();
+    test('door gate opens with required key item', () {
+      var state = _stateWithKeyItem();
 
       final result = _dispatchGate(
         executor,
@@ -84,7 +82,7 @@ void main() {
     });
 
     test('door gate can set unlock fact and complete step', () {
-      var state = _stateWithKeyFact();
+      var state = _stateWithKeyItem();
 
       _dispatchGate(
         executor,
@@ -97,7 +95,7 @@ void main() {
           state.progression.completedStepIds, contains(_testGateUnlockedStep));
     });
 
-    test('key pickup gives item and derives key fact', () {
+    test('key pickup gives the gate item without a parallel story fact', () {
       var state = createNewGameState(startMapId: _testMapId);
 
       final result = _dispatchKeyPickup(
@@ -109,11 +107,10 @@ void main() {
       expect(result.status, ScenarioRuntimeExecutionStatus.reachedEnd);
       expect(state.bag.entries.single.itemId, _testItemKeyId);
       expect(state.bag.entries.single.quantity, 1);
-      expect(state.storyFlags.activeFlags, contains(_testKeyFact));
+      expect(state.storyFlags.activeFlags, isEmpty);
     });
 
-    test('scenario can use giveItem result to unlock gate via fact pattern',
-        () {
+    test('scenario can use giveItem result to unlock the direct bag gate', () {
       var state = createNewGameState(startMapId: _testMapId);
 
       _dispatchKeyPickup(
@@ -134,7 +131,7 @@ void main() {
           state.progression.completedStepIds, contains(_testGateUnlockedStep));
     });
 
-    test('save/load preserves key item, key fact, and gate unlock state', () {
+    test('save/load preserves key item quantity and gate unlock state', () {
       var state = createNewGameState(startMapId: _testMapId);
       _dispatchKeyPickup(
         executor,
@@ -153,7 +150,6 @@ void main() {
 
       expect(reloaded.bag.entries.single.itemId, _testItemKeyId);
       expect(reloaded.bag.entries.single.quantity, 1);
-      expect(reloaded.storyFlags.activeFlags, contains(_testKeyFact));
       expect(reloaded.storyFlags.activeFlags, contains(_testGateUnlockedFact));
       expect(
         reloaded.progression.completedStepIds,
@@ -224,7 +220,6 @@ void main() {
         _testLockedGateId,
         _testKeyPickupId,
         _testItemKeyId,
-        _testKeyFact,
         _testGateUnlockedFact,
         _testGateUnlockedStep,
         _gateScenario().id,
@@ -283,11 +278,15 @@ ScenarioRuntimeExecutionContext _context({
   );
 }
 
-GameState _stateWithKeyFact() {
+GameState _stateWithKeyItem() {
   return const GameState(
     saveId: 'test_save',
     currentMapId: _testMapId,
-    storyFlags: StoryFlags(activeFlags: {_testKeyFact}),
+    bag: Bag(
+      entries: <BagEntry>[
+        BagEntry(itemId: _testItemKeyId, quantity: 1),
+      ],
+    ),
   );
 }
 
@@ -313,8 +312,11 @@ ScenarioAsset _gateScenario() {
         type: ScenarioNodeType.condition,
         payload: ScenarioNodePayload(
           condition: ScriptCondition(
-            type: ScriptConditionType.flagIsSet,
-            params: {ScriptConditionParams.flagName: _testKeyFact},
+            type: ScriptConditionType.itemQuantityAtLeast,
+            params: {
+              ScriptConditionParams.itemId: _testItemKeyId,
+              ScriptConditionParams.quantity: '1',
+            },
           ),
         ),
       ),
@@ -396,12 +398,6 @@ ScenarioAsset _keyPickupScenario() {
           params: {'itemId': _testItemKeyId, 'quantity': '1'},
         ),
       ),
-      const ScenarioNode(
-        id: 'test_set_key_fact',
-        type: ScenarioNodeType.action,
-        payload: ScenarioNodePayload(actionKind: kScenarioActionSetFlag),
-        binding: ScenarioNodeBinding(flagName: _testKeyFact),
-      ),
       const ScenarioNode(id: 'test_key_pickup_end', type: ScenarioNodeType.end),
     ],
     edges: [
@@ -410,10 +406,8 @@ ScenarioAsset _keyPickupScenario() {
         'test_source_key_pickup',
         'test_give_key_item',
       ),
-      _edge(
-          'test_edge_key_give_fact', 'test_give_key_item', 'test_set_key_fact'),
-      _edge(
-          'test_edge_key_fact_end', 'test_set_key_fact', 'test_key_pickup_end'),
+      _edge('test_edge_key_give_end', 'test_give_key_item',
+          'test_key_pickup_end'),
     ],
   );
 }

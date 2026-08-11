@@ -178,6 +178,10 @@ class GameStateMutations {
 
   static const _bagOperations = BagOperations();
 
+  int itemQuantity(GameState state, String itemId) {
+    return _bagOperations.quantityOf(state.bag, itemId);
+  }
+
   /// Définit un flag narratif à true.
   GameState setFlag(GameState state, String flagName) {
     final normalized = flagName.trim();
