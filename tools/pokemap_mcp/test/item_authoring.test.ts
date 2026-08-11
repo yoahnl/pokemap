@@ -14,6 +14,99 @@ import { createPokeMapMcpServer } from "../src/server.js";
 const repositoryRoot = resolve(process.cwd(), "../..");
 const authoringPackageRoot = resolve(repositoryRoot, "packages/map_authoring");
 
+const itemMutationScenarios = [
+  {
+    actionId: "item.create",
+    slug: "item-create",
+    parameters: {
+      definition: {
+        id: "field-tonic",
+        displayName: "Field Tonic",
+        pocketId: "medicine",
+        buyPrice: 300,
+      },
+    },
+  },
+  {
+    actionId: "item.update",
+    slug: "item-update",
+    parameters: {
+      itemId: "potion",
+      definition: {
+        id: "potion",
+        displayName: "Super Potion",
+        pocketId: "medicine",
+        buyPrice: 700,
+      },
+    },
+  },
+  {
+    actionId: "item.clone",
+    slug: "item-clone",
+    parameters: {
+      sourceItemId: "potion",
+      newItemId: "potion-copy",
+      displayName: "Potion Copy",
+    },
+  },
+  {
+    actionId: "item.delete_apply",
+    slug: "item-delete-apply",
+    parameters: { itemId: "discardable" },
+  },
+  {
+    actionId: "item.set_overworld_effect",
+    slug: "item-set-overworld-effect",
+    parameters: {
+      itemId: "potion",
+      use: {
+        contexts: ["overworld"],
+        target: "party_member",
+        consumption: "on_applied",
+        effect: { kind: "heal_hp", mode: "flat", amount: 20 },
+      },
+    },
+  },
+  {
+    actionId: "item.set_battle_effect",
+    slug: "item-set-battle-effect",
+    parameters: {
+      itemId: "potion",
+      use: {
+        contexts: ["battle"],
+        target: "party_member",
+        consumption: "on_applied",
+        effect: { kind: "heal_hp", mode: "flat", amount: 15 },
+      },
+    },
+  },
+  {
+    actionId: "item.set_held_effect",
+    slug: "item-set-held-effect",
+    parameters: { itemId: "potion", heldEffectId: "leftovers" },
+  },
+  {
+    actionId: "item.set_capture_effect",
+    slug: "item-set-capture-effect",
+    parameters: {
+      itemId: "potion",
+      capture: {
+        rateNumerator: 3,
+        rateDenominator: 2,
+        allowedEncounterKinds: ["walk"],
+      },
+    },
+  },
+  {
+    actionId: "item.set_tm_hm_move",
+    slug: "item-set-tm-hm-move",
+    parameters: {
+      itemId: "potion",
+      machine: { moveId: "cut", kind: "tm", consumable: true },
+    },
+  },
+] as const;
+
 function record(value: unknown): JsonRecord {
   assert.ok(value && typeof value === "object" && !Array.isArray(value));
   return value as JsonRecord;
@@ -31,12 +124,26 @@ async function toolData(
   return record(envelope.data);
 }
 
+async function toolFailure(
+  client: Client,
+  name: string,
+  args: JsonRecord,
+): Promise<JsonRecord> {
+  const result = await client.callTool({ name, arguments: args });
+  assert.equal(result.isError, true);
+  const envelope = record(result.structuredContent);
+  assert.equal(envelope.ok, false);
+  return record(envelope.error);
+}
+
 test("MCP describes queries and mutates canonical items", async () => {
   const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-items-"));
   await writeFixture(root);
   const authoring = new LocalAuthoringClient({
     allowedRoots: [root],
     authoringPackageRoot,
+    requestTimeoutMs: 60_000,
+    workerTimeoutMs: 30_000,
   });
   const server = createPokeMapMcpServer({
     authoring,
@@ -87,8 +194,8 @@ test("MCP describes queries and mutates canonical items", async () => {
       operation: "list",
       view: "detail",
     });
-    assert.equal(definitions.returned, 1);
-    const snapshotRevision = String(definitions.snapshotRevision);
+    assert.equal(definitions.returned, 2);
+    let snapshotRevision = String(definitions.snapshotRevision);
 
     const simulation = await toolData(client, "pokemap_query", {
       projectHandle,
@@ -106,33 +213,66 @@ test("MCP describes queries and mutates canonical items", async () => {
       "overworld",
     );
 
-    const planned = await toolData(client, "pokemap_plan", {
-      projectHandle,
-      request: {
-        requestId: "mcp-item-create",
-        actionId: "item.create",
-        actionVersion: 1,
-        workspaceHandle,
-        parameters: {
-          definition: {
-            id: "field-tonic",
-            displayName: "Field Tonic",
-            pocketId: "medicine",
-            buyPrice: 300,
-          },
+    const executedActions = new Set<string>();
+    const receiptIds = new Set<string>();
+    for (const scenario of itemMutationScenarios) {
+      const planned = await toolData(client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: `mcp-${scenario.slug}`,
+          actionId: scenario.actionId,
+          actionVersion: 1,
+          workspaceHandle,
+          parameters: scenario.parameters,
+          expectedRevision: snapshotRevision,
+          idempotencyKey: `mcp-${scenario.slug}`,
+          dryRun: false,
         },
-        expectedRevision: snapshotRevision,
-        idempotencyKey: "mcp-item-create",
-        dryRun: false,
-      },
-    });
-    const applied = await toolData(client, "pokemap_apply", {
-      operation: "apply",
-      projectHandle,
-      planId: String(planned.planId),
-      operationId: "operation-mcp-item-create",
-    });
-    assert.equal(record(applied.receipt).actionId, "item.create");
+      });
+      let confirmationToken: string | undefined;
+      if (scenario.actionId === "item.delete_apply") {
+        const confirmation = await toolData(client, "pokemap_apply", {
+          operation: "confirm",
+          projectHandle,
+          planId: String(planned.planId),
+        });
+        confirmationToken = String(confirmation.confirmationToken);
+      }
+      const applied = await toolData(client, "pokemap_apply", {
+        operation: "apply",
+        projectHandle,
+        planId: String(planned.planId),
+        operationId: `operation-mcp-${scenario.slug}`,
+        ...(confirmationToken ? { confirmationToken } : {}),
+      });
+      const receipt = record(applied.receipt);
+      assert.equal(receipt.actionId, scenario.actionId);
+      assert.equal(receipt.status, "applied");
+      assert.match(String(receipt.beforeRevision), /^sha256:[0-9a-f]{64}$/);
+      assert.match(String(receipt.afterRevision), /^sha256:[0-9a-f]{64}$/);
+      assert.notEqual(receipt.afterRevision, receipt.beforeRevision);
+      const appliedRevision = String(applied.snapshotRevision);
+      assert.notEqual(appliedRevision, snapshotRevision);
+
+      const queried = await toolData(client, "pokemap_query", {
+        projectHandle,
+        resourceKind: "itemDefinition",
+        operation: "list",
+        view: "detail",
+      });
+      snapshotRevision = String(queried.snapshotRevision);
+      assert.equal(snapshotRevision, appliedRevision);
+      const validation = await toolData(client, "pokemap_validate", {
+        projectHandle,
+      });
+      assert.equal(validation.snapshotRevision, snapshotRevision);
+      assert.equal(validation.valid, true);
+
+      executedActions.add(String(receipt.actionId));
+      receiptIds.add(String(receipt.receiptId));
+    }
+    assert.deepEqual(executedActions, new Set(mutationActions));
+    assert.equal(receiptIds.size, itemMutationScenarios.length);
 
     const created = await toolData(client, "pokemap_query", {
       projectHandle,
@@ -142,6 +282,58 @@ test("MCP describes queries and mutates canonical items", async () => {
       ids: ["field-tonic"],
     });
     assert.equal(record((created.items as JsonRecord[])[0]).displayName, "Field Tonic");
+
+    for (const refusal of [
+      {
+        slug: "stale",
+        actionId: "item.create",
+        parameters: {
+          definition: {
+            id: "stale-item",
+            displayName: "Stale Item",
+            pocketId: "custom",
+          },
+        },
+        expectedRevision: `sha256:${"0".repeat(64)}`,
+        domainCode: "plan.stale",
+      },
+      {
+        slug: "invalid-id",
+        actionId: "item.set_held_effect",
+        parameters: { itemId: " potion ", heldEffectId: "leftovers" },
+        expectedRevision: snapshotRevision,
+        domainCode: "item.parameter_invalid",
+      },
+      {
+        slug: "referenced-delete",
+        actionId: "item.delete_apply",
+        parameters: { itemId: "potion" },
+        expectedRevision: snapshotRevision,
+        domainCode: "item.delete_references_blocking",
+      },
+    ]) {
+      const error = await toolFailure(client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: `mcp-refusal-${refusal.slug}`,
+          actionId: refusal.actionId,
+          actionVersion: 1,
+          workspaceHandle,
+          parameters: refusal.parameters,
+          expectedRevision: refusal.expectedRevision,
+          idempotencyKey: `mcp-refusal-${refusal.slug}`,
+          dryRun: false,
+        },
+      });
+      assert.equal(error.domainCode, refusal.domainCode);
+      const afterRefusal = await toolData(client, "pokemap_query", {
+        projectHandle,
+        resourceKind: "itemDefinition",
+        operation: "list",
+        view: "detail",
+      });
+      assert.equal(afterRefusal.snapshotRevision, snapshotRevision);
+    }
 
     const closed = await toolData(client, "pokemap_workspace", {
       operation: "close",
@@ -180,6 +372,11 @@ async function writeFixture(root: string): Promise<void> {
           id: "potion",
           displayName: "Potion",
           pocketId: "medicine",
+        },
+        {
+          id: "discardable",
+          displayName: "Discardable",
+          pocketId: "custom",
         },
       ],
     }),

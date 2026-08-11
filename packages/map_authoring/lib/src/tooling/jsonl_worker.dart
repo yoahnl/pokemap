@@ -14,6 +14,7 @@ import '../domains/assets/asset_actions.dart';
 import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
 import '../domains/gameplay/character_studio/character_studio_action_support.dart';
+import '../domains/gameplay/item_catalog_actions.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
 import '../history/authoring_history.dart';
@@ -205,6 +206,14 @@ final class JsonlWorker {
         domainCode: error.code,
         message: error.message,
         remediation: error.remediation,
+        details: _safeDetails(error.details),
+      );
+    } on ItemCatalogAuthoringException catch (error) {
+      result = _failure(
+        requestId,
+        code: _itemDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
         details: _safeDetails(error.details),
       );
     } on AuthoringPlanException catch (error) {
@@ -668,6 +677,19 @@ AuthoringErrorCode _mapDomainErrorCode(String code) {
   }
   return AuthoringErrorCode.validationFailed;
 }
+
+AuthoringErrorCode _itemDomainErrorCode(String code) => switch (code) {
+      'item.definition_not_found' => AuthoringErrorCode.notFound,
+      'item.action_unsupported' => AuthoringErrorCode.unsupported,
+      'item.id_duplicate' ||
+      'item.identity_change_forbidden' ||
+      'item.parameter_invalid' ||
+      'item.parameters_invalid' ||
+      'item.use_context_mismatch' ||
+      'item.held_effect_invalid' =>
+        AuthoringErrorCode.invalidRequest,
+      _ => AuthoringErrorCode.validationFailed,
+    };
 
 AuthoringErrorCode _artifactDomainErrorCode(String code) => switch (code) {
       'artifact.source_outside_allowed_roots' =>
