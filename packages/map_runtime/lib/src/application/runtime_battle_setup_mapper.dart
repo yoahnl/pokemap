@@ -1,16 +1,15 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import 'battle_start_request.dart';
 import 'runtime_battle_combatant_seed_builder.dart';
 import 'runtime_battle_setup_exception.dart';
+import 'runtime_item_catalog_loader.dart';
 import 'runtime_map_bundle.dart';
 import 'runtime_move_catalog_loader.dart';
 
 export 'runtime_battle_setup_exception.dart' show RuntimeBattleSetupException;
-
-const _runtimeCapturePokeBallItemId = 'poke-ball';
-const _runtimeCapturePokeBallCategoryId = 'items';
 
 /// Mapper runtime unique vers [BattleSetup].
 ///
@@ -39,12 +38,16 @@ const _runtimeCapturePokeBallCategoryId = 'items';
 class RuntimeBattleSetupMapper {
   RuntimeBattleSetupMapper({
     RuntimeMoveCatalogLoader? moveCatalogLoader,
+    RuntimeItemCatalogLoader? itemCatalogLoader,
     RuntimeBattleCombatantSeedBuilder? combatantSeedBuilder,
   })  : moveCatalogLoader = moveCatalogLoader ?? RuntimeMoveCatalogLoader(),
+        itemCatalogLoader =
+            itemCatalogLoader ?? const RuntimeItemCatalogLoader(),
         combatantSeedBuilder =
             combatantSeedBuilder ?? RuntimeBattleCombatantSeedBuilder();
 
   final RuntimeMoveCatalogLoader moveCatalogLoader;
+  final RuntimeItemCatalogLoader itemCatalogLoader;
   final RuntimeBattleCombatantSeedBuilder combatantSeedBuilder;
 
   Future<BattleSetup> map({
@@ -52,7 +55,13 @@ class RuntimeBattleSetupMapper {
     required GameState gameState,
     required BattleStartRequest request,
     int? playerPartyIndex,
+    ItemCatalogSnapshot? itemCatalog,
   }) async {
+    final resolvedItemCatalog = itemCatalog ??
+        await itemCatalogLoader.loadSnapshot(
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
+        );
     final movesCatalog = await moveCatalogLoader.load(
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
@@ -206,7 +215,10 @@ class RuntimeBattleSetupMapper {
       //   storage minimal persistant ;
       // - aucune capture sans Poké Ball réelle dans le bag du joueur.
       allowCapture: request is WildBattleStartRequest &&
-          playerHasAtLeastOneRuntimePokeBall(gameState.bag),
+          playerHasAtLeastOneRuntimeCaptureItem(
+            gameState.bag,
+            ItemCapabilityResolver(resolvedItemCatalog),
+          ),
       allowFlee: request.allowsPlayerFlee,
     );
   }
@@ -342,11 +354,13 @@ final class _RuntimeBattleEnemyLineup {
 ///
 /// On tolère des IDs non normalisés en mémoire (`" poke-ball "`) pour rester
 /// robuste face à un état runtime pas encore passé par le pipeline save/load.
-bool playerHasAtLeastOneRuntimePokeBall(Bag bag) {
+bool playerHasAtLeastOneRuntimeCaptureItem(
+  Bag bag,
+  ItemCapabilityResolver resolver,
+) {
   for (final entry in bag.entries) {
-    if (entry.itemId.trim() == _runtimeCapturePokeBallItemId &&
-        entry.categoryId.trim() == _runtimeCapturePokeBallCategoryId &&
-        entry.quantity > 0) {
+    if (entry.quantity > 0 &&
+        resolver.definitionFor(entry.itemId)?.capture != null) {
       return true;
     }
   }

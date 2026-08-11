@@ -23,11 +23,14 @@ final class ItemCatalogSnapshot {
     );
   }
 
+  factory ItemCatalogSnapshot.empty() => ItemCatalogSnapshot.fromCatalog(
+        const ProjectItemCatalog(schemaVersion: 1, entries: []),
+      );
+
   final ProjectItemCatalog catalog;
   final Map<String, ProjectItemDefinition> _definitionsById;
 
-  Iterable<ProjectItemDefinition> get definitions =>
-      _definitionsById.values;
+  Iterable<ProjectItemDefinition> get definitions => _definitionsById.values;
 
   ProjectItemDefinition? definitionFor(String itemId) =>
       _definitionsById[itemId.trim()];

@@ -37,12 +37,10 @@ final class BattleBagMenuActionCapture extends BattleBagMenuAction {
 final class BattleBagMenuActionMedicineTarget extends BattleBagMenuAction {
   const BattleBagMenuActionMedicineTarget({
     required this.itemId,
-    required this.categoryId,
     required this.quantity,
   });
 
   final String itemId;
-  final String categoryId;
   final int quantity;
 }
 
@@ -50,7 +48,8 @@ class BattleBagMenuEntry {
   const BattleBagMenuEntry({
     required this.visualIndex,
     required this.itemId,
-    required this.categoryId,
+    required this.displayName,
+    required this.pocketId,
     required this.quantity,
     required this.kind,
     required this.isSelectable,
@@ -60,7 +59,8 @@ class BattleBagMenuEntry {
 
   final int visualIndex;
   final String itemId;
-  final String categoryId;
+  final String displayName;
+  final String pocketId;
   final int quantity;
   final BattleBagItemKind kind;
   final bool isSelectable;
@@ -85,6 +85,7 @@ class BattleBagMenuModel {
 BattleBagMenuModel buildBattleBagMenuModel({
   required GameState gameState,
   required BattleSession session,
+  required ItemCapabilityResolver resolver,
 }) {
   final normalizedBag = gameState.bag.normalized();
   final captureChoice = _captureChoiceFor(session.decisionRequest);
@@ -97,6 +98,7 @@ BattleBagMenuModel buildBattleBagMenuModel({
               gameState: gameState,
               session: session,
               captureChoice: captureChoice,
+              resolver: resolver,
             ),
           ),
     ),
@@ -118,9 +120,9 @@ List<BattleBagMenuEntry> _sortedBagEntriesForDisplay(
     if (rankCompare != 0) {
       return rankCompare;
     }
-    final categoryCompare = left.categoryId.compareTo(right.categoryId);
-    if (categoryCompare != 0) {
-      return categoryCompare;
+    final pocketCompare = left.pocketId.compareTo(right.pocketId);
+    if (pocketCompare != 0) {
+      return pocketCompare;
     }
     final itemCompare = left.itemId.compareTo(right.itemId);
     if (itemCompare != 0) {
@@ -155,8 +157,13 @@ BattleBagMenuEntry _buildEntry({
   required GameState gameState,
   required BattleSession session,
   required PlayerBattleChoiceCapture? captureChoice,
+  required ItemCapabilityResolver resolver,
 }) {
-  final kind = _classifyBagItem(bagEntry);
+  final definition = resolver.definitionFor(bagEntry.itemId);
+  final kind = classifyBattleBagItem(
+    itemId: bagEntry.itemId,
+    resolver: resolver,
+  );
 
   return switch (kind) {
     BattleBagItemKind.captureBall => _buildCaptureEntry(
@@ -165,16 +172,19 @@ BattleBagMenuEntry _buildEntry({
         gameState: gameState,
         session: session,
         captureChoice: captureChoice,
+        definition: definition!,
       ),
     BattleBagItemKind.medicine => _buildMedicineEntry(
         visualIndex: visualIndex,
         bagEntry: bagEntry,
         session: session,
+        definition: definition!,
       ),
     BattleBagItemKind.unsupported => BattleBagMenuEntry(
         visualIndex: visualIndex,
         itemId: bagEntry.itemId,
-        categoryId: bagEntry.categoryId,
+        displayName: definition?.displayName ?? bagEntry.itemId,
+        pocketId: definition?.pocketId ?? '',
         quantity: bagEntry.quantity,
         kind: kind,
         isSelectable: false,
@@ -190,12 +200,14 @@ BattleBagMenuEntry _buildCaptureEntry({
   required GameState gameState,
   required BattleSession session,
   required PlayerBattleChoiceCapture? captureChoice,
+  required ProjectItemDefinition definition,
 }) {
   final isSelectable = captureChoice != null;
   return BattleBagMenuEntry(
     visualIndex: visualIndex,
     itemId: bagEntry.itemId,
-    categoryId: bagEntry.categoryId,
+    displayName: definition.displayName,
+    pocketId: definition.pocketId,
     quantity: bagEntry.quantity,
     kind: BattleBagItemKind.captureBall,
     isSelectable: isSelectable,
@@ -213,25 +225,14 @@ BattleBagMenuEntry _buildMedicineEntry({
   required int visualIndex,
   required BagEntry bagEntry,
   required BattleSession session,
+  required ProjectItemDefinition definition,
 }) {
-  if (!_isSupportedMedicine(bagEntry)) {
-    return BattleBagMenuEntry(
-      visualIndex: visualIndex,
-      itemId: bagEntry.itemId,
-      categoryId: bagEntry.categoryId,
-      quantity: bagEntry.quantity,
-      kind: BattleBagItemKind.medicine,
-      isSelectable: false,
-      disabledReason: BattleBagMenuDisabledReason.unsupportedMedicine,
-      action: null,
-    );
-  }
-
   final bagAllowed = session.decisionRequest is BattleTurnChoiceRequest;
   return BattleBagMenuEntry(
     visualIndex: visualIndex,
     itemId: bagEntry.itemId,
-    categoryId: bagEntry.categoryId,
+    displayName: definition.displayName,
+    pocketId: definition.pocketId,
     quantity: bagEntry.quantity,
     kind: BattleBagItemKind.medicine,
     isSelectable: bagAllowed,
@@ -241,7 +242,6 @@ BattleBagMenuEntry _buildMedicineEntry({
     action: bagAllowed
         ? BattleBagMenuActionMedicineTarget(
             itemId: bagEntry.itemId,
-            categoryId: bagEntry.categoryId,
             quantity: bagEntry.quantity,
           )
         : null,
@@ -257,25 +257,32 @@ PlayerBattleChoiceCapture? _captureChoiceFor(BattleDecisionRequest request) {
   return null;
 }
 
-BattleBagItemKind _classifyBagItem(BagEntry bagEntry) {
-  if (bagEntry.itemId == 'poke-ball' && bagEntry.categoryId == 'items') {
+BattleBagItemKind classifyBattleBagItem({
+  required String itemId,
+  required ItemCapabilityResolver resolver,
+}) {
+  final definition = resolver.definitionFor(itemId);
+  if (definition == null) {
+    return BattleBagItemKind.unsupported;
+  }
+  if (definition.capture != null) {
     return BattleBagItemKind.captureBall;
   }
-  if (bagEntry.categoryId == 'medicine') {
+  final battleUse = resolver.resolveUse(
+    itemId: itemId,
+    context: ProjectItemUseContext.battle,
+  );
+  if (battleUse.isAvailable && _isMedicineEffect(battleUse.use!.effect)) {
     return BattleBagItemKind.medicine;
   }
   return BattleBagItemKind.unsupported;
 }
 
-bool _isSupportedMedicine(BagEntry bagEntry) {
-  if (bagEntry.categoryId != 'medicine') {
-    return false;
-  }
-  final effect =
-      const PlayerItemEffectRegistry.mvp().effectFor(bagEntry.itemId);
-  return effect?.kind == PlayerItemEffectKind.healHp ||
-      effect?.kind == PlayerItemEffectKind.cureStatus ||
-      effect?.kind == PlayerItemEffectKind.revive;
+bool _isMedicineEffect(ProjectItemEffectDefinition effect) {
+  return effect is ProjectItemHealHpEffectDefinition ||
+      effect is ProjectItemCureStatusEffectDefinition ||
+      effect is ProjectItemReviveEffectDefinition ||
+      effect is ProjectItemRestorePpEffectDefinition;
 }
 
 BattleBagMenuDisabledReason _captureDisabledReason({

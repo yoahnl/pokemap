@@ -595,7 +595,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-025 — Classifier par capacité canonique
 
-- [ ] **Résultat :** le menu battle et la capture utilisent exclusivement la définition canonique, sans categoryId ni fallback par itemId MVP.
+- [x] **Résultat :** le menu battle et la capture utilisent exclusivement la définition canonique, sans categoryId ni fallback par itemId MVP.
 - **Fichiers principaux :**
   - packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
   - packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart
@@ -608,6 +608,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 - **Règle :** categoryId est absent des entrées runtime et n’intervient dans aucun booléen de support.
 - **Gate :** les comportements heal, capture et consommation caractérisés dans ITM-001 restent verts sur le nouveau format.
 - **Dépendances :** ITM-014 et ITM-024.
+
+**Preuves ITM-025 :** le runtime charge un `ItemCatalogSnapshot` unique au boot et le transmet au menu battle, aux mappers legacy/PSDK et à l'application générique des medicines. La classification lit `capture` et les `uses` battle de la définition canonique ; un objet nommé `poke-ball` sans capacité de capture reste unsupported, tandis qu'une Ball synthétique dans un pocket arbitraire est reconnue. Les entrées et actions battle n'exposent plus `categoryId`, et les trois suites ciblées totalisent 22 tests réussis. L'analyse statique ciblée des six fichiers de classification/chargement termine sans issue.
 
 ### ITM-026 — Unifier les valeurs des effets MVP
 

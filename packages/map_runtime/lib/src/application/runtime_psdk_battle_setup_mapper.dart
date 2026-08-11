@@ -1,10 +1,12 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import 'battle_start_request.dart';
 import 'runtime_battle_combatant_seed_builder.dart';
 import 'runtime_battle_setup_mapper.dart';
 import 'runtime_map_bundle.dart';
+import 'runtime_item_catalog_loader.dart';
 import 'runtime_move_catalog_loader.dart';
 
 /// Mapper runtime vers le setup de combat PSDK.
@@ -15,12 +17,16 @@ import 'runtime_move_catalog_loader.dart';
 final class RuntimePsdkBattleSetupMapper {
   RuntimePsdkBattleSetupMapper({
     RuntimeMoveCatalogLoader? moveCatalogLoader,
+    RuntimeItemCatalogLoader? itemCatalogLoader,
     RuntimeBattleCombatantSeedBuilder? combatantSeedBuilder,
   })  : moveCatalogLoader = moveCatalogLoader ?? RuntimeMoveCatalogLoader(),
+        itemCatalogLoader =
+            itemCatalogLoader ?? const RuntimeItemCatalogLoader(),
         combatantSeedBuilder =
             combatantSeedBuilder ?? RuntimeBattleCombatantSeedBuilder();
 
   final RuntimeMoveCatalogLoader moveCatalogLoader;
+  final RuntimeItemCatalogLoader itemCatalogLoader;
   final RuntimeBattleCombatantSeedBuilder combatantSeedBuilder;
 
   Future<PsdkBattleSetup> map({
@@ -28,7 +34,13 @@ final class RuntimePsdkBattleSetupMapper {
     required GameState gameState,
     required BattleStartRequest request,
     int? playerPartyIndex,
+    ItemCatalogSnapshot? itemCatalog,
   }) async {
+    final resolvedItemCatalog = itemCatalog ??
+        await itemCatalogLoader.loadSnapshot(
+          projectRootDirectory: bundle.projectRootDirectory,
+          pokemonConfig: bundle.manifest.pokemon,
+        );
     final movesCatalog = await moveCatalogLoader.load(
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
@@ -183,7 +195,10 @@ final class RuntimePsdkBattleSetupMapper {
       ),
       canFlee: request.allowsPlayerFlee,
       canCapture: request is WildBattleStartRequest &&
-          playerHasAtLeastOneRuntimePokeBall(gameState.bag),
+          playerHasAtLeastOneRuntimeCaptureItem(
+            gameState.bag,
+            ItemCapabilityResolver(resolvedItemCatalog),
+          ),
       isTrainerBattle: request is TrainerBattleStartRequest,
     );
   }

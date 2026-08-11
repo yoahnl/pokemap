@@ -436,6 +436,7 @@ class BattleOverlayComponent extends PositionComponent {
     this.onBagHpHealItemUseRequested,
     this.onCommandOverlaySnapshotChanged,
     GameState gameState = const GameState(saveId: 'battle-overlay'),
+    ItemCapabilityResolver? itemCapabilityResolver,
     this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
     this.spriteResolver,
     this.visualAssetCache,
@@ -450,6 +451,8 @@ class BattleOverlayComponent extends PositionComponent {
     bool allowMedicineReserveTargets = true,
   })  : _session = session,
         _gameState = gameState,
+        _itemCapabilityResolver = itemCapabilityResolver ??
+            ItemCapabilityResolver(ItemCatalogSnapshot.empty()),
         _moveCatalog = moveCatalog ??
             RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
         _fxBundleCache = fxBundleCache ?? BattleFxBundleCache(),
@@ -467,6 +470,7 @@ class BattleOverlayComponent extends PositionComponent {
 
   BattleSession _session;
   GameState _gameState;
+  final ItemCapabilityResolver _itemCapabilityResolver;
 
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
   final bool Function(
@@ -1969,12 +1973,20 @@ class BattleOverlayComponent extends PositionComponent {
     return buildBattleBagMenuModel(
       gameState: _gameState,
       session: _session,
+      resolver: _itemCapabilityResolver,
     );
   }
 
   BattleMedicineTargetMenuModel? _currentMedicineTargetMenuModel() {
     final selectedMedicineAction = _selectedMedicineAction;
     if (selectedMedicineAction == null) {
+      return null;
+    }
+    final capability = _itemCapabilityResolver.resolveUse(
+      itemId: selectedMedicineAction.itemId,
+      context: ProjectItemUseContext.battle,
+    );
+    if (!capability.isAvailable) {
       return null;
     }
     // Le ciblage medicine reste borné à la vérité battle courante :
@@ -1984,7 +1996,7 @@ class BattleOverlayComponent extends PositionComponent {
     return buildBattleMedicineTargetMenuModel(
       session: _session,
       itemId: selectedMedicineAction.itemId,
-      categoryId: selectedMedicineAction.categoryId,
+      use: capability.use!,
       isTargetAllowed: (combatant) =>
           _allowMedicineReserveTargets ||
           combatant.lineupIndex == _session.state.player.lineupIndex,

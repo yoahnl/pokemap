@@ -7,7 +7,6 @@ import 'runtime_battle_status_bridge.dart';
 import 'story_flags_manager.dart';
 
 const _runtimeCapturePokeBallItemId = 'poke-ball';
-const _runtimeCapturePokeBallCategoryId = 'items';
 
 /// Contexte runtime strictement nécessaire pour faire le write-back post-combat.
 ///
@@ -195,7 +194,10 @@ RuntimeBattleCaptureAttemptSubmission<T> submitRuntimeBattleCaptureAttempt<T>({
           null) {
     throw StateError('Pokemon storage is full. Capture cannot be attempted.');
   }
-  final chargedBag = _consumeOnePokeBallOrThrow(gameState.bag);
+  final chargedBag = _consumeOneCaptureItemOrThrow(
+    gameState.bag,
+    _runtimeCapturePokeBallItemId,
+  );
   final result = submitToEngine();
   final captureAttempt = switch (result) {
     BattleSession session => _extractLegacyBattleCaptureAttempt(session),
@@ -542,14 +544,12 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
 /// - aucune UI d'inventaire n'est ouverte ;
 /// - aucun autre item n'est touché ;
 /// - aucune entrée à quantité 0 ne doit survivre, car `BagEntry` l'interdit.
-Bag _consumeOnePokeBallOrThrow(Bag bag) {
+Bag _consumeOneCaptureItemOrThrow(Bag bag, String itemId) {
   final nextEntries = <BagEntry>[];
   var didConsumePokeBall = false;
 
   for (final entry in bag.entries) {
-    final isCaptureBall =
-        entry.itemId.trim() == _runtimeCapturePokeBallItemId &&
-            entry.categoryId.trim() == _runtimeCapturePokeBallCategoryId;
+    final isCaptureBall = entry.itemId.trim() == itemId;
     if (!isCaptureBall || didConsumePokeBall) {
       nextEntries.add(entry);
       continue;

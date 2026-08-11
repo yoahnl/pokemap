@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_battle_setup_exception.dart';
@@ -32,6 +33,19 @@ final class RuntimeItemCatalogLoader {
         debugDetails: 'file=${file.path}, error=$error',
       );
     }
+  }
+
+  Future<ItemCatalogSnapshot> loadSnapshot({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+  }) async {
+    final catalog = await load(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+    );
+    return catalog == null
+        ? ItemCatalogSnapshot.empty()
+        : ItemCatalogSnapshot.fromCatalog(catalog);
   }
 
   Future<ProjectItemDefinition?> loadDefinition({

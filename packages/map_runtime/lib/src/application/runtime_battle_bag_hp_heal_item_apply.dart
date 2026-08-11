@@ -5,7 +5,6 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'runtime_battle_outcome_apply.dart';
 import 'runtime_psdk_battle_session_adapter.dart';
 
-const _runtimeBattleMedicineCategoryId = 'medicine';
 const _runtimeBattlePotionHealAmount = 20;
 const _runtimeBattleSuperPotionHealAmount = 50;
 const _runtimeBattleHyperPotionHealAmount = 200;
@@ -60,11 +59,13 @@ class RuntimePsdkBattleItemApplyResult {
   final BattleSession updatedDisplaySession;
   final GameState updatedGameState;
   final String itemId;
-  final PlayerItemEffectKind effectKind;
+  final RuntimeBattleItemEffectKind effectKind;
   final String targetSpeciesId;
   final int targetLineupIndex;
   final int appliedAmount;
 }
+
+enum RuntimeBattleItemEffectKind { healHp, cureStatus, revive, restorePp }
 
 /// Runtime owner du mini-slice BAG HP-heal battle.
 ///
@@ -159,6 +160,7 @@ RuntimePsdkBattleBagHpHealItemApplyResult?
   required String itemId,
   required int targetLineupIndex,
   required bool isTrainerBattle,
+  required ItemCatalogSnapshot itemCatalog,
   String? trainerId,
   bool allowCapture = false,
 }) {
@@ -176,8 +178,10 @@ RuntimePsdkBattleBagHpHealItemApplyResult?
     isTrainerBattle: isTrainerBattle,
     trainerId: trainerId,
     allowCapture: allowCapture,
+    itemCatalog: itemCatalog,
   );
-  if (generic == null || generic.effectKind != PlayerItemEffectKind.healHp) {
+  if (generic == null ||
+      generic.effectKind != RuntimeBattleItemEffectKind.healHp) {
     return null;
   }
 
@@ -199,21 +203,23 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
   required String itemId,
   required int targetLineupIndex,
   required bool isTrainerBattle,
+  required ItemCatalogSnapshot itemCatalog,
   String? trainerId,
   bool allowCapture = false,
-  PlayerItemEffectRegistry registry = const PlayerItemEffectRegistry.mvp(),
 }) {
   if (psdkSession.decisionRequest.kind !=
       BattleEngineDecisionRequestKind.turnChoice) {
     return null;
   }
-  final effect = registry.effectFor(itemId);
-  if (effect == null ||
-      (effect.kind != PlayerItemEffectKind.healHp &&
-          effect.kind != PlayerItemEffectKind.cureStatus &&
-          effect.kind != PlayerItemEffectKind.revive)) {
+  final capability = ItemCapabilityResolver(itemCatalog).resolveUse(
+    itemId: itemId,
+    context: ProjectItemUseContext.battle,
+  );
+  if (!capability.isAvailable ||
+      !_isSupportedBattleMedicineEffect(capability.use!.effect)) {
     return null;
   }
+  final effect = capability.use!.effect;
   if (!_hasMedicineAvailable(bag: gameState.bag, itemId: itemId)) {
     return null;
   }
@@ -279,7 +285,7 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     updatedDisplaySession: updatedDisplaySession,
     updatedGameState: updatedGameState,
     itemId: itemId,
-    effectKind: effect.kind,
+    effectKind: _runtimeEffectKind(effect),
     targetSpeciesId: targetAfter.speciesId,
     targetLineupIndex: targetLineupIndex,
     appliedAmount: (targetAfter.currentHp - targetBefore.currentHp).clamp(
@@ -408,8 +414,7 @@ bool _hasBagHpHealItemAvailable({
   required _RuntimeBattleBagHpHealItemSpec itemSpec,
 }) {
   for (final entry in bag.normalized().entries) {
-    if (entry.itemId == itemSpec.itemId &&
-        entry.categoryId == _runtimeBattleMedicineCategoryId) {
+    if (entry.itemId == itemSpec.itemId && entry.quantity > 0) {
       return true;
     }
   }
@@ -424,8 +429,7 @@ Bag _consumeOneBagHpHealItemOrThrow({
   var consumed = false;
 
   for (final entry in bag.normalized().entries) {
-    final isRequestedItem = entry.itemId == itemSpec.itemId &&
-        entry.categoryId == _runtimeBattleMedicineCategoryId;
+    final isRequestedItem = entry.itemId == itemSpec.itemId;
     if (!isRequestedItem) {
       nextEntries.add(entry);
       continue;
@@ -457,10 +461,7 @@ bool _hasMedicineAvailable({
   required String itemId,
 }) {
   return bag.normalized().entries.any(
-        (entry) =>
-            entry.itemId == itemId &&
-            entry.categoryId == _runtimeBattleMedicineCategoryId &&
-            entry.quantity > 0,
+        (entry) => entry.itemId == itemId && entry.quantity > 0,
       );
 }
 
@@ -471,9 +472,7 @@ Bag _consumeOneMedicineOrThrow({
   final nextEntries = <BagEntry>[];
   var consumed = false;
   for (final entry in bag.normalized().entries) {
-    if (!consumed &&
-        entry.itemId == itemId &&
-        entry.categoryId == _runtimeBattleMedicineCategoryId) {
+    if (!consumed && entry.itemId == itemId) {
       consumed = true;
       if (entry.quantity > 1) {
         nextEntries.add(entry.copyWith(quantity: entry.quantity - 1));
@@ -491,39 +490,43 @@ Bag _consumeOneMedicineOrThrow({
 }
 
 PsdkBattleItemActionEffect? _battleItemEffectFor({
-  required PlayerItemEffectDefinition effect,
+  required ProjectItemEffectDefinition effect,
   required PsdkBattleCombatant target,
 }) {
-  return switch (effect.kind) {
-    PlayerItemEffectKind.healHp =>
+  return switch (effect) {
+    ProjectItemHealHpEffectDefinition() =>
       target.isFainted || target.currentHp >= target.maxHp
           ? null
-          : effect.amount >= 0x7fffffff
+          : effect.mode == ProjectItemAmountMode.full
               ? const PsdkBattleHpHealItemEffect.full()
-              : PsdkBattleHpHealItemEffect.flat(effect.amount),
-    PlayerItemEffectKind.cureStatus => _statusCureEffectFor(
+              : PsdkBattleHpHealItemEffect.flat(effect.amount!),
+    ProjectItemCureStatusEffectDefinition() => _statusCureEffectFor(
         effect: effect,
         target: target,
       ),
-    PlayerItemEffectKind.revive => target.isFainted
-        ? PsdkBattleReviveItemEffect(percent: effect.revivePercent)
+    ProjectItemReviveEffectDefinition() => target.isFainted
+        ? PsdkBattleReviveItemEffect(
+            percent: (100 * effect.rateNumerator ~/ effect.rateDenominator)
+                .clamp(1, 100),
+          )
         : null,
-    PlayerItemEffectKind.restorePp ||
-    PlayerItemEffectKind.keyItem ||
-    PlayerItemEffectKind.ballMetadata =>
+    ProjectItemRestorePpEffectDefinition() ||
+    ProjectItemRepelEffectDefinition() ||
+    ProjectItemSemanticActionEffectDefinition() =>
       null,
+    _ => null,
   };
 }
 
 PsdkBattleStatusCureItemEffect? _statusCureEffectFor({
-  required PlayerItemEffectDefinition effect,
+  required ProjectItemCureStatusEffectDefinition effect,
   required PsdkBattleCombatant target,
 }) {
   final status = target.majorStatus;
   if (status == null || target.isFainted) {
     return null;
   }
-  if (effect.curesAnyStatus) {
+  if (effect.mode == ProjectItemStatusCureMode.all) {
     return const PsdkBattleStatusCureItemEffect.any();
   }
   final statuses = effect.statusIds
@@ -534,6 +537,30 @@ PsdkBattleStatusCureItemEffect? _statusCureEffectFor({
     return null;
   }
   return PsdkBattleStatusCureItemEffect.only(statuses);
+}
+
+bool _isSupportedBattleMedicineEffect(ProjectItemEffectDefinition effect) {
+  return effect is ProjectItemHealHpEffectDefinition ||
+      effect is ProjectItemCureStatusEffectDefinition ||
+      effect is ProjectItemReviveEffectDefinition ||
+      effect is ProjectItemRestorePpEffectDefinition;
+}
+
+RuntimeBattleItemEffectKind _runtimeEffectKind(
+  ProjectItemEffectDefinition effect,
+) {
+  return switch (effect) {
+    ProjectItemHealHpEffectDefinition() => RuntimeBattleItemEffectKind.healHp,
+    ProjectItemCureStatusEffectDefinition() =>
+      RuntimeBattleItemEffectKind.cureStatus,
+    ProjectItemReviveEffectDefinition() => RuntimeBattleItemEffectKind.revive,
+    ProjectItemRestorePpEffectDefinition() =>
+      RuntimeBattleItemEffectKind.restorePp,
+    ProjectItemRepelEffectDefinition() ||
+    ProjectItemSemanticActionEffectDefinition() =>
+      throw StateError('Unsupported battle item effect.'),
+    _ => throw StateError('Unsupported battle item effect.'),
+  };
 }
 
 PsdkBattleMajorStatus? _psdkStatusForGameplayItemStatus(String statusId) {

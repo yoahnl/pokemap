@@ -527,6 +527,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final GridPathfinder _followPathfinder = const GridPathfinder();
   final RuntimeMoveCatalogLoader _battleMoveCatalogLoader =
       RuntimeMoveCatalogLoader();
+  final RuntimeItemCatalogLoader _runtimeItemCatalogLoader =
+      const RuntimeItemCatalogLoader();
+  ItemCatalogSnapshot _itemCatalogSnapshot = ItemCatalogSnapshot.empty();
   final RuntimePokemonSpeciesLoader _battleSpeciesLoader =
       RuntimePokemonSpeciesLoader();
   late final RuntimePokemonLearnsetLoader _battleLearnsetLoader =
@@ -3494,6 +3497,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final hydratedGameState =
           _hydrateOwnedPlayerPokemonProgression(_gameState);
       final rootBorderAssets = _loadBorderRuntimeAssets(_bundle);
+      final itemCatalog = _runtimeItemCatalogLoader.loadSnapshot(
+        projectRootDirectory: _bundle.projectRootDirectory,
+        pokemonConfig: _bundle.manifest.pokemon,
+      );
       debugPrint(
           '[runtime_game] tileset image load start map=${_bundle.map.id}');
       final tilesetImages =
@@ -3503,6 +3510,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           hydratedGameState,
           rootBorderAssets,
           tilesetImages,
+          itemCatalog,
         ],
         eagerError: false,
       );
@@ -3510,6 +3518,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final loadedRootBorderAssets =
           bootResources[1]! as BorderRuntimeAssetBundle;
       final images = bootResources[2]! as Map<String, RuntimeTilesetImage>;
+      _itemCatalogSnapshot = bootResources[3]! as ItemCatalogSnapshot;
       await afterInitialTilesetImagesLoaded?.call();
       if (_isRemoved) return;
       // The coordinator was constructed before asynchronous catalogue loading.
@@ -7601,6 +7610,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           visualAssetCache: _battleVisualAssetCache,
           fxBundleCache: _battleFxBundleCache,
           bagItemIconResolver: _battleBagItemIconResolver,
+          itemCapabilityResolver: ItemCapabilityResolver(
+            _itemCatalogSnapshot,
+          ),
           genderResolver: genderResolver,
           onPlayerChoice: _onPlayerBattleChoice,
           onBagHpHealItemUseRequested: _onBattleBagHpHealItemUseRequested,
@@ -7651,6 +7663,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       gameState: _battleRuntimeGameState,
       request: request,
       playerPartyIndex: playerPartyIndex,
+      itemCatalog: _itemCatalogSnapshot,
     );
   }
 
@@ -7663,12 +7676,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       gameState: _battleRuntimeGameState,
       request: request,
       playerPartyIndex: playerPartyIndex,
+      itemCatalog: _itemCatalogSnapshot,
     );
   }
 
   bool _battleRequestAllowsCapture(BattleStartRequest? request) {
     return request is WildBattleStartRequest &&
-        playerHasAtLeastOneRuntimePokeBall(_battleRuntimeGameState.bag);
+        playerHasAtLeastOneRuntimeCaptureItem(
+          _battleRuntimeGameState.bag,
+          ItemCapabilityResolver(_itemCatalogSnapshot),
+        );
   }
 
   void _cancelBattleHandoff({
@@ -7911,6 +7928,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           isTrainerBattle: isTrainerBattle,
           trainerId: trainerId,
           allowCapture: _battleRequestAllowsCapture(request),
+          itemCatalog: _itemCatalogSnapshot,
         );
         if (result == null) {
           return false;

@@ -7,6 +7,8 @@ import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_appl
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 
+final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
+
 void main() {
   group('runtime generic battle items v0', () {
     test('antidote clears a compatible status then consumes one item', () {
@@ -41,6 +43,7 @@ void main() {
         targetLineupIndex: 0,
         isTrainerBattle: true,
         trainerId: 'trainer',
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -89,6 +92,7 @@ void main() {
         targetLineupIndex: 1,
         isTrainerBattle: true,
         trainerId: 'trainer',
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNotNull);
@@ -136,6 +140,7 @@ void main() {
         targetLineupIndex: 0,
         isTrainerBattle: true,
         trainerId: 'trainer',
+        itemCatalog: _itemCatalog,
       );
 
       expect(result, isNull);
@@ -218,7 +223,7 @@ GameState _gameState({
     saveId: 'generic-battle-items-v0',
     bag: Bag(
       entries: <BagEntry>[
-        BagEntry(itemId: itemId, categoryId: 'medicine', quantity: 1),
+        BagEntry(itemId: itemId, quantity: 1),
       ],
     ),
     party: PlayerParty(members: members),
