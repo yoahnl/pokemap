@@ -53,6 +53,42 @@ void main() {
     expect(find.text('Toujours visible'), findsOneWidget);
   });
 
+  testWidgets('keeps the required new game action visible when publishing', (
+    tester,
+  ) async {
+    ProjectTitlePresentationProfile? changed;
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: ProjectTitleActionsEditor(
+            profile: const ProjectTitlePresentationProfile(
+              actions: <ProjectTitleActionProfile>[
+                ProjectTitleActionProfile(
+                  id: ProjectTitleActionId.newGame,
+                  visible: false,
+                ),
+                ProjectTitleActionProfile(id: ProjectTitleActionId.options),
+              ],
+            ),
+            onChanged: (profile) => changed = profile,
+          ),
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('title-action-label-newGame')),
+      'Commencer',
+    );
+
+    expect(
+      changed?.actions
+          ?.singleWhere((action) => action.id == ProjectTitleActionId.newGame)
+          .visible,
+      isTrue,
+    );
+  });
+
   testWidgets('authors title copy and exposes the project-name fallback', (
     tester,
   ) async {
