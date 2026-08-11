@@ -76,6 +76,101 @@ void main() {
     );
   });
 
+  testWidgets('keeps advanced controls behind Plus de réglages', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var section = PersonalizationGlobalStyleSection.colors;
+    late StateSetter setHostState;
+    await tester.pumpWidget(
+      _app(
+        StatefulBuilder(
+          builder: (context, setState) {
+            setHostState = setState;
+            return SingleChildScrollView(
+              child: PersonalizationGlobalStyleInspector(
+                profile: const ProjectPresentationProfile(
+                  theme: safeProjectSemanticTheme,
+                ),
+                section: section,
+                onSectionChanged: (value) {
+                  setHostState(() => section = value);
+                },
+                onEditAccent: () {},
+                onEditThemeToken: (_) {},
+                onUseSafeFallback: () {},
+                onWindowsChanged: (_) {},
+                onImportCommonFont: () {},
+                onUseSystemCommonFont: () {},
+                onResetColors: () {},
+                onResetWindows: () {},
+                onResetTypography: () {},
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    expect(find.text('Plus de réglages'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('theme-edit-primary')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-more-settings')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('theme-edit-primary')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-tab-windows')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('window-target-standard')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-more-settings')),
+    );
+    await tester.pump();
+    for (final role in <String>['standard', 'pause', 'dialogue', 'battle']) {
+      expect(
+        find.byKey(ValueKey<String>('window-target-$role')),
+        findsOneWidget,
+      );
+    }
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-tab-typography')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-common')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-more-settings')),
+    );
+    await tester.pump();
+    for (final role in ProjectTypographyRole.values) {
+      expect(
+        find.byKey(ValueKey<String>('typography-import-${role.name}')),
+        findsOneWidget,
+      );
+    }
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-common')),
+      findsNothing,
+    );
+  });
+
   testWidgets('offers an explicit reset for every global section', (
     tester,
   ) async {

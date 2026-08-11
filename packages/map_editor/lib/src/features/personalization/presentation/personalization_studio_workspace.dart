@@ -1586,6 +1586,53 @@ class _PersonalizationStudioWorkspaceState
               ),
             );
           },
+          onImportRole: (role) {
+            unawaited(
+              _importFont(
+                context: context,
+                projectRootPath: projectRootPath,
+                profile: profile,
+                role: role,
+                notifier: notifier,
+              ),
+            );
+          },
+          onUseSystemFont: (role) {
+            final typography =
+                profile.typography ?? const ProjectTypographyProfile();
+            final current = _typographyRoleProfile(typography, role);
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(
+                  typography: _replaceTypographyRole(
+                    typography,
+                    role,
+                    ProjectTypographyRoleProfile(
+                      fallbackFamilies: current.fallbackFamilies,
+                    ),
+                  ),
+                ),
+                label: 'Utiliser le fallback ${_typographyRoleName(role)}',
+              ),
+            );
+            setState(() => _fontPreviewFamilies.remove(role));
+          },
+          onMetricsChanged: (role, metrics) {
+            final typography =
+                profile.typography ?? const ProjectTypographyProfile();
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(
+                  typography: _replaceTypographyRoleMetrics(
+                    typography,
+                    role,
+                    metrics,
+                  ),
+                ),
+                label: 'Modifier le texte ${_typographyRoleName(role)}',
+              ),
+            );
+          },
         ),
       ),
     ],
