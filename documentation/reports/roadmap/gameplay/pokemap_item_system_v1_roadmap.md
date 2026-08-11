@@ -847,7 +847,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-042 — Battle rewards et trainer rewards
 
-- [ ] **Résultat :** les grants portent itemId et quantity ; BagOperations résout l’ajout.
+- [x] **Résultat :** les grants portent itemId et quantity ; BagOperations résout l’ajout.
 - **Fichiers à modifier :**
   - packages/map_gameplay/lib/src/battle_reward.dart
   - packages/map_gameplay/lib/src/battle_progression_service.dart
@@ -859,6 +859,8 @@ Résultat attendu : exit code 0 pour chaque commande.
   - packages/map_runtime/test/reward_bridge_readiness_test.dart
 - **Gate :** reward inconnue échoue avant application ; aucune mutation partielle.
 - **Dépendances :** ITM-024.
+
+**Preuves ITM-042 :** `BattleRewardItemGrant` conserve le contrat strict `itemId + quantity`. `GameStateMutations` valide désormais l'intégralité des grants contre `ItemCatalogSnapshot` avant d'appliquer argent, objets, flags, badge ou aptitude de terrain, puis délègue chaque ajout à `BagOperations`. Une récompense inconnue produit une `BattleRewardApplicationException` typée et le coordinateur runtime refuse de créer la transaction post-combat en préservant l'état original. Les suites ciblées terminent avec 28 tests gameplay et 25 tests runtime réussis ; la suite gameplay complète réussit 474 tests. La suite runtime complète atteint 2 289 tests réussis, 1 test ignoré et 1 échec historique dû au golden `world_map_editor_gate_5_rotation_runtime.png` absent du dépôt.
 
 ### ITM-043 — Shops et ventes
 

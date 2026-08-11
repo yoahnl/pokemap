@@ -8094,6 +8094,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         runtimeContext: activeBattleContext,
         outcome: outcome,
         captureAttemptReceipt: _captureAttemptReceipt,
+        itemCatalog: _itemCatalogSnapshot,
       );
       if (generation != _postBattleFlowGeneration ||
           _flowPhase != _RuntimeFlowPhase.battle ||

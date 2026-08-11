@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'battle_progression_result.dart';
 import 'battle_reward.dart';
 import 'game_state_mutations.dart';
+import 'items/item_catalog_snapshot.dart';
 import 'pokemon_evolution_service.dart';
 import 'pokemon_experience_curve.dart';
 import 'pokemon_stat_calculator.dart';
@@ -130,6 +131,7 @@ final class BattleProgressionService {
     required BattleProgressionContext context,
     required BattleReward reward,
     bool applyAuthoredRewards = true,
+    ItemCatalogSnapshot? itemCatalog,
   }) {
     if (context.outcome != BattleProgressionOutcomeKind.victory) {
       return BattleProgressionResult(
@@ -312,6 +314,7 @@ final class BattleProgressionService {
           ? mutations.applyBattleRewards(
               progressedState,
               reward: appliedReward,
+              itemCatalog: itemCatalog,
             )
           : progressedState,
       appliedReward: appliedReward,

@@ -143,6 +143,8 @@ export 'src/game_state_mutations.dart'
         ShopPurchaseResult,
         ShopSaleFailure,
         ShopSaleResult,
+        BattleRewardApplicationFailure,
+        BattleRewardApplicationException,
         GameStateMutations;
 export 'src/player_storage_operations.dart';
 export 'src/sandbox_player_state.dart';

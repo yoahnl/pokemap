@@ -166,6 +166,25 @@ final class ShopSaleResult {
   bool get isSuccess => failure == null;
 }
 
+enum BattleRewardApplicationFailure {
+  missingItemCatalog,
+  unknownItem,
+}
+
+final class BattleRewardApplicationException implements Exception {
+  const BattleRewardApplicationException({
+    required this.failure,
+    required this.itemId,
+  });
+
+  final BattleRewardApplicationFailure failure;
+  final String itemId;
+
+  @override
+  String toString() =>
+      'BattleRewardApplicationException(${failure.name}, itemId: $itemId)';
+}
+
 /// Mutations pures de l'état de partie.
 ///
 /// Chaque fonction prend un [GameState] et retourne un nouveau [GameState]
@@ -840,7 +859,12 @@ class GameStateMutations {
   GameState applyBattleRewards(
     GameState state, {
     required BattleReward reward,
+    ItemCatalogSnapshot? itemCatalog,
   }) {
+    validateBattleRewardItems(
+      reward: reward,
+      itemCatalog: itemCatalog,
+    );
     var nextState = addMoney(state, reward.money);
     for (final grant in reward.itemGrants) {
       nextState = giveItem(nextState, grant.itemId, grant.quantity);
@@ -865,6 +889,26 @@ class GameStateMutations {
       nextState = unlockFieldAbility(nextState, fieldAbility);
     }
     return nextState;
+  }
+
+  void validateBattleRewardItems({
+    required BattleReward reward,
+    required ItemCatalogSnapshot? itemCatalog,
+  }) {
+    if (reward.itemGrants.isNotEmpty && itemCatalog == null) {
+      throw BattleRewardApplicationException(
+        failure: BattleRewardApplicationFailure.missingItemCatalog,
+        itemId: reward.itemGrants.first.itemId,
+      );
+    }
+    for (final grant in reward.itemGrants) {
+      if (itemCatalog!.definitionFor(grant.itemId) == null) {
+        throw BattleRewardApplicationException(
+          failure: BattleRewardApplicationFailure.unknownItem,
+          itemId: grant.itemId,
+        );
+      }
+    }
   }
 
   /// Applique une capture réussie vers la party ou le storage minimal.
