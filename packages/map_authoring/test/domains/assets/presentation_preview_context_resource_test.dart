@@ -19,12 +19,15 @@ void main() {
       );
 
       expect(page.snapshotRevision, _revision);
-      expect(page.totalAvailable, 5);
+      expect(page.totalAvailable, 8);
       expect(
         page.items.map((item) => item['id']),
         <String>[
           'characterPortrait:leo:happy',
           'dialogue:welcome',
+          'dialogueScenario:welcome:0:0',
+          'dialogueScenario:welcome:0:1',
+          'dialogueScenario:welcome:0:2',
           'encounter:grass',
           'map:village',
           'map:woods',
@@ -32,7 +35,13 @@ void main() {
       );
       expect(
         page.items.map((item) => item['contextKind']).toSet(),
-        <String>{'map', 'dialogue', 'characterPortrait', 'encounter'},
+        <String>{
+          'map',
+          'dialogue',
+          'dialogueScenario',
+          'characterPortrait',
+          'encounter',
+        },
       );
       expect(jsonEncode(snapshot.manifest.toJson()), before);
     });
@@ -42,6 +51,9 @@ void main() {
       final missingMap = _get('map:woods');
       final dialogue = _get('dialogue:welcome');
       final portrait = _get('characterPortrait:leo:happy');
+      final characterLine = _get('dialogueScenario:welcome:0:0');
+      final textLine = _get('dialogueScenario:welcome:0:1');
+      final choice = _get('dialogueScenario:welcome:0:2');
       final encounter = _get('encounter:grass');
 
       expect(map['availability'], 'ready');
@@ -56,6 +68,23 @@ void main() {
       expect(portrait['portraitAssetId'], 'portrait-leo-happy');
       expect(portrait['portraitPath'], 'characters/leo/happy.png');
       expect(portrait['portraitStateLabel'], 'Joyeux');
+      expect(characterLine['availability'], 'ready');
+      expect(characterLine['scenarioKind'], 'characterLine');
+      expect(characterLine['text'], 'Bienvenue !');
+      expect(characterLine['characterId'], 'leo');
+      expect(characterLine['characterName'], 'Léo');
+      expect(characterLine['portraitStateId'], 'happy');
+      expect(characterLine['portraitStateLabel'], 'Joyeux');
+      expect(characterLine['portraitAssetId'], 'portrait-leo-happy');
+      expect(characterLine['portraitPath'], 'characters/leo/happy.png');
+      expect(textLine['scenarioKind'], 'textLine');
+      expect(textLine['text'], 'Le vent se lève sur le village.');
+      expect(textLine, isNot(contains('characterId')));
+      expect(choice['scenarioKind'], 'choice');
+      expect(choice['choices'], <Object?>[
+        <String, Object?>{'label': 'Explorer'},
+        <String, Object?>{'label': 'Rester'},
+      ]);
       expect(encounter['entries'], <Object?>[
         <String, Object?>{
           'speciesId': 'roucool',
@@ -92,7 +121,7 @@ void main() {
       expect(first.nextCursor, isNotNull);
       expect(second.items, hasLength(2));
       expect(second.snapshotRevision, _revision);
-      expect(second.items.first['id'], 'encounter:grass');
+      expect(second.items.first['id'], 'dialogueScenario:welcome:0:0');
     });
 
     test('marks combat context degraded without a playable party', () {
@@ -119,7 +148,7 @@ void main() {
             ),
             workspaceRevision: _revision,
             maps: const <MapData>[],
-            dialogueSourceAvailable: (_) => false,
+            dialogueSourceText: (_) => null,
             portraitAssetPath: (_) => null,
           )
           .single
@@ -131,6 +160,66 @@ void main() {
         <Object?>['previewContext.playerPokemonUnavailable'],
       );
       expect(context, isNot(contains('playerPokemon')));
+    });
+
+    test('reports orphan dialogue references without inventing a portrait', () {
+      final contexts = const PresentationPreviewContextProjector().project(
+        manifest: const ProjectManifest(
+          name: 'Orphan dialogue',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          dialogues: <ProjectDialogueEntry>[
+            ProjectDialogueEntry(
+              id: 'orphan',
+              name: 'Orphelin',
+              relativePath: 'dialogues/orphan.yarn',
+            ),
+          ],
+        ),
+        workspaceRevision: _revision,
+        maps: const <MapData>[],
+        dialogueSourceText: (_) =>
+            'title: Start\n---\n<<portrait inconnu triste>>\nBonjour.\n===',
+        portraitAssetPath: (_) => null,
+      );
+      final scenario = contexts
+          .singleWhere(
+            (context) => context.detail['contextKind'] == 'dialogueScenario',
+          )
+          .detail;
+
+      expect(scenario['availability'], 'degraded');
+      expect(scenario['characterId'], 'inconnu');
+      expect(scenario, isNot(contains('portraitAssetId')));
+      expect(scenario['diagnosticCodes'], <Object?>[
+        'previewContext.dialogueCharacterUnknown',
+        'previewContext.dialoguePortraitStateUnknown',
+      ]);
+    });
+
+    test('keeps the legacy dialogue context when source compilation fails', () {
+      final contexts = const PresentationPreviewContextProjector().project(
+        manifest: const ProjectManifest(
+          name: 'Invalid dialogue',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          dialogues: <ProjectDialogueEntry>[
+            ProjectDialogueEntry(
+              id: 'invalid',
+              name: 'Invalide',
+              relativePath: 'dialogues/invalid.yarn',
+            ),
+          ],
+        ),
+        workspaceRevision: _revision,
+        maps: const <MapData>[],
+        dialogueSourceText: (_) => 'not yarn',
+        portraitAssetPath: (_) => null,
+      );
+
+      expect(contexts, hasLength(1));
+      expect(contexts.single.detail['id'], 'dialogue:invalid');
+      expect(contexts.single.detail['sourceAvailable'], isTrue);
     });
   });
 }
@@ -257,7 +346,15 @@ ProjectSnapshot _snapshot() {
     resourceBytes: <String, List<int>>{
       'project': projectBytes,
       'dialogueSource:welcome': utf8.encode(
-        'title: Start\n---\nBienvenue !\n===',
+        'title: Start\n---\n'
+        '<<portrait leo happy>>\n'
+        'Bienvenue !\n'
+        'Le vent se lève sur le village.\n'
+        '-> Explorer\n'
+        '  Allons-y.\n'
+        '-> Rester\n'
+        '  Prends ton temps.\n'
+        '===',
       ),
       'assetCatalog': assetCatalogBytes,
     },

@@ -28,7 +28,7 @@ final class PresentationPreviewContextProjector {
     required ProjectManifest manifest,
     required String workspaceRevision,
     required Iterable<MapData> maps,
-    required bool Function(String dialogueId) dialogueSourceAvailable,
+    required String? Function(String dialogueId) dialogueSourceText,
     required String? Function(String assetId) portraitAssetPath,
   }) {
     final loadedMaps = <String, MapData>{
@@ -40,7 +40,7 @@ final class PresentationPreviewContextProjector {
     };
     final playerPokemon = manifest.newGame.initialParty.firstOrNull ??
         manifest.newGame.starterOptions.firstOrNull?.pokemon;
-    return <PresentationPreviewContextResourceSnapshot>[
+    final contexts = <PresentationPreviewContextResourceSnapshot>[
       for (final entry in manifest.maps)
         _mapContext(
           entry,
@@ -51,7 +51,7 @@ final class PresentationPreviewContextProjector {
         _dialogueContext(
           dialogue,
           workspaceRevision: workspaceRevision,
-          sourceAvailable: dialogueSourceAvailable(dialogue.id),
+          sourceText: dialogueSourceText(dialogue.id),
         ),
       for (final character in manifest.characters)
         for (final portrait in character.portraits)
@@ -69,6 +69,18 @@ final class PresentationPreviewContextProjector {
           playerPokemon: playerPokemon,
         ),
     ];
+    for (final dialogue in manifest.dialogues) {
+      contexts.addAll(
+        _dialogueScenarioContexts(
+          dialogue,
+          sourceText: dialogueSourceText(dialogue.id),
+          manifest: manifest,
+          workspaceRevision: workspaceRevision,
+          portraitAssetPath: portraitAssetPath,
+        ),
+      );
+    }
+    return contexts;
   }
 }
 
@@ -99,10 +111,10 @@ PresentationPreviewContextResourceSnapshot _mapContext(
 PresentationPreviewContextResourceSnapshot _dialogueContext(
   ProjectDialogueEntry dialogue, {
   required String workspaceRevision,
-  required bool sourceAvailable,
+  required String? sourceText,
 }) {
   final diagnostics = <String>[
-    if (!sourceAvailable) 'previewContext.dialogueSourceUnavailable',
+    if (sourceText == null) 'previewContext.dialogueSourceUnavailable',
   ];
   return _snapshot(
     id: 'dialogue:${dialogue.id}',
@@ -115,7 +127,142 @@ PresentationPreviewContextResourceSnapshot _dialogueContext(
       'dialogueId': dialogue.id,
       'relativePath': dialogue.relativePath,
       'defaultStartNode': dialogue.defaultStartNode,
-      'sourceAvailable': sourceAvailable,
+      'sourceAvailable': sourceText != null,
+    },
+  );
+}
+
+List<PresentationPreviewContextResourceSnapshot> _dialogueScenarioContexts(
+  ProjectDialogueEntry dialogue, {
+  required String? sourceText,
+  required ProjectManifest manifest,
+  required String workspaceRevision,
+  required String? Function(String assetId) portraitAssetPath,
+}) {
+  if (sourceText == null) {
+    return const <PresentationPreviewContextResourceSnapshot>[];
+  }
+  RuntimeDialogueDocument document;
+  try {
+    document = const YarnDialogueCompiler().compile(sourceText);
+  } on Object {
+    return const <PresentationPreviewContextResourceSnapshot>[];
+  }
+  final characters = <String, ProjectCharacterEntry>{
+    for (final character in manifest.characters) character.id: character,
+  };
+  final portraitStates = <String, String>{
+    for (final state in manifest.characterStudioCatalog.portraitStates)
+      state.id: state.displayName,
+  };
+  final contexts = <PresentationPreviewContextResourceSnapshot>[];
+  for (var nodeIndex = 0; nodeIndex < document.nodes.length; nodeIndex++) {
+    final node = document.nodes[nodeIndex];
+    for (var stepIndex = 0; stepIndex < node.steps.length; stepIndex++) {
+      final step = node.steps[stepIndex];
+      switch (step) {
+        case RuntimeDialogueLine():
+          contexts.add(
+            _dialogueLineScenario(
+              dialogue,
+              node: node,
+              nodeIndex: nodeIndex,
+              stepIndex: stepIndex,
+              line: step,
+              characters: characters,
+              portraitStates: portraitStates,
+              portraitAssetPath: portraitAssetPath,
+              workspaceRevision: workspaceRevision,
+            ),
+          );
+        case RuntimeDialogueChoiceBlock():
+          contexts.add(
+            _snapshot(
+              id: 'dialogueScenario:${dialogue.id}:$nodeIndex:$stepIndex',
+              name: '${dialogue.name} · ${node.title} · Choix',
+              contextKind: 'dialogueScenario',
+              sourceId: dialogue.id,
+              workspaceRevision: workspaceRevision,
+              diagnostics: const <String>[],
+              detail: <String, Object?>{
+                'dialogueId': dialogue.id,
+                'nodeTitle': node.title,
+                'stepIndex': stepIndex,
+                'scenarioKind': 'choice',
+                'choices': <Object?>[
+                  for (final choice in step.choices)
+                    <String, Object?>{
+                      'label': choice.text,
+                      if (choice.outcomeId != null)
+                        'outcomeId': choice.outcomeId,
+                    },
+                ],
+              },
+            ),
+          );
+        case RuntimeDialogueJump():
+          break;
+      }
+    }
+  }
+  return contexts;
+}
+
+PresentationPreviewContextResourceSnapshot _dialogueLineScenario(
+  ProjectDialogueEntry dialogue, {
+  required RuntimeDialogueNode node,
+  required int nodeIndex,
+  required int stepIndex,
+  required RuntimeDialogueLine line,
+  required Map<String, ProjectCharacterEntry> characters,
+  required Map<String, String> portraitStates,
+  required String? Function(String assetId) portraitAssetPath,
+  required String workspaceRevision,
+}) {
+  final characterId = line.characterId;
+  final portraitStateId = line.portraitStateId;
+  final character = characterId == null ? null : characters[characterId];
+  final portrait = character == null || portraitStateId == null
+      ? null
+      : character.portraits
+          .where((candidate) => candidate.portraitStateId == portraitStateId)
+          .firstOrNull;
+  final portraitPath =
+      portrait == null ? null : portraitAssetPath(portrait.assetId);
+  final diagnostics = <String>[
+    if (characterId != null && character == null)
+      'previewContext.dialogueCharacterUnknown',
+    if (portraitStateId != null && !portraitStates.containsKey(portraitStateId))
+      'previewContext.dialoguePortraitStateUnknown',
+    if (character != null && portraitStateId != null && portrait == null)
+      'previewContext.dialoguePortraitUnassigned',
+    if (portrait != null && portraitPath == null)
+      'previewContext.dialoguePortraitAssetUnavailable',
+  ];
+  final scenarioKind = characterId == null ? 'textLine' : 'characterLine';
+  final speaker = character?.name ?? characterId;
+  return _snapshot(
+    id: 'dialogueScenario:${dialogue.id}:$nodeIndex:$stepIndex',
+    name: '${dialogue.name} · ${node.title} · '
+        '${speaker ?? 'Texte'}',
+    contextKind: 'dialogueScenario',
+    sourceId: dialogue.id,
+    workspaceRevision: workspaceRevision,
+    diagnostics: diagnostics,
+    detail: <String, Object?>{
+      'dialogueId': dialogue.id,
+      'nodeTitle': node.title,
+      'stepIndex': stepIndex,
+      'scenarioKind': scenarioKind,
+      'text': line.text,
+      if (characterId != null) 'characterId': characterId,
+      if (character != null) 'characterName': character.name,
+      if (portraitStateId != null) 'portraitStateId': portraitStateId,
+      if (portraitStateId != null && portraitStates[portraitStateId] != null)
+        'portraitStateLabel': portraitStates[portraitStateId],
+      if (portrait != null) 'portraitAssetId': portrait.assetId,
+      if (portrait != null) 'portraitFitMode': portrait.fitMode.name,
+      if (portraitPath != null) 'portraitPath': portraitPath,
     },
   );
 }

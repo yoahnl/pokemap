@@ -21,6 +21,9 @@ abstract final class PersonalizationProjectPreviewProjection {
     PersonalizationPreviewContextOption? portrait,
     required bool showChoices,
   }) {
+    if (context?.kind == PersonalizationPreviewContextKind.dialogueScenario) {
+      return _dialogueScenario(context!);
+    }
     if (context?.kind != PersonalizationPreviewContextKind.dialogue) {
       return null;
     }
@@ -68,6 +71,59 @@ abstract final class PersonalizationProjectPreviewProjection {
     } on Object {
       return null;
     }
+  }
+
+  static PlayerDialogueViewData? _dialogueScenario(
+    PersonalizationPreviewContextOption context,
+  ) {
+    final kind = context.detail['scenarioKind'];
+    final stepIndex = context.detail['stepIndex'];
+    final revision = stepIndex is int ? stepIndex + 1 : 1;
+    if (kind == 'choice') {
+      final rawChoices = context.detail['choices'];
+      if (rawChoices is! List || rawChoices.isEmpty) return null;
+      final labels = <String>[];
+      for (final raw in rawChoices) {
+        if (raw is! Map || raw['label'] is! String) return null;
+        labels.add(raw['label']! as String);
+      }
+      return PlayerDialogueViewData(
+        revision: revision,
+        mode: PlayerDialogueMode.choices,
+        speaker: null,
+        text: '',
+        fullText: '',
+        isCurrentLineFullyRevealed: true,
+        isLastContent: false,
+        choices: <PlayerDialogueChoiceViewData>[
+          for (var index = 0; index < labels.length; index++)
+            PlayerDialogueChoiceViewData(
+              index: index,
+              label: labels[index],
+              selected: index == 0,
+            ),
+        ],
+      );
+    }
+    if (kind != 'characterLine' && kind != 'textLine') return null;
+    final text = context.detail['text'];
+    if (text is! String || text.trim().isEmpty) return null;
+    final characterName = context.detail['characterName'];
+    final characterId = context.detail['characterId'];
+    return PlayerDialogueViewData(
+      revision: revision,
+      mode: PlayerDialogueMode.line,
+      speaker: characterName is String && characterName.trim().isNotEmpty
+          ? characterName
+          : characterId is String
+          ? _displayId(characterId)
+          : null,
+      text: text,
+      fullText: text,
+      isCurrentLineFullyRevealed: true,
+      isLastContent: true,
+      choices: const <PlayerDialogueChoiceViewData>[],
+    );
   }
 
   static PlayerBattleViewData? battle(
