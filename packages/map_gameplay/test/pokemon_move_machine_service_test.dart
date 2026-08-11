@@ -167,7 +167,6 @@ GameState _state({
       entries: <BagEntry>[
         BagEntry(
           itemId: itemId,
-          categoryId: 'machines',
           quantity: quantity,
         ),
       ],

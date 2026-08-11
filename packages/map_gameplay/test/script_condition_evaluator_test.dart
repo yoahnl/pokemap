@@ -64,12 +64,10 @@ void main() {
             bagEntries: const <BagEntry>[
               BagEntry(
                 itemId: 'potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
               BagEntry(
                 itemId: 'potion',
-                categoryId: 'battle-items',
                 quantity: 1,
               ),
             ],
@@ -84,7 +82,6 @@ void main() {
             bagEntries: const <BagEntry>[
               BagEntry(
                 itemId: 'potion',
-                categoryId: 'medicine',
                 quantity: 1,
               ),
             ],

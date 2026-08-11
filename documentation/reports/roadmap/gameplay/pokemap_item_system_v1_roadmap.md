@@ -578,7 +578,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-024 — Adapter GameStateMutations
 
-- [ ] **Résultat :** supprimer les inférences de catégorie de giveItem, rewards, purchase et consume.
+- [x] **Résultat :** supprimer les inférences de catégorie de giveItem, rewards, purchase et consume.
 - **Fichiers à modifier :**
   - packages/map_gameplay/lib/src/game_state_mutations.dart
   - packages/map_gameplay/lib/src/battle_reward.dart
@@ -588,6 +588,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
   - packages/map_gameplay/test/shop_operations_test.dart
 - **Gate :** aucun switch ou if sur un itemId concret ne subsiste dans GameStateMutations.
 - **Dépendances :** ITM-021 et ITM-022.
+
+**Preuves ITM-024 :** les 46 tests ciblés de mutations, rewards, shops et caractérisation passent, puis la suite complète `map_gameplay` termine avec 464 tests réussis. `dart analyze` ne remonte aucune erreur ni warning et conserve uniquement l'info préexistante `unnecessary_library_name` du barrel. `GameStateMutations` délègue give, purchase, sell et consume à `BagOperations`, et la vente protège les key items à partir des tags de l'`ItemCatalogSnapshot`. `BattleRewardItemGrant` était déjà strictement défini par `itemId` et `quantity` et n'a requis aucun changement artificiel. Une recherche ciblée ne trouve plus aucun `categoryId`, registre legacy ou identifiant d'objet MVP concret dans `map_gameplay/lib`.
 
 ## 11. Phase 3 — Consommateurs gameplay
 

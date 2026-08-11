@@ -182,7 +182,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'leaf-stone',
-              categoryId: 'evolution-items',
               quantity: 2,
             ),
           ],
@@ -226,7 +225,6 @@ void main() {
           entries: <BagEntry>[
             BagEntry(
               itemId: 'fire-stone',
-              categoryId: 'evolution-items',
               quantity: 1,
             ),
           ],

@@ -21,7 +21,7 @@ void main() {
       expect(
         state.bag.entries,
         const <BagEntry>[
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'potion', quantity: 2),
         ],
       );
       expect(state.party.members, isEmpty);
@@ -256,7 +256,7 @@ ProjectManifest _project({
       playerAvatarCharacterIds: const ['hero_a', 'hero_b'],
       startingMoney: 350,
       initialBag: const <BagEntry>[
-        BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+        BagEntry(itemId: 'potion', quantity: 2),
       ],
       initialParty: initialParty,
       initialFacts: const <String, bool>{'fact_intro_active': true},

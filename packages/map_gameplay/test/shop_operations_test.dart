@@ -18,6 +18,29 @@ void main() {
       ShopEntryDefinition(itemId: 'bike-pass', price: 100, sellPrice: 50),
     ],
   );
+  final itemCatalog = ItemCatalogSnapshot.fromCatalog(
+    const ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: <ProjectItemDefinition>[
+        ProjectItemDefinition(
+          id: 'potion',
+          displayName: 'Potion',
+          pocketId: 'medicine',
+        ),
+        ProjectItemDefinition(
+          id: 'poke-ball',
+          displayName: 'Poké Ball',
+          pocketId: 'balls',
+        ),
+        ProjectItemDefinition(
+          id: 'bike-pass',
+          displayName: 'Bike Pass',
+          pocketId: 'key-items',
+          tags: <String>{'key-item'},
+        ),
+      ],
+    ),
+  );
 
   GameState state({int money = 1000}) => GameState(
         saveId: 'shop-operations',
@@ -83,7 +106,6 @@ void main() {
         state(),
         shop: shop,
         itemId: ' potion ',
-        categoryId: 'medicine',
         quantity: 2,
       );
       final reloaded = normalizeLoadedGameState(
@@ -93,7 +115,6 @@ void main() {
         reloaded,
         shop: shop,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
       );
 
@@ -118,7 +139,6 @@ void main() {
         initial,
         shop: shop,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
       );
 
@@ -134,21 +154,18 @@ void main() {
         initial,
         shop: shop,
         itemId: 'revive',
-        categoryId: 'medicine',
         quantity: 1,
       );
       final invalid = mutations.purchaseFromShop(
         initial,
         shop: shop,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 0,
       );
       final poor = mutations.purchaseFromShop(
         initial,
         shop: shop,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
       );
 
@@ -165,7 +182,6 @@ void main() {
         state(),
         shop: shop,
         itemId: 'poke-ball',
-        categoryId: 'items',
         quantity: 2,
       );
 
@@ -184,7 +200,6 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'after-lysa',
         itemId: 'poke-ball',
-        categoryId: 'items',
         quantity: 1,
       );
 
@@ -200,7 +215,6 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'lighthouse-alert',
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
       );
 
@@ -216,7 +230,6 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
       );
 
@@ -232,7 +245,6 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'after-lysa',
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
       );
 
@@ -251,7 +263,6 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
       );
 
@@ -269,7 +280,6 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'after-lysa',
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
       );
       final ending = mutations.setFlag(first.state, 'story_finished');
@@ -278,7 +288,6 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'story-finished',
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
       );
       final returned = mutations.clearFlag(
@@ -290,7 +299,6 @@ void main() {
         shop: dynamicShop(),
         expectedStateId: 'after-lysa',
         itemId: 'potion',
-        categoryId: 'medicine',
         quantity: 1,
       );
 
@@ -310,15 +318,14 @@ void main() {
 
   group('GameStateMutations.sellToResolvedShop', () {
     GameState bagState({
-      String categoryId = 'medicine',
+      String itemId = 'potion',
       int quantity = 3,
     }) =>
         state(money: 100).copyWith(
           bag: Bag(
             entries: <BagEntry>[
               BagEntry(
-                itemId: categoryId == 'key-items' ? 'bike-pass' : 'potion',
-                categoryId: categoryId,
+                itemId: itemId,
                 quantity: quantity,
               ),
             ],
@@ -333,6 +340,7 @@ void main() {
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'potion',
         quantity: 2,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isTrue);
@@ -346,7 +354,7 @@ void main() {
       final initial = bagState().copyWith(
         bag: const Bag(
           entries: <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+            BagEntry(itemId: 'poke-ball', quantity: 2),
           ],
         ),
       );
@@ -357,6 +365,7 @@ void main() {
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'poke-ball',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopSaleFailure.unsellable);
@@ -364,7 +373,7 @@ void main() {
     });
 
     test('protects key items even when a sale price was authored', () {
-      final initial = bagState(categoryId: 'key-items');
+      final initial = bagState(itemId: 'bike-pass');
 
       final result = mutations.sellToResolvedShop(
         initial,
@@ -372,6 +381,7 @@ void main() {
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'bike-pass',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopSaleFailure.keyItem);
@@ -387,6 +397,7 @@ void main() {
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'potion',
         quantity: 2,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopSaleFailure.insufficientQuantity);
@@ -403,6 +414,7 @@ void main() {
         expectedStateId: ShopStateResolver.defaultStateId,
         itemId: 'potion',
         quantity: 1,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.failure, ShopSaleFailure.shopStateChanged);

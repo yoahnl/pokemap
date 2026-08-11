@@ -34,7 +34,7 @@ void main() {
       party: PlayerParty(members: members),
       bag: const Bag(
         entries: [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(itemId: 'potion', quantity: 2),
         ],
       ),
       storyFlags: StoryFlags(activeFlags: storyFlags),

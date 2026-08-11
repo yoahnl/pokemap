@@ -1,6 +1,8 @@
 import 'package:map_core/map_core.dart';
 
 import 'battle_reward.dart';
+import 'items/bag_operations.dart';
+import 'items/item_catalog_snapshot.dart';
 import 'script_condition_evaluator.dart';
 import 'shop_state_resolver.dart';
 
@@ -174,6 +176,8 @@ final class ShopSaleResult {
 class GameStateMutations {
   const GameStateMutations();
 
+  static const _bagOperations = BagOperations();
+
   /// Définit un flag narratif à true.
   GameState setFlag(GameState state, String flagName) {
     final normalized = flagName.trim();
@@ -303,42 +307,10 @@ class GameStateMutations {
     String itemId,
     int quantity,
   ) {
-    final normalizedItemId = itemId.trim();
-    if (normalizedItemId.isEmpty || quantity <= 0) {
-      return state;
-    }
-
-    String categoryId = 'items';
-    bool found = false;
-    for (final entry in state.bag.entries) {
-      if (entry.itemId.trim() == normalizedItemId) {
-        categoryId = entry.categoryId;
-        found = true;
-        break;
-      }
-    }
-
-    if (!found) {
-      final lower = normalizedItemId.toLowerCase();
-      if (lower == 'potion' ||
-          lower == 'super-potion' ||
-          lower == 'hyper-potion' ||
-          lower == 'max-potion' ||
-          lower == 'antidote') {
-        categoryId = 'medicine';
-      }
-    }
-
-    final newEntry = BagEntry(
-      itemId: normalizedItemId,
-      categoryId: categoryId,
-      quantity: quantity,
+    final result = _bagOperations.give(
+      BagGiveRequest(bag: state.bag, itemId: itemId, quantity: quantity),
     );
-
-    final newEntries = [...state.bag.entries, newEntry];
-    final updatedBag = Bag(entries: newEntries).normalized();
-
-    return state.copyWith(bag: updatedBag);
+    return result.isSuccess ? state.copyWith(bag: result.bag) : state;
   }
 
   /// Atomically buys an item with an explicit authoring-provided unit price.
@@ -348,15 +320,12 @@ class GameStateMutations {
   ShopPurchaseResult purchaseItem(
     GameState state, {
     required String itemId,
-    required String categoryId,
     required int quantity,
     required int unitPrice,
   }) {
     final normalizedItemId = itemId.trim();
-    final normalizedCategoryId = categoryId.trim();
     const maxSafeTotal = 0x7fffffffffffffff;
     if (normalizedItemId.isEmpty ||
-        normalizedCategoryId.isEmpty ||
         quantity <= 0 ||
         unitPrice <= 0 ||
         unitPrice > maxSafeTotal ~/ quantity) {
@@ -376,19 +345,25 @@ class GameStateMutations {
       );
     }
 
-    final nextEntries = <BagEntry>[
-      ...state.bag.entries,
-      BagEntry(
+    final given = _bagOperations.give(
+      BagGiveRequest(
+        bag: state.bag,
         itemId: normalizedItemId,
-        categoryId: normalizedCategoryId,
         quantity: quantity,
       ),
-    ];
+    );
+    if (!given.isSuccess) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: totalCost,
+        failure: ShopPurchaseFailure.invalidRequest,
+      );
+    }
     final nextState = state.copyWith(
       trainerProfile: state.trainerProfile.copyWith(
         money: state.trainerProfile.money - totalCost,
       ),
-      bag: Bag(entries: nextEntries).normalized(),
+      bag: given.bag,
     );
     return ShopPurchaseResult.success(
       state: nextState,
@@ -405,7 +380,6 @@ class GameStateMutations {
     GameState state, {
     required ShopDefinition shop,
     required String itemId,
-    required String categoryId,
     required int quantity,
   }) {
     return _purchaseFromShopEntries(
@@ -413,7 +387,6 @@ class GameStateMutations {
       shopId: shop.id,
       entries: shop.entries,
       itemId: itemId,
-      categoryId: categoryId,
       quantity: quantity,
     );
   }
@@ -429,7 +402,6 @@ class GameStateMutations {
     required ShopDefinition shop,
     required String expectedStateId,
     required String itemId,
-    required String categoryId,
     required int quantity,
     ScriptEvaluationContext? conditionContext,
   }) {
@@ -466,7 +438,6 @@ class GameStateMutations {
       stateId: resolved.isDefault ? null : resolved.stateId,
       entries: resolved.entries,
       itemId: itemId,
-      categoryId: categoryId,
       quantity: quantity,
     );
   }
@@ -477,18 +448,15 @@ class GameStateMutations {
     String? stateId,
     required List<ShopEntryDefinition> entries,
     required String itemId,
-    required String categoryId,
     required int quantity,
   }) {
     final normalizedItemId = itemId.trim();
-    final normalizedCategoryId = categoryId.trim();
     final normalizedShopId = shopId.trim();
     final normalizedStateId = stateId?.trim();
     if (normalizedShopId.isEmpty ||
         (stateId != null &&
             (normalizedStateId == null || normalizedStateId.isEmpty)) ||
         normalizedItemId.isEmpty ||
-        normalizedCategoryId.isEmpty ||
         quantity <= 0) {
       return ShopPurchaseResult.failed(
         state: state,
@@ -530,7 +498,6 @@ class GameStateMutations {
     final purchase = purchaseItem(
       state,
       itemId: normalizedItemId,
-      categoryId: normalizedCategoryId,
       quantity: quantity,
       unitPrice: entry.price,
     );
@@ -556,13 +523,14 @@ class GameStateMutations {
 
   /// Atomically removes one sellable bag item and credits its authored value.
   ///
-  /// The bag entry remains the authority for key-item protection and available
-  /// quantity. Invalid requests preserve the original [GameState].
+  /// The canonical item definition protects key items while the Bag remains
+  /// authoritative for quantity. Invalid requests preserve the original state.
   ShopSaleResult sellItem(
     GameState state, {
     required String itemId,
     required int quantity,
     required int unitPrice,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
     final normalizedItemId = itemId.trim();
     const maxSafeTotal = 0x7fffffffffffffff;
@@ -577,6 +545,14 @@ class GameStateMutations {
       );
     }
 
+    final definition = itemCatalog.definitionFor(normalizedItemId);
+    if (definition == null) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: 0,
+        failure: ShopSaleFailure.unknownItem,
+      );
+    }
     final entry = state.bag
         .normalized()
         .entries
@@ -589,7 +565,7 @@ class GameStateMutations {
         failure: ShopSaleFailure.unknownItem,
       );
     }
-    if (_isKeyItemCategory(entry.categoryId)) {
+    if (definition.tags.contains('key-item')) {
       return ShopSaleResult.failed(
         state: state,
         totalRevenue: 0,
@@ -615,7 +591,22 @@ class GameStateMutations {
         remainingQuantity: entry.quantity,
       );
     }
-    final withoutItems = consumeItem(state, normalizedItemId, quantity);
+    final taken = _bagOperations.take(
+      BagTakeRequest(
+        bag: state.bag,
+        itemId: normalizedItemId,
+        quantity: quantity,
+      ),
+    );
+    if (!taken.isSuccess) {
+      return ShopSaleResult.failed(
+        state: state,
+        totalRevenue: totalRevenue,
+        failure: ShopSaleFailure.insufficientQuantity,
+        remainingQuantity: entry.quantity,
+      );
+    }
+    final withoutItems = state.copyWith(bag: taken.bag);
     final nextState = withoutItems.copyWith(
       trainerProfile: withoutItems.trainerProfile.copyWith(
         money: withoutItems.trainerProfile.money + totalRevenue,
@@ -639,6 +630,7 @@ class GameStateMutations {
     required String expectedStateId,
     required String itemId,
     required int quantity,
+    required ItemCatalogSnapshot itemCatalog,
     ScriptEvaluationContext? conditionContext,
   }) {
     final normalizedExpectedStateId = expectedStateId.trim();
@@ -694,6 +686,7 @@ class GameStateMutations {
       itemId: normalizedItemId,
       quantity: quantity,
       unitPrice: sellPrice,
+      itemCatalog: itemCatalog,
     );
   }
 
@@ -706,40 +699,10 @@ class GameStateMutations {
     String itemId,
     int quantity,
   ) {
-    final normalizedItemId = itemId.trim();
-    if (normalizedItemId.isEmpty || quantity <= 0) {
-      return state;
-    }
-
-    final nextEntries = <BagEntry>[];
-    var consumed = false;
-
-    for (final entry in state.bag.normalized().entries) {
-      final isRequestedItem =
-          !consumed && entry.itemId.trim() == normalizedItemId;
-      if (!isRequestedItem) {
-        nextEntries.add(entry);
-        continue;
-      }
-
-      if (entry.quantity < quantity) {
-        return state;
-      }
-
-      consumed = true;
-      final nextQuantity = entry.quantity - quantity;
-      if (nextQuantity > 0) {
-        nextEntries.add(entry.copyWith(quantity: nextQuantity));
-      }
-    }
-
-    if (!consumed) {
-      return state;
-    }
-
-    return state.copyWith(
-      bag: Bag(entries: nextEntries).normalized(),
+    final result = _bagOperations.take(
+      BagTakeRequest(bag: state.bag, itemId: itemId, quantity: quantity),
     );
+    return result.isSuccess ? state.copyWith(bag: result.bag) : state;
   }
 
   /// Applique un soin HP hors combat à un membre de party.
@@ -1057,11 +1020,4 @@ class GameStateMutations {
     }
     return result;
   }
-}
-
-bool _isKeyItemCategory(String categoryId) {
-  final normalized = categoryId.trim().toLowerCase().replaceAll('_', '-');
-  return normalized == 'key-item' ||
-      normalized == 'key-items' ||
-      normalized == 'important-items';
 }

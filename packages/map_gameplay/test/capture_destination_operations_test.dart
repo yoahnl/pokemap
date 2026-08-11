@@ -34,7 +34,7 @@ void main() {
           : PokemonStorage(boxes: boxes),
       bag: const Bag(
         entries: [
-          BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+          BagEntry(itemId: 'poke-ball', quantity: 2),
         ],
       ),
       progression: const PlayerProgression(
