@@ -123,8 +123,9 @@ void main() {
     expect(find.text('Continuer'), findsNothing);
   });
 
-  testWidgets('only keyboard shortcuts skip immediately during playback',
-      (tester) async {
+  testWidgets('keyboard and controller shortcuts skip during playback', (
+    tester,
+  ) async {
     var skipped = 0;
     await tester.pumpWidget(
       _app(
@@ -137,8 +138,10 @@ void main() {
 
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButtonA);
+    await tester.sendKeyEvent(LogicalKeyboardKey.gameButton1);
 
-    expect(skipped, 2);
+    expect(skipped, 4);
   });
 }
 
