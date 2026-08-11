@@ -61,6 +61,8 @@ dev_dependencies:
 flutter:
   generate: true
   uses-material-design: true
+  config:
+    enable-swift-package-manager: true
   assets:
     # Product mark supplied by the Event Builder V2 north-star. Keeping the
     # raster source avoids replacing a visible brand asset with drawn UI art.
@@ -72,3 +74,7 @@ flutter:
     - assets/fonts/pokemap_capture_sans_LICENSE.txt
     - assets/cinematics/emotes/emotions.png
     - assets/cinematics/emotes/emotions2.png
+
+dependency_overrides:
+  gamepads_darwin:
+    path: ../gamepads_darwin
