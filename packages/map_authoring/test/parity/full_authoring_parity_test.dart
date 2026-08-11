@@ -139,7 +139,7 @@ void main() {
               (descriptor) => descriptor.id == 'projectPresentationProfile',
             )
             .version,
-        8,
+        9,
       );
       expect(
         catalog.requireMutationAction('presentation.preset.export').toJson(),

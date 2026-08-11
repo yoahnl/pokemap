@@ -160,6 +160,9 @@ void main() {
         containsAll(<String>{
           'map:vermeil_village',
           'dialogue:welcome_leo',
+          'dialogueScenario:welcome_leo:0:0',
+          'dialogueScenario:welcome_leo:0:1',
+          'dialogueScenario:welcome_leo:0:2',
           'encounter:vermeil_grass',
           'characterPortrait:leo:happy',
         }),
@@ -179,6 +182,29 @@ void main() {
       expect(
         ((dialogue.detail['dialogue']! as Map)['source']! as Map)['text'],
         contains('Bienvenue à Vermeil'),
+      );
+      final characterLine = contexts.firstWhere(
+        (context) => context.id == 'dialogueScenario:welcome_leo:0:0',
+      );
+      expect(characterLine.detail['scenarioKind'], 'characterLine');
+      expect(characterLine.detail['characterName'], 'Léo');
+      expect(characterLine.detail['portraitStateId'], 'happy');
+      expect(characterLine.mediaBytes, isNotEmpty);
+      final textLine = contexts.firstWhere(
+        (context) => context.id == 'dialogueScenario:welcome_leo:0:1',
+      );
+      expect(textLine.detail['scenarioKind'], 'textLine');
+      expect(textLine.detail['text'], contains('Le vent se lève'));
+      expect(textLine.mediaBytes, isNull);
+      final choice = contexts.firstWhere(
+        (context) => context.id == 'dialogueScenario:welcome_leo:0:2',
+      );
+      expect(choice.detail['scenarioKind'], 'choice');
+      expect(
+        (choice.detail['choices']! as List<Object?>).map(
+          (raw) => (raw! as Map)['label'],
+        ),
+        <String>['Partir explorer', 'Rester au village'],
       );
       final encounter = contexts.firstWhere(
         (context) => context.id == 'encounter:vermeil_grass',

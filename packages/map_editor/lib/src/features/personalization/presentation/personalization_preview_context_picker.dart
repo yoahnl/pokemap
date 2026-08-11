@@ -26,7 +26,7 @@ class PersonalizationPreviewContextPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kinds = _kindsForScene(scene);
+    final kinds = _kindsForScene(scene, contexts);
     if (kinds.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -154,6 +154,7 @@ PersonalizationPreviewContextOption _preferred(
 
 List<PersonalizationPreviewContextKind> _kindsForScene(
   PersonalizationStudioScene scene,
+  List<PersonalizationPreviewContextOption> contexts,
 ) => switch (scene) {
   PersonalizationStudioScene.title || PersonalizationStudioScene.intro =>
     const <PersonalizationPreviewContextKind>[],
@@ -161,11 +162,19 @@ List<PersonalizationPreviewContextKind> _kindsForScene(
     PersonalizationPreviewContextKind.map,
   ],
   PersonalizationStudioScene.dialogue =>
-    const <PersonalizationPreviewContextKind>[
-      PersonalizationPreviewContextKind.map,
-      PersonalizationPreviewContextKind.dialogue,
-      PersonalizationPreviewContextKind.characterPortrait,
-    ],
+    contexts.any(
+          (option) =>
+              option.kind == PersonalizationPreviewContextKind.dialogueScenario,
+        )
+        ? const <PersonalizationPreviewContextKind>[
+            PersonalizationPreviewContextKind.map,
+            PersonalizationPreviewContextKind.dialogueScenario,
+          ]
+        : const <PersonalizationPreviewContextKind>[
+            PersonalizationPreviewContextKind.map,
+            PersonalizationPreviewContextKind.dialogue,
+            PersonalizationPreviewContextKind.characterPortrait,
+          ],
   PersonalizationStudioScene.battle =>
     const <PersonalizationPreviewContextKind>[
       PersonalizationPreviewContextKind.map,
@@ -180,6 +189,7 @@ List<PersonalizationPreviewContextKind> _kindsForScene(
 String _kindLabel(PersonalizationPreviewContextKind kind) => switch (kind) {
   PersonalizationPreviewContextKind.map => 'Décor',
   PersonalizationPreviewContextKind.dialogue => 'Dialogue',
+  PersonalizationPreviewContextKind.dialogueScenario => 'Scène de dialogue',
   PersonalizationPreviewContextKind.characterPortrait => 'Portrait',
   PersonalizationPreviewContextKind.encounter => 'Rencontre',
 };
@@ -188,6 +198,7 @@ String _kindMissingLabel(PersonalizationPreviewContextKind kind) =>
     switch (kind) {
       PersonalizationPreviewContextKind.map => 'décor de carte',
       PersonalizationPreviewContextKind.dialogue => 'dialogue',
+      PersonalizationPreviewContextKind.dialogueScenario => 'scène de dialogue',
       PersonalizationPreviewContextKind.characterPortrait => 'portrait',
       PersonalizationPreviewContextKind.encounter => 'rencontre',
     };

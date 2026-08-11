@@ -268,6 +268,40 @@ void main() {
     expect(find.text('Professeure Saule'), findsNothing);
   });
 
+  testWidgets('switches between real dialogue scenarios from the project', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        PersonalizationLivePreview(
+          profile: const ProjectPresentationProfile(
+            theme: safeProjectSemanticTheme,
+          ),
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.dialogue,
+          contentSource: PersonalizationPreviewContentSource.project,
+          contexts: _projectContexts,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'personalization-preview-context-dialogueScenario',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choix de bienvenue').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Partir explorer'), findsOneWidget);
+    expect(find.text('Rester au village'), findsOneWidget);
+    expect(find.text('Professeure Saule'), findsNothing);
+  });
+
   testWidgets('renders authored encounter data with the shared battle widget', (
     tester,
   ) async {
@@ -313,6 +347,38 @@ final _projectContexts = <PersonalizationPreviewContextOption>[
     },
   ),
   PersonalizationPreviewContextOption(
+    id: 'dialogueScenario:welcome_leo:0:0',
+    kind: PersonalizationPreviewContextKind.dialogueScenario,
+    sourceId: 'welcome_leo',
+    label: 'Réplique de Léo',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'scenarioKind': 'characterLine',
+      'stepIndex': 0,
+      'characterId': 'leo',
+      'characterName': 'Léo',
+      'portraitStateId': 'happy',
+      'text': 'Bienvenue à Vermeil.',
+    },
+  ),
+  PersonalizationPreviewContextOption(
+    id: 'dialogueScenario:welcome_leo:0:1',
+    kind: PersonalizationPreviewContextKind.dialogueScenario,
+    sourceId: 'welcome_leo',
+    label: 'Choix de bienvenue',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'scenarioKind': 'choice',
+      'stepIndex': 1,
+      'choices': <Object?>[
+        <String, Object?>{'label': 'Partir explorer'},
+        <String, Object?>{'label': 'Rester au village'},
+      ],
+    },
+  ),
+  PersonalizationPreviewContextOption(
     id: 'dialogue:welcome_leo',
     kind: PersonalizationPreviewContextKind.dialogue,
     sourceId: 'welcome_leo',
@@ -337,6 +403,7 @@ final _projectContexts = <PersonalizationPreviewContextOption>[
     availability: 'ready',
     diagnosticCodes: const <String>[],
     detail: const <String, Object?>{
+      'characterId': 'leo',
       'characterName': 'Léo',
       'portraitStateId': 'happy',
     },

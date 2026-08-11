@@ -121,13 +121,22 @@ class _PersonalizationLivePreviewState
   @override
   Widget build(BuildContext context) {
     final mapContext = _context(PersonalizationPreviewContextKind.map);
-    final dialogueContext = _context(
+    final dialogueScenario = _context(
+      PersonalizationPreviewContextKind.dialogueScenario,
+    );
+    final legacyDialogueContext = _context(
       PersonalizationPreviewContextKind.dialogue,
     );
-    final portraitContext = _context(
-      PersonalizationPreviewContextKind.characterPortrait,
-      preferredSourceId: widget.dialogueCharacter?.characterId,
-    );
+    final dialogueContext = dialogueScenario ?? legacyDialogueContext;
+    final scenarioCharacterId = dialogueScenario?.detail['characterId'];
+    final portraitContext = scenarioCharacterId is String
+        ? dialogueScenario
+        : dialogueScenario == null
+        ? _context(
+            PersonalizationPreviewContextKind.characterPortrait,
+            preferredSourceId: widget.dialogueCharacter?.characterId,
+          )
+        : null;
     final encounterContext = _context(
       PersonalizationPreviewContextKind.encounter,
     );
@@ -141,11 +150,13 @@ class _PersonalizationLivePreviewState
       encounterContext,
       state: widget.battleState,
     );
-    final dialogueCharacter = portraitContext == null
+    final portraitCharacterId = portraitContext?.detail['characterId'];
+    final dialogueCharacter =
+        portraitContext == null || portraitCharacterId is! String
         ? widget.dialogueCharacter
         : PersonalizationCharacterPreviewOption(
             id: portraitContext.id,
-            characterId: portraitContext.sourceId,
+            characterId: portraitCharacterId,
             displayName:
                 portraitContext.detail['characterName'] as String? ??
                 portraitContext.label,

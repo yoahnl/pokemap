@@ -711,11 +711,17 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
         manifest: snapshot.manifest,
         workspaceRevision: snapshot.revision,
         maps: snapshot.maps,
-        dialogueSourceAvailable: (dialogueId) =>
-            snapshot.findResourceBytes(
-              dialogueSourceResourceIdentity(dialogueId),
-            ) !=
-            null,
+        dialogueSourceText: (dialogueId) {
+          final bytes = snapshot.findResourceBytes(
+            dialogueSourceResourceIdentity(dialogueId),
+          );
+          if (bytes == null) return null;
+          try {
+            return utf8.decode(bytes, allowMalformed: false);
+          } on FormatException {
+            return null;
+          }
+        },
         portraitAssetPath: (assetId) =>
             assetCatalog?.find(assetId)?.logicalPath,
       );
