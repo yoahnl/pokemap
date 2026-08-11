@@ -908,7 +908,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-051 — Mutations sémantiques Item
 
-- [ ] **Résultat :** exposer les actions documentées item.* avec plan/apply et validation.
+- [x] **Résultat :** exposer les actions documentées item.* avec plan/apply et validation.
 - **Fichiers à créer :**
   - packages/map_authoring/lib/src/domains/gameplay/item_catalog_actions.dart
   - packages/map_authoring/test/domains/gameplay/item_catalog_actions_test.dart
@@ -927,6 +927,8 @@ Résultat attendu : exit code 0 pour chaque commande.
   - item.simulate.
 - **Gate :** atomicité, dry-run, expectedRevision, idempotence, undo et dépendances de suppression.
 - **Dépendances :** ITM-050.
+
+**Preuves ITM-051 :** neuf mutations durables `item.*` sont enregistrées dans le dispatcher canonique : création, remplacement, clone, suppression confirmée et configuration séparée des usages overworld/battle, held, capture et machine. Chaque plan remplace atomiquement l’unique ressource `itemCatalog`, avec pre-image exacte, CAS de révision, diff, dry-run, idempotence et undo fournis par le pipeline journalisé. `item.delete_apply` refuse toute dépendance bloquante et retourne ses chemins éditables. Les opérations sans écriture `item.delete_plan`, `item.validate` et `item.simulate` restent volontairement des query actions discoverables afin de ne jamais fabriquer une fausse mutation. Les suites ciblées terminent avec 40 tests réussis et l’analyse ciblée ne signale aucun problème.
 
 ### ITM-052 — Item Studio no-code
 

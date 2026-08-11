@@ -48,8 +48,10 @@ final class ProjectQueryService {
     final connectionActionPage = _queryConnectionAction(snapshot, request);
     if (connectionActionPage != null) return connectionActionPage;
     final worldGraphActionRecords = _worldGraphActionRecords(snapshot, request);
+    final itemActionRecords = _itemQueryActionRecords(snapshot, request);
     if (request.extensions['actionId'] != null &&
-        worldGraphActionRecords == null) {
+        worldGraphActionRecords == null &&
+        itemActionRecords == null) {
       throw const AuthoringQueryException(
         'query.action_resource_mismatch',
         'The query action is not supported by the requested resource kind.',
@@ -57,6 +59,7 @@ final class ProjectQueryService {
     }
     final characterStudioRecords = _characterStudioRecords(snapshot, request);
     var records = worldGraphActionRecords ??
+        itemActionRecords ??
         characterStudioRecords ??
         _records(snapshot, request.resourceKind);
     records = _applyOperation(records, request);
@@ -97,6 +100,130 @@ final class ProjectQueryService {
       nextCursor: nextCursor,
     );
   }
+}
+
+List<_QueryRecord>? _itemQueryActionRecords(
+  ProjectSnapshot snapshot,
+  AuthoringQueryRequest request,
+) {
+  final actionId = request.extensions['actionId'];
+  if (actionId is! String || !actionId.startsWith('item.')) return null;
+  final rawParameters = request.extensions['parameters'];
+  if (rawParameters is! Map ||
+      rawParameters.keys.any((key) => key is! String) ||
+      request.extensions.keys.any(
+        (key) => key != 'actionId' && key != 'parameters',
+      )) {
+    throw const AuthoringQueryException(
+      'query.item_action_invalid',
+      'The item query action and parameters are invalid.',
+    );
+  }
+  final parameters = Map<String, Object?>.from(rawParameters);
+  switch (actionId) {
+    case 'item.delete_plan':
+      _requireExactKeys(
+        parameters,
+        const <String>{'itemId'},
+        code: 'query.item_parameters_invalid',
+      );
+      final itemId = _requiredItemQueryString(parameters, 'itemId');
+      if (request.resourceKind != 'itemUsage' ||
+          request.operation != AuthoringQueryOperation.list ||
+          request.ids.isNotEmpty) {
+        throw const AuthoringQueryException(
+          'query.action_resource_mismatch',
+          'Item deletion planning requires an itemUsage list query.',
+        );
+      }
+      return _itemUsageRecords(snapshot)
+          .where((record) => record.detail['itemId'] == itemId)
+          .toList(growable: false);
+    case 'item.validate':
+      _requireExactKeys(
+        parameters,
+        const <String>{'itemId'},
+        code: 'query.item_parameters_invalid',
+      );
+      final itemId = _requiredItemQueryString(parameters, 'itemId');
+      if (request.resourceKind != 'itemReadiness' ||
+          request.operation != AuthoringQueryOperation.get ||
+          request.ids.singleOrNull != itemId) {
+        throw const AuthoringQueryException(
+          'query.action_resource_mismatch',
+          'Item validation requires the matching itemReadiness resource.',
+        );
+      }
+      return _itemReadinessRecords(snapshot);
+    case 'item.simulate':
+      _requireExactKeys(
+        parameters,
+        const <String>{'itemId', 'context'},
+        code: 'query.item_parameters_invalid',
+      );
+      final itemId = _requiredItemQueryString(parameters, 'itemId');
+      final contextName = _requiredItemQueryString(parameters, 'context');
+      final context = ProjectItemUseContext.values
+          .where((candidate) => candidate.name == contextName)
+          .singleOrNull;
+      if (context == null) {
+        throw const AuthoringQueryException(
+          'query.item_context_invalid',
+          'Item simulation context must be overworld or battle.',
+        );
+      }
+      if (request.resourceKind != 'itemDefinition' ||
+          request.operation != AuthoringQueryOperation.get ||
+          request.ids.singleOrNull != itemId) {
+        throw const AuthoringQueryException(
+          'query.action_resource_mismatch',
+          'Item simulation requires the matching itemDefinition resource.',
+        );
+      }
+      final definition = snapshot.itemCatalog?.entries
+          .where((candidate) => candidate.id == itemId)
+          .singleOrNull;
+      if (definition == null) return _itemDefinitionRecords(snapshot);
+      final use = definition.uses
+          .where((candidate) => candidate.contexts.contains(context))
+          .singleOrNull;
+      final records = _itemDefinitionRecords(snapshot);
+      return <_QueryRecord>[
+        for (final record in records)
+          if (record.id == itemId)
+            _QueryRecord(
+              summary: record.summary,
+              detail: <String, Object?>{
+                ...record.detail,
+                'simulation': <String, Object?>{
+                  'status': use == null ? 'passive' : 'configured',
+                  'context': context.name,
+                  'consumption': use?.consumption.name,
+                  'target': use?.target.name,
+                  'effect': use?.effect.toJson(),
+                },
+              },
+            )
+          else
+            record,
+      ];
+    default:
+      throw const AuthoringQueryException(
+        'query.item_action_unsupported',
+        'The requested item query action is unsupported.',
+      );
+  }
+}
+
+String _requiredItemQueryString(Map<String, Object?> values, String key) {
+  final value = values[key];
+  if (value is! String || value.trim().isEmpty || value != value.trim()) {
+    throw const AuthoringQueryException(
+      'query.item_parameters_invalid',
+      'A required item query parameter is invalid.',
+    );
+  }
+  return value;
 }
 
 List<_QueryRecord>? _characterStudioRecords(

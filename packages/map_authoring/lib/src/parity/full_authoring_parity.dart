@@ -638,6 +638,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/gameplay/pokemon_catalog_authoring_test.dart',
   ),
   _ContractEvidenceRule(
+    ['item.'],
+    'test/domains/gameplay/item_catalog_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['campaign.'],
     'test/domains/gameplay/campaign_content_authoring_test.dart',
   ),

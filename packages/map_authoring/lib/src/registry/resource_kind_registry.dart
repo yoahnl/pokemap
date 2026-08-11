@@ -424,6 +424,13 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Item definition',
         summary: 'One canonical item definition and its capabilities',
+        extensions: const <String, Object?>{
+          'queryActions': <String>[
+            'item.delete_plan',
+            'item.simulate',
+            'item.validate',
+          ],
+        },
       ),
       AuthoringResourceKindDescriptor(
         id: 'itemUsage',
