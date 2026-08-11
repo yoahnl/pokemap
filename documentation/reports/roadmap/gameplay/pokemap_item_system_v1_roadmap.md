@@ -13,8 +13,11 @@
 ## 1. Statut, autorité et règle de portée
 
 - [ ] IN_PROGRESS — les phases 0 à 6 sont clôturées ; la phase 7 de certification est la prochaine vague exécutable.
-- Dernière mise à jour : 11 août 2026, après rebase de `codex/item-system-phase-0` sur le `main` local `6ea3b7e8fd09`, validation du HEAD produit `dbc93a7dd` et clôture de la phase 6.
+- Dernière mise à jour : 11 août 2026, après rebase de `codex/item-system-phase-0` sur le `main` local `6ea3b7e8fd09`, validation du HEAD produit `dbc93a7dd`, clôture de la phase 6 et consolidation des compteurs de pilotage.
 - Avancement : 36 lots DONE, 1 lot DEFERRED_BY_PRODUCT et 5 lots TODO sur 42 lots uniques.
+- Phases : 7 phases réalisées sur 8 ; seule la phase 7 reste à exécuter.
+- Travail restant : 5 lots immédiatement exécutables (`ITM-070` à `ITM-074`) et 1 lot différé (`ITM-034`) qui ne doit pas être compté comme une tâche de la prochaine vague.
+- Unité de suivi : cette roadmap ne maintient pas un second registre de tâches atomiques ; les unités d’exécution officielles sont les lots `ITM-*`.
 - La phase 3 est clôturée sur le périmètre V1 signé ; ITM-034 Repel reste explicitement différé avec FG-065 et ne bloque ni la phase 6, ni la capture minimale.
 - Ce document est la roadmap dédiée à la refonte Item System V1.
 - La roadmap mécanique racine reste l’autorité des statuts FG-050 et FG-060 à FG-079.
@@ -331,16 +334,19 @@ ItemCatalogSnapshot compose la définition d’objet avec les références exter
 
 ## 7. Vue d’ensemble des phases
 
-| Phase | Lots | Statut | Résultat livrable | Dépend de |
-|---|---|---|---|---|
-| 0 — Vérité et inventaire de rupture | ITM-001 | DONE | Les comportements à conserver et les chemins à supprimer sont verrouillés | — |
-| 1 — Contrats canoniques | ITM-010 à ITM-014 | DONE | Catalogue strict, codec et validation partagés | Phase 0 |
-| 2 — Bag transactionnel | ITM-020 à ITM-024 | DONE | Nouveau wire Bag par itemId, receipts atomiques et version gate | Phase 1 |
-| 3 — Consommateurs gameplay | ITM-025 à ITM-038 | DONE_SCOPE_V1 — ITM-034 différé | Classification, diagnostics, overworld, battle, capture minimale, key items, machines et held items unifiés | Phase 2 |
-| 4 — Producteurs et économie | ITM-040 à ITM-044 | DONE | New Game, scènes, pickups, rewards et shops utilisent la même autorité | Phase 2 |
-| 5 — Authoring et MCP | ITM-050 à ITM-055 | DONE | Item Studio no-code et parité transports | Phases 1, 3 et 4 |
-| 6 — Suppression historique | ITM-060 à ITM-062 | DONE | Anciens chemins et anciens formats physiquement absents | Phase 5 |
-| 7 — Certification | ITM-070 à ITM-074 | TODO — NEXT | Golden slice générique et statuts FG recertifiés | Phase 6 DONE |
+| Phase | Total | DONE | TODO | Différé | Lots réalisés | Lots à faire ou différés | Statut |
+|---|---:|---:|---:|---:|---|---|---|
+| 0 — Vérité et inventaire de rupture | 1 | 1 | 0 | 0 | `ITM-001` | — | DONE |
+| 1 — Contrats canoniques | 5 | 5 | 0 | 0 | `ITM-010` à `ITM-014` | — | DONE |
+| 2 — Bag transactionnel | 5 | 5 | 0 | 0 | `ITM-020` à `ITM-024` | — | DONE |
+| 3 — Consommateurs gameplay | 12 | 11 | 0 | 1 | `ITM-025` à `ITM-027`, `ITM-030` à `ITM-033`, `ITM-035` à `ITM-038` | `ITM-034` — DEFERRED_BY_PRODUCT | DONE_SCOPE_V1 |
+| 4 — Producteurs et économie | 5 | 5 | 0 | 0 | `ITM-040` à `ITM-044` | — | DONE |
+| 5 — Authoring et MCP | 6 | 6 | 0 | 0 | `ITM-050` à `ITM-055` | — | DONE |
+| 6 — Suppression historique | 3 | 3 | 0 | 0 | `ITM-060` à `ITM-062` | — | DONE |
+| 7 — Certification | 5 | 0 | 5 | 0 | — | `ITM-070` à `ITM-074` | TODO — NEXT |
+| **Total** | **42** | **36** | **5** | **1** | **Phases 0 à 6 clôturées** | **Phase 7 + ITM-034 différé** | **IN_PROGRESS** |
+
+Le reste à faire immédiatement représente donc 5 lots, tous regroupés dans la phase 7. Le nombre de lots non-DONE est de 6 uniquement si le lot produit différé `ITM-034` est inclus ; ce dernier n’entre pas dans la prochaine vague tant que FG-065 reste DEFERRED.
 
 ### 7.1 Preuves Git après rebase
 
@@ -352,6 +358,8 @@ ItemCatalogSnapshot compose la définition d’objet avec les références exter
 | 3 | `0f80d69a8` à `62fa55b94` |
 | 4 | `e616cb5a3` à `985c544f5` |
 | 5 | `208fdbe19` à `73810116b`, puis intégration post-rebase `dbc93a7dd` |
+| 6 | `6f9e454fb`, `091c60a11`, correctif de revue `5db84a28a`, puis clôture `9fb30476f` |
+| 7 | — |
 
 Ces identifiants remplacent les hashes antérieurs au rebase. Ils prouvent l’historique de la branche dédiée ; ils ne remplacent pas les commandes fraîches exigées pour clôturer les phases 6 et 7.
 
@@ -1283,5 +1291,8 @@ Cette roadmap continue d’être exécutée lot par lot, avec un checkpoint apr�
 
 1. **ITM-070 — fixture Golden Item System :** créer le mini-projet synthétique repo-owned couvrant les capacités V1 sans dépendance à un projet utilisateur.
 2. **ITM-071 — golden runtime flow :** enchaîner les usages Item sur cette fixture après validation de son contrat.
+3. **ITM-072 — certification produit :** raccorder schema, authoring, persistence, runtime, UX joueur, MCP et golden flow aux niveaux de preuve L0-L6.
+4. **ITM-073 — matrice finale de validation :** exécuter toutes les suites, analyses et builds prévus en séparant explicitement les dettes préexistantes.
+5. **ITM-074 — recertification mécanique :** proposer les statuts FG finaux uniquement à partir des preuves fraîches de la golden slice et de la matrice complète.
 
 ITM-034 reste différé et ne doit pas être glissé discrètement dans la certification sous prétexte qu’un Repel « n’a pas l’air bien méchant » — c’est exactement ainsi que les petits lots se transforment en marécages.
