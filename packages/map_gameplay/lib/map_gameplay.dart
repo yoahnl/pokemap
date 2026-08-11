@@ -147,6 +147,8 @@ export 'src/game_state_mutations.dart'
 export 'src/player_storage_operations.dart';
 export 'src/sandbox_player_state.dart';
 export 'src/player_item_effects.dart';
+export 'src/items/bag_operation_result.dart';
+export 'src/items/bag_operations.dart';
 export 'src/items/mvp_item_catalog.dart';
 export 'src/player_defeat_recovery.dart';
 export 'src/runtime_map_projection.dart'

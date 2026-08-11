@@ -515,7 +515,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-021 — BagOperations et receipts atomiques
 
-- [ ] **Résultat :** give, take, consume et inspect utilisent une API pure unique.
+- [x] **Résultat :** give, take, consume et inspect utilisent une API pure unique.
 - **Fichiers à créer :**
   - packages/map_gameplay/lib/src/items/bag_operations.dart
   - packages/map_gameplay/lib/src/items/bag_operation_result.dart
@@ -529,6 +529,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
   - key item consumption refusée sauf politique explicite.
 - **Gate :** tests positifs, négatifs, overflow et idempotence.
 - **Dépendances :** ITM-020.
+
+**Preuves ITM-021 :** les 8 tests dédiés passent et l'analyse ciblée des deux contrats, de l'implémentation et du test est sans issue. `BagOperations` fournit `give`, `take`, `consume` et `quantityOf` sur l'identité `itemId`, refuse les requêtes invalides, les quantités insuffisantes et l'overflow sans remplacer le Bag original, et protège les key items sauf autorisation explicite. Toute consommation réussie produit un unique `ItemConsumptionReceipt` avec l'identité, les quantités avant/après et la raison ; les échecs idempotents n'émettent aucun receipt.
 
 ### ITM-022 — PlayerItemUseService
 
