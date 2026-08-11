@@ -932,7 +932,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-052 — Item Studio no-code
 
-- [ ] **Résultat :** créer et éditer un objet sans JSON ni ID brut.
+- [x] **Résultat :** créer et éditer un objet sans JSON ni ID brut.
 - **Fichiers à créer :**
   - packages/map_editor/lib/src/features/gameplay/items/item_studio_workspace.dart
   - packages/map_editor/lib/src/features/gameplay/items/item_catalog_list.dart
@@ -952,6 +952,8 @@ Résultat attendu : exit code 0 pour chaque commande.
   - packages/map_editor/test/item_definition_editor_test.dart
 - **Gate :** création, édition, erreur inline, undo et reload.
 - **Dépendances :** ITM-051.
+
+**Preuves ITM-052 :** la route Items du workspace Pokédex ouvre désormais un Item Studio fondé sur `AuthoringQueryAdapter` et `AuthoringMutationAdapter`, et non sur le loader privé historique. Le Studio pagine les ressources `itemDefinition`, `itemReadiness` et `itemUsage`, puis exécute `item.create`, `item.update`, `item.simulate` et l'undo canonique avec révision attendue et receipt journalisée. L'identité est générée depuis le nom ; pockets, contextes, cibles, consommation, effets, capture, machine et held passent par des contrôles guidés du design system. Les choix machine et held proviennent uniquement des capacités déjà déclarées dans le catalogue canonique ; aucun ID libre ni source privée n'est utilisé pour combler un manque. Les tests widget couvrent création, édition, validation inline, erreur de mutation, reload, undo et les capacités ; la suite ciblée avec les guardrails design system et la caractérisation de l'ancien panneau termine avec 31 tests réussis. L'analyse ciblée ne signale aucun problème.
 
 ### ITM-053 — Pickers contextuels cohérents
 

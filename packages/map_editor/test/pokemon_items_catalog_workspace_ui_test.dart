@@ -11,7 +11,6 @@ import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_
 import 'package:map_editor/src/application/use_cases/sync_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
-import 'package:map_editor/src/ui/canvas/pokemon_catalogs_workspace.dart';
 import 'package:map_editor/src/ui/canvas/pokemon_catalogs_workspace/items_catalog_workspace.dart';
 import 'package:path/path.dart' as p;
 
@@ -533,7 +532,7 @@ Future<ProviderContainer> _pumpItemsWorkspace(
         home: MacosTheme(
           data: MacosThemeData.light(),
           child: const CupertinoPageScaffold(
-            child: SizedBox.expand(child: PokemonCatalogsWorkspace()),
+            child: SizedBox.expand(child: PokemonItemsCatalogWorkspace()),
           ),
         ),
       ),
