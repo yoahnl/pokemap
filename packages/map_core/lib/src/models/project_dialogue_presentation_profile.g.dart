@@ -27,6 +27,32 @@ _$ProjectDialoguePresentationProfileFromJson(Map<String, dynamic> json) =>
       surfaceColor: json['surfaceColor'] as String?,
       borderColor: json['borderColor'] as String?,
       textColor: json['textColor'] as String?,
+      portraitSide:
+          $enumDecodeNullable(
+            _$ProjectDialoguePortraitSideEnumMap,
+            json['portraitSide'],
+          ) ??
+          ProjectDialoguePortraitSide.start,
+      portraitSize: (json['portraitSize'] as num?)?.toDouble() ?? 96,
+      portraitShape:
+          $enumDecodeNullable(
+            _$ProjectDialoguePortraitShapeEnumMap,
+            json['portraitShape'],
+          ) ??
+          ProjectDialoguePortraitShape.rounded,
+      portraitFrameWidth: (json['portraitFrameWidth'] as num?)?.toDouble() ?? 1,
+      portraitFrameColor: json['portraitFrameColor'] as String?,
+      nameplateStyle:
+          $enumDecodeNullable(
+            _$ProjectDialogueNameplateStyleEnumMap,
+            json['nameplateStyle'],
+          ) ??
+          ProjectDialogueNameplateStyle.inline,
+      nameplateBorderWidth:
+          (json['nameplateBorderWidth'] as num?)?.toDouble() ?? 1,
+      nameplateSurfaceColor: json['nameplateSurfaceColor'] as String?,
+      nameplateBorderColor: json['nameplateBorderColor'] as String?,
+      nameplateTextColor: json['nameplateTextColor'] as String?,
     );
 
 Map<String, dynamic> _$ProjectDialoguePresentationProfileToJson(
@@ -43,6 +69,18 @@ Map<String, dynamic> _$ProjectDialoguePresentationProfileToJson(
   'surfaceColor': ?instance.surfaceColor,
   'borderColor': ?instance.borderColor,
   'textColor': ?instance.textColor,
+  'portraitSide': _$ProjectDialoguePortraitSideEnumMap[instance.portraitSide]!,
+  'portraitSize': instance.portraitSize,
+  'portraitShape':
+      _$ProjectDialoguePortraitShapeEnumMap[instance.portraitShape]!,
+  'portraitFrameWidth': instance.portraitFrameWidth,
+  'portraitFrameColor': ?instance.portraitFrameColor,
+  'nameplateStyle':
+      _$ProjectDialogueNameplateStyleEnumMap[instance.nameplateStyle]!,
+  'nameplateBorderWidth': instance.nameplateBorderWidth,
+  'nameplateSurfaceColor': ?instance.nameplateSurfaceColor,
+  'nameplateBorderColor': ?instance.nameplateBorderColor,
+  'nameplateTextColor': ?instance.nameplateTextColor,
 };
 
 const _$ProjectDialoguePlacementEnumMap = {
@@ -57,4 +95,22 @@ const _$ProjectWindowShapeEnumMap = {
   ProjectWindowShape.capsule: 'capsule',
   ProjectWindowShape.cutCorner: 'cutCorner',
   ProjectWindowShape.speech: 'speech',
+};
+
+const _$ProjectDialoguePortraitSideEnumMap = {
+  ProjectDialoguePortraitSide.start: 'start',
+  ProjectDialoguePortraitSide.end: 'end',
+};
+
+const _$ProjectDialoguePortraitShapeEnumMap = {
+  ProjectDialoguePortraitShape.circle: 'circle',
+  ProjectDialoguePortraitShape.rounded: 'rounded',
+  ProjectDialoguePortraitShape.square: 'square',
+  ProjectDialoguePortraitShape.cutCorner: 'cutCorner',
+};
+
+const _$ProjectDialogueNameplateStyleEnumMap = {
+  ProjectDialogueNameplateStyle.inline: 'inline',
+  ProjectDialogueNameplateStyle.badge: 'badge',
+  ProjectDialogueNameplateStyle.floating: 'floating',
 };

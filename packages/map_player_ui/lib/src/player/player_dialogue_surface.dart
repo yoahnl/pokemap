@@ -191,6 +191,7 @@ class PlayerDialogueSurface extends StatelessWidget {
                             ),
                             child: _DialogueLineContent(
                               data: data,
+                              dialogue: dialogue,
                               portraitBuilder:
                                   showPortrait ? portraitBuilder : null,
                               resolvedPortrait:
@@ -218,18 +219,32 @@ class PlayerDialogueSurface extends StatelessWidget {
 class _DialogueLineContent extends StatelessWidget {
   const _DialogueLineContent({
     required this.data,
+    required this.dialogue,
     required this.portraitBuilder,
     required this.resolvedPortrait,
     required this.showSpeakerName,
   });
 
   final PlayerDialogueViewData data;
+  final ProjectDialoguePresentationProfile? dialogue;
   final Widget Function(String speaker)? portraitBuilder;
   final Widget? resolvedPortrait;
   final bool showSpeakerName;
 
   @override
   Widget build(BuildContext context) {
+    if (dialogue case final dialogue?) {
+      final speaker = data.speaker;
+      return _DialogueLineWithAuthoredPortrait(
+        data: data,
+        dialogue: dialogue,
+        portrait: resolvedPortrait ??
+            (speaker == null || portraitBuilder == null
+                ? null
+                : portraitBuilder!(speaker)),
+        showSpeakerName: showSpeakerName,
+      );
+    }
     if (resolvedPortrait case final portrait?) {
       return _DialogueLineWithResolvedPortrait(
         data: data,
@@ -283,6 +298,210 @@ class _DialogueLineContent extends StatelessWidget {
     );
   }
 }
+
+class _DialogueLineWithAuthoredPortrait extends StatelessWidget {
+  const _DialogueLineWithAuthoredPortrait({
+    required this.data,
+    required this.dialogue,
+    required this.portrait,
+    required this.showSpeakerName,
+  });
+
+  final PlayerDialogueViewData data;
+  final ProjectDialoguePresentationProfile dialogue;
+  final Widget? portrait;
+  final bool showSpeakerName;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final portraitDimension = constraints.maxWidth < 320
+              ? dialogue.portraitSize.clamp(48.0, 72.0)
+              : dialogue.portraitSize;
+          final text = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (data.speaker case final speaker?
+                  when showSpeakerName) ...<Widget>[
+                _DialogueNameplate(
+                  speaker: speaker,
+                  dialogue: dialogue,
+                ),
+                const SizedBox(height: PlayerSpacing.sm),
+              ],
+              Text(
+                data.text,
+                style: context.playerTypography.dialogueStyle(
+                  Theme.of(context).textTheme.bodyLarge ?? const TextStyle(),
+                ),
+              ),
+              const SizedBox(height: PlayerSpacing.md),
+              _DialogueAdvanceLabel(data: data),
+            ],
+          );
+          final portrait = this.portrait;
+          if (portrait == null) return text;
+          final framedPortrait = _DialoguePortraitFrame(
+            dimension: portraitDimension,
+            shape: dialogue.portraitShape,
+            borderWidth: dialogue.portraitFrameWidth,
+            borderColor: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                  dialogue.portraitFrameColor,
+                ) ??
+                context.playerColors.outline,
+            child: portrait,
+          );
+          final semanticPortrait = data.speaker == null || showSpeakerName
+              ? ExcludeSemantics(child: framedPortrait)
+              : Semantics(
+                  image: true,
+                  label: 'Portrait de ${data.speaker}',
+                  child: framedPortrait,
+                );
+          final portraitKey = ValueKey<String>(
+            'dialogue-portrait-${dialogue.portraitSide.name}',
+          );
+          if (constraints.maxWidth < 360 ||
+              MediaQuery.textScalerOf(context).scale(1) >= 1.5) {
+            return Column(
+              key: portraitKey,
+              crossAxisAlignment:
+                  dialogue.portraitSide == ProjectDialoguePortraitSide.start
+                      ? CrossAxisAlignment.start
+                      : CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                semanticPortrait,
+                const SizedBox(height: PlayerSpacing.sm),
+                SizedBox(width: double.infinity, child: text),
+              ],
+            );
+          }
+          return Row(
+            key: portraitKey,
+            textDirection:
+                dialogue.portraitSide == ProjectDialoguePortraitSide.start
+                    ? Directionality.of(context)
+                    : _opposite(Directionality.of(context)),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              semanticPortrait,
+              const SizedBox(width: PlayerSpacing.md),
+              Expanded(child: text),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DialoguePortraitFrame extends StatelessWidget {
+  const _DialoguePortraitFrame({
+    required this.dimension,
+    required this.shape,
+    required this.borderWidth,
+    required this.borderColor,
+    required this.child,
+  });
+
+  final double dimension;
+  final ProjectDialoguePortraitShape shape;
+  final double borderWidth;
+  final Color borderColor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final side = BorderSide(color: borderColor, width: borderWidth);
+    final frameShape = switch (shape) {
+      ProjectDialoguePortraitShape.circle => CircleBorder(side: side),
+      ProjectDialoguePortraitShape.rounded => RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: side,
+        ),
+      ProjectDialoguePortraitShape.square => RoundedRectangleBorder(side: side),
+      ProjectDialoguePortraitShape.cutCorner => BeveledRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: side,
+        ),
+    };
+    return Material(
+      key: ValueKey<String>('dialogue-portrait-shape-${shape.name}'),
+      color: context.playerColors.surface,
+      shape: frameShape,
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox.square(dimension: dimension, child: child),
+    );
+  }
+}
+
+class _DialogueNameplate extends StatelessWidget {
+  const _DialogueNameplate({
+    required this.speaker,
+    required this.dialogue,
+  });
+
+  final String speaker;
+  final ProjectDialoguePresentationProfile dialogue;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Text(
+      speaker,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: context.playerTypography
+          .dialogueStyle(
+            Theme.of(context).textTheme.titleLarge ?? const TextStyle(),
+          )
+          .copyWith(
+            color: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                  dialogue.nameplateTextColor,
+                ) ??
+                context.playerColors.primary,
+          ),
+    );
+    if (dialogue.nameplateStyle == ProjectDialogueNameplateStyle.inline) {
+      return KeyedSubtree(
+        key: const ValueKey<String>('dialogue-nameplate-inline'),
+        child: text,
+      );
+    }
+    final badge = Material(
+      key: ValueKey<String>(
+        'dialogue-nameplate-${dialogue.nameplateStyle.name}',
+      ),
+      color: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+            dialogue.nameplateSurfaceColor,
+          ) ??
+          context.playerColors.surfaceElevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+        side: BorderSide(
+          color: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                dialogue.nameplateBorderColor,
+              ) ??
+              context.playerColors.outline,
+          width: dialogue.nameplateBorderWidth,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        child: text,
+      ),
+    );
+    return dialogue.nameplateStyle == ProjectDialogueNameplateStyle.floating
+        ? Transform.translate(offset: const Offset(0, -6), child: badge)
+        : badge;
+  }
+}
+
+TextDirection _opposite(TextDirection direction) =>
+    direction == TextDirection.ltr ? TextDirection.rtl : TextDirection.ltr;
 
 class _DialogueLineWithResolvedPortrait extends StatelessWidget {
   const _DialogueLineWithResolvedPortrait({

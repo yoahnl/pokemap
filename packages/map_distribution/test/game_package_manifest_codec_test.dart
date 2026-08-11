@@ -232,6 +232,16 @@ void main() {
             'surfaceColor': '#102030',
             'borderColor': '#A0B0C0',
             'textColor': '#F0F0F0',
+            'portraitSide': 'end',
+            'portraitSize': 112.0,
+            'portraitShape': 'circle',
+            'portraitFrameWidth': 4.0,
+            'portraitFrameColor': '#C0FFEE',
+            'nameplateStyle': 'floating',
+            'nameplateBorderWidth': 2.0,
+            'nameplateSurfaceColor': '#334455',
+            'nameplateBorderColor': '#778899',
+            'nameplateTextColor': '#FFFFFF',
           },
         };
 
@@ -252,6 +262,9 @@ void main() {
       expect(manifest.presentation?.dialogue?.placement, 'top');
       expect(manifest.presentation?.dialogue?.shape, 'speech');
       expect(manifest.presentation?.dialogue?.surfaceColor, '#102030');
+      expect(manifest.presentation?.dialogue?.portraitSide, 'end');
+      expect(manifest.presentation?.dialogue?.portraitShape, 'circle');
+      expect(manifest.presentation?.dialogue?.nameplateStyle, 'floating');
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 

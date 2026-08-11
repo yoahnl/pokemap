@@ -16,6 +16,7 @@ class PlayerDialogueOverlay extends StatelessWidget {
     required this.onCommand,
     this.portraitBuilder,
     this.resolvedPortraitBuilder,
+    this.showSpeakerName = true,
   });
 
   final DialoguePresentationSnapshot snapshot;
@@ -23,6 +24,7 @@ class PlayerDialogueOverlay extends StatelessWidget {
   final Widget Function(String speaker)? portraitBuilder;
   final Widget Function(ResolvedDialoguePortrait portrait)?
       resolvedPortraitBuilder;
+  final bool showSpeakerName;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +63,7 @@ class PlayerDialogueOverlay extends StatelessWidget {
         },
       ),
       portraitBuilder: portraitBuilder,
+      showSpeakerName: showSpeakerName,
       resolvedPortrait: portrait == null
           ? null
           : KeyedSubtree(

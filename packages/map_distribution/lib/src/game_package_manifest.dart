@@ -323,9 +323,19 @@ final class GamePackageDialoguePresentation {
     required this.cornerRadius,
     required this.borderWidth,
     required this.fillOpacity,
+    this.portraitSide = 'start',
+    this.portraitSize = 96,
+    this.portraitShape = 'rounded',
+    this.portraitFrameWidth = 1,
+    this.nameplateStyle = 'inline',
+    this.nameplateBorderWidth = 1,
     this.surfaceColor,
     this.borderColor,
     this.textColor,
+    this.portraitFrameColor,
+    this.nameplateSurfaceColor,
+    this.nameplateBorderColor,
+    this.nameplateTextColor,
   });
 
   final String placement;
@@ -339,6 +349,16 @@ final class GamePackageDialoguePresentation {
   final String? surfaceColor;
   final String? borderColor;
   final String? textColor;
+  final String portraitSide;
+  final double portraitSize;
+  final String portraitShape;
+  final double portraitFrameWidth;
+  final String? portraitFrameColor;
+  final String nameplateStyle;
+  final double nameplateBorderWidth;
+  final String? nameplateSurfaceColor;
+  final String? nameplateBorderColor;
+  final String? nameplateTextColor;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'placement': placement,
@@ -352,6 +372,20 @@ final class GamePackageDialoguePresentation {
         if (surfaceColor != null) 'surfaceColor': surfaceColor,
         if (borderColor != null) 'borderColor': borderColor,
         if (textColor != null) 'textColor': textColor,
+        'portraitSide': portraitSide,
+        'portraitSize': portraitSize,
+        'portraitShape': portraitShape,
+        'portraitFrameWidth': portraitFrameWidth,
+        if (portraitFrameColor != null)
+          'portraitFrameColor': portraitFrameColor,
+        'nameplateStyle': nameplateStyle,
+        'nameplateBorderWidth': nameplateBorderWidth,
+        if (nameplateSurfaceColor != null)
+          'nameplateSurfaceColor': nameplateSurfaceColor,
+        if (nameplateBorderColor != null)
+          'nameplateBorderColor': nameplateBorderColor,
+        if (nameplateTextColor != null)
+          'nameplateTextColor': nameplateTextColor,
       };
 }
 

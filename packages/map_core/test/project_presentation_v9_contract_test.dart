@@ -17,6 +17,16 @@ void main() {
           surfaceColor: '#102030',
           borderColor: '#A0B0C0',
           textColor: '#F0F0F0',
+          portraitSide: ProjectDialoguePortraitSide.end,
+          portraitSize: 112,
+          portraitShape: ProjectDialoguePortraitShape.circle,
+          portraitFrameWidth: 4,
+          portraitFrameColor: '#C0FFEE',
+          nameplateStyle: ProjectDialogueNameplateStyle.floating,
+          nameplateBorderWidth: 2,
+          nameplateSurfaceColor: '#334455',
+          nameplateBorderColor: '#778899',
+          nameplateTextColor: '#FFFFFF',
         ),
       );
 
@@ -62,6 +72,13 @@ void main() {
           surfaceColor: 'black',
           borderColor: '#FFFFFF80',
           textColor: '#FFF',
+          portraitSize: 12,
+          portraitFrameWidth: 20,
+          portraitFrameColor: 'transparent',
+          nameplateBorderWidth: 10,
+          nameplateSurfaceColor: '#FFFFFF80',
+          nameplateBorderColor: 'black',
+          nameplateTextColor: '#FFF',
         ),
       );
 
@@ -76,6 +93,9 @@ void main() {
           'dialogueCornerRadiusOutOfRange',
           'dialogueBorderWidthOutOfRange',
           'dialogueFillOpacityOutOfRange',
+          'dialoguePortraitSizeOutOfRange',
+          'dialoguePortraitFrameWidthOutOfRange',
+          'dialogueNameplateBorderWidthOutOfRange',
           'dialogueColorInvalid',
         }),
       );

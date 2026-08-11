@@ -10,6 +10,8 @@ class PersonalizationDialogueInspector extends StatelessWidget {
   static const capabilityIds = <String>{
     'dialogue.geometry',
     'dialogue.colors',
+    'dialogue.portrait',
+    'dialogue.nameplate',
     'dialogue.typography',
     'dialogue.previewCharacter',
     'dialogue.previewPortrait',
@@ -102,6 +104,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
         ),
       ),
       const SizedBox(height: 18),
+      _portraitEditor(context),
+      const SizedBox(height: 18),
+      _nameplateEditor(context),
+      const SizedBox(height: 18),
       ProjectTypographyEditor(
         profile: profile.typography ?? const ProjectTypographyProfile(),
         previewFamilies: previewFamilies,
@@ -185,6 +191,169 @@ class PersonalizationDialogueInspector extends StatelessWidget {
       return selectedCharacterId!;
     }
     return characterOptions.first.id;
+  }
+
+  Widget _portraitEditor(BuildContext context) {
+    final dialogue =
+        profile.dialogue ?? const ProjectDialoguePresentationProfile();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const PokeMapSectionHeader(
+          title: 'Portrait',
+          description: 'Placez et encadrez le portrait du personnage.',
+        ),
+        const SizedBox(height: 8),
+        PokeMapCard(
+          key: const ValueKey<String>('dialogue-portrait-editor'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  for (final side in ProjectDialoguePortraitSide.values)
+                    PokeMapButton(
+                      key: ValueKey<String>(
+                        'dialogue-portrait-side-${side.name}',
+                      ),
+                      size: PokeMapButtonSize.small,
+                      variant: PokeMapButtonVariant.secondary,
+                      isSelected: dialogue.portraitSide == side,
+                      onPressed: () => onDialogueChanged(
+                        dialogue.copyWith(portraitSide: side),
+                      ),
+                      child: Text(
+                        side == ProjectDialoguePortraitSide.start
+                            ? 'À gauche'
+                            : 'À droite',
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              PokeMapDropdownField<ProjectDialoguePortraitShape>(
+                key: const ValueKey<String>('dialogue-portrait-shape'),
+                label: 'Forme du portrait',
+                value: dialogue.portraitShape,
+                items:
+                    const <PokeMapDropdownItem<ProjectDialoguePortraitShape>>[
+                      PokeMapDropdownItem(
+                        value: ProjectDialoguePortraitShape.circle,
+                        label: 'Cercle',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialoguePortraitShape.rounded,
+                        label: 'Arrondi',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialoguePortraitShape.square,
+                        label: 'Carré',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialoguePortraitShape.cutCorner,
+                        label: 'Angles coupés',
+                      ),
+                    ],
+                onChanged: (shape) =>
+                    onDialogueChanged(dialogue.copyWith(portraitShape: shape)),
+              ),
+              const SizedBox(height: 12),
+              PokeMapGuidedSlider(
+                key: const ValueKey<String>('dialogue-portrait-size'),
+                label: 'Taille du portrait',
+                min: 48,
+                max: 160,
+                value: dialogue.portraitSize.round(),
+                onChanged: (value) => onDialogueChanged(
+                  dialogue.copyWith(portraitSize: value.toDouble()),
+                ),
+              ),
+              const SizedBox(height: 12),
+              PokeMapGuidedSlider(
+                key: const ValueKey<String>('dialogue-portrait-frame-width'),
+                label: 'Épaisseur du cadre',
+                min: 0,
+                max: 8,
+                value: dialogue.portraitFrameWidth.round(),
+                onChanged: (value) => onDialogueChanged(
+                  dialogue.copyWith(portraitFrameWidth: value.toDouble()),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _colorControl(context, dialogue, _DialogueColor.portraitFrame),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _nameplateEditor(BuildContext context) {
+    final dialogue =
+        profile.dialogue ?? const ProjectDialoguePresentationProfile();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const PokeMapSectionHeader(
+          title: 'Nom du personnage',
+          description: 'Choisissez la présentation du cartouche du nom.',
+        ),
+        const SizedBox(height: 8),
+        PokeMapCard(
+          key: const ValueKey<String>('dialogue-nameplate-editor'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              PokeMapDropdownField<ProjectDialogueNameplateStyle>(
+                key: const ValueKey<String>('dialogue-nameplate-style'),
+                label: 'Style du cartouche',
+                value: dialogue.nameplateStyle,
+                items:
+                    const <PokeMapDropdownItem<ProjectDialogueNameplateStyle>>[
+                      PokeMapDropdownItem(
+                        value: ProjectDialogueNameplateStyle.inline,
+                        label: 'Texte simple',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialogueNameplateStyle.badge,
+                        label: 'Cartouche',
+                      ),
+                      PokeMapDropdownItem(
+                        value: ProjectDialogueNameplateStyle.floating,
+                        label: 'Cartouche flottant',
+                      ),
+                    ],
+                onChanged: (style) =>
+                    onDialogueChanged(dialogue.copyWith(nameplateStyle: style)),
+              ),
+              const SizedBox(height: 12),
+              PokeMapGuidedSlider(
+                key: const ValueKey<String>('dialogue-nameplate-border-width'),
+                label: 'Épaisseur du contour',
+                min: 0,
+                max: 6,
+                value: dialogue.nameplateBorderWidth.round(),
+                onChanged: (value) => onDialogueChanged(
+                  dialogue.copyWith(nameplateBorderWidth: value.toDouble()),
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final color in const <_DialogueColor>[
+                _DialogueColor.nameplateSurface,
+                _DialogueColor.nameplateBorder,
+                _DialogueColor.nameplateText,
+              ]) ...<Widget>[
+                _colorControl(context, dialogue, color),
+                if (color != _DialogueColor.nameplateText)
+                  const SizedBox(height: 8),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   PersonalizationCharacterPreviewOption get _resolvedCharacter =>
@@ -291,9 +460,13 @@ class PersonalizationDialogueInspector extends StatelessWidget {
                 onDialogueChanged(dialogue.copyWith(fillOpacity: value / 100)),
           ),
           const SizedBox(height: 16),
-          for (final color in _DialogueColor.values) ...<Widget>[
+          for (final color in const <_DialogueColor>[
+            _DialogueColor.surface,
+            _DialogueColor.border,
+            _DialogueColor.text,
+          ]) ...<Widget>[
             _colorControl(context, dialogue, color),
-            if (color != _DialogueColor.values.last) const SizedBox(height: 8),
+            if (color != _DialogueColor.text) const SizedBox(height: 8),
           ],
         ],
       ),
@@ -377,6 +550,14 @@ class PersonalizationDialogueInspector extends StatelessWidget {
         dialogue.borderColor ?? palette?.border ?? theme.outline,
       _DialogueColor.text =>
         dialogue.textColor ?? palette?.text ?? theme.textPrimary,
+      _DialogueColor.portraitFrame =>
+        dialogue.portraitFrameColor ?? palette?.border ?? theme.outline,
+      _DialogueColor.nameplateSurface =>
+        dialogue.nameplateSurfaceColor ?? theme.surfaceElevated,
+      _DialogueColor.nameplateBorder =>
+        dialogue.nameplateBorderColor ?? palette?.border ?? theme.outline,
+      _DialogueColor.nameplateText =>
+        dialogue.nameplateTextColor ?? theme.primary,
     };
   }
 
@@ -388,6 +569,18 @@ class PersonalizationDialogueInspector extends StatelessWidget {
     _DialogueColor.surface => dialogue.copyWith(surfaceColor: value),
     _DialogueColor.border => dialogue.copyWith(borderColor: value),
     _DialogueColor.text => dialogue.copyWith(textColor: value),
+    _DialogueColor.portraitFrame => dialogue.copyWith(
+      portraitFrameColor: value,
+    ),
+    _DialogueColor.nameplateSurface => dialogue.copyWith(
+      nameplateSurfaceColor: value,
+    ),
+    _DialogueColor.nameplateBorder => dialogue.copyWith(
+      nameplateBorderColor: value,
+    ),
+    _DialogueColor.nameplateText => dialogue.copyWith(
+      nameplateTextColor: value,
+    ),
   };
 
   Widget _placementButton({
@@ -409,10 +602,22 @@ class PersonalizationDialogueInspector extends StatelessWidget {
   }
 }
 
-enum _DialogueColor { surface, border, text }
+enum _DialogueColor {
+  surface,
+  border,
+  text,
+  portraitFrame,
+  nameplateSurface,
+  nameplateBorder,
+  nameplateText,
+}
 
 String _colorLabel(_DialogueColor color) => switch (color) {
   _DialogueColor.surface => 'Fond de la bulle',
   _DialogueColor.border => 'Contour',
   _DialogueColor.text => 'Texte',
+  _DialogueColor.portraitFrame => 'Cadre du portrait',
+  _DialogueColor.nameplateSurface => 'Fond du cartouche',
+  _DialogueColor.nameplateBorder => 'Contour du cartouche',
+  _DialogueColor.nameplateText => 'Texte du cartouche',
 };

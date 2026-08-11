@@ -1268,7 +1268,21 @@ final class GamePackageManifestCodec {
         'borderWidth',
         'fillOpacity',
       },
-      optional: const <String>{'surfaceColor', 'borderColor', 'textColor'},
+      optional: const <String>{
+        'surfaceColor',
+        'borderColor',
+        'textColor',
+        'portraitSide',
+        'portraitSize',
+        'portraitShape',
+        'portraitFrameWidth',
+        'portraitFrameColor',
+        'nameplateStyle',
+        'nameplateBorderWidth',
+        'nameplateSurfaceColor',
+        'nameplateBorderColor',
+        'nameplateTextColor',
+      },
     );
     final profile = ProjectDialoguePresentationProfile.fromJson(
       Map<String, dynamic>.from(json),
@@ -1295,6 +1309,16 @@ final class GamePackageManifestCodec {
       surfaceColor: profile.surfaceColor,
       borderColor: profile.borderColor,
       textColor: profile.textColor,
+      portraitSide: profile.portraitSide.name,
+      portraitSize: profile.portraitSize,
+      portraitShape: profile.portraitShape.name,
+      portraitFrameWidth: profile.portraitFrameWidth,
+      portraitFrameColor: profile.portraitFrameColor,
+      nameplateStyle: profile.nameplateStyle.name,
+      nameplateBorderWidth: profile.nameplateBorderWidth,
+      nameplateSurfaceColor: profile.nameplateSurfaceColor,
+      nameplateBorderColor: profile.nameplateBorderColor,
+      nameplateTextColor: profile.nameplateTextColor,
     );
   }
 
