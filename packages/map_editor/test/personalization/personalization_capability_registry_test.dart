@@ -110,4 +110,13 @@ void main() {
       throwsStateError,
     );
   });
+
+  test('visible Studio capability bindings match the registry exactly', () {
+    expect(
+      () => personalizationCapabilityRegistry.requireExactControlIds(
+        personalizationStudioVisibleCapabilityIds,
+      ),
+      returnsNormally,
+    );
+  });
 }

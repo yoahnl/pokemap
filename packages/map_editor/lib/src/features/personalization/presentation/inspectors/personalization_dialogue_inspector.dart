@@ -8,6 +8,16 @@ import '../project_typography_editor.dart';
 import '../project_window_studio.dart';
 
 class PersonalizationDialogueInspector extends StatelessWidget {
+  static const capabilityIds = <String>{
+    'dialogue.layout',
+    'dialogue.windows',
+    'dialogue.typography',
+    'dialogue.previewCharacter',
+    'dialogue.previewPortrait',
+    'dialogue.previewName',
+    'dialogue.previewChoices',
+  };
+
   const PersonalizationDialogueInspector({
     super.key,
     required this.profile,

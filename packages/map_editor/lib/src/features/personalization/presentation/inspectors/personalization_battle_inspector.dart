@@ -10,6 +10,13 @@ import '../project_window_studio.dart';
 enum PersonalizationBattlePreset { classic, compact, cinematic }
 
 class PersonalizationBattleInspector extends StatelessWidget {
+  static const capabilityIds = <String>{
+    'battle.previewState',
+    'battle.layout',
+    'battle.windows',
+    'battle.typography',
+  };
+
   const PersonalizationBattleInspector({
     super.key,
     required this.profile,
