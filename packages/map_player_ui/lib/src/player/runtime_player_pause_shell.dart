@@ -198,6 +198,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                     );
                     _restoreScrollOffsetsAfterLayout(layout);
                   }
+                  final composition = _composition(layout);
                   return Stack(
                     key: ValueKey<String>(resolved == null
                         ? 'runtime-pause-layout-${layout.name}'
@@ -207,13 +208,19 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                     children: <Widget>[
                       switch (layout) {
                         RuntimePlayerLayoutClass.compactPortrait =>
-                          _compactPortrait(context, layout, resolved),
+                          _compactPortrait(
+                            context,
+                            layout,
+                            resolved,
+                            composition,
+                          ),
                         RuntimePlayerLayoutClass.compactLandscape => _twoColumn(
                             context,
                             layout: layout,
                             widthFactor: .78,
                             navigationWidth: 220,
                             resolved: resolved,
+                            composition: composition,
                           ),
                         RuntimePlayerLayoutClass.expanded => _twoColumn(
                             context,
@@ -221,6 +228,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                             widthFactor: null,
                             navigationWidth: 280,
                             resolved: resolved,
+                            composition: composition,
                           ),
                       },
                       if (layout != RuntimePlayerLayoutClass.expanded &&
@@ -297,6 +305,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     BuildContext context,
     RuntimePlayerLayoutClass layout,
     ProjectResolvedSurfaceLayout? resolved,
+    ProjectPauseCompositionVariantProfile? composition,
   ) {
     final panelPadding = EdgeInsets.all(
       PlayerSpacing.md * (resolved?.spacingScale ?? 1),
@@ -324,7 +333,28 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             surfaceRole: ProjectPresentationSurfaceRole.pauseMenu,
             padding: panelPadding,
             elevated: true,
-            child: _navigation(layout, resolved: resolved),
+            child: composition?.showRootDetailPanel == true
+                ? Column(
+                    children: <Widget>[
+                      Expanded(
+                        child: _navigation(
+                          layout,
+                          resolved: resolved,
+                          composition: composition,
+                        ),
+                      ),
+                      const SizedBox(height: PlayerSpacing.sm),
+                      SizedBox(
+                        height: 180,
+                        child: _detailPane(context, layout),
+                      ),
+                    ],
+                  )
+                : _navigation(
+                    layout,
+                    resolved: resolved,
+                    composition: composition,
+                  ),
           ),
         ),
       ),
@@ -337,6 +367,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     required double? widthFactor,
     required double navigationWidth,
     required ProjectResolvedSurfaceLayout? resolved,
+    required ProjectPauseCompositionVariantProfile? composition,
   }) {
     final effectiveWidthFactor = resolved?.maxWidthFactor ?? widthFactor;
     final margin = resolved?.additionalSafeAreaPadding ?? PlayerSpacing.md;
@@ -362,23 +393,34 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
           PlayerSpacing.md * (resolved?.spacingScale ?? 1),
         ),
         elevated: true,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            SizedBox(
-              width: navigationWidth,
-              child: _navigation(
+        child: widget.pauseSection == RuntimePlayerPauseSection.root &&
+                composition?.showRootDetailPanel == false
+            ? _navigation(
                 layout,
                 resolved: resolved,
+                composition: composition,
                 scrollKey: const ValueKey<String>(
                   'runtime-pause-navigation-scroll',
                 ),
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  SizedBox(
+                    width: navigationWidth,
+                    child: _navigation(
+                      layout,
+                      resolved: resolved,
+                      composition: composition,
+                      scrollKey: const ValueKey<String>(
+                        'runtime-pause-navigation-scroll',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: PlayerSpacing.md),
+                  Expanded(child: _detailPane(context, layout)),
+                ],
               ),
-            ),
-            const SizedBox(width: PlayerSpacing.md),
-            Expanded(child: _detailPane(context, layout)),
-          ],
-        ),
       ),
     );
     if (effectiveWidthFactor != null) {
@@ -400,6 +442,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     RuntimePlayerLayoutClass layout, {
     Key? scrollKey,
     ProjectResolvedSurfaceLayout? resolved,
+    ProjectPauseCompositionVariantProfile? composition,
   }) {
     return PlayerPauseNavigation(
       gameTitle: widget.gameTitle,
@@ -419,7 +462,21 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
           resolved.variant.visibleSecondaryElements.contains(
             ProjectPresentationSecondaryElement.pauseGameTitle,
           ),
+      composition: composition,
+      compositionLayoutName: layout.name,
     );
+  }
+
+  ProjectPauseCompositionVariantProfile? _composition(
+    RuntimePlayerLayoutClass layout,
+  ) {
+    final composition = _presentation.composition;
+    if (composition == null) return null;
+    return switch (layout) {
+      RuntimePlayerLayoutClass.compactPortrait => composition.compactPortrait,
+      RuntimePlayerLayoutClass.compactLandscape => composition.compactLandscape,
+      RuntimePlayerLayoutClass.expanded => composition.expanded,
+    };
   }
 
   Widget _detailPane(

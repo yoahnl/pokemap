@@ -267,6 +267,7 @@ void main() {
     final presentation = PlayerPausePresentation.fromProfile(
       const ProjectPausePresentationProfile(
         title: 'Interlude',
+        hint: 'A pour choisir',
         actions: <ProjectPauseActionProfile>[
           ProjectPauseActionProfile(
             id: ProjectPauseActionId.pokedex,
@@ -308,11 +309,97 @@ void main() {
       'Continuer',
     ]);
     expect(find.text('Équipe'), findsNothing);
+    expect(find.text('A pour choisir'), findsOneWidget);
     expect(
         FocusManager.instance.primaryFocus?.debugLabel, contains('Bestiaire'));
 
     await tester.tap(find.text('Bestiaire'));
     expect(selected, <PlayerPauseAction>[PlayerPauseAction.pokedex]);
+  });
+
+  testWidgets('authored expanded composition controls entries and root panel', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1280, 800));
+    const presentation = PlayerPausePresentation(
+      title: 'Interlude',
+      hint: 'A pour choisir',
+      composition: ProjectResponsivePauseCompositionProfile(
+        expanded: ProjectPauseCompositionVariantProfile(
+          entrySize: ProjectPauseEntrySize.large,
+          entrySpacing: ProjectPauseEntrySpacing.airy,
+          showTitle: false,
+          showRootDetailPanel: false,
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerPauseShell.root(
+          gameTitle: 'Aube',
+          actions: _actions(),
+          onSelected: (_) {},
+          detail: const Text('DÉTAIL RACINE'),
+          presentation: presentation,
+        ),
+      ),
+    );
+
+    expect(find.text('Interlude'), findsNothing);
+    expect(find.text('A pour choisir'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('runtime-pause-detail-scroll')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'runtime-pause-composition-expanded-large-airy',
+        ),
+      ),
+      findsOneWidget,
+    );
+    for (final element in find
+        .byKey(const ValueKey<String>('player-action-focus-frame'))
+        .evaluate()) {
+      expect(
+        tester
+            .getSize(find.byElementPredicate((value) => value == element))
+            .height,
+        greaterThanOrEqualTo(68),
+      );
+    }
+  });
+
+  testWidgets('portrait composition can expose the root detail panel', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(390, 844));
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerPauseShell.root(
+          gameTitle: 'Aube',
+          actions: _actions(),
+          onSelected: (_) {},
+          detail: const SizedBox.shrink(),
+          presentation: const PlayerPausePresentation(
+            composition: ProjectResponsivePauseCompositionProfile(
+              compactPortrait: ProjectPauseCompositionVariantProfile(
+                showRootDetailPanel: true,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('runtime-pause-detail-scroll')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('installed runtime shell consumes authored window styling',

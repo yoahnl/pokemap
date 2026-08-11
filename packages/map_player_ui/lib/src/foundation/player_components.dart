@@ -271,7 +271,8 @@ class PlayerActionButton extends StatefulWidget {
     this.showFocusHighlight = true,
     this.selected = false,
     this.shortcutLabel,
-  });
+    this.minimumHeight = 48,
+  }) : assert(minimumHeight >= 48);
 
   final String label;
   final IconData icon;
@@ -286,6 +287,7 @@ class PlayerActionButton extends StatefulWidget {
   final bool showFocusHighlight;
   final bool selected;
   final String? shortcutLabel;
+  final double minimumHeight;
 
   @override
   State<PlayerActionButton> createState() => _PlayerActionButtonState();
@@ -390,7 +392,7 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
         child: AnimatedContainer(
           key: const ValueKey<String>('player-action-focus-frame'),
           duration: motion.fast,
-          constraints: const BoxConstraints(minHeight: 48),
+          constraints: BoxConstraints(minHeight: widget.minimumHeight),
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(PlayerRadii.sm + 3),

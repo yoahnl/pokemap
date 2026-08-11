@@ -56,6 +56,10 @@ void main() {
       expect(profile?.pause?.actions?.first.label, 'Carnet');
       expect(profile?.pause?.actions?.last.visible, isFalse);
       expect(
+        profile?.pause?.composition?.expanded.entrySize,
+        ProjectPauseEntrySize.large,
+      );
+      expect(
         profile?.windows?.resolve(ProjectWindowRole.pauseMenu).cornerRadius,
         24,
       );
@@ -230,6 +234,29 @@ final _manifest = GamePackageManifest(
         GamePackagePauseAction(id: 'resume', icon: 'play'),
         GamePackagePauseAction(id: 'map', icon: 'map', visible: false),
       ],
+      composition: const GamePackageResponsivePauseComposition(
+        compactPortrait: GamePackagePauseCompositionVariant(
+          entrySize: 'regular',
+          entrySpacing: 'regular',
+          showTitle: true,
+          showHint: true,
+          showRootDetailPanel: false,
+        ),
+        compactLandscape: GamePackagePauseCompositionVariant(
+          entrySize: 'compact',
+          entrySpacing: 'tight',
+          showTitle: true,
+          showHint: false,
+          showRootDetailPanel: true,
+        ),
+        expanded: GamePackagePauseCompositionVariant(
+          entrySize: 'large',
+          entrySpacing: 'airy',
+          showTitle: true,
+          showHint: true,
+          showRootDetailPanel: true,
+        ),
+      ),
     ),
     windows: GamePackagePresentationWindows(
       styles: const <GamePackageWindowStyle>[

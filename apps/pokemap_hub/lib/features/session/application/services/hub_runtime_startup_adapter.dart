@@ -174,6 +174,10 @@ final class HubRuntimeStartupAdapter
                       ),
                     )
                     .toList(growable: false),
+                composition:
+                    pause.composition == null
+                        ? null
+                        : _projectPauseComposition(pause.composition!),
               ),
       menuLabels:
           menuLabels == null
@@ -248,6 +252,24 @@ final class HubRuntimeStartupAdapter
       battle: source.battle == null ? null : responsive(source.battle!),
     );
   }
+
+  ProjectResponsivePauseCompositionProfile _projectPauseComposition(
+    GamePackageResponsivePauseComposition source,
+  ) => ProjectResponsivePauseCompositionProfile(
+    compactPortrait: _projectPauseCompositionVariant(source.compactPortrait),
+    compactLandscape: _projectPauseCompositionVariant(source.compactLandscape),
+    expanded: _projectPauseCompositionVariant(source.expanded),
+  );
+
+  ProjectPauseCompositionVariantProfile _projectPauseCompositionVariant(
+    GamePackagePauseCompositionVariant source,
+  ) => ProjectPauseCompositionVariantProfile(
+    entrySize: ProjectPauseEntrySize.values.byName(source.entrySize),
+    entrySpacing: ProjectPauseEntrySpacing.values.byName(source.entrySpacing),
+    showTitle: source.showTitle,
+    showHint: source.showHint,
+    showRootDetailPanel: source.showRootDetailPanel,
+  );
 
   ProjectTypographyRoleProfile _projectFontRole(GamePackageFontRole role) =>
       ProjectTypographyRoleProfile(

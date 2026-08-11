@@ -284,6 +284,8 @@ void main() {
       ]);
       expect(directEvidence['pausePokedexLabel'], 'Carnet de voyage');
       expect(directEvidence['pauseMapVisible'], isFalse);
+      expect(directEvidence['pauseExpandedEntrySize'], 'large');
+      expect(directEvidence['pauseExpandedShowDetail'], isFalse);
       expect(
         directEvidence['introLandscape'],
         'presentation/intro-landscape.mp4',
@@ -971,6 +973,10 @@ final class _GoldenHarness {
       'pauseMapVisible': manifest.presentation?.pause?.actions
           ?.firstWhere((action) => action.id == ProjectPauseActionId.map)
           .visible,
+      'pauseExpandedEntrySize':
+          manifest.presentation?.pause?.composition?.expanded.entrySize.name,
+      'pauseExpandedShowDetail': manifest
+          .presentation?.pause?.composition?.expanded.showRootDetailPanel,
       'pauseWindowStyle': manifest.presentation?.windows?.pauseMenuStyleId,
       'dialogueWindowStyle': manifest.presentation?.windows?.dialogueStyleId,
       'battleWindowStyle': manifest.presentation?.windows?.battleStyleId,
@@ -1127,6 +1133,13 @@ final ProjectPresentationProfile _responsivePresentationProfile =
         visible: false,
       ),
     ],
+    composition: ProjectResponsivePauseCompositionProfile(
+      expanded: ProjectPauseCompositionVariantProfile(
+        entrySize: ProjectPauseEntrySize.large,
+        entrySpacing: ProjectPauseEntrySpacing.airy,
+        showRootDetailPanel: false,
+      ),
+    ),
   ),
   typography: ProjectTypographyProfile(
     combat: ProjectTypographyRoleProfile(

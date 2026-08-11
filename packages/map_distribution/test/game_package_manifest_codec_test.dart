@@ -204,6 +204,29 @@ void main() {
                 'visible': false,
               },
             ],
+            'composition': <String, Object?>{
+              'compactPortrait': <String, Object?>{
+                'entrySize': 'large',
+                'entrySpacing': 'airy',
+                'showTitle': true,
+                'showHint': false,
+                'showRootDetailPanel': false,
+              },
+              'compactLandscape': <String, Object?>{
+                'entrySize': 'compact',
+                'entrySpacing': 'tight',
+                'showTitle': true,
+                'showHint': true,
+                'showRootDetailPanel': true,
+              },
+              'expanded': <String, Object?>{
+                'entrySize': 'regular',
+                'entrySpacing': 'regular',
+                'showTitle': false,
+                'showHint': true,
+                'showRootDetailPanel': true,
+              },
+            },
           },
         };
 
@@ -213,6 +236,14 @@ void main() {
       expect(manifest.presentation?.pause?.actions?.first.id, 'pokedex');
       expect(manifest.presentation?.pause?.actions?.first.label, 'Bestiaire');
       expect(manifest.presentation?.pause?.actions?.last.visible, isFalse);
+      expect(
+        manifest.presentation?.pause?.composition?.compactPortrait.entrySize,
+        'large',
+      );
+      expect(
+        manifest.presentation?.pause?.composition?.expanded.showTitle,
+        isFalse,
+      );
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 

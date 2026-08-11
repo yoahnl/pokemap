@@ -128,5 +128,43 @@ void main() {
         throwsA(isA<ArgumentError>()),
       );
     });
+
+    test('round-trips responsive pause composition presets', () {
+      const composition = ProjectResponsivePauseCompositionProfile(
+        compactPortrait: ProjectPauseCompositionVariantProfile(
+          entrySize: ProjectPauseEntrySize.large,
+          entrySpacing: ProjectPauseEntrySpacing.airy,
+          showHint: false,
+        ),
+        compactLandscape: ProjectPauseCompositionVariantProfile(
+          entrySize: ProjectPauseEntrySize.compact,
+          entrySpacing: ProjectPauseEntrySpacing.tight,
+          showRootDetailPanel: false,
+        ),
+        expanded: ProjectPauseCompositionVariantProfile(showTitle: false),
+      );
+      const profile = ProjectPresentationProfile(
+        pause: ProjectPausePresentationProfile(composition: composition),
+      );
+
+      final decoded = ProjectPresentationProfile.fromJson(profile.toJson());
+
+      expect(decoded.pause?.composition, composition);
+      expect(
+        composition.resolve(ProjectPresentationBreakpoint.compact),
+        composition.compactPortrait,
+      );
+      expect(
+        composition.resolve(
+          ProjectPresentationBreakpoint.compact,
+          portrait: false,
+        ),
+        composition.compactLandscape,
+      );
+      expect(
+        composition.resolve(ProjectPresentationBreakpoint.expanded),
+        composition.expanded,
+      );
+    });
   });
 }

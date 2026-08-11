@@ -556,6 +556,28 @@ GamePackagePausePresentation _packagePause(
       visible: action.visible,
     ),
   ),
+  composition:
+      pause.composition == null
+          ? null
+          : GamePackageResponsivePauseComposition(
+            compactPortrait: _packagePauseVariant(
+              pause.composition!.compactPortrait,
+            ),
+            compactLandscape: _packagePauseVariant(
+              pause.composition!.compactLandscape,
+            ),
+            expanded: _packagePauseVariant(pause.composition!.expanded),
+          ),
+);
+
+GamePackagePauseCompositionVariant _packagePauseVariant(
+  ProjectPauseCompositionVariantProfile variant,
+) => GamePackagePauseCompositionVariant(
+  entrySize: variant.entrySize.name,
+  entrySpacing: variant.entrySpacing.name,
+  showTitle: variant.showTitle,
+  showHint: variant.showHint,
+  showRootDetailPanel: variant.showRootDetailPanel,
 );
 
 GamePackagePresentationWindows _packageWindows(

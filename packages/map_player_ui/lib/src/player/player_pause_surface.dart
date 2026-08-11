@@ -71,6 +71,7 @@ final class PlayerPausePresentation {
     this.actionLabels = const <PlayerPauseAction, String>{},
     this.actionIcons = const <PlayerPauseAction, ProjectPauseActionIcon>{},
     this.hiddenActions = const <PlayerPauseAction>{},
+    this.composition,
   });
 
   factory PlayerPausePresentation.fromProfile(
@@ -96,6 +97,7 @@ final class PlayerPausePresentation {
         for (final action in actions)
           if (!action.visible) _pauseAction(action.id),
       },
+      composition: profile.composition,
     );
   }
 
@@ -123,6 +125,7 @@ final class PlayerPausePresentation {
   final Map<PlayerPauseAction, String> actionLabels;
   final Map<PlayerPauseAction, ProjectPauseActionIcon> actionIcons;
   final Set<PlayerPauseAction> hiddenActions;
+  final ProjectResponsivePauseCompositionProfile? composition;
 
   List<PlayerPauseAction> get visibleActions =>
       List<PlayerPauseAction>.unmodifiable(
@@ -373,6 +376,8 @@ class PlayerPauseNavigation extends StatelessWidget {
     this.labels = const PlayerPauseMenuLabels(),
     this.presentation,
     this.showGameTitle = true,
+    this.composition,
+    this.compositionLayoutName,
   });
 
   final String gameTitle;
@@ -385,6 +390,8 @@ class PlayerPauseNavigation extends StatelessWidget {
   final PlayerPauseMenuLabels labels;
   final PlayerPausePresentation? presentation;
   final bool showGameTitle;
+  final ProjectPauseCompositionVariantProfile? composition;
+  final String? compositionLayoutName;
 
   @override
   Widget build(BuildContext context) {
@@ -401,20 +408,37 @@ class PlayerPauseNavigation extends StatelessWidget {
           ),
       controller: scrollController,
       child: Column(
-        key: const ValueKey<String>('runtime-pause-navigation'),
+        key: composition == null
+            ? const ValueKey<String>('runtime-pause-navigation')
+            : ValueKey<String>(
+                'runtime-pause-composition-'
+                '${compositionLayoutName ?? 'custom'}-'
+                '${_compositionName(composition!)}',
+              ),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Semantics(
-            header: true,
-            child: Text(
-              pausePresentation.resolvedTitle(context.playerL10n),
-              style: Theme.of(context).textTheme.headlineMedium,
+          if (composition?.showTitle ?? true) ...<Widget>[
+            Semantics(
+              header: true,
+              child: Text(
+                pausePresentation.resolvedTitle(context.playerL10n),
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
             ),
-          ),
-          const SizedBox(height: PlayerSpacing.xs),
+            const SizedBox(height: PlayerSpacing.xs),
+          ],
           if (showGameTitle)
             Text(gameTitle, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: PlayerSpacing.lg),
+          if (composition?.showHint ?? true)
+            if (pausePresentation.hint case final hint?) ...<Widget>[
+              const SizedBox(height: PlayerSpacing.xs),
+              Text(hint, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          SizedBox(
+            height: composition == null
+                ? PlayerSpacing.lg
+                : _entrySpacing(composition!),
+          ),
           if (useGrid)
             GridView.builder(
               shrinkWrap: true,
@@ -444,7 +468,11 @@ class PlayerPauseNavigation extends StatelessWidget {
                 pausePresentation,
               ),
               if (index != visibleActions.length - 1)
-                const SizedBox(height: PlayerSpacing.xs),
+                SizedBox(
+                  height: composition == null
+                      ? PlayerSpacing.xs
+                      : _entrySpacing(composition!),
+                ),
             ],
         ],
       ),
@@ -472,6 +500,8 @@ class PlayerPauseNavigation extends StatelessWidget {
       showFocusHighlight: controller?.showFocusHighlight ?? true,
       selected: controller?.logicalSelectionId == logicalId,
       shortcutLabel: context.playerL10n.confirmShortcut,
+      minimumHeight:
+          composition == null ? 48 : _entryHeight(composition!.entrySize),
       autofocus: controller?.logicalSelectionId == null &&
           action == firstEnabledAction,
       secondary: action == PlayerPauseAction.returnToTitle,
@@ -499,3 +529,19 @@ class PlayerPauseNavigation extends StatelessWidget {
 
   String _logicalId(PlayerPauseAction action) => 'pause.${action.name}';
 }
+
+double _entryHeight(ProjectPauseEntrySize size) => switch (size) {
+      ProjectPauseEntrySize.compact => 48,
+      ProjectPauseEntrySize.regular => 56,
+      ProjectPauseEntrySize.large => 68,
+    };
+
+double _entrySpacing(ProjectPauseCompositionVariantProfile composition) =>
+    switch (composition.entrySpacing) {
+      ProjectPauseEntrySpacing.tight => PlayerSpacing.xs,
+      ProjectPauseEntrySpacing.regular => PlayerSpacing.sm,
+      ProjectPauseEntrySpacing.airy => PlayerSpacing.md,
+    };
+
+String _compositionName(ProjectPauseCompositionVariantProfile composition) =>
+    '${composition.entrySize.name}-${composition.entrySpacing.name}';

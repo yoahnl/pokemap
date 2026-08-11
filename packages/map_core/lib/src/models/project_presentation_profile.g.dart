@@ -136,6 +136,76 @@ const _$ProjectTitleActionIconEnumMap = {
   ProjectTitleActionIcon.home: 'home',
 };
 
+_ProjectPauseCompositionVariantProfile
+_$ProjectPauseCompositionVariantProfileFromJson(Map<String, dynamic> json) =>
+    _ProjectPauseCompositionVariantProfile(
+      entrySize:
+          $enumDecodeNullable(
+            _$ProjectPauseEntrySizeEnumMap,
+            json['entrySize'],
+          ) ??
+          ProjectPauseEntrySize.regular,
+      entrySpacing:
+          $enumDecodeNullable(
+            _$ProjectPauseEntrySpacingEnumMap,
+            json['entrySpacing'],
+          ) ??
+          ProjectPauseEntrySpacing.regular,
+      showTitle: json['showTitle'] as bool? ?? true,
+      showHint: json['showHint'] as bool? ?? true,
+      showRootDetailPanel: json['showRootDetailPanel'] as bool? ?? true,
+    );
+
+Map<String, dynamic> _$ProjectPauseCompositionVariantProfileToJson(
+  _ProjectPauseCompositionVariantProfile instance,
+) => <String, dynamic>{
+  'entrySize': _$ProjectPauseEntrySizeEnumMap[instance.entrySize]!,
+  'entrySpacing': _$ProjectPauseEntrySpacingEnumMap[instance.entrySpacing]!,
+  'showTitle': instance.showTitle,
+  'showHint': instance.showHint,
+  'showRootDetailPanel': instance.showRootDetailPanel,
+};
+
+const _$ProjectPauseEntrySizeEnumMap = {
+  ProjectPauseEntrySize.compact: 'compact',
+  ProjectPauseEntrySize.regular: 'regular',
+  ProjectPauseEntrySize.large: 'large',
+};
+
+const _$ProjectPauseEntrySpacingEnumMap = {
+  ProjectPauseEntrySpacing.tight: 'tight',
+  ProjectPauseEntrySpacing.regular: 'regular',
+  ProjectPauseEntrySpacing.airy: 'airy',
+};
+
+_ProjectResponsivePauseCompositionProfile
+_$ProjectResponsivePauseCompositionProfileFromJson(Map<String, dynamic> json) =>
+    _ProjectResponsivePauseCompositionProfile(
+      compactPortrait: json['compactPortrait'] == null
+          ? const ProjectPauseCompositionVariantProfile()
+          : ProjectPauseCompositionVariantProfile.fromJson(
+              json['compactPortrait'] as Map<String, dynamic>,
+            ),
+      compactLandscape: json['compactLandscape'] == null
+          ? const ProjectPauseCompositionVariantProfile()
+          : ProjectPauseCompositionVariantProfile.fromJson(
+              json['compactLandscape'] as Map<String, dynamic>,
+            ),
+      expanded: json['expanded'] == null
+          ? const ProjectPauseCompositionVariantProfile()
+          : ProjectPauseCompositionVariantProfile.fromJson(
+              json['expanded'] as Map<String, dynamic>,
+            ),
+    );
+
+Map<String, dynamic> _$ProjectResponsivePauseCompositionProfileToJson(
+  _ProjectResponsivePauseCompositionProfile instance,
+) => <String, dynamic>{
+  'compactPortrait': instance.compactPortrait.toJson(),
+  'compactLandscape': instance.compactLandscape.toJson(),
+  'expanded': instance.expanded.toJson(),
+};
+
 _ProjectPauseActionProfile _$ProjectPauseActionProfileFromJson(
   Map<String, dynamic> json,
 ) => _ProjectPauseActionProfile(
@@ -186,6 +256,11 @@ _ProjectPausePresentationProfile _$ProjectPausePresentationProfileFromJson(
         (e) => ProjectPauseActionProfile.fromJson(e as Map<String, dynamic>),
       )
       .toList(),
+  composition: json['composition'] == null
+      ? null
+      : ProjectResponsivePauseCompositionProfile.fromJson(
+          json['composition'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectPausePresentationProfileToJson(
@@ -194,6 +269,7 @@ Map<String, dynamic> _$ProjectPausePresentationProfileToJson(
   'title': ?instance.title,
   'hint': ?instance.hint,
   'actions': ?instance.actions?.map((e) => e.toJson()).toList(),
+  'composition': ?instance.composition?.toJson(),
 };
 
 _ProjectTitlePresentationProfile _$ProjectTitlePresentationProfileFromJson(

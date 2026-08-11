@@ -7,7 +7,11 @@ import 'package:map_core/map_core.dart'
         ProjectPauseActionIcon,
         ProjectPauseActionId,
         ProjectPauseActionProfile,
+        ProjectPauseCompositionVariantProfile,
+        ProjectPauseEntrySize,
+        ProjectPauseEntrySpacing,
         ProjectPausePresentationProfile,
+        ProjectResponsivePauseCompositionProfile,
         ProjectPresentationBreakpoint,
         ProjectPresentationContentWidth,
         ProjectPresentationLayoutSlot,
@@ -1157,7 +1161,7 @@ final class GamePackageManifestCodec {
       value,
       path,
       required: const <String>{},
-      optional: const <String>{'title', 'hint', 'actions'},
+      optional: const <String>{'title', 'hint', 'actions', 'composition'},
     );
     String? copy(String field) =>
         json.containsKey(field) ? _string(json[field], '$path.$field') : null;
@@ -1207,12 +1211,19 @@ final class GamePackageManifestCodec {
     }
     final title = copy('title');
     final hint = copy('hint');
+    final composition = json.containsKey('composition')
+        ? _pauseComposition(
+            json['composition'],
+            path: '$path.composition',
+          )
+        : null;
     final diagnostic = validateProjectPresentationProfile(
       ProjectPresentationProfile(
         pause: ProjectPausePresentationProfile(
           title: title,
           hint: hint,
           actions: json.containsKey('actions') ? projectActions : null,
+          composition: composition?.project,
         ),
       ),
     ).firstOrNull;
@@ -1227,7 +1238,118 @@ final class GamePackageManifestCodec {
       title: title,
       hint: hint,
       actions: json.containsKey('actions') ? packagedActions : null,
+      composition: composition?.packaged,
     );
+  }
+
+  ({
+    ProjectResponsivePauseCompositionProfile project,
+    GamePackageResponsivePauseComposition packaged,
+  }) _pauseComposition(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{
+        'compactPortrait',
+        'compactLandscape',
+        'expanded',
+      },
+      optional: const <String>{},
+    );
+    final compactPortrait = _pauseCompositionVariant(
+      json['compactPortrait'],
+      path: '$path.compactPortrait',
+    );
+    final compactLandscape = _pauseCompositionVariant(
+      json['compactLandscape'],
+      path: '$path.compactLandscape',
+    );
+    final expanded = _pauseCompositionVariant(
+      json['expanded'],
+      path: '$path.expanded',
+    );
+    return (
+      project: ProjectResponsivePauseCompositionProfile(
+        compactPortrait: compactPortrait.project,
+        compactLandscape: compactLandscape.project,
+        expanded: expanded.project,
+      ),
+      packaged: GamePackageResponsivePauseComposition(
+        compactPortrait: compactPortrait.packaged,
+        compactLandscape: compactLandscape.packaged,
+        expanded: expanded.packaged,
+      ),
+    );
+  }
+
+  ({
+    ProjectPauseCompositionVariantProfile project,
+    GamePackagePauseCompositionVariant packaged,
+  }) _pauseCompositionVariant(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{
+        'entrySize',
+        'entrySpacing',
+        'showTitle',
+        'showHint',
+        'showRootDetailPanel',
+      },
+      optional: const <String>{},
+    );
+    final sizeName = _string(json['entrySize'], '$path.entrySize');
+    final spacingName = _string(
+      json['entrySpacing'],
+      '$path.entrySpacing',
+    );
+    final entrySize = _pauseEntrySize(sizeName, '$path.entrySize');
+    final entrySpacing = _pauseEntrySpacing(
+      spacingName,
+      '$path.entrySpacing',
+    );
+    final showTitle = _boolean(json['showTitle'], '$path.showTitle');
+    final showHint = _boolean(json['showHint'], '$path.showHint');
+    final showRootDetailPanel = _boolean(
+      json['showRootDetailPanel'],
+      '$path.showRootDetailPanel',
+    );
+    return (
+      project: ProjectPauseCompositionVariantProfile(
+        entrySize: entrySize,
+        entrySpacing: entrySpacing,
+        showTitle: showTitle,
+        showHint: showHint,
+        showRootDetailPanel: showRootDetailPanel,
+      ),
+      packaged: GamePackagePauseCompositionVariant(
+        entrySize: sizeName,
+        entrySpacing: spacingName,
+        showTitle: showTitle,
+        showHint: showHint,
+        showRootDetailPanel: showRootDetailPanel,
+      ),
+    );
+  }
+
+  ProjectPauseEntrySize _pauseEntrySize(String value, String path) {
+    for (final size in ProjectPauseEntrySize.values) {
+      if (size.name == value) return size;
+    }
+    _fail('invalidPausePresentation', path, 'Unknown pause entry size.');
+  }
+
+  ProjectPauseEntrySpacing _pauseEntrySpacing(String value, String path) {
+    for (final spacing in ProjectPauseEntrySpacing.values) {
+      if (spacing.name == value) return spacing;
+    }
+    _fail('invalidPausePresentation', path, 'Unknown pause entry spacing.');
   }
 
   ProjectPauseActionId _pauseActionId(String value, String path) {

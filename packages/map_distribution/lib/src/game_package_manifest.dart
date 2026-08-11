@@ -188,6 +188,7 @@ final class GamePackagePausePresentation {
     this.title,
     this.hint,
     Iterable<GamePackagePauseAction>? actions,
+    this.composition,
   }) : actions = actions == null
             ? null
             : List<GamePackagePauseAction>.unmodifiable(actions);
@@ -195,12 +196,56 @@ final class GamePackagePausePresentation {
   final String? title;
   final String? hint;
   final List<GamePackagePauseAction>? actions;
+  final GamePackageResponsivePauseComposition? composition;
 
   Map<String, Object?> toJson() => <String, Object?>{
         if (title != null) 'title': title,
         if (hint != null) 'hint': hint,
         if (actions != null)
           'actions': actions!.map((action) => action.toJson()).toList(),
+        if (composition != null) 'composition': composition!.toJson(),
+      };
+}
+
+final class GamePackagePauseCompositionVariant {
+  const GamePackagePauseCompositionVariant({
+    required this.entrySize,
+    required this.entrySpacing,
+    required this.showTitle,
+    required this.showHint,
+    required this.showRootDetailPanel,
+  });
+
+  final String entrySize;
+  final String entrySpacing;
+  final bool showTitle;
+  final bool showHint;
+  final bool showRootDetailPanel;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'entrySize': entrySize,
+        'entrySpacing': entrySpacing,
+        'showTitle': showTitle,
+        'showHint': showHint,
+        'showRootDetailPanel': showRootDetailPanel,
+      };
+}
+
+final class GamePackageResponsivePauseComposition {
+  const GamePackageResponsivePauseComposition({
+    required this.compactPortrait,
+    required this.compactLandscape,
+    required this.expanded,
+  });
+
+  final GamePackagePauseCompositionVariant compactPortrait;
+  final GamePackagePauseCompositionVariant compactLandscape;
+  final GamePackagePauseCompositionVariant expanded;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'compactPortrait': compactPortrait.toJson(),
+        'compactLandscape': compactLandscape.toJson(),
+        'expanded': expanded.toJson(),
       };
 }
 

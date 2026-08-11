@@ -223,6 +223,58 @@ enum ProjectPauseActionIcon {
   exit,
 }
 
+enum ProjectPauseEntrySize { compact, regular, large }
+
+enum ProjectPauseEntrySpacing { tight, regular, airy }
+
+@Freezed(fromJson: true, toJson: true)
+abstract class ProjectPauseCompositionVariantProfile
+    with _$ProjectPauseCompositionVariantProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectPauseCompositionVariantProfile({
+    @Default(ProjectPauseEntrySize.regular) ProjectPauseEntrySize entrySize,
+    @Default(ProjectPauseEntrySpacing.regular)
+    ProjectPauseEntrySpacing entrySpacing,
+    @Default(true) bool showTitle,
+    @Default(true) bool showHint,
+    @Default(true) bool showRootDetailPanel,
+  }) = _ProjectPauseCompositionVariantProfile;
+
+  factory ProjectPauseCompositionVariantProfile.fromJson(
+    Map<String, dynamic> json,
+  ) => _$ProjectPauseCompositionVariantProfileFromJson(json);
+}
+
+@Freezed(fromJson: true, toJson: true)
+abstract class ProjectResponsivePauseCompositionProfile
+    with _$ProjectResponsivePauseCompositionProfile {
+  const ProjectResponsivePauseCompositionProfile._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectResponsivePauseCompositionProfile({
+    @Default(ProjectPauseCompositionVariantProfile())
+    ProjectPauseCompositionVariantProfile compactPortrait,
+    @Default(ProjectPauseCompositionVariantProfile())
+    ProjectPauseCompositionVariantProfile compactLandscape,
+    @Default(ProjectPauseCompositionVariantProfile())
+    ProjectPauseCompositionVariantProfile expanded,
+  }) = _ProjectResponsivePauseCompositionProfile;
+
+  factory ProjectResponsivePauseCompositionProfile.fromJson(
+    Map<String, dynamic> json,
+  ) => _$ProjectResponsivePauseCompositionProfileFromJson(json);
+
+  ProjectPauseCompositionVariantProfile resolve(
+    ProjectPresentationBreakpoint breakpoint, {
+    bool portrait = true,
+  }) => switch (breakpoint) {
+    ProjectPresentationBreakpoint.compact =>
+      portrait ? compactPortrait : compactLandscape,
+    ProjectPresentationBreakpoint.regular => compactLandscape,
+    ProjectPresentationBreakpoint.expanded => expanded,
+  };
+}
+
 @Freezed(fromJson: true, toJson: true)
 abstract class ProjectPauseActionProfile with _$ProjectPauseActionProfile {
   @JsonSerializable(explicitToJson: true)
@@ -283,6 +335,8 @@ abstract class ProjectPausePresentationProfile
     @JsonKey(includeIfNull: false) String? title,
     @JsonKey(includeIfNull: false) String? hint,
     @JsonKey(includeIfNull: false) List<ProjectPauseActionProfile>? actions,
+    @JsonKey(includeIfNull: false)
+    ProjectResponsivePauseCompositionProfile? composition,
   }) = _ProjectPausePresentationProfile;
 
   factory ProjectPausePresentationProfile.fromJson(Map<String, dynamic> json) =>

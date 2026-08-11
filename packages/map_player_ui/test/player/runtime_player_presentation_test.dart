@@ -272,6 +272,11 @@ void main() {
               icon: ProjectPauseActionIcon.book,
             ),
           ],
+          composition: ProjectResponsivePauseCompositionProfile(
+            expanded: ProjectPauseCompositionVariantProfile(
+              entrySize: ProjectPauseEntrySize.large,
+            ),
+          ),
         ),
         windows: legacyProjectPresentationWindows,
         layouts: suggestedProjectPresentationLayouts('cinematic'),
@@ -355,6 +360,10 @@ void main() {
     expect(
       presentation.pausePresentation.actionLabels[PlayerPauseAction.pokedex],
       'Carnet',
+    );
+    expect(
+      presentation.pausePresentation.composition?.expanded.entrySize,
+      ProjectPauseEntrySize.large,
     );
   });
 

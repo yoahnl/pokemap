@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/design_system.dart';
+import 'project_pause_composition_editor.dart';
 
 class ProjectPauseActionsEditor extends StatefulWidget {
   const ProjectPauseActionsEditor({
@@ -227,6 +228,14 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
         ),
         if (index < _actions.length - 1) const SizedBox(height: 8),
       ],
+      const SizedBox(height: 18),
+      ProjectPauseCompositionEditor(
+        profile:
+            widget.profile.composition ??
+            const ProjectResponsivePauseCompositionProfile(),
+        onChanged: (composition) =>
+            widget.onChanged(_currentProfile(composition)),
+      ),
     ],
   );
 
@@ -256,15 +265,17 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
   }
 
   void _publish() {
-    final title = _optional(_title.text);
-    final hint = _optional(_hint.text);
-    final profile = ProjectPausePresentationProfile(
-      title: title,
-      hint: hint,
-      actions: List<ProjectPauseActionProfile>.of(_actions),
-    );
-    widget.onChanged(profile);
+    widget.onChanged(_currentProfile(widget.profile.composition));
   }
+
+  ProjectPausePresentationProfile _currentProfile(
+    ProjectResponsivePauseCompositionProfile? composition,
+  ) => ProjectPausePresentationProfile(
+    title: _optional(_title.text),
+    hint: _optional(_hint.text),
+    actions: List<ProjectPauseActionProfile>.of(_actions),
+    composition: composition,
+  );
 }
 
 List<ProjectPauseActionProfile> _effectiveActions(

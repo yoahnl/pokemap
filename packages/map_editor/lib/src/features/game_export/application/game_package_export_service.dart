@@ -263,6 +263,12 @@ final class GamePackageExportService {
                         ),
                       )
                       .toList(growable: false),
+                  composition:
+                      projection.presentation.pause!.composition == null
+                      ? null
+                      : _packagePauseComposition(
+                          projection.presentation.pause!.composition!,
+                        ),
                 ),
           menuLabels: projection.presentation.menuLabels == null
               ? null
@@ -627,6 +633,28 @@ final class GamePackageExportService {
           accent: palette.accent,
           selection: palette.selection,
         );
+
+  static GamePackageResponsivePauseComposition _packagePauseComposition(
+    ProjectResponsivePauseCompositionProfile composition,
+  ) => GamePackageResponsivePauseComposition(
+    compactPortrait: _packagePauseCompositionVariant(
+      composition.compactPortrait,
+    ),
+    compactLandscape: _packagePauseCompositionVariant(
+      composition.compactLandscape,
+    ),
+    expanded: _packagePauseCompositionVariant(composition.expanded),
+  );
+
+  static GamePackagePauseCompositionVariant _packagePauseCompositionVariant(
+    ProjectPauseCompositionVariantProfile variant,
+  ) => GamePackagePauseCompositionVariant(
+    entrySize: variant.entrySize.name,
+    entrySpacing: variant.entrySpacing.name,
+    showTitle: variant.showTitle,
+    showHint: variant.showHint,
+    showRootDetailPanel: variant.showRootDetailPanel,
+  );
 
   static GamePackagePresentationLayouts _packageLayouts(
     ProjectPresentationLayoutsProfile layouts,

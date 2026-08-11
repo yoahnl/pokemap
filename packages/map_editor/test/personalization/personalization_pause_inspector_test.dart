@@ -98,6 +98,20 @@ void main() {
       find.byKey(const ValueKey<String>('pause-action-visible-pokedex')),
       findsOneWidget,
     );
+    for (final layout in <String>[
+      'compactPortrait',
+      'compactLandscape',
+      'expanded',
+    ]) {
+      expect(
+        find.byKey(ValueKey<String>('pause-composition-$layout-entry-size')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(ValueKey<String>('pause-composition-$layout-entry-spacing')),
+        findsOneWidget,
+      );
+    }
 
     final left = find.byKey(const ValueKey<String>('pause-layout-left'));
     await tester.ensureVisible(left);
@@ -141,6 +155,16 @@ void main() {
       profile.windows?.resolve(ProjectWindowRole.dialogue).cornerRadius,
       16,
     );
+
+    final showExpandedTitle = find.byKey(
+      const ValueKey<String>('pause-composition-expanded-show-title'),
+    );
+    await tester.ensureVisible(showExpandedTitle);
+    await tester.pumpAndSettle();
+    expect(showExpandedTitle.hitTestable(), findsOneWidget);
+    await tester.tap(showExpandedTitle);
+    await tester.pumpAndSettle();
+    expect(profile.pause?.composition?.expanded.showTitle, isFalse);
   });
 
   testWidgets('Pokedex becomes Bestiaire in the runtime pause surface', (

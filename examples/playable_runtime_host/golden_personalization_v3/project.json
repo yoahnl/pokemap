@@ -160,7 +160,12 @@
         {"id": "save", "label": "Consigner", "icon": "save", "visible": true},
         {"id": "options", "label": "Réglages", "icon": "settings", "visible": true},
         {"id": "returnToTitle", "label": "Retour au titre", "icon": "exit", "visible": true}
-      ]
+      ],
+      "composition": {
+        "compactPortrait": {"entrySize": "large", "entrySpacing": "regular", "showTitle": true, "showHint": true, "showRootDetailPanel": false},
+        "compactLandscape": {"entrySize": "compact", "entrySpacing": "tight", "showTitle": true, "showHint": false, "showRootDetailPanel": true},
+        "expanded": {"entrySize": "large", "entrySpacing": "airy", "showTitle": true, "showHint": true, "showRootDetailPanel": true}
+      }
     }
   },
   "globalProperties": {

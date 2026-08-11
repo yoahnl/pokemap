@@ -98,6 +98,13 @@ void main() {
               icon: ProjectPauseActionIcon.play,
             ),
           ],
+          composition: ProjectResponsivePauseCompositionProfile(
+            expanded: ProjectPauseCompositionVariantProfile(
+              entrySize: ProjectPauseEntrySize.large,
+              entrySpacing: ProjectPauseEntrySpacing.airy,
+              showRootDetailPanel: false,
+            ),
+          ),
         ),
         typography: const ProjectTypographyProfile(
           combat: ProjectTypographyRoleProfile(
@@ -139,6 +146,20 @@ void main() {
       expect(
         first.manifest.presentation?.pause?.actions?.first.label,
         'Carnet',
+      );
+      expect(
+        first.manifest.presentation?.pause?.composition?.expanded.entrySize,
+        'large',
+      );
+      expect(
+        first
+            .manifest
+            .presentation
+            ?.pause
+            ?.composition
+            ?.expanded
+            .showRootDetailPanel,
+        isFalse,
       );
       expect(
         first.manifest.presentation?.windows?.pauseMenuStyleId,

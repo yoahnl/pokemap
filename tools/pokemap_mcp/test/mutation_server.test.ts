@@ -920,6 +920,29 @@ test("MCP applies and rereads the authored presentation profile", async () => {
               { id: "resume", icon: "play", visible: true },
               { id: "map", icon: "map", visible: false },
             ],
+            composition: {
+              compactPortrait: {
+                entrySize: "regular",
+                entrySpacing: "regular",
+                showTitle: true,
+                showHint: true,
+                showRootDetailPanel: false,
+              },
+              compactLandscape: {
+                entrySize: "compact",
+                entrySpacing: "tight",
+                showTitle: true,
+                showHint: false,
+                showRootDetailPanel: true,
+              },
+              expanded: {
+                entrySize: "large",
+                entrySpacing: "airy",
+                showTitle: true,
+                showHint: true,
+                showRootDetailPanel: false,
+              },
+            },
           },
           windows: {
             styles: [
@@ -1044,6 +1067,13 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       "Carnet de voyage",
     );
     assert.equal(
+      record(
+        record(record(record(project.presentation).pause).composition)
+          .expanded,
+      ).entrySize,
+      "large",
+    );
+    assert.equal(
       record(record(project.presentation).windows).pauseMenuStyleId,
       "pause-menu",
     );
@@ -1107,6 +1137,13 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.equal(
       record(record(persisted.presentation).pause).title,
       "Escale",
+    );
+    assert.equal(
+      record(
+        record(record(record(persisted.presentation).pause).composition)
+          .expanded,
+      ).showRootDetailPanel,
+      false,
     );
     assert.equal(
       record(record(persisted.presentation).windows).dialogueStyleId,
