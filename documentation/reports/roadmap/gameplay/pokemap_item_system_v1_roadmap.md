@@ -403,7 +403,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-011 — Codec strict du catalogue canonique
 
-- [ ] **Résultat :** un codec partagé accepte uniquement le schemaVersion du nouvel Item System et refuse tout autre format.
+- [x] **Résultat :** un codec partagé accepte uniquement le schemaVersion du nouvel Item System et refuse tout autre format.
 - **Fichiers à créer :**
   - packages/map_core/lib/src/serialization/project_item_catalog_codec.dart
 - **Tests à créer :**
@@ -419,6 +419,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
   - diagnostics localisés par entry index et itemId.
 - **Gate :** round-trip v1 canonique, stabilité d’ordre et rejet typé de chaque ancien format prouvés.
 - **Dépendances :** ITM-010.
+
+**Preuves ITM-011 :** les 5 tests du codec et les 16 tests cumulés des contrats passent. Le codec pur exige `schemaVersion: 1`, refuse les champs historiques et les effets en texte libre avec code, chemin, index et itemId, rejette les kinds et champs inconnus, conserve l'ordre des entrées et n'injecte ni seed ni fallback. L'analyse ciblée du codec et de ses tests ne remonte aucune issue.
 
 ### ITM-012 — Seed canonique des objets MVP
 

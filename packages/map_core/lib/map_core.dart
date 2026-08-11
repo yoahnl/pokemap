@@ -332,4 +332,5 @@ export 'src/save/save_contract_exception.dart';
 export 'src/save/save_envelope.dart';
 export 'src/save/save_envelope_codec.dart';
 export 'src/save/save_migration.dart';
+export 'src/serialization/project_item_catalog_codec.dart';
 export 'src/tooling/authoring_capability_inventory.dart';
