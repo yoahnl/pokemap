@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'items/mvp_item_catalog.dart';
+
 enum PlayerItemEffectKind {
   healHp,
   cureStatus,
@@ -27,79 +29,81 @@ final class PlayerItemEffectDefinition {
   final double ballMultiplier;
 }
 
-const Map<String, PlayerItemEffectDefinition> _mvpPlayerItemEffects = {
-  'potion': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.healHp,
-    amount: 20,
-  ),
-  'super-potion': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.healHp,
-    amount: 50,
-  ),
-  'hyper-potion': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.healHp,
-    amount: 120,
-  ),
-  'max-potion': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.healHp,
-    amount: 0x7fffffff,
-  ),
-  'antidote': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    statusIds: <String>{'poison', 'badly-poisoned'},
-  ),
-  'awakening': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    statusIds: <String>{'sleep'},
-  ),
-  'paralyze-heal': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    statusIds: <String>{'paralysis', 'paralyzed'},
-  ),
-  'burn-heal': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    statusIds: <String>{'burn'},
-  ),
-  'ice-heal': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    statusIds: <String>{'freeze', 'frozen'},
-  ),
-  'full-heal': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.cureStatus,
-    curesAnyStatus: true,
-  ),
-  'revive': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.revive,
-    revivePercent: 50,
-  ),
-  'ether': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.restorePp,
-    amount: 10,
-  ),
-  'max-ether': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.restorePp,
-    amount: 0x7fffffff,
-  ),
-  'key-item': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.keyItem,
-  ),
-  'poke-ball': PlayerItemEffectDefinition(
-    kind: PlayerItemEffectKind.ballMetadata,
-    ballMultiplier: 1,
-  ),
-};
+final Map<String, PlayerItemEffectDefinition> _mvpPlayerItemEffectProjection =
+    Map.unmodifiable({
+  for (final item in mvpItemCatalog.entries)
+    if (_projectPlayerItemEffect(item) case final effect?) item.id: effect,
+});
 
 final class PlayerItemEffectRegistry {
   const PlayerItemEffectRegistry({
-    this.effects = const <String, PlayerItemEffectDefinition>{},
-  });
+    Map<String, PlayerItemEffectDefinition> effects =
+        const <String, PlayerItemEffectDefinition>{},
+  })  : _effects = effects,
+        _usesMvpCatalog = false;
 
-  const PlayerItemEffectRegistry.mvp() : effects = _mvpPlayerItemEffects;
+  const PlayerItemEffectRegistry.mvp()
+      : _effects = const <String, PlayerItemEffectDefinition>{},
+        _usesMvpCatalog = true;
 
-  final Map<String, PlayerItemEffectDefinition> effects;
+  final Map<String, PlayerItemEffectDefinition> _effects;
+  final bool _usesMvpCatalog;
+
+  Map<String, PlayerItemEffectDefinition> get effects =>
+      _usesMvpCatalog ? _mvpPlayerItemEffectProjection : _effects;
 
   PlayerItemEffectDefinition? effectFor(String itemId) =>
       effects[itemId.trim()];
+}
+
+PlayerItemEffectDefinition? _projectPlayerItemEffect(
+  ProjectItemDefinition item,
+) {
+  if (item.capture case final capture?) {
+    return PlayerItemEffectDefinition(
+      kind: PlayerItemEffectKind.ballMetadata,
+      ballMultiplier: capture.rateNumerator / capture.rateDenominator,
+    );
+  }
+  if (item.tags.contains('key-item')) {
+    return const PlayerItemEffectDefinition(
+      kind: PlayerItemEffectKind.keyItem,
+    );
+  }
+  if (item.uses.isEmpty) {
+    return null;
+  }
+  return switch (item.uses.first.effect) {
+    ProjectItemHealHpEffectDefinition(:final mode, :final amount) =>
+      PlayerItemEffectDefinition(
+        kind: PlayerItemEffectKind.healHp,
+        amount: mode == ProjectItemAmountMode.full ? 0x7fffffff : amount!,
+      ),
+    ProjectItemCureStatusEffectDefinition(:final mode, :final statusIds) =>
+      PlayerItemEffectDefinition(
+        kind: PlayerItemEffectKind.cureStatus,
+        statusIds: statusIds,
+        curesAnyStatus: mode == ProjectItemStatusCureMode.all,
+      ),
+    ProjectItemReviveEffectDefinition(
+      :final rateNumerator,
+      :final rateDenominator,
+    ) =>
+      PlayerItemEffectDefinition(
+        kind: PlayerItemEffectKind.revive,
+        revivePercent:
+            (rateNumerator * 100 + rateDenominator - 1) ~/ rateDenominator,
+      ),
+    ProjectItemRestorePpEffectDefinition(:final mode, :final amount) =>
+      PlayerItemEffectDefinition(
+        kind: PlayerItemEffectKind.restorePp,
+        amount: mode == ProjectItemAmountMode.full ? 0x7fffffff : amount!,
+      ),
+    ProjectItemRepelEffectDefinition() ||
+    ProjectItemSemanticActionEffectDefinition() =>
+      null,
+    _ => null,
+  };
 }
 
 enum PlayerItemUseFailure {

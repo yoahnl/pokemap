@@ -424,7 +424,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-012 — Seed canonique des objets MVP
 
-- [ ] **Résultat :** remplacer la Map privée actuelle par des définitions ProjectItemDefinition.
+- [x] **Résultat :** remplacer la Map privée actuelle par des définitions ProjectItemDefinition.
 - **Fichiers à créer :**
   - packages/map_gameplay/lib/src/items/mvp_item_catalog.dart
 - **Fichiers à modifier :**
@@ -438,8 +438,10 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
   - Ether et Max Ether ;
   - Poké Ball ;
   - key item passif générique.
-- **Gate :** aucune valeur n’est dupliquée entre seed, overworld et battle.
+- **Gate :** aucune valeur n'est dupliquée entre le seed canonique et sa projection overworld ; la convergence avec les wrappers battle, notamment l'écart Hyper Potion 120/200, reste la responsabilité explicite d'ITM-026.
 - **Dépendances :** ITM-010.
+
+**Preuves ITM-012 :** le seed canonique contient les 15 objets MVP attendus et `PlayerItemEffectRegistry.mvp` projette ses valeurs depuis les `ProjectItemDefinition` sans Map de valeurs concurrente. Les 34 tests gameplay ciblés et les 21 tests runtime de caractérisation/menu battle passent ; `dart analyze` ne remonte que l'info `unnecessary_library_name` préexistante du barrel. Aucun comportement battle n'a été modifié prématurément.
 
 ### ITM-013 — Validation sémantique et capability truth
 
