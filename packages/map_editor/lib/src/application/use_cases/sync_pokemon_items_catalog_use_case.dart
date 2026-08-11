@@ -61,28 +61,29 @@ class SyncExternalPokemonItemsCatalogUseCase {
     );
     final localCatalog = await _readLocalCatalogIfAvailable(
       workspace,
-      catalogRelativePath: catalogRelativePath,
+      catalogRelativePath,
     );
     final externalCatalog = await _fetchExternalCatalog();
     final merge = await _mergeCatalogs(
       workspace,
       localCatalog: localCatalog,
-      externalCatalog: externalCatalog.catalog,
-      catalogRelativePath: catalogRelativePath,
+      externalCatalog: externalCatalog,
       assetsRootRelativePath: assetsRootRelativePath,
       dryRun: dryRun,
       downloadSprites: downloadSprites,
       overwriteSprites: overwriteSprites,
-      warnings: externalCatalog.warnings,
     );
 
     if (!dryRun) {
-      final absoluteCatalogPath = workspace.resolveProjectRelativePath(
+      final absolutePath = workspace.resolveProjectRelativePath(
         catalogRelativePath,
       );
+      await workspace.ensureDirectoryExists(p.dirname(absolutePath));
       await workspace.writeTextFile(
-        absoluteCatalogPath,
-        const JsonEncoder.withIndent('  ').convert(merge.catalog.toJson()),
+        absolutePath,
+        const JsonEncoder.withIndent(
+          '  ',
+        ).convert(encodeProjectItemCatalog(merge.catalog)),
       );
     }
 
@@ -101,107 +102,19 @@ class SyncExternalPokemonItemsCatalogUseCase {
     );
   }
 
-  Future<PokemonCatalogFile?> _readLocalCatalogIfAvailable(
-    ProjectWorkspace workspace, {
-    required String catalogRelativePath,
-  }) async {
-    try {
-      return await readRepository.readCatalogByKey(workspace, 'items');
-    } on EditorNotFoundException {
-      return _readCatalogAtResolvedPathIfPresent(
-        workspace,
-        catalogRelativePath: catalogRelativePath,
-      );
-    } on EditorApplicationException {
-      return _readCatalogAtResolvedPathIfPresent(
-        workspace,
-        catalogRelativePath: catalogRelativePath,
-      );
-    }
-  }
-
-  Future<PokemonCatalogFile?> _readCatalogAtResolvedPathIfPresent(
-    ProjectWorkspace workspace, {
-    required String catalogRelativePath,
-  }) async {
+  Future<ProjectItemCatalog?> _readLocalCatalogIfAvailable(
+    ProjectWorkspace workspace,
+    String catalogRelativePath,
+  ) async {
     final absolutePath = workspace.resolveProjectRelativePath(
       catalogRelativePath,
     );
     if (!await workspace.fileExists(absolutePath)) {
       return null;
     }
-
-    try {
-      final raw = await workspace.readTextFile(absolutePath);
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) {
-        throw EditorPersistenceException(
-          'Pokemon catalog "items" is not a JSON object: $catalogRelativePath',
-        );
-      }
-      return PokemonCatalogFile.fromJson(decoded);
-    } on EditorApplicationException {
-      rethrow;
-    } on FormatException catch (error) {
-      throw EditorPersistenceException(
-        'Invalid JSON in Pokemon catalog "items" at $catalogRelativePath: $error',
-      );
-    } catch (error) {
-      throw EditorPersistenceException(
-        'Failed to read Pokemon catalog "items" at $catalogRelativePath: $error',
-      );
-    }
-  }
-
-  Future<String> _resolveCatalogRelativePath(ProjectWorkspace workspace) async {
-    final pokemonConfig = await _readProjectPokemonConfig(workspace);
-    final dataRoot = _normalizeConfiguredRelativePath(
-      pokemonConfig.dataRoot,
-      fallback: 'data/pokemon',
+    return decodeProjectItemCatalog(
+      jsonDecode(await workspace.readTextFile(absolutePath)),
     );
-
-    try {
-      final manifestPath = workspace.resolveProjectRelativePath(
-        p.normalize(p.join(dataRoot, 'pokemon_data_manifest.json')),
-      );
-      if (await workspace.fileExists(manifestPath)) {
-        final manifestRaw = await workspace.readTextFile(manifestPath);
-        final manifest = PokemonDataManifest.fromJson(
-          (jsonDecode(manifestRaw) as Map).cast<String, dynamic>(),
-        );
-        final declaredPath = manifest.catalogFiles['items']?.trim();
-        if (declaredPath != null && declaredPath.isNotEmpty) {
-          return _resolvePathWithinPokemonDataRoot(
-            pokemonConfig: pokemonConfig,
-            rawRelativePath: declaredPath,
-          );
-        }
-      }
-    } on Object {
-      final configuredPath = pokemonConfig.catalogFiles['items']?.trim();
-      if (configuredPath != null && configuredPath.isNotEmpty) {
-        return p.normalize(configuredPath);
-      }
-      return 'data/pokemon/catalogs/items.json';
-    }
-
-    final configuredPath = pokemonConfig.catalogFiles['items']?.trim();
-    if (configuredPath != null && configuredPath.isNotEmpty) {
-      return p.normalize(configuredPath);
-    }
-
-    return 'data/pokemon/catalogs/items.json';
-  }
-
-  Future<String> _resolveItemsAssetsRootRelativePath(
-    ProjectWorkspace workspace,
-  ) async {
-    final pokemonConfig = await _readProjectPokemonConfig(workspace);
-    final dataRoot = _normalizeConfiguredRelativePath(
-      pokemonConfig.dataRoot,
-      fallback: 'data/pokemon',
-    );
-    return p.normalize(p.join(dataRoot, 'assets/items'));
   }
 
   Future<_FetchedExternalItemsCatalog> _fetchExternalCatalog() async {
@@ -219,228 +132,76 @@ class SyncExternalPokemonItemsCatalogUseCase {
       if (results.isEmpty) {
         break;
       }
-
-      for (var index = 0; index < results.length; index++) {
-        final resource = results[index];
-        final itemId = _readItemResourceId(resource);
+      for (var index = 0; index < results.length; index += 1) {
+        final itemId = _readItemResourceId(results[index]);
         if (itemId == null) {
           warnings.add(
-            'Ignored an external item resource at index ${offset + index} because it did not expose a usable name or URL.',
+            'Ignored external item resource at index ${offset + index}: missing id.',
           );
           continue;
         }
         if (!seenIds.add(itemId)) {
-          warnings.add(
-            'Ignored duplicate external item resource for id "$itemId".',
-          );
+          warnings.add('Ignored duplicate external item resource "$itemId".');
           continue;
         }
         discoveredIds.add(itemId);
       }
-
       final next = page['next'];
       if (next == null || (next is String && next.trim().isEmpty)) {
         break;
       }
     }
 
-    final convertedEntries = <Map<String, dynamic>>[];
+    final entries = <_ExternalItemCandidate>[];
     for (final itemId in discoveredIds) {
       try {
         final payload = await externalSourceRepository.fetchPokeApiItemPayload(
           itemId,
         );
-        convertedEntries.add(_convertExternalItemPayload(payload));
+        final candidate = _convertExternalItemPayload(payload);
+        entries.add(candidate);
+        for (final field in candidate.unconsumedFields) {
+          warnings.add(
+            'External item "${candidate.definition.id}" field "$field" was not consumed.',
+          );
+        }
       } on EditorApplicationException catch (error) {
         warnings.add('Ignored external item "$itemId": ${error.message}');
       } catch (error) {
         warnings.add('Ignored external item "$itemId": $error');
       }
     }
-
-    convertedEntries.sort(
-      (left, right) => ((left['id'] as String?) ?? '').compareTo(
-        (right['id'] as String?) ?? '',
-      ),
+    entries.sort(
+      (left, right) => left.definition.id.compareTo(right.definition.id),
     );
-
     return _FetchedExternalItemsCatalog(
-      catalog: PokemonCatalogFile(
-        schemaVersion: 1,
-        kind: 'pokemon_catalog',
-        catalog: 'items',
-        meta: const PokemonDataMeta(
-          description: 'Catalogue local des objets synchronisé depuis PokéAPI.',
-          sourcePriority: <String>['pokeapi', 'local'],
-        ),
-        entries: convertedEntries,
-      ),
+      entries: entries,
       externalEntryCount: discoveredIds.length,
       warnings: warnings,
     );
   }
 
-  List<Map<String, dynamic>> _readResourceListResults(
-    Map<String, dynamic> payload,
-  ) {
-    final rawResults = payload['results'];
-    if (rawResults == null) {
-      return const <Map<String, dynamic>>[];
-    }
-    if (rawResults is! List) {
-      throw const EditorPersistenceException(
-        'PokeAPI item list payload must contain a "results" array.',
-      );
-    }
-
-    final results = <Map<String, dynamic>>[];
-    for (final entry in rawResults) {
-      if (entry is! Map) {
-        throw const EditorPersistenceException(
-          'PokeAPI item list payload must contain only object results.',
-        );
-      }
-      results.add(entry.cast<String, dynamic>());
-    }
-    return results;
-  }
-
-  String? _readItemResourceId(Map<String, dynamic> resource) {
-    final rawName = resource['name'];
-    if (rawName is String) {
-      final normalized = rawName.trim().toLowerCase();
-      if (normalized.isNotEmpty) {
-        return normalized;
-      }
-    }
-
-    final rawUrl = resource['url'];
-    if (rawUrl is! String) {
-      return null;
-    }
-    final trimmedUrl = rawUrl.trim();
-    if (trimmedUrl.isEmpty) {
-      return null;
-    }
-    final uri = Uri.tryParse(trimmedUrl);
-    final segments = uri?.pathSegments.where((segment) => segment.isNotEmpty);
-    if (segments == null || segments.isEmpty) {
-      return null;
-    }
-    return segments.last.trim().toLowerCase();
-  }
-
-  Map<String, dynamic> _convertExternalItemPayload(
-      Map<String, dynamic> payload) {
-    final id = _readRequiredSlug(payload, 'name');
-    final names = _readLocalizedNames(payload);
-    final displayName =
-        _preferredLocalizedName(names) ?? _formatFallbackDisplayName(id);
-    if (displayName.trim().isEmpty) {
-      throw EditorPersistenceException(
-        'PokeAPI item "$id" does not expose a usable display name.',
-      );
-    }
-
-    final spriteUrl = _readOptionalSpriteUrl(payload, id: id);
-    final categoryId = _readOptionalNamedResource(
-      payload,
-      'category',
-      id: id,
-    );
-    final pocketId = _readOptionalString(payload, 'pocketId') ??
-        _readOptionalNamedResource(payload, 'pocket', id: id);
-    final cost = _readOptionalInt(payload, 'cost', id: id);
-    final flingPower = _readOptionalInt(payload, 'flingPower', id: id) ??
-        _readOptionalInt(payload, 'fling_power', id: id);
-    final flingEffectId = _readOptionalString(payload, 'flingEffectId') ??
-        _readOptionalNamedResource(payload, 'fling_effect', id: id);
-    final shortEffectText = _readOptionalString(payload, 'shortEffectText') ??
-        _readLocalizedEntryText(
-          payload,
-          listKey: 'effect_entries',
-          textKey: 'short_effect',
-          id: id,
-        );
-    final effectText = _readOptionalString(payload, 'effectText') ??
-        _readLocalizedEntryText(
-          payload,
-          listKey: 'effect_entries',
-          textKey: 'effect',
-          id: id,
-        );
-    final flavorText = _readOptionalString(payload, 'flavorText') ??
-        _readPreferredFlavorText(payload, id: id);
-
-    final entry = <String, dynamic>{
-      'id': id,
-      'name': displayName,
-      'source': 'pokeapi',
-      'sourceRefs': <String, dynamic>{
-        'pokeApiName': id,
-      },
-    };
-
-    final pokeApiId = _readOptionalInt(payload, 'id', id: id);
-    if (pokeApiId != null) {
-      entry['pokeApiId'] = pokeApiId;
-      (entry['sourceRefs'] as Map<String, dynamic>)['pokeApiItemId'] =
-          pokeApiId;
-    }
-    if (names.isNotEmpty) {
-      entry['names'] = names;
-    }
-    if (categoryId != null) {
-      entry['categoryId'] = categoryId;
-    }
-    if (pocketId != null) {
-      entry['pocketId'] = pocketId;
-    }
-    if (cost != null) {
-      entry['cost'] = cost;
-    }
-    if (flingPower != null) {
-      entry['flingPower'] = flingPower;
-    }
-    if (flingEffectId != null) {
-      entry['flingEffectId'] = flingEffectId;
-    }
-    if (shortEffectText != null) {
-      entry['shortEffectText'] = shortEffectText;
-    }
-    if (effectText != null) {
-      entry['effectText'] = effectText;
-    }
-    if (flavorText != null) {
-      entry['flavorText'] = flavorText;
-    }
-    if (spriteUrl != null) {
-      entry['spriteUrl'] = spriteUrl;
-    }
-
-    return entry;
-  }
-
   Future<_ItemsCatalogMerge> _mergeCatalogs(
     ProjectWorkspace workspace, {
-    required PokemonCatalogFile? localCatalog,
-    required PokemonCatalogFile externalCatalog,
-    required String catalogRelativePath,
+    required ProjectItemCatalog? localCatalog,
+    required _FetchedExternalItemsCatalog externalCatalog,
     required String assetsRootRelativePath,
     required bool dryRun,
     required bool downloadSprites,
     required bool overwriteSprites,
-    required List<String> warnings,
   }) async {
-    final mergedWarnings = <String>[...warnings];
-    final localById = <String, Map<String, dynamic>>{};
-    for (final entry
-        in localCatalog?.entries ?? const <Map<String, dynamic>>[]) {
-      final id = ((entry['id'] as String?)?.trim() ?? '');
-      if (id.isEmpty) {
-        continue;
+    final localById = <String, ProjectItemDefinition>{};
+    for (final item
+        in localCatalog?.entries ?? const <ProjectItemDefinition>[]) {
+      if (localById.containsKey(item.id)) {
+        throw ProjectItemCatalogCodecException(
+          code: ProjectItemCatalogCodecErrorCode.invalidValue,
+          message: 'Duplicate local item id: ${item.id}',
+          path: r'$.entries',
+          itemId: item.id,
+        );
       }
-      localById[id] = await _sanitizeLocalEntryForMerge(workspace, entry);
+      localById[item.id] = item;
     }
 
     final createdIds = <String>[];
@@ -449,87 +210,63 @@ class SyncExternalPokemonItemsCatalogUseCase {
     final downloadedSpriteIds = <String>[];
     final skippedSpriteIds = <String>[];
     final failedSpriteIds = <String>[];
-    final mergedEntries = <Map<String, dynamic>>[];
+    final warnings = <String>[...externalCatalog.warnings];
+    final mergedEntries = <ProjectItemDefinition>[];
 
-    for (final externalEntry in externalCatalog.entries) {
-      final id = ((externalEntry['id'] as String?)?.trim() ?? '');
-      if (id.isEmpty) {
-        continue;
+    for (final candidate in externalCatalog.entries) {
+      final externalItem = candidate.definition;
+      final localItem = localById.remove(externalItem.id);
+      final mergedItem = localItem == null
+          ? externalItem
+          : _mergeDefinition(localItem, externalItem);
+      if (localItem == null) {
+        createdIds.add(externalItem.id);
+      } else if (localItem == mergedItem) {
+        unchangedIds.add(externalItem.id);
+      } else {
+        updatedIds.add(externalItem.id);
       }
-      final localEntry = localById.remove(id);
-      final spriteOutcome = await _prepareSpriteState(
+      mergedEntries.add(mergedItem);
+
+      final spriteResult = await _syncSprite(
         workspace,
-        externalEntry: externalEntry,
-        localEntry: localEntry,
+        candidate: candidate,
         assetsRootRelativePath: assetsRootRelativePath,
         dryRun: dryRun,
         downloadSprites: downloadSprites,
         overwriteSprites: overwriteSprites,
       );
-      if (spriteOutcome.downloadedId != null) {
-        downloadedSpriteIds.add(spriteOutcome.downloadedId!);
+      if (spriteResult.downloaded) {
+        downloadedSpriteIds.add(externalItem.id);
       }
-      if (spriteOutcome.skippedId != null) {
-        skippedSpriteIds.add(spriteOutcome.skippedId!);
+      if (spriteResult.skipped) {
+        skippedSpriteIds.add(externalItem.id);
       }
-      if (spriteOutcome.failedId != null) {
-        failedSpriteIds.add(spriteOutcome.failedId!);
+      if (spriteResult.failed) {
+        failedSpriteIds.add(externalItem.id);
       }
-      mergedWarnings.addAll(spriteOutcome.warnings);
-
-      final normalizedExternalEntry = _deepCopy(externalEntry);
-      if (spriteOutcome.localSpritePath != null) {
-        normalizedExternalEntry['localSpritePath'] =
-            spriteOutcome.localSpritePath;
+      if (spriteResult.warning case final warning?) {
+        warnings.add(warning);
       }
-
-      if (localEntry == null) {
-        createdIds.add(id);
-        mergedEntries.add(normalizedExternalEntry);
-        continue;
-      }
-
-      final mergedEntry = _mergeEntry(
-        localEntry: localEntry,
-        externalEntry: normalizedExternalEntry,
-      );
-      if (_jsonDeepEquals(localEntry, mergedEntry)) {
-        unchangedIds.add(id);
-      } else {
-        updatedIds.add(id);
-      }
-      mergedEntries.add(mergedEntry);
     }
 
     final preservedLocalOnlyIds = localById.keys.toList(growable: false)
       ..sort();
-    for (final id in preservedLocalOnlyIds) {
-      mergedEntries.add(_deepCopy(localById[id]!));
+    for (final itemId in preservedLocalOnlyIds) {
+      mergedEntries.add(localById[itemId]!);
     }
-
-    mergedEntries.sort(
-      (left, right) => ((left['id'] as String?) ?? '').compareTo(
-        (right['id'] as String?) ?? '',
-      ),
-    );
-
     if (preservedLocalOnlyIds.isNotEmpty) {
-      mergedWarnings.add(
-        'Local item entries absent from the external snapshot were preserved unchanged.',
+      warnings.add(
+        'Local item definitions absent from the external snapshot were preserved.',
       );
     }
+    mergedEntries.sort((left, right) => left.id.compareTo(right.id));
 
     return _ItemsCatalogMerge(
-      catalog: PokemonCatalogFile(
-        schemaVersion: externalCatalog.schemaVersion,
-        kind: externalCatalog.kind,
-        catalog: externalCatalog.catalog,
-        meta: _buildMergedMeta(
-          localMeta: localCatalog?.meta,
-          externalMeta: externalCatalog.meta,
-        ),
+      catalog: ProjectItemCatalog(
+        schemaVersion: 1,
         entries: mergedEntries,
-      ),
+      ).normalized(),
       createdIds: createdIds,
       updatedIds: updatedIds,
       unchangedIds: unchangedIds,
@@ -537,225 +274,146 @@ class SyncExternalPokemonItemsCatalogUseCase {
       downloadedSpriteIds: downloadedSpriteIds,
       skippedSpriteIds: skippedSpriteIds,
       failedSpriteIds: failedSpriteIds,
-      warnings: mergedWarnings,
+      warnings: warnings,
     );
   }
 
-  Future<Map<String, dynamic>> _sanitizeLocalEntryForMerge(
-    ProjectWorkspace workspace,
-    Map<String, dynamic> entry,
-  ) async {
-    final sanitized = _deepCopy(entry);
-    final localSpritePath = sanitized['localSpritePath'];
-    if (localSpritePath is! String || localSpritePath.trim().isEmpty) {
-      sanitized.remove('localSpritePath');
-      return sanitized;
-    }
-
-    final absoluteSpritePath = workspace.resolveProjectRelativePath(
-      localSpritePath,
-    );
-    if (!await workspace.fileExists(absoluteSpritePath)) {
-      sanitized.remove('localSpritePath');
-    }
-    return sanitized;
+  ProjectItemDefinition _mergeDefinition(
+    ProjectItemDefinition local,
+    ProjectItemDefinition external,
+  ) {
+    return local.copyWith(
+      displayName: external.displayName,
+      aliases: {
+        ...local.aliases,
+        ...external.aliases,
+      }.toList(growable: false),
+      pocketId: external.pocketId,
+      description: external.description ?? local.description,
+      buyPrice: external.buyPrice ?? local.buyPrice,
+      tags: {...local.tags, ...external.tags},
+    ).normalized();
   }
 
-  Future<_ItemSpritePreparationResult> _prepareSpriteState(
+  Future<_SpriteSyncResult> _syncSprite(
     ProjectWorkspace workspace, {
-    required Map<String, dynamic> externalEntry,
-    required Map<String, dynamic>? localEntry,
+    required _ExternalItemCandidate candidate,
     required String assetsRootRelativePath,
     required bool dryRun,
     required bool downloadSprites,
     required bool overwriteSprites,
   }) async {
-    final id = (externalEntry['id'] as String).trim();
-    final spriteUrl = (externalEntry['spriteUrl'] as String?)?.trim();
-    final targetRelativePath =
-        p.normalize(p.join(assetsRootRelativePath, '$id.png'));
-    final absoluteTargetPath = workspace.resolveProjectRelativePath(
-      targetRelativePath,
-    );
-    final localSpritePath = localEntry?['localSpritePath'] as String?;
-    final hasExistingTarget = await workspace.fileExists(absoluteTargetPath);
-
     if (!downloadSprites || dryRun) {
-      return const _ItemSpritePreparationResult();
+      return const _SpriteSyncResult();
     }
-
+    final spriteUrl = candidate.spriteUrl;
     if (spriteUrl == null || spriteUrl.isEmpty) {
-      return _ItemSpritePreparationResult(
-        skippedId: id,
-        localSpritePath: localSpritePath,
-      );
+      return const _SpriteSyncResult(skipped: true);
     }
-
-    if (hasExistingTarget && !overwriteSprites) {
-      return _ItemSpritePreparationResult(
-        skippedId: id,
-        localSpritePath: targetRelativePath,
-      );
+    final relativePath = p.normalize(
+      p.join(assetsRootRelativePath, '${candidate.definition.id}.png'),
+    );
+    final absolutePath = workspace.resolveProjectRelativePath(relativePath);
+    if (await workspace.fileExists(absolutePath) && !overwriteSprites) {
+      return const _SpriteSyncResult(skipped: true);
     }
-
     try {
       final asset = await externalSourceRepository.fetchBinaryAsset(spriteUrl);
       await writeRepository.saveBinaryAsset(
         workspace,
-        relativePath: targetRelativePath,
+        relativePath: relativePath,
         bytes: asset.bytes,
       );
-      if (!await workspace.fileExists(absoluteTargetPath)) {
-        return _ItemSpritePreparationResult(
-          failedId: id,
-          localSpritePath: localSpritePath,
-          warnings: <String>[
-            'Sprite download for "$id" completed but no local file was found afterwards.',
-          ],
+      if (!await workspace.fileExists(absolutePath)) {
+        return _SpriteSyncResult(
+          failed: true,
+          warning:
+              'Sprite download for "${candidate.definition.id}" produced no local file.',
         );
       }
-      return _ItemSpritePreparationResult(
-        downloadedId: id,
-        localSpritePath: targetRelativePath,
-      );
-    } on EditorApplicationException catch (error) {
-      return _ItemSpritePreparationResult(
-        failedId: id,
-        localSpritePath: localSpritePath,
-        warnings: <String>[
-          'Sprite download failed for "$id": ${error.message}',
-        ],
-      );
+      return const _SpriteSyncResult(downloaded: true);
     } catch (error) {
-      return _ItemSpritePreparationResult(
-        failedId: id,
-        localSpritePath: localSpritePath,
-        warnings: <String>[
-          'Sprite download failed for "$id": $error',
-        ],
+      return _SpriteSyncResult(
+        failed: true,
+        warning:
+            'Sprite download for "${candidate.definition.id}" failed: $error',
       );
     }
   }
 
-  PokemonDataMeta _buildMergedMeta({
-    required PokemonDataMeta? localMeta,
-    required PokemonDataMeta externalMeta,
-  }) {
-    final notes = <String>[
-      ...externalMeta.notes,
-      if (localMeta != null)
-        ...localMeta.notes.where(
-          (note) => !externalMeta.notes.contains(note),
-        ),
-    ];
-
-    return PokemonDataMeta(
-      description: externalMeta.description,
-      sourcePriority: externalMeta.sourcePriority,
-      notes: notes,
+  Future<String> _resolveCatalogRelativePath(ProjectWorkspace workspace) async {
+    final pokemonConfig = await _readProjectPokemonConfig(workspace);
+    final dataRoot = _normalizeConfiguredRelativePath(
+      pokemonConfig.dataRoot,
+      fallback: 'data/pokemon',
     );
-  }
-
-  Map<String, dynamic> _mergeEntry({
-    required Map<String, dynamic> localEntry,
-    required Map<String, dynamic> externalEntry,
-  }) {
-    final merged = <String, dynamic>{};
-
-    for (final externalField in externalEntry.entries) {
-      final key = externalField.key;
-      final externalValue = externalField.value;
-      final localValue = localEntry[key];
-
-      if ((key == 'names' || key == 'sourceRefs') &&
-          localValue is Map &&
-          externalValue is Map<String, dynamic>) {
-        merged[key] = _mergeStringKeyedMaps(localValue, externalValue);
-        continue;
-      }
-
-      merged[key] = externalValue ?? _deepCopyValue(localValue);
-    }
-
-    for (final localField in localEntry.entries) {
-      merged.putIfAbsent(
-        localField.key,
-        () => _deepCopyValue(localField.value),
+    try {
+      final manifestPath = workspace.resolveProjectRelativePath(
+        p.normalize(p.join(dataRoot, 'pokemon_data_manifest.json')),
       );
-    }
-
-    return merged;
-  }
-
-  Map<String, dynamic> _mergeStringKeyedMaps(
-    Map localValue,
-    Map<String, dynamic> externalValue,
-  ) {
-    final merged = <String, dynamic>{
-      for (final entry in localValue.entries)
-        if (entry.key is String)
-          entry.key as String: _deepCopyValue(entry.value),
-    };
-    for (final entry in externalValue.entries) {
-      merged[entry.key] = _deepCopyValue(entry.value);
-    }
-    return merged;
-  }
-
-  Map<String, dynamic> _deepCopy(Map<String, dynamic> source) {
-    return (jsonDecode(jsonEncode(source)) as Map).cast<String, dynamic>();
-  }
-
-  Object? _deepCopyValue(Object? value) {
-    if (value == null) {
-      return null;
-    }
-    return jsonDecode(jsonEncode(value));
-  }
-
-  bool _jsonDeepEquals(Object? left, Object? right) {
-    if (left is Map && right is Map) {
-      if (left.length != right.length) {
-        return false;
-      }
-      for (final key in left.keys) {
-        if (!right.containsKey(key)) {
-          return false;
-        }
-        if (!_jsonDeepEquals(left[key], right[key])) {
-          return false;
+      if (await workspace.fileExists(manifestPath)) {
+        final manifest = PokemonDataManifest.fromJson(
+          (jsonDecode(await workspace.readTextFile(manifestPath)) as Map)
+              .cast<String, dynamic>(),
+        );
+        final declaredPath = manifest.catalogFiles['items']?.trim();
+        if (declaredPath != null && declaredPath.isNotEmpty) {
+          return _resolvePathWithinPokemonDataRoot(
+            pokemonConfig: pokemonConfig,
+            rawRelativePath: declaredPath,
+          );
         }
       }
-      return true;
-    }
-    if (left is List && right is List) {
-      if (left.length != right.length) {
-        return false;
+    } on Object {
+      final configuredPath = pokemonConfig.catalogFiles['items']?.trim();
+      if (configuredPath != null && configuredPath.isNotEmpty) {
+        return p.normalize(configuredPath);
       }
-      for (var index = 0; index < left.length; index++) {
-        if (!_jsonDeepEquals(left[index], right[index])) {
-          return false;
-        }
-      }
-      return true;
+      return 'data/pokemon/catalogs/items.json';
     }
-    return left == right;
+    final configuredPath = pokemonConfig.catalogFiles['items']?.trim();
+    return configuredPath == null || configuredPath.isEmpty
+        ? 'data/pokemon/catalogs/items.json'
+        : p.normalize(configuredPath);
+  }
+
+  Future<String> _resolveItemsAssetsRootRelativePath(
+    ProjectWorkspace workspace,
+  ) async {
+    final pokemonConfig = await _readProjectPokemonConfig(workspace);
+    final dataRoot = _normalizeConfiguredRelativePath(
+      pokemonConfig.dataRoot,
+      fallback: 'data/pokemon',
+    );
+    return p.normalize(p.join(dataRoot, 'assets/items'));
   }
 }
 
-class _FetchedExternalItemsCatalog {
+final class _ExternalItemCandidate {
+  const _ExternalItemCandidate({
+    required this.definition,
+    required this.unconsumedFields,
+    this.spriteUrl,
+  });
+
+  final ProjectItemDefinition definition;
+  final String? spriteUrl;
+  final Set<String> unconsumedFields;
+}
+
+final class _FetchedExternalItemsCatalog {
   const _FetchedExternalItemsCatalog({
-    required this.catalog,
+    required this.entries,
     required this.externalEntryCount,
     required this.warnings,
   });
 
-  final PokemonCatalogFile catalog;
+  final List<_ExternalItemCandidate> entries;
   final int externalEntryCount;
   final List<String> warnings;
 }
 
-class _ItemsCatalogMerge {
+final class _ItemsCatalogMerge {
   const _ItemsCatalogMerge({
     required this.catalog,
     required this.createdIds,
@@ -768,7 +426,7 @@ class _ItemsCatalogMerge {
     required this.warnings,
   });
 
-  final PokemonCatalogFile catalog;
+  final ProjectItemCatalog catalog;
   final List<String> createdIds;
   final List<String> updatedIds;
   final List<String> unchangedIds;
@@ -779,190 +437,199 @@ class _ItemsCatalogMerge {
   final List<String> warnings;
 }
 
-class _ItemSpritePreparationResult {
-  const _ItemSpritePreparationResult({
-    this.downloadedId,
-    this.skippedId,
-    this.failedId,
-    this.localSpritePath,
-    this.warnings = const <String>[],
+final class _SpriteSyncResult {
+  const _SpriteSyncResult({
+    this.downloaded = false,
+    this.skipped = false,
+    this.failed = false,
+    this.warning,
   });
 
-  final String? downloadedId;
-  final String? skippedId;
-  final String? failedId;
-  final String? localSpritePath;
-  final List<String> warnings;
+  final bool downloaded;
+  final bool skipped;
+  final bool failed;
+  final String? warning;
+}
+
+_ExternalItemCandidate _convertExternalItemPayload(
+  Map<String, dynamic> payload,
+) {
+  final id = _readRequiredSlug(payload, 'name');
+  final names = _readLocalizedNames(payload, id);
+  final displayName = _preferredLocalizedName(names) ?? _formatDisplayName(id);
+  final categoryId = _readNamedResource(payload, 'category', id);
+  final pocketId =
+      _readNamedResource(payload, 'pocket', id) ?? categoryId ?? 'items';
+  final description = _readLocalizedText(
+        payload,
+        listKey: 'flavor_text_entries',
+        textKey: 'text',
+        id: id,
+      ) ??
+      _readLocalizedText(
+        payload,
+        listKey: 'effect_entries',
+        textKey: 'effect',
+        id: id,
+      );
+  final aliases = names.values
+      .map((name) => name.trim())
+      .where((name) => name.isNotEmpty && name != displayName)
+      .toSet()
+      .toList(growable: false);
+  final spriteUrl = _readSpriteUrl(payload, id);
+  final consumedFields = {
+    'id',
+    'name',
+    'names',
+    'category',
+    'pocket',
+    'cost',
+    'effect_entries',
+    'flavor_text_entries',
+    'sprites',
+  };
+  return _ExternalItemCandidate(
+    definition: ProjectItemDefinition(
+      id: id,
+      displayName: displayName,
+      aliases: aliases,
+      pocketId: pocketId,
+      description: description,
+      buyPrice: _readOptionalInt(payload, 'cost', id),
+      tags: {if (categoryId != null) 'category:$categoryId', 'source:pokeapi'},
+    ).normalized(),
+    spriteUrl: spriteUrl,
+    unconsumedFields:
+        payload.keys.where((field) => !consumedFields.contains(field)).toSet(),
+  );
+}
+
+List<Map<String, dynamic>> _readResourceListResults(
+  Map<String, dynamic> payload,
+) {
+  final rawResults = payload['results'];
+  if (rawResults == null) {
+    return const [];
+  }
+  if (rawResults is! List) {
+    throw const EditorPersistenceException(
+      'PokeAPI item list results must be a list.',
+    );
+  }
+  return rawResults.map((entry) {
+    if (entry is! Map) {
+      throw const EditorPersistenceException(
+        'PokeAPI item list entries must be objects.',
+      );
+    }
+    return entry.cast<String, dynamic>();
+  }).toList(growable: false);
+}
+
+String? _readItemResourceId(Map<String, dynamic> resource) {
+  final name = resource['name'];
+  if (name is String && name.trim().isNotEmpty) {
+    return name.trim().toLowerCase();
+  }
+  final url = resource['url'];
+  if (url is! String) {
+    return null;
+  }
+  final segments = Uri.tryParse(
+    url,
+  )?.pathSegments.where((segment) => segment.trim().isNotEmpty).toList();
+  return segments == null || segments.isEmpty
+      ? null
+      : segments.last.trim().toLowerCase();
 }
 
 String _readRequiredSlug(Map<String, dynamic> payload, String key) {
   final value = payload[key];
-  if (value is! String) {
+  if (value is! String || value.trim().isEmpty) {
     throw EditorPersistenceException(
-      'PokeAPI item payload field "$key" must be a non-empty string.',
+      'External item field "$key" must be a non-empty string.',
     );
   }
-  final normalized = value.trim().toLowerCase();
-  if (normalized.isEmpty) {
-    throw EditorPersistenceException(
-      'PokeAPI item payload field "$key" must be a non-empty string.',
-    );
-  }
-  return normalized;
+  return value.trim().toLowerCase();
 }
 
-Map<String, String> _readLocalizedNames(Map<String, dynamic> payload) {
-  final value = payload['names'];
-  if (value == null) {
-    return const <String, String>{};
+Map<String, String> _readLocalizedNames(
+  Map<String, dynamic> payload,
+  String id,
+) {
+  final rawNames = payload['names'];
+  if (rawNames == null) {
+    return const {};
   }
-  if (value is Map) {
-    final result = <String, String>{};
-    for (final entry in value.entries) {
-      if (entry.key is! String || entry.value is! String) {
-        throw const EditorPersistenceException(
-          'PokeAPI item payload field "names" must be a string map or a list of localized entries.',
-        );
-      }
-      final trimmedValue = (entry.value as String).trim();
-      if (trimmedValue.isNotEmpty) {
-        result[entry.key as String] = trimmedValue;
-      }
-    }
-    return result;
-  }
-  if (value is! List) {
-    throw const EditorPersistenceException(
-      'PokeAPI item payload field "names" must be a string map or a list of localized entries.',
+  if (rawNames is! List) {
+    throw EditorPersistenceException(
+      'External item "$id" names must be a list.',
     );
   }
-
-  final result = <String, String>{};
-  for (final element in value) {
-    if (element is! Map) {
-      throw const EditorPersistenceException(
-        'PokeAPI item payload field "names" must be a string map or a list of localized entries.',
-      );
-    }
-    final nameValue = element['name'];
-    if (nameValue != null && nameValue is! String) {
-      throw const EditorPersistenceException(
-        'PokeAPI item payload field "names" contains an invalid localized name.',
-      );
-    }
-    final language = element['language'];
-    if (language != null && language is! Map) {
-      throw const EditorPersistenceException(
-        'PokeAPI item payload field "names" contains an invalid language value.',
-      );
-    }
-    final languageName = (language as Map?)?['name'];
-    if (languageName != null && languageName is! String) {
-      throw const EditorPersistenceException(
-        'PokeAPI item payload field "names" contains an invalid language value.',
-      );
-    }
-    final normalizedName = (nameValue as String?)?.trim();
-    final normalizedLanguage = (languageName as String?)?.trim();
-    if (normalizedName == null ||
-        normalizedName.isEmpty ||
-        normalizedLanguage == null ||
-        normalizedLanguage.isEmpty) {
+  final names = <String, String>{};
+  for (final rawName in rawNames) {
+    if (rawName is! Map) {
       continue;
     }
-    result[normalizedLanguage] = normalizedName;
+    final language = rawName['language'];
+    final languageId = language is Map ? language['name'] : null;
+    final name = rawName['name'];
+    if (languageId is String && name is String && name.trim().isNotEmpty) {
+      names[languageId.trim()] = name.trim();
+    }
   }
-  return result;
+  return names;
 }
 
 String? _preferredLocalizedName(Map<String, String> names) {
-  final english = names['en']?.trim();
+  final english = names['en'];
   if (english != null && english.isNotEmpty) {
     return english;
   }
-  for (final value in names.values) {
-    final trimmed = value.trim();
-    if (trimmed.isNotEmpty) {
-      return trimmed;
-    }
-  }
-  return null;
+  return names.values.firstOrNull;
 }
 
-String _formatFallbackDisplayName(String slug) {
-  return slug
-      .split(RegExp(r'[-_]+'))
-      .where((segment) => segment.trim().isNotEmpty)
-      .map(
-        (segment) =>
-            '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}',
-      )
+String _formatDisplayName(String id) {
+  return id
+      .split(RegExp('[-_]'))
+      .where((part) => part.isNotEmpty)
+      .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
       .join(' ');
 }
 
-String? _readOptionalString(Map<String, dynamic> payload, String key) {
+String? _readNamedResource(
+  Map<String, dynamic> payload,
+  String key,
+  String id,
+) {
   final value = payload[key];
   if (value == null) {
     return null;
   }
-  if (value is! String) {
+  if (value is! Map || value['name'] is! String) {
     throw EditorPersistenceException(
-      'PokeAPI item payload field "$key" must be a string when present.',
+      'External item "$id" field "$key" must expose a name.',
     );
   }
-  final trimmed = value.trim();
-  return trimmed.isEmpty ? null : trimmed;
+  final name = (value['name'] as String).trim();
+  return name.isEmpty ? null : name;
 }
 
-int? _readOptionalInt(
-  Map<String, dynamic> payload,
-  String key, {
-  required String id,
-}) {
+int? _readOptionalInt(Map<String, dynamic> payload, String key, String id) {
   final value = payload[key];
   if (value == null) {
     return null;
   }
   if (value is! num) {
     throw EditorPersistenceException(
-      'PokeAPI item "$id" has an invalid "$key" value.',
+      'External item "$id" field "$key" must be numeric.',
     );
   }
   return value.toInt();
 }
 
-String? _readOptionalNamedResource(
-  Map<String, dynamic> payload,
-  String key, {
-  required String id,
-}) {
-  final value = payload[key];
-  if (value == null) {
-    return null;
-  }
-  if (value is String) {
-    final trimmed = value.trim();
-    return trimmed.isEmpty ? null : trimmed;
-  }
-  if (value is! Map) {
-    throw EditorPersistenceException(
-      'PokeAPI item "$id" has an invalid "$key" value.',
-    );
-  }
-  final name = value['name'];
-  if (name == null) {
-    return null;
-  }
-  if (name is! String) {
-    throw EditorPersistenceException(
-      'PokeAPI item "$id" has an invalid "$key" value.',
-    );
-  }
-  final trimmed = name.trim();
-  return trimmed.isEmpty ? null : trimmed;
-}
-
-String? _readLocalizedEntryText(
+String? _readLocalizedText(
   Map<String, dynamic> payload, {
   required String listKey,
   required String textKey,
@@ -974,152 +641,65 @@ String? _readLocalizedEntryText(
   }
   if (value is! List) {
     throw EditorPersistenceException(
-      'PokeAPI item "$id" has an invalid "$listKey" value.',
+      'External item "$id" field "$listKey" must be a list.',
     );
   }
-
   String? fallback;
-  for (final element in value) {
-    if (element is! Map) {
-      throw EditorPersistenceException(
-        'PokeAPI item "$id" has an invalid "$listKey" value.',
-      );
-    }
-    final textValue = element[textKey];
-    if (textValue != null && textValue is! String) {
-      throw EditorPersistenceException(
-        'PokeAPI item "$id" has an invalid "$listKey" value.',
-      );
-    }
-    final normalizedText = (textValue as String?)?.trim();
-    if (normalizedText == null || normalizedText.isEmpty) {
+  for (final rawEntry in value) {
+    if (rawEntry is! Map) {
       continue;
     }
-    final languageName = _readLanguageName(element);
-    if (languageName == 'en') {
-      return normalizedText;
+    final text = rawEntry[textKey];
+    if (text is! String || text.trim().isEmpty) {
+      continue;
     }
-    fallback ??= normalizedText;
+    final language = rawEntry['language'];
+    final languageId = language is Map ? language['name'] : null;
+    if (languageId == 'en') {
+      return text.trim();
+    }
+    fallback ??= text.trim();
   }
   return fallback;
 }
 
-String? _readPreferredFlavorText(
-  Map<String, dynamic> payload, {
-  required String id,
-}) {
-  final value = payload['flavor_text_entries'];
-  if (value == null) {
-    return null;
-  }
-  if (value is! List) {
-    throw EditorPersistenceException(
-      'PokeAPI item "$id" has an invalid "flavor_text_entries" value.',
-    );
-  }
-
-  String? fallback;
-  String? lastEnglish;
-  for (final element in value) {
-    if (element is! Map) {
-      throw EditorPersistenceException(
-        'PokeAPI item "$id" has an invalid "flavor_text_entries" value.',
-      );
-    }
-    final textValue = element['text'];
-    if (textValue != null && textValue is! String) {
-      throw EditorPersistenceException(
-        'PokeAPI item "$id" has an invalid "flavor_text_entries" value.',
-      );
-    }
-    final normalizedText = (textValue as String?)?.trim();
-    if (normalizedText == null || normalizedText.isEmpty) {
-      continue;
-    }
-    final languageName = _readLanguageName(element);
-    if (languageName == 'en') {
-      lastEnglish = normalizedText;
-    }
-    fallback ??= normalizedText;
-  }
-  return lastEnglish ?? fallback;
-}
-
-String? _readOptionalSpriteUrl(
-  Map<String, dynamic> payload, {
-  required String id,
-}) {
-  final direct = _readOptionalString(payload, 'spriteUrl');
-  if (direct != null) {
-    return direct;
-  }
+String? _readSpriteUrl(Map<String, dynamic> payload, String id) {
   final sprites = payload['sprites'];
   if (sprites == null) {
     return null;
   }
   if (sprites is! Map) {
     throw EditorPersistenceException(
-      'PokeAPI item "$id" has an invalid "sprites" value.',
+      'External item "$id" sprites must be an object.',
     );
   }
-  final defaultUrl = sprites['default'];
-  if (defaultUrl == null) {
+  final value = sprites['default'];
+  if (value == null) {
     return null;
   }
-  if (defaultUrl is! String) {
+  if (value is! String) {
     throw EditorPersistenceException(
-      'PokeAPI item "$id" has an invalid "sprites" value.',
+      'External item "$id" sprite URL must be a string.',
     );
   }
-  final trimmed = defaultUrl.trim();
-  return trimmed.isEmpty ? null : trimmed;
-}
-
-String? _readLanguageName(Map<Object?, Object?> entry) {
-  final language = entry['language'];
-  if (language == null) {
-    return null;
-  }
-  if (language is! Map) {
-    return null;
-  }
-  final name = language['name'];
-  if (name is! String) {
-    return null;
-  }
-  final trimmed = name.trim();
-  return trimmed.isEmpty ? null : trimmed;
+  final normalized = value.trim();
+  return normalized.isEmpty ? null : normalized;
 }
 
 Future<ProjectPokemonConfig> _readProjectPokemonConfig(
   ProjectWorkspace workspace,
 ) async {
   final manifestPath = workspace.projectManifestPath;
-  try {
-    if (!await workspace.fileExists(manifestPath)) {
-      return const ProjectPokemonConfig();
-    }
-
-    final raw = await workspace.readTextFile(manifestPath);
-    final decoded = jsonDecode(raw);
-    if (decoded is! Map<String, dynamic>) {
-      throw EditorPersistenceException(
-        'Project manifest is not a JSON object: $manifestPath',
-      );
-    }
-    final project = ProjectManifest.fromJson(decoded);
-    return project.pokemon;
-  } on EditorPersistenceException {
-    rethrow;
-  } on FormatException catch (error) {
+  if (!await workspace.fileExists(manifestPath)) {
+    return const ProjectPokemonConfig();
+  }
+  final decoded = jsonDecode(await workspace.readTextFile(manifestPath));
+  if (decoded is! Map<String, dynamic>) {
     throw EditorPersistenceException(
-      'Invalid JSON in project manifest at $manifestPath: $error',
-    );
-  } catch (error) {
-    throw EditorPersistenceException(
-      'Invalid project manifest at $manifestPath: $error',
+      'Project manifest is not a JSON object: $manifestPath',
     );
   }
+  return ProjectManifest.fromJson(decoded).pokemon;
 }
 
 String _normalizeConfiguredRelativePath(

@@ -470,19 +470,26 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-014 — Loader partagé par ports
 
-- [ ] **Résultat :** éditeur et runtime utilisent le même codec sans partager leurs accès fichiers.
+- [x] **Résultat :** éditeur et runtime utilisent le même codec sans partager leurs accès fichiers.
 - **Fichiers à modifier :**
   - packages/map_editor/lib/src/application/use_cases/load_pokemon_items_catalog_use_case.dart
   - packages/map_editor/lib/src/application/use_cases/sync_pokemon_items_catalog_use_case.dart
   - packages/map_runtime/lib/src/application/runtime_move_machine_loader.dart
 - **Fichiers à créer :**
   - packages/map_runtime/lib/src/application/runtime_item_catalog_loader.dart
+- **Fichiers d’intégration également modifiés :**
+  - packages/map_editor/lib/src/app/providers/pokedex/pokedex_providers.dart
+  - packages/map_runtime/lib/map_runtime.dart
 - **Tests :**
   - packages/map_editor/test/load_pokemon_items_catalog_use_case_test.dart
   - packages/map_editor/test/sync_pokemon_items_catalog_use_case_test.dart
   - packages/map_runtime/test/runtime_item_catalog_loader_test.dart
 - **Gate :** les deux adaptateurs produisent des ProjectItemDefinition égales depuis le même JSON.
 - **Dépendances :** ITM-011 et ITM-013.
+
+**Preuves ITM-014 :** les 35 tests ciblés éditeur et les 5 tests ciblés runtime passent. Les deux ports décodent le wire strict avec `decodeProjectItemCatalog`, puis comparent le résultat au même contrat `ProjectItemCatalog` normalisé. Le loader éditeur ne dépend plus du repository générique des anciens catalogues ; le runtime réutilise le loader canonique pour les métadonnées TM/HM. Le synchroniseur convertit les métadonnées externes avant écriture, préserve les capacités gameplay authorées, n’infère aucun effet depuis du texte libre et refuse tout catalogue local legacy sans le réécrire. L’analyse ciblée éditeur est sans issue ; l’analyse runtime réussit avec `--no-fatal-infos` et conserve une seule info préexistante `unnecessary_library_name` sur le barrel.
+
+**Gate de phase 1 :** ITM-010 à ITM-014 sont clôturés. Le catalogue, son codec, le seed MVP, la validation de capacités et les ports éditeur/runtime reposent désormais sur les mêmes contrats stricts. Aucun fallback, lecteur double ou migration automatique vers les anciens formats n’a été ajouté. La bascule du Bag, des saves et des consommateurs gameplay reste explicitement portée par les phases 2 et 3.
 
 ## 10. Phase 2 — Bag transactionnel
 

@@ -50,10 +50,12 @@ void main() {
       root,
       'custom/catalogs/items.json',
       <String, Object?>{
-        'catalog': 'items',
+        'schemaVersion': 1,
         'entries': <Object?>[
           <String, Object?>{
             'id': 'hm-surf',
+            'displayName': 'HM Surf',
+            'pocketId': 'machines',
             'machine': <String, Object?>{
               'kind': 'hm',
               'moveId': 'surf',
@@ -87,28 +89,38 @@ Future<void> _writeFixtures(Directory root) async {
   await _writeJson(
     root,
     'custom/catalogs/items.json',
-    <String, Object?>{
-      'catalog': 'items',
-      'entries': <Object?>[
-        <String, Object?>{
-          'id': 'tm-protect',
-          'machine': <String, Object?>{
-            'kind': 'tm',
-            'moveId': 'protect',
-            'consumable': true,
-          },
-        },
-        <String, Object?>{
-          'id': 'hm-surf',
-          'machine': <String, Object?>{
-            'kind': 'hm',
-            'moveId': 'surf',
-            'consumable': false,
-          },
-        },
-        <String, Object?>{'id': 'potion'},
-      ],
-    },
+    encodeProjectItemCatalog(
+      ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: [
+          ProjectItemDefinition(
+            id: 'tm-protect',
+            displayName: 'TM Protect',
+            pocketId: 'machines',
+            machine: const ProjectMoveMachineItemDefinition(
+              kind: ProjectMoveMachineKind.tm,
+              moveId: 'protect',
+              consumable: true,
+            ),
+          ),
+          ProjectItemDefinition(
+            id: 'hm-surf',
+            displayName: 'HM Surf',
+            pocketId: 'machines',
+            machine: const ProjectMoveMachineItemDefinition(
+              kind: ProjectMoveMachineKind.hm,
+              moveId: 'surf',
+              consumable: false,
+            ),
+          ),
+          ProjectItemDefinition(
+            id: 'potion',
+            displayName: 'Potion',
+            pocketId: 'medicine',
+          ),
+        ],
+      ).normalized(),
+    ),
   );
   await _writeJson(
     root,

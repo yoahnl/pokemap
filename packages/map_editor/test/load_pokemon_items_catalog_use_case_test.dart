@@ -1,191 +1,120 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_editor/src/application/errors/application_errors.dart';
-import 'package:map_editor/src/application/models/pokemon_database_index.dart';
-import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
-import 'package:map_editor/src/application/ports/pokemon_read_repository.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 
 void main() {
   group('LoadPokemonItemsCatalogUseCase', () {
-    test('projects the local items catalog into a small readable view',
-        () async {
-      final useCase = LoadPokemonItemsCatalogUseCase(
-        readRepository: _FakePokemonReadRepository(
-          catalogByKey: <String, PokemonCatalogFile>{
-            'items': const PokemonCatalogFile(
-              schemaVersion: 1,
-              kind: 'pokemon_catalog',
-              catalog: 'items',
-              meta: PokemonDataMeta(description: 'Catalogue local des objets.'),
-              entries: <Map<String, dynamic>>[
-                <String, dynamic>{
-                  'id': 'oran_berry',
-                  'name': 'Oran Berry',
-                  'aliases': <String>['oran'],
-                  'shortDesc': 'Restores HP',
-                },
-                <String, dynamic>{
-                  'id': 'choice_scarf',
-                  'names': <String, dynamic>{'en': 'Choice Scarf'},
-                },
-                <String, dynamic>{
-                  'id': 'tm-protect',
-                  'name': 'TM Protect',
-                  'machine': <String, dynamic>{
-                    'kind': 'tm',
-                    'moveId': 'protect',
-                    'consumable': true,
-                  },
-                },
-              ],
+    test(
+      'loads strict definitions with the shared codec and projects the view',
+      () async {
+        final catalog = ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: [
+            ProjectItemDefinition(
+              id: 'tm-protect',
+              displayName: 'TM Protect',
+              pocketId: 'machines',
+              machine: const ProjectMoveMachineItemDefinition(
+                kind: ProjectMoveMachineKind.tm,
+                moveId: 'protect',
+                consumable: true,
+              ),
             ),
+            ProjectItemDefinition(
+              id: 'oran-berry',
+              displayName: 'Oran Berry',
+              aliases: const ['oran'],
+              pocketId: 'berries',
+              description: 'Restores HP.',
+              buyPrice: 80,
+            ),
+          ],
+        ).normalized();
+        final workspace = _FakeWorkspace(
+          files: {
+            '/project/data/pokemon/catalogs/items.json': jsonEncode(
+              encodeProjectItemCatalog(catalog),
+            ),
+            '/project/data/pokemon/assets/items/oran-berry.png': '',
           },
-        ),
+        );
+        const useCase = LoadPokemonItemsCatalogUseCase();
+
+        final result = await useCase.execute(workspace);
+
+        expect(result.loadState, PokemonItemsCatalogLoadState.ready);
+        expect(result.canonicalCatalog, catalog);
+        expect(result.entries.map((entry) => entry.id), [
+          'oran-berry',
+          'tm-protect',
+        ]);
+        expect(result.entries.first.name, 'Oran Berry');
+        expect(result.entries.first.aliases, ['oran']);
+        expect(result.entries.first.pocketId, 'berries');
+        expect(result.entries.first.cost, 80);
+        expect(result.entries.first.effectText, 'Restores HP.');
+        expect(
+          result.entries.first.localSpritePath,
+          'data/pokemon/assets/items/oran-berry.png',
+        );
+        expect(result.entries.last.machineKind, 'tm');
+        expect(result.entries.last.machineMoveId, 'protect');
+        expect(result.entries.last.machineConsumable, isTrue);
+        expect(
+          result.entries.every((entry) => entry.categoryId == null),
+          isTrue,
+        );
+      },
+    );
+
+    test('rejects a legacy catalog instead of falling back', () async {
+      final workspace = _FakeWorkspace(
+        files: {
+          '/project/data/pokemon/catalogs/items.json': jsonEncode({
+            'catalog': 'items',
+            'entries': [
+              {'id': 'potion', 'name': 'Potion', 'categoryId': 'medicine'},
+            ],
+          }),
+        },
       );
+      const useCase = LoadPokemonItemsCatalogUseCase();
 
-      final result = await useCase.execute(const _FakeWorkspace());
+      final result = await useCase.execute(workspace);
 
-      expect(result.isAvailable, isTrue);
-      expect(result.entries.map((entry) => entry.id).toList(growable: false),
-          <String>['choice_scarf', 'oran_berry', 'tm-protect']);
-      expect(result.entries.first.name, 'Choice Scarf');
-      expect(result.entries[1].aliases, contains('oran'));
-      expect(result.entries.last.machineKind, 'tm');
-      expect(result.entries.last.machineMoveId, 'protect');
-      expect(result.entries.last.machineConsumable, isTrue);
-    });
-
-    test('falls back honestly when the local items catalog is missing',
-        () async {
-      final useCase = LoadPokemonItemsCatalogUseCase(
-        readRepository: _FakePokemonReadRepository(
-          notFoundCatalogKeys: <String>{'items'},
-        ),
-      );
-
-      final result = await useCase.execute(const _FakeWorkspace());
-
-      expect(result.isAvailable, isFalse);
+      expect(result.loadState, PokemonItemsCatalogLoadState.loadError);
       expect(result.entries, isEmpty);
-      expect(result.message, contains('items'));
+      expect(result.canonicalCatalog, isNull);
+      expect(result.message, contains('catalog'));
+    });
+
+    test('reports a missing strict catalog honestly', () async {
+      const useCase = LoadPokemonItemsCatalogUseCase();
+
+      final result = await useCase.execute(_FakeWorkspace());
+
+      expect(result.loadState, PokemonItemsCatalogLoadState.missingCatalog);
+      expect(result.entries, isEmpty);
+      expect(result.canonicalCatalog, isNull);
+      expect(result.catalogRelativePath, 'data/pokemon/catalogs/items.json');
     });
   });
-}
-
-class _FakePokemonReadRepository implements PokemonReadRepository {
-  _FakePokemonReadRepository({
-    this.catalogByKey = const <String, PokemonCatalogFile>{},
-    this.notFoundCatalogKeys = const <String>{},
-  });
-
-  final Map<String, PokemonCatalogFile> catalogByKey;
-  final Set<String> notFoundCatalogKeys;
-
-  @override
-  Future<PokemonCatalogFile> readCatalogByKey(
-    ProjectWorkspace workspace,
-    String catalogKey,
-  ) async {
-    if (notFoundCatalogKeys.contains(catalogKey)) {
-      throw EditorNotFoundException('Missing catalog: $catalogKey');
-    }
-    final catalog = catalogByKey[catalogKey];
-    if (catalog == null) {
-      throw EditorNotFoundException('Missing catalog: $catalogKey');
-    }
-    return catalog;
-  }
-
-  @override
-  Future<PokemonDataManifest> readManifest(ProjectWorkspace workspace) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<PokemonSpeciesIndexEntry>> listSpeciesIndexEntries(
-    ProjectWorkspace workspace,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<PokemonDatabaseIndexEntry>> listDatabaseIndexEntries(
-    ProjectWorkspace workspace, {
-    required String speciesDirectoryRelativePath,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> listSpeciesFiles(ProjectWorkspace workspace) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonSpeciesFile> readSpeciesByRelativePath(
-    ProjectWorkspace workspace,
-    String relativePath,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonSpeciesFile> readSpeciesById(
-    ProjectWorkspace workspace,
-    String speciesId,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> listLearnsetIds(ProjectWorkspace workspace) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonLearnsetFile> readLearnsetById(
-    ProjectWorkspace workspace,
-    String speciesId,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> listEvolutionIds(ProjectWorkspace workspace) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonEvolutionFile> readEvolutionById(
-    ProjectWorkspace workspace,
-    String speciesId,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<List<String>> listMediaIds(ProjectWorkspace workspace) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonMediaFile> readMediaById(
-    ProjectWorkspace workspace,
-    String speciesId,
-  ) {
-    throw UnimplementedError();
-  }
 }
 
 class _FakeWorkspace implements ProjectWorkspace {
-  const _FakeWorkspace();
+  _FakeWorkspace({Map<String, String> files = const {}})
+      : files = Map.of(files);
+
+  final Map<String, String> files;
 
   @override
-  String get projectManifestPath => '/tmp/project.json';
+  String get projectManifestPath => '/project/project.json';
 
   @override
-  String get projectRoot => '/tmp';
+  String get projectRoot => '/project';
 
   @override
   Future<void> copyFile(String sourcePath, String destinationPath) async {}
@@ -203,10 +132,10 @@ class _FakeWorkspace implements ProjectWorkspace {
   Future<void> ensureDirectoryExists(String path) async {}
 
   @override
-  Future<bool> fileExists(String path) async => false;
+  Future<bool> fileExists(String path) async => files.containsKey(path);
 
   @override
-  String getMapPath(String mapId) => '/tmp/$mapId.json';
+  String getMapPath(String mapId) => '/project/$mapId.json';
 
   @override
   String getMapRelativePath(String mapId) => '$mapId.json';
@@ -226,18 +155,20 @@ class _FakeWorkspace implements ProjectWorkspace {
   Future<void> moveFile(String sourcePath, String destinationPath) async {}
 
   @override
-  Future<String> readTextFile(String path) async => '';
+  Future<String> readTextFile(String path) async => files[path]!;
 
   @override
-  String resolveMapPath(String relativePath) => '/tmp/$relativePath';
+  String resolveMapPath(String relativePath) => '/project/$relativePath';
 
   @override
   String resolveProjectRelativePath(String relativePath) =>
-      '/tmp/$relativePath';
+      '/project/$relativePath';
 
   @override
-  String resolveTilesetPath(String relativePath) => '/tmp/$relativePath';
+  String resolveTilesetPath(String relativePath) => '/project/$relativePath';
 
   @override
-  Future<void> writeTextFile(String path, String contents) async {}
+  Future<void> writeTextFile(String path, String contents) async {
+    files[path] = contents;
+  }
 }

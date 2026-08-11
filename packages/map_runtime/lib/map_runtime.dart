@@ -167,6 +167,8 @@ export 'src/application/runtime_battle_move_bridge_diagnostics.dart'
     show RuntimeBattleMoveBridgeDiagnostics;
 export 'src/application/runtime_battle_setup_exception.dart'
     show RuntimeBattleSetupException;
+export 'src/application/runtime_item_catalog_loader.dart'
+    show RuntimeItemCatalogLoader;
 export 'src/application/runtime_battle_outcome_apply.dart'
     show
         RuntimeActiveBattleContext,

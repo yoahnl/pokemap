@@ -288,9 +288,7 @@ final loadPokemonMovesCatalogUseCaseProvider =
 
 final loadPokemonItemsCatalogUseCaseProvider =
     Provider<LoadPokemonItemsCatalogUseCase>((ref) {
-  return LoadPokemonItemsCatalogUseCase(
-    readRepository: ref.watch(pokemonReadRepositoryProvider),
-  );
+  return const LoadPokemonItemsCatalogUseCase();
 });
 
 final syncExternalPokemonMovesCatalogUseCaseProvider =
