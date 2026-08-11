@@ -225,9 +225,11 @@ void main() {
 
     test('binds item transport receipts to action revision and fixture', () {
       final catalog = AuthoringFullParityCatalog.canonical(
-        transportExecutionReceipts: _completeItemTransportReceipts(),
+        transportExecutionReceipts:
+            _completeItemTransportReceiptModelFixtures(),
         transportEvidenceRevision: _sha256('c'),
         transportFixtureDigest: _sha256('f'),
+        transportSourceRevision: _sourceRevision,
       );
 
       for (final actionId in _itemActionIds) {
@@ -251,7 +253,7 @@ void main() {
 
     test('missing item transport receipt leaves only its action incomplete',
         () {
-      final receipts = _completeItemTransportReceipts()
+      final receipts = _completeItemTransportReceiptModelFixtures()
         ..removeWhere(
           (receipt) =>
               receipt.actionId == 'item.clone' &&
@@ -261,6 +263,7 @@ void main() {
         transportExecutionReceipts: receipts,
         transportEvidenceRevision: _sha256('c'),
         transportFixtureDigest: _sha256('f'),
+        transportSourceRevision: _sourceRevision,
       );
 
       expect(
@@ -295,6 +298,7 @@ void main() {
           ],
           transportEvidenceRevision: _sha256('c'),
           transportFixtureDigest: _sha256('f'),
+          transportSourceRevision: _sourceRevision,
         ),
         throwsArgumentError,
       );
@@ -305,6 +309,18 @@ void main() {
           ],
           transportEvidenceRevision: _sha256('d'),
           transportFixtureDigest: _sha256('f'),
+          transportSourceRevision: _sourceRevision,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => AuthoringFullParityCatalog.canonical(
+          transportExecutionReceipts: <AuthoringTransportExecutionReceipt>[
+            valid,
+          ],
+          transportEvidenceRevision: _sha256('c'),
+          transportFixtureDigest: _sha256('f'),
+          transportSourceRevision: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
         ),
         throwsArgumentError,
       );
@@ -315,6 +331,7 @@ void main() {
           ],
           transportEvidenceRevision: _sha256('c'),
           transportFixtureDigest: _sha256('e'),
+          transportSourceRevision: _sourceRevision,
         ),
         throwsArgumentError,
       );
@@ -328,6 +345,7 @@ void main() {
           ],
           transportEvidenceRevision: _sha256('c'),
           transportFixtureDigest: _sha256('f'),
+          transportSourceRevision: _sourceRevision,
         ),
         throwsArgumentError,
       );
@@ -342,10 +360,11 @@ void main() {
       final bundle = File('${directory.path}/receipts.json');
       await bundle.writeAsString(
         jsonEncode(<String, Object?>{
+          'sourceRevision': _sourceRevision,
           'evidenceRevision': _sha256('c'),
           'fixtureDigest': _sha256('f'),
           'receipts': <Object?>[
-            for (final receipt in _completeItemTransportReceipts())
+            for (final receipt in _completeItemTransportReceiptModelFixtures())
               receipt.toJson(),
           ],
         }),
@@ -367,6 +386,22 @@ void main() {
       expect(
         output['summary'],
         containsPair('itemTransportCertificationComplete', true),
+      );
+    });
+
+    test('PMCP tool refuses an Item transport claim without receipts',
+        () async {
+      final result = await Process.run(
+        Platform.resolvedExecutable,
+        const <String>['run', 'tool/pmcp085_conformance.dart'],
+      );
+      final output =
+          jsonDecode(result.stdout as String) as Map<String, dynamic>;
+
+      expect(result.exitCode, 1, reason: result.stderr as String);
+      expect(
+        output['summary'],
+        containsPair('itemTransportCertificationComplete', false),
       );
     });
 
@@ -1428,11 +1463,12 @@ const Set<String> _itemActionIds = <String>{
   'item.set_tm_hm_move',
 };
 
-List<AuthoringTransportExecutionReceipt> _completeItemTransportReceipts() => [
-      for (final actionId in _itemActionIds)
-        for (final transport in AuthoringTransport.values)
-          _transportReceipt(actionId: actionId, transport: transport),
-    ];
+List<AuthoringTransportExecutionReceipt>
+    _completeItemTransportReceiptModelFixtures() => [
+          for (final actionId in _itemActionIds)
+            for (final transport in AuthoringTransport.values)
+              _transportReceipt(actionId: actionId, transport: transport),
+        ];
 
 AuthoringTransportExecutionReceipt _transportReceipt({
   required String actionId,
@@ -1452,12 +1488,33 @@ AuthoringTransportExecutionReceipt _transportReceipt({
     receiptId: receiptId ?? 'receipt-$actionId-${transport.name}',
     actionId: actionId,
     transport: transport,
+    sourceRevision: _sourceRevision,
     evidenceRevision: _sha256('c'),
     fixtureDigest: _sha256('f'),
-    observedReceiptId: 'observed-$actionId-${transport.name}',
+    executorDigest: _transportDigest(transport),
+    observedReceiptSha256: _receiptDigest(actionId, transport),
+    semanticStateDigest: _actionDigest(actionId),
     evidencePath: sourcePath,
   );
 }
+
+String _receiptDigest(String actionId, AuthoringTransport transport) {
+  final actions = _itemActionIds.toList()..sort();
+  final value = actions.indexOf(actionId) * AuthoringTransport.values.length +
+      transport.index +
+      1;
+  return 'sha256:${value.toRadixString(16).padLeft(64, '0')}';
+}
+
+String _actionDigest(String actionId) {
+  final actions = _itemActionIds.toList()..sort();
+  return 'sha256:${(actions.indexOf(actionId) + 1).toRadixString(16).padLeft(64, '0')}';
+}
+
+String _transportDigest(AuthoringTransport transport) =>
+    'sha256:${(transport.index + 1).toRadixString(16).padLeft(64, '0')}';
+
+const _sourceRevision = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 String _sha256(String character) =>
     'sha256:${List<String>.filled(64, character).join()}';

@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
+import 'item_system_execution_receipt.dart';
+
 enum ItemSystemProofLevel {
   schemaL0,
   authoringL1,
@@ -158,38 +160,6 @@ final class ItemSystemV1CertificationProfile {
   }
 }
 
-final class ItemSystemLevelEvidence {
-  const ItemSystemLevelEvidence({
-    required this.sourceRevision,
-    required this.evidenceSha256,
-    required this.executedCapabilities,
-    this.failedCapabilities = const <String>{},
-    this.wired = true,
-  });
-
-  final String sourceRevision;
-  final String evidenceSha256;
-  final Set<String> executedCapabilities;
-  final Set<String> failedCapabilities;
-  final bool wired;
-}
-
-final class ItemSystemTransportEvidence {
-  const ItemSystemTransportEvidence({
-    required this.sourceRevision,
-    required this.evidenceSha256,
-    required this.executedTransportsByAction,
-    this.failedTransportsByAction = const <String, Set<ItemSystemTransport>>{},
-    this.wired = true,
-  });
-
-  final String sourceRevision;
-  final String evidenceSha256;
-  final Map<String, Set<ItemSystemTransport>> executedTransportsByAction;
-  final Map<String, Set<ItemSystemTransport>> failedTransportsByAction;
-  final bool wired;
-}
-
 final class ItemSystemGoldenFlowReceipt {
   ItemSystemGoldenFlowReceipt._({
     required this.sourceRevision,
@@ -276,18 +246,20 @@ final class ItemSystemGoldenFlowReceipt {
 final class ItemSystemCertificationRequest {
   const ItemSystemCertificationRequest({
     required this.sourceRevision,
-    this.levelEvidence =
-        const <ItemSystemProofLevel, ItemSystemLevelEvidence>{},
-    this.transportEvidence,
-    this.goldenFlowReceipt,
+    required this.fixtureSha256,
+    this.executionReceipts =
+        const <ItemSystemProofLevel, ItemSystemExecutionReceipt>{},
+    this.partialMissingCapabilitiesByLevel =
+        const <ItemSystemProofLevel, Set<String>>{},
     this.blockedLevels = const <ItemSystemProofLevel>{},
     this.deferredLevels = const <ItemSystemProofLevel>{},
   });
 
   final String sourceRevision;
-  final Map<ItemSystemProofLevel, ItemSystemLevelEvidence> levelEvidence;
-  final ItemSystemTransportEvidence? transportEvidence;
-  final ItemSystemGoldenFlowReceipt? goldenFlowReceipt;
+  final String fixtureSha256;
+  final Map<ItemSystemProofLevel, ItemSystemExecutionReceipt> executionReceipts;
+  final Map<ItemSystemProofLevel, Set<String>>
+  partialMissingCapabilitiesByLevel;
   final Set<ItemSystemProofLevel> blockedLevels;
   final Set<ItemSystemProofLevel> deferredLevels;
 }
@@ -297,45 +269,67 @@ final class ItemSystemCertificationLevelResult {
     required this.level,
     required this.status,
     this.missingEvidenceIds = const <String>[],
+    this.executionReceiptSha256,
   });
 
   final ItemSystemProofLevel level;
   final ItemSystemCertificationStatus status;
   final List<String> missingEvidenceIds;
+  final String? executionReceiptSha256;
 
-  Map<String, Object> toJson() => <String, Object>{
+  Map<String, Object?> toJson() => <String, Object?>{
     'level': level.wireName,
     'status': status.wireName,
     'missingEvidenceIds': missingEvidenceIds,
+    'executionReceiptSha256': executionReceiptSha256,
   };
 }
 
 final class ItemSystemCertificationResult {
   ItemSystemCertificationResult({
     required this.sourceRevision,
+    required this.fixtureSha256,
     required this.levelResults,
     required this.overallStatus,
-    required this.goldenFlowReceiptSha256,
+    required this.executionReceipts,
   });
 
   final String sourceRevision;
+  final String fixtureSha256;
   final List<ItemSystemCertificationLevelResult> levelResults;
   final ItemSystemCertificationStatus overallStatus;
-  final String? goldenFlowReceiptSha256;
+  final Map<ItemSystemProofLevel, ItemSystemExecutionReceipt> executionReceipts;
 
   ItemSystemCertificationStatus statusFor(ItemSystemProofLevel level) {
     return levelResults.singleWhere((result) => result.level == level).status;
   }
 
+  bool get technicalCertificationPassed =>
+      const <ItemSystemProofLevel>[
+        ItemSystemProofLevel.schemaL0,
+        ItemSystemProofLevel.authoringL1,
+        ItemSystemProofLevel.persistenceL2,
+        ItemSystemProofLevel.runtimeL3,
+        ItemSystemProofLevel.mcpParityL5,
+        ItemSystemProofLevel.goldenFlowL6,
+      ].every(
+        (level) => statusFor(level) == ItemSystemCertificationStatus.certified,
+      );
+
   Map<String, Object?> toJson() => <String, Object?>{
     'schemaVersion': 1,
     'domain': 'item_system_v1',
     'sourceRevision': sourceRevision,
+    'fixtureSha256': fixtureSha256,
     'overallStatus': overallStatus.wireName,
-    'goldenFlowReceiptSha256': goldenFlowReceiptSha256,
     'levels': levelResults
         .map((result) => result.toJson())
         .toList(growable: false),
+    'executionReceipts': <String, Object?>{
+      for (final level in ItemSystemProofLevel.values)
+        if (executionReceipts[level] case final receipt?)
+          level.wireName: receipt.toJson(),
+    },
   };
 }
 
@@ -344,17 +338,22 @@ final class ItemSystemCertificationEvaluator {
 
   ItemSystemCertificationResult evaluate(ItemSystemCertificationRequest input) {
     final sourceRevision = _requiredRevision(input.sourceRevision);
+    final fixtureSha256 = _requiredSha(input.fixtureSha256, 'fixtureSha256');
     final levelResults = <ItemSystemCertificationLevelResult>[
       for (final level in ItemSystemProofLevel.values)
-        _evaluateLevel(level, input, sourceRevision),
+        _evaluateLevel(level, input, sourceRevision, fixtureSha256),
     ];
     return ItemSystemCertificationResult(
       sourceRevision: sourceRevision,
+      fixtureSha256: fixtureSha256,
       levelResults: List<ItemSystemCertificationLevelResult>.unmodifiable(
         levelResults,
       ),
       overallStatus: _overallStatus(levelResults),
-      goldenFlowReceiptSha256: input.goldenFlowReceipt?.receiptSha256,
+      executionReceipts:
+          Map<ItemSystemProofLevel, ItemSystemExecutionReceipt>.unmodifiable(
+            input.executionReceipts,
+          ),
     );
   }
 
@@ -362,6 +361,7 @@ final class ItemSystemCertificationEvaluator {
     ItemSystemProofLevel level,
     ItemSystemCertificationRequest input,
     String sourceRevision,
+    String fixtureSha256,
   ) {
     if (input.blockedLevels.contains(level)) {
       return ItemSystemCertificationLevelResult(
@@ -375,159 +375,55 @@ final class ItemSystemCertificationEvaluator {
         status: ItemSystemCertificationStatus.deferred,
       );
     }
-    return switch (level) {
-      ItemSystemProofLevel.mcpParityL5 => _evaluateTransports(
-        input.transportEvidence,
-        sourceRevision,
-      ),
-      ItemSystemProofLevel.goldenFlowL6 => _evaluateGoldenFlow(
-        input.goldenFlowReceipt,
-        sourceRevision,
-      ),
-      _ => _evaluateCapabilityEvidence(
-        level,
-        input.levelEvidence[level],
-        sourceRevision,
-      ),
-    };
-  }
-
-  ItemSystemCertificationLevelResult _evaluateCapabilityEvidence(
-    ItemSystemProofLevel level,
-    ItemSystemLevelEvidence? evidence,
-    String sourceRevision,
-  ) {
-    if (evidence == null) {
+    final partial = input.partialMissingCapabilitiesByLevel[level];
+    if (partial != null) {
+      final missing = partial.toList()..sort();
       return ItemSystemCertificationLevelResult(
         level: level,
-        status: ItemSystemCertificationStatus.missing,
+        status: ItemSystemCertificationStatus.partial,
+        missingEvidenceIds: List<String>.unmodifiable(missing),
       );
     }
-    if (!evidence.wired) {
-      return ItemSystemCertificationLevelResult(
-        level: level,
-        status: ItemSystemCertificationStatus.notWired,
-      );
-    }
-    if (evidence.sourceRevision != sourceRevision) {
-      return ItemSystemCertificationLevelResult(
-        level: level,
-        status: ItemSystemCertificationStatus.regressed,
-      );
-    }
-    if (!_isSha256(evidence.evidenceSha256) ||
-        evidence.executedCapabilities.isEmpty) {
-      return ItemSystemCertificationLevelResult(
-        level: level,
-        status: ItemSystemCertificationStatus.unverified,
-      );
-    }
-    final required = ItemSystemV1CertificationProfile.requiredCapabilitiesFor(
-      level,
-    );
-    if (evidence.failedCapabilities.any(required.contains)) {
-      return ItemSystemCertificationLevelResult(
-        level: level,
-        status: ItemSystemCertificationStatus.regressed,
-      );
-    }
-    final missing = required.difference(evidence.executedCapabilities).toList()
-      ..sort();
-    return ItemSystemCertificationLevelResult(
-      level: level,
-      status: missing.isEmpty
-          ? ItemSystemCertificationStatus.certified
-          : ItemSystemCertificationStatus.partial,
-      missingEvidenceIds: List<String>.unmodifiable(missing),
-    );
-  }
-
-  ItemSystemCertificationLevelResult _evaluateTransports(
-    ItemSystemTransportEvidence? evidence,
-    String sourceRevision,
-  ) {
-    const level = ItemSystemProofLevel.mcpParityL5;
-    if (evidence == null) {
-      return const ItemSystemCertificationLevelResult(
-        level: level,
-        status: ItemSystemCertificationStatus.missing,
-      );
-    }
-    if (!evidence.wired) {
-      return const ItemSystemCertificationLevelResult(
-        level: level,
-        status: ItemSystemCertificationStatus.notWired,
-      );
-    }
-    if (evidence.sourceRevision != sourceRevision) {
-      return const ItemSystemCertificationLevelResult(
-        level: level,
-        status: ItemSystemCertificationStatus.regressed,
-      );
-    }
-    if (!_isSha256(evidence.evidenceSha256)) {
-      return const ItemSystemCertificationLevelResult(
-        level: level,
-        status: ItemSystemCertificationStatus.unverified,
-      );
-    }
-    final missing = <String>[];
-    var executedPairCount = 0;
-    for (final actionId
-        in ItemSystemV1CertificationProfile.requiredItemActionIds) {
-      final executed =
-          evidence.executedTransportsByAction[actionId] ??
-          const <ItemSystemTransport>{};
-      final failed =
-          evidence.failedTransportsByAction[actionId] ??
-          const <ItemSystemTransport>{};
-      for (final transport in ItemSystemTransport.values) {
-        final pairId = '$actionId@${transport.wireName}';
-        if (failed.contains(transport)) {
-          return const ItemSystemCertificationLevelResult(
-            level: level,
-            status: ItemSystemCertificationStatus.regressed,
-          );
-        }
-        if (executed.contains(transport)) {
-          executedPairCount += 1;
-        } else {
-          missing.add(pairId);
-        }
-      }
-    }
-    missing.sort();
-    return ItemSystemCertificationLevelResult(
-      level: level,
-      status: executedPairCount == 0
-          ? ItemSystemCertificationStatus.unverified
-          : missing.isEmpty
-          ? ItemSystemCertificationStatus.certified
-          : ItemSystemCertificationStatus.partial,
-      missingEvidenceIds: List<String>.unmodifiable(missing),
-    );
-  }
-
-  ItemSystemCertificationLevelResult _evaluateGoldenFlow(
-    ItemSystemGoldenFlowReceipt? receipt,
-    String sourceRevision,
-  ) {
-    const level = ItemSystemProofLevel.goldenFlowL6;
+    final receipt = input.executionReceipts[level];
     if (receipt == null) {
-      return const ItemSystemCertificationLevelResult(
+      return ItemSystemCertificationLevelResult(
         level: level,
         status: ItemSystemCertificationStatus.missing,
       );
     }
-    if (receipt.sourceRevision != sourceRevision) {
-      return const ItemSystemCertificationLevelResult(
+    try {
+      ItemSystemExecutionReceipt.fromJson(
+        receipt.toJson(),
+        expectedSourceRevision: sourceRevision,
+        expectedFixtureSha256: fixtureSha256,
+      );
+    } on FormatException {
+      return ItemSystemCertificationLevelResult(
         level: level,
         status: ItemSystemCertificationStatus.regressed,
       );
     }
-    return const ItemSystemCertificationLevelResult(
+    if (receipt.level != level) {
+      return ItemSystemCertificationLevelResult(
+        level: level,
+        status: ItemSystemCertificationStatus.regressed,
+      );
+    }
+    final missing = ItemSystemV1CertificationProfile.requiredCapabilitiesFor(
+      level,
+    ).difference(receipt.succeededCapabilities).toList()..sort();
+    return ItemSystemCertificationLevelResult(
       level: level,
-      status: ItemSystemCertificationStatus.certified,
+      status: switch (receipt.verdict) {
+        ItemSystemExecutionVerdict.passed =>
+          ItemSystemCertificationStatus.certified,
+        ItemSystemExecutionVerdict.partial =>
+          ItemSystemCertificationStatus.partial,
+        ItemSystemExecutionVerdict.failed =>
+          ItemSystemCertificationStatus.regressed,
+      },
+      missingEvidenceIds: List<String>.unmodifiable(missing),
+      executionReceiptSha256: receipt.evidenceSha256,
     );
   }
 }

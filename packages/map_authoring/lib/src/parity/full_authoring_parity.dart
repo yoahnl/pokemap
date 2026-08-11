@@ -32,20 +32,48 @@ final class AuthoringTransportExecutionReceipt {
     required String receiptId,
     required String actionId,
     required this.transport,
+    required String sourceRevision,
     required String evidenceRevision,
     required String fixtureDigest,
-    required String observedReceiptId,
+    required String executorDigest,
+    required String observedReceiptSha256,
+    required String semanticStateDigest,
     required String evidencePath,
   })  : receiptId = _required(receiptId, 'receiptId'),
         actionId = _required(actionId, 'actionId'),
+        sourceRevision = _sourceRevision(sourceRevision),
         evidenceRevision = _sha256(evidenceRevision, 'evidenceRevision'),
         fixtureDigest = _sha256(fixtureDigest, 'fixtureDigest'),
-        observedReceiptId = _required(observedReceiptId, 'observedReceiptId'),
+        executorDigest = _sha256(executorDigest, 'executorDigest'),
+        observedReceiptSha256 = _sha256(
+          observedReceiptSha256,
+          'observedReceiptSha256',
+        ),
+        semanticStateDigest = _sha256(
+          semanticStateDigest,
+          'semanticStateDigest',
+        ),
         evidencePath = _required(evidencePath, 'evidencePath');
 
   factory AuthoringTransportExecutionReceipt.fromJson(
     Map<String, dynamic> json,
   ) {
+    const fields = <String>{
+      'receiptId',
+      'actionId',
+      'transport',
+      'sourceRevision',
+      'evidenceRevision',
+      'fixtureDigest',
+      'executorDigest',
+      'observedReceiptSha256',
+      'semanticStateDigest',
+      'evidencePath',
+    };
+    if (json.keys.toSet().difference(fields).isNotEmpty ||
+        !json.keys.toSet().containsAll(fields)) {
+      throw const FormatException('Transport receipt fields are invalid.');
+    }
     final transportName = json['transport'];
     if (transportName is! String) {
       throw const FormatException('transport must be a string');
@@ -61,9 +89,12 @@ final class AuthoringTransportExecutionReceipt {
         receiptId: json['receiptId'] as String,
         actionId: json['actionId'] as String,
         transport: transport.single,
+        sourceRevision: json['sourceRevision'] as String,
         evidenceRevision: json['evidenceRevision'] as String,
         fixtureDigest: json['fixtureDigest'] as String,
-        observedReceiptId: json['observedReceiptId'] as String,
+        executorDigest: json['executorDigest'] as String,
+        observedReceiptSha256: json['observedReceiptSha256'] as String,
+        semanticStateDigest: json['semanticStateDigest'] as String,
         evidencePath: json['evidencePath'] as String,
       );
     } on TypeError {
@@ -78,18 +109,24 @@ final class AuthoringTransportExecutionReceipt {
   final String receiptId;
   final String actionId;
   final AuthoringTransport transport;
+  final String sourceRevision;
   final String evidenceRevision;
   final String fixtureDigest;
-  final String observedReceiptId;
+  final String executorDigest;
+  final String observedReceiptSha256;
+  final String semanticStateDigest;
   final String evidencePath;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'receiptId': receiptId,
         'actionId': actionId,
         'transport': transport.name,
+        'sourceRevision': sourceRevision,
         'evidenceRevision': evidenceRevision,
         'fixtureDigest': fixtureDigest,
-        'observedReceiptId': observedReceiptId,
+        'executorDigest': executorDigest,
+        'observedReceiptSha256': observedReceiptSha256,
+        'semanticStateDigest': semanticStateDigest,
         'evidencePath': evidencePath,
       };
 }
@@ -304,6 +341,7 @@ final class AuthoringFullParityCatalog {
         const [],
     String? transportEvidenceRevision,
     String? transportFixtureDigest,
+    String? transportSourceRevision,
   }) {
     final publishedQueryableKinds =
         queryableResourceKinds ?? canonicalQueryableResourceKindIds;
@@ -313,6 +351,7 @@ final class AuthoringFullParityCatalog {
       knownActionIds: descriptors.map((descriptor) => descriptor.id).toSet(),
       expectedRevision: transportEvidenceRevision,
       expectedFixtureDigest: transportFixtureDigest,
+      expectedSourceRevision: transportSourceRevision,
     );
     final resources = <AuthoringResourceParity>[
       for (final entry in _semanticOwners.entries)
@@ -391,7 +430,7 @@ final class AuthoringFullParityCatalog {
           'notApplicableCount': notApplicableCells.length,
           'catalogComplete': blockedOrMissingCells.isEmpty,
           'endToEndVerifiedMutationActionCount': mutationActions
-              .where((action) => action.endToEndEvidence.isNotEmpty)
+              .where((action) => action.endToEndVerifiedTransports.isNotEmpty)
               .length,
           'fullyEndToEndVerifiedMutationActionCount': mutationActions
               .where(
@@ -566,17 +605,22 @@ List<AuthoringTransportExecutionReceipt> _validatedTransportReceipts(
   required Set<String> knownActionIds,
   required String? expectedRevision,
   required String? expectedFixtureDigest,
+  required String? expectedSourceRevision,
 }) {
   final values = receipts.toList(growable: false);
   if (values.isEmpty) {
-    if (expectedRevision != null || expectedFixtureDigest != null) {
+    if (expectedRevision != null ||
+        expectedFixtureDigest != null ||
+        expectedSourceRevision != null) {
       throw ArgumentError(
         'Transport evidence binding requires at least one receipt.',
       );
     }
     return const <AuthoringTransportExecutionReceipt>[];
   }
-  if (expectedRevision == null || expectedFixtureDigest == null) {
+  if (expectedRevision == null ||
+      expectedFixtureDigest == null ||
+      expectedSourceRevision == null) {
     throw ArgumentError(
       'Transport receipts require revision and fixture bindings.',
     );
@@ -586,8 +630,10 @@ List<AuthoringTransportExecutionReceipt> _validatedTransportReceipts(
     expectedFixtureDigest,
     'transportFixtureDigest',
   );
+  final sourceRevision = _sourceRevision(expectedSourceRevision);
   final bindings = <String>{};
   final receiptIds = <String>{};
+  final observedReceiptDigests = <String>{};
   for (final receipt in values) {
     if (!knownActionIds.contains(receipt.actionId) ||
         !receipt.actionId.startsWith('item.')) {
@@ -597,7 +643,8 @@ List<AuthoringTransportExecutionReceipt> _validatedTransportReceipts(
         'must reference one canonical item action',
       );
     }
-    if (receipt.evidenceRevision != revision ||
+    if (receipt.sourceRevision != sourceRevision ||
+        receipt.evidenceRevision != revision ||
         receipt.fixtureDigest != fixture) {
       throw ArgumentError.value(
         receipt.receiptId,
@@ -606,7 +653,9 @@ List<AuthoringTransportExecutionReceipt> _validatedTransportReceipts(
       );
     }
     final binding = '${receipt.actionId}/${receipt.transport.name}';
-    if (!bindings.add(binding) || !receiptIds.add(receipt.receiptId)) {
+    if (!bindings.add(binding) ||
+        !receiptIds.add(receipt.receiptId) ||
+        !observedReceiptDigests.add(receipt.observedReceiptSha256)) {
       throw ArgumentError.value(
         receipt.receiptId,
         'transportExecutionReceipts',
@@ -615,6 +664,18 @@ List<AuthoringTransportExecutionReceipt> _validatedTransportReceipts(
     }
   }
   return List.unmodifiable(values);
+}
+
+String _sourceRevision(String value) {
+  final normalized = _required(value, 'sourceRevision');
+  if (!RegExp(r'^[0-9a-f]{40,64}$').hasMatch(normalized)) {
+    throw ArgumentError.value(
+      value,
+      'sourceRevision',
+      'must be a Git object id',
+    );
+  }
+  return normalized;
 }
 
 String _sha256(String value, String name) {

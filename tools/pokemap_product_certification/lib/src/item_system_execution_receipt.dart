@@ -226,6 +226,13 @@ final class ItemSystemExecutionReceipt {
   final DateTime recordedAtUtc;
   final ItemSystemExecutionVerdict verdict;
 
+  String get evidenceSha256 {
+    final evidence = toJson()..remove('recordedAtUtc');
+    return sha256
+        .convert(utf8.encode(jsonEncode(_canonicalJson(evidence, r'$'))))
+        .toString();
+  }
+
   Map<String, Object?> toJson() => <String, Object?>{
     'schemaVersion': 1,
     'domain': 'item_system_v1',

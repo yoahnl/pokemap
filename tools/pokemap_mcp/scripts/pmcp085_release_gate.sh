@@ -2,11 +2,20 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/../../.." && pwd)"
+certification_output="$(mktemp /tmp/pokemap-item-certification.XXXXXX)"
+transport_receipts="$(mktemp /tmp/pokemap-item-transport-receipts.XXXXXX)"
+trap 'rm -f "$certification_output" "$transport_receipts"' EXIT
+
+cd "$repo_root/tools/pokemap_product_certification"
+dart run bin/certify_item_system_v1.dart \
+  --output "$certification_output" \
+  --transport-receipts-out "$transport_receipts"
 
 cd "$repo_root/packages/map_authoring"
 dart test --reporter compact
 dart analyze
-dart run tool/pmcp085_conformance.dart >/dev/null
+dart run tool/pmcp085_conformance.dart \
+  --transport-receipts "$transport_receipts" >/dev/null
 
 cd "$repo_root/packages/map_editor"
 flutter test \

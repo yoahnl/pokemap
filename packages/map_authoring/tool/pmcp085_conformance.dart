@@ -39,7 +39,11 @@ void main(List<String> arguments) {
   stdout.writeln(
     const JsonEncoder.withIndent('  ').convert(catalog.toJson()),
   );
-  if (catalog.blockedOrMissingCells.isNotEmpty) exitCode = 1;
+  final summary = catalog.toJson()['summary']! as Map<String, Object?>;
+  if (catalog.blockedOrMissingCells.isNotEmpty ||
+      summary['itemTransportCertificationComplete'] != true) {
+    exitCode = 1;
+  }
 }
 
 AuthoringFullParityCatalog _catalogFromReceiptBundle(File file) {
@@ -49,6 +53,7 @@ AuthoringFullParityCatalog _catalogFromReceiptBundle(File file) {
   }
   final bundle = Map<String, dynamic>.from(decoded);
   const fields = <String>{
+    'sourceRevision',
     'evidenceRevision',
     'fixtureDigest',
     'receipts',
@@ -73,5 +78,6 @@ AuthoringFullParityCatalog _catalogFromReceiptBundle(File file) {
     ],
     transportEvidenceRevision: bundle['evidenceRevision'] as String,
     transportFixtureDigest: bundle['fixtureDigest'] as String,
+    transportSourceRevision: bundle['sourceRevision'] as String,
   );
 }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -7,14 +8,113 @@ import 'package:pokemap_product_certification/pokemap_product_certification.dart
 
 void main() {
   test(
-    'evaluates explicit V1 evidence without over-certifying parity',
+    'runs executable L0-L6 evidence without synthetic certification',
+    () async {
+      final repositoryRoot = p.normalize(
+        p.join(Directory.current.path, '../..'),
+      );
+      final projectRoot = Directory(
+        p.join(
+          repositoryRoot,
+          'examples/playable_runtime_host/golden_item_system',
+        ),
+      );
+      final mcpRoot = Directory(p.join(repositoryRoot, 'tools/pokemap_mcp'));
+      final sourceRevision = await _sourceRevision(repositoryRoot);
+      final build = await Process.run('npm', const <String>[
+        'run',
+        'build',
+      ], workingDirectory: mcpRoot.path);
+      expect(build.exitCode, 0, reason: build.stderr.toString());
+      const runner = ItemSystemV1CertificationRunner();
+
+      final first = await runner.run(
+        projectRootDirectory: projectRoot,
+        mcpPackageRootDirectory: mcpRoot,
+        sourceRevision: sourceRevision,
+        recordedAtUtc: DateTime.utc(2026, 8, 12, 8),
+      );
+      final second = await runner.run(
+        projectRootDirectory: projectRoot,
+        mcpPackageRootDirectory: mcpRoot,
+        sourceRevision: sourceRevision,
+        recordedAtUtc: DateTime.utc(2026, 8, 12, 9),
+      );
+
+      for (final level in const <ItemSystemProofLevel>[
+        ItemSystemProofLevel.schemaL0,
+        ItemSystemProofLevel.authoringL1,
+        ItemSystemProofLevel.persistenceL2,
+        ItemSystemProofLevel.runtimeL3,
+        ItemSystemProofLevel.mcpParityL5,
+        ItemSystemProofLevel.goldenFlowL6,
+      ]) {
+        expect(first.statusFor(level), ItemSystemCertificationStatus.certified);
+        expect(
+          first.executionReceipts[level]?.evidenceSha256,
+          matches(RegExp(r'^[0-9a-f]{64}$')),
+        );
+      }
+      expect(
+        first.statusFor(ItemSystemProofLevel.playerUxL4),
+        ItemSystemCertificationStatus.partial,
+      );
+      expect(first.overallStatus, ItemSystemCertificationStatus.partial);
+      expect(first.executionReceipts, hasLength(6));
+      expect(
+        _withoutInformationalTimestamps(first.toJson()),
+        _withoutInformationalTimestamps(second.toJson()),
+      );
+      final receiptDirectory = await Directory.systemTemp.createTemp(
+        'item-system-pmcp-receipts-',
+      );
+      addTearDown(() => receiptDirectory.delete(recursive: true));
+      final receiptFile = File(p.join(receiptDirectory.path, 'receipts.json'));
+      final l5 = first.executionReceipts[ItemSystemProofLevel.mcpParityL5]!;
+      final bundle = const ItemSystemTransportEvidenceCollector()
+          .buildParityReceiptBundle(l5);
+      await receiptFile.writeAsString(jsonEncode(bundle));
+      final pmcp = await Process.run('dart', <String>[
+        'run',
+        'tool/pmcp085_conformance.dart',
+        '--transport-receipts',
+        receiptFile.path,
+      ], workingDirectory: p.join(repositoryRoot, 'packages/map_authoring'));
+      final pmcpOutput =
+          jsonDecode(pmcp.stdout.toString()) as Map<String, dynamic>;
+      expect(pmcp.exitCode, 0, reason: pmcp.stderr.toString());
+      expect(
+        pmcpOutput['summary'],
+        containsPair('itemTransportCertificationComplete', true),
+      );
+    },
+    timeout: const Timeout(Duration(minutes: 5)),
+  );
+
+  test('missing executable receipts never become certified', () {
+    final result = const ItemSystemCertificationEvaluator().evaluate(
+      const ItemSystemCertificationRequest(
+        sourceRevision: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        fixtureSha256:
+            'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+      ),
+    );
+
+    for (final level in ItemSystemProofLevel.values) {
+      expect(result.statusFor(level), ItemSystemCertificationStatus.missing);
+    }
+    expect(result.overallStatus, ItemSystemCertificationStatus.missing);
+  });
+
+  test(
+    'golden receipt rejects missing observations and forged final state',
     () async {
       final repositoryRoot = p.normalize(
         p.join(Directory.current.path, '../..'),
       );
       final sourceRevision = await _sourceRevision(repositoryRoot);
       final saveRoot = await Directory.systemTemp.createTemp(
-        'item-system-certification-',
+        'item-system-invalid-receipt-',
       );
       addTearDown(() => saveRoot.delete(recursive: true));
       final journey = await GoldenItemSystemJourney.run(
@@ -26,221 +126,35 @@ void main() {
         sourceRevision: sourceRevision,
         rngSeed: 47,
       );
-      final goldenReceipt = ItemSystemGoldenFlowReceipt.fromJson(
-        journey.toJson(),
-      );
-      final evidence = <ItemSystemProofLevel, ItemSystemLevelEvidence>{
-        for (final level in const <ItemSystemProofLevel>[
-          ItemSystemProofLevel.schemaL0,
-          ItemSystemProofLevel.authoringL1,
-          ItemSystemProofLevel.persistenceL2,
-          ItemSystemProofLevel.runtimeL3,
-        ])
-          level: _completeEvidence(level, sourceRevision),
-        ItemSystemProofLevel.playerUxL4: ItemSystemLevelEvidence(
-          sourceRevision: sourceRevision,
-          evidenceSha256: _sha('4'),
-          executedCapabilities:
-              ItemSystemV1CertificationProfile.requiredCapabilitiesFor(
-                    ItemSystemProofLevel.playerUxL4,
-                  )
-                  .where((capability) => capability != 'held_item_controls')
-                  .toSet(),
-        ),
-      };
-      final transports = ItemSystemTransportEvidence(
-        sourceRevision: sourceRevision,
-        evidenceSha256: _sha('5'),
-        executedTransportsByAction: <String, Set<ItemSystemTransport>>{
-          'item.create': ItemSystemTransport.values.toSet(),
-          for (final actionId
-              in ItemSystemV1CertificationProfile.requiredItemActionIds.where(
-                (actionId) => actionId != 'item.create',
-              ))
-            actionId: const <ItemSystemTransport>{
-              ItemSystemTransport.directApi,
-            },
-        },
-      );
-
-      final result = const ItemSystemCertificationEvaluator().evaluate(
-        ItemSystemCertificationRequest(
-          sourceRevision: sourceRevision,
-          levelEvidence: evidence,
-          transportEvidence: transports,
-          goldenFlowReceipt: goldenReceipt,
-        ),
-      );
+      final missing = journey.toJson()
+        ..['observations'] = <String>['new_game_from_project'];
+      final forged = journey.toJson()..['finalMoney'] = 0;
 
       expect(
-        result.statusFor(ItemSystemProofLevel.schemaL0).wireName,
-        'CERTIFIED',
+        () => ItemSystemGoldenFlowReceipt.fromJson(missing),
+        throwsFormatException,
       );
       expect(
-        result.statusFor(ItemSystemProofLevel.authoringL1).wireName,
-        'CERTIFIED',
+        () => ItemSystemGoldenFlowReceipt.fromJson(forged),
+        throwsFormatException,
       );
-      expect(
-        result.statusFor(ItemSystemProofLevel.persistenceL2).wireName,
-        'CERTIFIED',
-      );
-      expect(
-        result.statusFor(ItemSystemProofLevel.runtimeL3).wireName,
-        'CERTIFIED',
-      );
-      expect(
-        result.statusFor(ItemSystemProofLevel.playerUxL4).wireName,
-        'PARTIAL',
-      );
-      expect(
-        result.statusFor(ItemSystemProofLevel.mcpParityL5).wireName,
-        'PARTIAL',
-      );
-      expect(
-        result.statusFor(ItemSystemProofLevel.goldenFlowL6).wireName,
-        'CERTIFIED',
-      );
-      expect(result.overallStatus, ItemSystemCertificationStatus.partial);
-      expect(result.goldenFlowReceiptSha256, hasLength(64));
-      expect(result.toJson()['sourceRevision'], sourceRevision);
     },
   );
-
-  test('model-only and incomplete transport claims fail closed', () {
-    const sourceRevision = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
-    final result = const ItemSystemCertificationEvaluator().evaluate(
-      ItemSystemCertificationRequest(
-        sourceRevision: sourceRevision,
-        levelEvidence: <ItemSystemProofLevel, ItemSystemLevelEvidence>{
-          ItemSystemProofLevel.schemaL0: ItemSystemLevelEvidence(
-            sourceRevision: sourceRevision,
-            evidenceSha256:
-                '0000000000000000000000000000000000000000000000000000000000000000',
-            executedCapabilities: <String>{},
-          ),
-        },
-        transportEvidence: ItemSystemTransportEvidence(
-          sourceRevision: sourceRevision,
-          evidenceSha256:
-              '1111111111111111111111111111111111111111111111111111111111111111',
-          executedTransportsByAction: <String, Set<ItemSystemTransport>>{
-            'item.create': <ItemSystemTransport>{
-              ItemSystemTransport.directApi,
-              ItemSystemTransport.jsonl,
-              ItemSystemTransport.editor,
-              ItemSystemTransport.mcp,
-            },
-          },
-        ),
-      ),
-    );
-
-    expect(
-      result.statusFor(ItemSystemProofLevel.schemaL0),
-      ItemSystemCertificationStatus.unverified,
-    );
-    expect(
-      result.statusFor(ItemSystemProofLevel.mcpParityL5),
-      ItemSystemCertificationStatus.partial,
-    );
-    expect(
-      result.statusFor(ItemSystemProofLevel.goldenFlowL6),
-      ItemSystemCertificationStatus.missing,
-    );
-  });
-
-  test('regression, blocked, deferred and not-wired states stay explicit', () {
-    const revision = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
-    final result = const ItemSystemCertificationEvaluator().evaluate(
-      ItemSystemCertificationRequest(
-        sourceRevision: revision,
-        levelEvidence: <ItemSystemProofLevel, ItemSystemLevelEvidence>{
-          ItemSystemProofLevel.schemaL0: ItemSystemLevelEvidence(
-            sourceRevision: revision,
-            evidenceSha256:
-                '2222222222222222222222222222222222222222222222222222222222222222',
-            executedCapabilities: <String>{'catalog_schema'},
-            failedCapabilities: <String>{'save_schema'},
-          ),
-          ItemSystemProofLevel.authoringL1: ItemSystemLevelEvidence(
-            sourceRevision: revision,
-            evidenceSha256:
-                '3333333333333333333333333333333333333333333333333333333333333333',
-            wired: false,
-            executedCapabilities: <String>{},
-          ),
-        },
-        blockedLevels: <ItemSystemProofLevel>{
-          ItemSystemProofLevel.persistenceL2,
-        },
-        deferredLevels: <ItemSystemProofLevel>{ItemSystemProofLevel.runtimeL3},
-      ),
-    );
-
-    expect(
-      result.statusFor(ItemSystemProofLevel.schemaL0).wireName,
-      'REGRESSED',
-    );
-    expect(
-      result.statusFor(ItemSystemProofLevel.authoringL1).wireName,
-      'NOT_WIRED',
-    );
-    expect(
-      result.statusFor(ItemSystemProofLevel.persistenceL2).wireName,
-      'BLOCKED',
-    );
-    expect(
-      result.statusFor(ItemSystemProofLevel.runtimeL3).wireName,
-      'DEFERRED',
-    );
-    expect(result.overallStatus, ItemSystemCertificationStatus.regressed);
-  });
-
-  test('golden receipt rejects missing executed observations', () async {
-    final repositoryRoot = p.normalize(p.join(Directory.current.path, '../..'));
-    final sourceRevision = await _sourceRevision(repositoryRoot);
-    final saveRoot = await Directory.systemTemp.createTemp(
-      'item-system-invalid-receipt-',
-    );
-    addTearDown(() => saveRoot.delete(recursive: true));
-    final journey = await GoldenItemSystemJourney.run(
-      projectRootDirectory: p.join(
-        repositoryRoot,
-        'examples/playable_runtime_host/golden_item_system',
-      ),
-      saveRootDirectory: saveRoot.path,
-      sourceRevision: sourceRevision,
-      rngSeed: 47,
-    );
-    final json = journey.toJson();
-    json['observations'] = <String>['new_game_from_project'];
-
-    expect(
-      () => ItemSystemGoldenFlowReceipt.fromJson(json),
-      throwsFormatException,
-    );
-    final tampered = journey.toJson();
-    tampered['finalMoney'] = 0;
-    expect(
-      () => ItemSystemGoldenFlowReceipt.fromJson(tampered),
-      throwsFormatException,
-    );
-  });
 }
 
-ItemSystemLevelEvidence _completeEvidence(
-  ItemSystemProofLevel level,
-  String sourceRevision,
-) {
-  return ItemSystemLevelEvidence(
-    sourceRevision: sourceRevision,
-    evidenceSha256: _sha('${level.index}'),
-    executedCapabilities:
-        ItemSystemV1CertificationProfile.requiredCapabilitiesFor(level),
-  );
+Object? _withoutInformationalTimestamps(Object? value) {
+  if (value is List) {
+    return value.map(_withoutInformationalTimestamps).toList(growable: false);
+  }
+  if (value is Map) {
+    return <String, Object?>{
+      for (final entry in value.entries)
+        if (entry.key != 'recordedAtUtc')
+          entry.key.toString(): _withoutInformationalTimestamps(entry.value),
+    };
+  }
+  return value;
 }
-
-String _sha(String value) => value.padLeft(64, '0');
 
 Future<String> _sourceRevision(String repositoryRoot) async {
   final result = await Process.run('git', const <String>[

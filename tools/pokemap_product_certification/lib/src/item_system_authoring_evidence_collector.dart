@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
-import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'item_system_authoring_probe.dart';
 import 'item_system_certification.dart';
 import 'item_system_execution_receipt.dart';
 import 'item_system_fixture_digest.dart';
@@ -63,7 +63,7 @@ final class ItemSystemAuthoringEvidenceCollector {
       );
       final actionReceipts = <String>[];
 
-      for (final action in _catalogActions) {
+      for (final action in itemSystemAuthoringProbeActions.take(4)) {
         actionReceipts.add(
           await _applyAction(
             action,
@@ -76,7 +76,7 @@ final class ItemSystemAuthoringEvidenceCollector {
       }
       succeeded.add('catalog_crud');
 
-      for (final action in _effectActions) {
+      for (final action in itemSystemAuthoringProbeActions.skip(4)) {
         actionReceipts.add(
           await _applyAction(
             action,
@@ -186,7 +186,7 @@ final class ItemSystemAuthoringEvidenceCollector {
 }
 
 Future<String> _applyAction(
-  _ItemAction action, {
+  ItemSystemAuthoringProbeAction action, {
   required ProjectHandle projectHandle,
   required WorkspaceHandle workspaceHandle,
   required ProjectSnapshotLoader snapshots,
@@ -240,86 +240,3 @@ Future<void> _copyDirectory(Directory source, Directory destination) async {
     }
   }
 }
-
-final class _ItemAction {
-  const _ItemAction(this.actionId, this.parameters);
-
-  final String actionId;
-  final Map<String, Object?> parameters;
-
-  String get slug => actionId.replaceAll('.', '-').replaceAll('_', '-');
-}
-
-final _catalogActions = <_ItemAction>[
-  _ItemAction('item.create', <String, Object?>{
-    'definition': const ProjectItemDefinition(
-      id: 'cert-probe',
-      displayName: 'Certification Probe',
-      pocketId: 'custom',
-    ).toJson(),
-  }),
-  _ItemAction('item.update', <String, Object?>{
-    'itemId': 'cert-probe',
-    'definition': const ProjectItemDefinition(
-      id: 'cert-probe',
-      displayName: 'Updated Certification Probe',
-      pocketId: 'custom',
-      buyPrice: 100,
-    ).toJson(),
-  }),
-  const _ItemAction('item.clone', <String, Object?>{
-    'sourceItemId': 'cert-probe',
-    'newItemId': 'cert-copy',
-    'displayName': 'Certification Copy',
-  }),
-  const _ItemAction('item.delete_apply', <String, Object?>{
-    'itemId': 'cert-copy',
-  }),
-];
-
-final _effectActions = <_ItemAction>[
-  _ItemAction('item.set_overworld_effect', <String, Object?>{
-    'itemId': 'cert-probe',
-    'use': const ProjectItemUseDefinition(
-      contexts: <ProjectItemUseContext>{ProjectItemUseContext.overworld},
-      target: ProjectItemTargetKind.partyMember,
-      consumption: ProjectItemConsumptionPolicy.onApplied,
-      effect: ProjectItemEffectDefinition.healHp(
-        mode: ProjectItemAmountMode.flat,
-        amount: 20,
-      ),
-    ).toJson(),
-  }),
-  _ItemAction('item.set_battle_effect', <String, Object?>{
-    'itemId': 'cert-probe',
-    'use': const ProjectItemUseDefinition(
-      contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
-      target: ProjectItemTargetKind.partyMember,
-      consumption: ProjectItemConsumptionPolicy.onApplied,
-      effect: ProjectItemEffectDefinition.healHp(
-        mode: ProjectItemAmountMode.flat,
-        amount: 15,
-      ),
-    ).toJson(),
-  }),
-  const _ItemAction('item.set_held_effect', <String, Object?>{
-    'itemId': 'cert-probe',
-    'heldEffectId': 'leftovers',
-  }),
-  _ItemAction('item.set_capture_effect', <String, Object?>{
-    'itemId': 'cert-probe',
-    'capture': const ProjectCaptureItemDefinition(
-      rateNumerator: 1,
-      rateDenominator: 1,
-      allowedEncounterKinds: <EncounterKind>{EncounterKind.walk},
-    ).toJson(),
-  }),
-  _ItemAction('item.set_tm_hm_move', <String, Object?>{
-    'itemId': 'cert-probe',
-    'machine': const ProjectMoveMachineItemDefinition(
-      moveId: 'protect',
-      kind: ProjectMoveMachineKind.tm,
-      consumable: true,
-    ).toJson(),
-  }),
-];
