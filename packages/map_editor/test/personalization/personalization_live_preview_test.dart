@@ -232,7 +232,137 @@ void main() {
     await tester.pump();
     expect(target, isA<BattleCommandsTarget>());
   });
+
+  testWidgets('renders authored dialogue on the project map backdrop', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        PersonalizationLivePreview(
+          profile: const ProjectPresentationProfile(
+            theme: safeProjectSemanticTheme,
+          ),
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.dialogue,
+          contentSource: PersonalizationPreviewContentSource.project,
+          contexts: _projectContexts,
+        ),
+      ),
+    );
+
+    expect(find.text('Données du projet'), findsOneWidget);
+    expect(find.text('Interface du jeu · décor éditeur'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-project-map-backdrop'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(PlayerDialogueSurface), findsOneWidget);
+    expect(find.text('Bienvenue à Vermeil.'), findsOneWidget);
+    expect(find.text('Léo'), findsOneWidget);
+    expect(find.text('Professeure Saule'), findsNothing);
+  });
+
+  testWidgets('renders authored encounter data with the shared battle widget', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        PersonalizationLivePreview(
+          profile: const ProjectPresentationProfile(
+            theme: safeProjectSemanticTheme,
+          ),
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.battle,
+          contentSource: PersonalizationPreviewContentSource.project,
+          contexts: _projectContexts,
+        ),
+      ),
+    );
+
+    final surface = tester.widget<PlayerBattleSurface>(
+      find.byType(PlayerBattleSurface),
+    );
+    expect(surface.data.enemy.speciesLabel, 'Roucool');
+    expect(surface.data.player.speciesLabel, 'Brindibou');
+    expect(find.text('Professeure Saule'), findsNothing);
+  });
 }
+
+final _projectContexts = <PersonalizationPreviewContextOption>[
+  PersonalizationPreviewContextOption(
+    id: 'map:vermeil_village',
+    kind: PersonalizationPreviewContextKind.map,
+    sourceId: 'vermeil_village',
+    label: 'Village de Vermeil',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'map': <String, Object?>{
+        'id': 'vermeil_village',
+        'name': 'Village de Vermeil',
+        'size': <String, Object?>{'width': 12, 'height': 8},
+        'version': 'v6',
+      },
+    },
+  ),
+  PersonalizationPreviewContextOption(
+    id: 'dialogue:welcome_leo',
+    kind: PersonalizationPreviewContextKind.dialogue,
+    sourceId: 'welcome_leo',
+    label: 'Bienvenue de Léo',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'dialogue': <String, Object?>{
+        'source': <String, Object?>{
+          'text':
+              'title: Start\n---\n<<portrait leo happy>>\n'
+              'Bienvenue à Vermeil.\n===',
+        },
+      },
+    },
+  ),
+  PersonalizationPreviewContextOption(
+    id: 'characterPortrait:leo:happy',
+    kind: PersonalizationPreviewContextKind.characterPortrait,
+    sourceId: 'leo',
+    label: 'Léo · Heureux',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'characterName': 'Léo',
+      'portraitStateId': 'happy',
+    },
+  ),
+  PersonalizationPreviewContextOption(
+    id: 'encounter:vermeil_grass',
+    kind: PersonalizationPreviewContextKind.encounter,
+    sourceId: 'vermeil_grass',
+    label: 'Herbes de Vermeil',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'entries': <Object?>[
+        <String, Object?>{
+          'speciesId': 'roucool',
+          'minLevel': 7,
+          'maxLevel': 7,
+          'weight': 1,
+        },
+      ],
+      'playerPokemon': <String, Object?>{
+        'speciesId': 'brindibou',
+        'level': 8,
+        'currentHp': 24,
+        'knownMoveIds': <String>['charge'],
+      },
+    },
+  ),
+];
 
 Widget _app(Widget child) => MaterialApp(
   theme: PokeMapTheme.light(),

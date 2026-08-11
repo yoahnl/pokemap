@@ -66,6 +66,22 @@
     "defaultMapHeight": 8,
     "defaultPlayerCharacterId": "leo"
   },
+  "newGame": {
+    "enabled": true,
+    "startMapId": "vermeil_village",
+    "startSpawnId": "spawn_village",
+    "playerName": "Léo",
+    "initialParty": [
+      {
+        "speciesId": "brindibou",
+        "natureId": "hardy",
+        "abilityId": "engrais",
+        "level": 8,
+        "knownMoveIds": ["charge"],
+        "currentHp": 24
+      }
+    ]
+  },
   "presentation": {
     "schemaVersion": 5,
     "branding": {

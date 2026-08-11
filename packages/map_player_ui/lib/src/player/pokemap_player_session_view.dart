@@ -11,6 +11,7 @@ import '../foundation/player_components.dart';
 import '../foundation/player_text_scaler.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import 'player_battle_overlay.dart';
 import 'player_title_screen.dart';
 import 'player_dialogue_overlay.dart';
 import 'player_control_profile.dart';
@@ -98,6 +99,8 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.gameplayInputAuthority,
     this.dialoguePresentation,
     this.onDialogueCommand,
+    this.battlePresentation,
+    this.onBattleCommand,
     this.hapticFeedback,
     this.controlProfile,
     this.onControlProfileChanged,
@@ -133,6 +136,8 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   /// Optional Flutter dialogue projection published by the mounted runtime.
   final ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation;
   final ValueChanged<DialoguePresentationCommand>? onDialogueCommand;
+  final ValueListenable<BattleCommandOverlaySnapshot?>? battlePresentation;
+  final ValueChanged<BattlePresentationCommand>? onBattleCommand;
   final Future<void> Function()? hapticFeedback;
   final PlayerControlProfile? controlProfile;
   final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
@@ -492,6 +497,20 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
                 return const SizedBox.shrink();
               }
               return PlayerDialogueOverlay(
+                snapshot: presentation,
+                onCommand: onCommand,
+              );
+            },
+          ),
+        if (widget.battlePresentation case final battle?)
+          ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
+            valueListenable: battle,
+            builder: (context, presentation, _) {
+              final onCommand = widget.onBattleCommand;
+              if (presentation == null || onCommand == null) {
+                return const SizedBox.shrink();
+              }
+              return PlayerBattleOverlay(
                 snapshot: presentation,
                 onCommand: onCommand,
               );

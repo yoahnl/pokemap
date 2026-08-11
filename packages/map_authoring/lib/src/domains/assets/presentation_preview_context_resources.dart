@@ -38,6 +38,8 @@ final class PresentationPreviewContextProjector {
       for (final state in manifest.characterStudioCatalog.portraitStates)
         state.id: state.displayName,
     };
+    final playerPokemon = manifest.newGame.initialParty.firstOrNull ??
+        manifest.newGame.starterOptions.firstOrNull?.pokemon;
     return <PresentationPreviewContextResourceSnapshot>[
       for (final entry in manifest.maps)
         _mapContext(
@@ -61,7 +63,11 @@ final class PresentationPreviewContextProjector {
             assetPath: portraitAssetPath(portrait.assetId),
           ),
       for (final table in manifest.encounterTables)
-        _encounterContext(table, workspaceRevision: workspaceRevision),
+        _encounterContext(
+          table,
+          workspaceRevision: workspaceRevision,
+          playerPokemon: playerPokemon,
+        ),
     ];
   }
 }
@@ -148,9 +154,11 @@ PresentationPreviewContextResourceSnapshot _portraitContext(
 PresentationPreviewContextResourceSnapshot _encounterContext(
   ProjectEncounterTable table, {
   required String workspaceRevision,
+  required PlayerPokemon? playerPokemon,
 }) {
   final diagnostics = <String>[
     if (table.entries.isEmpty) 'previewContext.encounterTableEmpty',
+    if (playerPokemon == null) 'previewContext.playerPokemonUnavailable',
   ];
   return _snapshot(
     id: 'encounter:${table.id}',
@@ -165,6 +173,7 @@ PresentationPreviewContextResourceSnapshot _encounterContext(
       'entries': <Object?>[
         for (final entry in table.entries) entry.toJson(),
       ],
+      if (playerPokemon != null) 'playerPokemon': playerPokemon.toJson(),
     },
   );
 }

@@ -140,6 +140,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       throw StateError('The player surface closed before the game mounted.');
     }
     game.setDialogueFlutterOverlayPreferred(true);
+    game.setBattleFlutterCommandOverlayPreferred(true);
     setState(() => _mountedGame = game);
   }
 
@@ -341,6 +342,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
     dialoguePresentation: _mountedGame?.dialoguePresentationListenable,
     onDialogueCommand: _mountedGame?.dispatchDialoguePresentationCommand,
+    battlePresentation: _mountedGame?.battleCommandOverlayListenable,
+    onBattleCommand: _mountedGame?.dispatchBattlePresentationCommand,
     controlProfile: _controlProfile,
     onControlProfileChanged: _updateControlProfile,
     gameSceneBuilder: (_) {

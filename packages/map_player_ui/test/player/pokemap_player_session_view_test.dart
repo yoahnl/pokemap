@@ -901,6 +901,80 @@ void main() {
     );
   });
 
+  testWidgets('renders the canonical battle overlay and routes its command',
+      (tester) async {
+    final battle = ValueNotifier<BattleCommandOverlaySnapshot?>(
+      const BattleCommandOverlaySnapshot(
+        revision: 12,
+        mode: BattleCommandOverlayMode.root,
+        panelRect: Rect.fromLTWH(0, 300, 800, 300),
+        enemyHud: BattleCommandOverlayHudSnapshot(
+          rect: Rect.fromLTWH(20, 20, 240, 80),
+          ownerLabel: 'Adversaire',
+          speciesLabel: 'Roucool',
+          level: 7,
+          currentHp: 20,
+          maxHp: 20,
+          isPlayerSide: false,
+        ),
+        playerHud: BattleCommandOverlayHudSnapshot(
+          rect: Rect.fromLTWH(540, 200, 240, 80),
+          ownerLabel: 'Joueur',
+          speciesLabel: 'Brindibou',
+          level: 8,
+          currentHp: 24,
+          maxHp: 24,
+          isPlayerSide: true,
+        ),
+        battleLabel: 'Combat sauvage',
+        title: 'Roucool sauvage',
+        prompt: 'Que doit faire Brindibou ?',
+        narrationLines: <String>[],
+        entries: <BattleCommandOverlayEntry>[
+          BattleCommandOverlayEntry(
+            index: 0,
+            kind: BattleCommandOverlayEntryKind.root,
+            primaryLabel: 'Attaque',
+            secondaryLabel: 'Choisir une capacité',
+            enabled: true,
+            selected: true,
+            tone: BattleCommandOverlayEntryTone.attack,
+          ),
+        ],
+        interactionsEnabled: true,
+        canGoBack: false,
+      ),
+    );
+    addTearDown(battle.dispose);
+    final commands = <BattlePresentationCommand>[];
+    final controller = _FakeRuntimePlayerCoordinator(
+      _snapshot(revision: 27, phase: RuntimePlayerPhase.playing),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      _app(
+        _view(
+          controller,
+          battlePresentation: battle,
+          onBattleCommand: commands.add,
+        ),
+      ),
+    );
+
+    expect(find.byType(PlayerBattleOverlay), findsOneWidget);
+    expect(find.text('Roucool'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('battle-entry-0')),
+    );
+    expect(
+      commands.single,
+      isA<BattleSelectEntryCommand>()
+          .having((command) => command.snapshotRevision, 'revision', 12)
+          .having((command) => command.entryIndex, 'entry', 0),
+    );
+  });
+
   testWidgets('keeps portrait controls above the bottom thumb obstruction',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -1316,6 +1390,8 @@ PokeMapPlayerSessionView _view(
   ValueListenable<RuntimeInputAuthoritySnapshot>? gameplayInputAuthority,
   ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation,
   ValueChanged<DialoguePresentationCommand>? onDialogueCommand,
+  ValueListenable<BattleCommandOverlaySnapshot?>? battlePresentation,
+  ValueChanged<BattlePresentationCommand>? onBattleCommand,
   bool? controllerInputEnabled,
   RuntimePlayerActionPayloadBuilder? payloadForAction,
   Future<void> Function()? hapticFeedback,
@@ -1337,6 +1413,8 @@ PokeMapPlayerSessionView _view(
     gameplayInputAuthority: gameplayInputAuthority,
     dialoguePresentation: dialoguePresentation,
     onDialogueCommand: onDialogueCommand,
+    battlePresentation: battlePresentation,
+    onBattleCommand: onBattleCommand,
     controllerInputEvents: controllerInputEvents,
     controllerInputEnabled:
         controllerInputEnabled ?? controllerInputEvents != null,

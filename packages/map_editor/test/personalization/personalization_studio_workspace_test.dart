@@ -82,6 +82,76 @@ void main() {
   );
 
   testWidgets(
+    'preview context selection preserves the map, dirty flags and project json',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-preview-context-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(
+        name: 'Preview Context Studio',
+      ).copyWith(presentation: const ProjectPresentationProfile());
+      final projectFile = File('${root.path}/project.json');
+      final durableJson = jsonEncode(project.toJson());
+      projectFile.writeAsStringSync(durableJson, flush: true);
+      const activeMap = MapData(
+        id: 'active-map',
+        name: 'Carte active',
+        size: GridSize(width: 4, height: 4),
+      );
+      final container = await pumpEditorCanvasHostHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: root.path,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.personalizationStudio,
+          activeMap: activeMap,
+          activeMapPath: '${root.path}/maps/active-map.json',
+        ),
+        surfaceSize: const Size(1600, 900),
+        overrides: [
+          personalizationPreviewContextSourceProvider.overrideWithValue(
+            _PreviewContextSource(_previewContexts),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+      final before = container.read(editorNotifierProvider);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('personalization-studio-scene-dialogue'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final picker = find.byKey(
+        const ValueKey<String>('personalization-preview-context-dialogue'),
+      );
+      expect(picker.hitTestable(), findsOneWidget);
+      await tester.tap(picker);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Deuxième dialogue').last);
+      await tester.pumpAndSettle();
+
+      final after = container.read(editorNotifierProvider);
+      expect(after.activeMap, before.activeMap);
+      expect(after.activeMapPath, before.activeMapPath);
+      expect(after.isDirty, before.isDirty);
+      expect(after.isProjectDirty, before.isProjectDirty);
+      expect(after.project, before.project);
+      expect(projectFile.readAsStringSync(), durableJson);
+      expect(
+        container
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.isDirty,
+        isFalse,
+      );
+      expect(find.text('Texte du deuxième dialogue.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'runs preflight in Studio and invalidates it after a draft edit',
     (tester) async {
       final root = Directory.systemTemp.createTempSync(
@@ -1264,6 +1334,11 @@ void main() {
         workspaceMode: EditorWorkspaceMode.personalizationStudio,
       ),
       surfaceSize: const Size(1600, 1000),
+      overrides: [
+        personalizationPreviewContextSourceProvider.overrideWithValue(
+          _PreviewContextSource(_previewContexts),
+        ),
+      ],
     );
 
     await tester.tap(
@@ -1439,6 +1514,103 @@ Future<void> _dragUntilHitTestable(
   }
   expect(target.hitTestable(), findsOneWidget);
 }
+
+final class _PreviewContextSource
+    implements PersonalizationPreviewContextSource {
+  const _PreviewContextSource(this.contexts);
+
+  final List<PersonalizationPreviewContextOption> contexts;
+
+  @override
+  Future<List<PersonalizationPreviewContextOption>> load(
+    String projectRoot,
+  ) async => contexts;
+}
+
+final _previewContexts = <PersonalizationPreviewContextOption>[
+  PersonalizationPreviewContextOption(
+    id: 'map:preview-map',
+    kind: PersonalizationPreviewContextKind.map,
+    sourceId: 'preview-map',
+    label: 'Carte de l’aperçu',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'map': <String, Object?>{
+        'id': 'preview-map',
+        'name': 'Carte de l’aperçu',
+        'size': <String, Object?>{'width': 8, 'height': 6},
+        'version': 'v6',
+      },
+    },
+  ),
+  _dialogueContext(
+    id: 'dialogue:first',
+    label: 'Premier dialogue',
+    text: 'Texte du premier dialogue.',
+  ),
+  _dialogueContext(
+    id: 'dialogue:second',
+    label: 'Deuxième dialogue',
+    text: 'Texte du deuxième dialogue.',
+  ),
+  PersonalizationPreviewContextOption(
+    id: 'characterPortrait:leo:happy',
+    kind: PersonalizationPreviewContextKind.characterPortrait,
+    sourceId: 'leo',
+    label: 'Léo · Heureux',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'characterName': 'Léo',
+      'portraitStateId': 'happy',
+    },
+  ),
+  PersonalizationPreviewContextOption(
+    id: 'encounter:preview',
+    kind: PersonalizationPreviewContextKind.encounter,
+    sourceId: 'preview',
+    label: 'Rencontre de l’aperçu',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'entries': <Object?>[
+        <String, Object?>{
+          'speciesId': 'roucool',
+          'minLevel': 7,
+          'maxLevel': 7,
+          'weight': 1,
+        },
+      ],
+      'playerPokemon': <String, Object?>{
+        'speciesId': 'brindibou',
+        'level': 8,
+        'currentHp': 24,
+        'knownMoveIds': <String>['charge'],
+      },
+    },
+  ),
+];
+
+PersonalizationPreviewContextOption _dialogueContext({
+  required String id,
+  required String label,
+  required String text,
+}) => PersonalizationPreviewContextOption(
+  id: id,
+  kind: PersonalizationPreviewContextKind.dialogue,
+  sourceId: id.split(':').last,
+  label: label,
+  availability: 'ready',
+  diagnosticCodes: const <String>[],
+  detail: <String, Object?>{
+    'dialogue': <String, Object?>{
+      'source': <String, Object?>{
+        'text': 'title: Start\n---\n<<portrait leo happy>>\n$text\n===',
+      },
+    },
+  },
+);
 
 final class _MemoryProjectGateway
     implements NarrativeDocumentGateway<ProjectManifest> {

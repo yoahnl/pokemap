@@ -47,17 +47,19 @@ void main() {
       );
     });
 
-    test('keeps the overlay layer mounted for the player session', () async {
+    test('delegates the overlay to the canonical player session', () async {
       final loaderSource = await File('lib/main.dart').readAsString();
-      final overlayIndex = loaderSource.indexOf(
-        'ValueListenableBuilder<BattleCommandOverlaySnapshot?>(',
-      );
-
-      expect(overlayIndex, greaterThanOrEqualTo(0));
       expect(
-        loaderSource.substring(0, overlayIndex),
-        isNot(contains('if (_startupViewController == null)')),
+        loaderSource,
+        contains(
+          'battlePresentation: game.battleCommandOverlayListenable',
+        ),
       );
+      expect(
+        loaderSource,
+        contains('onBattleCommand: game.dispatchBattlePresentationCommand'),
+      );
+      expect(loaderSource, isNot(contains('BattleMobileCommandOverlay(')));
     });
   });
 }

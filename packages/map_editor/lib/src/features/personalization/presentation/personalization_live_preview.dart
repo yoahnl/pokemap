@@ -5,12 +5,15 @@ import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_capability_descriptor.dart';
 import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_inspector_target.dart';
+import '../application/personalization_preview_context_source.dart';
 import '../application/personalization_preview_fixtures.dart';
 import '../application/personalization_preview_projection.dart';
 import '../application/personalization_preview_scenario.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
+import '../application/personalization_project_preview_projection.dart';
 import 'personalization_player_surface_adapter.dart';
 import 'personalization_preview_canvas.dart';
+import 'personalization_preview_context_picker.dart';
 import 'personalization_preview_controls.dart';
 
 class PersonalizationLivePreview extends StatefulWidget {
@@ -31,6 +34,11 @@ class PersonalizationLivePreview extends StatefulWidget {
     this.contentSource = PersonalizationPreviewContentSource.demonstration,
     this.surfaceFidelity =
         PersonalizationPreviewSurfaceFidelity.playerInterface,
+    this.contexts = const <PersonalizationPreviewContextOption>[],
+    this.contextsLoading = false,
+    this.contextsErrorMessage,
+    this.projectManifest,
+    this.resolveTilesetPath,
   });
 
   final ProjectPresentationProfile profile;
@@ -47,6 +55,11 @@ class PersonalizationLivePreview extends StatefulWidget {
   final PersonalizationBattlePreviewState battleState;
   final PersonalizationPreviewContentSource contentSource;
   final PersonalizationPreviewSurfaceFidelity surfaceFidelity;
+  final List<PersonalizationPreviewContextOption> contexts;
+  final bool contextsLoading;
+  final String? contextsErrorMessage;
+  final ProjectManifest? projectManifest;
+  final String? Function(String tilesetId)? resolveTilesetPath;
 
   @override
   State<PersonalizationLivePreview> createState() =>
@@ -59,6 +72,8 @@ class _PersonalizationLivePreviewState
   double _textScale = 1;
   bool _reducedMotion = false;
   bool _comparisonEnabled = false;
+  final Map<PersonalizationPreviewContextKind, String?> _selectedContextIds =
+      <PersonalizationPreviewContextKind, String?>{};
 
   @override
   void initState() {
@@ -80,6 +95,44 @@ class _PersonalizationLivePreviewState
 
   @override
   Widget build(BuildContext context) {
+    final mapContext = _context(PersonalizationPreviewContextKind.map);
+    final dialogueContext = _context(
+      PersonalizationPreviewContextKind.dialogue,
+    );
+    final portraitContext = _context(
+      PersonalizationPreviewContextKind.characterPortrait,
+      preferredSourceId: widget.dialogueCharacter?.characterId,
+    );
+    final encounterContext = _context(
+      PersonalizationPreviewContextKind.encounter,
+    );
+    final projectMap = PersonalizationProjectPreviewProjection.map(mapContext);
+    final dialogueData = PersonalizationProjectPreviewProjection.dialogue(
+      dialogueContext,
+      portrait: portraitContext,
+      showChoices: widget.showDialogueChoices,
+    );
+    final battleData = PersonalizationProjectPreviewProjection.battle(
+      encounterContext,
+      state: widget.battleState,
+    );
+    final dialogueCharacter = portraitContext == null
+        ? widget.dialogueCharacter
+        : PersonalizationCharacterPreviewOption(
+            characterId: portraitContext.sourceId,
+            displayName:
+                portraitContext.detail['characterName'] as String? ??
+                portraitContext.label,
+            portraitPath: portraitContext.detail['portraitPath'] as String?,
+            expressionId: portraitContext.detail['portraitStateId'] as String?,
+            portraitBytes: portraitContext.mediaBytes,
+          );
+    final surfaceFidelity =
+        projectMap != null &&
+            widget.scene != PersonalizationStudioScene.title &&
+            widget.scene != PersonalizationStudioScene.intro
+        ? PersonalizationPreviewSurfaceFidelity.editorBackdrop
+        : widget.surfaceFidelity;
     final scenario = PersonalizationPreviewScenario(
       draftProfile: widget.profile,
       baselineProfile: widget.baselineProfile,
@@ -98,14 +151,15 @@ class _PersonalizationLivePreviewState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
-                Expanded(
-                  child: Text(
-                    'Aperçu',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                Text(
+                  'Aperçu',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 PokeMapBadge(
@@ -124,12 +178,11 @@ class _PersonalizationLivePreviewState
                       ? PokeMapBadgeVariant.success
                       : PokeMapBadgeVariant.warning,
                 ),
-                const SizedBox(width: 8),
                 PokeMapBadge(
                   key: const ValueKey<String>(
                     'personalization-preview-surface-fidelity',
                   ),
-                  label: switch (widget.surfaceFidelity) {
+                  label: switch (surfaceFidelity) {
                     PersonalizationPreviewSurfaceFidelity.playerInterface =>
                       'Interface du jeu',
                     PersonalizationPreviewSurfaceFidelity.editorBackdrop =>
@@ -137,7 +190,6 @@ class _PersonalizationLivePreviewState
                   },
                   variant: PokeMapBadgeVariant.mapAccent,
                 ),
-                const SizedBox(width: 8),
                 const PokeMapBadge(
                   key: ValueKey<String>(
                     'personalization-preview-local-controls',
@@ -151,6 +203,19 @@ class _PersonalizationLivePreviewState
             PersonalizationPreviewControls(
               scenario: scenario,
               onChanged: _applyScenario,
+            ),
+            PersonalizationPreviewContextPicker(
+              scene: widget.scene,
+              contexts: widget.contexts,
+              selectedIds: <PersonalizationPreviewContextKind, String?>{
+                for (final kind in PersonalizationPreviewContextKind.values)
+                  kind: _context(kind)?.id,
+              },
+              onSelected: (kind, id) {
+                setState(() => _selectedContextIds[kind] = id);
+              },
+              isLoading: widget.contextsLoading,
+              errorMessage: widget.contextsErrorMessage,
             ),
           ],
         ),
@@ -171,11 +236,19 @@ class _PersonalizationLivePreviewState
               aspectRatio: aspectRatio,
               reducedMotion: reducedMotion,
               onTargeted: widget.onTargeted,
-              dialogueCharacter: widget.dialogueCharacter,
+              dialogueCharacter: dialogueCharacter,
               showDialoguePortrait: widget.showDialoguePortrait,
               showDialogueName: widget.showDialogueName,
               showDialogueChoices: widget.showDialogueChoices,
               battleState: widget.battleState,
+              mapContext: projectMap,
+              dialogueData: dialogueData,
+              battleData: battleData,
+              useProjectContent:
+                  widget.contentSource ==
+                  PersonalizationPreviewContentSource.project,
+              projectManifest: widget.projectManifest,
+              resolveTilesetPath: widget.resolveTilesetPath,
             ),
       ),
     );
@@ -188,5 +261,28 @@ class _PersonalizationLivePreviewState
       _reducedMotion = value.reducedMotion;
       _comparisonEnabled = value.comparisonEnabled;
     });
+  }
+
+  PersonalizationPreviewContextOption? _context(
+    PersonalizationPreviewContextKind kind, {
+    String? preferredSourceId,
+  }) {
+    final options = widget.contexts
+        .where((option) => option.kind == kind)
+        .toList(growable: false);
+    if (options.isEmpty) return null;
+    final selectedId = _selectedContextIds[kind];
+    final selected = options
+        .where((option) => option.id == selectedId)
+        .firstOrNull;
+    if (selected != null) return selected;
+    final preferred = options
+        .where(
+          (option) => option.sourceId == preferredSourceId && option.isReady,
+        )
+        .firstOrNull;
+    return preferred ??
+        options.where((option) => option.isReady).firstOrNull ??
+        options.first;
   }
 }

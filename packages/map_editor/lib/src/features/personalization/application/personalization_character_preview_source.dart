@@ -6,12 +6,14 @@ final class PersonalizationCharacterPreviewOption {
     required this.displayName,
     required this.portraitPath,
     required this.expressionId,
+    this.portraitBytes,
   });
 
   final String characterId;
   final String displayName;
   final String? portraitPath;
   final String? expressionId;
+  final List<int>? portraitBytes;
 }
 
 abstract interface class PersonalizationCharacterPreviewSource {
@@ -44,6 +46,7 @@ final class PersonalizationCharacterPreviewFromContextSource
               displayName: option.detail['characterName']! as String,
               portraitPath: option.detail['portraitPath'] as String?,
               expressionId: option.detail['portraitStateId']! as String,
+              portraitBytes: option.mediaBytes,
             ),
           ),
     );

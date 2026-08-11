@@ -88,6 +88,21 @@ void main() {
         portrait.detail['portraitPath'],
         'assets/characters/leo-happy.png',
       );
+      expect(portrait.mediaBytes, isNotEmpty);
+      final dialogue = contexts.firstWhere(
+        (context) => context.id == 'dialogue:welcome_leo',
+      );
+      expect(
+        ((dialogue.detail['dialogue']! as Map)['source']! as Map)['text'],
+        contains('Bienvenue à Vermeil'),
+      );
+      final encounter = contexts.firstWhere(
+        (context) => context.id == 'encounter:vermeil_grass',
+      );
+      expect(
+        (encounter.detail['playerPokemon']! as Map)['speciesId'],
+        'brindibou',
+      );
       expect(
         contexts.map((context) => context.id),
         isNot(contains('character-studio-placeholder')),

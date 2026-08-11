@@ -1,14 +1,17 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../theme/theme.dart';
 import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_preview_fixtures.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
+import 'personalization_project_map_backdrop.dart';
 
 class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   const PersonalizationPlayerSurfaceAdapter({
@@ -25,6 +28,12 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     this.showDialogueName = true,
     this.showDialogueChoices = false,
     this.battleState = PersonalizationBattlePreviewState.commands,
+    this.mapContext,
+    this.dialogueData,
+    this.battleData,
+    this.useProjectContent = false,
+    this.projectManifest,
+    this.resolveTilesetPath,
   });
 
   final ProjectPresentationProfile profile;
@@ -39,9 +48,16 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   final bool showDialogueName;
   final bool showDialogueChoices;
   final PersonalizationBattlePreviewState battleState;
+  final MapData? mapContext;
+  final PlayerDialogueViewData? dialogueData;
+  final PlayerBattleViewData? battleData;
+  final bool useProjectContent;
+  final ProjectManifest? projectManifest;
+  final String? Function(String tilesetId)? resolveTilesetPath;
 
   @override
   Widget build(BuildContext context) {
+    final editorColors = context.pokeMapColors;
     final presentation = RuntimePlayerPresentation.fromProfile(
       profile,
       author: 'Créé avec PokeMap',
@@ -58,9 +74,9 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
         ),
         behavior: HitTestBehavior.opaque,
         onTap: () => _target(const GlobalColorsTarget()),
-        child: _globalStyle(presentation),
+        child: _globalStyle(presentation, editorColors),
       ),
-      _ => _surface(scene, presentation),
+      _ => _surface(scene, presentation, editorColors),
     };
     return Theme(
       data: theme,
@@ -74,66 +90,110 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   Widget _surface(
     PersonalizationStudioScene target,
     RuntimePlayerPresentation presentation,
-  ) => switch (target) {
-    PersonalizationStudioScene.title => PlayerTitleSurface(
-      key: const ValueKey<String>('personalization-title-composition'),
-      data: PersonalizationPreviewFixtures.title(
-        projectName,
-        presentation,
-        backgroundContent: _titleMotion(),
+    PokeMapColorTokens editorColors,
+  ) {
+    final surface = switch (target) {
+      PersonalizationStudioScene.title => PlayerTitleSurface(
+        key: const ValueKey<String>('personalization-title-composition'),
+        data: PersonalizationPreviewFixtures.title(
+          projectName,
+          presentation,
+          backgroundContent: _titleMotion(),
+        ),
+        onSelected: (_) => _target(const TitlePresentationTarget()),
       ),
-      onSelected: (_) => _target(const TitlePresentationTarget()),
-    ),
-    PersonalizationStudioScene.intro => PlayerIntroVideoSurface(
-      key: const ValueKey<String>('personalization-intro-composition'),
-      media: _introSkipped ? null : _introMedia(),
-      caption: _introCaption,
-      isPoster: true,
-      failureMessage: _introSkipped
-          ? 'Intro ignorée avec les animations réduites'
-          : profile.intro == null
-          ? 'Aucune introduction configurée'
-          : null,
-      onSkip: () => _target(const IntroPresentationTarget()),
-      onReplay: profile.intro?.allowReplay == true && !_introSkipped
-          ? () => _target(const IntroPresentationTarget())
-          : null,
-      onContinue: () => _target(const IntroPresentationTarget()),
-    ),
-    PersonalizationStudioScene.pause => RuntimePlayerPauseShell.root(
-      key: const ValueKey<String>('personalization-pause-composition'),
-      gameTitle: projectName,
-      actions: PersonalizationPreviewFixtures.pauseActions,
-      labels: presentation.pauseMenuLabels,
-      onSelected: (action) =>
-          _target(PauseLabelsTarget(actionName: action.name)),
-      detail: const Center(child: Text('Sélectionnez une section')),
-    ),
-    PersonalizationStudioScene.dialogue => PlayerDialogueSurface(
-      key: const ValueKey<String>('personalization-dialogue-composition'),
-      data: dialogueCharacter == null && !showDialogueChoices
-          ? PersonalizationPreviewFixtures.dialogue
-          : PersonalizationPreviewFixtures.dialogueFor(
-              speaker: dialogueCharacter?.displayName ?? 'Professeure Saule',
-              showChoices: showDialogueChoices,
-            ),
-      showSpeakerName: showDialogueName,
-      portraitBuilder: showDialoguePortrait && dialogueCharacter != null
-          ? (_) => _dialoguePortrait()
-          : null,
-      onAction: (_) => _target(const DialogueAppearanceTarget()),
-    ),
-    PersonalizationStudioScene.battle => PlayerBattleSurface(
-      key: const ValueKey<String>('personalization-battle-composition'),
-      data: PersonalizationPreviewFixtures.battleFor(battleState),
-      onAction: (_) => _target(const BattleCommandsTarget()),
-    ),
-    PersonalizationStudioScene.globalStyle => throw StateError(
-      'Global style is a composition, not one player surface.',
-    ),
-  };
+      PersonalizationStudioScene.intro => PlayerIntroVideoSurface(
+        key: const ValueKey<String>('personalization-intro-composition'),
+        media: _introSkipped ? null : _introMedia(),
+        caption: _introCaption,
+        isPoster: true,
+        failureMessage: _introSkipped
+            ? 'Intro ignorée avec les animations réduites'
+            : profile.intro == null
+            ? 'Aucune introduction configurée'
+            : null,
+        onSkip: () => _target(const IntroPresentationTarget()),
+        onReplay: profile.intro?.allowReplay == true && !_introSkipped
+            ? () => _target(const IntroPresentationTarget())
+            : null,
+        onContinue: () => _target(const IntroPresentationTarget()),
+      ),
+      PersonalizationStudioScene.pause => RuntimePlayerPauseShell.root(
+        key: const ValueKey<String>('personalization-pause-composition'),
+        gameTitle: projectName,
+        actions: PersonalizationPreviewFixtures.pauseActions,
+        labels: presentation.pauseMenuLabels,
+        onSelected: (action) =>
+            _target(PauseLabelsTarget(actionName: action.name)),
+        detail: const Center(child: Text('Sélectionnez une section')),
+      ),
+      PersonalizationStudioScene.dialogue => PlayerDialogueSurface(
+        key: const ValueKey<String>('personalization-dialogue-composition'),
+        data:
+            dialogueData ??
+            (dialogueCharacter == null && !showDialogueChoices
+                ? PersonalizationPreviewFixtures.dialogue
+                : PersonalizationPreviewFixtures.dialogueFor(
+                    speaker:
+                        dialogueCharacter?.displayName ??
+                        'Personnage de démonstration',
+                    showChoices: showDialogueChoices,
+                  )),
+        showSpeakerName: showDialogueName,
+        portraitBuilder: showDialoguePortrait && dialogueCharacter != null
+            ? (_) => _dialoguePortrait()
+            : null,
+        onAction: (_) => _target(const DialogueAppearanceTarget()),
+      ),
+      PersonalizationStudioScene.battle => PlayerBattleSurface(
+        key: const ValueKey<String>('personalization-battle-composition'),
+        data:
+            battleData ?? PersonalizationPreviewFixtures.battleFor(battleState),
+        onAction: (_) => _target(const BattleCommandsTarget()),
+      ),
+      PersonalizationStudioScene.globalStyle => throw StateError(
+        'Global style is a composition, not one player surface.',
+      ),
+    };
+    final unavailable = switch (target) {
+      PersonalizationStudioScene.dialogue
+          when useProjectContent && dialogueData == null =>
+        _unavailable(
+          'Aucun dialogue exploitable pour cet aperçu.',
+          const ValueKey<String>('personalization-dialogue-unavailable'),
+        ),
+      PersonalizationStudioScene.battle
+          when useProjectContent && battleData == null =>
+        _unavailable(
+          'Aucune rencontre exploitable pour cet aperçu.',
+          const ValueKey<String>('personalization-battle-unavailable'),
+        ),
+      _ => surface,
+    };
+    if (mapContext == null ||
+        target == PersonalizationStudioScene.title ||
+        target == PersonalizationStudioScene.intro) {
+      return unavailable;
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        PersonalizationProjectMapBackdrop(
+          map: mapContext!,
+          colors: editorColors,
+          projectRootPath: projectRootPath,
+          manifest: projectManifest,
+          resolveTilesetPath: resolveTilesetPath,
+        ),
+        unavailable,
+      ],
+    );
+  }
 
-  Widget _globalStyle(RuntimePlayerPresentation presentation) => ColoredBox(
+  Widget _globalStyle(
+    RuntimePlayerPresentation presentation,
+    PokeMapColorTokens editorColors,
+  ) => ColoredBox(
     key: const ValueKey<String>('personalization-global-style-composition'),
     color: presentation
         .applyTo(PokeMapPlayerTheme.dark(reducedMotion: reducedMotion))
@@ -143,10 +203,34 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
       crossAxisCount: 2,
       childAspectRatio: aspectRatio,
       children: <Widget>[
-        _miniature(_surface(PersonalizationStudioScene.title, presentation)),
-        _miniature(_surface(PersonalizationStudioScene.dialogue, presentation)),
-        _miniature(_surface(PersonalizationStudioScene.pause, presentation)),
-        _miniature(_surface(PersonalizationStudioScene.battle, presentation)),
+        _miniature(
+          _surface(
+            PersonalizationStudioScene.title,
+            presentation,
+            editorColors,
+          ),
+        ),
+        _miniature(
+          _surface(
+            PersonalizationStudioScene.dialogue,
+            presentation,
+            editorColors,
+          ),
+        ),
+        _miniature(
+          _surface(
+            PersonalizationStudioScene.pause,
+            presentation,
+            editorColors,
+          ),
+        ),
+        _miniature(
+          _surface(
+            PersonalizationStudioScene.battle,
+            presentation,
+            editorColors,
+          ),
+        ),
       ],
     ),
   );
@@ -213,6 +297,14 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
       reducedMotion && profile.intro?.reducedMotionBehavior == 'skip';
 
   Widget _dialoguePortrait() {
+    final bytes = dialogueCharacter?.portraitBytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      return ClipRRect(
+        key: const ValueKey<String>('personalization-dialogue-portrait'),
+        borderRadius: BorderRadius.circular(12),
+        child: Image.memory(Uint8List.fromList(bytes), fit: BoxFit.cover),
+      );
+    }
     final path = dialogueCharacter?.portraitPath;
     final file = path == null ? null : _fileForPath(path);
     if (file != null && file.existsSync()) {
@@ -241,6 +333,15 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
 
   void _target(PersonalizationInspectorTarget target) =>
       onTargeted?.call(target);
+
+  Widget _unavailable(String message, Key key) => Center(
+    key: key,
+    child: PlayerPanel(
+      elevated: true,
+      padding: const EdgeInsets.all(PlayerSpacing.lg),
+      child: Text(message, textAlign: TextAlign.center),
+    ),
+  );
 
   ImageProvider? _imageForPath(String assetPath) {
     final file = _fileForPath(assetPath);

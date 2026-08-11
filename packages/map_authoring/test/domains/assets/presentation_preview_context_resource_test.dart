@@ -64,6 +64,7 @@ void main() {
           'weight': 1,
         },
       ]);
+      expect((encounter['playerPokemon']! as Map)['speciesId'], 'brindibou');
     });
 
     test('keeps deterministic pagination bound to the snapshot revision', () {
@@ -92,6 +93,44 @@ void main() {
       expect(second.items, hasLength(2));
       expect(second.snapshotRevision, _revision);
       expect(second.items.first['id'], 'encounter:grass');
+    });
+
+    test('marks combat context degraded without a playable party', () {
+      final context = const PresentationPreviewContextProjector()
+          .project(
+            manifest: const ProjectManifest(
+              name: 'No party',
+              maps: <ProjectMapEntry>[],
+              tilesets: <ProjectTilesetEntry>[],
+              encounterTables: <ProjectEncounterTable>[
+                ProjectEncounterTable(
+                  id: 'grass',
+                  name: 'Herbes',
+                  encounterKind: EncounterKind.walk,
+                  entries: <ProjectEncounterEntry>[
+                    ProjectEncounterEntry(
+                      speciesId: 'roucool',
+                      minLevel: 4,
+                      maxLevel: 4,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            workspaceRevision: _revision,
+            maps: const <MapData>[],
+            dialogueSourceAvailable: (_) => false,
+            portraitAssetPath: (_) => null,
+          )
+          .single
+          .detail;
+
+      expect(context['availability'], 'degraded');
+      expect(
+        context['diagnosticCodes'],
+        <Object?>['previewContext.playerPokemonUnavailable'],
+      );
+      expect(context, isNot(contains('playerPokemon')));
     });
   });
 }
@@ -172,6 +211,18 @@ ProjectSnapshot _snapshot() {
         ],
       ),
     ],
+    newGame: ProjectNewGameConfig(
+      initialParty: <PlayerPokemon>[
+        PlayerPokemon(
+          speciesId: 'brindibou',
+          natureId: 'hardy',
+          abilityId: 'engrais',
+          level: 8,
+          currentHp: 24,
+          knownMoveIds: <String>['charge'],
+        ),
+      ],
+    ),
   );
   final projectBytes = utf8.encode(jsonEncode(manifest.toJson()));
   final assetCatalog = AssetCatalog(

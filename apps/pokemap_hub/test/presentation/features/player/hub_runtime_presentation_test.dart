@@ -31,7 +31,23 @@ void main() {
       expect(installedPlayer, isNot(contains('runtimeStartupShellEnabled')));
       expect(installedPlayer, isNot(contains('PlayerLoadingSurface(')));
       expect(installedPlayer, contains('stopIntroPlayback'));
+      expect(
+        installedPlayer,
+        contains('game.setBattleFlutterCommandOverlayPreferred(true)'),
+      );
       expect(installedPlayer, contains('PokeMapPlayerSessionView('));
+      expect(
+        installedPlayer,
+        contains(
+          'battlePresentation: _mountedGame?.battleCommandOverlayListenable',
+        ),
+      );
+      expect(
+        installedPlayer,
+        contains(
+          'onBattleCommand: _mountedGame?.dispatchBattlePresentationCommand',
+        ),
+      );
       expect(installedPlayer, contains('RuntimePlayerPresentation.fromRuntime'));
       expect(installedPlayer, contains('branding: widget.hostBranding'));
       expect(installedPlayer, contains('splashLogo: widget.splashLogo'));

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:map_authoring/map_authoring_local.dart';
+import 'package:map_authoring/map_authoring.dart'
+    show assetBlobResourceIdentity;
 import 'package:map_core/map_core.dart';
 
 import 'authoring_session_lifecycle.dart';
@@ -263,6 +265,24 @@ final class EditorAuthoringReadSession {
       }
     }
     return null;
+  }
+
+  List<int>? assetBytes(String assetId) {
+    _requireOpen();
+    final page = _queries.query(
+      _snapshot,
+      AuthoringQueryRequest(
+        resourceKind: 'asset',
+        operation: AuthoringQueryOperation.get,
+        view: AuthoringQueryView.detail,
+        ids: <String>[assetId],
+      ),
+    );
+    final artifact = page.items.single['artifact'];
+    if (artifact is! Map || artifact['digest'] is! String) return null;
+    final identity = assetBlobResourceIdentity(artifact['digest']! as String);
+    final bytes = _snapshot.findResourceBytes(identity);
+    return bytes == null ? null : List.unmodifiable(bytes);
   }
 
   String? resourceRevision(String resourceIdentity) {

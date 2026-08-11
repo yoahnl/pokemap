@@ -18,8 +18,10 @@ import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../../ui/design_system/pokemap_toggle_tile.dart';
 import '../../../ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import '../../editor/state/editor_notifier.dart';
+import '../application/personalization_capability_descriptor.dart';
 import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_inspector_target.dart';
+import '../application/personalization_preview_context_source.dart';
 import '../application/personalization_preview_fixtures.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
 import '../application/personalization_publish_readiness.dart';
@@ -1776,16 +1778,15 @@ class _PersonalizationStudioWorkspaceState
         (_preflightProjectRootPath != projectRootPath ||
             _preflightProfile != profile);
     final activePreflightResult = isPreflightStale ? null : _preflightResult;
+    final previewContextState = ref.watch(
+      personalizationPreviewContextOptionsProvider(projectRootPath),
+    );
+    final previewContexts =
+        previewContextState.value ??
+        const <PersonalizationPreviewContextOption>[];
     final characterOptions =
         _selectedScene == PersonalizationStudioScene.dialogue
-        ? ref
-                  .watch(
-                    personalizationCharacterPreviewOptionsProvider(
-                      projectRootPath,
-                    ),
-                  )
-                  .value ??
-              const <PersonalizationCharacterPreviewOption>[]
+        ? _characterOptionsFromContexts(previewContexts)
         : const <PersonalizationCharacterPreviewOption>[];
     final dialogueCharacter = _resolveDialogueCharacter(
       characterOptions,
@@ -1916,6 +1917,16 @@ class _PersonalizationStudioWorkspaceState
                 showDialogueName: _showDialogueName,
                 showDialogueChoices: _showDialogueChoices,
                 battleState: _battlePreviewState,
+                contentSource: PersonalizationPreviewContentSource.project,
+                contexts: previewContexts,
+                contextsLoading:
+                    previewContextState.isLoading && previewContexts.isEmpty,
+                contextsErrorMessage: previewContextState.hasError
+                    ? 'Les données du projet nécessaires à l’aperçu '
+                          'n’ont pas pu être chargées.'
+                    : null,
+                projectManifest: project,
+                resolveTilesetPath: notifier.getTilesetAbsolutePathById,
                 onTargeted: (target) {
                   setState(() {
                     _selectedScene = _sceneForInspectorTarget(target);
@@ -2108,6 +2119,26 @@ PersonalizationCharacterPreviewOption? _resolveDialogueCharacter(
   }
   return options.first;
 }
+
+List<PersonalizationCharacterPreviewOption> _characterOptionsFromContexts(
+  List<PersonalizationPreviewContextOption> contexts,
+) => List.unmodifiable(
+  contexts
+      .where(
+        (context) =>
+            context.kind == PersonalizationPreviewContextKind.characterPortrait,
+      )
+      .map(
+        (context) => PersonalizationCharacterPreviewOption(
+          characterId: context.sourceId,
+          displayName:
+              context.detail['characterName'] as String? ?? context.label,
+          portraitPath: context.detail['portraitPath'] as String?,
+          expressionId: context.detail['portraitStateId'] as String?,
+          portraitBytes: context.mediaBytes,
+        ),
+      ),
+);
 
 PersonalizationInspectorTarget _targetForCategory(
   ProjectPresentationCategory category,

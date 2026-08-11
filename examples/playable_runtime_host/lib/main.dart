@@ -27,7 +27,6 @@ import 'src/runtime_demo_party_seed.dart';
 import 'src/runtime_gamepad_bridge.dart';
 import 'src/runtime_gamepad_presence.dart';
 import 'src/runtime_ios_project_picker.dart';
-import 'src/runtime_battle_command_overlay_visibility.dart';
 import 'src/runtime_launch_save.dart';
 import 'src/runtime_launch_options.dart';
 import 'src/runtime_party_builder.dart';
@@ -1135,41 +1134,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     unawaited(_persistLastSession());
   }
 
-  bool _handleBattleCommandOverlayEntrySelected(
-    PlayableMapGame game,
-    BattleCommandOverlaySnapshot snapshot,
-    int index,
-  ) {
-    return switch (snapshot.mode) {
-      BattleCommandOverlayMode.root => game.selectBattleRootEntry(index),
-      BattleCommandOverlayMode.fight || BattleCommandOverlayMode.continueOnly =>
-        game.selectBattleChoiceEntry(index),
-      BattleCommandOverlayMode.bag => game.selectBattleBagEntry(index),
-      BattleCommandOverlayMode.pokemon => game.selectBattlePartyEntry(index),
-      BattleCommandOverlayMode.bagMedicineTarget =>
-        game.selectBattleMedicineTargetEntry(index),
-    };
-  }
-
-  Widget _buildBattleCommandOverlay(
-    PlayableMapGame game,
-    BattleCommandOverlaySnapshot snapshot,
-  ) {
-    return Positioned.fill(
-      child: BattleMobileCommandOverlay(
-        snapshot: snapshot,
-        onEntrySelected: (index) {
-          _handleBattleCommandOverlayEntrySelected(game, snapshot, index);
-        },
-        onBack: snapshot.canGoBack
-            ? () {
-                game.backFromBattleOverlay();
-              }
-            : null,
-      ),
-    );
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final startupHost = _startupHost;
@@ -1335,6 +1299,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
             gameplayInputAuthority: game.inputAuthorityListenable,
             dialoguePresentation: game.dialoguePresentationListenable,
             onDialogueCommand: game.dispatchDialoguePresentationCommand,
+            battlePresentation: game.battleCommandOverlayListenable,
+            onBattleCommand: game.dispatchBattlePresentationCommand,
             touchControlsAvailable:
                 _supportsTouchControls && !_touchControlsHiddenByUser,
             controllerInputEnabled: false,
@@ -1415,22 +1381,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
             RepaintBoundary(
               key: _interactiveGameSurfaceKey,
               child: GameWidget(game: game),
-            ),
-            ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
-              valueListenable: game.battleCommandOverlayListenable,
-              builder: (context, snapshot, child) {
-                final showFlutterOverlay =
-                    shouldShowRuntimeBattleCommandOverlay(
-                      supportsTouchControls: _supportsTouchControls,
-                      hasConnectedGamepad: _hasConnectedGamepad,
-                      isBattleActive: game.isBattleUiActive,
-                      hasSnapshot: snapshot != null,
-                    );
-                if (!showFlutterOverlay || snapshot == null) {
-                  return const SizedBox.shrink();
-                }
-                return _buildBattleCommandOverlay(game, snapshot);
-              },
             ),
             if (_startupViewController == null &&
                 touchControlsVisibility.showControls)

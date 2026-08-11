@@ -19,6 +19,7 @@ final class PersonalizationPreviewContextOption {
     required this.availability,
     required Iterable<String> diagnosticCodes,
     required Map<String, Object?> detail,
+    this.mediaBytes,
   }) : diagnosticCodes = List.unmodifiable(diagnosticCodes),
        detail = Map.unmodifiable(detail);
 
@@ -62,6 +63,7 @@ final class PersonalizationPreviewContextOption {
   final String availability;
   final List<String> diagnosticCodes;
   final Map<String, Object?> detail;
+  final List<int>? mediaBytes;
 
   bool get isReady => availability == 'ready';
 }
@@ -107,15 +109,55 @@ final class AuthoringPersonalizationPreviewContextSource
       if (revision != pageRevision) {
         throw EditorAuthoringStaleSessionException();
       }
-      contexts.addAll(
-        rawItems.map(
-          (raw) => PersonalizationPreviewContextOption.fromJson(
-            Map<String, Object?>.from(raw! as Map),
-          ),
-        ),
-      );
+      for (final raw in rawItems) {
+        final option = PersonalizationPreviewContextOption.fromJson(
+          Map<String, Object?>.from(raw! as Map),
+        );
+        contexts.add(_enrich(session, option));
+      }
       cursor = page['nextCursor'] as String?;
     } while (cursor != null);
     return List.unmodifiable(contexts);
+  }
+
+  PersonalizationPreviewContextOption _enrich(
+    EditorAuthoringReadSession session,
+    PersonalizationPreviewContextOption option,
+  ) {
+    final detail = <String, Object?>{...option.detail};
+    List<int>? mediaBytes;
+    switch (option.kind) {
+      case PersonalizationPreviewContextKind.dialogue:
+        final page = session.query(
+          AuthoringQueryRequest(
+            resourceKind: 'dialogue',
+            operation: AuthoringQueryOperation.get,
+            view: AuthoringQueryView.detail,
+            ids: <String>[option.sourceId],
+          ),
+        );
+        detail['dialogue'] = (page['items']! as List<Object?>).single;
+        break;
+      case PersonalizationPreviewContextKind.characterPortrait:
+        if (option.detail['portraitPath'] != null) {
+          mediaBytes = session.assetBytes(
+            option.detail['portraitAssetId']! as String,
+          );
+        }
+        break;
+      case PersonalizationPreviewContextKind.map:
+      case PersonalizationPreviewContextKind.encounter:
+        break;
+    }
+    return PersonalizationPreviewContextOption(
+      id: option.id,
+      kind: option.kind,
+      sourceId: option.sourceId,
+      label: option.label,
+      availability: option.availability,
+      diagnosticCodes: option.diagnosticCodes,
+      detail: detail,
+      mediaBytes: mediaBytes,
+    );
   }
 }
