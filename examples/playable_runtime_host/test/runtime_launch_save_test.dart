@@ -115,6 +115,7 @@ void main() {
     test('loads a versioned launch save adjacent to project.json', () async {
       await File('${root.path}/$kRuntimeHostLaunchSaveFileName').writeAsString(
         const JsonEncoder.withIndent('  ').convert(<String, dynamic>{
+          'itemSystemSchemaVersion': 1,
           'saveId': 'phase-a-save',
           'currentMapId': 'golden_field',
           'playerPosition': <String, int>{'x': 1, 'y': 1},
