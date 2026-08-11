@@ -161,8 +161,11 @@ void main() {
       expect(state.narrativeFactRuntimeState.overridesByFactId, isEmpty);
     });
 
-    test('old SaveData JSON without the subtree loads empty', () {
-      final save = SaveData.fromJson({'saveId': 'legacy_save_data'});
+    test('current SaveData JSON without the subtree loads empty', () {
+      final save = SaveData.fromJson({
+        'saveId': 'save_data_without_fact_state',
+        'itemSystemSchemaVersion': 1,
+      });
 
       expect(save.narrativeFactRuntimeState.overridesByFactId, isEmpty);
     });
@@ -178,6 +181,7 @@ void main() {
       expect(
         () => SaveData.fromJson({
           'saveId': 'invalid_save_data',
+          'itemSystemSchemaVersion': 1,
           'narrativeFactRuntimeState': null,
         }),
         throwsFormatException,

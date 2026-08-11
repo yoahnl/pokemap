@@ -434,8 +434,8 @@ void main() {
     test('serialization round-trip', () {
       const bag = Bag(
         entries: [
-          BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 10),
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          BagEntry(itemId: 'poke-ball', quantity: 10),
+          BagEntry(itemId: 'potion', quantity: 3),
         ],
       );
 
@@ -448,24 +448,24 @@ void main() {
     test('normalized entries merge duplicates deterministically', () {
       const bag = Bag(
         entries: [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
-          BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          BagEntry(itemId: 'potion', quantity: 2),
+          BagEntry(itemId: 'poke-ball', quantity: 5),
+          BagEntry(itemId: 'potion', quantity: 3),
         ],
       );
 
       final normalized = bag.normalized();
 
       expect(normalized.entries, [
-        const BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
-        const BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 5),
+        const BagEntry(itemId: 'poke-ball', quantity: 5),
+        const BagEntry(itemId: 'potion', quantity: 5),
       ]);
     });
 
     test('normalized rejects non-positive quantities', () {
       const bag = Bag(
         entries: [
-          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 0),
+          BagEntry(itemId: 'potion', quantity: 0),
         ],
       );
 
@@ -497,7 +497,7 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+            BagEntry(itemId: 'poke-ball', quantity: 5),
           ],
         ),
         progression: PlayerProgression(

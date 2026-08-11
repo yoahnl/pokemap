@@ -594,6 +594,29 @@ abstract class TrainerProfile with _$TrainerProfile {
   }
 }
 
+const currentItemSystemSaveSchemaVersion = 1;
+const maximumBagEntryQuantity = 0x7fffffffffffffff;
+
+final class UnsupportedSaveSchema implements Exception {
+  const UnsupportedSaveSchema({
+    required this.schemaVersion,
+    required this.expectedSchemaVersion,
+    required this.path,
+  });
+
+  final Object? schemaVersion;
+  final int expectedSchemaVersion;
+  final String path;
+
+  String get code => 'UnsupportedSaveSchema';
+
+  @override
+  String toString() {
+    return 'UnsupportedSaveSchema(schemaVersion: $schemaVersion, '
+        'expectedSchemaVersion: $expectedSchemaVersion, path: $path)';
+  }
+}
+
 @freezed
 abstract class BagEntry with _$BagEntry {
   const BagEntry._();
@@ -601,7 +624,6 @@ abstract class BagEntry with _$BagEntry {
   @JsonSerializable(explicitToJson: true)
   const factory BagEntry({
     required String itemId,
-    required String categoryId,
     required int quantity,
   }) = _BagEntry;
 
@@ -610,42 +632,40 @@ abstract class BagEntry with _$BagEntry {
 
   BagEntry normalized() {
     final normalizedItemId = itemId.trim();
-    final normalizedCategoryId = categoryId.trim();
 
     if (normalizedItemId.isEmpty) {
       throw StateError('BagEntry itemId must not be empty');
     }
-    if (normalizedCategoryId.isEmpty) {
-      throw StateError('BagEntry categoryId must not be empty');
-    }
     if (quantity <= 0) {
       throw StateError('BagEntry quantity must be positive');
     }
+    if (quantity > maximumBagEntryQuantity) {
+      throw StateError(
+        'BagEntry quantity exceeds $maximumBagEntryQuantity',
+      );
+    }
 
-    return copyWith(
-      itemId: normalizedItemId,
-      categoryId: normalizedCategoryId,
-    );
+    return copyWith(itemId: normalizedItemId);
   }
 }
 
 List<BagEntry> _normalizeBagEntries(List<BagEntry> entries) {
   final merged = <String, BagEntry>{};
   for (final entry in entries.map((entry) => entry.normalized())) {
-    final key = '${entry.categoryId}\u0000${entry.itemId}';
-    final current = merged[key];
-    merged[key] = current == null
+    final current = merged[entry.itemId];
+    if (current != null &&
+        current.quantity > maximumBagEntryQuantity - entry.quantity) {
+      throw StateError(
+        'BagEntry quantity for ${entry.itemId} exceeds '
+        '$maximumBagEntryQuantity',
+      );
+    }
+    merged[entry.itemId] = current == null
         ? entry
         : current.copyWith(quantity: current.quantity + entry.quantity);
   }
   final normalized = merged.values.toList(growable: false)
-    ..sort((a, b) {
-      final byCategory = a.categoryId.compareTo(b.categoryId);
-      if (byCategory != 0) {
-        return byCategory;
-      }
-      return a.itemId.compareTo(b.itemId);
-    });
+    ..sort((a, b) => a.itemId.compareTo(b.itemId));
   return List.unmodifiable(normalized);
 }
 
@@ -670,6 +690,8 @@ abstract class SaveData with _$SaveData {
   @JsonSerializable(explicitToJson: true)
   const factory SaveData({
     required String saveId,
+    @Default(currentItemSystemSaveSchemaVersion)
+    int itemSystemSchemaVersion,
     @Default('') String currentMapId,
     @Default(GridPos(x: 0, y: 0)) GridPos playerPosition,
     @Default(EntityFacing.south) EntityFacing playerFacing,
@@ -690,8 +712,7 @@ abstract class SaveData with _$SaveData {
     @Default({}) Map<String, String> properties,
   }) = _SaveData;
 
-  factory SaveData.fromJson(Map<String, dynamic> json) =>
-      _$SaveDataFromJson(json);
+  factory SaveData.fromJson(Map<String, dynamic> json) => _decodeSaveData(json);
 
   SaveData normalized() {
     final normalizedSaveId = saveId.trim();
@@ -699,6 +720,13 @@ abstract class SaveData with _$SaveData {
 
     if (normalizedSaveId.isEmpty) {
       throw StateError('SaveData saveId must not be empty');
+    }
+    if (itemSystemSchemaVersion != currentItemSystemSaveSchemaVersion) {
+      throw UnsupportedSaveSchema(
+        schemaVersion: itemSystemSchemaVersion,
+        expectedSchemaVersion: currentItemSystemSaveSchemaVersion,
+        path: r'$.itemSystemSchemaVersion',
+      );
     }
 
     return copyWith(
@@ -714,4 +742,39 @@ abstract class SaveData with _$SaveData {
       properties: _normalizeStringMap(properties),
     );
   }
+}
+
+void _validateItemSystemSaveSchema(Map<String, dynamic> json) {
+  final schemaVersion = json['itemSystemSchemaVersion'];
+  if (schemaVersion != currentItemSystemSaveSchemaVersion) {
+    throw UnsupportedSaveSchema(
+      schemaVersion: schemaVersion,
+      expectedSchemaVersion: currentItemSystemSaveSchemaVersion,
+      path: r'$.itemSystemSchemaVersion',
+    );
+  }
+
+  final bag = json['bag'];
+  if (bag is! Map<String, dynamic>) {
+    return;
+  }
+  final entries = bag['entries'];
+  if (entries is! List<Object?>) {
+    return;
+  }
+  for (var index = 0; index < entries.length; index += 1) {
+    final entry = entries[index];
+    if (entry is Map<String, dynamic> && entry.containsKey('categoryId')) {
+      throw UnsupportedSaveSchema(
+        schemaVersion: schemaVersion,
+        expectedSchemaVersion: currentItemSystemSaveSchemaVersion,
+        path: '\$.bag.entries[$index].categoryId',
+      );
+    }
+  }
+}
+
+SaveData _decodeSaveData(Map<String, dynamic> json) {
+  _validateItemSystemSaveSchema(json);
+  return _$SaveDataFromJson(json);
 }

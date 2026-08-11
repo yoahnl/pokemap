@@ -495,7 +495,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-020 — Définir l’identité logique d’une pile
 
-- [ ] **Résultat :** toutes les opérations gameplay identifient une pile par itemId.
+- [x] **Résultat :** toutes les opérations gameplay identifient une pile par itemId.
 - **Fichiers à modifier :**
   - packages/map_core/lib/src/models/save_data.dart
   - fichiers générés associés à save_data.dart
@@ -510,6 +510,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
   - overflow de quantité rejeté.
 - **Gate :** aucune quantité n’est perdue pendant la normalisation.
 - **Dépendances :** ITM-011.
+
+**Preuves ITM-020 :** les 6 tests dédiés et les 65 tests cumulés du Bag, de `SaveData`, de la persistance et du New Game passent. `BagEntry` ne persiste plus que `itemId` et `quantity`, la normalisation fusionne et trie par `itemId`, et tout dépassement de l'int64 signé est refusé avant addition. `SaveData` écrit obligatoirement `itemSystemSchemaVersion: 1` et rejette par `UnsupportedSaveSchema` une version absente ou toute entrée contenant encore `categoryId`. L'analyse ciblée des cinq fichiers source/test concernés ne remonte aucune issue. La suite complète `map_core` a dépassé la limite d'exécution de 120 secondes sans fournir de verdict ; elle n'est donc pas comptée comme preuve de ce lot.
 
 ### ITM-021 — BagOperations et receipts atomiques
 

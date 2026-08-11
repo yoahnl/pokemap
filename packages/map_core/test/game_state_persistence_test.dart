@@ -103,7 +103,7 @@ void main() {
         ),
         bag: Bag(
           entries: [
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 3),
           ],
         ),
         progression: PlayerProgression(
@@ -174,8 +174,8 @@ void main() {
         ),
         bag: const Bag(
           entries: [
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+            BagEntry(itemId: 'potion', quantity: 2),
+            BagEntry(itemId: 'poke-ball', quantity: 5),
           ],
         ),
         progression: const PlayerProgression(
