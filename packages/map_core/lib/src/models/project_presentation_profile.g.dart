@@ -139,6 +139,11 @@ _ProjectTypographyRoleProfile _$ProjectTypographyRoleProfileFromJson(
           ?.map((e) => e as String)
           .toList() ??
       const <String>[],
+  metrics: json['metrics'] == null
+      ? null
+      : ProjectTypographyMetricsProfile.fromJson(
+          json['metrics'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectTypographyRoleProfileToJson(
@@ -150,6 +155,7 @@ Map<String, dynamic> _$ProjectTypographyRoleProfileToJson(
   'redistributable': instance.redistributable,
   'fallbackFamilies': instance.fallbackFamilies,
   'glyphCoverage': instance.glyphCoverage,
+  'metrics': ?instance.metrics?.toJson(),
 };
 
 _ProjectTypographyProfile _$ProjectTypographyProfileFromJson(
@@ -293,6 +299,11 @@ _ProjectPresentationProfile _$ProjectPresentationProfileFromJson(
       : ProjectSemanticThemeProfile.fromJson(
           json['theme'] as Map<String, dynamic>,
         ),
+  surfacePalettes: json['surfacePalettes'] == null
+      ? null
+      : ProjectPresentationSurfacePalettesProfile.fromJson(
+          json['surfacePalettes'] as Map<String, dynamic>,
+        ),
   menuLabels: json['menuLabels'] == null
       ? null
       : ProjectMenuLabelsProfile.fromJson(
@@ -319,6 +330,7 @@ Map<String, dynamic> _$ProjectPresentationProfileToJson(
   'titleMotion': ?instance.titleMotion?.toJson(),
   'typography': ?instance.typography?.toJson(),
   'theme': ?instance.theme?.toJson(),
+  'surfacePalettes': ?instance.surfacePalettes?.toJson(),
   'menuLabels': ?instance.menuLabels?.toJson(),
   'windows': ?instance.windows?.toJson(),
   'layouts': ?instance.layouts?.toJson(),

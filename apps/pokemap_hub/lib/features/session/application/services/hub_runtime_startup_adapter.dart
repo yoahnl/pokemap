@@ -39,6 +39,7 @@ final class HubRuntimeStartupAdapter
     final titleMotion = presentation?.titleMotion;
     final typography = presentation?.typography;
     final theme = presentation?.theme;
+    final surfacePalettes = presentation?.surfacePalettes;
     final menuLabels = presentation?.menuLabels;
     final windows = presentation?.windows;
     final layouts = presentation?.layouts;
@@ -47,6 +48,7 @@ final class HubRuntimeStartupAdapter
         titleMotion == null &&
         typography == null &&
         theme == null &&
+        surfacePalettes == null &&
         menuLabels == null &&
         windows == null &&
         layouts == null) {
@@ -110,6 +112,14 @@ final class HubRuntimeStartupAdapter
               overworldHudSurface: theme.overworldHudSurface,
               battleHudSurface: theme.battleHudSurface,
             ),
+      surfacePalettes: surfacePalettes == null
+          ? null
+          : ProjectPresentationSurfacePalettesProfile(
+              title: _projectSurfacePalette(surfacePalettes.title),
+              pauseMenu: _projectSurfacePalette(surfacePalettes.pauseMenu),
+              dialogue: _projectSurfacePalette(surfacePalettes.dialogue),
+              battle: _projectSurfacePalette(surfacePalettes.battle),
+            ),
       menuLabels: menuLabels == null
           ? null
           : ProjectMenuLabelsProfile(
@@ -136,6 +146,8 @@ final class HubRuntimeStartupAdapter
                     cornerRadius: style.cornerRadius,
                     contentPadding: style.contentPadding,
                     shadowElevation: style.shadowElevation,
+                    shape: ProjectWindowShape.values.byName(style.shape),
+                    fillOpacity: style.fillOpacity,
                   ),
               ],
               defaultStyleId: windows.defaultStyleId,
@@ -186,7 +198,28 @@ final class HubRuntimeStartupAdapter
         family: role.family,
         licensePath: role.license,
         fallbackFamilies: role.fallbackFamilies,
+        metrics: role.metrics == null
+            ? null
+            : ProjectTypographyMetricsProfile(
+                sizeScale: role.metrics!.sizeScale,
+                weight: role.metrics!.weight,
+                lineHeight: role.metrics!.lineHeight,
+                letterSpacing: role.metrics!.letterSpacing,
+              ),
       );
+
+  ProjectSurfacePaletteProfile? _projectSurfacePalette(
+    GamePackageSurfacePalette? source,
+  ) => source == null
+      ? null
+      : ProjectSurfacePaletteProfile(
+          background: source.background,
+          surface: source.surface,
+          border: source.border,
+          text: source.text,
+          accent: source.accent,
+          selection: source.selection,
+        );
 
   ProjectResponsiveVideoProfile _projectMedia(
     GamePackageResponsiveVideo media,

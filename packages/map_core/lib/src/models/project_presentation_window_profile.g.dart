@@ -16,6 +16,10 @@ _ProjectWindowStyleProfile _$ProjectWindowStyleProfileFromJson(
   cornerRadius: (json['cornerRadius'] as num).toInt(),
   contentPadding: (json['contentPadding'] as num).toInt(),
   shadowElevation: (json['shadowElevation'] as num).toInt(),
+  shape:
+      $enumDecodeNullable(_$ProjectWindowShapeEnumMap, json['shape']) ??
+      ProjectWindowShape.rounded,
+  fillOpacity: (json['fillOpacity'] as num?)?.toDouble() ?? 1,
 );
 
 Map<String, dynamic> _$ProjectWindowStyleProfileToJson(
@@ -28,6 +32,16 @@ Map<String, dynamic> _$ProjectWindowStyleProfileToJson(
   'cornerRadius': instance.cornerRadius,
   'contentPadding': instance.contentPadding,
   'shadowElevation': instance.shadowElevation,
+  'shape': _$ProjectWindowShapeEnumMap[instance.shape]!,
+  'fillOpacity': instance.fillOpacity,
+};
+
+const _$ProjectWindowShapeEnumMap = {
+  ProjectWindowShape.rectangle: 'rectangle',
+  ProjectWindowShape.rounded: 'rounded',
+  ProjectWindowShape.capsule: 'capsule',
+  ProjectWindowShape.cutCorner: 'cutCorner',
+  ProjectWindowShape.speech: 'speech',
 };
 
 _ProjectPresentationWindowsProfile _$ProjectPresentationWindowsProfileFromJson(

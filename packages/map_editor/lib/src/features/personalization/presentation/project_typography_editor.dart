@@ -3,6 +3,12 @@ import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/design_system.dart';
 
+typedef ProjectTypographyMetricsChanged =
+    void Function(
+      ProjectTypographyRole role,
+      ProjectTypographyMetricsProfile metrics,
+    );
+
 /// No-code typography editor with live loaded-font previews.
 class ProjectTypographyEditor extends StatelessWidget {
   const ProjectTypographyEditor({
@@ -15,6 +21,8 @@ class ProjectTypographyEditor extends StatelessWidget {
     this.fixedRole,
     this.onImportCommonFont,
     this.onUseSystemCommonFont,
+    this.onMetricsChanged,
+    this.onCommonMetricsChanged,
   });
 
   final ProjectTypographyProfile profile;
@@ -25,6 +33,8 @@ class ProjectTypographyEditor extends StatelessWidget {
   final ProjectTypographyRole? fixedRole;
   final VoidCallback? onImportCommonFont;
   final VoidCallback? onUseSystemCommonFont;
+  final ProjectTypographyMetricsChanged? onMetricsChanged;
+  final ValueChanged<ProjectTypographyMetricsProfile>? onCommonMetricsChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +64,9 @@ class ProjectTypographyEditor extends StatelessWidget {
             previewFamily: previewFamilies[role],
             onImport: () => onImportRole(role),
             onUseSystem: () => onUseSystemFont(role),
+            onMetricsChanged: onMetricsChanged == null
+                ? null
+                : (metrics) => onMetricsChanged!(role, metrics),
           ),
         ],
       );
@@ -64,6 +77,7 @@ class ProjectTypographyEditor extends StatelessWidget {
             previewFamily: previewFamilies[ProjectTypographyRole.body],
             onImport: onImportCommonFont,
             onUseSystem: onUseSystemCommonFont,
+            onMetricsChanged: onCommonMetricsChanged,
           )
         : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -82,6 +96,9 @@ class ProjectTypographyEditor extends StatelessWidget {
                   previewFamily: previewFamilies[role],
                   onImport: () => onImportRole(role),
                   onUseSystem: () => onUseSystemFont(role),
+                  onMetricsChanged: onMetricsChanged == null
+                      ? null
+                      : (metrics) => onMetricsChanged!(role, metrics),
                 ),
                 if (role != ProjectTypographyRole.values.last)
                   const SizedBox(height: 12),
@@ -97,12 +114,14 @@ class _CommonTypographyEditor extends StatelessWidget {
     required this.previewFamily,
     required this.onImport,
     required this.onUseSystem,
+    required this.onMetricsChanged,
   });
 
   final ProjectTypographyProfile profile;
   final String? previewFamily;
   final VoidCallback? onImport;
   final VoidCallback? onUseSystem;
+  final ValueChanged<ProjectTypographyMetricsProfile>? onMetricsChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +166,12 @@ class _CommonTypographyEditor extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
+              _TypographyMetricsEditor(
+                roleKey: 'common',
+                metrics: profile.body.metrics,
+                onChanged: onMetricsChanged,
+              ),
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -184,6 +209,7 @@ class _RoleEditor extends StatelessWidget {
     required this.previewFamily,
     required this.onImport,
     required this.onUseSystem,
+    required this.onMetricsChanged,
   });
 
   final ProjectTypographyRole role;
@@ -191,10 +217,12 @@ class _RoleEditor extends StatelessWidget {
   final String? previewFamily;
   final VoidCallback onImport;
   final VoidCallback onUseSystem;
+  final ValueChanged<ProjectTypographyMetricsProfile>? onMetricsChanged;
 
   @override
   Widget build(BuildContext context) {
     final custom = profile.fontPath != null;
+    final metrics = profile.metrics ?? const ProjectTypographyMetricsProfile();
     return PokeMapPanel(
       header: Padding(
         padding: const EdgeInsets.all(16),
@@ -227,10 +255,12 @@ class _RoleEditor extends StatelessWidget {
               style: TextStyle(
                 fontFamily: previewFamily,
                 fontFamilyFallback: profile.fallbackFamilies,
-                fontSize: role == ProjectTypographyRole.display ? 28 : 17,
-                fontWeight: role == ProjectTypographyRole.display
-                    ? FontWeight.w700
-                    : FontWeight.w400,
+                fontSize:
+                    (role == ProjectTypographyRole.display ? 28 : 17) *
+                    metrics.sizeScale,
+                fontWeight: FontWeight.values[(metrics.weight ~/ 100) - 1],
+                height: metrics.lineHeight,
+                letterSpacing: metrics.letterSpacing,
               ),
             ),
           ),
@@ -258,6 +288,12 @@ class _RoleEditor extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          _TypographyMetricsEditor(
+            roleKey: role.name,
+            metrics: profile.metrics,
+            onChanged: onMetricsChanged,
+          ),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -280,6 +316,122 @@ class _RoleEditor extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TypographyMetricsEditor extends StatelessWidget {
+  const _TypographyMetricsEditor({
+    required this.roleKey,
+    required this.metrics,
+    required this.onChanged,
+  });
+
+  final String roleKey;
+  final ProjectTypographyMetricsProfile? metrics;
+  final ValueChanged<ProjectTypographyMetricsProfile>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = metrics ?? const ProjectTypographyMetricsProfile();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          'Réglages du texte',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            SizedBox(
+              width: 176,
+              child: PokeMapDropdownField<double>(
+                key: ValueKey<String>('typography-size-$roleKey'),
+                label: 'Taille',
+                value: value.sizeScale,
+                enabled: onChanged != null,
+                items: <PokeMapDropdownItem<double>>[
+                  for (final scale in const <double>[
+                    .75,
+                    .9,
+                    1,
+                    1.1,
+                    1.25,
+                    1.5,
+                    1.75,
+                  ])
+                    PokeMapDropdownItem<double>(
+                      value: scale,
+                      label: '${(scale * 100).round()} %',
+                    ),
+                ],
+                onChanged: (next) =>
+                    onChanged!(value.copyWith(sizeScale: next)),
+              ),
+            ),
+            SizedBox(
+              width: 176,
+              child: PokeMapDropdownField<int>(
+                key: ValueKey<String>('typography-weight-$roleKey'),
+                label: 'Graisse',
+                value: value.weight,
+                enabled: onChanged != null,
+                items: <PokeMapDropdownItem<int>>[
+                  for (final weight in supportedProjectTypographyWeights)
+                    PokeMapDropdownItem<int>(value: weight, label: '$weight'),
+                ],
+                onChanged: (next) => onChanged!(value.copyWith(weight: next)),
+              ),
+            ),
+            SizedBox(
+              width: 176,
+              child: PokeMapDropdownField<double>(
+                key: ValueKey<String>('typography-line-height-$roleKey'),
+                label: 'Interligne',
+                value: value.lineHeight,
+                enabled: onChanged != null,
+                items: <PokeMapDropdownItem<double>>[
+                  for (final height in const <double>[
+                    1,
+                    1.15,
+                    1.25,
+                    1.4,
+                    1.6,
+                    1.8,
+                  ])
+                    PokeMapDropdownItem<double>(
+                      value: height,
+                      label: '$height×',
+                    ),
+                ],
+                onChanged: (next) =>
+                    onChanged!(value.copyWith(lineHeight: next)),
+              ),
+            ),
+            SizedBox(
+              width: 176,
+              child: PokeMapDropdownField<double>(
+                key: ValueKey<String>('typography-spacing-$roleKey'),
+                label: 'Espacement',
+                value: value.letterSpacing,
+                enabled: onChanged != null,
+                items: <PokeMapDropdownItem<double>>[
+                  for (final spacing in const <double>[-1, 0, .5, 1, 2, 4])
+                    PokeMapDropdownItem<double>(
+                      value: spacing,
+                      label: '${spacing}px',
+                    ),
+                ],
+                onChanged: (next) =>
+                    onChanged!(value.copyWith(letterSpacing: next)),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

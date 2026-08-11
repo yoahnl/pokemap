@@ -15,6 +15,7 @@ class PersonalizationPauseInspector extends StatelessWidget {
     required this.onLayoutsChanged,
     required this.onImportCommonFont,
     required this.onUseSystemCommonFont,
+    this.onCommonMetricsChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
 
@@ -24,6 +25,7 @@ class PersonalizationPauseInspector extends StatelessWidget {
   final ValueChanged<ProjectPresentationLayoutsProfile?> onLayoutsChanged;
   final VoidCallback onImportCommonFont;
   final VoidCallback onUseSystemCommonFont;
+  final ValueChanged<ProjectTypographyMetricsProfile>? onCommonMetricsChanged;
   final Map<ProjectTypographyRole, String> previewFamilies;
 
   @override
@@ -53,6 +55,7 @@ class PersonalizationPauseInspector extends StatelessWidget {
         onUseSystemFont: (_) {},
         onImportCommonFont: onImportCommonFont,
         onUseSystemCommonFont: onUseSystemCommonFont,
+        onCommonMetricsChanged: onCommonMetricsChanged,
       ),
       const SizedBox(height: 18),
       ProjectMenuLabelsEditor(

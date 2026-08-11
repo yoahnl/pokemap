@@ -35,13 +35,23 @@ void main() {
     expect(profile?.intro?.allowReplay, isTrue);
     expect(profile?.typography?.display.fontPath, 'presentation/display.ttf');
     expect(profile?.typography?.display.family, 'Train Display');
+    expect(profile?.typography?.display.metrics?.sizeScale, 1.25);
     expect(profile?.typography?.combat?.family, 'Train Combat');
     expect(profile?.theme?.titleSurface, '#D9F4F6');
+    expect(profile?.surfacePalettes?.title?.surface, '#102030');
     expect(profile?.menuLabels?.pauseTitle, 'Interlude');
     expect(profile?.menuLabels?.pokedex, 'Carnet');
     expect(
       profile?.windows?.resolve(ProjectWindowRole.pauseMenu).cornerRadius,
       24,
+    );
+    expect(
+      profile?.windows?.resolve(ProjectWindowRole.pauseMenu).shape,
+      ProjectWindowShape.cutCorner,
+    );
+    expect(
+      profile?.windows?.resolve(ProjectWindowRole.pauseMenu).fillOpacity,
+      .8,
     );
     expect(profile?.windows?.pauseBackdropOpacity, .8);
     expect(
@@ -121,7 +131,7 @@ final _manifest = GamePackageManifest(
     supported: const <String>['fr'],
   ),
   presentation: GamePackagePresentation(
-    schemaVersion: 5,
+    schemaVersion: 6,
     branding: const GamePackageBranding(
       icon: 'presentation/icon.png',
       hero: 'presentation/hero.png',
@@ -146,6 +156,12 @@ final _manifest = GamePackageManifest(
         font: 'presentation/display.ttf',
         family: 'Train Display',
         fallbackFamilies: <String>['serif'],
+        metrics: GamePackageTypographyMetrics(
+          sizeScale: 1.25,
+          weight: 700,
+          lineHeight: 1.1,
+          letterSpacing: .5,
+        ),
       ),
       combat: GamePackageFontRole(
         family: 'Train Combat',
@@ -170,6 +186,16 @@ final _manifest = GamePackageManifest(
       overworldHudSurface: '#FFFFFF',
       battleHudSurface: '#FFFFFF',
     ),
+    surfacePalettes: const GamePackagePresentationSurfacePalettes(
+      title: GamePackageSurfacePalette(
+        background: '#081018',
+        surface: '#102030',
+        border: '#63E6FF',
+        text: '#FFFFFF',
+        accent: '#63E6FF',
+        selection: '#FFD166',
+      ),
+    ),
     menuLabels: const GamePackageMenuLabels(
       pauseTitle: 'Interlude',
       pokedex: 'Carnet',
@@ -193,6 +219,8 @@ final _manifest = GamePackageManifest(
           cornerRadius: 24,
           contentPadding: 20,
           shadowElevation: 12,
+          shape: 'cutCorner',
+          fillOpacity: .8,
         ),
         GamePackageWindowStyle(
           id: 'dialogue',

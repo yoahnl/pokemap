@@ -860,7 +860,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     const presentationKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationProfile",
     );
-    assert.equal(Number(presentationKind?.version), 5);
+    assert.equal(Number(presentationKind?.version), 6);
     const presetKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationPreset",
     );
@@ -885,7 +885,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       actionId: "presentation.update",
       parameters: {
         profile: {
-          schemaVersion: 5,
+          schemaVersion: 6,
           branding: { accentColor: "#126E78" },
           menuLabels: {
             pauseTitle: "Escale",
@@ -910,6 +910,8 @@ test("MCP applies and rereads the authored presentation profile", async () => {
                 cornerRadius: 24,
                 contentPadding: 20,
                 shadowElevation: 12,
+                shape: "cutCorner",
+                fillOpacity: 0.8,
               },
               {
                 id: "dialogue",
@@ -962,6 +964,20 @@ test("MCP applies and rereads the authored presentation profile", async () => {
             combat: {
               family: "Battle Mono",
               fallbackFamilies: ["sans-serif"],
+              metrics: {
+                sizeScale: 1.1,
+                weight: 600,
+                lineHeight: 1.25,
+                letterSpacing: 0.5,
+              },
+            },
+          },
+          surfacePalettes: {
+            battle: {
+              surface: "#102030",
+              border: "#63E6FF",
+              text: "#FFFFFF",
+              accent: "#63E6FF",
             },
           },
         },
@@ -996,6 +1012,26 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.equal(
       record(record(record(project.presentation).typography).combat).family,
       "Battle Mono",
+    );
+    assert.equal(
+      record(
+        record(record(record(project.presentation).typography).combat).metrics,
+      ).sizeScale,
+      1.1,
+    );
+    assert.equal(
+      record(
+        record(record(project.presentation).surfacePalettes).battle,
+      ).surface,
+      "#102030",
+    );
+    assert.equal(
+      record(
+        (record(record(project.presentation).windows).styles as unknown[]).find(
+          (style) => record(style).id === "pause-menu",
+        ),
+      ).shape,
+      "cutCorner",
     );
     assert.equal(
       record(

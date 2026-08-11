@@ -96,7 +96,7 @@ void main() {
       'Aube Display',
     );
     expect(built.manifest.presentation?.theme?.overworldHudSurface, '#FFFFFF');
-    expect(built.manifest.presentation?.schemaVersion, 5);
+    expect(built.manifest.presentation?.schemaVersion, 6);
     expect(
       built.manifest.presentation?.windows?.pauseMenuStyleId,
       'pause-menu',

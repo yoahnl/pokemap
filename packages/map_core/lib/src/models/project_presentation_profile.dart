@@ -6,6 +6,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'project_presentation_layout_profile.dart';
 import 'project_presentation_surface_role.dart';
+import 'project_presentation_visual_profile.dart';
 import 'project_presentation_window_profile.dart';
 
 part 'project_presentation_profile.freezed.dart';
@@ -170,6 +171,7 @@ abstract class ProjectTypographyRoleProfile
     @Default(false) bool redistributable,
     @Default(<String>['sans-serif']) List<String> fallbackFamilies,
     @Default(<String>[]) List<String> glyphCoverage,
+    @JsonKey(includeIfNull: false) ProjectTypographyMetricsProfile? metrics,
   }) = _ProjectTypographyRoleProfile;
 
   factory ProjectTypographyRoleProfile.fromJson(Map<String, dynamic> json) =>
@@ -263,6 +265,8 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
     @JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,
     @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
     @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,
+    @JsonKey(includeIfNull: false)
+    ProjectPresentationSurfacePalettesProfile? surfacePalettes,
     @JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,
     @JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? windows,
     @JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? layouts,
@@ -273,7 +277,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         _migrateProjectPresentationProfileJson(json),
       );
 
-  static const int supportedSchemaVersion = 5;
+  static const int supportedSchemaVersion = 6;
 
   ProjectPresentationWindowsProfile get effectiveWindows =>
       windows ?? legacyProjectPresentationWindows;
@@ -284,7 +288,10 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
           ProjectPresentationCategory.branding,
         if (intro != null) ProjectPresentationCategory.intro,
         if (typography != null) ProjectPresentationCategory.typography,
-        if (theme != null || menuLabels != null || windows != null)
+        if (theme != null ||
+            surfacePalettes != null ||
+            menuLabels != null ||
+            windows != null)
           ProjectPresentationCategory.theme,
         if (layouts != null) ProjectPresentationCategory.layouts,
       };
@@ -316,6 +323,20 @@ const Set<String> requiredProjectFontGlyphCoverage = <String>{
 
 const double projectSemanticTextContrastRatio = 4.5;
 const double projectSemanticNonTextContrastRatio = 3;
+const double projectTypographyMinSizeScale = .75;
+const double projectTypographyMaxSizeScale = 1.75;
+const Set<int> supportedProjectTypographyWeights = <int>{
+  300,
+  400,
+  500,
+  600,
+  700,
+  800,
+};
+const double projectTypographyMinLineHeight = 1;
+const double projectTypographyMaxLineHeight = 1.8;
+const double projectTypographyMinLetterSpacing = -1;
+const double projectTypographyMaxLetterSpacing = 4;
 const int projectMenuLabelMaxLength = 32;
 
 const ProjectSemanticThemeProfile safeProjectSemanticTheme =
@@ -408,6 +429,11 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
   if (profile.theme case final theme?) {
     diagnostics.addAll(validateProjectSemanticTheme(theme));
   }
+  _validateSurfacePalettes(
+    profile.surfacePalettes,
+    profile.theme ?? safeProjectSemanticTheme,
+    diagnostics,
+  );
   _validateMenuLabels(profile.menuLabels, diagnostics);
   _validateWindows(
     profile.windows,
@@ -563,17 +589,22 @@ void _validateWindows(
         'Choose a semantic border token.',
       );
     }
+    final rawFill = supportedProjectWindowFillTokens.contains(style.fillToken)
+        ? _parseOpaqueProjectColor(_projectThemeToken(theme, style.fillToken))
+        : null;
+    final background = _parseOpaqueProjectColor(theme.background);
+    final fill = rawFill == null ||
+            background == null ||
+            !style.fillOpacity.isFinite
+        ? null
+        : _blendProjectColor(rawFill, background, style.fillOpacity);
     if (style.borderWidth > 0 &&
-        supportedProjectWindowFillTokens.contains(style.fillToken) &&
+        fill != null &&
         supportedProjectWindowBorderTokens.contains(style.borderToken)) {
-      final fill = _parseOpaqueProjectColor(
-        _projectThemeToken(theme, style.fillToken),
-      );
       final border = _parseOpaqueProjectColor(
         _projectThemeToken(theme, style.borderToken),
       );
-      if (fill != null &&
-          border != null &&
+      if (border != null &&
           _contrastRatio(border, fill) < projectSemanticNonTextContrastRatio) {
         _presentationError(
           diagnostics,
@@ -583,6 +614,18 @@ void _validateWindows(
           'Window borders must remain distinct from their surface.',
         );
       }
+    }
+    final text = _parseOpaqueProjectColor(theme.textPrimary);
+    if (fill != null &&
+        text != null &&
+        _contrastRatio(text, fill) < projectSemanticTextContrastRatio) {
+      _presentationError(
+        diagnostics,
+        'windowFillContrastInsufficient',
+        ProjectPresentationCategory.theme,
+        '$path.fillOpacity',
+        'Window text must remain readable over its composite fill.',
+      );
     }
     _validateWindowRange(
       diagnostics,
@@ -620,6 +663,15 @@ void _validateWindows(
       path: '$path.shadowElevation',
       message: 'Shadow elevation is outside the supported range.',
     );
+    _validateWindowRange(
+      diagnostics,
+      value: style.fillOpacity,
+      minimum: projectWindowMinFillOpacity,
+      maximum: projectWindowMaxFillOpacity,
+      code: 'windowFillOpacityOutOfRange',
+      path: '$path.fillOpacity',
+      message: 'Window fill opacity is outside the supported range.',
+    );
   }
   _validateWindowRange(
     diagnostics,
@@ -645,6 +697,40 @@ void _validateWindows(
       '\$.presentation.windows.${reference.field}',
       'Choose a window style that exists in this profile.',
     );
+  }
+  for (final assignment in <({ProjectWindowRole role, String styleId})>[
+    (role: ProjectWindowRole.standard, styleId: windows.defaultStyleId),
+    (role: ProjectWindowRole.pauseMenu, styleId: windows.pauseMenuStyleId),
+    (role: ProjectWindowRole.dialogue, styleId: windows.dialogueStyleId),
+    (
+      role: ProjectWindowRole.battle,
+      styleId: windows.battleStyleId ?? windows.defaultStyleId,
+    ),
+  ]) {
+    final style = windows.styles
+        .where((candidate) => candidate.id == assignment.styleId)
+        .firstOrNull;
+    if (style == null) continue;
+    if (style.shape == ProjectWindowShape.speech &&
+        assignment.role != ProjectWindowRole.dialogue) {
+      _presentationError(
+        diagnostics,
+        'windowSpeechShapeRoleUnsupported',
+        ProjectPresentationCategory.theme,
+        r'$.presentation.windows.styles',
+        'Speech windows are reserved for dialogue.',
+      );
+    }
+    if (style.shape == ProjectWindowShape.capsule &&
+        assignment.role != ProjectWindowRole.standard) {
+      _presentationError(
+        diagnostics,
+        'windowCapsuleShapeRoleUnsupported',
+        ProjectPresentationCategory.theme,
+        r'$.presentation.windows.styles',
+        'Capsule windows are reserved for single-line surfaces.',
+      );
+    }
   }
 }
 
@@ -861,6 +947,16 @@ double _contrastRatio(
   final darker = math.min(foregroundLuminance, backgroundLuminance);
   return (lighter + 0.05) / (darker + 0.05);
 }
+
+({double red, double green, double blue}) _blendProjectColor(
+  ({double red, double green, double blue}) foreground,
+  ({double red, double green, double blue}) background,
+  double opacity,
+) => (
+  red: foreground.red * opacity + background.red * (1 - opacity),
+  green: foreground.green * opacity + background.green * (1 - opacity),
+  blue: foreground.blue * opacity + background.blue * (1 - opacity),
+);
 
 double _relativeLuminance(({double red, double green, double blue}) color) =>
     0.2126 * _linearColorComponent(color.red) +
@@ -1216,6 +1312,44 @@ void _validateTypography(
       );
     }
 
+    final metrics = role.metrics;
+    if (metrics != null) {
+      if (!metrics.sizeScale.isFinite ||
+          metrics.sizeScale < projectTypographyMinSizeScale ||
+          metrics.sizeScale > projectTypographyMaxSizeScale) {
+        error(
+          'typographySizeScaleOutOfRange',
+          'metrics.sizeScale',
+          'Text size must stay between 75% and 175%.',
+        );
+      }
+      if (!supportedProjectTypographyWeights.contains(metrics.weight)) {
+        error(
+          'typographyWeightUnsupported',
+          'metrics.weight',
+          'Choose a supported font weight.',
+        );
+      }
+      if (!metrics.lineHeight.isFinite ||
+          metrics.lineHeight < projectTypographyMinLineHeight ||
+          metrics.lineHeight > projectTypographyMaxLineHeight) {
+        error(
+          'typographyLineHeightOutOfRange',
+          'metrics.lineHeight',
+          'Line height is outside the supported range.',
+        );
+      }
+      if (!metrics.letterSpacing.isFinite ||
+          metrics.letterSpacing < projectTypographyMinLetterSpacing ||
+          metrics.letterSpacing > projectTypographyMaxLetterSpacing) {
+        error(
+          'typographyLetterSpacingOutOfRange',
+          'metrics.letterSpacing',
+          'Letter spacing is outside the supported range.',
+        );
+      }
+    }
+
     if (role.fallbackFamilies.isEmpty ||
         role.fallbackFamilies.any((family) => family.trim().isEmpty)) {
       error(
@@ -1280,6 +1414,84 @@ void _validateTypography(
   }
 }
 
+void _validateSurfacePalettes(
+  ProjectPresentationSurfacePalettesProfile? palettes,
+  ProjectSemanticThemeProfile theme,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (palettes == null) return;
+  final entries = <String, ProjectSurfacePaletteProfile?>{
+    'title': palettes.title,
+    'pauseMenu': palettes.pauseMenu,
+    'dialogue': palettes.dialogue,
+    'battle': palettes.battle,
+  };
+  for (final entry in entries.entries) {
+    final palette = entry.value;
+    if (palette == null) continue;
+    final path = '\$.presentation.surfacePalettes.${entry.key}';
+    final inheritedSurface = switch (entry.key) {
+      'title' => theme.titleSurface,
+      'pauseMenu' => theme.menuSurface,
+      'dialogue' => theme.dialogueSurface,
+      'battle' => theme.battleHudSurface,
+      _ => theme.surface,
+    };
+    final colors = <String, String?>{
+      'background': palette.background,
+      'surface': palette.surface,
+      'border': palette.border,
+      'text': palette.text,
+      'accent': palette.accent,
+      'selection': palette.selection,
+    };
+    final parsed = <String, ({double red, double green, double blue})>{};
+    for (final color in colors.entries) {
+      final value = color.value;
+      if (value == null) continue;
+      final resolved = _parseOpaqueProjectColor(value);
+      if (resolved == null) {
+        _presentationError(
+          diagnostics,
+          'surfacePaletteColorInvalid',
+          ProjectPresentationCategory.theme,
+          '$path.${color.key}',
+          'Use an opaque hexadecimal color such as #086D7A.',
+        );
+      } else {
+        parsed[color.key] = resolved;
+      }
+    }
+    final surface = parsed['surface'] ??
+        _parseOpaqueProjectColor(inheritedSurface)!;
+    final text = parsed['text'] ?? _parseOpaqueProjectColor(theme.textPrimary)!;
+    if (_contrastRatio(text, surface) < projectSemanticTextContrastRatio) {
+      _presentationError(
+        diagnostics,
+        'surfacePaletteTextContrastInsufficient',
+        ProjectPresentationCategory.theme,
+        '$path.text',
+        'Surface text must remain readable against its background.',
+      );
+    }
+    for (final key in <String>['border', 'accent', 'selection']) {
+      final color = parsed[key];
+      if (color == null ||
+          _contrastRatio(color, surface) >=
+              projectSemanticNonTextContrastRatio) {
+        continue;
+      }
+      _presentationError(
+        diagnostics,
+        'surfacePaletteContrastInsufficient',
+        ProjectPresentationCategory.theme,
+        '$path.$key',
+        'Interactive and structural colors must remain distinct.',
+      );
+    }
+  }
+}
+
 bool _hasBranding(ProjectBrandingProfile branding) =>
     branding.iconPath != null ||
     branding.coverPath != null ||
@@ -1318,7 +1530,31 @@ Map<String, dynamic> _migrateProjectPresentationProfileJson(
       );
     }
   }
-  if (schemaVersion == 2 || schemaVersion == 3 || schemaVersion == 4) {
+  if (schemaVersion is int && schemaVersion < 6) {
+    final typography = source['typography'];
+    final windows = source['windows'];
+    final hasMetrics = typography is Map &&
+        typography.values.whereType<Map>().any(
+          (role) => role.containsKey('metrics'),
+        );
+    final styles = windows is Map ? windows['styles'] : null;
+    final hasWindowVisuals = styles is List &&
+        styles.whereType<Map>().any(
+          (style) =>
+              style.containsKey('shape') || style.containsKey('fillOpacity'),
+        );
+    if (source.containsKey('surfacePalettes') ||
+        hasMetrics ||
+        hasWindowVisuals) {
+      throw const FormatException(
+        'Complete visual presentation requires schema version 6.',
+      );
+    }
+  }
+  if (schemaVersion == 2 ||
+      schemaVersion == 3 ||
+      schemaVersion == 4 ||
+      schemaVersion == 5) {
     return Map<String, dynamic>.from(source)
       ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion;
   }

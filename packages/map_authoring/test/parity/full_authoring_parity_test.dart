@@ -139,7 +139,7 @@ void main() {
               (descriptor) => descriptor.id == 'projectPresentationProfile',
             )
             .version,
-        5,
+        6,
       );
       expect(
         catalog.requireMutationAction('presentation.preset.export').toJson(),
@@ -265,7 +265,7 @@ void main() {
 
       expect(directEvidence, cliEvidence);
       expect(directEvidence['accentColor'], '#126E78');
-      expect(directEvidence['schemaVersion'], 5);
+      expect(directEvidence['schemaVersion'], 6);
       expect(
         directEvidence['introLandscape'],
         'presentation/intro-landscape.mp4',
@@ -282,6 +282,10 @@ void main() {
       expect(directEvidence['titleExpandedSlot'], 'bottomLeft');
       expect(directEvidence['battleExpandedSlot'], 'bottomCenter');
       expect(directEvidence['combatFontFamily'], 'Battle Mono');
+      expect(directEvidence['combatSizeScale'], 1.1);
+      expect(directEvidence['battlePaletteSurface'], '#102030');
+      expect(directEvidence['pauseWindowShape'], 'cutCorner');
+      expect(directEvidence['pauseWindowFillOpacity'], .8);
     });
 
     test('presentation preset export has direct API and JSONL CLI parity',
@@ -939,6 +943,17 @@ final class _GoldenHarness {
       'battleExpandedSlot':
           manifest.presentation?.layouts?.battle?.expanded.slot.name,
       'combatFontFamily': manifest.presentation?.typography?.combat?.family,
+      'combatSizeScale':
+          manifest.presentation?.typography?.combat?.metrics?.sizeScale,
+      'battlePaletteSurface':
+          manifest.presentation?.surfacePalettes?.battle?.surface,
+      'pauseWindowShape': manifest.presentation?.windows
+          ?.resolve(ProjectWindowRole.pauseMenu)
+          .shape
+          .name,
+      'pauseWindowFillOpacity': manifest.presentation?.windows
+          ?.resolve(ProjectWindowRole.pauseMenu)
+          .fillOpacity,
     };
   }
 
@@ -1040,9 +1055,30 @@ final ProjectPresentationProfile _responsivePresentationProfile =
     pokedex: 'Carnet de voyage',
   ),
   typography: ProjectTypographyProfile(
-    combat: ProjectTypographyRoleProfile(family: 'Battle Mono'),
+    combat: ProjectTypographyRoleProfile(
+      family: 'Battle Mono',
+      metrics: ProjectTypographyMetricsProfile(sizeScale: 1.1),
+    ),
+  ),
+  surfacePalettes: ProjectPresentationSurfacePalettesProfile(
+    battle: ProjectSurfacePaletteProfile(
+      surface: '#102030',
+      border: '#63E6FF',
+      text: '#FFFFFF',
+      accent: '#63E6FF',
+    ),
   ),
   windows: legacyProjectPresentationWindows.copyWith(
+    styles: <ProjectWindowStyleProfile>[
+      for (final style in legacyProjectPresentationWindows.styles)
+        if (style.id == 'pause-menu')
+          style.copyWith(
+            shape: ProjectWindowShape.cutCorner,
+            fillOpacity: .8,
+          )
+        else
+          style,
+    ],
     battleStyleId: 'default',
   ),
   layouts: suggestedProjectPresentationLayouts('cinematic'),

@@ -108,6 +108,56 @@ void main() {
     expect(padding.padding, const EdgeInsets.all(16));
   });
 
+  testWidgets('renders V6 cut corners and authored fill opacity', (
+    tester,
+  ) async {
+    const style = ProjectWindowStyleProfile(
+      id: 'v6',
+      fillToken: 'menuSurface',
+      borderToken: 'outline',
+      borderWidth: 1,
+      cornerRadius: 16,
+      contentPadding: 16,
+      shadowElevation: 4,
+      shape: ProjectWindowShape.cutCorner,
+      fillOpacity: .8,
+    );
+    const windows = ProjectPresentationWindowsProfile(
+      styles: <ProjectWindowStyleProfile>[style],
+      defaultStyleId: 'v6',
+      pauseMenuStyleId: 'v6',
+      dialogueStyleId: 'v6',
+      pauseBackdropOpacity: .7,
+    );
+    final theme = PokeMapPlayerTheme.withWindowProfile(
+      PokeMapPlayerTheme.light(),
+      windows,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme,
+        home: const Scaffold(
+          body: PlayerPanel(
+            key: ValueKey<String>('v6-window'),
+            role: PlayerPanelRole.menu,
+            child: Text('Pause'),
+          ),
+        ),
+      ),
+    );
+
+    final material = tester.widget<Material>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('v6-window')),
+        matching: find.byType(Material),
+      ),
+    );
+
+    expect(material.shape, isA<BeveledRectangleBorder>());
+    expect(material.color?.a, closeTo(.8, .001));
+  });
+
   testWidgets('resolves Dialogue independently from Pause', (tester) async {
     final theme = PokeMapPlayerTheme.withWindowProfile(
       PokeMapPlayerTheme.withSemanticTheme(

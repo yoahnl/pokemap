@@ -96,7 +96,7 @@ void main() {
       expect(first.certification.gameplayReadinessReport.isPlayable, isTrue);
       expect(first.manifest.gameId, profile.gameId);
       expect(first.manifest.title, profile.title);
-      expect(first.manifest.presentation?.schemaVersion, 5);
+      expect(first.manifest.presentation?.schemaVersion, 6);
       expect(first.manifest.usesLegacyBranding, isFalse);
       expect(first.manifest.branding?.icon, 'presentation/icon.png');
       expect(first.manifest.branding?.accentColor, '#126E78');

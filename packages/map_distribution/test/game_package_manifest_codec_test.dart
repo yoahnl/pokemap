@@ -368,6 +368,88 @@ void main() {
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 
+    test('round-trips the complete V6 visual presentation contract', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 6,
+          'branding': <String, Object?>{},
+          'typography': <String, Object?>{
+            for (final role in <String>[
+              'display',
+              'body',
+              'dialogue',
+              'numbers',
+              'combat',
+            ])
+              role: <String, Object?>{
+                'fallbackFamilies': <Object?>['sans-serif'],
+                'metrics': <String, Object?>{
+                  'sizeScalePermille': role == 'display' ? 1250 : 1000,
+                  'weight': role == 'display' ? 700 : 400,
+                  'lineHeightPermille': 1250,
+                  'letterSpacingMilli': role == 'display' ? 500 : 0,
+                },
+              },
+          },
+          'surfacePalettes': <String, Object?>{
+            'title': <String, Object?>{
+              'background': '#081018',
+              'surface': '#102030',
+              'border': '#63E6FF',
+              'text': '#FFFFFF',
+              'accent': '#63E6FF',
+              'selection': '#FFD166',
+            },
+          },
+          'windows': <String, Object?>{
+            'styles': <Object?>[
+              <String, Object?>{
+                'id': 'default',
+                'fillToken': 'surface',
+                'borderToken': 'outline',
+                'borderWidth': 1,
+                'cornerRadius': 16,
+                'contentPadding': 16,
+                'shadowElevation': 8,
+                'shape': 'cutCorner',
+                'fillOpacityPermille': 800,
+              },
+            ],
+            'defaultStyleId': 'default',
+            'pauseMenuStyleId': 'default',
+            'dialogueStyleId': 'default',
+            'battleStyleId': 'default',
+            'pauseBackdropOpacityPermille': 700,
+          },
+        };
+
+      final manifest = codec.decodeJson(json);
+
+      expect(
+        manifest.presentation?.typography?.display.metrics?.sizeScale,
+        1.25,
+      );
+      expect(manifest.presentation?.surfacePalettes?.title?.text, '#FFFFFF');
+      expect(manifest.presentation?.windows?.styles.single.shape, 'cutCorner');
+      expect(manifest.presentation?.windows?.styles.single.fillOpacity, .8);
+      expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('rejects V6 visual fields declared by an older schema', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 5,
+          'branding': <String, Object?>{},
+          'surfacePalettes': <String, Object?>{},
+        };
+
+      _expectCode(
+        () => codec.decodeJson(json),
+        'presentationVersionUnsupported',
+        r'$.presentation.surfacePalettes',
+      );
+    });
+
     test('rejects V5 combat fields declared in schema V4', () {
       final cases = <({String path, Map<String, Object?> presentation})>[
         (

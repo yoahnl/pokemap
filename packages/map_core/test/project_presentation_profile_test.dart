@@ -18,7 +18,7 @@ void main() {
 
       final decoded = ProjectPresentationProfile.fromJson(explicit.toJson());
 
-      expect(decoded.schemaVersion, 5);
+      expect(decoded.schemaVersion, 6);
       expect(decoded.typography?.resolve(ProjectTypographyRole.combat), combat);
       expect(inherited.typography?.resolve(ProjectTypographyRole.combat), body);
     });
@@ -43,7 +43,7 @@ void main() {
         'typography': const ProjectTypographyProfile().toJson(),
       });
 
-      expect(profile.schemaVersion, 5);
+      expect(profile.schemaVersion, 6);
       expect(profile.typography?.combat, isNull);
       expect(profile.layouts, isNull);
       expect(profile.windows, isNull);
@@ -58,14 +58,14 @@ void main() {
 
       final profile = ProjectPresentationProfile.fromJson(source);
 
-      expect(profile.schemaVersion, 5);
+      expect(profile.schemaVersion, 6);
       expect(profile.intro!.media.landscape.videoPath,
           'assets/presentation/intro/landscape.mp4');
       expect(profile.intro!.media.landscape.focalX, 0.5);
       expect(profile.intro!.media.portrait, isNull);
       expect(profile.titleMotion, isNull);
       final encoded = profile.toJson();
-      expect(encoded['schemaVersion'], 5);
+      expect(encoded['schemaVersion'], 6);
       expect((encoded['intro']! as Map<String, dynamic>), contains('media'));
       expect((encoded['intro']! as Map<String, dynamic>),
           isNot(contains('videoPath')));

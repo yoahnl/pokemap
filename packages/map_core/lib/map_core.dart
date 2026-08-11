@@ -31,6 +31,7 @@ export 'src/models/project_presentation_profile.dart';
 export 'src/models/project_presentation_preset.dart';
 export 'src/models/project_presentation_layout_profile.dart';
 export 'src/models/project_presentation_surface_role.dart';
+export 'src/models/project_presentation_visual_profile.dart';
 export 'src/models/project_presentation_window_profile.dart';
 export 'src/operations/project_presentation_layout_resolver.dart';
 export 'src/models/shop_definition.dart';

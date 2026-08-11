@@ -5,6 +5,98 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('projects every V6 typography metric into measurable text styles', () {
+    final presentation = RuntimePlayerPresentation.fromProfile(
+      const ProjectPresentationProfile(
+        typography: ProjectTypographyProfile(
+          display: ProjectTypographyRoleProfile(
+            metrics: ProjectTypographyMetricsProfile(
+              sizeScale: 1.25,
+              weight: 700,
+              lineHeight: 1.1,
+              letterSpacing: .5,
+            ),
+          ),
+          dialogue: ProjectTypographyRoleProfile(
+            metrics: ProjectTypographyMetricsProfile(sizeScale: .9),
+          ),
+          combat: ProjectTypographyRoleProfile(
+            metrics: ProjectTypographyMetricsProfile(sizeScale: 1.1),
+          ),
+          numbers: ProjectTypographyRoleProfile(
+            metrics: ProjectTypographyMetricsProfile(weight: 600),
+          ),
+        ),
+      ),
+    );
+
+    final display = presentation.typography.displayStyle(
+      const TextStyle(fontSize: 20),
+    );
+    final dialogue = presentation.typography.dialogueStyle(
+      const TextStyle(fontSize: 20),
+    );
+    final combat = presentation.typography.combatStyle(
+      const TextStyle(fontSize: 20),
+    );
+    final numbers = presentation.typography.numbersStyle(
+      const TextStyle(fontSize: 20),
+    );
+
+    expect(display.fontSize, 25);
+    expect(display.fontWeight, FontWeight.w700);
+    expect(display.height, 1.1);
+    expect(display.letterSpacing, .5);
+    expect(dialogue.fontSize, 18);
+    expect(combat.fontSize, 22);
+    expect(numbers.fontWeight, FontWeight.w600);
+  });
+
+  testWidgets('projects a V6 scene palette into the owned player panel', (
+    tester,
+  ) async {
+    final presentation = RuntimePlayerPresentation.fromProfile(
+      const ProjectPresentationProfile(
+        surfacePalettes: ProjectPresentationSurfacePalettesProfile(
+          title: ProjectSurfacePaletteProfile(
+            surface: '#102030',
+            border: '#63E6FF',
+            text: '#FFFFFF',
+            accent: '#63E6FF',
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: presentation.applyTo(PokeMapPlayerTheme.light()),
+        home: const Scaffold(
+          body: PlayerPanel(
+            key: ValueKey<String>('v6-title-panel'),
+            surfaceRole: ProjectPresentationSurfaceRole.title,
+            child: Text('Titre'),
+          ),
+        ),
+      ),
+    );
+
+    final material = tester.widget<Material>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('v6-title-panel')),
+        matching: find.byType(Material),
+      ),
+    );
+    final shape = material.shape! as RoundedRectangleBorder;
+
+    expect(material.color, const Color(0xFF102030));
+    expect(shape.side.color, const Color(0xFF63E6FF));
+    expect(
+      DefaultTextStyle.of(tester.element(find.text('Titre'))).style.color,
+      const Color(0xFFFFFFFF),
+    );
+  });
+
   test('projects runtime presentation data into generic player rendering', () {
     const hero = AssetImage('hero.png');
     const logo = AssetImage('logo.png');

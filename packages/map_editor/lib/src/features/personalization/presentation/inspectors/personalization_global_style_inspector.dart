@@ -19,6 +19,7 @@ class PersonalizationGlobalStyleInspector extends StatelessWidget {
     required this.onWindowsChanged,
     required this.onImportCommonFont,
     required this.onUseSystemCommonFont,
+    this.onCommonMetricsChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
 
@@ -30,6 +31,7 @@ class PersonalizationGlobalStyleInspector extends StatelessWidget {
   final ValueChanged<ProjectPresentationWindowsProfile?> onWindowsChanged;
   final VoidCallback onImportCommonFont;
   final VoidCallback onUseSystemCommonFont;
+  final ValueChanged<ProjectTypographyMetricsProfile>? onCommonMetricsChanged;
   final Map<ProjectTypographyRole, String> previewFamilies;
 
   @override
@@ -72,6 +74,7 @@ class PersonalizationGlobalStyleInspector extends StatelessWidget {
               onUseSystemFont: (_) {},
               onImportCommonFont: onImportCommonFont,
               onUseSystemCommonFont: onUseSystemCommonFont,
+              onCommonMetricsChanged: onCommonMetricsChanged,
             ),
         },
       ],

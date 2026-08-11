@@ -135,10 +135,10 @@ final class AuthoringResourceKindRegistry {
       ),
       AuthoringResourceKindDescriptor(
         id: 'projectPresentationProfile',
-        version: 5,
+        version: 6,
         displayName: 'Project presentation profile',
         summary:
-            'Responsive intro, title motion, branding, typography, theme, window styles, surface layouts and combat presentation',
+            'Responsive intro, title motion, branding, typography metrics, contextual palettes, window shapes, surface layouts and combat presentation',
       ),
       AuthoringResourceKindDescriptor(
         id: 'projectPresentationPreset',

@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_window_theme.dart';
 
 class PlayerSurface extends StatelessWidget {
@@ -55,6 +56,8 @@ class PlayerPanel extends StatelessWidget {
     final colors = context.playerColors;
     final semantic = context.playerSemanticTheme;
     final windowTheme = context.playerWindowTheme;
+    final palette =
+        surfaceRole == null ? null : context.playerSurfacePalette(surfaceRole!);
     final assignment = surfaceRole == null
         ? null
         : projectPresentationSurfaceAssignment(surfaceRole!);
@@ -89,36 +92,126 @@ class PlayerPanel extends StatelessWidget {
             ProjectPresentationSurfaceThemeToken.battleHudSurface =>
               semantic.battleHudSurface,
           };
-    return Material(
+    final paletteSurface = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+      palette?.surface,
+    );
+    final paletteBorder = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+      palette?.border,
+    );
+    final paletteText = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+      palette?.text,
+    );
+    final resolvedSurface = paletteSurface ??
+        (windowStyle == null
+            ? surface
+            : windowTheme!.resolveToken(windowStyle.fillToken, semantic));
+    final resolvedBorder = paletteBorder ??
+        (windowStyle == null
+            ? colors.outline
+            : windowTheme!.resolveToken(windowStyle.borderToken, semantic));
+    final side = windowStyle?.borderWidth == 0
+        ? BorderSide.none
+        : BorderSide(
+            color: resolvedBorder,
+            width: windowStyle?.borderWidth.toDouble() ?? 1,
+          );
+    final shape = _playerPanelShape(windowStyle, side);
+    final panel = Material(
       color: windowStyle == null
-          ? surface
-          : windowTheme!.resolveToken(windowStyle.fillToken, semantic),
+          ? resolvedSurface
+          : resolvedSurface.withValues(alpha: windowStyle.fillOpacity),
       elevation: windowStyle == null
           ? (elevated ? 8 : 0)
           : windowStyle.shadowElevation.toDouble(),
       shadowColor: Theme.of(context).colorScheme.shadow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          windowStyle?.cornerRadius.toDouble() ?? PlayerRadii.md,
+      shape: shape,
+      child: DefaultTextStyle.merge(
+        style: paletteText == null ? null : TextStyle(color: paletteText),
+        child: Padding(
+          padding: windowStyle == null
+              ? padding
+              : EdgeInsets.all(windowStyle.contentPadding.toDouble()),
+          child: child,
         ),
-        side: windowStyle?.borderWidth == 0
-            ? BorderSide.none
-            : BorderSide(
-                color: windowStyle == null
-                    ? colors.outline
-                    : windowTheme!.resolveToken(
-                        windowStyle.borderToken,
-                        semantic,
-                      ),
-                width: windowStyle?.borderWidth.toDouble() ?? 1,
-              ),
       ),
-      child: Padding(
-        padding: windowStyle == null
-            ? padding
-            : EdgeInsets.all(windowStyle.contentPadding.toDouble()),
-        child: child,
+    );
+    if (palette == null) return panel;
+    return Theme(
+      data: PokeMapPlayerTheme.withSurfacePalette(Theme.of(context), palette),
+      child: panel,
+    );
+  }
+}
+
+ShapeBorder _playerPanelShape(
+  ProjectWindowStyleProfile? style,
+  BorderSide side,
+) {
+  final radius = style?.cornerRadius.toDouble() ?? PlayerRadii.md;
+  return switch (style?.shape ?? ProjectWindowShape.rounded) {
+    ProjectWindowShape.rectangle => RoundedRectangleBorder(side: side),
+    ProjectWindowShape.rounded => RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+        side: side,
       ),
+    ProjectWindowShape.capsule => StadiumBorder(side: side),
+    ProjectWindowShape.cutCorner => BeveledRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+        side: side,
+      ),
+    ProjectWindowShape.speech => _PlayerSpeechBubbleBorder(
+        side: side,
+        radius: radius,
+      ),
+  };
+}
+
+final class _PlayerSpeechBubbleBorder extends ShapeBorder {
+  const _PlayerSpeechBubbleBorder({
+    required this.side,
+    required this.radius,
+  });
+
+  final BorderSide side;
+
+  final double radius;
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.only(
+        left: side.width,
+        top: side.width,
+        right: side.width,
+        bottom: side.width + 10,
+      );
+
+  @override
+  ShapeBorder scale(double t) => _PlayerSpeechBubbleBorder(
+        side: side.scale(t),
+        radius: radius * t,
+      );
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      getOuterPath(rect.deflate(side.width), textDirection: textDirection);
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final body =
+        Rect.fromLTRB(rect.left, rect.top, rect.right, rect.bottom - 10);
+    return Path()
+      ..addRRect(RRect.fromRectAndRadius(body, Radius.circular(radius)))
+      ..moveTo(body.left + 28, body.bottom)
+      ..lineTo(body.left + 40, rect.bottom)
+      ..lineTo(body.left + 52, body.bottom)
+      ..close();
+  }
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    if (side.style == BorderStyle.none || side.width == 0) return;
+    canvas.drawPath(
+      getOuterPath(rect, textDirection: textDirection),
+      side.toPaint()..style = PaintingStyle.stroke,
     );
   }
 }

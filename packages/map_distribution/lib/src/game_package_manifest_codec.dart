@@ -11,11 +11,18 @@ import 'package:map_core/map_core.dart'
         ProjectPresentationScreenMargin,
         ProjectPresentationSecondaryElement,
         ProjectPresentationSpacing,
+        ProjectPresentationSurfacePalettesProfile,
         ProjectResponsiveSurfaceLayoutProfile,
+        ProjectSurfacePaletteProfile,
         ProjectSurfaceLayoutVariant,
         ProjectPresentationWindowsProfile,
         ProjectSemanticThemeProfile,
+        ProjectTypographyMetricsProfile,
+        ProjectTypographyProfile,
+        ProjectTypographyRoleProfile,
+        ProjectWindowShape,
         ProjectWindowStyleProfile,
+        safeProjectSemanticTheme,
         projectIntroVideoMaxBitrateKbps,
         projectIntroVideoMaxDurationMilliseconds,
         projectIntroVideoMaxHeight,
@@ -490,6 +497,7 @@ final class GamePackageManifestCodec {
         'titleMotion',
         'typography',
         'theme',
+        'surfacePalettes',
         'menuLabels',
         'windows',
         'layouts',
@@ -501,11 +509,12 @@ final class GamePackageManifestCodec {
         schemaVersion != 2 &&
         schemaVersion != 3 &&
         schemaVersion != 4 &&
-        schemaVersion != 5) {
+        schemaVersion != 5 &&
+        schemaVersion != 6) {
       _fail(
         'presentationVersionUnsupported',
         '$path.schemaVersion',
-        'Only presentation schema versions 1, 2, 3, 4 and 5 are supported.',
+        'Only presentation schema versions 1 through 6 are supported.',
       );
     }
     if (schemaVersion == 1 && json.containsKey('titleMotion')) {
@@ -562,6 +571,61 @@ final class GamePackageManifestCodec {
         );
       }
     }
+    if (schemaVersion < 6) {
+      if (json.containsKey('surfacePalettes')) {
+        _fail(
+          'presentationVersionUnsupported',
+          '$path.surfacePalettes',
+          'Contextual surface palettes require presentation schema version 6.',
+        );
+      }
+      final typography = json['typography'];
+      if (typography is Map) {
+        for (final entry in typography.entries) {
+          final role = entry.value;
+          if (role is Map && role.containsKey('metrics')) {
+            _fail(
+              'presentationVersionUnsupported',
+              '$path.typography.${entry.key}.metrics',
+              'Typography metrics require presentation schema version 6.',
+            );
+          }
+        }
+      }
+      final windows = json['windows'];
+      if (windows is Map && windows['styles'] is List) {
+        final styles = windows['styles']! as List;
+        for (var index = 0; index < styles.length; index++) {
+          final style = styles[index];
+          if (style is Map &&
+              (style.containsKey('shape') ||
+                  style.containsKey('fillOpacityPermille'))) {
+            _fail(
+              'presentationVersionUnsupported',
+              '$path.windows.styles[$index]',
+              'Window shapes and fill opacity require presentation schema version 6.',
+            );
+          }
+        }
+      }
+    }
+    final typography = json.containsKey('typography')
+        ? _typography(
+            json['typography'],
+            path: '$path.typography',
+            schemaVersion: schemaVersion,
+          )
+        : null;
+    final theme = json.containsKey('theme')
+        ? _semanticTheme(json['theme'], path: '$path.theme')
+        : null;
+    final surfacePalettes = json.containsKey('surfacePalettes')
+        ? _surfacePalettes(
+            json['surfacePalettes'],
+            path: '$path.surfacePalettes',
+            inheritedTheme: theme,
+          )
+        : null;
     return GamePackagePresentation(
       schemaVersion: schemaVersion,
       branding: _branding(
@@ -578,17 +642,18 @@ final class GamePackageManifestCodec {
       titleMotion: json.containsKey('titleMotion')
           ? _titleMotion(json['titleMotion'], path: '$path.titleMotion')
           : null,
-      typography: json.containsKey('typography')
-          ? _typography(json['typography'], path: '$path.typography')
-          : null,
-      theme: json.containsKey('theme')
-          ? _semanticTheme(json['theme'], path: '$path.theme')
-          : null,
+      typography: typography,
+      theme: theme,
+      surfacePalettes: surfacePalettes,
       menuLabels: json.containsKey('menuLabels')
           ? _menuLabels(json['menuLabels'], path: '$path.menuLabels')
           : null,
       windows: json.containsKey('windows')
-          ? _windows(json['windows'], path: '$path.windows')
+          ? _windows(
+              json['windows'],
+              path: '$path.windows',
+              schemaVersion: schemaVersion,
+            )
           : null,
       layouts: json.containsKey('layouts')
           ? _layouts(json['layouts'], path: '$path.layouts')
@@ -759,6 +824,7 @@ final class GamePackageManifestCodec {
   GamePackagePresentationWindows _windows(
     Object? value, {
     required String path,
+    required int schemaVersion,
   }) {
     final json = _object(
       value,
@@ -789,8 +855,30 @@ final class GamePackageManifestCodec {
           'contentPadding',
           'shadowElevation',
         },
-        optional: const <String>{},
+        optional: schemaVersion >= 6
+            ? const <String>{'shape', 'fillOpacityPermille'}
+            : const <String>{},
       );
+      final shape = styleJson.containsKey('shape')
+          ? _string(styleJson['shape'], '$stylePath.shape')
+          : 'rounded';
+      final projectShape = ProjectWindowShape.values
+          .where((candidate) => candidate.name == shape)
+          .firstOrNull;
+      if (projectShape == null) {
+        _fail(
+          'invalidWindowStyle',
+          '$stylePath.shape',
+          'Unknown window shape.',
+        );
+      }
+      final fillOpacity = styleJson.containsKey('fillOpacityPermille')
+          ? _integer(
+                styleJson['fillOpacityPermille'],
+                '$stylePath.fillOpacityPermille',
+              ) /
+              1000
+          : 1.0;
       final style = GamePackageWindowStyle(
         id: _string(styleJson['id'], '$stylePath.id'),
         fillToken: _string(
@@ -817,6 +905,8 @@ final class GamePackageManifestCodec {
           styleJson['shadowElevation'],
           '$stylePath.shadowElevation',
         ),
+        shape: shape,
+        fillOpacity: fillOpacity,
       );
       styles.add(style);
       projectStyles.add(
@@ -828,6 +918,8 @@ final class GamePackageManifestCodec {
           cornerRadius: style.cornerRadius,
           contentPadding: style.contentPadding,
           shadowElevation: style.shadowElevation,
+          shape: projectShape,
+          fillOpacity: style.fillOpacity,
         ),
       );
     }
@@ -1212,6 +1304,7 @@ final class GamePackageManifestCodec {
   GamePackageTypography _typography(
     Object? value, {
     required String path,
+    required int schemaVersion,
   }) {
     final json = _object(
       value,
@@ -1220,12 +1313,32 @@ final class GamePackageManifestCodec {
       optional: const <String>{'combat'},
     );
     return GamePackageTypography(
-      display: _fontRole(json['display'], path: '$path.display'),
-      body: _fontRole(json['body'], path: '$path.body'),
-      dialogue: _fontRole(json['dialogue'], path: '$path.dialogue'),
-      numbers: _fontRole(json['numbers'], path: '$path.numbers'),
+      display: _fontRole(
+        json['display'],
+        path: '$path.display',
+        allowMetrics: schemaVersion >= 6,
+      ),
+      body: _fontRole(
+        json['body'],
+        path: '$path.body',
+        allowMetrics: schemaVersion >= 6,
+      ),
+      dialogue: _fontRole(
+        json['dialogue'],
+        path: '$path.dialogue',
+        allowMetrics: schemaVersion >= 6,
+      ),
+      numbers: _fontRole(
+        json['numbers'],
+        path: '$path.numbers',
+        allowMetrics: schemaVersion >= 6,
+      ),
       combat: json.containsKey('combat')
-          ? _fontRole(json['combat'], path: '$path.combat')
+          ? _fontRole(
+              json['combat'],
+              path: '$path.combat',
+              allowMetrics: schemaVersion >= 6,
+            )
           : null,
     );
   }
@@ -1233,12 +1346,18 @@ final class GamePackageManifestCodec {
   GamePackageFontRole _fontRole(
     Object? value, {
     required String path,
+    required bool allowMetrics,
   }) {
     final json = _object(
       value,
       path,
       required: const <String>{'fallbackFamilies'},
-      optional: const <String>{'font', 'family', 'license'},
+      optional: <String>{
+        'font',
+        'family',
+        'license',
+        if (allowMetrics) 'metrics',
+      },
     );
     final rawFallbacks =
         _list(json['fallbackFamilies'], '$path.fallbackFamilies');
@@ -1288,12 +1407,69 @@ final class GamePackageManifestCodec {
         );
       }
     }
+    final metrics = json.containsKey('metrics')
+        ? _typographyMetrics(json['metrics'], path: '$path.metrics')
+        : null;
     return GamePackageFontRole(
       font: font,
       family: family,
       license: license,
       fallbackFamilies: fallbacks,
+      metrics: metrics,
     );
+  }
+
+  GamePackageTypographyMetrics _typographyMetrics(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{
+        'sizeScalePermille',
+        'weight',
+        'lineHeightPermille',
+        'letterSpacingMilli',
+      },
+      optional: const <String>{},
+    );
+    final metrics = GamePackageTypographyMetrics(
+      sizeScale:
+          _integer(json['sizeScalePermille'], '$path.sizeScalePermille') / 1000,
+      weight: _integer(json['weight'], '$path.weight'),
+      lineHeight: _integer(
+            json['lineHeightPermille'],
+            '$path.lineHeightPermille',
+          ) /
+          1000,
+      letterSpacing: _integer(
+            json['letterSpacingMilli'],
+            '$path.letterSpacingMilli',
+          ) /
+          1000,
+    );
+    final profile = ProjectTypographyMetricsProfile(
+      sizeScale: metrics.sizeScale,
+      weight: metrics.weight,
+      lineHeight: metrics.lineHeight,
+      letterSpacing: metrics.letterSpacing,
+    );
+    final diagnostic = validateProjectPresentationProfile(
+      ProjectPresentationProfile(
+        typography: ProjectTypographyProfile(
+          display: ProjectTypographyRoleProfile(metrics: profile),
+        ),
+      ),
+    ).firstOrNull;
+    if (diagnostic != null) {
+      _fail(
+        'invalidTypographyMetrics',
+        path,
+        diagnostic.message,
+      );
+    }
+    return metrics;
   }
 
   GamePackageSemanticTheme _semanticTheme(
@@ -1371,6 +1547,127 @@ final class GamePackageManifestCodec {
       battleHudSurface: projectTheme.battleHudSurface,
     );
   }
+
+  GamePackagePresentationSurfacePalettes _surfacePalettes(
+    Object? value, {
+    required String path,
+    required GamePackageSemanticTheme? inheritedTheme,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{},
+      optional: const <String>{'title', 'pauseMenu', 'dialogue', 'battle'},
+    );
+    final title = json.containsKey('title')
+        ? _surfacePalette(json['title'], path: '$path.title')
+        : null;
+    final pauseMenu = json.containsKey('pauseMenu')
+        ? _surfacePalette(json['pauseMenu'], path: '$path.pauseMenu')
+        : null;
+    final dialogue = json.containsKey('dialogue')
+        ? _surfacePalette(json['dialogue'], path: '$path.dialogue')
+        : null;
+    final battle = json.containsKey('battle')
+        ? _surfacePalette(json['battle'], path: '$path.battle')
+        : null;
+    final palettes = GamePackagePresentationSurfacePalettes(
+      title: title,
+      pauseMenu: pauseMenu,
+      dialogue: dialogue,
+      battle: battle,
+    );
+    final projectPalettes = ProjectPresentationSurfacePalettesProfile(
+      title: _projectSurfacePalette(title),
+      pauseMenu: _projectSurfacePalette(pauseMenu),
+      dialogue: _projectSurfacePalette(dialogue),
+      battle: _projectSurfacePalette(battle),
+    );
+    final diagnostic = validateProjectPresentationProfile(
+      ProjectPresentationProfile(
+        theme: inheritedTheme == null
+            ? safeProjectSemanticTheme
+            : _projectSemanticTheme(inheritedTheme),
+        surfacePalettes: projectPalettes,
+      ),
+    ).firstOrNull;
+    if (diagnostic != null) {
+      _fail(
+        'invalidSurfacePalette',
+        diagnostic.path.replaceFirst(
+          r'$.presentation.surfacePalettes',
+          path,
+        ),
+        diagnostic.message,
+      );
+    }
+    return palettes;
+  }
+
+  GamePackageSurfacePalette _surfacePalette(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{},
+      optional: const <String>{
+        'background',
+        'surface',
+        'border',
+        'text',
+        'accent',
+        'selection',
+      },
+    );
+    String? color(String key) =>
+        json.containsKey(key) ? _string(json[key], '$path.$key') : null;
+    return GamePackageSurfacePalette(
+      background: color('background'),
+      surface: color('surface'),
+      border: color('border'),
+      text: color('text'),
+      accent: color('accent'),
+      selection: color('selection'),
+    );
+  }
+
+  ProjectSurfacePaletteProfile? _projectSurfacePalette(
+    GamePackageSurfacePalette? source,
+  ) =>
+      source == null
+          ? null
+          : ProjectSurfacePaletteProfile(
+              background: source.background,
+              surface: source.surface,
+              border: source.border,
+              text: source.text,
+              accent: source.accent,
+              selection: source.selection,
+            );
+
+  ProjectSemanticThemeProfile _projectSemanticTheme(
+    GamePackageSemanticTheme source,
+  ) =>
+      ProjectSemanticThemeProfile(
+        primary: source.primary,
+        onPrimary: source.onPrimary,
+        background: source.background,
+        surface: source.surface,
+        surfaceElevated: source.surfaceElevated,
+        textPrimary: source.textPrimary,
+        textSecondary: source.textSecondary,
+        outline: source.outline,
+        success: source.success,
+        warning: source.warning,
+        danger: source.danger,
+        titleSurface: source.titleSurface,
+        dialogueSurface: source.dialogueSurface,
+        menuSurface: source.menuSurface,
+        overworldHudSurface: source.overworldHudSurface,
+        battleHudSurface: source.battleHudSurface,
+      );
 
   GamePackageBranding _branding(
     Object? value, {

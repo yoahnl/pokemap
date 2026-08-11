@@ -303,6 +303,77 @@ void main() {
       );
     });
 
+    test('presentation.update carries the complete V6 visual contract', () {
+      final profile = ProjectPresentationProfile(
+        typography: const ProjectTypographyProfile(
+          dialogue: ProjectTypographyRoleProfile(
+            metrics: ProjectTypographyMetricsProfile(
+              sizeScale: 1.1,
+              weight: 600,
+              lineHeight: 1.4,
+              letterSpacing: .5,
+            ),
+          ),
+        ),
+        surfacePalettes: const ProjectPresentationSurfacePalettesProfile(
+          dialogue: ProjectSurfacePaletteProfile(
+            surface: '#102030',
+            border: '#63E6FF',
+            text: '#FFFFFF',
+            accent: '#63E6FF',
+          ),
+        ),
+        windows: legacyProjectPresentationWindows.copyWith(
+          styles: <ProjectWindowStyleProfile>[
+            for (final style in legacyProjectPresentationWindows.styles)
+              if (style.id == 'dialogue')
+                style.copyWith(
+                  shape: ProjectWindowShape.speech,
+                  fillOpacity: .85,
+                )
+              else
+                style,
+          ],
+        ),
+      );
+      final snapshot = _snapshot();
+      final request = AuthoringRequest(
+        requestId: 'request_presentation_v6_visual_contract',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: 'ws_test',
+        parameters: <String, Object?>{'profile': profile.toJson()},
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'presentation-v6-visual-contract',
+        dryRun: true,
+      );
+
+      final draft = const PresentationActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: request,
+          planId: 'plan_presentation_v6_visual_contract',
+          seed: 42,
+        ),
+      );
+      final projected = draft.preview['profile']! as Map<String, Object?>;
+      final typography = projected['typography']! as Map<String, Object?>;
+      final dialogue = typography['dialogue']! as Map<String, Object?>;
+      final metrics = dialogue['metrics']! as Map<String, Object?>;
+      final palettes = projected['surfacePalettes']! as Map<String, Object?>;
+      final dialoguePalette = palettes['dialogue']! as Map<String, Object?>;
+      final windows = projected['windows']! as Map<String, Object?>;
+      final styles = windows['styles']! as List<Object?>;
+      final dialogueStyle = styles.cast<Map<String, Object?>>().firstWhere(
+            (style) => style['id'] == 'dialogue',
+          );
+
+      expect(metrics['weight'], 600);
+      expect(dialoguePalette['surface'], '#102030');
+      expect(dialogueStyle['shape'], 'speech');
+      expect(dialogueStyle['fillOpacity'], .85);
+    });
+
     test('validates every authored responsive intro and title loop asset', () {
       final profile = _profile().copyWith(
         titleMotion: const ProjectTitleMotionProfile(

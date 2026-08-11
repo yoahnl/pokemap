@@ -7,6 +7,8 @@ part 'project_presentation_window_profile.g.dart';
 
 enum ProjectWindowRole { standard, pauseMenu, dialogue, battle }
 
+enum ProjectWindowShape { rectangle, rounded, capsule, cutCorner, speech }
+
 @Freezed(fromJson: true, toJson: true)
 abstract class ProjectWindowStyleProfile with _$ProjectWindowStyleProfile {
   @JsonSerializable(explicitToJson: true)
@@ -18,6 +20,8 @@ abstract class ProjectWindowStyleProfile with _$ProjectWindowStyleProfile {
     required int cornerRadius,
     required int contentPadding,
     required int shadowElevation,
+    @Default(ProjectWindowShape.rounded) ProjectWindowShape shape,
+    @Default(1) double fillOpacity,
   }) = _ProjectWindowStyleProfile;
 
   factory ProjectWindowStyleProfile.fromJson(Map<String, dynamic> json) =>
@@ -80,6 +84,8 @@ const int projectWindowMinContentPadding = 8;
 const int projectWindowMaxContentPadding = 32;
 const int projectWindowMinShadowElevation = 0;
 const int projectWindowMaxShadowElevation = 16;
+const double projectWindowMinFillOpacity = .35;
+const double projectWindowMaxFillOpacity = 1;
 const double projectWindowMinBackdropOpacity = .35;
 const double projectWindowMaxBackdropOpacity = .9;
 

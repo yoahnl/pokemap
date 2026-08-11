@@ -131,6 +131,7 @@ final class GamePackagePresentation {
     this.titleMotion,
     this.typography,
     this.theme,
+    this.surfacePalettes,
     this.menuLabels,
     this.windows,
     this.layouts,
@@ -142,6 +143,7 @@ final class GamePackagePresentation {
   final GamePackageTitleMotion? titleMotion;
   final GamePackageTypography? typography;
   final GamePackageSemanticTheme? theme;
+  final GamePackagePresentationSurfacePalettes? surfacePalettes;
   final GamePackageMenuLabels? menuLabels;
   final GamePackagePresentationWindows? windows;
   final GamePackagePresentationLayouts? layouts;
@@ -153,11 +155,19 @@ final class GamePackagePresentation {
         if (schemaVersion >= 2 && titleMotion != null)
           'titleMotion': titleMotion!.toJson(),
         if (typography != null)
-          'typography': typography!.toJson(includeCombat: schemaVersion >= 5),
+          'typography': typography!.toJson(
+            includeCombat: schemaVersion >= 5,
+            includeMetrics: schemaVersion >= 6,
+          ),
         if (theme != null) 'theme': theme!.toJson(),
+        if (schemaVersion >= 6 && surfacePalettes != null)
+          'surfacePalettes': surfacePalettes!.toJson(),
         if (menuLabels != null) 'menuLabels': menuLabels!.toJson(),
         if (schemaVersion >= 3 && windows != null)
-          'windows': windows!.toJson(includeBattle: schemaVersion >= 5),
+          'windows': windows!.toJson(
+            includeBattle: schemaVersion >= 5,
+            includeVisualContract: schemaVersion >= 6,
+          ),
         if (schemaVersion >= 4 && layouts != null)
           'layouts': layouts!.toJson(includeBattle: schemaVersion >= 5),
       };
@@ -240,6 +250,8 @@ final class GamePackageWindowStyle {
     required this.cornerRadius,
     required this.contentPadding,
     required this.shadowElevation,
+    this.shape = 'rounded',
+    this.fillOpacity = 1,
   });
 
   final String id;
@@ -249,8 +261,11 @@ final class GamePackageWindowStyle {
   final int cornerRadius;
   final int contentPadding;
   final int shadowElevation;
+  final String shape;
+  final double fillOpacity;
 
-  Map<String, Object?> toJson() => <String, Object?>{
+  Map<String, Object?> toJson({bool includeVisualContract = true}) =>
+      <String, Object?>{
         'id': id,
         'fillToken': fillToken,
         'borderToken': borderToken,
@@ -258,6 +273,9 @@ final class GamePackageWindowStyle {
         'cornerRadius': cornerRadius,
         'contentPadding': contentPadding,
         'shadowElevation': shadowElevation,
+        if (includeVisualContract) 'shape': shape,
+        if (includeVisualContract)
+          'fillOpacityPermille': (fillOpacity * 1000).round(),
       };
 }
 
@@ -278,8 +296,15 @@ final class GamePackagePresentationWindows {
   final String? battleStyleId;
   final double pauseBackdropOpacity;
 
-  Map<String, Object?> toJson({bool includeBattle = true}) => <String, Object?>{
-        'styles': <Object?>[for (final style in styles) style.toJson()],
+  Map<String, Object?> toJson({
+    bool includeBattle = true,
+    bool includeVisualContract = true,
+  }) =>
+      <String, Object?>{
+        'styles': <Object?>[
+          for (final style in styles)
+            style.toJson(includeVisualContract: includeVisualContract),
+        ],
         'defaultStyleId': defaultStyleId,
         'pauseMenuStyleId': pauseMenuStyleId,
         'dialogueStyleId': dialogueStyleId,
@@ -490,12 +515,38 @@ final class GamePackageTypography {
   final GamePackageFontRole numbers;
   final GamePackageFontRole? combat;
 
-  Map<String, Object?> toJson({bool includeCombat = true}) => <String, Object?>{
-        'display': display.toJson(),
-        'body': body.toJson(),
-        'dialogue': dialogue.toJson(),
-        'numbers': numbers.toJson(),
-        if (includeCombat && combat != null) 'combat': combat!.toJson(),
+  Map<String, Object?> toJson({
+    bool includeCombat = true,
+    bool includeMetrics = true,
+  }) =>
+      <String, Object?>{
+        'display': display.toJson(includeMetrics: includeMetrics),
+        'body': body.toJson(includeMetrics: includeMetrics),
+        'dialogue': dialogue.toJson(includeMetrics: includeMetrics),
+        'numbers': numbers.toJson(includeMetrics: includeMetrics),
+        if (includeCombat && combat != null)
+          'combat': combat!.toJson(includeMetrics: includeMetrics),
+      };
+}
+
+final class GamePackageTypographyMetrics {
+  const GamePackageTypographyMetrics({
+    required this.sizeScale,
+    required this.weight,
+    required this.lineHeight,
+    required this.letterSpacing,
+  });
+
+  final double sizeScale;
+  final int weight;
+  final double lineHeight;
+  final double letterSpacing;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'sizeScalePermille': (sizeScale * 1000).round(),
+        'weight': weight,
+        'lineHeightPermille': (lineHeight * 1000).round(),
+        'letterSpacingMilli': (letterSpacing * 1000).round(),
       };
 }
 
@@ -505,18 +556,70 @@ final class GamePackageFontRole {
     this.family,
     this.license,
     this.fallbackFamilies = const <String>['sans-serif'],
+    this.metrics,
   });
 
   final String? font;
   final String? family;
   final String? license;
   final List<String> fallbackFamilies;
+  final GamePackageTypographyMetrics? metrics;
 
-  Map<String, Object?> toJson() => <String, Object?>{
+  Map<String, Object?> toJson({bool includeMetrics = true}) =>
+      <String, Object?>{
         if (font != null) 'font': font,
         if (family != null) 'family': family,
         if (license != null) 'license': license,
         'fallbackFamilies': fallbackFamilies,
+        if (includeMetrics && metrics != null) 'metrics': metrics!.toJson(),
+      };
+}
+
+final class GamePackageSurfacePalette {
+  const GamePackageSurfacePalette({
+    this.background,
+    this.surface,
+    this.border,
+    this.text,
+    this.accent,
+    this.selection,
+  });
+
+  final String? background;
+  final String? surface;
+  final String? border;
+  final String? text;
+  final String? accent;
+  final String? selection;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        if (background != null) 'background': background,
+        if (surface != null) 'surface': surface,
+        if (border != null) 'border': border,
+        if (text != null) 'text': text,
+        if (accent != null) 'accent': accent,
+        if (selection != null) 'selection': selection,
+      };
+}
+
+final class GamePackagePresentationSurfacePalettes {
+  const GamePackagePresentationSurfacePalettes({
+    this.title,
+    this.pauseMenu,
+    this.dialogue,
+    this.battle,
+  });
+
+  final GamePackageSurfacePalette? title;
+  final GamePackageSurfacePalette? pauseMenu;
+  final GamePackageSurfacePalette? dialogue;
+  final GamePackageSurfacePalette? battle;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        if (title != null) 'title': title!.toJson(),
+        if (pauseMenu != null) 'pauseMenu': pauseMenu!.toJson(),
+        if (dialogue != null) 'dialogue': dialogue!.toJson(),
+        if (battle != null) 'battle': battle!.toJson(),
       };
 }
 

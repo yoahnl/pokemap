@@ -1185,6 +1185,20 @@ class _PersonalizationStudioWorkspaceState
                 );
                 setState(() => _fontPreviewFamilies.remove(role));
               },
+              onMetricsChanged: (role, metrics) {
+                unawaited(
+                  notifier.applyPersonalizationStudioProfile(
+                    profile.copyWith(
+                      typography: _replaceTypographyRoleMetrics(
+                        typography,
+                        role,
+                        metrics,
+                      ),
+                    ),
+                    label: 'Modifier le texte ${_typographyRoleName(role)}',
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -1450,6 +1464,19 @@ class _PersonalizationStudioWorkspaceState
               _useSystemCommonFont(profile: profile, notifier: notifier),
             );
           },
+          onCommonMetricsChanged: (metrics) {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(
+                  typography: _replaceCommonTypographyMetrics(
+                    profile.typography ?? const ProjectTypographyProfile(),
+                    metrics,
+                  ),
+                ),
+                label: 'Modifier les réglages du texte commun',
+              ),
+            );
+          },
         ),
       ),
     ],
@@ -1524,6 +1551,19 @@ class _PersonalizationStudioWorkspaceState
           onUseSystemCommonFont: () {
             unawaited(
               _useSystemCommonFont(profile: profile, notifier: notifier),
+            );
+          },
+          onCommonMetricsChanged: (metrics) {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(
+                  typography: _replaceCommonTypographyMetrics(
+                    profile.typography ?? const ProjectTypographyProfile(),
+                    metrics,
+                  ),
+                ),
+                label: 'Modifier le texte du menu Pause',
+              ),
             );
           },
         ),
@@ -1627,6 +1667,20 @@ class _PersonalizationStudioWorkspaceState
                     _fontPreviewFamilies.remove(ProjectTypographyRole.dialogue),
               );
             },
+            onDialogueMetricsChanged: (metrics) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(
+                    typography: _replaceTypographyRoleMetrics(
+                      typography,
+                      ProjectTypographyRole.dialogue,
+                      metrics,
+                    ),
+                  ),
+                  label: 'Modifier le texte des dialogues',
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -1712,6 +1766,20 @@ class _PersonalizationStudioWorkspaceState
               );
               setState(
                 () => _fontPreviewFamilies.remove(ProjectTypographyRole.combat),
+              );
+            },
+            onCombatMetricsChanged: (metrics) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(
+                    typography: _replaceTypographyRoleMetrics(
+                      typography,
+                      ProjectTypographyRole.combat,
+                      metrics,
+                    ),
+                  ),
+                  label: 'Modifier le texte des combats',
+                ),
               );
             },
           ),
@@ -2213,6 +2281,27 @@ ProjectTypographyProfile _replaceTypographyRole(
   ProjectTypographyRole.combat => profile.copyWith(combat: replacement),
   ProjectTypographyRole.numbers => profile.copyWith(numbers: replacement),
 };
+
+ProjectTypographyProfile _replaceTypographyRoleMetrics(
+  ProjectTypographyProfile profile,
+  ProjectTypographyRole role,
+  ProjectTypographyMetricsProfile metrics,
+) => _replaceTypographyRole(
+  profile,
+  role,
+  _typographyRoleProfile(profile, role).copyWith(metrics: metrics),
+);
+
+ProjectTypographyProfile _replaceCommonTypographyMetrics(
+  ProjectTypographyProfile profile,
+  ProjectTypographyMetricsProfile metrics,
+) => profile.copyWith(
+  display: profile.display.copyWith(metrics: metrics),
+  body: profile.body.copyWith(metrics: metrics),
+  dialogue: profile.dialogue.copyWith(metrics: metrics),
+  combat: (profile.combat ?? profile.body).copyWith(metrics: metrics),
+  numbers: profile.numbers.copyWith(metrics: metrics),
+);
 
 String _typographyRoleName(ProjectTypographyRole role) => switch (role) {
   ProjectTypographyRole.display => 'Titres & affichage',

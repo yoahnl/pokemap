@@ -226,6 +226,11 @@ final class GamePackageExportService {
           theme: projection.presentation.theme == null
               ? null
               : _packageSemanticTheme(projection.presentation.theme!),
+          surfacePalettes: projection.presentation.surfacePalettes == null
+              ? null
+              : _packageSurfacePalettes(
+                  projection.presentation.surfacePalettes!,
+                ),
           menuLabels: projection.presentation.menuLabels == null
               ? null
               : GamePackageMenuLabels(
@@ -483,6 +488,14 @@ final class GamePackageExportService {
       family: projected.profile.family,
       license: projected.licensePackagePath,
       fallbackFamilies: projected.profile.fallbackFamilies,
+      metrics: projected.profile.metrics == null
+          ? null
+          : GamePackageTypographyMetrics(
+              sizeScale: projected.profile.metrics!.sizeScale,
+              weight: projected.profile.metrics!.weight,
+              lineHeight: projected.profile.metrics!.lineHeight,
+              letterSpacing: projected.profile.metrics!.letterSpacing,
+            ),
     );
   }
 
@@ -549,6 +562,8 @@ final class GamePackageExportService {
           cornerRadius: style.cornerRadius,
           contentPadding: style.contentPadding,
           shadowElevation: style.shadowElevation,
+          shape: style.shape.name,
+          fillOpacity: style.fillOpacity,
         ),
     ],
     defaultStyleId: windows.defaultStyleId,
@@ -557,6 +572,28 @@ final class GamePackageExportService {
     battleStyleId: windows.battleStyleId,
     pauseBackdropOpacity: windows.pauseBackdropOpacity,
   );
+
+  static GamePackagePresentationSurfacePalettes _packageSurfacePalettes(
+    ProjectPresentationSurfacePalettesProfile palettes,
+  ) => GamePackagePresentationSurfacePalettes(
+    title: _packageSurfacePalette(palettes.title),
+    pauseMenu: _packageSurfacePalette(palettes.pauseMenu),
+    dialogue: _packageSurfacePalette(palettes.dialogue),
+    battle: _packageSurfacePalette(palettes.battle),
+  );
+
+  static GamePackageSurfacePalette? _packageSurfacePalette(
+    ProjectSurfacePaletteProfile? palette,
+  ) => palette == null
+      ? null
+      : GamePackageSurfacePalette(
+          background: palette.background,
+          surface: palette.surface,
+          border: palette.border,
+          text: palette.text,
+          accent: palette.accent,
+          selection: palette.selection,
+        );
 
   static GamePackagePresentationLayouts _packageLayouts(
     ProjectPresentationLayoutsProfile layouts,

@@ -23,6 +23,7 @@ class PersonalizationDialogueInspector extends StatelessWidget {
     required this.onLayoutsChanged,
     required this.onImportDialogueFont,
     required this.onUseSystemDialogueFont,
+    this.onDialogueMetricsChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
 
@@ -40,6 +41,7 @@ class PersonalizationDialogueInspector extends StatelessWidget {
   final ValueChanged<ProjectPresentationLayoutsProfile?> onLayoutsChanged;
   final VoidCallback onImportDialogueFont;
   final VoidCallback onUseSystemDialogueFont;
+  final ValueChanged<ProjectTypographyMetricsProfile>? onDialogueMetricsChanged;
   final Map<ProjectTypographyRole, String> previewFamilies;
 
   @override
@@ -88,6 +90,9 @@ class PersonalizationDialogueInspector extends StatelessWidget {
         fixedRole: ProjectTypographyRole.dialogue,
         onImportRole: (_) => onImportDialogueFont(),
         onUseSystemFont: (_) => onUseSystemDialogueFont(),
+        onMetricsChanged: onDialogueMetricsChanged == null
+            ? null
+            : (_, metrics) => onDialogueMetricsChanged!(metrics),
       ),
       const SizedBox(height: 18),
       const PokeMapSectionHeader(

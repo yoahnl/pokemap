@@ -20,6 +20,7 @@ final class RuntimePlayerPresentation {
     required this.title,
     this.typography = const PokeMapPlayerTypography(),
     this.semanticTheme,
+    this.surfacePalettes,
     this.windowProfile,
     this.layoutProfile,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
@@ -43,8 +44,9 @@ final class RuntimePlayerPresentation {
           profile?.branding.layoutVariant,
         ),
       ),
-      typography: _typography(source.typography),
+      typography: _typography(source.typography, profile?.typography),
       semanticTheme: _semanticTheme(profile?.theme),
+      surfacePalettes: profile?.surfacePalettes,
       windowProfile: profile?.windows,
       layoutProfile: profile?.layouts,
       pauseMenuLabels: _pauseMenuLabels(profile?.menuLabels),
@@ -76,6 +78,7 @@ final class RuntimePlayerPresentation {
       ),
       typography: _typographyFromProfile(profile.typography),
       semanticTheme: _semanticTheme(profile.theme),
+      surfacePalettes: profile.surfacePalettes,
       windowProfile: profile.windows,
       layoutProfile: profile.layouts,
       pauseMenuLabels: _pauseMenuLabels(profile.menuLabels),
@@ -85,6 +88,7 @@ final class RuntimePlayerPresentation {
   final RuntimePlayerTitlePresentation title;
   final PokeMapPlayerTypography typography;
   final PokeMapPlayerSemanticTheme? semanticTheme;
+  final ProjectPresentationSurfacePalettesProfile? surfacePalettes;
   final ProjectPresentationWindowsProfile? windowProfile;
   final ProjectPresentationLayoutsProfile? layoutProfile;
   final PlayerPauseMenuLabels pauseMenuLabels;
@@ -94,6 +98,9 @@ final class RuntimePlayerPresentation {
     final semantic = semanticTheme;
     if (semantic != null) {
       resolved = PokeMapPlayerTheme.withSemanticTheme(resolved, semantic);
+    }
+    if (surfacePalettes case final palettes?) {
+      resolved = PokeMapPlayerTheme.withSurfacePalettes(resolved, palettes);
     }
     if (windowProfile case final windows?) {
       resolved = PokeMapPlayerTheme.withWindowProfile(resolved, windows);
@@ -105,7 +112,10 @@ final class RuntimePlayerPresentation {
   }
 }
 
-PokeMapPlayerTypography _typography(RuntimeLoadedTypography? source) {
+PokeMapPlayerTypography _typography(
+  RuntimeLoadedTypography? source,
+  ProjectTypographyProfile? profile,
+) {
   RuntimeLoadedFontRole role(
     ProjectTypographyRole role,
     List<String> fallback,
@@ -144,6 +154,11 @@ PokeMapPlayerTypography _typography(RuntimeLoadedTypography? source) {
     combatFallback: combat.fallbackFamilies,
     numbersFamily: numbers.registeredFamily,
     numbersFallback: numbers.fallbackFamilies,
+    displayMetrics: profile?.display.metrics,
+    bodyMetrics: profile?.body.metrics,
+    dialogueMetrics: profile?.dialogue.metrics,
+    combatMetrics: profile?.combat?.metrics ?? profile?.body.metrics,
+    numbersMetrics: profile?.numbers.metrics,
   );
 }
 
@@ -167,6 +182,11 @@ PokeMapPlayerTypography _typographyFromProfile(
       numbersFamily: source?.numbers.family,
       numbersFallback:
           source?.numbers.fallbackFamilies ?? const <String>['monospace'],
+      displayMetrics: source?.display.metrics,
+      bodyMetrics: source?.body.metrics,
+      dialogueMetrics: source?.dialogue.metrics,
+      combatMetrics: source?.combat?.metrics ?? source?.body.metrics,
+      numbersMetrics: source?.numbers.metrics,
     );
 
 PokeMapPlayerSemanticTheme? _semanticTheme(

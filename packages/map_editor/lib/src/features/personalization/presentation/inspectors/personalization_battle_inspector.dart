@@ -18,6 +18,7 @@ class PersonalizationBattleInspector extends StatelessWidget {
     required this.onLayoutsChanged,
     required this.onImportCombatFont,
     required this.onUseSystemCombatFont,
+    this.onCombatMetricsChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
 
@@ -28,6 +29,7 @@ class PersonalizationBattleInspector extends StatelessWidget {
   final ValueChanged<ProjectPresentationLayoutsProfile?> onLayoutsChanged;
   final VoidCallback onImportCombatFont;
   final VoidCallback onUseSystemCombatFont;
+  final ValueChanged<ProjectTypographyMetricsProfile>? onCombatMetricsChanged;
   final Map<ProjectTypographyRole, String> previewFamilies;
 
   @override
@@ -122,6 +124,9 @@ class PersonalizationBattleInspector extends StatelessWidget {
         fixedRole: ProjectTypographyRole.combat,
         onImportRole: (_) => onImportCombatFont(),
         onUseSystemFont: (_) => onUseSystemCombatFont(),
+        onMetricsChanged: onCombatMetricsChanged == null
+            ? null
+            : (_, metrics) => onCombatMetricsChanged!(metrics),
       ),
     ],
   );

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ProjectWindowStyleProfile {
 
- String get id; String get fillToken; String get borderToken; int get borderWidth; int get cornerRadius; int get contentPadding; int get shadowElevation;
+ String get id; String get fillToken; String get borderToken; int get borderWidth; int get cornerRadius; int get contentPadding; int get shadowElevation; ProjectWindowShape get shape; double get fillOpacity;
 /// Create a copy of ProjectWindowStyleProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ProjectWindowStyleProfileCopyWith<ProjectWindowStyleProfile> get copyWith => _$
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectWindowStyleProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.fillToken, fillToken) || other.fillToken == fillToken)&&(identical(other.borderToken, borderToken) || other.borderToken == borderToken)&&(identical(other.borderWidth, borderWidth) || other.borderWidth == borderWidth)&&(identical(other.cornerRadius, cornerRadius) || other.cornerRadius == cornerRadius)&&(identical(other.contentPadding, contentPadding) || other.contentPadding == contentPadding)&&(identical(other.shadowElevation, shadowElevation) || other.shadowElevation == shadowElevation));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectWindowStyleProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.fillToken, fillToken) || other.fillToken == fillToken)&&(identical(other.borderToken, borderToken) || other.borderToken == borderToken)&&(identical(other.borderWidth, borderWidth) || other.borderWidth == borderWidth)&&(identical(other.cornerRadius, cornerRadius) || other.cornerRadius == cornerRadius)&&(identical(other.contentPadding, contentPadding) || other.contentPadding == contentPadding)&&(identical(other.shadowElevation, shadowElevation) || other.shadowElevation == shadowElevation)&&(identical(other.shape, shape) || other.shape == shape)&&(identical(other.fillOpacity, fillOpacity) || other.fillOpacity == fillOpacity));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,fillToken,borderToken,borderWidth,cornerRadius,contentPadding,shadowElevation);
+int get hashCode => Object.hash(runtimeType,id,fillToken,borderToken,borderWidth,cornerRadius,contentPadding,shadowElevation,shape,fillOpacity);
 
 @override
 String toString() {
-  return 'ProjectWindowStyleProfile(id: $id, fillToken: $fillToken, borderToken: $borderToken, borderWidth: $borderWidth, cornerRadius: $cornerRadius, contentPadding: $contentPadding, shadowElevation: $shadowElevation)';
+  return 'ProjectWindowStyleProfile(id: $id, fillToken: $fillToken, borderToken: $borderToken, borderWidth: $borderWidth, cornerRadius: $cornerRadius, contentPadding: $contentPadding, shadowElevation: $shadowElevation, shape: $shape, fillOpacity: $fillOpacity)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ProjectWindowStyleProfileCopyWith<$Res>  {
   factory $ProjectWindowStyleProfileCopyWith(ProjectWindowStyleProfile value, $Res Function(ProjectWindowStyleProfile) _then) = _$ProjectWindowStyleProfileCopyWithImpl;
 @useResult
 $Res call({
- String id, String fillToken, String borderToken, int borderWidth, int cornerRadius, int contentPadding, int shadowElevation
+ String id, String fillToken, String borderToken, int borderWidth, int cornerRadius, int contentPadding, int shadowElevation, ProjectWindowShape shape, double fillOpacity
 });
 
 
@@ -65,7 +65,7 @@ class _$ProjectWindowStyleProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectWindowStyleProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? fillToken = null,Object? borderToken = null,Object? borderWidth = null,Object? cornerRadius = null,Object? contentPadding = null,Object? shadowElevation = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? fillToken = null,Object? borderToken = null,Object? borderWidth = null,Object? cornerRadius = null,Object? contentPadding = null,Object? shadowElevation = null,Object? shape = null,Object? fillOpacity = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,fillToken: null == fillToken ? _self.fillToken : fillToken // ignore: cast_nullable_to_non_nullable
@@ -74,7 +74,9 @@ as String,borderWidth: null == borderWidth ? _self.borderWidth : borderWidth // 
 as int,cornerRadius: null == cornerRadius ? _self.cornerRadius : cornerRadius // ignore: cast_nullable_to_non_nullable
 as int,contentPadding: null == contentPadding ? _self.contentPadding : contentPadding // ignore: cast_nullable_to_non_nullable
 as int,shadowElevation: null == shadowElevation ? _self.shadowElevation : shadowElevation // ignore: cast_nullable_to_non_nullable
-as int,
+as int,shape: null == shape ? _self.shape : shape // ignore: cast_nullable_to_non_nullable
+as ProjectWindowShape,fillOpacity: null == fillOpacity ? _self.fillOpacity : fillOpacity // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 
@@ -159,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String fillToken,  String borderToken,  int borderWidth,  int cornerRadius,  int contentPadding,  int shadowElevation)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String fillToken,  String borderToken,  int borderWidth,  int cornerRadius,  int contentPadding,  int shadowElevation,  ProjectWindowShape shape,  double fillOpacity)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectWindowStyleProfile() when $default != null:
-return $default(_that.id,_that.fillToken,_that.borderToken,_that.borderWidth,_that.cornerRadius,_that.contentPadding,_that.shadowElevation);case _:
+return $default(_that.id,_that.fillToken,_that.borderToken,_that.borderWidth,_that.cornerRadius,_that.contentPadding,_that.shadowElevation,_that.shape,_that.fillOpacity);case _:
   return orElse();
 
 }
@@ -180,10 +182,10 @@ return $default(_that.id,_that.fillToken,_that.borderToken,_that.borderWidth,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String fillToken,  String borderToken,  int borderWidth,  int cornerRadius,  int contentPadding,  int shadowElevation)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String fillToken,  String borderToken,  int borderWidth,  int cornerRadius,  int contentPadding,  int shadowElevation,  ProjectWindowShape shape,  double fillOpacity)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectWindowStyleProfile():
-return $default(_that.id,_that.fillToken,_that.borderToken,_that.borderWidth,_that.cornerRadius,_that.contentPadding,_that.shadowElevation);case _:
+return $default(_that.id,_that.fillToken,_that.borderToken,_that.borderWidth,_that.cornerRadius,_that.contentPadding,_that.shadowElevation,_that.shape,_that.fillOpacity);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +202,10 @@ return $default(_that.id,_that.fillToken,_that.borderToken,_that.borderWidth,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String fillToken,  String borderToken,  int borderWidth,  int cornerRadius,  int contentPadding,  int shadowElevation)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String fillToken,  String borderToken,  int borderWidth,  int cornerRadius,  int contentPadding,  int shadowElevation,  ProjectWindowShape shape,  double fillOpacity)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectWindowStyleProfile() when $default != null:
-return $default(_that.id,_that.fillToken,_that.borderToken,_that.borderWidth,_that.cornerRadius,_that.contentPadding,_that.shadowElevation);case _:
+return $default(_that.id,_that.fillToken,_that.borderToken,_that.borderWidth,_that.cornerRadius,_that.contentPadding,_that.shadowElevation,_that.shape,_that.fillOpacity);case _:
   return null;
 
 }
@@ -215,7 +217,7 @@ return $default(_that.id,_that.fillToken,_that.borderToken,_that.borderWidth,_th
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectWindowStyleProfile implements ProjectWindowStyleProfile {
-  const _ProjectWindowStyleProfile({required this.id, required this.fillToken, required this.borderToken, required this.borderWidth, required this.cornerRadius, required this.contentPadding, required this.shadowElevation});
+  const _ProjectWindowStyleProfile({required this.id, required this.fillToken, required this.borderToken, required this.borderWidth, required this.cornerRadius, required this.contentPadding, required this.shadowElevation, this.shape = ProjectWindowShape.rounded, this.fillOpacity = 1});
   factory _ProjectWindowStyleProfile.fromJson(Map<String, dynamic> json) => _$ProjectWindowStyleProfileFromJson(json);
 
 @override final  String id;
@@ -225,6 +227,8 @@ class _ProjectWindowStyleProfile implements ProjectWindowStyleProfile {
 @override final  int cornerRadius;
 @override final  int contentPadding;
 @override final  int shadowElevation;
+@override@JsonKey() final  ProjectWindowShape shape;
+@override@JsonKey() final  double fillOpacity;
 
 /// Create a copy of ProjectWindowStyleProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectWindowStyleProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.fillToken, fillToken) || other.fillToken == fillToken)&&(identical(other.borderToken, borderToken) || other.borderToken == borderToken)&&(identical(other.borderWidth, borderWidth) || other.borderWidth == borderWidth)&&(identical(other.cornerRadius, cornerRadius) || other.cornerRadius == cornerRadius)&&(identical(other.contentPadding, contentPadding) || other.contentPadding == contentPadding)&&(identical(other.shadowElevation, shadowElevation) || other.shadowElevation == shadowElevation));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectWindowStyleProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.fillToken, fillToken) || other.fillToken == fillToken)&&(identical(other.borderToken, borderToken) || other.borderToken == borderToken)&&(identical(other.borderWidth, borderWidth) || other.borderWidth == borderWidth)&&(identical(other.cornerRadius, cornerRadius) || other.cornerRadius == cornerRadius)&&(identical(other.contentPadding, contentPadding) || other.contentPadding == contentPadding)&&(identical(other.shadowElevation, shadowElevation) || other.shadowElevation == shadowElevation)&&(identical(other.shape, shape) || other.shape == shape)&&(identical(other.fillOpacity, fillOpacity) || other.fillOpacity == fillOpacity));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,fillToken,borderToken,borderWidth,cornerRadius,contentPadding,shadowElevation);
+int get hashCode => Object.hash(runtimeType,id,fillToken,borderToken,borderWidth,cornerRadius,contentPadding,shadowElevation,shape,fillOpacity);
 
 @override
 String toString() {
-  return 'ProjectWindowStyleProfile(id: $id, fillToken: $fillToken, borderToken: $borderToken, borderWidth: $borderWidth, cornerRadius: $cornerRadius, contentPadding: $contentPadding, shadowElevation: $shadowElevation)';
+  return 'ProjectWindowStyleProfile(id: $id, fillToken: $fillToken, borderToken: $borderToken, borderWidth: $borderWidth, cornerRadius: $cornerRadius, contentPadding: $contentPadding, shadowElevation: $shadowElevation, shape: $shape, fillOpacity: $fillOpacity)';
 }
 
 
@@ -259,7 +263,7 @@ abstract mixin class _$ProjectWindowStyleProfileCopyWith<$Res> implements $Proje
   factory _$ProjectWindowStyleProfileCopyWith(_ProjectWindowStyleProfile value, $Res Function(_ProjectWindowStyleProfile) _then) = __$ProjectWindowStyleProfileCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String fillToken, String borderToken, int borderWidth, int cornerRadius, int contentPadding, int shadowElevation
+ String id, String fillToken, String borderToken, int borderWidth, int cornerRadius, int contentPadding, int shadowElevation, ProjectWindowShape shape, double fillOpacity
 });
 
 
@@ -276,7 +280,7 @@ class __$ProjectWindowStyleProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectWindowStyleProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? fillToken = null,Object? borderToken = null,Object? borderWidth = null,Object? cornerRadius = null,Object? contentPadding = null,Object? shadowElevation = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? fillToken = null,Object? borderToken = null,Object? borderWidth = null,Object? cornerRadius = null,Object? contentPadding = null,Object? shadowElevation = null,Object? shape = null,Object? fillOpacity = null,}) {
   return _then(_ProjectWindowStyleProfile(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,fillToken: null == fillToken ? _self.fillToken : fillToken // ignore: cast_nullable_to_non_nullable
@@ -285,7 +289,9 @@ as String,borderWidth: null == borderWidth ? _self.borderWidth : borderWidth // 
 as int,cornerRadius: null == cornerRadius ? _self.cornerRadius : cornerRadius // ignore: cast_nullable_to_non_nullable
 as int,contentPadding: null == contentPadding ? _self.contentPadding : contentPadding // ignore: cast_nullable_to_non_nullable
 as int,shadowElevation: null == shadowElevation ? _self.shadowElevation : shadowElevation // ignore: cast_nullable_to_non_nullable
-as int,
+as int,shape: null == shape ? _self.shape : shape // ignore: cast_nullable_to_non_nullable
+as ProjectWindowShape,fillOpacity: null == fillOpacity ? _self.fillOpacity : fillOpacity // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 

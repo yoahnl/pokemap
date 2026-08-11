@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import 'pokemap_player_window_theme.dart';
 import 'pokemap_player_layout_theme.dart';
+import 'pokemap_player_surface_palette_theme.dart';
 
 abstract final class PokeMapPlayerProjectColorResolver {
   static Color? tryHex(String? source) {
@@ -362,8 +363,14 @@ final class PokeMapPlayerTypography
     List<String>? combatFallback,
     this.numbersFamily,
     this.numbersFallback = const <String>['monospace'],
+    this.displayMetrics,
+    this.bodyMetrics,
+    this.dialogueMetrics,
+    ProjectTypographyMetricsProfile? combatMetrics,
+    this.numbersMetrics,
   })  : combatFamily = combatFamily ?? bodyFamily,
-        combatFallback = combatFallback ?? bodyFallback;
+        combatFallback = combatFallback ?? bodyFallback,
+        combatMetrics = combatMetrics ?? bodyMetrics;
 
   final String? displayFamily;
   final List<String> displayFallback;
@@ -375,31 +382,66 @@ final class PokeMapPlayerTypography
   final List<String> combatFallback;
   final String? numbersFamily;
   final List<String> numbersFallback;
+  final ProjectTypographyMetricsProfile? displayMetrics;
+  final ProjectTypographyMetricsProfile? bodyMetrics;
+  final ProjectTypographyMetricsProfile? dialogueMetrics;
+  final ProjectTypographyMetricsProfile? combatMetrics;
+  final ProjectTypographyMetricsProfile? numbersMetrics;
 
-  TextStyle displayStyle(TextStyle base) => base.copyWith(
-        fontFamily: displayFamily,
-        fontFamilyFallback: displayFallback,
+  TextStyle displayStyle(TextStyle base) => _style(
+        base,
+        family: displayFamily,
+        fallback: displayFallback,
+        metrics: displayMetrics,
       );
 
-  TextStyle bodyStyle(TextStyle base) => base.copyWith(
-        fontFamily: bodyFamily,
-        fontFamilyFallback: bodyFallback,
+  TextStyle bodyStyle(TextStyle base) => _style(
+        base,
+        family: bodyFamily,
+        fallback: bodyFallback,
+        metrics: bodyMetrics,
       );
 
-  TextStyle dialogueStyle(TextStyle base) => base.copyWith(
-        fontFamily: dialogueFamily,
-        fontFamilyFallback: dialogueFallback,
+  TextStyle dialogueStyle(TextStyle base) => _style(
+        base,
+        family: dialogueFamily,
+        fallback: dialogueFallback,
+        metrics: dialogueMetrics,
       );
 
-  TextStyle combatStyle(TextStyle base) => base.copyWith(
-        fontFamily: combatFamily,
-        fontFamilyFallback: combatFallback,
+  TextStyle combatStyle(TextStyle base) => _style(
+        base,
+        family: combatFamily,
+        fallback: combatFallback,
+        metrics: combatMetrics,
       );
 
-  TextStyle numbersStyle(TextStyle base) => base.copyWith(
-        fontFamily: numbersFamily,
-        fontFamilyFallback: numbersFallback,
+  TextStyle numbersStyle(TextStyle base) => _style(
+        base,
+        family: numbersFamily,
+        fallback: numbersFallback,
+        metrics: numbersMetrics,
+      ).copyWith(
         fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+      );
+
+  TextStyle _style(
+    TextStyle base, {
+    required String? family,
+    required List<String> fallback,
+    required ProjectTypographyMetricsProfile? metrics,
+  }) =>
+      base.copyWith(
+        fontFamily: family,
+        fontFamilyFallback: fallback,
+        fontSize: metrics == null || base.fontSize == null
+            ? base.fontSize
+            : base.fontSize! * metrics.sizeScale,
+        fontWeight: metrics == null
+            ? base.fontWeight
+            : FontWeight.values[(metrics.weight ~/ 100) - 1],
+        height: metrics?.lineHeight ?? base.height,
+        letterSpacing: metrics?.letterSpacing ?? base.letterSpacing,
       );
 
   @override
@@ -414,6 +456,11 @@ final class PokeMapPlayerTypography
     List<String>? combatFallback,
     String? numbersFamily,
     List<String>? numbersFallback,
+    ProjectTypographyMetricsProfile? displayMetrics,
+    ProjectTypographyMetricsProfile? bodyMetrics,
+    ProjectTypographyMetricsProfile? dialogueMetrics,
+    ProjectTypographyMetricsProfile? combatMetrics,
+    ProjectTypographyMetricsProfile? numbersMetrics,
   }) =>
       PokeMapPlayerTypography(
         displayFamily: displayFamily ?? this.displayFamily,
@@ -426,6 +473,11 @@ final class PokeMapPlayerTypography
         combatFallback: combatFallback ?? this.combatFallback,
         numbersFamily: numbersFamily ?? this.numbersFamily,
         numbersFallback: numbersFallback ?? this.numbersFallback,
+        displayMetrics: displayMetrics ?? this.displayMetrics,
+        bodyMetrics: bodyMetrics ?? this.bodyMetrics,
+        dialogueMetrics: dialogueMetrics ?? this.dialogueMetrics,
+        combatMetrics: combatMetrics ?? this.combatMetrics,
+        numbersMetrics: numbersMetrics ?? this.numbersMetrics,
       );
 
   @override
@@ -606,6 +658,82 @@ abstract final class PokeMapPlayerTheme {
         indicatorColor: colors.primary.withValues(alpha: 0.18),
       ),
     );
+  }
+
+  static ThemeData withSurfacePalettes(
+    ThemeData theme,
+    ProjectPresentationSurfacePalettesProfile profile,
+  ) {
+    final extensions = theme.extensions.values
+        .where((extension) => extension is! PokeMapPlayerSurfacePaletteTheme)
+        .toList(growable: true)
+      ..add(PokeMapPlayerSurfacePaletteTheme(profile));
+    return theme.copyWith(extensions: extensions);
+  }
+
+  static ThemeData withSurfacePalette(
+    ThemeData theme,
+    ProjectSurfacePaletteProfile palette,
+  ) {
+    final baseColors = theme.extension<PokeMapPlayerColors>();
+    final baseSemantic = theme.extension<PokeMapPlayerSemanticTheme>();
+    if (baseColors == null || baseSemantic == null) return theme;
+    final background = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          palette.background,
+        ) ??
+        baseColors.background;
+    final surface = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          palette.surface,
+        ) ??
+        baseColors.surface;
+    final border = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          palette.border,
+        ) ??
+        baseColors.outline;
+    final text = PokeMapPlayerProjectColorResolver.tryOpaqueHex(palette.text) ??
+        baseColors.textPrimary;
+    final accent = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          palette.accent,
+        ) ??
+        baseColors.primary;
+    final selection = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          palette.selection,
+        ) ??
+        baseColors.focus;
+    var resolved = withSemanticTheme(
+      theme,
+      baseSemantic.copyWith(
+        primary: accent,
+        background: background,
+        surface: surface,
+        surfaceElevated: surface,
+        textPrimary: text,
+        textSecondary: text,
+        outline: border,
+        titleSurface: surface,
+        dialogueSurface: surface,
+        menuSurface: surface,
+        overworldHudSurface: surface,
+        battleHudSurface: surface,
+      ),
+    );
+    final colors = resolved.extension<PokeMapPlayerColors>()!.copyWith(
+          focus: selection,
+        );
+    final extensions = resolved.extensions.values
+        .where((extension) => extension is! PokeMapPlayerColors)
+        .toList(growable: true)
+      ..add(colors);
+    resolved = resolved.copyWith(
+      extensions: extensions,
+      focusColor: selection,
+      textSelectionTheme: resolved.textSelectionTheme.copyWith(
+        cursorColor: accent,
+        selectionColor: selection.withValues(alpha: .35),
+        selectionHandleColor: selection,
+      ),
+    );
+    return resolved;
   }
 
   static ThemeData withWindowProfile(
