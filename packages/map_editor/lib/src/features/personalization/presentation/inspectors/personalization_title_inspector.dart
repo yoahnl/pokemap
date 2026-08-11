@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../application/project_branding_image_import_service.dart';
 import '../../application/project_title_motion_import_service.dart';
+import '../personalization_surface_color_editor.dart';
 import '../project_branding_editor.dart';
 import '../project_title_motion_editor.dart';
 
@@ -25,6 +26,7 @@ class PersonalizationTitleInspector extends StatelessWidget {
     required this.onRemoveTitleMusic,
     required this.onImportMotion,
     required this.onRemoveMotion,
+    this.onSurfacePalettesChanged,
     this.isTitleMusicPreviewPlaying = false,
   });
 
@@ -41,6 +43,8 @@ class PersonalizationTitleInspector extends StatelessWidget {
   final VoidCallback? onRemoveTitleMusic;
   final ValueChanged<ProjectTitleMotionLoopRole> onImportMotion;
   final ValueChanged<ProjectTitleMotionLoopRole> onRemoveMotion;
+  final ValueChanged<ProjectPresentationSurfacePalettesProfile?>?
+  onSurfacePalettesChanged;
   final bool isTitleMusicPreviewPlaying;
 
   @override
@@ -97,6 +101,22 @@ class PersonalizationTitleInspector extends StatelessWidget {
         onRemoveTitleMusic: onRemoveTitleMusic,
         isTitleMusicPreviewPlaying: isTitleMusicPreviewPlaying,
         showPreview: false,
+      ),
+      const SizedBox(height: 18),
+      PersonalizationSurfaceColorEditor(
+        role: ProjectPresentationSurfaceRole.title,
+        palette: personalizationSurfacePalette(
+          profile.surfacePalettes,
+          ProjectPresentationSurfaceRole.title,
+        ),
+        inheritedTheme: profile.theme ?? safeProjectSemanticTheme,
+        onChanged: (palette) => onSurfacePalettesChanged?.call(
+          replacePersonalizationSurfacePalette(
+            profile.surfacePalettes,
+            ProjectPresentationSurfaceRole.title,
+            palette,
+          ),
+        ),
       ),
       const SizedBox(height: 18),
       ProjectTitleMotionEditor(

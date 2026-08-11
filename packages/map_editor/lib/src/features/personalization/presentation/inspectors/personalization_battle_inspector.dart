@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
 import '../../application/personalization_preview_fixtures.dart';
+import '../personalization_surface_color_editor.dart';
 import '../project_typography_editor.dart';
 import '../project_window_studio.dart';
 
@@ -19,6 +20,7 @@ class PersonalizationBattleInspector extends StatelessWidget {
     required this.onImportCombatFont,
     required this.onUseSystemCombatFont,
     this.onCombatMetricsChanged,
+    this.onSurfacePalettesChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
 
@@ -30,6 +32,8 @@ class PersonalizationBattleInspector extends StatelessWidget {
   final VoidCallback onImportCombatFont;
   final VoidCallback onUseSystemCombatFont;
   final ValueChanged<ProjectTypographyMetricsProfile>? onCombatMetricsChanged;
+  final ValueChanged<ProjectPresentationSurfacePalettesProfile?>?
+  onSurfacePalettesChanged;
   final Map<ProjectTypographyRole, String> previewFamilies;
 
   @override
@@ -116,6 +120,22 @@ class PersonalizationBattleInspector extends StatelessWidget {
         profile: _battleWindows(profile.windows),
         fixedRole: ProjectWindowRole.battle,
         onChanged: onWindowsChanged,
+      ),
+      const SizedBox(height: 18),
+      PersonalizationSurfaceColorEditor(
+        role: ProjectPresentationSurfaceRole.battleHud,
+        palette: personalizationSurfacePalette(
+          profile.surfacePalettes,
+          ProjectPresentationSurfaceRole.battleHud,
+        ),
+        inheritedTheme: profile.theme ?? safeProjectSemanticTheme,
+        onChanged: (palette) => onSurfacePalettesChanged?.call(
+          replacePersonalizationSurfacePalette(
+            profile.surfacePalettes,
+            ProjectPresentationSurfaceRole.battleHud,
+            palette,
+          ),
+        ),
       ),
       const SizedBox(height: 18),
       ProjectTypographyEditor(

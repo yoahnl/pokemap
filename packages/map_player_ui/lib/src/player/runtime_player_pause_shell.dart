@@ -8,6 +8,7 @@ import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_layout_theme.dart';
+import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_window_theme.dart';
 import 'player_pause_menu.dart';
 import 'runtime_player_actions.dart';
@@ -133,8 +134,13 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      PlayerPauseSurface.composed(child: _buildSurface(context));
+  Widget build(BuildContext context) => PlayerSurfacePaletteScope(
+        role: ProjectPresentationSurfaceRole.pauseMenu,
+        child: Builder(
+          builder: (context) =>
+              PlayerPauseSurface.composed(child: _buildSurface(context)),
+        ),
+      );
 
   Widget _buildSurface(BuildContext context) {
     return RuntimePlayerActions(

@@ -97,6 +97,61 @@ void main() {
     );
   });
 
+  testWidgets('scopes background, accent and focus to one player scene', (
+    tester,
+  ) async {
+    final presentation = RuntimePlayerPresentation.fromProfile(
+      const ProjectPresentationProfile(
+        surfacePalettes: ProjectPresentationSurfacePalettesProfile(
+          battle: ProjectSurfacePaletteProfile(
+            background: '#081018',
+            surface: '#102030',
+            border: '#63E6FF',
+            text: '#FFFFFF',
+            accent: '#63E6FF',
+            selection: '#FFD166',
+          ),
+        ),
+      ),
+    );
+    PokeMapPlayerColors? scopedColors;
+    Color? scopedFocus;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: presentation.applyTo(PokeMapPlayerTheme.light()),
+        home: PlayerSurfacePaletteScope(
+          role: ProjectPresentationSurfaceRole.battleHud,
+          paintBackground: true,
+          child: Builder(
+            builder: (context) {
+              scopedColors = context.playerColors;
+              scopedFocus = Theme.of(context).focusColor;
+              return const SizedBox.expand(
+                key: ValueKey<String>('surface-palette-probe'),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    final background = tester.widget<ColoredBox>(
+      find
+          .ancestor(
+            of: find.byKey(const ValueKey<String>('surface-palette-probe')),
+            matching: find.byType(ColoredBox),
+          )
+          .first,
+    );
+    expect(background.color, const Color(0xFF081018));
+    expect(scopedColors?.surface, const Color(0xFF102030));
+    expect(scopedColors?.primary, const Color(0xFF63E6FF));
+    expect(scopedColors?.textPrimary, const Color(0xFFFFFFFF));
+    expect(scopedColors?.focus, const Color(0xFFFFD166));
+    expect(scopedFocus, const Color(0xFFFFD166));
+  });
+
   test('projects runtime presentation data into generic player rendering', () {
     const hero = AssetImage('hero.png');
     const logo = AssetImage('logo.png');

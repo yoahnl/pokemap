@@ -7,6 +7,7 @@ import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_layout_theme.dart';
 import 'runtime_player_focus_controller.dart';
 
@@ -148,7 +149,13 @@ class PlayerTitleSurface extends StatelessWidget {
   final RuntimePlayerFocusController? focusController;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => PlayerSurfacePaletteScope(
+        role: ProjectPresentationSurfaceRole.title,
+        paintBackground: true,
+        child: Builder(builder: _build),
+      );
+
+  Widget _build(BuildContext context) {
     if (data.layoutVariant == PlayerTitleLayoutVariant.runtimeStartup ||
         data.layoutVariant ==
             PlayerTitleLayoutVariant.runtimeStartupCinematic) {

@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
 import '../../application/personalization_character_preview_source.dart';
+import '../personalization_surface_color_editor.dart';
 import '../project_typography_editor.dart';
 import '../project_window_studio.dart';
 
@@ -24,6 +25,7 @@ class PersonalizationDialogueInspector extends StatelessWidget {
     required this.onImportDialogueFont,
     required this.onUseSystemDialogueFont,
     this.onDialogueMetricsChanged,
+    this.onSurfacePalettesChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
 
@@ -42,6 +44,8 @@ class PersonalizationDialogueInspector extends StatelessWidget {
   final VoidCallback onImportDialogueFont;
   final VoidCallback onUseSystemDialogueFont;
   final ValueChanged<ProjectTypographyMetricsProfile>? onDialogueMetricsChanged;
+  final ValueChanged<ProjectPresentationSurfacePalettesProfile?>?
+  onSurfacePalettesChanged;
   final Map<ProjectTypographyRole, String> previewFamilies;
 
   @override
@@ -82,6 +86,22 @@ class PersonalizationDialogueInspector extends StatelessWidget {
         profile: profile.windows ?? legacyProjectPresentationWindows,
         fixedRole: ProjectWindowRole.dialogue,
         onChanged: onWindowsChanged,
+      ),
+      const SizedBox(height: 18),
+      PersonalizationSurfaceColorEditor(
+        role: ProjectPresentationSurfaceRole.dialogue,
+        palette: personalizationSurfacePalette(
+          profile.surfacePalettes,
+          ProjectPresentationSurfaceRole.dialogue,
+        ),
+        inheritedTheme: profile.theme ?? safeProjectSemanticTheme,
+        onChanged: (palette) => onSurfacePalettesChanged?.call(
+          replacePersonalizationSurfacePalette(
+            profile.surfacePalettes,
+            ProjectPresentationSurfaceRole.dialogue,
+            palette,
+          ),
+        ),
       ),
       const SizedBox(height: 18),
       ProjectTypographyEditor(

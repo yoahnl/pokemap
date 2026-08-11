@@ -1055,6 +1055,14 @@ class _PersonalizationStudioWorkspaceState
                       ),
                     );
                   },
+                  onSurfacePalettesChanged: (surfacePalettes) {
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        profile.copyWith(surfacePalettes: surfacePalettes),
+                        label: 'Modifier les couleurs de l’écran titre',
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 18),
                 ProjectPresentationPresetLibrary(
@@ -1528,6 +1536,14 @@ class _PersonalizationStudioWorkspaceState
               ),
             );
           },
+          onSurfacePalettesChanged: (surfacePalettes) {
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(surfacePalettes: surfacePalettes),
+                label: 'Modifier les couleurs du menu Pause',
+              ),
+            );
+          },
           onLayoutsChanged: (layouts) {
             unawaited(
               notifier.applyPersonalizationStudioProfile(
@@ -1626,6 +1642,14 @@ class _PersonalizationStudioWorkspaceState
                 notifier.applyPersonalizationStudioProfile(
                   profile.copyWith(windows: windows),
                   label: 'Modifier l’apparence de la bulle de dialogue',
+                ),
+              );
+            },
+            onSurfacePalettesChanged: (surfacePalettes) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(surfacePalettes: surfacePalettes),
+                  label: 'Modifier les couleurs des dialogues',
                 ),
               );
             },
@@ -1728,6 +1752,14 @@ class _PersonalizationStudioWorkspaceState
                 notifier.applyPersonalizationStudioProfile(
                   profile.copyWith(windows: windows),
                   label: 'Modifier l’apparence du menu de combat',
+                ),
+              );
+            },
+            onSurfacePalettesChanged: (surfacePalettes) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(surfacePalettes: surfacePalettes),
+                  label: 'Modifier les couleurs des combats',
                 ),
               );
             },

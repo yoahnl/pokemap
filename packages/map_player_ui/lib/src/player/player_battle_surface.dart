@@ -7,6 +7,7 @@ import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_layout_theme.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_surface_palette_theme.dart';
 
 enum PlayerBattleEntryTone {
   neutral,
@@ -144,7 +145,13 @@ class PlayerBattleSurface extends StatelessWidget {
   final Widget Function(String assetPath)? itemIconBuilder;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => PlayerSurfacePaletteScope(
+        role: ProjectPresentationSurfaceRole.battleHud,
+        paintBackground: true,
+        child: Builder(builder: _build),
+      );
+
+  Widget _build(BuildContext context) {
     return SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {

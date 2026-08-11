@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../project_layout_studio.dart';
 import '../project_menu_labels_editor.dart';
+import '../personalization_surface_color_editor.dart';
 import '../project_typography_editor.dart';
 import '../project_window_studio.dart';
 
@@ -16,6 +17,7 @@ class PersonalizationPauseInspector extends StatelessWidget {
     required this.onImportCommonFont,
     required this.onUseSystemCommonFont,
     this.onCommonMetricsChanged,
+    this.onSurfacePalettesChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
 
@@ -26,6 +28,8 @@ class PersonalizationPauseInspector extends StatelessWidget {
   final VoidCallback onImportCommonFont;
   final VoidCallback onUseSystemCommonFont;
   final ValueChanged<ProjectTypographyMetricsProfile>? onCommonMetricsChanged;
+  final ValueChanged<ProjectPresentationSurfacePalettesProfile?>?
+  onSurfacePalettesChanged;
   final Map<ProjectTypographyRole, String> previewFamilies;
 
   @override
@@ -45,6 +49,22 @@ class PersonalizationPauseInspector extends StatelessWidget {
         profile: profile.windows ?? legacyProjectPresentationWindows,
         fixedRole: ProjectWindowRole.pauseMenu,
         onChanged: onWindowsChanged,
+      ),
+      const SizedBox(height: 18),
+      PersonalizationSurfaceColorEditor(
+        role: ProjectPresentationSurfaceRole.pauseMenu,
+        palette: personalizationSurfacePalette(
+          profile.surfacePalettes,
+          ProjectPresentationSurfaceRole.pauseMenu,
+        ),
+        inheritedTheme: profile.theme ?? safeProjectSemanticTheme,
+        onChanged: (palette) => onSurfacePalettesChanged?.call(
+          replacePersonalizationSurfacePalette(
+            profile.surfacePalettes,
+            ProjectPresentationSurfaceRole.pauseMenu,
+            palette,
+          ),
+        ),
       ),
       const SizedBox(height: 18),
       ProjectTypographyEditor(

@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_layout_theme.dart';
 
 enum PlayerDialogueMode { line, choices }
@@ -81,7 +82,12 @@ class PlayerDialogueSurface extends StatelessWidget {
   final bool showSpeakerName;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => PlayerSurfacePaletteScope(
+        role: ProjectPresentationSurfaceRole.dialogue,
+        child: Builder(builder: _build),
+      );
+
+  Widget _build(BuildContext context) {
     return SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {

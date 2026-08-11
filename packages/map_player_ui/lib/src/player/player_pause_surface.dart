@@ -6,6 +6,7 @@ import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_layout_theme.dart';
+import '../theme/pokemap_player_surface_palette_theme.dart';
 import '../theme/pokemap_player_window_theme.dart';
 import 'runtime_player_focus_controller.dart';
 
@@ -85,6 +86,13 @@ class PlayerPauseSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (child case final content?) return content;
+    return PlayerSurfacePaletteScope(
+      role: ProjectPresentationSurfaceRole.pauseMenu,
+      child: Builder(builder: _build),
+    );
+  }
+
+  Widget _build(BuildContext context) {
     final firstEnabledAction = PlayerPauseAction.values
         .where((action) => _availability(context, action).isEnabled)
         .firstOrNull;
