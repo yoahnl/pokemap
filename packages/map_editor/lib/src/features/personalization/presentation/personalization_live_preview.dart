@@ -43,6 +43,7 @@ class PersonalizationLivePreview extends StatefulWidget {
     this.contextsErrorMessage,
     this.projectManifest,
     this.resolveTilesetPath,
+    this.titleMotionDriverFactory,
     this.introDriverFactory,
   });
 
@@ -65,6 +66,7 @@ class PersonalizationLivePreview extends StatefulWidget {
   final String? contextsErrorMessage;
   final ProjectManifest? projectManifest;
   final String? Function(String tilesetId)? resolveTilesetPath;
+  final PlayerIntroPlaybackFactory? titleMotionDriverFactory;
   final PlayerIntroPlaybackFactory? introDriverFactory;
 
   @override
@@ -80,6 +82,7 @@ class _PersonalizationLivePreviewState
   bool _comparisonEnabled = false;
   PersonalizationTitlePreviewStage _titleStage =
       PersonalizationTitlePreviewStage.menu;
+  int _titleStageSelectionRevision = 0;
   final PlayerTitleMotionController _titleMotionController =
       PlayerTitleMotionController();
   final PlayerIntroVideoPreviewController _introPreviewController =
@@ -101,6 +104,7 @@ class _PersonalizationLivePreviewState
       _comparisonEnabled = false;
     }
     if (oldWidget.scene != widget.scene) {
+      _titleStageSelectionRevision++;
       _comparisonEnabled = false;
       unawaited(_titleMotionController.releasePlayback());
       unawaited(_introPreviewController.releasePlayback());
@@ -237,7 +241,7 @@ class _PersonalizationLivePreviewState
               const SizedBox(height: 8),
               PersonalizationTitlePreviewControls(
                 stage: _titleStage,
-                onChanged: (stage) => setState(() => _titleStage = stage),
+                onChanged: (stage) => unawaited(_selectTitleStage(stage)),
               ),
             ],
             PersonalizationPreviewContextPicker(
@@ -289,6 +293,7 @@ class _PersonalizationLivePreviewState
               titleMotionController: scenario.showComparison
                   ? null
                   : _titleMotionController,
+              titleMotionDriverFactory: widget.titleMotionDriverFactory,
               allowMediaPlayback: !scenario.showComparison,
               introPreviewController: scenario.showComparison
                   ? null
@@ -306,6 +311,14 @@ class _PersonalizationLivePreviewState
       _reducedMotion = value.reducedMotion;
       _comparisonEnabled = value.comparisonEnabled;
     });
+  }
+
+  Future<void> _selectTitleStage(PersonalizationTitlePreviewStage stage) async {
+    final revision = ++_titleStageSelectionRevision;
+    if (_titleStage == stage) return;
+    await _titleMotionController.releasePlayback();
+    if (!mounted || revision != _titleStageSelectionRevision) return;
+    setState(() => _titleStage = stage);
   }
 
   PersonalizationPreviewContextOption? _context(

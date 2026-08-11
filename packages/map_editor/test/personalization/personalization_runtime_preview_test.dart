@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -505,6 +509,62 @@ void main() {
     expect(reducedTitleContext.playerMotion.fast, Duration.zero);
   });
 
+  testWidgets('title stage waits for the active decoder to be released', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync('title-stage-release-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    for (final path in <String>['menu.mp4', 'prompt.mp4']) {
+      File('${root.path}/$path').writeAsBytesSync(<int>[0]);
+    }
+    final disposal = Completer<void>();
+    final drivers = <_TitlePlaybackDriver>[];
+
+    await tester.pumpWidget(
+      _app(
+        PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: root.path,
+          profile: ProjectPresentationProfile(
+            titleMotion: ProjectTitleMotionProfile(
+              promptLoop: ProjectResponsiveVideoProfile(
+                landscape: _titleLoop('prompt.mp4'),
+              ),
+              menuLoop: ProjectResponsiveVideoProfile(
+                landscape: _titleLoop('menu.mp4'),
+              ),
+            ),
+            theme: safeProjectSemanticTheme,
+          ),
+          titleMotionDriverFactory: (_) {
+            final driver = _TitlePlaybackDriver(
+              disposalGate: drivers.isEmpty ? disposal : null,
+            );
+            drivers.add(driver);
+            return driver;
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(drivers, hasLength(1));
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-title-preview-stage-prompt'),
+      ),
+    );
+    await tester.pump();
+
+    expect(drivers, hasLength(1));
+    disposal.complete();
+    await tester.pump();
+    await tester.pump();
+
+    expect(drivers, hasLength(2));
+    expect(find.byType(PlayerTitlePromptSurface), findsOneWidget);
+  });
+
   testWidgets('title preview switches between the real prompt and menu', (
     tester,
   ) async {
@@ -600,6 +660,50 @@ void main() {
     );
     semantics.dispose();
   });
+}
+
+ProjectVideoVariantProfile _titleLoop(String path) =>
+    ProjectVideoVariantProfile(
+      videoPath: path,
+      posterPath: '$path.png',
+      durationMilliseconds: 1000,
+      width: 1600,
+      height: 900,
+      bitrateKbps: 1200,
+      sizeBytes: 1,
+      videoCodec: 'h264',
+    );
+
+final class _TitlePlaybackDriver implements PlayerIntroPlaybackDriver {
+  _TitlePlaybackDriver({this.disposalGate});
+
+  final Completer<void>? disposalGate;
+  final snapshot = ValueNotifier<PlayerIntroPlaybackSnapshot>(
+    const PlayerIntroPlaybackSnapshot(),
+  );
+
+  @override
+  ValueListenable<PlayerIntroPlaybackSnapshot> get snapshots => snapshot;
+
+  @override
+  Widget buildVideo() => const SizedBox.expand();
+
+  @override
+  Future<void> initialize() async {
+    snapshot.value = const PlayerIntroPlaybackSnapshot(isInitialized: true);
+  }
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> play() async {}
+
+  @override
+  Future<void> dispose() async {
+    await disposalGate?.future;
+    snapshot.dispose();
+  }
 }
 
 Widget _app(Widget child) => MaterialApp(
