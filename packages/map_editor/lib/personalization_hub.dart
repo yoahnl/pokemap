@@ -23,6 +23,7 @@ export 'src/features/personalization/presentation/personalization_live_preview.d
 export 'src/features/personalization/presentation/personalization_readiness_panel.dart';
 export 'src/features/personalization/presentation/personalization_runtime_preview.dart';
 export 'src/features/personalization/presentation/personalization_studio_shell.dart';
+export 'src/features/personalization/presentation/personalization_studio_capability_bindings.dart';
 export 'src/features/personalization/presentation/personalization_studio_workspace.dart';
 export 'src/features/personalization/presentation/personalization_surface_color_editor.dart';
 export 'src/features/personalization/presentation/project_branding_editor.dart';

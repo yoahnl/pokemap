@@ -5,6 +5,8 @@ import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
 
 class PersonalizationSceneInspector extends StatelessWidget {
+  static const capabilityIds = <String>{'inspector.targetNavigation'};
+
   const PersonalizationSceneInspector({
     super.key,
     required this.scene,

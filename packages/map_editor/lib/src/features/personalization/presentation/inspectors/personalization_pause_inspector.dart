@@ -8,6 +8,13 @@ import '../project_typography_editor.dart';
 import '../project_window_studio.dart';
 
 class PersonalizationPauseInspector extends StatelessWidget {
+  static const capabilityIds = <String>{
+    'pause.layout',
+    'pause.windows',
+    'pause.typography',
+    'pause.actions',
+  };
+
   const PersonalizationPauseInspector({
     super.key,
     required this.profile,

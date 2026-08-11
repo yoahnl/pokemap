@@ -19,6 +19,7 @@ import '../../../ui/design_system/pokemap_toggle_tile.dart';
 import '../../../ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import '../../editor/state/editor_notifier.dart';
 import '../application/personalization_capability_descriptor.dart';
+import '../application/personalization_capability_registry.dart';
 import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_context_source.dart';
@@ -37,6 +38,7 @@ import 'personalization_live_preview.dart';
 import 'personalization_readiness_panel.dart';
 import 'personalization_section_actions.dart';
 import 'personalization_studio_shell.dart';
+import 'personalization_studio_capability_bindings.dart';
 import 'inspectors/personalization_battle_inspector.dart';
 import 'inspectors/personalization_global_style_inspector.dart';
 import 'inspectors/personalization_dialogue_inspector.dart';
@@ -1872,6 +1874,9 @@ class _PersonalizationStudioWorkspaceState
 
   @override
   Widget build(BuildContext context) {
+    personalizationCapabilityRegistry.requireExactControlIds(
+      personalizationStudioVisibleCapabilityIds,
+    );
     final editorState = ref.watch(editorNotifierProvider);
     final project = editorState.project;
     if (project == null) {

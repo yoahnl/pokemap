@@ -13,6 +13,12 @@ import '../project_title_motion_editor.dart';
 enum PersonalizationTitlePreset { centered, left, cinematic }
 
 class PersonalizationTitleInspector extends StatelessWidget {
+  static const capabilityIds = <String>{
+    'title.presentation',
+    'title.media',
+    'title.motion',
+  };
+
   const PersonalizationTitleInspector({
     super.key,
     required this.profile,

@@ -6,6 +6,8 @@ import '../application/personalization_preview_surface_descriptor.dart';
 enum PersonalizationSceneNavigationLayout { list, rail, horizontal }
 
 class PersonalizationSceneNavigation extends StatelessWidget {
+  static const capabilityIds = <String>{'studio.sceneNavigation'};
+
   const PersonalizationSceneNavigation({
     super.key,
     required this.selectedScene,

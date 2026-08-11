@@ -9,6 +9,12 @@ import '../project_window_studio.dart';
 enum PersonalizationGlobalStyleSection { colors, forms, typography }
 
 class PersonalizationGlobalStyleInspector extends StatelessWidget {
+  static const capabilityIds = <String>{
+    'global.colors',
+    'global.windows',
+    'global.typography',
+  };
+
   const PersonalizationGlobalStyleInspector({
     super.key,
     required this.profile,

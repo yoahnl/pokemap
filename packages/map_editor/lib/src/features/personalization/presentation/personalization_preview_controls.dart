@@ -5,6 +5,13 @@ import '../application/personalization_preview_projection.dart';
 import '../application/personalization_preview_scenario.dart';
 
 class PersonalizationPreviewControls extends StatelessWidget {
+  static const capabilityIds = <String>{
+    'preview.viewport',
+    'preview.textScale',
+    'preview.reducedMotion',
+    'preview.compare',
+  };
+
   const PersonalizationPreviewControls({
     super.key,
     required this.scenario,
