@@ -323,7 +323,6 @@ class _InGameShopPageState extends State<InGameShopPage> {
       shop: shop,
       expectedStateId: renderedState.stateId,
       itemId: entry.itemId,
-      categoryId: _categoryFor(entry.itemId),
       quantity: quantity,
       conditionContext: widget.conditionContext,
     );
@@ -446,18 +445,6 @@ String _itemLabel(String itemId) => switch (itemId) {
           )
           .join(' '),
     };
-
-String _categoryFor(String itemId) {
-  final effect = const PlayerItemEffectRegistry.mvp().effectFor(itemId);
-  return switch (effect?.kind) {
-    PlayerItemEffectKind.healHp ||
-    PlayerItemEffectKind.cureStatus ||
-    PlayerItemEffectKind.revive ||
-    PlayerItemEffectKind.restorePp =>
-      'medicine',
-    _ => 'items',
-  };
-}
 
 String _failureLabel(ShopPurchaseFailure failure) => switch (failure) {
       ShopPurchaseFailure.invalidRequest => 'Achat invalide.',

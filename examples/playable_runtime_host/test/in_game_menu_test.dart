@@ -7,7 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+
+final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
 
 void main() {
   test('pause menu route guard releases the typed owner after completion',
@@ -55,6 +58,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
           gameStateSnapshotBuilder: _buildGameState,
           pokedexLoader: () async => const <RuntimePokedexEntry>[
             RuntimePokedexEntry(
@@ -142,6 +146,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
           gameStateSnapshotBuilder: _buildGameState,
           pokedexLoader: () async => const <RuntimePokedexEntry>[],
           onSaveRequested: () async {
@@ -194,6 +199,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
           gameStateSnapshotBuilder: _buildGameState,
           pokedexLoader: () async => const <RuntimePokedexEntry>[],
           onSaveRequested: () async {
@@ -264,6 +270,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
           gameStateSnapshotBuilder: _buildGameState,
           pokedexLoader: () async => const <RuntimePokedexEntry>[],
           onSaveRequested: () async => const InGameMenuActionResult(),
@@ -313,6 +320,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
           gameStateSnapshotBuilder: _buildGameState,
           pokedexLoader: () async => const <RuntimePokedexEntry>[],
           onSaveRequested: () async => const InGameMenuActionResult(),
@@ -357,6 +365,7 @@ void main() {
           builder: (context, setState) {
             rebuildHost = setState;
             return InGameMenuPage(
+              itemCatalog: _itemCatalog,
               gameStateSnapshotBuilder: () => gameState,
               pokedexLoader: () async => const <RuntimePokedexEntry>[
                 RuntimePokedexEntry(
@@ -436,6 +445,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
           gameStateSnapshotBuilder: () => state,
           pokedexLoader: () async => const <RuntimePokedexEntry>[],
           projectMaps: const <ProjectMapEntry>[
@@ -513,6 +523,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
           gameStateSnapshotBuilder: () => state,
           pokedexLoader: () async => const <RuntimePokedexEntry>[],
           onPlayerStateCommitted: (next) async => state = next,
@@ -568,6 +579,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: InGameMenuPage(
+          itemCatalog: _itemCatalog,
           gameStateSnapshotBuilder: () => state,
           pokedexLoader: () async => const <RuntimePokedexEntry>[],
           recoveryCaps: const RuntimePlayerServiceRecoveryCaps(
@@ -620,8 +632,8 @@ GameState _buildGameState() {
     ),
     bag: Bag(
       entries: [
-        BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
-        BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+        BagEntry(itemId: 'potion', quantity: 3),
+        BagEntry(itemId: 'poke-ball', quantity: 5),
       ],
     ),
     progression: PlayerProgression(

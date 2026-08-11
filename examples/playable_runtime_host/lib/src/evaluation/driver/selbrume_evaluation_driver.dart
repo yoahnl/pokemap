@@ -1161,18 +1161,23 @@ final class SelbrumeEvaluationDriver
   ) async {
     final shop =
         project.shops.where((candidate) => candidate.id == shopId).firstOrNull;
-    _require(
-      shop != null,
-      operation: 'service.shop.sell',
-      message: 'Shop "$shopId" does not exist.',
+   _require(
+     shop != null,
+     operation: 'service.shop.sell',
+     message: 'Shop "$shopId" does not exist.',
+   );
+    final itemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
+      projectRootDirectory: projectRoot.path,
+      pokemonConfig: project.pokemon,
     );
-    final result = const GameStateMutations().sellToResolvedShop(
+   final result = const GameStateMutations().sellToResolvedShop(
       state,
       shop: shop!,
-      expectedStateId: expectedStateId,
-      itemId: itemId,
-      quantity: quantity,
-      conditionContext: ScriptEvaluationContext(
+     expectedStateId: expectedStateId,
+     itemId: itemId,
+     quantity: quantity,
+      itemCatalog: itemCatalog,
+     conditionContext: ScriptEvaluationContext(
         narrativeFactResolver:
             NarrativeFactRuntimeResolver.fromFacts(project.facts),
       ),
@@ -1426,11 +1431,10 @@ final class SelbrumeEvaluationDriver
         bag: Bag(
           entries: <BagEntry>[
             for (final entry in quantities.entries)
-              BagEntry(
-                itemId: entry.key,
-                categoryId: _categoryForItem(entry.key),
-                quantity: entry.value,
-              ),
+             BagEntry(
+               itemId: entry.key,
+               quantity: entry.value,
+             ),
           ],
         ).normalized(),
       ),
@@ -2155,9 +2159,3 @@ RuntimeInputControl _controlForConnection(MapConnectionDirection direction) {
 
 String _edgeKey(GridPos from, Direction direction) =>
     '${from.x}:${from.y}:${direction.name}';
-
-String _categoryForItem(String itemId) => switch (itemId) {
-      'potion' || 'super-potion' || 'antidote' => 'medicine',
-      'poke-ball' || 'great-ball' || 'ultra-ball' => 'capture',
-      _ => 'items',
-    };

@@ -188,16 +188,14 @@ void main() {
       expect(
           saveData.bag.entries,
           equals(const <BagEntry>[
-            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
-            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+            BagEntry(itemId: 'poke-ball', quantity: 5),
+            BagEntry(itemId: 'potion', quantity: 3),
             BagEntry(
               itemId: 'super-potion',
-              categoryId: 'medicine',
               quantity: 6,
             ),
             BagEntry(
               itemId: 'hyper-potion',
-              categoryId: 'medicine',
               quantity: 6,
             ),
           ]));

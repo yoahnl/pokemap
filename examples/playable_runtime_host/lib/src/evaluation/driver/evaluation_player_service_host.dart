@@ -39,7 +39,6 @@ final class EvaluationPlayerServiceHost implements PlayerServiceOverlayHost {
       shop: request.shop,
       expectedStateId: request.resolvedState.stateId,
       itemId: itemId,
-      categoryId: _categoryFor(itemId),
       quantity: 1,
       conditionContext: request.conditionContext,
     );
@@ -90,8 +89,3 @@ final class EvaluationPlayerServiceHost implements PlayerServiceOverlayHost {
     return const PlayerServiceHostResult.cancelled();
   }
 }
-
-String _categoryFor(String itemId) => switch (itemId) {
-      'potion' || 'super-potion' || 'antidote' => 'medicine',
-      _ => 'items',
-    };

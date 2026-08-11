@@ -1065,6 +1065,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         var recoveryCaps = const RuntimePlayerServiceRecoveryCaps(
           maxHpByPartyIndex: <int, int>{},
         );
+        var itemCatalog = ItemCatalogSnapshot.empty();
         if (manifest != null) {
           try {
             recoveryCaps = await loadRuntimePlayerServiceRecoveryCaps(
@@ -1074,6 +1075,14 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
             );
           } catch (error) {
             _runtimeHostLog('player service recovery caps failed: $error');
+          }
+          try {
+            itemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
+              projectRootDirectory: File(_projectFilePath).parent.path,
+              pokemonConfig: manifest.pokemon,
+            );
+          } catch (error) {
+            _runtimeHostLog('item catalog load failed: $error');
           }
         }
         if (!mounted) return;
@@ -1088,6 +1097,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
                 onSaveRequested: _performSaveRequest,
                 onLoadRequested: _performLoadRequest,
                 playerOptions: _playerOptions,
+                itemCatalog: itemCatalog,
                 projectMaps: _availableMaps,
                 recoveryCaps: recoveryCaps,
                 onPlayerStateCommitted: game.commitAndSavePlayerServiceState,

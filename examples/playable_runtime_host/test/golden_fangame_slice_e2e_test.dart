@@ -85,11 +85,12 @@ void main() {
         state: state,
         bundle: route,
       );
-      final wildSetup = await mapper.map(
-        bundle: route,
-        gameState: state,
-        request: wildRequest,
-      );
+     final wildSetup = await mapper.map(
+       bundle: route,
+       gameState: state,
+       request: wildRequest,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+     );
       final wildSession = createBattleSession(
         wildSetup,
         rng: const BattleScriptedRng(<int>[1]),
@@ -102,10 +103,12 @@ void main() {
       );
       final captureSubmission =
           submitRuntimeBattleCaptureAttempt<BattleSession>(
-        gameState: state,
-        context: wildContext,
-        captureAllowed: wildSetup.allowCapture,
-        submitToEngine: () => wildSession.applyChoice(
+       gameState: state,
+       context: wildContext,
+       captureAllowed: wildSetup.allowCapture,
+        itemId: canonicalPokeBallItemId,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+       submitToEngine: () => wildSession.applyChoice(
           const PlayerBattleChoiceCapture(),
         ),
       );
@@ -139,11 +142,12 @@ void main() {
         state: state,
         bundle: route,
       );
-      final trainerSetup = await mapper.map(
-        bundle: route,
-        gameState: state,
-        request: trainerRequest!,
-      );
+     final trainerSetup = await mapper.map(
+       bundle: route,
+       gameState: state,
+       request: trainerRequest!,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+     );
       final trainerSession = createBattleSession(trainerSetup);
       expect(trainerSession.state.isFinished, isFalse);
       expect(trainerSetup.isTrainerBattle, isTrue);
@@ -178,10 +182,9 @@ void main() {
       completed.add('level_up_proved');
 
       final purchase = mutations.purchaseItem(
-        state,
-        itemId: 'potion',
-        categoryId: 'medicine',
-        quantity: 1,
+       state,
+       itemId: 'potion',
+       quantity: 1,
         unitPrice: 300,
       );
       expect(purchase.isSuccess, isTrue);
