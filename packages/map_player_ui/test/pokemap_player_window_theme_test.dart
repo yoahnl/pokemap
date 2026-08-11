@@ -226,6 +226,61 @@ void main() {
     );
   });
 
+  testWidgets('renders an authored capsule on a short standard surface', (
+    tester,
+  ) async {
+    const capsule = ProjectWindowStyleProfile(
+      id: 'capsule',
+      fillToken: 'surface',
+      borderToken: 'outline',
+      borderWidth: 1,
+      cornerRadius: 16,
+      contentPadding: 16,
+      shadowElevation: 4,
+      shape: ProjectWindowShape.capsule,
+    );
+    const multiline = ProjectWindowStyleProfile(
+      id: 'multiline',
+      fillToken: 'surface',
+      borderToken: 'outline',
+      borderWidth: 1,
+      cornerRadius: 16,
+      contentPadding: 16,
+      shadowElevation: 4,
+    );
+    const windows = ProjectPresentationWindowsProfile(
+      styles: <ProjectWindowStyleProfile>[capsule, multiline],
+      defaultStyleId: 'capsule',
+      pauseMenuStyleId: 'multiline',
+      dialogueStyleId: 'multiline',
+      battleStyleId: 'multiline',
+      pauseBackdropOpacity: .7,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapPlayerTheme.withWindowProfile(
+          PokeMapPlayerTheme.light(),
+          windows,
+        ),
+        home: const Scaffold(
+          body: PlayerPanel(
+            key: ValueKey<String>('capsule-window'),
+            surfaceRole: ProjectPresentationSurfaceRole.notification,
+            child: Text('Objet obtenu'),
+          ),
+        ),
+      ),
+    );
+
+    final material = tester.widget<Material>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('capsule-window')),
+        matching: find.byType(Material),
+      ),
+    );
+    expect(material.shape, isA<StadiumBorder>());
+  });
+
   testWidgets('resolves Dialogue independently from Pause', (tester) async {
     final theme = PokeMapPlayerTheme.withWindowProfile(
       PokeMapPlayerTheme.withSemanticTheme(

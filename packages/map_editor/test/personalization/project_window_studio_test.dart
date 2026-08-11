@@ -72,6 +72,62 @@ void main() {
     expect(value?.resolve(ProjectWindowRole.dialogue).contentPadding, 12);
   });
 
+  testWidgets('authors every role and isolates a capsule from battle', (
+    tester,
+  ) async {
+    ProjectPresentationWindowsProfile profile =
+        legacyProjectPresentationWindows;
+    late StateSetter setHostState;
+    await tester.pumpWidget(
+      _app(
+        StatefulBuilder(
+          builder: (context, setState) {
+            setHostState = setState;
+            return ProjectWindowStudio(
+              profile: profile,
+              onChanged: (next) => setHostState(
+                () => profile = next ?? legacyProjectPresentationWindows,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    for (final role in <String>['standard', 'pause', 'dialogue', 'battle']) {
+      expect(
+        find.byKey(ValueKey<String>('window-target-$role')),
+        findsOneWidget,
+      );
+    }
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('window-target-standard')),
+    );
+    await tester.pump();
+    _changeDropdown<ProjectWindowShape>(
+      tester,
+      const ValueKey<String>('window-field-shape'),
+      ProjectWindowShape.capsule,
+    );
+    await tester.pump();
+
+    expect(
+      profile.resolve(ProjectWindowRole.standard).shape,
+      ProjectWindowShape.capsule,
+    );
+    expect(
+      profile.resolve(ProjectWindowRole.battle).shape,
+      ProjectWindowShape.rounded,
+    );
+    expect(
+      validateProjectPresentationProfile(
+        ProjectPresentationProfile(windows: profile),
+      ),
+      isEmpty,
+    );
+  });
+
   testWidgets('remains usable at 200 percent text scale', (tester) async {
     tester.view.physicalSize = const Size(720, 900);
     tester.view.devicePixelRatio = 1;
@@ -122,6 +178,38 @@ void main() {
       .8,
     );
     expect(value?.resolve(ProjectWindowRole.dialogue).fillOpacity, .8);
+  });
+
+  testWidgets('offers both supported fill opacity boundaries', (tester) async {
+    ProjectPresentationWindowsProfile? value;
+    await tester.pumpWidget(
+      _app(
+        ProjectWindowStudio(
+          profile: legacyProjectPresentationWindows,
+          fixedRole: ProjectWindowRole.dialogue,
+          onChanged: (next) => value = next,
+        ),
+      ),
+    );
+
+    _changeDropdown<double>(
+      tester,
+      const ValueKey<String>('window-field-fill-opacity'),
+      projectWindowMinFillOpacity,
+    );
+    expect(
+      value?.resolve(ProjectWindowRole.dialogue).fillOpacity,
+      projectWindowMinFillOpacity,
+    );
+    _changeDropdown<double>(
+      tester,
+      const ValueKey<String>('window-field-fill-opacity'),
+      projectWindowMaxFillOpacity,
+    );
+    expect(
+      value?.resolve(ProjectWindowRole.dialogue).fillOpacity,
+      projectWindowMaxFillOpacity,
+    );
   });
 
   testWidgets('hides shapes that are invalid for a multiline Pause window', (
