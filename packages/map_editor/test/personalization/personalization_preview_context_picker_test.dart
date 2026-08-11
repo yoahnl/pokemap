@@ -24,7 +24,13 @@ void main() {
       ),
     );
 
-    expect(find.text('Contexte de l’aperçu'), findsOneWidget);
+    expect(find.text('Scène de test'), findsOneWidget);
+    expect(
+      find.text(
+        'Choisissez la carte et le contenu utilisés pour essayer ce rendu.',
+      ),
+      findsOneWidget,
+    );
     for (final kind in <PersonalizationPreviewContextKind>[
       PersonalizationPreviewContextKind.map,
       PersonalizationPreviewContextKind.dialogue,
@@ -122,7 +128,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Contexte de l’aperçu'), findsOneWidget);
+    expect(find.text('Scène de test'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -128,6 +128,21 @@ void main() {
     expect(comparison.changedPaths, contains(r'$.windows'));
   });
 
+  test('comparison detects menu label and surface palette changes', () {
+    const baseline = ProjectPresentationProfile();
+    const current = ProjectPresentationProfile(
+      menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+      surfacePalettes: ProjectPresentationSurfacePalettesProfile(
+        dialogue: ProjectSurfacePaletteProfile(surface: '#FFFFFF'),
+      ),
+    );
+
+    final comparison = compareProjectPresentation(baseline, current);
+
+    expect(comparison.changedPaths, contains(r'$.menuLabels'));
+    expect(comparison.changedPaths, contains(r'$.surfacePalettes'));
+  });
+
   test('branding preset replaces branding and title motion together', () {
     const preset = ProjectPresentationPreset(
       id: 'animated-branding',

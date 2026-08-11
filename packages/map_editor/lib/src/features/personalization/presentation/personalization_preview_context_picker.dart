@@ -33,14 +33,14 @@ class PersonalizationPreviewContextPicker extends StatelessWidget {
       children: <Widget>[
         const Divider(height: 20),
         Text(
-          'Contexte de l’aperçu',
+          'Scène de test',
           style: Theme.of(
             context,
           ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 2),
         Text(
-          'Choisissez les données du projet visibles dans cette scène.',
+          'Choisissez la carte et le contenu utilisés pour essayer ce rendu.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: context.pokeMapColors.textMuted,
           ),

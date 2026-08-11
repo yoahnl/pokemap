@@ -1962,14 +1962,6 @@ class _PersonalizationStudioWorkspaceState
                 crossAxisAlignment: WrapCrossAlignment.center,
                 alignment: WrapAlignment.end,
                 children: <Widget>[
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    child: Text(
-                      studioSession?.isDirty == true
-                          ? 'Le brouillon diffère de project.json.'
-                          : 'La personnalisation correspond à project.json.',
-                    ),
-                  ),
                   if (studioSession?.isDirty == true)
                     const PokeMapBadge(
                       key: ValueKey<String>('personalization-studio-dirty'),
@@ -1979,7 +1971,7 @@ class _PersonalizationStudioWorkspaceState
                   else
                     const PokeMapBadge(
                       key: ValueKey<String>('personalization-studio-clean'),
-                      label: 'Enregistré',
+                      label: 'Tout est enregistré',
                       variant: PokeMapBadgeVariant.success,
                     ),
                   if (hasBlockingDiagnostics)

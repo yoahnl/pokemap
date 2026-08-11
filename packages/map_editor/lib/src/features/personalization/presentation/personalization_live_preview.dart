@@ -178,7 +178,7 @@ class _PersonalizationLivePreviewState
               crossAxisAlignment: WrapCrossAlignment.center,
               children: <Widget>[
                 Text(
-                  'Aperçu',
+                  'Aperçu en direct',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -189,9 +189,9 @@ class _PersonalizationLivePreviewState
                   ),
                   label: switch (widget.contentSource) {
                     PersonalizationPreviewContentSource.demonstration =>
-                      'Données de démonstration',
+                      'Démonstration',
                     PersonalizationPreviewContentSource.project =>
-                      'Données du projet',
+                      'Projet réel',
                   },
                   variant:
                       widget.contentSource ==
@@ -199,23 +199,31 @@ class _PersonalizationLivePreviewState
                       ? PokeMapBadgeVariant.success
                       : PokeMapBadgeVariant.warning,
                 ),
-                PokeMapBadge(
+              ],
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                Text(
+                  switch (surfaceFidelity) {
+                    PersonalizationPreviewSurfaceFidelity.playerInterface =>
+                      'Widgets du jeu',
+                    PersonalizationPreviewSurfaceFidelity.editorBackdrop =>
+                      'Widgets du jeu sur la carte du projet',
+                  },
                   key: const ValueKey<String>(
                     'personalization-preview-surface-fidelity',
                   ),
-                  label: switch (surfaceFidelity) {
-                    PersonalizationPreviewSurfaceFidelity.playerInterface =>
-                      'Interface du jeu',
-                    PersonalizationPreviewSurfaceFidelity.editorBackdrop =>
-                      'Interface du jeu · décor éditeur',
-                  },
-                  variant: PokeMapBadgeVariant.mapAccent,
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const PokeMapBadge(
                   key: ValueKey<String>(
                     'personalization-preview-local-controls',
                   ),
-                  label: 'Aperçu uniquement',
+                  label: 'Réglages d’essai',
                   variant: PokeMapBadgeVariant.info,
                 ),
               ],

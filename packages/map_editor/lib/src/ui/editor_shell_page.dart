@@ -2571,64 +2571,19 @@ class _SaveIntent extends Intent {
   const _SaveIntent();
 }
 
-class _CollapsedExpandButton extends StatefulWidget {
+class _CollapsedExpandButton extends StatelessWidget {
   const _CollapsedExpandButton({super.key, required this.onTap});
 
   final VoidCallback onTap;
 
   @override
-  State<_CollapsedExpandButton> createState() => _CollapsedExpandButtonState();
-}
-
-class _CollapsedExpandButtonState extends State<_CollapsedExpandButton> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return Semantics(
-      button: true,
-      label: 'Rouvrir l’explorateur global',
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: _hovered
-                    ? colors.brandPrimary.withValues(alpha: 0.8)
-                    : colors.borderStrong.withValues(alpha: 0.6),
-                width: 1.25,
-              ),
-              color: _hovered ? colors.surfaceHover : colors.surfaceBase,
-              boxShadow: _hovered
-                  ? [
-                      BoxShadow(
-                        color: colors.brandPrimary.withValues(alpha: 0.15),
-                        blurRadius: 6,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              CupertinoIcons.chevron_right,
-              size: 14,
-              color: _hovered ? colors.brandPrimary : colors.textSecondary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => PokeMapIconButton(
+    onPressed: onTap,
+    tooltip: 'Rouvrir l’explorateur global',
+    semanticLabel: 'Rouvrir l’explorateur global',
+    variant: PokeMapIconButtonVariant.soft,
+    icon: const Icon(CupertinoIcons.chevron_right, size: 14),
+  );
 }
 
 enum _BorderStudioExitChoice { save, discard, stay }

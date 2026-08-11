@@ -26,6 +26,7 @@ void main() {
   testWidgets('uses 260 and 360 pixel panes at 1600 pixels', (tester) async {
     await _pumpShell(tester, const Size(1600, 900));
 
+    expect(find.text('Personalization Studio'), findsNothing);
     expect(
       tester
           .getSize(

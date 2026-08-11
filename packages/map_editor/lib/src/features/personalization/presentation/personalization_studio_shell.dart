@@ -32,46 +32,9 @@ class PersonalizationStudioShell extends StatelessWidget {
   Widget build(BuildContext context) => PokeMapPageSurface(
     key: const ValueKey<String>('personalization-studio-shell'),
     padding: const EdgeInsets.all(12),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _header(context),
-        const SizedBox(height: 12),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) =>
-                _layout(context, constraints.maxWidth),
-          ),
-        ),
-      ],
+    child: LayoutBuilder(
+      builder: (context, constraints) => _layout(context, constraints.maxWidth),
     ),
-  );
-
-  Widget _header(BuildContext context) => Row(
-    children: <Widget>[
-      const PokeMapIconTile(
-        icon: Icons.palette_outlined,
-        tone: PokeMapTone.warning,
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              'Personalization Studio',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 2),
-            const Text(
-              'Personnalisez l’apparence et le contenu de vos scènes en jeu.',
-            ),
-          ],
-        ),
-      ),
-    ],
   );
 
   Widget _layout(BuildContext context, double width) {

@@ -327,6 +327,7 @@ void main() {
         find.byKey(const ValueKey<String>('personalization-studio-dirty')),
         findsOneWidget,
       );
+      expect(find.textContaining('project.json'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('personalization-comparison-paths')),
         findsOneWidget,
@@ -470,6 +471,68 @@ void main() {
     expect(await notifier.savePersonalizationStudio(), isFalse);
     expect(gateway.saveCount, 0);
   });
+
+  testWidgets(
+    'explains an external personalization conflict in product terms',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-studio-conflict-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(
+        name: 'Conflict Studio',
+      ).copyWith(presentation: const ProjectPresentationProfile());
+      File(
+        '${root.path}/project.json',
+      ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
+      final gateway = _ConflictingProjectGateway(project);
+      final container = await pumpEditorCanvasHostHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: root.path,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.personalizationStudio,
+        ),
+        surfaceSize: const Size(1600, 900),
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectManifest>(
+                    documentId: 'personalization-studio-conflict',
+                    initialDocument: initialDocument,
+                    gateway: gateway,
+                    recoveryStore: _MemoryProjectRecoveryStore(),
+                  ),
+                );
+              }),
+        ],
+      );
+      final notifier = container.read(editorNotifierProvider.notifier);
+      await notifier.initializePersonalizationStudioSession();
+      await notifier.applyPersonalizationStudioProfile(
+        const ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
+        ),
+      );
+
+      expect(await notifier.savePersonalizationStudio(), isFalse);
+      await tester.pump();
+
+      expect(
+        container.read(editorNotifierProvider).errorMessage,
+        'La personnalisation a été modifiée ailleurs. Vos changements sont '
+        'conservés ; rouvrez le projet avant d’enregistrer.',
+      );
+      expect(
+        find.textContaining('Conflit de personnalisation détecté'),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets('canvas displays the current project profile in read-only mode', (
     tester,
@@ -1679,6 +1742,38 @@ final class _MemoryProjectGateway
       NarrativeDocumentVersion<ProjectManifest>(
         revision: revision,
         document: durableDocument,
+      ),
+    );
+  }
+}
+
+final class _ConflictingProjectGateway
+    implements NarrativeDocumentGateway<ProjectManifest> {
+  _ConflictingProjectGateway(this.document);
+
+  final ProjectManifest document;
+
+  @override
+  Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
+    return NarrativeDocumentVersion<ProjectManifest>(
+      revision: 'revision-1',
+      document: document,
+    );
+  }
+
+  @override
+  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
+    required String expectedRevision,
+    required ProjectManifest before,
+    required ProjectManifest after,
+    required String operationId,
+  }) async {
+    return NarrativeDocumentSaveResult<ProjectManifest>.conflicted(
+      code: 'staleRevision',
+      message: 'Une version externe plus récente existe.',
+      external: NarrativeDocumentVersion<ProjectManifest>(
+        revision: 'revision-2',
+        document: document,
       ),
     );
   }
