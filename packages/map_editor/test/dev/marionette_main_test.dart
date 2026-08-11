@@ -9,6 +9,45 @@ import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import '../../dev/marionette_main.dart' as marionette;
 
 void main() {
+  test('opens Character Studio through the deterministic QA extension', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/qa/characters',
+      project: ProjectManifest(
+        name: 'Character QA',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        characters: <ProjectCharacterEntry>[
+          ProjectCharacterEntry(
+            id: 'character-qa',
+            name: 'Character QA Hero',
+            tilesetId: 'tileset-character-qa',
+          ),
+        ],
+      ),
+      workspaceMode: EditorWorkspaceMode.map,
+    );
+
+    final result = marionette.openCharacterStudioForMarionette(
+      container: container,
+    );
+
+    expect(result, <String, Object?>{
+      'opened': true,
+      'workspaceMode': 'characterStudio',
+      'projectRootPath': '/qa/characters',
+      'projectName': 'Character QA',
+      'characterCount': 1,
+      'defaultCharacterId': 'character-qa',
+      'defaultCharacterName': 'Character QA Hero',
+    });
+    expect(
+      container.read(editorNotifierProvider).workspaceMode,
+      EditorWorkspaceMode.characterStudio,
+    );
+  });
+
   test('opens Personalization Studio through the deterministic QA extension',
       () {
     final container = ProviderContainer();

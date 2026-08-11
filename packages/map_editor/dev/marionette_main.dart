@@ -24,6 +24,27 @@ import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/infrastructure/riverpod_retry_policy.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
+Map<String, Object?> openCharacterStudioForMarionette({
+  required ProviderContainer container,
+}) {
+  container
+      .read(editorNotifierProvider.notifier)
+      .selectCharacterStudioWorkspace();
+  final editor = container.read(editorNotifierProvider);
+  final characters =
+      editor.project?.characters ?? const <ProjectCharacterEntry>[];
+  final defaultCharacter = characters.firstOrNull;
+  return <String, Object?>{
+    'opened': editor.workspaceMode == EditorWorkspaceMode.characterStudio,
+    'workspaceMode': editor.workspaceMode.name,
+    'projectRootPath': editor.projectRootPath,
+    'projectName': editor.project?.name,
+    'characterCount': characters.length,
+    'defaultCharacterId': defaultCharacter?.id,
+    'defaultCharacterName': defaultCharacter?.name,
+  };
+}
+
 Map<String, Object?> openPersonalizationStudioForMarionette({
   required ProviderContainer container,
 }) {
@@ -71,6 +92,15 @@ void main() {
         'expectedProjectPath': bootstrap.projectRootPath,
         'matches': activePath == bootstrap.projectRootPath,
       });
+    },
+  );
+  registerMarionetteExtension(
+    name: 'pokemap.openCharacterStudio',
+    description: 'Opens Character Studio through the real editor controller.',
+    callback: (_) async {
+      return MarionetteExtensionResult.success(
+        openCharacterStudioForMarionette(container: container),
+      );
     },
   );
   registerMarionetteExtension(
