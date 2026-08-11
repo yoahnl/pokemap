@@ -89,7 +89,7 @@ class _PersonalizationStudioWorkspaceState
   ProjectTitleMusicPreviewController? _titleMusicPreviewController;
   StreamSubscription<bool>? _titleMusicPreviewSubscription;
   bool _isTitleMusicPreviewPlaying = false;
-  String? _selectedDialogueCharacterId;
+  String? _selectedDialoguePortraitId;
   bool _showDialoguePortrait = true;
   bool _showDialogueName = true;
   bool _showDialogueChoices = false;
@@ -1785,13 +1785,13 @@ class _PersonalizationStudioWorkspaceState
           child: PersonalizationDialogueInspector(
             profile: profile,
             characterOptions: characterOptions,
-            selectedCharacterId: _selectedDialogueCharacterId,
+            selectedCharacterId: _selectedDialoguePortraitId,
             showPortrait: _showDialoguePortrait,
             showName: _showDialogueName,
             showChoices: _showDialogueChoices,
             previewFamilies: _fontPreviewFamilies,
-            onCharacterSelected: (characterId) {
-              setState(() => _selectedDialogueCharacterId = characterId);
+            onCharacterSelected: (portraitId) {
+              setState(() => _selectedDialoguePortraitId = portraitId);
             },
             onShowPortraitChanged: (value) {
               setState(() => _showDialoguePortrait = value);
@@ -2098,11 +2098,18 @@ class _PersonalizationStudioWorkspaceState
         const <PersonalizationPreviewContextOption>[];
     final characterOptions =
         _selectedScene == PersonalizationStudioScene.dialogue
-        ? _characterOptionsFromContexts(previewContexts)
+        ? ref
+                  .watch(
+                    personalizationCharacterPreviewOptionsProvider(
+                      projectRootPath,
+                    ),
+                  )
+                  .value ??
+              const <PersonalizationCharacterPreviewOption>[]
         : const <PersonalizationCharacterPreviewOption>[];
     final dialogueCharacter = _resolveDialogueCharacter(
       characterOptions,
-      _selectedDialogueCharacterId,
+      _selectedDialoguePortraitId,
     );
 
     return Material(
@@ -2426,34 +2433,14 @@ PersonalizationStudioScene _sceneForCategory(
 
 PersonalizationCharacterPreviewOption? _resolveDialogueCharacter(
   List<PersonalizationCharacterPreviewOption> options,
-  String? selectedCharacterId,
+  String? selectedPortraitId,
 ) {
   if (options.isEmpty) return null;
   for (final option in options) {
-    if (option.characterId == selectedCharacterId) return option;
+    if (option.id == selectedPortraitId) return option;
   }
   return options.first;
 }
-
-List<PersonalizationCharacterPreviewOption> _characterOptionsFromContexts(
-  List<PersonalizationPreviewContextOption> contexts,
-) => List.unmodifiable(
-  contexts
-      .where(
-        (context) =>
-            context.kind == PersonalizationPreviewContextKind.characterPortrait,
-      )
-      .map(
-        (context) => PersonalizationCharacterPreviewOption(
-          characterId: context.sourceId,
-          displayName:
-              context.detail['characterName'] as String? ?? context.label,
-          portraitPath: context.detail['portraitPath'] as String?,
-          expressionId: context.detail['portraitStateId'] as String?,
-          portraitBytes: context.mediaBytes,
-        ),
-      ),
-);
 
 PersonalizationInspectorTarget _targetForCategory(
   ProjectPresentationCategory category,

@@ -102,8 +102,8 @@ final personalizationPreviewContextOptionsProvider = FutureProvider.autoDispose
 
 final personalizationCharacterPreviewSourceProvider =
     Provider<PersonalizationCharacterPreviewSource>((ref) {
-      return PersonalizationCharacterPreviewFromContextSource(
-        contexts: ref.watch(personalizationPreviewContextSourceProvider),
+      return AuthoringPersonalizationCharacterPreviewSource(
+        queries: ref.watch(authoringQueryAdapterProvider),
       );
     });
 

@@ -144,13 +144,21 @@ class _PersonalizationLivePreviewState
     final dialogueCharacter = portraitContext == null
         ? widget.dialogueCharacter
         : PersonalizationCharacterPreviewOption(
+            id: portraitContext.id,
             characterId: portraitContext.sourceId,
             displayName:
                 portraitContext.detail['characterName'] as String? ??
                 portraitContext.label,
             portraitPath: portraitContext.detail['portraitPath'] as String?,
             expressionId: portraitContext.detail['portraitStateId'] as String?,
+            expressionLabel:
+                portraitContext.detail['portraitStateLabel'] as String? ??
+                portraitContext.detail['portraitStateId'] as String? ??
+                'Portrait',
+            workspaceRevision:
+                portraitContext.detail['workspaceRevision'] as String? ?? '',
             portraitBytes: portraitContext.mediaBytes,
+            diagnosticCodes: portraitContext.diagnosticCodes,
           );
     final surfaceFidelity =
         projectMap != null &&
