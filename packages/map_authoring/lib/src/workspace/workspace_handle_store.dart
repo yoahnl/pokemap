@@ -214,6 +214,19 @@ final class WorkspaceHandleStore {
     _requireActive(handle);
   }
 
+  void requireWorkspaceOwnsProject(
+    WorkspaceHandle workspaceHandle,
+    ProjectHandle projectHandle,
+  ) {
+    _requireActive(projectHandle);
+    if (_projectsByWorkspace[workspaceHandle] != projectHandle) {
+      throw const WorkspaceHandleException(
+        'workspace.project_mismatch',
+        'The project handle does not belong to this workspace.',
+      );
+    }
+  }
+
   bool closeWorkspace(WorkspaceHandle handle) {
     final projectHandle = _projectsByWorkspace.remove(handle);
     if (projectHandle == null) return false;

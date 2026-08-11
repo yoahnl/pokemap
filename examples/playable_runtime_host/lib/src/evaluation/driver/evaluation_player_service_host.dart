@@ -40,6 +40,7 @@ final class EvaluationPlayerServiceHost implements PlayerServiceOverlayHost {
       expectedStateId: request.resolvedState.stateId,
       itemId: itemId,
       quantity: 1,
+      itemCatalog: request.itemCatalog,
       conditionContext: request.conditionContext,
     );
     if (!purchase.isSuccess) {

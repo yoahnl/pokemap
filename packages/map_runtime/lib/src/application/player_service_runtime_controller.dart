@@ -41,12 +41,14 @@ final class PlayerServiceShopRequest extends PlayerServiceRequest {
     required this.shop,
     required this.resolvedState,
     required this.conditionContext,
+    required this.itemCatalog,
   });
 
   final OpenShopService? worldRequest;
   final ShopDefinition shop;
   final ResolvedShopState resolvedState;
   final ScriptEvaluationContext conditionContext;
+  final ItemCatalogSnapshot itemCatalog;
 }
 
 final class PlayerServicePcRequest extends PlayerServiceRequest {
@@ -260,13 +262,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     }
     return _run(
       worldRequest,
-      (state, caps) {
+      (state, caps) async {
         final normalizedShop = shop.normalized();
         final resolvedState = const ShopStateResolver().resolve(
           shop: normalizedShop,
           gameState: state,
           conditionContext: _conditionContext,
         );
+        final itemCatalog = await _resolveItemCatalog();
         final serviceRequest = PlayerServiceShopRequest(
           gameState: state,
           recoveryCaps: caps,
@@ -274,6 +277,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           shop: normalizedShop,
           resolvedState: resolvedState,
           conditionContext: _conditionContext,
+          itemCatalog: itemCatalog,
         );
         final host = _host;
         return host == null
@@ -854,11 +858,10 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   Future<PlayerServiceHostResult> _openContextualShop(
     PlayerServiceShopRequest request,
   ) async {
-    final itemCatalog = await _resolveItemCatalog();
     final session = _ContextualShopSession(
       request: request,
       gameState: request.gameState,
-      itemCatalog: itemCatalog,
+      itemCatalog: request.itemCatalog,
     );
     _shopSession = session;
     _publishWorldService(_buildShopSnapshot(session));
@@ -1755,10 +1758,8 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   ) {
     final stock = entry.stock;
     if (stock == null) return null;
-    final stockKey = session.resolved.isDefault
-        ? '${session.request.shop.id}::${entry.itemId}'
-        : '${session.request.shop.id}::${session.resolved.stateId}::'
-            '${entry.itemId}';
+    final stockKey = '${session.request.shop.id}::'
+        '${session.resolved.stateId}::${entry.itemId}';
     final purchased =
         session.gameState.progression.shopPurchaseCounts[stockKey] ?? 0;
     return (stock - purchased).clamp(0, stock);

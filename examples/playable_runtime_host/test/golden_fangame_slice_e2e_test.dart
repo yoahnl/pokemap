@@ -186,6 +186,7 @@ void main() {
        itemId: 'potion',
        quantity: 1,
         unitPrice: 300,
+        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
       );
       expect(purchase.isSuccess, isTrue);
       state = purchase.state;

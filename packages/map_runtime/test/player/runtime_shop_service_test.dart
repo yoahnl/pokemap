@@ -162,6 +162,49 @@ void main() {
     expect(controller.worldServiceSnapshot?.revision, 0);
   });
 
+  test('default shop reads stock from the strict state-qualified key',
+      () async {
+    const state = GameState(
+      saveId: 'shop-default-stock',
+      trainerProfile: TrainerProfile(name: 'Leaf', money: 500),
+      progression: PlayerProgression(
+        shopPurchaseCounts: <String, int>{'mart::default::potion': 2},
+      ),
+    );
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (_) async {},
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+      itemCatalog: _shopItemCatalog,
+    );
+    addTearDown(controller.dispose);
+
+    final open = controller.openShop(
+      const ShopDefinition(
+        id: 'mart',
+        label: 'Boutique',
+        entries: <ShopEntryDefinition>[
+          ShopEntryDefinition(itemId: 'potion', price: 60, stock: 3),
+        ],
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final snapshot = controller.worldServiceSnapshot!;
+    final content = snapshot.content! as RuntimeShopServiceContent;
+    expect(content.entries.single.remainingStock, 1);
+    await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.close,
+        snapshotRevision: snapshot.revision,
+      ),
+    );
+    await open;
+  });
+
   test('unknown catalog entries cannot debit money or enter the bag', () async {
     var state = const GameState(
       saveId: 'shop-unknown-item',

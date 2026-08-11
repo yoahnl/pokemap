@@ -268,7 +268,6 @@ final class ProjectSnapshotLoader {
       profiler?.recordDecodeModel(mapDecodeTimer!);
     }
 
-    final dialogueValidationTimer = profiler?.startStage();
     final occupiedPaths = <String>{
       for (final resource in resources) resource.relativePath,
     };
@@ -324,6 +323,7 @@ final class ProjectSnapshotLoader {
         profiler?.recordDecodeModel(itemCatalogDecodeTimer!);
       }
     }
+    final dialogueValidationTimer = profiler?.startStage();
     final dialogueEntries = _validatedDialogueEntries(manifest.dialogues);
     profiler?.recordDecodeModel(dialogueValidationTimer!);
 

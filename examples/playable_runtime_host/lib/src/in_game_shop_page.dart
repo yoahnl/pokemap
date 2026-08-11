@@ -13,6 +13,7 @@ class InGameShopPage extends StatefulWidget {
     super.key,
     required this.gameState,
     required this.shops,
+    required this.itemCatalog,
     required this.onStateCommitted,
     this.currentGameState,
     this.conditionContext = const ScriptEvaluationContext(),
@@ -22,6 +23,7 @@ class InGameShopPage extends StatefulWidget {
 
   final GameState gameState;
   final List<ShopDefinition> shops;
+  final ItemCatalogSnapshot itemCatalog;
   final InGamePlayerStateCommit onStateCommitted;
   final InGamePlayerStateReader? currentGameState;
   final ScriptEvaluationContext conditionContext;
@@ -187,9 +189,7 @@ class _InGameShopPageState extends State<InGameShopPage> {
     ShopEntryDefinition entry,
   ) {
     final quantity = _quantityByItemId[entry.itemId] ?? 1;
-    final stockKey = resolved.isDefault
-        ? '${shop.id}::${entry.itemId}'
-        : '${shop.id}::${resolved.stateId}::${entry.itemId}';
+    final stockKey = '${shop.id}::${resolved.stateId}::${entry.itemId}';
     final purchased = _gameState.progression.shopPurchaseCounts[stockKey] ?? 0;
     final remaining = entry.stock == null ? null : entry.stock! - purchased;
     final maximumQuantity = remaining == null ? 10 : remaining.clamp(1, 10);
@@ -325,6 +325,7 @@ class _InGameShopPageState extends State<InGameShopPage> {
       itemId: entry.itemId,
       quantity: quantity,
       conditionContext: widget.conditionContext,
+      itemCatalog: widget.itemCatalog,
     );
     if (!result.isSuccess) {
       if (result.failure == ShopPurchaseFailure.shopStateChanged) {

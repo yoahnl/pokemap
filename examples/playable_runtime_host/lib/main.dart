@@ -1725,6 +1725,7 @@ final class _RuntimePlayerServiceOverlayHost
       bodyBuilder: (state, stageState, currentState, close) => InGameShopPage(
         gameState: state,
         shops: <ShopDefinition>[request.shop],
+        itemCatalog: request.itemCatalog,
         onStateCommitted: stageState,
         currentGameState: currentState,
         conditionContext: request.conditionContext,

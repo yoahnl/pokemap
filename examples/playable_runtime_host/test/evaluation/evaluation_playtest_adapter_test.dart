@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_state_snapshot.dart';
@@ -113,11 +114,93 @@ void main() {
     expect(receipt.terminalState, PlaytestSessionState.stopped);
     expect(await computeEvaluationProjectRevision(projectRoot), beforeRevision);
   }, timeout: const Timeout(Duration(minutes: 2)));
+
+  test('bounded player-state service drives Bag commands without durable writes',
+      () async {
+    final projectRoot =
+        await Directory.systemTemp.createTemp('itm055_runtime_project_');
+    addTearDown(() async {
+      if (await projectRoot.exists()) await projectRoot.delete(recursive: true);
+    });
+    final projectFile = File('${projectRoot.path}/project.json');
+    await projectFile.writeAsString('{"id":"item-boundary"}');
+    final beforeBytes = await projectFile.readAsBytes();
+    final revision = await computeEvaluationProjectRevision(projectRoot);
+    final driver = _FakeEvaluationDriver();
+    final handles = WorkspaceHandleStore();
+    final project = handles.registerProject(
+      projectName: 'item-boundary',
+      initialFingerprint: revision,
+      readBytes: (relativePath) =>
+          File(p.join(projectRoot.path, relativePath)).readAsBytes(),
+    );
+    final service = PlaytestPlayerStateService(
+      handles: handles,
+      playtest: RuntimePlaytestPort(
+        driverFactory: (request) => EvaluationPlaytestDriver.start(
+          request: request,
+          projectRoot: projectRoot,
+          driverFactory: ({required runId, required seed}) async => driver,
+        ),
+      ),
+      actor: AuthoringActor(
+        actorId: 'runtime-test',
+        permissions: const [
+          AuthoringPermissionScope.playtestRun,
+          AuthoringPermissionScope.playtestControl,
+        ],
+      ),
+    );
+    await service.start(
+      workspaceHandle: project.workspaceHandle,
+      projectHandle: project.projectHandle,
+      request: PlaytestStartRequest(
+        sessionId: 'item-session-runtime',
+        projectId: 'item-boundary',
+        projectRevision: revision,
+        scenarioId: 'item-boundary',
+        seed: 42,
+      ),
+    );
+
+    final given = await service.executeBagCommand(
+      workspaceHandle: project.workspaceHandle,
+      projectHandle: project.projectHandle,
+      sessionId: 'item-session-runtime',
+      command: PlaytestPlayerStateCommand.giveItem(
+        commandId: 'give-potion',
+        itemId: 'potion',
+        quantity: 3,
+      ),
+    );
+    final consumed = await service.executeBagCommand(
+      workspaceHandle: project.workspaceHandle,
+      projectHandle: project.projectHandle,
+      sessionId: 'item-session-runtime',
+      command: PlaytestPlayerStateCommand.consumeItem(
+        commandId: 'consume-potion',
+        itemId: 'potion',
+        quantity: 1,
+      ),
+    );
+    await service.stop(
+      workspaceHandle: project.workspaceHandle,
+      projectHandle: project.projectHandle,
+      sessionId: 'item-session-runtime',
+    );
+
+    expect((given.snapshot.state['bag'] as Map)['potion'], 3);
+    expect((consumed.snapshot.state['bag'] as Map)['potion'], 2);
+    expect(driver.disposeCount, 1);
+    expect(await projectFile.readAsBytes(), beforeBytes);
+  });
 }
 
-final class _FakeEvaluationDriver implements EvaluationDriver {
+final class _FakeEvaluationDriver
+    implements EvaluationDriver, EvaluationBagMutationAutomation {
   var money = 1000;
   var disposeCount = 0;
+  final Map<String, int> bag = <String, int>{};
 
   @override
   EvaluationStateSnapshot snapshot() => EvaluationStateSnapshot(
@@ -128,7 +211,28 @@ final class _FakeEvaluationDriver implements EvaluationDriver {
         y: 7,
         movementMode: 'walk',
         money: money,
+        bag: bag,
       );
+
+  @override
+  Future<void> giveBagItem(String itemId, int quantity) async {
+    bag.update(
+      itemId,
+      (current) => current + quantity,
+      ifAbsent: () => quantity,
+    );
+  }
+
+  @override
+  Future<void> consumeBagItem(String itemId, int quantity) async {
+    final current = bag[itemId] ?? 0;
+    if (current < quantity) throw StateError('insufficient quantity');
+    if (current == quantity) {
+      bag.remove(itemId);
+    } else {
+      bag[itemId] = current - quantity;
+    }
+  }
 
   @override
   Future<void> probeSetMoney(int value) async {

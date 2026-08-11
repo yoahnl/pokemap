@@ -988,7 +988,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-055 — Séparer authoring et mutation de save
 
-- [ ] **Résultat :** ne pas confondre actions item.* de projet avec commandes Bag d’un joueur.
+- [x] **Résultat :** ne pas confondre actions item.* de projet avec commandes Bag d’un joueur.
 - **Décision contractuelle :**
   - item.* modifie le catalogue du projet ;
   - campaign.new_game.update configure le Bag initial ;
@@ -1001,6 +1001,8 @@ Résultat attendu : exit code 0 pour chaque commande.
   - aucune écriture hors projectRoot.
 - **Gate :** catalog mutations et player-state mutations ont des permissions et receipts distincts.
 - **Dépendances :** ITM-054.
+
+**Preuves ITM-055 :** `PlaytestPlayerStateService` est l'unique frontière publique pour `bag.give` et `bag.consume` côté playtest. Il exige une session vivante liée aux mêmes `WorkspaceHandle` et `ProjectHandle`, sépare `playtest.run` de `playtest.control`, réserve atomiquement chaque identifiant de session et libère les sessions terminales après un échec de commande ou d'arrêt. Il n'accepte aucun chemin de sauvegarde et retourne un receipt non durable `playtest_player_state`. Les deux commandes traversent réellement `RuntimePlaytestPort`, `EvaluationPlaytestDriver` et l'unique `EvaluationCommandDispatcher` avant d'appliquer `GameStateMutations` ; `item.*` et `campaign.new_game.update` restent des mutations de projet avec `project.write` et receipts authoring journalisés. L'ancien catalogue de descripteurs `sandbox.*`, non exécutable, a été supprimé sans alias. Le describe MCP n'annonce aucune mutation Bag ; `bag.give` et `sandbox.bag.give` sont refusés avec le code `map.action_unsupported`, y compris avec un `savePath`, sans modifier le fichier témoin hors `projectRoot`. Le catalogue canonique accompagne désormais toute requête shop jusqu'au host et les stocks utilisent exclusivement la clé `shopId::stateId::itemId`, sans cas spécial historique. La suite `map_authoring` complète termine avec 557 tests réussis et `dart analyze` sans problème. Les preuves runtime et host ciblées terminent respectivement avec 12 et 10 tests réussis, sans erreur d'analyse dans les fichiers touchés. La suite MCP sérialisée termine avec 42 tests réussis en 195,4 secondes ; `npm run check` ne signale aucune erreur TypeScript.
 
 ## 14. Phase 6 — Suppression totale des chemins historiques
 

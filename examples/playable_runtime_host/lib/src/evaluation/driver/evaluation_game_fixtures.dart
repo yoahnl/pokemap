@@ -89,5 +89,17 @@ PlayerServiceShopRequest shopRequestFixture() {
     shop: shop,
     resolvedState: resolved,
     conditionContext: const ScriptEvaluationContext(),
+    itemCatalog: ItemCatalogSnapshot.fromCatalog(
+      const ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'potion',
+            displayName: 'Potion',
+            pocketId: 'medicine',
+          ),
+        ],
+      ),
+    ),
   );
 }

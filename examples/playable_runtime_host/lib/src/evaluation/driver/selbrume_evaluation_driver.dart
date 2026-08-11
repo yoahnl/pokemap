@@ -22,6 +22,7 @@ final class SelbrumeEvaluationDriver
     implements
         EvaluationDriver,
         EvaluationPlayerServiceAutomation,
+        EvaluationBagMutationAutomation,
         EvaluationRosterAutomation,
         EvaluationBattleAutomation,
         EvaluationPlayerShellProvider {
@@ -181,6 +182,8 @@ final class SelbrumeEvaluationDriver
         narrativeFactResolver:
             NarrativeFactRuntimeResolver.fromFacts(bundle.manifest.facts),
       ),
+      projectRootDirectory: bundle.projectRootDirectory,
+      pokemonConfig: bundle.manifest.pokemon,
     );
     game.setPlayerServiceRuntimeController(playerServiceController);
     final driver = SelbrumeEvaluationDriver._(
@@ -1420,6 +1423,22 @@ final class SelbrumeEvaluationDriver
   }
 
   @override
+  Future<void> giveBagItem(String itemId, int quantity) async {
+    await _commitProbeState(
+      const GameStateMutations().giveItem(state, itemId, quantity),
+      operation: 'bag.give',
+    );
+  }
+
+  @override
+  Future<void> consumeBagItem(String itemId, int quantity) async {
+    await _commitProbeState(
+      const GameStateMutations().consumeItem(state, itemId, quantity),
+      operation: 'bag.consume',
+    );
+  }
+
+  @override
   Future<void> probeSeedBag(Map<String, int> quantities) async {
     _require(
       quantities.values.every((quantity) => quantity > 0),
@@ -1431,10 +1450,10 @@ final class SelbrumeEvaluationDriver
         bag: Bag(
           entries: <BagEntry>[
             for (final entry in quantities.entries)
-             BagEntry(
-               itemId: entry.key,
-               quantity: entry.value,
-             ),
+              BagEntry(
+                itemId: entry.key,
+                quantity: entry.value,
+              ),
           ],
         ).normalized(),
       ),

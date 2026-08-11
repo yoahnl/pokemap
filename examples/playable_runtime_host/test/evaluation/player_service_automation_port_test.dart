@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:pokemap_loader/src/evaluation/interactive/player_service_automation_port.dart';
 import 'package:pokemap_loader/src/in_game_heal_flow.dart';
 import 'package:pokemap_loader/src/in_game_pc_page.dart';
 import 'package:pokemap_loader/src/in_game_shop_page.dart';
+
+final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
 
 void main() {
   testWidgets('visible Shop registers typed buy actions', (tester) async {
@@ -19,6 +22,7 @@ void main() {
       MaterialApp(
         home: InGameShopPage(
           gameState: currentState,
+          itemCatalog: _itemCatalog,
           shops: const <ShopDefinition>[
             ShopDefinition(
               id: 'mart',
@@ -57,6 +61,7 @@ void main() {
       MaterialApp(
         home: InGameShopPage(
           gameState: const GameState(saveId: 'interactive-shop-lifecycle'),
+          itemCatalog: _itemCatalog,
           shops: const <ShopDefinition>[],
           onStateCommitted: (_) async {},
           automationPort: port,

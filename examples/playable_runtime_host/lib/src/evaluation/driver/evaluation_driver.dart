@@ -101,6 +101,12 @@ abstract interface class EvaluationVisiblePlayerServiceAutomation
   Future<void> closeActiveService();
 }
 
+abstract interface class EvaluationBagMutationAutomation {
+  Future<void> giveBagItem(String itemId, int quantity);
+
+  Future<void> consumeBagItem(String itemId, int quantity);
+}
+
 /// Explicit party, Bag, PC and Shop actions backed by gameplay/runtime ports.
 abstract interface class EvaluationRosterAutomation {
   Future<void> swapPartyMembers(int firstIndex, int secondIndex);

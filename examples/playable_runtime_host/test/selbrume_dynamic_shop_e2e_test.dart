@@ -11,6 +11,8 @@ import 'package:pokemap_loader/src/in_game_shop_page.dart';
 
 import 'support/selbrume_player_service_test_host.dart';
 
+final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -225,6 +227,7 @@ void main() {
       MaterialApp(
         home: InGameShopPage(
           gameState: latest,
+          itemCatalog: _itemCatalog,
           currentGameState: () => latest,
           shops: <ShopDefinition>[shop],
           conditionContext: conditionContext,
@@ -283,6 +286,7 @@ final class _ShopRuntimeHarness {
         maxHpByPartyIndex: <int, int>{},
       ),
       conditionContext: conditionContext,
+      itemCatalog: _itemCatalog,
     );
   }
 

@@ -11,6 +11,7 @@ export 'src/api/authoring_mutation_api.dart';
 export 'src/api/authoring_mutation_contracts.dart';
 export 'src/api/authoring_read_api.dart';
 export 'src/api/authoring_read_contracts.dart';
+export 'src/application/playtest_player_state_service.dart';
 export 'src/contracts/action_descriptor.dart';
 export 'src/contracts/artifact_contracts.dart';
 export 'src/contracts/artifact_ref.dart';

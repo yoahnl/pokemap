@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -80,6 +82,59 @@ void main() {
             storefrontLabel: 'Grand Comptoir des Brisants',
           ),
         ],
+      ),
+    );
+
+    expect(result.status, PlayerServiceRuntimeStatus.cancelled);
+  });
+
+  test('loads and hands the project item catalog to the shop host', () async {
+    final root = await Directory.systemTemp.createTemp('shop-item-catalog-');
+    addTearDown(() => root.delete(recursive: true));
+    final catalogFile = File('${root.path}/data/items.json');
+    await catalogFile.parent.create(recursive: true);
+    await catalogFile.writeAsString(
+      jsonEncode(
+        encodeProjectItemCatalog(
+          const ProjectItemCatalog(
+            schemaVersion: 1,
+            entries: [
+              ProjectItemDefinition(
+                id: 'potion',
+                displayName: 'Potion',
+                pocketId: 'medicine',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    const state = GameState(saveId: 'catalog-shop');
+    final host = _Host(
+      onShop: (request) async {
+        expect(request.itemCatalog.definitionFor('potion'), isNotNull);
+        return const PlayerServiceHostResult.cancelled();
+      },
+    );
+    final controller = PlayerServiceRuntimeController(
+      currentGameState: () => state,
+      host: host,
+      commitAndSave: (_) async {},
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+      projectRootDirectory: root.path,
+      pokemonConfig: const ProjectPokemonConfig(
+        catalogFiles: {'items': 'data/items.json'},
+      ),
+    );
+
+    final result = await controller.openShop(
+      const ShopDefinition(
+        id: 'mart',
+        label: 'Boutique',
+        entries: [ShopEntryDefinition(itemId: 'potion', price: 300)],
       ),
     );
 

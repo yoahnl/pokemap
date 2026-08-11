@@ -12,6 +12,7 @@ export 'src/api/authoring_mutation_api.dart';
 export 'src/api/authoring_mutation_contracts.dart';
 export 'src/api/local_map_authoring_mutation_api.dart';
 export 'src/application/map_mutation_dispatcher.dart';
+export 'src/application/playtest_player_state_service.dart';
 export 'src/architecture/package_boundaries.dart';
 export 'src/contracts/action_descriptor.dart';
 export 'src/contracts/artifact_contracts.dart';
@@ -59,7 +60,6 @@ export 'src/domains/gameplay/character_studio/character_studio_animation_clip_ac
 export 'src/domains/gameplay/character_studio/character_studio_character_actions.dart';
 export 'src/domains/gameplay/character_studio/character_studio_animation_definition_actions.dart';
 export 'src/domains/gameplay/character_studio/character_studio_portrait_state_actions.dart';
-export 'src/domains/gameplay/sandbox_player_state_actions.dart';
 export 'src/domains/gameplay/battle_actions.dart';
 export 'src/domains/gameplay/progression_actions.dart';
 export 'src/domains/assets/asset_actions.dart';

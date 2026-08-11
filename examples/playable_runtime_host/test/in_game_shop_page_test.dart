@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:pokemap_loader/src/in_game_shop_page.dart';
+
+final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
 
 void main() {
   testWidgets('buys an authored item and shows money and remaining stock',
@@ -11,6 +14,7 @@ void main() {
       MaterialApp(
         home: InGameShopPage(
           gameState: committed,
+          itemCatalog: _itemCatalog,
           shops: const <ShopDefinition>[
             ShopDefinition(
               id: 'mart',
@@ -44,6 +48,7 @@ void main() {
       MaterialApp(
         home: InGameShopPage(
           gameState: initial,
+          itemCatalog: _itemCatalog,
           shops: const <ShopDefinition>[
             ShopDefinition(
               id: 'mart',
@@ -75,6 +80,7 @@ void main() {
       MaterialApp(
         home: InGameShopPage(
           gameState: initial,
+          itemCatalog: _itemCatalog,
           shops: <ShopDefinition>[_dynamicShop()],
           onStateCommitted: (_) async {},
         ),
@@ -98,6 +104,7 @@ void main() {
       MaterialApp(
         home: InGameShopPage(
           gameState: initial,
+          itemCatalog: _itemCatalog,
           shops: <ShopDefinition>[_dynamicShop()],
           onStateCommitted: (_) async {},
         ),
@@ -123,6 +130,7 @@ void main() {
       MaterialApp(
         home: InGameShopPage(
           gameState: latest,
+          itemCatalog: _itemCatalog,
           currentGameState: () => latest,
           shops: <ShopDefinition>[_dynamicShop()],
           onStateCommitted: (_) async => commits += 1,
