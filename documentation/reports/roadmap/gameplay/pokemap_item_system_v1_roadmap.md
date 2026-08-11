@@ -753,7 +753,7 @@ Résultat attendu : exit code 0 et All tests passed.
 
 ### ITM-036 — Objets d’évolution
 
-- [ ] **Résultat :** les items d’évolution sont résolus via itemId canonique et le catalogue des règles d’évolution.
+- [x] **Résultat :** les items d’évolution sont résolus via itemId canonique et le catalogue des règles d’évolution.
 - **Fichiers à modifier :**
   - packages/map_runtime/lib/src/application/player_service_runtime_controller.dart
   - packages/map_runtime/lib/src/application/runtime_pokemon_evolution_loader.dart
@@ -762,6 +762,8 @@ Résultat attendu : exit code 0 et All tests passed.
   - packages/map_runtime/test/player/runtime_pause_bag_item_service_test.dart
 - **Gate :** évolution réussie consomme selon policy ; refus ou cible incompatible ne consomme pas.
 - **Dépendances :** ITM-022 et ITM-030.
+
+**Preuves ITM-036 :** le contrôleur runtime n'essaie plus de traiter tout objet passif comme une pierre d'évolution : seule une définition canonique portant le tag `evolution` ouvre ce chemin. `RuntimePokemonEvolutionLoader` filtre ensuite les règles typées par l'`itemId` exact et résout l'espèce cible depuis le catalogue Pokémon. `PokemonEvolutionItemOperations` applique l'évolution et la consommation via `BagOperations` en une mutation atomique avec un unique receipt. Les refus, mauvaises cibles, règles incompatibles et objets passifs custom conservent le Pokémon et le Bag. Les suites ciblées terminent avec 16 tests gameplay et 18 tests runtime réussis, et les analyses ciblées ne remontent aucune issue.
 
 ### ITM-037 — Equip/unequip d’objets tenus
 

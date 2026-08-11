@@ -303,6 +303,63 @@ void main() {
     expect(state.bag.entries, isEmpty);
   });
 
+  test('passive custom item is not guessed to be an evolution item', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'runtime-pause-passive-item-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    const state = GameState(
+      saveId: 'bag-passive',
+      party: PlayerParty(
+        members: <PlayerPokemon>[
+          PlayerPokemon(
+            speciesId: 'sproutle',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+            currentHp: 20,
+          ),
+        ],
+      ),
+      bag: Bag(
+        entries: <BagEntry>[
+          BagEntry(itemId: 'lucky-charm', quantity: 1),
+        ],
+      ),
+    );
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (_) async {},
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{0: 20},
+      ),
+      projectRootDirectory: root.path,
+      pokemonConfig: const ProjectPokemonConfig(
+        evolutionsDir: 'custom/evolutions',
+      ),
+      itemCatalog: _catalogWith(
+        const <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'lucky-charm',
+            displayName: 'Lucky Charm',
+            pocketId: 'charms',
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    final result = await controller.useBagItemOutsideBattle(
+      const RuntimePlayerPauseCommand.useBagItem(
+        itemTargetId: 'lucky-charm',
+        partyTargetId: 'party.0',
+      ),
+    );
+
+    expect(result.status, RuntimePlayerPauseCommandStatus.unavailable);
+    expect(state.bag.entries.single.quantity, 1);
+  });
+
   test('pause bag teaches a compatible TM with an exact replacement', () async {
     final root = await Directory.systemTemp.createTemp(
       'runtime-pause-move-machine-',

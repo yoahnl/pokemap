@@ -418,10 +418,16 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           safeMessage: 'Cet objet ne peut pas être utilisé ici.',
         );
       }
-      return _useEvolutionItemOutsideBattle(
-        state: state,
-        itemId: command.itemTargetId,
-        partyIndex: partyIndex,
+      if (definition.tags.contains('evolution')) {
+        return _useEvolutionItemOutsideBattle(
+          state: state,
+          itemId: definition.id,
+          partyIndex: partyIndex,
+        );
+      }
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'Cet objet ne peut pas être utilisé ici.',
       );
     }
     if (partyIndex >= state.party.members.length) {

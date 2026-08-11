@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'items/bag_operation_result.dart';
+import 'items/bag_operations.dart';
 import 'pokemon_stat_calculator.dart';
 
 enum PokemonEvolutionTriggerKind {
@@ -360,12 +362,18 @@ final class PokemonEvolutionItemUseResult {
     required this.state,
     this.failure,
     this.evolution,
+    this.consumptionReceipt,
   });
 
   const PokemonEvolutionItemUseResult.success(
     GameState state,
     PokemonEvolutionResult evolution,
-  ) : this._(state: state, evolution: evolution);
+    ItemConsumptionReceipt consumptionReceipt,
+  ) : this._(
+          state: state,
+          evolution: evolution,
+          consumptionReceipt: consumptionReceipt,
+        );
 
   const PokemonEvolutionItemUseResult.failed(
     GameState state,
@@ -375,6 +383,7 @@ final class PokemonEvolutionItemUseResult {
   final GameState state;
   final PokemonEvolutionItemUseFailure? failure;
   final PokemonEvolutionResult? evolution;
+  final ItemConsumptionReceipt? consumptionReceipt;
 
   bool get isSuccess => failure == null;
 }
@@ -386,6 +395,7 @@ final class PokemonEvolutionItemOperations {
   });
 
   final PokemonEvolutionService evolutionService;
+  static const _bagOperations = BagOperations();
 
   PokemonEvolutionItemUseResult useItem(
     GameState state, {
@@ -407,10 +417,7 @@ final class PokemonEvolutionItemOperations {
         PokemonEvolutionItemUseFailure.invalidTarget,
       );
     }
-    final hasItem = state.bag.normalized().entries.any(
-          (entry) => entry.itemId == normalizedItemId && entry.quantity > 0,
-        );
-    if (!hasItem) {
+    if (_bagOperations.quantityOf(state.bag, normalizedItemId) <= 0) {
       return PokemonEvolutionItemUseResult.failed(
         state,
         PokemonEvolutionItemUseFailure.insufficientQuantity,
@@ -431,8 +438,15 @@ final class PokemonEvolutionItemOperations {
       sourceMaxHp: sourceMaxHp,
       trigger: trigger,
     );
-    final nextBag = _consumeEvolutionItem(state.bag, normalizedItemId);
-    if (nextBag == null) {
+    final consumption = _bagOperations.consume(
+      BagConsumeRequest(
+        bag: state.bag,
+        itemId: normalizedItemId,
+        quantity: 1,
+        reason: ItemConsumptionReason.appliedEffect,
+      ),
+    );
+    if (!consumption.isSuccess) {
       return PokemonEvolutionItemUseResult.failed(
         state,
         PokemonEvolutionItemUseFailure.insufficientQuantity,
@@ -443,27 +457,12 @@ final class PokemonEvolutionItemOperations {
     return PokemonEvolutionItemUseResult.success(
       state.copyWith(
         party: PlayerParty(members: nextMembers).normalized(),
-        bag: nextBag,
+        bag: consumption.bag,
       ),
       evolution,
+      consumption.consumptionReceipt!,
     );
   }
-}
-
-Bag? _consumeEvolutionItem(Bag bag, String itemId) {
-  final nextEntries = <BagEntry>[];
-  var consumed = false;
-  for (final entry in bag.normalized().entries) {
-    if (!consumed && entry.itemId == itemId) {
-      consumed = true;
-      if (entry.quantity > 1) {
-        nextEntries.add(entry.copyWith(quantity: entry.quantity - 1));
-      }
-    } else {
-      nextEntries.add(entry);
-    }
-  }
-  return consumed ? Bag(entries: nextEntries).normalized() : null;
 }
 
 /// Preserves the exact HP ratio using nearest-integer, half-up rounding.

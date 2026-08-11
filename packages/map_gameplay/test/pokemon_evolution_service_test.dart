@@ -206,6 +206,16 @@ void main() {
       expect(result.state.party.members.single.friendship, 187);
       expect(result.state.party.members.single.provenance, source.provenance);
       expect(result.state.bag.entries.single.quantity, 1);
+      expect(
+        result.consumptionReceipt,
+        const ItemConsumptionReceipt(
+          itemId: 'leaf-stone',
+          quantity: 1,
+          quantityBefore: 2,
+          quantityAfter: 1,
+          reason: ItemConsumptionReason.appliedEffect,
+        ),
+      );
     });
 
     test('item evolution failure never consumes the item', () {
@@ -247,6 +257,7 @@ void main() {
       expect(result.failure, PokemonEvolutionItemUseFailure.conditionNotMet);
       expect(result.state, same(state));
       expect(result.state.bag.entries.single.quantity, 1);
+      expect(result.consumptionReceipt, isNull);
     });
   });
 
