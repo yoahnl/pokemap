@@ -12,11 +12,11 @@
 
 ## 1. Statut, autorité et règle de portée
 
-- [ ] IN_PROGRESS — les phases 0 à 6 sont clôturées ; ITM-070 est livré et ITM-071 est le prochain lot de certification.
-- Dernière mise à jour : 11 août 2026, après création et validation de la fixture synthétique Golden Item System du lot ITM-070.
-- Avancement : 37 lots DONE, 1 lot DEFERRED_BY_PRODUCT et 4 lots TODO sur 42 lots uniques.
+- [ ] IN_PROGRESS — les phases 0 à 6 sont clôturées ; ITM-070 et ITM-071 sont livrés, ITM-072 est le prochain lot de certification.
+- Dernière mise à jour : 11 août 2026, après exécution déterministe du Golden Item System et durcissement du vrai dépôt de sauvegarde runtime au lot ITM-071.
+- Avancement : 38 lots DONE, 1 lot DEFERRED_BY_PRODUCT et 3 lots TODO sur 42 lots uniques.
 - Phases : 7 phases réalisées sur 8 ; seule la phase 7 reste à exécuter.
-- Travail restant : 4 lots immédiatement exécutables (`ITM-071` à `ITM-074`) et 1 lot différé (`ITM-034`) qui ne doit pas être compté comme une tâche de la prochaine vague.
+- Travail restant : 3 lots immédiatement exécutables (`ITM-072` à `ITM-074`) et 1 lot différé (`ITM-034`) qui ne doit pas être compté comme une tâche de la prochaine vague.
 - Unité de suivi : cette roadmap ne maintient pas un second registre de tâches atomiques ; les unités d’exécution officielles sont les lots `ITM-*`.
 - La phase 3 est clôturée sur le périmètre V1 signé ; ITM-034 Repel reste explicitement différé avec FG-065 et ne bloque ni la phase 6, ni la capture minimale.
 - Ce document est la roadmap dédiée à la refonte Item System V1.
@@ -64,11 +64,11 @@ La stratégie retenue est un remplacement progressif du code, livré comme une r
 | Producteurs et économie | DONE — New Game, événements, pickups, rewards et shops utilisent les contrats canoniques | `BagOperations` et `ProjectItemReferenceIndex` |
 | Authoring et MCP | DONE — lectures, mutations, Item Studio, pickers, JSONL, Editor et MCP sont raccordés | map_authoring et ses adaptateurs de transport |
 | Suppression historique | DONE — décisions par catégorie, registries, wrappers dupliqués et ancien wire Bag retirés | ITM-060 à ITM-062 |
-| Certification produit | IN_PROGRESS — fixture Golden Item System repo-owned livrée ; flow automatisé à exécuter | ITM-071 à ITM-074 |
+| Certification produit | IN_PROGRESS — fixture et flow Golden Item System repo-owned exécutés avec receipt déterministe | ITM-072 à ITM-074 |
 
 ### 2.2 Décision de continuation
 
-ITM-060 à ITM-062 ont retiré les décisions historiques par catégorie, les registries, les wrappers devenus inutiles et l’ancien wire Bag. ITM-070 fournit désormais la fixture synthétique stricte sur laquelle le flow automatisé ITM-071 doit s’appuyer. ITM-034 reste hors vague tant que la décision produit FG-065 n’est pas explicitement réouverte. Cette synthèse ne modifie aucun statut FG de la roadmap mécanique racine : leur recertification reste réservée à ITM-074.
+ITM-060 à ITM-062 ont retiré les décisions historiques par catégorie, les registries, les wrappers devenus inutiles et l’ancien wire Bag. ITM-070 fournit la fixture synthétique stricte et ITM-071 l’exécute par les API de production en produisant un receipt réutilisable, lié aux digests de fixture et d’état final. ITM-034 reste hors vague tant que la décision produit FG-065 n’est pas explicitement réouverte. Cette synthèse ne modifie aucun statut FG de la roadmap mécanique racine : leur recertification reste réservée à ITM-074.
 
 ## 3. Audit initial vérifié
 
@@ -343,10 +343,10 @@ ItemCatalogSnapshot compose la définition d’objet avec les références exter
 | 4 — Producteurs et économie | 5 | 5 | 0 | 0 | `ITM-040` à `ITM-044` | — | DONE |
 | 5 — Authoring et MCP | 6 | 6 | 0 | 0 | `ITM-050` à `ITM-055` | — | DONE |
 | 6 — Suppression historique | 3 | 3 | 0 | 0 | `ITM-060` à `ITM-062` | — | DONE |
-| 7 — Certification | 5 | 1 | 4 | 0 | `ITM-070` | `ITM-071` à `ITM-074` | IN_PROGRESS |
-| **Total** | **42** | **37** | **4** | **1** | **Phases 0 à 6 + ITM-070** | **ITM-071 à ITM-074 + ITM-034 différé** | **IN_PROGRESS** |
+| 7 — Certification | 5 | 2 | 3 | 0 | `ITM-070` à `ITM-071` | `ITM-072` à `ITM-074` | IN_PROGRESS |
+| **Total** | **42** | **38** | **3** | **1** | **Phases 0 à 6 + ITM-070 à ITM-071** | **ITM-072 à ITM-074 + ITM-034 différé** | **IN_PROGRESS** |
 
-Le reste à faire immédiatement représente donc 4 lots, tous regroupés dans la phase 7. Le nombre de lots non-DONE est de 5 uniquement si le lot produit différé `ITM-034` est inclus ; ce dernier n’entre pas dans la prochaine vague tant que FG-065 reste DEFERRED.
+Le reste à faire immédiatement représente donc 3 lots, tous regroupés dans la phase 7. Le nombre de lots non-DONE est de 4 uniquement si le lot produit différé `ITM-034` est inclus ; ce dernier n’entre pas dans la prochaine vague tant que FG-065 reste DEFERRED.
 
 ### 7.1 Preuves Git après rebase
 
@@ -1118,7 +1118,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ## 15. Phase 7 — Certification et clôture
 
-**Statut de phase :** IN_PROGRESS. ITM-070 est clôturé ; ITM-071 doit maintenant exécuter le scénario déterministe sur cette fixture sans réintroduire de façade historique.
+**Statut de phase :** IN_PROGRESS. ITM-070 et ITM-071 sont clôturés ; ITM-072 doit maintenant consommer le receipt exécuté sans promouvoir une capacité sur une simple preuve de modèle.
 
 ### ITM-070 — Fixture Golden Item System
 
@@ -1137,7 +1137,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-071 — Golden flow automatisé
 
-- [ ] **Résultat :** prouver la chaîne complète.
+- [x] **Résultat :** prouver la chaîne complète.
 - **Scénario :**
   1. créer une nouvelle partie ;
   2. recevoir des objets initiaux ;
@@ -1155,6 +1155,8 @@ Résultat attendu : exit code 0 pour chaque commande.
   - examples/playable_runtime_host/test/golden_item_system_flow_test.dart
 - **Gate :** aucun accès réseau, RNG injecté, résultat déterministe.
 - **Dépendances :** ITM-070.
+
+**Preuves ITM-071 :** `GoldenItemSystemJourney` est un runner réutilisable du host, pas un interpréteur parallèle de `walkthrough.json` : le walkthrough fixe uniquement l’ordre attendu, puis le runner appelle les loaders runtime, `createNewGameStateFromProject`, `ScenarioRuntimeExecutor`, `PlayerItemUseService`, les transactions de shop, le moteur `map_battle`, le bridge d’objet de combat, la capture runtime, `HeldItemOperations`, `RuntimeMoveMachineLoader`, `PokemonMoveMachineService`, les rewards et `FileGameSaveRepository`. Le pickup est idempotent par condition `flagIsUnset`; cure, PP, soin, Potion en combat, capture, TM, held item, key gate, passif, reward et un vrai K.O. suivi d’un Revive sont observés. Deux exécutions avec la graine 47 produisent le même receipt, avec SHA-256 de fixture et d’état final. Le dépôt runtime écrit désormais `itemSystemSchemaVersion: 1`, rejette les sauvegardes sans marqueur et valide les seules clés `itemId`/`quantity` avant décodage, sans fallback. Les suites ciblées terminent avec 55 tests map_core, 19 tests save/load runtime et 2 tests Golden Item System réussis. Les analyses ciblées map_core, runtime et host ne remontent aucune issue ; l’analyse incluant le barrel runtime conserve uniquement l’info préexistante `unnecessary_library_name`.
 
 ### ITM-072 — Certification produit
 
@@ -1291,9 +1293,8 @@ N/A signifie réellement non applicable ; il ne doit pas masquer une exposition 
 
 Cette roadmap continue d’être exécutée lot par lot, avec un checkpoint après chaque lot de certification.
 
-1. **ITM-071 — golden runtime flow :** enchaîner les usages Item sur la fixture ITM-070 et produire une preuve exécutable réutilisable par la certification.
-2. **ITM-072 — certification produit :** raccorder schema, authoring, persistence, runtime, UX joueur, MCP et golden flow aux niveaux de preuve L0-L6.
-3. **ITM-073 — matrice finale de validation :** exécuter toutes les suites, analyses et builds prévus en séparant explicitement les dettes préexistantes.
-4. **ITM-074 — recertification mécanique :** proposer les statuts FG finaux uniquement à partir des preuves fraîches de la golden slice et de la matrice complète.
+1. **ITM-072 — certification produit :** raccorder schema, authoring, persistence, runtime, UX joueur, MCP et golden flow aux niveaux de preuve L0-L6, en consommant le receipt ITM-071.
+2. **ITM-073 — matrice finale de validation :** exécuter toutes les suites, analyses et builds prévus en séparant explicitement les dettes préexistantes.
+3. **ITM-074 — recertification mécanique :** proposer les statuts FG finaux uniquement à partir des preuves fraîches de la golden slice et de la matrice complète.
 
 ITM-034 reste différé et ne doit pas être glissé discrètement dans la certification sous prétexte qu’un Repel « n’a pas l’air bien méchant » — c’est exactement ainsi que les petits lots se transforment en marécages.

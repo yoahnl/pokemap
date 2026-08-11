@@ -416,6 +416,60 @@ void main() {
     });
   });
 
+  group('strict Item System game-state wire', () {
+    test('writes the schema marker and round-trips canonical Bag entries', () {
+      const state = GameState(
+        saveId: 'strict_item_wire',
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'potion', quantity: 2),
+          ],
+        ),
+      );
+
+      final json = strictGameStateSaveJson(state);
+      final entries =
+          (json['bag'] as Map<String, dynamic>)['entries'] as List<dynamic>;
+      final restored = gameStateFromStrictSaveJson(json);
+
+      expect(
+        json['itemSystemSchemaVersion'],
+        currentItemSystemSaveSchemaVersion,
+      );
+      expect(
+        (entries.single as Map<String, dynamic>).keys.toSet(),
+        const <String>{'itemId', 'quantity'},
+      );
+      expect(restored.bag, state.bag);
+    });
+
+    test('rejects missing schema and non-canonical Bag fields', () {
+      final missingSchema = const GameState(saveId: 'missing').toJson();
+      final extraBagField = strictGameStateSaveJson(
+        const GameState(
+          saveId: 'extra_bag_field',
+          bag: Bag(
+            entries: <BagEntry>[
+              BagEntry(itemId: 'potion', quantity: 1),
+            ],
+          ),
+        ),
+      );
+      final entries = (extraBagField['bag']
+          as Map<String, dynamic>)['entries'] as List<dynamic>;
+      (entries.single as Map<String, dynamic>)['categoryId'] = 'medicine';
+
+      expect(
+        () => gameStateFromStrictSaveJson(missingSchema),
+        throwsA(isA<UnsupportedSaveSchema>()),
+      );
+      expect(
+        () => gameStateFromStrictSaveJson(extraBagField),
+        throwsA(isA<UnsupportedSaveSchema>()),
+      );
+    });
+  });
+
   group('NarrativeEventProgress persistence', () {
     test('propagates V2 progress without migrating legacy namespaces', () {
       final progress = NarrativeEventProgress(

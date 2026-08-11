@@ -39,7 +39,7 @@
       "source": "golden_item_system",
       "type": "normal",
       "category": "status",
-      "target": "user",
+      "target": "self",
       "basePower": 0,
       "accuracy": {
         "kind": "always_hits"

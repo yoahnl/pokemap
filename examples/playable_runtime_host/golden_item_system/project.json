@@ -32,6 +32,12 @@
       "name": "Golden Ether Pickup",
       "scope": "localEventFlow",
       "entryNodeId": "golden_item_pickup_start",
+      "activationCondition": {
+        "type": "flagIsUnset",
+        "params": {
+          "flagName": "golden_item.pickup_collected"
+        }
+      },
       "nodes": [
         {
           "id": "golden_item_pickup_start",
@@ -222,7 +228,8 @@
         "currentPpByMoveId": {
           "tackle": 20,
           "growl": 30
-        }
+        },
+        "statusId": "poison"
       }
     ],
     "initialFacts": {},

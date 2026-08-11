@@ -40,7 +40,9 @@ void main() {
   });
 
   test('default worker decodes and normalizes a save off-isolate', () async {
-    final encoded = const JsonEncoder.withIndent('  ').convert(state.toJson());
+    final encoded = const JsonEncoder.withIndent(
+      '  ',
+    ).convert(strictGameStateSaveJson(state));
     final executor = GameSaveCodecExecutor(offloadThresholdBytes: 0);
 
     final decoded = await executor.decode(utf8.encode(encoded));

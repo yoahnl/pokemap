@@ -745,7 +745,7 @@ abstract class SaveData with _$SaveData {
   }
 }
 
-void _validateItemSystemSaveSchema(Map<String, dynamic> json) {
+void validateItemSystemSaveSchema(Map<String, dynamic> json) {
   final schemaVersion = json['itemSystemSchemaVersion'];
   if (schemaVersion != currentItemSystemSaveSchemaVersion) {
     throw UnsupportedSaveSchema(
@@ -785,6 +785,6 @@ void _validateItemSystemSaveSchema(Map<String, dynamic> json) {
 }
 
 SaveData _decodeSaveData(Map<String, dynamic> json) {
-  _validateItemSystemSaveSchema(json);
+  validateItemSystemSaveSchema(json);
   return _$SaveDataFromJson(json);
 }

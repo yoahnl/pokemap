@@ -34,7 +34,7 @@
       "id": "sell",
       "operation": "shop_sell",
       "shopId": "golden_item_shop",
-      "itemId": "antidote",
+      "itemId": "potion",
       "quantity": 1
     },
     {
