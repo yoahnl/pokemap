@@ -853,14 +853,16 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
 
   Future<PlayerServiceHostResult> _openContextualShop(
     PlayerServiceShopRequest request,
-  ) {
+  ) async {
+    final itemCatalog = await _resolveItemCatalog();
     final session = _ContextualShopSession(
       request: request,
       gameState: request.gameState,
+      itemCatalog: itemCatalog,
     );
     _shopSession = session;
     _publishWorldService(_buildShopSnapshot(session));
-    return session.result.future.whenComplete(() {
+    return await session.result.future.whenComplete(() {
       if (identical(_shopSession, session)) {
         _shopSession = null;
         _publishWorldService(null);
@@ -1497,6 +1499,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       expectedStateId: session.resolved.stateId,
       itemId: itemId,
       quantity: quantity,
+      itemCatalog: session.itemCatalog,
       conditionContext: session.request.conditionContext,
     );
     if (!result.isSuccess) {
@@ -1547,7 +1550,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       expectedStateId: session.resolved.stateId,
       itemId: itemId,
       quantity: quantity,
-      itemCatalog: _itemCatalog ?? ItemCatalogSnapshot.empty(),
+      itemCatalog: session.itemCatalog,
       conditionContext: session.request.conditionContext,
     );
     if (!result.isSuccess) {
@@ -1716,7 +1719,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       final unavailableReason = _shopSaleUnavailableReason(
         bagEntry: bagEntry,
         shopEntry: shopEntry,
-        itemCatalog: _itemCatalog ?? ItemCatalogSnapshot.empty(),
+        itemCatalog: session.itemCatalog,
       );
       return RuntimeShopEntrySnapshot(
         itemId: bagEntry.itemId,
@@ -1795,10 +1798,12 @@ final class _ContextualShopSession {
   _ContextualShopSession({
     required this.request,
     required this.gameState,
+    required this.itemCatalog,
   })  : resolved = request.resolvedState,
         selectedItemId = request.resolvedState.entries.firstOrNull?.itemId;
 
   final PlayerServiceShopRequest request;
+  final ItemCatalogSnapshot itemCatalog;
   final result = Completer<PlayerServiceHostResult>();
   GameState gameState;
   ResolvedShopState resolved;

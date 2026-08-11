@@ -4,6 +4,18 @@ import 'package:test/test.dart';
 
 void main() {
   const mutations = GameStateMutations();
+  final itemCatalog = ItemCatalogSnapshot.fromCatalog(
+    const ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: <ProjectItemDefinition>[
+        ProjectItemDefinition(
+          id: 'potion',
+          displayName: 'Potion',
+          pocketId: 'medicine',
+        ),
+      ],
+    ),
+  );
 
   PlayerPokemon pokemon({
     String speciesId = 'p5_starter_species',
@@ -339,6 +351,7 @@ void main() {
         itemId: ' potion ',
         quantity: 2,
         unitPrice: 300,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isTrue);
@@ -358,6 +371,7 @@ void main() {
         itemId: 'potion',
         quantity: 1,
         unitPrice: 300,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isFalse);
@@ -375,18 +389,21 @@ void main() {
           itemId: ' ',
           quantity: 1,
           unitPrice: 100,
+          itemCatalog: itemCatalog,
         ),
         mutations.purchaseItem(
           state,
           itemId: 'potion',
           quantity: 0,
           unitPrice: 100,
+          itemCatalog: itemCatalog,
         ),
         mutations.purchaseItem(
           state,
           itemId: 'potion',
           quantity: 1,
           unitPrice: 0,
+          itemCatalog: itemCatalog,
         ),
       ]) {
         expect(result.failure, ShopPurchaseFailure.invalidRequest);

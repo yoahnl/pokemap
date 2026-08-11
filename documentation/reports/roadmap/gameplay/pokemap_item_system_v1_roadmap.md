@@ -864,7 +864,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-043 — Shops et ventes
 
-- [ ] **Résultat :** shops utilisent les prix authored et ItemCapabilityResolver pour pocket, key item et sellability.
+- [x] **Résultat :** shops utilisent les prix authored et ItemCapabilityResolver pour pocket, key item et sellability.
 - **Fichiers à modifier :**
   - packages/map_core/lib/src/models/shop_definition.dart
   - packages/map_gameplay/lib/src/game_state_mutations.dart
@@ -874,6 +874,8 @@ Résultat attendu : exit code 0 pour chaque commande.
   - packages/map_runtime/test/player/runtime_shop_service_test.dart
 - **Gate :** achat, vente, key item, stock, custom item et changement de profil restent transactionnels.
 - **Dépendances :** ITM-024 et ITM-013.
+
+**Preuves ITM-043 :** achats et ventes exigent le même `ItemCatalogSnapshot` et résolvent la définition canonique via `ItemCapabilityResolver`, tandis que `ShopEntryDefinition.price` et `sellPrice` restent les seules valeurs transactionnelles. Un item présent dans un profil de boutique mais absent du catalogue échoue avant débit, ajout au Bag ou consommation de stock. Les key items restent invendables, les changements de profil sont revérifiés au moment de confirmer et `custom-passive-thread` s'achète avec son prix authored sans sémantique codée en dur. Le runtime conserve le snapshot dans la session de boutique, sans fallback lors de la transaction. Les compteurs de stock utilisent exclusivement `shopId::stateId::itemId`, y compris `default`, sans clé historique de compatibilité. Les suites ciblées terminent avec 32 tests gameplay et 4 tests runtime réussis ; la suite gameplay complète réussit 476 tests.
 
 ### ITM-044 — Références et usages d’objets
 

@@ -221,12 +221,14 @@ final class SandboxPlayerStateService {
     required ShopDefinition shop,
     required String itemId,
     required int quantity,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
     final result = mutations.purchaseFromShop(
       sandbox.state,
       shop: shop,
       itemId: itemId,
       quantity: quantity,
+      itemCatalog: itemCatalog,
     );
     return _next(
       sandbox,

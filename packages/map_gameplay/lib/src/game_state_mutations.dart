@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import 'battle_reward.dart';
 import 'items/bag_operations.dart';
+import 'items/item_capability_resolver.dart';
 import 'items/item_catalog_snapshot.dart';
 import 'script_condition_evaluator.dart';
 import 'shop_state_resolver.dart';
@@ -345,6 +346,7 @@ class GameStateMutations {
     required String itemId,
     required int quantity,
     required int unitPrice,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
     final normalizedItemId = itemId.trim();
     const maxSafeTotal = 0x7fffffffffffffff;
@@ -356,6 +358,14 @@ class GameStateMutations {
         state: state,
         totalCost: 0,
         failure: ShopPurchaseFailure.invalidRequest,
+      );
+    }
+    if (ItemCapabilityResolver(itemCatalog).definitionFor(normalizedItemId) ==
+        null) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: 0,
+        failure: ShopPurchaseFailure.unknownItem,
       );
     }
 
@@ -398,19 +408,23 @@ class GameStateMutations {
   ///
   /// Finite stock consumption is persisted in [PlayerProgression] so loading
   /// a save cannot replenish a project-authored shop accidentally. Unlimited
-  /// entries never create purchase counters.
+  /// entries never create purchase counters. Every counter includes the exact
+  /// resolved shop state id.
   ShopPurchaseResult purchaseFromShop(
     GameState state, {
     required ShopDefinition shop,
     required String itemId,
     required int quantity,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
     return _purchaseFromShopEntries(
       state,
       shopId: shop.id,
+      stateId: ShopStateResolver.defaultStateId,
       entries: shop.entries,
       itemId: itemId,
       quantity: quantity,
+      itemCatalog: itemCatalog,
     );
   }
 
@@ -418,14 +432,15 @@ class GameStateMutations {
   ///
   /// The resolver runs again immediately before the mutation. This rejects
   /// stale screens after progression changes and prevents buying from a closed
-  /// profile. Conditional stock is isolated per state, while the default
-  /// profile keeps the historical stock key for save compatibility.
+  /// profile. Stock is isolated by the exact resolved state, including the
+  /// default profile.
   ShopPurchaseResult purchaseFromResolvedShop(
     GameState state, {
     required ShopDefinition shop,
     required String expectedStateId,
     required String itemId,
     required int quantity,
+    required ItemCatalogSnapshot itemCatalog,
     ScriptEvaluationContext? conditionContext,
   }) {
     final normalizedExpectedStateId = expectedStateId.trim();
@@ -458,27 +473,28 @@ class GameStateMutations {
     return _purchaseFromShopEntries(
       state,
       shopId: resolved.shopId,
-      stateId: resolved.isDefault ? null : resolved.stateId,
+      stateId: resolved.stateId,
       entries: resolved.entries,
       itemId: itemId,
       quantity: quantity,
+      itemCatalog: itemCatalog,
     );
   }
 
   ShopPurchaseResult _purchaseFromShopEntries(
     GameState state, {
     required String shopId,
-    String? stateId,
+    required String stateId,
     required List<ShopEntryDefinition> entries,
     required String itemId,
     required int quantity,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
     final normalizedItemId = itemId.trim();
     final normalizedShopId = shopId.trim();
-    final normalizedStateId = stateId?.trim();
+    final normalizedStateId = stateId.trim();
     if (normalizedShopId.isEmpty ||
-        (stateId != null &&
-            (normalizedStateId == null || normalizedStateId.isEmpty)) ||
+        normalizedStateId.isEmpty ||
         normalizedItemId.isEmpty ||
         quantity <= 0) {
       return ShopPurchaseResult.failed(
@@ -502,11 +518,17 @@ class GameStateMutations {
         failure: ShopPurchaseFailure.unknownItem,
       );
     }
+    if (ItemCapabilityResolver(itemCatalog).definitionFor(normalizedItemId) ==
+        null) {
+      return ShopPurchaseResult.failed(
+        state: state,
+        totalCost: 0,
+        failure: ShopPurchaseFailure.unknownItem,
+      );
+    }
 
     final stock = entry.stock;
-    final stockKey = normalizedStateId == null
-        ? '$normalizedShopId::$normalizedItemId'
-        : '$normalizedShopId::$normalizedStateId::$normalizedItemId';
+    final stockKey = '$normalizedShopId::$normalizedStateId::$normalizedItemId';
     final purchased = state.progression.shopPurchaseCounts[stockKey] ?? 0;
     final remainingStock = stock == null ? null : stock - purchased;
     if (remainingStock != null && quantity > remainingStock) {
@@ -523,6 +545,7 @@ class GameStateMutations {
       itemId: normalizedItemId,
       quantity: quantity,
       unitPrice: entry.price,
+      itemCatalog: itemCatalog,
     );
     if (!purchase.isSuccess || stock == null) {
       return purchase;
@@ -568,7 +591,8 @@ class GameStateMutations {
       );
     }
 
-    final definition = itemCatalog.definitionFor(normalizedItemId);
+    final definition =
+        ItemCapabilityResolver(itemCatalog).definitionFor(normalizedItemId);
     if (definition == null) {
       return ShopSaleResult.failed(
         state: state,

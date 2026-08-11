@@ -162,6 +162,56 @@ void main() {
     expect(controller.worldServiceSnapshot?.revision, 0);
   });
 
+  test('unknown catalog entries cannot debit money or enter the bag', () async {
+    var state = const GameState(
+      saveId: 'shop-unknown-item',
+      trainerProfile: TrainerProfile(name: 'Leaf', money: 500),
+    );
+    final commits = <GameState>[];
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async {
+        state = next;
+        commits.add(next);
+      },
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{},
+      ),
+      itemCatalog: _shopItemCatalog,
+    );
+    addTearDown(controller.dispose);
+
+    unawaited(
+      controller.openShop(
+        const ShopDefinition(
+          id: 'mart',
+          label: 'Boutique',
+          entries: <ShopEntryDefinition>[
+            ShopEntryDefinition(itemId: 'missing-thread', price: 60),
+          ],
+        ),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    final snapshot = controller.worldServiceSnapshot!;
+
+    final result = await controller.dispatchWorldService(
+      RuntimeWorldServiceCommand(
+        action: RuntimeWorldServiceAction.confirm,
+        snapshotRevision: snapshot.revision,
+        targetId: 'missing-thread',
+        quantity: 1,
+      ),
+    );
+
+    expect(result.status, RuntimeWorldServiceCommandStatus.unavailable);
+    expect(state.trainerProfile.money, 500);
+    expect(state.bag.entries, isEmpty);
+    expect(state.progression.shopPurchaseCounts, isEmpty);
+    expect(commits, isEmpty);
+  });
+
   test('contextual shop sells guided quantities and protects key items',
       () async {
     var state = const GameState(
