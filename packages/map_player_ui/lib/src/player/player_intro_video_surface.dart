@@ -58,6 +58,8 @@ class _PlayerIntroVideoSurfaceState extends State<PlayerIntroVideoSurface> {
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.enter): _primaryAction,
         const SingleActivator(LogicalKeyboardKey.space): _primaryAction,
+        const SingleActivator(LogicalKeyboardKey.gameButtonA): _primaryAction,
+        const SingleActivator(LogicalKeyboardKey.gameButton1): _primaryAction,
       },
       child: Focus(
         autofocus: true,
