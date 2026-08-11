@@ -29,6 +29,16 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
+function pngHeader(width: number, height: number, marker = 0): Buffer {
+  const bytes = Buffer.alloc(24);
+  Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(bytes, 0);
+  bytes[8] = marker;
+  Buffer.from([73, 72, 68, 82]).copy(bytes, 12);
+  bytes.writeUInt32BE(width, 16);
+  bytes.writeUInt32BE(height, 20);
+  return bytes;
+}
+
 async function toolData(
   client: Client,
   name: string,
@@ -3877,6 +3887,388 @@ test("CHS-057 live MCP certifies identity and portrait transports", async () => 
       (catalogItem.portraitStates as JsonRecord[]).map((state) => state.id),
       ["mcp-joyeux"],
     );
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle: reopened.workspaceHandle,
+    });
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("CHS-058 live MCP certifies animation frame and asset transports", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const describedActionIds = new Set(
+      (described.mutationActions as JsonRecord[]).map((action) =>
+        String(action.id),
+      ),
+    );
+    const animationActionIds = [
+      "characterStudio.animationDefinition.create",
+      "characterStudio.animationDefinition.update",
+      "characterStudio.animationDefinition.reorder",
+      "characterStudio.animationDefinition.delete",
+      "characterStudio.animationDefinition.deletePlan",
+      "characterStudio.animationClip.upsert",
+      "characterStudio.animationClip.delete",
+      "characterStudio.animationFrame.insert",
+      "characterStudio.animationFrame.update",
+      "characterStudio.animationFrame.reorder",
+      "characterStudio.animationFrame.delete",
+      "characterStudio.asset.import",
+      "characterStudio.asset.replace",
+    ];
+    for (const actionId of animationActionIds) {
+      assert.ok(describedActionIds.has(actionId), actionId);
+    }
+    const projectDocument = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    const tilesets = Array.isArray(projectDocument.tilesets)
+      ? (projectDocument.tilesets as JsonRecord[])
+      : [];
+    const tilesetId =
+      tilesets.length > 0 ? String(record(tilesets[0]).id) : "mcp-characters";
+    if (tilesets.length === 0) {
+      projectDocument.tilesets = [
+        {
+          id: tilesetId,
+          name: "MCP Characters",
+          relativePath: "assets/mcp-characters.png",
+        },
+      ];
+      await writeFile(
+        join(fixture.root, "project.json"),
+        JSON.stringify(projectDocument),
+      );
+    }
+    const sourcePath = join(fixture.root, "mcp-character-sheet.png");
+    const replacementPath = join(
+      fixture.root,
+      "mcp-character-sheet-replacement.png",
+    );
+    await writeFile(sourcePath, pngHeader(64, 64));
+    await writeFile(replacementPath, pngHeader(32, 32, 7));
+    const stagedSource = await toolData(
+      fixture.client,
+      "pokemap_artifact_stage",
+      { sourcePath, declaredMediaType: "image/png" },
+    );
+    const stagedReplacement = await toolData(
+      fixture.client,
+      "pokemap_artifact_stage",
+      { sourcePath: replacementPath, declaredMediaType: "image/png" },
+    );
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    let revision = String(
+      (
+        await toolData(fixture.client, "pokemap_validate", {
+          projectHandle,
+        })
+      ).snapshotRevision,
+    );
+    let sequence = 0;
+    const observedActionIds = new Set<string>();
+
+    const plan = async (
+      actionId: string,
+      parameters: JsonRecord,
+      dryRun = false,
+    ): Promise<JsonRecord> =>
+      toolData(fixture.client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: `chs058-plan-${sequence}`,
+          actionId,
+          actionVersion: 1,
+          workspaceHandle,
+          parameters,
+          expectedRevision: revision,
+          idempotencyKey: `idem-chs058-plan-${sequence++}`,
+          dryRun,
+        },
+      });
+
+    const apply = async (
+      actionId: string,
+      parameters: JsonRecord,
+      options: { confirmed?: boolean; counted?: boolean } = {},
+    ): Promise<void> => {
+      const planned = await plan(actionId, parameters);
+      const confirmation = options.confirmed
+        ? await toolData(fixture.client, "pokemap_apply", {
+            operation: "confirm",
+            projectHandle,
+            planId: planned.planId,
+          })
+        : undefined;
+      const applied = await toolData(fixture.client, "pokemap_apply", {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId: `operation-chs058-${sequence}`,
+        ...(confirmation
+          ? { confirmationToken: confirmation.confirmationToken }
+          : {}),
+      });
+      assert.equal(record(applied.receipt).actionId, actionId);
+      if (options.counted ?? true) observedActionIds.add(actionId);
+      revision = String(
+        (
+          await toolData(fixture.client, "pokemap_validate", {
+            projectHandle,
+          })
+        ).snapshotRevision,
+      );
+    };
+
+    const expectFailure = async (
+      actionId: string,
+      parameters: JsonRecord,
+      domainCode: string,
+    ): Promise<void> => {
+      const revisionBeforeFailure = revision;
+      const rejected = await fixture.client.callTool({
+        name: "pokemap_plan",
+        arguments: {
+          projectHandle,
+          request: {
+            requestId: `chs058-rejected-${sequence}`,
+            actionId,
+            actionVersion: 1,
+            workspaceHandle,
+            parameters,
+            expectedRevision: revision,
+            idempotencyKey: `idem-chs058-rejected-${sequence++}`,
+            dryRun: false,
+          },
+        },
+      });
+      assert.equal(rejected.isError, true);
+      assert.equal(
+        record(record(rejected.structuredContent).error).domainCode,
+        domainCode,
+      );
+      const validated = await toolData(fixture.client, "pokemap_validate", {
+        projectHandle,
+      });
+      assert.equal(validated.snapshotRevision, revisionBeforeFailure);
+    };
+
+    await apply(
+      "characterStudio.character.create",
+      {
+        name: "MCP Hero",
+        tilesetId,
+        frameWidth: 8,
+        frameHeight: 8,
+      },
+      { counted: false },
+    );
+    await apply("characterStudio.asset.import", {
+      artifactHandle: stagedSource.artifactHandle,
+      assetId: "mcp-hero-sheet",
+      logicalPath: "assets/characters/mcp-hero/sheet.png",
+      mediaKind: "spriteSheet",
+    });
+    for (const definition of [
+      { displayName: "MCP Saluer", mode: "directional" },
+      { displayName: "MCP Cligner", mode: "single" },
+      { displayName: "MCP Acclamer", mode: "directional" },
+    ]) {
+      await apply("characterStudio.animationDefinition.create", definition);
+    }
+    await apply("characterStudio.animationDefinition.update", {
+      id: "mcp-cligner",
+      displayName: "MCP Cligner vite",
+    });
+    await apply("characterStudio.animationDefinition.reorder", {
+      orderedIds: ["mcp-cligner", "mcp-acclamer", "mcp-saluer"],
+    });
+    await expectFailure(
+      "characterStudio.animationClip.upsert",
+      {
+        characterId: "mcp-hero",
+        kind: "custom",
+        definitionId: "mcp-saluer",
+        sourceAssetId: "mcp-hero-sheet",
+      },
+      "character_studio.animation.direction_required",
+    );
+    await apply("characterStudio.animationClip.upsert", {
+      characterId: "mcp-hero",
+      kind: "custom",
+      definitionId: "mcp-saluer",
+      direction: "south",
+      sourceAssetId: "mcp-hero-sheet",
+      loop: false,
+      frames: [
+        {
+          source: { x: 0, y: 0, width: 8, height: 8 },
+          durationMs: 100,
+        },
+        {
+          source: { x: 8, y: 0, width: 8, height: 8 },
+          durationMs: 110,
+        },
+      ],
+    });
+    await apply("characterStudio.animationClip.upsert", {
+      characterId: "mcp-hero",
+      kind: "custom",
+      definitionId: "mcp-cligner",
+      sourceAssetId: "mcp-hero-sheet",
+      frames: [
+        {
+          source: { x: 0, y: 8, width: 8, height: 8 },
+          durationMs: 90,
+        },
+      ],
+    });
+    await expectFailure(
+      "characterStudio.asset.replace",
+      {
+        artifactHandle: stagedReplacement.artifactHandle,
+        assetId: "mcp-hero-sheet",
+        sourceRect: { x: 0, y: 0, width: 33, height: 32 },
+      },
+      "character_studio.asset.source_rect_out_of_bounds",
+    );
+    await apply("characterStudio.asset.replace", {
+      artifactHandle: stagedReplacement.artifactHandle,
+      assetId: "mcp-hero-sheet",
+    });
+    await apply("characterStudio.animationFrame.insert", {
+      characterId: "mcp-hero",
+      kind: "custom",
+      definitionId: "mcp-saluer",
+      direction: "south",
+      frameIndex: 1,
+      frame: {
+        source: { x: 16, y: 0, width: 8, height: 8 },
+        durationMs: 120,
+      },
+    });
+    await apply("characterStudio.animationFrame.update", {
+      characterId: "mcp-hero",
+      kind: "custom",
+      definitionId: "mcp-saluer",
+      direction: "south",
+      frameIndex: 1,
+      frame: {
+        source: { x: 16, y: 0, width: 8, height: 8 },
+        durationMs: 130,
+      },
+    });
+    await apply("characterStudio.animationFrame.reorder", {
+      characterId: "mcp-hero",
+      kind: "custom",
+      definitionId: "mcp-saluer",
+      direction: "south",
+      fromIndex: 1,
+      toIndex: 2,
+    });
+    await expectFailure(
+      "characterStudio.animationFrame.update",
+      {
+        characterId: "mcp-hero",
+        kind: "custom",
+        definitionId: "mcp-saluer",
+        direction: "south",
+        frameIndex: 9,
+        frame: {
+          source: { x: 0, y: 0, width: 8, height: 8 },
+          durationMs: 100,
+        },
+      },
+      "character_studio.animation.frame_index_invalid",
+    );
+    await apply("characterStudio.animationFrame.delete", {
+      characterId: "mcp-hero",
+      kind: "custom",
+      definitionId: "mcp-saluer",
+      direction: "south",
+      frameIndex: 0,
+    });
+    await apply("characterStudio.animationClip.delete", {
+      characterId: "mcp-hero",
+      kind: "custom",
+      definitionId: "mcp-cligner",
+    });
+    const deletePlan = await plan(
+      "characterStudio.animationDefinition.deletePlan",
+      { id: "mcp-saluer" },
+      true,
+    );
+    observedActionIds.add("characterStudio.animationDefinition.deletePlan");
+    assert.equal(record(record(deletePlan.plan).preview).requiresResolution, true);
+    await apply(
+      "characterStudio.animationDefinition.delete",
+      {
+        id: "mcp-saluer",
+        resolution: "replace",
+        replacementId: "mcp-acclamer",
+      },
+      { confirmed: true },
+    );
+    assert.deepEqual(
+      [...observedActionIds].sort(),
+      [...animationActionIds].sort(),
+    );
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle,
+    });
+    const reopened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const characterQuery = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(reopened.projectHandle),
+      resourceKind: "characterStudioCharacter",
+      operation: "get",
+      view: "detail",
+      ids: ["mcp-hero"],
+    });
+    const character = record((characterQuery.items as unknown[])[0]);
+    const customClip = record((character.customAnimations as JsonRecord[])[0]);
+    assert.equal(customClip.definitionId, "mcp-acclamer");
+    assert.equal(customClip.direction, "south");
+    assert.equal((customClip.frames as unknown[]).length, 2);
+    const catalogQuery = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(reopened.projectHandle),
+      resourceKind: "characterStudioCatalog",
+      operation: "get",
+      view: "detail",
+      ids: ["catalog"],
+    });
+    const catalog = record((catalogQuery.items as unknown[])[0]);
+    assert.deepEqual(
+      (catalog.animationDefinitions as JsonRecord[])
+        .filter((definition) => definition.system === false)
+        .map((definition) => definition.id),
+      ["mcp-acclamer", "mcp-cligner"],
+    );
+    const serializedProject = await readFile(
+      join(fixture.root, "project.json"),
+      "utf8",
+    );
+    const serializedAssets = await readFile(
+      join(fixture.root, "assets/.pokemap-assets.json"),
+      "utf8",
+    );
+    assert.equal(serializedProject.includes(fixture.root), false);
+    assert.equal(serializedAssets.includes(fixture.root), false);
     await toolData(fixture.client, "pokemap_workspace", {
       operation: "close",
       workspaceHandle: reopened.workspaceHandle,

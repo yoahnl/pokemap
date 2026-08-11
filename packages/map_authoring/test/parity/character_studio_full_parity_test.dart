@@ -62,6 +62,47 @@ void main() {
       expect(directEvidence['reopenedQueryCount'], 0);
     },
   );
+
+  test(
+    'CHS-058 animations frames and assets have direct API and JSONL parity',
+    () async {
+      final direct = await _CharacterStudioParityFixture.create(
+        'animation-direct',
+      );
+      final jsonl = await _CharacterStudioParityFixture.create(
+        'animation-jsonl',
+      );
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+
+      final directEvidence = await direct.runAnimationDirect();
+      final jsonlEvidence = await jsonl.runAnimationJsonl();
+
+      expect(directEvidence, jsonlEvidence);
+      expect(directEvidence['actionIds'], _animationActionIds);
+      expect(directEvidence['directionErrorCode'],
+          'character_studio.animation.direction_required');
+      expect(
+        directEvidence['geometryErrorCode'],
+        'character_studio.asset.source_rect_out_of_bounds',
+      );
+      expect(
+        directEvidence['frameIndexErrorCode'],
+        'character_studio.animation.frame_index_invalid',
+      );
+      expect(directEvidence['definitionDeleteRequiresResolution'], isTrue);
+      expect(directEvidence['customDefinitionIds'], <Object?>[
+        'cligner',
+        'acclamer',
+      ]);
+      expect(directEvidence['customClipDefinitionId'], 'acclamer');
+      expect(directEvidence['customClipDirection'], 'south');
+      expect(directEvidence['customClipFrameCount'], 2);
+      expect(directEvidence['assetIds'], <Object?>['elia-sheet']);
+      expect(directEvidence['serializedAbsolutePath'], isFalse);
+      expect(directEvidence['reopenedQueryCount'], 1);
+    },
+  );
 }
 
 const List<String> _identityPortraitActionIds = <String>[
@@ -81,6 +122,22 @@ const List<String> _identityPortraitActionIds = <String>[
 
 const String _portraitStateConflictCode =
     'character_studio.portrait_state.id_conflict';
+
+const List<String> _animationActionIds = <String>[
+  'characterStudio.animationDefinition.create',
+  'characterStudio.animationDefinition.update',
+  'characterStudio.animationDefinition.reorder',
+  'characterStudio.animationDefinition.delete',
+  'characterStudio.animationDefinition.deletePlan',
+  'characterStudio.animationClip.upsert',
+  'characterStudio.animationClip.delete',
+  'characterStudio.animationFrame.insert',
+  'characterStudio.animationFrame.update',
+  'characterStudio.animationFrame.reorder',
+  'characterStudio.animationFrame.delete',
+  'characterStudio.asset.import',
+  'characterStudio.asset.replace',
+];
 
 const List<String> _actionIds = <String>[
   'characterStudio.portraitState.create',
@@ -146,6 +203,262 @@ const Map<String, Object?> _portraitSlot = <String, Object?>{
   'portraitStateId': 'neutre',
 };
 
+final class _TransportStep {
+  const _TransportStep(
+    this.actionId,
+    this.parameters, {
+    this.requiresConfirmation = false,
+    this.dryRun = false,
+    this.expectedErrorCode,
+    this.evidenceKey,
+  });
+
+  final String actionId;
+  final Map<String, Object?> parameters;
+  final bool requiresConfirmation;
+  final bool dryRun;
+  final String? expectedErrorCode;
+  final String? evidenceKey;
+}
+
+List<_TransportStep> _animationSteps({
+  required String importedArtifactHandle,
+  required String replacementArtifactHandle,
+}) =>
+    <_TransportStep>[
+      const _TransportStep(
+        'characterStudio.character.create',
+        <String, Object?>{
+          'name': 'Élia',
+          'tilesetId': 'characters',
+          'frameWidth': 8,
+          'frameHeight': 8,
+        },
+      ),
+      _TransportStep(
+        'characterStudio.asset.import',
+        <String, Object?>{
+          'artifactHandle': importedArtifactHandle,
+          'assetId': 'elia-sheet',
+          'logicalPath': 'assets/characters/elia/sheet.png',
+          'mediaKind': 'spriteSheet',
+          'tags': <String>['heroine'],
+        },
+      ),
+      const _TransportStep(
+        'characterStudio.animationDefinition.create',
+        <String, Object?>{'displayName': 'Saluer', 'mode': 'directional'},
+      ),
+      const _TransportStep(
+        'characterStudio.animationDefinition.create',
+        <String, Object?>{'displayName': 'Cligner', 'mode': 'single'},
+      ),
+      const _TransportStep(
+        'characterStudio.animationDefinition.create',
+        <String, Object?>{'displayName': 'Acclamer', 'mode': 'directional'},
+      ),
+      const _TransportStep(
+        'characterStudio.animationDefinition.update',
+        <String, Object?>{
+          'id': 'cligner',
+          'displayName': 'Cligner vite',
+        },
+      ),
+      const _TransportStep(
+        'characterStudio.animationDefinition.reorder',
+        <String, Object?>{
+          'orderedIds': <String>['cligner', 'acclamer', 'saluer'],
+        },
+      ),
+      const _TransportStep(
+        'characterStudio.animationClip.upsert',
+        <String, Object?>{
+          'characterId': 'elia',
+          'kind': 'custom',
+          'definitionId': 'saluer',
+          'sourceAssetId': 'elia-sheet',
+        },
+        expectedErrorCode: 'character_studio.animation.direction_required',
+        evidenceKey: 'directionErrorCode',
+      ),
+      const _TransportStep(
+        'characterStudio.animationClip.upsert',
+        <String, Object?>{
+          'characterId': 'elia',
+          'kind': 'custom',
+          'definitionId': 'saluer',
+          'direction': 'south',
+          'sourceAssetId': 'elia-sheet',
+          'loop': false,
+          'frames': <Object?>[
+            <String, Object?>{
+              'source': <String, Object?>{
+                'x': 0,
+                'y': 0,
+                'width': 8,
+                'height': 8,
+              },
+              'durationMs': 100,
+            },
+            <String, Object?>{
+              'source': <String, Object?>{
+                'x': 8,
+                'y': 0,
+                'width': 8,
+                'height': 8,
+              },
+              'durationMs': 110,
+            },
+          ],
+        },
+      ),
+      const _TransportStep(
+        'characterStudio.animationClip.upsert',
+        <String, Object?>{
+          'characterId': 'elia',
+          'kind': 'custom',
+          'definitionId': 'cligner',
+          'sourceAssetId': 'elia-sheet',
+          'frames': <Object?>[
+            <String, Object?>{
+              'source': <String, Object?>{
+                'x': 0,
+                'y': 8,
+                'width': 8,
+                'height': 8,
+              },
+              'durationMs': 90,
+            },
+          ],
+        },
+      ),
+      _TransportStep(
+        'characterStudio.asset.replace',
+        <String, Object?>{
+          'artifactHandle': replacementArtifactHandle,
+          'assetId': 'elia-sheet',
+          'sourceRect': <String, Object?>{
+            'x': 0,
+            'y': 0,
+            'width': 33,
+            'height': 32,
+          },
+        },
+        expectedErrorCode: 'character_studio.asset.source_rect_out_of_bounds',
+        evidenceKey: 'geometryErrorCode',
+      ),
+      _TransportStep(
+        'characterStudio.asset.replace',
+        <String, Object?>{
+          'artifactHandle': replacementArtifactHandle,
+          'assetId': 'elia-sheet',
+        },
+      ),
+      const _TransportStep(
+        'characterStudio.animationFrame.insert',
+        <String, Object?>{
+          'characterId': 'elia',
+          'kind': 'custom',
+          'definitionId': 'saluer',
+          'direction': 'south',
+          'frameIndex': 1,
+          'frame': <String, Object?>{
+            'source': <String, Object?>{
+              'x': 16,
+              'y': 0,
+              'width': 8,
+              'height': 8,
+            },
+            'durationMs': 120,
+          },
+        },
+      ),
+      const _TransportStep(
+        'characterStudio.animationFrame.update',
+        <String, Object?>{
+          'characterId': 'elia',
+          'kind': 'custom',
+          'definitionId': 'saluer',
+          'direction': 'south',
+          'frameIndex': 1,
+          'frame': <String, Object?>{
+            'source': <String, Object?>{
+              'x': 16,
+              'y': 0,
+              'width': 8,
+              'height': 8,
+            },
+            'durationMs': 130,
+          },
+        },
+      ),
+      const _TransportStep(
+        'characterStudio.animationFrame.reorder',
+        <String, Object?>{
+          'characterId': 'elia',
+          'kind': 'custom',
+          'definitionId': 'saluer',
+          'direction': 'south',
+          'fromIndex': 1,
+          'toIndex': 2,
+        },
+      ),
+      const _TransportStep(
+        'characterStudio.animationFrame.update',
+        <String, Object?>{
+          'characterId': 'elia',
+          'kind': 'custom',
+          'definitionId': 'saluer',
+          'direction': 'south',
+          'frameIndex': 9,
+          'frame': <String, Object?>{
+            'source': <String, Object?>{
+              'x': 0,
+              'y': 0,
+              'width': 8,
+              'height': 8,
+            },
+            'durationMs': 100,
+          },
+        },
+        expectedErrorCode: 'character_studio.animation.frame_index_invalid',
+        evidenceKey: 'frameIndexErrorCode',
+      ),
+      const _TransportStep(
+        'characterStudio.animationFrame.delete',
+        <String, Object?>{
+          'characterId': 'elia',
+          'kind': 'custom',
+          'definitionId': 'saluer',
+          'direction': 'south',
+          'frameIndex': 0,
+        },
+      ),
+      const _TransportStep(
+        'characterStudio.animationClip.delete',
+        <String, Object?>{
+          'characterId': 'elia',
+          'kind': 'custom',
+          'definitionId': 'cligner',
+        },
+      ),
+      const _TransportStep(
+        'characterStudio.animationDefinition.deletePlan',
+        <String, Object?>{'id': 'saluer'},
+        dryRun: true,
+        evidenceKey: 'definitionDeletePlan',
+      ),
+      const _TransportStep(
+        'characterStudio.animationDefinition.delete',
+        <String, Object?>{
+          'id': 'saluer',
+          'resolution': 'replace',
+          'replacementId': 'acclamer',
+        },
+        requiresConfirmation: true,
+      ),
+    ];
+
 final class _CharacterStudioParityFixture {
   _CharacterStudioParityFixture({
     required this.root,
@@ -154,6 +467,7 @@ final class _CharacterStudioParityFixture {
     required this.snapshots,
     required this.worker,
     required this.portraitPath,
+    required this.replacementPath,
   });
 
   static Future<_CharacterStudioParityFixture> create(String label) async {
@@ -178,6 +492,10 @@ final class _CharacterStudioParityFixture {
     );
     final portraitPath = '${root.path}/elia-neutral.png';
     await File(portraitPath).writeAsBytes(_png(width: 64, height: 64));
+    final replacementPath = '${root.path}/elia-replacement.png';
+    await File(replacementPath).writeAsBytes(
+      _png(width: 32, height: 32, marker: 7),
+    );
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: <String>[root.path],
@@ -208,6 +526,7 @@ final class _CharacterStudioParityFixture {
       snapshots: snapshots,
       worker: JsonlWorker(api: readApi, mutations: mutations),
       portraitPath: portraitPath,
+      replacementPath: replacementPath,
     );
   }
 
@@ -217,6 +536,7 @@ final class _CharacterStudioParityFixture {
   final ProjectSnapshotLoader snapshots;
   final JsonlWorker worker;
   final String portraitPath;
+  final String replacementPath;
 
   Future<Map<String, Object?>> runIdentityPortraitDirect() async {
     var opened = await readApi.open(root.path);
@@ -571,6 +891,166 @@ final class _CharacterStudioParityFixture {
     );
   }
 
+  Future<Map<String, Object?>> runAnimationDirect() async {
+    var opened = await readApi.open(root.path);
+    var workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
+    var project = ProjectHandle(opened['projectHandle']! as String);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: workspace,
+      projectHandle: project,
+    );
+    final imported = await mutations.stageArtifactFile(
+      sourcePath: portraitPath,
+      declaredMediaType: 'image/png',
+    );
+    final replacement = await mutations.stageArtifactFile(
+      sourcePath: replacementPath,
+      declaredMediaType: 'image/png',
+    );
+    final evidence = <String, Object?>{};
+    var sequence = 100;
+    for (final step in _animationSteps(
+      importedArtifactHandle: imported.reference.handle,
+      replacementArtifactHandle: replacement.reference.handle,
+    )) {
+      final beforeRevision = (await snapshots.load(project)).revision;
+      if (step.expectedErrorCode case final expectedCode?) {
+        final code = await _directPlanFailureCode(
+          project,
+          workspaceHandle: workspace.value,
+          expectedRevision: beforeRevision,
+          actionId: step.actionId,
+          parameters: step.parameters,
+          sequence: 'animation-${sequence++}',
+        );
+        expect(code, expectedCode);
+        expect((await snapshots.load(project)).revision, beforeRevision);
+        evidence[step.evidenceKey!] = code;
+        continue;
+      }
+      if (step.dryRun) {
+        final planned = await _planDirect(
+          project,
+          workspaceHandle: workspace.value,
+          actionId: step.actionId,
+          parameters: step.parameters,
+          sequence: 'animation-${sequence++}',
+          dryRun: true,
+        );
+        evidence[step.evidenceKey!] = planned.plan.preview;
+        expect((await snapshots.load(project)).revision, beforeRevision);
+        continue;
+      }
+      await _applyDirect(
+        project,
+        workspaceHandle: workspace.value,
+        actionId: step.actionId,
+        parameters: step.parameters,
+        index: sequence++,
+        requiresConfirmation: step.requiresConfirmation,
+      );
+    }
+    await mutations.detachWorkspace(workspace);
+    await readApi.close(workspace);
+    opened = await readApi.open(root.path);
+    workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
+    project = ProjectHandle(opened['projectHandle']! as String);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: workspace,
+      projectHandle: project,
+    );
+    final query = await readApi.query(
+      project,
+      AuthoringQueryRequest(
+        resourceKind: 'characterStudioCharacter',
+        operation: AuthoringQueryOperation.list,
+        view: AuthoringQueryView.detail,
+      ),
+    );
+    return _animationEvidence(query, evidence);
+  }
+
+  Future<Map<String, Object?>> runAnimationJsonl() async {
+    var opened = await _jsonl('open', <String, Object?>{
+      'projectRoot': root.path,
+    });
+    var projectHandle = opened['projectHandle']! as String;
+    var workspaceHandle = opened['workspaceHandle']! as String;
+    final imported = await _jsonl('stage_artifact', <String, Object?>{
+      'sourcePath': portraitPath,
+      'declaredMediaType': 'image/png',
+    });
+    final replacement = await _jsonl('stage_artifact', <String, Object?>{
+      'sourcePath': replacementPath,
+      'declaredMediaType': 'image/png',
+    });
+    final evidence = <String, Object?>{};
+    var sequence = 100;
+    for (final step in _animationSteps(
+      importedArtifactHandle: imported['artifactHandle']! as String,
+      replacementArtifactHandle: replacement['artifactHandle']! as String,
+    )) {
+      final project = ProjectHandle(projectHandle);
+      final beforeRevision = (await snapshots.load(project)).revision;
+      if (step.expectedErrorCode case final expectedCode?) {
+        final code = await _jsonlPlanFailureCode(
+          projectHandle: projectHandle,
+          workspaceHandle: workspaceHandle,
+          expectedRevision: beforeRevision,
+          actionId: step.actionId,
+          parameters: step.parameters,
+          sequence: 'animation-${sequence++}',
+        );
+        expect(code, expectedCode);
+        expect((await snapshots.load(project)).revision, beforeRevision);
+        evidence[step.evidenceKey!] = code;
+        continue;
+      }
+      if (step.dryRun) {
+        final planned = await _planJsonl(
+          projectHandle: projectHandle,
+          workspaceHandle: workspaceHandle,
+          actionId: step.actionId,
+          parameters: step.parameters,
+          sequence: 'animation-${sequence++}',
+          dryRun: true,
+        );
+        evidence[step.evidenceKey!] = (planned['plan']!
+            as Map<String, Object?>)['preview']! as Map<String, Object?>;
+        expect((await snapshots.load(project)).revision, beforeRevision);
+        continue;
+      }
+      await _applyJsonl(
+        projectHandle: projectHandle,
+        workspaceHandle: workspaceHandle,
+        actionId: step.actionId,
+        parameters: step.parameters,
+        index: sequence++,
+        requiresConfirmation: step.requiresConfirmation,
+      );
+    }
+    await _jsonl('close', <String, Object?>{
+      'workspaceHandle': workspaceHandle,
+    });
+    opened = await _jsonl('open', <String, Object?>{
+      'projectRoot': root.path,
+    });
+    projectHandle = opened['projectHandle']! as String;
+    workspaceHandle = opened['workspaceHandle']! as String;
+    final query = await _jsonl('query', <String, Object?>{
+      'projectHandle': projectHandle,
+      'request': AuthoringQueryRequest(
+        resourceKind: 'characterStudioCharacter',
+        operation: AuthoringQueryOperation.list,
+        view: AuthoringQueryView.detail,
+      ).toJson(),
+    });
+    expect(workspaceHandle, isNotEmpty);
+    return _animationEvidence(query, evidence);
+  }
+
   Future<Map<String, Object?>> runDirect() async {
     var opened = await readApi.open(root.path);
     var workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
@@ -807,6 +1287,8 @@ final class _CharacterStudioParityFixture {
       fail('Expected $actionId to fail');
     } on CharacterStudioActionException catch (error) {
       return error.code;
+    } on CharacterStudioAssetException catch (error) {
+      return error.code;
     } on AuthoringRevisionConflict catch (error) {
       return error.code;
     } on AuthoringPlanException catch (error) {
@@ -920,6 +1402,44 @@ final class _CharacterStudioParityFixture {
     };
   }
 
+  Map<String, Object?> _animationEvidence(
+    Map<String, Object?> query,
+    Map<String, Object?> stepEvidence,
+  ) {
+    final projectJson = File('${root.path}/project.json').readAsStringSync();
+    final catalogJson = File(
+      '${root.path}/$assetCatalogStorageKey',
+    ).readAsStringSync();
+    final manifest = ProjectManifest.fromJson(
+      jsonDecode(projectJson) as Map<String, dynamic>,
+    );
+    final catalog = AssetCatalog.fromJson(
+      jsonDecode(catalogJson) as Map<String, dynamic>,
+    );
+    final clip = manifest.characters.single.customAnimations.single;
+    final deletePlan =
+        stepEvidence['definitionDeletePlan']! as Map<String, Object?>;
+    return <String, Object?>{
+      'actionIds': _animationActionIds,
+      'directionErrorCode': stepEvidence['directionErrorCode'],
+      'geometryErrorCode': stepEvidence['geometryErrorCode'],
+      'frameIndexErrorCode': stepEvidence['frameIndexErrorCode'],
+      'definitionDeleteRequiresResolution': deletePlan['requiresResolution'],
+      'customDefinitionIds': <Object?>[
+        for (final definition
+            in manifest.characterStudioCatalog.customAnimationDefinitions)
+          definition.id,
+      ],
+      'customClipDefinitionId': clip.definitionId,
+      'customClipDirection': clip.direction?.name,
+      'customClipFrameCount': clip.frames.length,
+      'assetIds': catalog.records.map((record) => record.id).toList(),
+      'serializedAbsolutePath':
+          projectJson.contains(root.path) || catalogJson.contains(root.path),
+      'reopenedQueryCount': (query['items']! as List).length,
+    };
+  }
+
   Map<String, Object?> _evidence(Map<String, Object?> query) {
     final manifest = ProjectManifest.fromJson(
       jsonDecode(File('${root.path}/project.json').readAsStringSync())
@@ -952,9 +1472,10 @@ final class _CharacterStudioParityFixture {
   }
 }
 
-List<int> _png({required int width, required int height}) {
+List<int> _png({required int width, required int height, int marker = 0}) {
   final bytes = List<int>.filled(24, 0);
   bytes.setRange(0, 8, const <int>[137, 80, 78, 71, 13, 10, 26, 10]);
+  bytes[8] = marker;
   bytes.setRange(12, 16, const <int>[73, 72, 68, 82]);
   bytes.setRange(16, 20, _uint32(width));
   bytes.setRange(20, 24, _uint32(height));

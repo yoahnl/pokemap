@@ -21,23 +21,19 @@ final class EditorAuthoringMutationFailure implements Exception {
     // Authoring exceptions deliberately share `code` and `message` semantics
     // without a common base class. Read those public fields dynamically at
     // this one adapter boundary so new domain failures keep their exact code.
-    try {
-      final dynamic domain = error;
-      final rawCode = domain.code;
-      final rawMessage = domain.message;
-      final rawRemediation = domain.remediation;
-      if (rawCode is String && rawCode.trim().isNotEmpty) code = rawCode;
-      if (rawMessage is String && rawMessage.trim().isNotEmpty) {
-        message = rawMessage;
-      }
-      if (rawRemediation is Iterable) {
-        remediation = rawRemediation
-            .whereType<String>()
-            .where((item) => item.trim().isNotEmpty)
-            .toList(growable: false);
-      }
-    } on Object {
-      // The original exception still remains attached and its text is kept.
+    final dynamic domain = error;
+    final rawCode = _readDomainField(() => domain.code);
+    if (rawCode is String && rawCode.trim().isNotEmpty) code = rawCode;
+    final rawMessage = _readDomainField(() => domain.message);
+    if (rawMessage is String && rawMessage.trim().isNotEmpty) {
+      message = rawMessage;
+    }
+    final rawRemediation = _readDomainField(() => domain.remediation);
+    if (rawRemediation is Iterable) {
+      remediation = rawRemediation
+          .whereType<String>()
+          .where((item) => item.trim().isNotEmpty)
+          .toList(growable: false);
     }
     return EditorAuthoringMutationFailure(
       code: code,
@@ -54,6 +50,14 @@ final class EditorAuthoringMutationFailure implements Exception {
 
   @override
   String toString() => 'EditorAuthoringMutationFailure($code): $message';
+}
+
+Object? _readDomainField(Object? Function() read) {
+  try {
+    return read();
+  } on Object {
+    return null;
+  }
 }
 
 final class EditorReceiptPresentation {
@@ -94,17 +98,18 @@ final class EditorReceiptPresenter {
 
   EditorReceiptPresentation failure(EditorAuthoringMutationFailure failure) {
     final code = failure.code;
-    final isConflict = code.contains('conflict') ||
+    final isConflict =
+        code.contains('conflict') ||
         code.contains('stale') ||
         code.contains('revision');
     final confirmation = code.startsWith('confirmation.');
     final message = isConflict
         ? 'Le projet a changé en dehors de cet éditeur. Rechargez le projet '
-            'avant de réessayer. ${failure.message}'
+              'avant de réessayer. ${failure.message}'
         : confirmation
-            ? 'Cette modification demande une confirmation explicite. '
-                '${failure.message}'
-            : failure.message;
+        ? 'Cette modification demande une confirmation explicite. '
+              '${failure.message}'
+        : failure.message;
     return EditorReceiptPresentation(
       code: code,
       message: message,

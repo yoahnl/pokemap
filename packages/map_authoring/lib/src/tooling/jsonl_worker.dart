@@ -11,6 +11,7 @@ import '../contracts/authoring_result.dart';
 import '../contracts/json_contract_support.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_actions.dart';
+import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
 import '../domains/gameplay/character_studio/character_studio_action_support.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
@@ -169,6 +170,14 @@ final class JsonlWorker {
       result = _failure(
         requestId,
         code: _assetDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
+      );
+    } on CharacterStudioAssetException catch (error) {
+      result = _failure(
+        requestId,
+        code: _characterStudioDomainErrorCode(error.code),
         domainCode: error.code,
         message: error.message,
         details: _safeDetails(error.details),
