@@ -153,7 +153,7 @@ void main() {
       );
     });
 
-    test('a custom revive restores a reserve and returns one receipt', () {
+    test('revive restores a fainted reserve and writes it back', () {
       final psdkSession = _session(
         player: _combatant(
           id: 'player_0',
