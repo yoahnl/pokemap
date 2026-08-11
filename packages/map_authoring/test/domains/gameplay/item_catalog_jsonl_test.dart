@@ -6,151 +6,161 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('direct API and JSONL expose the same canonical item semantics',
-      () async {
-    final direct = await _ItemTransportHarness.create('direct');
-    final jsonl = await _ItemTransportHarness.create('jsonl');
-    addTearDown(direct.dispose);
-    addTearDown(jsonl.dispose);
+  group('item mutation transport parity', () {
+    test('describes the four resources and nine durable actions', () async {
+      final harness = await _ItemTransportHarness.create('describe');
+      addTearDown(harness.dispose);
 
-    final directOpened = await direct.readApi.openProject(direct.root.path);
-    await direct.mutations.attachProject(
-      projectRootPath: direct.root.path,
-      workspaceHandle: directOpened.workspaceHandle,
-      projectHandle: directOpened.projectHandle,
-    );
-    final directSnapshot = await direct.snapshots.load(
-      directOpened.projectHandle,
-    );
-    final directRequest = _createRequest(
-      workspaceHandle: directOpened.workspaceHandle.value,
-      revision: directSnapshot.revision,
-      suffix: 'direct',
-    );
-    final directPlan = await direct.mutations.plan(
-      directOpened.projectHandle,
-      directRequest,
-    );
-    final directApplied = await direct.mutations.apply(
-      directOpened.projectHandle,
-      planId: directPlan['planId']! as String,
-      operationId: 'operation-item-direct',
-    );
+      final described = await _request(harness.worker, 'describe');
+      final resourceKinds = (described.data['resourceKinds']! as List)
+          .cast<Map<String, Object?>>()
+          .map((descriptor) => descriptor['id'])
+          .toSet();
+      final actionIds = (described.data['mutationActions']! as List)
+          .cast<Map<String, Object?>>()
+          .map((descriptor) => descriptor['id'])
+          .whereType<String>()
+          .where((id) => id.startsWith('item.'))
+          .toSet();
 
-    final described = await _request(jsonl.worker, 'describe');
-    final resourceKinds = (described.data['resourceKinds']! as List)
-        .cast<Map<String, Object?>>()
-        .map((descriptor) => descriptor['id'])
-        .toSet();
-    expect(
-      resourceKinds,
-      containsAll(<String>{
-        'itemCatalog',
-        'itemDefinition',
-        'itemUsage',
-        'itemReadiness',
-      }),
-    );
-    final actionIds = (described.data['mutationActions']! as List)
-        .cast<Map<String, Object?>>()
-        .map((descriptor) => descriptor['id'])
-        .whereType<String>()
-        .where((id) => id.startsWith('item.'))
-        .toSet();
-    expect(actionIds, _durableItemActionIds);
+      expect(
+        resourceKinds,
+        containsAll(<String>{
+          'itemCatalog',
+          'itemDefinition',
+          'itemUsage',
+          'itemReadiness',
+        }),
+      );
+      expect(actionIds, _durableItemActionIds);
+    });
 
-    final jsonlOpened = await _request(
-      jsonl.worker,
-      'open',
-      args: <String, Object?>{'projectRoot': jsonl.root.path},
-    );
-    final projectHandle = jsonlOpened.data['projectHandle']! as String;
-    final workspaceHandle = jsonlOpened.data['workspaceHandle']! as String;
-    final definitions = await _query(
-      jsonl.worker,
-      projectHandle: projectHandle,
-      request: AuthoringQueryRequest(
-        resourceKind: 'itemDefinition',
-        operation: AuthoringQueryOperation.list,
-        view: AuthoringQueryView.detail,
-      ),
-    );
-    final usages = await _query(
-      jsonl.worker,
-      projectHandle: projectHandle,
-      request: AuthoringQueryRequest(
-        resourceKind: 'itemUsage',
-        operation: AuthoringQueryOperation.list,
-        view: AuthoringQueryView.detail,
-      ),
-    );
-    final readiness = await _query(
-      jsonl.worker,
-      projectHandle: projectHandle,
-      request: AuthoringQueryRequest(
-        resourceKind: 'itemReadiness',
-        operation: AuthoringQueryOperation.list,
-        view: AuthoringQueryView.detail,
-      ),
-    );
-    expect(definitions.data['returned'], 1);
-    expect(usages.data['returned'], 1);
-    expect(readiness.data['returned'], 1);
+    test('executes every mutation through direct API and JSONL', () async {
+      final executedByTransport = <String, Set<String>>{
+        'direct': <String>{},
+        'jsonl': <String>{},
+      };
+      final receiptIds = <String>{};
 
-    final jsonlRequest = _createRequest(
-      workspaceHandle: workspaceHandle,
-      revision: definitions.data['snapshotRevision']! as String,
-      suffix: 'jsonl',
-    );
-    final jsonlPlan = await _request(
-      jsonl.worker,
-      'plan',
-      args: <String, Object?>{
-        'projectHandle': projectHandle,
-        'request': jsonlRequest.toJson(),
-      },
-    );
-    final jsonlApplied = await _request(
-      jsonl.worker,
-      'apply',
-      args: <String, Object?>{
-        'projectHandle': projectHandle,
-        'planId': jsonlPlan.data['planId'],
-        'operationId': 'operation-item-jsonl',
-      },
-    );
-    final simulation = await _query(
-      jsonl.worker,
-      projectHandle: projectHandle,
-      request: AuthoringQueryRequest(
-        resourceKind: 'itemDefinition',
-        operation: AuthoringQueryOperation.get,
-        ids: const <String>['field-tonic'],
-        view: AuthoringQueryView.detail,
-        extensions: const <String, Object?>{
-          'actionId': 'item.simulate',
-          'parameters': <String, Object?>{
-            'itemId': 'field-tonic',
-            'context': 'overworld',
+      for (final scenario in _itemMutationScenarios) {
+        final direct = await _ItemTransportHarness.create(
+          'direct-${scenario.slug}',
+        );
+        final jsonl = await _ItemTransportHarness.create(
+          'jsonl-${scenario.slug}',
+        );
+        addTearDown(direct.dispose);
+        addTearDown(jsonl.dispose);
+
+        final directResult = await direct.executeDirect(scenario);
+        final jsonlResult = await jsonl.executeJsonl(scenario);
+
+        expect(directResult.receipt['actionId'], scenario.actionId);
+        expect(jsonlResult.receipt['actionId'], scenario.actionId);
+        expect(directResult.receipt['status'], 'applied');
+        expect(jsonlResult.receipt['status'], 'applied');
+        expect(directResult.receipt['beforeRevision'], isNotNull);
+        expect(directResult.receipt['afterRevision'], isNotNull);
+        expect(jsonlResult.receipt['beforeRevision'], isNotNull);
+        expect(jsonlResult.receipt['afterRevision'], isNotNull);
+        expect(directResult.catalog, jsonlResult.catalog);
+
+        executedByTransport['direct']!.add(
+          directResult.receipt['actionId']! as String,
+        );
+        executedByTransport['jsonl']!.add(
+          jsonlResult.receipt['actionId']! as String,
+        );
+        receiptIds
+          ..add('direct:${directResult.receipt['receiptId']}')
+          ..add('jsonl:${jsonlResult.receipt['receiptId']}');
+      }
+
+      expect(executedByTransport['direct'], _durableItemActionIds);
+      expect(executedByTransport['jsonl'], _durableItemActionIds);
+      expect(receiptIds, hasLength(_durableItemActionIds.length * 2));
+    });
+
+    test('rejects stale revisions without mutating either transport', () async {
+      final direct = await _ItemTransportHarness.create('stale-direct');
+      final jsonl = await _ItemTransportHarness.create('stale-jsonl');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      final scenario = _itemMutationScenarios.first;
+
+      final directRefusal = await direct.refuseDirect(
+        scenario,
+        revisionOverride: 'sha256:${List<String>.filled(64, '0').join()}',
+      );
+      final jsonlRefusal = await jsonl.refuseJsonl(
+        scenario,
+        revisionOverride: 'sha256:${List<String>.filled(64, '0').join()}',
+      );
+
+      expect(
+        directRefusal.error,
+        isA<AuthoringPlanException>().having(
+          (error) => error.code,
+          'code',
+          'plan.stale',
+        ),
+      );
+      expect(jsonlRefusal.result!.status, AuthoringResultStatus.failure);
+      expect(
+        jsonlRefusal.result!.error!.details['domainCode'],
+        'plan.stale',
+      );
+      expect(directRefusal.beforeCatalog, directRefusal.afterCatalog);
+      expect(jsonlRefusal.beforeCatalog, jsonlRefusal.afterCatalog);
+    });
+
+    test('rejects invalid ids and referenced deletion without mutation',
+        () async {
+      final scenarios = <_ItemMutationScenario>[
+        const _ItemMutationScenario(
+          'item.set_held_effect',
+          <String, Object?>{
+            'itemId': ' potion ',
+            'heldEffectId': 'battle.leftovers',
           },
-        },
-      ),
-    );
+        ),
+        const _ItemMutationScenario(
+          'item.delete_apply',
+          <String, Object?>{'itemId': 'potion'},
+        ),
+      ];
+      final expectedCodes = <String>[
+        'item.parameter_invalid',
+        'item.delete_references_blocking',
+      ];
 
-    expect(
-      (directApplied['receipt']! as Map)['actionId'],
-      'item.create',
-    );
-    expect(
-      (jsonlApplied.data['receipt']! as Map)['actionId'],
-      'item.create',
-    );
-    expect(
-      ((simulation.data['items']! as List).single as Map)['simulation'],
-      containsPair('context', 'overworld'),
-    );
-    expect(await direct.catalogIds(), <String>['potion', 'field-tonic']);
-    expect(await jsonl.catalogIds(), <String>['potion', 'field-tonic']);
+      for (var index = 0; index < scenarios.length; index += 1) {
+        final scenario = scenarios[index];
+        final direct = await _ItemTransportHarness.create(
+          'refusal-direct-${scenario.slug}',
+        );
+        final jsonl = await _ItemTransportHarness.create(
+          'refusal-jsonl-${scenario.slug}',
+        );
+        addTearDown(direct.dispose);
+        addTearDown(jsonl.dispose);
+
+        final directRefusal = await direct.refuseDirect(scenario);
+        final jsonlRefusal = await jsonl.refuseJsonl(scenario);
+
+        expect(
+          directRefusal.error,
+          isA<ItemCatalogAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            expectedCodes[index],
+          ),
+        );
+        expect(jsonlRefusal.result!.status, AuthoringResultStatus.failure);
+        expect(directRefusal.beforeCatalog, directRefusal.afterCatalog);
+        expect(jsonlRefusal.beforeCatalog, jsonlRefusal.afterCatalog);
+      }
+    });
   });
 }
 
@@ -166,17 +176,11 @@ const _durableItemActionIds = <String>{
   'item.set_tm_hm_move',
 };
 
-AuthoringRequest _createRequest({
-  required String workspaceHandle,
-  required String revision,
-  required String suffix,
-}) {
-  return AuthoringRequest(
-    requestId: 'item-create-$suffix',
-    actionId: 'item.create',
-    actionVersion: 1,
-    workspaceHandle: workspaceHandle,
-    parameters: <String, Object?>{
+final List<_ItemMutationScenario> _itemMutationScenarios =
+    <_ItemMutationScenario>[
+  _ItemMutationScenario(
+    'item.create',
+    <String, Object?>{
       'definition': const ProjectItemDefinition(
         id: 'field-tonic',
         displayName: 'Field Tonic',
@@ -184,9 +188,135 @@ AuthoringRequest _createRequest({
         buyPrice: 300,
       ).toJson(),
     },
-    expectedRevision: revision,
-    idempotencyKey: 'item-create-$suffix',
-  );
+  ),
+  _ItemMutationScenario(
+    'item.update',
+    <String, Object?>{
+      'itemId': 'potion',
+      'definition': const ProjectItemDefinition(
+        id: 'potion',
+        displayName: 'Super Potion',
+        pocketId: 'medicine',
+        buyPrice: 700,
+      ).toJson(),
+    },
+  ),
+  const _ItemMutationScenario(
+    'item.clone',
+    <String, Object?>{
+      'sourceItemId': 'potion',
+      'newItemId': 'potion-copy',
+      'displayName': 'Potion Copy',
+    },
+  ),
+  const _ItemMutationScenario(
+    'item.delete_apply',
+    <String, Object?>{'itemId': 'discardable'},
+  ),
+  _ItemMutationScenario(
+    'item.set_overworld_effect',
+    <String, Object?>{
+      'itemId': 'potion',
+      'use': const ProjectItemUseDefinition(
+        contexts: <ProjectItemUseContext>{ProjectItemUseContext.overworld},
+        target: ProjectItemTargetKind.partyMember,
+        consumption: ProjectItemConsumptionPolicy.onApplied,
+        effect: ProjectItemEffectDefinition.healHp(
+          mode: ProjectItemAmountMode.flat,
+          amount: 20,
+        ),
+      ).toJson(),
+    },
+  ),
+  _ItemMutationScenario(
+    'item.set_battle_effect',
+    <String, Object?>{
+      'itemId': 'potion',
+      'use': const ProjectItemUseDefinition(
+        contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+        target: ProjectItemTargetKind.partyMember,
+        consumption: ProjectItemConsumptionPolicy.onApplied,
+        effect: ProjectItemEffectDefinition.healHp(
+          mode: ProjectItemAmountMode.flat,
+          amount: 15,
+        ),
+      ).toJson(),
+    },
+  ),
+  const _ItemMutationScenario(
+    'item.set_held_effect',
+    <String, Object?>{
+      'itemId': 'potion',
+      'heldEffectId': 'battle.leftovers',
+    },
+  ),
+  _ItemMutationScenario(
+    'item.set_capture_effect',
+    <String, Object?>{
+      'itemId': 'potion',
+      'capture': const ProjectCaptureItemDefinition(
+        rateNumerator: 3,
+        rateDenominator: 2,
+        allowedEncounterKinds: <EncounterKind>{EncounterKind.walk},
+      ).toJson(),
+    },
+  ),
+  _ItemMutationScenario(
+    'item.set_tm_hm_move',
+    <String, Object?>{
+      'itemId': 'potion',
+      'machine': const ProjectMoveMachineItemDefinition(
+        moveId: 'cut',
+        kind: ProjectMoveMachineKind.tm,
+        consumable: true,
+      ).toJson(),
+    },
+  ),
+];
+
+final class _ItemMutationScenario {
+  const _ItemMutationScenario(this.actionId, this.parameters);
+
+  final String actionId;
+  final Map<String, Object?> parameters;
+
+  String get slug => actionId.replaceAll('.', '-').replaceAll('_', '-');
+
+  AuthoringRequest request({
+    required String workspaceHandle,
+    required String revision,
+    required String transport,
+  }) =>
+      AuthoringRequest(
+        requestId: 'request-$slug-$transport',
+        actionId: actionId,
+        actionVersion: 1,
+        workspaceHandle: workspaceHandle,
+        parameters: parameters,
+        expectedRevision: revision,
+        idempotencyKey: 'idempotency-$slug-$transport',
+      );
+}
+
+final class _ItemExecution {
+  const _ItemExecution({required this.receipt, required this.catalog});
+
+  final Map<String, Object?> receipt;
+  final Map<String, dynamic> catalog;
+}
+
+final class _ItemRefusal {
+  const _ItemRefusal({
+    required this.beforeCatalog,
+    required this.afterCatalog,
+    this.error,
+    this.result,
+  });
+
+  final Map<String, dynamic> beforeCatalog;
+  final Map<String, dynamic> afterCatalog;
+  final Object? error;
+  final AuthoringResult? result;
 }
 
 Future<AuthoringResult> _query(
@@ -269,6 +399,11 @@ final class _ItemTransportHarness {
                 displayName: 'Potion',
                 pocketId: 'medicine',
               ),
+              ProjectItemDefinition(
+                id: 'discardable',
+                displayName: 'Discardable',
+                pocketId: 'custom',
+              ),
             ],
           ),
         ),
@@ -302,16 +437,184 @@ final class _ItemTransportHarness {
     );
   }
 
-  Future<List<String>> catalogIds() async {
-    final decoded = jsonDecode(
+  Future<_ItemExecution> executeDirect(_ItemMutationScenario scenario) async {
+    final opened = await readApi.openProject(root.path);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: opened.workspaceHandle,
+      projectHandle: opened.projectHandle,
+    );
+    final snapshot = await snapshots.load(opened.projectHandle);
+    final plan = await mutations.plan(
+      opened.projectHandle,
+      scenario.request(
+        workspaceHandle: opened.workspaceHandle.value,
+        revision: snapshot.revision,
+        transport: 'direct',
+      ),
+    );
+    String? confirmationToken;
+    if (scenario.actionId == 'item.delete_apply') {
+      final confirmation = await mutations.confirm(
+        opened.projectHandle,
+        planId: plan['planId']! as String,
+      );
+      confirmationToken = confirmation['confirmationToken']! as String;
+    }
+    final applied = await mutations.apply(
+      opened.projectHandle,
+      planId: plan['planId']! as String,
+      operationId: 'operation-${scenario.slug}-direct',
+      confirmationToken: confirmationToken,
+    );
+    return _ItemExecution(
+      receipt: Map<String, Object?>.from(applied['receipt']! as Map),
+      catalog: await catalogJson(),
+    );
+  }
+
+  Future<_ItemExecution> executeJsonl(_ItemMutationScenario scenario) async {
+    final opened = await _request(
+      worker,
+      'open',
+      args: <String, Object?>{'projectRoot': root.path},
+    );
+    final projectHandle = opened.data['projectHandle']! as String;
+    final workspaceHandle = opened.data['workspaceHandle']! as String;
+    final definitions = await _query(
+      worker,
+      projectHandle: projectHandle,
+      request: AuthoringQueryRequest(
+        resourceKind: 'itemDefinition',
+        operation: AuthoringQueryOperation.list,
+        view: AuthoringQueryView.detail,
+      ),
+    );
+    final plan = await _request(
+      worker,
+      'plan',
+      args: <String, Object?>{
+        'projectHandle': projectHandle,
+        'request': scenario
+            .request(
+              workspaceHandle: workspaceHandle,
+              revision: definitions.data['snapshotRevision']! as String,
+              transport: 'jsonl',
+            )
+            .toJson(),
+      },
+    );
+    String? confirmationToken;
+    if (scenario.actionId == 'item.delete_apply') {
+      final confirmation = await _request(
+        worker,
+        'confirm',
+        args: <String, Object?>{
+          'projectHandle': projectHandle,
+          'planId': plan.data['planId'],
+        },
+      );
+      confirmationToken = confirmation.data['confirmationToken']! as String;
+    }
+    final applied = await _request(
+      worker,
+      'apply',
+      args: <String, Object?>{
+        'projectHandle': projectHandle,
+        'planId': plan.data['planId'],
+        'operationId': 'operation-${scenario.slug}-jsonl',
+        if (confirmationToken != null) 'confirmationToken': confirmationToken,
+      },
+    );
+    return _ItemExecution(
+      receipt: Map<String, Object?>.from(
+        applied.data['receipt']! as Map,
+      ),
+      catalog: await catalogJson(),
+    );
+  }
+
+  Future<_ItemRefusal> refuseDirect(
+    _ItemMutationScenario scenario, {
+    String? revisionOverride,
+  }) async {
+    final beforeCatalog = await catalogJson();
+    final opened = await readApi.openProject(root.path);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: opened.workspaceHandle,
+      projectHandle: opened.projectHandle,
+    );
+    final snapshot = await snapshots.load(opened.projectHandle);
+    Object? error;
+    try {
+      await mutations.plan(
+        opened.projectHandle,
+        scenario.request(
+          workspaceHandle: opened.workspaceHandle.value,
+          revision: revisionOverride ?? snapshot.revision,
+          transport: 'direct-refusal',
+        ),
+      );
+    } on Object catch (caught) {
+      error = caught;
+    }
+    return _ItemRefusal(
+      beforeCatalog: beforeCatalog,
+      afterCatalog: await catalogJson(),
+      error: error,
+    );
+  }
+
+  Future<_ItemRefusal> refuseJsonl(
+    _ItemMutationScenario scenario, {
+    String? revisionOverride,
+  }) async {
+    final beforeCatalog = await catalogJson();
+    final opened = await _request(
+      worker,
+      'open',
+      args: <String, Object?>{'projectRoot': root.path},
+    );
+    final projectHandle = opened.data['projectHandle']! as String;
+    final workspaceHandle = opened.data['workspaceHandle']! as String;
+    final definitions = await _query(
+      worker,
+      projectHandle: projectHandle,
+      request: AuthoringQueryRequest(
+        resourceKind: 'itemDefinition',
+        operation: AuthoringQueryOperation.list,
+        view: AuthoringQueryView.detail,
+      ),
+    );
+    final result = await _request(
+      worker,
+      'plan',
+      args: <String, Object?>{
+        'projectHandle': projectHandle,
+        'request': scenario
+            .request(
+              workspaceHandle: workspaceHandle,
+              revision: revisionOverride ??
+                  definitions.data['snapshotRevision']! as String,
+              transport: 'jsonl-refusal',
+            )
+            .toJson(),
+      },
+    );
+    return _ItemRefusal(
+      beforeCatalog: beforeCatalog,
+      afterCatalog: await catalogJson(),
+      result: result,
+    );
+  }
+
+  Future<Map<String, dynamic>> catalogJson() async {
+    return jsonDecode(
       await File(
         '${root.path}/data/pokemon/catalogs/items.json',
       ).readAsString(),
     ) as Map<String, dynamic>;
-    return decodeProjectItemCatalog(decoded)
-        .entries
-        .map((definition) => definition.id)
-        .toList(growable: false);
   }
 
   Future<void> dispose() async {
