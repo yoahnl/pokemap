@@ -26,6 +26,8 @@ void main() {
         'pause.actions',
         'dialogue.geometry',
         'dialogue.colors',
+        'dialogue.portrait',
+        'dialogue.nameplate',
         'dialogue.typography',
         'dialogue.previewCharacter',
         'dialogue.previewPortrait',
@@ -37,7 +39,7 @@ void main() {
         'battle.typography',
       }),
     );
-    expect(personalizationCapabilityRegistry.descriptors, hasLength(29));
+    expect(personalizationCapabilityRegistry.descriptors, hasLength(31));
   });
 
   test('project capabilities require persistence and runtime evidence', () {

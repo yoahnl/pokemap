@@ -198,6 +198,22 @@ final class HubRuntimeStartupAdapter
                 surfaceColor: dialogue.surfaceColor,
                 borderColor: dialogue.borderColor,
                 textColor: dialogue.textColor,
+                portraitSide: ProjectDialoguePortraitSide.values.byName(
+                  dialogue.portraitSide,
+                ),
+                portraitSize: dialogue.portraitSize,
+                portraitShape: ProjectDialoguePortraitShape.values.byName(
+                  dialogue.portraitShape,
+                ),
+                portraitFrameWidth: dialogue.portraitFrameWidth,
+                portraitFrameColor: dialogue.portraitFrameColor,
+                nameplateStyle: ProjectDialogueNameplateStyle.values.byName(
+                  dialogue.nameplateStyle,
+                ),
+                nameplateBorderWidth: dialogue.nameplateBorderWidth,
+                nameplateSurfaceColor: dialogue.nameplateSurfaceColor,
+                nameplateBorderColor: dialogue.nameplateBorderColor,
+                nameplateTextColor: dialogue.nameplateTextColor,
               ),
       menuLabels:
           menuLabels == null

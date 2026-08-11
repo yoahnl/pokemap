@@ -966,6 +966,16 @@ test("MCP applies and rereads the authored presentation profile", async () => {
             surfaceColor: "#102030",
             borderColor: "#A0B0C0",
             textColor: "#F0F0F0",
+            portraitSide: "end",
+            portraitSize: 112,
+            portraitShape: "circle",
+            portraitFrameWidth: 4,
+            portraitFrameColor: "#C0FFEE",
+            nameplateStyle: "floating",
+            nameplateBorderWidth: 2,
+            nameplateSurfaceColor: "#334455",
+            nameplateBorderColor: "#778899",
+            nameplateTextColor: "#FFFFFF",
           },
           windows: {
             styles: [
@@ -1113,6 +1123,14 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       "#102030",
     );
     assert.equal(
+      record(record(project.presentation).dialogue).portraitSide,
+      "end",
+    );
+    assert.equal(
+      record(record(project.presentation).dialogue).nameplateStyle,
+      "floating",
+    );
+    assert.equal(
       record(record(record(project.presentation).typography).combat).family,
       "Battle Mono",
     );
@@ -1188,6 +1206,10 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       record(record(persisted.presentation).dialogue).maxWidthFactor,
       0.64,
     );
+    assert.equal(
+      record(record(persisted.presentation).dialogue).portraitShape,
+      "circle",
+    );
     const presentationResource = await toolData(
       fixture.client,
       "pokemap_query",
@@ -1208,6 +1230,10 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.equal(
       record(record(presentationItem.profile).dialogue).shape,
       "speech",
+    );
+    assert.equal(
+      record(record(presentationItem.profile).dialogue).nameplateTextColor,
+      "#FFFFFF",
     );
     const finalValidation = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,

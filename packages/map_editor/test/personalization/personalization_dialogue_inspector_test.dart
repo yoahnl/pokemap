@@ -69,6 +69,19 @@ void main() {
       find.byKey(const ValueKey<String>('typography-import-dialogue')),
       findsOneWidget,
     );
+    for (final key in <String>[
+      'dialogue-portrait-editor',
+      'dialogue-portrait-side-start',
+      'dialogue-portrait-side-end',
+      'dialogue-portrait-shape',
+      'dialogue-portrait-size',
+      'dialogue-portrait-frame-width',
+      'dialogue-nameplate-editor',
+      'dialogue-nameplate-style',
+      'dialogue-nameplate-border-width',
+    ]) {
+      expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+    }
 
     final centered = find.byKey(
       const ValueKey<String>('dialogue-layout-center'),
@@ -80,6 +93,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(profile.dialogue?.placement, ProjectDialoguePlacement.center);
+
+    final portraitEnd = find.byKey(
+      const ValueKey<String>('dialogue-portrait-side-end'),
+    );
+    await tester.ensureVisible(portraitEnd);
+    await tester.pumpAndSettle();
+    expect(portraitEnd.hitTestable(), findsOneWidget);
+    await tester.tap(portraitEnd);
+    await tester.pumpAndSettle();
+
+    expect(profile.dialogue?.portraitSide, ProjectDialoguePortraitSide.end);
   });
 
   testWidgets('preview toggles drive the shared dialogue surface', (

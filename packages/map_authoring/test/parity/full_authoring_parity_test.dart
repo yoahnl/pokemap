@@ -525,6 +525,9 @@ void main() {
       expect(directEvidence['dialoguePlacement'], 'top');
       expect(directEvidence['dialogueMaxWidthFactor'], .64);
       expect(directEvidence['dialogueSurfaceColor'], '#102030');
+      expect(directEvidence['dialoguePortraitSide'], 'end');
+      expect(directEvidence['dialoguePortraitShape'], 'circle');
+      expect(directEvidence['dialogueNameplateStyle'], 'floating');
     });
 
     test('presentation preset export has direct API and JSONL CLI parity',
@@ -1253,6 +1256,12 @@ final class _GoldenHarness {
       'dialoguePlacement': manifest.presentation?.dialogue?.placement.name,
       'dialogueMaxWidthFactor': manifest.presentation?.dialogue?.maxWidthFactor,
       'dialogueSurfaceColor': manifest.presentation?.dialogue?.surfaceColor,
+      'dialoguePortraitSide':
+          manifest.presentation?.dialogue?.portraitSide.name,
+      'dialoguePortraitShape':
+          manifest.presentation?.dialogue?.portraitShape.name,
+      'dialogueNameplateStyle':
+          manifest.presentation?.dialogue?.nameplateStyle.name,
     };
   }
 
@@ -1408,6 +1417,16 @@ final ProjectPresentationProfile _responsivePresentationProfile =
     surfaceColor: '#102030',
     borderColor: '#A0B0C0',
     textColor: '#F0F0F0',
+    portraitSide: ProjectDialoguePortraitSide.end,
+    portraitSize: 112,
+    portraitShape: ProjectDialoguePortraitShape.circle,
+    portraitFrameWidth: 4,
+    portraitFrameColor: '#C0FFEE',
+    nameplateStyle: ProjectDialogueNameplateStyle.floating,
+    nameplateBorderWidth: 2,
+    nameplateSurfaceColor: '#334455',
+    nameplateBorderColor: '#778899',
+    nameplateTextColor: '#FFFFFF',
   ),
   typography: ProjectTypographyProfile(
     combat: ProjectTypographyRoleProfile(

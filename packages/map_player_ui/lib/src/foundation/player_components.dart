@@ -64,6 +64,8 @@ class PlayerPanel extends StatelessWidget {
     final colors = context.playerColors;
     final semantic = context.playerSemanticTheme;
     final windowTheme = context.playerWindowTheme;
+    final tokenResolver = windowTheme ??
+        PokeMapPlayerWindowTheme(legacyProjectPresentationWindows);
     final palette =
         surfaceRole == null ? null : context.playerSurfacePalette(surfaceRole!);
     final assignment = surfaceRole == null
@@ -114,12 +116,12 @@ class PlayerPanel extends StatelessWidget {
         paletteSurface ??
         (windowStyle == null
             ? surface
-            : windowTheme!.resolveToken(windowStyle.fillToken, semantic));
+            : tokenResolver.resolveToken(windowStyle.fillToken, semantic));
     final resolvedBorder = borderColorOverride ??
         paletteBorder ??
         (windowStyle == null
             ? colors.outline
-            : windowTheme!.resolveToken(windowStyle.borderToken, semantic));
+            : tokenResolver.resolveToken(windowStyle.borderToken, semantic));
     final side = windowStyle?.borderWidth == 0
         ? BorderSide.none
         : BorderSide(

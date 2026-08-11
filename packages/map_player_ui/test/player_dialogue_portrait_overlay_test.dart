@@ -67,9 +67,17 @@ void main() {
       ),
       textScaler: const TextScaler.linear(2),
       padding: const EdgeInsets.only(top: 44, bottom: 34),
+      dialogue: const ProjectDialoguePresentationProfile(portraitSize: 160),
     );
 
-    expect(find.byType(PlayerPortraitFrame), findsOneWidget);
+    expect(
+      tester.getSize(
+        find.byKey(
+          const ValueKey<String>('dialogue-portrait-shape-rounded'),
+        ),
+      ),
+      const Size.square(72),
+    );
     expect(find.byType(SingleChildScrollView), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -83,11 +91,157 @@ void main() {
     addTearDown(
       () => File(portrait.absoluteFilePath).parent.delete(recursive: true),
     );
-    await _pump(tester, snapshot: _choiceSnapshot(portrait: portrait));
+    await _pump(
+      tester,
+      snapshot: _choiceSnapshot(portrait: portrait),
+      dialogue: const ProjectDialoguePresentationProfile(
+        portraitShape: ProjectDialoguePortraitShape.circle,
+      ),
+    );
 
-    expect(find.byType(PlayerPortraitFrame), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('dialogue-portrait-shape-circle')),
+      findsNothing,
+    );
     expect(find.text('Continuer'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('authored portrait side and size reach the resolved asset', (
+    tester,
+  ) async {
+    final portrait = (await tester.runAsync(() => _portrait('elia-side')))!;
+    addTearDown(
+      () => File(portrait.absoluteFilePath).parent.delete(recursive: true),
+    );
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(portrait: portrait),
+      dialogue: const ProjectDialoguePresentationProfile(
+        portraitSide: ProjectDialoguePortraitSide.end,
+        portraitSize: 120,
+      ),
+    );
+
+    final row = tester.widget<Row>(
+      find.byKey(const ValueKey<String>('dialogue-portrait-end')),
+    );
+    expect(row.textDirection, TextDirection.rtl);
+    expect(
+      tester.getSize(
+        find.byKey(
+          const ValueKey<String>('dialogue-portrait-shape-rounded'),
+        ),
+      ),
+      const Size.square(120),
+    );
+    final image = tester.widget<Image>(
+      find.byKey(
+        const ValueKey<String>('dialogue-portrait-portrait.elia.surprised'),
+      ),
+    );
+    expect((image.image as FileImage).file.path, portrait.absoluteFilePath);
+  });
+
+  for (final shape in ProjectDialoguePortraitShape.values) {
+    testWidgets('renders the authored ${shape.name} portrait shape', (
+      tester,
+    ) async {
+      final portrait = (await tester.runAsync(
+        () => _portrait('elia-${shape.name}'),
+      ))!;
+      addTearDown(
+        () => File(portrait.absoluteFilePath).parent.delete(recursive: true),
+      );
+      await _pump(
+        tester,
+        snapshot: _lineSnapshot(portrait: portrait),
+        dialogue: ProjectDialoguePresentationProfile(
+          portraitShape: shape,
+          portraitFrameWidth: 4,
+          portraitFrameColor: '#FFAA00',
+        ),
+      );
+
+      final material = tester.widget<Material>(
+        find.byKey(ValueKey<String>('dialogue-portrait-shape-${shape.name}')),
+      );
+      final side = switch (material.shape) {
+        CircleBorder(:final side) => side,
+        RoundedRectangleBorder(:final side) => side,
+        BeveledRectangleBorder(:final side) => side,
+        _ => throw StateError('Unexpected portrait shape.'),
+      };
+      expect(side.width, 4);
+      expect(side.color, const Color(0xFFFFAA00));
+      expect(
+        material.shape,
+        switch (shape) {
+          ProjectDialoguePortraitShape.circle => isA<CircleBorder>(),
+          ProjectDialoguePortraitShape.rounded => isA<RoundedRectangleBorder>(),
+          ProjectDialoguePortraitShape.square => isA<RoundedRectangleBorder>(),
+          ProjectDialoguePortraitShape.cutCorner =>
+            isA<BeveledRectangleBorder>(),
+        },
+      );
+    });
+  }
+
+  testWidgets('styles a long speaker name without changing its semantics', (
+    tester,
+  ) async {
+    final portrait = (await tester.runAsync(() => _portrait('elia-name')))!;
+    addTearDown(
+      () => File(portrait.absoluteFilePath).parent.delete(recursive: true),
+    );
+    const speaker = 'Élia de la Vallée des Étoiles Filantes';
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(portrait: portrait, speaker: speaker),
+      dialogue: const ProjectDialoguePresentationProfile(
+        nameplateStyle: ProjectDialogueNameplateStyle.floating,
+        nameplateBorderWidth: 3,
+        nameplateSurfaceColor: '#203040',
+        nameplateBorderColor: '#AABBCC',
+        nameplateTextColor: '#FFFFFF',
+      ),
+    );
+
+    final material = tester.widget<Material>(
+      find.byKey(const ValueKey<String>('dialogue-nameplate-floating')),
+    );
+    final shape = material.shape! as RoundedRectangleBorder;
+    expect(material.color, const Color(0xFF203040));
+    expect(shape.side.width, 3);
+    expect(shape.side.color, const Color(0xFFAABBCC));
+    expect(find.bySemanticsLabel('$speaker, Attends… tu as vu ça ?'), findsOne);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('portrait semantics are decorative beside a visible name', (
+    tester,
+  ) async {
+    final portrait = (await tester.runAsync(
+      () => _portrait('elia-semantics'),
+    ))!;
+    addTearDown(
+      () => File(portrait.absoluteFilePath).parent.delete(recursive: true),
+    );
+    const dialogue = ProjectDialoguePresentationProfile();
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(portrait: portrait),
+      dialogue: dialogue,
+    );
+    expect(find.bySemanticsLabel('Portrait de Élia'), findsNothing);
+
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(portrait: portrait),
+      dialogue: dialogue,
+      showSpeakerName: false,
+    );
+    expect(find.bySemanticsLabel('Portrait de Élia'), findsOneWidget);
   });
 
   for (final theme in <({String name, ThemeData theme})>[
@@ -130,20 +284,33 @@ Future<void> _pump(
   TextScaler textScaler = TextScaler.noScaling,
   EdgeInsets padding = EdgeInsets.zero,
   Key? boundaryKey,
+  ProjectDialoguePresentationProfile? dialogue,
+  bool showSpeakerName = true,
 }) {
+  var resolvedTheme = theme ?? PokeMapPlayerTheme.dark();
+  if (dialogue != null) {
+    resolvedTheme = PokeMapPlayerTheme.withDialogueProfile(
+      resolvedTheme,
+      dialogue,
+    );
+  }
   return tester.pumpWidget(
     MaterialApp(
       debugShowCheckedModeBanner: false,
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: theme ?? PokeMapPlayerTheme.dark(),
+      theme: resolvedTheme,
       home: MediaQuery(
         data: MediaQueryData(textScaler: textScaler, padding: padding),
         child: RepaintBoundary(
           key: boundaryKey,
           child: Scaffold(
-            body: PlayerDialogueOverlay(snapshot: snapshot, onCommand: (_) {}),
+            body: PlayerDialogueOverlay(
+              snapshot: snapshot,
+              onCommand: (_) {},
+              showSpeakerName: showSpeakerName,
+            ),
           ),
         ),
       ),
@@ -154,12 +321,13 @@ Future<void> _pump(
 DialoguePresentationSnapshot _lineSnapshot({
   ResolvedDialoguePortrait? portrait,
   String text = 'Attends… tu as vu ça ?',
+  String speaker = 'Élia',
 }) {
   return DialoguePresentationSnapshot(
     revision: 7,
     mode: DialoguePresentationMode.line,
     nodeTitle: 'surprise',
-    speaker: 'Élia',
+    speaker: speaker,
     text: text,
     fullText: text,
     isCurrentLineFullyRevealed: true,

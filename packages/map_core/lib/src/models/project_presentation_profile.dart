@@ -1137,6 +1137,27 @@ void _validateDialogue(
           code: 'dialogueFillOpacityOutOfRange',
           field: 'fillOpacity',
         ),
+        (
+          value: dialogue.portraitSize,
+          minimum: projectDialogueMinPortraitSize,
+          maximum: projectDialogueMaxPortraitSize,
+          code: 'dialoguePortraitSizeOutOfRange',
+          field: 'portraitSize',
+        ),
+        (
+          value: dialogue.portraitFrameWidth,
+          minimum: projectDialogueMinPortraitFrameWidth,
+          maximum: projectDialogueMaxPortraitFrameWidth,
+          code: 'dialoguePortraitFrameWidthOutOfRange',
+          field: 'portraitFrameWidth',
+        ),
+        (
+          value: dialogue.nameplateBorderWidth,
+          minimum: projectDialogueMinNameplateBorderWidth,
+          maximum: projectDialogueMaxNameplateBorderWidth,
+          code: 'dialogueNameplateBorderWidthOutOfRange',
+          field: 'nameplateBorderWidth',
+        ),
       ]) {
     if (range.value.isFinite &&
         range.value >= range.minimum &&
@@ -1155,6 +1176,10 @@ void _validateDialogue(
     (field: 'surfaceColor', value: dialogue.surfaceColor),
     (field: 'borderColor', value: dialogue.borderColor),
     (field: 'textColor', value: dialogue.textColor),
+    (field: 'portraitFrameColor', value: dialogue.portraitFrameColor),
+    (field: 'nameplateSurfaceColor', value: dialogue.nameplateSurfaceColor),
+    (field: 'nameplateBorderColor', value: dialogue.nameplateBorderColor),
+    (field: 'nameplateTextColor', value: dialogue.nameplateTextColor),
   ]) {
     if (color.value == null || _parseOpaqueProjectColor(color.value!) != null) {
       continue;

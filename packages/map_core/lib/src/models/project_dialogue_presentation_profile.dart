@@ -9,6 +9,12 @@ part 'project_dialogue_presentation_profile.g.dart';
 
 enum ProjectDialoguePlacement { bottom, top, center }
 
+enum ProjectDialoguePortraitSide { start, end }
+
+enum ProjectDialoguePortraitShape { circle, rounded, square, cutCorner }
+
+enum ProjectDialogueNameplateStyle { inline, badge, floating }
+
 const double projectDialogueMinWidthFactor = .4;
 const double projectDialogueMaxWidthFactor = .96;
 const double projectDialogueMinMargin = 0;
@@ -21,6 +27,12 @@ const double projectDialogueMinBorderWidth = 0;
 const double projectDialogueMaxBorderWidth = 8;
 const double projectDialogueMinFillOpacity = .4;
 const double projectDialogueMaxFillOpacity = 1;
+const double projectDialogueMinPortraitSize = 48;
+const double projectDialogueMaxPortraitSize = 160;
+const double projectDialogueMinPortraitFrameWidth = 0;
+const double projectDialogueMaxPortraitFrameWidth = 8;
+const double projectDialogueMinNameplateBorderWidth = 0;
+const double projectDialogueMaxNameplateBorderWidth = 6;
 
 @Freezed(fromJson: true, toJson: true)
 abstract class ProjectDialoguePresentationProfile
@@ -39,6 +51,19 @@ abstract class ProjectDialoguePresentationProfile
     @JsonKey(includeIfNull: false) String? surfaceColor,
     @JsonKey(includeIfNull: false) String? borderColor,
     @JsonKey(includeIfNull: false) String? textColor,
+    @Default(ProjectDialoguePortraitSide.start)
+    ProjectDialoguePortraitSide portraitSide,
+    @Default(96) double portraitSize,
+    @Default(ProjectDialoguePortraitShape.rounded)
+    ProjectDialoguePortraitShape portraitShape,
+    @Default(1) double portraitFrameWidth,
+    @JsonKey(includeIfNull: false) String? portraitFrameColor,
+    @Default(ProjectDialogueNameplateStyle.inline)
+    ProjectDialogueNameplateStyle nameplateStyle,
+    @Default(1) double nameplateBorderWidth,
+    @JsonKey(includeIfNull: false) String? nameplateSurfaceColor,
+    @JsonKey(includeIfNull: false) String? nameplateBorderColor,
+    @JsonKey(includeIfNull: false) String? nameplateTextColor,
   }) = _ProjectDialoguePresentationProfile;
 
   factory ProjectDialoguePresentationProfile.fromJson(

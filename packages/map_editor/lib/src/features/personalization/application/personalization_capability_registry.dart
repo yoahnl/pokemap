@@ -186,6 +186,22 @@ final personalizationCapabilityRegistry =
         'dialogue-color-surface',
       ),
       _project(
+        'dialogue.portrait',
+        PersonalizationStudioScene.dialogue,
+        'Portrait du dialogue',
+        '/presentation/dialogue',
+        'PlayerDialogueSurface',
+        'dialogue-portrait-size',
+      ),
+      _project(
+        'dialogue.nameplate',
+        PersonalizationStudioScene.dialogue,
+        'Cartouche du nom',
+        '/presentation/dialogue',
+        'PlayerDialogueSurface',
+        'dialogue-nameplate-style',
+      ),
+      _project(
         'dialogue.typography',
         PersonalizationStudioScene.dialogue,
         'Typographie du dialogue',

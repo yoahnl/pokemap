@@ -238,6 +238,16 @@ void main() {
           surfaceColor: '#102030',
           borderColor: '#A0B0C0',
           textColor: '#F0F0F0',
+          portraitSide: ProjectDialoguePortraitSide.end,
+          portraitSize: 112,
+          portraitShape: ProjectDialoguePortraitShape.circle,
+          portraitFrameWidth: 4,
+          portraitFrameColor: '#C0FFEE',
+          nameplateStyle: ProjectDialogueNameplateStyle.floating,
+          nameplateBorderWidth: 2,
+          nameplateSurfaceColor: '#334455',
+          nameplateBorderColor: '#778899',
+          nameplateTextColor: '#FFFFFF',
         ),
       );
       final snapshot = _snapshot();
@@ -274,6 +284,14 @@ void main() {
           'dialogue',
           containsPair('surfaceColor', '#102030'),
         ),
+      );
+      expect(
+        (draft.preview['profile']! as Map)['dialogue'],
+        containsPair('portraitSide', 'end'),
+      );
+      expect(
+        (draft.preview['profile']! as Map)['dialogue'],
+        containsPair('nameplateStyle', 'floating'),
       );
     });
 

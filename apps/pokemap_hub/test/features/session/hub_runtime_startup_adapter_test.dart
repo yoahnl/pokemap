@@ -58,6 +58,15 @@ void main() {
       expect(profile?.dialogue?.placement, ProjectDialoguePlacement.top);
       expect(profile?.dialogue?.maxWidthFactor, .64);
       expect(profile?.dialogue?.surfaceColor, '#102030');
+      expect(profile?.dialogue?.portraitSide, ProjectDialoguePortraitSide.end);
+      expect(
+        profile?.dialogue?.portraitShape,
+        ProjectDialoguePortraitShape.circle,
+      );
+      expect(
+        profile?.dialogue?.nameplateStyle,
+        ProjectDialogueNameplateStyle.floating,
+      );
       expect(
         profile?.pause?.composition?.expanded.entrySize,
         ProjectPauseEntrySize.large,
@@ -273,6 +282,16 @@ final _manifest = GamePackageManifest(
       surfaceColor: '#102030',
       borderColor: '#A0B0C0',
       textColor: '#F0F0F0',
+      portraitSide: 'end',
+      portraitSize: 112,
+      portraitShape: 'circle',
+      portraitFrameWidth: 4,
+      portraitFrameColor: '#C0FFEE',
+      nameplateStyle: 'floating',
+      nameplateBorderWidth: 2,
+      nameplateSurfaceColor: '#334455',
+      nameplateBorderColor: '#778899',
+      nameplateTextColor: '#FFFFFF',
     ),
     windows: GamePackagePresentationWindows(
       styles: const <GamePackageWindowStyle>[
