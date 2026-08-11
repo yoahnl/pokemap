@@ -138,6 +138,7 @@ void main() {
       openShop: handler,
       openHeal: handler,
       openPc: handler,
+      playCharacterAnimation: handler,
     );
 
     expect(samples.keys, unorderedEquals(declaredIds));
@@ -339,6 +340,14 @@ Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {
           SceneInteractiveCommand.openShop(shopId: 'shop_port'),
       NarrativeCommandIds.openHeal: SceneInteractiveCommand.openHeal,
       NarrativeCommandIds.openPc: SceneInteractiveCommand.openPc,
+      NarrativeCommandIds.playCharacterAnimation: () =>
+          SceneInteractiveCommand.playCharacterAnimation(
+            runtimeCommand: CharacterCustomAnimationRuntimeCommand(
+              actorId: 'npc_guide',
+              definitionId: 'saluer',
+              direction: EntityFacing.south,
+            ),
+          ),
     };
 
 Map<String, SceneNodePayload Function()> _dedicatedSamples() => {

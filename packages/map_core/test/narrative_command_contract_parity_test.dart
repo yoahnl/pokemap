@@ -206,6 +206,16 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
               warpId: 'warp_arrival',
             ),
           ),
+      NarrativeCommandIds.playCharacterAnimation: () =>
+          SceneActionPayload.interactive(
+            SceneInteractiveCommand.playCharacterAnimation(
+              runtimeCommand: CharacterCustomAnimationRuntimeCommand(
+                actorId: 'npc_sailor',
+                definitionId: 'saluer',
+                direction: EntityFacing.south,
+              ),
+            ),
+          ),
       NarrativeCommandIds.dialogue: () => SceneYarnDialoguePayload(
             dialogueId: 'dialogue_port',
           ),
