@@ -12,7 +12,7 @@
 
 ## 1. Statut, autorité et règle de portée
 
-- [ ] NOT_STARTED — aucun lot de cette roadmap n’est encore exécuté.
+- [ ] IN_PROGRESS — ITM-001 et la phase 0 sont terminés ; les phases 1 à 7 restent à exécuter.
 - Ce document est la roadmap dédiée à la refonte Item System V1.
 - La roadmap mécanique racine reste l’autorité des statuts FG-050 et FG-060 à FG-079.
 - Les identifiants ITM-* découpent l’implémentation technique sans remplacer les identifiants FG-*.
@@ -307,10 +307,11 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-001 — Matrice de caractérisation inter-contextes
 
-- [ ] **Résultat :** verrouiller les divergences actuelles avant correction.
+- [x] **Résultat :** verrouiller les divergences actuelles avant correction.
 - **Fichiers de test :**
   - packages/map_gameplay/test/item_system_current_behavior_characterization_test.dart
   - packages/map_runtime/test/item_system_current_behavior_characterization_test.dart
+  - packages/map_runtime/test/runtime_battle_outcome_apply_test.dart
   - packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart
   - packages/map_editor/test/project_new_game_configuration_form_test.dart
 - **Observations à verrouiller :**
@@ -322,6 +323,53 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 - **Règle :** ces tests caractérisent les sémantiques, pas une promesse de compatibilité ; les assertions portant sur les anciens formats sont supprimées par ITM-060 à ITM-062.
 - **Gate :** les tests de caractérisation passent sur le système actuel et chaque chemin destiné à disparaître possède un propriétaire de lot explicite.
 - **Dépendances :** aucune.
+
+**Divergences caractérisées :**
+
+- Potion, Super Potion et Max Potion produisent le même delta dans les chemins observés ;
+- Hyper Potion soigne 120 HP via PlayerItemOperations mais 200 HP via le wrapper battle historique ;
+- la capture reconnaît uniquement itemId poke-ball avec categoryId items ;
+- les soins battle reconnaissent uniquement categoryId medicine ;
+- un no-effect ne consomme pas l’objet ;
+- une capture acceptée consomme exactement une Poké Ball, succès ou échec.
+
+**Inventaire chemin actuel → lot propriétaire :**
+
+| Chemin actuel | Autorité ou dette observée | Lot propriétaire |
+|---|---|---|
+| packages/map_core/lib/src/models/save_data.dart | BagEntry sérialise categoryId ; Bag.normalized identifie une pile par categoryId et itemId | ITM-020, ITM-023, ITM-062 |
+| packages/map_gameplay/lib/src/player_item_effects.dart | Registry MVP codé en dur, résolution hors combat et valeur Hyper Potion à 120 | ITM-012, ITM-022, ITM-026, ITM-061 |
+| packages/map_gameplay/lib/src/game_state_mutations.dart | give, purchase, sell et consume propagent ou infèrent une catégorie | ITM-024, ITM-041, ITM-043, ITM-060 |
+| packages/map_gameplay/lib/src/new_game_state_builder.dart | initialBag est normalisé avec l’identité historique du Bag | ITM-040, ITM-062 |
+| packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart | Classification capture et medicine par chaînes de catégories, puis lookup dans le registry MVP | ITM-025, ITM-027, ITM-060 |
+| packages/map_runtime/lib/src/application/runtime_battle_bag_hp_heal_item_apply.dart | Wrappers et valeurs HP dupliqués ; Hyper Potion vaut 200 | ITM-026, ITM-031, ITM-061 |
+| packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart | Disponibilité de capture codée sur poke-ball et items | ITM-032, ITM-060 |
+| packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart | Consommation de capture recode le couple poke-ball et items | ITM-032, ITM-060 |
+| packages/map_runtime/lib/src/player/runtime_player_pause_data_builder.dart | Pause Bag résout le registry MVP et interprète les catégories | ITM-027, ITM-030, ITM-060, ITM-061 |
+| packages/map_runtime/lib/src/application/runtime_move_machine_loader.dart | Loader et modèle de machines séparés du catalogue partagé | ITM-014, ITM-035, ITM-061 |
+| packages/map_battle/lib/src/domain/effect/item/item_effect_registry.dart | Autorité d’exécution des objets tenus à composer avec le catalogue canonique | ITM-038 |
+| packages/map_editor/lib/src/application/use_cases/load_pokemon_items_catalog_use_case.dart | Modèle de catalogue privé, categoryId et effectText non exécutables | ITM-010, ITM-011, ITM-014, ITM-052 |
+| packages/map_core/lib/src/models/project_manifest.dart et packages/map_editor/test/project_new_game_configuration_form_test.dart | New Game authoré par projet, mais initialBag utilise encore l’ancien BagEntry | ITM-040, ITM-053, ITM-062 |
+| packages/map_authoring/lib et tools/pokemap_mcp | Aucun domaine sémantique item ou bag découvrable dans les contrats live observés | ITM-050 à ITM-055 |
+
+**Verdict ITM-001 :** DONE. Les statuts FG-060 à FG-064 restent inchangés ; leur recertification sur la nouvelle architecture demeure réservée à ITM-074.
+
+**Preuves fraîches du 11 août 2026 :**
+
+| Vérification | Résultat exact |
+|---|---|
+| `cd packages/map_gameplay && dart test test/item_system_current_behavior_characterization_test.dart test/party_bag_heal_operations_test.dart` | 31 tests réussis |
+| `cd packages/map_runtime && flutter test test/item_system_current_behavior_characterization_test.dart test/runtime_battle_outcome_apply_test.dart test/battle_bag_menu_model_test.dart test/runtime_generic_battle_items_v0_test.dart test/wild_battle_end_to_end_flow_test.dart` | 70 tests réussis |
+| `cd packages/map_editor && flutter test test/project_new_game_configuration_form_test.dart` | 3 tests réussis |
+| `cd packages/map_gameplay && dart analyze` | aucune erreur ; une info préexistante unnecessary_library_name |
+| `cd packages/map_runtime && flutter analyze test/item_system_current_behavior_characterization_test.dart` | aucune issue |
+| `cd packages/map_editor && flutter analyze test/project_new_game_configuration_form_test.dart` | aucune issue |
+| Build applicatif | non applicable : aucun code produit ni configuration de build modifiés |
+| Parité MCP | non applicable à ce lot de caractérisation ; l’absence d’exposition item/bag est assignée à ITM-050 à ITM-055 |
+
+**Passes de clôture :** audit des autorités, caractérisation comportementale, contrôle de cohérence des dépendances et auto-critique locale. Aucun sub-agent n’a été utilisé pour ce lot borné.
+
+**État Git initial :** worktree propre sur 96cbaf08a, branche codex/item-system-phase-0.
 
 **Gate de phase 0 :** suites de caractérisation vertes et tableau de correspondance chemin actuel → lot de suppression complet.
 
