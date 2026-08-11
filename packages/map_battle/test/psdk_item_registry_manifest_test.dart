@@ -145,6 +145,8 @@ void main() {
             'black_sludge',
           ]));
       expect(registry.portedItemIds, contains('air_balloon'));
+      expect(registry.supportsHeldEffect('LEFTOVERS'), isTrue);
+      expect(registry.supportsHeldEffect('not-ported'), isFalse);
     });
 
     test('Lot 102 passive item modifiers are promoted item-by-item', () {

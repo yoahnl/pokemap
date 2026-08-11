@@ -785,7 +785,7 @@ Résultat attendu : exit code 0 et All tests passed.
 
 ### ITM-038 — Réconciliation avec ItemEffectRegistry battle
 
-- [ ] **Résultat :** heldEffectId authored est validé et adapté vers le registry map_battle sans dupliquer les factories.
+- [x] **Résultat :** heldEffectId authored est validé et adapté vers le registry map_battle sans dupliquer les factories.
 - **Fichiers à modifier :**
   - packages/map_battle/lib/src/domain/effect/item/item_effect_registry.dart
   - packages/map_runtime/lib/src/application/runtime_battle_combatant_seed_builder.dart
@@ -794,6 +794,8 @@ Résultat attendu : exit code 0 et All tests passed.
   - packages/map_runtime/test/runtime_held_item_bridge_v0_test.dart
 - **Gate :** item passif, held supporté et held non porté ont trois diagnostics distincts.
 - **Dépendances :** ITM-013 et ITM-037.
+
+**Preuves ITM-038 :** `ItemEffectRegistry.supportsHeldEffect` concentre désormais la vérité `manifest ported + factory enregistrée`. Le runtime résout l'`itemId` canonique vers le `heldEffectId` authored avant le handoff PSDK et expose quatre états typés : définition absente, passif, supporté et non porté. Les commandes d'équipement refusent séparément les objets passifs et les effets non portés sans mutation. Le write-back post-combat préserve l'`itemId` canonique d'origine ou reconvertit un effet reçu vers une définition canonique unique ; aucun ID moteur n'entre dans le save. Les tests ciblés du registry terminent avec 18 tests réussis et les suites runtime du bridge, du seed builder et du setup mapper avec 58 tests réussis.
 
 **Gate de phase 3 :**
 

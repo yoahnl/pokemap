@@ -14,6 +14,32 @@ import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:map_runtime/src/application/runtime_player_pokemon_progression_hydrator.dart';
 import 'package:path/path.dart' as p;
 
+final _heldItemCatalog = ItemCatalogSnapshot.fromCatalog(
+  const ProjectItemCatalog(
+    schemaVersion: 1,
+    entries: <ProjectItemDefinition>[
+      ProjectItemDefinition(
+        id: 'custom-leftovers',
+        displayName: 'Custom Leftovers',
+        pocketId: 'held-items',
+        heldEffectId: 'leftovers',
+      ),
+      ProjectItemDefinition(
+        id: 'mystic-charm',
+        displayName: 'Mystic Charm',
+        pocketId: 'held-items',
+        heldEffectId: 'mystic_water',
+      ),
+      ProjectItemDefinition(
+        id: 'future-charm',
+        displayName: 'Future Charm',
+        pocketId: 'held-items',
+        heldEffectId: 'future-effect',
+      ),
+    ],
+  ),
+);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -109,6 +135,7 @@ void main() {
         projectRootDirectory: tempProjectRoot.path,
         pokemonConfig: _pokemonConfig(),
         movesCatalog: movesCatalog,
+        itemCatalog: _heldItemCatalog,
         playerPokemon: const PlayerPokemon(
           speciesId: 'sproutle',
           natureId: 'bold',
@@ -134,7 +161,7 @@ void main() {
             'gastro_acid': 10,
           },
           currentHp: 23,
-          heldItemId: 'leftovers',
+          heldItemId: 'custom-leftovers',
         ),
       );
 
@@ -188,6 +215,7 @@ void main() {
           projectRootDirectory: tempProjectRoot.path,
           pokemonConfig: _pokemonConfig(),
           movesCatalog: movesCatalog,
+          itemCatalog: _heldItemCatalog,
           playerPokemon: const PlayerPokemon(
             speciesId: 'sproutle',
             natureId: 'bold',
@@ -196,7 +224,7 @@ void main() {
             knownMoveIds: <String>['vine_whip'],
             currentPpByMoveId: <String, int>{'vine_whip': 35},
             currentHp: 23,
-            heldItemId: 'rare-candy',
+            heldItemId: 'future-charm',
           ),
         ),
         throwsA(
@@ -204,9 +232,9 @@ void main() {
             (error) => error.debugDetails,
             'debugDetails',
             allOf(
-              contains('heldItemId=rare-candy'),
-              contains('psdkHeldItemId=rare_candy'),
-              contains('support=not_ported'),
+              contains('heldItemId=future-charm'),
+              contains('heldEffectId=future_effect'),
+              contains('support=held_effect_not_ported'),
             ),
           ),
         ),
@@ -574,11 +602,12 @@ void main() {
         projectRootDirectory: tempProjectRoot.path,
         pokemonConfig: _pokemonConfig(),
         movesCatalog: movesCatalog,
+        itemCatalog: _heldItemCatalog,
         teamMember: const ProjectTrainerPokemonEntry(
           speciesId: 'aquafi',
           level: 18,
           moves: <String>['water_gun', 'tail_whip'],
-          heldItemId: 'mystic-water',
+          heldItemId: 'mystic-charm',
         ),
         trainerName: 'Ace Jules',
       );
@@ -605,6 +634,7 @@ void main() {
           projectRootDirectory: tempProjectRoot.path,
           pokemonConfig: _pokemonConfig(),
           movesCatalog: movesCatalog,
+          itemCatalog: _heldItemCatalog,
           playerPokemon: const PlayerPokemon(
             speciesId: 'sproutle',
             natureId: 'invented',

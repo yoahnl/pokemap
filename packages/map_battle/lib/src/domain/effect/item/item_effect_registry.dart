@@ -158,6 +158,13 @@ final class ItemEffectRegistry {
   bool isPorted(String? itemId) =>
       statusOf(itemId) == PsdkItemPortStatus.ported;
 
+  bool supportsHeldEffect(String? heldEffectId) {
+    final normalized = _normalizeItemId(heldEffectId);
+    return normalized != null &&
+        statusOf(normalized) == PsdkItemPortStatus.ported &&
+        _factories.containsKey(normalized);
+  }
+
   PsdkItemPortStatus statusOf(String? itemId) {
     final normalized = _normalizeItemId(itemId);
     if (normalized == null) {

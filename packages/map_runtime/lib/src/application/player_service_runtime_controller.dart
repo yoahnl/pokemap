@@ -5,6 +5,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_world_service_models.dart';
+import 'runtime_battle_combatant_seed_builder.dart';
 import 'runtime_move_catalog_loader.dart';
 import 'runtime_move_machine_loader.dart';
 import 'runtime_item_catalog_loader.dart';
@@ -406,11 +407,29 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       );
     }
     if (command.kind == RuntimePlayerPauseCommandKind.equipHeldItem) {
-      if (definition.heldEffectId == null) {
-        return const RuntimePlayerPauseCommandResult(
-          status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'Cet objet ne possède aucun effet tenu.',
-        );
+      final heldItemResolution = resolveRuntimeHeldItemEffect(
+        itemCatalog: itemCatalog,
+        itemId: definition.id,
+      );
+      switch (heldItemResolution.status) {
+        case RuntimeHeldItemSupportStatus.invalidDefinition:
+          return const RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.unavailable,
+            safeMessage: 'La définition de cet objet est absente ou invalide.',
+          );
+        case RuntimeHeldItemSupportStatus.passive:
+          return const RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.unavailable,
+            safeMessage: 'Cet objet ne possède aucun effet tenu.',
+          );
+        case RuntimeHeldItemSupportStatus.unsupported:
+          return const RuntimePlayerPauseCommandResult(
+            status: RuntimePlayerPauseCommandStatus.unavailable,
+            safeMessage:
+                'Cet effet d’objet tenu n’est pas pris en charge en combat.',
+          );
+        case RuntimeHeldItemSupportStatus.supported:
+          break;
       }
       return _applyHeldItemTransfer(
         const HeldItemOperations().equip(

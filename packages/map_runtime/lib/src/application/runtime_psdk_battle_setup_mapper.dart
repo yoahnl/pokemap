@@ -55,6 +55,7 @@ final class RuntimePsdkBattleSetupMapper {
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
       movesCatalog: movesCatalog,
+      itemCatalog: resolvedItemCatalog,
       playerPokemon: playerPokemon,
       combatantLabel: 'Le Pokémon actif du joueur',
     );
@@ -66,6 +67,7 @@ final class RuntimePsdkBattleSetupMapper {
           projectRootDirectory: bundle.projectRootDirectory,
           pokemonConfig: bundle.manifest.pokemon,
           movesCatalog: movesCatalog,
+          itemCatalog: resolvedItemCatalog,
           playerPokemon: reservePokemon,
           combatantLabel:
               'Le Pokémon de réserve du joueur (${reservePokemon.speciesId})',
@@ -101,6 +103,7 @@ final class RuntimePsdkBattleSetupMapper {
             projectRootDirectory: bundle.projectRootDirectory,
             pokemonConfig: bundle.manifest.pokemon,
             movesCatalog: movesCatalog,
+            itemCatalog: resolvedItemCatalog,
             teamMember: trainer.team.first,
             trainerName: trainer.name,
           );
@@ -111,6 +114,7 @@ final class RuntimePsdkBattleSetupMapper {
                 projectRootDirectory: bundle.projectRootDirectory,
                 pokemonConfig: bundle.manifest.pokemon,
                 movesCatalog: movesCatalog,
+                itemCatalog: resolvedItemCatalog,
                 teamMember: teamMember,
                 trainerName: trainer.name,
               ),
@@ -138,6 +142,7 @@ final class RuntimePsdkBattleSetupMapper {
             projectRootDirectory: bundle.projectRootDirectory,
             pokemonConfig: bundle.manifest.pokemon,
             movesCatalog: movesCatalog,
+            itemCatalog: resolvedItemCatalog,
             teamMember: opponent.team.first,
             trainerName: opponent.name,
           );
@@ -148,6 +153,7 @@ final class RuntimePsdkBattleSetupMapper {
                 projectRootDirectory: bundle.projectRootDirectory,
                 pokemonConfig: bundle.manifest.pokemon,
                 movesCatalog: movesCatalog,
+                itemCatalog: resolvedItemCatalog,
                 teamMember: teamMember,
                 trainerName: opponent.name,
               ),

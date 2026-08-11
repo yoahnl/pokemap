@@ -8086,6 +8086,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               gameState: _battleRuntimeGameState,
               context: activeBattleContext,
               psdkState: psdkState,
+              itemCatalog: _itemCatalogSnapshot,
             );
       final result = await _postBattleDecisionCoordinator.begin(
         transactionBaseState: transactionBaseState,

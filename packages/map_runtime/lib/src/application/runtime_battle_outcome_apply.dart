@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'battle_start_request.dart';
+import 'runtime_battle_combatant_seed_builder.dart';
 import 'runtime_battle_status_bridge.dart';
 import 'story_flags_manager.dart';
 
@@ -698,13 +699,14 @@ GameState writePlayerBattleLineupBackToPartySlots({
 
 /// Réconcilie le cycle de vie des objets tenus PSDK avec les slots save.
 ///
-/// L'ID save original est conservé tant que l'objet moteur normalisé n'a pas
-/// changé. Une consommation ou un retrait vide le slot ; un objet reçu ou volé
-/// est persisté avec son ID PSDK final.
+/// L'ID save original est conservé tant que l'effet moteur n'a pas changé.
+/// Une consommation ou un retrait vide le slot ; un objet reçu ou volé est
+/// reconverti vers l'unique itemId canonique qui porte cet effet.
 GameState writePlayerPsdkHeldItemsBackToPartySlots({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required PsdkBattleState psdkState,
+  required ItemCatalogSnapshot itemCatalog,
 }) {
   final lineup = psdkState.partyForBank(psdkPlayerSlot.bank);
   final mapping = context.playerPartySlotIndicesByLineupIndex;
@@ -731,20 +733,57 @@ GameState writePlayerPsdkHeldItemsBackToPartySlots({
     }
     final battler = lineup[lineupIndex];
     final saved = members[partyIndex];
-    final finalEngineItemId =
-        battler.itemConsumed ? null : battler.heldItemId?.trim();
-    final savedEngineItemId = _normalizePsdkHeldItemId(saved.heldItemId);
+    final finalEngineItemId = battler.itemConsumed
+        ? null
+        : _normalizePsdkHeldItemId(battler.heldItemId);
+    final savedItemId = saved.heldItemId.trim();
+    final savedResolution = savedItemId.isEmpty
+        ? null
+        : resolveRuntimeHeldItemEffect(
+            itemCatalog: itemCatalog,
+            itemId: savedItemId,
+          );
     final nextSavedItemId = finalEngineItemId == null
         ? ''
-        : finalEngineItemId == savedEngineItemId
-            ? saved.heldItemId.trim()
-            : finalEngineItemId;
+        : savedResolution?.status == RuntimeHeldItemSupportStatus.supported &&
+                savedResolution?.heldEffectId == finalEngineItemId
+            ? savedItemId
+            : _canonicalItemIdForHeldEffect(
+                itemCatalog: itemCatalog,
+                heldEffectId: finalEngineItemId,
+              );
     members[partyIndex] = saved.copyWith(heldItemId: nextSavedItemId);
   }
 
   return gameState.copyWith(
     party: gameState.party.copyWith(members: members),
   );
+}
+
+String _canonicalItemIdForHeldEffect({
+  required ItemCatalogSnapshot itemCatalog,
+  required String heldEffectId,
+}) {
+  final matches = itemCatalog.definitions
+      .map(
+        (definition) => resolveRuntimeHeldItemEffect(
+          itemCatalog: itemCatalog,
+          itemId: definition.id,
+        ),
+      )
+      .where(
+        (resolution) =>
+            resolution.status == RuntimeHeldItemSupportStatus.supported &&
+            resolution.heldEffectId == heldEffectId,
+      )
+      .toList(growable: false);
+  if (matches.length != 1) {
+    throw StateError(
+      'Le write-back held-item exige une définition canonique unique pour '
+      'heldEffectId=$heldEffectId, matches=${matches.length}.',
+    );
+  }
+  return matches.single.itemId;
 }
 
 String? _normalizePsdkHeldItemId(String? itemId) {

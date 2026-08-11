@@ -378,6 +378,57 @@ String _formatDebugStringList(List<String> values) {
   return '[${values.join(', ')}]';
 }
 
+enum RuntimeHeldItemSupportStatus {
+  invalidDefinition,
+  passive,
+  supported,
+  unsupported,
+}
+
+final class RuntimeHeldItemEffectResolution {
+  const RuntimeHeldItemEffectResolution({
+    required this.itemId,
+    required this.heldEffectId,
+    required this.status,
+  });
+
+  final String itemId;
+  final String? heldEffectId;
+  final RuntimeHeldItemSupportStatus status;
+}
+
+RuntimeHeldItemEffectResolution resolveRuntimeHeldItemEffect({
+  required ItemCatalogSnapshot itemCatalog,
+  required String itemId,
+  ItemEffectRegistry? registry,
+}) {
+  final normalizedItemId = itemId.trim();
+  final definition = itemCatalog.definitionFor(normalizedItemId);
+  if (definition == null) {
+    return RuntimeHeldItemEffectResolution(
+      itemId: normalizedItemId,
+      heldEffectId: null,
+      status: RuntimeHeldItemSupportStatus.invalidDefinition,
+    );
+  }
+  final heldEffectId =
+      definition.heldEffectId?.trim().toLowerCase().replaceAll('-', '_');
+  if (heldEffectId == null || heldEffectId.isEmpty) {
+    return RuntimeHeldItemEffectResolution(
+      itemId: definition.id,
+      heldEffectId: null,
+      status: RuntimeHeldItemSupportStatus.passive,
+    );
+  }
+  return RuntimeHeldItemEffectResolution(
+    itemId: definition.id,
+    heldEffectId: heldEffectId,
+    status: (registry ?? ItemEffectRegistry()).supportsHeldEffect(heldEffectId)
+        ? RuntimeHeldItemSupportStatus.supported
+        : RuntimeHeldItemSupportStatus.unsupported,
+  );
+}
+
 /// Builder runtime spécialisé des seeds de combattants injectés dans
 /// `BattleSetup`.
 ///
@@ -473,6 +524,7 @@ class RuntimeBattleCombatantSeedBuilder {
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
     required RuntimeMoveCatalog movesCatalog,
+    required ItemCatalogSnapshot itemCatalog,
     required PlayerPokemon playerPokemon,
     String combatantLabel = 'Le Pokémon actif du joueur',
   }) async {
@@ -526,6 +578,7 @@ class RuntimeBattleCombatantSeedBuilder {
       majorStatus: statusBridge.toPsdkBattleStatus(playerPokemon.statusId),
       heldItemId: _resolvePsdkHeldItemId(
         playerPokemon.heldItemId,
+        itemCatalog: itemCatalog,
         combatantLabel: combatantLabel,
       ),
       moves: moveProjection.moves,
@@ -683,6 +736,7 @@ class RuntimeBattleCombatantSeedBuilder {
     required String projectRootDirectory,
     required ProjectPokemonConfig pokemonConfig,
     required RuntimeMoveCatalog movesCatalog,
+    required ItemCatalogSnapshot itemCatalog,
     required ProjectTrainerPokemonEntry teamMember,
     required String trainerName,
   }) async {
@@ -728,6 +782,7 @@ class RuntimeBattleCombatantSeedBuilder {
           : species.primaryAbilityId,
       heldItemId: _resolvePsdkHeldItemId(
         teamMember.heldItemId,
+        itemCatalog: itemCatalog,
         combatantLabel:
             'Le Pokémon du dresseur "$trainerName" (${teamMember.speciesId})',
       ),
@@ -738,23 +793,38 @@ class RuntimeBattleCombatantSeedBuilder {
 
   String? _resolvePsdkHeldItemId(
     String? heldItemId, {
+    required ItemCatalogSnapshot itemCatalog,
     required String combatantLabel,
   }) {
     final trimmed = heldItemId?.trim();
     if (trimmed == null || trimmed.isEmpty) {
       return null;
     }
-    final normalized = trimmed.toLowerCase().replaceAll('-', '_');
-    final registry = ItemEffectRegistry();
-    if (!registry.isPorted(normalized) ||
-        registry.create(normalized, owner: psdkPlayerSlot) == null) {
-      throw RuntimeBattleSetupException(
-        '$combatantLabel tient un objet non supporté en combat.',
-        debugDetails:
-            'heldItemId=$trimmed, psdkHeldItemId=$normalized, support=not_ported',
-      );
-    }
-    return normalized;
+    final resolution = resolveRuntimeHeldItemEffect(
+      itemCatalog: itemCatalog,
+      itemId: trimmed,
+    );
+    return switch (resolution.status) {
+      RuntimeHeldItemSupportStatus.supported => resolution.heldEffectId,
+      RuntimeHeldItemSupportStatus.invalidDefinition =>
+        throw RuntimeBattleSetupException(
+          '$combatantLabel tient un objet absent du catalogue.',
+          debugDetails:
+              'heldItemId=$trimmed, heldEffectId=null, support=invalid_definition',
+        ),
+      RuntimeHeldItemSupportStatus.passive => throw RuntimeBattleSetupException(
+          '$combatantLabel tient un objet passif sans effet de combat.',
+          debugDetails:
+              'heldItemId=$trimmed, heldEffectId=null, support=passive_item',
+        ),
+      RuntimeHeldItemSupportStatus.unsupported =>
+        throw RuntimeBattleSetupException(
+          '$combatantLabel tient un effet d’objet non supporté en combat.',
+          debugDetails: 'heldItemId=$trimmed, '
+              'heldEffectId=${resolution.heldEffectId}, '
+              'support=held_effect_not_ported',
+        ),
+    };
   }
 
   Future<List<String>> _deriveLearnsetMoveIds({
