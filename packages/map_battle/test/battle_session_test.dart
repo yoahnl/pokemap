@@ -968,7 +968,7 @@ void main() {
     });
 
     test(
-        'applyPotionTurn commits a real turn and the enemy still responds in the same turn flow',
+        'generic bag healing commits a real turn and the enemy still responds in the same turn flow',
         () {
       final session = createBattleSession(
         BattleSetup(
@@ -1005,9 +1005,11 @@ void main() {
         ),
       );
 
-      final updatedSession = session.applyPotionTurn(
+      final updatedSession = session.applyBagHpHealItemTurn(
+        itemId: 'field-tonic',
+        displayName: 'Field Tonic',
         targetLineupIndex: 0,
-        healAmount: 20,
+        effect: const BattleBagFlatHpHealEffect(20),
       );
 
       expect(updatedSession.state.currentTurn, isNotNull);
@@ -1015,9 +1017,9 @@ void main() {
       expect(
         updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
-          'itemKind',
-          equals(BattleBagHpHealItemKind.potion),
+          (action) => action.itemId,
+          'itemId',
+          equals('field-tonic'),
         ),
       );
       expect(
@@ -1030,6 +1032,11 @@ void main() {
         updatedSession
             .state.currentTurn!.bagHpHealItemEvents.single.healedAmount,
         equals(20),
+      );
+      expect(
+        updatedSession
+            .state.currentTurn!.bagHpHealItemEvents.single.displayName,
+        'Field Tonic',
       );
       expect(
         updatedSession.state.currentTurn!.timeline.first,
@@ -1046,7 +1053,7 @@ void main() {
     });
 
     test(
-        'applyPotionTurn rejects invalid targets instead of faking a committed item turn',
+        'generic bag healing rejects invalid targets instead of faking a committed item turn',
         () {
       final session = createBattleSession(
         BattleSetup(
@@ -1090,16 +1097,20 @@ void main() {
       );
 
       expect(
-        () => session.applyPotionTurn(
+        () => session.applyBagHpHealItemTurn(
+          itemId: 'field-tonic',
+          displayName: 'Field Tonic',
           targetLineupIndex: 0,
-          healAmount: 20,
+          effect: const BattleBagFlatHpHealEffect(20),
         ),
         throwsA(isA<StateError>()),
       );
       expect(
-        () => session.applyPotionTurn(
+        () => session.applyBagHpHealItemTurn(
+          itemId: 'field-tonic',
+          displayName: 'Field Tonic',
           targetLineupIndex: 1,
-          healAmount: 20,
+          effect: const BattleBagFlatHpHealEffect(20),
         ),
         throwsA(isA<StateError>()),
       );
@@ -1108,9 +1119,7 @@ void main() {
       expect(session.state.playerReserve.single.currentHp, equals(0));
     });
 
-    test(
-        'applySuperPotionTurn commits a real turn and records a super potion timeline event',
-        () {
+    test('a second canonical item id records its own timeline event', () {
       final session = createBattleSession(
         BattleSetup(
           playerPokemon: const BattleCombatantData(
@@ -1146,9 +1155,11 @@ void main() {
         ),
       );
 
-      final updatedSession = session.applySuperPotionTurn(
+      final updatedSession = session.applyBagHpHealItemTurn(
+        itemId: 'ember-tonic',
+        displayName: 'Ember Tonic',
         targetLineupIndex: 0,
-        healAmount: 50,
+        effect: const BattleBagFlatHpHealEffect(50),
       );
 
       expect(updatedSession.state.currentTurn, isNotNull);
@@ -1156,9 +1167,9 @@ void main() {
       expect(
         updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
-          'itemKind',
-          equals(BattleBagHpHealItemKind.superPotion),
+          (action) => action.itemId,
+          'itemId',
+          equals('ember-tonic'),
         ),
       );
       expect(
@@ -1166,8 +1177,8 @@ void main() {
         hasLength(1),
       );
       expect(
-        updatedSession.state.currentTurn!.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.superPotion),
+        updatedSession.state.currentTurn!.bagHpHealItemEvents.single.itemId,
+        equals('ember-tonic'),
       );
       expect(
         updatedSession.state.currentTurn!.timeline.first,
@@ -1175,9 +1186,7 @@ void main() {
       );
     });
 
-    test(
-        'applyHyperPotionTurn commits a real turn and records a hyper potion timeline event',
-        () {
+    test('a large canonical flat heal remains explicit in the timeline', () {
       final session = createBattleSession(
         BattleSetup(
           playerPokemon: const BattleCombatantData(
@@ -1213,9 +1222,11 @@ void main() {
         ),
       );
 
-      final updatedSession = session.applyHyperPotionTurn(
+      final updatedSession = session.applyBagHpHealItemTurn(
+        itemId: 'aurora-tonic',
+        displayName: 'Aurora Tonic',
         targetLineupIndex: 0,
-        healAmount: 200,
+        effect: const BattleBagFlatHpHealEffect(200),
       );
 
       expect(updatedSession.state.currentTurn, isNotNull);
@@ -1223,9 +1234,9 @@ void main() {
       expect(
         updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
-          'itemKind',
-          equals(BattleBagHpHealItemKind.hyperPotion),
+          (action) => action.itemId,
+          'itemId',
+          equals('aurora-tonic'),
         ),
       );
       expect(
@@ -1233,8 +1244,8 @@ void main() {
         hasLength(1),
       );
       expect(
-        updatedSession.state.currentTurn!.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.hyperPotion),
+        updatedSession.state.currentTurn!.bagHpHealItemEvents.single.itemId,
+        equals('aurora-tonic'),
       );
       expect(
         updatedSession.state.currentTurn!.timeline.first,
@@ -1246,9 +1257,7 @@ void main() {
       );
     });
 
-    test(
-        'applyMaxPotionTurn commits a real turn and records a max potion timeline event',
-        () {
+    test('a canonical restore-to-full item commits a real turn', () {
       final session = createBattleSession(
         BattleSetup(
           playerPokemon: const BattleCombatantData(
@@ -1284,8 +1293,11 @@ void main() {
         ),
       );
 
-      final updatedSession = session.applyMaxPotionTurn(
+      final updatedSession = session.applyBagHpHealItemTurn(
+        itemId: 'full-restoration',
+        displayName: 'Full Restoration',
         targetLineupIndex: 0,
+        effect: const BattleBagRestoreToFullHpHealEffect(),
       );
 
       expect(updatedSession.state.currentTurn, isNotNull);
@@ -1294,9 +1306,9 @@ void main() {
         updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>()
             .having(
-              (action) => action.itemKind,
-              'itemKind',
-              equals(BattleBagHpHealItemKind.maxPotion),
+              (action) => action.itemId,
+              'itemId',
+              equals('full-restoration'),
             )
             .having(
               (action) => action.effect,
@@ -1313,8 +1325,8 @@ void main() {
         hasLength(1),
       );
       expect(
-        updatedSession.state.currentTurn!.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.maxPotion),
+        updatedSession.state.currentTurn!.bagHpHealItemEvents.single.itemId,
+        equals('full-restoration'),
       );
       expect(
         updatedSession
@@ -1332,7 +1344,7 @@ void main() {
     });
 
     test(
-        'applyMaxPotionTurn rejects invalid targets instead of faking a committed item turn',
+        'restore-to-full rejects invalid targets instead of faking a committed item turn',
         () {
       final session = createBattleSession(
         BattleSetup(
@@ -1376,11 +1388,21 @@ void main() {
       );
 
       expect(
-        () => session.applyMaxPotionTurn(targetLineupIndex: 0),
+        () => session.applyBagHpHealItemTurn(
+          itemId: 'full-restoration',
+          displayName: 'Full Restoration',
+          targetLineupIndex: 0,
+          effect: const BattleBagRestoreToFullHpHealEffect(),
+        ),
         throwsA(isA<StateError>()),
       );
       expect(
-        () => session.applyMaxPotionTurn(targetLineupIndex: 1),
+        () => session.applyBagHpHealItemTurn(
+          itemId: 'full-restoration',
+          displayName: 'Full Restoration',
+          targetLineupIndex: 1,
+          effect: const BattleBagRestoreToFullHpHealEffect(),
+        ),
         throwsA(isA<StateError>()),
       );
       expect(session.state.currentTurn, isNull);
@@ -1388,37 +1410,28 @@ void main() {
       expect(session.state.playerReserve.single.currentHp, equals(0));
     });
 
-    test(
-        'BattleActionBagHpHealItemUse keeps restore-to-full semantics reserved for max potion',
-        () {
+    test('BattleActionBagHpHealItemUse carries the resolved item contract', () {
       expect(
         () => BattleActionBagHpHealItemUse(
-          itemKind: BattleBagHpHealItemKind.potion,
-          targetLineupIndex: 0,
-          effect: const BattleBagRestoreToFullHpHealEffect(),
-        ),
-        throwsA(isA<AssertionError>()),
-      );
-      expect(
-        () => BattleActionBagHpHealItemUse(
-          itemKind: BattleBagHpHealItemKind.maxPotion,
-          targetLineupIndex: 0,
-          healAmount: 200,
-        ),
-        throwsA(isA<AssertionError>()),
-      );
-      expect(
-        const BattleActionBagHpHealItemUse(
-          itemKind: BattleBagHpHealItemKind.maxPotion,
+          itemId: '',
+          displayName: 'Full Restoration',
           targetLineupIndex: 0,
           effect: BattleBagRestoreToFullHpHealEffect(),
-        ).effect,
-        isA<BattleBagRestoreToFullHpHealEffect>(),
+        ),
+        throwsA(isA<AssertionError>()),
       );
+      const action = BattleActionBagHpHealItemUse(
+        itemId: 'full-restoration',
+        displayName: 'Full Restoration',
+        targetLineupIndex: 0,
+        effect: BattleBagRestoreToFullHpHealEffect(),
+      );
+      expect(action.itemId, 'full-restoration');
+      expect(action.effect, isA<BattleBagRestoreToFullHpHealEffect>());
     });
 
     test(
-        'flat bag hp heal facades reject non-positive amounts before committing a turn',
+        'generic flat healing rejects non-positive amounts before committing a turn',
         () {
       final session = createBattleSession(
         BattleSetup(
@@ -1449,23 +1462,29 @@ void main() {
       );
 
       expect(
-        () => session.applyPotionTurn(
+        () => session.applyBagHpHealItemTurn(
+          itemId: 'field-tonic',
+          displayName: 'Field Tonic',
           targetLineupIndex: 0,
-          healAmount: 0,
+          effect: const BattleBagFlatHpHealEffect(0),
         ),
         throwsA(isA<ArgumentError>()),
       );
       expect(
-        () => session.applySuperPotionTurn(
+        () => session.applyBagHpHealItemTurn(
+          itemId: 'field-tonic',
+          displayName: 'Field Tonic',
           targetLineupIndex: 0,
-          healAmount: -1,
+          effect: const BattleBagFlatHpHealEffect(-1),
         ),
         throwsA(isA<ArgumentError>()),
       );
       expect(
-        () => session.applyHyperPotionTurn(
+        () => session.applyBagHpHealItemTurn(
+          itemId: 'field-tonic',
+          displayName: 'Field Tonic',
           targetLineupIndex: 0,
-          healAmount: 0,
+          effect: const BattleBagFlatHpHealEffect(0),
         ),
         throwsA(isA<ArgumentError>()),
       );

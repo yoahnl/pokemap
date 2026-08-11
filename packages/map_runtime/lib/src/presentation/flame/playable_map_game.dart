@@ -7963,43 +7963,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return true;
       }
 
-      // Lots 9-e à 9-h gardent `PlayableMapGame` comme propriétaire honnête
-      // du runtime autour du moteur battle :
-      // - le moteur battle produit un `currentTurn` et une timeline honnêtes ;
-      // - le runtime reste propriétaire du bag réel et du write-back party ;
-      // - on reste borné à `Potion` + `Super Potion` + `Hyper Potion` + `Max Potion`,
-      //   sans API item générique.
-      final result = switch (action.itemId) {
-        'potion' => tryApplyRuntimeBattlePotionUse(
-            session: battleSession,
-            gameState: _battleRuntimeGameState,
-            context: activeBattleContext,
-            targetLineupIndex: entry.lineupIndex,
-            itemCatalog: _itemCatalogSnapshot,
-          ),
-        'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
-            session: battleSession,
-            gameState: _battleRuntimeGameState,
-            context: activeBattleContext,
-            targetLineupIndex: entry.lineupIndex,
-            itemCatalog: _itemCatalogSnapshot,
-          ),
-        'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
-            session: battleSession,
-            gameState: _battleRuntimeGameState,
-            context: activeBattleContext,
-            targetLineupIndex: entry.lineupIndex,
-            itemCatalog: _itemCatalogSnapshot,
-          ),
-        'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
-            session: battleSession,
-            gameState: _battleRuntimeGameState,
-            context: activeBattleContext,
-            targetLineupIndex: entry.lineupIndex,
-            itemCatalog: _itemCatalogSnapshot,
-          ),
-        _ => null,
-      };
+      final result = tryApplyRuntimeBattleItemUse(
+        session: battleSession,
+        gameState: _battleRuntimeGameState,
+        context: activeBattleContext,
+        itemId: action.itemId,
+        targetLineupIndex: entry.lineupIndex,
+        itemCatalog: _itemCatalogSnapshot,
+      );
       if (result == null) {
         return false;
       }

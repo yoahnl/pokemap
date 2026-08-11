@@ -5,40 +5,24 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'runtime_battle_outcome_apply.dart';
 import 'runtime_psdk_battle_session_adapter.dart';
 
-class RuntimeBattleBagHpHealItemApplyResult {
-  const RuntimeBattleBagHpHealItemApplyResult({
+class RuntimeBattleItemApplyResult {
+  const RuntimeBattleItemApplyResult({
     required this.updatedSession,
     required this.updatedGameState,
-    required this.itemKind,
+    required this.itemId,
     required this.targetSpeciesId,
     required this.targetLineupIndex,
-    required this.healedAmount,
+    required this.appliedAmount,
+    required this.consumptionReceipt,
   });
 
   final BattleSession updatedSession;
   final GameState updatedGameState;
-  final BattleBagHpHealItemKind itemKind;
+  final String itemId;
   final String targetSpeciesId;
   final int targetLineupIndex;
-  final int healedAmount;
-}
-
-class RuntimePsdkBattleBagHpHealItemApplyResult {
-  const RuntimePsdkBattleBagHpHealItemApplyResult({
-    required this.updatedDisplaySession,
-    required this.updatedGameState,
-    required this.itemKind,
-    required this.targetSpeciesId,
-    required this.targetLineupIndex,
-    required this.healedAmount,
-  });
-
-  final BattleSession updatedDisplaySession;
-  final GameState updatedGameState;
-  final BattleBagHpHealItemKind itemKind;
-  final String targetSpeciesId;
-  final int targetLineupIndex;
-  final int healedAmount;
+  final int appliedAmount;
+  final ItemConsumptionReceipt consumptionReceipt;
 }
 
 class RuntimePsdkBattleItemApplyResult {
@@ -65,147 +49,24 @@ class RuntimePsdkBattleItemApplyResult {
 
 enum RuntimeBattleItemEffectKind { healHp, cureStatus, revive, restorePp }
 
-/// Runtime owner du mini-slice BAG HP-heal battle.
-///
-/// Le renommage reste utile au lot 9-h :
-/// - avec `Potion` + `Super Potion` + `Hyper Potion` + `Max Potion`, le nom
-///   historique `runtime_battle_potion_apply.dart` serait trop mensonger ;
-/// - le blast radius reste raisonnable car ce seam n'est importé qu'en
-///   interne par le runtime et ses tests ;
-/// - on reste malgré tout strictement borné à quatre objets, pas à une famille
-///   ouverte de medicines.
-RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattlePotionUse({
+RuntimeBattleItemApplyResult? tryApplyRuntimeBattleItemUse({
   required BattleSession session,
-  required GameState gameState,
-  required RuntimeActiveBattleContext context,
-  required int targetLineupIndex,
-  required ItemCatalogSnapshot itemCatalog,
-}) {
-  return _tryApplyRuntimeBattleBagHpHealItemUse(
-    session: session,
-    gameState: gameState,
-    context: context,
-    itemSpec: _runtimeItemSpec(
-      BattleBagHpHealItemKind.potion,
-      itemCatalog,
-    ),
-    targetLineupIndex: targetLineupIndex,
-  );
-}
-
-/// Support explicite ajouté par le lot 9-f.
-///
-/// On garde une façade par objet pour ne pas vendre une API runtime "tous
-/// items", même si l'implémentation partage le cœur avec `Potion`.
-RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleSuperPotionUse({
-  required BattleSession session,
-  required GameState gameState,
-  required RuntimeActiveBattleContext context,
-  required int targetLineupIndex,
-  required ItemCatalogSnapshot itemCatalog,
-}) {
-  return _tryApplyRuntimeBattleBagHpHealItemUse(
-    session: session,
-    gameState: gameState,
-    context: context,
-    itemSpec: _runtimeItemSpec(
-      BattleBagHpHealItemKind.superPotion,
-      itemCatalog,
-    ),
-    targetLineupIndex: targetLineupIndex,
-  );
-}
-
-/// Support explicite ajouté par le lot 9-g.
-///
-/// Le runtime expose toujours une façade par objet pour éviter toute ambiguïté
-/// produit :
-/// - pas de registre d'items ;
-/// - pas de `itemId` arbitraire côté API publique ;
-/// - seulement le troisième objet explicitement demandé.
-RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleHyperPotionUse({
-  required BattleSession session,
-  required GameState gameState,
-  required RuntimeActiveBattleContext context,
-  required int targetLineupIndex,
-  required ItemCatalogSnapshot itemCatalog,
-}) {
-  return _tryApplyRuntimeBattleBagHpHealItemUse(
-    session: session,
-    gameState: gameState,
-    context: context,
-    itemSpec: _runtimeItemSpec(
-      BattleBagHpHealItemKind.hyperPotion,
-      itemCatalog,
-    ),
-    targetLineupIndex: targetLineupIndex,
-  );
-}
-
-/// Support explicite ajouté par le lot 9-h.
-///
-/// `Max Potion` partage le même mini-slice BAG HP-heal, mais son effet reste
-/// "restore-to-full" et non un montant plat codé côté runtime.
-RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleMaxPotionUse({
-  required BattleSession session,
-  required GameState gameState,
-  required RuntimeActiveBattleContext context,
-  required int targetLineupIndex,
-  required ItemCatalogSnapshot itemCatalog,
-}) {
-  return _tryApplyRuntimeBattleBagHpHealItemUse(
-    session: session,
-    gameState: gameState,
-    context: context,
-    itemSpec: _runtimeItemSpec(
-      BattleBagHpHealItemKind.maxPotion,
-      itemCatalog,
-    ),
-    targetLineupIndex: targetLineupIndex,
-  );
-}
-
-RuntimePsdkBattleBagHpHealItemApplyResult?
-    tryApplyRuntimePsdkBattleBagHpHealItemUse({
-  required RuntimePsdkBattleSessionAdapter psdkSession,
-  required BattleSession displaySession,
   required GameState gameState,
   required RuntimeActiveBattleContext context,
   required String itemId,
   required int targetLineupIndex,
-  required bool isTrainerBattle,
   required ItemCatalogSnapshot itemCatalog,
-  String? trainerId,
-  bool allowCapture = false,
 }) {
-  final itemSpec = _runtimeItemSpecForItemId(itemId, itemCatalog);
+  final itemSpec = _runtimeHpHealItemSpecForItemId(itemId, itemCatalog);
   if (itemSpec == null) {
     return null;
   }
-  final generic = tryApplyRuntimePsdkBattleItemUse(
-    psdkSession: psdkSession,
-    displaySession: displaySession,
+  return _tryApplyRuntimeBattleHpHealItemUse(
+    session: session,
     gameState: gameState,
     context: context,
-    itemId: itemId,
+    itemSpec: itemSpec,
     targetLineupIndex: targetLineupIndex,
-    isTrainerBattle: isTrainerBattle,
-    trainerId: trainerId,
-    allowCapture: allowCapture,
-    itemCatalog: itemCatalog,
-  );
-  if (generic == null ||
-      generic.effectKind != RuntimeBattleItemEffectKind.healHp) {
-    return null;
-  }
-
-  return RuntimePsdkBattleBagHpHealItemApplyResult(
-    updatedDisplaySession: generic.updatedDisplaySession,
-    updatedGameState: generic.updatedGameState,
-    itemKind: itemSpec.kind,
-    targetSpeciesId: generic.targetSpeciesId,
-    targetLineupIndex: generic.targetLineupIndex,
-    healedAmount: generic.appliedAmount,
   );
 }
 
@@ -231,6 +92,10 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
   );
   if (!capability.isAvailable ||
       !_isSupportedBattleMedicineEffect(capability.use!.effect)) {
+    return null;
+  }
+  final definition = itemCatalog.definitionFor(itemId);
+  if (definition == null) {
     return null;
   }
   final effect = capability.use!.effect;
@@ -279,6 +144,7 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
 
   final turn = psdkSession.submitBattleItem(
     itemId: itemId,
+    displayName: definition.displayName,
     targetPartyIndex: targetPartyIndex,
     effect: battleEffect,
   );
@@ -340,11 +206,11 @@ int? _runtimePartyIndexForLineup({
   return mapping[targetLineupIndex];
 }
 
-RuntimeBattleBagHpHealItemApplyResult? _tryApplyRuntimeBattleBagHpHealItemUse({
+RuntimeBattleItemApplyResult? _tryApplyRuntimeBattleHpHealItemUse({
   required BattleSession session,
   required GameState gameState,
   required RuntimeActiveBattleContext context,
-  required _RuntimeBattleBagHpHealItemSpec itemSpec,
+  required _RuntimeBattleHpHealItemSpec itemSpec,
   required int targetLineupIndex,
 }) {
   if (session.decisionRequest is! BattleTurnChoiceRequest) {
@@ -361,57 +227,56 @@ RuntimeBattleBagHpHealItemApplyResult? _tryApplyRuntimeBattleBagHpHealItemUse({
     return null;
   }
 
-  if (!_hasBagHpHealItemAvailable(
-    bag: gameState.bag,
-    itemSpec: itemSpec,
-  )) {
+  final runtimePartyIndex = _runtimePartyIndexForLineup(
+    context: context,
+    targetLineupIndex: targetLineupIndex,
+  );
+  if (runtimePartyIndex == null) {
     return null;
   }
-
-  final healedCombatant = switch (itemSpec.effect) {
-    BattleBagFlatHpHealEffect(:final amount) => targetCombatant.withHeal(
-        amount,
-      ),
-    BattleBagRestoreToFullHpHealEffect() => targetCombatant.withHeal(
-        targetCombatant.maxHp - targetCombatant.currentHp,
-      ),
-  };
-  final healedAmount = healedCombatant.currentHp - targetCombatant.currentHp;
-  if (healedAmount <= 0) {
-    return null;
-  }
-
-  final updatedSession = switch (itemSpec.kind) {
-    BattleBagHpHealItemKind.potion => session.applyPotionTurn(
-        targetLineupIndex: targetLineupIndex,
-        healAmount: (itemSpec.effect as BattleBagFlatHpHealEffect).amount,
-      ),
-    BattleBagHpHealItemKind.superPotion => session.applySuperPotionTurn(
-        targetLineupIndex: targetLineupIndex,
-        healAmount: (itemSpec.effect as BattleBagFlatHpHealEffect).amount,
-      ),
-    BattleBagHpHealItemKind.hyperPotion => session.applyHyperPotionTurn(
-        targetLineupIndex: targetLineupIndex,
-        healAmount: (itemSpec.effect as BattleBagFlatHpHealEffect).amount,
-      ),
-    BattleBagHpHealItemKind.maxPotion => session.applyMaxPotionTurn(
-        targetLineupIndex: targetLineupIndex,
-      ),
-  };
-  final updatedGameState = _applyCommittedBagHpHealItemTurnToRuntimeState(
+  final projectedGameState = writePlayerBattleLineupBackToPartySlots(
     gameState: gameState,
     context: context,
-    updatedSession: updatedSession,
-    itemSpec: itemSpec,
+    battleState: session.state,
   );
+  final itemUseResult = PlayerItemUseService(snapshot: itemSpec.catalog).use(
+    PlayerItemUseRequest(
+      state: projectedGameState,
+      itemId: itemSpec.itemId,
+      context: ProjectItemUseContext.battle,
+      partyIndex: runtimePartyIndex,
+      maxHp: targetCombatant.maxHp,
+    ),
+  );
+  final consumptionReceipt = itemUseResult.consumptionReceipt;
+  if (!itemUseResult.isSuccess || consumptionReceipt == null) {
+    return null;
+  }
 
-  return RuntimeBattleBagHpHealItemApplyResult(
+  final updatedSession = session.applyBagHpHealItemTurn(
+    itemId: itemSpec.itemId,
+    displayName: itemSpec.displayName,
+    targetLineupIndex: targetLineupIndex,
+    effect: itemSpec.effect,
+  );
+  final updatedGameState = writePlayerBattleLineupBackToPartySlots(
+    gameState: itemUseResult.state,
+    context: context,
+    battleState: updatedSession.state,
+  );
+  final targetAfter = _findPlayerCombatantByLineupIndex(
+    session: updatedSession,
+    targetLineupIndex: targetLineupIndex,
+  )!;
+
+  return RuntimeBattleItemApplyResult(
     updatedSession: updatedSession,
     updatedGameState: updatedGameState,
-    itemKind: itemSpec.kind,
-    targetSpeciesId: healedCombatant.speciesId,
-    targetLineupIndex: healedCombatant.lineupIndex,
-    healedAmount: healedAmount,
+    itemId: itemSpec.itemId,
+    targetSpeciesId: targetAfter.speciesId,
+    targetLineupIndex: targetAfter.lineupIndex,
+    appliedAmount: targetAfter.currentHp - targetCombatant.currentHp,
+    consumptionReceipt: consumptionReceipt,
   );
 }
 
@@ -429,76 +294,6 @@ BattleCombatant? _findPlayerCombatantByLineupIndex({
     }
   }
   return null;
-}
-
-// Le fil 9-d -> 9-h garde le runtime propriétaire de la vérité hors moteur :
-// - write-back réel de toute la lineup engagée ;
-// - consommation réelle du bon item de bag ;
-// - aucune divergence overlay-only.
-GameState _applyCommittedBagHpHealItemTurnToRuntimeState({
-  required GameState gameState,
-  required RuntimeActiveBattleContext context,
-  required BattleSession updatedSession,
-  required _RuntimeBattleBagHpHealItemSpec itemSpec,
-}) {
-  final withCommittedHp = writePlayerBattleLineupBackToPartySlots(
-    gameState: gameState,
-    context: context,
-    battleState: updatedSession.state,
-  );
-  return withCommittedHp.copyWith(
-    bag: _consumeOneBagHpHealItemOrThrow(
-      bag: withCommittedHp.bag,
-      itemSpec: itemSpec,
-    ),
-  );
-}
-
-bool _hasBagHpHealItemAvailable({
-  required Bag bag,
-  required _RuntimeBattleBagHpHealItemSpec itemSpec,
-}) {
-  for (final entry in bag.normalized().entries) {
-    if (entry.itemId == itemSpec.itemId && entry.quantity > 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
-Bag _consumeOneBagHpHealItemOrThrow({
-  required Bag bag,
-  required _RuntimeBattleBagHpHealItemSpec itemSpec,
-}) {
-  final nextEntries = <BagEntry>[];
-  var consumed = false;
-
-  for (final entry in bag.normalized().entries) {
-    final isRequestedItem = entry.itemId == itemSpec.itemId;
-    if (!isRequestedItem) {
-      nextEntries.add(entry);
-      continue;
-    }
-    if (consumed) {
-      nextEntries.add(entry);
-      continue;
-    }
-
-    consumed = true;
-    final nextQuantity = entry.quantity - 1;
-    if (nextQuantity > 0) {
-      nextEntries.add(entry.copyWith(quantity: nextQuantity));
-    }
-  }
-
-  if (!consumed) {
-    throw StateError(
-      'Impossible de consommer ${itemSpec.label} : aucune entrée '
-      '${itemSpec.itemId} disponible.',
-    );
-  }
-
-  return Bag(entries: nextEntries).normalized();
 }
 
 PsdkBattleItemActionEffect? _battleItemEffectFor({
@@ -594,16 +389,10 @@ int _runtimeLineupIndexFromPsdkId(String id) {
   return int.tryParse(id.substring(separator + 1)) ?? 0;
 }
 
-_RuntimeBattleBagHpHealItemSpec _runtimeItemSpec(
-  BattleBagHpHealItemKind kind,
+_RuntimeBattleHpHealItemSpec? _runtimeHpHealItemSpecForItemId(
+  String itemId,
   ItemCatalogSnapshot itemCatalog,
 ) {
-  final itemId = switch (kind) {
-    BattleBagHpHealItemKind.potion => 'potion',
-    BattleBagHpHealItemKind.superPotion => 'super-potion',
-    BattleBagHpHealItemKind.hyperPotion => 'hyper-potion',
-    BattleBagHpHealItemKind.maxPotion => 'max-potion',
-  };
   final definition = itemCatalog.definitionFor(itemId);
   final use = ItemCapabilityResolver(itemCatalog).resolveUse(
     itemId: itemId,
@@ -611,44 +400,28 @@ _RuntimeBattleBagHpHealItemSpec _runtimeItemSpec(
   );
   final effect = use.use?.effect;
   if (definition == null || effect is! ProjectItemHealHpEffectDefinition) {
-    throw StateError('Missing canonical battle HP-heal definition: $itemId.');
+    return null;
   }
-  return _RuntimeBattleBagHpHealItemSpec(
-    kind: kind,
+  return _RuntimeBattleHpHealItemSpec(
+    catalog: itemCatalog,
     itemId: itemId,
-    label: definition.displayName,
+    displayName: definition.displayName,
     effect: effect.mode == ProjectItemAmountMode.full
         ? const BattleBagRestoreToFullHpHealEffect()
         : BattleBagFlatHpHealEffect(effect.amount!),
   );
 }
 
-_RuntimeBattleBagHpHealItemSpec? _runtimeItemSpecForItemId(
-  String itemId,
-  ItemCatalogSnapshot itemCatalog,
-) {
-  return switch (itemId) {
-    'potion' => _runtimeItemSpec(BattleBagHpHealItemKind.potion, itemCatalog),
-    'super-potion' =>
-      _runtimeItemSpec(BattleBagHpHealItemKind.superPotion, itemCatalog),
-    'hyper-potion' =>
-      _runtimeItemSpec(BattleBagHpHealItemKind.hyperPotion, itemCatalog),
-    'max-potion' =>
-      _runtimeItemSpec(BattleBagHpHealItemKind.maxPotion, itemCatalog),
-    _ => null,
-  };
-}
-
-class _RuntimeBattleBagHpHealItemSpec {
-  const _RuntimeBattleBagHpHealItemSpec({
-    required this.kind,
+class _RuntimeBattleHpHealItemSpec {
+  const _RuntimeBattleHpHealItemSpec({
+    required this.catalog,
     required this.itemId,
-    required this.label,
+    required this.displayName,
     required this.effect,
   });
 
-  final BattleBagHpHealItemKind kind;
+  final ItemCatalogSnapshot catalog;
   final String itemId;
-  final String label;
+  final String displayName;
   final BattleBagHpHealEffect effect;
 }

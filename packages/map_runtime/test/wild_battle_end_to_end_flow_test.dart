@@ -1040,15 +1040,15 @@ void main() {
       expect(
         currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.potion),
+          equals('potion'),
         ),
       );
       expect(currentTurn.bagHpHealItemEvents, hasLength(1));
       expect(
-        currentTurn.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.potion),
+        currentTurn.bagHpHealItemEvents.single.itemId,
+        equals('potion'),
       );
       expect(
         currentTurn.bagHpHealItemEvents.single.hpAfter,
@@ -1154,15 +1154,15 @@ void main() {
       expect(
         currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.superPotion),
+          equals('super-potion'),
         ),
       );
       expect(currentTurn.bagHpHealItemEvents, hasLength(1));
       expect(
-        currentTurn.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.superPotion),
+        currentTurn.bagHpHealItemEvents.single.itemId,
+        equals('super-potion'),
       );
       expect(
         currentTurn.bagHpHealItemEvents.single.hpAfter,
@@ -1268,15 +1268,15 @@ void main() {
       expect(
         currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.hyperPotion),
+          equals('hyper-potion'),
         ),
       );
       expect(currentTurn.bagHpHealItemEvents, hasLength(1));
       expect(
-        currentTurn.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.hyperPotion),
+        currentTurn.bagHpHealItemEvents.single.itemId,
+        equals('hyper-potion'),
       );
       expect(
         currentTurn.bagHpHealItemEvents.single.hpAfter,
@@ -1380,9 +1380,9 @@ void main() {
         currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>()
             .having(
-              (action) => action.itemKind,
+              (action) => action.itemId,
               'itemKind',
-              equals(BattleBagHpHealItemKind.maxPotion),
+              equals('max-potion'),
             )
             .having(
               (action) => action.effect,
@@ -1392,8 +1392,8 @@ void main() {
       );
       expect(currentTurn.bagHpHealItemEvents, hasLength(1));
       expect(
-        currentTurn.bagHpHealItemEvents.single.itemKind,
-        equals(BattleBagHpHealItemKind.maxPotion),
+        currentTurn.bagHpHealItemEvents.single.itemId,
+        equals('max-potion'),
       );
       expect(
         currentTurn.bagHpHealItemEvents.single.hpAfter,

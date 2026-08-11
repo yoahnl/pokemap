@@ -205,10 +205,11 @@ PsdkBattleMoveData _psdkMove({
 }
 
 void main() {
-  group('tryApplyRuntimeBattleBagHpHealItemUse', () {
+  group('tryApplyRuntimeBattleItemUse', () {
     test('potion heals a damaged active target by 20 and consumes one item',
         () {
-      final result = tryApplyRuntimeBattlePotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -242,14 +243,14 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(20));
+      expect(result!.appliedAmount, equals(20));
       expect(result.updatedSession.state.currentTurn, isNotNull);
       expect(
         result.updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.potion),
+          equals('potion'),
         ),
       );
       expect(result.updatedSession.state.player.currentHp, equals(32));
@@ -263,7 +264,8 @@ void main() {
     });
 
     test('potion heal is capped at max hp', () {
-      final result = tryApplyRuntimeBattlePotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -297,7 +299,7 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(5));
+      expect(result!.appliedAmount, equals(5));
       expect(result.updatedSession.state.currentTurn, isNotNull);
       expect(result.updatedSession.state.player.currentHp, equals(40));
       expect(result.updatedGameState.party.members.first.currentHp, equals(40));
@@ -306,7 +308,8 @@ void main() {
     test(
         'super potion heals a damaged active target by 50 and consumes only super potion',
         () {
-      final result = tryApplyRuntimeBattleSuperPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'super-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -344,13 +347,13 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(50));
+      expect(result!.appliedAmount, equals(50));
       expect(
         result.updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.superPotion),
+          equals('super-potion'),
         ),
       );
       expect(result.updatedSession.state.player.currentHp, equals(62));
@@ -368,7 +371,8 @@ void main() {
     });
 
     test('super potion heal is capped at max hp', () {
-      final result = tryApplyRuntimeBattleSuperPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'super-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -405,7 +409,7 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(20));
+      expect(result!.appliedAmount, equals(20));
       expect(result.updatedSession.state.player.currentHp, equals(80));
       expect(result.updatedGameState.party.members.first.currentHp, equals(80));
       expect(result.updatedGameState.bag.entries, isEmpty);
@@ -414,7 +418,8 @@ void main() {
     test(
         'hyper potion heals a damaged active target by 120 and consumes only hyper potion',
         () {
-      final result = tryApplyRuntimeBattleHyperPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'hyper-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -456,13 +461,13 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(120));
+      expect(result!.appliedAmount, equals(120));
       expect(
         result.updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.hyperPotion),
+          equals('hyper-potion'),
         ),
       );
       expect(result.updatedSession.state.player.currentHp, equals(132));
@@ -487,7 +492,8 @@ void main() {
     });
 
     test('hyper potion heal is capped at max hp', () {
-      final result = tryApplyRuntimeBattleHyperPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'hyper-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -524,7 +530,7 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(70));
+      expect(result!.appliedAmount, equals(70));
       expect(result.updatedSession.state.player.currentHp, equals(260));
       expect(
           result.updatedGameState.party.members.first.currentHp, equals(260));
@@ -534,7 +540,8 @@ void main() {
     test(
         'max potion heals a damaged active target to max hp and consumes only max potion',
         () {
-      final result = tryApplyRuntimeBattleMaxPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'max-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -580,14 +587,14 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(248));
+      expect(result!.appliedAmount, equals(248));
       expect(
         result.updatedSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>()
             .having(
-              (action) => action.itemKind,
+              (action) => action.itemId,
               'itemKind',
-              equals(BattleBagHpHealItemKind.maxPotion),
+              equals('max-potion'),
             )
             .having(
               (action) => action.effect,
@@ -621,7 +628,8 @@ void main() {
     });
 
     test('max potion removes the bag entry when quantity reaches zero', () {
-      final result = tryApplyRuntimeBattleMaxPotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'max-potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -658,7 +666,7 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(70));
+      expect(result!.appliedAmount, equals(70));
       expect(result.updatedSession.state.player.currentHp, equals(260));
       expect(
           result.updatedGameState.party.members.first.currentHp, equals(260));
@@ -668,7 +676,8 @@ void main() {
     test(
         'potion use removes the bag entry when quantity reaches zero and targets the intended reserve by lineup identity',
         () {
-      final result = tryApplyRuntimeBattlePotionUse(
+      final result = tryApplyRuntimeBattleItemUse(
+        itemId: 'potion',
         session: _session(
           player: _combatant(
             speciesId: 'sproutle',
@@ -714,7 +723,7 @@ void main() {
       );
 
       expect(result, isNotNull);
-      expect(result!.healedAmount, equals(5));
+      expect(result!.appliedAmount, equals(5));
       expect(result.updatedSession.state.currentTurn, isNotNull);
       expect(result.updatedSession.state.player.currentHp, equals(22));
       expect(
@@ -753,7 +762,8 @@ void main() {
       );
 
       expect(
-        tryApplyRuntimeBattlePotionUse(
+        tryApplyRuntimeBattleItemUse(
+          itemId: 'potion',
           session: fullHpSession,
           gameState: fullHpState,
           context: _context(
@@ -795,7 +805,8 @@ void main() {
       );
 
       expect(
-        tryApplyRuntimeBattlePotionUse(
+        tryApplyRuntimeBattleItemUse(
+          itemId: 'potion',
           session: faintedSession,
           gameState: faintedState,
           context: _context(
@@ -839,7 +850,8 @@ void main() {
       );
 
       expect(
-        tryApplyRuntimeBattleMaxPotionUse(
+        tryApplyRuntimeBattleItemUse(
+          itemId: 'max-potion',
           session: fullHpSession,
           gameState: fullHpState,
           context: _context(
@@ -881,7 +893,8 @@ void main() {
       );
 
       expect(
-        tryApplyRuntimeBattleMaxPotionUse(
+        tryApplyRuntimeBattleItemUse(
+          itemId: 'max-potion',
           session: faintedSession,
           gameState: faintedState,
           context: _context(
@@ -901,35 +914,35 @@ void main() {
     test('PSDK HP medicines update battle state and runtime bag', () {
       const cases = <({
         String itemId,
-        BattleBagHpHealItemKind kind,
+        String kind,
         int currentHp,
         int maxHp,
         int expectedHp,
       })>[
         (
           itemId: 'potion',
-          kind: BattleBagHpHealItemKind.potion,
+          kind: 'potion',
           currentHp: 30,
           maxHp: 100,
           expectedHp: 50,
         ),
         (
           itemId: 'super-potion',
-          kind: BattleBagHpHealItemKind.superPotion,
+          kind: 'super-potion',
           currentHp: 30,
           maxHp: 100,
           expectedHp: 80,
         ),
         (
           itemId: 'hyper-potion',
-          kind: BattleBagHpHealItemKind.hyperPotion,
+          kind: 'hyper-potion',
           currentHp: 30,
           maxHp: 100,
           expectedHp: 100,
         ),
         (
           itemId: 'max-potion',
-          kind: BattleBagHpHealItemKind.maxPotion,
+          kind: 'max-potion',
           currentHp: 30,
           maxHp: 100,
           expectedHp: 100,
@@ -945,7 +958,7 @@ void main() {
           isTrainerBattle: true,
           trainerId: 'trainer',
         );
-        final result = tryApplyRuntimePsdkBattleBagHpHealItemUse(
+        final result = tryApplyRuntimePsdkBattleItemUse(
           psdkSession: psdkSession,
           displaySession: displaySession,
           gameState: _gameState(
@@ -976,7 +989,7 @@ void main() {
         );
 
         expect(result, isNotNull, reason: itemCase.itemId);
-        expect(result!.itemKind, itemCase.kind);
+        expect(result!.itemId, itemCase.kind);
         expect(result.updatedDisplaySession.state.player.currentHp,
             itemCase.expectedHp);
         expect(result.updatedGameState.party.members.first.currentHp,
@@ -1032,7 +1045,8 @@ void main() {
           ),
         );
         final legacyResult = switch (itemId) {
-          'potion' => tryApplyRuntimeBattlePotionUse(
+          'potion' => tryApplyRuntimeBattleItemUse(
+              itemId: 'potion',
               session: legacySession,
               gameState: state,
               context: _context(
@@ -1042,7 +1056,8 @@ void main() {
               targetLineupIndex: 0,
               itemCatalog: _itemCatalog,
             ),
-          'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+          'super-potion' => tryApplyRuntimeBattleItemUse(
+              itemId: 'super-potion',
               session: legacySession,
               gameState: state,
               context: _context(
@@ -1052,7 +1067,8 @@ void main() {
               targetLineupIndex: 0,
               itemCatalog: _itemCatalog,
             ),
-          'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+          'hyper-potion' => tryApplyRuntimeBattleItemUse(
+              itemId: 'hyper-potion',
               session: legacySession,
               gameState: state,
               context: _context(
@@ -1062,7 +1078,8 @@ void main() {
               targetLineupIndex: 0,
               itemCatalog: _itemCatalog,
             ),
-          'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
+          'max-potion' => tryApplyRuntimeBattleItemUse(
+              itemId: 'max-potion',
               session: legacySession,
               gameState: state,
               context: _context(
@@ -1075,7 +1092,7 @@ void main() {
           _ => null,
         };
         final psdkSession = _psdkSession(currentHp: 30, maxHp: 250);
-        final psdkResult = tryApplyRuntimePsdkBattleBagHpHealItemUse(
+        final psdkResult = tryApplyRuntimePsdkBattleItemUse(
           psdkSession: psdkSession,
           displaySession: psdkSession.createLegacyDisplaySession(
             isTrainerBattle: true,
@@ -1099,8 +1116,8 @@ void main() {
           expectedDelta,
           reason: itemId,
         );
-        expect(legacyResult!.healedAmount, expectedDelta, reason: itemId);
-        expect(psdkResult!.healedAmount, expectedDelta, reason: itemId);
+        expect(legacyResult!.appliedAmount, expectedDelta, reason: itemId);
+        expect(psdkResult!.appliedAmount, expectedDelta, reason: itemId);
         expect(
           buildBattleTurnLinesForOverlay(
             legacyResult.updatedSession.state.currentTurn!,
@@ -1140,7 +1157,7 @@ void main() {
         ],
       );
 
-      final result = tryApplyRuntimePsdkBattleBagHpHealItemUse(
+      final result = tryApplyRuntimePsdkBattleItemUse(
         psdkSession: psdkSession,
         displaySession: displaySession,
         gameState: gameState,

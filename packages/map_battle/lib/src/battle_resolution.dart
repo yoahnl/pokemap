@@ -225,18 +225,10 @@ final class BattleCaptureAttemptEvent {
   int get shakes => caught ? 4 : 0;
 }
 
-/// Trace visible d'un vrai usage de `Potion`, `Super Potion` ou
-/// `Hyper Potion`.
-///
-/// La factorisation reste honnête parce qu'elle est bornée par
-/// [BattleBagHpHealItemKind] :
-/// - pas d'`itemId` arbitraire ;
-/// - pas de registre d'objets ;
-/// - seulement les données nécessaires pour raconter les trois objets de soin
-///   HP plats réellement supportés à ce stade.
 final class BattleBagHpHealItemEvent {
   const BattleBagHpHealItemEvent({
-    required this.itemKind,
+    required this.itemId,
+    required this.displayName,
     required this.side,
     required this.targetLineupIndex,
     required this.targetSpeciesId,
@@ -244,7 +236,8 @@ final class BattleBagHpHealItemEvent {
     required this.hpAfter,
   });
 
-  final BattleBagHpHealItemKind itemKind;
+  final String itemId;
+  final String displayName;
   final BattleSideId side;
   final int targetLineupIndex;
   final String targetSpeciesId;

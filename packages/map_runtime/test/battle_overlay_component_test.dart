@@ -8,7 +8,6 @@ import 'package:flame/components.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
-import 'package:map_gameplay/src/direction.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
 import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
@@ -1730,7 +1729,8 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
         onBagHpHealItemUseRequested: (action, entry) {
           final result = switch (action.itemId) {
-            'potion' => tryApplyRuntimeBattlePotionUse(
+            'potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1753,7 +1753,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            'super-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'super-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1776,7 +1777,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            'hyper-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'hyper-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1827,9 +1829,9 @@ void main() {
       expect(
         overlay.debugSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.potion),
+          equals('potion'),
         ),
       );
       expect(overlay.debugSession.state.player.currentHp, equals(32));
@@ -1894,7 +1896,8 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
         onBagHpHealItemUseRequested: (action, entry) {
           final result = switch (action.itemId) {
-            'potion' => tryApplyRuntimeBattlePotionUse(
+            'potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1917,7 +1920,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            'super-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'super-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1940,7 +1944,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            'hyper-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'hyper-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -1992,9 +1997,9 @@ void main() {
       expect(
         overlay.debugSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.potion),
+          equals('potion'),
         ),
       );
       expect(overlay.debugSession.state.player.currentHp, equals(22));
@@ -2049,7 +2054,8 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
         onBagHpHealItemUseRequested: (action, entry) {
           final result = switch (action.itemId) {
-            'potion' => tryApplyRuntimeBattlePotionUse(
+            'potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2072,7 +2078,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            'super-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'super-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2095,7 +2102,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            'hyper-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'hyper-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2147,9 +2155,9 @@ void main() {
       expect(
         overlay.debugSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.superPotion),
+          equals('super-potion'),
         ),
       );
       expect(overlay.debugSession.state.player.currentHp, equals(72));
@@ -2207,7 +2215,8 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
         onBagHpHealItemUseRequested: (action, entry) {
           final result = switch (action.itemId) {
-            'potion' => tryApplyRuntimeBattlePotionUse(
+            'potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2230,7 +2239,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            'super-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'super-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2253,7 +2263,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            'hyper-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'hyper-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2305,9 +2316,9 @@ void main() {
       expect(
         overlay.debugSession.state.currentTurn!.playerAction,
         isA<BattleActionBagHpHealItemUse>().having(
-          (action) => action.itemKind,
+          (action) => action.itemId,
           'itemKind',
-          equals(BattleBagHpHealItemKind.hyperPotion),
+          equals('hyper-potion'),
         ),
       );
       expect(overlay.debugSession.state.player.currentHp, equals(142));
@@ -2368,7 +2379,8 @@ void main() {
         onPlayerChoice: (choice) => pickedChoice = choice,
         onBagHpHealItemUseRequested: (action, entry) {
           final result = switch (action.itemId) {
-            'potion' => tryApplyRuntimeBattlePotionUse(
+            'potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2391,7 +2403,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            'super-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'super-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2414,7 +2427,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            'hyper-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'hyper-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2437,7 +2451,8 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
                 itemCatalog: _itemCatalog,
               ),
-            'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
+            'max-potion' => tryApplyRuntimeBattleItemUse(
+                itemId: 'max-potion',
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: RuntimeActiveBattleContext.withLineupMapping(
@@ -2491,9 +2506,9 @@ void main() {
         playerAction,
         isA<BattleActionBagHpHealItemUse>()
             .having(
-              (action) => action.itemKind,
+              (action) => action.itemId,
               'itemKind',
-              equals(BattleBagHpHealItemKind.maxPotion),
+              equals('max-potion'),
             )
             .having(
               (action) => action.effect,

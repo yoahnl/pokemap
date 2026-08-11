@@ -98,7 +98,7 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
       case BattleTurnBagHpHealItemEvent(:final event):
         final actor = _overlayCombatantLabelForSide(event.side);
         lines.add(
-          '$actor utilise ${event.itemKind.label} sur ${event.targetSpeciesId}',
+          '$actor utilise ${event.displayName} sur ${event.targetSpeciesId}',
         );
         lines.add('${event.targetSpeciesId} récupère ${event.healedAmount} PV');
       case BattleTurnCaptureAttemptEvent(:final event):

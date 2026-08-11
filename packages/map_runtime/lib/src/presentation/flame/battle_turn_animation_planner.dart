@@ -135,7 +135,7 @@ final class BattleTurnAnimationPlanner {
           steps.add(
             ShowMessageStep(
               message:
-                  '${_presentationCombatantLabel(event.side)} utilise ${event.itemKind.label} sur ${event.targetSpeciesId} !',
+                  '${_presentationCombatantLabel(event.side)} utilise ${event.displayName} sur ${event.targetSpeciesId} !',
             ),
           );
           final visibleTargetSide = event.side == BattleSideId.player &&

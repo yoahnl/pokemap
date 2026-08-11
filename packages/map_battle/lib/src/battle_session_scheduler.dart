@@ -486,9 +486,10 @@ void _executeActionQueueStep({
 
   if (step.action
       case BattleActionBagHpHealItemUse(
-        :final itemKind,
+        :final itemId,
+        :final displayName,
         :final targetLineupIndex,
-        :final resolvedEffect,
+        :final effect,
       )) {
     if (step.side != BattleSideId.player) {
       throw StateError(
@@ -497,10 +498,11 @@ void _executeActionQueueStep({
     }
 
     final resolution = session._resolveBagHpHealItemUseAction(
-      itemKind: itemKind,
+      itemId: itemId,
+      displayName: displayName,
       side: actingSide,
       targetLineupIndex: targetLineupIndex,
-      effect: resolvedEffect,
+      effect: effect,
     );
     turn.updateSide(step.side, resolution.side);
     turn.bagHpHealItemEvents.add(resolution.event);
