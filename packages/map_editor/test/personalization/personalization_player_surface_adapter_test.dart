@@ -237,6 +237,66 @@ void main() {
     );
   });
 
+  testWidgets('closes stale detail and restores focus after a draft update', (
+    tester,
+  ) async {
+    var profile = const ProjectPresentationProfile(
+      theme: safeProjectSemanticTheme,
+    );
+    late StateSetter updateHost;
+    await tester.pumpWidget(
+      _app(
+        StatefulBuilder(
+          builder: (context, setState) {
+            updateHost = setState;
+            return PersonalizationPlayerSurfaceAdapter(
+              profile: profile,
+              projectName: 'Aube',
+              projectRootPath: '',
+              scene: PersonalizationStudioScene.pause,
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('pause.party')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('player-pause-preview-detail-party')),
+      findsOneWidget,
+    );
+
+    updateHost(() {
+      profile = profile.copyWith(
+        pause: ProjectPausePresentationProfile(
+          actions: <ProjectPauseActionProfile>[
+            for (final action in defaultProjectPauseActions)
+              action.id == ProjectPauseActionId.party
+                  ? action.copyWith(visible: false)
+                  : action,
+          ],
+        ),
+      );
+    });
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('player-pause-preview-detail-party')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey<String>('pause.party')), findsNothing);
+    expect(find.byType(PlayerPausePreviewShell), findsOneWidget);
+    expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
+    expect(find.byType(PlayerPauseSurface), findsOneWidget);
+    final resume = tester.widget<PlayerActionButton>(
+      find.byKey(const ValueKey<String>('pause.resume')),
+    );
+    expect(resume.selected, isTrue);
+    expect(FocusManager.instance.primaryFocus, same(resume.focusNode));
+  });
+
   testWidgets(
     'uses the authored prompt and menu loops in their real surfaces',
     (tester) async {
