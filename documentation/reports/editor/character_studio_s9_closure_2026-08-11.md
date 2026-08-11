@@ -279,3 +279,7 @@ Les preuves applicables de chaque lot S9 sont présentes et vertes. Le build pro
 ## Décision
 
 Les lots CHS-050, CHS-051, CHS-052, CHS-053 et CHS-054 satisfont leurs critères applicables avec preuves fraîches. S9 et la phase 5 Character Studio sont proposés `DONE`, avec les dettes globales ci-dessus explicitement hors périmètre et non masquées.
+
+## État Git final
+
+Après les commits de clôture et la dernière vérification, `git status --short --untracked-files=all` est vide. Le worktree ne contient aucun changement suivi ou non suivi en attente.
