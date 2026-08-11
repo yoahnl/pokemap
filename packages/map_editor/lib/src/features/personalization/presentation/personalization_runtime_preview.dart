@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_player_ui/map_player_ui.dart';
 
 import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_preview_projection.dart';
@@ -8,6 +11,7 @@ import '../application/personalization_preview_surface_descriptor.dart';
 import 'personalization_preview_canvas.dart';
 import 'personalization_preview_controls.dart';
 import 'personalization_player_surface_adapter.dart';
+import 'personalization_title_preview_controls.dart';
 
 /// Runtime-shaped preview surface driven by the current presentation draft.
 ///
@@ -44,6 +48,10 @@ class _PersonalizationRuntimePreviewState
   double _textScale = 1;
   bool _reducedMotion = false;
   bool _comparisonEnabled = false;
+  PersonalizationTitlePreviewStage _titleStage =
+      PersonalizationTitlePreviewStage.menu;
+  final PlayerTitleMotionController _titleMotionController =
+      PlayerTitleMotionController();
 
   @override
   void initState() {
@@ -58,11 +66,18 @@ class _PersonalizationRuntimePreviewState
     if (oldWidget.initialSurface != widget.initialSurface) {
       _surface = widget.initialSurface;
       _comparisonEnabled = false;
+      unawaited(_titleMotionController.releasePlayback());
     }
     if (oldWidget.initialViewport != widget.initialViewport) {
       _viewport = widget.initialViewport;
       _comparisonEnabled = false;
     }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_titleMotionController.releasePlayback());
+    super.dispose();
   }
 
   @override
@@ -125,8 +140,7 @@ class _PersonalizationRuntimePreviewState
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
                   isSelected: _surface == descriptor.surface,
-                  onPressed: () =>
-                      setState(() => _surface = descriptor.surface),
+                  onPressed: () => _selectSurface(descriptor.surface),
                   child: Text(descriptor.label),
                 ),
             ],
@@ -142,6 +156,13 @@ class _PersonalizationRuntimePreviewState
               _comparisonEnabled = value.comparisonEnabled;
             }),
           ),
+          if (_surface == PersonalizationStudioScene.title) ...<Widget>[
+            const SizedBox(height: 12),
+            PersonalizationTitlePreviewControls(
+              stage: _titleStage,
+              onChanged: (stage) => setState(() => _titleStage = stage),
+            ),
+          ],
           const SizedBox(height: 12),
           PersonalizationPreviewCanvas(
             scenario: scenario,
@@ -164,5 +185,14 @@ class _PersonalizationRuntimePreviewState
     scene: scene,
     aspectRatio: aspectRatio,
     reducedMotion: reducedMotion,
+    titleStage: _titleStage,
+    titleMotionController: _comparisonEnabled ? null : _titleMotionController,
+    allowMediaPlayback: !_comparisonEnabled,
   );
+
+  void _selectSurface(PersonalizationStudioScene surface) {
+    if (_surface == surface) return;
+    unawaited(_titleMotionController.releasePlayback());
+    setState(() => _surface = surface);
+  }
 }

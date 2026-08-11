@@ -5,6 +5,25 @@ import 'package:flutter/material.dart';
 import 'player_intro_video_player.dart';
 import 'player_startup_media.dart';
 
+final class PlayerTitleMotionController {
+  Future<void> Function()? _releaseHandler;
+
+  Future<void> releasePlayback() =>
+      _releaseHandler?.call() ?? Future<void>.value();
+
+  void _attach(Future<void> Function() releaseHandler) {
+    final previous = _releaseHandler;
+    if (previous != null && previous != releaseHandler) {
+      unawaited(previous());
+    }
+    _releaseHandler = releaseHandler;
+  }
+
+  void _detach(Future<void> Function() releaseHandler) {
+    if (_releaseHandler == releaseHandler) _releaseHandler = null;
+  }
+}
+
 /// Silent looping motion used behind the title prompt and title menu.
 ///
 /// The poster remains visible until the decoder is ready and becomes the
@@ -13,12 +32,14 @@ class PlayerTitleMotion extends StatefulWidget {
   const PlayerTitleMotion({
     super.key,
     required this.source,
+    this.controller,
     this.poster,
     this.driverFactory,
     this.reducedMotion = false,
   });
 
   final PlayerIntroVideoSource? source;
+  final PlayerTitleMotionController? controller;
   final ImageProvider? poster;
   final PlayerIntroPlaybackFactory? driverFactory;
   final bool reducedMotion;
@@ -33,40 +54,65 @@ class _PlayerTitleMotionState extends State<PlayerTitleMotion>
   PlayerIntroPlaybackSnapshot _snapshot = const PlayerIntroPlaybackSnapshot();
   int _generation = 0;
   bool _lifecycleActive = true;
+  bool _releasedByHost = false;
+  Future<void> _mediaTransition = Future<void>.value();
 
   bool get _canPlay =>
-      widget.source != null && widget.source!.looping && !widget.reducedMotion;
+      widget.source != null &&
+      widget.source!.looping &&
+      !widget.reducedMotion &&
+      !_releasedByHost;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.controller?._attach(_releasePlayback);
     if (_canPlay) _start();
   }
 
   @override
   void didUpdateWidget(PlayerTitleMotion oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.controller, widget.controller)) {
+      oldWidget.controller?._detach(_releasePlayback);
+      widget.controller?._attach(_releasePlayback);
+    }
     final sourceChanged =
         oldWidget.source?.videoUri != widget.source?.videoUri ||
+            oldWidget.source?.looping != widget.source?.looping ||
             oldWidget.source?.aspectRatio != widget.source?.aspectRatio ||
             oldWidget.source?.focalX != widget.source?.focalX ||
             oldWidget.source?.focalY != widget.source?.focalY;
     if (sourceChanged || oldWidget.reducedMotion != widget.reducedMotion) {
-      _replace();
+      _releasedByHost = false;
+      unawaited(_replace());
     }
   }
 
-  void _replace() {
-    final previous = _driver;
-    _driver = null;
+  Future<void> _replace() async {
+    final generation = ++_generation;
+    final previous = _detachDriver();
     _snapshot = const PlayerIntroPlaybackSnapshot();
-    _generation++;
-    if (previous != null) {
-      previous.snapshots.removeListener(_synchronize);
-      unawaited(previous.dispose());
-    }
-    if (_canPlay) _start();
+    _mediaTransition = _mediaTransition.then((_) async {
+      if (previous != null) {
+        try {
+          await previous.dispose();
+        } on Object {
+          return;
+        }
+      }
+      if (!mounted || generation != _generation) return;
+      if (_canPlay) _start();
+    });
+    await _mediaTransition;
+  }
+
+  PlayerIntroPlaybackDriver? _detachDriver() {
+    final driver = _driver;
+    _driver = null;
+    driver?.snapshots.removeListener(_synchronize);
+    return driver;
   }
 
   void _start() {
@@ -79,7 +125,7 @@ class _PlayerTitleMotionState extends State<PlayerTitleMotion>
       driver.snapshots.addListener(_synchronize);
       unawaited(_initialize(driver, generation));
     } on Object {
-      // The poster is the deliberately silent, deterministic fallback.
+      _driver = null;
     }
   }
 
@@ -93,7 +139,11 @@ class _PlayerTitleMotionState extends State<PlayerTitleMotion>
       await driver.play();
     } on Object {
       if (!mounted || generation != _generation) return;
+      final failed = _detachDriver();
       setState(() => _snapshot = const PlayerIntroPlaybackSnapshot());
+      if (failed != null) {
+        unawaited(failed.dispose());
+      }
     }
   }
 
@@ -102,8 +152,10 @@ class _PlayerTitleMotionState extends State<PlayerTitleMotion>
     if (!mounted || driver == null) return;
     final next = driver.snapshots.value;
     if (next.errorDescription != null) {
-      unawaited(driver.pause());
+      _generation++;
+      _detachDriver();
       setState(() => _snapshot = const PlayerIntroPlaybackSnapshot());
+      unawaited(driver.dispose());
       return;
     }
     setState(() => _snapshot = next);
@@ -119,6 +171,19 @@ class _PlayerTitleMotionState extends State<PlayerTitleMotion>
     } else {
       unawaited(driver.pause());
     }
+  }
+
+  Future<void> _releasePlayback() async {
+    _releasedByHost = true;
+    _generation++;
+    final driver = _detachDriver();
+    if (mounted) {
+      setState(() => _snapshot = const PlayerIntroPlaybackSnapshot());
+    }
+    await _mediaTransition;
+    if (driver == null) return;
+    await driver.pause();
+    await driver.dispose();
   }
 
   @override
@@ -155,11 +220,10 @@ class _PlayerTitleMotionState extends State<PlayerTitleMotion>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.controller?._detach(_releasePlayback);
     _generation++;
-    final driver = _driver;
-    _driver = null;
+    final driver = _detachDriver();
     if (driver != null) {
-      driver.snapshots.removeListener(_synchronize);
       unawaited(driver.dispose());
     }
     super.dispose();

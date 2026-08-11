@@ -694,6 +694,17 @@ void main() {
     );
     expect(find.text('Arrêter'), findsOneWidget);
 
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-studio-scene-intro')),
+    );
+    await tester.pumpAndSettle();
+    expect(preview.stopCalls, 1);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-studio-scene-title')),
+    );
+    await tester.pumpAndSettle();
+
     final removeButton = find.byKey(
       const ValueKey<String>('branding-remove-title-music'),
     );
@@ -702,7 +713,7 @@ void main() {
     await tester.tap(removeButton);
     await tester.pumpAndSettle();
 
-    expect(preview.stopCalls, 1);
+    expect(preview.stopCalls, 2);
     expect(
       container
           .read(editorNotifierProvider)

@@ -1,8 +1,12 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
 import 'package:map_editor/src/features/personalization/presentation/personalization_player_surface_adapter.dart';
+import 'package:map_editor/src/features/personalization/presentation/personalization_title_preview_controls.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
@@ -105,6 +109,150 @@ void main() {
     expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
     expect(find.byType(PlayerBattleSurface), findsOneWidget);
   });
+
+  testWidgets(
+    'uses the authored prompt and menu loops in their real surfaces',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync('title-motion-preview-');
+      addTearDown(() => root.deleteSync(recursive: true));
+      for (final path in <String>[
+        'prompt-landscape.mp4',
+        'prompt-portrait.mp4',
+        'menu-landscape.mp4',
+        'menu-portrait.mp4',
+      ]) {
+        File('${root.path}/$path').writeAsBytesSync(<int>[0]);
+      }
+      final sources = <PlayerIntroVideoSource>[];
+      final drivers = <_PlaybackDriver>[];
+      PlayerIntroPlaybackDriver createDriver(PlayerIntroVideoSource source) {
+        sources.add(source);
+        final driver = _PlaybackDriver();
+        drivers.add(driver);
+        return driver;
+      }
+
+      const profile = ProjectPresentationProfile(
+        titleMotion: ProjectTitleMotionProfile(
+          promptLoop: ProjectResponsiveVideoProfile(
+            landscape: ProjectVideoVariantProfile(
+              videoPath: 'prompt-landscape.mp4',
+              posterPath: 'prompt-landscape.png',
+              durationMilliseconds: 1000,
+              width: 1600,
+              height: 900,
+              bitrateKbps: 1200,
+              sizeBytes: 1,
+              videoCodec: 'h264',
+            ),
+            portrait: ProjectVideoVariantProfile(
+              videoPath: 'prompt-portrait.mp4',
+              posterPath: 'prompt-portrait.png',
+              durationMilliseconds: 1000,
+              width: 900,
+              height: 1600,
+              bitrateKbps: 1200,
+              sizeBytes: 1,
+              videoCodec: 'h264',
+            ),
+          ),
+          menuLoop: ProjectResponsiveVideoProfile(
+            landscape: ProjectVideoVariantProfile(
+              videoPath: 'menu-landscape.mp4',
+              posterPath: 'menu-landscape.png',
+              durationMilliseconds: 1000,
+              width: 1600,
+              height: 900,
+              bitrateKbps: 1200,
+              sizeBytes: 1,
+              videoCodec: 'h264',
+            ),
+            portrait: ProjectVideoVariantProfile(
+              videoPath: 'menu-portrait.mp4',
+              posterPath: 'menu-portrait.png',
+              durationMilliseconds: 1000,
+              width: 900,
+              height: 1600,
+              bitrateKbps: 1200,
+              sizeBytes: 1,
+              videoCodec: 'h264',
+            ),
+          ),
+        ),
+        theme: safeProjectSemanticTheme,
+      );
+
+      Widget preview(PersonalizationTitlePreviewStage stage, double ratio) =>
+          _app(
+            PersonalizationPlayerSurfaceAdapter(
+              profile: profile,
+              projectName: 'Aube',
+              projectRootPath: root.path,
+              scene: PersonalizationStudioScene.title,
+              titleStage: stage,
+              aspectRatio: ratio,
+              titleMotionDriverFactory: createDriver,
+            ),
+          );
+
+      await tester.pumpWidget(
+        preview(PersonalizationTitlePreviewStage.prompt, 16 / 9),
+      );
+      await tester.pump();
+      expect(find.byType(PlayerTitlePromptSurface), findsOneWidget);
+      expect(sources.single.videoUri.path, endsWith('prompt-landscape.mp4'));
+
+      await tester.pumpWidget(
+        preview(PersonalizationTitlePreviewStage.menu, 16 / 9),
+      );
+      await tester.pump();
+      expect(find.byType(PlayerTitleSurface), findsOneWidget);
+      expect(drivers.first.disposeCalls, 1);
+      expect(sources.last.videoUri.path, endsWith('menu-landscape.mp4'));
+
+      await tester.pumpWidget(
+        preview(PersonalizationTitlePreviewStage.prompt, 9 / 16),
+      );
+      await tester.pump();
+      expect(sources.last.videoUri.path, endsWith('prompt-portrait.mp4'));
+
+      await tester.pumpWidget(
+        _app(_adapter(PersonalizationStudioScene.dialogue)),
+      );
+      await tester.pump();
+      expect(drivers.last.disposeCalls, 1);
+    },
+  );
+}
+
+final class _PlaybackDriver implements PlayerIntroPlaybackDriver {
+  final snapshot = ValueNotifier<PlayerIntroPlaybackSnapshot>(
+    const PlayerIntroPlaybackSnapshot(),
+  );
+  int disposeCalls = 0;
+
+  @override
+  ValueListenable<PlayerIntroPlaybackSnapshot> get snapshots => snapshot;
+
+  @override
+  Widget buildVideo() => const ColoredBox(color: Colors.black);
+
+  @override
+  Future<void> initialize() async {
+    snapshot.value = const PlayerIntroPlaybackSnapshot(isInitialized: true);
+  }
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> play() async {}
+
+  @override
+  Future<void> dispose() async {
+    disposeCalls += 1;
+    snapshot.dispose();
+  }
 }
 
 PersonalizationPlayerSurfaceAdapter _adapter(

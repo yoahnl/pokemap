@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_player_ui/map_player_ui.dart';
 
 import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_capability_descriptor.dart';
@@ -15,6 +18,7 @@ import 'personalization_player_surface_adapter.dart';
 import 'personalization_preview_canvas.dart';
 import 'personalization_preview_context_picker.dart';
 import 'personalization_preview_controls.dart';
+import 'personalization_title_preview_controls.dart';
 
 class PersonalizationLivePreview extends StatefulWidget {
   const PersonalizationLivePreview({
@@ -72,6 +76,10 @@ class _PersonalizationLivePreviewState
   double _textScale = 1;
   bool _reducedMotion = false;
   bool _comparisonEnabled = false;
+  PersonalizationTitlePreviewStage _titleStage =
+      PersonalizationTitlePreviewStage.menu;
+  final PlayerTitleMotionController _titleMotionController =
+      PlayerTitleMotionController();
   final Map<PersonalizationPreviewContextKind, String?> _selectedContextIds =
       <PersonalizationPreviewContextKind, String?>{};
 
@@ -90,7 +98,14 @@ class _PersonalizationLivePreviewState
     }
     if (oldWidget.scene != widget.scene) {
       _comparisonEnabled = false;
+      unawaited(_titleMotionController.releasePlayback());
     }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_titleMotionController.releasePlayback());
+    super.dispose();
   }
 
   @override
@@ -204,6 +219,13 @@ class _PersonalizationLivePreviewState
               scenario: scenario,
               onChanged: _applyScenario,
             ),
+            if (widget.scene == PersonalizationStudioScene.title) ...<Widget>[
+              const SizedBox(height: 8),
+              PersonalizationTitlePreviewControls(
+                stage: _titleStage,
+                onChanged: (stage) => setState(() => _titleStage = stage),
+              ),
+            ],
             PersonalizationPreviewContextPicker(
               scene: widget.scene,
               contexts: widget.contexts,
@@ -249,6 +271,11 @@ class _PersonalizationLivePreviewState
                   PersonalizationPreviewContentSource.project,
               projectManifest: widget.projectManifest,
               resolveTilesetPath: widget.resolveTilesetPath,
+              titleStage: _titleStage,
+              titleMotionController: scenario.showComparison
+                  ? null
+                  : _titleMotionController,
+              allowMediaPlayback: !scenario.showComparison,
             ),
       ),
     );

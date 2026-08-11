@@ -16,7 +16,7 @@ abstract interface class ProjectTitleMusicAudioDriver {
 final class FlameProjectTitleMusicAudioDriver
     implements ProjectTitleMusicAudioDriver {
   FlameProjectTitleMusicAudioDriver({AudioPlayer? player})
-      : _player = player ?? AudioPlayer();
+    : _player = player ?? AudioPlayer();
 
   final AudioPlayer _player;
 
@@ -57,6 +57,7 @@ final class DefaultProjectTitleMusicPreviewController
     ProjectTitleMusicAudioDriver? driver,
   }) : _driver = driver ?? FlameProjectTitleMusicAudioDriver() {
     _completionSubscription = _driver.onComplete.listen((_) {
+      _activePath = null;
       _setPlaying(false);
     });
   }
@@ -67,6 +68,7 @@ final class DefaultProjectTitleMusicPreviewController
   late final StreamSubscription<void> _completionSubscription;
   bool _isPlaying = false;
   bool _isClosed = false;
+  String? _activePath;
 
   @override
   bool get isPlaying => _isPlaying;
@@ -77,7 +79,7 @@ final class DefaultProjectTitleMusicPreviewController
   @override
   Future<bool> toggle(File file) async {
     _ensureOpen();
-    if (_isPlaying) {
+    if (_isPlaying && _activePath == file.path) {
       await stop();
       return false;
     }
@@ -85,7 +87,11 @@ final class DefaultProjectTitleMusicPreviewController
         FileSystemEntityType.file) {
       throw StateError('The title music preview file does not exist.');
     }
+    if (_isPlaying) {
+      await _driver.stop();
+    }
     await _driver.play(file.path);
+    _activePath = file.path;
     _setPlaying(true);
     return true;
   }
@@ -95,6 +101,7 @@ final class DefaultProjectTitleMusicPreviewController
     _ensureOpen();
     if (!_isPlaying) return;
     await _driver.stop();
+    _activePath = null;
     _setPlaying(false);
   }
 
@@ -106,6 +113,7 @@ final class DefaultProjectTitleMusicPreviewController
     await _driver.dispose();
     await _playingChanges.close();
     _isPlaying = false;
+    _activePath = null;
   }
 
   void _setPlaying(bool value) {

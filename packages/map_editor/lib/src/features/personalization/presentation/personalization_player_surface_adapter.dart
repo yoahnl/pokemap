@@ -13,6 +13,7 @@ import '../application/personalization_preview_fixtures.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
 import 'personalization_project_map_backdrop.dart';
+import 'personalization_title_preview_controls.dart';
 
 class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   const PersonalizationPlayerSurfaceAdapter({
@@ -35,6 +36,10 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     this.useProjectContent = false,
     this.projectManifest,
     this.resolveTilesetPath,
+    this.titleStage = PersonalizationTitlePreviewStage.menu,
+    this.titleMotionController,
+    this.titleMotionDriverFactory,
+    this.allowMediaPlayback = true,
   });
 
   final ProjectPresentationProfile profile;
@@ -55,6 +60,10 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   final bool useProjectContent;
   final ProjectManifest? projectManifest;
   final String? Function(String tilesetId)? resolveTilesetPath;
+  final PersonalizationTitlePreviewStage titleStage;
+  final PlayerTitleMotionController? titleMotionController;
+  final PlayerIntroPlaybackFactory? titleMotionDriverFactory;
+  final bool allowMediaPlayback;
 
   @override
   Widget build(BuildContext context) {
@@ -95,15 +104,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     PokeMapColorTokens editorColors,
   ) {
     final surface = switch (target) {
-      PersonalizationStudioScene.title => PlayerTitleSurface(
-        key: const ValueKey<String>('personalization-title-composition'),
-        data: PersonalizationPreviewFixtures.title(
-          projectName,
-          presentation,
-          backgroundContent: _titleMotion(),
-        ),
-        onSelected: (_) => _target(const TitlePresentationTarget()),
-      ),
+      PersonalizationStudioScene.title => _titleSurface(presentation),
       PersonalizationStudioScene.intro => PlayerIntroVideoSurface(
         key: const ValueKey<String>('personalization-intro-composition'),
         media: _introSkipped ? null : _introMedia(),
@@ -307,8 +308,32 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   String? get _introCaption =>
       _introVariant?.captionsPath == null ? null : 'Exemple de sous-titre';
 
-  Widget? _titleMotion() {
-    final media = profile.titleMotion?.menuLoop;
+  Widget _titleSurface(RuntimePlayerPresentation presentation) =>
+      switch (titleStage) {
+        PersonalizationTitlePreviewStage.prompt => PlayerTitlePromptSurface(
+          key: const ValueKey<String>(
+            'personalization-title-prompt-composition',
+          ),
+          gameTitle: presentation.title.resolveTitle(projectName),
+          background: presentation.title.background,
+          logo: presentation.title.logo,
+          backgroundContent: _titleMotion(profile.titleMotion?.promptLoop),
+          eyebrow: presentation.title.author,
+          footer: projectName,
+          onStart: () => _target(const TitlePresentationTarget()),
+        ),
+        PersonalizationTitlePreviewStage.menu => PlayerTitleSurface(
+          key: const ValueKey<String>('personalization-title-composition'),
+          data: PersonalizationPreviewFixtures.title(
+            projectName,
+            presentation,
+            backgroundContent: _titleMotion(profile.titleMotion?.menuLoop),
+          ),
+          onSelected: (_) => _target(const TitlePresentationTarget()),
+        ),
+      };
+
+  Widget? _titleMotion(ProjectResponsiveVideoProfile? media) {
     if (media == null) return null;
     final variant = aspectRatio < 1
         ? media.portrait ?? media.landscape
@@ -316,6 +341,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     final video = _fileForPath(variant.videoPath);
     final poster = _fileForPath(variant.posterPath);
     return PlayerTitleMotion(
+      controller: titleMotionController,
       source: video == null || !video.existsSync()
           ? null
           : PlayerIntroVideoSource(
@@ -326,7 +352,8 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
               focalY: variant.focalY,
             ),
       poster: poster == null || !poster.existsSync() ? null : FileImage(poster),
-      reducedMotion: reducedMotion,
+      driverFactory: titleMotionDriverFactory,
+      reducedMotion: reducedMotion || !allowMediaPlayback,
     );
   }
 

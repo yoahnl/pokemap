@@ -2049,6 +2049,9 @@ class _PersonalizationStudioWorkspaceState
               key: const ValueKey<String>('personalization-studio-workspace'),
               selectedScene: _selectedScene,
               onSceneSelected: (scene) {
+                if (scene != PersonalizationStudioScene.title) {
+                  unawaited(_stopTitleMusicPreview());
+                }
                 setState(() {
                   _selectedScene = scene;
                   _selectedTarget = _defaultInspectorTarget(scene);
@@ -2076,8 +2079,12 @@ class _PersonalizationStudioWorkspaceState
                 projectManifest: project,
                 resolveTilesetPath: notifier.getTilesetAbsolutePathById,
                 onTargeted: (target) {
+                  final scene = _sceneForInspectorTarget(target);
+                  if (scene != PersonalizationStudioScene.title) {
+                    unawaited(_stopTitleMusicPreview());
+                  }
                   setState(() {
-                    _selectedScene = _sceneForInspectorTarget(target);
+                    _selectedScene = scene;
                     _selectedTarget = target;
                   });
                 },
@@ -2127,7 +2134,11 @@ class _PersonalizationStudioWorkspaceState
                         PersonalizationPublishReadiness.fromProfile(profile),
                     onCorrectIssue: (issue) {
                       setState(() {
-                        _selectedScene = _sceneForCategory(issue.category);
+                        final scene = _sceneForCategory(issue.category);
+                        if (scene != PersonalizationStudioScene.title) {
+                          unawaited(_stopTitleMusicPreview());
+                        }
+                        _selectedScene = scene;
                         _selectedTarget = _targetForCategory(issue.category);
                       });
                       if (issue.correctionKind ==

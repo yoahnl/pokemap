@@ -505,6 +505,41 @@ void main() {
     expect(reducedTitleContext.playerMotion.fast, Duration.zero);
   });
 
+  testWidgets('title preview switches between the real prompt and menu', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          profile: ProjectPresentationProfile(theme: safeProjectSemanticTheme),
+        ),
+      ),
+    );
+
+    expect(find.byType(PlayerTitleSurface), findsOneWidget);
+    expect(find.byType(PlayerTitlePromptSurface), findsNothing);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-title-preview-stage-prompt'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PlayerTitleSurface), findsNothing);
+    expect(find.byType(PlayerTitlePromptSurface), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-title-preview-stage-menu'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(PlayerTitleSurface), findsOneWidget);
+  });
+
   testWidgets('surface navigation is semantic and directly operable', (
     tester,
   ) async {
