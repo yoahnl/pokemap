@@ -24,6 +24,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  map_gameplay:
+    path: ../map_gameplay
 
 flutter:
   uses-material-design: true

@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_editor/game_export.dart';
+import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
+import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
 
@@ -24,14 +26,14 @@ final class NeutralCertificationGameFixture {
   String get authorSecret => 'phase8-author-secret-must-never-ship';
 
   GamePackageExportProfile get exportProfile => GamePackageExportProfile(
-        gameId: gameId,
-        gameVersion: gameVersion,
-        title: 'The Clockwork Harbor',
-        description: 'A neutral PokeMap certification mini-game.',
-        authorName: 'PokeMap Certification Studio',
-        defaultLocale: 'en',
-        supportedLocales: const <String>['en', 'fr'],
-      );
+    gameId: gameId,
+    gameVersion: gameVersion,
+    title: 'The Clockwork Harbor',
+    description: 'A neutral PokeMap certification mini-game.',
+    authorName: 'PokeMap Certification Studio',
+    defaultLocale: 'en',
+    supportedLocales: const <String>['en', 'fr'],
+  );
 
   GamePackageHostCompatibility get hostCompatibility =>
       GamePackageHostCompatibility(
@@ -43,8 +45,8 @@ final class NeutralCertificationGameFixture {
           'overworld.menu@1',
           'world.shop@1',
         },
-        supportedProjectFormats: const <String>{'v2'},
-        currentProjectFormat: 'v2',
+        supportedProjectFormats: const <String>{'v6'},
+        currentProjectFormat: 'v6',
         supportedSaveFormats: const <int>{1},
       );
 
@@ -52,7 +54,7 @@ final class NeutralCertificationGameFixture {
     await root.create(recursive: true);
     final manifest = ProjectManifest(
       name: 'The Clockwork Harbor',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: fixedMapId,
@@ -68,27 +70,33 @@ final class NeutralCertificationGameFixture {
         startSpawnId: fixedSpawnId,
         playerName: 'Ari',
         startingMoney: 300,
+        initialParty: <PlayerPokemon>[
+          PlayerPokemon(
+            speciesId: 'bulbasaur',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+            level: 5,
+            currentHp: 20,
+          ),
+        ],
       ),
+      scenes: <SceneAsset>[_completionScene],
+      eventRegistry: _eventRegistry,
       globalProperties: <String, Object?>{
         'certificationFixture': true,
         'apiKey': authorSecret,
       },
     );
     final manifestJson = manifest.toJson();
-    final settings = Map<String, Object?>.from(
-      manifestJson['settings'] as Map,
-    );
+    final settings = Map<String, Object?>.from(manifestJson['settings'] as Map);
     settings['mistralApiKey'] = authorSecret;
     manifestJson['settings'] = settings;
-    await _writeJson(
-      File(p.join(root.path, 'project.json')),
-      manifestJson,
-    );
+    await _writeJson(File(p.join(root.path, 'project.json')), manifestJson);
 
     const map = MapData(
       id: fixedMapId,
       name: 'Clockwork Harbor',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: GridSize(width: 4, height: 4),
       entities: <MapEntity>[
         MapEntity(
@@ -109,32 +117,47 @@ final class NeutralCertificationGameFixture {
       File(p.join(root.path, 'maps', 'clockwork_harbor.json')),
       map.toJson(),
     );
-    await File(p.join(root.path, 'LICENSE.txt')).writeAsString(
-      'PokeMap neutral certification fixture.',
-      flush: true,
+    await const SeedPokemonDemoDataUseCase().execute(
+      ProjectFileSystem(root.path),
     );
+    await File(
+      p.join(root.path, 'LICENSE.txt'),
+    ).writeAsString('PokeMap neutral certification fixture.', flush: true);
 
     // These author-only artifacts must be dropped by the runtime projection.
-    await File(p.join(root.path, 'runtime_host_launch_save.json'))
-        .writeAsString('{}', flush: true);
-    await File(p.join(root.path, 'debug.log'))
-        .writeAsString(authorSecret, flush: true);
+    await File(
+      p.join(root.path, 'runtime_host_launch_save.json'),
+    ).writeAsString('{}', flush: true);
+    await File(
+      p.join(root.path, 'debug.log'),
+    ).writeAsString(authorSecret, flush: true);
     final saves = Directory(p.join(root.path, 'saves'));
     await saves.create(recursive: true);
-    await File(p.join(saves.path, 'slot.json'))
-        .writeAsString(authorSecret, flush: true);
+    await File(
+      p.join(saves.path, 'slot.json'),
+    ).writeAsString(authorSecret, flush: true);
   }
 
-  Future<void> writeSpeciesCatalog(
-    Directory root, {
-    required int count,
-  }) async {
-    if (count < 1 || count > 10000) {
-      throw ArgumentError.value(count, 'count', 'must be between 1 and 10000');
+  Future<void> writeSpeciesCatalog(Directory root, {required int count}) async {
+    if (count < 2 || count > 10000) {
+      throw ArgumentError.value(count, 'count', 'must be between 2 and 10000');
     }
     final species = Directory(p.join(root.path, 'data', 'pokemon', 'species'));
     await species.create(recursive: true);
-    for (var start = 0; start < count; start += 64) {
+    await for (final entity in species.list()) {
+      if (entity is File &&
+          p.basename(entity.path).endsWith('-clockling.json')) {
+        await entity.delete();
+      }
+    }
+    final template =
+        jsonDecode(
+              await File(
+                p.join(species.path, '0001-bulbasaur.json'),
+              ).readAsString(),
+            )
+            as Map<String, dynamic>;
+    for (var start = 2; start < count; start += 64) {
       final end = (start + 64).clamp(0, count);
       await Future.wait(<Future<void>>[
         for (var index = start; index < end; index++)
@@ -145,12 +168,7 @@ final class NeutralCertificationGameFixture {
                 '${index.toString().padLeft(4, '0')}-clockling.json',
               ),
             ),
-            <String, Object?>{
-              'id': 'clockling_$index',
-              'slug': 'clockling-$index',
-              'nationalDex': index + 1,
-              'names': <String, String>{'en': 'Clockling $index'},
-            },
+            _speciesFromTemplate(template, index),
           ),
       ]);
     }
@@ -159,12 +177,98 @@ final class NeutralCertificationGameFixture {
   Future<GamePackageExportArtifact> export(
     Directory authorRoot,
     File outputFile,
-  ) =>
-      const GamePackageExportService().exportToFile(
-        projectRoot: authorRoot,
-        profile: exportProfile,
-        outputFile: outputFile,
-      );
+  ) => const GamePackageExportService().exportToFile(
+    projectRoot: authorRoot,
+    profile: exportProfile,
+    outputFile: outputFile,
+  );
+}
+
+final NarrativeEventRegistry _eventRegistry = NarrativeEventRegistry(
+  schemaVersion: 1,
+  mode: EventSystemMode.v2Only,
+  records: <NarrativeEventRecord>[
+    NarrativeEventRecord.configuredStructurallyUnchecked(
+      NarrativeEventDefinition(
+        id: 'evt_019abcde-7000-7000-8000-000000000001',
+        name: 'Runtime start',
+        source: NarrativeEventSourceRef.mapEnter(
+          NeutralCertificationGameFixture.fixedMapId,
+        ),
+        conditions: const [],
+        sceneId: 'scene.certification.complete',
+        reusePolicy: NarrativeEventReusePolicy.oneShot,
+        priority: 0,
+        order: 0,
+      ),
+      enabled: true,
+    ),
+  ],
+  legacyClaims: const [],
+);
+
+final SceneAsset _completionScene = SceneAsset(
+  id: 'scene.certification.complete',
+  name: 'Certification journey',
+  graph: SceneGraph(
+    startNodeId: 'start',
+    nodes: <SceneNode>[
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'finish',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload.consequence(
+          SceneConsequence.finishGame(
+            endingId: 'ending.certification.complete',
+            outcome: SceneGameCompletionOutcome.completed,
+            result: SceneFinishGameResult(
+              title: SceneLocalizedText(fallback: 'Adventure complete'),
+              summary: SceneLocalizedText(
+                fallback: 'The certification journey reached its ending.',
+              ),
+            ),
+            postGamePolicy: ScenePostGamePolicy.returnToTitle,
+          ),
+        ),
+      ),
+      SceneNode(
+        id: 'end',
+        kind: SceneNodeKind.end,
+        payload: SceneEndPayload(outcomePolicy: SceneOutcomePolicy.progression),
+      ),
+    ],
+    edges: <SceneEdge>[
+      SceneEdge(
+        id: 'start-finish',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'finish',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneEdge(
+        id: 'finish-end',
+        fromNodeId: 'finish',
+        fromPortId: 'completed',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
+  ),
+);
+
+Map<String, Object?> _speciesFromTemplate(
+  Map<String, dynamic> template,
+  int index,
+) {
+  final species = jsonDecode(jsonEncode(template)) as Map<String, dynamic>;
+  species['id'] = 'clockling_$index';
+  species['slug'] = 'clockling-$index';
+  species['nationalDex'] = index + 1;
+  species['names'] = <String, String>{
+    'en': 'Clockling $index',
+    'fr': 'Horlogre $index',
+  };
+  return species;
 }
 
 Future<void> _writeJson(File file, Map<String, Object?> value) async {

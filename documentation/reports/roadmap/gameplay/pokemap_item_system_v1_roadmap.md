@@ -12,11 +12,11 @@
 
 ## 1. Statut, autorité et règle de portée
 
-- [ ] IN_PROGRESS — les phases 0 à 6 sont clôturées ; ITM-070 à ITM-072 sont livrés, ITM-073 est le prochain lot de certification.
-- Dernière mise à jour : 11 août 2026, après intégration fail-closed des niveaux de preuve Item System L0 à L6 au lot ITM-072.
-- Avancement : 39 lots DONE, 1 lot DEFERRED_BY_PRODUCT et 2 lots TODO sur 42 lots uniques.
+- [ ] IN_PROGRESS — les phases 0 à 6 sont clôturées ; ITM-070 à ITM-073 sont livrés, ITM-074 est le dernier lot de certification.
+- Dernière mise à jour : 11 août 2026, après exécution et consignation de la matrice complète du lot ITM-073.
+- Avancement : 40 lots DONE, 1 lot DEFERRED_BY_PRODUCT et 1 lot TODO sur 42 lots uniques.
 - Phases : 7 phases réalisées sur 8 ; seule la phase 7 reste à exécuter.
-- Travail restant : 2 lots immédiatement exécutables (`ITM-073` à `ITM-074`) et 1 lot différé (`ITM-034`) qui ne doit pas être compté comme une tâche de la prochaine vague.
+- Travail restant : 1 lot immédiatement exécutable (`ITM-074`) et 1 lot différé (`ITM-034`) qui ne doit pas être compté comme une tâche de la prochaine vague.
 - Unité de suivi : cette roadmap ne maintient pas un second registre de tâches atomiques ; les unités d’exécution officielles sont les lots `ITM-*`.
 - La phase 3 est clôturée sur le périmètre V1 signé ; ITM-034 Repel reste explicitement différé avec FG-065 et ne bloque ni la phase 6, ni la capture minimale.
 - Ce document est la roadmap dédiée à la refonte Item System V1.
@@ -64,11 +64,11 @@ La stratégie retenue est un remplacement progressif du code, livré comme une r
 | Producteurs et économie | DONE — New Game, événements, pickups, rewards et shops utilisent les contrats canoniques | `BagOperations` et `ProjectItemReferenceIndex` |
 | Authoring et MCP | DONE — lectures, mutations, Item Studio, pickers, JSONL, Editor et MCP sont raccordés | map_authoring et ses adaptateurs de transport |
 | Suppression historique | DONE — décisions par catégorie, registries, wrappers dupliqués et ancien wire Bag retirés | ITM-060 à ITM-062 |
-| Certification produit | IN_PROGRESS — L0 à L6 intégrés ; L4 UX et L5 transports restent PARTIAL jusqu’aux preuves de matrice | ITM-073 à ITM-074 |
+| Certification produit | IN_PROGRESS — matrice exécutée ; L4 UX et L5 transports restent PARTIAL, notamment parce que le MCP live est antérieur au catalogue Item | ITM-074 |
 
 ### 2.2 Décision de continuation
 
-ITM-060 à ITM-062 ont retiré les décisions historiques par catégorie, les registries, les wrappers devenus inutiles et l’ancien wire Bag. ITM-070 fournit la fixture synthétique stricte, ITM-071 l’exécute par les API de production avec un receipt lié au commit et aux digests, puis ITM-072 évalue ce receipt dans un profil L0-L6 indépendant des indicateurs génériques de parité. ITM-034 reste hors vague tant que la décision produit FG-065 n’est pas explicitement réouverte. Cette synthèse ne modifie aucun statut FG de la roadmap mécanique racine : leur recertification reste réservée à ITM-074.
+ITM-060 à ITM-062 ont retiré les décisions historiques par catégorie, les registries, les wrappers devenus inutiles et l’ancien wire Bag. ITM-070 fournit la fixture synthétique stricte, ITM-071 l’exécute par les API de production avec un receipt lié au commit et aux digests, ITM-072 évalue ce receipt dans un profil L0-L6 indépendant des indicateurs génériques de parité, puis ITM-073 confronte ces preuves aux suites, analyses, builds et transports réels. ITM-034 reste hors vague tant que la décision produit FG-065 n’est pas explicitement réouverte. Cette synthèse ne modifie aucun statut FG de la roadmap mécanique racine : leur recertification reste réservée à ITM-074.
 
 ## 3. Audit initial vérifié
 
@@ -343,10 +343,10 @@ ItemCatalogSnapshot compose la définition d’objet avec les références exter
 | 4 — Producteurs et économie | 5 | 5 | 0 | 0 | `ITM-040` à `ITM-044` | — | DONE |
 | 5 — Authoring et MCP | 6 | 6 | 0 | 0 | `ITM-050` à `ITM-055` | — | DONE |
 | 6 — Suppression historique | 3 | 3 | 0 | 0 | `ITM-060` à `ITM-062` | — | DONE |
-| 7 — Certification | 5 | 3 | 2 | 0 | `ITM-070` à `ITM-072` | `ITM-073` à `ITM-074` | IN_PROGRESS |
-| **Total** | **42** | **39** | **2** | **1** | **Phases 0 à 6 + ITM-070 à ITM-072** | **ITM-073 à ITM-074 + ITM-034 différé** | **IN_PROGRESS** |
+| 7 — Certification | 5 | 4 | 1 | 0 | `ITM-070` à `ITM-073` | `ITM-074` | IN_PROGRESS |
+| **Total** | **42** | **40** | **1** | **1** | **Phases 0 à 6 + ITM-070 à ITM-073** | **ITM-074 + ITM-034 différé** | **IN_PROGRESS** |
 
-Le reste à faire immédiatement représente donc 2 lots, tous regroupés dans la phase 7. Le nombre de lots non-DONE est de 3 uniquement si le lot produit différé `ITM-034` est inclus ; ce dernier n’entre pas dans la prochaine vague tant que FG-065 reste DEFERRED.
+Le reste à faire immédiatement représente donc 1 lot dans la phase 7. Le nombre de lots non-DONE est de 2 uniquement si le lot produit différé `ITM-034` est inclus ; ce dernier n’entre pas dans la prochaine vague tant que FG-065 reste DEFERRED.
 
 ### 7.1 Preuves Git après rebase
 
@@ -1118,7 +1118,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ## 15. Phase 7 — Certification et clôture
 
-**Statut de phase :** IN_PROGRESS. ITM-070 à ITM-072 sont clôturés ; ITM-073 doit maintenant exécuter la matrice complète et fournir les preuves fraîches nécessaires aux statuts encore PARTIAL.
+**Statut de phase :** IN_PROGRESS. ITM-070 à ITM-073 sont clôturés ; ITM-074 doit maintenant recertifier la roadmap mécanique sans promouvoir les surfaces encore PARTIAL.
 
 ### ITM-070 — Fixture Golden Item System
 
@@ -1172,16 +1172,21 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-073 — Matrice finale de validation
 
-- [ ] **Résultat :** exécuter les suites packages dans l’ordre.
+- [x] **Résultat :** exécuter les suites packages dans l’ordre.
 
     cd packages/map_core && dart test && dart analyze
     cd packages/map_gameplay && dart test && dart analyze
     cd packages/map_battle && dart test && dart analyze
     cd packages/map_authoring && dart test && dart analyze
     cd packages/map_runtime && flutter test && flutter analyze
+    cd packages/map_player_ui && flutter test && flutter analyze
     cd packages/map_editor && flutter test && flutter analyze
     cd examples/playable_runtime_host && flutter test && flutter analyze
-    cd tools/pokemap_mcp && npm test && npm run check
+    cd tools/pokemap_product_certification && flutter test && flutter analyze
+    cd packages/map_authoring && dart run tool/pmcp085_conformance.dart
+    cd tools/pokemap_mcp && npm test
+    cd tools/pokemap_mcp && npm run check
+    cd tools/pokemap_mcp && npm run build
 
 - **Builds :**
 
@@ -1190,6 +1195,26 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 - **Gate :** résultats exacts consignés ; toute dette préexistante séparée du scope.
 - **Dépendances :** ITM-072.
+
+**Preuves ITM-073 :** la matrice a été exécutée séquentiellement, commande par commande. Les stabilisations du lot rendent le bootstrap Item d’un projet neuf strict et directement décodable, conservent Ether en overworld tant que le combat ne sait pas restaurer les PP, réalignent le test de route sur l’Item Studio canonique, complètent le contrat `usability` de `map_player_ui`, rendent la fixture de certification neutre V6 autonome et ignorent uniquement les acknowledgements CocoaPods générés dans le contrôle Markdown. Aucun lecteur d’ancien catalogue, fallback ou migration automatique n’a été ajouté.
+
+| Périmètre | Tests | Analyse ou build | Verdict frais |
+|---|---|---|---|
+| `map_core` | 4 137 réussis, 8 échecs, 1 ignoré | 121 infos, aucune erreur ni warning | Dettes hors Item : rapports générés historiques absents. |
+| `map_gameplay` | 468 réussis | 1 info `unnecessary_library_name` | Vert ; Ether MVP est certifié overworld uniquement. |
+| `map_battle` | 1 746 réussis, 28 échecs | aucune issue | Échecs sur le chemin externe absent `pokémon_sdk_test_project/Data/Studio/moves`. |
+| `map_authoring` | 562 réussis | aucune issue | Vert. |
+| `map_runtime` | 2 286 réussis, 3 échecs, 1 ignoré | 7 infos | Échecs sur trois preuves visuelles historiques absentes sous `reports/ui`. Les 9 tests Item combat ciblés passent. |
+| `map_player_ui` | 218 réussis | aucune issue | Vert après ajout explicite de `usability`. |
+| `map_editor` | 5 218 réussis, 119 échecs et 10 ignorés avant interruption de la suite globale ; 27 tests Items ciblés réussis | analyse globale interrompue sans résultat après plus de 7 minutes ; analyse ciblée des 5 fichiers concernés sans issue ; build macOS réussi | La suite globale mêle goldens absents, fixtures Selbrume V2 et dettes async hors Item. L’export Personalization précédemment bloqué par `project.item_catalog_invalid` repasse. |
+| `playable_runtime_host` | 248 réussis, 25 échecs et 3 ignorés avant blocage ; interruption à 3 min 19 s | 27 infos ; build macOS réussi | Golden Item System vert. Les échecs globaux proviennent surtout de Selbrume V2 refusé par le runtime V6 et de l’ancien cockpit d’évaluation. |
+| `pokemap_product_certification` | 13 réussis | aucune issue | Vert ; les quatre échecs neutres observés à ITM-072 sont corrigés. |
+| `pokemap_mcp` | 43 réussis en 281,369 s | `npm run check` et `npm run build` réussis | Vert pour le code construit dans le worktree. |
+| PMCP-085 | runner réussi : 72 ressources, 272 mutations, 0 cellule bloquée ou manquante | 16 actions avec preuve E2E, 15 sur tous les transports ; `transportCertificationComplete: false` | La matrice générique ne suffit pas à certifier les neuf actions Item individuellement. |
+| MCP live | `pokemap_describe` répond | 31 ressources, 263 mutations, aucune ressource Item et aucune action `item.*` | Serveur live stale ; L5 reste PARTIAL. Aucun outil de reload n’est exposé dans cette session. |
+| Hygiène | `check_markdown_hygiene.sh` réussi après les deux builds | `PokeMap.app` et `PokeMap Selbrume.app` construits en debug | Vert ; les fichiers CocoaPods générés ne créent plus un faux échec Markdown. |
+
+Le lot est DONE parce que la matrice demandée a été réellement exécutée et ses résultats séparés par origine, pas parce que le monorepo entier serait artificiellement déclaré vert. Les preuves L4 et L5 restent PARTIAL : le Player UI ne propose pas encore de commandes equip/unequip et le serveur MCP live n’embarque pas les contrats Item du worktree.
 
 ### ITM-074 — Recertification de la roadmap mécanique
 
@@ -1295,7 +1320,6 @@ N/A signifie réellement non applicable ; il ne doit pas masquer une exposition 
 
 Cette roadmap continue d’être exécutée lot par lot, avec un checkpoint après chaque lot de certification.
 
-1. **ITM-073 — matrice finale de validation :** exécuter toutes les suites, analyses et builds prévus en séparant explicitement les dettes préexistantes.
-2. **ITM-074 — recertification mécanique :** proposer les statuts FG finaux uniquement à partir des preuves fraîches de la golden slice et de la matrice complète.
+1. **ITM-074 — recertification mécanique :** proposer les statuts FG finaux uniquement à partir des preuves fraîches de la golden slice et de la matrice complète.
 
 ITM-034 reste différé et ne doit pas être glissé discrètement dans la certification sous prétexte qu’un Repel « n’a pas l’air bien méchant » — c’est exactement ainsi que les petits lots se transforment en marécages.

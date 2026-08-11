@@ -61,6 +61,12 @@ void main() {
           mode: ProjectItemAmountMode.full,
         ),
       );
+      expect(_item('ether').uses.single.contexts, {
+        ProjectItemUseContext.overworld,
+      });
+      expect(_item('max-ether').uses.single.contexts, {
+        ProjectItemUseContext.overworld,
+      });
       expect(
         _item('poke-ball').capture,
         const ProjectCaptureItemDefinition(

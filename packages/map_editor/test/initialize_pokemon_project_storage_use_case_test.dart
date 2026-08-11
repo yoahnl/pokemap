@@ -152,6 +152,21 @@ void main() {
           workspace.resolveProjectRelativePath(entry.value),
         );
         expect(catalog['schemaVersion'], 1);
+        if (entry.key == 'items') {
+          final itemCatalog = decodeProjectItemCatalog(catalog);
+          expect(
+            itemCatalog.entries.map((item) => item.id),
+            containsAll(<String>{
+              'potion',
+              'antidote',
+              'revive',
+              'ether',
+              'poke-ball',
+              'key-item',
+            }),
+          );
+          continue;
+        }
         expect(catalog['kind'], 'pokemon_catalog');
         expect(catalog['catalog'], entry.key);
         if (entry.key == 'moves') {

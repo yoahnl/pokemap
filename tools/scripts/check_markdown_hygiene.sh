@@ -108,7 +108,7 @@ done < <(git -C "$REPO_ROOT" ls-files --others --exclude-standard)
 # are excluded because their contents are tool-owned.
 while IFS= read -r path; do
   case "$path" in
-    .dart_tool/*|build/*|node_modules/*|*/.dart_tool/*|*/build/*|*/node_modules/*|sprites-master/*)
+    .dart_tool/*|build/*|node_modules/*|*/.dart_tool/*|*/build/*|*/node_modules/*|*/macos/Pods/*|sprites-master/*)
       continue
       ;;
   esac

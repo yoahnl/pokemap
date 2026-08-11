@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+
 import '../seeds/pokemon_moves_bootstrap_seed.dart';
 import '../ports/project_workspace.dart';
 
@@ -91,9 +94,10 @@ class InitializePokemonProjectStorageUseCase {
       // On évite ainsi de transformer ce lot en framework de seed multi-
       // catalogues, tout en corrigeant le vrai trou produit : un projet frais
       // ne doit plus partir avec un `moves.json` vide.
-      final payload = entry.key == 'moves'
-          ? _movesBootstrapPayload()
-          : <String, Object?>{
+      final payload = switch (entry.key) {
+        'moves' => _movesBootstrapPayload(),
+        'items' => encodeProjectItemCatalog(mvpItemCatalog),
+        _ => <String, Object?>{
               'schemaVersion': 1,
               'kind': 'pokemon_catalog',
               'catalog': entry.key,
@@ -103,7 +107,8 @@ class InitializePokemonProjectStorageUseCase {
                 'notes': const <Object?>[],
               },
               'entries': const <Object?>[],
-            };
+            },
+      };
       await _writeJsonIfAbsent(
         workspace,
         'data/pokemon/${entry.value}',

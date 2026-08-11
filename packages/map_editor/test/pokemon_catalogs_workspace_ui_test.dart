@@ -3,14 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/app/providers/pokemon_items/pokemon_items_workspace_providers.dart';
 import 'package:map_editor/src/app/providers/pokemon_moves/pokemon_moves_workspace_providers.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
-import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/gameplay/items/item_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/pokemon_catalogs_workspace.dart';
 
 Future<void> _pumpCatalogsWorkspace(
@@ -177,7 +176,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('renders the Items workspace when the Items section is active',
+    testWidgets('routes the Items section to the canonical Item Studio',
         (tester) async {
       final container = ProviderContainer(
         overrides: [
@@ -198,21 +197,6 @@ void main() {
           pokedexEntryLoaderProvider.overrideWithValue(
             (_) async => const <PokemonDatabaseIndexEntry>[],
           ),
-          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-            (_) async => const PokemonItemsCatalogView(
-              entries: <PokemonItemCatalogEntryView>[
-                PokemonItemCatalogEntryView(
-                  id: 'poke-ball',
-                  name: 'Poké Ball',
-                  categoryId: 'standard-balls',
-                  pocketId: 'poke-balls',
-                  cost: 200,
-                ),
-              ],
-              isAvailable: true,
-              description: 'Catalogue local des objets du projet.',
-            ),
-          ),
         ],
       );
       addTearDown(container.dispose);
@@ -221,7 +205,6 @@ void main() {
         tester,
         container: container,
         initialState: const EditorState(
-          projectRootPath: '/tmp/pokemon_catalogs_items_test',
           project: ProjectManifest(
             name: 'Catalogs Test Project',
             maps: <ProjectMapEntry>[
@@ -238,13 +221,8 @@ void main() {
         ),
       );
 
-      expect(find.text('Items'), findsWidgets);
-      expect(
-        find.text('Catalogue local des objets du projet.'),
-        findsOneWidget,
-      );
-      expect(find.byKey(const Key('items-catalog-detail-poke-ball')),
-          findsOneWidget);
+      expect(find.byType(ItemStudioWorkspace), findsOneWidget);
+      expect(find.text('Aucun projet ouvert'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
