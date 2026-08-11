@@ -626,7 +626,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-027 — Diagnostic honnête utilisable/passif/unsupported
 
-- [ ] **Résultat :** supprimer l’ambiguïté utilisateur entre un objet passif et une fonctionnalité moteur absente.
+- [x] **Résultat :** supprimer l’ambiguïté utilisateur entre un objet passif et une fonctionnalité moteur absente.
 - **Fichiers principaux :**
   - packages/map_runtime/lib/src/player/runtime_player_pause_data_builder.dart
   - packages/map_runtime/lib/src/presentation/flame/battle_bag_menu_model.dart
@@ -639,6 +639,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
   - unsupportedCapability.
 - **Gate :** tests widget/model vérifiant libellé, sélection et raison de désactivation.
 - **Dépendances :** ITM-025.
+
+**Preuves ITM-027 :** `ItemUsabilityState` porte les cinq états produit et les projections battle/overworld les exposent avec un libellé et une raison de désactivation distincts. Le menu battle affiche le nom et le pocket du catalogue plutôt qu’un identifiant humanisé ; le sac pause distingue notamment un key item passif, un usage réservé au battle, une définition absente et une action sémantique moteur non supportée. Les 23 tests ciblés de classification, menu battle et projection pause passent, et l'analyse ciblée du builder ne remonte aucune issue.
 
 **Gate de bascule initiale :**
 

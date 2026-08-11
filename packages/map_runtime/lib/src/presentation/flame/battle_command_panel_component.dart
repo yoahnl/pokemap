@@ -1650,6 +1650,11 @@ String _bagEntryStatusLabel(BattleBagMenuEntry entry) {
     BattleBagMenuDisabledReason.medicineNotImplemented => 'Not implemented',
     BattleBagMenuDisabledReason.unsupportedMedicine => 'Unsupported medicine',
     BattleBagMenuDisabledReason.unsupportedItem => 'Unsupported item',
+    BattleBagMenuDisabledReason.passive => 'Passive',
+    BattleBagMenuDisabledReason.unavailableInContext => 'Unavailable here',
+    BattleBagMenuDisabledReason.invalidDefinition => 'Invalid definition',
+    BattleBagMenuDisabledReason.unsupportedCapability =>
+      'Unsupported capability',
     null => 'Indisponible',
   };
 }

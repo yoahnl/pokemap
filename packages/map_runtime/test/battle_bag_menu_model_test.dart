@@ -711,7 +711,8 @@ void main() {
       expect(entry.action, isNull);
     });
 
-    test('unknown items stay visible but unsupported', () {
+    test('unknown items stay visible with an invalid definition diagnostic',
+        () {
       final session = _session(
         player: _combatant(
           speciesId: 'sproutle',
@@ -739,10 +740,11 @@ void main() {
 
       final entry = model.entries.single;
       expect(entry.kind, equals(BattleBagItemKind.unsupported));
+      expect(entry.usability, ItemUsabilityState.invalidDefinition);
       expect(entry.isSelectable, isFalse);
       expect(
         entry.disabledReason,
-        equals(BattleBagMenuDisabledReason.unsupportedItem),
+        equals(BattleBagMenuDisabledReason.invalidDefinition),
       );
       expect(entry.action, isNull);
     });

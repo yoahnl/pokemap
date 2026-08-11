@@ -7,6 +7,14 @@ enum ItemUseCapabilityFailure {
   unavailableInContext,
 }
 
+enum ItemUsabilityState {
+  usable,
+  passive,
+  unavailableInContext,
+  invalidDefinition,
+  unsupportedCapability,
+}
+
 final class ItemUseCapabilityResolution {
   const ItemUseCapabilityResolution._({
     required this.item,
@@ -59,5 +67,22 @@ final class ItemCapabilityResolver {
       item: item,
       failure: ItemUseCapabilityFailure.unavailableInContext,
     );
+  }
+
+  ItemUsabilityState classifyUse({
+    required String itemId,
+    required ProjectItemUseContext context,
+  }) {
+    final item = snapshot.definitionFor(itemId);
+    if (item == null) {
+      return ItemUsabilityState.invalidDefinition;
+    }
+    if (item.uses.any((use) => use.contexts.contains(context))) {
+      return ItemUsabilityState.usable;
+    }
+    if (item.uses.isNotEmpty || item.capture != null) {
+      return ItemUsabilityState.unavailableInContext;
+    }
+    return ItemUsabilityState.passive;
   }
 }

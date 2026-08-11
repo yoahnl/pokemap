@@ -1,5 +1,7 @@
 import 'dart:collection';
 
+import 'package:map_gameplay/map_gameplay.dart';
+
 enum RuntimePlayerPauseSection {
   root,
   party,
@@ -19,6 +21,7 @@ final class RuntimePlayerBagItemActionSnapshot {
   RuntimePlayerBagItemActionSnapshot({
     required this.itemTargetId,
     required this.targetKind,
+    required this.usability,
     required this.isEnabled,
     this.unavailableReason,
   }) {
@@ -39,6 +42,7 @@ final class RuntimePlayerBagItemActionSnapshot {
 
   final String itemTargetId;
   final RuntimePlayerBagUseTargetKind targetKind;
+  final ItemUsabilityState usability;
   final bool isEnabled;
   final String? unavailableReason;
 }

@@ -40,12 +40,14 @@ class BattleMedicineTargetEntry {
 class BattleMedicineTargetMenuModel {
   const BattleMedicineTargetMenuModel({
     required this.itemId,
+    required this.displayName,
     required this.activeEntry,
     required this.reserveEntries,
     required this.entries,
   });
 
   final String itemId;
+  final String displayName;
   final BattleMedicineTargetEntry activeEntry;
   final List<BattleMedicineTargetEntry> reserveEntries;
   final List<BattleMedicineTargetEntry> entries;
@@ -59,6 +61,7 @@ class BattleMedicineTargetMenuModel {
 BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
   required BattleSession session,
   required String itemId,
+  required String displayName,
   required ProjectItemUseDefinition use,
   bool Function(BattleCombatant combatant)? isTargetAllowed,
 }) {
@@ -119,6 +122,7 @@ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
 
   return BattleMedicineTargetMenuModel(
     itemId: itemId,
+    displayName: displayName,
     activeEntry: activeEntry,
     reserveEntries: List<BattleMedicineTargetEntry>.unmodifiable(
       reserveEntries,

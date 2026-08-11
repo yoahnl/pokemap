@@ -236,13 +236,7 @@ String buildBattleMedicineTargetPromptForOverlay(
   if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
     return feedbackMessage;
   }
-  final supportedItemLabel = _overlaySupportedMedicineLabel(
-    medicineTargetMenuModel.itemId,
-  );
-  if (supportedItemLabel != null) {
-    return 'Choisis une cible pour $supportedItemLabel.';
-  }
-  return 'Choisis un Pokémon.';
+  return 'Choisis une cible pour ${medicineTargetMenuModel.displayName}.';
 }
 
 List<String> buildBattleMedicineTargetNarrationLinesForOverlay(
@@ -379,16 +373,6 @@ String _formatOverlaySpikesEvent(BattleSpikesEvent event) {
 
 String _overlayCombatantLabelForSide(BattleSideId side) {
   return side == BattleSideId.player ? 'Joueur' : 'Ennemi';
-}
-
-String? _overlaySupportedMedicineLabel(String itemId) {
-  return switch (itemId) {
-    'potion' => 'Potion',
-    'super-potion' => 'Super Potion',
-    'hyper-potion' => 'Hyper Potion',
-    'max-potion' => 'Max Potion',
-    _ => null,
-  };
 }
 
 String _overlayWeatherLabel(BattleWeatherId weather) {
@@ -1657,7 +1641,7 @@ class BattleOverlayComponent extends PositionComponent {
                 (entry) => BattleCommandOverlayEntry(
                   index: entry.key,
                   kind: BattleCommandOverlayEntryKind.bag,
-                  primaryLabel: _humanizeBattleBagItemId(entry.value.itemId),
+                  primaryLabel: entry.value.displayName,
                   secondaryLabel: _overlayBagEntryTypeLabel(entry.value),
                   tertiaryLabel: null,
                   trailingLabel: 'x${entry.value.quantity}',
@@ -1887,8 +1871,7 @@ class BattleOverlayComponent extends PositionComponent {
       return false;
     }
     final selectedMedicineAction = _selectedMedicineAction;
-    if (selectedMedicineAction == null ||
-        _overlaySupportedMedicineLabel(selectedMedicineAction.itemId) == null) {
+    if (selectedMedicineAction == null) {
       return false;
     }
 
@@ -1997,6 +1980,7 @@ class BattleOverlayComponent extends PositionComponent {
     return buildBattleMedicineTargetMenuModel(
       session: _session,
       itemId: selectedMedicineAction.itemId,
+      displayName: selectedMedicineAction.displayName,
       use: capability.use!,
       isTargetAllowed: (combatant) =>
           _allowMedicineReserveTargets ||
@@ -2964,10 +2948,16 @@ BattleCommandOverlayEntryTone _overlayEntryToneForBagEntry(
 }
 
 String _overlayBagEntryTypeLabel(BattleBagMenuEntry entry) {
-  return switch (entry.kind) {
-    BattleBagItemKind.captureBall => 'Capture',
-    BattleBagItemKind.medicine => 'Medicine',
-    BattleBagItemKind.unsupported => 'Unsupported',
+  return switch (entry.usability) {
+    ItemUsabilityState.passive => 'Passive',
+    ItemUsabilityState.unavailableInContext => 'Unavailable here',
+    ItemUsabilityState.invalidDefinition => 'Invalid definition',
+    ItemUsabilityState.unsupportedCapability => 'Unsupported capability',
+    ItemUsabilityState.usable => switch (entry.kind) {
+        BattleBagItemKind.captureBall => 'Capture',
+        BattleBagItemKind.medicine => 'Medicine',
+        BattleBagItemKind.unsupported => 'Unsupported',
+      },
   };
 }
 
@@ -2983,6 +2973,11 @@ String _overlayBagEntryStatusLabel(BattleBagMenuEntry entry) {
     BattleBagMenuDisabledReason.medicineNotImplemented => 'Not implemented',
     BattleBagMenuDisabledReason.unsupportedMedicine => 'Unsupported',
     BattleBagMenuDisabledReason.unsupportedItem => 'Unsupported',
+    BattleBagMenuDisabledReason.passive => 'Passive',
+    BattleBagMenuDisabledReason.unavailableInContext => 'Unavailable here',
+    BattleBagMenuDisabledReason.invalidDefinition => 'Invalid definition',
+    BattleBagMenuDisabledReason.unsupportedCapability =>
+      'Unsupported capability',
     null => 'Unavailable',
   };
 }
@@ -3011,19 +3006,4 @@ String _overlayMedicineTargetStatusLabel(BattleMedicineTargetEntry entry) {
     return 'OK';
   }
   return 'Unavailable';
-}
-
-String _humanizeBattleBagItemId(String itemId) {
-  final trimmed = itemId.trim();
-  if (trimmed.isEmpty) {
-    return 'Item';
-  }
-  return trimmed
-      .split('-')
-      .where((segment) => segment.isNotEmpty)
-      .map(
-        (segment) =>
-            '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}',
-      )
-      .join(' ');
 }

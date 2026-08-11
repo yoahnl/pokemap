@@ -42,6 +42,47 @@ void main() {
             displayName: 'Decorative Poke Ball',
             pocketId: 'balls',
           ),
+          ProjectItemDefinition(
+            id: 'lucky-charm',
+            displayName: 'Lucky Charm',
+            pocketId: 'charms',
+            tags: <String>{'passive'},
+          ),
+          ProjectItemDefinition(
+            id: 'camp-tonic',
+            displayName: 'Camp Tonic',
+            pocketId: 'medicine',
+            uses: <ProjectItemUseDefinition>[
+              ProjectItemUseDefinition(
+                contexts: <ProjectItemUseContext>{
+                  ProjectItemUseContext.overworld,
+                },
+                target: ProjectItemTargetKind.partyMember,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: ProjectItemEffectDefinition.healHp(
+                  mode: ProjectItemAmountMode.flat,
+                  amount: 10,
+                ),
+              ),
+            ],
+          ),
+          ProjectItemDefinition(
+            id: 'battle-whistle',
+            displayName: 'Battle Whistle',
+            pocketId: 'tools',
+            uses: <ProjectItemUseDefinition>[
+              ProjectItemUseDefinition(
+                contexts: <ProjectItemUseContext>{
+                  ProjectItemUseContext.battle,
+                },
+                target: ProjectItemTargetKind.none,
+                consumption: ProjectItemConsumptionPolicy.never,
+                effect: ProjectItemEffectDefinition.semanticAction(
+                  actionId: 'summon_wind',
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     ),
@@ -65,6 +106,44 @@ void main() {
     expect(
       classifyBattleBagItem(itemId: 'poke-ball', resolver: resolver),
       BattleBagItemKind.unsupported,
+    );
+  });
+
+  test('battle usability exposes all honest product states', () {
+    expect(
+      resolveBattleBagItemUsability(
+        itemId: 'ember-tonic',
+        resolver: resolver,
+      ),
+      ItemUsabilityState.usable,
+    );
+    expect(
+      resolveBattleBagItemUsability(
+        itemId: 'lucky-charm',
+        resolver: resolver,
+      ),
+      ItemUsabilityState.passive,
+    );
+    expect(
+      resolveBattleBagItemUsability(
+        itemId: 'camp-tonic',
+        resolver: resolver,
+      ),
+      ItemUsabilityState.unavailableInContext,
+    );
+    expect(
+      resolveBattleBagItemUsability(
+        itemId: 'missing-item',
+        resolver: resolver,
+      ),
+      ItemUsabilityState.invalidDefinition,
+    );
+    expect(
+      resolveBattleBagItemUsability(
+        itemId: 'battle-whistle',
+        resolver: resolver,
+      ),
+      ItemUsabilityState.unsupportedCapability,
     );
   });
 }
