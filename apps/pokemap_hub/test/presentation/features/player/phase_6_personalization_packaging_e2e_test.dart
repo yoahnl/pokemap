@@ -182,7 +182,7 @@ void main() {
         presentation.layoutProfile?.pauseMenu.expanded.slot,
         ProjectPresentationLayoutSlot.leftPane,
       );
-      expect(runtimeProfile.schemaVersion, 5);
+      expect(runtimeProfile.schemaVersion, 6);
       expect(runtimeProfile.menuLabels?.pokedex, 'Carnet de route');
       expect(presentation.typography.combatFallback, <String>['monospace']);
       expect(
