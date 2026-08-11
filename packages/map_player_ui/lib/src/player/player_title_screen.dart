@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
@@ -19,9 +20,13 @@ final class PlayerTitleViewData {
     this.accentColor,
     this.layoutVariant = PlayerTitleLayoutVariant.standard,
     required Map<PlayerTitleMenuAction, PlayerActionAvailability> actions,
+    Map<PlayerTitleMenuAction, String> actionLabels = const {},
+    Map<PlayerTitleMenuAction, ProjectTitleActionIcon> actionIcons = const {},
     this.initialSelection,
     this.continueSave,
-  }) : actions = Map.unmodifiable(actions);
+  })  : actions = Map.unmodifiable(actions),
+        actionLabels = Map.unmodifiable(actionLabels),
+        actionIcons = Map.unmodifiable(actionIcons);
 
   final String gameTitle;
   final String author;
@@ -32,6 +37,8 @@ final class PlayerTitleViewData {
   final Color? accentColor;
   final PlayerTitleLayoutVariant layoutVariant;
   final Map<PlayerTitleMenuAction, PlayerActionAvailability> actions;
+  final Map<PlayerTitleMenuAction, String> actionLabels;
+  final Map<PlayerTitleMenuAction, ProjectTitleActionIcon> actionIcons;
   final PlayerTitleMenuAction? initialSelection;
   final PlayerSaveSummary? continueSave;
 }
@@ -62,6 +69,8 @@ class PlayerTitleScreen extends StatelessWidget {
         accentColor: data.accentColor,
         layoutVariant: data.layoutVariant,
         actions: data.actions,
+        actionLabels: data.actionLabels,
+        actionIcons: data.actionIcons,
         initialSelection: data.initialSelection,
         continueSave: save == null
             ? null

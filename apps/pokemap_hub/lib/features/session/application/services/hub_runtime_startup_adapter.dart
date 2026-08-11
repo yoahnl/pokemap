@@ -71,6 +71,21 @@ final class HubRuntimeStartupAdapter
                 title: title.title,
                 subtitle: title.subtitle,
                 prompt: title.prompt,
+                actions: title.actions
+                    ?.map(
+                      (action) => ProjectTitleActionProfile(
+                        id: ProjectTitleActionId.values.byName(action.id),
+                        label: action.label,
+                        icon:
+                            action.icon == null
+                                ? null
+                                : ProjectTitleActionIcon.values.byName(
+                                  action.icon!,
+                                ),
+                        visible: action.visible,
+                      ),
+                    )
+                    .toList(growable: false),
               ),
       intro:
           intro == null

@@ -5,6 +5,51 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  testWidgets('keeps authored title action order, copy and runtime identity', (
+    tester,
+  ) async {
+    final selected = <PlayerTitleMenuAction>[];
+    await tester.pumpWidget(
+      _app(
+        PlayerTitleScreen(
+          data: PlayerTitleViewData(
+            gameTitle: 'Aube',
+            author: 'Studio Brume',
+            actions: const <PlayerTitleMenuAction, PlayerActionAvailability>{
+              PlayerTitleMenuAction.newGame: PlayerActionAvailability.enabled,
+              PlayerTitleMenuAction.continueGame:
+                  PlayerActionAvailability.disabled('Aucune sauvegarde'),
+            },
+            actionLabels: const <PlayerTitleMenuAction, String>{
+              PlayerTitleMenuAction.newGame: 'Commencer',
+              PlayerTitleMenuAction.continueGame: 'Reprendre',
+            },
+            actionIcons: const <PlayerTitleMenuAction, ProjectTitleActionIcon>{
+              PlayerTitleMenuAction.newGame: ProjectTitleActionIcon.sparkles,
+              PlayerTitleMenuAction.continueGame: ProjectTitleActionIcon.play,
+            },
+          ),
+          onSelected: selected.add,
+        ),
+      ),
+    );
+
+    final buttons = tester
+        .widgetList<PlayerActionButton>(find.byType(PlayerActionButton))
+        .toList(growable: false);
+    expect(buttons.map((button) => button.label), <String>[
+      'Commencer',
+      'Reprendre',
+    ]);
+    expect(buttons.first.icon, Icons.auto_awesome_rounded);
+    expect(find.text('Options'), findsNothing);
+
+    await tester.tap(find.text('Commencer'));
+    expect(selected, <PlayerTitleMenuAction>[PlayerTitleMenuAction.newGame]);
+    await tester.tap(find.text('Reprendre'));
+    expect(selected, hasLength(1));
+  });
+
   testWidgets('title exposes the product actions and availability',
       (tester) async {
     var selected = <PlayerTitleMenuAction>[];

@@ -16,22 +16,28 @@ void main() {
       expect(decoded.schemaVersion, 7);
       expect(decoded.title, copy);
       expect(copy.resolveTitle('Nom du projet'), 'Pokémon Aurore');
-      expect(copy.resolveSubtitle('Auteur du projet'), 'Une aventure à Hanazuki');
-      expect(copy.resolvePrompt('Invitation par défaut'), 'Appuyez pour commencer');
+      expect(
+        copy.resolveSubtitle('Auteur du projet'),
+        'Une aventure à Hanazuki',
+      );
+      expect(
+        copy.resolvePrompt('Invitation par défaut'),
+        'Appuyez pour commencer',
+      );
       expect(
         const ProjectTitlePresentationProfile().resolveTitle('Nom du projet'),
         'Nom du projet',
       );
       expect(
-        const ProjectTitlePresentationProfile(subtitle: '').resolveSubtitle(
-          'Auteur du projet',
-        ),
+        const ProjectTitlePresentationProfile(
+          subtitle: '',
+        ).resolveSubtitle('Auteur du projet'),
         isNull,
       );
       expect(
-        const ProjectTitlePresentationProfile(prompt: '').resolvePrompt(
-          'Invitation par défaut',
-        ),
+        const ProjectTitlePresentationProfile(
+          prompt: '',
+        ).resolvePrompt('Invitation par défaut'),
         isNull,
       );
     });
@@ -80,13 +86,80 @@ void main() {
       expect(
         validateProjectPresentationProfile(
           const ProjectPresentationProfile(
-            title: ProjectTitlePresentationProfile(
-              subtitle: '',
-              prompt: '',
-            ),
+            title: ProjectTitlePresentationProfile(subtitle: '', prompt: ''),
           ),
         ),
         isEmpty,
+      );
+    });
+
+    test(
+      'round-trips ordered title actions and validates their invariants',
+      () {
+        const profile = ProjectPresentationProfile(
+          title: ProjectTitlePresentationProfile(
+            actions: <ProjectTitleActionProfile>[
+              ProjectTitleActionProfile(
+                id: ProjectTitleActionId.newGame,
+                label: 'Commencer',
+                icon: ProjectTitleActionIcon.sparkles,
+              ),
+              ProjectTitleActionProfile(
+                id: ProjectTitleActionId.continueGame,
+                label: 'Reprendre',
+                icon: ProjectTitleActionIcon.play,
+                visible: false,
+              ),
+            ],
+          ),
+        );
+
+        final decoded = ProjectPresentationProfile.fromJson(profile.toJson());
+
+        expect(decoded, profile);
+        expect(decoded.title?.actions?.first.id, ProjectTitleActionId.newGame);
+        expect(validateProjectPresentationProfile(decoded), isEmpty);
+
+        final invalid = validateProjectPresentationProfile(
+          const ProjectPresentationProfile(
+            title: ProjectTitlePresentationProfile(
+              actions: <ProjectTitleActionProfile>[
+                ProjectTitleActionProfile(
+                  id: ProjectTitleActionId.newGame,
+                  visible: false,
+                ),
+                ProjectTitleActionProfile(
+                  id: ProjectTitleActionId.newGame,
+                  label: 'Nouvelle\npartie',
+                  visible: false,
+                ),
+              ],
+            ),
+          ),
+        );
+        expect(
+          invalid.map((diagnostic) => diagnostic.code),
+          containsAll(<String>{
+            'titleActionDuplicate',
+            'titleNewGameRequired',
+            'titleActionLabelContainsControlCharacters',
+          }),
+        );
+      },
+    );
+
+    test('rejects an unknown title action during decoding', () {
+      expect(
+        () => ProjectPresentationProfile.fromJson(<String, dynamic>{
+          'schemaVersion': 7,
+          'branding': <String, dynamic>{'layoutVariant': 'standard'},
+          'title': <String, dynamic>{
+            'actions': <Object?>[
+              <String, Object?>{'id': 'warpToMars'},
+            ],
+          },
+        }),
+        throwsA(isA<ArgumentError>()),
       );
     });
   });

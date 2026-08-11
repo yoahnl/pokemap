@@ -41,6 +41,7 @@ final class RuntimePlayerPresentation {
         description: titleCopy == null
             ? source.metadata.description
             : titleCopy.resolvePrompt(source.metadata.description),
+        actions: titleCopy?.actions,
         background: imageForAsset(source.titleHero),
         logo: imageForAsset(source.titleLogo),
         accentColor: PokeMapPlayerProjectColorResolver.tryHex(
@@ -77,6 +78,7 @@ final class RuntimePlayerPresentation {
         description: titleCopy == null
             ? description
             : titleCopy.resolvePrompt(description),
+        actions: titleCopy?.actions,
         background: heroPath == null ? null : imageForPath?.call(heroPath),
         logo: branding.iconPath == null
             ? null

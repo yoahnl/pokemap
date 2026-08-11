@@ -1451,9 +1451,281 @@ $ProjectResponsiveVideoProfileCopyWith<$Res> get media {
 
 
 /// @nodoc
+mixin _$ProjectTitleActionProfile {
+
+ ProjectTitleActionId get id;@JsonKey(includeIfNull: false) String? get label;@JsonKey(includeIfNull: false) ProjectTitleActionIcon? get icon; bool get visible;
+/// Create a copy of ProjectTitleActionProfile
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectTitleActionProfileCopyWith<ProjectTitleActionProfile> get copyWith => _$ProjectTitleActionProfileCopyWithImpl<ProjectTitleActionProfile>(this as ProjectTitleActionProfile, _$identity);
+
+  /// Serializes this ProjectTitleActionProfile to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectTitleActionProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.label, label) || other.label == label)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.visible, visible) || other.visible == visible));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,label,icon,visible);
+
+@override
+String toString() {
+  return 'ProjectTitleActionProfile(id: $id, label: $label, icon: $icon, visible: $visible)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectTitleActionProfileCopyWith<$Res>  {
+  factory $ProjectTitleActionProfileCopyWith(ProjectTitleActionProfile value, $Res Function(ProjectTitleActionProfile) _then) = _$ProjectTitleActionProfileCopyWithImpl;
+@useResult
+$Res call({
+ ProjectTitleActionId id,@JsonKey(includeIfNull: false) String? label,@JsonKey(includeIfNull: false) ProjectTitleActionIcon? icon, bool visible
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectTitleActionProfileCopyWithImpl<$Res>
+    implements $ProjectTitleActionProfileCopyWith<$Res> {
+  _$ProjectTitleActionProfileCopyWithImpl(this._self, this._then);
+
+  final ProjectTitleActionProfile _self;
+  final $Res Function(ProjectTitleActionProfile) _then;
+
+/// Create a copy of ProjectTitleActionProfile
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? label = freezed,Object? icon = freezed,Object? visible = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as ProjectTitleActionId,label: freezed == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
+as String?,icon: freezed == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
+as ProjectTitleActionIcon?,visible: null == visible ? _self.visible : visible // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ProjectTitleActionProfile].
+extension ProjectTitleActionProfilePatterns on ProjectTitleActionProfile {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectTitleActionProfile value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectTitleActionProfile() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectTitleActionProfile value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectTitleActionProfile():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectTitleActionProfile value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectTitleActionProfile() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ProjectTitleActionId id, @JsonKey(includeIfNull: false)  String? label, @JsonKey(includeIfNull: false)  ProjectTitleActionIcon? icon,  bool visible)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectTitleActionProfile() when $default != null:
+return $default(_that.id,_that.label,_that.icon,_that.visible);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ProjectTitleActionId id, @JsonKey(includeIfNull: false)  String? label, @JsonKey(includeIfNull: false)  ProjectTitleActionIcon? icon,  bool visible)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectTitleActionProfile():
+return $default(_that.id,_that.label,_that.icon,_that.visible);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ProjectTitleActionId id, @JsonKey(includeIfNull: false)  String? label, @JsonKey(includeIfNull: false)  ProjectTitleActionIcon? icon,  bool visible)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectTitleActionProfile() when $default != null:
+return $default(_that.id,_that.label,_that.icon,_that.visible);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _ProjectTitleActionProfile implements ProjectTitleActionProfile {
+  const _ProjectTitleActionProfile({required this.id, @JsonKey(includeIfNull: false) this.label, @JsonKey(includeIfNull: false) this.icon, this.visible = true});
+  factory _ProjectTitleActionProfile.fromJson(Map<String, dynamic> json) => _$ProjectTitleActionProfileFromJson(json);
+
+@override final  ProjectTitleActionId id;
+@override@JsonKey(includeIfNull: false) final  String? label;
+@override@JsonKey(includeIfNull: false) final  ProjectTitleActionIcon? icon;
+@override@JsonKey() final  bool visible;
+
+/// Create a copy of ProjectTitleActionProfile
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectTitleActionProfileCopyWith<_ProjectTitleActionProfile> get copyWith => __$ProjectTitleActionProfileCopyWithImpl<_ProjectTitleActionProfile>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectTitleActionProfileToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectTitleActionProfile&&(identical(other.id, id) || other.id == id)&&(identical(other.label, label) || other.label == label)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.visible, visible) || other.visible == visible));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,label,icon,visible);
+
+@override
+String toString() {
+  return 'ProjectTitleActionProfile(id: $id, label: $label, icon: $icon, visible: $visible)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectTitleActionProfileCopyWith<$Res> implements $ProjectTitleActionProfileCopyWith<$Res> {
+  factory _$ProjectTitleActionProfileCopyWith(_ProjectTitleActionProfile value, $Res Function(_ProjectTitleActionProfile) _then) = __$ProjectTitleActionProfileCopyWithImpl;
+@override @useResult
+$Res call({
+ ProjectTitleActionId id,@JsonKey(includeIfNull: false) String? label,@JsonKey(includeIfNull: false) ProjectTitleActionIcon? icon, bool visible
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectTitleActionProfileCopyWithImpl<$Res>
+    implements _$ProjectTitleActionProfileCopyWith<$Res> {
+  __$ProjectTitleActionProfileCopyWithImpl(this._self, this._then);
+
+  final _ProjectTitleActionProfile _self;
+  final $Res Function(_ProjectTitleActionProfile) _then;
+
+/// Create a copy of ProjectTitleActionProfile
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? label = freezed,Object? icon = freezed,Object? visible = null,}) {
+  return _then(_ProjectTitleActionProfile(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as ProjectTitleActionId,label: freezed == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
+as String?,icon: freezed == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
+as ProjectTitleActionIcon?,visible: null == visible ? _self.visible : visible // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$ProjectTitlePresentationProfile {
 
-@JsonKey(includeIfNull: false) String? get title;@JsonKey(includeIfNull: false) String? get subtitle;@JsonKey(includeIfNull: false) String? get prompt;
+@JsonKey(includeIfNull: false) String? get title;@JsonKey(includeIfNull: false) String? get subtitle;@JsonKey(includeIfNull: false) String? get prompt;@JsonKey(includeIfNull: false) List<ProjectTitleActionProfile>? get actions;
 /// Create a copy of ProjectTitlePresentationProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1466,16 +1738,16 @@ $ProjectTitlePresentationProfileCopyWith<ProjectTitlePresentationProfile> get co
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectTitlePresentationProfile&&(identical(other.title, title) || other.title == title)&&(identical(other.subtitle, subtitle) || other.subtitle == subtitle)&&(identical(other.prompt, prompt) || other.prompt == prompt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectTitlePresentationProfile&&(identical(other.title, title) || other.title == title)&&(identical(other.subtitle, subtitle) || other.subtitle == subtitle)&&(identical(other.prompt, prompt) || other.prompt == prompt)&&const DeepCollectionEquality().equals(other.actions, actions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,subtitle,prompt);
+int get hashCode => Object.hash(runtimeType,title,subtitle,prompt,const DeepCollectionEquality().hash(actions));
 
 @override
 String toString() {
-  return 'ProjectTitlePresentationProfile(title: $title, subtitle: $subtitle, prompt: $prompt)';
+  return 'ProjectTitlePresentationProfile(title: $title, subtitle: $subtitle, prompt: $prompt, actions: $actions)';
 }
 
 
@@ -1486,7 +1758,7 @@ abstract mixin class $ProjectTitlePresentationProfileCopyWith<$Res>  {
   factory $ProjectTitlePresentationProfileCopyWith(ProjectTitlePresentationProfile value, $Res Function(ProjectTitlePresentationProfile) _then) = _$ProjectTitlePresentationProfileCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? title,@JsonKey(includeIfNull: false) String? subtitle,@JsonKey(includeIfNull: false) String? prompt
+@JsonKey(includeIfNull: false) String? title,@JsonKey(includeIfNull: false) String? subtitle,@JsonKey(includeIfNull: false) String? prompt,@JsonKey(includeIfNull: false) List<ProjectTitleActionProfile>? actions
 });
 
 
@@ -1503,12 +1775,13 @@ class _$ProjectTitlePresentationProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectTitlePresentationProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? title = freezed,Object? subtitle = freezed,Object? prompt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? title = freezed,Object? subtitle = freezed,Object? prompt = freezed,Object? actions = freezed,}) {
   return _then(_self.copyWith(
 title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String?,subtitle: freezed == subtitle ? _self.subtitle : subtitle // ignore: cast_nullable_to_non_nullable
 as String?,prompt: freezed == prompt ? _self.prompt : prompt // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,actions: freezed == actions ? _self.actions : actions // ignore: cast_nullable_to_non_nullable
+as List<ProjectTitleActionProfile>?,
   ));
 }
 
@@ -1593,10 +1866,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? subtitle, @JsonKey(includeIfNull: false)  String? prompt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? subtitle, @JsonKey(includeIfNull: false)  String? prompt, @JsonKey(includeIfNull: false)  List<ProjectTitleActionProfile>? actions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectTitlePresentationProfile() when $default != null:
-return $default(_that.title,_that.subtitle,_that.prompt);case _:
+return $default(_that.title,_that.subtitle,_that.prompt,_that.actions);case _:
   return orElse();
 
 }
@@ -1614,10 +1887,10 @@ return $default(_that.title,_that.subtitle,_that.prompt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? subtitle, @JsonKey(includeIfNull: false)  String? prompt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? subtitle, @JsonKey(includeIfNull: false)  String? prompt, @JsonKey(includeIfNull: false)  List<ProjectTitleActionProfile>? actions)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectTitlePresentationProfile():
-return $default(_that.title,_that.subtitle,_that.prompt);case _:
+return $default(_that.title,_that.subtitle,_that.prompt,_that.actions);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1634,10 +1907,10 @@ return $default(_that.title,_that.subtitle,_that.prompt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? subtitle, @JsonKey(includeIfNull: false)  String? prompt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? title, @JsonKey(includeIfNull: false)  String? subtitle, @JsonKey(includeIfNull: false)  String? prompt, @JsonKey(includeIfNull: false)  List<ProjectTitleActionProfile>? actions)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectTitlePresentationProfile() when $default != null:
-return $default(_that.title,_that.subtitle,_that.prompt);case _:
+return $default(_that.title,_that.subtitle,_that.prompt,_that.actions);case _:
   return null;
 
 }
@@ -1649,12 +1922,21 @@ return $default(_that.title,_that.subtitle,_that.prompt);case _:
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectTitlePresentationProfile extends ProjectTitlePresentationProfile {
-  const _ProjectTitlePresentationProfile({@JsonKey(includeIfNull: false) this.title, @JsonKey(includeIfNull: false) this.subtitle, @JsonKey(includeIfNull: false) this.prompt}): super._();
+  const _ProjectTitlePresentationProfile({@JsonKey(includeIfNull: false) this.title, @JsonKey(includeIfNull: false) this.subtitle, @JsonKey(includeIfNull: false) this.prompt, @JsonKey(includeIfNull: false) final  List<ProjectTitleActionProfile>? actions}): _actions = actions,super._();
   factory _ProjectTitlePresentationProfile.fromJson(Map<String, dynamic> json) => _$ProjectTitlePresentationProfileFromJson(json);
 
 @override@JsonKey(includeIfNull: false) final  String? title;
 @override@JsonKey(includeIfNull: false) final  String? subtitle;
 @override@JsonKey(includeIfNull: false) final  String? prompt;
+ final  List<ProjectTitleActionProfile>? _actions;
+@override@JsonKey(includeIfNull: false) List<ProjectTitleActionProfile>? get actions {
+  final value = _actions;
+  if (value == null) return null;
+  if (_actions is EqualUnmodifiableListView) return _actions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 
 /// Create a copy of ProjectTitlePresentationProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -1669,16 +1951,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectTitlePresentationProfile&&(identical(other.title, title) || other.title == title)&&(identical(other.subtitle, subtitle) || other.subtitle == subtitle)&&(identical(other.prompt, prompt) || other.prompt == prompt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectTitlePresentationProfile&&(identical(other.title, title) || other.title == title)&&(identical(other.subtitle, subtitle) || other.subtitle == subtitle)&&(identical(other.prompt, prompt) || other.prompt == prompt)&&const DeepCollectionEquality().equals(other._actions, _actions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,subtitle,prompt);
+int get hashCode => Object.hash(runtimeType,title,subtitle,prompt,const DeepCollectionEquality().hash(_actions));
 
 @override
 String toString() {
-  return 'ProjectTitlePresentationProfile(title: $title, subtitle: $subtitle, prompt: $prompt)';
+  return 'ProjectTitlePresentationProfile(title: $title, subtitle: $subtitle, prompt: $prompt, actions: $actions)';
 }
 
 
@@ -1689,7 +1971,7 @@ abstract mixin class _$ProjectTitlePresentationProfileCopyWith<$Res> implements 
   factory _$ProjectTitlePresentationProfileCopyWith(_ProjectTitlePresentationProfile value, $Res Function(_ProjectTitlePresentationProfile) _then) = __$ProjectTitlePresentationProfileCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(includeIfNull: false) String? title,@JsonKey(includeIfNull: false) String? subtitle,@JsonKey(includeIfNull: false) String? prompt
+@JsonKey(includeIfNull: false) String? title,@JsonKey(includeIfNull: false) String? subtitle,@JsonKey(includeIfNull: false) String? prompt,@JsonKey(includeIfNull: false) List<ProjectTitleActionProfile>? actions
 });
 
 
@@ -1706,12 +1988,13 @@ class __$ProjectTitlePresentationProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectTitlePresentationProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? title = freezed,Object? subtitle = freezed,Object? prompt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? title = freezed,Object? subtitle = freezed,Object? prompt = freezed,Object? actions = freezed,}) {
   return _then(_ProjectTitlePresentationProfile(
 title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String?,subtitle: freezed == subtitle ? _self.subtitle : subtitle // ignore: cast_nullable_to_non_nullable
 as String?,prompt: freezed == prompt ? _self.prompt : prompt // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,actions: freezed == actions ? _self._actions : actions // ignore: cast_nullable_to_non_nullable
+as List<ProjectTitleActionProfile>?,
   ));
 }
 

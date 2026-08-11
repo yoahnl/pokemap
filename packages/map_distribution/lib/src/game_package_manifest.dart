@@ -83,17 +83,46 @@ final class GamePackageBranding {
       };
 }
 
+final class GamePackageTitleAction {
+  const GamePackageTitleAction({
+    required this.id,
+    this.label,
+    this.icon,
+    this.visible = true,
+  });
+
+  final String id;
+  final String? label;
+  final String? icon;
+  final bool visible;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'id': id,
+        if (label != null) 'label': label,
+        if (icon != null) 'icon': icon,
+        'visible': visible,
+      };
+}
+
 final class GamePackageTitlePresentation {
-  const GamePackageTitlePresentation({this.title, this.subtitle, this.prompt});
+  const GamePackageTitlePresentation({
+    this.title,
+    this.subtitle,
+    this.prompt,
+    this.actions,
+  });
 
   final String? title;
   final String? subtitle;
   final String? prompt;
+  final List<GamePackageTitleAction>? actions;
 
   Map<String, Object?> toJson() => <String, Object?>{
         if (title != null) 'title': title,
         if (subtitle != null) 'subtitle': subtitle,
         if (prompt != null) 'prompt': prompt,
+        if (actions != null)
+          'actions': actions!.map((action) => action.toJson()).toList(),
       };
 }
 

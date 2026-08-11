@@ -410,6 +410,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     final initial = projection.initialSelection == null
         ? null
         : _titleAction(projection.initialSelection!);
+    final titleActions = widget.titlePresentation.projectActions(actions);
     return PlayerTitleScreen(
       data: PlayerTitleViewData(
         gameTitle: widget.titlePresentation.resolveTitle(player.gameTitle),
@@ -426,8 +427,10 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
                 PlayerTitleLayoutVariant.cinematic
             ? PlayerTitleLayoutVariant.runtimeStartupCinematic
             : PlayerTitleLayoutVariant.runtimeStartup,
-        actions: actions,
-        initialSelection: initial,
+        actions: titleActions,
+        actionLabels: widget.titlePresentation.actionLabels,
+        actionIcons: widget.titlePresentation.actionIcons,
+        initialSelection: titleActions.containsKey(initial) ? initial : null,
         continueSave: player.continueSave,
       ),
       focusController: _focusController,

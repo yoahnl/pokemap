@@ -40,6 +40,8 @@ void main() {
       expect(profile?.title?.title, 'Aube sur Hanazuki');
       expect(profile?.title?.subtitle, 'Studio Brume');
       expect(profile?.title?.prompt, 'Appuyez pour commencer');
+      expect(profile?.title?.actions?.first.id, ProjectTitleActionId.newGame);
+      expect(profile?.title?.actions?.last.visible, isFalse);
       expect(profile?.branding.titleMusicPath, 'presentation/title.ogg');
       expect(profile?.intro?.videoPath, 'presentation/intro/video.mp4');
       expect(profile?.intro?.allowReplay, isTrue);
@@ -146,6 +148,14 @@ final _manifest = GamePackageManifest(
       title: 'Aube sur Hanazuki',
       subtitle: 'Studio Brume',
       prompt: 'Appuyez pour commencer',
+      actions: <GamePackageTitleAction>[
+        GamePackageTitleAction(
+          id: 'newGame',
+          label: 'Commencer',
+          icon: 'sparkles',
+        ),
+        GamePackageTitleAction(id: 'continueGame', visible: false),
+      ],
     ),
     branding: const GamePackageBranding(
       icon: 'presentation/icon.png',

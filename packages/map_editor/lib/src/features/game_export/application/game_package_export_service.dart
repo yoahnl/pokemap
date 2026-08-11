@@ -185,6 +185,16 @@ final class GamePackageExportService {
                   title: projection.presentation.title!.title,
                   subtitle: projection.presentation.title!.subtitle,
                   prompt: projection.presentation.title!.prompt,
+                  actions: projection.presentation.title!.actions
+                      ?.map(
+                        (action) => GamePackageTitleAction(
+                          id: action.id.name,
+                          label: action.label,
+                          icon: action.icon?.name,
+                          visible: action.visible,
+                        ),
+                      )
+                      .toList(growable: false),
                 ),
           intro: projection.presentation.intro == null
               ? null

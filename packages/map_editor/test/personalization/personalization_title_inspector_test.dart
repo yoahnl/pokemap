@@ -4,10 +4,55 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
 import 'package:map_editor/src/features/personalization/presentation/inspectors/personalization_title_inspector.dart';
 import 'package:map_editor/src/features/personalization/presentation/project_title_motion_editor.dart';
+import 'package:map_editor/src/features/personalization/presentation/project_title_actions_editor.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets('reorders, renames and hides title actions', (tester) async {
+    ProjectTitlePresentationProfile? changed;
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: ProjectTitleActionsEditor(
+            profile: const ProjectTitlePresentationProfile(),
+            onChanged: (profile) => changed = profile,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('title-action-up-newGame')),
+    );
+    expect(changed?.actions?.first.id, ProjectTitleActionId.newGame);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('title-action-label-newGame')),
+      'Commencer',
+    );
+    expect(
+      changed?.actions
+          ?.singleWhere((action) => action.id == ProjectTitleActionId.newGame)
+          .label,
+      'Commencer',
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('title-action-visible-options')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('title-action-visible-options')),
+    );
+    expect(
+      changed?.actions
+          ?.singleWhere((action) => action.id == ProjectTitleActionId.options)
+          .visible,
+      isFalse,
+    );
+    expect(find.text('Toujours visible'), findsOneWidget);
+  });
+
   testWidgets('authors title copy and exposes the project-name fallback', (
     tester,
   ) async {

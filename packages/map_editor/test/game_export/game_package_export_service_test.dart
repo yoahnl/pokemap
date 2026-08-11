@@ -73,6 +73,13 @@ void main() {
           title: 'Aube sur Hanazuki',
           subtitle: 'Studio Brume',
           prompt: 'Appuyez pour commencer',
+          actions: <ProjectTitleActionProfile>[
+            ProjectTitleActionProfile(
+              id: ProjectTitleActionId.newGame,
+              label: 'Commencer',
+              icon: ProjectTitleActionIcon.sparkles,
+            ),
+          ],
         ),
         branding: const ProjectBrandingProfile(
           iconPath: 'assets/icon.png',
@@ -107,6 +114,10 @@ void main() {
       expect(
         first.manifest.presentation?.title?.prompt,
         'Appuyez pour commencer',
+      );
+      expect(
+        first.manifest.presentation?.title?.actions?.single.label,
+        'Commencer',
       );
       expect(first.manifest.usesLegacyBranding, isFalse);
       expect(first.manifest.branding?.icon, 'presentation/icon.png');

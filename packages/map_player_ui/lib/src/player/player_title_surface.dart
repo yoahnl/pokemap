@@ -81,6 +81,7 @@ final class RuntimePlayerTitlePresentation {
     this.title,
     required this.author,
     this.description,
+    this.actions,
     this.background,
     this.logo,
     this.accentColor,
@@ -90,13 +91,63 @@ final class RuntimePlayerTitlePresentation {
   final String? title;
   final String author;
   final String? description;
+  final List<ProjectTitleActionProfile>? actions;
   final ImageProvider? background;
   final ImageProvider? logo;
   final Color? accentColor;
   final PlayerTitleLayoutVariant layoutVariant;
 
   String resolveTitle(String projectName) => title ?? projectName;
+
+  Map<PlayerTitleMenuAction, PlayerActionAvailability> projectActions(
+    Map<PlayerTitleMenuAction, PlayerActionAvailability> availability,
+  ) {
+    final configured = actions;
+    if (configured == null) return availability;
+    return <PlayerTitleMenuAction, PlayerActionAvailability>{
+      for (final action in configured)
+        if (action.visible)
+          _playerTitleAction(action.id):
+              availability[_playerTitleAction(action.id)] ??
+                  PlayerActionAvailability.disabled(
+                    'This action is unavailable for this game.',
+                  ),
+    };
+  }
+
+  String? labelFor(PlayerTitleMenuAction action) => actions
+      ?.where((entry) => _playerTitleAction(entry.id) == action)
+      .firstOrNull
+      ?.label;
+
+  ProjectTitleActionIcon? iconFor(PlayerTitleMenuAction action) => actions
+      ?.where((entry) => _playerTitleAction(entry.id) == action)
+      .firstOrNull
+      ?.icon;
+
+  Map<PlayerTitleMenuAction, String> get actionLabels =>
+      <PlayerTitleMenuAction, String>{
+        for (final action in actions ?? const <ProjectTitleActionProfile>[])
+          if (action.label case final label?)
+            _playerTitleAction(action.id): label,
+      };
+
+  Map<PlayerTitleMenuAction, ProjectTitleActionIcon> get actionIcons =>
+      <PlayerTitleMenuAction, ProjectTitleActionIcon>{
+        for (final action in actions ?? const <ProjectTitleActionProfile>[])
+          if (action.icon case final icon?) _playerTitleAction(action.id): icon,
+      };
 }
+
+PlayerTitleMenuAction _playerTitleAction(ProjectTitleActionId id) =>
+    switch (id) {
+      ProjectTitleActionId.continueGame => PlayerTitleMenuAction.continueGame,
+      ProjectTitleActionId.newGame => PlayerTitleMenuAction.newGame,
+      ProjectTitleActionId.load => PlayerTitleMenuAction.load,
+      ProjectTitleActionId.options => PlayerTitleMenuAction.options,
+      ProjectTitleActionId.creditsAbout => PlayerTitleMenuAction.creditsAbout,
+      ProjectTitleActionId.returnToHub => PlayerTitleMenuAction.returnToHub,
+    };
 
 @immutable
 final class PlayerTitleContinueSaveData {
@@ -123,9 +174,13 @@ final class PlayerTitleSurfaceData {
     this.accentColor,
     this.layoutVariant = PlayerTitleLayoutVariant.standard,
     required Map<PlayerTitleMenuAction, PlayerActionAvailability> actions,
+    Map<PlayerTitleMenuAction, String> actionLabels = const {},
+    Map<PlayerTitleMenuAction, ProjectTitleActionIcon> actionIcons = const {},
     this.initialSelection,
     this.continueSave,
-  }) : actions = Map.unmodifiable(actions);
+  })  : actions = Map.unmodifiable(actions),
+        actionLabels = Map.unmodifiable(actionLabels),
+        actionIcons = Map.unmodifiable(actionIcons);
 
   final String gameTitle;
   final String author;
@@ -136,6 +191,8 @@ final class PlayerTitleSurfaceData {
   final Color? accentColor;
   final PlayerTitleLayoutVariant layoutVariant;
   final Map<PlayerTitleMenuAction, PlayerActionAvailability> actions;
+  final Map<PlayerTitleMenuAction, String> actionLabels;
+  final Map<PlayerTitleMenuAction, ProjectTitleActionIcon> actionIcons;
   final PlayerTitleMenuAction? initialSelection;
   final PlayerTitleContinueSaveData? continueSave;
 }
@@ -171,7 +228,7 @@ class PlayerTitleSurface extends StatelessWidget {
     }
     final colors = context.playerColors;
     final accent = data.accentColor ?? colors.primary;
-    final firstEnabledAction = PlayerTitleMenuAction.values
+    final firstEnabledAction = data.actions.keys
         .where((action) => _availability(context, action).isEnabled)
         .firstOrNull;
     final cinematic = data.layoutVariant == PlayerTitleLayoutVariant.cinematic;
@@ -321,8 +378,7 @@ class PlayerTitleSurface extends StatelessWidget {
                                     ),
                                   ],
                                 SizedBox(height: gap(PlayerSpacing.xl)),
-                                for (final action
-                                    in PlayerTitleMenuAction.values)
+                                for (final action in data.actions.keys)
                                   Padding(
                                     padding: EdgeInsets.only(
                                       bottom: gap(PlayerSpacing.xs),
@@ -974,6 +1030,8 @@ class PlayerTitleSurface extends StatelessWidget {
       );
 
   String _label(BuildContext context, PlayerTitleMenuAction action) {
+    final authored = data.actionLabels[action];
+    if (authored != null) return authored;
     final l10n = context.playerL10n;
     return switch (action) {
       PlayerTitleMenuAction.continueGame => l10n.continueGame,
@@ -985,12 +1043,25 @@ class PlayerTitleSurface extends StatelessWidget {
     };
   }
 
-  IconData _icon(PlayerTitleMenuAction action) => switch (action) {
-        PlayerTitleMenuAction.continueGame => Icons.play_circle_fill_rounded,
-        PlayerTitleMenuAction.newGame => Icons.auto_awesome_rounded,
-        PlayerTitleMenuAction.load => Icons.folder_open_rounded,
-        PlayerTitleMenuAction.options => Icons.tune_rounded,
-        PlayerTitleMenuAction.creditsAbout => Icons.info_outline_rounded,
-        PlayerTitleMenuAction.returnToHub => Icons.home_rounded,
+  IconData _icon(PlayerTitleMenuAction action) {
+    final authored = data.actionIcons[action];
+    if (authored != null) return _authoredIcon(authored);
+    return switch (action) {
+      PlayerTitleMenuAction.continueGame => Icons.play_circle_fill_rounded,
+      PlayerTitleMenuAction.newGame => Icons.auto_awesome_rounded,
+      PlayerTitleMenuAction.load => Icons.folder_open_rounded,
+      PlayerTitleMenuAction.options => Icons.tune_rounded,
+      PlayerTitleMenuAction.creditsAbout => Icons.info_outline_rounded,
+      PlayerTitleMenuAction.returnToHub => Icons.home_rounded,
+    };
+  }
+
+  IconData _authoredIcon(ProjectTitleActionIcon icon) => switch (icon) {
+        ProjectTitleActionIcon.play => Icons.play_circle_fill_rounded,
+        ProjectTitleActionIcon.sparkles => Icons.auto_awesome_rounded,
+        ProjectTitleActionIcon.folder => Icons.folder_open_rounded,
+        ProjectTitleActionIcon.settings => Icons.tune_rounded,
+        ProjectTitleActionIcon.info => Icons.info_outline_rounded,
+        ProjectTitleActionIcon.home => Icons.home_rounded,
       };
 }

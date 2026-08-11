@@ -17,10 +17,13 @@ abstract final class PersonalizationPreviewFixtures {
     logo: presentation.title.logo,
     accentColor: presentation.title.accentColor,
     layoutVariant: presentation.title.layoutVariant,
-    actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
-      for (final action in PlayerTitleMenuAction.values)
-        action: PlayerActionAvailability.enabled,
-    },
+    actions: presentation.title
+        .projectActions(<PlayerTitleMenuAction, PlayerActionAvailability>{
+          for (final action in PlayerTitleMenuAction.values)
+            action: PlayerActionAvailability.enabled,
+        }),
+    actionLabels: presentation.title.actionLabels,
+    actionIcons: presentation.title.actionIcons,
     initialSelection: PlayerTitleMenuAction.newGame,
   );
 

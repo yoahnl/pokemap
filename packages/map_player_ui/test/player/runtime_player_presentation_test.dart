@@ -31,6 +31,56 @@ void main() {
     );
   });
 
+  test('projects V7 title actions without changing gameplay availability', () {
+    final presentation = RuntimePlayerPresentation.fromProfile(
+      const ProjectPresentationProfile(
+        title: ProjectTitlePresentationProfile(
+          actions: <ProjectTitleActionProfile>[
+            ProjectTitleActionProfile(
+              id: ProjectTitleActionId.newGame,
+              label: 'Commencer',
+              icon: ProjectTitleActionIcon.sparkles,
+            ),
+            ProjectTitleActionProfile(
+              id: ProjectTitleActionId.continueGame,
+              label: 'Reprendre',
+              icon: ProjectTitleActionIcon.play,
+            ),
+            ProjectTitleActionProfile(
+              id: ProjectTitleActionId.options,
+              visible: false,
+            ),
+          ],
+        ),
+      ),
+    );
+    const disabledContinue = PlayerActionAvailability.disabled(
+      'Aucune sauvegarde',
+    );
+
+    final actions = presentation.title.projectActions(
+      <PlayerTitleMenuAction, PlayerActionAvailability>{
+        PlayerTitleMenuAction.continueGame: disabledContinue,
+        PlayerTitleMenuAction.newGame: PlayerActionAvailability.enabled,
+        PlayerTitleMenuAction.options: PlayerActionAvailability.enabled,
+      },
+    );
+
+    expect(actions.keys, <PlayerTitleMenuAction>[
+      PlayerTitleMenuAction.newGame,
+      PlayerTitleMenuAction.continueGame,
+    ]);
+    expect(actions[PlayerTitleMenuAction.continueGame], disabledContinue);
+    expect(
+      presentation.title.labelFor(PlayerTitleMenuAction.newGame),
+      'Commencer',
+    );
+    expect(
+      presentation.title.iconFor(PlayerTitleMenuAction.newGame),
+      ProjectTitleActionIcon.sparkles,
+    );
+  });
+
   test('projects every V6 typography metric into measurable text styles', () {
     final presentation = RuntimePlayerPresentation.fromProfile(
       const ProjectPresentationProfile(

@@ -21,6 +21,9 @@ import 'package:map_core/map_core.dart'
         ProjectTypographyProfile,
         ProjectTypographyRoleProfile,
         ProjectTitlePresentationProfile,
+        ProjectTitleActionIcon,
+        ProjectTitleActionId,
+        ProjectTitleActionProfile,
         ProjectWindowShape,
         ProjectWindowStyleProfile,
         safeProjectSemanticTheme,
@@ -682,19 +685,34 @@ final class GamePackageManifestCodec {
       value,
       path,
       required: const <String>{},
-      optional: const <String>{'title', 'subtitle', 'prompt'},
+      optional: const <String>{'title', 'subtitle', 'prompt', 'actions'},
     );
     String? copy(String field) =>
         json.containsKey(field) ? _string(json[field], '$path.$field') : null;
     final title = copy('title');
     final subtitle = copy('subtitle');
     final prompt = copy('prompt');
+    final actions = json.containsKey('actions')
+        ? _titleActions(json['actions'], path: '$path.actions')
+        : null;
     final diagnostic = validateProjectPresentationProfile(
       ProjectPresentationProfile(
         title: ProjectTitlePresentationProfile(
           title: title,
           subtitle: subtitle,
           prompt: prompt,
+          actions: actions
+              ?.map(
+                (action) => ProjectTitleActionProfile(
+                  id: ProjectTitleActionId.values.byName(action.id),
+                  label: action.label,
+                  icon: action.icon == null
+                      ? null
+                      : ProjectTitleActionIcon.values.byName(action.icon!),
+                  visible: action.visible,
+                ),
+              )
+              .toList(growable: false),
         ),
       ),
     ).firstOrNull;
@@ -709,6 +727,50 @@ final class GamePackageManifestCodec {
       title: title,
       subtitle: subtitle,
       prompt: prompt,
+      actions: actions,
+    );
+  }
+
+  List<GamePackageTitleAction> _titleActions(
+    Object? value, {
+    required String path,
+  }) {
+    final values = _list(value, path);
+    return <GamePackageTitleAction>[
+      for (var index = 0; index < values.length; index++)
+        _titleAction(values[index], path: '$path[$index]'),
+    ];
+  }
+
+  GamePackageTitleAction _titleAction(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{'id'},
+      optional: const <String>{'label', 'icon', 'visible'},
+    );
+    final id = _string(json['id'], '$path.id');
+    final icon =
+        json.containsKey('icon') ? _string(json['icon'], '$path.icon') : null;
+    if (!ProjectTitleActionId.values.any((value) => value.name == id)) {
+      _fail('invalidTitleAction', '$path.id', 'Unknown title action.');
+    }
+    if (icon != null &&
+        !ProjectTitleActionIcon.values.any((value) => value.name == icon)) {
+      _fail('invalidTitleAction', '$path.icon', 'Unknown title action icon.');
+    }
+    return GamePackageTitleAction(
+      id: id,
+      label: json.containsKey('label')
+          ? _string(json['label'], '$path.label')
+          : null,
+      icon: icon,
+      visible: json.containsKey('visible')
+          ? _boolean(json['visible'], '$path.visible')
+          : true,
     );
   }
 

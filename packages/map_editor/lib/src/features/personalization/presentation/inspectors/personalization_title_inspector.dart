@@ -7,6 +7,7 @@ import '../../application/project_title_motion_import_service.dart';
 import '../personalization_surface_color_editor.dart';
 import '../project_branding_editor.dart';
 import '../project_title_copy_editor.dart';
+import '../project_title_actions_editor.dart';
 import '../project_title_motion_editor.dart';
 
 enum PersonalizationTitlePreset { centered, left, cinematic }
@@ -88,6 +89,15 @@ class PersonalizationTitleInspector extends StatelessWidget {
         onChanged: (title) => onChanged(profile.copyWith(title: title)),
       ),
       const SizedBox(height: 18),
+      ProjectTitleActionsEditor(
+        profile: profile.title ?? const ProjectTitlePresentationProfile(),
+        onChanged: (title) => onChanged(
+          profile.copyWith(
+            title: _emptyTitlePresentation(title) ? null : title,
+          ),
+        ),
+      ),
+      const SizedBox(height: 18),
       ProjectBrandingEditor(
         profile: profile.branding,
         projectName: projectName,
@@ -160,6 +170,12 @@ class PersonalizationTitleInspector extends StatelessWidget {
     return PersonalizationTitlePreset.centered;
   }
 }
+
+bool _emptyTitlePresentation(ProjectTitlePresentationProfile profile) =>
+    profile.title == null &&
+    profile.subtitle == null &&
+    profile.prompt == null &&
+    profile.actions == null;
 
 ProjectPresentationProfile _applyPreset(
   ProjectPresentationProfile profile,

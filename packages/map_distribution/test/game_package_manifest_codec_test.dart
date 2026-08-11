@@ -444,6 +444,20 @@ void main() {
             'title': 'Pokémon Aurore',
             'subtitle': 'Une aventure à Hanazuki',
             'prompt': 'Appuyez pour commencer',
+            'actions': <Object?>[
+              <String, Object?>{
+                'id': 'newGame',
+                'label': 'Commencer',
+                'icon': 'sparkles',
+                'visible': true,
+              },
+              <String, Object?>{
+                'id': 'continueGame',
+                'label': 'Reprendre',
+                'icon': 'play',
+                'visible': false,
+              },
+            ],
           },
         };
 
@@ -452,6 +466,8 @@ void main() {
       expect(manifest.presentation?.title?.title, 'Pokémon Aurore');
       expect(manifest.presentation?.title?.subtitle, 'Une aventure à Hanazuki');
       expect(manifest.presentation?.title?.prompt, 'Appuyez pour commencer');
+      expect(manifest.presentation?.title?.actions?.first.id, 'newGame');
+      expect(manifest.presentation?.title?.actions?.last.visible, isFalse);
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
 
       (json['presentation']! as Map<String, Object?>)['schemaVersion'] = 6;

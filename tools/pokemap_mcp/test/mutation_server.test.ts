@@ -891,6 +891,21 @@ test("MCP applies and rereads the authored presentation profile", async () => {
             title: "Aube sur Hanazuki",
             subtitle: "Studio Brume",
             prompt: "Appuyez pour commencer",
+            actions: [
+              {
+                id: "newGame",
+                label: "Commencer",
+                icon: "sparkles",
+                visible: true,
+              },
+              {
+                id: "continueGame",
+                label: "Reprendre",
+                icon: "play",
+                visible: true,
+              },
+              { id: "options", visible: false },
+            ],
           },
           menuLabels: {
             pauseTitle: "Escale",
@@ -1006,6 +1021,12 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       record(record(project.presentation).title).title,
       "Aube sur Hanazuki",
     );
+    assert.deepEqual(
+      (record(record(project.presentation).title).actions as JsonRecord[]).map(
+        (action) => action.id,
+      ),
+      ["newGame", "continueGame", "options"],
+    );
     assert.equal(
       record(record(project.presentation).menuLabels).pokedex,
       "Carnet de voyage",
@@ -1064,6 +1085,12 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.equal(
       record(record(persisted.presentation).title).prompt,
       "Appuyez pour commencer",
+    );
+    assert.equal(
+      record(
+        (record(record(persisted.presentation).title).actions as unknown[])[2],
+      ).visible,
+      false,
     );
     assert.equal(
       record(record(persisted.presentation).menuLabels).pauseTitle,

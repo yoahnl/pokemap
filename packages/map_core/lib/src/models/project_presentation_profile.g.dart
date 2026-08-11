@@ -100,12 +100,53 @@ Map<String, dynamic> _$ProjectIntroVideoProfileToJson(
   'allowReplay': instance.allowReplay,
 };
 
+_ProjectTitleActionProfile _$ProjectTitleActionProfileFromJson(
+  Map<String, dynamic> json,
+) => _ProjectTitleActionProfile(
+  id: $enumDecode(_$ProjectTitleActionIdEnumMap, json['id']),
+  label: json['label'] as String?,
+  icon: $enumDecodeNullable(_$ProjectTitleActionIconEnumMap, json['icon']),
+  visible: json['visible'] as bool? ?? true,
+);
+
+Map<String, dynamic> _$ProjectTitleActionProfileToJson(
+  _ProjectTitleActionProfile instance,
+) => <String, dynamic>{
+  'id': _$ProjectTitleActionIdEnumMap[instance.id]!,
+  'label': ?instance.label,
+  'icon': ?_$ProjectTitleActionIconEnumMap[instance.icon],
+  'visible': instance.visible,
+};
+
+const _$ProjectTitleActionIdEnumMap = {
+  ProjectTitleActionId.continueGame: 'continueGame',
+  ProjectTitleActionId.newGame: 'newGame',
+  ProjectTitleActionId.load: 'load',
+  ProjectTitleActionId.options: 'options',
+  ProjectTitleActionId.creditsAbout: 'creditsAbout',
+  ProjectTitleActionId.returnToHub: 'returnToHub',
+};
+
+const _$ProjectTitleActionIconEnumMap = {
+  ProjectTitleActionIcon.play: 'play',
+  ProjectTitleActionIcon.sparkles: 'sparkles',
+  ProjectTitleActionIcon.folder: 'folder',
+  ProjectTitleActionIcon.settings: 'settings',
+  ProjectTitleActionIcon.info: 'info',
+  ProjectTitleActionIcon.home: 'home',
+};
+
 _ProjectTitlePresentationProfile _$ProjectTitlePresentationProfileFromJson(
   Map<String, dynamic> json,
 ) => _ProjectTitlePresentationProfile(
   title: json['title'] as String?,
   subtitle: json['subtitle'] as String?,
   prompt: json['prompt'] as String?,
+  actions: (json['actions'] as List<dynamic>?)
+      ?.map(
+        (e) => ProjectTitleActionProfile.fromJson(e as Map<String, dynamic>),
+      )
+      .toList(),
 );
 
 Map<String, dynamic> _$ProjectTitlePresentationProfileToJson(
@@ -114,6 +155,7 @@ Map<String, dynamic> _$ProjectTitlePresentationProfileToJson(
   'title': ?instance.title,
   'subtitle': ?instance.subtitle,
   'prompt': ?instance.prompt,
+  'actions': ?instance.actions?.map((e) => e.toJson()).toList(),
 };
 
 _ProjectTitleMotionProfile _$ProjectTitleMotionProfileFromJson(

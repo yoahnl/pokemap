@@ -148,6 +148,59 @@ abstract class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
   String get audioCodec => landscape.audioCodec;
 }
 
+enum ProjectTitleActionId {
+  continueGame,
+  newGame,
+  load,
+  options,
+  creditsAbout,
+  returnToHub,
+}
+
+enum ProjectTitleActionIcon { play, sparkles, folder, settings, info, home }
+
+@Freezed(fromJson: true, toJson: true)
+abstract class ProjectTitleActionProfile with _$ProjectTitleActionProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectTitleActionProfile({
+    required ProjectTitleActionId id,
+    @JsonKey(includeIfNull: false) String? label,
+    @JsonKey(includeIfNull: false) ProjectTitleActionIcon? icon,
+    @Default(true) bool visible,
+  }) = _ProjectTitleActionProfile;
+
+  factory ProjectTitleActionProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTitleActionProfileFromJson(json);
+}
+
+const List<ProjectTitleActionProfile> defaultProjectTitleActions =
+    <ProjectTitleActionProfile>[
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.continueGame,
+        icon: ProjectTitleActionIcon.play,
+      ),
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.newGame,
+        icon: ProjectTitleActionIcon.sparkles,
+      ),
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.load,
+        icon: ProjectTitleActionIcon.folder,
+      ),
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.options,
+        icon: ProjectTitleActionIcon.settings,
+      ),
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.creditsAbout,
+        icon: ProjectTitleActionIcon.info,
+      ),
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.returnToHub,
+        icon: ProjectTitleActionIcon.home,
+      ),
+    ];
+
 @Freezed(fromJson: true, toJson: true)
 abstract class ProjectTitlePresentationProfile
     with _$ProjectTitlePresentationProfile {
@@ -158,6 +211,7 @@ abstract class ProjectTitlePresentationProfile
     @JsonKey(includeIfNull: false) String? title,
     @JsonKey(includeIfNull: false) String? subtitle,
     @JsonKey(includeIfNull: false) String? prompt,
+    @JsonKey(includeIfNull: false) List<ProjectTitleActionProfile>? actions,
   }) = _ProjectTitlePresentationProfile;
 
   factory ProjectTitlePresentationProfile.fromJson(Map<String, dynamic> json) =>
@@ -366,6 +420,7 @@ const int projectMenuLabelMaxLength = 32;
 const int projectTitleCopyMaxLength = 80;
 const int projectTitleSubtitleMaxLength = 120;
 const int projectTitlePromptMaxLength = 160;
+const int projectTitleActionLabelMaxLength = 40;
 const int projectTitleMaxLines = 2;
 const int projectTitleSubtitleMaxLines = 2;
 const int projectTitlePromptMaxLines = 3;
@@ -932,6 +987,71 @@ void _validateTitleCopy(
         'Title copy contains unsupported control characters.',
       );
     }
+  }
+  _validateTitleActions(copy.actions, diagnostics);
+}
+
+void _validateTitleActions(
+  List<ProjectTitleActionProfile>? actions,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (actions == null) return;
+  final seen = <ProjectTitleActionId>{};
+  var hasVisibleNewGame = false;
+  final controlCharacters = RegExp(r'[\u0000-\u001F\u007F]');
+  for (var index = 0; index < actions.length; index++) {
+    final action = actions[index];
+    final path = '\$.presentation.title.actions[$index]';
+    if (!seen.add(action.id)) {
+      _presentationError(
+        diagnostics,
+        'titleActionDuplicate',
+        ProjectPresentationCategory.branding,
+        '$path.id',
+        'Each title action can appear only once.',
+      );
+    }
+    if (action.id == ProjectTitleActionId.newGame && action.visible) {
+      hasVisibleNewGame = true;
+    }
+    final label = action.label;
+    if (label == null) continue;
+    if (label.trim().isEmpty) {
+      _presentationError(
+        diagnostics,
+        'titleActionLabelEmpty',
+        ProjectPresentationCategory.branding,
+        '$path.label',
+        'Title action labels must contain visible text.',
+      );
+    }
+    if (label.runes.length > projectTitleActionLabelMaxLength) {
+      _presentationError(
+        diagnostics,
+        'titleActionLabelTooLong',
+        ProjectPresentationCategory.branding,
+        '$path.label',
+        'Title action labels exceed the supported length.',
+      );
+    }
+    if (controlCharacters.hasMatch(label)) {
+      _presentationError(
+        diagnostics,
+        'titleActionLabelContainsControlCharacters',
+        ProjectPresentationCategory.branding,
+        '$path.label',
+        'Title action labels must remain on one readable line.',
+      );
+    }
+  }
+  if (!hasVisibleNewGame) {
+    _presentationError(
+      diagnostics,
+      'titleNewGameRequired',
+      ProjectPresentationCategory.branding,
+      r'$.presentation.title.actions',
+      'The new game action must remain visible.',
+    );
   }
 }
 

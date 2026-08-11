@@ -309,6 +309,17 @@ void main() {
           title: 'Aube sur Hanazuki',
           subtitle: 'Studio Brume',
           prompt: 'Appuyez pour commencer',
+          actions: <ProjectTitleActionProfile>[
+            ProjectTitleActionProfile(
+              id: ProjectTitleActionId.newGame,
+              label: 'Commencer',
+              icon: ProjectTitleActionIcon.sparkles,
+            ),
+            ProjectTitleActionProfile(
+              id: ProjectTitleActionId.options,
+              visible: false,
+            ),
+          ],
         ),
         typography: const ProjectTypographyProfile(
           dialogue: ProjectTypographyRoleProfile(
@@ -378,6 +389,15 @@ void main() {
       expect(title['title'], 'Aube sur Hanazuki');
       expect(title['subtitle'], 'Studio Brume');
       expect(title['prompt'], 'Appuyez pour commencer');
+      final titleActions = title['actions']! as List<Object?>;
+      expect(
+        titleActions.cast<Map<String, Object?>>().first['id'],
+        'newGame',
+      );
+      expect(
+        titleActions.cast<Map<String, Object?>>().last['visible'],
+        isFalse,
+      );
       expect(dialoguePalette['surface'], '#102030');
       expect(dialogueStyle['shape'], 'speech');
       expect(dialogueStyle['fillOpacity'], .85);

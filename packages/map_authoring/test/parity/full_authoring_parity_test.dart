@@ -269,6 +269,13 @@ void main() {
       expect(directEvidence['titleCopy'], 'Aube sur Hanazuki');
       expect(directEvidence['titleSubtitle'], 'Studio Brume');
       expect(directEvidence['titlePrompt'], 'Appuyez pour commencer');
+      expect(directEvidence['titleActionOrder'], <String>[
+        'newGame',
+        'continueGame',
+        'options',
+      ]);
+      expect(directEvidence['titleNewGameLabel'], 'Commencer');
+      expect(directEvidence['titleOptionsVisible'], isFalse);
       expect(
         directEvidence['introLandscape'],
         'presentation/intro-landscape.mp4',
@@ -935,6 +942,15 @@ final class _GoldenHarness {
       'titleCopy': manifest.presentation?.title?.title,
       'titleSubtitle': manifest.presentation?.title?.subtitle,
       'titlePrompt': manifest.presentation?.title?.prompt,
+      'titleActionOrder': manifest.presentation?.title?.actions
+          ?.map((action) => action.id.name)
+          .toList(growable: false),
+      'titleNewGameLabel': manifest.presentation?.title?.actions
+          ?.firstWhere((action) => action.id == ProjectTitleActionId.newGame)
+          .label,
+      'titleOptionsVisible': manifest.presentation?.title?.actions
+          ?.firstWhere((action) => action.id == ProjectTitleActionId.options)
+          .visible,
       'introLandscape': manifest.presentation?.intro?.media.landscape.videoPath,
       'promptPortrait':
           manifest.presentation?.titleMotion?.promptLoop?.portrait?.videoPath,
@@ -1019,6 +1035,22 @@ final ProjectPresentationProfile _responsivePresentationProfile =
     title: 'Aube sur Hanazuki',
     subtitle: 'Studio Brume',
     prompt: 'Appuyez pour commencer',
+    actions: <ProjectTitleActionProfile>[
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.newGame,
+        label: 'Commencer',
+        icon: ProjectTitleActionIcon.sparkles,
+      ),
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.continueGame,
+        label: 'Reprendre',
+        icon: ProjectTitleActionIcon.play,
+      ),
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.options,
+        visible: false,
+      ),
+    ],
   ),
   intro: ProjectIntroVideoProfile(
     media: ProjectResponsiveVideoProfile(
