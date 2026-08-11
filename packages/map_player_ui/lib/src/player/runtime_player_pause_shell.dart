@@ -136,6 +136,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     if (availableSelectionIds.contains(preferred)) return preferred;
     final current = _focusController.logicalSelectionId;
     if (availableSelectionIds.contains(current)) return current;
+    if (preferred == null && current == null) return null;
     return availableSelectionIds.firstOrNull;
   }
 
