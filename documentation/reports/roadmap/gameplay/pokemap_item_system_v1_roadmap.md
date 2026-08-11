@@ -957,13 +957,15 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-053 — Pickers contextuels cohérents
 
-- [ ] **Résultat :** chaque écran filtre les objets par capacité réelle.
+- [x] **Résultat :** chaque écran filtre les objets par capacité réelle.
 - **Surfaces :** New Game, give/take item, rewards, shops, machines, held items et capture preview.
 - **Tests :**
   - suites widget existantes de chaque surface ;
   - packages/map_editor/test/item_capability_picker_test.dart.
 - **Gate :** aucun picker normal ne demande categoryId ou itemId brut.
 - **Dépendances :** ITM-052.
+
+**Preuves ITM-053 :** `ItemCapabilityPicker` projette exclusivement les `ProjectItemDefinition` prêtes et filtre les usages monde, combat, capture, machine et held depuis leurs capacités canoniques, sans catégorie heuristique. Une référence existante devenue indisponible reste réparable sous un libellé neutre qui n'affiche jamais son ID brut. New Game, give/take item, récompenses de dresseur, boutiques et objets tenus utilisent désormais ce contrat ; les catalogues Scene et Shop proviennent du gateway authoring canonique. Le fallback d'ID brut des objets tenus a été supprimé, tandis que les filtres Capture et Capsule du Studio et le picker partagé certifient leurs capacités dédiées. Les suites ciblées des pickers, du New Game, des boutiques, des dresseurs et des conséquences Scene terminent avec 37 tests réussis ; l'analyse ciblée et le guardrail design system ne signalent aucun problème.
 
 ### ITM-054 — Transport JSONL/CLI et MCP
 

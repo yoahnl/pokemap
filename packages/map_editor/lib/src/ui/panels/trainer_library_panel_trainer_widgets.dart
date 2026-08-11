@@ -98,12 +98,12 @@ class _TrainerReferencesBanner extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              references.itemsCatalogView.isAvailable
+              references.isItemCatalogAvailable
                   ? references.itemsCatalogView.description
                   : _buildAuthorFacingCatalogUnavailableMessage(
                       subjectLabel: 'des objets',
                       fallbackMessage:
-                          'Les ID bruts d’objets restent possibles alors que le catalogue local est indisponible.',
+                          'La sélection d’objets reste désactivée tant que le catalogue canonique ne peut pas être lu.',
                       technicalMessage: references.itemsCatalogView.message,
                     ),
               style: TextStyle(

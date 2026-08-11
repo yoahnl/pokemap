@@ -65,6 +65,11 @@ void main() {
               SceneConsequenceCatalogOption(
                 id: 'custom-passive-thread',
                 label: 'Fil mystique',
+                itemDefinition: ProjectItemDefinition(
+                  id: 'custom-passive-thread',
+                  displayName: 'Fil mystique',
+                  pocketId: 'items',
+                ),
               ),
             ],
             message: '1 objet local disponible.',

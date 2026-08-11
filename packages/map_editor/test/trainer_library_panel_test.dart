@@ -323,16 +323,17 @@ void main() {
           )
           .first,
     );
+    final heldItemPicker = tester.widget<PokeMapDropdownField<String>>(
+      find.byKey(
+        const Key('trainer-library-pokemon-item-dropdown-button'),
+      ),
+    );
     expect(
-      find.textContaining('hors cutline MVP'),
-      findsOneWidget,
+      heldItemPicker.items.map((item) => item.label),
+      <String>['Aucun objet', 'Oran Berry'],
     );
-    await selectTrainerDropdownSuggestion(
-      tester,
-      'trainer-library-pokemon-item',
-      'oran_berry',
-      query: 'oran',
-    );
+    heldItemPicker.onChanged('oran_berry');
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(
         const Key('trainer-library-pokemon-form-suggestion-blossom'),
@@ -515,13 +516,18 @@ void main() {
       'story:misty_defeated, story:cerulean_open',
     );
 
-    tester
-        .widget<PokeMapDropdownField<String>>(
-          find.byKey(
-            const Key('trainer-library-edit-reward-item-dropdown'),
-          ),
-        )
-        .onChanged('oran_berry');
+    final rewardItemPicker = tester.widget<PokeMapDropdownField<String>>(
+      find.byKey(const Key('trainer-library-edit-reward-item-dropdown')),
+    );
+    expect(
+      rewardItemPicker.items.map((item) => item.label),
+      <String>['Sélectionner un objet du catalogue', 'Oran Berry'],
+    );
+    expect(
+      rewardItemPicker.items.map((item) => item.label),
+      isNot(contains('oran_berry')),
+    );
+    rewardItemPicker.onChanged('oran_berry');
     await settleTrainerUi(tester);
     await tester.enterText(
       find.byKey(
@@ -1665,19 +1671,9 @@ void main() {
       find.byKey(const Key('trainer-library-pokemon-move-0-field')),
       'missing_move',
     );
-    await tester.scrollUntilVisible(
+    expect(
       find.byKey(const Key('trainer-library-pokemon-item-field')),
-      200,
-      scrollable: find
-          .descendant(
-            of: find.byKey(const Key('trainer-library-editor-scroll')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.enterText(
-      find.byKey(const Key('trainer-library-pokemon-item-field')),
-      'mystery_item',
+      findsNothing,
     );
 
     final savePokemonButton = tester.widget<CupertinoButton>(
@@ -1692,7 +1688,7 @@ void main() {
     expect(pokemon.speciesId, 'bulbasaur');
     expect(pokemon.level, 10);
     expect(pokemon.moves, <String>['missing_move']);
-    expect(pokemon.heldItemId, 'mystery_item');
+    expect(pokemon.heldItemId, isNull);
   });
 
   testWidgets(
@@ -1988,7 +1984,8 @@ class _FakeWorkspace implements ProjectWorkspace {
       "id": "oran_berry",
       "displayName": "Oran Berry",
       "aliases": ["oran"],
-      "pocketId": "berries"
+      "pocketId": "berries",
+      "heldEffectId": "oran-berry"
     }
   ]
 }

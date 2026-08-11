@@ -3,7 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../app/providers/core/repository_providers.dart';
 import '../../../app/providers/pokedex/pokedex_providers.dart';
-import '../../../app/providers/pokemon_items/pokemon_items_workspace_providers.dart';
+import '../../gameplay/items/item_studio_gateway.dart';
 
 enum SceneConsequenceCatalogStatus {
   ready,
@@ -21,11 +21,13 @@ final class SceneConsequenceCatalogOption {
     required this.id,
     required this.label,
     this.details = const <String>[],
+    this.itemDefinition,
   });
 
   final String id;
   final String label;
   final List<String> details;
+  final ProjectItemDefinition? itemDefinition;
 }
 
 final class SceneConsequenceCatalogSection {
@@ -214,6 +216,26 @@ final class SceneConsequenceCatalogs {
   }
 }
 
+typedef SceneItemDefinitionLoader = Future<List<ProjectItemDefinition>>
+    Function(String projectRootPath);
+
+final sceneItemDefinitionLoaderProvider = Provider<SceneItemDefinitionLoader>(
+  (ref) {
+    final gateway = CanonicalItemStudioGateway(
+      queries: ref.watch(authoringQueryAdapterProvider),
+      mutations: ref.watch(authoringMutationAdapterProvider),
+    );
+    return (projectRootPath) async {
+      final snapshot = await gateway.load(projectRootPath);
+      return <ProjectItemDefinition>[
+        for (final definition in snapshot.definitions)
+          if (snapshot.readinessByItemId[definition.id]?.ready != false)
+            definition,
+      ];
+    };
+  },
+);
+
 final sceneConsequenceCatalogsProvider = FutureProvider.autoDispose
     .family<SceneConsequenceCatalogs, String?>((ref, projectRootPath) async {
   final normalizedRoot = projectRootPath?.trim();
@@ -221,8 +243,6 @@ final sceneConsequenceCatalogsProvider = FutureProvider.autoDispose
     return const SceneConsequenceCatalogs.unavailable();
   }
 
-  // Reuse the item and Pokédex workspace loaders so Scene authoring never
-  // invents a second catalog schema or reads project JSON directly.
   final itemsFuture = _loadItems(ref, normalizedRoot);
   final speciesFuture = _loadSpecies(ref, normalizedRoot);
   return SceneConsequenceCatalogs(
@@ -236,27 +256,25 @@ Future<SceneConsequenceCatalogSection> _loadItems(
   String projectRootPath,
 ) async {
   try {
-    final view = await ref.watch(
-      pokemonItemsCatalogWorkspaceLoaderProvider,
-    )(projectRootPath);
+    final definitions = await ref.watch(sceneItemDefinitionLoaderProvider)(
+      projectRootPath,
+    );
     final options = <SceneConsequenceCatalogOption>[
-      for (final entry in view.entries)
-        if (entry.id.trim().isNotEmpty && entry.name.trim().isNotEmpty)
-          SceneConsequenceCatalogOption(
-            id: entry.id.trim(),
-            label: entry.name.trim(),
-            details: <String>[
-              if (entry.shortDesc?.trim().isNotEmpty ?? false)
-                entry.shortDesc!.trim(),
-            ],
-          ),
+      for (final definition in definitions)
+        SceneConsequenceCatalogOption(
+          id: definition.id,
+          label: definition.displayName,
+          details: <String>[
+            if (definition.description != null) definition.description!,
+          ],
+          itemDefinition: definition,
+        ),
     ]..sort(_compareOptions);
-    if (!view.isAvailable || options.isEmpty) {
-      return SceneConsequenceCatalogSection(
+    if (options.isEmpty) {
+      return const SceneConsequenceCatalogSection(
         status: SceneConsequenceCatalogStatus.unavailable,
-        options: const <SceneConsequenceCatalogOption>[],
-        message: view.message ??
-            'Le catalogue local ne contient aucun objet sélectionnable.',
+        options: <SceneConsequenceCatalogOption>[],
+        message: 'Le catalogue canonique ne contient aucun objet prêt.',
       );
     }
     return SceneConsequenceCatalogSection(

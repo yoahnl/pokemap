@@ -16,8 +16,8 @@ void main() {
         tilesets: <ProjectTilesetEntry>[],
       ),
       itemOptions: const <ShopEditorItemOption>[
-        ShopEditorItemOption(id: 'potion', label: 'Potion'),
-        ShopEditorItemOption(id: 'antidote', label: 'Antidote'),
+        _potionOption,
+        _antidoteOption,
       ],
     );
     var changed = 0;
@@ -77,7 +77,7 @@ void main() {
     final controller = ShopEditorController(
       manifest: _manifestWithConditionalShop(),
       itemOptions: const <ShopEditorItemOption>[
-        ShopEditorItemOption(id: 'potion', label: 'Potion'),
+        _potionOption,
       ],
     );
     var changed = 0;
@@ -194,7 +194,7 @@ void main() {
     final controller = ShopEditorController(
       manifest: _manifestWithConditionalShop(),
       itemOptions: const <ShopEditorItemOption>[
-        ShopEditorItemOption(id: 'potion', label: 'Potion'),
+        _potionOption,
       ],
     );
 
@@ -243,7 +243,7 @@ void main() {
     final controller = ShopEditorController(
       manifest: _manifestWithConditionalShop(),
       itemOptions: const <ShopEditorItemOption>[
-        ShopEditorItemOption(id: 'potion', label: 'Potion'),
+        _potionOption,
       ],
     );
     await tester.pumpWidget(
@@ -289,6 +289,26 @@ void main() {
     );
   });
 }
+
+const _potionOption = ShopEditorItemOption(
+  id: 'potion',
+  label: 'Potion',
+  definition: ProjectItemDefinition(
+    id: 'potion',
+    displayName: 'Potion',
+    pocketId: 'medicine',
+  ),
+);
+
+const _antidoteOption = ShopEditorItemOption(
+  id: 'antidote',
+  label: 'Antidote',
+  definition: ProjectItemDefinition(
+    id: 'antidote',
+    displayName: 'Antidote',
+    pocketId: 'medicine',
+  ),
+);
 
 ProjectManifest _manifestWithConditionalShop() => const ProjectManifest(
       name: 'Test',

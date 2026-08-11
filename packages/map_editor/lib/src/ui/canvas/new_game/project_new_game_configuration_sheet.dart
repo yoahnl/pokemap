@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../features/editor/state/editor_notifier.dart';
+import '../../../features/gameplay/items/item_capability_picker.dart';
 import '../../../features/narrative/state/new_game_authoring_catalog_provider.dart';
 import '../../../features/narrative/state/scene_consequence_catalog_providers.dart';
 import '../../../theme/theme.dart';
@@ -424,26 +425,24 @@ class _ProjectNewGameConfigurationFormState
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
-                    child: PokeMapDropdownField<String>(
-                      key: const ValueKey('new-game-bag-item-picker'),
+                    child: ItemCapabilityPicker(
+                      fieldKey:
+                          const ValueKey('new-game-bag-item-picker'),
                       label: 'Objet du catalogue',
+                      definitions: <ProjectItemDefinition>[
+                        for (final option
+                            in widget.consequenceCatalogs.items.options)
+                          if (option.itemDefinition != null)
+                            option.itemDefinition!,
+                      ],
+                      requirement: ItemCapabilityRequirement.any,
                       value: _selectedBagItemId,
                       enabled: _enabled &&
                           widget.consequenceCatalogs.items.options.isNotEmpty,
-                      items: <PokeMapDropdownItem<String>>[
-                        const PokeMapDropdownItem(
-                          value: '',
-                          label: 'Choisir un objet…',
-                        ),
-                        for (final option
-                            in widget.consequenceCatalogs.items.options)
-                          PokeMapDropdownItem(
-                            value: option.id,
-                            label: option.label,
-                          ),
-                      ],
+                      allowEmpty: true,
+                      emptyLabel: 'Choisir un objet…',
                       onChanged: (value) => setState(() {
-                        _selectedBagItemId = value;
+                        _selectedBagItemId = value ?? '';
                         _clearSaveStatus();
                       }),
                     ),

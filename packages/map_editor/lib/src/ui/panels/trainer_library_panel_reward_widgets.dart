@@ -41,7 +41,7 @@ class _TrainerRewardEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final itemEntries = references.itemsCatalogView.entries;
+    final itemDefinitions = references.itemDefinitions;
     final sortedBadges = badges.toList(growable: false)
       ..sort((left, right) => left.label.compareTo(right.label));
 
@@ -63,23 +63,16 @@ class _TrainerRewardEditor extends StatelessWidget {
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 10),
-          PokeMapDropdownField<String>(
-            key: Key('$_keyPrefix-item-dropdown'),
+          ItemCapabilityPicker(
+            fieldKey: Key('$_keyPrefix-item-dropdown'),
             label: 'Objet à ajouter',
+            definitions: itemDefinitions,
+            requirement: ItemCapabilityRequirement.any,
             value: selectedItemId ?? '',
-            enabled: references.itemsCatalogView.isAvailable,
-            items: <PokeMapDropdownItem<String>>[
-              const PokeMapDropdownItem<String>(
-                value: '',
-                label: 'Sélectionner un objet du catalogue',
-              ),
-              for (final item in itemEntries)
-                PokeMapDropdownItem<String>(
-                  value: item.id,
-                  label: '${item.name} · ${item.id}',
-                ),
-            ],
-            onChanged: (value) => onSelectItem(value.isEmpty ? null : value),
+            enabled: references.isItemCatalogAvailable,
+            allowEmpty: true,
+            emptyLabel: 'Sélectionner un objet du catalogue',
+            onChanged: onSelectItem,
           ),
           const SizedBox(height: 8),
           Row(
@@ -98,14 +91,14 @@ class _TrainerRewardEditor extends StatelessWidget {
               PokeMapButton(
                 key: Key('$_keyPrefix-item-add-button'),
                 onPressed:
-                    references.itemsCatalogView.isAvailable ? onAddItem : null,
+                    references.isItemCatalogAvailable ? onAddItem : null,
                 size: PokeMapButtonSize.medium,
                 leading: const Icon(CupertinoIcons.plus, size: 14),
                 child: const Text('Ajouter'),
               ),
             ],
           ),
-          if (!references.itemsCatalogView.isAvailable) ...[
+          if (!references.isItemCatalogAvailable) ...[
             const SizedBox(height: 6),
             const Text(
               'Le catalogue local des objets est indisponible : aucun ID brut '
@@ -118,7 +111,10 @@ class _TrainerRewardEditor extends StatelessWidget {
               _TrainerRewardItemGrantRow(
                 key: Key('$_keyPrefix-item-${grant.itemId}'),
                 grant: grant,
-                displayName: _itemDisplayName(itemEntries, grant.itemId),
+                displayName: _itemDisplayName(
+                  itemDefinitions,
+                  grant.itemId,
+                ),
                 onRemove: () => onRemoveItem(grant.itemId),
               ),
               const SizedBox(height: 6),
@@ -212,14 +208,14 @@ class _TrainerRewardItemGrantRow extends StatelessWidget {
 }
 
 String _itemDisplayName(
-  List<PokemonItemCatalogEntryView> entries,
+  List<ProjectItemDefinition> definitions,
   String itemId,
 ) {
-  return entries
-          .where((entry) => entry.id == itemId)
-          .map((entry) => entry.name)
+  return definitions
+          .where((definition) => definition.id == itemId)
+          .map((definition) => definition.displayName)
           .firstOrNull ??
-      itemId;
+      'Référence indisponible';
 }
 
 String _fieldAbilityRewardLabel(FieldAbility ability) => switch (ability) {
