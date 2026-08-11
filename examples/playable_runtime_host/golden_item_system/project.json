@@ -114,6 +114,28 @@
       ]
     }
   ],
+  "storylines": [
+    {
+      "id": "golden_item_story",
+      "type": "tutorial",
+      "status": "active",
+      "title": "Golden Item Journey",
+      "chapters": [
+        {
+          "id": "golden_item_pickups",
+          "title": "Item pickups",
+          "order": 0,
+          "steps": [
+            {
+              "id": "golden_item.pickup",
+              "title": "Collect the Ether",
+              "order": 0
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "shops": [
     {
       "id": "golden_item_shop",
