@@ -10,6 +10,8 @@ dependencies:
   crypto: ^3.0.7
   flutter:
     sdk: flutter
+  map_authoring:
+    path: ../../packages/map_authoring
   map_core:
     path: ../../packages/map_core
   map_distribution:
