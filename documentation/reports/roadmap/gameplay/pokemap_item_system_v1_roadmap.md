@@ -377,7 +377,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-010 — Modèles Item System V1
 
-- [ ] **Résultat :** contrats listés en section 5.1, immuables et sérialisables.
+- [x] **Résultat :** contrats listés en section 5.1, immuables et sérialisables.
 - **Fichiers à créer :**
   - packages/map_core/lib/src/models/items/project_item_catalog.dart
   - packages/map_core/lib/src/models/items/project_item_definition.dart
@@ -398,6 +398,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 - **Non-goal :** aucune lecture fichier et aucune UI.
 - **Gate :** tests ciblés et dart analyze sans nouvelle issue.
 - **Dépendances :** ITM-001.
+
+**Preuves ITM-010 :** les 11 tests ciblés passent ; `dart analyze` termine sans erreur ni warning et ne signale aucune nouvelle info dans les fichiers Item System. Les 119 infos remontées appartiennent à la baseline existante du package. Les quatre modèles canoniques et leurs sorties Freezed/JSON sont exportés par `map_core` ; aucun accès fichier, adaptateur ou comportement runtime n'a été ajouté.
 
 ### ITM-011 — Codec strict du catalogue canonique
 
