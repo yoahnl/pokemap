@@ -445,7 +445,7 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
 
 ### ITM-013 — Validation sémantique et capability truth
 
-- [ ] **Résultat :** chaque définition annonce honnêtement si toutes ses capacités sont câblées.
+- [x] **Résultat :** chaque définition annonce honnêtement si toutes ses capacités sont câblées.
 - **Fichiers à créer :**
   - packages/map_core/lib/src/validation/project_item_catalog_validator.dart
   - packages/map_core/lib/src/read_models/item_capability_truth.dart
@@ -465,6 +465,8 @@ Les phases 3 et 4 peuvent avancer en deux flux après ITM-024. Les lots qui modi
   - champs externes non consommés.
 - **Gate :** aucun objet unsupported ne peut être présenté comme runtime-ready.
 - **Dépendances :** ITM-011.
+
+**Preuves ITM-013 :** les 6 tests du validator et les 22 tests cumulés des contrats/codec passent ; l'analyse ciblée est sans issue. Le rapport distingue `runtimeReady`, `passive` et `unsupported`, rend bloquants les duplicats, versions/kinds inconnus, ratios, cibles, moveId, held effects et actions sémantiques invalides, et conserve les avertissements de présentation/import non bloquants. Les champs externes sont signalés par l'adaptateur d'import avant écriture ; ils ne sont jamais tolérés silencieusement dans le JSON canonique strict.
 
 ### ITM-014 — Loader partagé par ports
 
