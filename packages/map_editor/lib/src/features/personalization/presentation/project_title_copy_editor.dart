@@ -204,11 +204,12 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
   }
 
   void _publish() {
-    final profile = ProjectTitlePresentationProfile(
-      title: _titleFallback ? null : _title.text,
-      subtitle: _subtitleFallback ? null : _subtitle.text,
-      prompt: _promptFallback ? null : _prompt.text,
-    );
+    final profile = (widget.profile ?? const ProjectTitlePresentationProfile())
+        .copyWith(
+          title: _titleFallback ? null : _title.text,
+          subtitle: _subtitleFallback ? null : _subtitle.text,
+          prompt: _promptFallback ? null : _prompt.text,
+        );
     widget.onChanged(
       profile == const ProjectTitlePresentationProfile() ? null : profile,
     );

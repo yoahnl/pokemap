@@ -57,11 +57,19 @@ void main() {
     tester,
   ) async {
     ProjectPresentationProfile? changed;
+    const actions = <ProjectTitleActionProfile>[
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.newGame,
+        label: 'Commencer',
+      ),
+    ];
     await tester.pumpWidget(
       _app(
         SingleChildScrollView(
           child: PersonalizationTitleInspector(
-            profile: const ProjectPresentationProfile(),
+            profile: const ProjectPresentationProfile(
+              title: ProjectTitlePresentationProfile(actions: actions),
+            ),
             projectName: 'Pokémon Aurore',
             projectRootPath: '',
             onChanged: (profile) => changed = profile,
@@ -86,10 +94,12 @@ void main() {
     );
 
     expect(changed?.title?.title, 'Aurore sur Hanazuki');
+    expect(changed?.title?.actions, actions);
     await tester.tap(
       find.byKey(const ValueKey<String>('title-copy-use-project-name')),
     );
     expect(changed?.title?.title, isNull);
+    expect(changed?.title?.actions, actions);
   });
 
   testWidgets('offers three guided title compositions', (tester) async {
