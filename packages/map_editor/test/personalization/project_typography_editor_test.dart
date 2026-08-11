@@ -113,6 +113,51 @@ void main() {
 
     expect(changed?.weight, 600);
   });
+
+  testWidgets('keeps contextual role metrics independent', (tester) async {
+    ProjectTypographyRole? changedRole;
+    ProjectTypographyMetricsProfile? changedMetrics;
+    await tester.pumpWidget(
+      _app(
+        ProjectTypographyEditor(
+          profile: const ProjectTypographyProfile(),
+          roles: const <ProjectTypographyRole>[
+            ProjectTypographyRole.combat,
+            ProjectTypographyRole.numbers,
+          ],
+          onImportRole: (_) {},
+          onUseSystemFont: (_) {},
+          onMetricsChanged: (role, metrics) {
+            changedRole = role;
+            changedMetrics = metrics;
+          },
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('typography-size-combat')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('typography-size-numbers')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('typography-size-dialogue')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('typography-size-numbers')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('125 %').last);
+    await tester.pumpAndSettle();
+
+    expect(changedRole, ProjectTypographyRole.numbers);
+    expect(changedMetrics?.sizeScale, 1.25);
+  });
 }
 
 Widget _app(Widget child) => MaterialApp(

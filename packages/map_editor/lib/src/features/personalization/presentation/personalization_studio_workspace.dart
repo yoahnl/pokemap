@@ -965,6 +965,7 @@ class _PersonalizationStudioWorkspaceState
                   profile: profile,
                   projectName: projectName,
                   projectRootPath: projectRootPath,
+                  previewFamilies: _fontPreviewFamilies,
                   onChanged: (nextProfile) {
                     unawaited(
                       notifier.applyPersonalizationStudioProfile(
@@ -1074,6 +1075,54 @@ class _PersonalizationStudioWorkspaceState
                       notifier.applyPersonalizationStudioProfile(
                         profile.copyWith(surfacePalettes: surfacePalettes),
                         label: 'Modifier les couleurs de l’écran titre',
+                      ),
+                    );
+                  },
+                  onImportTypographyRole: (role) {
+                    unawaited(
+                      _importFont(
+                        context: context,
+                        projectRootPath: projectRootPath,
+                        profile: profile,
+                        role: role,
+                        notifier: notifier,
+                      ),
+                    );
+                  },
+                  onUseSystemTypographyRole: (role) {
+                    final typography =
+                        profile.typography ?? const ProjectTypographyProfile();
+                    final current = _typographyRoleProfile(typography, role);
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        profile.copyWith(
+                          typography: _replaceTypographyRole(
+                            typography,
+                            role,
+                            ProjectTypographyRoleProfile(
+                              fallbackFamilies: current.fallbackFamilies,
+                            ),
+                          ),
+                        ),
+                        label:
+                            'Utiliser le fallback ${_typographyRoleName(role)}',
+                      ),
+                    );
+                    setState(() => _fontPreviewFamilies.remove(role));
+                  },
+                  onTypographyMetricsChanged: (role, metrics) {
+                    final typography =
+                        profile.typography ?? const ProjectTypographyProfile();
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        profile.copyWith(
+                          typography: _replaceTypographyRoleMetrics(
+                            typography,
+                            role,
+                            metrics,
+                          ),
+                        ),
+                        label: 'Modifier le texte ${_typographyRoleName(role)}',
                       ),
                     );
                   },
@@ -1604,7 +1653,7 @@ class _PersonalizationStudioWorkspaceState
               ),
             );
           },
-          onImportCommonFont: () {
+          onImportBodyFont: () {
             unawaited(
               _importFont(
                 context: context,
@@ -1612,21 +1661,38 @@ class _PersonalizationStudioWorkspaceState
                 profile: profile,
                 role: ProjectTypographyRole.body,
                 notifier: notifier,
-                applyToAllRoles: true,
               ),
             );
           },
-          onUseSystemCommonFont: () {
-            unawaited(
-              _useSystemCommonFont(profile: profile, notifier: notifier),
-            );
-          },
-          onCommonMetricsChanged: (metrics) {
+          onUseSystemBodyFont: () {
+            final typography =
+                profile.typography ?? const ProjectTypographyProfile();
+            final current = typography.body;
             unawaited(
               notifier.applyPersonalizationStudioProfile(
                 profile.copyWith(
-                  typography: _replaceCommonTypographyMetrics(
-                    profile.typography ?? const ProjectTypographyProfile(),
+                  typography: typography.copyWith(
+                    body: ProjectTypographyRoleProfile(
+                      fallbackFamilies: current.fallbackFamilies,
+                    ),
+                  ),
+                ),
+                label: 'Utiliser le fallback Texte courant',
+              ),
+            );
+            setState(
+              () => _fontPreviewFamilies.remove(ProjectTypographyRole.body),
+            );
+          },
+          onBodyMetricsChanged: (metrics) {
+            final typography =
+                profile.typography ?? const ProjectTypographyProfile();
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(
+                  typography: _replaceTypographyRoleMetrics(
+                    typography,
+                    ProjectTypographyRole.body,
                     metrics,
                   ),
                 ),
@@ -1852,6 +1918,36 @@ class _PersonalizationStudioWorkspaceState
                 () => _fontPreviewFamilies.remove(ProjectTypographyRole.combat),
               );
             },
+            onImportNumbersFont: () {
+              unawaited(
+                _importFont(
+                  context: context,
+                  projectRootPath: projectRootPath,
+                  profile: profile,
+                  role: ProjectTypographyRole.numbers,
+                  notifier: notifier,
+                ),
+              );
+            },
+            onUseSystemNumbersFont: () {
+              final current = typography.numbers;
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(
+                    typography: typography.copyWith(
+                      numbers: ProjectTypographyRoleProfile(
+                        fallbackFamilies: current.fallbackFamilies,
+                      ),
+                    ),
+                  ),
+                  label: 'Utiliser le fallback Nombres',
+                ),
+              );
+              setState(
+                () =>
+                    _fontPreviewFamilies.remove(ProjectTypographyRole.numbers),
+              );
+            },
             onCombatMetricsChanged: (metrics) {
               unawaited(
                 notifier.applyPersonalizationStudioProfile(
@@ -1863,6 +1959,20 @@ class _PersonalizationStudioWorkspaceState
                     ),
                   ),
                   label: 'Modifier le texte des combats',
+                ),
+              );
+            },
+            onNumbersMetricsChanged: (metrics) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(
+                    typography: _replaceTypographyRoleMetrics(
+                      typography,
+                      ProjectTypographyRole.numbers,
+                      metrics,
+                    ),
+                  ),
+                  label: 'Modifier le texte Nombres',
                 ),
               );
             },
