@@ -164,6 +164,7 @@ class _CharacterStudioLibraryState extends State<CharacterStudioLibrary> {
                             ? null
                             : portableRequest,
                         thumbnailSource: thumbnail.source,
+                        usesPixelCoordinates: portableRequest != null,
                         framePixelWidth:
                             character.frameWidth *
                             widget.project.settings.tileWidth,
@@ -257,6 +258,7 @@ class _CharacterLibraryCard extends StatelessWidget {
     required this.mediaResolver,
     required this.mediaRequest,
     required this.thumbnailSource,
+    required this.usesPixelCoordinates,
     required this.framePixelWidth,
     required this.framePixelHeight,
     required this.onTap,
@@ -270,6 +272,7 @@ class _CharacterLibraryCard extends StatelessWidget {
   final CharacterStudioMediaResolverContract? mediaResolver;
   final CharacterStudioMediaRequest? mediaRequest;
   final TilesetSourceRect thumbnailSource;
+  final bool usesPixelCoordinates;
   final int framePixelWidth;
   final int framePixelHeight;
   final VoidCallback? onTap;
@@ -295,6 +298,7 @@ class _CharacterLibraryCard extends StatelessWidget {
             source: thumbnailSource,
             framePixelWidth: framePixelWidth,
             framePixelHeight: framePixelHeight,
+            usesPixelCoordinates: usesPixelCoordinates,
             size: 42,
           ),
           const SizedBox(width: 10),

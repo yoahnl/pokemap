@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +8,7 @@ import 'package:map_editor/src/features/character_studio/application/character_a
 import 'package:map_editor/src/features/character_studio/application/character_studio_media_resolver.dart';
 import 'package:map_editor/src/features/character_studio/presentation/animations/animation_matrix.dart';
 import 'package:map_editor/src/features/character_studio/presentation/animations/character_studio_animations_tab.dart';
+import 'package:map_editor/src/features/character_studio/presentation/preview/character_studio_sprite_thumbnail.dart';
 import 'package:map_editor/src/theme/theme.dart';
 
 void main() {
@@ -86,7 +89,8 @@ void main() {
     'character tab renders the live matrix and global manager entry',
     (tester) async {
       final project = _project();
-      var manageRequested = false;
+      var manageRequestCount = 0;
+      final resolver = _ImmediateMediaResolver();
 
       await tester.pumpWidget(
         MaterialApp(
@@ -100,9 +104,9 @@ void main() {
                 character: project.characters.single,
                 projectRootPath: '/project',
                 projectRevision: '1',
-                mediaResolver: _UnusedMediaResolver(),
+                mediaResolver: resolver,
                 isSaving: false,
-                onManageDefinitions: () => manageRequested = true,
+                onManageDefinitions: () => manageRequestCount += 1,
                 onImportSource: (_) async => true,
                 onSaveClip: (_, _, _) async => true,
               ),
@@ -119,6 +123,28 @@ void main() {
         find.byKey(const ValueKey<String>('animation-matrix')),
         findsOneWidget,
       );
+      await tester.pumpAndSettle();
+      final thumbnailFinder = find.byKey(
+        const ValueKey<String>('animation-slot-thumbnail-system-idle-south'),
+      );
+      expect(thumbnailFinder, findsOneWidget);
+      expect(
+        tester
+            .widget<CharacterStudioSpriteThumbnail>(thumbnailFinder)
+            .usesPixelCoordinates,
+        isTrue,
+      );
+      expect(resolver.requests.map((request) => request.assetId), <String>[
+        'elia-idle-south',
+      ]);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('character-studio-create-custom-animation'),
+        ),
+      );
+
+      expect(manageRequestCount, 1);
 
       await tester.tap(
         find.byKey(
@@ -128,15 +154,23 @@ void main() {
         ),
       );
 
-      expect(manageRequested, isTrue);
+      expect(manageRequestCount, 2);
     },
   );
 }
 
-final class _UnusedMediaResolver
+final class _ImmediateMediaResolver
     implements CharacterStudioMediaResolverContract {
+  final List<CharacterStudioMediaRequest> requests =
+      <CharacterStudioMediaRequest>[];
+
   @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  Future<Uint8List> resolve(CharacterStudioMediaRequest request) async {
+    requests.add(request);
+    return base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLzNwAAAABJRU5ErkJggg==',
+    );
+  }
 }
 
 Widget _harness(CharacterAnimationMatrixModel model) {
@@ -187,6 +221,7 @@ ProjectManifest _project() {
           CharacterAnimation(
             state: CharacterAnimationState.idle,
             direction: EntityFacing.south,
+            sourceAssetId: 'elia-idle-south',
             frames: <CharacterAnimationFrame>[
               CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0)),
               CharacterAnimationFrame(source: TilesetSourceRect(x: 1, y: 0)),

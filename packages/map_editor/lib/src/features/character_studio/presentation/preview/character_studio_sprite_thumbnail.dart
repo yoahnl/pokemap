@@ -18,6 +18,7 @@ class CharacterStudioSpriteThumbnail extends StatefulWidget {
     this.imagePath,
     this.mediaResolver,
     this.mediaRequest,
+    this.usesPixelCoordinates = false,
     this.size = 44,
   }) : assert(
          (mediaResolver == null) == (mediaRequest == null),
@@ -31,6 +32,7 @@ class CharacterStudioSpriteThumbnail extends StatefulWidget {
   final TilesetSourceRect source;
   final int framePixelWidth;
   final int framePixelHeight;
+  final bool usesPixelCoordinates;
   final double size;
 
   @override
@@ -154,6 +156,7 @@ class _CharacterStudioSpriteThumbnailState
                   source: widget.source,
                   framePixelWidth: widget.framePixelWidth,
                   framePixelHeight: widget.framePixelHeight,
+                  usesPixelCoordinates: widget.usesPixelCoordinates,
                 ),
               )
             : Icon(
@@ -176,21 +179,30 @@ final class _CharacterSpritePainter extends CustomPainter {
     required this.source,
     required this.framePixelWidth,
     required this.framePixelHeight,
+    required this.usesPixelCoordinates,
   });
 
   final ui.Image image;
   final TilesetSourceRect source;
   final int framePixelWidth;
   final int framePixelHeight;
+  final bool usesPixelCoordinates;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final sourceRect = Rect.fromLTWH(
-      (source.x * framePixelWidth).toDouble(),
-      (source.y * framePixelHeight).toDouble(),
-      (source.width * framePixelWidth).toDouble(),
-      (source.height * framePixelHeight).toDouble(),
-    );
+    final sourceRect = usesPixelCoordinates
+        ? Rect.fromLTWH(
+            source.x.toDouble(),
+            source.y.toDouble(),
+            source.width.toDouble(),
+            source.height.toDouble(),
+          )
+        : Rect.fromLTWH(
+            (source.x * framePixelWidth).toDouble(),
+            (source.y * framePixelHeight).toDouble(),
+            (source.width * framePixelWidth).toDouble(),
+            (source.height * framePixelHeight).toDouble(),
+          );
     if (sourceRect.left < 0 ||
         sourceRect.top < 0 ||
         sourceRect.right > image.width ||
@@ -228,6 +240,7 @@ final class _CharacterSpritePainter extends CustomPainter {
     return oldDelegate.image != image ||
         oldDelegate.source != source ||
         oldDelegate.framePixelWidth != framePixelWidth ||
-        oldDelegate.framePixelHeight != framePixelHeight;
+        oldDelegate.framePixelHeight != framePixelHeight ||
+        oldDelegate.usesPixelCoordinates != usesPixelCoordinates;
   }
 }

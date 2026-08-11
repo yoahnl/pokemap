@@ -12,11 +12,13 @@ class AnimationMatrix extends StatefulWidget {
     required this.model,
     required this.selectedKey,
     required this.onSelected,
+    this.thumbnailBuilder,
   });
 
   final CharacterAnimationMatrixModel model;
   final CharacterAnimationSlotKey? selectedKey;
   final ValueChanged<CharacterAnimationSlotKey> onSelected;
+  final Widget? Function(CharacterAnimationMatrixSlot slot)? thumbnailBuilder;
 
   @override
   State<AnimationMatrix> createState() => _AnimationMatrixState();
@@ -122,6 +124,7 @@ class _AnimationMatrixState extends State<AnimationMatrix> {
                               visibleSlots: visibleSlots,
                               selectedKey: widget.selectedKey,
                               matrixFocused: _focused,
+                              thumbnailBuilder: widget.thumbnailBuilder,
                               onSelected: _select,
                             ),
                             const SizedBox(height: 10),
@@ -195,6 +198,7 @@ class _AnimationMatrixRow extends StatelessWidget {
     required this.visibleSlots,
     required this.selectedKey,
     required this.matrixFocused,
+    required this.thumbnailBuilder,
     required this.onSelected,
   });
 
@@ -202,6 +206,7 @@ class _AnimationMatrixRow extends StatelessWidget {
   final List<CharacterAnimationMatrixSlot> visibleSlots;
   final CharacterAnimationSlotKey? selectedKey;
   final bool matrixFocused;
+  final Widget? Function(CharacterAnimationMatrixSlot slot)? thumbnailBuilder;
   final ValueChanged<CharacterAnimationSlotKey> onSelected;
 
   @override
@@ -249,6 +254,7 @@ class _AnimationMatrixRow extends StatelessWidget {
                       slot: slots[index],
                       selected: selectedKey == slots[index].key,
                       focused: matrixFocused && selectedKey == slots[index].key,
+                      thumbnail: thumbnailBuilder?.call(slots[index]),
                       onTap: () => onSelected(slots[index].key),
                     ),
                   ),
@@ -268,12 +274,14 @@ class _AnimationSlotCell extends StatelessWidget {
     required this.slot,
     required this.selected,
     required this.focused,
+    required this.thumbnail,
     required this.onTap,
   });
 
   final CharacterAnimationMatrixSlot slot;
   final bool selected;
   final bool focused;
+  final Widget? thumbnail;
   final VoidCallback onTap;
 
   @override
@@ -300,6 +308,31 @@ class _AnimationSlotCell extends StatelessWidget {
         CupertinoIcons.exclamationmark_triangle_fill,
       ),
     };
+    final summary = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: _statusColor(context, slot.status), size: 16),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                slot.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: context.pokeMapColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        PokeMapBadge(label: label, variant: variant),
+      ],
+    );
     return PokeMapCard(
       key: ValueKey<String>('animation-slot-${slot.key.stableId}'),
       selected: selected,
@@ -311,24 +344,17 @@ class _AnimationSlotCell extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(icon, color: _statusColor(context, slot.status), size: 16),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  slot.label,
-                  style: TextStyle(
-                    color: context.pokeMapColors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          PokeMapBadge(label: label, variant: variant),
+          if (thumbnail case final thumbnail?)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                thumbnail,
+                const SizedBox(width: 8),
+                Expanded(child: summary),
+              ],
+            )
+          else
+            summary,
           if (slot.issue case final issue?) ...[
             const SizedBox(height: 6),
             Text(

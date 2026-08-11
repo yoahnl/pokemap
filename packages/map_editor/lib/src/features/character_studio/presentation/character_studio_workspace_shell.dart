@@ -396,6 +396,7 @@ class CharacterStudioCanvasFrame extends StatelessWidget {
     required this.activeSection,
     required this.onSectionChanged,
     required this.child,
+    this.characterThumbnail,
   });
 
   final String? characterName;
@@ -404,6 +405,7 @@ class CharacterStudioCanvasFrame extends StatelessWidget {
   final CharacterStudioSection activeSection;
   final ValueChanged<CharacterStudioSection> onSectionChanged;
   final Widget child;
+  final Widget? characterThumbnail;
 
   @override
   Widget build(BuildContext context) {
@@ -414,10 +416,11 @@ class CharacterStudioCanvasFrame extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
           child: Row(
             children: [
-              const PokeMapIconTile(
-                icon: CupertinoIcons.person_crop_circle,
-                tone: PokeMapTone.cinematic,
-              ),
+              characterThumbnail ??
+                  const PokeMapIconTile(
+                    icon: CupertinoIcons.person_crop_circle,
+                    tone: PokeMapTone.cinematic,
+                  ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(

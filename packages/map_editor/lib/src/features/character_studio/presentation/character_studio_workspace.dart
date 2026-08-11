@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,8 @@ import 'identity/character_studio_inspector.dart';
 import 'library/character_studio_library.dart';
 import 'portraits/character_studio_portraits_tab.dart';
 import 'portraits/portrait_inspector.dart';
+import 'preview/character_studio_sprite_thumbnail.dart';
+import 'character_studio_character_metrics.dart';
 import 'character_studio_workspace_shell.dart';
 
 class CharacterStudioWorkspace extends ConsumerStatefulWidget {
@@ -81,6 +84,17 @@ class _CharacterStudioWorkspaceState
                 characterId: selectedCharacterId,
               );
     final selectedPortraitStateId = _portraitStateId(project);
+    final projectRevision = Object.hash(
+      project,
+      notifier.projectSessionRevision,
+    ).toString();
+    final existingTilesetPaths = <String, String?>{};
+    String? existingTilesetPath(String tilesetId) {
+      return existingTilesetPaths.putIfAbsent(tilesetId, () {
+        final path = notifier.getTilesetAbsolutePathById(tilesetId);
+        return path != null && File(path).existsSync() ? path : null;
+      });
+    }
 
     return CharacterStudioWorkspaceShell(
       key: const ValueKey<String>('character-studio-workspace'),
@@ -92,13 +106,10 @@ class _CharacterStudioWorkspaceState
         project: project,
         selectedCharacterId: selectedCharacterId,
         isSaving: snapshot.isSaving,
-        resolveTilesetPath: notifier.getTilesetAbsolutePathById,
+        resolveTilesetPath: existingTilesetPath,
         canCreate: _discardIdentityChangesIfNeeded,
         projectRootPath: editorState.projectRootPath,
-        projectRevision: Object.hash(
-          project,
-          notifier.projectSessionRevision,
-        ).toString(),
+        projectRevision: projectRevision,
         mediaResolver: _mediaResolver,
         onSelect: (characterId) => unawaited(_selectCharacter(characterId)),
         onCreate: (draft) => unawaited(_createCharacter(draft)),
@@ -107,6 +118,15 @@ class _CharacterStudioWorkspaceState
         characterName: selectedCharacter?.name,
         characterId: selectedCharacter?.id,
         tags: selectedCharacter?.tags ?? const <String>[],
+        characterThumbnail: _characterThumbnail(
+          project: project,
+          character: selectedCharacter,
+          projectRootPath: editorState.projectRootPath,
+          projectRevision: projectRevision,
+          legacyImagePath: selectedCharacter == null
+              ? null
+              : existingTilesetPath(selectedCharacter.tilesetId),
+        ),
         activeSection: _section,
         onSectionChanged: (section) => unawaited(_selectSection(section)),
         child: switch ((_section, selectedCharacter)) {
@@ -133,10 +153,7 @@ class _CharacterStudioWorkspaceState
               project: project,
               character: character,
               projectRootPath: editorState.projectRootPath ?? '',
-              projectRevision: Object.hash(
-                project,
-                notifier.projectSessionRevision,
-              ).toString(),
+              projectRevision: projectRevision,
               mediaResolver: _mediaResolver,
               isSaving: snapshot.isSaving,
               onImport: (stateId) => notifier.importCharacterPortrait(
@@ -172,13 +189,12 @@ class _CharacterStudioWorkspaceState
               project: project,
               character: character,
               projectRootPath: editorState.projectRootPath ?? '',
-              projectRevision: Object.hash(
-                project,
-                notifier.projectSessionRevision,
-              ).toString(),
+              projectRevision: projectRevision,
               mediaResolver: _mediaResolver,
               isSaving: snapshot.isSaving,
               onManageDefinitions: _showAnimationDefinitionManager,
+              onCreateDefinition: () =>
+                  _showAnimationDefinitionManager(createImmediately: true),
               onImportSource: (slot) => notifier.importCharacterAnimationSource(
                 characterId: character.id,
                 slotKey: slot.key,
@@ -204,10 +220,7 @@ class _CharacterStudioWorkspaceState
             character: character,
             portraitStateId: selectedPortraitStateId,
             projectRootPath: editorState.projectRootPath ?? '',
-            projectRevision: Object.hash(
-              project,
-              notifier.projectSessionRevision,
-            ).toString(),
+            projectRevision: projectRevision,
             mediaResolver: _mediaResolver,
             isSaving: snapshot.isSaving,
             onReplace: () => notifier.importCharacterPortrait(
@@ -250,6 +263,42 @@ class _CharacterStudioWorkspaceState
         return order != 0 ? order : left.id.compareTo(right.id);
       });
     return sorted.first.id;
+  }
+
+  Widget? _characterThumbnail({
+    required ProjectManifest project,
+    required ProjectCharacterEntry? character,
+    required String? projectRootPath,
+    required String projectRevision,
+    required String? legacyImagePath,
+  }) {
+    if (character == null) return null;
+    final selection = characterStudioThumbnailSelection(character);
+    final assetId = selection.sourceAssetId;
+    final root = projectRootPath?.trim();
+    final mediaRequest = assetId != null && root != null && root.isNotEmpty
+        ? CharacterStudioMediaRequest(
+            projectRootPath: root,
+            assetId: assetId,
+            projectRevision: projectRevision,
+          )
+        : null;
+    final imagePath = assetId == null ? legacyImagePath : null;
+    if (mediaRequest == null && imagePath == null) return null;
+    return CharacterStudioSpriteThumbnail(
+      key: ValueKey<String>(
+        'character-header-sprite-thumbnail-${character.id}',
+      ),
+      semanticLabel: 'Aperçu du sprite de ${character.name}',
+      imagePath: imagePath,
+      mediaResolver: mediaRequest == null ? null : _mediaResolver,
+      mediaRequest: mediaRequest,
+      source: selection.source,
+      framePixelWidth: character.frameWidth * project.settings.tileWidth,
+      framePixelHeight: character.frameHeight * project.settings.tileHeight,
+      usesPixelCoordinates: assetId != null,
+      size: 44,
+    );
   }
 
   void _updateIdentityDraft({
@@ -460,7 +509,9 @@ class _CharacterStudioWorkspaceState
     );
   }
 
-  Future<void> _showAnimationDefinitionManager() async {
+  Future<void> _showAnimationDefinitionManager({
+    bool createImmediately = false,
+  }) async {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -494,6 +545,7 @@ class _CharacterStudioWorkspaceState
                     : AnimationDefinitionManager(
                         project: project,
                         isSaving: isSaving,
+                        createImmediately: createImmediately,
                         onCreate: notifier.createAnimationDefinition,
                         onUpdate: (id, label, mode) =>
                             notifier.updateAnimationDefinition(

@@ -117,6 +117,32 @@ void main() {
     expect(created, ('Danse de victoire', CharacterCustomAnimationMode.single));
   });
 
+  testWidgets('direct entry opens the custom animation form immediately', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _harness(
+        AnimationDefinitionManager(
+          project: _project(),
+          isSaving: false,
+          createImmediately: true,
+          onCreate: (_, _) async {},
+          onUpdate: (_, _, _) async {},
+          onReorder: (_) async {},
+          onPreviewDelete: (_) async => _deletePlan(),
+          onDelete: (_, _, _) async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nouvelle animation custom'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('animation-definition-name-field')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('referenced definition cannot silently migrate its mode', (
     tester,
   ) async {

@@ -35,6 +35,7 @@ class AnimationDefinitionManager extends StatefulWidget {
     required this.onReorder,
     required this.onPreviewDelete,
     required this.onDelete,
+    this.createImmediately = false,
   });
 
   final ProjectManifest project;
@@ -44,6 +45,7 @@ class AnimationDefinitionManager extends StatefulWidget {
   final AnimationDefinitionsReorderCallback onReorder;
   final AnimationDefinitionDeletePreviewCallback onPreviewDelete;
   final AnimationDefinitionDeleteCallback onDelete;
+  final bool createImmediately;
 
   @override
   State<AnimationDefinitionManager> createState() =>
@@ -56,6 +58,16 @@ class _AnimationDefinitionManagerState
   String? _feedback;
 
   bool get _locked => widget.isSaving || _isBusy;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.createImmediately) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_locked) _create();
+      });
+    }
+  }
 
   List<CharacterCustomAnimationDefinition> get _customDefinitions {
     return widget.project.characterStudioCatalog.customAnimationDefinitions

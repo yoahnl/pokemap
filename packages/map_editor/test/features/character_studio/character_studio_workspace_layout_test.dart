@@ -45,6 +45,19 @@ void main() {
     expect(find.text('Prêt pour le runtime'), findsNothing);
   });
 
+  testWidgets('selected character sprite appears in the canvas header', (
+    tester,
+  ) async {
+    await _pumpWorkspace(tester, 1672);
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('character-header-sprite-thumbnail-elia'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   for (final width in <double>[1080, 960]) {
     testWidgets('medium layout alternates library and inspector at $width px', (
       tester,
@@ -347,6 +360,16 @@ ProjectManifest _characterStudioProject() {
         name: 'Élia',
         tilesetId: 'characters_main',
         tags: <String>['héroïne'],
+        animations: <CharacterAnimation>[
+          CharacterAnimation(
+            state: CharacterAnimationState.idle,
+            direction: EntityFacing.south,
+            sourceAssetId: 'elia-idle-south',
+            frames: <CharacterAnimationFrame>[
+              CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0)),
+            ],
+          ),
+        ],
       ),
       ProjectCharacterEntry(
         id: 'nox',

@@ -11,6 +11,7 @@ import 'package:map_editor/src/features/character_studio/application/character_a
 import 'package:map_editor/src/features/character_studio/application/character_studio_media_resolver.dart';
 import 'package:map_editor/src/features/character_studio/application/character_studio_portrait_import_service.dart';
 import 'package:map_editor/src/features/character_studio/presentation/animations/character_animation_source_editor.dart';
+import 'package:map_editor/src/features/character_studio/presentation/animations/character_studio_animations_tab.dart';
 import 'package:map_editor/src/theme/theme.dart';
 
 void main() {
@@ -217,6 +218,113 @@ void main() {
       const TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
     );
   });
+
+  testWidgets('previews a legacy system animation from its tileset', (
+    tester,
+  ) async {
+    final bytes = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    );
+    final project = _legacyProject();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 980,
+            height: 760,
+            child: CharacterStudioAnimationsTab(
+              project: project,
+              character: project.characters.single,
+              projectRootPath: '/project',
+              projectRevision: '1',
+              mediaResolver: _MediaResolver(bytes),
+              legacySourceLoader: (_) async => bytes,
+              isSaving: false,
+              onManageDefinitions: () {},
+              onImportSource: (_) async => true,
+              onSaveClip: (_, _, _) async => true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(
+      find.byKey(const ValueKey<String>('animation-preview')),
+      findsOneWidget,
+    );
+    expect(find.text('Source historique du tileset'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('animation-grid-apply')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('warns before replacing a source that already has frames', (
+    tester,
+  ) async {
+    var imported = false;
+    final bytes = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 700,
+            height: 760,
+            child: CharacterAnimationSourceEditor(
+              slot: const CharacterAnimationMatrixSlot(
+                key: CharacterAnimationSlotKey.system(
+                  state: CharacterAnimationState.idle,
+                  direction: EntityFacing.north,
+                ),
+                label: 'Nord',
+                status: CharacterAnimationSlotStatus.defined,
+                frames: <CharacterAnimationFrame>[
+                  CharacterAnimationFrame(
+                    source: TilesetSourceRect(x: 0, y: 0),
+                  ),
+                ],
+                sourceAssetId: 'sprite-elia-base-north',
+                loop: true,
+              ),
+              projectRootPath: '/project',
+              projectRevision: '1',
+              mediaResolver: _MediaResolver(bytes),
+              enabled: true,
+              onImportSource: () async => imported = true,
+              onFramesChanged: (_) async {},
+              onLoopChanged: (_) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('animation-source-replace')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(imported, isFalse);
+    expect(find.text('Remplacer cette source ?'), findsOneWidget);
+
+    await tester.tap(find.text('Remplacer quand même'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(imported, isTrue);
+  });
 }
 
 final class _MediaResolver implements CharacterStudioMediaResolverContract {
@@ -265,6 +373,35 @@ ProjectManifest _project() {
     tilesets: const <ProjectTilesetEntry>[],
     characters: const <ProjectCharacterEntry>[
       ProjectCharacterEntry(id: 'elia', name: 'Élia', tilesetId: 'elia'),
+    ],
+  );
+}
+
+ProjectManifest _legacyProject() {
+  return ProjectManifest(
+    name: 'Legacy preview',
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(id: 'elia', name: 'Élia', relativePath: 'elia.png'),
+    ],
+    settings: const ProjectSettings(tileWidth: 1, tileHeight: 1),
+    characters: const <ProjectCharacterEntry>[
+      ProjectCharacterEntry(
+        id: 'elia',
+        name: 'Élia',
+        tilesetId: 'elia',
+        frameWidth: 1,
+        frameHeight: 1,
+        animations: <CharacterAnimation>[
+          CharacterAnimation(
+            state: CharacterAnimationState.idle,
+            direction: EntityFacing.north,
+            frames: <CharacterAnimationFrame>[
+              CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0)),
+            ],
+          ),
+        ],
+      ),
     ],
   );
 }

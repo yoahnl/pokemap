@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,6 +24,11 @@ class CharacterAnimationSourceEditor extends StatefulWidget {
     required this.onImportSource,
     required this.onFramesChanged,
     required this.onLoopChanged,
+    this.animationLabel,
+    this.legacySourcePath,
+    this.legacyFrameWidth,
+    this.legacyFrameHeight,
+    this.legacySourceLoader,
   });
 
   final CharacterAnimationMatrixSlot slot;
@@ -31,8 +38,13 @@ class CharacterAnimationSourceEditor extends StatefulWidget {
   final bool enabled;
   final Future<void> Function() onImportSource;
   final Future<void> Function(List<CharacterAnimationFrame> frames)
-      onFramesChanged;
+  onFramesChanged;
   final Future<void> Function(bool loop) onLoopChanged;
+  final String? animationLabel;
+  final String? legacySourcePath;
+  final int? legacyFrameWidth;
+  final int? legacyFrameHeight;
+  final Future<Uint8List> Function(String path)? legacySourceLoader;
 
   @override
   State<CharacterAnimationSourceEditor> createState() =>
@@ -52,6 +64,7 @@ class _CharacterAnimationSourceEditorState
   );
   Future<Uint8List>? _source;
   String? _sourceIdentity;
+  bool _usesLegacyGrid = false;
   String? _gridError;
 
   @override
@@ -87,18 +100,23 @@ class _CharacterAnimationSourceEditorState
             mainAxisSize: MainAxisSize.min,
             children: [
               const PokeMapEmptyState(
-                title: 'Aucune source portable',
+                title: 'Animation à configurer',
                 description:
-                    'Importez un PNG pour découper et éditer ce slot précisément.',
+                    '1. Choisissez un PNG. 2. Indiquez ses colonnes et lignes. 3. Appliquez la grille pour créer les frames.',
                 icon: Icon(CupertinoIcons.photo_on_rectangle),
                 compact: true,
+              ),
+              const SizedBox(height: 8),
+              PokeMapBadge(
+                label: _slotDisplayLabel,
+                variant: PokeMapBadgeVariant.info,
               ),
               const SizedBox(height: 14),
               PokeMapButton(
                 key: const ValueKey<String>('animation-source-import'),
-                onPressed: widget.enabled ? widget.onImportSource : null,
+                onPressed: widget.enabled ? _requestSourceImport : null,
                 leading: const Icon(CupertinoIcons.folder_open),
-                child: const Text('Choisir une source PNG'),
+                child: const Text('Importer un PNG'),
               ),
             ],
           ),
@@ -117,13 +135,20 @@ class _CharacterAnimationSourceEditorState
           return PokeMapPanel(
             key: const ValueKey<String>('animation-source-editor-error'),
             child: PokeMapEmptyState(
-              title: 'Source indisponible',
-              description:
-                  'Le PNG portable ne peut pas être chargé. ${snapshot.error ?? ''}',
+              title: _usesLegacyGrid
+                  ? 'Tileset historique indisponible'
+                  : 'Source indisponible',
+              description: _usesLegacyGrid
+                  ? 'Le tileset du personnage ne peut pas être chargé. ${snapshot.error ?? ''}'
+                  : 'Le PNG portable ne peut pas être chargé. ${snapshot.error ?? ''}',
               icon: const Icon(CupertinoIcons.exclamationmark_triangle),
               action: PokeMapButton(
-                onPressed: widget.enabled ? widget.onImportSource : null,
-                child: const Text('Remplacer la source'),
+                onPressed: widget.enabled ? _requestSourceImport : null,
+                child: Text(
+                  _usesLegacyGrid
+                      ? 'Importer un PNG portable'
+                      : 'Remplacer la source',
+                ),
               ),
             ),
           );
@@ -132,7 +157,9 @@ class _CharacterAnimationSourceEditorState
           final dimensions = CharacterAnimationSourceDimensions.fromPng(
             snapshot.data!,
           );
-          return _content(context, snapshot.data!, dimensions);
+          return _usesLegacyGrid
+              ? _legacyContent(context, snapshot.data!)
+              : _content(context, snapshot.data!, dimensions);
         } on CharacterAnimationSlicingException catch (error) {
           return PokeMapPanel(
             child: PokeMapEmptyState(
@@ -140,8 +167,8 @@ class _CharacterAnimationSourceEditorState
               description: error.message,
               icon: const Icon(CupertinoIcons.exclamationmark_triangle),
               action: PokeMapButton(
-                onPressed: widget.enabled ? widget.onImportSource : null,
-                child: const Text('Remplacer la source'),
+                onPressed: widget.enabled ? _requestSourceImport : null,
+                child: const Text('Importer un autre PNG'),
               ),
             ),
           );
@@ -165,7 +192,7 @@ class _CharacterAnimationSourceEditorState
             frames: widget.slot.frames,
             loop: widget.slot.loop,
             slotIdentity: widget.slot.key.stableId,
-            directionLabel: widget.slot.label,
+            directionLabel: _slotDisplayLabel,
             enabled: widget.enabled,
             onLoopChanged: widget.onLoopChanged,
           ),
@@ -205,7 +232,7 @@ class _CharacterAnimationSourceEditorState
                     ),
                     PokeMapButton(
                       key: const ValueKey<String>('animation-source-replace'),
-                      onPressed: widget.enabled ? widget.onImportSource : null,
+                      onPressed: widget.enabled ? _requestSourceImport : null,
                       variant: PokeMapButtonVariant.secondary,
                       leading: const Icon(CupertinoIcons.arrow_2_circlepath),
                       child: const Text('Remplacer'),
@@ -289,8 +316,9 @@ class _CharacterAnimationSourceEditorState
                   alignment: Alignment.centerRight,
                   child: PokeMapButton(
                     key: const ValueKey<String>('animation-grid-apply'),
-                    onPressed:
-                        widget.enabled ? () => _applyGrid(dimensions) : null,
+                    onPressed: widget.enabled
+                        ? () => _applyGrid(dimensions)
+                        : null,
                     leading: const Icon(CupertinoIcons.square_grid_3x2),
                     child: const Text('Appliquer la grille'),
                   ),
@@ -326,24 +354,135 @@ class _CharacterAnimationSourceEditorState
   }
 
   void _refreshSource() {
-    final assetId = widget.slot.sourceAssetId;
-    final identity = assetId == null
+    final assetId = widget.slot.sourceAssetId?.trim();
+    final portableAssetId = assetId == null || assetId.isEmpty ? null : assetId;
+    final legacyPath = portableAssetId == null && widget.slot.frames.isNotEmpty
+        ? widget.legacySourcePath?.trim()
+        : null;
+    final identity = portableAssetId != null
+        ? 'portable|${widget.projectRootPath}|$portableAssetId|${widget.projectRevision}'
+        : legacyPath == null || legacyPath.isEmpty
         ? null
-        : '${widget.projectRootPath}|$assetId|${widget.projectRevision}';
+        : 'legacy|$legacyPath|${widget.projectRevision}';
     if (identity == _sourceIdentity) return;
     _sourceIdentity = identity;
-    _source = assetId == null
-        ? null
-        : widget.mediaResolver.resolve(
+    _usesLegacyGrid = portableAssetId == null && identity != null;
+    _source = portableAssetId != null
+        ? widget.mediaResolver.resolve(
             CharacterStudioMediaRequest(
               projectRootPath: widget.projectRootPath,
-              assetId: assetId,
+              assetId: portableAssetId,
               projectRevision: widget.projectRevision,
             ),
-          );
+          )
+        : legacyPath == null || legacyPath.isEmpty
+        ? null
+        : (widget.legacySourceLoader ?? _readLegacySource)(legacyPath);
+  }
+
+  Widget _legacyContent(BuildContext context, Uint8List bytes) {
+    return SingleChildScrollView(
+      key: const ValueKey<String>('animation-source-editor-legacy'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CharacterAnimationPreview(
+            sourceBytes: bytes,
+            frames: _legacyPreviewFrames(),
+            loop: widget.slot.loop,
+            slotIdentity: 'legacy-${widget.slot.key.stableId}',
+            directionLabel: _slotDisplayLabel,
+            enabled: widget.enabled,
+            onLoopChanged: widget.onLoopChanged,
+          ),
+          const SizedBox(height: 10),
+          PokeMapPanel(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Source historique du tileset',
+                  style: TextStyle(
+                    color: context.pokeMapColors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Cette animation fonctionne déjà et peut être prévisualisée. Importez un PNG uniquement si vous voulez la redécouper ou utiliser une source dédiée.',
+                  style: TextStyle(
+                    color: context.pokeMapColors.textSecondary,
+                    fontSize: 11,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: PokeMapButton(
+                    key: const ValueKey<String>('animation-source-replace'),
+                    onPressed: widget.enabled ? _requestSourceImport : null,
+                    leading: const Icon(CupertinoIcons.folder_open),
+                    child: const Text('Utiliser un PNG dédié'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<CharacterAnimationFrame> _legacyPreviewFrames() {
+    final frameWidth = widget.legacyFrameWidth;
+    final frameHeight = widget.legacyFrameHeight;
+    if (frameWidth == null || frameHeight == null) {
+      return const <CharacterAnimationFrame>[];
+    }
+    return <CharacterAnimationFrame>[
+      for (final frame in widget.slot.frames)
+        frame.copyWith(
+          source: TilesetSourceRect(
+            x: frame.source.x * frameWidth,
+            y: frame.source.y * frameHeight,
+            width: frameWidth,
+            height: frameHeight,
+          ),
+        ),
+    ];
+  }
+
+  Future<void> _requestSourceImport() async {
+    if (widget.slot.frames.isEmpty) {
+      await widget.onImportSource();
+      return;
+    }
+    final confirmed = await showPokeMapBinaryConfirmationDialog(
+      context,
+      title: 'Remplacer cette source ?',
+      message:
+          'Les ${widget.slot.frames.length} frame(s) actuelles seront réinitialisées. Vous devrez ensuite appliquer la grille du nouveau PNG.',
+      secondaryLabel: 'Annuler',
+      primaryLabel: 'Remplacer quand même',
+      primaryIsDestructive: true,
+      icon: CupertinoIcons.exclamationmark_triangle,
+    );
+    if (!confirmed || !mounted) return;
+    await widget.onImportSource();
+  }
+
+  String get _slotDisplayLabel {
+    final animation = widget.animationLabel?.trim();
+    if (animation == null || animation.isEmpty) return widget.slot.label;
+    return '$animation · ${widget.slot.label}';
   }
 }
 
 final List<TextInputFormatter> _digitsOnly = <TextInputFormatter>[
   FilteringTextInputFormatter.digitsOnly,
 ];
+
+Future<Uint8List> _readLegacySource(String path) => File(path).readAsBytes();
