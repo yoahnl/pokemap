@@ -20,6 +20,8 @@ import '../../../application/services/map_lifecycle_transaction_service.dart';
 import '../../../application/use_cases/execute_narrative_authoring_transaction.dart';
 import '../../../domain/repositories/repositories.dart';
 import '../../../features/personalization/application/personalization_studio_session_controller.dart';
+import '../../../features/personalization/application/personalization_character_preview_source.dart';
+import '../../../features/personalization/application/personalization_preview_context_source.dart';
 import '../../../features/personalization/application/personalization_studio_asset_picker.dart';
 import '../../../features/personalization/application/project_branding_image_import_service.dart';
 import '../../../features/personalization/application/project_font_import_service.dart';
@@ -83,6 +85,35 @@ final authoringQueryAdapterProvider = Provider<AuthoringQueryAdapter>((ref) {
   ref.onDispose(adapter.closeAll);
   return adapter;
 });
+
+final personalizationPreviewContextSourceProvider =
+    Provider<PersonalizationPreviewContextSource>((ref) {
+      return AuthoringPersonalizationPreviewContextSource(
+        queries: ref.watch(authoringQueryAdapterProvider),
+      );
+    });
+
+final personalizationPreviewContextOptionsProvider = FutureProvider.autoDispose
+    .family<List<PersonalizationPreviewContextOption>, String>(
+      (ref, projectRoot) => ref
+          .watch(personalizationPreviewContextSourceProvider)
+          .load(projectRoot),
+    );
+
+final personalizationCharacterPreviewSourceProvider =
+    Provider<PersonalizationCharacterPreviewSource>((ref) {
+      return PersonalizationCharacterPreviewFromContextSource(
+        contexts: ref.watch(personalizationPreviewContextSourceProvider),
+      );
+    });
+
+final personalizationCharacterPreviewOptionsProvider = FutureProvider
+    .autoDispose
+    .family<List<PersonalizationCharacterPreviewOption>, String>(
+      (ref, projectRoot) => ref
+          .watch(personalizationCharacterPreviewSourceProvider)
+          .load(projectRoot),
+    );
 
 final authoringMutationAdapterProvider = Provider<AuthoringMutationAdapter>((
   ref,

@@ -37,6 +37,10 @@ void main() {
     expect(manifest.maps.single.id, 'vermeil_village');
     expect(manifest.dialogues.single.id, 'welcome_leo');
     expect(manifest.characters.single.id, 'leo');
+    expect(
+      manifest.characters.single.portraits.single.assetId,
+      'portrait-leo-happy',
+    );
     expect(manifest.encounterTables.single.id, 'vermeil_grass');
     expect(manifest.presentation?.menuLabels?.pokedex, 'Bestiaire');
     expect(manifest.presentation?.intro, isNotNull);
@@ -77,6 +81,8 @@ void main() {
       'assets/presentation/captions.vtt',
       'assets/presentation/pokemap-sans.ttf',
       'assets/presentation/font-license.txt',
+      'assets/characters/leo-happy.png',
+      'assets/.pokemap-assets.json',
     ];
 
     for (final relativePath in requiredFiles) {

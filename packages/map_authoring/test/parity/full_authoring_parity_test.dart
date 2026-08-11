@@ -367,6 +367,7 @@ final Set<String> _approvedResourceKinds = {
   'projectNewGameConfig',
   'projectPresentationProfile',
   'projectPresentationPreset',
+  'presentationPreviewContext',
   'mapGroup',
   'map',
   'mapLayer',

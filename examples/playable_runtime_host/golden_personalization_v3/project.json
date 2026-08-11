@@ -39,6 +39,13 @@
       "id": "leo",
       "name": "Léo",
       "tilesetId": "leo-overworld",
+      "portraits": [
+        {
+          "portraitStateId": "happy",
+          "assetId": "portrait-leo-happy",
+          "fitMode": "contain"
+        }
+      ],
       "sortOrder": 0
     }
   ],

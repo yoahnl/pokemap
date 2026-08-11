@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "records": [
+    {
+      "id": "portrait-leo-happy",
+      "logicalPath": "assets/characters/leo-happy.png",
+      "artifact": {
+        "digest": "sha256:1db2a0cb8cb2df01c401eb2046988f7191de91ac8c9e36186fda30a496649fde",
+        "handle": "artifact://sha256/1db2a0cb8cb2df01c401eb2046988f7191de91ac8c9e36186fda30a496649fde",
+        "mediaType": "image/png",
+        "byteLength": 78
+      },
+      "usages": [],
+      "tags": ["portrait"]
+    }
+  ]
+}

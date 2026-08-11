@@ -14,6 +14,10 @@ const projectRoot = resolve(
   repositoryRoot,
   "examples/playable_runtime_host/golden_fangame_slice",
 );
+const presentationProjectRoot = resolve(
+  repositoryRoot,
+  "examples/playable_runtime_host/golden_personalization_v3",
+);
 const authoringPackageRoot = resolve(repositoryRoot, "packages/map_authoring");
 
 type JsonRecord = Record<string, unknown>;
@@ -23,9 +27,9 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-async function connectReadOnlyServer() {
+async function connectReadOnlyServer(allowedProjectRoot = projectRoot) {
   const authoring = new LocalAuthoringClient({
-    allowedRoots: [projectRoot],
+    allowedRoots: [allowedProjectRoot],
     authoringPackageRoot,
   });
   const artifacts = new MemoryArtifactReader();
@@ -131,6 +135,42 @@ test("read-only MCP inspects a real project with cursor pagination", async () =>
       workspaceHandle,
     });
     assert.equal(closed.closed, true);
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+  }
+});
+
+test("MCP exposes paginated project presentation preview contexts", async () => {
+  const fixture = await connectReadOnlyServer(presentationProjectRoot);
+  try {
+    const description = await toolData(fixture.client, "pokemap_describe");
+    const resource = (description.resourceKinds as JsonRecord[]).find(
+      (kind) => kind.id === "presentationPreviewContext",
+    );
+    assert.equal(resource?.version, 1);
+
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: presentationProjectRoot,
+    });
+    const first = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(opened.projectHandle),
+      resourceKind: "presentationPreviewContext",
+      operation: "list",
+      view: "detail",
+      pageSize: 2,
+    });
+
+    assert.equal(first.totalAvailable, 4);
+    assert.equal(first.returned, 2);
+    assert.equal(typeof first.nextCursor, "string");
+    assert.deepEqual(
+      (first.items as JsonRecord[]).map((item) => item.id),
+      ["characterPortrait:leo:happy", "dialogue:welcome_leo"],
+    );
+    assert.equal(record((first.items as JsonRecord[])[0]).availability, "ready");
   } finally {
     await fixture.client.close();
     await fixture.server.close();

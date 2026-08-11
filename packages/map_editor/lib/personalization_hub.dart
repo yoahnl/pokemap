@@ -11,6 +11,7 @@ export 'src/features/personalization/application/personalization_inspector_targe
 export 'src/features/personalization/application/personalization_capability_descriptor.dart';
 export 'src/features/personalization/application/personalization_capability_registry.dart';
 export 'src/features/personalization/application/personalization_character_preview_source.dart';
+export 'src/features/personalization/application/personalization_preview_context_source.dart';
 export 'src/features/personalization/application/personalization_preview_projection.dart';
 export 'src/features/personalization/application/personalization_preview_scenario.dart';
 export 'src/features/personalization/application/personalization_preview_surface_descriptor.dart';

@@ -6,6 +6,7 @@ import '../contracts/json_contract_support.dart';
 import '../contracts/query_page.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_store.dart';
+import '../domains/assets/presentation_preview_context_resources.dart';
 import '../domains/gameplay/character_studio/character_studio_resources.dart';
 import '../domains/maps/map_region_query.dart';
 import '../domains/maps/warp_connection_actions.dart';
@@ -571,6 +572,29 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
               ],
             },
           ),
+      ];
+    case 'presentationPreviewContext':
+      final assetCatalogBytes = snapshot.findResourceBytes(
+        assetCatalogResourceIdentity,
+      );
+      final assetCatalog = assetCatalogBytes == null
+          ? null
+          : _decodeAssetCatalog(assetCatalogBytes);
+      final contexts = const PresentationPreviewContextProjector().project(
+        manifest: snapshot.manifest,
+        workspaceRevision: snapshot.revision,
+        maps: snapshot.maps,
+        dialogueSourceAvailable: (dialogueId) =>
+            snapshot.findResourceBytes(
+              dialogueSourceResourceIdentity(dialogueId),
+            ) !=
+            null,
+        portraitAssetPath: (assetId) =>
+            assetCatalog?.find(assetId)?.logicalPath,
+      );
+      return <_QueryRecord>[
+        for (final context in contexts)
+          _QueryRecord(summary: context.summary, detail: context.detail),
       ];
     case 'map':
       return [

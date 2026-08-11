@@ -148,6 +148,13 @@ final class AuthoringResourceKindRegistry {
             'Versioned shareable presentation profile with licensed assets',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'presentationPreviewContext',
+        version: 1,
+        displayName: 'Presentation preview context',
+        summary:
+            'Read-only project maps, dialogues, portraits and encounters available to presentation previews',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'map',
         version: 1,
         displayName: 'Map',
@@ -439,6 +446,7 @@ final class AuthoringResourceKindRegistry {
       'project',
       'projectPresentationProfile',
       'projectPresentationPreset',
+      'presentationPreviewContext',
       'scenario',
       'scene',
       'script',

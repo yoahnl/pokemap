@@ -682,6 +682,7 @@ const _semanticOwners = <String, String>{
   'projectNewGameConfig': 'project',
   'projectPresentationProfile': 'project',
   'projectPresentationPreset': 'project',
+  'presentationPreviewContext': 'project',
   'mapGroup': 'project',
   'map': 'map',
   'mapLayer': 'map',
@@ -751,6 +752,7 @@ const _requiredDirectReadResourceKinds = <String>{
   'characterStudioDependency',
   'characterStudioReadiness',
   'mapConnection',
+  'presentationPreviewContext',
 };
 
 const _visualResources = <String>{
