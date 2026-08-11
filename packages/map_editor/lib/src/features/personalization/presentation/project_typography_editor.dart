@@ -19,6 +19,7 @@ class ProjectTypographyEditor extends StatelessWidget {
     this.previewFamilies = const <ProjectTypographyRole, String>{},
     this.commonOnly = false,
     this.fixedRole,
+    this.roles,
     this.onImportCommonFont,
     this.onUseSystemCommonFont,
     this.onMetricsChanged,
@@ -31,6 +32,7 @@ class ProjectTypographyEditor extends StatelessWidget {
   final Map<ProjectTypographyRole, String> previewFamilies;
   final bool commonOnly;
   final ProjectTypographyRole? fixedRole;
+  final List<ProjectTypographyRole>? roles;
   final VoidCallback? onImportCommonFont;
   final VoidCallback? onUseSystemCommonFont;
   final ProjectTypographyMetricsChanged? onMetricsChanged;
@@ -68,6 +70,32 @@ class ProjectTypographyEditor extends StatelessWidget {
                 ? null
                 : (metrics) => onMetricsChanged!(role, metrics),
           ),
+        ],
+      );
+    }
+    final selectedRoles = roles;
+    if (selectedRoles != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (
+            var index = 0;
+            index < selectedRoles.length;
+            index++
+          ) ...<Widget>[
+            _RoleEditor(
+              role: selectedRoles[index],
+              profile: _profileForRole(profile, selectedRoles[index]),
+              previewFamily: previewFamilies[selectedRoles[index]],
+              onImport: () => onImportRole(selectedRoles[index]),
+              onUseSystem: () => onUseSystemFont(selectedRoles[index]),
+              onMetricsChanged: onMetricsChanged == null
+                  ? null
+                  : (metrics) =>
+                        onMetricsChanged!(selectedRoles[index], metrics),
+            ),
+            if (index != selectedRoles.length - 1) const SizedBox(height: 12),
+          ],
         ],
       );
     }

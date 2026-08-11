@@ -26,7 +26,10 @@ class PersonalizationBattleInspector extends StatelessWidget {
     required this.onLayoutsChanged,
     required this.onImportCombatFont,
     required this.onUseSystemCombatFont,
+    this.onImportNumbersFont,
+    this.onUseSystemNumbersFont,
     this.onCombatMetricsChanged,
+    this.onNumbersMetricsChanged,
     this.onSurfacePalettesChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
@@ -38,7 +41,10 @@ class PersonalizationBattleInspector extends StatelessWidget {
   final ValueChanged<ProjectPresentationLayoutsProfile?> onLayoutsChanged;
   final VoidCallback onImportCombatFont;
   final VoidCallback onUseSystemCombatFont;
+  final VoidCallback? onImportNumbersFont;
+  final VoidCallback? onUseSystemNumbersFont;
   final ValueChanged<ProjectTypographyMetricsProfile>? onCombatMetricsChanged;
+  final ValueChanged<ProjectTypographyMetricsProfile>? onNumbersMetricsChanged;
   final ValueChanged<ProjectPresentationSurfacePalettesProfile?>?
   onSurfacePalettesChanged;
   final Map<ProjectTypographyRole, String> previewFamilies;
@@ -148,12 +154,27 @@ class PersonalizationBattleInspector extends StatelessWidget {
       ProjectTypographyEditor(
         profile: profile.typography ?? const ProjectTypographyProfile(),
         previewFamilies: previewFamilies,
-        fixedRole: ProjectTypographyRole.combat,
-        onImportRole: (_) => onImportCombatFont(),
-        onUseSystemFont: (_) => onUseSystemCombatFont(),
-        onMetricsChanged: onCombatMetricsChanged == null
-            ? null
-            : (_, metrics) => onCombatMetricsChanged!(metrics),
+        roles: const <ProjectTypographyRole>[
+          ProjectTypographyRole.combat,
+          ProjectTypographyRole.numbers,
+        ],
+        onImportRole: (role) => switch (role) {
+          ProjectTypographyRole.combat => onImportCombatFont(),
+          ProjectTypographyRole.numbers => onImportNumbersFont?.call(),
+          _ => null,
+        },
+        onUseSystemFont: (role) => switch (role) {
+          ProjectTypographyRole.combat => onUseSystemCombatFont(),
+          ProjectTypographyRole.numbers => onUseSystemNumbersFont?.call(),
+          _ => null,
+        },
+        onMetricsChanged: (role, metrics) => switch (role) {
+          ProjectTypographyRole.combat => onCombatMetricsChanged?.call(metrics),
+          ProjectTypographyRole.numbers => onNumbersMetricsChanged?.call(
+            metrics,
+          ),
+          _ => null,
+        },
       ),
     ],
   );

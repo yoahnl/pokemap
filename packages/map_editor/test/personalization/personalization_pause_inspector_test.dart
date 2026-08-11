@@ -33,8 +33,8 @@ void main() {
                 onLayoutsChanged: (layouts) => setHostState(
                   () => profile = profile.copyWith(layouts: layouts),
                 ),
-                onImportCommonFont: () {},
-                onUseSystemCommonFont: () {},
+                onImportBodyFont: () {},
+                onUseSystemBodyFont: () {},
               ),
             );
           },
@@ -60,7 +60,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey<String>('typography-import-common')),
+      find.byKey(const ValueKey<String>('typography-import-body')),
       findsOneWidget,
     );
     expect(
@@ -197,8 +197,8 @@ void main() {
                       onLayoutsChanged: (layouts) => setHostState(
                         () => profile = profile.copyWith(layouts: layouts),
                       ),
-                      onImportCommonFont: () {},
-                      onUseSystemCommonFont: () {},
+                      onImportBodyFont: () {},
+                      onUseSystemBodyFont: () {},
                     ),
                   ),
                 ),

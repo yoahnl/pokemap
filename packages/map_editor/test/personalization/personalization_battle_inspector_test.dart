@@ -89,6 +89,14 @@ void main() {
       find.byKey(const ValueKey<String>('typography-import-combat')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-numbers')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-body')),
+      findsNothing,
+    );
     expect(find.text('ATTAQUER'), findsOneWidget);
     expect(find.text('ÉQUIPE'), findsOneWidget);
 

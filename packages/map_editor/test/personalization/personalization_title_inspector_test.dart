@@ -124,6 +124,18 @@ void main() {
     }
     expect(find.byType(ProjectBrandingEditor), findsOneWidget);
     expect(find.byType(ProjectTitleMotionEditor), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-display')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-body')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-dialogue')),
+      findsNothing,
+    );
 
     await tester.tap(find.byKey(const ValueKey<String>('title-preset-left')));
     expect(changed?.branding.layoutVariant, 'standard');
