@@ -31,10 +31,16 @@ final class RuntimePlayerPresentation {
     required RuntimePresentationImageResolver imageForAsset,
   }) {
     final profile = source.profile;
+    final titleCopy = profile?.title;
     return RuntimePlayerPresentation(
       title: RuntimePlayerTitlePresentation(
-        author: source.metadata.author,
-        description: source.metadata.description,
+        title: titleCopy?.title,
+        author: titleCopy == null
+            ? source.metadata.author
+            : titleCopy.resolveSubtitle(source.metadata.author) ?? '',
+        description: titleCopy == null
+            ? source.metadata.description
+            : titleCopy.resolvePrompt(source.metadata.description),
         background: imageForAsset(source.titleHero),
         logo: imageForAsset(source.titleLogo),
         accentColor: PokeMapPlayerProjectColorResolver.tryHex(
@@ -60,11 +66,17 @@ final class RuntimePlayerPresentation {
     ProjectPresentationImageResolver? imageForPath,
   }) {
     final branding = profile.branding;
+    final titleCopy = profile.title;
     final heroPath = branding.heroPath ?? branding.coverPath;
     return RuntimePlayerPresentation(
       title: RuntimePlayerTitlePresentation(
-        author: author,
-        description: description,
+        title: titleCopy?.title,
+        author: titleCopy == null
+            ? author
+            : titleCopy.resolveSubtitle(author) ?? '',
+        description: titleCopy == null
+            ? description
+            : titleCopy.resolvePrompt(description),
         background: heroPath == null ? null : imageForPath?.call(heroPath),
         logo: branding.iconPath == null
             ? null

@@ -6,6 +6,7 @@ import '../../application/project_branding_image_import_service.dart';
 import '../../application/project_title_motion_import_service.dart';
 import '../personalization_surface_color_editor.dart';
 import '../project_branding_editor.dart';
+import '../project_title_copy_editor.dart';
 import '../project_title_motion_editor.dart';
 
 enum PersonalizationTitlePreset { centered, left, cinematic }
@@ -79,6 +80,12 @@ class PersonalizationTitleInspector extends StatelessWidget {
             icon: Icons.movie_filter_outlined,
           ),
         ],
+      ),
+      const SizedBox(height: 18),
+      ProjectTitleCopyEditor(
+        profile: profile.title,
+        projectName: projectName,
+        onChanged: (title) => onChanged(profile.copyWith(title: title)),
       ),
       const SizedBox(height: 18),
       ProjectBrandingEditor(

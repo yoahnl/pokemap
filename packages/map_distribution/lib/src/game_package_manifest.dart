@@ -83,6 +83,20 @@ final class GamePackageBranding {
       };
 }
 
+final class GamePackageTitlePresentation {
+  const GamePackageTitlePresentation({this.title, this.subtitle, this.prompt});
+
+  final String? title;
+  final String? subtitle;
+  final String? prompt;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        if (title != null) 'title': title,
+        if (subtitle != null) 'subtitle': subtitle,
+        if (prompt != null) 'prompt': prompt,
+      };
+}
+
 final class GamePackageMenuLabels {
   const GamePackageMenuLabels({
     this.pauseTitle,
@@ -127,6 +141,7 @@ final class GamePackagePresentation {
   const GamePackagePresentation({
     this.schemaVersion = 1,
     this.branding = const GamePackageBranding(),
+    this.title,
     this.intro,
     this.titleMotion,
     this.typography,
@@ -139,6 +154,7 @@ final class GamePackagePresentation {
 
   final int schemaVersion;
   final GamePackageBranding branding;
+  final GamePackageTitlePresentation? title;
   final GamePackageIntroVideo? intro;
   final GamePackageTitleMotion? titleMotion;
   final GamePackageTypography? typography;
@@ -151,6 +167,7 @@ final class GamePackagePresentation {
   Map<String, Object?> toJson() => <String, Object?>{
         'schemaVersion': schemaVersion,
         'branding': branding.toJson(),
+        if (schemaVersion >= 7 && title != null) 'title': title!.toJson(),
         if (intro != null) 'intro': intro!.toJson(legacy: schemaVersion == 1),
         if (schemaVersion >= 2 && titleMotion != null)
           'titleMotion': titleMotion!.toJson(),

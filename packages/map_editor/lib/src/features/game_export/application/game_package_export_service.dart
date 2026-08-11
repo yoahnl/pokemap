@@ -179,6 +179,13 @@ final class GamePackageExportService {
             titleMusic: projection.titleMusicPackagePath,
             layoutVariant: projection.presentation.branding.layoutVariant,
           ),
+          title: projection.presentation.title == null
+              ? null
+              : GamePackageTitlePresentation(
+                  title: projection.presentation.title!.title,
+                  subtitle: projection.presentation.title!.subtitle,
+                  prompt: projection.presentation.title!.prompt,
+                ),
           intro: projection.presentation.intro == null
               ? null
               : GamePackageIntroVideo(

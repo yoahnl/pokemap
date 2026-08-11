@@ -69,6 +69,11 @@ void main() {
       final project =
           jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
       project['presentation'] = ProjectPresentationProfile(
+        title: const ProjectTitlePresentationProfile(
+          title: 'Aube sur Hanazuki',
+          subtitle: 'Studio Brume',
+          prompt: 'Appuyez pour commencer',
+        ),
         branding: const ProjectBrandingProfile(
           iconPath: 'assets/icon.png',
           accentColor: '#126E78',
@@ -96,7 +101,13 @@ void main() {
       expect(first.certification.gameplayReadinessReport.isPlayable, isTrue);
       expect(first.manifest.gameId, profile.gameId);
       expect(first.manifest.title, profile.title);
-      expect(first.manifest.presentation?.schemaVersion, 6);
+      expect(first.manifest.presentation?.schemaVersion, 7);
+      expect(first.manifest.presentation?.title?.title, 'Aube sur Hanazuki');
+      expect(first.manifest.presentation?.title?.subtitle, 'Studio Brume');
+      expect(
+        first.manifest.presentation?.title?.prompt,
+        'Appuyez pour commencer',
+      );
       expect(first.manifest.usesLegacyBranding, isFalse);
       expect(first.manifest.branding?.icon, 'presentation/icon.png');
       expect(first.manifest.branding?.accentColor, '#126E78');

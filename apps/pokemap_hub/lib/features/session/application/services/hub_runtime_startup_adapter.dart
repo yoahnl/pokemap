@@ -11,13 +11,11 @@ import 'package:pokemap_hub/features/session/domain/repositories/package_asset_p
 /// runtime only receives opaque asset ids and resolved file URIs.
 final class HubRuntimeStartupAdapter
     implements RuntimeStartupPreparationPort, RuntimePresentationAssetResolver {
-  HubRuntimeStartupAdapter({
-    required this.manifest,
-    required this.assets,
-  }) : _mediaTypes = <String, String>{
-          for (final entry in manifest.content.files)
-            if (entry.mediaType case final mediaType?) entry.path: mediaType,
-        };
+  HubRuntimeStartupAdapter({required this.manifest, required this.assets})
+    : _mediaTypes = <String, String>{
+        for (final entry in manifest.content.files)
+          if (entry.mediaType case final mediaType?) entry.path: mediaType,
+      };
 
   final GamePackageManifest manifest;
   final PackageAssetPort assets;
@@ -35,6 +33,7 @@ final class HubRuntimeStartupAdapter
   Future<ProjectPresentationProfile?> loadPresentationProfile() async {
     final branding = manifest.branding;
     final presentation = manifest.presentation;
+    final title = presentation?.title;
     final intro = presentation?.intro;
     final titleMotion = presentation?.titleMotion;
     final typography = presentation?.typography;
@@ -45,6 +44,7 @@ final class HubRuntimeStartupAdapter
     final layouts = presentation?.layouts;
     if (branding == null &&
         intro == null &&
+        title == null &&
         titleMotion == null &&
         typography == null &&
         theme == null &&
@@ -64,98 +64,116 @@ final class HubRuntimeStartupAdapter
         titleMusicPath: branding?.titleMusic,
         layoutVariant: branding?.layoutVariant ?? 'standard',
       ),
-      intro: intro == null
-          ? null
-          : ProjectIntroVideoProfile(
-              media: _projectMedia(intro.responsiveMedia),
-              reducedMotionBehavior: intro.reducedMotionBehavior,
-              allowReplay: intro.allowReplay,
-            ),
-      titleMotion: titleMotion == null
-          ? null
-          : ProjectTitleMotionProfile(
-              promptLoop: titleMotion.promptLoop == null
-                  ? null
-                  : _projectMedia(titleMotion.promptLoop!),
-              menuLoop: titleMotion.menuLoop == null
-                  ? null
-                  : _projectMedia(titleMotion.menuLoop!),
-            ),
-      typography: typography == null
-          ? null
-          : ProjectTypographyProfile(
-              display: _projectFontRole(typography.display),
-              body: _projectFontRole(typography.body),
-              dialogue: _projectFontRole(typography.dialogue),
-              combat: typography.combat == null
-                  ? null
-                  : _projectFontRole(typography.combat!),
-              numbers: _projectFontRole(typography.numbers),
-            ),
-      theme: theme == null
-          ? null
-          : ProjectSemanticThemeProfile(
-              primary: theme.primary,
-              onPrimary: theme.onPrimary,
-              background: theme.background,
-              surface: theme.surface,
-              surfaceElevated: theme.surfaceElevated,
-              textPrimary: theme.textPrimary,
-              textSecondary: theme.textSecondary,
-              outline: theme.outline,
-              success: theme.success,
-              warning: theme.warning,
-              danger: theme.danger,
-              titleSurface: theme.titleSurface,
-              dialogueSurface: theme.dialogueSurface,
-              menuSurface: theme.menuSurface,
-              overworldHudSurface: theme.overworldHudSurface,
-              battleHudSurface: theme.battleHudSurface,
-            ),
-      surfacePalettes: surfacePalettes == null
-          ? null
-          : ProjectPresentationSurfacePalettesProfile(
-              title: _projectSurfacePalette(surfacePalettes.title),
-              pauseMenu: _projectSurfacePalette(surfacePalettes.pauseMenu),
-              dialogue: _projectSurfacePalette(surfacePalettes.dialogue),
-              battle: _projectSurfacePalette(surfacePalettes.battle),
-            ),
-      menuLabels: menuLabels == null
-          ? null
-          : ProjectMenuLabelsProfile(
-              pauseTitle: menuLabels.pauseTitle,
-              resume: menuLabels.resume,
-              party: menuLabels.party,
-              bag: menuLabels.bag,
-              pokedex: menuLabels.pokedex,
-              map: menuLabels.map,
-              save: menuLabels.save,
-              options: menuLabels.options,
-              returnToTitle: menuLabels.returnToTitle,
-            ),
-      windows: windows == null
-          ? null
-          : ProjectPresentationWindowsProfile(
-              styles: <ProjectWindowStyleProfile>[
-                for (final style in windows.styles)
-                  ProjectWindowStyleProfile(
-                    id: style.id,
-                    fillToken: style.fillToken,
-                    borderToken: style.borderToken,
-                    borderWidth: style.borderWidth,
-                    cornerRadius: style.cornerRadius,
-                    contentPadding: style.contentPadding,
-                    shadowElevation: style.shadowElevation,
-                    shape: ProjectWindowShape.values.byName(style.shape),
-                    fillOpacity: style.fillOpacity,
-                  ),
-              ],
-              defaultStyleId: windows.defaultStyleId,
-              pauseMenuStyleId: windows.pauseMenuStyleId,
-              dialogueStyleId: windows.dialogueStyleId,
-              battleStyleId: windows.battleStyleId,
-              pauseBackdropOpacity: windows.pauseBackdropOpacity,
-            ),
+      title:
+          title == null
+              ? null
+              : ProjectTitlePresentationProfile(
+                title: title.title,
+                subtitle: title.subtitle,
+                prompt: title.prompt,
+              ),
+      intro:
+          intro == null
+              ? null
+              : ProjectIntroVideoProfile(
+                media: _projectMedia(intro.responsiveMedia),
+                reducedMotionBehavior: intro.reducedMotionBehavior,
+                allowReplay: intro.allowReplay,
+              ),
+      titleMotion:
+          titleMotion == null
+              ? null
+              : ProjectTitleMotionProfile(
+                promptLoop:
+                    titleMotion.promptLoop == null
+                        ? null
+                        : _projectMedia(titleMotion.promptLoop!),
+                menuLoop:
+                    titleMotion.menuLoop == null
+                        ? null
+                        : _projectMedia(titleMotion.menuLoop!),
+              ),
+      typography:
+          typography == null
+              ? null
+              : ProjectTypographyProfile(
+                display: _projectFontRole(typography.display),
+                body: _projectFontRole(typography.body),
+                dialogue: _projectFontRole(typography.dialogue),
+                combat:
+                    typography.combat == null
+                        ? null
+                        : _projectFontRole(typography.combat!),
+                numbers: _projectFontRole(typography.numbers),
+              ),
+      theme:
+          theme == null
+              ? null
+              : ProjectSemanticThemeProfile(
+                primary: theme.primary,
+                onPrimary: theme.onPrimary,
+                background: theme.background,
+                surface: theme.surface,
+                surfaceElevated: theme.surfaceElevated,
+                textPrimary: theme.textPrimary,
+                textSecondary: theme.textSecondary,
+                outline: theme.outline,
+                success: theme.success,
+                warning: theme.warning,
+                danger: theme.danger,
+                titleSurface: theme.titleSurface,
+                dialogueSurface: theme.dialogueSurface,
+                menuSurface: theme.menuSurface,
+                overworldHudSurface: theme.overworldHudSurface,
+                battleHudSurface: theme.battleHudSurface,
+              ),
+      surfacePalettes:
+          surfacePalettes == null
+              ? null
+              : ProjectPresentationSurfacePalettesProfile(
+                title: _projectSurfacePalette(surfacePalettes.title),
+                pauseMenu: _projectSurfacePalette(surfacePalettes.pauseMenu),
+                dialogue: _projectSurfacePalette(surfacePalettes.dialogue),
+                battle: _projectSurfacePalette(surfacePalettes.battle),
+              ),
+      menuLabels:
+          menuLabels == null
+              ? null
+              : ProjectMenuLabelsProfile(
+                pauseTitle: menuLabels.pauseTitle,
+                resume: menuLabels.resume,
+                party: menuLabels.party,
+                bag: menuLabels.bag,
+                pokedex: menuLabels.pokedex,
+                map: menuLabels.map,
+                save: menuLabels.save,
+                options: menuLabels.options,
+                returnToTitle: menuLabels.returnToTitle,
+              ),
+      windows:
+          windows == null
+              ? null
+              : ProjectPresentationWindowsProfile(
+                styles: <ProjectWindowStyleProfile>[
+                  for (final style in windows.styles)
+                    ProjectWindowStyleProfile(
+                      id: style.id,
+                      fillToken: style.fillToken,
+                      borderToken: style.borderToken,
+                      borderWidth: style.borderWidth,
+                      cornerRadius: style.cornerRadius,
+                      contentPadding: style.contentPadding,
+                      shadowElevation: style.shadowElevation,
+                      shape: ProjectWindowShape.values.byName(style.shape),
+                      fillOpacity: style.fillOpacity,
+                    ),
+                ],
+                defaultStyleId: windows.defaultStyleId,
+                pauseMenuStyleId: windows.pauseMenuStyleId,
+                dialogueStyleId: windows.dialogueStyleId,
+                battleStyleId: windows.battleStyleId,
+                pauseBackdropOpacity: windows.pauseBackdropOpacity,
+              ),
       layouts: layouts == null ? null : _projectLayouts(layouts),
     );
   }
@@ -198,37 +216,37 @@ final class HubRuntimeStartupAdapter
         family: role.family,
         licensePath: role.license,
         fallbackFamilies: role.fallbackFamilies,
-        metrics: role.metrics == null
-            ? null
-            : ProjectTypographyMetricsProfile(
-                sizeScale: role.metrics!.sizeScale,
-                weight: role.metrics!.weight,
-                lineHeight: role.metrics!.lineHeight,
-                letterSpacing: role.metrics!.letterSpacing,
-              ),
+        metrics:
+            role.metrics == null
+                ? null
+                : ProjectTypographyMetricsProfile(
+                  sizeScale: role.metrics!.sizeScale,
+                  weight: role.metrics!.weight,
+                  lineHeight: role.metrics!.lineHeight,
+                  letterSpacing: role.metrics!.letterSpacing,
+                ),
       );
 
   ProjectSurfacePaletteProfile? _projectSurfacePalette(
     GamePackageSurfacePalette? source,
-  ) => source == null
-      ? null
-      : ProjectSurfacePaletteProfile(
-          background: source.background,
-          surface: source.surface,
-          border: source.border,
-          text: source.text,
-          accent: source.accent,
-          selection: source.selection,
-        );
+  ) =>
+      source == null
+          ? null
+          : ProjectSurfacePaletteProfile(
+            background: source.background,
+            surface: source.surface,
+            border: source.border,
+            text: source.text,
+            accent: source.accent,
+            selection: source.selection,
+          );
 
   ProjectResponsiveVideoProfile _projectMedia(
     GamePackageResponsiveVideo media,
-  ) =>
-      ProjectResponsiveVideoProfile(
-        landscape: _projectVariant(media.landscape),
-        portrait:
-            media.portrait == null ? null : _projectVariant(media.portrait!),
-      );
+  ) => ProjectResponsiveVideoProfile(
+    landscape: _projectVariant(media.landscape),
+    portrait: media.portrait == null ? null : _projectVariant(media.portrait!),
+  );
 
   ProjectVideoVariantProfile _projectVariant(GamePackageVideoVariant variant) =>
       ProjectVideoVariantProfile(
@@ -252,8 +270,10 @@ final class HubRuntimeStartupAdapter
 
   @override
   Future<RuntimeResolvedAsset?> resolveMedia(String projectRelativePath) =>
-      _resolve(projectRelativePath,
-          fallbackMediaType: 'application/octet-stream');
+      _resolve(
+        projectRelativePath,
+        fallbackMediaType: 'application/octet-stream',
+      );
 
   @override
   Future<bool> exists(String projectRelativePath) async =>

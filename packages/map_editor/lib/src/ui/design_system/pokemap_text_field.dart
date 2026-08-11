@@ -22,6 +22,8 @@ class PokeMapTextField extends StatelessWidget {
     this.autofocus = false,
     this.keyboardType,
     this.inputFormatters,
+    this.minLines = 1,
+    this.maxLines = 1,
     this.textInputAction = TextInputAction.done,
   });
 
@@ -40,6 +42,8 @@ class PokeMapTextField extends StatelessWidget {
   final bool autofocus;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
+  final int minLines;
+  final int maxLines;
   final TextInputAction textInputAction;
 
   @override
@@ -73,6 +77,8 @@ class PokeMapTextField extends StatelessWidget {
               readOnly: readOnly,
               keyboardType: keyboardType,
               inputFormatters: inputFormatters,
+              minLines: minLines,
+              maxLines: maxLines,
               textInputAction: textInputAction,
               onTap: onTap,
               onChanged: onChanged,

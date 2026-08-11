@@ -30,6 +30,7 @@ final class ProjectPresentationPreset {
     return switch (category) {
       ProjectPresentationCategory.branding => current.copyWith(
         branding: profile.branding,
+        title: profile.title,
         titleMotion: profile.titleMotion,
       ),
       ProjectPresentationCategory.intro => current.copyWith(
@@ -132,6 +133,7 @@ ProjectPresentationProfile resetProjectPresentationCategory(
 ) => switch (category) {
   ProjectPresentationCategory.branding => current.copyWith(
     branding: const ProjectBrandingProfile(),
+    title: null,
     titleMotion: null,
   ),
   ProjectPresentationCategory.intro => current.copyWith(intro: null),
@@ -168,6 +170,9 @@ ProjectPresentationComparison compareProjectPresentation(
   }
   if (!_jsonEqual(baseline.intro?.toJson(), current.intro?.toJson())) {
     changed.add(r'$.intro');
+  }
+  if (!_jsonEqual(baseline.title?.toJson(), current.title?.toJson())) {
+    changed.add(r'$.title');
   }
   if (!_jsonEqual(
     baseline.titleMotion?.toJson(),

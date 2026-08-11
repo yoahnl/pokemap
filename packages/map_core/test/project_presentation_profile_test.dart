@@ -18,7 +18,7 @@ void main() {
 
       final decoded = ProjectPresentationProfile.fromJson(explicit.toJson());
 
-      expect(decoded.schemaVersion, 6);
+      expect(decoded.schemaVersion, 7);
       expect(decoded.typography?.resolve(ProjectTypographyRole.combat), combat);
       expect(inherited.typography?.resolve(ProjectTypographyRole.combat), body);
     });
@@ -43,99 +43,118 @@ void main() {
         'typography': const ProjectTypographyProfile().toJson(),
       });
 
-      expect(profile.schemaVersion, 6);
+      expect(profile.schemaVersion, 7);
       expect(profile.typography?.combat, isNull);
       expect(profile.layouts, isNull);
       expect(profile.windows, isNull);
     });
 
     test('migrates V1 landscape intro before generated deserialization', () {
-      final source = jsonDecode(
-        File(
-          'test/fixtures/project_presentation/v1_landscape.json',
-        ).readAsStringSync(),
-      ) as Map<String, dynamic>;
+      final source =
+          jsonDecode(
+                File(
+                  'test/fixtures/project_presentation/v1_landscape.json',
+                ).readAsStringSync(),
+              )
+              as Map<String, dynamic>;
 
       final profile = ProjectPresentationProfile.fromJson(source);
 
-      expect(profile.schemaVersion, 6);
-      expect(profile.intro!.media.landscape.videoPath,
-          'assets/presentation/intro/landscape.mp4');
+      expect(profile.schemaVersion, 7);
+      expect(
+        profile.intro!.media.landscape.videoPath,
+        'assets/presentation/intro/landscape.mp4',
+      );
       expect(profile.intro!.media.landscape.focalX, 0.5);
       expect(profile.intro!.media.portrait, isNull);
       expect(profile.titleMotion, isNull);
       final encoded = profile.toJson();
-      expect(encoded['schemaVersion'], 6);
+      expect(encoded['schemaVersion'], 7);
       expect((encoded['intro']! as Map<String, dynamic>), contains('media'));
-      expect((encoded['intro']! as Map<String, dynamic>),
-          isNot(contains('videoPath')));
+      expect(
+        (encoded['intro']! as Map<String, dynamic>),
+        isNot(contains('videoPath')),
+      );
     });
 
-    test('round-trips V2 landscape-only and responsive title motion fixtures',
-        () {
-      for (final fixture in <String>[
-        'v2_landscape_only.json',
-        'v2_landscape_portrait.json',
-      ]) {
-        final source = jsonDecode(
-          File('test/fixtures/project_presentation/$fixture')
-              .readAsStringSync(),
-        ) as Map<String, dynamic>;
-        final profile = ProjectPresentationProfile.fromJson(source);
+    test(
+      'round-trips V2 landscape-only and responsive title motion fixtures',
+      () {
+        for (final fixture in <String>[
+          'v2_landscape_only.json',
+          'v2_landscape_portrait.json',
+        ]) {
+          final source =
+              jsonDecode(
+                    File(
+                      'test/fixtures/project_presentation/$fixture',
+                    ).readAsStringSync(),
+                  )
+                  as Map<String, dynamic>;
+          final profile = ProjectPresentationProfile.fromJson(source);
 
-        expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile,
-            reason: fixture);
-        expect(validateProjectPresentationProfile(profile), isEmpty,
-            reason: fixture);
-      }
-    });
-
-    test('validates focal points, loop audio and combined responsive budgets',
-        () {
-      ProjectVideoVariantProfile variant({
-        String video = 'assets/presentation/title/loop.mp4',
-        String poster = 'assets/presentation/title/loop.png',
-        int duration = 16000,
-        int size = 60 * 1024 * 1024,
-        String audio = 'aac',
-        double focalX = 1.2,
-      }) =>
-          ProjectVideoVariantProfile(
-            videoPath: video,
-            posterPath: poster,
-            durationMilliseconds: duration,
-            width: 1920,
-            height: 1080,
-            bitrateKbps: 4000,
-            sizeBytes: size,
-            videoCodec: 'h264',
-            audioCodec: audio,
-            focalX: focalX,
+          expect(
+            ProjectPresentationProfile.fromJson(profile.toJson()),
+            profile,
+            reason: fixture,
           );
-      final profile = ProjectPresentationProfile(
-        titleMotion: ProjectTitleMotionProfile(
-          promptLoop: ProjectResponsiveVideoProfile(
-            landscape: variant(),
-            portrait: variant(
-              video: 'assets/presentation/title/portrait.mp4',
-              poster: 'assets/presentation/title/portrait.png',
+          expect(
+            validateProjectPresentationProfile(profile),
+            isEmpty,
+            reason: fixture,
+          );
+        }
+      },
+    );
+
+    test(
+      'validates focal points, loop audio and combined responsive budgets',
+      () {
+        ProjectVideoVariantProfile variant({
+          String video = 'assets/presentation/title/loop.mp4',
+          String poster = 'assets/presentation/title/loop.png',
+          int duration = 16000,
+          int size = 60 * 1024 * 1024,
+          String audio = 'aac',
+          double focalX = 1.2,
+        }) => ProjectVideoVariantProfile(
+          videoPath: video,
+          posterPath: poster,
+          durationMilliseconds: duration,
+          width: 1920,
+          height: 1080,
+          bitrateKbps: 4000,
+          sizeBytes: size,
+          videoCodec: 'h264',
+          audioCodec: audio,
+          focalX: focalX,
+        );
+        final profile = ProjectPresentationProfile(
+          titleMotion: ProjectTitleMotionProfile(
+            promptLoop: ProjectResponsiveVideoProfile(
+              landscape: variant(),
+              portrait: variant(
+                video: 'assets/presentation/title/portrait.mp4',
+                poster: 'assets/presentation/title/portrait.png',
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(
-        validateProjectPresentationProfile(profile)
-            .map((diagnostic) => diagnostic.code),
-        containsAll(<String>[
-          'presentationFocalPointInvalid',
-          'titleLoopDurationExceeded',
-          'titleLoopSizeExceeded',
-          'titleLoopAudioForbidden',
-          'titleMotionCombinedSizeExceeded',
-        ]),
-      );
-    });
+        expect(
+          validateProjectPresentationProfile(
+            profile,
+          ).map((diagnostic) => diagnostic.code),
+          containsAll(<String>[
+            'presentationFocalPointInvalid',
+            'titleLoopDurationExceeded',
+            'titleLoopSizeExceeded',
+            'titleLoopAudioForbidden',
+            'titleMotionCombinedSizeExceeded',
+          ]),
+        );
+      },
+    );
 
     test('ProjectValidator rejects blocking presentation diagnostics', () {
       final manifest = ProjectManifest(
@@ -185,10 +204,7 @@ void main() {
         ),
       );
 
-      expect(
-        ProjectPresentationProfile.fromJson(profile.toJson()),
-        profile,
-      );
+      expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile);
       expect(profile.configuredCategories, {
         ProjectPresentationCategory.branding,
       });
@@ -228,8 +244,9 @@ void main() {
       );
 
       expect(
-        validateProjectPresentationProfile(profile)
-            .map((diagnostic) => diagnostic.code),
+        validateProjectPresentationProfile(
+          profile,
+        ).map((diagnostic) => diagnostic.code),
         containsAll(<String>[
           'menuLabelTooLong',
           'menuLabelEmpty',
@@ -263,8 +280,9 @@ void main() {
       );
 
       expect(
-        validateProjectPresentationProfile(profile)
-            .map((diagnostic) => diagnostic.code),
+        validateProjectPresentationProfile(
+          profile,
+        ).map((diagnostic) => diagnostic.code),
         containsAll(<String>[
           'presentationVersionUnsupported',
           'presentationAssetPathUnsafe',
@@ -306,10 +324,7 @@ void main() {
 
       final json = manifest.toJson();
 
-      expect(
-        ProjectManifest.fromJson(json).presentation,
-        presentation,
-      );
+      expect(ProjectManifest.fromJson(json).presentation, presentation);
       expect(json['presentation'], presentation.toJson());
     });
 
@@ -338,10 +353,7 @@ void main() {
         profile.configuredCategories,
         contains(ProjectPresentationCategory.intro),
       );
-      expect(
-        ProjectPresentationProfile.fromJson(profile.toJson()),
-        profile,
-      );
+      expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile);
     });
 
     test('accepts landscape and optional portrait intro variants', () {
@@ -395,8 +407,9 @@ void main() {
       );
 
       expect(
-        validateProjectPresentationProfile(profile)
-            .map((diagnostic) => diagnostic.code),
+        validateProjectPresentationProfile(
+          profile,
+        ).map((diagnostic) => diagnostic.code),
         containsAll(<String>[
           'introPosterRequired',
           'introContainerUnsupported',
@@ -409,61 +422,66 @@ void main() {
       );
     });
 
-    test('round-trips explicit typography roles and redistribution evidence',
-        () {
-      const profile = ProjectPresentationProfile(
-        typography: ProjectTypographyProfile(
-          display: ProjectTypographyRoleProfile(
-            fontPath: 'assets/presentation/fonts/display.ttf',
-            family: 'Aube Display',
-            licensePath: 'assets/presentation/fonts/display-license.txt',
-            redistributable: true,
-            fallbackFamilies: <String>['sans-serif'],
-            glyphCoverage: <String>[
-              'latin',
-              'latinExtended',
-              'digits',
-              'punctuation',
-            ],
+    test(
+      'round-trips explicit typography roles and redistribution evidence',
+      () {
+        const profile = ProjectPresentationProfile(
+          typography: ProjectTypographyProfile(
+            display: ProjectTypographyRoleProfile(
+              fontPath: 'assets/presentation/fonts/display.ttf',
+              family: 'Aube Display',
+              licensePath: 'assets/presentation/fonts/display-license.txt',
+              redistributable: true,
+              fallbackFamilies: <String>['sans-serif'],
+              glyphCoverage: <String>[
+                'latin',
+                'latinExtended',
+                'digits',
+                'punctuation',
+              ],
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(validateProjectPresentationProfile(profile), isEmpty);
-      expect(
-        profile.configuredCategories,
-        contains(ProjectPresentationCategory.typography),
-      );
-      expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile);
-    });
+        expect(validateProjectPresentationProfile(profile), isEmpty);
+        expect(
+          profile.configuredCategories,
+          contains(ProjectPresentationCategory.typography),
+        );
+        expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile);
+      },
+    );
 
-    test('custom fonts require license, redistribution, fallback and glyphs',
-        () {
-      const profile = ProjectPresentationProfile(
-        typography: ProjectTypographyProfile(
-          display: ProjectTypographyRoleProfile(
-            fontPath: '../display.woff',
-            family: '',
-            fallbackFamilies: <String>[],
-            glyphCoverage: <String>['latin'],
+    test(
+      'custom fonts require license, redistribution, fallback and glyphs',
+      () {
+        const profile = ProjectPresentationProfile(
+          typography: ProjectTypographyProfile(
+            display: ProjectTypographyRoleProfile(
+              fontPath: '../display.woff',
+              family: '',
+              fallbackFamilies: <String>[],
+              glyphCoverage: <String>['latin'],
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(
-        validateProjectPresentationProfile(profile)
-            .map((diagnostic) => diagnostic.code),
-        containsAll(<String>[
-          'presentationAssetPathUnsafe',
-          'typographyFormatUnsupported',
-          'typographyFamilyRequired',
-          'typographyLicenseRequired',
-          'typographyRedistributionRequired',
-          'typographyFallbackRequired',
-          'typographyGlyphCoverageIncomplete',
-        ]),
-      );
-    });
+        expect(
+          validateProjectPresentationProfile(
+            profile,
+          ).map((diagnostic) => diagnostic.code),
+          containsAll(<String>[
+            'presentationAssetPathUnsafe',
+            'typographyFormatUnsupported',
+            'typographyFamilyRequired',
+            'typographyLicenseRequired',
+            'typographyRedistributionRequired',
+            'typographyFallbackRequired',
+            'typographyGlyphCoverageIncomplete',
+          ]),
+        );
+      },
+    );
 
     test('round-trips a semantic theme for every player surface', () {
       const profile = ProjectPresentationProfile(
@@ -518,12 +536,10 @@ void main() {
       );
 
       expect(
-        validateProjectPresentationProfile(profile)
-            .map((diagnostic) => diagnostic.code),
-        containsAll(<String>[
-          'themeColorInvalid',
-          'themeContrastInsufficient',
-        ]),
+        validateProjectPresentationProfile(
+          profile,
+        ).map((diagnostic) => diagnostic.code),
+        containsAll(<String>['themeColorInvalid', 'themeContrastInsufficient']),
       );
     });
   });

@@ -87,7 +87,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
         ),
       RuntimePlayerPhase.title => PlayerTitleScreen(
           data: PlayerTitleViewData(
-            gameTitle: snapshot.gameTitle,
+            gameTitle: titlePresentation.resolveTitle(snapshot.gameTitle),
             author: titlePresentation.author,
             description: titlePresentation.description,
             background: titlePresentation.background,

@@ -9,7 +9,7 @@ abstract final class PersonalizationPreviewFixtures {
     RuntimePlayerPresentation presentation, {
     Widget? backgroundContent,
   }) => PlayerTitleSurfaceData(
-    gameTitle: projectName,
+    gameTitle: presentation.title.resolveTitle(projectName),
     author: presentation.title.author,
     description: presentation.title.description,
     background: presentation.title.background,

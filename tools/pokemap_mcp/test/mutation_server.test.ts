@@ -860,7 +860,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     const presentationKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationProfile",
     );
-    assert.equal(Number(presentationKind?.version), 6);
+    assert.equal(Number(presentationKind?.version), 7);
     const presetKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationPreset",
     );
@@ -885,8 +885,13 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       actionId: "presentation.update",
       parameters: {
         profile: {
-          schemaVersion: 6,
+          schemaVersion: 7,
           branding: { accentColor: "#126E78" },
+          title: {
+            title: "Aube sur Hanazuki",
+            subtitle: "Studio Brume",
+            prompt: "Appuyez pour commencer",
+          },
           menuLabels: {
             pauseTitle: "Escale",
             pokedex: "Carnet de voyage",
@@ -998,6 +1003,10 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       "#126E78",
     );
     assert.equal(
+      record(record(project.presentation).title).title,
+      "Aube sur Hanazuki",
+    );
+    assert.equal(
       record(record(project.presentation).menuLabels).pokedex,
       "Carnet de voyage",
     );
@@ -1051,6 +1060,10 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.equal(
       record(record(persisted.presentation).branding).accentColor,
       "#126E78",
+    );
+    assert.equal(
+      record(record(persisted.presentation).title).prompt,
+      "Appuyez pour commencer",
     );
     assert.equal(
       record(record(persisted.presentation).menuLabels).pauseTitle,

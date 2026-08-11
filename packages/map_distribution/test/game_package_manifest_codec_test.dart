@@ -435,6 +435,33 @@ void main() {
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 
+    test('round-trips V7 title copy and rejects it from V6', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 7,
+          'branding': <String, Object?>{},
+          'title': <String, Object?>{
+            'title': 'Pokémon Aurore',
+            'subtitle': 'Une aventure à Hanazuki',
+            'prompt': 'Appuyez pour commencer',
+          },
+        };
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.presentation?.title?.title, 'Pokémon Aurore');
+      expect(manifest.presentation?.title?.subtitle, 'Une aventure à Hanazuki');
+      expect(manifest.presentation?.title?.prompt, 'Appuyez pour commencer');
+      expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+
+      (json['presentation']! as Map<String, Object?>)['schemaVersion'] = 6;
+      _expectCode(
+        () => codec.decodeJson(json),
+        'presentationVersionUnsupported',
+        r'$.presentation.title',
+      );
+    });
+
     test('rejects V6 visual fields declared by an older schema', () {
       final json = _minimalManifestJson()
         ..['presentation'] = <String, Object?>{

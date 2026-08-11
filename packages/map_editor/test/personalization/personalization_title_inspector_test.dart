@@ -8,6 +8,45 @@ import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets('authors title copy and exposes the project-name fallback', (
+    tester,
+  ) async {
+    ProjectPresentationProfile? changed;
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: PersonalizationTitleInspector(
+            profile: const ProjectPresentationProfile(),
+            projectName: 'Pokémon Aurore',
+            projectRootPath: '',
+            onChanged: (profile) => changed = profile,
+            onImportImage: (_) {},
+            onRemoveImage: (_) {},
+            onEditAccent: () {},
+            onResetAccent: () {},
+            onImportTitleMusic: () {},
+            onToggleTitleMusicPreview: () {},
+            onRemoveTitleMusic: () {},
+            onImportMotion: (_) {},
+            onRemoveMotion: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Par défaut : Pokémon Aurore'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('title-copy-title')),
+      'Aurore sur Hanazuki',
+    );
+
+    expect(changed?.title?.title, 'Aurore sur Hanazuki');
+    await tester.tap(
+      find.byKey(const ValueKey<String>('title-copy-use-project-name')),
+    );
+    expect(changed?.title?.title, isNull);
+  });
+
   testWidgets('offers three guided title compositions', (tester) async {
     ProjectPresentationProfile? changed;
     await tester.pumpWidget(
@@ -76,6 +115,11 @@ void main() {
       _app(
         const PersonalizationLivePreview(
           profile: ProjectPresentationProfile(
+            title: ProjectTitlePresentationProfile(
+              title: 'Aurore sur Hanazuki',
+              subtitle: 'Studio Brume',
+              prompt: 'Appuyez pour commencer',
+            ),
             titleMotion: ProjectTitleMotionProfile(menuLoop: media),
           ),
           projectName: 'Pokémon Aurore',
@@ -86,9 +130,9 @@ void main() {
     );
 
     expect(find.byType(PlayerTitleSurface), findsOneWidget);
-    expect(find.text('Pokémon Aurore'), findsOneWidget);
-    expect(find.text('Créé avec PokeMap'), findsOneWidget);
-    expect(find.text('Votre aventure commence ici.'), findsOneWidget);
+    expect(find.text('Aurore sur Hanazuki'), findsOneWidget);
+    expect(find.text('Studio Brume'), findsOneWidget);
+    expect(find.text('Appuyez pour commencer'), findsOneWidget);
     expect(
       tester
           .widgetList<PlayerActionButton>(find.byType(PlayerActionButton))

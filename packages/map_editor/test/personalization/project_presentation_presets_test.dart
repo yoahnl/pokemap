@@ -47,6 +47,7 @@ void main() {
   test('resets only the selected section', () {
     const current = ProjectPresentationProfile(
       branding: ProjectBrandingProfile(layoutVariant: 'centered'),
+      title: ProjectTitlePresentationProfile(title: 'Titre personnalisé'),
       theme: safeProjectSemanticTheme,
     );
 
@@ -56,6 +57,7 @@ void main() {
     );
 
     expect(updated.branding, const ProjectBrandingProfile());
+    expect(updated.title, isNull);
     expect(updated.theme, safeProjectSemanticTheme);
   });
 
@@ -96,6 +98,17 @@ void main() {
     final comparison = compareProjectPresentation(baseline, current);
 
     expect(comparison.changedPaths, contains(r'$.titleMotion'));
+  });
+
+  test('comparison detects title copy changes', () {
+    const baseline = ProjectPresentationProfile();
+    const current = ProjectPresentationProfile(
+      title: ProjectTitlePresentationProfile(title: 'Titre personnalisé'),
+    );
+
+    final comparison = compareProjectPresentation(baseline, current);
+
+    expect(comparison.changedPaths, contains(r'$.title'));
   });
 
   test('comparison detects authored window changes', () {

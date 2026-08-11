@@ -5,6 +5,32 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('projects V7 title copy with project metadata fallbacks', () {
+    final presentation = RuntimePlayerPresentation.fromProfile(
+      const ProjectPresentationProfile(
+        title: ProjectTitlePresentationProfile(
+          title: 'Pokémon Aurore',
+          subtitle: '',
+          prompt: 'Appuyez pour commencer',
+        ),
+      ),
+      author: 'Studio Brume',
+      description: 'Description du projet',
+    );
+
+    expect(presentation.title.resolveTitle('Nom du projet'), 'Pokémon Aurore');
+    expect(presentation.title.author, isEmpty);
+    expect(presentation.title.description, 'Appuyez pour commencer');
+    expect(
+      RuntimePlayerPresentation.fromProfile(
+        const ProjectPresentationProfile(),
+        author: 'Studio Brume',
+        description: 'Description du projet',
+      ).title.resolveTitle('Nom du projet'),
+      'Nom du projet',
+    );
+  });
+
   test('projects every V6 typography metric into measurable text styles', () {
     final presentation = RuntimePlayerPresentation.fromProfile(
       const ProjectPresentationProfile(

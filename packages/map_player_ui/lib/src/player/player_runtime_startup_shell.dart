@@ -412,7 +412,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         : _titleAction(projection.initialSelection!);
     return PlayerTitleScreen(
       data: PlayerTitleViewData(
-        gameTitle: player.gameTitle,
+        gameTitle: widget.titlePresentation.resolveTitle(player.gameTitle),
         author: widget.titlePresentation.author,
         description: widget.titlePresentation.description,
         background: widget.titlePresentation.background,

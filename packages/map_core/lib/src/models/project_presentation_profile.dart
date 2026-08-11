@@ -149,6 +149,30 @@ abstract class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
+abstract class ProjectTitlePresentationProfile
+    with _$ProjectTitlePresentationProfile {
+  const ProjectTitlePresentationProfile._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectTitlePresentationProfile({
+    @JsonKey(includeIfNull: false) String? title,
+    @JsonKey(includeIfNull: false) String? subtitle,
+    @JsonKey(includeIfNull: false) String? prompt,
+  }) = _ProjectTitlePresentationProfile;
+
+  factory ProjectTitlePresentationProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTitlePresentationProfileFromJson(json);
+
+  String resolveTitle(String projectName) => title ?? projectName;
+
+  String? resolveSubtitle(String? fallback) =>
+      subtitle == null ? fallback : _visibleTitleCopy(subtitle!);
+
+  String? resolvePrompt(String? fallback) =>
+      prompt == null ? fallback : _visibleTitleCopy(prompt!);
+}
+
+@Freezed(fromJson: true, toJson: true)
 abstract class ProjectTitleMotionProfile with _$ProjectTitleMotionProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectTitleMotionProfile({
@@ -261,6 +285,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
     @Default(ProjectPresentationProfile.supportedSchemaVersion)
     int schemaVersion,
     @Default(ProjectBrandingProfile()) ProjectBrandingProfile branding,
+    @JsonKey(includeIfNull: false) ProjectTitlePresentationProfile? title,
     @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
     @JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,
     @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
@@ -277,14 +302,14 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         _migrateProjectPresentationProfileJson(json),
       );
 
-  static const int supportedSchemaVersion = 6;
+  static const int supportedSchemaVersion = 7;
 
   ProjectPresentationWindowsProfile get effectiveWindows =>
       windows ?? legacyProjectPresentationWindows;
 
   Set<ProjectPresentationCategory> get configuredCategories =>
       <ProjectPresentationCategory>{
-        if (_hasBranding(branding) || titleMotion != null)
+        if (_hasBranding(branding) || title != null || titleMotion != null)
           ProjectPresentationCategory.branding,
         if (intro != null) ProjectPresentationCategory.intro,
         if (typography != null) ProjectPresentationCategory.typography,
@@ -338,6 +363,12 @@ const double projectTypographyMaxLineHeight = 1.8;
 const double projectTypographyMinLetterSpacing = -1;
 const double projectTypographyMaxLetterSpacing = 4;
 const int projectMenuLabelMaxLength = 32;
+const int projectTitleCopyMaxLength = 80;
+const int projectTitleSubtitleMaxLength = 120;
+const int projectTitlePromptMaxLength = 160;
+const int projectTitleMaxLines = 2;
+const int projectTitleSubtitleMaxLines = 2;
+const int projectTitlePromptMaxLines = 3;
 
 const ProjectSemanticThemeProfile safeProjectSemanticTheme =
     ProjectSemanticThemeProfile(
@@ -422,6 +453,7 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
       ),
     );
   }
+  _validateTitleCopy(profile.title, diagnostics);
   _validateIntroVideo(profile.intro, diagnostics);
   _validateTitleMotion(profile.titleMotion, diagnostics);
   _validateCombinedPresentationMediaBudget(profile, diagnostics);
@@ -593,9 +625,8 @@ void _validateWindows(
         ? _parseOpaqueProjectColor(_projectThemeToken(theme, style.fillToken))
         : null;
     final background = _parseOpaqueProjectColor(theme.background);
-    final fill = rawFill == null ||
-            background == null ||
-            !style.fillOpacity.isFinite
+    final fill =
+        rawFill == null || background == null || !style.fillOpacity.isFinite
         ? null
         : _blendProjectColor(rawFill, background, style.fillOpacity);
     if (style.borderWidth > 0 &&
@@ -816,6 +847,89 @@ void _validateMenuLabels(
         ProjectPresentationCategory.theme,
         path,
         'Menu labels must remain on one readable line.',
+      );
+    }
+  }
+}
+
+void _validateTitleCopy(
+  ProjectTitlePresentationProfile? copy,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (copy == null) return;
+  final values =
+      <
+        ({
+          String field,
+          String? value,
+          int maxLength,
+          int maxLines,
+          bool required,
+        })
+      >[
+        (
+          field: 'title',
+          value: copy.title,
+          maxLength: projectTitleCopyMaxLength,
+          maxLines: projectTitleMaxLines,
+          required: true,
+        ),
+        (
+          field: 'subtitle',
+          value: copy.subtitle,
+          maxLength: projectTitleSubtitleMaxLength,
+          maxLines: projectTitleSubtitleMaxLines,
+          required: false,
+        ),
+        (
+          field: 'prompt',
+          value: copy.prompt,
+          maxLength: projectTitlePromptMaxLength,
+          maxLines: projectTitlePromptMaxLines,
+          required: false,
+        ),
+      ];
+  final controlCharacters = RegExp(
+    r'[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]',
+  );
+  for (final entry in values) {
+    final value = entry.value;
+    if (value == null) continue;
+    final path = '\$.presentation.title.${entry.field}';
+    if ((entry.required || value.isNotEmpty) && value.trim().isEmpty) {
+      _presentationError(
+        diagnostics,
+        'titleCopyEmpty',
+        ProjectPresentationCategory.branding,
+        path,
+        'Title copy must contain visible text or use its fallback.',
+      );
+    }
+    if (value.runes.length > entry.maxLength) {
+      _presentationError(
+        diagnostics,
+        'titleCopyTooLong',
+        ProjectPresentationCategory.branding,
+        path,
+        'Title copy exceeds the supported length.',
+      );
+    }
+    if ('\n'.allMatches(value).length + 1 > entry.maxLines) {
+      _presentationError(
+        diagnostics,
+        'titleCopyTooManyLines',
+        ProjectPresentationCategory.branding,
+        path,
+        'Title copy uses too many lines.',
+      );
+    }
+    if (controlCharacters.hasMatch(value)) {
+      _presentationError(
+        diagnostics,
+        'titleCopyContainsControlCharacters',
+        ProjectPresentationCategory.branding,
+        path,
+        'Title copy contains unsupported control characters.',
       );
     }
   }
@@ -1462,8 +1576,8 @@ void _validateSurfacePalettes(
         parsed[color.key] = resolved;
       }
     }
-    final surface = parsed['surface'] ??
-        _parseOpaqueProjectColor(inheritedSurface)!;
+    final surface =
+        parsed['surface'] ?? _parseOpaqueProjectColor(inheritedSurface)!;
     final text = parsed['text'] ?? _parseOpaqueProjectColor(theme.textPrimary)!;
     if (_contrastRatio(text, surface) < projectSemanticTextContrastRatio) {
       _presentationError(
@@ -1533,12 +1647,14 @@ Map<String, dynamic> _migrateProjectPresentationProfileJson(
   if (schemaVersion is int && schemaVersion < 6) {
     final typography = source['typography'];
     final windows = source['windows'];
-    final hasMetrics = typography is Map &&
+    final hasMetrics =
+        typography is Map &&
         typography.values.whereType<Map>().any(
           (role) => role.containsKey('metrics'),
         );
     final styles = windows is Map ? windows['styles'] : null;
-    final hasWindowVisuals = styles is List &&
+    final hasWindowVisuals =
+        styles is List &&
         styles.whereType<Map>().any(
           (style) =>
               style.containsKey('shape') || style.containsKey('fillOpacity'),
@@ -1551,10 +1667,16 @@ Map<String, dynamic> _migrateProjectPresentationProfileJson(
       );
     }
   }
+  if (schemaVersion is int &&
+      schemaVersion < 7 &&
+      source.containsKey('title')) {
+    throw const FormatException('Title copy requires schema version 7.');
+  }
   if (schemaVersion == 2 ||
       schemaVersion == 3 ||
       schemaVersion == 4 ||
-      schemaVersion == 5) {
+      schemaVersion == 5 ||
+      schemaVersion == 6) {
     return Map<String, dynamic>.from(source)
       ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion;
   }
@@ -1582,6 +1704,8 @@ Map<String, dynamic> _migrateProjectPresentationProfileJson(
   };
   return migrated;
 }
+
+String? _visibleTitleCopy(String value) => value.isEmpty ? null : value;
 
 bool _isSafeProjectRelativePath(String source) {
   final value = source.trim();

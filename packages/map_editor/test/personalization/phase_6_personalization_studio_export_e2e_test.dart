@@ -164,7 +164,7 @@ void main() {
         artifact.manifest.presentation?.theme?.titleSurface,
         profile.theme?.titleSurface,
       );
-      expect(artifact.manifest.presentation?.schemaVersion, 6);
+      expect(artifact.manifest.presentation?.schemaVersion, 7);
       expect(
         artifact.manifest.presentation?.windows?.pauseMenuStyleId,
         profile.windows?.pauseMenuStyleId,

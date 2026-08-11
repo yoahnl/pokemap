@@ -20,6 +20,7 @@ import 'package:map_core/map_core.dart'
         ProjectTypographyMetricsProfile,
         ProjectTypographyProfile,
         ProjectTypographyRoleProfile,
+        ProjectTitlePresentationProfile,
         ProjectWindowShape,
         ProjectWindowStyleProfile,
         safeProjectSemanticTheme,
@@ -494,6 +495,7 @@ final class GamePackageManifestCodec {
       required: const <String>{'schemaVersion', 'branding'},
       optional: const <String>{
         'intro',
+        'title',
         'titleMotion',
         'typography',
         'theme',
@@ -510,11 +512,12 @@ final class GamePackageManifestCodec {
         schemaVersion != 3 &&
         schemaVersion != 4 &&
         schemaVersion != 5 &&
-        schemaVersion != 6) {
+        schemaVersion != 6 &&
+        schemaVersion != 7) {
       _fail(
         'presentationVersionUnsupported',
         '$path.schemaVersion',
-        'Only presentation schema versions 1 through 6 are supported.',
+        'Only presentation schema versions 1 through 7 are supported.',
       );
     }
     if (schemaVersion == 1 && json.containsKey('titleMotion')) {
@@ -609,6 +612,13 @@ final class GamePackageManifestCodec {
         }
       }
     }
+    if (schemaVersion < 7 && json.containsKey('title')) {
+      _fail(
+        'presentationVersionUnsupported',
+        '$path.title',
+        'Title copy requires presentation schema version 7.',
+      );
+    }
     final typography = json.containsKey('typography')
         ? _typography(
             json['typography'],
@@ -632,6 +642,9 @@ final class GamePackageManifestCodec {
         json['branding'],
         path: '$path.branding',
       ),
+      title: json.containsKey('title')
+          ? _titlePresentation(json['title'], path: '$path.title')
+          : null,
       intro: json.containsKey('intro')
           ? _intro(
               json['intro'],
@@ -658,6 +671,44 @@ final class GamePackageManifestCodec {
       layouts: json.containsKey('layouts')
           ? _layouts(json['layouts'], path: '$path.layouts')
           : null,
+    );
+  }
+
+  GamePackageTitlePresentation _titlePresentation(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{},
+      optional: const <String>{'title', 'subtitle', 'prompt'},
+    );
+    String? copy(String field) =>
+        json.containsKey(field) ? _string(json[field], '$path.$field') : null;
+    final title = copy('title');
+    final subtitle = copy('subtitle');
+    final prompt = copy('prompt');
+    final diagnostic = validateProjectPresentationProfile(
+      ProjectPresentationProfile(
+        title: ProjectTitlePresentationProfile(
+          title: title,
+          subtitle: subtitle,
+          prompt: prompt,
+        ),
+      ),
+    ).firstOrNull;
+    if (diagnostic != null) {
+      _fail(
+        'invalidTitleCopy',
+        diagnostic.path.replaceFirst(r'$.presentation.title', path),
+        diagnostic.message,
+      );
+    }
+    return GamePackageTitlePresentation(
+      title: title,
+      subtitle: subtitle,
+      prompt: prompt,
     );
   }
 

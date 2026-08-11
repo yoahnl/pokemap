@@ -303,8 +303,13 @@ void main() {
       );
     });
 
-    test('presentation.update carries the complete V6 visual contract', () {
+    test('presentation.update carries V7 title copy and visual contract', () {
       final profile = ProjectPresentationProfile(
+        title: const ProjectTitlePresentationProfile(
+          title: 'Aube sur Hanazuki',
+          subtitle: 'Studio Brume',
+          prompt: 'Appuyez pour commencer',
+        ),
         typography: const ProjectTypographyProfile(
           dialogue: ProjectTypographyRoleProfile(
             metrics: ProjectTypographyMetricsProfile(
@@ -357,6 +362,7 @@ void main() {
         ),
       );
       final projected = draft.preview['profile']! as Map<String, Object?>;
+      final title = projected['title']! as Map<String, Object?>;
       final typography = projected['typography']! as Map<String, Object?>;
       final dialogue = typography['dialogue']! as Map<String, Object?>;
       final metrics = dialogue['metrics']! as Map<String, Object?>;
@@ -369,6 +375,9 @@ void main() {
           );
 
       expect(metrics['weight'], 600);
+      expect(title['title'], 'Aube sur Hanazuki');
+      expect(title['subtitle'], 'Studio Brume');
+      expect(title['prompt'], 'Appuyez pour commencer');
       expect(dialoguePalette['surface'], '#102030');
       expect(dialogueStyle['shape'], 'speech');
       expect(dialogueStyle['fillOpacity'], .85);

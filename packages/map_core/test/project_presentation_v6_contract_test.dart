@@ -50,9 +50,8 @@ void main() {
       expect(validateProjectPresentationProfile(profile), isEmpty);
       expect(profile.toJson()['surfacePalettes'], isNotNull);
       expect(
-        ((profile.toJson()['typography']! as Map)['display']! as Map)[
-          'metrics'
-        ],
+        ((profile.toJson()['typography']! as Map)['display']!
+            as Map)['metrics'],
         isNotNull,
       );
       expect(
@@ -129,13 +128,10 @@ void main() {
         },
       });
 
-      expect(profile.schemaVersion, 6);
+      expect(profile.schemaVersion, 7);
       expect(profile.surfacePalettes, isNull);
       expect(profile.typography?.body.metrics, isNull);
-      expect(
-        profile.windows?.styles.single.shape,
-        ProjectWindowShape.rounded,
-      );
+      expect(profile.windows?.styles.single.shape, ProjectWindowShape.rounded);
       expect(profile.windows?.styles.single.fillOpacity, 1);
     });
 
@@ -309,10 +305,7 @@ void main() {
       expect(
         validateProjectPresentationProfile(
           ProjectPresentationProfile(
-            windows: windows(
-              ProjectWindowShape.rounded,
-              opacity: double.nan,
-            ),
+            windows: windows(ProjectWindowShape.rounded, opacity: double.nan),
           ),
         ).map((diagnostic) => diagnostic.code),
         contains('windowFillOpacityOutOfRange'),

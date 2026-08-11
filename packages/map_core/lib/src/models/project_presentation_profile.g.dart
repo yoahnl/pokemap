@@ -100,6 +100,22 @@ Map<String, dynamic> _$ProjectIntroVideoProfileToJson(
   'allowReplay': instance.allowReplay,
 };
 
+_ProjectTitlePresentationProfile _$ProjectTitlePresentationProfileFromJson(
+  Map<String, dynamic> json,
+) => _ProjectTitlePresentationProfile(
+  title: json['title'] as String?,
+  subtitle: json['subtitle'] as String?,
+  prompt: json['prompt'] as String?,
+);
+
+Map<String, dynamic> _$ProjectTitlePresentationProfileToJson(
+  _ProjectTitlePresentationProfile instance,
+) => <String, dynamic>{
+  'title': ?instance.title,
+  'subtitle': ?instance.subtitle,
+  'prompt': ?instance.prompt,
+};
+
 _ProjectTitleMotionProfile _$ProjectTitleMotionProfileFromJson(
   Map<String, dynamic> json,
 ) => _ProjectTitleMotionProfile(
@@ -279,6 +295,11 @@ _ProjectPresentationProfile _$ProjectPresentationProfileFromJson(
       : ProjectBrandingProfile.fromJson(
           json['branding'] as Map<String, dynamic>,
         ),
+  title: json['title'] == null
+      ? null
+      : ProjectTitlePresentationProfile.fromJson(
+          json['title'] as Map<String, dynamic>,
+        ),
   intro: json['intro'] == null
       ? null
       : ProjectIntroVideoProfile.fromJson(
@@ -326,6 +347,7 @@ Map<String, dynamic> _$ProjectPresentationProfileToJson(
 ) => <String, dynamic>{
   'schemaVersion': instance.schemaVersion,
   'branding': instance.branding.toJson(),
+  'title': ?instance.title?.toJson(),
   'intro': ?instance.intro?.toJson(),
   'titleMotion': ?instance.titleMotion?.toJson(),
   'typography': ?instance.typography?.toJson(),

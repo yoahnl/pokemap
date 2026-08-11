@@ -78,6 +78,7 @@ enum PlayerTitleLayoutVariant {
 @immutable
 final class RuntimePlayerTitlePresentation {
   const RuntimePlayerTitlePresentation({
+    this.title,
     required this.author,
     this.description,
     this.background,
@@ -86,12 +87,15 @@ final class RuntimePlayerTitlePresentation {
     this.layoutVariant = PlayerTitleLayoutVariant.standard,
   });
 
+  final String? title;
   final String author;
   final String? description;
   final ImageProvider? background;
   final ImageProvider? logo;
   final Color? accentColor;
   final PlayerTitleLayoutVariant layoutVariant;
+
+  String resolveTitle(String projectName) => title ?? projectName;
 }
 
 @immutable
@@ -293,7 +297,8 @@ class PlayerTitleSurface extends StatelessWidget {
                                         const TextStyle(),
                                   ),
                                 ),
-                                if (showAuthor) ...<Widget>[
+                                if (showAuthor &&
+                                    data.author.isNotEmpty) ...<Widget>[
                                   SizedBox(height: gap(PlayerSpacing.xs)),
                                   Text(
                                     data.author,

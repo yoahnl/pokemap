@@ -139,7 +139,7 @@ void main() {
               (descriptor) => descriptor.id == 'projectPresentationProfile',
             )
             .version,
-        6,
+        7,
       );
       expect(
         catalog.requireMutationAction('presentation.preset.export').toJson(),
@@ -265,7 +265,10 @@ void main() {
 
       expect(directEvidence, cliEvidence);
       expect(directEvidence['accentColor'], '#126E78');
-      expect(directEvidence['schemaVersion'], 6);
+      expect(directEvidence['schemaVersion'], 7);
+      expect(directEvidence['titleCopy'], 'Aube sur Hanazuki');
+      expect(directEvidence['titleSubtitle'], 'Studio Brume');
+      expect(directEvidence['titlePrompt'], 'Appuyez pour commencer');
       expect(
         directEvidence['introLandscape'],
         'presentation/intro-landscape.mp4',
@@ -929,6 +932,9 @@ final class _GoldenHarness {
       'receipt': _stableReceipt(receipt),
       'accentColor': manifest.presentation?.branding.accentColor,
       'schemaVersion': manifest.presentation?.schemaVersion,
+      'titleCopy': manifest.presentation?.title?.title,
+      'titleSubtitle': manifest.presentation?.title?.subtitle,
+      'titlePrompt': manifest.presentation?.title?.prompt,
       'introLandscape': manifest.presentation?.intro?.media.landscape.videoPath,
       'promptPortrait':
           manifest.presentation?.titleMotion?.promptLoop?.portrait?.videoPath,
@@ -1009,6 +1015,11 @@ const ProjectEncounterTable _encounterTable = ProjectEncounterTable(
 final ProjectPresentationProfile _responsivePresentationProfile =
     ProjectPresentationProfile(
   branding: ProjectBrandingProfile(accentColor: '#126E78'),
+  title: ProjectTitlePresentationProfile(
+    title: 'Aube sur Hanazuki',
+    subtitle: 'Studio Brume',
+    prompt: 'Appuyez pour commencer',
+  ),
   intro: ProjectIntroVideoProfile(
     media: ProjectResponsiveVideoProfile(
       landscape: ProjectVideoVariantProfile(

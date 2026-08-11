@@ -8,81 +8,91 @@ import 'package:pokemap_hub/features/session/domain/repositories/package_asset_p
 import 'package:pub_semver/pub_semver.dart';
 
 void main() {
-  test('projects verified package presentation into runtime startup data',
-      () async {
-    final root = await Directory.systemTemp.createTemp('hub-startup-adapter-');
-    addTearDown(() => root.delete(recursive: true));
-    final video = await File('${root.path}/intro.mp4').writeAsBytes(<int>[1]);
-    final poster = await File('${root.path}/poster.png').writeAsBytes(<int>[2]);
-    final assets = _MemoryPackageAssets(<String, File>{
-      'presentation/intro/video.mp4': video,
-      'presentation/intro/poster.png': poster,
-    });
-    final adapter = HubRuntimeStartupAdapter(
-      manifest: _manifest,
-      assets: assets,
-    );
+  test(
+    'projects verified package presentation into runtime startup data',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'hub-startup-adapter-',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final video = await File('${root.path}/intro.mp4').writeAsBytes(<int>[1]);
+      final poster = await File(
+        '${root.path}/poster.png',
+      ).writeAsBytes(<int>[2]);
+      final assets = _MemoryPackageAssets(<String, File>{
+        'presentation/intro/video.mp4': video,
+        'presentation/intro/poster.png': poster,
+      });
+      final adapter = HubRuntimeStartupAdapter(
+        manifest: _manifest,
+        assets: assets,
+      );
 
-    final profile = await adapter.loadPresentationProfile();
-    final resolvedVideo =
-        await adapter.resolveMedia('presentation/intro/video.mp4');
-    final resolvedPoster =
-        await adapter.resolveImage('presentation/intro/poster.png');
+      final profile = await adapter.loadPresentationProfile();
+      final resolvedVideo = await adapter.resolveMedia(
+        'presentation/intro/video.mp4',
+      );
+      final resolvedPoster = await adapter.resolveImage(
+        'presentation/intro/poster.png',
+      );
 
-    expect(profile?.branding.heroPath, 'presentation/hero.png');
-    expect(profile?.branding.titleMusicPath, 'presentation/title.ogg');
-    expect(profile?.intro?.videoPath, 'presentation/intro/video.mp4');
-    expect(profile?.intro?.allowReplay, isTrue);
-    expect(profile?.typography?.display.fontPath, 'presentation/display.ttf');
-    expect(profile?.typography?.display.family, 'Train Display');
-    expect(profile?.typography?.display.metrics?.sizeScale, 1.25);
-    expect(profile?.typography?.combat?.family, 'Train Combat');
-    expect(profile?.theme?.titleSurface, '#D9F4F6');
-    expect(profile?.surfacePalettes?.title?.surface, '#102030');
-    expect(profile?.menuLabels?.pauseTitle, 'Interlude');
-    expect(profile?.menuLabels?.pokedex, 'Carnet');
-    expect(
-      profile?.windows?.resolve(ProjectWindowRole.pauseMenu).cornerRadius,
-      24,
-    );
-    expect(
-      profile?.windows?.resolve(ProjectWindowRole.pauseMenu).shape,
-      ProjectWindowShape.cutCorner,
-    );
-    expect(
-      profile?.windows?.resolve(ProjectWindowRole.pauseMenu).fillOpacity,
-      .8,
-    );
-    expect(profile?.windows?.pauseBackdropOpacity, .8);
-    expect(
-      profile?.windows?.resolve(ProjectWindowRole.battle).id,
-      'battle',
-    );
-    expect(
-      profile?.layouts?.battle?.regular.slot,
-      ProjectPresentationLayoutSlot.right,
-    );
-    expect(resolvedVideo?.resolvedUri, video.uri);
-    expect(resolvedVideo?.mediaType, 'video/mp4');
-    expect(resolvedPoster?.resolvedUri, poster.uri);
-    expect(resolvedPoster?.mediaType, 'image/png');
-    expect(
-      adapter.resolvedAsset('presentation/intro/video.mp4'),
-      same(resolvedVideo),
-    );
-  });
+      expect(profile?.branding.heroPath, 'presentation/hero.png');
+      expect(profile?.title?.title, 'Aube sur Hanazuki');
+      expect(profile?.title?.subtitle, 'Studio Brume');
+      expect(profile?.title?.prompt, 'Appuyez pour commencer');
+      expect(profile?.branding.titleMusicPath, 'presentation/title.ogg');
+      expect(profile?.intro?.videoPath, 'presentation/intro/video.mp4');
+      expect(profile?.intro?.allowReplay, isTrue);
+      expect(profile?.typography?.display.fontPath, 'presentation/display.ttf');
+      expect(profile?.typography?.display.family, 'Train Display');
+      expect(profile?.typography?.display.metrics?.sizeScale, 1.25);
+      expect(profile?.typography?.combat?.family, 'Train Combat');
+      expect(profile?.theme?.titleSurface, '#D9F4F6');
+      expect(profile?.surfacePalettes?.title?.surface, '#102030');
+      expect(profile?.menuLabels?.pauseTitle, 'Interlude');
+      expect(profile?.menuLabels?.pokedex, 'Carnet');
+      expect(
+        profile?.windows?.resolve(ProjectWindowRole.pauseMenu).cornerRadius,
+        24,
+      );
+      expect(
+        profile?.windows?.resolve(ProjectWindowRole.pauseMenu).shape,
+        ProjectWindowShape.cutCorner,
+      );
+      expect(
+        profile?.windows?.resolve(ProjectWindowRole.pauseMenu).fillOpacity,
+        .8,
+      );
+      expect(profile?.windows?.pauseBackdropOpacity, .8);
+      expect(profile?.windows?.resolve(ProjectWindowRole.battle).id, 'battle');
+      expect(
+        profile?.layouts?.battle?.regular.slot,
+        ProjectPresentationLayoutSlot.right,
+      );
+      expect(resolvedVideo?.resolvedUri, video.uri);
+      expect(resolvedVideo?.mediaType, 'video/mp4');
+      expect(resolvedPoster?.resolvedUri, poster.uri);
+      expect(resolvedPoster?.mediaType, 'image/png');
+      expect(
+        adapter.resolvedAsset('presentation/intro/video.mp4'),
+        same(resolvedVideo),
+      );
+    },
+  );
 
-  test('missing optional installed media stays non-blocking and uncached',
-      () async {
-    final adapter = HubRuntimeStartupAdapter(
-      manifest: _manifest,
-      assets: _MemoryPackageAssets(const <String, File>{}),
-    );
+  test(
+    'missing optional installed media stays non-blocking and uncached',
+    () async {
+      final adapter = HubRuntimeStartupAdapter(
+        manifest: _manifest,
+        assets: _MemoryPackageAssets(const <String, File>{}),
+      );
 
-    expect(await adapter.resolveImage('presentation/hero.png'), isNull);
-    expect(await adapter.exists('presentation/hero.png'), isFalse);
-    expect(adapter.resolvedAsset('presentation/hero.png'), isNull);
-  });
+      expect(await adapter.resolveImage('presentation/hero.png'), isNull);
+      expect(await adapter.exists('presentation/hero.png'), isFalse);
+      expect(adapter.resolvedAsset('presentation/hero.png'), isNull);
+    },
+  );
 }
 
 final class _MemoryPackageAssets implements PackageAssetPort {
@@ -131,7 +141,12 @@ final _manifest = GamePackageManifest(
     supported: const <String>['fr'],
   ),
   presentation: GamePackagePresentation(
-    schemaVersion: 6,
+    schemaVersion: 7,
+    title: const GamePackageTitlePresentation(
+      title: 'Aube sur Hanazuki',
+      subtitle: 'Studio Brume',
+      prompt: 'Appuyez pour commencer',
+    ),
     branding: const GamePackageBranding(
       icon: 'presentation/icon.png',
       hero: 'presentation/hero.png',
