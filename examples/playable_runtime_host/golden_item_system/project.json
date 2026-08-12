@@ -112,6 +112,131 @@
           "toNodeId": "golden_item_pickup_end"
         }
       ]
+    },
+    {
+      "id": "golden_hidden_item_pickup_flow",
+      "name": "Golden Hidden Tonic Pickup",
+      "scope": "localEventFlow",
+      "entryNodeId": "golden_hidden_item_start",
+      "activationCondition": {
+        "type": "flagIsUnset",
+        "params": {
+          "flagName": "golden_item.hidden_pickup_collected"
+        }
+      },
+      "nodes": [
+        {
+          "id": "golden_hidden_item_start",
+          "type": "start"
+        },
+        {
+          "id": "golden_hidden_item_source",
+          "type": "reference",
+          "binding": {
+            "mapId": "golden_item_lab",
+            "entityId": "item_hidden_tonic"
+          },
+          "payload": {
+            "actionKind": "sourceEntityInteract"
+          }
+        },
+        {
+          "id": "golden_hidden_item_give",
+          "type": "action",
+          "payload": {
+            "actionKind": "giveItem",
+            "params": {
+              "itemId": "hidden-tonic",
+              "quantity": "1"
+            }
+          }
+        },
+        {
+          "id": "golden_hidden_item_flag",
+          "type": "action",
+          "binding": {
+            "flagName": "golden_item.hidden_pickup_collected"
+          },
+          "payload": {
+            "actionKind": "setFlag"
+          }
+        },
+        {
+          "id": "golden_hidden_item_step",
+          "type": "action",
+          "payload": {
+            "actionKind": "completeStep",
+            "params": {
+              "stepId": "golden_item.hidden_pickup"
+            }
+          }
+        },
+        {
+          "id": "golden_hidden_item_message",
+          "type": "action",
+          "payload": {
+            "actionKind": "showMessage",
+            "message": "You found a Hidden Tonic!"
+          }
+        },
+        {
+          "id": "golden_hidden_item_end",
+          "type": "end"
+        }
+      ],
+      "edges": [
+        {
+          "id": "golden_hidden_item_source_give",
+          "fromNodeId": "golden_hidden_item_source",
+          "toNodeId": "golden_hidden_item_give"
+        },
+        {
+          "id": "golden_hidden_item_give_flag",
+          "fromNodeId": "golden_hidden_item_give",
+          "toNodeId": "golden_hidden_item_flag"
+        },
+        {
+          "id": "golden_hidden_item_flag_step",
+          "fromNodeId": "golden_hidden_item_flag",
+          "toNodeId": "golden_hidden_item_step"
+        },
+        {
+          "id": "golden_hidden_item_step_message",
+          "fromNodeId": "golden_hidden_item_step",
+          "toNodeId": "golden_hidden_item_message"
+        },
+        {
+          "id": "golden_hidden_item_message_end",
+          "fromNodeId": "golden_hidden_item_message",
+          "toNodeId": "golden_hidden_item_end"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "id": "golden_item.hidden_pickup_collected",
+      "label": "Hidden tonic collected"
+    }
+  ],
+  "worldRules": [
+    {
+      "id": "golden_hide_collected_hidden_tonic",
+      "label": "Consume hidden tonic pickup",
+      "source": {
+        "kind": "fact",
+        "sourceId": "golden_item.hidden_pickup_collected",
+        "predicate": "isTrue"
+      },
+      "target": {
+        "kind": "mapEntity",
+        "mapId": "golden_item_lab",
+        "entityId": "item_hidden_tonic",
+        "label": "Hidden Tonic"
+      },
+      "effect": {
+        "kind": "entityHidden"
+      }
     }
   ],
   "storylines": [
@@ -130,6 +255,11 @@
               "id": "golden_item.pickup",
               "title": "Collect the Ether",
               "order": 0
+            },
+            {
+              "id": "golden_item.hidden_pickup",
+              "title": "Inspect the hidden tonic",
+              "order": 1
             }
           ]
         }

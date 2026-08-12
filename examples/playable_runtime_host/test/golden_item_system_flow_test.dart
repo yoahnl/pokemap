@@ -44,6 +44,7 @@ void main() {
       'new_game',
       'initial_items',
       'pickup',
+      'hidden_pickup',
       'overworld_heal',
       'buy',
       'sell',
@@ -62,6 +63,9 @@ void main() {
         'initial_bag_strict',
         'pickup_scenario_applied',
         'pickup_scenario_idempotent',
+        'hidden_pickup_not_rendered',
+        'hidden_pickup_interacted_with_message',
+        'hidden_pickup_idempotent',
         'status_cured_overworld',
         'pp_restored_overworld',
         'hp_healed_overworld',
@@ -84,11 +88,13 @@ void main() {
         'strict_save_wire_written',
         'runtime_save_reloaded',
         'hm_and_explicit_surf_gate_persisted',
+        'hidden_pickup_persisted',
       }),
     );
     expect(first.finalBagQuantities, const <String, int>{
       'ether': 1,
       'hm-surf': 1,
+      'hidden-tonic': 1,
       'lab-key': 1,
       'lucky-charm': 1,
       'poke-ball': 2,
@@ -106,6 +112,8 @@ void main() {
       'protect',
     ]);
     expect(first.completedStepIds, contains('golden_item.pickup'));
+    expect(first.completedStepIds, contains('golden_item.hidden_pickup'));
     expect(first.storyFlagIds, contains('golden_item.pickup_collected'));
+    expect(first.storyFlagIds, contains('golden_item.hidden_pickup_collected'));
   });
 }

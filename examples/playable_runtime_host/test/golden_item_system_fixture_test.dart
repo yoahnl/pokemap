@@ -65,6 +65,7 @@ void main() {
         containsAll(<String>[
           'spawn_item_lab',
           'item_ether_pickup',
+          'item_hidden_tonic',
           'npc_item_shopkeeper',
           'npc_item_trainer',
         ]),
@@ -75,15 +76,36 @@ void main() {
       expect(pickup.kind, MapEntityKind.item);
       expect(pickup.item?.gameItemId, 'ether');
       expect(pickup.item?.quantity, 1);
-      expect(project.scenarios, hasLength(1));
+      final hiddenPickup = bundle.map.entities.singleWhere(
+        (entity) => entity.id == 'item_hidden_tonic',
+      );
+      expect(hiddenPickup.kind, MapEntityKind.item);
+      expect(hiddenPickup.item?.gameItemId, 'hidden-tonic');
+      expect(hiddenPickup.item?.visibility, MapEntityItemVisibility.hidden);
+      expect(project.scenarios, hasLength(2));
       expect(
-        project.scenarios.single.nodes
+        project.scenarios
+            .singleWhere((scenario) => scenario.id == 'golden_item_pickup_flow')
+            .nodes
             .where((node) => node.payload.actionKind == 'giveItem')
             .single
             .payload
             .params,
         const <String, String>{'itemId': 'ether', 'quantity': '1'},
       );
+      final hiddenScenario = project.scenarios.singleWhere(
+        (scenario) => scenario.id == 'golden_hidden_item_pickup_flow',
+      );
+      expect(
+        hiddenScenario.nodes
+            .singleWhere(
+              (node) => node.payload.actionKind == kScenarioActionShowMessage,
+            )
+            .payload
+            .message,
+        'You found a Hidden Tonic!',
+      );
+      expect(project.worldRules.single.target.entityId, 'item_hidden_tonic');
 
       final catalog = await const RuntimeItemCatalogLoader().load(
         projectRootDirectory: root,
@@ -102,6 +124,7 @@ void main() {
         'hm-surf',
         'leftovers',
         'lucky-charm',
+        'hidden-tonic',
       });
       expect(
         catalog.entries.singleWhere((entry) => entry.id == 'poke-ball').capture,
@@ -186,6 +209,7 @@ void main() {
           'new_game',
           'initial_items',
           'pickup',
+          'hidden_pickup',
           'overworld_heal',
           'buy',
           'sell',

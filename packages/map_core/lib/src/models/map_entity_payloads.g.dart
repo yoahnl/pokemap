@@ -208,6 +208,12 @@ _MapEntityItemData _$MapEntityItemDataFromJson(Map<String, dynamic> json) =>
             json['respawnPolicy'],
           ) ??
           ItemRespawnPolicy.none,
+      visibility:
+          $enumDecodeNullable(
+            _$MapEntityItemVisibilityEnumMap,
+            json['visibility'],
+          ) ??
+          MapEntityItemVisibility.visible,
     );
 
 Map<String, dynamic> _$MapEntityItemDataToJson(_MapEntityItemData instance) =>
@@ -216,6 +222,7 @@ Map<String, dynamic> _$MapEntityItemDataToJson(_MapEntityItemData instance) =>
       'quantity': instance.quantity,
       'pickupMode': _$ItemPickupModeEnumMap[instance.pickupMode]!,
       'respawnPolicy': _$ItemRespawnPolicyEnumMap[instance.respawnPolicy]!,
+      'visibility': _$MapEntityItemVisibilityEnumMap[instance.visibility]!,
     };
 
 const _$ItemPickupModeEnumMap = {
@@ -228,6 +235,11 @@ const _$ItemRespawnPolicyEnumMap = {
   ItemRespawnPolicy.none: 'none',
   ItemRespawnPolicy.onMapReload: 'on_map_reload',
   ItemRespawnPolicy.timed: 'timed',
+};
+
+const _$MapEntityItemVisibilityEnumMap = {
+  MapEntityItemVisibility.visible: 'visible',
+  MapEntityItemVisibility.hidden: 'hidden',
 };
 
 _MapEntitySpawnData _$MapEntitySpawnDataFromJson(Map<String, dynamic> json) =>

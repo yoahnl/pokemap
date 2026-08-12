@@ -2122,7 +2122,7 @@ $DialogueRefCopyWith<$Res>? get dialogue {
 /// @nodoc
 mixin _$MapEntityItemData {
 
- String get gameItemId; int get quantity; ItemPickupMode get pickupMode; ItemRespawnPolicy get respawnPolicy;
+ String get gameItemId; int get quantity; ItemPickupMode get pickupMode; ItemRespawnPolicy get respawnPolicy; MapEntityItemVisibility get visibility;
 /// Create a copy of MapEntityItemData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2135,16 +2135,16 @@ $MapEntityItemDataCopyWith<MapEntityItemData> get copyWith => _$MapEntityItemDat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityItemData&&(identical(other.gameItemId, gameItemId) || other.gameItemId == gameItemId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.pickupMode, pickupMode) || other.pickupMode == pickupMode)&&(identical(other.respawnPolicy, respawnPolicy) || other.respawnPolicy == respawnPolicy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntityItemData&&(identical(other.gameItemId, gameItemId) || other.gameItemId == gameItemId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.pickupMode, pickupMode) || other.pickupMode == pickupMode)&&(identical(other.respawnPolicy, respawnPolicy) || other.respawnPolicy == respawnPolicy)&&(identical(other.visibility, visibility) || other.visibility == visibility));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,gameItemId,quantity,pickupMode,respawnPolicy);
+int get hashCode => Object.hash(runtimeType,gameItemId,quantity,pickupMode,respawnPolicy,visibility);
 
 @override
 String toString() {
-  return 'MapEntityItemData(gameItemId: $gameItemId, quantity: $quantity, pickupMode: $pickupMode, respawnPolicy: $respawnPolicy)';
+  return 'MapEntityItemData(gameItemId: $gameItemId, quantity: $quantity, pickupMode: $pickupMode, respawnPolicy: $respawnPolicy, visibility: $visibility)';
 }
 
 
@@ -2155,7 +2155,7 @@ abstract mixin class $MapEntityItemDataCopyWith<$Res>  {
   factory $MapEntityItemDataCopyWith(MapEntityItemData value, $Res Function(MapEntityItemData) _then) = _$MapEntityItemDataCopyWithImpl;
 @useResult
 $Res call({
- String gameItemId, int quantity, ItemPickupMode pickupMode, ItemRespawnPolicy respawnPolicy
+ String gameItemId, int quantity, ItemPickupMode pickupMode, ItemRespawnPolicy respawnPolicy, MapEntityItemVisibility visibility
 });
 
 
@@ -2172,13 +2172,14 @@ class _$MapEntityItemDataCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityItemData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? gameItemId = null,Object? quantity = null,Object? pickupMode = null,Object? respawnPolicy = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? gameItemId = null,Object? quantity = null,Object? pickupMode = null,Object? respawnPolicy = null,Object? visibility = null,}) {
   return _then(_self.copyWith(
 gameItemId: null == gameItemId ? _self.gameItemId : gameItemId // ignore: cast_nullable_to_non_nullable
 as String,quantity: null == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as int,pickupMode: null == pickupMode ? _self.pickupMode : pickupMode // ignore: cast_nullable_to_non_nullable
 as ItemPickupMode,respawnPolicy: null == respawnPolicy ? _self.respawnPolicy : respawnPolicy // ignore: cast_nullable_to_non_nullable
-as ItemRespawnPolicy,
+as ItemRespawnPolicy,visibility: null == visibility ? _self.visibility : visibility // ignore: cast_nullable_to_non_nullable
+as MapEntityItemVisibility,
   ));
 }
 
@@ -2263,10 +2264,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String gameItemId,  int quantity,  ItemPickupMode pickupMode,  ItemRespawnPolicy respawnPolicy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String gameItemId,  int quantity,  ItemPickupMode pickupMode,  ItemRespawnPolicy respawnPolicy,  MapEntityItemVisibility visibility)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapEntityItemData() when $default != null:
-return $default(_that.gameItemId,_that.quantity,_that.pickupMode,_that.respawnPolicy);case _:
+return $default(_that.gameItemId,_that.quantity,_that.pickupMode,_that.respawnPolicy,_that.visibility);case _:
   return orElse();
 
 }
@@ -2284,10 +2285,10 @@ return $default(_that.gameItemId,_that.quantity,_that.pickupMode,_that.respawnPo
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String gameItemId,  int quantity,  ItemPickupMode pickupMode,  ItemRespawnPolicy respawnPolicy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String gameItemId,  int quantity,  ItemPickupMode pickupMode,  ItemRespawnPolicy respawnPolicy,  MapEntityItemVisibility visibility)  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityItemData():
-return $default(_that.gameItemId,_that.quantity,_that.pickupMode,_that.respawnPolicy);case _:
+return $default(_that.gameItemId,_that.quantity,_that.pickupMode,_that.respawnPolicy,_that.visibility);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2304,10 +2305,10 @@ return $default(_that.gameItemId,_that.quantity,_that.pickupMode,_that.respawnPo
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String gameItemId,  int quantity,  ItemPickupMode pickupMode,  ItemRespawnPolicy respawnPolicy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String gameItemId,  int quantity,  ItemPickupMode pickupMode,  ItemRespawnPolicy respawnPolicy,  MapEntityItemVisibility visibility)?  $default,) {final _that = this;
 switch (_that) {
 case _MapEntityItemData() when $default != null:
-return $default(_that.gameItemId,_that.quantity,_that.pickupMode,_that.respawnPolicy);case _:
+return $default(_that.gameItemId,_that.quantity,_that.pickupMode,_that.respawnPolicy,_that.visibility);case _:
   return null;
 
 }
@@ -2319,13 +2320,14 @@ return $default(_that.gameItemId,_that.quantity,_that.pickupMode,_that.respawnPo
 
 @JsonSerializable(explicitToJson: true)
 class _MapEntityItemData implements MapEntityItemData {
-  const _MapEntityItemData({this.gameItemId = '', this.quantity = 1, this.pickupMode = ItemPickupMode.once, this.respawnPolicy = ItemRespawnPolicy.none});
+  const _MapEntityItemData({this.gameItemId = '', this.quantity = 1, this.pickupMode = ItemPickupMode.once, this.respawnPolicy = ItemRespawnPolicy.none, this.visibility = MapEntityItemVisibility.visible});
   factory _MapEntityItemData.fromJson(Map<String, dynamic> json) => _$MapEntityItemDataFromJson(json);
 
 @override@JsonKey() final  String gameItemId;
 @override@JsonKey() final  int quantity;
 @override@JsonKey() final  ItemPickupMode pickupMode;
 @override@JsonKey() final  ItemRespawnPolicy respawnPolicy;
+@override@JsonKey() final  MapEntityItemVisibility visibility;
 
 /// Create a copy of MapEntityItemData
 /// with the given fields replaced by the non-null parameter values.
@@ -2340,16 +2342,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityItemData&&(identical(other.gameItemId, gameItemId) || other.gameItemId == gameItemId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.pickupMode, pickupMode) || other.pickupMode == pickupMode)&&(identical(other.respawnPolicy, respawnPolicy) || other.respawnPolicy == respawnPolicy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntityItemData&&(identical(other.gameItemId, gameItemId) || other.gameItemId == gameItemId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.pickupMode, pickupMode) || other.pickupMode == pickupMode)&&(identical(other.respawnPolicy, respawnPolicy) || other.respawnPolicy == respawnPolicy)&&(identical(other.visibility, visibility) || other.visibility == visibility));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,gameItemId,quantity,pickupMode,respawnPolicy);
+int get hashCode => Object.hash(runtimeType,gameItemId,quantity,pickupMode,respawnPolicy,visibility);
 
 @override
 String toString() {
-  return 'MapEntityItemData(gameItemId: $gameItemId, quantity: $quantity, pickupMode: $pickupMode, respawnPolicy: $respawnPolicy)';
+  return 'MapEntityItemData(gameItemId: $gameItemId, quantity: $quantity, pickupMode: $pickupMode, respawnPolicy: $respawnPolicy, visibility: $visibility)';
 }
 
 
@@ -2360,7 +2362,7 @@ abstract mixin class _$MapEntityItemDataCopyWith<$Res> implements $MapEntityItem
   factory _$MapEntityItemDataCopyWith(_MapEntityItemData value, $Res Function(_MapEntityItemData) _then) = __$MapEntityItemDataCopyWithImpl;
 @override @useResult
 $Res call({
- String gameItemId, int quantity, ItemPickupMode pickupMode, ItemRespawnPolicy respawnPolicy
+ String gameItemId, int quantity, ItemPickupMode pickupMode, ItemRespawnPolicy respawnPolicy, MapEntityItemVisibility visibility
 });
 
 
@@ -2377,13 +2379,14 @@ class __$MapEntityItemDataCopyWithImpl<$Res>
 
 /// Create a copy of MapEntityItemData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? gameItemId = null,Object? quantity = null,Object? pickupMode = null,Object? respawnPolicy = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? gameItemId = null,Object? quantity = null,Object? pickupMode = null,Object? respawnPolicy = null,Object? visibility = null,}) {
   return _then(_MapEntityItemData(
 gameItemId: null == gameItemId ? _self.gameItemId : gameItemId // ignore: cast_nullable_to_non_nullable
 as String,quantity: null == quantity ? _self.quantity : quantity // ignore: cast_nullable_to_non_nullable
 as int,pickupMode: null == pickupMode ? _self.pickupMode : pickupMode // ignore: cast_nullable_to_non_nullable
 as ItemPickupMode,respawnPolicy: null == respawnPolicy ? _self.respawnPolicy : respawnPolicy // ignore: cast_nullable_to_non_nullable
-as ItemRespawnPolicy,
+as ItemRespawnPolicy,visibility: null == visibility ? _self.visibility : visibility // ignore: cast_nullable_to_non_nullable
+as MapEntityItemVisibility,
   ));
 }
 

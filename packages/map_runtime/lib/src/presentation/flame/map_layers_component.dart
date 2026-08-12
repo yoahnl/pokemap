@@ -40,6 +40,11 @@ bool shouldRenderProjectElementEntityInForegroundPass(
 }
 
 @visibleForTesting
+bool shouldRenderMapEntityVisual(MapEntity entity) =>
+    entity.kind != MapEntityKind.item ||
+    entity.item?.visibility != MapEntityItemVisibility.hidden;
+
+@visibleForTesting
 @immutable
 final class MapLayersRenderProfile {
   const MapLayersRenderProfile({
@@ -653,6 +658,9 @@ class MapLayersComponent extends PositionComponent {
     final entityCandidates = _entitySpatialIndex.query(visibleRect);
     _activeRenderCounter?.entityCandidateVisits += entityCandidates.length;
     for (final entity in entityCandidates) {
+      if (!shouldRenderMapEntityVisual(entity)) {
+        continue;
+      }
       final entityPresence = mapEntityPresencePredicate;
       if (entityPresence != null && !entityPresence(bundle.map.id, entity)) {
         continue;

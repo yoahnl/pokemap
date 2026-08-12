@@ -62,6 +62,21 @@ void main() {
       );
     });
 
+    test('never renders an authored hidden item visual', () {
+      const entity = MapEntity(
+        id: 'hidden-tonic',
+        kind: MapEntityKind.item,
+        pos: GridPos(x: 0, y: 0),
+        item: MapEntityItemData(
+          gameItemId: 'tonic',
+          visibility: MapEntityItemVisibility.hidden,
+        ),
+        editorVisual: MapEntityEditorVisual(elementId: 'pokeball'),
+      );
+
+      expect(shouldRenderMapEntityVisual(entity), isFalse);
+    });
+
     test('does not paint a non-NPC entity rejected by world presence',
         () async {
       final component = MapLayersComponent(

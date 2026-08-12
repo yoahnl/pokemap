@@ -81,6 +81,7 @@ final class ItemSystemV1CertificationProfile {
     'new_game',
     'initial_items',
     'pickup',
+    'hidden_pickup',
     'overworld_heal',
     'buy',
     'sell',
@@ -98,6 +99,9 @@ final class ItemSystemV1CertificationProfile {
     'initial_bag_strict',
     'pickup_scenario_applied',
     'pickup_scenario_idempotent',
+    'hidden_pickup_not_rendered',
+    'hidden_pickup_interacted_with_message',
+    'hidden_pickup_idempotent',
     'status_cured_overworld',
     'pp_restored_overworld',
     'hp_healed_overworld',
@@ -120,6 +124,7 @@ final class ItemSystemV1CertificationProfile {
     'strict_save_wire_written',
     'runtime_save_reloaded',
     'hm_and_explicit_surf_gate_persisted',
+    'hidden_pickup_persisted',
   };
 
   static Set<String> requiredCapabilitiesFor(ItemSystemProofLevel level) {
@@ -486,6 +491,7 @@ void _validateGoldenFinalState(Map<String, Object?> json) {
       !_sameIntMap(canonicalBag, const <String, int>{
         'ether': 1,
         'hm-surf': 1,
+        'hidden-tonic': 1,
         'lab-key': 1,
         'lucky-charm': 1,
         'poke-ball': 2,
@@ -499,7 +505,9 @@ void _validateGoldenFinalState(Map<String, Object?> json) {
         'finalKnownMoveIds[0]',
       ).toSet().containsAll(const <String>{'protect', 'surf'}) ||
       !completed.contains('golden_item.pickup') ||
-      !flags.contains('golden_item.pickup_collected')) {
+      !completed.contains('golden_item.hidden_pickup') ||
+      !flags.contains('golden_item.pickup_collected') ||
+      !flags.contains('golden_item.hidden_pickup_collected')) {
     throw const FormatException('Golden flow final state is invalid.');
   }
 }

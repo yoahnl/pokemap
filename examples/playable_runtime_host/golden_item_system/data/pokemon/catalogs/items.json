@@ -186,6 +186,16 @@
         "passive",
         "custom"
       ]
+    },
+    {
+      "id": "hidden-tonic",
+      "displayName": "Hidden Tonic",
+      "pocketId": "items",
+      "description": "A collectible found by inspecting an unmarked tile.",
+      "tags": [
+        "hidden-pickup",
+        "passive"
+      ]
     }
   ]
 }

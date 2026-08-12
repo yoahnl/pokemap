@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
+import 'package:map_editor/src/application/ports/project_workspace.dart';
+import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
@@ -16,8 +20,39 @@ void main() {
     late Directory tempProjectRoot;
 
     setUp(() async {
-      tempProjectRoot =
-          await Directory.systemTemp.createTemp('map_editor_canvas_panel_');
+      tempProjectRoot = await Directory.systemTemp.createTemp(
+        'map_editor_canvas_panel_',
+      );
+      await Directory(
+        '${tempProjectRoot.path}/data/pokemon/catalogs',
+      ).create(recursive: true);
+      await File('${tempProjectRoot.path}/project.json').writeAsString(
+        jsonEncode(
+          const ProjectManifest(
+            name: 'smoke_project',
+            maps: <ProjectMapEntry>[],
+            tilesets: <ProjectTilesetEntry>[],
+          ).toJson(),
+        ),
+      );
+      await File(
+        '${tempProjectRoot.path}/data/pokemon/catalogs/items.json',
+      ).writeAsString(
+        jsonEncode(
+          encodeProjectItemCatalog(
+            const ProjectItemCatalog(
+              schemaVersion: 1,
+              entries: <ProjectItemDefinition>[
+                ProjectItemDefinition(
+                  id: 'hidden-tonic',
+                  displayName: 'Tonique caché',
+                  pocketId: 'items',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     });
 
     tearDown(() async {
@@ -65,24 +100,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            cells: <int>[
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-            ],
+            cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           ),
         ],
         entities: <MapEntity>[
@@ -91,8 +109,16 @@ void main() {
             name: 'Guide',
             kind: MapEntityKind.npc,
             pos: GridPos(x: 1, y: 1),
-            npc: MapEntityNpcData(
-              displayName: 'Guide',
+            npc: MapEntityNpcData(displayName: 'Guide'),
+          ),
+          MapEntity(
+            id: 'item_hidden',
+            name: 'Secret',
+            kind: MapEntityKind.item,
+            pos: GridPos(x: 2, y: 1),
+            item: MapEntityItemData(
+              gameItemId: 'hidden-tonic',
+              visibility: MapEntityItemVisibility.hidden,
             ),
           ),
         ],
@@ -139,8 +165,9 @@ void main() {
       );
     }
 
-    testWidgets('MapCanvas renders an active map without crashing',
-        (tester) async {
+    testWidgets('MapCanvas renders an active map without crashing', (
+      tester,
+    ) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
@@ -150,11 +177,7 @@ void main() {
       await pumpEditorSurface(
         tester,
         container,
-        child: const SizedBox(
-          width: 900,
-          height: 700,
-          child: MapCanvas(),
-        ),
+        child: const SizedBox(width: 900, height: 700, child: MapCanvas()),
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 250));
@@ -163,8 +186,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('EntityPropertiesPanel renders the selected NPC inspector',
-        (tester) async {
+    testWidgets('EntityPropertiesPanel renders the selected NPC inspector', (
+      tester,
+    ) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
@@ -188,8 +212,10 @@ void main() {
       expect(find.text('Guide hidden'), findsOneWidget);
       expect(find.text('Guide dialogue'), findsOneWidget);
       expect(find.textContaining('Entité cachée'), findsOneWidget);
-      expect(find.textContaining('Dialogue remplacé par Guide after'),
-          findsOneWidget);
+      expect(
+        find.textContaining('Dialogue remplacé par Guide after'),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
 
       await tester.tap(
@@ -204,7 +230,65 @@ void main() {
           .firstWhere((worldRule) => worldRule.id == 'rule_hide_guide');
       expect(rule.enabled, isFalse);
     });
+
+    testWidgets('item inspector uses catalog and guided visibility controls', (
+      tester,
+    ) async {
+      final container = ProviderContainer(
+        overrides: [
+          loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
+            const _FakeItemCatalogUseCase(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = buildEditorState()
+          .copyWith(selectedEntityId: 'item_hidden');
+
+      await pumpEditorSurface(
+        tester,
+        container,
+        child: const SizedBox(
+          width: 560,
+          height: 980,
+          child: EntityPropertiesPanel(embedded: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('entity-item-catalog-picker')),
+        findsOneWidget,
+      );
+      expect(find.text('Tonique caché'), findsOneWidget);
+      expect(find.textContaining('Visibilité : Caché'), findsOneWidget);
+      expect(find.text('ID objet jeu'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
   });
+}
+
+final class _FakeItemCatalogUseCase extends LoadPokemonItemsCatalogUseCase {
+  const _FakeItemCatalogUseCase();
+
+  @override
+  Future<PokemonItemsCatalogView> execute(ProjectWorkspace workspace) async {
+    return const PokemonItemsCatalogView(
+      entries: <PokemonItemCatalogEntryView>[],
+      isAvailable: true,
+      description: 'Catalogue test.',
+      canonicalCatalog: ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'hidden-tonic',
+            displayName: 'Tonique caché',
+            pocketId: 'items',
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 WorldRuleDefinition _entityWorldRule({
@@ -228,9 +312,6 @@ WorldRuleDefinition _entityWorldRule({
       entityId: 'npc_1',
       label: 'Guide',
     ),
-    effect: WorldRuleEffect(
-      kind: effectKind,
-      dialogueId: dialogueId,
-    ),
+    effect: WorldRuleEffect(kind: effectKind, dialogueId: dialogueId),
   );
 }

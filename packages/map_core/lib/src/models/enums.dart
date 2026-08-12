@@ -113,6 +113,13 @@ enum ItemRespawnPolicy {
   timed,
 }
 
+enum MapEntityItemVisibility {
+  @JsonValue('visible')
+  visible,
+  @JsonValue('hidden')
+  hidden,
+}
+
 enum EntitySpawnRole {
   @JsonValue('player_start')
   playerStart,

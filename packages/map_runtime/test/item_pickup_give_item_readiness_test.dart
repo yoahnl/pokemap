@@ -8,6 +8,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/global_story_chapter_runtime.dart';
 import 'package:map_runtime/src/application/map_entity_runtime_predicate_evaluator.dart';
+import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
 import 'package:path/path.dart' as p;
 
 const String _testMapId = 'test_map';
@@ -15,8 +16,13 @@ const String _testPickupEntityId = 'test_pickup_entity';
 const String _testItemId = 'test_custom_passive_thread';
 const String _testPickupFact = 'test_pickup_done_fact';
 const String _testPickupStep = 'test_step_pickup_done';
+const String _testHiddenPickupEntityId = 'test_hidden_pickup_entity';
+const String _testHiddenPickupFact = 'test_hidden_pickup_done_fact';
+const String _testHiddenPickupStep = 'test_hidden_pickup_done_step';
+const String _testHiddenPickupMessage = 'You found a hidden item!';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('Item Pickup / GiveItem authoring readiness', () {
     const executor = ScenarioRuntimeExecutor();
 
@@ -249,6 +255,106 @@ void main() {
       expect(game.gameStateSnapshot.bag.entries.single.quantity, 2);
     });
 
+    test('hidden item is inspectable, messaged, idempotent and persisted',
+        () async {
+      final messages = <String>[];
+      var state = createNewGameState(startMapId: _testMapId);
+      final scenario = _hiddenPickupScenario();
+
+      ScenarioRuntimeExecutionResult dispatch() {
+        return executor.dispatch(
+          scenarios: <ScenarioAsset>[scenario],
+          sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+            mapId: _testMapId,
+            entityId: _testHiddenPickupEntityId,
+          ),
+          context: ScenarioRuntimeExecutionContext(
+            gameState: state,
+            onGameStateUpdated: (updated) => state = updated,
+            openDialogue: (_, {startNode, runtimeSourceId}) => false,
+            runScript: (_, {startNode, runtimeSourceId}) => false,
+            showMessage: messages.add,
+          ),
+        );
+      }
+
+      final first = dispatch();
+      final second = dispatch();
+      final reloaded = normalizeLoadedGameState(
+        gameStateFromSaveData(saveDataFromGameState(state)),
+      );
+
+      expect(first.success, isTrue);
+      expect(second.status, ScenarioRuntimeExecutionStatus.noMatchingSource);
+      expect(messages, <String>[_testHiddenPickupMessage]);
+      expect(_bagQuantity(state, _testItemId), 2);
+      expect(state.storyFlags.activeFlags, contains(_testHiddenPickupFact));
+      expect(
+        state.progression.completedStepIds,
+        contains(_testHiddenPickupStep),
+      );
+      expect(_bagQuantity(reloaded, _testItemId), 2);
+      expect(
+        reloaded.storyFlags.activeFlags,
+        contains(_testHiddenPickupFact),
+      );
+    });
+
+    test('playable hidden item interaction remains available without rendering',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'hidden_item_pickup_runtime_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[_runtimeHiddenPickupMap()],
+        scenarios: <ScenarioAsset>[_hiddenPickupScenario()],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: _testMapId,
+      );
+      final game = _LoadedPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+      await _waitForInitialMapActivation(game);
+      expect(
+        shouldRenderMapEntityVisual(
+          bundle.map.entities.singleWhere(
+            (entity) => entity.id == _testHiddenPickupEntityId,
+          ),
+        ),
+        isFalse,
+      );
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+      await _waitForRuntimeCondition(
+        game,
+        () => game.gameStateSnapshot.bag.entries.isNotEmpty,
+      );
+
+      expect(_bagQuantity(game.gameStateSnapshot, _testItemId), 2);
+      expect(
+        game.gameStateSnapshot.storyFlags.activeFlags,
+        contains(_testHiddenPickupFact),
+      );
+    });
+
     test('fixtures use only generic test ids', () {
       final ids = <String>[
         _testMapId,
@@ -256,6 +362,9 @@ void main() {
         _testItemId,
         _testPickupFact,
         _testPickupStep,
+        _testHiddenPickupEntityId,
+        _testHiddenPickupFact,
+        _testHiddenPickupStep,
         _pickupScenario().id,
         for (final node in _pickupScenario().nodes) node.id,
       ];
@@ -263,6 +372,97 @@ void main() {
       expect(ids, everyElement(startsWith('test_')));
     });
   });
+}
+
+ScenarioAsset _hiddenPickupScenario() {
+  return ScenarioAsset(
+    id: 'test_hidden_pickup_scene',
+    name: 'Test Hidden Pickup Scene',
+    scope: ScenarioScope.localEventFlow,
+    activationCondition: const ScriptCondition(
+      type: ScriptConditionType.flagIsUnset,
+      params: <String, String>{
+        ScriptConditionParams.flagName: _testHiddenPickupFact,
+      },
+    ),
+    entryNodeId: 'test_hidden_start',
+    nodes: const <ScenarioNode>[
+      ScenarioNode(id: 'test_hidden_start', type: ScenarioNodeType.start),
+      ScenarioNode(
+        id: 'test_hidden_source',
+        type: ScenarioNodeType.reference,
+        payload: ScenarioNodePayload(actionKind: kScenarioSourceEntityInteract),
+        binding: ScenarioNodeBinding(
+          mapId: _testMapId,
+          entityId: _testHiddenPickupEntityId,
+        ),
+      ),
+      ScenarioNode(
+        id: 'test_hidden_message',
+        type: ScenarioNodeType.action,
+        payload: ScenarioNodePayload(
+          actionKind: kScenarioActionShowMessage,
+          message: _testHiddenPickupMessage,
+        ),
+      ),
+      ScenarioNode(
+        id: 'test_hidden_give',
+        type: ScenarioNodeType.action,
+        payload: ScenarioNodePayload(
+          actionKind: kScenarioActionGiveItem,
+          params: <String, String>{'itemId': _testItemId, 'quantity': '2'},
+        ),
+      ),
+      ScenarioNode(
+        id: 'test_hidden_flag',
+        type: ScenarioNodeType.action,
+        payload: ScenarioNodePayload(actionKind: kScenarioActionSetFlag),
+        binding: ScenarioNodeBinding(flagName: _testHiddenPickupFact),
+      ),
+      ScenarioNode(
+        id: 'test_hidden_step',
+        type: ScenarioNodeType.action,
+        payload: ScenarioNodePayload(
+          actionKind: kScenarioActionCompleteStep,
+          params: <String, String>{'stepId': _testHiddenPickupStep},
+        ),
+      ),
+      ScenarioNode(id: 'test_hidden_end', type: ScenarioNodeType.end),
+    ],
+    edges: const <ScenarioEdge>[
+      ScenarioEdge(
+        id: 'test_hidden_source_give',
+        fromNodeId: 'test_hidden_source',
+        toNodeId: 'test_hidden_give',
+      ),
+      ScenarioEdge(
+        id: 'test_hidden_give_flag',
+        fromNodeId: 'test_hidden_give',
+        toNodeId: 'test_hidden_flag',
+      ),
+      ScenarioEdge(
+        id: 'test_hidden_flag_step',
+        fromNodeId: 'test_hidden_flag',
+        toNodeId: 'test_hidden_step',
+      ),
+      ScenarioEdge(
+        id: 'test_hidden_step_message',
+        fromNodeId: 'test_hidden_step',
+        toNodeId: 'test_hidden_message',
+      ),
+      ScenarioEdge(
+        id: 'test_hidden_message_end',
+        fromNodeId: 'test_hidden_message',
+        toNodeId: 'test_hidden_end',
+      ),
+    ],
+  );
+}
+
+int _bagQuantity(GameState state, String itemId) {
+  return state.bag.entries
+      .where((entry) => entry.itemId == itemId)
+      .fold(0, (sum, entry) => sum + entry.quantity);
 }
 
 Future<void> _waitForInitialMapActivation(PlayableMapGame game) async {
@@ -451,6 +651,38 @@ MapData _runtimePickupMap() {
         kind: MapEntityKind.item,
         pos: GridPos(x: 1, y: 0),
         item: MapEntityItemData(gameItemId: _testItemId, quantity: 2),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'test_spawn'),
+  );
+}
+
+MapData _runtimeHiddenPickupMap() {
+  return const MapData(
+    id: _testMapId,
+    name: 'Test Hidden Pickup Map',
+    size: GridSize(width: 3, height: 3),
+    layers: <MapLayer>[MapLayer.object(id: 'objects', name: 'Objects')],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'test_spawn',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+      MapEntity(
+        id: _testHiddenPickupEntityId,
+        kind: MapEntityKind.item,
+        pos: GridPos(x: 1, y: 0),
+        item: MapEntityItemData(
+          gameItemId: _testItemId,
+          quantity: 2,
+          visibility: MapEntityItemVisibility.hidden,
+        ),
       ),
     ],
     mapMetadata: MapMetadata(defaultSpawnId: 'test_spawn'),

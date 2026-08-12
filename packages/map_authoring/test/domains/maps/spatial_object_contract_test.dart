@@ -56,6 +56,27 @@ void main() {
       expect(map.entities[1].pos, const GridPos(x: 2, y: 2));
     });
 
+    test('typed item payload authors hidden world presentation', () {
+      final draft = const EntityActions().build(
+        _entityItemPayloadContext(
+          const MapEntityItemData(
+            gameItemId: 'hidden-tonic',
+            quantity: 2,
+            visibility: MapEntityItemVisibility.hidden,
+          ),
+        ),
+      );
+      final updated = MapData.fromJson(
+        jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!))
+            as Map<String, dynamic>,
+      );
+
+      expect(
+        updated.entities.single.item?.visibility,
+        MapEntityItemVisibility.hidden,
+      );
+    });
+
     test('dispatcher exposes placed, entity, NPC, trigger and zone actions',
         () {
       final ids = MapMutationDispatcher.canonical()
@@ -264,6 +285,86 @@ MapData _emptyMap() => const MapData(
       name: 'Map',
       size: GridSize(width: 4, height: 4),
     );
+
+AuthoringPlanningContext _entityItemPayloadContext(MapEntityItemData item) {
+  const map = MapData(
+    id: 'map',
+    name: 'Map',
+    size: GridSize(width: 4, height: 4),
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'item',
+        kind: MapEntityKind.item,
+        pos: GridPos(x: 1, y: 1),
+        item: MapEntityItemData(gameItemId: 'potion'),
+      ),
+    ],
+  );
+  const manifest = ProjectManifest(
+    name: 'Project',
+    maps: <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'map',
+        name: 'Map',
+        relativePath: 'maps/map.json',
+      ),
+    ],
+    tilesets: <ProjectTilesetEntry>[],
+  );
+  final manifestBytes = utf8.encode(jsonEncode(manifest.toJson()));
+  final mapBytes = utf8.encode(jsonEncode(map.toJson()));
+  final revision = computeNarrativeProjectFingerprint(
+    <NarrativeProjectFingerprintEntry>[
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'project.json',
+        bytes: manifestBytes,
+      ),
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'maps/map.json',
+        bytes: mapBytes,
+      ),
+    ],
+  );
+  final snapshot = ProjectSnapshot(
+    projectHandle: const ProjectHandle('project'),
+    revision: revision,
+    manifest: manifest,
+    maps: const <MapData>[map],
+    resourceFingerprints: <String, String>{
+      'project': computeAuthoringBytesFingerprint(
+        manifestBytes,
+        logicalName: 'project.json',
+      ),
+      'map:map': computeAuthoringBytesFingerprint(
+        mapBytes,
+        logicalName: 'maps/map.json',
+      ),
+    },
+    resourceBytes: <String, List<int>>{
+      'project': manifestBytes,
+      'map:map': mapBytes,
+    },
+  );
+  return AuthoringPlanningContext(
+    snapshot: snapshot,
+    request: AuthoringRequest(
+      requestId: 'set-hidden-item',
+      actionId: 'entity.set_item_payload',
+      actionVersion: 1,
+      workspaceHandle: 'workspace',
+      parameters: <String, Object?>{
+        'mapId': 'map',
+        'entityId': 'item',
+        'payload': item.toJson(),
+      },
+      expectedRevision: revision,
+      idempotencyKey: 'set-hidden-item',
+      dryRun: false,
+    ),
+    planId: 'set-hidden-item-plan',
+    seed: 1,
+  );
+}
 
 AuthoringPlanningContext _gameplayZoneSyncContext(
   MapGameplayZone replacement,

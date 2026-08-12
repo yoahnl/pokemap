@@ -18,6 +18,13 @@
       "quantity": 1
     },
     {
+      "id": "hidden_pickup",
+      "operation": "inspect_hidden_item",
+      "entityId": "item_hidden_tonic",
+      "itemId": "hidden-tonic",
+      "quantity": 1
+    },
+    {
       "id": "overworld_heal",
       "operation": "use_item",
       "itemId": "potion",

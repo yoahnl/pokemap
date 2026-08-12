@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -274,6 +274,45 @@ test("MCP describes queries and mutates canonical items", async () => {
     assert.deepEqual(executedActions, new Set(mutationActions));
     assert.equal(receiptIds.size, itemMutationScenarios.length);
 
+    const hiddenItemPlan = await toolData(client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "mcp-hidden-item",
+        actionId: "entity.set_item_payload",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: {
+          mapId: "lab",
+          entityId: "secret",
+          payload: {
+            gameItemId: "field-tonic",
+            quantity: 1,
+            pickupMode: "once",
+            respawnPolicy: "none",
+            visibility: "hidden",
+          },
+        },
+        expectedRevision: snapshotRevision,
+        idempotencyKey: "mcp-hidden-item",
+        dryRun: false,
+      },
+    });
+    const hiddenItemApplied = await toolData(client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: String(hiddenItemPlan.planId),
+      operationId: "operation-mcp-hidden-item",
+    });
+    const hiddenItemReceipt = record(hiddenItemApplied.receipt);
+    assert.equal(hiddenItemReceipt.actionId, "entity.set_item_payload");
+    assert.equal(hiddenItemReceipt.status, "applied");
+    snapshotRevision = String(hiddenItemApplied.snapshotRevision);
+    const authoredMap = record(
+      JSON.parse(await readFile(join(root, "maps/lab.json"), "utf8")),
+    );
+    const entities = authoredMap.entities as JsonRecord[];
+    assert.equal(record(record(entities[0]).item).visibility, "hidden");
+
     const created = await toolData(client, "pokemap_query", {
       projectHandle,
       resourceKind: "itemDefinition",
@@ -354,11 +393,41 @@ async function writeFixture(root: string): Promise<void> {
     JSON.stringify({
       name: "MCP item fixture",
       version: "v6",
-      maps: [],
+      maps: [
+        {
+          id: "lab",
+          name: "Lab",
+          relativePath: "maps/lab.json",
+        },
+      ],
       tilesets: [],
       newGame: {
         initialBag: [{ itemId: "potion", quantity: 1 }],
       },
+    }),
+  );
+  const mapsDirectory = join(root, "maps");
+  await mkdir(mapsDirectory, { recursive: true });
+  await writeFile(
+    join(mapsDirectory, "lab.json"),
+    JSON.stringify({
+      id: "lab",
+      name: "Lab",
+      version: "v6",
+      size: { width: 3, height: 3 },
+      entities: [
+        {
+          id: "secret",
+          kind: "item",
+          pos: { x: 1, y: 1 },
+          item: {
+            gameItemId: "potion",
+            quantity: 1,
+            pickupMode: "once",
+            respawnPolicy: "none",
+          },
+        },
+      ],
     }),
   );
   const catalogDirectory = join(root, "data/pokemon/catalogs");

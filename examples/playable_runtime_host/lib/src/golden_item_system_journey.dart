@@ -70,6 +70,7 @@ final class GoldenItemSystemJourney {
     'new_game',
     'initial_items',
     'pickup',
+    'hidden_pickup',
     'overworld_heal',
     'buy',
     'sell',
@@ -112,7 +113,7 @@ final class GoldenItemSystemJourney {
       projectRootDirectory: root,
       pokemonConfig: project.pokemon,
     );
-    _require(itemCatalog.definitions.length == 10, 'Incomplete item catalog.');
+    _require(itemCatalog.definitions.length == 11, 'Incomplete item catalog.');
 
     final observations = <String>[];
     var state = createNewGameStateFromProject(
@@ -138,6 +139,7 @@ final class GoldenItemSystemJourney {
     observations.add('initial_bag_strict');
 
     state = _applyPickup(project, state, observations);
+    state = _applyHiddenPickup(project, startMap, state, observations);
     final itemUseService = PlayerItemUseService(snapshot: itemCatalog);
     state = _useItem(itemUseService, state, itemId: 'antidote', maxHp: 20);
     _require(state.party.members.first.statusId.isEmpty, 'Antidote failed.');
@@ -390,12 +392,23 @@ final class GoldenItemSystemJourney {
     observations.add('runtime_save_reloaded');
     _require(
       _bagQuantities(state)['hm-surf'] == 1 &&
+          _bagQuantities(state)['hidden-tonic'] == 1 &&
           state.party.members.first.knownMoveIds.contains('surf') &&
           state.trainerProfile.badgeIds.contains('tidal-badge') &&
           state.progression.unlockedFieldAbilities.contains(FieldAbility.surf),
       'HM or explicit Surf gate did not survive save/reload.',
     );
     observations.add('hm_and_explicit_surf_gate_persisted');
+    _require(
+      state.storyFlags.activeFlags.contains(
+            'golden_item.hidden_pickup_collected',
+          ) &&
+          state.progression.completedStepIds.contains(
+            'golden_item.hidden_pickup',
+          ),
+      'Hidden pickup consumption did not survive save/reload.',
+    );
+    observations.add('hidden_pickup_persisted');
 
     final finalBag = _bagQuantities(state);
     final storyFlags = state.storyFlags.activeFlags.toList(growable: false)
@@ -468,6 +481,67 @@ final class GoldenItemSystemJourney {
       'Pickup is not idempotent.',
     );
     observations.add('pickup_scenario_idempotent');
+    return current;
+  }
+
+  static GameState _applyHiddenPickup(
+    ProjectManifest project,
+    MapData map,
+    GameState state,
+    List<String> observations,
+  ) {
+    final hiddenEntity = map.entities.singleWhere(
+      (entity) => entity.id == 'item_hidden_tonic',
+    );
+    _require(
+      hiddenEntity.kind == MapEntityKind.item &&
+          hiddenEntity.item?.visibility == MapEntityItemVisibility.hidden,
+      'Hidden pickup is not authored as a hidden item entity.',
+    );
+    observations.add('hidden_pickup_not_rendered');
+    GameState current = state;
+    final messages = <String>[];
+
+    ScenarioRuntimeExecutionResult dispatch(GameState source) {
+      current = source;
+      return const ScenarioRuntimeExecutor().dispatch(
+        scenarios: project.scenarios,
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'golden_item_lab',
+          entityId: 'item_hidden_tonic',
+        ),
+        context: ScenarioRuntimeExecutionContext(
+          gameState: source,
+          onGameStateUpdated: (updated) => current = updated,
+          openDialogue: (_, {startNode, runtimeSourceId}) => false,
+          runScript: (_, {startNode, runtimeSourceId}) => false,
+          showMessage: messages.add,
+        ),
+      );
+    }
+
+    final first = dispatch(state);
+    _require(
+      first.status == ScenarioRuntimeExecutionStatus.executedEffect &&
+          messages.single == 'You found a Hidden Tonic!' &&
+          _bagQuantities(current)['hidden-tonic'] == 1 &&
+          current.storyFlags.activeFlags.contains(
+            'golden_item.hidden_pickup_collected',
+          ) &&
+          current.progression.completedStepIds.contains(
+            'golden_item.hidden_pickup',
+          ),
+      'Hidden pickup did not complete its authored flow.',
+    );
+    observations.add('hidden_pickup_interacted_with_message');
+    final afterFirst = _stateDigest(current);
+    final second = dispatch(current);
+    _require(
+      second.status == ScenarioRuntimeExecutionStatus.noMatchingSource &&
+          _stateDigest(current) == afterFirst,
+      'Hidden pickup is not idempotent.',
+    );
+    observations.add('hidden_pickup_idempotent');
     return current;
   }
 

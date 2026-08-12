@@ -6,11 +6,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../app/providers/core/repository_providers.dart';
+import '../../app/providers/pokedex/pokedex_providers.dart';
+import '../../application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import '../../features/map_entities/application/npc_runtime_rules_authoring_catalog.dart';
 import '../../features/map_entities/application/npc_runtime_rules_editor_mapping.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../../features/gameplay/items/item_capability_picker.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 import '../shared/inspector_embedded_widgets.dart';
@@ -51,10 +55,7 @@ class EntityPlacementKindPicker extends ConsumerWidget {
 }
 
 class EntityPropertiesPanel extends ConsumerStatefulWidget {
-  const EntityPropertiesPanel({
-    super.key,
-    this.embedded = false,
-  });
+  const EntityPropertiesPanel({super.key, this.embedded = false});
 
   final bool embedded;
 
@@ -105,6 +106,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
   final _itemQuantity = TextEditingController();
   ItemPickupMode _itemPickup = ItemPickupMode.once;
   ItemRespawnPolicy _itemRespawn = ItemRespawnPolicy.none;
+  MapEntityItemVisibility _itemVisibility = MapEntityItemVisibility.visible;
+  String? _itemCatalogProjectRootPath;
+  Future<PokemonItemsCatalogView>? _itemCatalogFuture;
 
   final _spawnKey = TextEditingController();
   final _spawnCategory = TextEditingController();
@@ -166,6 +170,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final map = state.activeMap;
     final selectedEntity = notifier.getSelectedEntity();
+    _ensureItemCatalogForState(state);
     _syncControllers(selectedEntity, state.project);
 
     final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
@@ -211,16 +216,12 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
               Text(
                 state.activeTool == EditorToolType.entityPlacement
                     ? (widget.embedded
-                        ? 'Outil Entités actif : cliquez sur la carte pour placer ce type.'
-                        : 'Entity tool active. Click on the map to place the selected kind.')
+                          ? 'Outil Entités actif : cliquez sur la carte pour placer ce type.'
+                          : 'Entity tool active. Click on the map to place the selected kind.')
                     : (widget.embedded
-                        ? 'Activez l’outil Entités pour placer des éléments sur la carte.'
-                        : 'Select the Entity tool to place visible world content on the map.'),
-                style: TextStyle(
-                  fontSize: 11,
-                  color: subtle,
-                  height: 1.25,
-                ),
+                          ? 'Activez l’outil Entités pour placer des éléments sur la carte.'
+                          : 'Select the Entity tool to place visible world content on the map.'),
+                style: TextStyle(fontSize: 11, color: subtle, height: 1.25),
               ),
               const SizedBox(height: 12),
               if (map.entities.isEmpty)
@@ -229,8 +230,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                   child: Text(
                     'No entities on this map yet.',
                     style: TextStyle(
-                      color:
-                          CupertinoColors.placeholderText.resolveFrom(context),
+                      color: CupertinoColors.placeholderText.resolveFrom(
+                        context,
+                      ),
                       fontSize: 12,
                     ),
                   ),
@@ -251,13 +253,15 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: entity.id == state.selectedEntityId
-                              ? _entityColor(entity.kind)
-                                  .withValues(alpha: 0.78)
+                              ? _entityColor(
+                                  entity.kind,
+                                ).withValues(alpha: 0.78)
                               : EditorChrome.editorIslandRim(context),
                           width: 1,
                         ),
-                        boxShadow:
-                            EditorChrome.inspectorTileHardShadows(context),
+                        boxShadow: EditorChrome.inspectorTileHardShadows(
+                          context,
+                        ),
                       ),
                       child: CupertinoButton(
                         padding: const EdgeInsets.fromLTRB(10, 8, 8, 8),
@@ -271,8 +275,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                               size: 16,
                               color: entity.id == state.selectedEntityId
                                   ? (widget.embedded
-                                      ? EditorChrome.inspectorJoyCyan
-                                      : EditorPaintColors.white)
+                                        ? EditorChrome.inspectorJoyCyan
+                                        : EditorPaintColors.white)
                                   : _entityColor(entity.kind),
                             ),
                             const SizedBox(width: 8),
@@ -287,8 +291,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                                       color: labelColor,
                                       fontWeight:
                                           entity.id == state.selectedEntityId
-                                              ? FontWeight.w700
-                                              : FontWeight.w500,
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -342,9 +346,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     }
 
     return Container(
-      decoration: BoxDecoration(
-        color: EditorChrome.islandFill(context),
-      ),
+      decoration: BoxDecoration(color: EditorChrome.islandFill(context)),
       child: Column(
         children: [
           Padding(
@@ -358,8 +360,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color:
-                          CupertinoColors.secondaryLabel.resolveFrom(context),
+                      color: CupertinoColors.secondaryLabel.resolveFrom(
+                        context,
+                      ),
                     ),
                   ),
                 ),
@@ -378,6 +381,53 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
   }
 
   String _l(String fr, String en) => widget.embedded ? fr : en;
+
+  void _ensureItemCatalogForState(EditorState state) {
+    final projectRootPath = state.projectRootPath?.trim();
+    if (_itemCatalogProjectRootPath == projectRootPath &&
+        _itemCatalogFuture != null) {
+      return;
+    }
+    _itemCatalogProjectRootPath = projectRootPath;
+    if (projectRootPath == null || projectRootPath.isEmpty) {
+      _itemCatalogFuture = Future<PokemonItemsCatalogView>.value(
+        const PokemonItemsCatalogView(
+          entries: <PokemonItemCatalogEntryView>[],
+          isAvailable: false,
+          description: 'Aucun projet ouvert.',
+          loadState: PokemonItemsCatalogLoadState.noProject,
+        ),
+      );
+      return;
+    }
+    final workspace = ref
+        .read(projectWorkspaceFactoryProvider)
+        .create(projectRootPath);
+    _itemCatalogFuture = ref
+        .read(loadPokemonItemsCatalogUseCaseProvider)
+        .execute(workspace);
+  }
+
+  Widget _itemCatalogPicker() {
+    return FutureBuilder<PokemonItemsCatalogView>(
+      future: _itemCatalogFuture,
+      builder: (context, snapshot) {
+        final view = snapshot.data;
+        return ItemCapabilityPicker(
+          fieldKey: const ValueKey('entity-item-catalog-picker'),
+          label: _l('Objet du catalogue', 'Catalog item'),
+          definitions:
+              view?.canonicalCatalog?.entries ?? <ProjectItemDefinition>[],
+          requirement: ItemCapabilityRequirement.any,
+          value: _itemGameId.text,
+          enabled: view?.isAvailable ?? false,
+          onChanged: (itemId) {
+            setState(() => _itemGameId.text = itemId ?? '');
+          },
+        );
+      },
+    );
+  }
 
   Widget _labeledField(
     BuildContext context, {
@@ -423,7 +473,10 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           child: Text(
             label,
             style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w600, color: secondary),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: secondary,
+            ),
           ),
         ),
         CupertinoSwitch(
@@ -463,6 +516,14 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     };
   }
 
+  String _itemVisibilityLabel(MapEntityItemVisibility visibility) {
+    if (!widget.embedded) return visibility.name;
+    return switch (visibility) {
+      MapEntityItemVisibility.visible => 'Visible',
+      MapEntityItemVisibility.hidden => 'Caché',
+    };
+  }
+
   String _spawnRoleLabel(EntitySpawnRole r) {
     if (!widget.embedded) return r.name;
     return switch (r) {
@@ -492,8 +553,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     final vis = parseVisibilityRuleFromNpc(n);
     _npcVisUiMode = vis.mode;
     _npcVisPredicateKind = vis.kind;
-    _npcVisRefMenuId =
-        vis.refId.trim().isEmpty ? kNpcRuntimeRefNoneMenuId : vis.refId.trim();
+    _npcVisRefMenuId = vis.refId.trim().isEmpty
+        ? kNpcRuntimeRefNoneMenuId
+        : vis.refId.trim();
 
     for (final row in _npcCondRows) {
       row.dispose();
@@ -515,21 +577,27 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     ProjectManifest? project,
   ) {
     const accent = EditorChrome.inspectorJoyMint;
-    final catalog =
-        project == null ? null : buildNpcRuntimeAuthoringCatalog(project);
+    final catalog = project == null
+        ? null
+        : buildNpcRuntimeAuthoringCatalog(project);
 
     String visModeLabel(NpcRuntimeVisibilityUiMode m) {
       return switch (m) {
-        NpcRuntimeVisibilityUiMode.always =>
-          _l('Toujours visible', 'Always visible'),
-        NpcRuntimeVisibilityUiMode.visibleOnlyIf =>
-          _l('Visible seulement si…', 'Visible only if…'),
+        NpcRuntimeVisibilityUiMode.always => _l(
+          'Toujours visible',
+          'Always visible',
+        ),
+        NpcRuntimeVisibilityUiMode.visibleOnlyIf => _l(
+          'Visible seulement si…',
+          'Visible only if…',
+        ),
         NpcRuntimeVisibilityUiMode.hiddenIf => _l('Caché si…', 'Hidden if…'),
       };
     }
 
-    final visModeIds =
-        NpcRuntimeVisibilityUiMode.values.map((e) => e.name).toList();
+    final visModeIds = NpcRuntimeVisibilityUiMode.values
+        .map((e) => e.name)
+        .toList();
     final visSelectedId = _npcVisUiMode.name;
 
     List<NpcRuntimePickOption> optionsForPredicateKind(
@@ -540,17 +608,13 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       }
       return switch (k) {
         MapEntityRuntimePredicateKind.storyFlagSet ||
-        MapEntityRuntimePredicateKind.storyFlagUnset =>
-          catalog.flags,
+        MapEntityRuntimePredicateKind.storyFlagUnset => catalog.flags,
         MapEntityRuntimePredicateKind.stepCompleted ||
-        MapEntityRuntimePredicateKind.stepNotCompleted =>
-          catalog.steps,
+        MapEntityRuntimePredicateKind.stepNotCompleted => catalog.steps,
         MapEntityRuntimePredicateKind.chapterCompleted ||
-        MapEntityRuntimePredicateKind.chapterNotCompleted =>
-          catalog.chapters,
+        MapEntityRuntimePredicateKind.chapterNotCompleted => catalog.chapters,
         MapEntityRuntimePredicateKind.cutsceneCompleted ||
-        MapEntityRuntimePredicateKind.cutsceneNotCompleted =>
-          catalog.cutscenes,
+        MapEntityRuntimePredicateKind.cutsceneNotCompleted => catalog.cutscenes,
       };
     }
 
@@ -570,15 +634,15 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         accent: accent,
       ),
       const SizedBox(height: 10),
-      InspectorEmbeddedSectionLabel(
-        _l('VISIBILITÉ DU PNJ', 'NPC VISIBILITY'),
-      ),
+      InspectorEmbeddedSectionLabel(_l('VISIBILITÉ DU PNJ', 'NPC VISIBILITY')),
       const SizedBox(height: 6),
       if (widget.embedded)
         InspectorEmbeddedDropdown(
           accent: accent,
-          fieldLabel:
-              _l('Quand ce PNJ est visible', 'When this NPC is visible'),
+          fieldLabel: _l(
+            'Quand ce PNJ est visible',
+            'When this NPC is visible',
+          ),
           valueLabel: visModeLabel(_npcVisUiMode),
           orderedIds: visModeIds,
           selectedMenuValue: visSelectedId,
@@ -600,11 +664,11 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           onPressed: () async {
             final picked =
                 await showCupertinoListPicker<NpcRuntimeVisibilityUiMode>(
-              context: context,
-              title: _l('Visibilité', 'Visibility'),
-              items: NpcRuntimeVisibilityUiMode.values,
-              labelOf: visModeLabel,
-            );
+                  context: context,
+                  title: _l('Visibilité', 'Visibility'),
+                  items: NpcRuntimeVisibilityUiMode.values,
+                  labelOf: visModeLabel,
+                );
             if (picked != null && context.mounted) {
               setState(() => _npcVisUiMode = picked);
             }
@@ -641,11 +705,11 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             onPressed: () async {
               final picked =
                   await showCupertinoListPicker<MapEntityRuntimePredicateKind>(
-                context: context,
-                title: _l('Type de condition', 'Condition type'),
-                items: allNpcRuntimePredicateKinds,
-                labelOf: npcRuntimePredicateKindLabelFr,
-              );
+                    context: context,
+                    title: _l('Type de condition', 'Condition type'),
+                    items: allNpcRuntimePredicateKinds,
+                    labelOf: npcRuntimePredicateKindLabelFr,
+                  );
               if (picked != null && context.mounted) {
                 setState(() => _npcVisPredicateKind = picked);
               }
@@ -802,17 +866,13 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       }
       return switch (k) {
         MapEntityRuntimePredicateKind.storyFlagSet ||
-        MapEntityRuntimePredicateKind.storyFlagUnset =>
-          catalog.flags,
+        MapEntityRuntimePredicateKind.storyFlagUnset => catalog.flags,
         MapEntityRuntimePredicateKind.stepCompleted ||
-        MapEntityRuntimePredicateKind.stepNotCompleted =>
-          catalog.steps,
+        MapEntityRuntimePredicateKind.stepNotCompleted => catalog.steps,
         MapEntityRuntimePredicateKind.chapterCompleted ||
-        MapEntityRuntimePredicateKind.chapterNotCompleted =>
-          catalog.chapters,
+        MapEntityRuntimePredicateKind.chapterNotCompleted => catalog.chapters,
         MapEntityRuntimePredicateKind.cutsceneCompleted ||
-        MapEntityRuntimePredicateKind.cutsceneNotCompleted =>
-          catalog.cutscenes,
+        MapEntityRuntimePredicateKind.cutsceneNotCompleted => catalog.cutscenes,
       };
     }
 
@@ -850,8 +910,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                   accent: accent,
                   fieldLabel: _l('Si…', 'If…'),
                   valueLabel: npcRuntimePredicateKindLabelFr(row.conditionKind),
-                  orderedIds:
-                      allNpcRuntimePredicateKinds.map((e) => e.name).toList(),
+                  orderedIds: allNpcRuntimePredicateKinds
+                      .map((e) => e.name)
+                      .toList(),
                   selectedMenuValue: row.conditionKind.name,
                   selectedIdForCheck: row.conditionKind.name,
                   idToLabel: (id) => npcRuntimePredicateKindLabelFr(
@@ -870,13 +931,15 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                   padding: EdgeInsets.zero,
                   alignment: Alignment.centerLeft,
                   onPressed: () async {
-                    final picked = await showCupertinoListPicker<
-                        MapEntityRuntimePredicateKind>(
-                      context: context,
-                      title: _l('Condition', 'Condition'),
-                      items: allNpcRuntimePredicateKinds,
-                      labelOf: npcRuntimePredicateKindLabelFr,
-                    );
+                    final picked =
+                        await showCupertinoListPicker<
+                          MapEntityRuntimePredicateKind
+                        >(
+                          context: context,
+                          title: _l('Condition', 'Condition'),
+                          items: allNpcRuntimePredicateKinds,
+                          labelOf: npcRuntimePredicateKindLabelFr,
+                        );
                     if (picked != null && context.mounted) {
                       setState(() => row.conditionKind = picked);
                     }
@@ -1017,7 +1080,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                     child: Text(
                       _l('Supprimer', 'Remove'),
                       style: const TextStyle(
-                          color: CupertinoColors.destructiveRed),
+                        color: CupertinoColors.destructiveRed,
+                      ),
                     ),
                   ),
                 ],
@@ -1093,10 +1157,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     List<ProjectElementEntry> sorted,
     String currentId,
   ) {
-    final ids = <String>[
-      _kElementNoneMenuId,
-      ...sorted.map((e) => e.id),
-    ];
+    final ids = <String>[_kElementNoneMenuId, ...sorted.map((e) => e.id)];
     final c = currentId.trim();
     if (c.isNotEmpty && c != _kElementNoneMenuId && !ids.contains(c)) {
       ids.add(c);
@@ -1140,10 +1201,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     if (widget.embedded) {
       return [
         InspectorEmbeddedSectionLabel(
-          _l(
-            'Référence visuelle (bibliothèque)',
-            'Visual reference (library)',
-          ),
+          _l('Référence visuelle (bibliothèque)', 'Visual reference (library)'),
         ),
         const SizedBox(height: 6),
         if (sorted.isEmpty)
@@ -1176,14 +1234,10 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             const SizedBox(height: 8),
             _toggleField(
               context,
-              label: _l(
-                'Toujours devant le décor',
-                'Always above decor',
-              ),
+              label: _l('Toujours devant le décor', 'Always above decor'),
               value: _editorVisualRenderInForeground,
-              onChanged: (value) => setState(
-                () => _editorVisualRenderInForeground = value,
-              ),
+              onChanged: (value) =>
+                  setState(() => _editorVisualRenderInForeground = value),
             ),
             const SizedBox(height: 4),
             InspectorEmbeddedFootnote(
@@ -1199,10 +1253,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     }
     return [
       Text(
-        _l(
-          'Référence visuelle (bibliothèque)',
-          'Visual reference (library)',
-        ),
+        _l('Référence visuelle (bibliothèque)', 'Visual reference (library)'),
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -1381,13 +1432,17 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             const SizedBox(height: 12),
             if (widget.embedded)
               InspectorEmbeddedSectionLabel(
-                _l('Dialogue scripté (optionnel)',
-                    'Scripted dialogue (optional)'),
+                _l(
+                  'Dialogue scripté (optionnel)',
+                  'Scripted dialogue (optional)',
+                ),
               )
             else
               Text(
-                _l('Dialogue scripté (optionnel)',
-                    'Scripted dialogue (optional)'),
+                _l(
+                  'Dialogue scripté (optionnel)',
+                  'Scripted dialogue (optional)',
+                ),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -1411,11 +1466,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
               ),
             ),
             const SizedBox(height: 8),
-            _labeledField(
-              context,
-              label: _l('ID objet jeu', 'Game item ID'),
-              controller: _itemGameId,
-            ),
+            _itemCatalogPicker(),
             const SizedBox(height: 8),
             _labeledField(
               context,
@@ -1441,6 +1492,26 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
               },
               child: Text(
                 '${_l('Ramassage', 'Pickup')}: ${_pickupLabel(_itemPickup)}',
+              ),
+            ),
+            const SizedBox(height: 4),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              alignment: Alignment.centerLeft,
+              onPressed: () async {
+                final picked =
+                    await showCupertinoListPicker<MapEntityItemVisibility>(
+                      context: context,
+                      title: _l('Visibilité dans le jeu', 'In-game visibility'),
+                      items: MapEntityItemVisibility.values,
+                      labelOf: _itemVisibilityLabel,
+                    );
+                if (picked != null) {
+                  setState(() => _itemVisibility = picked);
+                }
+              },
+              child: Text(
+                '${_l('Visibilité', 'Visibility')} : ${_itemVisibilityLabel(_itemVisibility)}',
               ),
             ),
             const SizedBox(height: 4),
@@ -1574,8 +1645,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         Text(
           '${_l('Position', 'Position')}: (${selectedEntity.pos.x}, ${selectedEntity.pos.y}) | ${_l('Taille', 'Size')}: ${selectedEntity.size.width}x${selectedEntity.size.height}',
           style: TextStyle(
-              fontSize: 11,
-              color: CupertinoColors.secondaryLabel.resolveFrom(context)),
+            fontSize: 11,
+            color: CupertinoColors.secondaryLabel.resolveFrom(context),
+          ),
         ),
         const SizedBox(height: 8),
         _labeledField(
@@ -1597,8 +1669,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
             accent: EditorChrome.inspectorJoyCyan,
             fieldLabel: _l('Type d’entité', 'Entity kind'),
             valueLabel: _entityKindLabel(_selectedKind),
-            orderedIds:
-                MapEntityKind.values.map((k) => k.name).toList(growable: false),
+            orderedIds: MapEntityKind.values
+                .map((k) => k.name)
+                .toList(growable: false),
             selectedMenuValue: _selectedKind.name,
             selectedIdForCheck: _selectedKind.name,
             idToLabel: (id) => _entityKindLabel(
@@ -1661,8 +1734,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                 context,
                 label: _l('X', 'X'),
                 controller: _xController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(signed: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  signed: true,
+                ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
                 ],
@@ -1674,8 +1748,9 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
                 context,
                 label: _l('Y', 'Y'),
                 controller: _yController,
-                keyboardType:
-                    const TextInputType.numberWithOptions(signed: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  signed: true,
+                ),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
                 ],
@@ -1957,8 +2032,10 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       _npcDialogueId.text = '';
       _npcScriptPath.text = '';
     } else if (nd.scriptPathRelative.trim().isNotEmpty) {
-      final matched =
-          _dialogueEntryForLegacyPath(dialogueEntries, nd.scriptPathRelative);
+      final matched = _dialogueEntryForLegacyPath(
+        dialogueEntries,
+        nd.scriptPathRelative,
+      );
       if (matched != null) {
         _npcDialogueSource = _DialogueRefSource.manifest;
         _npcDialogueId.text = matched.id;
@@ -1976,11 +2053,13 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     _npcStartNode.text = n.dialogue?.startNode ?? '';
     _npcFacing = n.facing;
     final cid = n.characterId?.trim();
-    _npcCharacterMenuId =
-        (cid == null || cid.isEmpty) ? _kCharacterNoneMenuId : cid;
+    _npcCharacterMenuId = (cid == null || cid.isEmpty)
+        ? _kCharacterNoneMenuId
+        : cid;
     final tid = n.trainerId?.trim();
-    _npcTrainerMenuId =
-        (tid == null || tid.isEmpty) ? _kTrainerNoneMenuId : tid;
+    _npcTrainerMenuId = (tid == null || tid.isEmpty)
+        ? _kTrainerNoneMenuId
+        : tid;
     _npcLineOfSight.text = n.lineOfSightRange.toString();
     final movement = n.movement;
     _npcMovementMode = movement.mode;
@@ -2008,8 +2087,10 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       _npcDefeatDialogueId.text = '';
       _npcDefeatStartNode.text = '';
     } else if (dd.scriptPathRelative.trim().isNotEmpty) {
-      final matched =
-          _dialogueEntryForLegacyPath(dialogueEntries, dd.scriptPathRelative);
+      final matched = _dialogueEntryForLegacyPath(
+        dialogueEntries,
+        dd.scriptPathRelative,
+      );
       if (matched != null) {
         _npcDefeatDialogueSource = _DialogueRefSource.manifest;
         _npcDefeatDialogueId.text = matched.id;
@@ -2047,8 +2128,10 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
       _signDialogueId.text = '';
       _signScriptPath.text = '';
     } else if (sd.scriptPathRelative.trim().isNotEmpty) {
-      final matched =
-          _dialogueEntryForLegacyPath(dialogueEntries, sd.scriptPathRelative);
+      final matched = _dialogueEntryForLegacyPath(
+        dialogueEntries,
+        sd.scriptPathRelative,
+      );
       if (matched != null) {
         _signDialogueSource = _DialogueRefSource.manifest;
         _signDialogueId.text = matched.id;
@@ -2070,6 +2153,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     _itemQuantity.text = it.quantity.toString();
     _itemPickup = it.pickupMode;
     _itemRespawn = it.respawnPolicy;
+    _itemVisibility = it.visibility;
 
     final sp = entity?.spawn ?? const MapEntitySpawnData();
     _spawnKey.text = sp.spawnKey;
@@ -2163,11 +2247,11 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
     final evMenu = _editorVisualMenuId.trim();
     MapEntityEditorVisual? editorVisualPayload =
         evMenu == _kElementNoneMenuId || evMenu.isEmpty
-            ? null
-            : MapEntityEditorVisual(
-                elementId: evMenu,
-                renderInForeground: _editorVisualRenderInForeground,
-              );
+        ? null
+        : MapEntityEditorVisual(
+            elementId: evMenu,
+            renderInForeground: _editorVisualRenderInForeground,
+          );
 
     switch (_selectedKind) {
       case MapEntityKind.npc:
@@ -2199,8 +2283,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         final trainerIdRaw = _npcTrainerMenuId.trim();
         final trainerId =
             (trainerIdRaw.isEmpty || trainerIdRaw == _kTrainerNoneMenuId)
-                ? null
-                : trainerIdRaw;
+            ? null
+            : trainerIdRaw;
         final losRange = int.tryParse(_npcLineOfSight.text.trim()) ?? 0;
         DialogueRef? defeatDlgRef;
         if (_npcDefeatDialogueSource != _DialogueRefSource.none &&
@@ -2215,7 +2299,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         final charIdRaw = _npcCharacterMenuId.trim();
         final usesTrainerAppearance =
             trainerId != null && trainerId.trim().isNotEmpty;
-        final charId = usesTrainerAppearance ||
+        final charId =
+            usesTrainerAppearance ||
                 charIdRaw.isEmpty ||
                 charIdRaw == _kCharacterNoneMenuId
             ? null
@@ -2262,10 +2347,8 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
         final condErr = validateConditionalDialogueDrafts(
           rows: _npcCondRows
               .map(
-                (r) => (
-                  dialogueMenuId: r.dialogueMenuId,
-                  refMenuId: r.refMenuId,
-                ),
+                (r) =>
+                    (dialogueMenuId: r.dialogueMenuId, refMenuId: r.refMenuId),
               )
               .toList(growable: false),
           dialogueNoneId: _kDialogueNoneMenuId,
@@ -2376,6 +2459,7 @@ class _EntityPropertiesPanelState extends ConsumerState<EntityPropertiesPanel> {
           quantity: qty,
           pickupMode: _itemPickup,
           respawnPolicy: _itemRespawn,
+          visibility: _itemVisibility,
         );
         break;
       case MapEntityKind.spawn:

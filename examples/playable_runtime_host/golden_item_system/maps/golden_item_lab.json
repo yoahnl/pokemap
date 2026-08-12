@@ -50,6 +50,22 @@
       }
     },
     {
+      "id": "item_hidden_tonic",
+      "name": "Hidden Tonic",
+      "kind": "item",
+      "pos": {
+        "x": 3,
+        "y": 1
+      },
+      "item": {
+        "gameItemId": "hidden-tonic",
+        "quantity": 1,
+        "pickupMode": "once",
+        "respawnPolicy": "none",
+        "visibility": "hidden"
+      }
+    },
+    {
       "id": "npc_item_trainer",
       "name": "Researcher Mira",
       "kind": "npc",

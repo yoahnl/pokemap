@@ -183,6 +183,8 @@ abstract class MapEntityItemData with _$MapEntityItemData {
     @Default(1) int quantity,
     @Default(ItemPickupMode.once) ItemPickupMode pickupMode,
     @Default(ItemRespawnPolicy.none) ItemRespawnPolicy respawnPolicy,
+    @Default(MapEntityItemVisibility.visible)
+    MapEntityItemVisibility visibility,
   }) = _MapEntityItemData;
 
   factory MapEntityItemData.fromJson(Map<String, dynamic> json) =>
