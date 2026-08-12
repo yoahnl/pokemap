@@ -424,11 +424,10 @@ class FileMapRepository
     }
     try {
       return RevisionedMapDocument(
-        map: EditorPerformanceTelemetry.traceFullMapValidation(
-          () => decodeValidatedNarrativeEventAuthoringMap(
-            snapshot.bytes,
-            path,
-          ),
+        map: decodeValidatedNarrativeEventAuthoringMap(
+          snapshot.bytes,
+          path,
+          validateMap: EditorPerformanceTelemetry.validateFullMap,
         ),
         revision: snapshot.revision,
       );

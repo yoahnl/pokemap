@@ -233,8 +233,9 @@ ValidatedNarrativeEventAuthoringProject
 
 MapData decodeValidatedNarrativeEventAuthoringMap(
   List<int> bytes,
-  String path,
-) {
+  String path, {
+  void Function(MapData map)? validateMap,
+}) {
   final decoded = decodeNarrativeEventJsonStrict(utf8.decode(bytes));
   if (decoded is! Map) {
     throw NarrativeEventAuthoringSessionException(
@@ -251,7 +252,7 @@ MapData decodeValidatedNarrativeEventAuthoringMap(
     json[entry.key as String] = entry.value;
   }
   final map = MapData.fromJson(json);
-  MapValidator.validate(map);
+  (validateMap ?? MapValidator.validate)(map);
   return map;
 }
 

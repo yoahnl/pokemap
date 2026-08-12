@@ -279,15 +279,6 @@ final class EditorPerformanceTelemetry {
     }
   }
 
-  static T traceFullMapValidation<T>(T Function() body) {
-    final span = startSpan(EditorPerformanceSpanName.mapFullValidation);
-    try {
-      return body();
-    } finally {
-      span?.finish();
-    }
-  }
-
   static String encodeJson(Object? value) {
     incrementCounter(EditorPerformanceCounterName.jsonEncode);
     return jsonEncode(value);
