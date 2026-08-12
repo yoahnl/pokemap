@@ -1,0 +1,40 @@
+title: FisherIntro
+tags: selbrume side-quest
+---
+Pêcheur: Un Goélise vole nos repas depuis que la brume a déplacé son nid.
+Pêcheur: Trouve-le avant que quelqu'un ne décide de le chasser.
+===
+title: GoeliseChoice
+tags: selbrume side-quest choice
+---
+Narration: Dans le nid repose un petit objet brillant appartenant aux pêcheurs.
+-> Rendre l'objet au pêcheur
+    <<outcome return_item>>
+    Joueur: Le Goélise a surtout besoin qu'on remette son nid en place.
+    <<jump GoeliseReturned>>
+-> Garder l'objet
+    <<outcome keep_item>>
+    Joueur: Cet objet pourrait servir plus tard.
+    <<jump GoeliseKept>>
+===
+title: GoeliseReturned
+tags: selbrume side-quest choice
+---
+Narration: Le joueur décide de rendre l'objet aux pêcheurs.
+===
+title: GoeliseKept
+tags: selbrume side-quest choice
+---
+Narration: Le joueur garde l'objet et devra assumer la méfiance des pêcheurs.
+===
+title: FisherReturn
+tags: selbrume side-quest
+---
+Pêcheur: Le Goélise est calmé et son nid tient bon. Merci.
+===
+title: FisherSuspicious
+tags: selbrume side-quest choice
+---
+Pêcheur: Le nid tient bon, mais l'objet des pêcheurs n'est jamais revenu.
+Pêcheur: Garde donc cette perle. La confiance, elle, se regagne autrement.
+===

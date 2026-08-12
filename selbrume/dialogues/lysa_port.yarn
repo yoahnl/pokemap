@@ -1,0 +1,26 @@
+title: LysaPort
+tags: selbrume chapter-1 golden-slice
+---
+Lysa: La brume se lève sur le Port des Brisants.
+Lysa: Elle avale les balises et les pêcheurs n’osent plus sortir. Si tu veux continuer, montre-moi ce que vaut ton équipe.
+-> Répondre avec assurance
+    <<outcome confident>>
+    Joueur: Je dégagerai le passage et je trouverai ce qui affole le phare.
+-> Rester prudent
+    <<outcome hesitant>>
+    Joueur: Je préfère comprendre la brume avant de foncer, mais je ne reculerai pas.
+-> La provoquer
+    <<outcome aggressive>>
+    Joueur: Tu parles beaucoup pour quelqu'un qui bloque le seul passage vers les marais.
+===
+title: RivalAfterWin
+tags: selbrume chapter-1
+---
+Lysa: D'accord, tu as gagné mon respect. Tu peux tenir le rythme ; je pars devant reconnaître les marais.
+Lysa: Prends le Badge des Brisants. Il autorise Surf : le chenal du Passage des Dames ne te bloquera plus.
+===
+title: RivalAfterLoss
+tags: selbrume chapter-1
+---
+Lysa: Tu manques encore d'expérience, mais la brume n'attendra pas. Le chemin des marais reste ouvert : entraîne-toi et suis-moi quand tu seras prêt.
+===
