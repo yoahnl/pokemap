@@ -254,6 +254,12 @@ final class FineMaskVisualAlphaRegion {
   int get readbackPixelCount => alphaBytes.length;
 }
 
+typedef FineMaskVisualAlphaReader =
+    Future<FineMaskVisualAlphaRegion> Function({
+      required ui.Image image,
+      required Rect sourceRect,
+    });
+
 Future<FineMaskVisualAlphaRegion> readFineMaskVisualAlphaRegion({
   required ui.Image image,
   required Rect sourceRect,
@@ -332,6 +338,7 @@ class ElementCollisionTripleMaskEditor extends StatefulWidget {
     required this.draftPadding,
     required this.onProfileChanged,
     this.controller,
+    this.visualAlphaReader = readFineMaskVisualAlphaRegion,
   });
 
   final ui.Image image;
@@ -342,6 +349,7 @@ class ElementCollisionTripleMaskEditor extends StatefulWidget {
   final WarpTriggerPadding draftPadding;
   final ValueChanged<ElementCollisionProfile?> onProfileChanged;
   final ElementCollisionFineMaskController? controller;
+  final FineMaskVisualAlphaReader visualAlphaReader;
 
   @override
   State<ElementCollisionTripleMaskEditor> createState() =>
@@ -365,6 +373,7 @@ class _ElementCollisionTripleMaskEditorState
   bool _loadingVisual = false;
   FineMaskStroke? _activeStroke;
   int _maskRevision = 0;
+  int _visualLoadGeneration = 0;
 
   int get _wPx => math.max(1, widget.source.width * widget.tileWidth);
   int get _hPx => math.max(1, widget.source.height * widget.tileHeight);
@@ -430,6 +439,7 @@ class _ElementCollisionTripleMaskEditorState
   }
 
   void _scheduleVisualLoad() {
+    final generation = ++_visualLoadGeneration;
     final decoded = _decodeMask(widget.profile?.visualMask, _wPx, _hPx);
     if (decoded != null) {
       setState(() {
@@ -443,12 +453,29 @@ class _ElementCollisionTripleMaskEditorState
       });
       return;
     }
-    _loadVisualFromImageAlpha();
+    _loadVisualFromImageAlpha(
+      generation: generation,
+      image: widget.image,
+      sourceRect: Rect.fromLTWH(
+        widget.source.x * widget.tileWidth.toDouble(),
+        widget.source.y * widget.tileHeight.toDouble(),
+        _wPx.toDouble(),
+        _hPx.toDouble(),
+      ),
+      width: _wPx,
+      height: _hPx,
+    );
   }
 
   /// Construit le masque « visible » depuis l’alpha du PNG si aucun [visualMask]
   /// n’est persisté — cohérent avec l’auto-génération (seuil alpha).
-  Future<void> _loadVisualFromImageAlpha() async {
+  Future<void> _loadVisualFromImageAlpha({
+    required int generation,
+    required ui.Image image,
+    required Rect sourceRect,
+    required int width,
+    required int height,
+  }) async {
     final span = EditorPerformanceTelemetry.startSpan(
       FineMaskPerformanceSpanName.readback,
     );
@@ -456,31 +483,28 @@ class _ElementCollisionTripleMaskEditorState
       setState(() {
         _loadingVisual = true;
       });
-      final region = await readFineMaskVisualAlphaRegion(
-        image: widget.image,
-        sourceRect: Rect.fromLTWH(
-          widget.source.x * widget.tileWidth.toDouble(),
-          widget.source.y * widget.tileHeight.toDouble(),
-          _wPx.toDouble(),
-          _hPx.toDouble(),
-        ),
+      final region = await widget.visualAlphaReader(
+        image: image,
+        sourceRect: sourceRect,
       );
-      if (!mounted) {
+      if (!mounted || generation != _visualLoadGeneration) {
         return;
       }
-      final w = _wPx;
-      final h = _hPx;
-      final out = Uint8List(w * h);
+      final out = Uint8List(width * height);
       const alphaThreshold = 12;
       for (var index = 0; index < out.length; index += 1) {
         out[index] = region.alphaBytes[index] > alphaThreshold ? 1 : 0;
       }
-      if (!mounted) {
+      if (!mounted || generation != _visualLoadGeneration) {
         return;
       }
       setState(() {
         _visualBits = out;
-        _visualRunCache = FineMaskPaintRunCache(out, width: w, height: h);
+        _visualRunCache = FineMaskPaintRunCache(
+          out,
+          width: width,
+          height: height,
+        );
         _loadingVisual = false;
         _maskRevision += 1;
       });

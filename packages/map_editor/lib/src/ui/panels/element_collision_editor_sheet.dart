@@ -530,10 +530,21 @@ class _ElementCollisionEditorSheetState
         current.occlusionMask == null) {
       return next;
     }
+    final collisionMask = current.collisionMask;
+    final cells = collisionMask == null
+        ? next.cells
+        : ElementCollisionMaskCodec.cellsFromPixelMask(
+            mask: collisionMask,
+            tileWidth: widget.tileWidth,
+            tileHeight: widget.tileHeight,
+            sourceWidthInTiles: widget.source.width,
+            sourceHeightInTiles: widget.source.height,
+          );
     return next.copyWith(
       visualMask: current.visualMask,
-      collisionMask: current.collisionMask,
+      collisionMask: collisionMask,
       occlusionMask: current.occlusionMask,
+      cells: cells,
     );
   }
 

@@ -193,8 +193,56 @@ void main() {
       expect(saved!.collisionMask?.dataBase64, collisionMask.dataBase64);
       expect(saved.visualMask?.dataBase64, visualMask.dataBase64);
       expect(saved.occlusionMask?.dataBase64, occlusionMask.dataBase64);
+      expect(
+        saved.cells,
+        ElementCollisionMaskCodec.cellsFromPixelMask(
+          mask: collisionMask,
+          tileWidth: 16,
+          tileHeight: 16,
+          sourceWidthInTiles: _source.width,
+          sourceHeightInTiles: _source.height,
+        ),
+      );
     },
   );
+
+  testWidgets('saving an empty fine collision mask preserves empty cells', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final image = await _testImage(width: 64, height: 64);
+    late Future<ElementCollisionProfile?> result;
+    final collisionMask = _emptyMask(widthPx: 64, heightPx: 64);
+    await _pumpEditorLauncher(
+      tester,
+      image: image,
+      onOpen: (context) {
+        result = showElementCollisionEditorSheet(
+          context: context,
+          elementName: 'empty fine collision',
+          image: image,
+          source: _source,
+          tileWidth: 16,
+          tileHeight: 16,
+          initialProfile: ElementCollisionProfile(
+            collisionMask: collisionMask,
+            cells: const [GridPos(x: 0, y: 0)],
+          ),
+        );
+      },
+    );
+
+    await tester.tap(find.text('Open collision editor'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sauvegarder'));
+    await tester.pumpAndSettle();
+
+    final saved = await result;
+    expect(saved?.collisionMask?.dataBase64, collisionMask.dataBase64);
+    expect(saved?.cells, isEmpty);
+  });
 
   testWidgets('triple mask editor starts in paint collision mode', (
     tester,

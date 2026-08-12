@@ -167,7 +167,11 @@ void main() {
             'schemaVersion': 1,
             ...extentInstrumentation.toJson(),
           },
-          'frameMetrics': _metrics(frameSamples),
+          'frameMetrics': <String, Object?>{
+            'scope': 'flutter.frame_total',
+            'policy': FineMaskPerformanceBudget.frameTimingPolicy,
+            ..._metrics(frameSamples),
+          },
         });
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump();
@@ -225,6 +229,13 @@ void main() {
       'fixture': 'assets/cinematics/emotes/emotions.png',
       'fixtureFingerprint': sha256.convert(fixtureBytes).toString(),
       'pointerMovesPerExtent': 30,
+      'performanceBudgets': <String, Object?>{
+        'schemaVersion': FineMaskPerformanceBudget.schemaVersion,
+        'fineMask1024PointerMoveP95Us':
+            FineMaskPerformanceBudget.pointerMove1024P95Us,
+        'fineMask1024PaintP95Us': FineMaskPerformanceBudget.paint1024P95Us,
+        'frameTimingPolicy': FineMaskPerformanceBudget.frameTimingPolicy,
+      },
       'soakCycles': soakCycles,
       'soakMemory': soakMemory.toJson(),
       'soakHeapGrowthBudgetBytes': soakHeapGrowthBudgetBytes,
