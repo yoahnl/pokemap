@@ -33,6 +33,12 @@ void main() {
       personalizationV10FieldConsumptionMatrix.excludedFieldReasons.keys,
       const <String>{'/presentation/schemaVersion'},
     );
+    expect(
+      () => personalizationV10FieldConsumptionMatrix.requireDeclaredGroups(
+        expectedFieldGroups,
+      ),
+      returnsNormally,
+    );
     final productionWidgetNames = PlayerPersonalizationPreviewContract
         .productionWidgetTypes
         .values
@@ -64,6 +70,15 @@ void main() {
   test('fails closed when a V10 field group has no end-to-end evidence', () {
     expect(
       () => personalizationV10FieldConsumptionMatrix.requireCompleteFor(
+        const <String>{'/presentation/futureSurface'},
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('fails closed when an authorable V10 group is only in the catalog', () {
+    expect(
+      () => personalizationV10FieldConsumptionMatrix.requireDeclaredGroups(
         const <String>{'/presentation/futureSurface'},
       ),
       throwsStateError,

@@ -95,6 +95,27 @@ final class PersonalizationFieldConsumptionMatrix {
   final List<PersonalizationFieldConsumptionEntry> entries;
   final Map<String, String> excludedFieldReasons;
 
+  void requireDeclaredGroups(Set<String> fieldGroups) {
+    final undeclared =
+        fieldGroups
+            .where(
+              (path) => !entries.any(
+                (entry) => entry.fieldGroups.any(
+                  (fieldGroup) =>
+                      fieldGroup == path || fieldGroup.startsWith('$path/'),
+                ),
+              ),
+            )
+            .toList(growable: false)
+          ..sort();
+    if (undeclared.isNotEmpty) {
+      throw StateError(
+        'Presentation V$schemaVersion authorable groups without declared '
+        'evidence: $undeclared.',
+      );
+    }
+  }
+
   void requireCompleteFor(Set<String> fieldGroups) {
     final uncovered = <String>[];
     final ambiguous = <String>[];
