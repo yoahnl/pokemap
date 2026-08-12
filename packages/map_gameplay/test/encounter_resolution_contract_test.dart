@@ -42,6 +42,24 @@ void main() {
       expect(first.encounter?.toJson(), reversed.encounter?.toJson());
     });
 
+    test('selects a canonical zone when equal-priority payloads are identical',
+        () {
+      final project = _project();
+      final zones = <MapGameplayZone>[
+        _zone(id: 'zeta', tableId: 'alpha'),
+        _zone(id: 'alpha', tableId: 'alpha'),
+      ];
+
+      final first = _check(_world(zones), project, seed: 91);
+      final reversed = _check(_world(zones.reversed), project, seed: 91);
+
+      expect(first.status, GameplayEncounterCheckStatus.triggered);
+      expect(first.zoneId, 'alpha');
+      expect(first.tableId, 'alpha');
+      expect(reversed.zoneId, first.zoneId);
+      expect(reversed.encounter?.toJson(), first.encounter?.toJson());
+    });
+
     test('same seed is stable across entry order and different seeds can vary',
         () {
       final project = _project();

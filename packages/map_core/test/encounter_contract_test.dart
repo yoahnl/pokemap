@@ -266,6 +266,21 @@ void main() {
         returnsNormally,
       );
     });
+
+    test('allows equal-priority overlap for the same encounter payload', () {
+      final project = _project();
+      final map = _map(
+        zones: <MapGameplayZone>[
+          _zone(id: 'right', tableId: 'forest_walk'),
+          _zone(id: 'left', tableId: 'forest_walk'),
+        ],
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: project),
+        returnsNormally,
+      );
+    });
   });
 }
 

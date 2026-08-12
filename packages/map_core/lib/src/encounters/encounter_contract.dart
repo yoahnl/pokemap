@@ -155,6 +155,12 @@ EncounterZoneResolution resolveEncounterZoneAtPosition(
       .where((zone) => zone.priority == highestPriority)
       .toList(growable: false);
   if (highest.length > 1) {
+    final payload = highest.first.encounter;
+    if (highest.every((zone) => zone.encounter == payload)) {
+      final canonical = highest.toList(growable: false)
+        ..sort((left, right) => left.id.compareTo(right.id));
+      return EncounterZoneResolution.resolved(canonical.first);
+    }
     return EncounterZoneResolution.ambiguous(highest.map((zone) => zone.id));
   }
   return EncounterZoneResolution.resolved(highest.single);
@@ -180,6 +186,7 @@ List<EncounterZoneAmbiguity> findEncounterZoneAmbiguities(
       final right = encounters[rightIndex];
       if (left.priority != right.priority ||
           left.encounter!.encounterKind != right.encounter!.encounterKind ||
+          left.encounter == right.encounter ||
           !_rectanglesOverlap(left.area, right.area)) {
         continue;
       }
