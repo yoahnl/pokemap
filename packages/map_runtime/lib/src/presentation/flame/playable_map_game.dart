@@ -7327,6 +7327,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       case GameplayEncounterCheckStatus.noZone:
         debugPrint('[encounter] no compatible zone');
         return;
+      case GameplayEncounterCheckStatus.ambiguousZone:
+        debugPrint(
+          '[encounter] ambiguous zones=${check.ambiguousZoneIds.join(',')}',
+        );
+        return;
       case GameplayEncounterCheckStatus.noEncounterTableId:
         debugPrint(
           '[encounter] zone=${check.zoneId ?? 'unknown'} has no encounter table id (kind=$kind)',
