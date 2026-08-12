@@ -33,13 +33,6 @@ void main() {
       personalizationV10FieldConsumptionMatrix.excludedFieldReasons.keys,
       const <String>{'/presentation/schemaVersion'},
     );
-    expect(
-      () => personalizationV10FieldConsumptionMatrix.requireCompleteFor(
-        expectedFieldGroups,
-      ),
-      returnsNormally,
-    );
-
     final productionWidgetNames = PlayerPersonalizationPreviewContract
         .productionWidgetTypes
         .values
@@ -70,11 +63,39 @@ void main() {
 
   test('fails closed when a V10 field group has no end-to-end evidence', () {
     expect(
-      () => personalizationV10FieldConsumptionMatrix
-          .requireCompleteFor(const <String>{
-            ...projectPresentationV10AuthorableFieldGroups,
-            '/presentation/futureSurface',
-          }),
+      () => personalizationV10FieldConsumptionMatrix.requireCompleteFor(
+        const <String>{'/presentation/futureSurface'},
+      ),
+      throwsStateError,
+    );
+  });
+
+  test('fails closed when two controls claim the same concrete field', () {
+    final matrix = PersonalizationFieldConsumptionMatrix(
+      schemaVersion: 10,
+      excludedFieldReasons: const <String, String>{},
+      entries: <PersonalizationFieldConsumptionEntry>[
+        PersonalizationFieldConsumptionEntry(
+          fieldGroups: const <String>{'/presentation/dialogue'},
+          capabilityId: 'dialogue.geometry',
+          editorControlKey: 'geometry',
+          previewWidget: 'PlayerDialogueSurface',
+          runtimeConsumer: 'PlayerDialogueSurface',
+        ),
+        PersonalizationFieldConsumptionEntry(
+          fieldGroups: const <String>{'/presentation/dialogue/textColor'},
+          capabilityId: 'dialogue.colors',
+          editorControlKey: 'colors',
+          previewWidget: 'PlayerDialogueSurface',
+          runtimeConsumer: 'PlayerDialogueSurface',
+        ),
+      ],
+    );
+
+    expect(
+      () => matrix.requireCompleteFor(const <String>{
+        '/presentation/dialogue/textColor',
+      }),
       throwsStateError,
     );
   });

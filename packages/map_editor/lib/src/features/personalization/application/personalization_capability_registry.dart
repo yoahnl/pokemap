@@ -322,6 +322,17 @@ final personalizationCapabilityRegistry = PersonalizationCapabilityRegistry(
       '/presentation/battle/commands',
       'PlayerBattleSurface',
       'battle-commands-editor',
+      additionalProjectPaths: const <String>{
+        '/presentation/battle/commandLayout',
+        '/presentation/battle/commandColumns',
+        '/presentation/battle/commandPadding',
+        '/presentation/battle/commandSurfaceColor',
+        '/presentation/battle/commandBorderColor',
+        '/presentation/battle/commandTextColor',
+        '/presentation/battle/commandSelectionColor',
+        '/presentation/battle/showCommandIcons',
+        '/presentation/battle/commandShape',
+      },
     ),
     _project(
       'battle.hud',
