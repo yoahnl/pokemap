@@ -1,12 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/personalization_hub.dart';
+import 'package:map_editor/src/app/providers/core_providers.dart';
+import 'package:map_editor/src/application/authoring_api/authoring_query_adapter.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
-import 'package:map_editor/src/features/personalization/presentation/personalization_studio_workspace.dart';
+import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
+import 'package:map_editor/src/ui/editor_shell_page.dart';
 
 import '../shell_chrome_test_harness.dart';
 
@@ -98,6 +104,123 @@ void main() {
         expect(battle.hitTestable(), findsOneWidget);
       }
     });
+  }
+
+  testWidgets('captures the complete Dialogue Studio at the target viewport', (
+    tester,
+  ) async {
+    final projectRoot = Directory.systemTemp.createTempSync(
+      'pokemap-personalization-target-review-',
+    );
+    addTearDown(() => projectRoot.deleteSync(recursive: true));
+    _copyDirectory(_fixtureDirectory(), projectRoot);
+    final project = ProjectManifest.fromJson(
+      jsonDecode(File('${projectRoot.path}/project.json').readAsStringSync())
+          as Map<String, dynamic>,
+    );
+    await tester.runAsync(() => _seedFixtureImages(projectRoot));
+    final queries = AuthoringQueryAdapter(
+      fileReader: const EditorProjectFileReader(),
+    );
+    addTearDown(queries.closeAll);
+    final contexts = await tester.runAsync(
+      () => AuthoringPersonalizationPreviewContextSource(
+        queries: queries,
+      ).load(projectRoot.path),
+    );
+
+    await pumpEditorShellPage(
+      tester,
+      initialState: EditorState(
+        projectRootPath: projectRoot.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1672, 941),
+      overrides: [
+        personalizationPreviewContextSourceProvider.overrideWithValue(
+          _FixedPreviewContextSource(contexts!),
+        ),
+      ],
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-scene-dialogue'),
+      ),
+    );
+    for (var attempt = 0; attempt < 20; attempt += 1) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
+      if (find
+          .byKey(const ValueKey<String>('personalization-project-map-renderer'))
+          .evaluate()
+          .isNotEmpty) {
+        break;
+      }
+    }
+    await tester.pumpAndSettle();
+
+    final editor = find.byType(EditorShellPage);
+    expect(editor, findsOneWidget);
+    expect(find.textContaining('Chargement des cartes'), findsNothing);
+    expect(find.textContaining('Bienvenue à Vermeil'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-project-map-renderer'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('personalization-dialogue-portrait')),
+      findsWidgets,
+    );
+    expect(tester.takeException(), isNull);
+    await expectLater(
+      editor,
+      matchesGoldenFile(
+        'goldens/personalization_shell/'
+        '1672x941_dialogue_target_review.png',
+      ),
+    );
+  });
+}
+
+final class _FixedPreviewContextSource
+    implements PersonalizationPreviewContextSource {
+  const _FixedPreviewContextSource(this.contexts);
+
+  final List<PersonalizationPreviewContextOption> contexts;
+
+  @override
+  Future<List<PersonalizationPreviewContextOption>> load(
+    String projectRoot,
+  ) async => contexts;
+}
+
+Future<void> _seedFixtureImages(Directory projectRoot) async {
+  for (final relativePath in <String>[
+    'assets/presentation/icon.png',
+    'assets/presentation/cover.png',
+    'assets/presentation/hero.png',
+    'assets/presentation/intro/poster.png',
+    'assets/characters/leo-happy.png',
+    'assets/battle/battle-clearing.png',
+    'assets/maps/vermeil-village-stage.png',
+  ]) {
+    final provider = FileImage(File('${projectRoot.path}/$relativePath'));
+    final codec = await ui.instantiateImageCodec(
+      await provider.file.readAsBytes(),
+    );
+    final frame = await codec.getNextFrame();
+    PaintingBinding.instance.imageCache.putIfAbsent(
+      provider,
+      () => OneFrameImageStreamCompleter(
+        SynchronousFuture<ImageInfo>(ImageInfo(image: frame.image)),
+      ),
+    );
+    codec.dispose();
   }
 }
 
