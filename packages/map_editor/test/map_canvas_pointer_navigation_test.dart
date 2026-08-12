@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
+import 'package:map_editor/src/application/services/editor_performance_telemetry.dart';
 import 'package:map_editor/src/application/services/map_viewport_navigation.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
@@ -531,6 +532,60 @@ void main() {
       expect(committed.mapStrokeStart, isNull);
       expect(committed.isDirty, isTrue);
       expect(committed.mapUndoStack, hasLength(1));
+    });
+
+    testWidgets(
+        'records pointer mutation build and paint without persistence work',
+        (tester) async {
+      final recorder = EditorPerformanceRecorder();
+      final recording = EditorPerformanceTelemetry.startRecording(recorder);
+      addTearDown(recording.close);
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: _activeMap,
+        activeLayerId: 'ground',
+        activeTool: EditorToolType.tilePaint,
+        activeBrush: EditorBrush.tile(tileId: 7, tilesetId: 'world'),
+        savedMapSnapshot: _activeMap,
+      );
+
+      await _pumpCanvas(tester, container);
+      final beforeGesture = recorder.snapshot();
+      final canvasOrigin = tester.getTopLeft(find.byType(MapCanvas));
+      final gesture = await tester.startGesture(
+        canvasOrigin + const Offset(8, 8),
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kPrimaryButton,
+      );
+      await gesture.moveBy(const Offset(20, 0));
+      await gesture.up();
+      await tester.pump();
+
+      final delta = recorder.deltaSince(beforeGesture);
+      expect(
+        delta.spanSamples(EditorPerformanceSpanName.pointerToDispatch),
+        isNotEmpty,
+      );
+      expect(
+        delta.spanSamples(EditorPerformanceSpanName.mutationLocal),
+        isNotEmpty,
+      );
+      expect(
+        delta.spanSamples(EditorPerformanceSpanName.statePublish),
+        isNotEmpty,
+      );
+      expect(
+        delta.spanSamples(EditorPerformanceSpanName.canvasBuild),
+        isNotEmpty,
+      );
+      expect(
+        delta.spanSamples(EditorPerformanceSpanName.canvasPaint),
+        isNotEmpty,
+      );
+      for (final counter in EditorPerformanceCounterName.all) {
+        expect(delta.counter(counter), 0, reason: counter);
+      }
     });
 
     testWidgets('space plus primary drag pans without painting',

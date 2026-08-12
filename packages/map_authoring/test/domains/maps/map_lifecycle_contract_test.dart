@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -97,6 +98,27 @@ void main() {
         ).name,
         'Town Updated',
       );
+    });
+
+    test('reports the exact canonical map save encoding boundary', () {
+      final observer = _PerformanceObserver();
+      final original = _map('town', width: 3, height: 2);
+      final snapshot = _snapshot(maps: [original]);
+      final request = _request(
+        snapshot,
+        actionId: 'map.save',
+        parameters: {
+          'map': original.copyWith(name: 'Town Updated').toJson(),
+        },
+      );
+
+      MapLifecycleActions(
+        adapter: MapLifecycleAdapter(performanceObserver: observer),
+      ).build(_context(snapshot, request));
+
+      expect(observer.started, <String>['save.encode']);
+      expect(observer.finished, <String>['save.encode']);
+      expect(observer.counters['json.encode'], 1);
     });
 
     test('duplicates a map without changing the source document', () {
@@ -249,6 +271,33 @@ void main() {
       expect(draft.referenceImpact['dependentCount'], 0);
     });
   });
+}
+
+final class _PerformanceObserver implements AuthoringPerformanceObserver {
+  final List<String> started = <String>[];
+  final List<String> finished = <String>[];
+  final Map<String, int> counters = <String, int>{};
+
+  @override
+  AuthoringPerformanceSpan startSpan(String name) {
+    started.add(name);
+    return _PerformanceSpan(name, finished);
+  }
+
+  @override
+  void incrementCounter(String name, {int by = 1}) {
+    counters.update(name, (value) => value + by, ifAbsent: () => by);
+  }
+}
+
+final class _PerformanceSpan implements AuthoringPerformanceSpan {
+  _PerformanceSpan(this.name, this.finished);
+
+  final String name;
+  final List<String> finished;
+
+  @override
+  void finish() => finished.add(name);
 }
 
 AuthoringPlanningContext _context(

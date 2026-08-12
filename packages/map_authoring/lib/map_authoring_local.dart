@@ -15,6 +15,7 @@ export 'src/ports/project_file_reader.dart'
         ProjectResourceIdentityReader,
         ProjectSnapshotCacheIdentityReader;
 export 'src/references/project_reference_index.dart' show ProjectReferenceIndex;
+export 'src/support/authoring_performance_observer.dart';
 export 'src/workspace/project_open_service.dart' show ProjectOpenService;
 export 'src/workspace/project_query_service.dart' show ProjectQueryService;
 export 'src/workspace/project_snapshot.dart'

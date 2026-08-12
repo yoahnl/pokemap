@@ -1,4 +1,9 @@
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/map_authoring_local.dart'
+    show
+        AuthoringPerformanceCounterName,
+        AuthoringPerformanceObserver,
+        AuthoringPerformanceSpan;
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -91,7 +96,81 @@ void main() {
       expect(walkability.componentCount, 2);
       expect(walkability.componentSizes, const [3, 3]);
     });
+
+    test('observes pixel mask base64 decoding on the canonical inspector', () {
+      final observer = _RecordingPerformanceObserver();
+      final mask = ElementCollisionPixelMask(
+        widthPx: 16,
+        heightPx: 16,
+        dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+          widthPx: 16,
+          heightPx: 16,
+          solidPixels: <bool>[
+            true,
+            ...List<bool>.filled(255, false),
+          ],
+        ),
+      );
+      final manifest = _manifest(
+        elements: [
+          ProjectElementEntry(
+            id: 'masked-rock',
+            name: 'Masked rock',
+            tilesetId: 'nature',
+            categoryId: 'decor',
+            frames: const [
+              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+            ],
+            collisionProfile: ElementCollisionProfile(
+              collisionMask: mask,
+            ),
+          ),
+        ],
+      );
+      final map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 1, height: 1),
+        placedElements: const [
+          MapPlacedElement(
+            id: 'masked-rock-instance',
+            layerId: 'decor',
+            elementId: 'masked-rock',
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+      );
+
+      final result = EffectiveCollisionInspector(
+        performanceObserver: observer,
+      ).queryAt(
+        manifest: manifest,
+        map: map,
+        pos: const GridPos(x: 0, y: 0),
+      );
+
+      expect(result, isA<EffectiveCollisionCell>());
+      expect(
+        observer.counter(AuthoringPerformanceCounterName.base64Decode),
+        1,
+      );
+    });
   });
+}
+
+final class _RecordingPerformanceObserver
+    implements AuthoringPerformanceObserver {
+  final Map<String, int> _counters = <String, int>{};
+
+  int counter(String name) => _counters[name] ?? 0;
+
+  @override
+  void incrementCounter(String name, {int by = 1}) {
+    _counters.update(name, (value) => value + by, ifAbsent: () => by);
+  }
+
+  @override
+  AuthoringPerformanceSpan? startSpan(String name) => null;
 }
 
 ({ProjectManifest manifest, MapData map}) _collisionFixture() {

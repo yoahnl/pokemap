@@ -479,6 +479,17 @@ class MapGridPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.canvasPaint,
+    );
+    try {
+      _paint(canvas, size);
+    } finally {
+      span?.finish();
+    }
+  }
+
+  void _paint(Canvas canvas, Size size) {
     assert(() {
       debugOnPaint?.call();
       return true;
