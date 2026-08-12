@@ -19,6 +19,7 @@ import 'personalization_layout_overlay.dart';
 import 'personalization_preview_canvas.dart';
 import 'personalization_preview_context_picker.dart';
 import 'personalization_preview_controls.dart';
+import 'personalization_preview_source_selector.dart';
 import 'personalization_title_preview_controls.dart';
 
 class PersonalizationLivePreview extends StatefulWidget {
@@ -37,6 +38,7 @@ class PersonalizationLivePreview extends StatefulWidget {
     this.showDialogueChoices = false,
     this.battleState = PersonalizationBattlePreviewState.commands,
     this.contentSource = PersonalizationPreviewContentSource.project,
+    this.onContentSourceChanged,
     this.surfaceFidelity =
         PersonalizationPreviewSurfaceFidelity.playerInterface,
     this.contexts = const <PersonalizationPreviewContextOption>[],
@@ -64,6 +66,8 @@ class PersonalizationLivePreview extends StatefulWidget {
   final bool showDialogueChoices;
   final PersonalizationBattlePreviewState battleState;
   final PersonalizationPreviewContentSource contentSource;
+  final ValueChanged<PersonalizationPreviewContentSource>?
+  onContentSourceChanged;
   final PersonalizationPreviewSurfaceFidelity surfaceFidelity;
   final List<PersonalizationPreviewContextOption> contexts;
   final bool contextsLoading;
@@ -194,7 +198,10 @@ class _PersonalizationLivePreviewState
         );
     final portraitCharacterId = portraitContext?.detail['characterId'];
     final dialogueCharacter =
-        portraitContext == null || portraitCharacterId is! String
+        widget.contentSource ==
+            PersonalizationPreviewContentSource.demonstration
+        ? null
+        : portraitContext == null || portraitCharacterId is! String
         ? widget.dialogueCharacter
         : PersonalizationCharacterPreviewOption(
             id: portraitContext.id,
@@ -319,25 +326,39 @@ class _PersonalizationLivePreviewState
                     onChanged: (stage) => unawaited(_selectTitleStage(stage)),
                   ),
                 ],
-                PersonalizationPreviewContextPicker(
-                  scene: widget.scene,
-                  contexts: widget.contexts,
-                  selectedIds: <PersonalizationPreviewContextKind, String?>{
-                    for (final kind in PersonalizationPreviewContextKind.values)
-                      kind: _context(kind)?.id,
-                  },
-                  onSelected: (kind, id) {
-                    setState(() {
-                      _selectedContextIds[kind] = id;
-                      if (kind == PersonalizationPreviewContextKind.encounter) {
-                        _selectedEnemySpeciesId = null;
-                        _selectedPlayerSpeciesId = null;
-                      }
-                    });
-                  },
-                  isLoading: widget.contextsLoading,
-                  errorMessage: widget.contextsErrorMessage,
-                ),
+                if (widget.onContentSourceChanged != null &&
+                    (widget.scene == PersonalizationStudioScene.dialogue ||
+                        widget.scene ==
+                            PersonalizationStudioScene.battle)) ...<Widget>[
+                  const SizedBox(height: 8),
+                  PersonalizationPreviewSourceSelector(
+                    source: widget.contentSource,
+                    onChanged: widget.onContentSourceChanged!,
+                  ),
+                ],
+                if (widget.contentSource ==
+                    PersonalizationPreviewContentSource.project)
+                  PersonalizationPreviewContextPicker(
+                    scene: widget.scene,
+                    contexts: widget.contexts,
+                    selectedIds: <PersonalizationPreviewContextKind, String?>{
+                      for (final kind
+                          in PersonalizationPreviewContextKind.values)
+                        kind: _context(kind)?.id,
+                    },
+                    onSelected: (kind, id) {
+                      setState(() {
+                        _selectedContextIds[kind] = id;
+                        if (kind ==
+                            PersonalizationPreviewContextKind.encounter) {
+                          _selectedEnemySpeciesId = null;
+                          _selectedPlayerSpeciesId = null;
+                        }
+                      });
+                    },
+                    isLoading: widget.contextsLoading,
+                    errorMessage: widget.contextsErrorMessage,
+                  ),
                 if (widget.scene == PersonalizationStudioScene.battle &&
                     encounterContext != null) ...<Widget>[
                   const SizedBox(height: 8),
@@ -517,6 +538,10 @@ class _PersonalizationLivePreviewState
     PersonalizationPreviewContextKind kind, {
     String? preferredSourceId,
   }) {
+    if (widget.contentSource ==
+        PersonalizationPreviewContentSource.demonstration) {
+      return null;
+    }
     final options = widget.contexts
         .where((option) => option.kind == kind)
         .toList(growable: false);

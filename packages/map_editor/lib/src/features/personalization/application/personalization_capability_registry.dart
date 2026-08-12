@@ -109,6 +109,15 @@ final personalizationCapabilityRegistry = PersonalizationCapabilityRegistry(
       'Comparaison avant/après',
       'personalization-preview-compare',
     ),
+    _local(
+      'preview.contentSource',
+      PersonalizationStudioScene.dialogue,
+      'Données affichées dans l’aperçu',
+      'personalization-preview-source-project',
+      additionalTestKeys: const <String>{
+        'personalization-preview-source-demonstration',
+      },
+    ),
     _navigation(
       'studio.sceneNavigation',
       PersonalizationStudioScene.globalStyle,

@@ -5,11 +5,13 @@ import 'inspectors/personalization_intro_inspector.dart';
 import 'inspectors/personalization_pause_inspector.dart';
 import 'inspectors/personalization_title_inspector.dart';
 import 'personalization_preview_controls.dart';
+import 'personalization_preview_source_selector.dart';
 import 'personalization_scene_inspector.dart';
 import 'personalization_scene_navigation.dart';
 
 const personalizationStudioVisibleCapabilityIds = <String>{
   ...PersonalizationPreviewControls.capabilityIds,
+  ...PersonalizationPreviewSourceSelector.capabilityIds,
   ...PersonalizationSceneNavigation.capabilityIds,
   ...PersonalizationSceneInspector.capabilityIds,
   ...PersonalizationGlobalStyleInspector.capabilityIds,

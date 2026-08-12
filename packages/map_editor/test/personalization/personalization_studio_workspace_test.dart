@@ -156,6 +156,122 @@ void main() {
     },
   );
 
+  testWidgets('preview source selection stays local to the selected scene', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-preview-source-',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(
+      name: 'Preview Source Studio',
+    ).copyWith(presentation: const ProjectPresentationProfile());
+    final projectFile = File('${root.path}/project.json');
+    final durableJson = jsonEncode(project.toJson());
+    projectFile.writeAsStringSync(durableJson, flush: true);
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1600, 900),
+      overrides: [
+        personalizationPreviewContextSourceProvider.overrideWithValue(
+          _PreviewContextSource(_previewContexts),
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+    final before = container.read(editorNotifierProvider);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-source-demonstration'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-scene-dialogue'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Projet réel'), findsOneWidget);
+    expect(find.text('Texte du premier dialogue.'), findsOneWidget);
+
+    final demonstration = find.byKey(
+      const ValueKey<String>('personalization-preview-source-demonstration'),
+    );
+    expect(demonstration.hitTestable(), findsOneWidget);
+    await tester.tap(demonstration);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('personalization-preview-content-source'),
+        ),
+        matching: find.text('Démonstration'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Texte du premier dialogue.'), findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-context-dialogue'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-dialogue-unavailable'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-studio-scene-battle')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('personalization-preview-content-source'),
+        ),
+        matching: find.text('Projet réel'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-scene-dialogue'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('personalization-preview-content-source'),
+        ),
+        matching: find.text('Démonstration'),
+      ),
+      findsOneWidget,
+    );
+    final after = container.read(editorNotifierProvider);
+    expect(after.project, before.project);
+    expect(after.isDirty, before.isDirty);
+    expect(after.isProjectDirty, before.isProjectDirty);
+    expect(projectFile.readAsStringSync(), durableJson);
+    expect(
+      container
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.isDirty,
+      isFalse,
+    );
+  });
+
   testWidgets(
     'runs preflight in Studio and invalidates it after a draft edit',
     (tester) async {

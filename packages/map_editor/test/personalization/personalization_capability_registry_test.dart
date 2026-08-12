@@ -10,6 +10,7 @@ void main() {
         'preview.textScale',
         'preview.reducedMotion',
         'preview.compare',
+        'preview.contentSource',
         'studio.sceneNavigation',
         'inspector.targetNavigation',
         'global.colors',
@@ -47,7 +48,7 @@ void main() {
         'battle.typography',
       }),
     );
-    expect(personalizationCapabilityRegistry.descriptors, hasLength(39));
+    expect(personalizationCapabilityRegistry.descriptors, hasLength(40));
   });
 
   test('project capabilities require persistence and runtime evidence', () {
@@ -130,6 +131,8 @@ void main() {
       'personalization-preview-text-scale-200',
       'personalization-preview-reduced-motion',
       'personalization-preview-compare',
+      'personalization-preview-source-project',
+      'personalization-preview-source-demonstration',
     };
 
     for (final control in controls) {

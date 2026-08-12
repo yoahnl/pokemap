@@ -95,6 +95,9 @@ class _PersonalizationStudioWorkspaceState
   bool _showDialogueChoices = false;
   PersonalizationBattlePreviewState _battlePreviewState =
       PersonalizationBattlePreviewState.commands;
+  final Map<PersonalizationStudioScene, PersonalizationPreviewContentSource>
+  _previewContentSources =
+      <PersonalizationStudioScene, PersonalizationPreviewContentSource>{};
   final Map<ProjectTypographyRole, String> _fontPreviewFamilies =
       <ProjectTypographyRole, String>{};
   ProjectPresentationPreflightResult? _preflightResult;
@@ -121,6 +124,7 @@ class _PersonalizationStudioWorkspaceState
   void _ensureSession(String projectRootPath) {
     if (_requestedProjectRootPath == projectRootPath) return;
     _requestedProjectRootPath = projectRootPath;
+    _previewContentSources.clear();
     scheduleMicrotask(() async {
       if (!mounted) return;
       await ref
@@ -2236,7 +2240,14 @@ class _PersonalizationStudioWorkspaceState
                 showDialogueName: _showDialogueName,
                 showDialogueChoices: _showDialogueChoices,
                 battleState: _battlePreviewState,
-                contentSource: PersonalizationPreviewContentSource.project,
+                contentSource:
+                    _previewContentSources[_selectedScene] ??
+                    PersonalizationPreviewContentSource.project,
+                onContentSourceChanged: (source) {
+                  setState(() {
+                    _previewContentSources[_selectedScene] = source;
+                  });
+                },
                 contexts: previewContexts,
                 contextsLoading:
                     previewContextState.isLoading && previewContexts.isEmpty,
