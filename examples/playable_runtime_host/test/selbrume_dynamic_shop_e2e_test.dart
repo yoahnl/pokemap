@@ -11,7 +11,7 @@ import 'package:pokemap_loader/src/in_game_shop_page.dart';
 
 import 'support/selbrume_player_service_test_host.dart';
 
-final _itemCatalog = ItemCatalogSnapshot.fromCatalog(mvpItemCatalog);
+late ItemCatalogSnapshot _itemCatalog;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +22,7 @@ void main() {
 
   setUpAll(() {
     project = _loadSelbrumeProject();
+    _itemCatalog = _loadSelbrumeItemCatalog(project);
     shop = project.shops.singleWhere(
       (candidate) => candidate.id == 'shop_port_supplies',
     );
@@ -50,17 +51,48 @@ void main() {
     expect(harness.state.trainerProfile.money, 800);
     expect(_bagQuantity(harness.state, 'poke-ball'), 1);
     expect(
-      harness.state.progression
-          .shopPurchaseCounts['shop_port_supplies::poke-ball'],
+      harness
+          .state
+          .progression
+          .shopPurchaseCounts['shop_port_supplies::default::poke-ball'],
       1,
     );
     _expectResolvedProfile(
       host.shopRequests.single.resolvedState,
       stateId: ShopStateResolver.defaultStateId,
-      entries: const <String, int>{
-        'potion': 300,
-        'poke-ball': 200,
-      },
+      entries: const <String, int>{'potion': 300, 'poke-ball': 200},
+    );
+  });
+
+  test('default and after-Lysa stocks remain isolated', () async {
+    final host = SelbrumePlayerServiceTestHost()
+      ..queueShopPurchase('potion')
+      ..queueShopPurchase('potion');
+    final harness = _ShopRuntimeHarness(
+      initialState: _state(money: 1000),
+      host: host,
+      conditionContext: conditionContext,
+    );
+
+    final defaultResult = await harness.controller.openShop(shop);
+    harness.state = harness.state.copyWith(
+      narrativeFactRuntimeState: NarrativeFactRuntimeState(
+        overridesByFactId: <String, bool>{'fact_rival_port_defeated': true},
+      ),
+    );
+    final afterLysaResult = await harness.controller.openShop(shop);
+
+    expect(defaultResult.status, PlayerServiceRuntimeStatus.completed);
+    expect(afterLysaResult.status, PlayerServiceRuntimeStatus.completed);
+    expect(harness.state.trainerProfile.money, 450);
+    expect(_bagQuantity(harness.state, 'potion'), 2);
+    expect(
+      harness.state.progression.shopPurchaseCounts,
+      containsPair('shop_port_supplies::default::potion', 1),
+    );
+    expect(
+      harness.state.progression.shopPurchaseCounts,
+      containsPair('shop_port_supplies::after-lysa::potion', 1),
     );
   });
 
@@ -75,9 +107,7 @@ void main() {
     final firstHarness = _ShopRuntimeHarness(
       initialState: _state(
         money: 1000,
-        facts: const <String, bool>{
-          'fact_rival_port_defeated': true,
-        },
+        facts: const <String, bool>{'fact_rival_port_defeated': true},
       ),
       host: firstHost,
       conditionContext: conditionContext,
@@ -92,7 +122,8 @@ void main() {
     expect(firstReload!.trainerProfile.money, 750);
     expect(_bagQuantity(firstReload, 'potion'), 1);
     expect(
-      firstReload.progression
+      firstReload
+          .progression
           .shopPurchaseCounts['shop_port_supplies::after-lysa::potion'],
       1,
     );
@@ -123,54 +154,54 @@ void main() {
     expect(secondReload!.trainerProfile.money, 500);
     expect(_bagQuantity(secondReload, 'potion'), 2);
     expect(
-      secondReload.progression
+      secondReload
+          .progression
           .shopPurchaseCounts['shop_port_supplies::after-lysa::potion'],
       2,
     );
-    expect(
-      secondHost.shopRequests.single.resolvedState.stateId,
-      'after-lysa',
-    );
+    expect(secondHost.shopRequests.single.resolvedState.stateId, 'after-lysa');
   });
 
-  test('lighthouse alert overrides after-Lysa and cannot commit a purchase',
-      () async {
-    final initial = _state(
-      money: 1000,
-      facts: const <String, bool>{
-        'fact_rival_port_defeated': true,
-        'fact_lighthouse_reached': true,
-      },
-    );
-    final host = SelbrumePlayerServiceTestHost()..queueShopPurchase('potion');
-    final harness = _ShopRuntimeHarness(
-      initialState: initial,
-      host: host,
-      conditionContext: conditionContext,
-    );
+  test(
+    'lighthouse alert overrides after-Lysa and cannot commit a purchase',
+    () async {
+      final initial = _state(
+        money: 1000,
+        facts: const <String, bool>{
+          'fact_rival_port_defeated': true,
+          'fact_lighthouse_reached': true,
+        },
+      );
+      final host = SelbrumePlayerServiceTestHost()..queueShopPurchase('potion');
+      final harness = _ShopRuntimeHarness(
+        initialState: initial,
+        host: host,
+        conditionContext: conditionContext,
+      );
 
-    final result = await harness.controller.openShop(shop);
-    final resolved = host.shopRequests.single.resolvedState;
+      final result = await harness.controller.openShop(shop);
+      final resolved = host.shopRequests.single.resolvedState;
 
-    expect(result.status, PlayerServiceRuntimeStatus.failed);
-    expect(result.error, isA<StateError>());
-    expect(result.error.toString(), contains('shopClosed'));
-    expect(harness.commits, 0);
-    expect(harness.state, same(initial));
-    expect(harness.inputLocks, <bool>[true, false]);
-    expect(resolved.stateId, 'lighthouse-alert');
-    expect(resolved.matchedStateIds, <String>[
-      'lighthouse-alert',
-      'after-lysa',
-    ]);
-    expect(resolved.isOpen, isFalse);
-    expect(resolved.entries, isEmpty);
-    expect(
-      resolved.message,
-      'Le comptoir reste fermé pendant l’alerte du phare.',
-    );
-    expect(host.purchasedItemIds, isEmpty);
-  });
+      expect(result.status, PlayerServiceRuntimeStatus.failed);
+      expect(result.error, isA<StateError>());
+      expect(result.error.toString(), contains('shopClosed'));
+      expect(harness.commits, 0);
+      expect(harness.state, same(initial));
+      expect(harness.inputLocks, <bool>[true, false]);
+      expect(resolved.stateId, 'lighthouse-alert');
+      expect(resolved.matchedStateIds, <String>[
+        'lighthouse-alert',
+        'after-lysa',
+      ]);
+      expect(resolved.isOpen, isFalse);
+      expect(resolved.entries, isEmpty);
+      expect(
+        resolved.message,
+        'Le comptoir reste fermé pendant l’alerte du phare.',
+      );
+      expect(host.purchasedItemIds, isEmpty);
+    },
+  );
 
   test('finished story wins and buys from the final catalogue', () async {
     final host = SelbrumePlayerServiceTestHost()
@@ -195,14 +226,13 @@ void main() {
     expect(harness.state.trainerProfile.money, 850);
     expect(_bagQuantity(harness.state, 'poke-ball'), 1);
     expect(
-      harness.state.progression
+      harness
+          .state
+          .progression
           .shopPurchaseCounts['shop_port_supplies::story-finished::poke-ball'],
       1,
     );
-    expect(resolved.matchedStateIds, <String>[
-      'story-finished',
-      'after-lysa',
-    ]);
+    expect(resolved.matchedStateIds, <String>['story-finished', 'after-lysa']);
     _expectResolvedProfile(
       resolved,
       stateId: 'story-finished',
@@ -214,13 +244,12 @@ void main() {
     );
   });
 
-  testWidgets('real Selbrume UI refreshes a stale after-Lysa catalogue',
-      (tester) async {
+  testWidgets('real Selbrume UI refreshes a stale after-Lysa catalogue', (
+    tester,
+  ) async {
     var latest = _state(
       money: 1000,
-      facts: const <String, bool>{
-        'fact_rival_port_defeated': true,
-      },
+      facts: const <String, bool>{'fact_rival_port_defeated': true},
     );
     var commits = 0;
     await tester.pumpWidget(
@@ -316,6 +345,15 @@ ProjectManifest _loadSelbrumeProject() {
   );
 }
 
+ItemCatalogSnapshot _loadSelbrumeItemCatalog(ProjectManifest project) {
+  final root = _findRepositoryRoot();
+  final relativePath = project.pokemon.catalogFiles['items']!;
+  final catalogFile = File(p.join(root.path, 'selbrume', relativePath));
+  return ItemCatalogSnapshot.fromCatalog(
+    decodeProjectItemCatalog(jsonDecode(catalogFile.readAsStringSync())),
+  );
+}
+
 Directory _findRepositoryRoot() {
   var current = Directory.current.absolute;
   while (true) {
@@ -333,14 +371,13 @@ Directory _findRepositoryRoot() {
 GameState _state({
   required int money,
   Map<String, bool> facts = const <String, bool>{},
-}) =>
-    GameState(
-      saveId: 'selbrume-dynamic-shop-e2e',
-      trainerProfile: TrainerProfile(name: 'Leaf', money: money),
-      narrativeFactRuntimeState: NarrativeFactRuntimeState(
-        overridesByFactId: facts,
-      ),
-    );
+}) => GameState(
+  saveId: 'selbrume-dynamic-shop-e2e',
+  trainerProfile: TrainerProfile(name: 'Leaf', money: money),
+  narrativeFactRuntimeState: NarrativeFactRuntimeState(
+    overridesByFactId: facts,
+  ),
+);
 
 int _bagQuantity(GameState state, String itemId) => state.bag.entries
     .where((entry) => entry.itemId == itemId)
@@ -353,10 +390,7 @@ void _expectResolvedProfile(
 }) {
   expect(resolved.stateId, stateId);
   expect(resolved.isOpen, isTrue);
-  expect(
-    <String, int>{
-      for (final entry in resolved.entries) entry.itemId: entry.price,
-    },
-    entries,
-  );
+  expect(<String, int>{
+    for (final entry in resolved.entries) entry.itemId: entry.price,
+  }, entries);
 }
