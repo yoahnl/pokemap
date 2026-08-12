@@ -7,12 +7,10 @@ import 'player_pause_menu.dart';
 import 'player_title_screen.dart';
 
 typedef RuntimePresentationImageResolver = ImageProvider? Function(
-  RuntimeStartupPresentationAsset? asset,
-);
+    RuntimeStartupPresentationAsset? asset);
 
 typedef ProjectPresentationImageResolver = ImageProvider? Function(
-  String assetPath,
-);
+    String assetPath);
 
 @immutable
 final class RuntimePlayerPresentation {
@@ -148,6 +146,109 @@ final class RuntimePlayerPresentation {
   }
 }
 
+@immutable
+final class RuntimePlayerPresentationViewData {
+  RuntimePlayerPresentationViewData._(Map<String, Object?> value)
+      : value = Map<String, Object?>.unmodifiable(value);
+
+  factory RuntimePlayerPresentationViewData.fromPresentation(
+    RuntimePlayerPresentation presentation,
+  ) =>
+      RuntimePlayerPresentationViewData._(<String, Object?>{
+        'title': <String, Object?>{
+          'title': presentation.title.title,
+          'author': presentation.title.author,
+          'description': presentation.title.description,
+          'actions': presentation.title.actions
+              ?.map((action) => action.toJson())
+              .toList(growable: false),
+          'accentColor': presentation.title.accentColor?.toARGB32(),
+          'layoutVariant': presentation.title.layoutVariant.name,
+        },
+        'typography': <String, Object?>{
+          'displayFamily': presentation.typography.displayFamily,
+          'displayFallback': presentation.typography.displayFallback,
+          'bodyFamily': presentation.typography.bodyFamily,
+          'bodyFallback': presentation.typography.bodyFallback,
+          'dialogueFamily': presentation.typography.dialogueFamily,
+          'dialogueFallback': presentation.typography.dialogueFallback,
+          'combatFamily': presentation.typography.combatFamily,
+          'combatFallback': presentation.typography.combatFallback,
+          'numbersFamily': presentation.typography.numbersFamily,
+          'numbersFallback': presentation.typography.numbersFallback,
+          'displayMetrics': presentation.typography.displayMetrics?.toJson(),
+          'bodyMetrics': presentation.typography.bodyMetrics?.toJson(),
+          'dialogueMetrics': presentation.typography.dialogueMetrics?.toJson(),
+          'combatMetrics': presentation.typography.combatMetrics?.toJson(),
+          'numbersMetrics': presentation.typography.numbersMetrics?.toJson(),
+        },
+        'semanticTheme': _semanticThemeViewData(presentation.semanticTheme),
+        'surfacePalettes': presentation.surfacePalettes?.toJson(),
+        'windows': presentation.windowProfile?.toJson(),
+        'layouts': presentation.layoutProfile?.toJson(),
+        'dialogue': presentation.dialogueProfile?.toJson(),
+        'battle': presentation.battleProfile?.toJson(),
+        'pauseMenuLabels': <String, Object?>{
+          'pauseTitle': presentation.pauseMenuLabels.pauseTitle,
+          'resume': presentation.pauseMenuLabels.resume,
+          'party': presentation.pauseMenuLabels.party,
+          'bag': presentation.pauseMenuLabels.bag,
+          'pokedex': presentation.pauseMenuLabels.pokedex,
+          'map': presentation.pauseMenuLabels.map,
+          'save': presentation.pauseMenuLabels.save,
+          'options': presentation.pauseMenuLabels.options,
+          'returnToTitle': presentation.pauseMenuLabels.returnToTitle,
+        },
+        'pause': <String, Object?>{
+          'title': presentation.pausePresentation.title,
+          'hint': presentation.pausePresentation.hint,
+          'actionOrder': presentation.pausePresentation.actionOrder
+              ?.map((action) => action.name)
+              .toList(growable: false),
+          'actionLabels': <String, String>{
+            for (final entry
+                in presentation.pausePresentation.actionLabels.entries)
+              entry.key.name: entry.value,
+          },
+          'actionIcons': <String, String>{
+            for (final entry
+                in presentation.pausePresentation.actionIcons.entries)
+              entry.key.name: entry.value.name,
+          },
+          'hiddenActions': presentation.pausePresentation.hiddenActions
+              .map((action) => action.name)
+              .toList(growable: false),
+          'composition': presentation.pausePresentation.composition?.toJson(),
+        },
+      });
+
+  final Map<String, Object?> value;
+}
+
+Map<String, Object?>? _semanticThemeViewData(
+  PokeMapPlayerSemanticTheme? theme,
+) =>
+    theme == null
+        ? null
+        : <String, Object?>{
+            'primary': theme.primary.toARGB32(),
+            'onPrimary': theme.onPrimary.toARGB32(),
+            'background': theme.background.toARGB32(),
+            'surface': theme.surface.toARGB32(),
+            'surfaceElevated': theme.surfaceElevated.toARGB32(),
+            'textPrimary': theme.textPrimary.toARGB32(),
+            'textSecondary': theme.textSecondary.toARGB32(),
+            'outline': theme.outline.toARGB32(),
+            'success': theme.success.toARGB32(),
+            'warning': theme.warning.toARGB32(),
+            'danger': theme.danger.toARGB32(),
+            'titleSurface': theme.titleSurface.toARGB32(),
+            'dialogueSurface': theme.dialogueSurface.toARGB32(),
+            'menuSurface': theme.menuSurface.toARGB32(),
+            'overworldHudSurface': theme.overworldHudSurface.toARGB32(),
+            'battleHudSurface': theme.battleHudSurface.toARGB32(),
+          };
+
 PokeMapPlayerTypography _typography(
   RuntimeLoadedTypography? source,
   ProjectTypographyProfile? profile,
@@ -157,28 +258,19 @@ PokeMapPlayerTypography _typography(
     List<String> fallback,
   ) =>
       source?.roles[role] ??
-      RuntimeLoadedFontRole(
-        registeredFamily: null,
-        fallbackFamilies: fallback,
-      );
+      RuntimeLoadedFontRole(registeredFamily: null, fallbackFamilies: fallback);
 
-  final display = role(
-    ProjectTypographyRole.display,
-    const <String>['sans-serif'],
-  );
-  final body = role(
-    ProjectTypographyRole.body,
-    const <String>['sans-serif'],
-  );
-  final dialogue = role(
-    ProjectTypographyRole.dialogue,
-    const <String>['sans-serif'],
-  );
+  final display = role(ProjectTypographyRole.display, const <String>[
+    'sans-serif',
+  ]);
+  final body = role(ProjectTypographyRole.body, const <String>['sans-serif']);
+  final dialogue = role(ProjectTypographyRole.dialogue, const <String>[
+    'sans-serif',
+  ]);
   final combat = source?.roles[ProjectTypographyRole.combat] ?? body;
-  final numbers = role(
-    ProjectTypographyRole.numbers,
-    const <String>['monospace'],
-  );
+  final numbers = role(ProjectTypographyRole.numbers, const <String>[
+    'monospace',
+  ]);
   return PokeMapPlayerTypography(
     displayFamily: display.registeredFamily,
     displayFallback: display.fallbackFamilies,

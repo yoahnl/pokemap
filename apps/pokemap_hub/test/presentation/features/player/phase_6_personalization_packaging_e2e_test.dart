@@ -109,12 +109,13 @@ void main() {
       final runtimeProfile = (await startupAdapter.loadPresentationProfile())!;
       final packagePresentation = launch.manifest.presentation!;
       final iconPath = packagePresentation.branding.icon!;
-      final titleMusicPath = packagePresentation.branding.titleMusic!;
+      final titleMusicPath = packagePresentation.branding.titleMusic;
       final introVariant = packagePresentation.intro!.responsiveMedia.landscape;
       final displayFont = packagePresentation.typography!.display;
       final resolvedAssets = <String, RuntimeResolvedAsset?>{
         iconPath: await startupAdapter.resolveImage(iconPath),
-        titleMusicPath: await startupAdapter.resolveMedia(titleMusicPath),
+        if (titleMusicPath != null)
+          titleMusicPath: await startupAdapter.resolveMedia(titleMusicPath),
         introVariant.video: await startupAdapter.resolveMedia(
           introVariant.video,
         ),
@@ -134,7 +135,10 @@ void main() {
         ),
         profile: runtimeProfile,
         titleLogo: resolvedAssets[iconPath]?.presentationAsset,
-        titleMusic: resolvedAssets[titleMusicPath]?.presentationAsset,
+        titleMusic:
+            titleMusicPath == null
+                ? null
+                : resolvedAssets[titleMusicPath]?.presentationAsset,
         introVideo: resolvedAssets[introVariant.video]?.presentationAsset,
         introPoster: resolvedAssets[introVariant.poster]?.presentationAsset,
         typography: _loadedTypography(runtimeProfile.typography!),

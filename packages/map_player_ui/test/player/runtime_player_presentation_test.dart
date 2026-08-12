@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -5,6 +8,57 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  test('V10 acceptance profile has identical runtime view-data', () async {
+    final project = ProjectManifest.fromJson(
+      jsonDecode(
+        await File(
+          '../../examples/playable_runtime_host/'
+          'golden_personalization_v3/project.json',
+        ).readAsString(),
+      ) as Map<String, Object?>,
+    );
+    final profile = project.presentation!;
+    final typography = profile.typography!;
+    RuntimeLoadedFontRole role(ProjectTypographyRoleProfile source) =>
+        RuntimeLoadedFontRole(
+          registeredFamily: source.fontPath == null ? null : source.family,
+          fallbackFamilies: source.fallbackFamilies,
+        );
+    final roles = <ProjectTypographyRole, RuntimeLoadedFontRole>{
+      ProjectTypographyRole.display: role(typography.display),
+      ProjectTypographyRole.body: role(typography.body),
+      ProjectTypographyRole.dialogue: role(typography.dialogue),
+      ProjectTypographyRole.combat: role(
+        typography.combat ?? typography.body,
+      ),
+      ProjectTypographyRole.numbers: role(typography.numbers),
+    };
+    final hub = RuntimePlayerPresentation.fromRuntime(
+      RuntimeStartupResolvedPresentation(
+        metadata: const RuntimeStartupPresentationMetadata(
+          author: 'PokeMap',
+          description: 'Fixture V10',
+        ),
+        profile: profile,
+        typography: RuntimeLoadedTypography(
+          roles: roles,
+          unavailableRoles: const <ProjectTypographyRole>[],
+        ),
+      ),
+      imageForAsset: (_) => null,
+    );
+    final standalone = RuntimePlayerPresentation.fromProfile(
+      profile,
+      author: 'PokeMap',
+      description: 'Fixture V10',
+    );
+
+    expect(
+      RuntimePlayerPresentationViewData.fromPresentation(hub).value,
+      RuntimePlayerPresentationViewData.fromPresentation(standalone).value,
+    );
+  });
+
   test('projects V7 title copy with project metadata fallbacks', () {
     final presentation = RuntimePlayerPresentation.fromProfile(
       const ProjectPresentationProfile(
@@ -58,13 +112,12 @@ void main() {
       'Aucune sauvegarde',
     );
 
-    final actions = presentation.title.projectActions(
-      <PlayerTitleMenuAction, PlayerActionAvailability>{
-        PlayerTitleMenuAction.continueGame: disabledContinue,
-        PlayerTitleMenuAction.newGame: PlayerActionAvailability.enabled,
-        PlayerTitleMenuAction.options: PlayerActionAvailability.enabled,
-      },
-    );
+    final actions = presentation.title
+        .projectActions(<PlayerTitleMenuAction, PlayerActionAvailability>{
+      PlayerTitleMenuAction.continueGame: disabledContinue,
+      PlayerTitleMenuAction.newGame: PlayerActionAvailability.enabled,
+      PlayerTitleMenuAction.options: PlayerActionAvailability.enabled,
+    });
 
     expect(actions.keys, <PlayerTitleMenuAction>[
       PlayerTitleMenuAction.newGame,
@@ -402,7 +455,9 @@ void main() {
     expect(presentation.layoutProfile, isNull);
     expect(presentation.typography.displayFamily, isNull);
     expect(presentation.pauseMenuLabels.pauseTitle, isNull);
-    expect(presentation.pausePresentation.visibleActions,
-        PlayerPauseAction.values);
+    expect(
+      presentation.pausePresentation.visibleActions,
+      PlayerPauseAction.values,
+    );
   });
 }
