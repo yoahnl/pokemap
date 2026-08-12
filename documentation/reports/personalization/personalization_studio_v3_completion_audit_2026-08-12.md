@@ -180,3 +180,29 @@ Une première commande `map_player_ui` et une première commande `map_distributi
 ## 9. Auto-critique finale
 
 L’audit apporte des preuves fraîches sur les contrats, goldens et verticales de livraison. Il a aussi trouvé un échec MCP reproductible et deux blocages de QA desktop. Sa limite principale est l’absence de navigation Marionette sur l’application réelle, provoquée par le mismatch d’outil 0.5.0/0.6.0 ; la revue UX repose donc sur les widgets exécutés, les 36 images générées et l’inspection du shell, pas sur un parcours souris complet. Cette limite justifie à elle seule de conserver le verdict `PARTIAL`.
+
+## 10. Exécution Phase R5
+
+### PERS3-R5.1 — Suites complètes et analyses
+
+Source testée : `967ab262d149ed6ad5b97c050b6a3c5aa1337fab`.
+
+| Périmètre | Commande | Résultat frais |
+|---|---|---|
+| `map_core` | `dart test --concurrency=1` | `4167` succès, `1` skip, `5` échecs préexistants : deux rapports gameplay générés absents, une fixture de save absente, un dossier de rapports gameplay absent et l’inventaire Smart Tiles déjà désynchronisé. Aucun échec Personalization. |
+| `map_core` | `dart analyze` | code `0`, `121` infos préexistantes. |
+| `map_authoring` | `dart test --concurrency=1` | `591` succès, `2` timeouts à `30 s`. Les deux scénarios repassent isolément avec un timeout de `2 min`, dont `PMCP-085` en `14 s`. |
+| `map_authoring` | `dart analyze` | code `0`, aucun problème. |
+| `map_distribution` | `dart test --concurrency=1` | `109` succès, aucun échec. |
+| `map_distribution` | `dart analyze` | code `0`, `1` info préexistante. |
+| `map_player_ui` | `flutter test --concurrency=1` | `267` succès, aucun échec. |
+| `map_player_ui` | `flutter analyze` | code `0`, aucun problème. |
+| `map_runtime` | `flutter test --concurrency=1` | `2317` succès, `1` skip, `1` échec préexistant : golden `reports/ui/world_map_editor_gate_5_rotation_runtime.png` absent. Aucun échec Personalization. |
+| `map_runtime` | `flutter analyze` | code `1`, `7` infos préexistantes. |
+| `pokemap_hub` | `flutter test --concurrency=1` | interrompu par la limite d’exécution après `143` succès et aucun échec observé ; preuve complète non acquise dans ce lot. |
+| `tools/pokemap_mcp` | `npm run check` | code `0`. |
+| `tools/pokemap_mcp` | `npm test` | interrompu par la limite d’exécution ; les deux tests Presentation live sont passés, tandis que des scénarios Smart Tiles, Bag, runtime et playtest hors chantier ont échoué ou expiré. |
+
+Le premier passage a été invalidé par `ENOSPC`. Trois builds Flutter régénérables du worktree et des répertoires temporaires `dart_test.kernel.*` orphelins, vérifiés sans processus propriétaire, ont été nettoyés. Les relances ont utilisé un `TMPDIR` isolé et supprimé après chaque suite. Aucun source ni travail concurrent n’a été supprimé.
+
+Verdict R5.1 : `PARTIAL`. Les verticales Personalization sont vertes, mais le gate demande les suites complètes sans échec lié au chantier et une séparation explicite de la dette. Cette séparation est maintenant versionnée ; Hub et MCP devront être découpés en commandes bornées lors de la clôture R5.5 pour obtenir une preuve complète.
