@@ -2,6 +2,7 @@
 // Voir le rapport : reports/POKEMAP_MASKS_OCCLUSION_PLAYER_V2_REPORT.md
 
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
@@ -10,6 +11,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/models/element_collision_truth_summary.dart';
 import '../../application/services/editor_performance_telemetry.dart';
+import '../../application/services/fine_mask_performance_telemetry.dart';
 import '../shared/cupertino_editor_widgets.dart';
 
 /// Mode de la surface d’édition : **aperçu** (lecture seule) ou peinture sur
@@ -30,9 +32,282 @@ enum MaskSurfaceMode {
   occlusionPaint,
 }
 
-enum _MaskStrokeOperation {
-  paint,
-  erase,
+enum _MaskStrokeOperation { paint, erase }
+
+final class ElementCollisionFineMaskController {
+  ElementCollisionProfile? Function()? _commit;
+  VoidCallback? _cancel;
+
+  ElementCollisionProfile? commitActiveStroke() => _commit?.call();
+  void cancelActiveStroke() => _cancel?.call();
+
+  void _attach({
+    required ElementCollisionProfile? Function() commit,
+    required VoidCallback cancel,
+  }) {
+    _commit = commit;
+    _cancel = cancel;
+  }
+
+  void _detach() {
+    _commit = null;
+    _cancel = null;
+  }
+}
+
+enum FineMaskLayer { collision, occlusion }
+
+@immutable
+final class FineMaskMutation {
+  const FineMaskMutation({
+    required this.changedPixelCount,
+    required this.dirtyBounds,
+  });
+
+  final int changedPixelCount;
+  final Rect dirtyBounds;
+}
+
+final class FineMaskDraft {
+  FineMaskDraft._({
+    required this.width,
+    required this.height,
+    required Uint8List collisionBytes,
+    required Uint8List occlusionBytes,
+  }) : _collisionBytes = collisionBytes,
+       _occlusionBytes = occlusionBytes;
+
+  factory FineMaskDraft.empty({required int width, required int height}) {
+    final length = width * height;
+    return FineMaskDraft._(
+      width: width,
+      height: height,
+      collisionBytes: Uint8List(length),
+      occlusionBytes: Uint8List(length),
+    );
+  }
+
+  factory FineMaskDraft.fromMasks({
+    required int width,
+    required int height,
+    required List<bool> collision,
+    required List<bool> occlusion,
+  }) {
+    final length = width * height;
+    final collisionBytes = Uint8List(length);
+    final occlusionBytes = Uint8List(length);
+    for (var index = 0; index < length; index += 1) {
+      if (index < collision.length && collision[index]) {
+        collisionBytes[index] = 1;
+      }
+      if (index < occlusion.length && occlusion[index]) {
+        occlusionBytes[index] = 1;
+      }
+    }
+    return FineMaskDraft._(
+      width: width,
+      height: height,
+      collisionBytes: collisionBytes,
+      occlusionBytes: occlusionBytes,
+    );
+  }
+
+  final int width;
+  final int height;
+  final Uint8List _collisionBytes;
+  final Uint8List _occlusionBytes;
+
+  int get storageByteLength =>
+      _collisionBytes.lengthInBytes + _occlusionBytes.lengthInBytes;
+
+  Uint8List get collisionBytes => _collisionBytes;
+  Uint8List get occlusionBytes => _occlusionBytes;
+
+  bool collisionAt(int x, int y) => _collisionBytes[y * width + x] != 0;
+
+  FineMaskStroke beginStroke(FineMaskLayer layer) {
+    return FineMaskStroke._(
+      width: width,
+      height: height,
+      layer: layer,
+      bytes: layer == FineMaskLayer.collision
+          ? _collisionBytes
+          : _occlusionBytes,
+    );
+  }
+
+  FineMaskMutation paintCollision({
+    required int centerX,
+    required int centerY,
+    required int brushSize,
+    required bool erase,
+  }) {
+    final stroke = beginStroke(FineMaskLayer.collision);
+    return stroke.paint(
+      centerX: centerX,
+      centerY: centerY,
+      brushSize: brushSize,
+      erase: erase,
+    );
+  }
+
+  List<bool> collisionBoolList() =>
+      _collisionBytes.map((value) => value != 0).toList(growable: false);
+
+  List<bool> occlusionBoolList() =>
+      _occlusionBytes.map((value) => value != 0).toList(growable: false);
+}
+
+final class FineMaskStroke {
+  FineMaskStroke._({
+    required this.width,
+    required this.height,
+    required this.layer,
+    required Uint8List bytes,
+  }) : _bytes = bytes,
+       _before = Uint8List.fromList(bytes);
+
+  final int width;
+  final int height;
+  final FineMaskLayer layer;
+  final Uint8List _bytes;
+  final Uint8List _before;
+  bool _closed = false;
+  bool _dirty = false;
+
+  bool get isDirty => _dirty;
+
+  FineMaskMutation paint({
+    required int centerX,
+    required int centerY,
+    required int brushSize,
+    required bool erase,
+  }) {
+    if (_closed) {
+      return const FineMaskMutation(
+        changedPixelCount: 0,
+        dirtyBounds: Rect.zero,
+      );
+    }
+    final size = brushSize.clamp(1, math.max(width, height));
+    final left = centerX - size ~/ 2;
+    final top = centerY - size ~/ 2;
+    final value = erase ? 0 : 1;
+    var changed = 0;
+    var minX = width;
+    var minY = height;
+    var maxX = -1;
+    var maxY = -1;
+    for (var y = top; y < top + size; y += 1) {
+      if (y < 0 || y >= height) continue;
+      for (var x = left; x < left + size; x += 1) {
+        if (x < 0 || x >= width) continue;
+        final index = y * width + x;
+        if (_bytes[index] == value) continue;
+        _bytes[index] = value;
+        changed += 1;
+        minX = math.min(minX, x);
+        minY = math.min(minY, y);
+        maxX = math.max(maxX, x);
+        maxY = math.max(maxY, y);
+      }
+    }
+    if (changed == 0) {
+      return const FineMaskMutation(
+        changedPixelCount: 0,
+        dirtyBounds: Rect.zero,
+      );
+    }
+    _dirty = true;
+    return FineMaskMutation(
+      changedPixelCount: changed,
+      dirtyBounds: Rect.fromLTRB(
+        minX.toDouble(),
+        minY.toDouble(),
+        (maxX + 1).toDouble(),
+        (maxY + 1).toDouble(),
+      ),
+    );
+  }
+
+  void commit() {
+    _closed = true;
+  }
+
+  void rollback() {
+    if (_closed) return;
+    _bytes.setAll(0, _before);
+    _closed = true;
+  }
+}
+
+final class FineMaskVisualAlphaRegion {
+  const FineMaskVisualAlphaRegion({
+    required this.width,
+    required this.height,
+    required this.alphaBytes,
+  });
+
+  final int width;
+  final int height;
+  final Uint8List alphaBytes;
+  int get readbackPixelCount => alphaBytes.length;
+}
+
+Future<FineMaskVisualAlphaRegion> readFineMaskVisualAlphaRegion({
+  required ui.Image image,
+  required Rect sourceRect,
+}) async {
+  final width = math.max(1, sourceRect.width.ceil());
+  final height = math.max(1, sourceRect.height.ceil());
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  final imageBounds = Rect.fromLTWH(
+    0,
+    0,
+    image.width.toDouble(),
+    image.height.toDouble(),
+  );
+  final clipped = sourceRect.intersect(imageBounds);
+  if (!clipped.isEmpty) {
+    final destination = Rect.fromLTWH(
+      clipped.left - sourceRect.left,
+      clipped.top - sourceRect.top,
+      clipped.width,
+      clipped.height,
+    );
+    canvas.drawImageRect(
+      image,
+      clipped,
+      destination,
+      Paint()
+        ..isAntiAlias = false
+        ..filterQuality = FilterQuality.none,
+    );
+  }
+  final picture = recorder.endRecording();
+  final cropped = await picture.toImage(width, height);
+  picture.dispose();
+  try {
+    final data = await cropped.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final alpha = Uint8List(width * height);
+    if (data != null) {
+      final rgba = data.buffer.asUint8List(
+        data.offsetInBytes,
+        data.lengthInBytes,
+      );
+      for (var index = 0; index < alpha.length; index += 1) {
+        alpha[index] = rgba[index * 4 + 3];
+      }
+    }
+    return FineMaskVisualAlphaRegion(
+      width: width,
+      height: height,
+      alphaBytes: alpha,
+    );
+  } finally {
+    cropped.dispose();
+  }
 }
 
 /// Éditeur **pixel-level** pour les masques d’un [ProjectElementEntry] :
@@ -56,6 +331,7 @@ class ElementCollisionTripleMaskEditor extends StatefulWidget {
     required this.profile,
     required this.draftPadding,
     required this.onProfileChanged,
+    this.controller,
   });
 
   final ui.Image image;
@@ -65,6 +341,7 @@ class ElementCollisionTripleMaskEditor extends StatefulWidget {
   final ElementCollisionProfile? profile;
   final WarpTriggerPadding draftPadding;
   final ValueChanged<ElementCollisionProfile?> onProfileChanged;
+  final ElementCollisionFineMaskController? controller;
 
   @override
   State<ElementCollisionTripleMaskEditor> createState() =>
@@ -80,10 +357,14 @@ class _ElementCollisionTripleMaskEditorState
   bool _showPixelGrid = false;
   math.Point<int>? _hoverPixel;
 
-  late List<bool> _collisionBits;
-  late List<bool> _occlusionBits;
-  List<bool>? _visualBits;
+  late FineMaskDraft _draft;
+  late FineMaskPaintRunCache _collisionRunCache;
+  late FineMaskPaintRunCache _occlusionRunCache;
+  FineMaskPaintRunCache? _visualRunCache;
+  Uint8List? _visualBits;
   bool _loadingVisual = false;
+  FineMaskStroke? _activeStroke;
+  int _maskRevision = 0;
 
   int get _wPx => math.max(1, widget.source.width * widget.tileWidth);
   int get _hPx => math.max(1, widget.source.height * widget.tileHeight);
@@ -91,29 +372,61 @@ class _ElementCollisionTripleMaskEditorState
   @override
   void initState() {
     super.initState();
-    _collisionBits = _initialCollisionBits();
-    _occlusionBits = _initialOcclusionBits();
+    _resetDraft();
     _strokeOperation = _initialStrokeOperation();
     _brushSizePx = _defaultBrushSizePx();
     _scheduleVisualLoad();
+    widget.controller?._attach(commit: _commitStroke, cancel: _cancelStroke);
   }
 
   @override
   void didUpdateWidget(covariant ElementCollisionTripleMaskEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.controller, widget.controller)) {
+      oldWidget.controller?._detach();
+      widget.controller?._attach(commit: _commitStroke, cancel: _cancelStroke);
+    }
     if (oldWidget.profile != widget.profile ||
         oldWidget.source != widget.source ||
         oldWidget.tileWidth != widget.tileWidth ||
         oldWidget.tileHeight != widget.tileHeight) {
       setState(() {
-        _collisionBits = _initialCollisionBits();
-        _occlusionBits = _initialOcclusionBits();
+        _activeStroke?.rollback();
+        _activeStroke = null;
+        _resetDraft();
         _visualBits = null;
+        _visualRunCache = null;
         _loadingVisual = false;
         _hoverPixel = null;
+        _maskRevision += 1;
       });
       _scheduleVisualLoad();
     }
+  }
+
+  @override
+  void dispose() {
+    widget.controller?._detach();
+    super.dispose();
+  }
+
+  void _resetDraft() {
+    _draft = FineMaskDraft.fromMasks(
+      width: _wPx,
+      height: _hPx,
+      collision: _initialCollisionBits(),
+      occlusion: _initialOcclusionBits(),
+    );
+    _collisionRunCache = FineMaskPaintRunCache(
+      _draft.collisionBytes,
+      width: _wPx,
+      height: _hPx,
+    );
+    _occlusionRunCache = FineMaskPaintRunCache(
+      _draft.occlusionBytes,
+      width: _wPx,
+      height: _hPx,
+    );
   }
 
   void _scheduleVisualLoad() {
@@ -121,6 +434,12 @@ class _ElementCollisionTripleMaskEditorState
     if (decoded != null) {
       setState(() {
         _visualBits = decoded;
+        _visualRunCache = FineMaskPaintRunCache(
+          decoded,
+          width: _wPx,
+          height: _hPx,
+        );
+        _maskRevision += 1;
       });
       return;
     }
@@ -130,59 +449,58 @@ class _ElementCollisionTripleMaskEditorState
   /// Construit le masque « visible » depuis l’alpha du PNG si aucun [visualMask]
   /// n’est persisté — cohérent avec l’auto-génération (seuil alpha).
   Future<void> _loadVisualFromImageAlpha() async {
-    setState(() {
-      _loadingVisual = true;
-    });
-    final bd =
-        await widget.image.toByteData(format: ui.ImageByteFormat.rawRgba);
-    if (!mounted) {
-      return;
-    }
-    if (bd == null) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      FineMaskPerformanceSpanName.readback,
+    );
+    try {
       setState(() {
-        _loadingVisual = false;
-        _visualBits = List<bool>.filled(_wPx * _hPx, false);
+        _loadingVisual = true;
       });
-      return;
-    }
-    final bytes = bd.buffer.asUint8List();
-    final srcLeft = widget.source.x * widget.tileWidth;
-    final srcTop = widget.source.y * widget.tileHeight;
-    final w = _wPx;
-    final h = _hPx;
-    final imgW = widget.image.width;
-    final out = List<bool>.filled(w * h, false);
-    const alphaThreshold = 12;
-    for (var py = 0; py < h; py++) {
-      for (var px = 0; px < w; px++) {
-        final ix = srcLeft + px;
-        final iy = srcTop + py;
-        if (ix < 0 || iy < 0 || ix >= imgW || iy >= widget.image.height) {
-          continue;
-        }
-        final o = (iy * imgW + ix) * 4;
-        final a = bytes[o + 3];
-        out[py * w + px] = a > alphaThreshold;
+      final region = await readFineMaskVisualAlphaRegion(
+        image: widget.image,
+        sourceRect: Rect.fromLTWH(
+          widget.source.x * widget.tileWidth.toDouble(),
+          widget.source.y * widget.tileHeight.toDouble(),
+          _wPx.toDouble(),
+          _hPx.toDouble(),
+        ),
+      );
+      if (!mounted) {
+        return;
       }
+      final w = _wPx;
+      final h = _hPx;
+      final out = Uint8List(w * h);
+      const alphaThreshold = 12;
+      for (var index = 0; index < out.length; index += 1) {
+        out[index] = region.alphaBytes[index] > alphaThreshold ? 1 : 0;
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _visualBits = out;
+        _visualRunCache = FineMaskPaintRunCache(out, width: w, height: h);
+        _loadingVisual = false;
+        _maskRevision += 1;
+      });
+    } finally {
+      span?.finish();
     }
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _visualBits = out;
-      _loadingVisual = false;
-    });
   }
 
-  List<bool>? _decodeMask(ElementCollisionPixelMask? m, int w, int h) {
+  Uint8List? _decodeMask(ElementCollisionPixelMask? m, int w, int h) {
     if (m == null || m.widthPx != w || m.heightPx != h) {
       return null;
     }
     try {
-      return EditorPerformanceTelemetry.decodePackedCollisionMask(
+      final decoded = EditorPerformanceTelemetry.decodePackedCollisionMask(
         widthPx: w,
         heightPx: h,
         dataBase64: m.dataBase64,
+      );
+      return Uint8List.fromList(
+        decoded.map((value) => value ? 1 : 0).toList(growable: false),
       );
     } catch (_) {
       return null;
@@ -192,7 +510,7 @@ class _ElementCollisionTripleMaskEditorState
   List<bool> _initialCollisionBits() {
     final decoded = _decodeMask(widget.profile?.collisionMask, _wPx, _hPx);
     if (decoded != null) {
-      return decoded;
+      return decoded.map((value) => value != 0).toList(growable: false);
     }
     // Legacy : cellules → remplissage tuile par tuile.
     final out = List<bool>.filled(_wPx * _hPx, false);
@@ -220,7 +538,7 @@ class _ElementCollisionTripleMaskEditorState
   List<bool> _initialOcclusionBits() {
     final decoded = _decodeMask(widget.profile?.occlusionMask, _wPx, _hPx);
     if (decoded != null) {
-      return decoded;
+      return decoded.map((value) => value != 0).toList(growable: false);
     }
     return List<bool>.filled(_wPx * _hPx, false);
   }
@@ -246,14 +564,13 @@ class _ElementCollisionTripleMaskEditorState
       math.max(1, tileEdge ~/ 4),
       math.max(1, tileEdge ~/ 2),
       tileEdge,
-    }.where((value) => value >= 1 && value <= tileEdge).toList()
-      ..sort();
+    }.where((value) => value >= 1 && value <= tileEdge).toList()..sort();
     return values;
   }
 
   double get _zoomScale => _zoomPercent / 100.0;
 
-  ElementCollisionPixelMask _maskFromBits(List<bool> bits) {
+  ElementCollisionPixelMask _maskFromBits(Uint8List bits) {
     return ElementCollisionPixelMask(
       widthPx: _wPx,
       heightPx: _hPx,
@@ -261,14 +578,14 @@ class _ElementCollisionTripleMaskEditorState
       dataBase64: EditorPerformanceTelemetry.encodePackedCollisionMask(
         widthPx: _wPx,
         heightPx: _hPx,
-        solidPixels: bits,
+        solidPixels: bits.map((value) => value != 0).toList(growable: false),
       ),
     );
   }
 
-  void _emitProfile() {
-    final collisionMask = _maskFromBits(_collisionBits);
-    final occlusionMask = _maskFromBits(_occlusionBits);
+  ElementCollisionProfile _emitProfile() {
+    final collisionMask = _maskFromBits(_draft.collisionBytes);
+    final occlusionMask = _maskFromBits(_draft.occlusionBytes);
     ElementCollisionPixelMask? visualMask;
     if (_visualBits != null && _visualBits!.length == _wPx * _hPx) {
       visualMask = _maskFromBits(_visualBits!);
@@ -280,38 +597,85 @@ class _ElementCollisionTripleMaskEditorState
       sourceWidthInTiles: widget.source.width,
       sourceHeightInTiles: widget.source.height,
     );
-    widget.onProfileChanged(
-      ElementCollisionProfile(
-        source: ElementCollisionProfileSource.manual,
-        padding: widget.profile?.padding ?? widget.draftPadding,
-        visualMask: visualMask ?? widget.profile?.visualMask,
-        collisionMask: collisionMask,
-        occlusionMask: occlusionMask,
-        cells: derivedCells,
-      ),
+    final profile = ElementCollisionProfile(
+      source: ElementCollisionProfileSource.manual,
+      padding: widget.profile?.padding ?? widget.draftPadding,
+      visualMask: visualMask ?? widget.profile?.visualMask,
+      collisionMask: collisionMask,
+      occlusionMask: occlusionMask,
+      cells: derivedCells,
     );
+    widget.onProfileChanged(profile);
+    return profile;
   }
 
-  void _applyStroke(Offset local, Size boxSize, double boxHeight,
-      {required bool erase}) {
-    if (_mode == MaskSurfaceMode.preview) {
+  void _applyStroke(
+    Offset local,
+    Size boxSize,
+    double boxHeight, {
+    required bool erase,
+  }) {
+    final stroke = _activeStroke;
+    if (_mode == MaskSurfaceMode.preview || stroke == null) {
       return;
     }
     final pixel = _maskPixelFromLocal(local, boxSize, boxHeight);
     if (pixel == null) {
       return;
     }
-    final next = _mode == MaskSurfaceMode.collisionPaint
-        ? _collisionBits
-        : _occlusionBits;
-    _paintBrushFootprint(
-      next,
+    final mutation = stroke.paint(
       centerX: pixel.x,
       centerY: pixel.y,
+      brushSize: _brushSizePx,
       erase: erase,
     );
+    if (mutation.changedPixelCount > 0) {
+      final cache = stroke.layer == FineMaskLayer.collision
+          ? _collisionRunCache
+          : _occlusionRunCache;
+      cache.rebuild(mutation.dirtyBounds);
+      _maskRevision += 1;
+    }
     setState(() => _hoverPixel = pixel);
-    _emitProfile();
+  }
+
+  void _beginStroke() {
+    if (_mode == MaskSurfaceMode.preview) return;
+    _activeStroke?.rollback();
+    _activeStroke = _draft.beginStroke(
+      _mode == MaskSurfaceMode.collisionPaint
+          ? FineMaskLayer.collision
+          : FineMaskLayer.occlusion,
+    );
+  }
+
+  ElementCollisionProfile? _commitStroke() {
+    final stroke = _activeStroke;
+    if (stroke == null) return null;
+    final span = EditorPerformanceTelemetry.startSpan(
+      FineMaskPerformanceSpanName.commit,
+    );
+    try {
+      _activeStroke = null;
+      stroke.commit();
+      if (stroke.isDirty) return _emitProfile();
+      return null;
+    } finally {
+      span?.finish();
+    }
+  }
+
+  void _cancelStroke() {
+    final stroke = _activeStroke;
+    if (stroke == null) return;
+    _activeStroke = null;
+    stroke.rollback();
+    final cache = stroke.layer == FineMaskLayer.collision
+        ? _collisionRunCache
+        : _occlusionRunCache;
+    cache.rebuild(Rect.fromLTWH(0, 0, _wPx.toDouble(), _hPx.toDouble()));
+    _maskRevision += 1;
+    setState(() {});
   }
 
   void _updateHoverPreview(Offset local, Size boxSize, double boxHeight) {
@@ -346,38 +710,27 @@ class _ElementCollisionTripleMaskEditorState
     return math.Point<int>(px, py);
   }
 
-  void _paintBrushFootprint(
-    List<bool> bits, {
-    required int centerX,
-    required int centerY,
-    required bool erase,
-  }) {
-    final size = _brushSizePx.clamp(1, math.max(_wPx, _hPx));
-    final left = centerX - size ~/ 2;
-    final top = centerY - size ~/ 2;
-    for (var y = top; y < top + size; y++) {
-      if (y < 0 || y >= _hPx) {
-        continue;
-      }
-      for (var x = left; x < left + size; x++) {
-        if (x < 0 || x >= _wPx) {
-          continue;
-        }
-        bits[y * _wPx + x] = !erase;
-      }
+  @override
+  Widget build(BuildContext context) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      FineMaskPerformanceSpanName.build,
+    );
+    try {
+      return _build(context);
+    } finally {
+      span?.finish();
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _build(BuildContext context) {
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
     final padding = widget.profile?.padding ?? widget.draftPadding;
     final truthSummary = summarizeElementCollisionTruth(widget.profile);
     final brushPreviewLabel =
         _mode == MaskSurfaceMode.preview || _hoverPixel == null
-            ? null
-            : 'Aperçu pinceau ${_brushSizePx}px';
+        ? null
+        : 'Aperçu pinceau ${_brushSizePx}px';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
@@ -424,17 +777,22 @@ class _ElementCollisionTripleMaskEditorState
               ),
               1: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                child:
-                    Text('Peindre collision', style: TextStyle(fontSize: 11)),
+                child: Text(
+                  'Peindre collision',
+                  style: TextStyle(fontSize: 11),
+                ),
               ),
               2: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                child:
-                    Text('Peindre occlusion', style: TextStyle(fontSize: 11)),
+                child: Text(
+                  'Peindre occlusion',
+                  style: TextStyle(fontSize: 11),
+                ),
               ),
             },
             onValueChanged: (int? v) {
               if (v != null) {
+                _commitStroke();
                 setState(() => _mode = MaskSurfaceMode.values[v]);
               }
             },
@@ -450,13 +808,17 @@ class _ElementCollisionTripleMaskEditorState
                   groupValue: _strokeOperation,
                   children: const {
                     _MaskStrokeOperation.paint: Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       child: Text('Peindre', style: TextStyle(fontSize: 11)),
                     ),
                     _MaskStrokeOperation.erase: Padding(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       child: Text('Effacer', style: TextStyle(fontSize: 11)),
                     ),
                   },
@@ -491,10 +853,7 @@ class _ElementCollisionTripleMaskEditorState
                     }
                   },
                 ),
-                Text(
-                  'Zoom',
-                  style: TextStyle(color: secondary, fontSize: 10),
-                ),
+                Text('Zoom', style: TextStyle(color: secondary, fontSize: 10)),
                 CupertinoSlidingSegmentedControl<int>(
                   groupValue: _zoomPercent,
                   children: const {
@@ -591,6 +950,7 @@ class _ElementCollisionTripleMaskEditorState
                           );
                         },
                         onPointerDown: (e) {
+                          _beginStroke();
                           _applyStroke(
                             e.localPosition,
                             canvasSize,
@@ -607,14 +967,23 @@ class _ElementCollisionTripleMaskEditorState
                           // l'outil visible est sur "Peindre".
                           final erase =
                               _strokeOperation == _MaskStrokeOperation.erase ||
-                                  e.buttons == 2;
-                          _applyStroke(
-                            e.localPosition,
-                            canvasSize,
-                            canvasSize.height,
-                            erase: erase,
+                              e.buttons == 2;
+                          final span = EditorPerformanceTelemetry.startSpan(
+                            FineMaskPerformanceSpanName.pointerMove,
                           );
+                          try {
+                            _applyStroke(
+                              e.localPosition,
+                              canvasSize,
+                              canvasSize.height,
+                              erase: erase,
+                            );
+                          } finally {
+                            span?.finish();
+                          }
                         },
+                        onPointerUp: (_) => _commitStroke(),
+                        onPointerCancel: (_) => _cancelStroke(),
                         child: SizedBox(
                           width: canvasSize.width,
                           height: canvasSize.height,
@@ -622,8 +991,9 @@ class _ElementCollisionTripleMaskEditorState
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: CupertinoColors.separator
-                                    .resolveFrom(context),
+                                color: CupertinoColors.separator.resolveFrom(
+                                  context,
+                                ),
                               ),
                             ),
                             child: ClipRRect(
@@ -637,9 +1007,10 @@ class _ElementCollisionTripleMaskEditorState
                                     tileWidth: widget.tileWidth,
                                     tileHeight: widget.tileHeight,
                                     padding: padding,
-                                    visualBits: _visualBits,
-                                    collisionBits: _collisionBits,
-                                    occlusionBits: _occlusionBits,
+                                    visualRuns: _visualRunCache,
+                                    collisionRuns: _collisionRunCache,
+                                    occlusionRuns: _occlusionRunCache,
+                                    maskRevision: _maskRevision,
                                     mode: _mode,
                                     showPixelGrid: _showPixelGrid,
                                     hoverPixel: _hoverPixel,
@@ -691,14 +1062,14 @@ class _ElementCollisionTripleMaskEditorState
             _mode == MaskSurfaceMode.preview
                 ? 'Mode aperçu : édition désactivée.'
                 : widget.profile?.collisionMask == null &&
-                        widget.profile?.cells.isNotEmpty == true &&
-                        _strokeOperation == _MaskStrokeOperation.erase
-                    ? 'Profil grille détecté : Effacer est sélectionné pour creuser un masque fin depuis la grille existante.'
-                    : _strokeOperation == _MaskStrokeOperation.erase
-                        ? 'Mode ${_mode == MaskSurfaceMode.collisionPaint ? 'collision' : 'occlusion'} : '
-                            'cliquez / tracez pour effacer.'
-                        : 'Mode ${_mode == MaskSurfaceMode.collisionPaint ? 'collision' : 'occlusion'} : '
-                            'cliquez / tracez pour peindre. Le bouton Effacer gomme la zone.',
+                      widget.profile?.cells.isNotEmpty == true &&
+                      _strokeOperation == _MaskStrokeOperation.erase
+                ? 'Profil grille détecté : Effacer est sélectionné pour creuser un masque fin depuis la grille existante.'
+                : _strokeOperation == _MaskStrokeOperation.erase
+                ? 'Mode ${_mode == MaskSurfaceMode.collisionPaint ? 'collision' : 'occlusion'} : '
+                      'cliquez / tracez pour effacer.'
+                : 'Mode ${_mode == MaskSurfaceMode.collisionPaint ? 'collision' : 'occlusion'} : '
+                      'cliquez / tracez pour peindre. Le bouton Effacer gomme la zone.',
             style: TextStyle(color: secondary, fontSize: 10),
           ),
         ],
@@ -725,10 +1096,7 @@ class _ElementCollisionTripleMaskEditorState
         ),
         const SizedBox(width: 6),
         Expanded(
-          child: Text(
-            text,
-            style: TextStyle(color: secondary, fontSize: 10),
-          ),
+          child: Text(text, style: TextStyle(color: secondary, fontSize: 10)),
         ),
       ],
     );
@@ -762,6 +1130,135 @@ Rect fitCollisionPreviewRect({
   return Rect.fromLTWH(left, 0, width, size.height);
 }
 
+@immutable
+final class CollisionMaskPaintRun {
+  const CollisionMaskPaintRun({
+    required this.x,
+    required this.y,
+    required this.length,
+  });
+
+  final int x;
+  final int y;
+  final int length;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CollisionMaskPaintRun &&
+      x == other.x &&
+      y == other.y &&
+      length == other.length;
+
+  @override
+  int get hashCode => Object.hash(x, y, length);
+}
+
+List<CollisionMaskPaintRun> buildCollisionMaskPaintRuns(
+  List<Object> bits, {
+  required int width,
+  required int height,
+}) {
+  final runs = <CollisionMaskPaintRun>[];
+  for (var y = 0; y < height; y += 1) {
+    var x = 0;
+    while (x < width) {
+      final index = y * width + x;
+      if (index >= bits.length || !_maskValueIsSet(bits[index])) {
+        x += 1;
+        continue;
+      }
+      final start = x;
+      do {
+        x += 1;
+      } while (x < width &&
+          y * width + x < bits.length &&
+          _maskValueIsSet(bits[y * width + x]));
+      runs.add(CollisionMaskPaintRun(x: start, y: y, length: x - start));
+    }
+  }
+  return runs;
+}
+
+bool _maskValueIsSet(Object value) => value == true || value == 1;
+
+final class FineMaskPaintRunCache {
+  FineMaskPaintRunCache(this._bits, {required this.width, required this.height})
+    : _chunkColumns = (width + _chunkSize - 1) ~/ _chunkSize,
+      _rowChunks = List<List<List<CollisionMaskPaintRun>>>.generate(
+        height,
+        (_) => List<List<CollisionMaskPaintRun>>.filled(
+          (width + _chunkSize - 1) ~/ _chunkSize,
+          const <CollisionMaskPaintRun>[],
+        ),
+      ) {
+    rebuild(Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()));
+  }
+
+  static const int _chunkSize = 32;
+  final Uint8List _bits;
+  final int width;
+  final int height;
+  final int _chunkColumns;
+  final List<List<List<CollisionMaskPaintRun>>> _rowChunks;
+  int lastRebuiltPixelCount = 0;
+
+  List<CollisionMaskPaintRun> chunkRunsForRow(int y, int chunkX) =>
+      _rowChunks[y][chunkX];
+
+  Iterable<CollisionMaskPaintRun> get runs sync* {
+    for (var y = 0; y < height; y += 1) {
+      CollisionMaskPaintRun? pending;
+      for (var chunkX = 0; chunkX < _chunkColumns; chunkX += 1) {
+        for (final run in _rowChunks[y][chunkX]) {
+          if (pending != null && pending.x + pending.length == run.x) {
+            pending = CollisionMaskPaintRun(
+              x: pending.x,
+              y: y,
+              length: pending.length + run.length,
+            );
+          } else {
+            if (pending != null) yield pending;
+            pending = run;
+          }
+        }
+      }
+      if (pending != null) yield pending;
+    }
+  }
+
+  void rebuild(Rect dirtyBounds) {
+    if (dirtyBounds.isEmpty) return;
+    lastRebuiltPixelCount = 0;
+    final firstY = dirtyBounds.top.floor().clamp(0, height - 1);
+    final lastY = (dirtyBounds.bottom.ceil() - 1).clamp(0, height - 1);
+    final firstChunkX =
+        dirtyBounds.left.floor().clamp(0, width - 1) ~/ _chunkSize;
+    final lastChunkX =
+        (dirtyBounds.right.ceil() - 1).clamp(0, width - 1) ~/ _chunkSize;
+    for (var y = firstY; y <= lastY; y += 1) {
+      for (var chunkX = firstChunkX; chunkX <= lastChunkX; chunkX += 1) {
+        final runs = <CollisionMaskPaintRun>[];
+        final startX = chunkX * _chunkSize;
+        final endX = math.min(width, startX + _chunkSize);
+        lastRebuiltPixelCount += endX - startX;
+        var x = startX;
+        while (x < endX) {
+          if (_bits[y * width + x] == 0) {
+            x += 1;
+            continue;
+          }
+          final start = x;
+          do {
+            x += 1;
+          } while (x < endX && _bits[y * width + x] != 0);
+          runs.add(CollisionMaskPaintRun(x: start, y: y, length: x - start));
+        }
+        _rowChunks[y][chunkX] = List<CollisionMaskPaintRun>.unmodifiable(runs);
+      }
+    }
+  }
+}
+
 class _TripleMaskPixelPainter extends CustomPainter {
   _TripleMaskPixelPainter({
     required this.image,
@@ -769,9 +1266,10 @@ class _TripleMaskPixelPainter extends CustomPainter {
     required this.tileWidth,
     required this.tileHeight,
     required this.padding,
-    required this.visualBits,
-    required this.collisionBits,
-    required this.occlusionBits,
+    required this.visualRuns,
+    required this.collisionRuns,
+    required this.occlusionRuns,
+    required this.maskRevision,
     required this.mode,
     required this.showPixelGrid,
     required this.hoverPixel,
@@ -784,9 +1282,10 @@ class _TripleMaskPixelPainter extends CustomPainter {
   final int tileWidth;
   final int tileHeight;
   final WarpTriggerPadding padding;
-  final List<bool>? visualBits;
-  final List<bool> collisionBits;
-  final List<bool> occlusionBits;
+  final FineMaskPaintRunCache? visualRuns;
+  final FineMaskPaintRunCache collisionRuns;
+  final FineMaskPaintRunCache occlusionRuns;
+  final int maskRevision;
   final MaskSurfaceMode mode;
   final bool showPixelGrid;
   final math.Point<int>? hoverPixel;
@@ -795,164 +1294,158 @@ class _TripleMaskPixelPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final wPx = math.max(1, source.width * tileWidth);
-    final hPx = math.max(1, source.height * tileHeight);
-
-    final targetRect = fitCollisionPreviewRect(
-      size: size,
-      source: source,
-      tileWidth: tileWidth,
-      tileHeight: tileHeight,
+    final span = EditorPerformanceTelemetry.startSpan(
+      FineMaskPerformanceSpanName.paint,
     );
+    try {
+      final wPx = math.max(1, source.width * tileWidth);
+      final hPx = math.max(1, source.height * tileHeight);
 
-    // --- Fond damier (transparence lisible) ---
-    _paintCheckerboard(canvas, targetRect);
-
-    final sourceRect = Rect.fromLTWH(
-      source.x * tileWidth.toDouble(),
-      source.y * tileHeight.toDouble(),
-      source.width * tileWidth.toDouble(),
-      source.height * tileHeight.toDouble(),
-    );
-    if (sourceRect.right <= image.width && sourceRect.bottom <= image.height) {
-      final imagePaint = Paint()
-        ..isAntiAlias = false
-        ..filterQuality = FilterQuality.none;
-      canvas.drawImageRect(image, sourceRect, targetRect, imagePaint);
-    }
-
-    final scaleX = targetRect.width / wPx;
-    final scaleY = targetRect.height / hPx;
-
-    // --- Padding : zone exclue de l’analyse auto (assombrissement) ---
-    final leftPad = padding.left * scaleX;
-    final rightPad = padding.right * scaleX;
-    final topPad = padding.top * scaleY;
-    final bottomPad = padding.bottom * scaleY;
-    final activeLeft = targetRect.left + leftPad;
-    final activeTop = targetRect.top + topPad;
-    final activeRight = targetRect.right - rightPad;
-    final activeBottom = targetRect.bottom - bottomPad;
-    final activeRect = Rect.fromLTRB(
-      math.min(activeLeft, activeRight),
-      math.min(activeTop, activeBottom),
-      math.max(activeLeft, activeRight),
-      math.max(activeTop, activeBottom),
-    );
-    _paintPaddingBands(
-        canvas, targetRect, leftPad, rightPad, topPad, bottomPad);
-
-    if (activeRect.width > 0 && activeRect.height > 0) {
-      canvas.drawRect(
-        activeRect,
-        Paint()
-          ..color = const Color(0xFF00BCD4).withValues(alpha: 0.72)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2,
+      final targetRect = fitCollisionPreviewRect(
+        size: size,
+        source: source,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
       );
-    }
 
-    // --- Calque « matière visuelle » (optionnel) ---
-    if (visualBits != null && visualBits!.length == wPx * hPx) {
-      final vp = Paint()..style = PaintingStyle.fill;
-      for (var py = 0; py < hPx; py++) {
-        for (var px = 0; px < wPx; px++) {
-          if (!visualBits![py * wPx + px]) {
-            continue;
-          }
-          final cell = Rect.fromLTWH(
-            targetRect.left + px * scaleX,
-            targetRect.top + py * scaleY,
-            scaleX,
-            scaleY,
-          );
-          vp.color = const Color(0xFF0277BD).withValues(alpha: 0.12);
-          canvas.drawRect(cell, vp);
-        }
-      }
-    }
+      // --- Fond damier (transparence lisible) ---
+      _paintCheckerboard(canvas, targetRect);
 
-    // --- Collision : rouge ---
-    for (var py = 0; py < hPx; py++) {
-      for (var px = 0; px < wPx; px++) {
-        final idx = py * wPx + px;
-        if (idx >= collisionBits.length || !collisionBits[idx]) {
-          continue;
-        }
-        final cell = Rect.fromLTWH(
-          targetRect.left + px * scaleX,
-          targetRect.top + py * scaleY,
-          scaleX,
-          scaleY,
-        );
-        canvas.drawRect(
-          cell,
-          Paint()..color = const Color(0xFFC62828).withValues(alpha: 0.38),
-        );
-        canvas.drawRect(
-          cell,
-          Paint()
-            ..color = const Color(0xFFB71C1C)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = mode == MaskSurfaceMode.collisionPaint ? 1.0 : 0.6,
-        );
+      final sourceRect = Rect.fromLTWH(
+        source.x * tileWidth.toDouble(),
+        source.y * tileHeight.toDouble(),
+        source.width * tileWidth.toDouble(),
+        source.height * tileHeight.toDouble(),
+      );
+      if (sourceRect.right <= image.width &&
+          sourceRect.bottom <= image.height) {
+        final imagePaint = Paint()
+          ..isAntiAlias = false
+          ..filterQuality = FilterQuality.none;
+        canvas.drawImageRect(image, sourceRect, targetRect, imagePaint);
       }
-    }
 
-    // --- Occlusion : violet (au-dessus du rouge en alpha combiné) ---
-    for (var py = 0; py < hPx; py++) {
-      for (var px = 0; px < wPx; px++) {
-        final idx = py * wPx + px;
-        if (idx >= occlusionBits.length || !occlusionBits[idx]) {
-          continue;
-        }
-        final cell = Rect.fromLTWH(
-          targetRect.left + px * scaleX,
-          targetRect.top + py * scaleY,
-          scaleX,
-          scaleY,
-        );
-        canvas.drawRect(
-          cell,
-          Paint()..color = const Color(0xFF5E35B1).withValues(alpha: 0.42),
-        );
-        canvas.drawRect(
-          cell,
-          Paint()
-            ..color = const Color(0xFF4527A0)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = mode == MaskSurfaceMode.occlusionPaint ? 1.0 : 0.55,
-        );
-      }
-    }
+      final scaleX = targetRect.width / wPx;
+      final scaleY = targetRect.height / hPx;
 
-    // --- Grille optionnelle (1 px logique) ---
-    if (showPixelGrid) {
-      final grid = Paint()
-        ..color = Colors.white.withValues(alpha: 0.12)
-        ..strokeWidth = 0.5;
-      for (var x = 0; x <= wPx; x += 4) {
-        final dx = targetRect.left + x * scaleX;
-        canvas.drawLine(
-            Offset(dx, targetRect.top), Offset(dx, targetRect.bottom), grid);
-      }
-      for (var y = 0; y <= hPx; y += 4) {
-        final dy = targetRect.top + y * scaleY;
-        canvas.drawLine(
-            Offset(targetRect.left, dy), Offset(targetRect.right, dy), grid);
-      }
-    }
-
-    if (hoverPixel != null && mode != MaskSurfaceMode.preview) {
-      _paintBrushPreview(
+      // --- Padding : zone exclue de l’analyse auto (assombrissement) ---
+      final leftPad = padding.left * scaleX;
+      final rightPad = padding.right * scaleX;
+      final topPad = padding.top * scaleY;
+      final bottomPad = padding.bottom * scaleY;
+      final activeLeft = targetRect.left + leftPad;
+      final activeTop = targetRect.top + topPad;
+      final activeRight = targetRect.right - rightPad;
+      final activeBottom = targetRect.bottom - bottomPad;
+      final activeRect = Rect.fromLTRB(
+        math.min(activeLeft, activeRight),
+        math.min(activeTop, activeBottom),
+        math.max(activeLeft, activeRight),
+        math.max(activeTop, activeBottom),
+      );
+      _paintPaddingBands(
         canvas,
         targetRect,
-        wPx: wPx,
-        hPx: hPx,
-        scaleX: scaleX,
-        scaleY: scaleY,
+        leftPad,
+        rightPad,
+        topPad,
+        bottomPad,
       );
+
+      if (activeRect.width > 0 && activeRect.height > 0) {
+        canvas.drawRect(
+          activeRect,
+          Paint()
+            ..color = const Color(0xFF00BCD4).withValues(alpha: 0.72)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2,
+        );
+      }
+
+      // --- Calque « matière visuelle » (optionnel) ---
+      if (visualRuns != null) {
+        final paint = Paint()
+          ..style = PaintingStyle.fill
+          ..color = const Color(0xFF0277BD).withValues(alpha: 0.12);
+        for (final run in visualRuns!.runs) {
+          canvas.drawRect(_runRect(run, targetRect, scaleX, scaleY), paint);
+        }
+      }
+
+      final collisionFill = Paint()
+        ..color = const Color(0xFFC62828).withValues(alpha: 0.38);
+      final collisionStroke = Paint()
+        ..color = const Color(0xFFB71C1C)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = mode == MaskSurfaceMode.collisionPaint ? 1.0 : 0.6;
+      for (final run in collisionRuns.runs) {
+        final rect = _runRect(run, targetRect, scaleX, scaleY);
+        canvas.drawRect(rect, collisionFill);
+        canvas.drawRect(rect, collisionStroke);
+      }
+
+      final occlusionFill = Paint()
+        ..color = const Color(0xFF5E35B1).withValues(alpha: 0.42);
+      final occlusionStroke = Paint()
+        ..color = const Color(0xFF4527A0)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = mode == MaskSurfaceMode.occlusionPaint ? 1.0 : 0.55;
+      for (final run in occlusionRuns.runs) {
+        final rect = _runRect(run, targetRect, scaleX, scaleY);
+        canvas.drawRect(rect, occlusionFill);
+        canvas.drawRect(rect, occlusionStroke);
+      }
+
+      // --- Grille optionnelle (1 px logique) ---
+      if (showPixelGrid) {
+        final grid = Paint()
+          ..color = Colors.white.withValues(alpha: 0.12)
+          ..strokeWidth = 0.5;
+        for (var x = 0; x <= wPx; x += 4) {
+          final dx = targetRect.left + x * scaleX;
+          canvas.drawLine(
+            Offset(dx, targetRect.top),
+            Offset(dx, targetRect.bottom),
+            grid,
+          );
+        }
+        for (var y = 0; y <= hPx; y += 4) {
+          final dy = targetRect.top + y * scaleY;
+          canvas.drawLine(
+            Offset(targetRect.left, dy),
+            Offset(targetRect.right, dy),
+            grid,
+          );
+        }
+      }
+
+      if (hoverPixel != null && mode != MaskSurfaceMode.preview) {
+        _paintBrushPreview(
+          canvas,
+          targetRect,
+          wPx: wPx,
+          hPx: hPx,
+          scaleX: scaleX,
+          scaleY: scaleY,
+        );
+      }
+    } finally {
+      span?.finish();
     }
+  }
+
+  Rect _runRect(
+    CollisionMaskPaintRun run,
+    Rect targetRect,
+    double scaleX,
+    double scaleY,
+  ) {
+    return Rect.fromLTWH(
+      targetRect.left + run.x * scaleX,
+      targetRect.top + run.y * scaleY,
+      run.length * scaleX,
+      scaleY,
+    );
   }
 
   void _paintBrushPreview(
@@ -1090,36 +1583,12 @@ class _TripleMaskPixelPainter extends CustomPainter {
   bool shouldRepaint(covariant _TripleMaskPixelPainter oldDelegate) {
     return oldDelegate.image != image ||
         oldDelegate.source != source ||
-        !_boolListEq(oldDelegate.collisionBits, collisionBits) ||
-        !_boolListEq(oldDelegate.occlusionBits, occlusionBits) ||
-        !_nullableBoolListEq(oldDelegate.visualBits, visualBits) ||
+        oldDelegate.maskRevision != maskRevision ||
         oldDelegate.mode != mode ||
         oldDelegate.showPixelGrid != showPixelGrid ||
         oldDelegate.hoverPixel != hoverPixel ||
         oldDelegate.brushSizePx != brushSizePx ||
         oldDelegate.strokeOperation != strokeOperation ||
         oldDelegate.padding != padding;
-  }
-
-  static bool _boolListEq(List<bool> a, List<bool> b) {
-    if (a.length != b.length) {
-      return false;
-    }
-    for (var i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  static bool _nullableBoolListEq(List<bool>? a, List<bool>? b) {
-    if (identical(a, b)) {
-      return true;
-    }
-    if (a == null || b == null) {
-      return false;
-    }
-    return _boolListEq(a, b);
   }
 }
