@@ -79,7 +79,12 @@ const narrativeDocumentDiscardActionKey = ValueKey<String>(
 );
 
 class EditorShellPage extends ConsumerStatefulWidget {
-  const EditorShellPage({super.key});
+  const EditorShellPage({
+    super.key,
+    this.restoreLastOpenedProjectOnStartup = true,
+  });
+
+  final bool restoreLastOpenedProjectOnStartup;
 
   @override
   ConsumerState<EditorShellPage> createState() => _EditorShellPageState();
@@ -152,6 +157,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (!widget.restoreLastOpenedProjectOnStartup) {
+      return;
+    }
     // Provider mutations are intentionally deferred after the first frame:
     // auto-restore loads a project (state mutation), and Riverpod disallows
     // mutating providers during build/init lifecycle phases.
