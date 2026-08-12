@@ -192,6 +192,30 @@ Implementation flow: inspect the smallest relevant area, define success criteria
 
 UI/editor work should stay readable, no-code, validated, and feedback-rich. Do not expose engine internals as the normal workflow.
 
+### Mandatory Notion Traceability
+
+Every PokeMap task carried out through Codex must be recorded in the canonical
+Notion product cockpit. This applies to implementation, refactoring, audits,
+tests, documentation, product decisions, bug fixes, CI work, and tooling work.
+
+- Before considering a task complete, attach it to exactly one existing grand
+  domain and create or update the corresponding Notion ticket in that domain.
+- No completed Codex work may exist only in chat, Git, a pull request, or a
+  repository report. Notion must contain at least the scope, current status,
+  affected files or packages, commands and evidence, result, relevant SHA or
+  branch/PR, and known limitations.
+- Keep the ticket status synchronized with reality using the cockpit workflow:
+  `TODO`, `DOING`, `TO REVIEW`, or `DONE`. Never mark work `DONE` without fresh
+  evidence satisfying the ticket criteria.
+- Never create a new grand domain silently. If no existing grand domain fits,
+  stop and request the user's explicit approval. Create the new domain and its
+  first ticket only after that approval.
+- If Notion is unavailable, report the tracking blocker explicitly and do not
+  treat the task as fully closed until its work has been recorded.
+- Notion is the mandatory product-tracking projection. The repository,
+  roadmaps, tests, reports, and receipts remain the canonical technical
+  evidence.
+
 ---
 
 ## 7. Git Safety
