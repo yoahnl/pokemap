@@ -1,5 +1,5 @@
 import 'package:map_core/map_core.dart';
-import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/personalization_preview.dart';
 
 import 'personalization_capability_descriptor.dart';
 import 'personalization_preview_context_source.dart';
