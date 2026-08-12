@@ -297,6 +297,22 @@ final _manifest = ProjectManifest(
     tileHeight: 32,
     displayScale: 1,
   ),
+  encounterTables: const <ProjectEncounterTable>[
+    ProjectEncounterTable(
+      id: 'route-table',
+      name: 'Route table',
+      encounterKind: EncounterKind.walk,
+      chancePerStep: 0.1,
+      entries: <ProjectEncounterEntry>[
+        ProjectEncounterEntry(
+          speciesId: 'fixture-species',
+          minLevel: 3,
+          maxLevel: 5,
+          weight: 1,
+        ),
+      ],
+    ),
+  ],
   smartTileCatalog: ProjectSmartTileCatalog(
     atlases: const <ProjectSmartTileAtlas>[
       ProjectSmartTileAtlas(

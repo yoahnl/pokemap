@@ -409,6 +409,22 @@ AuthoringPlanningContext _gameplayZoneSyncContext(
       ),
     ],
     tilesets: <ProjectTilesetEntry>[],
+    encounterTables: <ProjectEncounterTable>[
+      ProjectEncounterTable(
+        id: 'route-grass',
+        name: 'Route grass',
+        encounterKind: EncounterKind.walk,
+        chancePerStep: 0.1,
+        entries: <ProjectEncounterEntry>[
+          ProjectEncounterEntry(
+            speciesId: 'fixture-species',
+            minLevel: 3,
+            maxLevel: 5,
+            weight: 1,
+          ),
+        ],
+      ),
+    ],
   );
   final manifestBytes = utf8.encode(jsonEncode(manifest.toJson()));
   final mapBytes = utf8.encode(jsonEncode(map.toJson()));

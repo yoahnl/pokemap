@@ -116,6 +116,11 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
       : NarrativeEventProgress.fromJson(
           readNarrativeEventProgressJson(json, 'narrativeEventProgress'),
         ),
+  completedBattleRequestIds:
+      (json['completedBattleRequestIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toSet() ??
+      const {},
   consumedEventIds:
       (json['consumedEventIds'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -146,6 +151,7 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'narrativeEventProgress': narrativeEventProgressToJson(
         instance.narrativeEventProgress,
       ),
+      'completedBattleRequestIds': instance.completedBattleRequestIds.toList(),
       'consumedEventIds': instance.consumedEventIds.toList(),
       'metadata': instance.metadata,
     };

@@ -72,6 +72,50 @@ void main() {
       expect(plan.dialogue?.dialogueId, 'npc_victory');
     });
 
+    test('save reload preserves one-shot and explicit rematch plans', () {
+      final reloaded = gameStateFromStrictSaveJson(
+        strictGameStateSaveJson(
+          const StoryFlagsManager().markTrainerDefeated(
+            const GameState(saveId: 'trainer-lifecycle'),
+            'lysa',
+          ),
+        ),
+      );
+      final isDefeated = const StoryFlagsManager().isTrainerDefeated(
+        reloaded,
+        'lysa',
+      );
+
+      final oneShotPlan = resolveRuntimeTrainerInteractionPlan(
+        trainer: const ProjectTrainerEntry(
+          id: 'lysa',
+          name: 'Lysa',
+          trainerClass: 'Rival',
+        ),
+        npc: npc,
+        isDefeated: isDefeated,
+      );
+      final rematchPlan = resolveRuntimeTrainerInteractionPlan(
+        trainer: const ProjectTrainerEntry(
+          id: 'lysa',
+          name: 'Lysa',
+          trainerClass: 'Rival',
+          rematchPolicy: ProjectTrainerRematchPolicy.allowed,
+        ),
+        npc: npc,
+        isDefeated: isDefeated,
+      );
+
+      expect(
+        oneShotPlan.disposition,
+        RuntimeTrainerInteractionDisposition.dialogueOnly,
+      );
+      expect(
+        rematchPlan.disposition,
+        RuntimeTrainerInteractionDisposition.dialogueThenBattle,
+      );
+    });
+
     test('trainer lifecycle dialogue ids override NPC fallback refs', () {
       const trainer = ProjectTrainerEntry(
         id: 'lysa',

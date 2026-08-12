@@ -388,6 +388,9 @@ RuntimeBattleOutcomeTransactionBase applyRuntimeBattleOutcomeTransactionBase({
   required BattleOutcome outcome,
   RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
 }) {
+  if (context.request is TrainerBattleStartRequest && outcome.isRunaway) {
+    throw StateError('BattleOutcomeType.runaway est interdit en combat trainer.');
+  }
   final stateWithPlayerHp = writePlayerBattleLineupBackToPartySlots(
     gameState: gameState,
     context: context,

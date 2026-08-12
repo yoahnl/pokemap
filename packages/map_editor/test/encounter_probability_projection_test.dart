@@ -1,11 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_editor/src/ui/panels/encounter_probability_projection.dart';
+import 'package:map_core/map_core.dart' as core;
+import 'package:map_editor/src/ui/panels/encounter_probability_projection.dart'
+    as editor;
 
 void main() {
+  test('preview delegates encounter probability truth to map_core', () {
+    expect(
+      identical(
+        editor.projectEncounterProbabilities,
+        core.projectEncounterProbabilities,
+      ),
+      isTrue,
+    );
+  });
+
   test(
     'projects relative and resolved probabilities without conflating them',
     () {
-      final projection = projectEncounterProbabilities(
+      final projection = editor.projectEncounterProbabilities(
         chancePerStep: 0.12,
         weights: const <int>[50, 30, 20],
       );
@@ -24,7 +36,7 @@ void main() {
   );
 
   test('rejects zero totals instead of displaying invented percentages', () {
-    final projection = projectEncounterProbabilities(
+    final projection = editor.projectEncounterProbabilities(
       chancePerStep: 0.12,
       weights: const <int>[0, 0],
     );
@@ -32,11 +44,11 @@ void main() {
     expect(projection.isValid, isFalse);
     expect(
       projection.issues,
-      contains(EncounterProbabilityIssue.zeroTotalWeight),
+      contains(editor.EncounterProbabilityIssue.zeroTotalWeight),
     );
     expect(
       projection.issues,
-      contains(EncounterProbabilityIssue.nonPositiveWeight),
+      contains(editor.EncounterProbabilityIssue.nonPositiveWeight),
     );
     expect(
       projection.entries.every(
@@ -50,7 +62,7 @@ void main() {
   test(
     'rejects a negative weight even when the arithmetic sum is positive',
     () {
-      final projection = projectEncounterProbabilities(
+      final projection = editor.projectEncounterProbabilities(
         chancePerStep: 0.2,
         weights: const <int>[-1, 3],
       );
@@ -58,7 +70,7 @@ void main() {
       expect(projection.isValid, isFalse);
       expect(
         projection.issues,
-        contains(EncounterProbabilityIssue.nonPositiveWeight),
+        contains(editor.EncounterProbabilityIssue.nonPositiveWeight),
       );
       expect(
         projection.entries.every((entry) => entry.relativeShare == null),

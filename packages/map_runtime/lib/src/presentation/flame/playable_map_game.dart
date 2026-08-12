@@ -2549,6 +2549,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _battleVisualAssetCache.debugActualImageLoadCount;
 
   @visibleForTesting
+  Future<void> debugWaitForBattlePrewarm() async {
+    while (_prewarmedBattleDataFutureByKey.isNotEmpty) {
+      await Future.wait(
+        _prewarmedBattleDataFutureByKey.values.toList(growable: false),
+      );
+    }
+  }
+
+  @visibleForTesting
   int get debugBattleVisualOpaqueRectComputeCount =>
       _battleVisualAssetCache.debugActualOpaqueRectComputeCount;
 
@@ -7326,6 +7335,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     switch (check.status) {
       case GameplayEncounterCheckStatus.noZone:
         debugPrint('[encounter] no compatible zone');
+        return;
+      case GameplayEncounterCheckStatus.ambiguousZone:
+        debugPrint(
+          '[encounter] ambiguous zones=${check.ambiguousZoneIds.join(',')}',
+        );
         return;
       case GameplayEncounterCheckStatus.noEncounterTableId:
         debugPrint(

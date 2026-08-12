@@ -109,6 +109,8 @@ abstract class GameState with _$GameState {
     @Default(NarrativeEventProgress.empty())
     NarrativeEventProgress narrativeEventProgress,
 
+    @Default({}) Set<String> completedBattleRequestIds,
+
     /// IDs d'événements déjà consommés (objets ramassés, etc.).
     @Default({}) Set<String> consumedEventIds,
 

@@ -605,24 +605,31 @@ void main() {
       );
     });
 
-    test('runaway writes player hp without marking trainer defeated', () {
-      final updatedState = applyRuntimeBattleOutcomeToGameState(
-        gameState: _baseState(),
-        context: RuntimeActiveBattleContext(
-          request: _trainerRequest(trainerId: 'ace_jules'),
-          playerPartyIndex: 0,
-        ),
-        outcome: _finishedOutcome(
-          type: BattleOutcomeType.runaway,
-          playerCurrentHp: 11,
-        ),
-      );
+    test('trainer runaway is rejected before any state write-back', () {
+      final base = _baseState();
 
-      expect(updatedState.party.members[0].currentHp, equals(11));
       expect(
-        updatedState.storyFlags.activeFlags,
-        isNot(contains('trainer_defeated:ace_jules')),
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: base,
+          context: RuntimeActiveBattleContext(
+            request: _trainerRequest(trainerId: 'ace_jules'),
+            playerPartyIndex: 0,
+          ),
+          outcome: _finishedOutcome(
+            type: BattleOutcomeType.runaway,
+            playerCurrentHp: 11,
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('runaway'),
+          ),
+        ),
       );
+      expect(base.party.members[0].currentHp, 23);
+      expect(base.storyFlags.activeFlags, isEmpty);
     });
 
     test('captured wild battle appends the pokemon and syncs caught/seen', () {

@@ -41,6 +41,8 @@ GameState gameStateFromSaveData(SaveData saveData) {
     storyFlags: StoryFlags(activeFlags: migratedFlags),
     narrativeFactRuntimeState: normalizedSaveData.narrativeFactRuntimeState,
     narrativeEventProgress: normalizedSaveData.narrativeEventProgress,
+    completedBattleRequestIds:
+        normalizedSaveData.completedBattleRequestIds,
     scriptVariables: const ScriptVariables(),
     consumedEventIds: const {},
     metadata: normalizedSaveData.properties,
@@ -72,6 +74,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     progression: normalizedProgression,
     narrativeFactRuntimeState: gameState.narrativeFactRuntimeState,
     narrativeEventProgress: gameState.narrativeEventProgress,
+    completedBattleRequestIds: gameState.completedBattleRequestIds,
     properties: gameState.metadata,
   ).normalized();
 }
@@ -81,10 +84,15 @@ GameState normalizeLoadedGameState(GameState state) {
     party: state.party,
     pokemonStorage: state.pokemonStorage,
   );
+  final completedBattleRequestIds = state.completedBattleRequestIds
+      .map((requestId) => requestId.trim())
+      .where((requestId) => requestId.isNotEmpty)
+      .toSet();
   if (state.storyFlags.activeFlags.isNotEmpty ||
       normalizedProgression.storyFlags.isEmpty) {
     return state.copyWith(
       progression: normalizedProgression,
+      completedBattleRequestIds: completedBattleRequestIds,
     );
   }
   final migratedFlags = normalizedProgression.storyFlags
@@ -94,6 +102,7 @@ GameState normalizeLoadedGameState(GameState state) {
   return state.copyWith(
     progression: normalizedProgression,
     storyFlags: state.storyFlags.copyWith(activeFlags: migratedFlags),
+    completedBattleRequestIds: completedBattleRequestIds,
   );
 }
 

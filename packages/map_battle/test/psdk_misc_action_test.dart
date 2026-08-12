@@ -111,6 +111,26 @@ void main() {
       );
     });
 
+    test('trainer battle blocks Run Away and Smoke Ball flee passthrough', () {
+      for (final setup in <BattleEngineSetup>[
+        _setup(isTrainerBattle: true, playerAbilityId: 'run_away'),
+        _setup(isTrainerBattle: true, playerHeldItemId: 'smoke_ball'),
+      ]) {
+        final result = BattleEngine(setup: setup).submit(
+          const BattleDecision.flee(),
+        );
+
+        expect(result.outcome, isNull);
+        expect(
+          result.timeline.events
+              .whereType<BattleFleeAttemptTimelineEvent>()
+              .single
+              .succeeded,
+          isFalse,
+        );
+      }
+    });
+
     test('no action consumes the player action without move effects', () {
       final engine = BattleEngine(
         setup: _setup(
@@ -197,6 +217,7 @@ void main() {
 
 BattleEngineSetup _setup({
   bool canFlee = false,
+  bool isTrainerBattle = false,
   String? playerAbilityId,
   String? playerHeldItemId,
   PsdkBattleEffectStack? playerEffects,
@@ -204,6 +225,7 @@ BattleEngineSetup _setup({
 }) {
   return BattleEngineSetup.singles(
     canFlee: canFlee,
+    isTrainerBattle: isTrainerBattle,
     player: _combatant(
       id: 'player-eevee',
       speciesId: 'eevee',

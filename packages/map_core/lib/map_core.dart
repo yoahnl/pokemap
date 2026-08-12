@@ -1,5 +1,7 @@
 library map_core;
 
+export 'src/encounters/encounter_contract.dart';
+
 export 'src/runtime/character_custom_animation_runtime_contract.dart';
 export 'src/runtime/cinematic_character_custom_animation_contract.dart';
 
