@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/map_tool_preview.dart';
+import 'package:map_editor/src/application/services/map_cell_stroke_buffer.dart';
 import 'package:map_editor/src/features/editor/application/map_placed_element_rotation_planner.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.dart';
@@ -1431,6 +1432,58 @@ void main() {
       image.dispose();
       tilesetImage.dispose();
     });
+  });
+
+  test('paints a sparse collision stroke preview before map publication',
+      () async {
+    final source = MapData(
+      id: 'collision-preview',
+      name: 'Collision preview',
+      size: const GridSize(width: 2, height: 1),
+      layers: <MapLayer>[
+        MapLayer.collision(
+          id: 'collision',
+          name: 'Collision',
+          collisions: List<bool>.filled(2, false, growable: false),
+        ),
+      ],
+    );
+    final preview = MapCellStrokeBuffer.collision(
+      sourceMap: source,
+      layerId: 'collision',
+    )..setCollisions(
+        origin: const GridPos(x: 1, y: 0),
+        patternSize: const GridSize(width: 1, height: 1),
+        value: true,
+      );
+    final recorder = ui.PictureRecorder();
+    MapGridPainter(
+      map: source,
+      zoom: 1,
+      offset: ui.Offset.zero,
+      tileWidth: 32,
+      tileHeight: 32,
+      tilesetImagesById: const <String, ui.Image?>{},
+      sourceTileWidth: 32,
+      sourceTileHeight: 32,
+      tilesPerRowById: const <String, int>{},
+      warps: const <MapWarp>[],
+      gameplayZones: const <MapGameplayZone>[],
+      connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+      cellStrokePreview: preview,
+      showGrid: false,
+      showEditorOverlays: false,
+    ).paint(ui.Canvas(recorder), const ui.Size(64, 32));
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(64, 32);
+    final pixels =
+        (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+
+    expect(_rgbaAt(pixels, 64, 16, 16)[3], 0);
+    expect(_rgbaAt(pixels, 64, 48, 16)[3], greaterThan(0));
+
+    picture.dispose();
+    image.dispose();
   });
 
   group('EditorCanvasRepaintClock', () {
