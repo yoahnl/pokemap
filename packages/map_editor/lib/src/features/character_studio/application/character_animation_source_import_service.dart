@@ -50,7 +50,17 @@ final class CharacterAnimationSourceImportService {
         'La source d’animation doit être une image PNG.',
       );
     }
-    final currentAssetId = _currentAssetId(character, slotKey);
+    final selectedAssetId = _currentAssetId(character, slotKey);
+    final currentAssetId =
+        selectedAssetId != null &&
+            !_assetIsReferencedOutsideAnimationSlot(
+              project,
+              assetId: selectedAssetId,
+              characterId: characterId,
+              slotKey: slotKey,
+            )
+        ? selectedAssetId
+        : null;
     final digestSuffix = staged.hexDigest.substring(0, 12);
     final suffix = currentAssetId == null ? _safeSegment(uniqueSuffix()) : null;
     if (suffix != null && suffix.isEmpty) {
@@ -91,6 +101,38 @@ final class CharacterAnimationSourceImportService {
       operationLabel: 'animation_source_${characterId}_${slotKey.stableId}',
     );
   }
+}
+
+bool _assetIsReferencedOutsideAnimationSlot(
+  ProjectManifest project, {
+  required String assetId,
+  required String characterId,
+  required CharacterAnimationSlotKey slotKey,
+}) {
+  for (final character in project.characters) {
+    if (character.portraits.any((portrait) => portrait.assetId == assetId)) {
+      return true;
+    }
+    for (final animation in character.animations) {
+      if (animation.sourceAssetId != assetId) continue;
+      final selected =
+          character.id == characterId &&
+          slotKey.kind == CharacterAnimationDefinitionKind.system &&
+          animation.state == slotKey.systemState &&
+          animation.direction == slotKey.direction;
+      if (!selected) return true;
+    }
+    for (final animation in character.customAnimations) {
+      if (animation.sourceAssetId != assetId) continue;
+      final selected =
+          character.id == characterId &&
+          slotKey.kind == CharacterAnimationDefinitionKind.custom &&
+          animation.definitionId == slotKey.definitionId &&
+          animation.direction == slotKey.direction;
+      if (!selected) return true;
+    }
+  }
+  return false;
 }
 
 String? _currentAssetId(

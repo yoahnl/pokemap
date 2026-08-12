@@ -166,6 +166,65 @@ void main() {
       expect(animation.loop, isFalse);
     });
 
+    test('rejects a bound replacement when another slot shares the asset',
+        () async {
+      final oldBytes = _png(width: 64, height: 64, marker: 1);
+      final newBytes = _png(width: 96, height: 64, marker: 2);
+      final oldArtifact = ContentArtifactRef.fromBytes(
+        oldBytes,
+        mediaType: 'image/png',
+      );
+      final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
+      final staged = await store.put(newBytes, declaredMediaType: 'image/png');
+
+      await expectLater(
+        CharacterStudioAssetActions(artifactStore: store).build(
+          _context(
+            snapshot: _snapshot(
+              withCharacterStudio: true,
+              animationSourceAssetId: 'elia-idle-north',
+              sharedAnimationSource: true,
+              catalog: AssetCatalog(
+                records: <AssetRecord>[
+                  AssetRecord(
+                    id: 'elia-idle-north',
+                    logicalPath: 'assets/characters/elia/idle-north.png',
+                    artifact: oldArtifact,
+                    tags: const <String>[
+                      'character-studio',
+                      'character-studio:spriteSheet',
+                    ],
+                  ),
+                ],
+              ),
+              blobs: <ContentArtifactRef, List<int>>{oldArtifact: oldBytes},
+            ),
+            actionId: 'characterStudio.asset.replace',
+            parameters: <String, Object?>{
+              'artifactHandle': staged.reference.handle,
+              'assetId': 'elia-idle-north',
+              'binding': <String, Object?>{
+                'kind': 'animationClip',
+                'characterId': 'elia',
+                'slotKind': 'system',
+                'state': 'idle',
+                'direction': 'north',
+                'frames': <Object?>[],
+                'loop': true,
+              },
+            },
+          ),
+        ),
+        throwsA(
+          isA<CharacterStudioAssetException>().having(
+            (error) => error.code,
+            'code',
+            'character_studio.asset.binding_asset_shared',
+          ),
+        ),
+      );
+    });
+
     test('rejects non-PNG bytes and out-of-bounds source rectangles', () async {
       final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
       final text = await store.put(
@@ -449,6 +508,7 @@ ProjectSnapshot _snapshot({
   AssetCatalog? catalog,
   bool withCharacterStudio = false,
   String? animationSourceAssetId,
+  bool sharedAnimationSource = false,
   Map<ContentArtifactRef, List<int>> blobs =
       const <ContentArtifactRef, List<int>>{},
 }) {
@@ -489,6 +549,12 @@ ProjectSnapshot _snapshot({
                     source: TilesetSourceRect(x: 0, y: 0),
                   ),
                 ],
+              ),
+            if (sharedAnimationSource)
+              CharacterAnimation(
+                state: CharacterAnimationState.walk,
+                direction: EntityFacing.south,
+                sourceAssetId: animationSourceAssetId,
               ),
           ],
         ),

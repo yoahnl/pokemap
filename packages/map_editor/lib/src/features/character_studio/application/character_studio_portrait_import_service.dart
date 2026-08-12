@@ -139,18 +139,26 @@ final class CharacterStudioPortraitImportService {
     final current = character.portraits
         .where((portrait) => portrait.portraitStateId == portraitStateId)
         .firstOrNull;
+    final canReplace =
+        current != null &&
+        !_assetIsReferencedOutsidePortrait(
+          project,
+          assetId: current.assetId,
+          characterId: characterId,
+          portraitStateId: portraitStateId,
+        );
     final digestSuffix = staged.hexDigest.substring(0, 12);
     final assetId =
-        current?.assetId ??
+        (canReplace ? current.assetId : null) ??
         'portrait-${_safeSegment(characterId)}-'
             '${_safeSegment(portraitStateId)}-$digestSuffix';
     return gateway.apply(
       projectRootPath: projectRootPath,
       expectedProject: project,
-      actionId: current == null
+      actionId: !canReplace
           ? 'characterStudio.asset.import'
           : 'characterStudio.asset.replace',
-      parameters: current == null
+      parameters: !canReplace
           ? <String, Object?>{
               'artifactHandle': staged.handle,
               'assetId': assetId,
@@ -178,6 +186,32 @@ final class CharacterStudioPortraitImportService {
       operationLabel: 'portrait_import_${characterId}_$portraitStateId',
     );
   }
+}
+
+bool _assetIsReferencedOutsidePortrait(
+  ProjectManifest project, {
+  required String assetId,
+  required String characterId,
+  required String portraitStateId,
+}) {
+  for (final character in project.characters) {
+    for (final portrait in character.portraits) {
+      if (portrait.assetId == assetId &&
+          (character.id != characterId ||
+              portrait.portraitStateId != portraitStateId)) {
+        return true;
+      }
+    }
+    if (character.animations.any(
+          (animation) => animation.sourceAssetId == assetId,
+        ) ||
+        character.customAnimations.any(
+          (animation) => animation.sourceAssetId == assetId,
+        )) {
+      return true;
+    }
+  }
+  return false;
 }
 
 String _safeSegment(String value) {

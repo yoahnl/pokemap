@@ -131,6 +131,33 @@ void main() {
   });
 
   test(
+    'reimporting a shared portable source isolates the selected slot',
+    () async {
+      final gateway = _AssetGateway();
+      final service = CharacterAnimationSourceImportService(gateway: gateway);
+      const slot = CharacterAnimationSlotKey.system(
+        state: CharacterAnimationState.idle,
+        direction: EntityFacing.north,
+      );
+
+      await service.import(
+        projectRootPath: '/project',
+        project: _project(withPortableSource: true, sharedPortableSource: true),
+        characterId: 'elia',
+        slotKey: slot,
+        sourcePath: '/source/replacement.png',
+        loop: true,
+      );
+
+      expect(gateway.actions, <String>['characterStudio.asset.import']);
+      expect(
+        gateway.parameters.single['assetId'],
+        isNot('sprite-elia-idle-north'),
+      );
+    },
+  );
+
+  test(
     'reimporting a historical source never reuses its asset record',
     () async {
       final gateway = _AssetGateway();
@@ -386,7 +413,10 @@ final class _AssetGateway implements CharacterStudioPortraitAssetGateway {
   }
 }
 
-ProjectManifest _project({bool withPortableSource = false}) {
+ProjectManifest _project({
+  bool withPortableSource = false,
+  bool sharedPortableSource = false,
+}) {
   return ProjectManifest(
     name: 'Source',
     maps: const <ProjectMapEntry>[],
@@ -405,6 +435,12 @@ ProjectManifest _project({bool withPortableSource = false}) {
               frames: <CharacterAnimationFrame>[
                 CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0)),
               ],
+            ),
+          if (sharedPortableSource)
+            const CharacterAnimation(
+              state: CharacterAnimationState.walk,
+              direction: EntityFacing.south,
+              sourceAssetId: 'sprite-elia-idle-north',
             ),
         ],
       ),

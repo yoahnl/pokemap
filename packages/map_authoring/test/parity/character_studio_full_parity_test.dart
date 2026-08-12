@@ -361,15 +361,6 @@ List<_TransportStep> _animationSteps({
         <String, Object?>{
           'artifactHandle': replacementArtifactHandle,
           'assetId': 'elia-sheet',
-          'binding': <String, Object?>{
-            'kind': 'animationClip',
-            'characterId': 'elia',
-            'slotKind': 'system',
-            'state': 'idle',
-            'direction': 'north',
-            'frames': <Object?>[],
-            'loop': true,
-          },
         },
       ),
       const _TransportStep(

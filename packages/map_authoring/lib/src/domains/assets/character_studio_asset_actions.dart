@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
+
 import '../../contracts/action_descriptor.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/authoring_request.dart';
@@ -147,6 +149,19 @@ final class CharacterStudioAssetActions {
             binding: binding,
             assetId: assetId,
           );
+    if (replacing &&
+        binding != null &&
+        _assetIsReferencedOutsideBinding(
+          context.snapshot.manifest,
+          assetId: assetId,
+          binding: binding,
+        )) {
+      throw CharacterStudioAssetException(
+        'character_studio.asset.binding_asset_shared',
+        'A bound replacement cannot mutate an asset shared by another Character Studio slot.',
+        details: <String, Object?>{'assetId': assetId},
+      );
+    }
     final changes = <AuthoringResourceChange>[
       ...baseDraft.changeSet.changes,
       ...?bindingDraft?.changeSet.changes,
@@ -267,6 +282,42 @@ final class CharacterStudioAssetActions {
       rethrow;
     }
   }
+}
+
+bool _assetIsReferencedOutsideBinding(
+  ProjectManifest project, {
+  required String assetId,
+  required Map<String, Object?> binding,
+}) {
+  final bindingKind = binding['kind'];
+  for (final character in project.characters) {
+    for (final portrait in character.portraits) {
+      if (portrait.assetId != assetId) continue;
+      final selected = bindingKind == 'portrait' &&
+          character.id == binding['characterId'] &&
+          portrait.portraitStateId == binding['portraitStateId'];
+      if (!selected) return true;
+    }
+    for (final animation in character.animations) {
+      if (animation.sourceAssetId != assetId) continue;
+      final selected = bindingKind == 'animationClip' &&
+          binding['slotKind'] == 'system' &&
+          character.id == binding['characterId'] &&
+          animation.state.name == binding['state'] &&
+          animation.direction.name == binding['direction'];
+      if (!selected) return true;
+    }
+    for (final animation in character.customAnimations) {
+      if (animation.sourceAssetId != assetId) continue;
+      final selected = bindingKind == 'animationClip' &&
+          binding['slotKind'] == 'custom' &&
+          character.id == binding['characterId'] &&
+          animation.definitionId == binding['definitionId'] &&
+          animation.direction?.name == binding['direction'];
+      if (!selected) return true;
+    }
+  }
+  return false;
 }
 
 enum _CharacterStudioMediaKind {

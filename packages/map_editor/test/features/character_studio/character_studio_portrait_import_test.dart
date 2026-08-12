@@ -73,6 +73,31 @@ void main() {
     });
   });
 
+  test(
+    'portrait replacement isolates an asset shared by another slot',
+    () async {
+      final gateway = _FakePortraitAssetGateway(
+        staged: ContentArtifactRef.fromBytes(const <int>[
+          10,
+          11,
+          12,
+        ], mediaType: 'image/png'),
+      );
+
+      await CharacterStudioPortraitImportService(gateway: gateway).import(
+        projectRootPath: '/project',
+        project: _project(withPortrait: true, sharedPortrait: true),
+        characterId: 'elia',
+        portraitStateId: 'neutral',
+        sourcePath: '/outside/replacement.png',
+        fitMode: CharacterPortraitFitMode.contain,
+      );
+
+      expect(gateway.actions.single.$1, 'characterStudio.asset.import');
+      expect(gateway.actions.single.$2['assetId'], isNot('elia-neutral'));
+    },
+  );
+
   test('non PNG source is rejected before any project mutation', () async {
     final gateway = _FakePortraitAssetGateway(
       staged: ContentArtifactRef.fromBytes(const <int>[
@@ -133,26 +158,31 @@ final class _FakePortraitAssetGateway
     if (binding is! Map || binding['kind'] != 'portrait') {
       return expectedProject;
     }
-    final character = expectedProject.characters.single;
-    return expectedProject.copyWith(
-      characters: <ProjectCharacterEntry>[
-        character.copyWith(
-          portraits: <CharacterPortraitVariant>[
-            CharacterPortraitVariant(
-              portraitStateId: binding['portraitStateId']! as String,
-              assetId: parameters['assetId']! as String,
-              fitMode: binding['fitMode'] == 'cover'
-                  ? CharacterPortraitFitMode.cover
-                  : CharacterPortraitFitMode.contain,
-            ),
-          ],
-        ),
-      ],
+    final characterId = binding['characterId']! as String;
+    final characterIndex = expectedProject.characters.indexWhere(
+      (character) => character.id == characterId,
     );
+    final character = expectedProject.characters[characterIndex];
+    final characters = expectedProject.characters.toList()
+      ..[characterIndex] = character.copyWith(
+        portraits: <CharacterPortraitVariant>[
+          CharacterPortraitVariant(
+            portraitStateId: binding['portraitStateId']! as String,
+            assetId: parameters['assetId']! as String,
+            fitMode: binding['fitMode'] == 'cover'
+                ? CharacterPortraitFitMode.cover
+                : CharacterPortraitFitMode.contain,
+          ),
+        ],
+      );
+    return expectedProject.copyWith(characters: characters);
   }
 }
 
-ProjectManifest _project({bool withPortrait = false}) {
+ProjectManifest _project({
+  bool withPortrait = false,
+  bool sharedPortrait = false,
+}) {
   return ProjectManifest(
     name: 'Portrait import',
     maps: const <ProjectMapEntry>[],
@@ -175,6 +205,18 @@ ProjectManifest _project({bool withPortrait = false}) {
             ),
         ],
       ),
+      if (sharedPortrait)
+        const ProjectCharacterEntry(
+          id: 'nox',
+          name: 'Nox',
+          tilesetId: 'elia',
+          portraits: <CharacterPortraitVariant>[
+            CharacterPortraitVariant(
+              portraitStateId: 'neutral',
+              assetId: 'elia-neutral',
+            ),
+          ],
+        ),
     ],
   );
 }
