@@ -1471,7 +1471,7 @@ Les lots suivants ferment les écarts prouvés par le contre-audit. Ils ne refon
 | `map_runtime` | 2 308 réussis, 3 échecs, 1 ignoré ; analyse sans erreur/warning, 7 infos | Deux anciennes sauvegardes narratives sans schéma strict et une preuve visuelle historique. |
 | `map_player_ui` | 218/218 ; analyse sans issue | Vert ; L4 reste fonctionnellement partiel faute de contrôles held item. |
 | `map_editor` | 5 406 réussis, 124 échecs, 11 ignorés avant arrêt à 12 min 20 s ; analyse sans issue ; build macOS réussi | Suite globale bloquée après fixtures V2/goldens et dettes async hors Item ; tests Item ciblés verts. |
-| `playable_runtime_host` | 248 réussis, 25 échecs, 3 ignorés avant blocage ; analyse sans erreur/warning, 27 infos ; build macOS réussi | Probe web Selbrume puis runner inactif plus de deux heures ; Golden Item ciblé vert. |
+| `playable_runtime_host` | 248 réussis, 25 échecs, 3 ignorés avant blocage ; analyse sans erreur/warning, 27 infos ; build macOS réussi | Probe web Selbrume puis runner inactif plus de 90 s ; interruption vers 2 min 30 s, Golden Item ciblé vert. |
 | `pokemap_product_certification` | 22/22 ; analyse sans issue | Vert après exclusion du worker CLI de la découverte automatique des tests. |
 | `pokemap_mcp` | suite globale : 42 réussis, 2 `worker.timeout` ; smoke Item isolé : 1/1 en 6,8 s ; check/build réussis | Fragilité de timeout sous charge conservée comme dette globale ; contrat Item packagé prouvé. |
 | Runner L0-L6 | L0-L3, L5, L6 CERTIFIED ; L4 PARTIAL | Verdict technique attendu et fail-closed. |
