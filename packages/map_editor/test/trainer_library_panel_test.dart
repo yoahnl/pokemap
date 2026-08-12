@@ -256,8 +256,10 @@ void main() {
       find.byKey(const Key('trainer-library-create-class-field')),
       'Gym Leader',
     );
-    await tester.tap(find.text('Afficher les références optionnelles'));
-    await tester.pumpAndSettle();
+    await pressCupertinoButtonWithText(
+      tester,
+      'Afficher les références optionnelles',
+    );
     await tester.enterText(
       find.byKey(const Key('trainer-library-create-battle-theme-field')),
       'battle_misty',
@@ -330,9 +332,9 @@ void main() {
     );
     expect(
       heldItemPicker.items.map((item) => item.label),
-      <String>['Aucun objet', 'Oran Berry'],
+      <String>['Aucun objet', 'Leftovers'],
     );
-    heldItemPicker.onChanged('oran_berry');
+    heldItemPicker.onChanged('leftovers');
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(
@@ -354,7 +356,7 @@ void main() {
     expect(pokemon.speciesId, 'bulbasaur');
     expect(pokemon.level, 12);
     expect(pokemon.moves, <String>['tackle', 'growl']);
-    expect(pokemon.heldItemId, 'oran_berry');
+    expect(pokemon.heldItemId, 'leftovers');
     expect(pokemon.formId, 'blossom');
     expect(pokemon.gender, 'female');
     expect(pokemon.shiny, isFalse);
@@ -521,7 +523,11 @@ void main() {
     );
     expect(
       rewardItemPicker.items.map((item) => item.label),
-      <String>['Sélectionner un objet du catalogue', 'Oran Berry'],
+      <String>[
+        'Sélectionner un objet du catalogue',
+        'Leftovers',
+        'Oran Berry',
+      ],
     );
     expect(
       rewardItemPicker.items.map((item) => item.label),
@@ -1985,7 +1991,26 @@ class _FakeWorkspace implements ProjectWorkspace {
       "displayName": "Oran Berry",
       "aliases": ["oran"],
       "pocketId": "berries",
-      "heldEffectId": "oran-berry"
+      "uses": [
+        {
+          "contexts": ["overworld", "battle"],
+          "target": "party_member",
+          "consumption": "on_applied",
+          "effect": {
+            "kind": "heal_hp",
+            "mode": "flat",
+            "amount": 10
+          }
+        }
+      ]
+    },
+    {
+      "id": "leftovers",
+      "displayName": "Leftovers",
+      "aliases": [],
+      "pocketId": "held_items",
+      "buyPrice": 200,
+      "heldEffectId": "leftovers"
     }
   ]
 }

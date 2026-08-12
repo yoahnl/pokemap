@@ -433,6 +433,151 @@ void main() {
           restored.party.members.single.knownMoveIds, contains('quick_attack'));
     });
 
+    test('trainer victory is exactly once before and after save reload',
+        () async {
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: _multiLevelAutomaticMoveResolution,
+      );
+      final first = await coordinator.begin(
+        transactionBaseState: _state(),
+        bundle: _bundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      );
+      final committed = first.transaction!.finalState!;
+
+      expect(
+        committed.completedBattleRequestIds,
+        contains(_trainerRequest().requestId),
+      );
+      final replayBeforeSave = await coordinator.begin(
+        transactionBaseState: committed,
+        bundle: _bundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      );
+      expect(replayBeforeSave.isSuccess, isFalse);
+      expect(
+        replayBeforeSave.failure!.code,
+        RuntimePostBattleCoordinatorFailureCode.alreadyApplied,
+      );
+      expect(replayBeforeSave.failure!.originalState, same(committed));
+
+      final reloaded = gameStateFromStrictSaveJson(
+        strictGameStateSaveJson(committed),
+      );
+      final replayAfterReload = await RuntimePostBattleDecisionCoordinator(
+        resolveReward: _multiLevelAutomaticMoveResolution,
+      ).begin(
+        transactionBaseState: reloaded,
+        bundle: _bundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      );
+      expect(replayAfterReload.isSuccess, isFalse);
+      expect(
+        replayAfterReload.failure!.code,
+        RuntimePostBattleCoordinatorFailureCode.alreadyApplied,
+      );
+      expect(replayAfterReload.failure!.originalState, same(reloaded));
+    });
+
+    test('a distinct rematch request is applied once independently', () async {
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: _multiLevelAutomaticMoveResolution,
+      );
+      final first = (await coordinator.begin(
+        transactionBaseState: _state(),
+        bundle: _bundle(),
+        runtimeContext: _context(_trainerRequest()),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      ))
+          .transaction!
+          .finalState!;
+      final rematchRequest = _trainerRequest(requestId: 'trainer-rematch');
+      final rematch = await coordinator.begin(
+        transactionBaseState: first,
+        bundle: _bundle(),
+        runtimeContext: _context(rematchRequest),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      );
+
+      expect(rematch.isSuccess, isTrue);
+      final rematchState = rematch.transaction!.finalState!;
+      expect(
+        rematchState.completedBattleRequestIds,
+        containsAll(<String>['trainer', 'trainer-rematch']),
+      );
+      final replay = await coordinator.begin(
+        transactionBaseState: rematchState,
+        bundle: _bundle(),
+        runtimeContext: _context(rematchRequest),
+        outcome: _outcome(),
+        itemCatalog: _itemCatalog(),
+      );
+      expect(
+        replay.failure!.code,
+        RuntimePostBattleCoordinatorFailureCode.alreadyApplied,
+      );
+    });
+
+    test('trainer defeat has no rewards and forged runaway is atomic',
+        () async {
+      var resolverCalled = false;
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        resolveReward: ({
+          required bundle,
+          required postWriteBackState,
+          required runtimeContext,
+          required outcome,
+        }) async {
+          resolverCalled = true;
+          return _multiLevelAutomaticMoveResolution(
+            bundle: bundle,
+            postWriteBackState: postWriteBackState,
+            runtimeContext: runtimeContext,
+            outcome: outcome,
+          );
+        },
+      );
+      final base = _state();
+      final defeat = await coordinator.begin(
+        transactionBaseState: base,
+        bundle: _bundle(),
+        runtimeContext: _context(_trainerRequest(requestId: 'defeat')),
+        outcome: _outcome(type: BattleOutcomeType.defeat),
+        itemCatalog: _itemCatalog(),
+      );
+
+      expect(defeat.isSuccess, isTrue);
+      expect(resolverCalled, isFalse);
+      expect(defeat.transaction!.finalState!.trainerProfile.money, 0);
+      expect(
+        defeat.transaction!.finalState!.storyFlags.activeFlags,
+        isNot(contains('trainer_defeated:trainer_iris')),
+      );
+
+      final runaway = await coordinator.begin(
+        transactionBaseState: base,
+        bundle: _bundle(),
+        runtimeContext: _context(_trainerRequest(requestId: 'runaway')),
+        outcome: _outcome(type: BattleOutcomeType.runaway),
+        itemCatalog: _itemCatalog(),
+      );
+      expect(runaway.isSuccess, isFalse);
+      expect(
+        runaway.failure!.code,
+        RuntimePostBattleCoordinatorFailureCode.invalidOutcome,
+      );
+      expect(runaway.failure!.originalState, same(base));
+      expect(base.completedBattleRequestIds, isEmpty);
+    });
+
     test('rejects an unknown item reward before creating a transaction',
         () async {
       final base = _state();
@@ -681,9 +826,9 @@ RuntimeActiveBattleContext _context(BattleStartRequest request) {
   );
 }
 
-TrainerBattleStartRequest _trainerRequest() {
-  return const TrainerBattleStartRequest(
-    requestId: 'trainer',
+TrainerBattleStartRequest _trainerRequest({String requestId = 'trainer'}) {
+  return TrainerBattleStartRequest(
+    requestId: requestId,
     createdAtEpochMs: 1,
     returnContext: OverworldReturnContext(
       mapId: 'route',

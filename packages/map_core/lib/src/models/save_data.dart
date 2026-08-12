@@ -710,6 +710,7 @@ abstract class SaveData with _$SaveData {
     )
     @Default(NarrativeEventProgress.empty())
     NarrativeEventProgress narrativeEventProgress,
+    @Default({}) Set<String> completedBattleRequestIds,
     @Default({}) Map<String, String> properties,
   }) = _SaveData;
 
@@ -740,6 +741,9 @@ abstract class SaveData with _$SaveData {
       progression: progression.normalized(),
       narrativeFactRuntimeState: narrativeFactRuntimeState,
       narrativeEventProgress: narrativeEventProgress,
+      completedBattleRequestIds: _normalizeUniqueStringsSorted(
+        completedBattleRequestIds.toList(growable: false),
+      ).toSet(),
       properties: _normalizeStringMap(properties),
     );
   }

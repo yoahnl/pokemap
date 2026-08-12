@@ -56,6 +56,7 @@ final class RuntimePostBattleMessage {
 }
 
 enum RuntimePostBattleCoordinatorFailureCode {
+  alreadyApplied,
   rewardResolution,
   invalidDecision,
   invalidOutcome,
@@ -162,6 +163,25 @@ final class RuntimePostBattleDecisionCoordinator {
     required ItemCatalogSnapshot itemCatalog,
     RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
   }) async {
+    final requestId = runtimeContext.request.requestId.trim();
+    if (requestId.isEmpty) {
+      return RuntimePostBattleCoordinatorResult.failure(
+        failure: RuntimePostBattleCoordinatorFailure(
+          code: RuntimePostBattleCoordinatorFailureCode.invalidOutcome,
+          message: 'Le combat ne possède pas d’identifiant de transaction.',
+          originalState: transactionBaseState,
+        ),
+      );
+    }
+    if (transactionBaseState.completedBattleRequestIds.contains(requestId)) {
+      return RuntimePostBattleCoordinatorResult.failure(
+        failure: RuntimePostBattleCoordinatorFailure(
+          code: RuntimePostBattleCoordinatorFailureCode.alreadyApplied,
+          message: 'Cette fin de combat a déjà été appliquée.',
+          originalState: transactionBaseState,
+        ),
+      );
+    }
     try {
       final writeBack = applyRuntimeBattleOutcomeTransactionBase(
         gameState: transactionBaseState,
@@ -412,6 +432,7 @@ final class RuntimePostBattleDecisionCoordinator {
         ),
       );
     }
+    finalState = _completeBattleRequest(finalState, request);
     return RuntimePostBattleTransaction._(
       originalState: transaction.originalState,
       runtimeContext: transaction.runtimeContext,
@@ -499,8 +520,23 @@ RuntimePostBattleTransaction _nonVictoryTransaction({
     pendingEvolution: null,
     pendingPartyMoveIds: const <String>[],
     captureDestination: destination,
-    finalState: writeBack.state,
+    finalState: _completeBattleRequest(
+      writeBack.state,
+      runtimeContext.request,
+    ),
     progression: null,
+  );
+}
+
+GameState _completeBattleRequest(
+  GameState state,
+  BattleStartRequest request,
+) {
+  return state.copyWith(
+    completedBattleRequestIds: <String>{
+      ...state.completedBattleRequestIds,
+      request.requestId.trim(),
+    },
   );
 }
 

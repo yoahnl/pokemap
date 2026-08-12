@@ -852,8 +852,8 @@ final class BattleTurnRunner {
     PsdkBattleFleeAction action,
     BattleTimelineBuilder timeline,
   ) {
-    final succeeded =
-        _context.setup.canFlee || _hasFleePassthrough(action.user);
+    final succeeded = !_context.setup.isTrainerBattle &&
+        (_context.setup.canFlee || _hasFleePassthrough(action.user));
     timeline.add(
       BattleFleeAttemptTimelineEvent(
         turn: _context.turnNumber,
