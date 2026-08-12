@@ -65,7 +65,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.widget<PokeMapButton>(preset).onPressed, isNotNull);
-      expect(preset.hitTestable(), findsOneWidget);
+      await _dragUntilHitTestable(
+        tester,
+        preset,
+        _detailScrollable('branding'),
+        dy: -400,
+      );
       await tester.tap(preset.hitTestable());
       await tester.pump();
 
@@ -150,6 +155,130 @@ void main() {
       expect(find.text('Texte du deuxième dialogue.'), findsOneWidget);
     },
   );
+
+  testWidgets('preview source selection stays local to the selected scene', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-preview-source-',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(
+      name: 'Preview Source Studio',
+    ).copyWith(presentation: const ProjectPresentationProfile());
+    final projectFile = File('${root.path}/project.json');
+    final durableJson = jsonEncode(project.toJson());
+    projectFile.writeAsStringSync(durableJson, flush: true);
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1600, 900),
+      overrides: [
+        personalizationPreviewContextSourceProvider.overrideWithValue(
+          _PreviewContextSource(_previewContexts),
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+    final before = container.read(editorNotifierProvider);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-source-demonstration'),
+      ),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-scene-dialogue'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Projet réel'), findsOneWidget);
+    expect(find.text('Texte du premier dialogue.'), findsOneWidget);
+
+    final demonstration = find.byKey(
+      const ValueKey<String>('personalization-preview-source-demonstration'),
+    );
+    expect(demonstration.hitTestable(), findsOneWidget);
+    await tester.tap(demonstration);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('personalization-preview-content-source'),
+        ),
+        matching: find.text('Démonstration'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Texte du premier dialogue.'), findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-context-dialogue'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-dialogue-composition'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Voici comment votre dialogue apparaîtra dans le jeu.'),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-studio-scene-battle')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('personalization-preview-content-source'),
+        ),
+        matching: find.text('Projet réel'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-scene-dialogue'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('personalization-preview-content-source'),
+        ),
+        matching: find.text('Démonstration'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Voici comment votre dialogue apparaîtra dans le jeu.'),
+      findsOneWidget,
+    );
+    final after = container.read(editorNotifierProvider);
+    expect(after.project, before.project);
+    expect(after.isDirty, before.isDirty);
+    expect(after.isProjectDirty, before.isProjectDirty);
+    expect(projectFile.readAsStringSync(), durableJson);
+    expect(
+      container
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.isDirty,
+      isFalse,
+    );
+  });
 
   testWidgets(
     'runs preflight in Studio and invalidates it after a draft edit',
@@ -307,9 +436,16 @@ void main() {
           .initializePersonalizationStudioSession();
       await tester.pump();
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('personalization-preset-cinematic')),
+      final cinematicPreset = find.byKey(
+        const ValueKey<String>('personalization-preset-cinematic'),
       );
+      await _dragUntilHitTestable(
+        tester,
+        cinematicPreset,
+        _detailScrollable('branding'),
+        dy: -400,
+      );
+      await tester.tap(cinematicPreset.hitTestable());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 20));
 
@@ -327,6 +463,7 @@ void main() {
         find.byKey(const ValueKey<String>('personalization-studio-dirty')),
         findsOneWidget,
       );
+      expect(find.textContaining('project.json'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('personalization-comparison-paths')),
         findsOneWidget,
@@ -470,6 +607,68 @@ void main() {
     expect(await notifier.savePersonalizationStudio(), isFalse);
     expect(gateway.saveCount, 0);
   });
+
+  testWidgets(
+    'explains an external personalization conflict in product terms',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-studio-conflict-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(
+        name: 'Conflict Studio',
+      ).copyWith(presentation: const ProjectPresentationProfile());
+      File(
+        '${root.path}/project.json',
+      ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
+      final gateway = _ConflictingProjectGateway(project);
+      final container = await pumpEditorCanvasHostHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: root.path,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.personalizationStudio,
+        ),
+        surfaceSize: const Size(1600, 900),
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectManifest>(
+                    documentId: 'personalization-studio-conflict',
+                    initialDocument: initialDocument,
+                    gateway: gateway,
+                    recoveryStore: _MemoryProjectRecoveryStore(),
+                  ),
+                );
+              }),
+        ],
+      );
+      final notifier = container.read(editorNotifierProvider.notifier);
+      await notifier.initializePersonalizationStudioSession();
+      await notifier.applyPersonalizationStudioProfile(
+        const ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
+        ),
+      );
+
+      expect(await notifier.savePersonalizationStudio(), isFalse);
+      await tester.pump();
+
+      expect(
+        container.read(editorNotifierProvider).errorMessage,
+        'La personnalisation a été modifiée ailleurs. Vos changements sont '
+        'conservés ; rouvrez le projet avant d’enregistrer.',
+      );
+      expect(
+        find.textContaining('Conflit de personnalisation détecté'),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets('canvas displays the current project profile in read-only mode', (
     tester,
@@ -890,9 +1089,12 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('global-style-tab-typography')),
+      final typographyTab = find.byKey(
+        const ValueKey<String>('global-style-tab-typography'),
       );
+      await tester.ensureVisible(typographyTab);
+      await tester.pump();
+      await tester.tap(typographyTab.hitTestable());
       await tester.pump();
 
       expect(find.byType(ProjectTypographyEditor), findsOneWidget);
@@ -1437,7 +1639,7 @@ void main() {
     await tester.tap(
       find.byKey(
         const ValueKey<String>(
-          'personalization-inspector-target-battleAppearance',
+          'personalization-inspector-target-battleCommands',
         ),
       ),
     );
@@ -1679,6 +1881,38 @@ final class _MemoryProjectGateway
       NarrativeDocumentVersion<ProjectManifest>(
         revision: revision,
         document: durableDocument,
+      ),
+    );
+  }
+}
+
+final class _ConflictingProjectGateway
+    implements NarrativeDocumentGateway<ProjectManifest> {
+  _ConflictingProjectGateway(this.document);
+
+  final ProjectManifest document;
+
+  @override
+  Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
+    return NarrativeDocumentVersion<ProjectManifest>(
+      revision: 'revision-1',
+      document: document,
+    );
+  }
+
+  @override
+  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
+    required String expectedRevision,
+    required ProjectManifest before,
+    required ProjectManifest after,
+    required String operationId,
+  }) async {
+    return NarrativeDocumentSaveResult<ProjectManifest>.conflicted(
+      code: 'staleRevision',
+      message: 'Une version externe plus récente existe.',
+      external: NarrativeDocumentVersion<ProjectManifest>(
+        revision: 'revision-2',
+        document: document,
       ),
     );
   }

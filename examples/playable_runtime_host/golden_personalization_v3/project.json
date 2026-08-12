@@ -10,7 +10,27 @@
       "sortOrder": 0
     }
   ],
-  "tilesets": [],
+  "tilesets": [
+    {
+      "id": "vermeil-stage",
+      "name": "Décor d’acceptation de Vermeil",
+      "relativePath": "assets/maps/vermeil-village-stage.png",
+      "source": {
+        "kind": "regular_atlas",
+        "assetId": "asset-vermeil-stage",
+        "pixelWidth": 1672,
+        "pixelHeight": 941,
+        "tileWidth": 1672,
+        "tileHeight": 941,
+        "tileProperties": []
+      }
+    },
+    {
+      "id": "leo-overworld",
+      "name": "Léo — sprite de test",
+      "relativePath": "assets/characters/leo-happy.png"
+    }
+  ],
   "dialogues": [
     {
       "id": "welcome_leo",
@@ -77,33 +97,35 @@
         "natureId": "hardy",
         "abilityId": "engrais",
         "level": 8,
-        "knownMoveIds": ["charge"],
+        "knownMoveIds": [
+          "charge"
+        ],
         "currentHp": 24
       }
     ]
   },
   "presentation": {
-    "schemaVersion": 8,
+    "schemaVersion": 10,
     "branding": {
       "iconPath": "assets/presentation/icon.png",
       "coverPath": "assets/presentation/cover.png",
       "heroPath": "assets/presentation/hero.png",
-      "accentColor": "#A33A2B",
+      "accentColor": "#003A44",
       "layoutVariant": "cinematic"
     },
     "intro": {
       "media": {
         "landscape": {
-          "videoPath": "assets/presentation/intro.mp4",
-          "posterPath": "assets/presentation/poster.png",
-          "captionsPath": "assets/presentation/captions.vtt",
-          "durationMilliseconds": 1200,
+          "videoPath": "assets/presentation/intro/intro.mp4",
+          "posterPath": "assets/presentation/intro/poster.png",
+          "captionsPath": "assets/presentation/intro/captions.vtt",
+          "durationMilliseconds": 1000,
           "width": 1280,
           "height": 720,
           "bitrateKbps": 128,
-          "sizeBytes": 25,
+          "sizeBytes": 89643,
           "videoCodec": "h264",
-          "audioCodec": "none",
+          "audioCodec": "aac",
           "focalX": 0.5,
           "focalY": 0.5
         }
@@ -111,13 +133,32 @@
       "reducedMotionBehavior": "poster",
       "allowReplay": true
     },
+    "titleMotion": {
+      "promptLoop": {
+        "landscape": {
+          "videoPath": "assets/presentation/title-loop.mp4",
+          "posterPath": "assets/presentation/intro/poster.png",
+          "durationMilliseconds": 1000,
+          "width": 1280,
+          "height": 720,
+          "bitrateKbps": 128,
+          "sizeBytes": 63283,
+          "videoCodec": "h264",
+          "audioCodec": "none",
+          "focalX": 0.5,
+          "focalY": 0.5
+        }
+      }
+    },
     "typography": {
       "display": {
-        "fontPath": "assets/presentation/pokemap-sans.ttf",
-        "family": "PokeMap Capture Sans",
-        "licensePath": "assets/presentation/font-license.txt",
+        "fontPath": "assets/presentation/fonts/display.ttf",
+        "family": "Aube Display",
+        "licensePath": "assets/presentation/fonts/display-license.txt",
         "redistributable": true,
-        "fallbackFamilies": ["sans-serif"],
+        "fallbackFamilies": [
+          "sans-serif"
+        ],
         "glyphCoverage": [
           "latin",
           "latinExtended",
@@ -125,10 +166,26 @@
           "punctuation"
         ]
       },
-      "body": {"fallbackFamilies": ["sans-serif"]},
-      "dialogue": {"fallbackFamilies": ["sans-serif"]},
-      "combat": {"fallbackFamilies": ["sans-serif"]},
-      "numbers": {"fallbackFamilies": ["monospace"]}
+      "body": {
+        "fallbackFamilies": [
+          "sans-serif"
+        ]
+      },
+      "dialogue": {
+        "fallbackFamilies": [
+          "sans-serif"
+        ]
+      },
+      "combat": {
+        "fallbackFamilies": [
+          "monospace"
+        ]
+      },
+      "numbers": {
+        "fallbackFamilies": [
+          "monospace"
+        ]
+      }
     },
     "theme": {
       "primary": "#003A44",
@@ -148,23 +205,437 @@
       "overworldHudSurface": "#FFFFFF",
       "battleHudSurface": "#FFFFFF"
     },
+    "title": {
+      "title": "L’Aube de Vermeil",
+      "subtitle": "Une aventure au bout des rails",
+      "prompt": "Appuyez pour commencer",
+      "actions": [
+        {
+          "id": "continueGame",
+          "label": "Continuer",
+          "icon": "play",
+          "visible": true
+        },
+        {
+          "id": "newGame",
+          "label": "Nouveau voyage",
+          "icon": "sparkles",
+          "visible": true
+        },
+        {
+          "id": "load",
+          "label": "Charger",
+          "icon": "folder",
+          "visible": true
+        },
+        {
+          "id": "options",
+          "label": "Réglages",
+          "icon": "settings",
+          "visible": true
+        },
+        {
+          "id": "creditsAbout",
+          "label": "À propos",
+          "icon": "info",
+          "visible": true
+        },
+        {
+          "id": "returnToHub",
+          "label": "Retour au Hub",
+          "icon": "home",
+          "visible": true
+        }
+      ]
+    },
+    "surfacePalettes": {
+      "title": {
+        "background": "#F4F7FB",
+        "surface": "#D9F4F6",
+        "border": "#003A44",
+        "text": "#101827",
+        "accent": "#003A44",
+        "selection": "#126E78"
+      },
+      "pauseMenu": {
+        "background": "#F4F7FB",
+        "surface": "#EAF0F8",
+        "border": "#003A44",
+        "text": "#101827",
+        "accent": "#003A44",
+        "selection": "#126E78"
+      },
+      "dialogue": {
+        "background": "#000000",
+        "surface": "#FFFFFF",
+        "border": "#003A44",
+        "text": "#101827",
+        "accent": "#003A44",
+        "selection": "#126E78"
+      },
+      "battle": {
+        "background": "#000000",
+        "surface": "#FFFFFF",
+        "border": "#102B33",
+        "text": "#101827",
+        "accent": "#003A44",
+        "selection": "#126E78"
+      }
+    },
+    "dialogue": {
+      "placement": "bottom",
+      "maxWidthFactor": 0.82,
+      "margin": 12,
+      "contentPadding": 18,
+      "shape": "speech",
+      "cornerRadius": 12,
+      "borderWidth": 2,
+      "fillOpacity": 0.96,
+      "surfaceColor": "#FFFFFF",
+      "borderColor": "#003A44",
+      "textColor": "#101827",
+      "portraitSide": "start",
+      "portraitSize": 112,
+      "portraitShape": "rounded",
+      "portraitFrameWidth": 2,
+      "portraitFrameColor": "#E2B54A",
+      "nameplateStyle": "floating",
+      "nameplateBorderWidth": 1,
+      "nameplateSurfaceColor": "#102B33",
+      "nameplateBorderColor": "#E2B54A",
+      "nameplateTextColor": "#FFFFFF",
+      "choiceSpacing": 10,
+      "choiceShape": "cutCorner",
+      "choiceDisabledOpacity": 0.45,
+      "choiceSelectedColor": "#E2B54A",
+      "progressIndicator": "chevron",
+      "progressIndicatorColor": "#102B33",
+      "portraitTransition": "slide",
+      "portraitTransitionMilliseconds": 220
+    },
     "pause": {
-      "title": "Carnet de voyage",
+      "title": "Escale",
       "hint": "Entrée / bouton A. Pause",
       "actions": [
-        {"id": "resume", "label": "Reprendre", "icon": "play", "visible": true},
-        {"id": "party", "label": "Compagnons", "icon": "party", "visible": true},
-        {"id": "bag", "label": "Sacoche", "icon": "bag", "visible": true},
-        {"id": "pokedex", "label": "Bestiaire", "icon": "book", "visible": true},
-        {"id": "map", "label": "Région", "icon": "map", "visible": true},
-        {"id": "save", "label": "Consigner", "icon": "save", "visible": true},
-        {"id": "options", "label": "Réglages", "icon": "settings", "visible": true},
-        {"id": "returnToTitle", "label": "Retour au titre", "icon": "exit", "visible": true}
+        {
+          "id": "resume",
+          "label": "Reprendre le voyage",
+          "icon": "play",
+          "visible": true
+        },
+        {
+          "id": "party",
+          "label": "Compagnons",
+          "icon": "party",
+          "visible": true
+        },
+        {
+          "id": "bag",
+          "label": "Sac de voyage",
+          "icon": "bag",
+          "visible": true
+        },
+        {
+          "id": "pokedex",
+          "label": "Carnet de route",
+          "icon": "book",
+          "visible": true
+        },
+        {
+          "id": "map",
+          "label": "Itinéraire",
+          "icon": "map",
+          "visible": true
+        },
+        {
+          "id": "save",
+          "label": "Consigner",
+          "icon": "save",
+          "visible": true
+        },
+        {
+          "id": "options",
+          "label": "Réglages",
+          "icon": "settings",
+          "visible": true
+        },
+        {
+          "id": "returnToTitle",
+          "label": "Quitter le train",
+          "icon": "exit",
+          "visible": true
+        }
       ],
       "composition": {
-        "compactPortrait": {"entrySize": "large", "entrySpacing": "regular", "showTitle": true, "showHint": true, "showRootDetailPanel": false},
-        "compactLandscape": {"entrySize": "compact", "entrySpacing": "tight", "showTitle": true, "showHint": false, "showRootDetailPanel": true},
-        "expanded": {"entrySize": "large", "entrySpacing": "airy", "showTitle": true, "showHint": true, "showRootDetailPanel": true}
+        "compactPortrait": {
+          "entrySize": "large",
+          "entrySpacing": "regular",
+          "showTitle": true,
+          "showHint": true,
+          "showRootDetailPanel": false
+        },
+        "compactLandscape": {
+          "entrySize": "compact",
+          "entrySpacing": "tight",
+          "showTitle": true,
+          "showHint": false,
+          "showRootDetailPanel": true
+        },
+        "expanded": {
+          "entrySize": "large",
+          "entrySpacing": "airy",
+          "showTitle": true,
+          "showHint": true,
+          "showRootDetailPanel": true
+        }
+      }
+    },
+    "windows": {
+      "styles": [
+        {
+          "id": "default",
+          "fillToken": "surfaceElevated",
+          "borderToken": "outline",
+          "borderWidth": 1,
+          "cornerRadius": 18,
+          "contentPadding": 20,
+          "shadowElevation": 6
+        },
+        {
+          "id": "pause-menu",
+          "fillToken": "menuSurface",
+          "borderToken": "primary",
+          "borderWidth": 2,
+          "cornerRadius": 24,
+          "contentPadding": 20,
+          "shadowElevation": 12
+        },
+        {
+          "id": "dialogue",
+          "fillToken": "dialogueSurface",
+          "borderToken": "primary",
+          "borderWidth": 2,
+          "cornerRadius": 8,
+          "contentPadding": 12,
+          "shadowElevation": 4
+        },
+        {
+          "id": "battle",
+          "fillToken": "battleHudSurface",
+          "borderToken": "danger",
+          "borderWidth": 3,
+          "cornerRadius": 12,
+          "contentPadding": 14,
+          "shadowElevation": 6
+        }
+      ],
+      "defaultStyleId": "default",
+      "pauseMenuStyleId": "pause-menu",
+      "dialogueStyleId": "dialogue",
+      "battleStyleId": "battle",
+      "pauseBackdropOpacity": 0.8
+    },
+    "battle": {
+      "commandLayout": "radial",
+      "commandColumns": 2,
+      "showCommandIcons": true,
+      "commandShape": "cutCorner",
+      "commandPadding": 14,
+      "commandSurfaceColor": "#102B33",
+      "commandBorderColor": "#E2B54A",
+      "commandTextColor": "#F8F3E7",
+      "commandSelectionColor": "#E2B54A",
+      "commands": [
+        {
+          "id": "run",
+          "label": "Battre en retraite",
+          "icon": "run"
+        },
+        {
+          "id": "fight",
+          "label": "Techniques",
+          "icon": "fight"
+        },
+        {
+          "id": "party",
+          "label": "Compagnons",
+          "icon": "party"
+        },
+        {
+          "id": "bag",
+          "label": "Sacoche",
+          "icon": "bag"
+        }
+      ],
+      "hudShape": "rounded",
+      "enemyHudPosition": "topEnd",
+      "playerHudPosition": "bottomStart",
+      "showOwnerLabel": true,
+      "showLevel": true,
+      "showExactHp": true,
+      "hpBarShape": "segmented",
+      "hpHealthyColor": "#1F8A5B",
+      "hpWarningColor": "#C47A12",
+      "hpDangerColor": "#C13A50",
+      "statusColor": "#7B61A8",
+      "moves": {
+        "layout": "grid",
+        "columns": 2,
+        "shape": "rounded",
+        "padding": 14,
+        "surfaceColor": "#F4EEDC",
+        "borderColor": "#102B33",
+        "textColor": "#102B33",
+        "selectionColor": "#E2B54A"
+      },
+      "target": {
+        "layout": "list",
+        "columns": 1,
+        "shape": "capsule",
+        "padding": 12,
+        "surfaceColor": "#F4EEDC",
+        "borderColor": "#102B33",
+        "textColor": "#102B33",
+        "selectionColor": "#E2B54A"
+      },
+      "message": {
+        "layout": "list",
+        "columns": 1,
+        "shape": "cutCorner",
+        "padding": 18,
+        "surfaceColor": "#102B33",
+        "borderColor": "#E2B54A",
+        "textColor": "#F8F3E7",
+        "selectionColor": "#E2B54A"
+      }
+    },
+    "layouts": {
+      "title": {
+        "compact": {
+          "breakpoint": "compact",
+          "slot": "bottomCenter",
+          "width": "comfortable",
+          "spacing": "normal",
+          "screenMargin": "compact",
+          "visibleSecondaryElements": [
+            "titleLogo",
+            "titleAuthor"
+          ]
+        },
+        "regular": {
+          "breakpoint": "regular",
+          "slot": "bottomLeft",
+          "width": "comfortable",
+          "spacing": "normal",
+          "screenMargin": "compact",
+          "visibleSecondaryElements": [
+            "titleLogo",
+            "titleAuthor",
+            "titleDescription"
+          ]
+        },
+        "expanded": {
+          "breakpoint": "expanded",
+          "slot": "bottomLeft",
+          "width": "narrow",
+          "spacing": "airy",
+          "screenMargin": "comfortable",
+          "visibleSecondaryElements": [
+            "titleLogo",
+            "titleAuthor",
+            "titleDescription"
+          ]
+        }
+      },
+      "pauseMenu": {
+        "compact": {
+          "breakpoint": "compact",
+          "slot": "fullScreen",
+          "width": "wide",
+          "spacing": "compact",
+          "screenMargin": "none",
+          "visibleSecondaryElements": [
+            "pauseGameTitle"
+          ]
+        },
+        "regular": {
+          "breakpoint": "regular",
+          "slot": "left",
+          "width": "comfortable",
+          "spacing": "normal",
+          "screenMargin": "compact",
+          "visibleSecondaryElements": [
+            "pauseGameTitle"
+          ]
+        },
+        "expanded": {
+          "breakpoint": "expanded",
+          "slot": "leftPane",
+          "width": "narrow",
+          "spacing": "airy",
+          "screenMargin": "comfortable",
+          "visibleSecondaryElements": [
+            "pauseGameTitle"
+          ]
+        }
+      },
+      "dialogue": {
+        "compact": {
+          "breakpoint": "compact",
+          "slot": "bottomCenter",
+          "width": "wide",
+          "spacing": "compact",
+          "screenMargin": "compact",
+          "visibleSecondaryElements": [
+            "dialoguePortrait"
+          ]
+        },
+        "regular": {
+          "breakpoint": "regular",
+          "slot": "bottomCenter",
+          "width": "wide",
+          "spacing": "normal",
+          "screenMargin": "compact",
+          "visibleSecondaryElements": [
+            "dialoguePortrait"
+          ]
+        },
+        "expanded": {
+          "breakpoint": "expanded",
+          "slot": "bottomCenter",
+          "width": "comfortable",
+          "spacing": "airy",
+          "screenMargin": "comfortable",
+          "visibleSecondaryElements": [
+            "dialoguePortrait"
+          ]
+        }
+      },
+      "battle": {
+        "compact": {
+          "breakpoint": "compact",
+          "slot": "bottomCenter",
+          "width": "wide",
+          "spacing": "compact",
+          "screenMargin": "none",
+          "visibleSecondaryElements": []
+        },
+        "regular": {
+          "breakpoint": "regular",
+          "slot": "right",
+          "width": "narrow",
+          "spacing": "compact",
+          "screenMargin": "compact",
+          "visibleSecondaryElements": []
+        },
+        "expanded": {
+          "breakpoint": "expanded",
+          "slot": "right",
+          "width": "narrow",
+          "spacing": "normal",
+          "screenMargin": "comfortable",
+          "visibleSecondaryElements": []
+        }
       }
     }
   },

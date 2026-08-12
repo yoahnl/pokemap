@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -21,6 +22,7 @@ void main() {
       jsonDecode(File(p.join(root.path, 'project.json')).readAsStringSync())
           as Map<String, dynamic>,
     );
+    expect(() => ProjectValidator.validate(manifest), returnsNormally);
     final scenes =
         (manifest.globalProperties['personalizationAcceptanceScenes']
                 as List<Object?>)
@@ -42,11 +44,39 @@ void main() {
       'portrait-leo-happy',
     );
     expect(manifest.encounterTables.single.id, 'vermeil_grass');
+    expect(manifest.presentation?.schemaVersion, 10);
+    expect(
+      manifest.presentation?.battle?.commandLayout,
+      ProjectBattleCommandLayout.radial,
+    );
+    expect(
+      manifest.presentation?.battle?.effectiveCommands.map(
+        (command) => command.id,
+      ),
+      <ProjectBattleCommandId>[
+        ProjectBattleCommandId.run,
+        ProjectBattleCommandId.fight,
+        ProjectBattleCommandId.party,
+        ProjectBattleCommandId.bag,
+      ],
+    );
+    expect(
+      manifest.presentation?.battle?.moves.shape,
+      ProjectWindowShape.rounded,
+    );
+    expect(
+      manifest.presentation?.battle?.target.shape,
+      ProjectWindowShape.capsule,
+    );
+    expect(
+      manifest.presentation?.battle?.message.shape,
+      ProjectWindowShape.cutCorner,
+    );
     expect(
       manifest.presentation?.pause?.actions
           ?.firstWhere((action) => action.id == ProjectPauseActionId.pokedex)
           .label,
-      'Bestiaire',
+      'Carnet de route',
     );
     expect(manifest.presentation?.intro, isNotNull);
   });
@@ -76,17 +106,20 @@ void main() {
     expect(firstLine.text, contains('Bienvenue à Vermeil'));
   });
 
-  test('acceptance media and readable capture font are versioned', () {
+  test('acceptance media and readable capture font are versioned', () async {
     final requiredFiles = <String>[
       'assets/presentation/icon.png',
       'assets/presentation/cover.png',
       'assets/presentation/hero.png',
-      'assets/presentation/poster.png',
-      'assets/presentation/intro.mp4',
-      'assets/presentation/captions.vtt',
-      'assets/presentation/pokemap-sans.ttf',
-      'assets/presentation/font-license.txt',
+      'assets/presentation/title-loop.mp4',
+      'assets/presentation/intro/poster.png',
+      'assets/presentation/intro/intro.mp4',
+      'assets/presentation/intro/captions.vtt',
+      'assets/presentation/fonts/display.ttf',
+      'assets/presentation/fonts/display-license.txt',
       'assets/characters/leo-happy.png',
+      'assets/battle/battle-clearing.png',
+      'assets/maps/vermeil-village-stage.png',
       'assets/.pokemap-assets.json',
     ];
 
@@ -99,9 +132,72 @@ void main() {
     }
     expect(
       File(
-        p.join(root.path, 'assets', 'presentation', 'pokemap-sans.ttf'),
+        p.join(root.path, 'assets', 'presentation', 'fonts', 'display.ttf'),
       ).readAsBytesSync().take(4),
       <int>[0, 1, 0, 0],
+    );
+    final imageMinimums = <String, ui.Size>{
+      'assets/presentation/icon.png': const ui.Size(128, 128),
+      'assets/presentation/cover.png': const ui.Size(960, 540),
+      'assets/presentation/hero.png': const ui.Size(960, 540),
+      'assets/presentation/intro/poster.png': const ui.Size(960, 540),
+      'assets/characters/leo-happy.png': const ui.Size(512, 512),
+      'assets/battle/battle-clearing.png': const ui.Size(960, 540),
+      'assets/maps/vermeil-village-stage.png': const ui.Size(960, 540),
+    };
+    for (final entry in imageMinimums.entries) {
+      final size = await _imageSize(File(p.join(root.path, entry.key)));
+      expect(
+        size.width,
+        greaterThanOrEqualTo(entry.value.width),
+        reason: entry.key,
+      );
+      expect(
+        size.height,
+        greaterThanOrEqualTo(entry.value.height),
+        reason: entry.key,
+      );
+    }
+    expect(
+      File(
+        p.join(root.path, 'assets', 'presentation', 'intro', 'intro.mp4'),
+      ).lengthSync(),
+      greaterThan(50000),
+    );
+    expect(
+      File(
+        p.join(root.path, 'assets', 'presentation', 'title-loop.mp4'),
+      ).lengthSync(),
+      greaterThan(50000),
+    );
+  });
+
+  test('acceptance map owns a rendered backdrop and battle scene', () {
+    final manifest = ProjectManifest.fromJson(
+      jsonDecode(File(p.join(root.path, 'project.json')).readAsStringSync())
+          as Map<String, dynamic>,
+    );
+    final map = MapData.fromJson(
+      jsonDecode(
+            File(
+              p.join(root.path, 'maps', 'vermeil_village.json'),
+            ).readAsStringSync(),
+          )
+          as Map<String, dynamic>,
+    );
+    final stageTileset = manifest.tilesets.singleWhere(
+      (tileset) => tileset.id == 'vermeil-stage',
+    );
+    final encounterZone = map.gameplayZones.singleWhere(
+      (zone) => zone.id == 'vermeil_grass_zone',
+    );
+
+    expect(stageTileset.source, isNotNull);
+    expect(map.layers.whereType<TileLayer>(), isNotEmpty);
+    expect(map.layers.whereType<TileLayer>().single.cells, <int>[1]);
+    expect(
+      encounterZone.encounter?.battleBackgroundRelativePath,
+      'assets/battle/battle-clearing.png',
     );
   });
 
@@ -136,4 +232,16 @@ void main() {
       r'$.presentation.branding.iconPath',
     );
   });
+}
+
+Future<ui.Size> _imageSize(File file) async {
+  final codec = await ui.instantiateImageCodec(await file.readAsBytes());
+  final frame = await codec.getNextFrame();
+  final size = ui.Size(
+    frame.image.width.toDouble(),
+    frame.image.height.toDouble(),
+  );
+  frame.image.dispose();
+  codec.dispose();
+  return size;
 }

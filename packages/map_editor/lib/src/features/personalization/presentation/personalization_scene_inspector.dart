@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
+import '../application/personalization_visual_target_graph.dart';
 
 class PersonalizationSceneInspector extends StatelessWidget {
+  static const capabilityIds = <String>{'inspector.targetNavigation'};
+
   const PersonalizationSceneInspector({
     super.key,
     required this.scene,
@@ -56,16 +59,19 @@ class PersonalizationSceneInspector extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: <Widget>[
-                for (final destination in _targetsForScene(scene))
+                for (final node
+                    in PersonalizationVisualTargetGraph.standard().targetsFor(
+                      scene,
+                    ))
                   PokeMapButton(
                     key: ValueKey<String>(
-                      'personalization-inspector-target-${_targetId(destination)}',
+                      'personalization-inspector-target-${node.id}',
                     ),
                     size: PokeMapButtonSize.large,
                     variant: PokeMapButtonVariant.secondary,
-                    isSelected: destination.runtimeType == target.runtimeType,
-                    onPressed: () => onTargetSelected(destination),
-                    child: Text(_targetLabel(destination)),
+                    isSelected: node.target.runtimeType == target.runtimeType,
+                    onPressed: () => onTargetSelected(node.target),
+                    child: Text(_targetLabel(node.target)),
                   ),
               ],
             ),
@@ -81,53 +87,6 @@ class PersonalizationSceneInspector extends StatelessWidget {
   );
 }
 
-List<PersonalizationInspectorTarget> _targetsForScene(
-  PersonalizationStudioScene scene,
-) => switch (scene) {
-  PersonalizationStudioScene.globalStyle =>
-    const <PersonalizationInspectorTarget>[
-      GlobalColorsTarget(),
-      GlobalTypographyTarget(),
-      GlobalFormsTarget(),
-    ],
-  PersonalizationStudioScene.title => const <PersonalizationInspectorTarget>[
-    TitlePresentationTarget(),
-  ],
-  PersonalizationStudioScene.intro => const <PersonalizationInspectorTarget>[
-    IntroPresentationTarget(),
-  ],
-  PersonalizationStudioScene.pause => const <PersonalizationInspectorTarget>[
-    PauseLabelsTarget(),
-    PauseAppearanceTarget(),
-    PauseLayoutTarget(),
-  ],
-  PersonalizationStudioScene.dialogue => const <PersonalizationInspectorTarget>[
-    DialogueAppearanceTarget(),
-    DialogueTypographyTarget(),
-    DialogueLayoutTarget(),
-  ],
-  PersonalizationStudioScene.battle => const <PersonalizationInspectorTarget>[
-    BattleCommandsTarget(),
-    BattleAppearanceTarget(),
-  ],
-};
-
-String _targetId(PersonalizationInspectorTarget target) => switch (target) {
-  GlobalColorsTarget() => 'globalColors',
-  GlobalTypographyTarget() => 'globalTypography',
-  GlobalFormsTarget() => 'globalForms',
-  TitlePresentationTarget() => 'titlePresentation',
-  IntroPresentationTarget() => 'introPresentation',
-  PauseLabelsTarget() => 'pauseLabels',
-  PauseAppearanceTarget() => 'pauseAppearance',
-  PauseLayoutTarget() => 'pauseLayout',
-  DialogueAppearanceTarget() => 'dialogueAppearance',
-  DialogueTypographyTarget() => 'dialogueTypography',
-  DialogueLayoutTarget() => 'dialogueLayout',
-  BattleCommandsTarget() => 'battleCommands',
-  BattleAppearanceTarget() => 'battleAppearance',
-};
-
 String _targetLabel(PersonalizationInspectorTarget target) => switch (target) {
   GlobalColorsTarget() => 'Couleurs',
   GlobalTypographyTarget() => 'Typographie',
@@ -141,5 +100,9 @@ String _targetLabel(PersonalizationInspectorTarget target) => switch (target) {
   DialogueTypographyTarget() => 'Typographie',
   DialogueLayoutTarget() => 'Disposition',
   BattleCommandsTarget() => 'Commandes',
+  BattleHudTarget() => 'HUD et PV',
+  BattleMovesTarget() => 'Capacités',
+  BattleTargetsTarget() => 'Cible',
+  BattleMessageTarget() => 'Message',
   BattleAppearanceTarget() => 'Apparence',
 };

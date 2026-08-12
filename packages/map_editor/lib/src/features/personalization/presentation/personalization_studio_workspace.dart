@@ -19,10 +19,10 @@ import '../../../ui/design_system/pokemap_toggle_tile.dart';
 import '../../../ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import '../../editor/state/editor_notifier.dart';
 import '../application/personalization_capability_descriptor.dart';
+import '../application/personalization_capability_registry.dart';
 import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_context_source.dart';
-import '../application/personalization_preview_fixtures.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
 import '../application/personalization_publish_readiness.dart';
 import '../application/personalization_studio_asset_picker.dart';
@@ -36,7 +36,9 @@ import '../application/project_title_motion_import_service.dart';
 import 'personalization_live_preview.dart';
 import 'personalization_readiness_panel.dart';
 import 'personalization_section_actions.dart';
+import 'personalization_scene_actions.dart';
 import 'personalization_studio_shell.dart';
+import 'personalization_studio_capability_bindings.dart';
 import 'inspectors/personalization_battle_inspector.dart';
 import 'inspectors/personalization_global_style_inspector.dart';
 import 'inspectors/personalization_dialogue_inspector.dart';
@@ -87,12 +89,15 @@ class _PersonalizationStudioWorkspaceState
   ProjectTitleMusicPreviewController? _titleMusicPreviewController;
   StreamSubscription<bool>? _titleMusicPreviewSubscription;
   bool _isTitleMusicPreviewPlaying = false;
-  String? _selectedDialogueCharacterId;
+  String? _selectedDialoguePortraitId;
   bool _showDialoguePortrait = true;
   bool _showDialogueName = true;
   bool _showDialogueChoices = false;
   PersonalizationBattlePreviewState _battlePreviewState =
       PersonalizationBattlePreviewState.commands;
+  final Map<PersonalizationStudioScene, PersonalizationPreviewContentSource>
+  _previewContentSources =
+      <PersonalizationStudioScene, PersonalizationPreviewContentSource>{};
   final Map<ProjectTypographyRole, String> _fontPreviewFamilies =
       <ProjectTypographyRole, String>{};
   ProjectPresentationPreflightResult? _preflightResult;
@@ -101,6 +106,7 @@ class _PersonalizationStudioWorkspaceState
   String? _preflightError;
   bool _isPreflightRunning = false;
   int _preflightRequestId = 0;
+  ProjectPresentationProfile? _scenePresetPreviewProfile;
 
   @override
   void dispose() {
@@ -118,6 +124,7 @@ class _PersonalizationStudioWorkspaceState
   void _ensureSession(String projectRootPath) {
     if (_requestedProjectRootPath == projectRootPath) return;
     _requestedProjectRootPath = projectRootPath;
+    _previewContentSources.clear();
     scheduleMicrotask(() async {
       if (!mounted) return;
       await ref
@@ -963,6 +970,7 @@ class _PersonalizationStudioWorkspaceState
                   profile: profile,
                   projectName: projectName,
                   projectRootPath: projectRootPath,
+                  previewFamilies: _fontPreviewFamilies,
                   onChanged: (nextProfile) {
                     unawaited(
                       notifier.applyPersonalizationStudioProfile(
@@ -1075,6 +1083,54 @@ class _PersonalizationStudioWorkspaceState
                       ),
                     );
                   },
+                  onImportTypographyRole: (role) {
+                    unawaited(
+                      _importFont(
+                        context: context,
+                        projectRootPath: projectRootPath,
+                        profile: profile,
+                        role: role,
+                        notifier: notifier,
+                      ),
+                    );
+                  },
+                  onUseSystemTypographyRole: (role) {
+                    final typography =
+                        profile.typography ?? const ProjectTypographyProfile();
+                    final current = _typographyRoleProfile(typography, role);
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        profile.copyWith(
+                          typography: _replaceTypographyRole(
+                            typography,
+                            role,
+                            ProjectTypographyRoleProfile(
+                              fallbackFamilies: current.fallbackFamilies,
+                            ),
+                          ),
+                        ),
+                        label:
+                            'Utiliser le fallback ${_typographyRoleName(role)}',
+                      ),
+                    );
+                    setState(() => _fontPreviewFamilies.remove(role));
+                  },
+                  onTypographyMetricsChanged: (role, metrics) {
+                    final typography =
+                        profile.typography ?? const ProjectTypographyProfile();
+                    unawaited(
+                      notifier.applyPersonalizationStudioProfile(
+                        profile.copyWith(
+                          typography: _replaceTypographyRoleMetrics(
+                            typography,
+                            role,
+                            metrics,
+                          ),
+                        ),
+                        label: 'Modifier le texte ${_typographyRoleName(role)}',
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 18),
                 ProjectPresentationPresetLibrary(
@@ -1083,7 +1139,7 @@ class _PersonalizationStudioWorkspaceState
                   onApply: (preset) {
                     unawaited(
                       notifier.applyPersonalizationStudioProfile(
-                        preset.profile,
+                        preset.applyTo(profile),
                         label: 'Appliquer le profil ${preset.label}',
                       ),
                     );
@@ -1343,12 +1399,18 @@ class _PersonalizationStudioWorkspaceState
         notifier: notifier,
         canEdit: canEdit,
       ),
-      BattleCommandsTarget() || BattleAppearanceTarget() => _buildBattleTarget(
+      BattleCommandsTarget() ||
+      BattleHudTarget() ||
+      BattleMovesTarget() ||
+      BattleTargetsTarget() ||
+      BattleMessageTarget() ||
+      BattleAppearanceTarget() => _buildBattleTarget(
         context: context,
         profile: profile,
         projectRootPath: projectRootPath,
         notifier: notifier,
         canEdit: canEdit,
+        target: target,
       ),
       DialogueAppearanceTarget() ||
       DialogueTypographyTarget() ||
@@ -1535,6 +1597,53 @@ class _PersonalizationStudioWorkspaceState
               ),
             );
           },
+          onImportRole: (role) {
+            unawaited(
+              _importFont(
+                context: context,
+                projectRootPath: projectRootPath,
+                profile: profile,
+                role: role,
+                notifier: notifier,
+              ),
+            );
+          },
+          onUseSystemFont: (role) {
+            final typography =
+                profile.typography ?? const ProjectTypographyProfile();
+            final current = _typographyRoleProfile(typography, role);
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(
+                  typography: _replaceTypographyRole(
+                    typography,
+                    role,
+                    ProjectTypographyRoleProfile(
+                      fallbackFamilies: current.fallbackFamilies,
+                    ),
+                  ),
+                ),
+                label: 'Utiliser le fallback ${_typographyRoleName(role)}',
+              ),
+            );
+            setState(() => _fontPreviewFamilies.remove(role));
+          },
+          onMetricsChanged: (role, metrics) {
+            final typography =
+                profile.typography ?? const ProjectTypographyProfile();
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(
+                  typography: _replaceTypographyRoleMetrics(
+                    typography,
+                    role,
+                    metrics,
+                  ),
+                ),
+                label: 'Modifier le texte ${_typographyRoleName(role)}',
+              ),
+            );
+          },
         ),
       ),
     ],
@@ -1602,7 +1711,7 @@ class _PersonalizationStudioWorkspaceState
               ),
             );
           },
-          onImportCommonFont: () {
+          onImportBodyFont: () {
             unawaited(
               _importFont(
                 context: context,
@@ -1610,21 +1719,38 @@ class _PersonalizationStudioWorkspaceState
                 profile: profile,
                 role: ProjectTypographyRole.body,
                 notifier: notifier,
-                applyToAllRoles: true,
               ),
             );
           },
-          onUseSystemCommonFont: () {
-            unawaited(
-              _useSystemCommonFont(profile: profile, notifier: notifier),
-            );
-          },
-          onCommonMetricsChanged: (metrics) {
+          onUseSystemBodyFont: () {
+            final typography =
+                profile.typography ?? const ProjectTypographyProfile();
+            final current = typography.body;
             unawaited(
               notifier.applyPersonalizationStudioProfile(
                 profile.copyWith(
-                  typography: _replaceCommonTypographyMetrics(
-                    profile.typography ?? const ProjectTypographyProfile(),
+                  typography: typography.copyWith(
+                    body: ProjectTypographyRoleProfile(
+                      fallbackFamilies: current.fallbackFamilies,
+                    ),
+                  ),
+                ),
+                label: 'Utiliser le fallback Texte courant',
+              ),
+            );
+            setState(
+              () => _fontPreviewFamilies.remove(ProjectTypographyRole.body),
+            );
+          },
+          onBodyMetricsChanged: (metrics) {
+            final typography =
+                profile.typography ?? const ProjectTypographyProfile();
+            unawaited(
+              notifier.applyPersonalizationStudioProfile(
+                profile.copyWith(
+                  typography: _replaceTypographyRoleMetrics(
+                    typography,
+                    ProjectTypographyRole.body,
                     metrics,
                   ),
                 ),
@@ -1670,13 +1796,13 @@ class _PersonalizationStudioWorkspaceState
           child: PersonalizationDialogueInspector(
             profile: profile,
             characterOptions: characterOptions,
-            selectedCharacterId: _selectedDialogueCharacterId,
+            selectedCharacterId: _selectedDialoguePortraitId,
             showPortrait: _showDialoguePortrait,
             showName: _showDialogueName,
             showChoices: _showDialogueChoices,
             previewFamilies: _fontPreviewFamilies,
-            onCharacterSelected: (characterId) {
-              setState(() => _selectedDialogueCharacterId = characterId);
+            onCharacterSelected: (portraitId) {
+              setState(() => _selectedDialoguePortraitId = portraitId);
             },
             onShowPortraitChanged: (value) {
               setState(() => _showDialoguePortrait = value);
@@ -1687,27 +1813,11 @@ class _PersonalizationStudioWorkspaceState
             onShowChoicesChanged: (value) {
               setState(() => _showDialogueChoices = value);
             },
-            onWindowsChanged: (windows) {
+            onDialogueChanged: (dialogue) {
               unawaited(
                 notifier.applyPersonalizationStudioProfile(
-                  profile.copyWith(windows: windows),
-                  label: 'Modifier l’apparence de la bulle de dialogue',
-                ),
-              );
-            },
-            onSurfacePalettesChanged: (surfacePalettes) {
-              unawaited(
-                notifier.applyPersonalizationStudioProfile(
-                  profile.copyWith(surfacePalettes: surfacePalettes),
-                  label: 'Modifier les couleurs des dialogues',
-                ),
-              );
-            },
-            onLayoutsChanged: (layouts) {
-              unawaited(
-                notifier.applyPersonalizationStudioProfile(
-                  profile.copyWith(layouts: layouts),
-                  label: 'Modifier la disposition de la bulle de dialogue',
+                  profile.copyWith(dialogue: dialogue),
+                  label: 'Modifier la bulle de dialogue',
                 ),
               );
             },
@@ -1767,6 +1877,7 @@ class _PersonalizationStudioWorkspaceState
     required String projectRootPath,
     required EditorNotifier notifier,
     required bool canEdit,
+    required PersonalizationInspectorTarget target,
   }) {
     final typography = profile.typography ?? const ProjectTypographyProfile();
     return Column(
@@ -1794,8 +1905,17 @@ class _PersonalizationStudioWorkspaceState
             profile: profile,
             previewState: _battlePreviewState,
             previewFamilies: _fontPreviewFamilies,
+            initialSection: _battleSectionForTarget(target),
             onPreviewStateChanged: (state) {
               setState(() => _battlePreviewState = state);
+            },
+            onBattleChanged: (battle) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(battle: battle),
+                  label: 'Modifier l’interface des combats',
+                ),
+              );
             },
             onWindowsChanged: (windows) {
               unawaited(
@@ -1850,6 +1970,36 @@ class _PersonalizationStudioWorkspaceState
                 () => _fontPreviewFamilies.remove(ProjectTypographyRole.combat),
               );
             },
+            onImportNumbersFont: () {
+              unawaited(
+                _importFont(
+                  context: context,
+                  projectRootPath: projectRootPath,
+                  profile: profile,
+                  role: ProjectTypographyRole.numbers,
+                  notifier: notifier,
+                ),
+              );
+            },
+            onUseSystemNumbersFont: () {
+              final current = typography.numbers;
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(
+                    typography: typography.copyWith(
+                      numbers: ProjectTypographyRoleProfile(
+                        fallbackFamilies: current.fallbackFamilies,
+                      ),
+                    ),
+                  ),
+                  label: 'Utiliser le fallback Nombres',
+                ),
+              );
+              setState(
+                () =>
+                    _fontPreviewFamilies.remove(ProjectTypographyRole.numbers),
+              );
+            },
             onCombatMetricsChanged: (metrics) {
               unawaited(
                 notifier.applyPersonalizationStudioProfile(
@@ -1864,6 +2014,20 @@ class _PersonalizationStudioWorkspaceState
                 ),
               );
             },
+            onNumbersMetricsChanged: (metrics) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(
+                    typography: _replaceTypographyRoleMetrics(
+                      typography,
+                      ProjectTypographyRole.numbers,
+                      metrics,
+                    ),
+                  ),
+                  label: 'Modifier le texte Nombres',
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -1872,6 +2036,9 @@ class _PersonalizationStudioWorkspaceState
 
   @override
   Widget build(BuildContext context) {
+    personalizationCapabilityRegistry.requireExactControlIds(
+      personalizationStudioVisibleCapabilityIds,
+    );
     final editorState = ref.watch(editorNotifierProvider);
     final project = editorState.project;
     if (project == null) {
@@ -1936,11 +2103,18 @@ class _PersonalizationStudioWorkspaceState
         const <PersonalizationPreviewContextOption>[];
     final characterOptions =
         _selectedScene == PersonalizationStudioScene.dialogue
-        ? _characterOptionsFromContexts(previewContexts)
+        ? ref
+                  .watch(
+                    personalizationCharacterPreviewOptionsProvider(
+                      projectRootPath,
+                    ),
+                  )
+                  .value ??
+              const <PersonalizationCharacterPreviewOption>[]
         : const <PersonalizationCharacterPreviewOption>[];
     final dialogueCharacter = _resolveDialogueCharacter(
       characterOptions,
-      _selectedDialogueCharacterId,
+      _selectedDialoguePortraitId,
     );
 
     return Material(
@@ -1957,14 +2131,6 @@ class _PersonalizationStudioWorkspaceState
                 crossAxisAlignment: WrapCrossAlignment.center,
                 alignment: WrapAlignment.end,
                 children: <Widget>[
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    child: Text(
-                      studioSession?.isDirty == true
-                          ? 'Le brouillon diffère de project.json.'
-                          : 'La personnalisation correspond à project.json.',
-                    ),
-                  ),
                   if (studioSession?.isDirty == true)
                     const PokeMapBadge(
                       key: ValueKey<String>('personalization-studio-dirty'),
@@ -1974,7 +2140,7 @@ class _PersonalizationStudioWorkspaceState
                   else
                     const PokeMapBadge(
                       key: ValueKey<String>('personalization-studio-clean'),
-                      label: 'Enregistré',
+                      label: 'Tout est enregistré',
                       variant: PokeMapBadgeVariant.success,
                     ),
                   if (hasBlockingDiagnostics)
@@ -2010,8 +2176,11 @@ class _PersonalizationStudioWorkspaceState
                         : null,
                     child: const Text('Rétablir'),
                   ),
-                  SizedBox(
-                    width: 230,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 230,
+                      maxWidth: 270,
+                    ),
                     child: PokeMapToggleTile(
                       key: const ValueKey<String>(
                         'personalization-studio-autosave',
@@ -2055,12 +2224,13 @@ class _PersonalizationStudioWorkspaceState
                   unawaited(_stopTitleMusicPreview());
                 }
                 setState(() {
+                  _scenePresetPreviewProfile = null;
                   _selectedScene = scene;
                   _selectedTarget = _defaultInspectorTarget(scene);
                 });
               },
               preview: PersonalizationLivePreview(
-                profile: profile,
+                profile: _scenePresetPreviewProfile ?? profile,
                 projectName: project.name,
                 projectRootPath: projectRootPath,
                 baselineProfile: baselineProfile,
@@ -2070,7 +2240,14 @@ class _PersonalizationStudioWorkspaceState
                 showDialogueName: _showDialogueName,
                 showDialogueChoices: _showDialogueChoices,
                 battleState: _battlePreviewState,
-                contentSource: PersonalizationPreviewContentSource.project,
+                contentSource:
+                    _previewContentSources[_selectedScene] ??
+                    PersonalizationPreviewContentSource.project,
+                onContentSourceChanged: (source) {
+                  setState(() {
+                    _previewContentSources[_selectedScene] = source;
+                  });
+                },
                 contexts: previewContexts,
                 contextsLoading:
                     previewContextState.isLoading && previewContexts.isEmpty,
@@ -2086,10 +2263,21 @@ class _PersonalizationStudioWorkspaceState
                     unawaited(_stopTitleMusicPreview());
                   }
                   setState(() {
+                    _scenePresetPreviewProfile = null;
                     _selectedScene = scene;
                     _selectedTarget = target;
                   });
                 },
+                onLayoutCommitted: canEdit
+                    ? (layouts) {
+                        unawaited(
+                          notifier.applyPersonalizationStudioProfile(
+                            profile.copyWith(layouts: layouts),
+                            label: 'Déplacer ou redimensionner un élément',
+                          ),
+                        );
+                      }
+                    : null,
               ),
               inspectorTitle: PersonalizationStudioSceneDescriptor.forSurface(
                 _selectedScene,
@@ -2102,6 +2290,28 @@ class _PersonalizationStudioWorkspaceState
               inspector: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
+                  PersonalizationSceneActions(
+                    scene: _selectedScene,
+                    profile: profile,
+                    onPreviewChanged: (previewProfile) {
+                      setState(
+                        () => _scenePresetPreviewProfile = previewProfile,
+                      );
+                    },
+                    onProfileChanged: canEdit
+                        ? (updatedProfile) {
+                            setState(() => _scenePresetPreviewProfile = null);
+                            unawaited(
+                              notifier.applyPersonalizationStudioProfile(
+                                updatedProfile,
+                                label: 'Appliquer les réglages de la scène',
+                              ),
+                            );
+                          }
+                        : null,
+                  ),
+                  if (_selectedScene != PersonalizationStudioScene.globalStyle)
+                    const SizedBox(height: 12),
                   PersonalizationSectionActions(
                     profile: profile,
                     category: _categoryForInspectorTarget(_selectedTarget),
@@ -2239,6 +2449,10 @@ PersonalizationStudioScene _sceneForInspectorTarget(
   DialogueTypographyTarget() ||
   DialogueLayoutTarget() => PersonalizationStudioScene.dialogue,
   BattleCommandsTarget() ||
+  BattleHudTarget() ||
+  BattleMovesTarget() ||
+  BattleTargetsTarget() ||
+  BattleMessageTarget() ||
   BattleAppearanceTarget() => PersonalizationStudioScene.battle,
 };
 
@@ -2257,7 +2471,22 @@ ProjectPresentationCategory _categoryForInspectorTarget(
   PauseAppearanceTarget() ||
   DialogueAppearanceTarget() ||
   BattleCommandsTarget() ||
+  BattleHudTarget() ||
+  BattleMovesTarget() ||
+  BattleTargetsTarget() ||
+  BattleMessageTarget() ||
   BattleAppearanceTarget() => ProjectPresentationCategory.theme,
+};
+
+PersonalizationBattleInspectorSection? _battleSectionForTarget(
+  PersonalizationInspectorTarget target,
+) => switch (target) {
+  BattleCommandsTarget() => PersonalizationBattleInspectorSection.commands,
+  BattleHudTarget() => PersonalizationBattleInspectorSection.hud,
+  BattleMovesTarget() => PersonalizationBattleInspectorSection.moves,
+  BattleTargetsTarget() => PersonalizationBattleInspectorSection.target,
+  BattleMessageTarget() => PersonalizationBattleInspectorSection.message,
+  _ => null,
 };
 
 PersonalizationStudioScene _sceneForCategory(
@@ -2272,34 +2501,14 @@ PersonalizationStudioScene _sceneForCategory(
 
 PersonalizationCharacterPreviewOption? _resolveDialogueCharacter(
   List<PersonalizationCharacterPreviewOption> options,
-  String? selectedCharacterId,
+  String? selectedPortraitId,
 ) {
   if (options.isEmpty) return null;
   for (final option in options) {
-    if (option.characterId == selectedCharacterId) return option;
+    if (option.id == selectedPortraitId) return option;
   }
   return options.first;
 }
-
-List<PersonalizationCharacterPreviewOption> _characterOptionsFromContexts(
-  List<PersonalizationPreviewContextOption> contexts,
-) => List.unmodifiable(
-  contexts
-      .where(
-        (context) =>
-            context.kind == PersonalizationPreviewContextKind.characterPortrait,
-      )
-      .map(
-        (context) => PersonalizationCharacterPreviewOption(
-          characterId: context.sourceId,
-          displayName:
-              context.detail['characterName'] as String? ?? context.label,
-          portraitPath: context.detail['portraitPath'] as String?,
-          expressionId: context.detail['portraitStateId'] as String?,
-          portraitBytes: context.mediaBytes,
-        ),
-      ),
-);
 
 PersonalizationInspectorTarget _targetForCategory(
   ProjectPresentationCategory category,
@@ -2327,21 +2536,7 @@ String _sceneDescription(PersonalizationStudioScene scene) => switch (scene) {
 };
 
 String _inspectorTargetId(PersonalizationInspectorTarget target) =>
-    switch (target) {
-      GlobalColorsTarget() => 'globalColors',
-      GlobalTypographyTarget() => 'globalTypography',
-      GlobalFormsTarget() => 'globalForms',
-      TitlePresentationTarget() => 'titlePresentation',
-      IntroPresentationTarget() => 'introPresentation',
-      PauseLabelsTarget() => 'pauseLabels',
-      PauseAppearanceTarget() => 'pauseAppearance',
-      PauseLayoutTarget() => 'pauseLayout',
-      DialogueAppearanceTarget() => 'dialogueAppearance',
-      DialogueTypographyTarget() => 'dialogueTypography',
-      DialogueLayoutTarget() => 'dialogueLayout',
-      BattleCommandsTarget() => 'battleCommands',
-      BattleAppearanceTarget() => 'battleAppearance',
-    };
+    personalizationInspectorTargetId(target);
 
 String _categoryName(ProjectPresentationCategory category) =>
     switch (category) {

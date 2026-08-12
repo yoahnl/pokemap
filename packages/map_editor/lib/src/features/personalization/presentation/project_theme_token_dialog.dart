@@ -7,6 +7,8 @@ Future<String?> showProjectThemeTokenDialog({
   required BuildContext context,
   required String tokenLabel,
   required String currentValue,
+  String? impactDescription,
+  String? Function(String value)? validator,
 }) {
   return showDialog<String>(
     context: context,
@@ -14,6 +16,8 @@ Future<String?> showProjectThemeTokenDialog({
     builder: (_) => _ProjectThemeTokenDialog(
       tokenLabel: tokenLabel,
       currentValue: currentValue,
+      impactDescription: impactDescription,
+      validator: validator,
     ),
   );
 }
@@ -22,10 +26,14 @@ class _ProjectThemeTokenDialog extends StatefulWidget {
   const _ProjectThemeTokenDialog({
     required this.tokenLabel,
     required this.currentValue,
+    this.impactDescription,
+    this.validator,
   });
 
   final String tokenLabel;
   final String currentValue;
+  final String? impactDescription;
+  final String? Function(String value)? validator;
 
   @override
   State<_ProjectThemeTokenDialog> createState() =>
@@ -52,9 +60,15 @@ class _ProjectThemeTokenDialogState extends State<_ProjectThemeTokenDialog> {
     final value = _controller.text.trim();
     if (!RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(value)) {
       setState(() {
-        _errorText = 'Utilisez exactement six chiffres hexadécimaux, '
+        _errorText =
+            'Utilisez exactement six chiffres hexadécimaux, '
             'par exemple #086D7A.';
       });
+      return;
+    }
+    final validationError = widget.validator?.call(value);
+    if (validationError != null) {
+      setState(() => _errorText = validationError);
       return;
     }
     Navigator.of(context).pop(value);
@@ -71,10 +85,7 @@ class _ProjectThemeTokenDialogState extends State<_ProjectThemeTokenDialog> {
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
             child: Text(
               'Modifier ${widget.tokenLabel}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
           footer: Padding(
@@ -96,16 +107,31 @@ class _ProjectThemeTokenDialogState extends State<_ProjectThemeTokenDialog> {
               ],
             ),
           ),
-          child: PokeMapTextField(
-            label: 'Couleur hexadécimale',
-            fieldKey: const ValueKey<String>(
-              'personalization-theme-token-input',
-            ),
-            controller: _controller,
-            placeholder: '#086D7A',
-            errorText: _errorText,
-            autofocus: true,
-            onSubmitted: (_) => _submit(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (widget.impactDescription != null) ...<Widget>[
+                PokeMapDiagnosticCallout(
+                  key: const ValueKey<String>(
+                    'personalization-theme-token-impact',
+                  ),
+                  severity: PokeMapDiagnosticSeverity.info,
+                  message: widget.impactDescription!,
+                ),
+                const SizedBox(height: 12),
+              ],
+              PokeMapTextField(
+                label: 'Couleur hexadécimale',
+                fieldKey: const ValueKey<String>(
+                  'personalization-theme-token-input',
+                ),
+                controller: _controller,
+                placeholder: '#086D7A',
+                errorText: _errorText,
+                autofocus: true,
+                onSubmitted: (_) => _submit(),
+              ),
+            ],
           ),
         ),
       ),

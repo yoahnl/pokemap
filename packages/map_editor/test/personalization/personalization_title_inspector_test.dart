@@ -53,15 +53,59 @@ void main() {
     expect(find.text('Toujours visible'), findsOneWidget);
   });
 
+  testWidgets('keeps the required new game action visible when publishing', (
+    tester,
+  ) async {
+    ProjectTitlePresentationProfile? changed;
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: ProjectTitleActionsEditor(
+            profile: const ProjectTitlePresentationProfile(
+              actions: <ProjectTitleActionProfile>[
+                ProjectTitleActionProfile(
+                  id: ProjectTitleActionId.newGame,
+                  visible: false,
+                ),
+                ProjectTitleActionProfile(id: ProjectTitleActionId.options),
+              ],
+            ),
+            onChanged: (profile) => changed = profile,
+          ),
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('title-action-label-newGame')),
+      'Commencer',
+    );
+
+    expect(
+      changed?.actions
+          ?.singleWhere((action) => action.id == ProjectTitleActionId.newGame)
+          .visible,
+      isTrue,
+    );
+  });
+
   testWidgets('authors title copy and exposes the project-name fallback', (
     tester,
   ) async {
     ProjectPresentationProfile? changed;
+    const actions = <ProjectTitleActionProfile>[
+      ProjectTitleActionProfile(
+        id: ProjectTitleActionId.newGame,
+        label: 'Commencer',
+      ),
+    ];
     await tester.pumpWidget(
       _app(
         SingleChildScrollView(
           child: PersonalizationTitleInspector(
-            profile: const ProjectPresentationProfile(),
+            profile: const ProjectPresentationProfile(
+              title: ProjectTitlePresentationProfile(actions: actions),
+            ),
             projectName: 'Pokémon Aurore',
             projectRootPath: '',
             onChanged: (profile) => changed = profile,
@@ -86,10 +130,12 @@ void main() {
     );
 
     expect(changed?.title?.title, 'Aurore sur Hanazuki');
+    expect(changed?.title?.actions, actions);
     await tester.tap(
       find.byKey(const ValueKey<String>('title-copy-use-project-name')),
     );
     expect(changed?.title?.title, isNull);
+    expect(changed?.title?.actions, actions);
   });
 
   testWidgets('offers three guided title compositions', (tester) async {
@@ -124,6 +170,18 @@ void main() {
     }
     expect(find.byType(ProjectBrandingEditor), findsOneWidget);
     expect(find.byType(ProjectTitleMotionEditor), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-display')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-body')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-dialogue')),
+      findsNothing,
+    );
 
     await tester.tap(find.byKey(const ValueKey<String>('title-preset-left')));
     expect(changed?.branding.layoutVariant, 'standard');
@@ -192,6 +250,12 @@ void main() {
       isFalse,
     );
 
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(
         const ValueKey<String>('personalization-preview-reduced-motion'),

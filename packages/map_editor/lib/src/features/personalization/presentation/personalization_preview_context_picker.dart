@@ -14,6 +14,7 @@ class PersonalizationPreviewContextPicker extends StatelessWidget {
     required this.onSelected,
     this.isLoading = false,
     this.errorMessage,
+    this.compact = false,
   });
 
   final PersonalizationStudioScene scene;
@@ -23,24 +24,47 @@ class PersonalizationPreviewContextPicker extends StatelessWidget {
   onSelected;
   final bool isLoading;
   final String? errorMessage;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final kinds = _kindsForScene(scene);
+    final kinds = _kindsForScene(scene, contexts);
     if (kinds.isEmpty) return const SizedBox.shrink();
+    if (compact) {
+      if (isLoading) {
+        return const PokeMapDiagnosticCallout(
+          key: ValueKey<String>('personalization-preview-context-loading'),
+          severity: PokeMapDiagnosticSeverity.info,
+          message: 'Chargement des cartes, dialogues et rencontres…',
+        );
+      }
+      if (errorMessage != null) {
+        return PokeMapDiagnosticCallout(
+          key: const ValueKey<String>('personalization-preview-context-error'),
+          severity: PokeMapDiagnosticSeverity.error,
+          message: errorMessage!,
+        );
+      }
+      return _ContextFields(
+        kinds: kinds,
+        contexts: contexts,
+        selectedIds: selectedIds,
+        onSelected: onSelected,
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         const Divider(height: 20),
         Text(
-          'Contexte de l’aperçu',
+          'Scène de test',
           style: Theme.of(
             context,
           ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 2),
         Text(
-          'Choisissez les données du projet visibles dans cette scène.',
+          'Choisissez la carte et le contenu utilisés pour essayer ce rendu.',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: context.pokeMapColors.textMuted,
           ),
@@ -154,6 +178,7 @@ PersonalizationPreviewContextOption _preferred(
 
 List<PersonalizationPreviewContextKind> _kindsForScene(
   PersonalizationStudioScene scene,
+  List<PersonalizationPreviewContextOption> contexts,
 ) => switch (scene) {
   PersonalizationStudioScene.title || PersonalizationStudioScene.intro =>
     const <PersonalizationPreviewContextKind>[],
@@ -161,11 +186,19 @@ List<PersonalizationPreviewContextKind> _kindsForScene(
     PersonalizationPreviewContextKind.map,
   ],
   PersonalizationStudioScene.dialogue =>
-    const <PersonalizationPreviewContextKind>[
-      PersonalizationPreviewContextKind.map,
-      PersonalizationPreviewContextKind.dialogue,
-      PersonalizationPreviewContextKind.characterPortrait,
-    ],
+    contexts.any(
+          (option) =>
+              option.kind == PersonalizationPreviewContextKind.dialogueScenario,
+        )
+        ? const <PersonalizationPreviewContextKind>[
+            PersonalizationPreviewContextKind.map,
+            PersonalizationPreviewContextKind.dialogueScenario,
+          ]
+        : const <PersonalizationPreviewContextKind>[
+            PersonalizationPreviewContextKind.map,
+            PersonalizationPreviewContextKind.dialogue,
+            PersonalizationPreviewContextKind.characterPortrait,
+          ],
   PersonalizationStudioScene.battle =>
     const <PersonalizationPreviewContextKind>[
       PersonalizationPreviewContextKind.map,
@@ -180,6 +213,7 @@ List<PersonalizationPreviewContextKind> _kindsForScene(
 String _kindLabel(PersonalizationPreviewContextKind kind) => switch (kind) {
   PersonalizationPreviewContextKind.map => 'Décor',
   PersonalizationPreviewContextKind.dialogue => 'Dialogue',
+  PersonalizationPreviewContextKind.dialogueScenario => 'Scène de dialogue',
   PersonalizationPreviewContextKind.characterPortrait => 'Portrait',
   PersonalizationPreviewContextKind.encounter => 'Rencontre',
 };
@@ -188,6 +222,7 @@ String _kindMissingLabel(PersonalizationPreviewContextKind kind) =>
     switch (kind) {
       PersonalizationPreviewContextKind.map => 'décor de carte',
       PersonalizationPreviewContextKind.dialogue => 'dialogue',
+      PersonalizationPreviewContextKind.dialogueScenario => 'scène de dialogue',
       PersonalizationPreviewContextKind.characterPortrait => 'portrait',
       PersonalizationPreviewContextKind.encounter => 'rencontre',
     };

@@ -8,15 +8,22 @@ import '../project_typography_editor.dart';
 import '../project_window_studio.dart';
 
 class PersonalizationPauseInspector extends StatelessWidget {
+  static const capabilityIds = <String>{
+    'pause.layout',
+    'pause.windows',
+    'pause.typography',
+    'pause.actions',
+  };
+
   const PersonalizationPauseInspector({
     super.key,
     required this.profile,
     required this.onPauseChanged,
     required this.onWindowsChanged,
     required this.onLayoutsChanged,
-    required this.onImportCommonFont,
-    required this.onUseSystemCommonFont,
-    this.onCommonMetricsChanged,
+    required this.onImportBodyFont,
+    required this.onUseSystemBodyFont,
+    this.onBodyMetricsChanged,
     this.onSurfacePalettesChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
@@ -25,9 +32,9 @@ class PersonalizationPauseInspector extends StatelessWidget {
   final ValueChanged<ProjectPausePresentationProfile?> onPauseChanged;
   final ValueChanged<ProjectPresentationWindowsProfile?> onWindowsChanged;
   final ValueChanged<ProjectPresentationLayoutsProfile?> onLayoutsChanged;
-  final VoidCallback onImportCommonFont;
-  final VoidCallback onUseSystemCommonFont;
-  final ValueChanged<ProjectTypographyMetricsProfile>? onCommonMetricsChanged;
+  final VoidCallback onImportBodyFont;
+  final VoidCallback onUseSystemBodyFont;
+  final ValueChanged<ProjectTypographyMetricsProfile>? onBodyMetricsChanged;
   final ValueChanged<ProjectPresentationSurfacePalettesProfile?>?
   onSurfacePalettesChanged;
   final Map<ProjectTypographyRole, String> previewFamilies;
@@ -70,12 +77,12 @@ class PersonalizationPauseInspector extends StatelessWidget {
       ProjectTypographyEditor(
         profile: profile.typography ?? const ProjectTypographyProfile(),
         previewFamilies: previewFamilies,
-        commonOnly: true,
-        onImportRole: (_) {},
-        onUseSystemFont: (_) {},
-        onImportCommonFont: onImportCommonFont,
-        onUseSystemCommonFont: onUseSystemCommonFont,
-        onCommonMetricsChanged: onCommonMetricsChanged,
+        fixedRole: ProjectTypographyRole.body,
+        onImportRole: (_) => onImportBodyFont(),
+        onUseSystemFont: (_) => onUseSystemBodyFont(),
+        onMetricsChanged: onBodyMetricsChanged == null
+            ? null
+            : (_, metrics) => onBodyMetricsChanged!(metrics),
       ),
       const SizedBox(height: 18),
       ProjectPauseActionsEditor(

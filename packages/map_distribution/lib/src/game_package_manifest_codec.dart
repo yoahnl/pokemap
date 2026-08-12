@@ -4,6 +4,9 @@ import 'dart:typed_data';
 import 'package:map_core/map_core.dart'
     show
         ProjectPresentationProfile,
+        ProjectBattlePresentationProfile,
+        ProjectBattlePanelPresentationProfile,
+        ProjectDialoguePresentationProfile,
         ProjectPauseActionIcon,
         ProjectPauseActionId,
         ProjectPauseActionProfile,
@@ -53,6 +56,58 @@ import 'game_package_format_exception.dart';
 import 'game_package_manifest.dart';
 import 'package_path_policy.dart';
 import 'strict_json_structure_validator.dart';
+
+GamePackageBattlePresentation _packageBattlePresentation(
+  ProjectBattlePresentationProfile profile,
+) =>
+    GamePackageBattlePresentation(
+      commandLayout: profile.commandLayout.name,
+      commandColumns: profile.commandColumns,
+      showCommandIcons: profile.showCommandIcons,
+      commandShape: profile.commandShape.name,
+      commandPadding: profile.commandPadding.round(),
+      commandSurfaceColor: profile.commandSurfaceColor,
+      commandBorderColor: profile.commandBorderColor,
+      commandTextColor: profile.commandTextColor,
+      commandSelectionColor: profile.commandSelectionColor,
+      commands: profile.commands
+          ?.map(
+            (command) => GamePackageBattleCommand(
+              id: command.id.name,
+              label: command.label,
+              icon: command.icon?.name,
+            ),
+          )
+          .toList(growable: false),
+      hudShape: profile.hudShape.name,
+      enemyHudPosition: profile.enemyHudPosition.name,
+      playerHudPosition: profile.playerHudPosition.name,
+      showOwnerLabel: profile.showOwnerLabel,
+      showLevel: profile.showLevel,
+      showExactHp: profile.showExactHp,
+      hpBarShape: profile.hpBarShape.name,
+      hpHealthyColor: profile.hpHealthyColor,
+      hpWarningColor: profile.hpWarningColor,
+      hpDangerColor: profile.hpDangerColor,
+      statusColor: profile.statusColor,
+      moves: _packageBattlePanel(profile.moves),
+      target: _packageBattlePanel(profile.target),
+      message: _packageBattlePanel(profile.message),
+    );
+
+GamePackageBattlePanelPresentation _packageBattlePanel(
+  ProjectBattlePanelPresentationProfile profile,
+) =>
+    GamePackageBattlePanelPresentation(
+      layout: profile.layout.name,
+      columns: profile.columns,
+      shape: profile.shape.name,
+      padding: profile.padding.round(),
+      surfaceColor: profile.surfaceColor,
+      borderColor: profile.borderColor,
+      textColor: profile.textColor,
+      selectionColor: profile.selectionColor,
+    );
 
 final class GamePackageManifestCodec {
   const GamePackageManifestCodec();
@@ -357,10 +412,16 @@ final class GamePackageManifestCodec {
       },
       optional: const <String>{},
     );
-    final minHubVersion =
-        _version(json['minHubVersion'], '$path.minHubVersion');
-    final runtimeApiExpression =
-        _boundedString(json['runtimeApi'], '$path.runtimeApi', 1, 128);
+    final minHubVersion = _version(
+      json['minHubVersion'],
+      '$path.minHubVersion',
+    );
+    final runtimeApiExpression = _boundedString(
+      json['runtimeApi'],
+      '$path.runtimeApi',
+      1,
+      128,
+    );
     try {
       VersionConstraint.parse(runtimeApiExpression);
     } on FormatException {
@@ -399,8 +460,10 @@ final class GamePackageManifestCodec {
         'Invalid compatibilityId.',
       );
     }
-    final capabilityValues =
-        _list(json['requiredCapabilities'], '$path.requiredCapabilities');
+    final capabilityValues = _list(
+      json['requiredCapabilities'],
+      '$path.requiredCapabilities',
+    );
     if (capabilityValues.length > 128) {
       _fail(
         'tooManyCapabilities',
@@ -451,8 +514,12 @@ final class GamePackageManifestCodec {
       required: const <String>{'default', 'supported'},
       optional: const <String>{},
     );
-    final defaultLocale =
-        _boundedString(json['default'], '$path.default', 2, 35);
+    final defaultLocale = _boundedString(
+      json['default'],
+      '$path.default',
+      2,
+      35,
+    );
     final values = _list(json['supported'], '$path.supported');
     if (values.isEmpty || values.length > 64) {
       _fail(
@@ -464,8 +531,12 @@ final class GamePackageManifestCodec {
     final supported = <String>[];
     final seen = <String>{};
     for (var index = 0; index < values.length; index++) {
-      final locale =
-          _boundedString(values[index], '$path.supported[$index]', 2, 35);
+      final locale = _boundedString(
+        values[index],
+        '$path.supported[$index]',
+        2,
+        35,
+      );
       if (!_locale.hasMatch(locale)) {
         _fail(
           'invalidLocale',
@@ -512,13 +583,17 @@ final class GamePackageManifestCodec {
         'theme',
         'surfacePalettes',
         'pause',
+        'dialogue',
+        'battle',
         'menuLabels',
         'windows',
         'layouts',
       },
     );
-    final schemaVersion =
-        _integer(json['schemaVersion'], '$path.schemaVersion');
+    final schemaVersion = _integer(
+      json['schemaVersion'],
+      '$path.schemaVersion',
+    );
     if (schemaVersion != 1 &&
         schemaVersion != 2 &&
         schemaVersion != 3 &&
@@ -526,11 +601,13 @@ final class GamePackageManifestCodec {
         schemaVersion != 5 &&
         schemaVersion != 6 &&
         schemaVersion != 7 &&
-        schemaVersion != 8) {
+        schemaVersion != 8 &&
+        schemaVersion != 9 &&
+        schemaVersion != 10) {
       _fail(
         'presentationVersionUnsupported',
         '$path.schemaVersion',
-        'Only presentation schema versions 1 through 8 are supported.',
+        'Only presentation schema versions 1 through 10 are supported.',
       );
     }
     if (schemaVersion == 1 && json.containsKey('titleMotion')) {
@@ -639,6 +716,20 @@ final class GamePackageManifestCodec {
         'Pause actions require presentation schema version 8.',
       );
     }
+    if (schemaVersion < 9 && json.containsKey('dialogue')) {
+      _fail(
+        'presentationVersionUnsupported',
+        '$path.dialogue',
+        'Dialogue presentation requires schema version 9.',
+      );
+    }
+    if (schemaVersion < 10 && json.containsKey('battle')) {
+      _fail(
+        'presentationVersionUnsupported',
+        '$path.battle',
+        'Battle presentation requires schema version 10.',
+      );
+    }
     final typography = json.containsKey('typography')
         ? _typography(
             json['typography'],
@@ -658,10 +749,7 @@ final class GamePackageManifestCodec {
         : null;
     return GamePackagePresentation(
       schemaVersion: schemaVersion,
-      branding: _branding(
-        json['branding'],
-        path: '$path.branding',
-      ),
+      branding: _branding(json['branding'], path: '$path.branding'),
       title: json.containsKey('title')
           ? _titlePresentation(json['title'], path: '$path.title')
           : null,
@@ -680,6 +768,12 @@ final class GamePackageManifestCodec {
       surfacePalettes: surfacePalettes,
       pause: json.containsKey('pause')
           ? _pausePresentation(json['pause'], path: '$path.pause')
+          : null,
+      dialogue: json.containsKey('dialogue')
+          ? _dialoguePresentation(json['dialogue'], path: '$path.dialogue')
+          : null,
+      battle: json.containsKey('battle')
+          ? _battlePresentation(json['battle'], path: '$path.battle')
           : null,
       menuLabels: json.containsKey('menuLabels')
           ? _menuLabels(json['menuLabels'], path: '$path.menuLabels')
@@ -762,10 +856,7 @@ final class GamePackageManifestCodec {
     ];
   }
 
-  GamePackageTitleAction _titleAction(
-    Object? value, {
-    required String path,
-  }) {
+  GamePackageTitleAction _titleAction(Object? value, {required String path}) {
     final json = _object(
       value,
       path,
@@ -886,10 +977,7 @@ final class GamePackageManifestCodec {
       screenMargin: _string(json['screenMargin'], '$path.screenMargin'),
       visibleSecondaryElements: <String>[
         for (var index = 0; index < secondary.length; index++)
-          _string(
-            secondary[index],
-            '$path.visibleSecondaryElements[$index]',
-          ),
+          _string(secondary[index], '$path.visibleSecondaryElements[$index]'),
       ],
     );
   }
@@ -923,11 +1011,7 @@ final class GamePackageManifestCodec {
         variant.breakpoint,
         'breakpoint',
       ),
-      slot: named(
-        ProjectPresentationLayoutSlot.values,
-        variant.slot,
-        'slot',
-      ),
+      slot: named(ProjectPresentationLayoutSlot.values, variant.slot, 'slot'),
       width: named(
         ProjectPresentationContentWidth.values,
         variant.width,
@@ -1014,10 +1098,7 @@ final class GamePackageManifestCodec {
           : 1.0;
       final style = GamePackageWindowStyle(
         id: _string(styleJson['id'], '$stylePath.id'),
-        fillToken: _string(
-          styleJson['fillToken'],
-          '$stylePath.fillToken',
-        ),
+        fillToken: _string(styleJson['fillToken'], '$stylePath.fillToken'),
         borderToken: _string(
           styleJson['borderToken'],
           '$stylePath.borderToken',
@@ -1104,10 +1185,7 @@ final class GamePackageManifestCodec {
     );
   }
 
-  GamePackageMenuLabels _menuLabels(
-    Object? value, {
-    required String path,
-  }) {
+  GamePackageMenuLabels _menuLabels(Object? value, {required String path}) {
     const fields = <String>{
       'pauseTitle',
       'resume',
@@ -1212,10 +1290,7 @@ final class GamePackageManifestCodec {
     final title = copy('title');
     final hint = copy('hint');
     final composition = json.containsKey('composition')
-        ? _pauseComposition(
-            json['composition'],
-            path: '$path.composition',
-          )
+        ? _pauseComposition(json['composition'], path: '$path.composition')
         : null;
     final diagnostic = validateProjectPresentationProfile(
       ProjectPresentationProfile(
@@ -1242,13 +1317,148 @@ final class GamePackageManifestCodec {
     );
   }
 
-  ({
-    ProjectResponsivePauseCompositionProfile project,
-    GamePackageResponsivePauseComposition packaged,
-  }) _pauseComposition(
+  GamePackageBattlePresentation _battlePresentation(
     Object? value, {
     required String path,
   }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{},
+      optional: const <String>{
+        'commandLayout',
+        'commandColumns',
+        'showCommandIcons',
+        'commandShape',
+        'commandPadding',
+        'commandSurfaceColor',
+        'commandBorderColor',
+        'commandTextColor',
+        'commandSelectionColor',
+        'commands',
+        'hudShape',
+        'enemyHudPosition',
+        'playerHudPosition',
+        'showOwnerLabel',
+        'showLevel',
+        'showExactHp',
+        'hpBarShape',
+        'hpHealthyColor',
+        'hpWarningColor',
+        'hpDangerColor',
+        'statusColor',
+        'moves',
+        'target',
+        'message',
+      },
+    );
+    final profile = ProjectBattlePresentationProfile.fromJson(
+      Map<String, dynamic>.from(json),
+    );
+    final diagnostic = validateProjectPresentationProfile(
+      ProjectPresentationProfile(battle: profile),
+    ).firstOrNull;
+    if (diagnostic != null) {
+      _fail(
+        'invalidBattlePresentation',
+        diagnostic.path.replaceFirst(r'$.presentation.battle', path),
+        diagnostic.message,
+      );
+    }
+    return _packageBattlePresentation(profile);
+  }
+
+  GamePackageDialoguePresentation _dialoguePresentation(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{
+        'placement',
+        'maxWidthFactor',
+        'margin',
+        'contentPadding',
+        'shape',
+        'cornerRadius',
+        'borderWidth',
+        'fillOpacity',
+      },
+      optional: const <String>{
+        'surfaceColor',
+        'borderColor',
+        'textColor',
+        'portraitSide',
+        'portraitSize',
+        'portraitShape',
+        'portraitFrameWidth',
+        'portraitFrameColor',
+        'nameplateStyle',
+        'nameplateBorderWidth',
+        'nameplateSurfaceColor',
+        'nameplateBorderColor',
+        'nameplateTextColor',
+        'choiceSpacing',
+        'choiceShape',
+        'choiceDisabledOpacity',
+        'choiceSelectedColor',
+        'progressIndicator',
+        'progressIndicatorColor',
+        'portraitTransition',
+        'portraitTransitionMilliseconds',
+      },
+    );
+    final profile = ProjectDialoguePresentationProfile.fromJson(
+      Map<String, dynamic>.from(json),
+    );
+    final diagnostic = validateProjectPresentationProfile(
+      ProjectPresentationProfile(dialogue: profile),
+    ).firstOrNull;
+    if (diagnostic != null) {
+      _fail(
+        'invalidDialoguePresentation',
+        diagnostic.path.replaceFirst(r'$.presentation.dialogue', path),
+        diagnostic.message,
+      );
+    }
+    return GamePackageDialoguePresentation(
+      placement: profile.placement.name,
+      maxWidthFactor: profile.maxWidthFactor,
+      margin: profile.margin,
+      contentPadding: profile.contentPadding,
+      shape: profile.shape.name,
+      cornerRadius: profile.cornerRadius,
+      borderWidth: profile.borderWidth,
+      fillOpacity: profile.fillOpacity,
+      surfaceColor: profile.surfaceColor,
+      borderColor: profile.borderColor,
+      textColor: profile.textColor,
+      portraitSide: profile.portraitSide.name,
+      portraitSize: profile.portraitSize,
+      portraitShape: profile.portraitShape.name,
+      portraitFrameWidth: profile.portraitFrameWidth,
+      portraitFrameColor: profile.portraitFrameColor,
+      nameplateStyle: profile.nameplateStyle.name,
+      nameplateBorderWidth: profile.nameplateBorderWidth,
+      nameplateSurfaceColor: profile.nameplateSurfaceColor,
+      nameplateBorderColor: profile.nameplateBorderColor,
+      nameplateTextColor: profile.nameplateTextColor,
+      choiceSpacing: profile.choiceSpacing,
+      choiceShape: profile.choiceShape.name,
+      choiceDisabledOpacity: profile.choiceDisabledOpacity,
+      choiceSelectedColor: profile.choiceSelectedColor,
+      progressIndicator: profile.progressIndicator.name,
+      progressIndicatorColor: profile.progressIndicatorColor,
+      portraitTransition: profile.portraitTransition.name,
+      portraitTransitionMilliseconds: profile.portraitTransitionMilliseconds,
+    );
+  }
+
+  ({
+    ProjectResponsivePauseCompositionProfile project,
+    GamePackageResponsivePauseComposition packaged,
+  }) _pauseComposition(Object? value, {required String path}) {
     final json = _object(
       value,
       path,
@@ -1288,10 +1498,7 @@ final class GamePackageManifestCodec {
   ({
     ProjectPauseCompositionVariantProfile project,
     GamePackagePauseCompositionVariant packaged,
-  }) _pauseCompositionVariant(
-    Object? value, {
-    required String path,
-  }) {
+  }) _pauseCompositionVariant(Object? value, {required String path}) {
     final json = _object(
       value,
       path,
@@ -1305,15 +1512,9 @@ final class GamePackageManifestCodec {
       optional: const <String>{},
     );
     final sizeName = _string(json['entrySize'], '$path.entrySize');
-    final spacingName = _string(
-      json['entrySpacing'],
-      '$path.entrySpacing',
-    );
+    final spacingName = _string(json['entrySpacing'], '$path.entrySpacing');
     final entrySize = _pauseEntrySize(sizeName, '$path.entrySize');
-    final entrySpacing = _pauseEntrySpacing(
-      spacingName,
-      '$path.entrySpacing',
-    );
+    final entrySpacing = _pauseEntrySpacing(spacingName, '$path.entrySpacing');
     final showTitle = _boolean(json['showTitle'], '$path.showTitle');
     final showHint = _boolean(json['showHint'], '$path.showHint');
     final showRootDetailPanel = _boolean(
@@ -1431,20 +1632,28 @@ final class GamePackageManifestCodec {
     final poster = packagePath('poster');
     final captions =
         json.containsKey('captions') ? packagePath('captions') : null;
-    final duration =
-        _integer(json['durationMilliseconds'], '$path.durationMilliseconds');
+    final duration = _integer(
+      json['durationMilliseconds'],
+      '$path.durationMilliseconds',
+    );
     final width = _integer(json['width'], '$path.width');
     final height = _integer(json['height'], '$path.height');
     final bitrate = _integer(json['bitrateKbps'], '$path.bitrateKbps');
     final size = _integer(json['sizeBytes'], '$path.sizeBytes');
     final videoCodec = _string(json['videoCodec'], '$path.videoCodec');
     final audioCodec = _string(json['audioCodec'], '$path.audioCodec');
-    final reducedMotion =
-        _string(json['reducedMotionBehavior'], '$path.reducedMotionBehavior');
+    final reducedMotion = _string(
+      json['reducedMotionBehavior'],
+      '$path.reducedMotionBehavior',
+    );
     final allowReplay = _boolean(json['allowReplay'], '$path.allowReplay');
     if (!video.toLowerCase().endsWith('.mp4') ||
-        !const <String>['.png', '.jpg', '.jpeg', '.webp']
-            .any(poster.toLowerCase().endsWith) ||
+        !const <String>[
+          '.png',
+          '.jpg',
+          '.jpeg',
+          '.webp',
+        ].any(poster.toLowerCase().endsWith) ||
         (captions != null && !captions.toLowerCase().endsWith('.vtt')) ||
         duration <= 0 ||
         duration > projectIntroVideoMaxDurationMilliseconds ||
@@ -1481,10 +1690,7 @@ final class GamePackageManifestCodec {
     );
   }
 
-  GamePackageTitleMotion _titleMotion(
-    Object? value, {
-    required String path,
-  }) {
+  GamePackageTitleMotion _titleMotion(Object? value, {required String path}) {
     final json = _object(
       value,
       path,
@@ -1596,16 +1802,8 @@ final class GamePackageManifestCodec {
       sizeBytes: _integer(json['sizeBytes'], '$path.sizeBytes'),
       videoCodec: _string(json['videoCodec'], '$path.videoCodec'),
       audioCodec: _string(json['audioCodec'], '$path.audioCodec'),
-      focalX: _integer(
-            json['focalXPermille'],
-            '$path.focalXPermille',
-          ) /
-          1000,
-      focalY: _integer(
-            json['focalYPermille'],
-            '$path.focalYPermille',
-          ) /
-          1000,
+      focalX: _integer(json['focalXPermille'], '$path.focalXPermille') / 1000,
+      focalY: _integer(json['focalYPermille'], '$path.focalYPermille') / 1000,
     );
     final longestEdge =
         variant.width > variant.height ? variant.width : variant.height;
@@ -1618,8 +1816,12 @@ final class GamePackageManifestCodec {
         ? projectTitleLoopMaxSizeBytes
         : projectIntroVideoMaxSizeBytes;
     if (!variant.video.toLowerCase().endsWith('.mp4') ||
-        !const <String>['.png', '.jpg', '.jpeg', '.webp']
-            .any(variant.poster.toLowerCase().endsWith) ||
+        !const <String>[
+          '.png',
+          '.jpg',
+          '.jpeg',
+          '.webp',
+        ].any(variant.poster.toLowerCase().endsWith) ||
         (variant.captions != null &&
             !variant.captions!.toLowerCase().endsWith('.vtt')) ||
         variant.durationMilliseconds <= 0 ||
@@ -1705,8 +1907,10 @@ final class GamePackageManifestCodec {
         if (allowMetrics) 'metrics',
       },
     );
-    final rawFallbacks =
-        _list(json['fallbackFamilies'], '$path.fallbackFamilies');
+    final rawFallbacks = _list(
+      json['fallbackFamilies'],
+      '$path.fallbackFamilies',
+    );
     final fallbacks = <String>[
       for (var index = 0; index < rawFallbacks.length; index++)
         _boundedString(
@@ -1732,8 +1936,11 @@ final class GamePackageManifestCodec {
     final license = json.containsKey('license')
         ? _boundedString(json['license'], '$path.license', 1, 512)
         : null;
-    final customFieldCount =
-        <Object?>[font, family, license].where((value) => value != null).length;
+    final customFieldCount = <Object?>[
+      font,
+      family,
+      license,
+    ].where((value) => value != null).length;
     if (customFieldCount != 0 && customFieldCount != 3) {
       _fail(
         'incompleteTypographyRole',
@@ -1784,16 +1991,12 @@ final class GamePackageManifestCodec {
       sizeScale:
           _integer(json['sizeScalePermille'], '$path.sizeScalePermille') / 1000,
       weight: _integer(json['weight'], '$path.weight'),
-      lineHeight: _integer(
-            json['lineHeightPermille'],
-            '$path.lineHeightPermille',
-          ) /
-          1000,
-      letterSpacing: _integer(
-            json['letterSpacingMilli'],
-            '$path.letterSpacingMilli',
-          ) /
-          1000,
+      lineHeight:
+          _integer(json['lineHeightPermille'], '$path.lineHeightPermille') /
+              1000,
+      letterSpacing:
+          _integer(json['letterSpacingMilli'], '$path.letterSpacingMilli') /
+              1000,
     );
     final profile = ProjectTypographyMetricsProfile(
       sizeScale: metrics.sizeScale,
@@ -1809,11 +2012,7 @@ final class GamePackageManifestCodec {
       ),
     ).firstOrNull;
     if (diagnostic != null) {
-      _fail(
-        'invalidTypographyMetrics',
-        path,
-        diagnostic.message,
-      );
+      _fail('invalidTypographyMetrics', path, diagnostic.message);
     }
     return metrics;
   }
@@ -1940,10 +2139,7 @@ final class GamePackageManifestCodec {
     if (diagnostic != null) {
       _fail(
         'invalidSurfacePalette',
-        diagnostic.path.replaceFirst(
-          r'$.presentation.surfacePalettes',
-          path,
-        ),
+        diagnostic.path.replaceFirst(r'$.presentation.surfacePalettes', path),
         diagnostic.message,
       );
     }
@@ -2015,10 +2211,7 @@ final class GamePackageManifestCodec {
         battleHudSurface: source.battleHudSurface,
       );
 
-  GamePackageBranding _branding(
-    Object? value, {
-    String path = r'$.branding',
-  }) {
+  GamePackageBranding _branding(Object? value, {String path = r'$.branding'}) {
     final json = _object(
       value,
       path,
@@ -2040,12 +2233,7 @@ final class GamePackageManifestCodec {
     }
 
     final accentColor = json.containsKey('accentColor')
-        ? _boundedString(
-            json['accentColor'],
-            '$path.accentColor',
-            7,
-            9,
-          )
+        ? _boundedString(json['accentColor'], '$path.accentColor', 7, 9)
         : null;
     if (accentColor != null && !_accentColor.hasMatch(accentColor)) {
       _fail(
@@ -2058,8 +2246,11 @@ final class GamePackageManifestCodec {
         ? _string(json['layoutVariant'], '$path.layoutVariant')
         : null;
     if (layoutVariant != null &&
-        !const <String>{'standard', 'centered', 'cinematic'}
-            .contains(layoutVariant)) {
+        !const <String>{
+          'standard',
+          'centered',
+          'cinematic',
+        }.contains(layoutVariant)) {
       _fail(
         'invalidLayoutVariant',
         '$path.layoutVariant',
@@ -2091,8 +2282,12 @@ final class GamePackageManifestCodec {
     );
     final fileCount = _integer(json['fileCount'], '$path.fileCount');
     final totalBytes = _integer(json['totalBytes'], '$path.totalBytes');
-    final treeSha256 =
-        _boundedString(json['treeSha256'], '$path.treeSha256', 64, 64);
+    final treeSha256 = _boundedString(
+      json['treeSha256'],
+      '$path.treeSha256',
+      64,
+      64,
+    );
     if (!_sha256.hasMatch(treeSha256)) {
       _fail('invalidSha256', '$path.treeSha256', 'Invalid SHA-256 digest.');
     }
@@ -2149,25 +2344,20 @@ final class GamePackageManifestCodec {
           'Payload file size is outside policy.',
         );
       }
-      final digest =
-          _boundedString(fileJson['sha256'], '$filePath.sha256', 64, 64);
+      final digest = _boundedString(
+        fileJson['sha256'],
+        '$filePath.sha256',
+        64,
+        64,
+      );
       if (!_sha256.hasMatch(digest)) {
         _fail('invalidSha256', '$filePath.sha256', 'Invalid SHA-256 digest.');
       }
       final mediaType = fileJson.containsKey('mediaType')
-          ? _boundedString(
-              fileJson['mediaType'],
-              '$filePath.mediaType',
-              1,
-              127,
-            )
+          ? _boundedString(fileJson['mediaType'], '$filePath.mediaType', 1, 127)
           : null;
       if (mediaType != null && !_mediaType.hasMatch(mediaType)) {
-        _fail(
-          'invalidMediaType',
-          '$filePath.mediaType',
-          'Invalid media type.',
-        );
+        _fail('invalidMediaType', '$filePath.mediaType', 'Invalid media type.');
       }
       files.add(
         GamePackageFileEntry(
@@ -2192,8 +2382,10 @@ final class GamePackageManifestCodec {
         'fileCount does not match files length.',
       );
     }
-    final computedTotal =
-        files.fold<int>(0, (total, file) => total + file.size);
+    final computedTotal = files.fold<int>(
+      0,
+      (total, file) => total + file.size,
+    );
     if (totalBytes != computedTotal) {
       _fail(
         'totalBytesMismatch',
@@ -2322,12 +2514,7 @@ final class GamePackageManifestCodec {
     return value;
   }
 
-  String _boundedString(
-    Object? value,
-    String path,
-    int minimum,
-    int maximum,
-  ) {
+  String _boundedString(Object? value, String path, int minimum, int maximum) {
     final result = _string(value, path);
     final length = result.runes.length;
     if (length < minimum || length > maximum) {
@@ -2353,15 +2540,12 @@ final class GamePackageManifestCodec {
   }
 
   Never _fail(String code, String path, String message) {
-    throw GamePackageFormatException(
-      code: code,
-      path: path,
-      message: message,
-    );
+    throw GamePackageFormatException(code: code, path: path, message: message);
   }
 
-  static final RegExp _gameId =
-      RegExp(r'^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*){2,}$');
+  static final RegExp _gameId = RegExp(
+    r'^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*){2,}$',
+  );
   static final RegExp _strictSemVer = RegExp(
     r'^(0|[1-9][0-9]*)\.'
     r'(0|[1-9][0-9]*)\.'
@@ -2373,12 +2557,15 @@ final class GamePackageManifestCodec {
   static final RegExp _compatibilityId = RegExp(r'^[a-z0-9][a-z0-9._-]*$');
   static final RegExp _projectFormat = RegExp(r'^v[1-9][0-9]*$');
   static final RegExp _capability = RegExp(r'^[a-z][a-z0-9.-]*@[1-9][0-9]*$');
-  static final RegExp _locale =
-      RegExp(r'^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$');
-  static final RegExp _accentColor =
-      RegExp(r'^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$');
+  static final RegExp _locale = RegExp(
+    r'^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$',
+  );
+  static final RegExp _accentColor = RegExp(
+    r'^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$',
+  );
   static final RegExp _sha256 = RegExp(r'^[0-9a-f]{64}$');
-  static final RegExp _mediaType =
-      RegExp(r'^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$');
+  static final RegExp _mediaType = RegExp(
+    r'^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$',
+  );
   static final RegExp _keyId = RegExp(r'^[A-Za-z0-9._:-]+$');
 }

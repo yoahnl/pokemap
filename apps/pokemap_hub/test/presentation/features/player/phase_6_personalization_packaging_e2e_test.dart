@@ -109,12 +109,13 @@ void main() {
       final runtimeProfile = (await startupAdapter.loadPresentationProfile())!;
       final packagePresentation = launch.manifest.presentation!;
       final iconPath = packagePresentation.branding.icon!;
-      final titleMusicPath = packagePresentation.branding.titleMusic!;
+      final titleMusicPath = packagePresentation.branding.titleMusic;
       final introVariant = packagePresentation.intro!.responsiveMedia.landscape;
       final displayFont = packagePresentation.typography!.display;
       final resolvedAssets = <String, RuntimeResolvedAsset?>{
         iconPath: await startupAdapter.resolveImage(iconPath),
-        titleMusicPath: await startupAdapter.resolveMedia(titleMusicPath),
+        if (titleMusicPath != null)
+          titleMusicPath: await startupAdapter.resolveMedia(titleMusicPath),
         introVariant.video: await startupAdapter.resolveMedia(
           introVariant.video,
         ),
@@ -134,7 +135,10 @@ void main() {
         ),
         profile: runtimeProfile,
         titleLogo: resolvedAssets[iconPath]?.presentationAsset,
-        titleMusic: resolvedAssets[titleMusicPath]?.presentationAsset,
+        titleMusic:
+            titleMusicPath == null
+                ? null
+                : resolvedAssets[titleMusicPath]?.presentationAsset,
         introVideo: resolvedAssets[introVariant.video]?.presentationAsset,
         introPoster: resolvedAssets[introVariant.poster]?.presentationAsset,
         typography: _loadedTypography(runtimeProfile.typography!),
@@ -202,6 +206,14 @@ void main() {
       expect(
         presentation.layoutProfile?.battle?.regular.slot,
         ProjectPresentationLayoutSlot.right,
+      );
+      final acceptanceProfile = await _readGoldenPresentation();
+      expect(runtimeProfile.title, acceptanceProfile.title);
+      expect(runtimeProfile.surfacePalettes, isNotNull);
+      expect(runtimeProfile.dialogue?.shape, ProjectWindowShape.speech);
+      expect(
+        runtimeProfile.battle?.commandLayout,
+        ProjectBattleCommandLayout.radial,
       );
       expect(unavailableAssets, isEmpty);
 
@@ -283,10 +295,10 @@ void main() {
           'releaseCandidateCommit': releaseCandidateCommit,
           'workingTreeClean': true,
           'dirtyPaths': const <String>[],
-          'presentationFixture': <String, Object?>{
+          'acceptanceProject': <String, Object?>{
             'relativePath':
-                'examples/playable_runtime_host/golden_personalization_slice/'
-                'presentation.json',
+                'examples/playable_runtime_host/golden_personalization_v3/'
+                'project.json',
             'sha256': presentationFixtureSha256.toString(),
           },
           'package': <String, Object?>{
@@ -328,8 +340,8 @@ void main() {
                 preflight.packageSha256 == inspection.receipt.packageSha256,
             'preflightTreeHashMatchesInspection':
                 preflight.treeSha256 == inspection.receipt.treeSha256,
-            'allFourCategoriesConfigured':
-                preflight.configuredCategories.length == 4,
+            'allV10CategoriesConfigured':
+                preflight.configuredCategories.length == 12,
             'installSmokePassed': installSmokePassed,
             'introCompleted': introFinishedCount == 1,
             'titlePersonalized':
@@ -353,9 +365,11 @@ void main() {
 }
 
 Future<ProjectPresentationProfile> _readGoldenPresentation() async {
+  final project =
+      jsonDecode(await _goldenPresentationFile().readAsString())
+          as Map<String, dynamic>;
   final profile = ProjectPresentationProfile.fromJson(
-    jsonDecode(await _goldenPresentationFile().readAsString())
-        as Map<String, dynamic>,
+    Map<String, dynamic>.from(project['presentation'] as Map),
   );
   if (validateProjectPresentationProfile(profile).isNotEmpty) {
     throw StateError('The Phase 6 golden presentation must remain valid.');
@@ -370,8 +384,8 @@ File _goldenPresentationFile() => File(
     '..',
     'examples',
     'playable_runtime_host',
-    'golden_personalization_slice',
-    'presentation.json',
+    'golden_personalization_v3',
+    'project.json',
   ),
 );
 
@@ -475,6 +489,7 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
         titleMusic: 'project/assets/title.ogg',
         layoutVariant: profile.branding.layoutVariant,
       ),
+      title: _packageTitle(profile.title!),
       intro: GamePackageIntroVideo(
         video: 'presentation/intro/video.mp4',
         poster: 'presentation/intro/poster.png',
@@ -510,6 +525,9 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
         ),
       ),
       theme: _packageTheme(profile.theme!),
+      surfacePalettes: _packageSurfacePalettes(profile.surfacePalettes!),
+      dialogue: _packageDialogue(profile.dialogue!),
+      battle: _packageBattle(profile.battle!),
       pause: _packagePause(profile.pause!),
       windows: _packageWindows(profile.windows!),
       layouts: _packageLayouts(profile.layouts!),
@@ -522,6 +540,131 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
     ),
   );
 }
+
+GamePackageTitlePresentation _packageTitle(
+  ProjectTitlePresentationProfile title,
+) => GamePackageTitlePresentation(
+  title: title.title,
+  subtitle: title.subtitle,
+  prompt: title.prompt,
+  actions: title.actions
+      ?.map(
+        (action) => GamePackageTitleAction(
+          id: action.id.name,
+          label: action.label,
+          icon: action.icon?.name,
+          visible: action.visible,
+        ),
+      )
+      .toList(growable: false),
+);
+
+GamePackagePresentationSurfacePalettes _packageSurfacePalettes(
+  ProjectPresentationSurfacePalettesProfile palettes,
+) => GamePackagePresentationSurfacePalettes(
+  title: _packageSurfacePalette(palettes.title),
+  pauseMenu: _packageSurfacePalette(palettes.pauseMenu),
+  dialogue: _packageSurfacePalette(palettes.dialogue),
+  battle: _packageSurfacePalette(palettes.battle),
+);
+
+GamePackageSurfacePalette? _packageSurfacePalette(
+  ProjectSurfacePaletteProfile? palette,
+) =>
+    palette == null
+        ? null
+        : GamePackageSurfacePalette(
+          background: palette.background,
+          surface: palette.surface,
+          border: palette.border,
+          text: palette.text,
+          accent: palette.accent,
+          selection: palette.selection,
+        );
+
+GamePackageDialoguePresentation _packageDialogue(
+  ProjectDialoguePresentationProfile profile,
+) => GamePackageDialoguePresentation(
+  placement: profile.placement.name,
+  maxWidthFactor: profile.maxWidthFactor,
+  margin: profile.margin,
+  contentPadding: profile.contentPadding,
+  shape: profile.shape.name,
+  cornerRadius: profile.cornerRadius,
+  borderWidth: profile.borderWidth,
+  fillOpacity: profile.fillOpacity,
+  surfaceColor: profile.surfaceColor,
+  borderColor: profile.borderColor,
+  textColor: profile.textColor,
+  portraitSide: profile.portraitSide.name,
+  portraitSize: profile.portraitSize,
+  portraitShape: profile.portraitShape.name,
+  portraitFrameWidth: profile.portraitFrameWidth,
+  portraitFrameColor: profile.portraitFrameColor,
+  nameplateStyle: profile.nameplateStyle.name,
+  nameplateBorderWidth: profile.nameplateBorderWidth,
+  nameplateSurfaceColor: profile.nameplateSurfaceColor,
+  nameplateBorderColor: profile.nameplateBorderColor,
+  nameplateTextColor: profile.nameplateTextColor,
+  choiceSpacing: profile.choiceSpacing,
+  choiceShape: profile.choiceShape.name,
+  choiceDisabledOpacity: profile.choiceDisabledOpacity,
+  choiceSelectedColor: profile.choiceSelectedColor,
+  progressIndicator: profile.progressIndicator.name,
+  progressIndicatorColor: profile.progressIndicatorColor,
+  portraitTransition: profile.portraitTransition.name,
+  portraitTransitionMilliseconds: profile.portraitTransitionMilliseconds,
+);
+
+GamePackageBattlePresentation _packageBattle(
+  ProjectBattlePresentationProfile profile,
+) => GamePackageBattlePresentation(
+  commandLayout: profile.commandLayout.name,
+  commandColumns: profile.commandColumns,
+  showCommandIcons: profile.showCommandIcons,
+  commandShape: profile.commandShape.name,
+  commandPadding: profile.commandPadding.round(),
+  commandSurfaceColor: profile.commandSurfaceColor,
+  commandBorderColor: profile.commandBorderColor,
+  commandTextColor: profile.commandTextColor,
+  commandSelectionColor: profile.commandSelectionColor,
+  commands: profile.commands
+      ?.map(
+        (command) => GamePackageBattleCommand(
+          id: command.id.name,
+          label: command.label,
+          icon: command.icon?.name,
+        ),
+      )
+      .toList(growable: false),
+  hudShape: profile.hudShape.name,
+  enemyHudPosition: profile.enemyHudPosition.name,
+  playerHudPosition: profile.playerHudPosition.name,
+  showOwnerLabel: profile.showOwnerLabel,
+  showLevel: profile.showLevel,
+  showExactHp: profile.showExactHp,
+  hpBarShape: profile.hpBarShape.name,
+  hpHealthyColor: profile.hpHealthyColor,
+  hpWarningColor: profile.hpWarningColor,
+  hpDangerColor: profile.hpDangerColor,
+  statusColor: profile.statusColor,
+  moves: _packageBattlePanel(profile.moves),
+  target: _packageBattlePanel(profile.target),
+  message: _packageBattlePanel(profile.message),
+);
+
+GamePackageBattlePanelPresentation _packageBattlePanel(
+  ProjectBattlePanelPresentationProfile profile,
+) => GamePackageBattlePanelPresentation(
+  layout: profile.layout.name,
+  columns: profile.columns,
+  shape: profile.shape.name,
+  padding: profile.padding.round(),
+  surfaceColor: profile.surfaceColor,
+  borderColor: profile.borderColor,
+  textColor: profile.textColor,
+  selectionColor: profile.selectionColor,
+);
 
 GamePackageSemanticTheme _packageTheme(ProjectSemanticThemeProfile theme) =>
     GamePackageSemanticTheme(

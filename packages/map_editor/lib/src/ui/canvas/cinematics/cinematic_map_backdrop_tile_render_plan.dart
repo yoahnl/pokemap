@@ -11,11 +11,7 @@ enum CinematicResolvedTilesetAssetStatus {
   emptyImage,
 }
 
-enum CinematicMapBackdropTileDiagnosticSeverity {
-  info,
-  warning,
-  error,
-}
+enum CinematicMapBackdropTileDiagnosticSeverity { info, warning, error }
 
 final class CinematicMapBackdropTileDiagnostic {
   const CinematicMapBackdropTileDiagnostic({
@@ -185,7 +181,8 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
   }..remove('');
 
   void addDiagnostic(CinematicMapBackdropTileDiagnostic diagnostic) {
-    final key = '${diagnostic.code}|${diagnostic.layerId ?? ''}|'
+    final key =
+        '${diagnostic.code}|${diagnostic.layerId ?? ''}|'
         '${diagnostic.tilesetId ?? ''}|${diagnostic.message}';
     if (diagnosticKeys.add(key)) {
       diagnostics.add(diagnostic);
@@ -248,7 +245,8 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
             addDiagnostic(
               CinematicMapBackdropTileDiagnostic(
                 code: asset?.status.name ?? 'missingResolvedTileset',
-                message: asset?.diagnosticMessage ??
+                message:
+                    asset?.diagnosticMessage ??
                     'Image de tileset indisponible pour ${entry.tilesetId}.',
                 severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
                 layerId: layer.id,
@@ -278,7 +276,8 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
             addDiagnostic(
               CinematicMapBackdropTileDiagnostic(
                 code: 'sourceRectOutOfBounds',
-                message: 'Tuile ${entry.localTileId} hors atlas pour '
+                message:
+                    'Tuile ${entry.localTileId} hors atlas pour '
                     '${entry.tilesetId}.',
                 severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
                 layerId: layer.id,
@@ -334,7 +333,8 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
           addDiagnostic(
             CinematicMapBackdropTileDiagnostic(
               code: 'sourceRectOutOfBounds',
-              message: 'Tuile ${entry.localTileId} hors atlas pour '
+              message:
+                  'Tuile ${entry.localTileId} hors atlas pour '
                   '${entry.tilesetId}.',
               severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
               layerId: layer.id,
@@ -355,7 +355,8 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
           addDiagnostic(
             CinematicMapBackdropTileDiagnostic(
               code: 'sourceRectOutOfBounds',
-              message: 'Tuile ${entry.localTileId} non résolue pour '
+              message:
+                  'Tuile ${entry.localTileId} non résolue pour '
                   '${entry.tilesetId}.',
               severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
               layerId: layer.id,
@@ -365,12 +366,16 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
           continue;
         }
         for (final slice in visual.frames.first.slices) {
-          final asset = tilesets[slice.assetId] ?? tilesets[entry.tilesetId];
+          final resolvedAssetId = tilesets.containsKey(slice.assetId)
+              ? slice.assetId
+              : entry.tilesetId;
+          final asset = tilesets[resolvedAssetId];
           if (asset == null || !asset.isAvailable) {
             addDiagnostic(
               CinematicMapBackdropTileDiagnostic(
                 code: asset?.status.name ?? 'missingResolvedTileset',
-                message: asset?.diagnosticMessage ??
+                message:
+                    asset?.diagnosticMessage ??
                     'Image de tileset indisponible pour ${slice.assetId}.',
                 severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
                 layerId: layer.id,
@@ -401,7 +406,8 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
             addDiagnostic(
               CinematicMapBackdropTileDiagnostic(
                 code: 'sourceRectOutOfBounds',
-                message: 'Tuile ${entry.localTileId} hors atlas pour '
+                message:
+                    'Tuile ${entry.localTileId} hors atlas pour '
                     '${entry.tilesetId}.',
                 severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
                 layerId: layer.id,
@@ -417,7 +423,7 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
               layerLabel: layer.name,
               layerKind: CinematicMapBackdropLayerKind.tile,
               zOrder: zOrder++,
-              tilesetId: slice.assetId,
+              tilesetId: resolvedAssetId,
               sourceRect: ui.Rect.fromLTWH(
                 slice.sourceRect.x.toDouble(),
                 slice.sourceRect.y.toDouble(),
@@ -457,9 +463,11 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
     tileWidth: tileWidth,
     tileHeight: tileHeight,
     tilesets: Map<String, CinematicResolvedTilesetAsset>.unmodifiable(tilesets),
-    instructions:
-        List<CinematicMapBackdropBitmapInstruction>.unmodifiable(instructions),
-    diagnostics:
-        List<CinematicMapBackdropTileDiagnostic>.unmodifiable(diagnostics),
+    instructions: List<CinematicMapBackdropBitmapInstruction>.unmodifiable(
+      instructions,
+    ),
+    diagnostics: List<CinematicMapBackdropTileDiagnostic>.unmodifiable(
+      diagnostics,
+    ),
   );
 }

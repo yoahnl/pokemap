@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/personalization_preview.dart';
 
 import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_preview_projection.dart';
@@ -27,7 +27,10 @@ class PersonalizationRuntimePreview extends StatefulWidget {
     this.baselineProfile,
     this.initialSurface = PersonalizationStudioScene.title,
     this.initialViewport = PersonalizationPreviewViewport.landscape,
+    this.titleMotionDriverFactory,
     this.introDriverFactory,
+    this.dialogueData,
+    this.battleData,
   });
 
   final ProjectPresentationProfile profile;
@@ -36,7 +39,10 @@ class PersonalizationRuntimePreview extends StatefulWidget {
   final String projectRootPath;
   final PersonalizationStudioScene initialSurface;
   final PersonalizationPreviewViewport initialViewport;
+  final PlayerIntroPlaybackFactory? titleMotionDriverFactory;
   final PlayerIntroPlaybackFactory? introDriverFactory;
+  final PlayerDialogueViewData? dialogueData;
+  final PlayerBattleViewData? battleData;
 
   @override
   State<PersonalizationRuntimePreview> createState() =>
@@ -50,8 +56,10 @@ class _PersonalizationRuntimePreviewState
   double _textScale = 1;
   bool _reducedMotion = false;
   bool _comparisonEnabled = false;
+  bool _secondarySettingsExpanded = false;
   PersonalizationTitlePreviewStage _titleStage =
       PersonalizationTitlePreviewStage.menu;
+  int _titleStageSelectionRevision = 0;
   final PlayerTitleMotionController _titleMotionController =
       PlayerTitleMotionController();
   final PlayerIntroVideoPreviewController _introPreviewController =
@@ -68,6 +76,7 @@ class _PersonalizationRuntimePreviewState
   void didUpdateWidget(covariant PersonalizationRuntimePreview oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialSurface != widget.initialSurface) {
+      _titleStageSelectionRevision++;
       _surface = widget.initialSurface;
       _comparisonEnabled = false;
       unawaited(_titleMotionController.releasePlayback());
@@ -162,11 +171,35 @@ class _PersonalizationRuntimePreviewState
               _comparisonEnabled = value.comparisonEnabled;
             }),
           ),
+          if (scenario.supportsReducedMotion ||
+              scenario.canCompare) ...<Widget>[
+            const SizedBox(height: 8),
+            PokeMapDisclosure(
+              toggleKey: const ValueKey<String>(
+                'personalization-preview-secondary-toggle',
+              ),
+              label: 'Options d’aperçu',
+              expanded: _secondarySettingsExpanded,
+              onExpandedChanged: (value) {
+                setState(() => _secondarySettingsExpanded = value);
+              },
+              child: PersonalizationPreviewSecondaryControls(
+                scenario: scenario,
+                onChanged: (value) => setState(() {
+                  _surface = value.surface;
+                  _viewport = value.viewport;
+                  _textScale = value.textScale;
+                  _reducedMotion = value.reducedMotion;
+                  _comparisonEnabled = value.comparisonEnabled;
+                }),
+              ),
+            ),
+          ],
           if (_surface == PersonalizationStudioScene.title) ...<Widget>[
             const SizedBox(height: 12),
             PersonalizationTitlePreviewControls(
               stage: _titleStage,
-              onChanged: (stage) => setState(() => _titleStage = stage),
+              onChanged: (stage) => unawaited(_selectTitleStage(stage)),
             ),
           ],
           const SizedBox(height: 12),
@@ -193,15 +226,27 @@ class _PersonalizationRuntimePreviewState
     reducedMotion: reducedMotion,
     titleStage: _titleStage,
     titleMotionController: _comparisonEnabled ? null : _titleMotionController,
+    titleMotionDriverFactory: widget.titleMotionDriverFactory,
     allowMediaPlayback: !_comparisonEnabled,
     introPreviewController: _comparisonEnabled ? null : _introPreviewController,
     introDriverFactory: widget.introDriverFactory,
+    dialogueData: widget.dialogueData,
+    battleData: widget.battleData,
   );
 
   void _selectSurface(PersonalizationStudioScene surface) {
     if (_surface == surface) return;
+    _titleStageSelectionRevision++;
     unawaited(_titleMotionController.releasePlayback());
     unawaited(_introPreviewController.releasePlayback());
     setState(() => _surface = surface);
+  }
+
+  Future<void> _selectTitleStage(PersonalizationTitlePreviewStage stage) async {
+    final revision = ++_titleStageSelectionRevision;
+    if (_titleStage == stage) return;
+    await _titleMotionController.releasePlayback();
+    if (!mounted || revision != _titleStageSelectionRevision) return;
+    setState(() => _titleStage = stage);
   }
 }

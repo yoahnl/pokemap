@@ -7,6 +7,60 @@ import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets(
+    'restores required Resume before publishing an incomplete draft',
+    (tester) async {
+      tester.view.physicalSize = const Size(1200, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      ProjectPausePresentationProfile? published;
+      await tester.pumpWidget(
+        _app(
+          SingleChildScrollView(
+            child: PersonalizationPauseInspector(
+              profile: const ProjectPresentationProfile(
+                pause: ProjectPausePresentationProfile(
+                  actions: <ProjectPauseActionProfile>[
+                    ProjectPauseActionProfile(
+                      id: ProjectPauseActionId.pokedex,
+                      label: 'Bestiaire',
+                    ),
+                  ],
+                ),
+              ),
+              onPauseChanged: (pause) => published = pause,
+              onWindowsChanged: (_) {},
+              onLayoutsChanged: (_) {},
+              onImportBodyFont: () {},
+              onUseSystemBodyFont: () {},
+            ),
+          ),
+        ),
+      );
+
+      final resume = find.byKey(
+        const ValueKey<String>('pause-action-label-resume'),
+      );
+      await tester.ensureVisible(resume);
+      await tester.pumpAndSettle();
+      await tester.enterText(resume, 'Continuer');
+      await tester.pumpAndSettle();
+
+      final resumeAction = published!.actions!.singleWhere(
+        (action) => action.id == ProjectPauseActionId.resume,
+      );
+      expect(resumeAction.visible, isTrue);
+      expect(resumeAction.label, 'Continuer');
+      expect(
+        validateProjectPresentationProfile(
+          ProjectPresentationProfile(pause: published),
+        ),
+        isNot(contains(isA<ProjectPresentationDiagnostic>())),
+      );
+    },
+  );
+
   testWidgets('offers focused pause placement size colors and typography', (
     tester,
   ) async {
@@ -33,8 +87,8 @@ void main() {
                 onLayoutsChanged: (layouts) => setHostState(
                   () => profile = profile.copyWith(layouts: layouts),
                 ),
-                onImportCommonFont: () {},
-                onUseSystemCommonFont: () {},
+                onImportBodyFont: () {},
+                onUseSystemBodyFont: () {},
               ),
             );
           },
@@ -60,7 +114,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey<String>('typography-import-common')),
+      find.byKey(const ValueKey<String>('typography-import-body')),
       findsOneWidget,
     );
     expect(
@@ -197,8 +251,8 @@ void main() {
                       onLayoutsChanged: (layouts) => setHostState(
                         () => profile = profile.copyWith(layouts: layouts),
                       ),
-                      onImportCommonFont: () {},
-                      onUseSystemCommonFont: () {},
+                      onImportBodyFont: () {},
+                      onUseSystemBodyFont: () {},
                     ),
                   ),
                 ),

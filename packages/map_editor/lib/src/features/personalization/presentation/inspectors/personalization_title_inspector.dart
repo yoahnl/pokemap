@@ -9,10 +9,17 @@ import '../project_branding_editor.dart';
 import '../project_title_copy_editor.dart';
 import '../project_title_actions_editor.dart';
 import '../project_title_motion_editor.dart';
+import '../project_typography_editor.dart';
 
 enum PersonalizationTitlePreset { centered, left, cinematic }
 
 class PersonalizationTitleInspector extends StatelessWidget {
+  static const capabilityIds = <String>{
+    'title.presentation',
+    'title.media',
+    'title.motion',
+  };
+
   const PersonalizationTitleInspector({
     super.key,
     required this.profile,
@@ -29,6 +36,10 @@ class PersonalizationTitleInspector extends StatelessWidget {
     required this.onImportMotion,
     required this.onRemoveMotion,
     this.onSurfacePalettesChanged,
+    this.onImportTypographyRole,
+    this.onUseSystemTypographyRole,
+    this.onTypographyMetricsChanged,
+    this.previewFamilies = const <ProjectTypographyRole, String>{},
     this.isTitleMusicPreviewPlaying = false,
   });
 
@@ -47,6 +58,10 @@ class PersonalizationTitleInspector extends StatelessWidget {
   final ValueChanged<ProjectTitleMotionLoopRole> onRemoveMotion;
   final ValueChanged<ProjectPresentationSurfacePalettesProfile?>?
   onSurfacePalettesChanged;
+  final ValueChanged<ProjectTypographyRole>? onImportTypographyRole;
+  final ValueChanged<ProjectTypographyRole>? onUseSystemTypographyRole;
+  final ProjectTypographyMetricsChanged? onTypographyMetricsChanged;
+  final Map<ProjectTypographyRole, String> previewFamilies;
   final bool isTitleMusicPreviewPlaying;
 
   @override
@@ -134,6 +149,18 @@ class PersonalizationTitleInspector extends StatelessWidget {
             palette,
           ),
         ),
+      ),
+      const SizedBox(height: 18),
+      ProjectTypographyEditor(
+        profile: profile.typography ?? const ProjectTypographyProfile(),
+        previewFamilies: previewFamilies,
+        roles: const <ProjectTypographyRole>[
+          ProjectTypographyRole.display,
+          ProjectTypographyRole.body,
+        ],
+        onImportRole: (role) => onImportTypographyRole?.call(role),
+        onUseSystemFont: (role) => onUseSystemTypographyRole?.call(role),
+        onMetricsChanged: onTypographyMetricsChanged,
       ),
       const SizedBox(height: 18),
       ProjectTitleMotionEditor(

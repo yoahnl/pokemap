@@ -114,6 +114,16 @@ void main() {
       find.byKey(const ValueKey<String>('runtime-pause-detail-scroll')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-pause-navigation-scrollbar'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('runtime-pause-detail-scrollbar')),
+      findsOneWidget,
+    );
     expect(find.text('DÉTAIL ÉQUIPE'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -182,6 +192,50 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('authored expanded placement moves the real pause panel', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1280, 800));
+    final base = suggestedProjectPresentationLayouts('standard');
+
+    for (final (slot, expected) in <(ProjectPresentationLayoutSlot, Alignment)>[
+      (ProjectPresentationLayoutSlot.left, Alignment.centerLeft),
+      (ProjectPresentationLayoutSlot.center, Alignment.center),
+      (ProjectPresentationLayoutSlot.right, Alignment.centerRight),
+    ]) {
+      final layouts = base.copyWith(
+        pauseMenu: base.pauseMenu.copyWith(
+          expanded: base.pauseMenu.expanded.copyWith(slot: slot),
+        ),
+      );
+      await tester.pumpWidget(
+        _app(
+          RuntimePlayerPauseShell.root(
+            gameTitle: 'Aube',
+            actions: _actions(),
+            onSelected: (_) {},
+            detail: const SizedBox.shrink(),
+          ),
+          layouts: layouts,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final alignedAncestors = tester
+          .widgetList<Align>(
+            find.ancestor(
+              of: find.byKey(
+                const ValueKey<String>('runtime-pause-navigation'),
+              ),
+              matching: find.byType(Align),
+            ),
+          )
+          .map((align) => align.alignment);
+      expect(alignedAncestors, contains(expected));
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('text scale 2 keeps every action target at least 48 pixels',
       (tester) async {
     await _setSurface(tester, const Size(390, 844));
@@ -206,6 +260,86 @@ void main() {
           tester.getSize(find.byElementPredicate((e) => e == element)).height,
           greaterThanOrEqualTo(48));
     }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('safe areas and long labels keep controller focus visible', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(390, 844));
+    final focusController = RuntimePlayerFocusController(
+      activeInputSource: PlayerInputSource.controller,
+    );
+    addTearDown(focusController.dispose);
+    const safePadding = EdgeInsets.fromLTRB(24, 59, 18, 34);
+    final presentation = PlayerPausePresentation.fromProfile(
+      ProjectPausePresentationProfile(
+        hint: 'Bouton A pour sélectionner une entrée',
+        actions: <ProjectPauseActionProfile>[
+          for (final action in defaultProjectPauseActions)
+            action.copyWith(
+              label: '${action.id.name} — libellé volontairement très long',
+            ),
+        ],
+        composition: const ProjectResponsivePauseCompositionProfile(
+          compactPortrait: ProjectPauseCompositionVariantProfile(
+            entrySize: ProjectPauseEntrySize.large,
+            entrySpacing: ProjectPauseEntrySpacing.airy,
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        MediaQuery(
+          data: const MediaQueryData(
+            size: Size(390, 844),
+            padding: safePadding,
+          ),
+          child: RuntimePlayerPauseShell.root(
+            gameTitle: 'Aube',
+            actions: _actions(),
+            onSelected: (_) {},
+            detail: const SizedBox.shrink(),
+            focusController: focusController,
+            activeInputSource: PlayerInputSource.controller,
+            presentation: presentation,
+          ),
+        ),
+        textScaler: const TextScaler.linear(2),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final actionsContext = tester.element(
+      find.byKey(const ValueKey<String>('runtime-player-actions-context')),
+    );
+    for (var index = 1; index < PlayerPauseAction.values.length; index++) {
+      Actions.invoke(
+        actionsContext,
+        const RuntimePlayerLogicalIntent(
+          PlayerInputAction.down,
+          source: PlayerInputSource.controller,
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    expect(focusController.logicalSelectionId, 'pause.returnToTitle');
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-pause-navigation-scrollbar'),
+      ),
+      findsOneWidget,
+    );
+    final focusedRect = tester.getRect(
+      find.byKey(const ValueKey<String>('pause.returnToTitle')),
+    );
+    expect(focusedRect.left, greaterThanOrEqualTo(safePadding.left));
+    expect(focusedRect.right, lessThanOrEqualTo(390 - safePadding.right));
+    expect(focusedRect.top, greaterThanOrEqualTo(safePadding.top));
+    expect(focusedRect.bottom, lessThanOrEqualTo(844 - safePadding.bottom));
     expect(tester.takeException(), isNull);
   });
 
@@ -315,6 +449,154 @@ void main() {
 
     await tester.tap(find.text('Bestiaire'));
     expect(selected, <PlayerPauseAction>[PlayerPauseAction.pokedex]);
+  });
+
+  testWidgets('controller focus follows visible authored order only', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1280, 800));
+    final selected = <PlayerPauseAction>[];
+    final focusController = RuntimePlayerFocusController(
+      logicalSelectionId: 'pause.party',
+      activeInputSource: PlayerInputSource.controller,
+    );
+    addTearDown(focusController.dispose);
+    final presentation = PlayerPausePresentation.fromProfile(
+      const ProjectPausePresentationProfile(
+        actions: <ProjectPauseActionProfile>[
+          ProjectPauseActionProfile(
+            id: ProjectPauseActionId.pokedex,
+            label: 'Bestiaire',
+          ),
+          ProjectPauseActionProfile(
+            id: ProjectPauseActionId.resume,
+            label: 'Continuer',
+          ),
+          ProjectPauseActionProfile(
+            id: ProjectPauseActionId.party,
+            visible: false,
+          ),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerPauseShell.root(
+          gameTitle: 'Aube',
+          actions: _actions(),
+          onSelected: selected.add,
+          detail: const SizedBox.shrink(),
+          focusController: focusController,
+          logicalSelectionId: 'pause.party',
+          activeInputSource: PlayerInputSource.controller,
+          presentation: presentation,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(focusController.logicalSelectionId, 'pause.pokedex');
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('Bestiaire'),
+    );
+    expect(find.byKey(const ValueKey<String>('pause.party')), findsNothing);
+
+    final actionsContext = tester.element(
+      find.byKey(const ValueKey<String>('runtime-player-actions-context')),
+    );
+    Actions.invoke(
+      actionsContext,
+      const RuntimePlayerLogicalIntent(
+        PlayerInputAction.down,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pump();
+
+    expect(focusController.logicalSelectionId, 'pause.resume');
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('Continuer'),
+    );
+
+    Actions.invoke(
+      actionsContext,
+      const RuntimePlayerLogicalIntent(
+        PlayerInputAction.confirm,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pump();
+
+    expect(selected, <PlayerPauseAction>[PlayerPauseAction.resume]);
+  });
+
+  testWidgets('controller skips a visible unavailable authored action', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1280, 800));
+    final selected = <PlayerPauseAction>[];
+    final focusController = RuntimePlayerFocusController(
+      logicalSelectionId: 'pause.resume',
+      activeInputSource: PlayerInputSource.controller,
+    );
+    addTearDown(focusController.dispose);
+    final actions = _actions()
+      ..[PlayerPauseAction.pokedex] = const PlayerActionAvailability.disabled(
+        'Pokédex indisponible',
+      );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerPauseShell.root(
+          gameTitle: 'Aube',
+          actions: actions,
+          onSelected: selected.add,
+          detail: const SizedBox.shrink(),
+          focusController: focusController,
+          activeInputSource: PlayerInputSource.controller,
+          presentation: PlayerPausePresentation.fromProfile(
+            const ProjectPausePresentationProfile(
+              actions: <ProjectPauseActionProfile>[
+                ProjectPauseActionProfile(id: ProjectPauseActionId.resume),
+                ProjectPauseActionProfile(
+                  id: ProjectPauseActionId.pokedex,
+                  label: 'Bestiaire',
+                ),
+                ProjectPauseActionProfile(id: ProjectPauseActionId.party),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Bestiaire'), findsOneWidget);
+    final actionsContext = tester.element(
+      find.byKey(const ValueKey<String>('runtime-player-actions-context')),
+    );
+    Actions.invoke(
+      actionsContext,
+      const RuntimePlayerLogicalIntent(
+        PlayerInputAction.down,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pump();
+
+    expect(focusController.logicalSelectionId, 'pause.party');
+    Actions.invoke(
+      actionsContext,
+      const RuntimePlayerLogicalIntent(
+        PlayerInputAction.confirm,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pump();
+    expect(selected, <PlayerPauseAction>[PlayerPauseAction.party]);
   });
 
   testWidgets('authored expanded composition controls entries and root panel', (

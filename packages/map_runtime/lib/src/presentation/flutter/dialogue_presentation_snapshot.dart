@@ -8,11 +8,13 @@ class DialoguePresentationChoice {
     required this.index,
     required this.label,
     required this.selected,
+    this.enabled = true,
   });
 
   final int index;
   final String label;
   final bool selected;
+  final bool enabled;
 }
 
 /// Projection immutable d'un dialogue pour une présentation Flutter.

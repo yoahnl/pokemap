@@ -288,7 +288,8 @@ List<ProjectPauseActionProfile> _effectiveActions(
   return <ProjectPauseActionProfile>[
     ...authored,
     for (final action in defaultProjectPauseActions)
-      if (!ids.contains(action.id)) action.copyWith(visible: false),
+      if (!ids.contains(action.id))
+        action.copyWith(visible: action.id == ProjectPauseActionId.resume),
   ];
 }
 

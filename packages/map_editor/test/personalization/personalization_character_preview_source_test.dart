@@ -31,6 +31,7 @@ void main() {
       expect(source.loadedRoot, '/project');
       expect(options, hasLength(1));
       expect(options.single.characterId, 'leo');
+      expect(options.single.id, 'leo:happy');
       expect(options.single.displayName, 'Léo');
       expect(options.single.portraitPath, 'characters/leo/happy.png');
       expect(options.single.expressionId, 'happy');
@@ -39,10 +40,13 @@ void main() {
 
   test('character preview data never enters presentation json', () {
     const option = PersonalizationCharacterPreviewOption(
+      id: 'leo:happy',
       characterId: 'leo',
       displayName: 'Léo',
       portraitPath: 'characters/leo/happy.png',
       expressionId: 'happy',
+      expressionLabel: 'Joyeux',
+      workspaceRevision: 'revision',
     );
     final encoded = jsonEncode(const ProjectPresentationProfile().toJson());
 
@@ -51,6 +55,148 @@ void main() {
     expect(encoded, isNot(contains('portraitPath')));
     expect(encoded, isNot(contains('expressionId')));
   });
+
+  test('catalog projection keeps characters whose portrait is missing', () {
+    final options = PersonalizationCharacterPreviewCatalogProjection.project(
+      workspaceRevision: 'revision-1',
+      portraitStates: const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'neutral',
+          'displayName': 'Neutre',
+          'sortOrder': 0,
+        },
+      ],
+      characters: const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'nox',
+          'name': 'Nox',
+          'sortOrder': 0,
+          'portraits': <Object?>[],
+        },
+      ],
+      assets: const <String, PersonalizationCharacterPreviewAsset>{},
+    );
+
+    expect(options, hasLength(1));
+    expect(options.single.id, 'nox:neutral');
+    expect(options.single.expressionLabel, 'Neutre');
+    expect(options.single.portraitPath, isNull);
+    expect(options.single.diagnosticCodes, contains('portraitMissing'));
+  });
+
+  test('catalog projection exposes deleted expressions without ambiguity', () {
+    final options = PersonalizationCharacterPreviewCatalogProjection.project(
+      workspaceRevision: 'revision-2',
+      portraitStates: const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'happy',
+          'displayName': 'Joyeux',
+          'sortOrder': 0,
+        },
+      ],
+      characters: const <Map<String, Object?>>[
+        <String, Object?>{
+          'id': 'leo',
+          'name': 'Léo',
+          'sortOrder': 0,
+          'portraits': <Object?>[
+            <String, Object?>{
+              'portraitStateId': 'happy',
+              'assetId': 'leo-happy',
+            },
+            <String, Object?>{
+              'portraitStateId': 'angry',
+              'assetId': 'leo-angry',
+            },
+          ],
+        },
+      ],
+      assets: const <String, PersonalizationCharacterPreviewAsset>{
+        'leo-happy': PersonalizationCharacterPreviewAsset(
+          path: 'characters/leo-happy.png',
+          bytes: <int>[1],
+        ),
+        'leo-angry': PersonalizationCharacterPreviewAsset(
+          path: 'characters/leo-angry.png',
+          bytes: <int>[2],
+        ),
+      },
+    );
+
+    expect(options.map((option) => option.id), <String>[
+      'leo:happy',
+      'leo:angry',
+    ]);
+    expect(options.first.expressionLabel, 'Joyeux');
+    expect(options.last.expressionLabel, 'angry');
+    expect(options.last.diagnosticCodes, contains('portraitStateDeleted'));
+  });
+
+  test(
+    'catalog projection stays empty when Character Studio has no character',
+    () {
+      final options = PersonalizationCharacterPreviewCatalogProjection.project(
+        workspaceRevision: 'revision-empty',
+        portraitStates: const <Map<String, Object?>>[
+          <String, Object?>{
+            'id': 'neutral',
+            'displayName': 'Neutre',
+            'sortOrder': 0,
+          },
+        ],
+        characters: const <Map<String, Object?>>[],
+        assets: const <String, PersonalizationCharacterPreviewAsset>{},
+      );
+
+      expect(options, isEmpty);
+    },
+  );
+
+  test(
+    'character preview cache refreshes after a canonical revision change',
+    () async {
+      final sourceFixture = Directory(
+        p.join(
+          Directory.current.parent.parent.path,
+          'examples',
+          'playable_runtime_host',
+          'golden_personalization_v3',
+        ),
+      );
+      final projectRoot = await Directory.systemTemp.createTemp(
+        'personalization_character_revision_',
+      );
+      addTearDown(() => projectRoot.delete(recursive: true));
+      await _copyDirectory(sourceFixture, projectRoot);
+      final queries = AuthoringQueryAdapter(
+        fileReader: const EditorProjectFileReader(),
+      );
+      addTearDown(queries.closeAll);
+      final source = AuthoringPersonalizationCharacterPreviewSource(
+        queries: queries,
+      );
+
+      final first = await source.load(projectRoot.path);
+      final cached = await source.load(projectRoot.path);
+      final firstRevision = first.single.workspaceRevision;
+      expect(identical(cached, first), isTrue);
+
+      final projectFile = File(p.join(projectRoot.path, 'project.json'));
+      final projectJson = jsonDecode(await projectFile.readAsString()) as Map;
+      projectJson['name'] = 'Fixture révisée';
+      await projectFile.writeAsString(jsonEncode(projectJson));
+      await queries.invalidate(projectRoot.path);
+
+      final refreshed = await source.load(projectRoot.path);
+
+      expect(identical(refreshed, first), isFalse);
+      expect(refreshed.single.workspaceRevision, isNot(firstRevision));
+      expect(
+        refreshed.map((option) => option.id),
+        first.map((option) => option.id),
+      );
+    },
+  );
 
   test(
     'canonical source reads project contexts without demo fallback',
@@ -62,6 +208,9 @@ void main() {
       final source = AuthoringPersonalizationPreviewContextSource(
         queries: queries,
       );
+      final characterSource = AuthoringPersonalizationCharacterPreviewSource(
+        queries: queries,
+      );
       final projectRoot = p.join(
         Directory.current.parent.parent.path,
         'examples',
@@ -70,12 +219,16 @@ void main() {
       );
 
       final contexts = await source.load(projectRoot);
+      final characterOptions = await characterSource.load(projectRoot);
 
       expect(
         contexts.map((context) => context.id),
         containsAll(<String>{
           'map:vermeil_village',
           'dialogue:welcome_leo',
+          'dialogueScenario:welcome_leo:0:0',
+          'dialogueScenario:welcome_leo:0:1',
+          'dialogueScenario:welcome_leo:0:2',
           'encounter:vermeil_grass',
           'characterPortrait:leo:happy',
         }),
@@ -96,6 +249,29 @@ void main() {
         ((dialogue.detail['dialogue']! as Map)['source']! as Map)['text'],
         contains('Bienvenue à Vermeil'),
       );
+      final characterLine = contexts.firstWhere(
+        (context) => context.id == 'dialogueScenario:welcome_leo:0:0',
+      );
+      expect(characterLine.detail['scenarioKind'], 'characterLine');
+      expect(characterLine.detail['characterName'], 'Léo');
+      expect(characterLine.detail['portraitStateId'], 'happy');
+      expect(characterLine.mediaBytes, isNotEmpty);
+      final textLine = contexts.firstWhere(
+        (context) => context.id == 'dialogueScenario:welcome_leo:0:1',
+      );
+      expect(textLine.detail['scenarioKind'], 'textLine');
+      expect(textLine.detail['text'], contains('Le vent se lève'));
+      expect(textLine.mediaBytes, isNull);
+      final choice = contexts.firstWhere(
+        (context) => context.id == 'dialogueScenario:welcome_leo:0:2',
+      );
+      expect(choice.detail['scenarioKind'], 'choice');
+      expect(
+        (choice.detail['choices']! as List<Object?>).map(
+          (raw) => (raw! as Map)['label'],
+        ),
+        <String>['Partir explorer', 'Rester au village'],
+      );
       final encounter = contexts.firstWhere(
         (context) => context.id == 'encounter:vermeil_grass',
       );
@@ -107,6 +283,17 @@ void main() {
         contexts.map((context) => context.id),
         isNot(contains('character-studio-placeholder')),
       );
+      expect(
+        characterOptions.map((option) => option.id),
+        contains('leo:happy'),
+      );
+      final happy = characterOptions.firstWhere(
+        (option) => option.id == 'leo:happy',
+      );
+      expect(happy.expressionLabel, 'Heureux');
+      expect(happy.portraitPath, 'assets/characters/leo-happy.png');
+      expect(happy.portraitBytes, isNotEmpty);
+      expect(happy.workspaceRevision, isNotEmpty);
     },
   );
 }
@@ -121,11 +308,29 @@ final class _CharacterSource implements PersonalizationCharacterPreviewSource {
     loadedRoot = projectRoot;
     return const <PersonalizationCharacterPreviewOption>[
       PersonalizationCharacterPreviewOption(
+        id: 'leo:happy',
         characterId: 'leo',
         displayName: 'Léo',
         portraitPath: 'characters/leo/happy.png',
         expressionId: 'happy',
+        expressionLabel: 'Joyeux',
+        workspaceRevision: 'revision',
       ),
     ];
+  }
+}
+
+Future<void> _copyDirectory(Directory source, Directory destination) async {
+  await for (final entity in source.list()) {
+    final targetPath = p.join(destination.path, p.basename(entity.path));
+    switch (entity) {
+      case File():
+        await entity.copy(targetPath);
+      case Directory():
+        final target = await Directory(targetPath).create();
+        await _copyDirectory(entity, target);
+      case Link():
+        break;
+    }
   }
 }

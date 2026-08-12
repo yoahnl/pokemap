@@ -106,6 +106,23 @@ void main() {
             ),
           ),
         ),
+        battle: const ProjectBattlePresentationProfile(
+          commandLayout: ProjectBattleCommandLayout.radial,
+          commands: <ProjectBattleCommandProfile>[
+            ProjectBattleCommandProfile(
+              id: ProjectBattleCommandId.run,
+              label: 'Retraite',
+              icon: ProjectBattleCommandIcon.run,
+            ),
+            ProjectBattleCommandProfile(id: ProjectBattleCommandId.fight),
+            ProjectBattleCommandProfile(id: ProjectBattleCommandId.party),
+            ProjectBattleCommandProfile(id: ProjectBattleCommandId.bag),
+          ],
+          hpBarShape: ProjectBattleHpBarShape.segmented,
+          moves: ProjectBattlePanelPresentationProfile(
+            shape: ProjectWindowShape.cutCorner,
+          ),
+        ),
         typography: const ProjectTypographyProfile(
           combat: ProjectTypographyRoleProfile(
             fallbackFamilies: <String>['monospace'],
@@ -128,7 +145,10 @@ void main() {
       expect(first.certification.gameplayReadinessReport.isPlayable, isTrue);
       expect(first.manifest.gameId, profile.gameId);
       expect(first.manifest.title, profile.title);
-      expect(first.manifest.presentation?.schemaVersion, 8);
+      expect(
+        first.manifest.presentation?.schemaVersion,
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(first.manifest.presentation?.title?.title, 'Aube sur Hanazuki');
       expect(first.manifest.presentation?.title?.subtitle, 'Studio Brume');
       expect(
@@ -180,6 +200,20 @@ void main() {
         first.manifest.presentation?.typography?.combat?.fallbackFamilies,
         <String>['monospace'],
       );
+      expect(first.manifest.presentation?.battle?.commandLayout, 'radial');
+      expect(
+        first.manifest.presentation?.battle?.commands
+            ?.map((command) => command.id)
+            .toList(growable: false),
+        <String>['run', 'fight', 'party', 'bag'],
+      );
+      expect(
+        first.manifest.presentation?.battle?.commands?.first.label,
+        'Retraite',
+      );
+      expect(first.manifest.presentation?.battle?.commands?.first.icon, 'run');
+      expect(first.manifest.presentation?.battle?.hpBarShape, 'segmented');
+      expect(first.manifest.presentation?.battle?.moves.shape, 'cutCorner');
       expect(
         first.manifest.compatibility.requiredCapabilities,
         contains('map@1'),

@@ -139,7 +139,7 @@ void main() {
               (descriptor) => descriptor.id == 'projectPresentationProfile',
             )
             .version,
-        8,
+        10,
       );
       expect(
         catalog.requireMutationAction('presentation.preset.export').toJson(),
@@ -479,7 +479,10 @@ void main() {
 
       expect(directEvidence, cliEvidence);
       expect(directEvidence['accentColor'], '#126E78');
-      expect(directEvidence['schemaVersion'], 8);
+      expect(
+        directEvidence['schemaVersion'],
+        ProjectPresentationProfile.supportedSchemaVersion,
+      );
       expect(directEvidence['titleCopy'], 'Aube sur Hanazuki');
       expect(directEvidence['titleSubtitle'], 'Studio Brume');
       expect(directEvidence['titlePrompt'], 'Appuyez pour commencer');
@@ -519,6 +522,25 @@ void main() {
       expect(directEvidence['battlePaletteSurface'], '#102030');
       expect(directEvidence['pauseWindowShape'], 'cutCorner');
       expect(directEvidence['pauseWindowFillOpacity'], .8);
+      expect(directEvidence['dialoguePlacement'], 'top');
+      expect(directEvidence['dialogueMaxWidthFactor'], .64);
+      expect(directEvidence['dialogueSurfaceColor'], '#102030');
+      expect(directEvidence['dialoguePortraitSide'], 'end');
+      expect(directEvidence['dialoguePortraitShape'], 'circle');
+      expect(directEvidence['dialogueNameplateStyle'], 'floating');
+      expect(directEvidence['dialogueChoiceShape'], 'cutCorner');
+      expect(directEvidence['dialogueProgressIndicator'], 'dots');
+      expect(directEvidence['dialoguePortraitTransition'], 'slide');
+      expect(directEvidence['battleCommandLayout'], 'radial');
+      expect(directEvidence['battleCommandOrder'], <String>[
+        'run',
+        'fight',
+        'party',
+        'bag',
+      ]);
+      expect(directEvidence['battleRunLabel'], 'Retraite');
+      expect(directEvidence['battleHpBarShape'], 'segmented');
+      expect(directEvidence['battleMovesShape'], 'cutCorner');
     });
 
     test('presentation preset export has direct API and JSONL CLI parity',
@@ -1244,6 +1266,29 @@ final class _GoldenHarness {
       'pauseWindowFillOpacity': manifest.presentation?.windows
           ?.resolve(ProjectWindowRole.pauseMenu)
           .fillOpacity,
+      'dialoguePlacement': manifest.presentation?.dialogue?.placement.name,
+      'dialogueMaxWidthFactor': manifest.presentation?.dialogue?.maxWidthFactor,
+      'dialogueSurfaceColor': manifest.presentation?.dialogue?.surfaceColor,
+      'dialoguePortraitSide':
+          manifest.presentation?.dialogue?.portraitSide.name,
+      'dialoguePortraitShape':
+          manifest.presentation?.dialogue?.portraitShape.name,
+      'dialogueNameplateStyle':
+          manifest.presentation?.dialogue?.nameplateStyle.name,
+      'dialogueChoiceShape': manifest.presentation?.dialogue?.choiceShape.name,
+      'dialogueProgressIndicator':
+          manifest.presentation?.dialogue?.progressIndicator.name,
+      'dialoguePortraitTransition':
+          manifest.presentation?.dialogue?.portraitTransition.name,
+      'battleCommandLayout': manifest.presentation?.battle?.commandLayout.name,
+      'battleCommandOrder': manifest.presentation?.battle?.effectiveCommands
+          .map((command) => command.id.name)
+          .toList(growable: false),
+      'battleRunLabel': manifest.presentation?.battle?.effectiveCommands
+          .firstWhere((command) => command.id == ProjectBattleCommandId.run)
+          .label,
+      'battleHpBarShape': manifest.presentation?.battle?.hpBarShape.name,
+      'battleMovesShape': manifest.presentation?.battle?.moves.shape.name,
     };
   }
 
@@ -1385,6 +1430,54 @@ final ProjectPresentationProfile _responsivePresentationProfile =
         entrySpacing: ProjectPauseEntrySpacing.airy,
         showRootDetailPanel: false,
       ),
+    ),
+  ),
+  dialogue: ProjectDialoguePresentationProfile(
+    placement: ProjectDialoguePlacement.top,
+    maxWidthFactor: .64,
+    margin: 20,
+    contentPadding: 24,
+    shape: ProjectWindowShape.speech,
+    cornerRadius: 18,
+    borderWidth: 3,
+    fillOpacity: .82,
+    surfaceColor: '#102030',
+    borderColor: '#A0B0C0',
+    textColor: '#F0F0F0',
+    portraitSide: ProjectDialoguePortraitSide.end,
+    portraitSize: 112,
+    portraitShape: ProjectDialoguePortraitShape.circle,
+    portraitFrameWidth: 4,
+    portraitFrameColor: '#C0FFEE',
+    nameplateStyle: ProjectDialogueNameplateStyle.floating,
+    nameplateBorderWidth: 2,
+    nameplateSurfaceColor: '#334455',
+    nameplateBorderColor: '#778899',
+    nameplateTextColor: '#FFFFFF',
+    choiceSpacing: 14,
+    choiceShape: ProjectDialogueChoiceShape.cutCorner,
+    choiceDisabledOpacity: .35,
+    choiceSelectedColor: '#FFAA00',
+    progressIndicator: ProjectDialogueProgressIndicator.dots,
+    progressIndicatorColor: '#00FFAA',
+    portraitTransition: ProjectDialoguePortraitTransition.slide,
+    portraitTransitionMilliseconds: 320,
+  ),
+  battle: ProjectBattlePresentationProfile(
+    commandLayout: ProjectBattleCommandLayout.radial,
+    commands: <ProjectBattleCommandProfile>[
+      ProjectBattleCommandProfile(
+        id: ProjectBattleCommandId.run,
+        label: 'Retraite',
+        icon: ProjectBattleCommandIcon.run,
+      ),
+      ProjectBattleCommandProfile(id: ProjectBattleCommandId.fight),
+      ProjectBattleCommandProfile(id: ProjectBattleCommandId.party),
+      ProjectBattleCommandProfile(id: ProjectBattleCommandId.bag),
+    ],
+    hpBarShape: ProjectBattleHpBarShape.segmented,
+    moves: ProjectBattlePanelPresentationProfile(
+      shape: ProjectWindowShape.cutCorner,
     ),
   ),
   typography: ProjectTypographyProfile(

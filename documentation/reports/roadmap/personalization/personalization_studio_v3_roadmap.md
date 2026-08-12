@@ -299,6 +299,50 @@ Les labels des commandes vivent dans les données de présentation versionnées 
 
 ## 4. Phase V3-A — Vérité et contexte projet
 
+### Statut de clôture au 12 août 2026
+
+Le tableau suivant est l'état autoritatif après la Phase R5. Les cases des spécifications détaillées plus bas décrivent les gates historiques du plan ; elles ne remplacent pas ce verdict fondé sur les preuves fraîches du rapport de clôture.
+
+| Lot | Statut | Preuve principale |
+|---|---|---|
+| PERS3-00 | DONE | Registre canonique et correspondance exacte avec les contrôles visibles. |
+| PERS3-01 | DONE | Fixture V10 déterministe avec les six scènes, assets et preflight réel. |
+| PERS3-02 | DONE | `presentationPreviewContext` V2 révisionné et paginé. |
+| PERS3-03 | DONE | Décor, dialogues, portraits et rencontre projetés depuis le projet ouvert. |
+| PERS3-04 | DONE | Pickers lisibles, session-only et sans ID brut imposé. |
+| PERS3-05 | DONE | Contrat V6 vertical pour typo, palettes et fenêtres. |
+| PERS3-06 | DONE | Couleurs contextualisées reliées aux tokens canoniques. |
+| PERS3-07 | DONE | Formes et opacité consommées par les surfaces player. |
+| PERS3-08 | DONE | Inspecteur Style global et aperçu multi-surfaces. |
+| PERS3-09 | DONE | Copie de titre V7 persistée avec fallbacks explicites. |
+| PERS3-10 | DONE | Actions de titre configurables sans modifier la disponibilité gameplay. |
+| PERS3-11 | DONE | Médias, motion et musique du titre projetés par le player. |
+| PERS3-12 | DONE | Intro responsive, captions, focal point et reduced motion. |
+| PERS3-13 | DONE | Neuf actions Pause configurables. |
+| PERS3-14 | DONE | Composition, entrées, titre, hint et détail Pause. |
+| PERS3-15 | DONE | Preview Pause fondée sur le shell runtime partagé. |
+| PERS3-16 | DONE | Bridge Character Studio canonique, sans second catalogue. |
+| PERS3-17 | DONE | Géométrie Dialogue V9 verticale. |
+| PERS3-18 | DONE | Portrait et cartouche du nom configurables. |
+| PERS3-19 | DONE | Choix, indicateur et motion Dialogue configurables. |
+| PERS3-20 | DONE | Scénarios Dialogue réels et états dégradés honnêtes. |
+| PERS3-21 | DONE | Commandes Combat V10 verticales. |
+| PERS3-22 | DONE | HUD de combat, PV et statuts configurables. |
+| PERS3-23 | DONE | Capacités, cible et message configurables. |
+| PERS3-24 | DONE | Rencontre, acteurs et sprites résolus depuis le projet. |
+| PERS3-25 | DONE | Inspecteur Combat ciblé par sous-section. |
+| PERS3-26 | DONE | Graphe stable de cibles visuelles. |
+| PERS3-27 | DONE | Drag, snap, resize et alternative clavier bornés. |
+| PERS3-28 | DONE | Presets par scène, héritage et reset local. |
+| PERS3-29 | DONE | Historique atomique et sauvegarde canonique déterministe. |
+| PERS3-30 | DONE technique | Authoring `37/37`, MCP Presentation `3/3` et catalogue exact du worktree V10/V2 sur quatre transports. |
+| PERS3-31 | DONE | Restart, export, installation Hub, standalone et parité de view-data V10. |
+| PERS3-32 | DONE | Matrices Editor et Player, texte 200 %, clavier et manette vertes. |
+| PERS3-33 | DONE | Les 36 goldens de surfaces, quatre goldens du shell complet, six contact sheets et six captures desktop réelles ont été acceptés explicitement par Yoahn le 2026-08-12. |
+| PERS3-34 | DONE | Le nettoyage technique est vert, aucun artefact de diff ne subsiste et l'approbation produit liée à PERS3-33 est acquise. |
+
+Verdict produit V3 : `DONE`. PERS3-00 à PERS3-34 sont fermés avec preuves techniques fraîches et acceptation visuelle humaine explicite.
+
 ### PERS3-00 — Registre de capacités et interdiction des faux contrôles
 
 - [ ] **Résultat :** chaque contrôle du Studio déclare s’il modifie le projet, uniquement la preview ou la navigation.

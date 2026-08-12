@@ -162,7 +162,13 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
       described.structuredContent as {
         data?: {
           mutationActions?: Array<{ id?: string }>;
-          resourceKinds?: Array<{ id?: string }>;
+          resourceKinds?: Array<{ id?: string; version?: number }>;
+          fullParity?: {
+            mutationActions?: Array<{
+              actionId?: string;
+              endToEndVerifiedTransports?: string[];
+            }>;
+          };
         };
       }
     ).data;
@@ -200,6 +206,7 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
       "presentation.preset.export",
       "presentation.preset.delete_plan",
       "presentation.preset.delete_apply",
+      "presentation.update",
     ]) {
       assert.ok(actionIds.has(actionId));
     }
@@ -212,8 +219,31 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
       "characterStudioDependency",
       "characterStudioReadiness",
       "projectPresentationPreset",
+      "projectPresentationProfile",
     ]) {
       assert.ok(resourceKindIds.has(resourceKindId));
+    }
+    const presentationKind = data?.resourceKinds?.find(
+      (resource) => resource.id === "projectPresentationProfile",
+    );
+    const presetKind = data?.resourceKinds?.find(
+      (resource) => resource.id === "projectPresentationPreset",
+    );
+    assert.equal(presentationKind?.version, 10);
+    assert.equal(presetKind?.version, 2);
+    for (const actionId of [
+      "presentation.update",
+      "presentation.preset.export",
+    ]) {
+      const action = data?.fullParity?.mutationActions?.find(
+        (entry) => entry.actionId === actionId,
+      );
+      assert.deepEqual(action?.endToEndVerifiedTransports, [
+        "cli",
+        "directApi",
+        "editor",
+        "mcp",
+      ]);
     }
   } finally {
     await client.close();

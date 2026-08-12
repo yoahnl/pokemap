@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import 'player_battle_scene.dart';
 import 'player_battle_surface.dart';
+import '../theme/pokemap_player_battle_theme.dart';
 
+export 'player_battle_scene.dart';
 export 'player_battle_surface.dart';
 
 class PlayerBattleOverlay extends StatelessWidget {
@@ -18,50 +22,102 @@ class PlayerBattleOverlay extends StatelessWidget {
   final Widget Function(String assetPath)? itemIconBuilder;
 
   @override
-  Widget build(BuildContext context) => PlayerBattleSurface(
-        data: PlayerBattleViewData(
-          revision: snapshot.revision,
-          enemy: _hud(snapshot.enemyHud),
-          player: _hud(snapshot.playerHud),
-          battleLabel: snapshot.battleLabel,
-          title: snapshot.title,
-          prompt: snapshot.prompt,
-          narrationLines: snapshot.narrationLines,
-          commands: <PlayerBattleCommandViewData>[
-            for (final entry in snapshot.entries)
-              PlayerBattleCommandViewData(
-                index: entry.index,
-                primaryLabel: entry.primaryLabel,
-                secondaryLabel: entry.secondaryLabel,
-                tertiaryLabel: entry.tertiaryLabel,
-                trailingLabel: entry.trailingLabel,
-                statusLabel: entry.statusLabel,
-                enabled: entry.enabled,
-                selected: entry.selected,
-                tone: _tone(entry.tone),
-                iconAssetPath: entry.iconAssetPath,
-              ),
-          ],
-          interactionsEnabled: snapshot.interactionsEnabled,
-          canGoBack: snapshot.canGoBack,
-          forcedReplacement: snapshot.forcedReplacement,
-        ),
-        onAction: (action) => onCommand(
-          switch (action) {
-            PlayerBattleBackAction() => BattleBackCommand(
-                snapshotRevision: action.snapshotRevision,
-                expectedMode: snapshot.mode,
-              ),
-            PlayerBattleSelectEntryAction(:final entryIndex) =>
-              BattleSelectEntryCommand(
-                snapshotRevision: action.snapshotRevision,
-                expectedMode: snapshot.mode,
-                entryIndex: entryIndex,
-              ),
-          },
-        ),
-        itemIconBuilder: itemIconBuilder,
+  Widget build(BuildContext context) {
+    final battle = context.playerBattleProfile;
+    return PlayerBattleScene(
+      data: PlayerBattleViewData(
+        revision: snapshot.revision,
+        enemy: _hud(snapshot.enemyHud),
+        player: _hud(snapshot.playerHud),
+        battleLabel: snapshot.battleLabel,
+        title: snapshot.title,
+        prompt: snapshot.prompt,
+        narrationLines: snapshot.narrationLines,
+        commands: _commands(snapshot, battle),
+        interactionsEnabled: snapshot.interactionsEnabled,
+        canGoBack: snapshot.canGoBack,
+        forcedReplacement: snapshot.forcedReplacement,
+        panelKind: _panelKind(snapshot),
+      ),
+      onAction: (action) => onCommand(
+        switch (action) {
+          PlayerBattleBackAction() => BattleBackCommand(
+              snapshotRevision: action.snapshotRevision,
+              expectedMode: snapshot.mode,
+            ),
+          PlayerBattleSelectEntryAction(:final entryIndex) =>
+            BattleSelectEntryCommand(
+              snapshotRevision: action.snapshotRevision,
+              expectedMode: snapshot.mode,
+              entryIndex: entryIndex,
+            ),
+        },
+      ),
+      itemIconBuilder: itemIconBuilder,
+    );
+  }
+}
+
+List<PlayerBattleCommandViewData> _commands(
+  BattleCommandOverlaySnapshot snapshot,
+  ProjectBattlePresentationProfile? profile,
+) {
+  PlayerBattleCommandViewData mapEntry(
+    BattleCommandOverlayEntry entry, {
+    ProjectBattleCommandProfile? authored,
+  }) =>
+      PlayerBattleCommandViewData(
+        index: entry.index,
+        primaryLabel: authored?.label ?? entry.primaryLabel,
+        secondaryLabel: entry.secondaryLabel,
+        tertiaryLabel: entry.tertiaryLabel,
+        trailingLabel: entry.trailingLabel,
+        statusLabel: entry.statusLabel,
+        enabled: entry.enabled,
+        selected: entry.selected,
+        tone: _tone(entry.tone),
+        iconAssetPath: entry.iconAssetPath,
+        commandId: authored?.id,
+        commandIcon: authored?.icon,
       );
+  if (snapshot.mode != BattleCommandOverlayMode.root || profile == null) {
+    return snapshot.entries.map(mapEntry).toList(growable: false);
+  }
+  final byId = <ProjectBattleCommandId, BattleCommandOverlayEntry>{};
+  for (final entry in snapshot.entries) {
+    if (entry.kind != BattleCommandOverlayEntryKind.root) continue;
+    final id = _commandIdForRuntimeIndex(entry.index);
+    if (id != null) byId[id] = entry;
+  }
+  return <PlayerBattleCommandViewData>[
+    for (final authored in profile.effectiveCommands)
+      if (byId[authored.id] case final entry?)
+        mapEntry(entry, authored: authored),
+  ];
+}
+
+ProjectBattleCommandId? _commandIdForRuntimeIndex(int index) => switch (index) {
+      0 => ProjectBattleCommandId.fight,
+      1 => ProjectBattleCommandId.bag,
+      2 => ProjectBattleCommandId.party,
+      3 => ProjectBattleCommandId.run,
+      _ => null,
+    };
+
+PlayerBattlePanelKind _panelKind(BattleCommandOverlaySnapshot snapshot) {
+  if (snapshot.phase != BattlePresentationPhase.choosingCommand ||
+      snapshot.mode == BattleCommandOverlayMode.continueOnly) {
+    return PlayerBattlePanelKind.message;
+  }
+  return switch (snapshot.mode) {
+    BattleCommandOverlayMode.root => PlayerBattlePanelKind.commands,
+    BattleCommandOverlayMode.fight => PlayerBattlePanelKind.moves,
+    BattleCommandOverlayMode.bagMedicineTarget => PlayerBattlePanelKind.target,
+    BattleCommandOverlayMode.bag ||
+    BattleCommandOverlayMode.pokemon =>
+      PlayerBattlePanelKind.target,
+    BattleCommandOverlayMode.continueOnly => PlayerBattlePanelKind.message,
+  };
 }
 
 PlayerBattleHudViewData _hud(BattleCommandOverlayHudSnapshot snapshot) =>

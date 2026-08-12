@@ -76,6 +76,101 @@ void main() {
     );
   });
 
+  testWidgets('keeps advanced controls behind Plus de réglages', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var section = PersonalizationGlobalStyleSection.colors;
+    late StateSetter setHostState;
+    await tester.pumpWidget(
+      _app(
+        StatefulBuilder(
+          builder: (context, setState) {
+            setHostState = setState;
+            return SingleChildScrollView(
+              child: PersonalizationGlobalStyleInspector(
+                profile: const ProjectPresentationProfile(
+                  theme: safeProjectSemanticTheme,
+                ),
+                section: section,
+                onSectionChanged: (value) {
+                  setHostState(() => section = value);
+                },
+                onEditAccent: () {},
+                onEditThemeToken: (_) {},
+                onUseSafeFallback: () {},
+                onWindowsChanged: (_) {},
+                onImportCommonFont: () {},
+                onUseSystemCommonFont: () {},
+                onResetColors: () {},
+                onResetWindows: () {},
+                onResetTypography: () {},
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    expect(find.text('Plus de réglages'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('theme-edit-primary')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-more-settings')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('theme-edit-primary')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-tab-windows')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('window-target-standard')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-more-settings')),
+    );
+    await tester.pump();
+    for (final role in <String>['standard', 'pause', 'dialogue', 'battle']) {
+      expect(
+        find.byKey(ValueKey<String>('window-target-$role')),
+        findsOneWidget,
+      );
+    }
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-tab-typography')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-common')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('global-style-more-settings')),
+    );
+    await tester.pump();
+    for (final role in ProjectTypographyRole.values) {
+      expect(
+        find.byKey(ValueKey<String>('typography-import-${role.name}')),
+        findsOneWidget,
+      );
+    }
+    expect(
+      find.byKey(const ValueKey<String>('typography-import-common')),
+      findsNothing,
+    );
+  });
+
   testWidgets('offers an explicit reset for every global section', (
     tester,
   ) async {
@@ -228,11 +323,13 @@ void main() {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: PersonalizationLivePreview(
+                  child: PersonalizationRuntimePreview(
                     profile: profile,
                     projectName: 'Pokémon Aurore',
                     projectRootPath: '',
-                    scene: PersonalizationStudioScene.globalStyle,
+                    initialSurface: PersonalizationStudioScene.globalStyle,
+                    dialogueData: _dialogueData,
+                    battleData: _battleData,
                   ),
                 ),
               ],
@@ -359,6 +456,44 @@ void main() {
     );
   });
 
+  testWidgets('does not hide a contextual palette contrast error', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: PersonalizationGlobalStyleInspector(
+            profile: const ProjectPresentationProfile(
+              theme: safeProjectSemanticTheme,
+              surfacePalettes: ProjectPresentationSurfacePalettesProfile(
+                dialogue: ProjectSurfacePaletteProfile(
+                  surface: '#FFFFFF',
+                  text: '#FFFFFE',
+                ),
+              ),
+            ),
+            section: PersonalizationGlobalStyleSection.colors,
+            onSectionChanged: (_) {},
+            onEditAccent: () {},
+            onEditThemeToken: (_) {},
+            onUseSafeFallback: () {},
+            onWindowsChanged: (_) {},
+            onImportCommonFont: () {},
+            onUseSystemCommonFont: () {},
+            onResetColors: () {},
+            onResetWindows: () {},
+            onResetTypography: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.text('Corrigez les contrastes avant de pouvoir enregistrer.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('remains usable at narrow width and 200 percent text scale', (
     tester,
   ) async {
@@ -414,6 +549,42 @@ void main() {
     semantics.dispose();
   });
 }
+
+const _dialogueData = PlayerDialogueViewData(
+  revision: 1,
+  mode: PlayerDialogueMode.line,
+  speaker: 'Léo',
+  text: 'Bienvenue à Vermeil.',
+  fullText: 'Bienvenue à Vermeil.',
+  isCurrentLineFullyRevealed: true,
+  isLastContent: true,
+  choices: <PlayerDialogueChoiceViewData>[],
+);
+
+const _battleData = PlayerBattleViewData(
+  revision: 1,
+  enemy: PlayerBattleHudViewData(
+    ownerLabel: 'SAUVAGE',
+    speciesLabel: 'Roucool',
+    level: 7,
+    currentHp: 31,
+    maxHp: 31,
+  ),
+  player: PlayerBattleHudViewData(
+    ownerLabel: 'JOUEUR',
+    speciesLabel: 'Brindibou',
+    level: 8,
+    currentHp: 24,
+    maxHp: 24,
+  ),
+  battleLabel: 'Herbes de Vermeil',
+  title: 'Que doit faire Brindibou ?',
+  prompt: 'Choisissez une action.',
+  narrationLines: <String>[],
+  commands: <PlayerBattleCommandViewData>[],
+  interactionsEnabled: true,
+  canGoBack: false,
+);
 
 Widget _app(Widget child) => MaterialApp(
   theme: PokeMapTheme.light(),

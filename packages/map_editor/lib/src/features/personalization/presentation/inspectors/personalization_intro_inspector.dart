@@ -5,6 +5,8 @@ import '../../../../ui/design_system/design_system.dart';
 import '../project_intro_video_editor.dart';
 
 class PersonalizationIntroInspector extends StatelessWidget {
+  static const capabilityIds = <String>{'intro.media', 'intro.focalPoint'};
+
   const PersonalizationIntroInspector({
     super.key,
     required this.profile,

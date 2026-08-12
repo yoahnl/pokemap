@@ -14,8 +14,10 @@ void main() {
       expect(manifest.packageFormat, 1);
       expect(manifest.gameId, 'games.example.minimal');
       expect(manifest.gameVersion.toString(), '1.0.0');
-      expect(manifest.compatibility.runtimeApi.allows(manifest.gameVersion),
-          isTrue);
+      expect(
+        manifest.compatibility.runtimeApi.allows(manifest.gameVersion),
+        isTrue,
+      );
       expect(
         jsonDecode(codec.encodeCanonicalJson(manifest)),
         _minimalManifestJson(),
@@ -139,18 +141,12 @@ void main() {
       expect(manifest.presentation?.schemaVersion, 1);
       expect(manifest.branding?.icon, 'presentation/icon.png');
       expect(manifest.presentation?.intro?.videoCodec, 'h264');
-      expect(
-        manifest.presentation?.typography?.display.family,
-        'Aube Display',
-      );
+      expect(manifest.presentation?.typography?.display.family, 'Aube Display');
       expect(
         manifest.presentation?.typography?.numbers.fallbackFamilies,
         <String>['monospace'],
       );
-      expect(
-        manifest.presentation?.theme?.battleHudSurface,
-        '#FFFFFF',
-      );
+      expect(manifest.presentation?.theme?.battleHudSurface, '#FFFFFF');
       expect(manifest.usesLegacyBranding, isFalse);
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
@@ -178,10 +174,10 @@ void main() {
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 
-    test('round-trips V8 ordered pause actions', () {
+    test('round-trips V9 pause actions and dialogue geometry', () {
       final json = _minimalManifestJson()
         ..['presentation'] = <String, Object?>{
-          'schemaVersion': 8,
+          'schemaVersion': 9,
           'branding': <String, Object?>{},
           'pause': <String, Object?>{
             'title': 'Interlude',
@@ -198,11 +194,7 @@ void main() {
                 'icon': 'play',
                 'visible': true,
               },
-              <String, Object?>{
-                'id': 'map',
-                'icon': 'map',
-                'visible': false,
-              },
+              <String, Object?>{'id': 'map', 'icon': 'map', 'visible': false},
             ],
             'composition': <String, Object?>{
               'compactPortrait': <String, Object?>{
@@ -228,6 +220,37 @@ void main() {
               },
             },
           },
+          'dialogue': <String, Object?>{
+            'placement': 'top',
+            'maxWidthFactor': .64,
+            'margin': 20.0,
+            'contentPadding': 24.0,
+            'shape': 'speech',
+            'cornerRadius': 18.0,
+            'borderWidth': 3.0,
+            'fillOpacity': .82,
+            'surfaceColor': '#102030',
+            'borderColor': '#A0B0C0',
+            'textColor': '#F0F0F0',
+            'portraitSide': 'end',
+            'portraitSize': 112.0,
+            'portraitShape': 'circle',
+            'portraitFrameWidth': 4.0,
+            'portraitFrameColor': '#C0FFEE',
+            'nameplateStyle': 'floating',
+            'nameplateBorderWidth': 2.0,
+            'nameplateSurfaceColor': '#334455',
+            'nameplateBorderColor': '#778899',
+            'nameplateTextColor': '#FFFFFF',
+            'choiceSpacing': 14.0,
+            'choiceShape': 'cutCorner',
+            'choiceDisabledOpacity': .35,
+            'choiceSelectedColor': '#FFAA00',
+            'progressIndicator': 'dots',
+            'progressIndicatorColor': '#00FFAA',
+            'portraitTransition': 'slide',
+            'portraitTransitionMilliseconds': 320,
+          },
         };
 
       final manifest = codec.decodeJson(json);
@@ -244,7 +267,93 @@ void main() {
         manifest.presentation?.pause?.composition?.expanded.showTitle,
         isFalse,
       );
+      expect(manifest.presentation?.dialogue?.placement, 'top');
+      expect(manifest.presentation?.dialogue?.shape, 'speech');
+      expect(manifest.presentation?.dialogue?.surfaceColor, '#102030');
+      expect(manifest.presentation?.dialogue?.portraitSide, 'end');
+      expect(manifest.presentation?.dialogue?.portraitShape, 'circle');
+      expect(manifest.presentation?.dialogue?.nameplateStyle, 'floating');
+      expect(manifest.presentation?.dialogue?.choiceShape, 'cutCorner');
+      expect(manifest.presentation?.dialogue?.progressIndicator, 'dots');
+      expect(manifest.presentation?.dialogue?.portraitTransition, 'slide');
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test(
+      'rejects dialogue geometry declared before presentation schema V9',
+      () {
+        final json = _minimalManifestJson()
+          ..['presentation'] = <String, Object?>{
+            'schemaVersion': 8,
+            'branding': <String, Object?>{},
+            'dialogue': <String, Object?>{},
+          };
+
+        _expectCode(
+          () => codec.decodeJson(json),
+          'presentationVersionUnsupported',
+          r'$.presentation.dialogue',
+        );
+      },
+    );
+
+    test('round-trips V10 battle commands, HUD and state panels', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 10,
+          'branding': <String, Object?>{},
+          'battle': <String, Object?>{
+            'commandLayout': 'radial',
+            'commandColumns': 2,
+            'showCommandIcons': true,
+            'commandShape': 'cutCorner',
+            'commandPadding': 16,
+            'commandSelectionColor': '#00CCAA',
+            'commands': <Object?>[
+              <String, Object?>{'id': 'run', 'label': 'Retraite'},
+              <String, Object?>{'id': 'fight', 'label': 'Techniques'},
+              <String, Object?>{'id': 'party'},
+              <String, Object?>{'id': 'bag'},
+            ],
+            'hudShape': 'rectangle',
+            'enemyHudPosition': 'topEnd',
+            'playerHudPosition': 'bottomStart',
+            'showOwnerLabel': false,
+            'showLevel': false,
+            'showExactHp': false,
+            'hpBarShape': 'segmented',
+            'hpHealthyColor': '#00AA55',
+            'hpWarningColor': '#FFAA00',
+            'hpDangerColor': '#CC2244',
+            'statusColor': '#8844FF',
+            'moves': _battlePanelJson(surface: '#102030'),
+            'target': _battlePanelJson(surface: '#203040'),
+            'message': _battlePanelJson(surface: '#304050'),
+          },
+        };
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.presentation?.battle?.commandLayout, 'radial');
+      expect(manifest.presentation?.battle?.commands?.first.id, 'run');
+      expect(manifest.presentation?.battle?.enemyHudPosition, 'topEnd');
+      expect(manifest.presentation?.battle?.moves.surfaceColor, '#102030');
+      expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('rejects battle presentation before V10', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 9,
+          'branding': <String, Object?>{},
+          'battle': <String, Object?>{},
+        };
+
+      _expectCode(
+        () => codec.decodeJson(json),
+        'presentationVersionUnsupported',
+        r'$.presentation.battle',
+      );
     });
 
     test('rejects pause actions declared before presentation schema V8', () {
@@ -372,10 +481,7 @@ void main() {
 
       expect(manifest.presentation?.layouts?.title.expanded.slot, 'bottomLeft');
       expect(manifest.presentation?.layouts?.pauseMenu.regular.slot, 'left');
-      expect(
-        manifest.presentation?.layouts?.dialogue.compact.width,
-        'wide',
-      );
+      expect(manifest.presentation?.layouts?.dialogue.compact.width, 'wide');
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 
@@ -714,21 +820,23 @@ void main() {
       );
     });
 
-    test('keeps legacy branding manifests readable through the effective API',
-        () {
-      final json = _minimalManifestJson()
-        ..['branding'] = <String, Object?>{
-          'accentColor': '#123456',
-          'layoutVariant': 'standard',
-        };
+    test(
+      'keeps legacy branding manifests readable through the effective API',
+      () {
+        final json = _minimalManifestJson()
+          ..['branding'] = <String, Object?>{
+            'accentColor': '#123456',
+            'layoutVariant': 'standard',
+          };
 
-      final manifest = codec.decodeJson(json);
+        final manifest = codec.decodeJson(json);
 
-      expect(manifest.presentation, isNull);
-      expect(manifest.usesLegacyBranding, isTrue);
-      expect(manifest.branding?.accentColor, '#123456');
-      expect(manifest.toJson(), contains('branding'));
-    });
+        expect(manifest.presentation, isNull);
+        expect(manifest.usesLegacyBranding, isTrue);
+        expect(manifest.branding?.accentColor, '#123456');
+        expect(manifest.toJson(), contains('branding'));
+      },
+    );
 
     test('signature preimage omits only the root signature', () {
       final json = _minimalManifestJson()
@@ -739,9 +847,9 @@ void main() {
         };
       final manifest = codec.decodeJson(json);
 
-      final preimage = jsonDecode(
-        utf8.decode(codec.signaturePreimageUtf8(manifest)),
-      ) as Map<String, Object?>;
+      final preimage =
+          jsonDecode(utf8.decode(codec.signaturePreimageUtf8(manifest)))
+              as Map<String, Object?>;
 
       expect(preimage, isNot(contains('signature')));
       expect(preimage['gameId'], manifest.gameId);
@@ -752,13 +860,14 @@ void main() {
       final canonical = codec.encodeCanonicalUtf8(
         codec.decodeJson(_minimalManifestJson()),
       );
-      final pretty = const JsonEncoder.withIndent('  ').convert(
-        _minimalManifestJson(),
-      );
+      final pretty = const JsonEncoder.withIndent(
+        '  ',
+      ).convert(_minimalManifestJson());
       final duplicate = utf8.decode(canonical).replaceFirst(
-          '"packageFormat":1',
-          ''
-              '"packageFormat":1,"packageFormat":1');
+            '"packageFormat":1',
+            ''
+                '"packageFormat":1,"packageFormat":1',
+          );
 
       expect(codec.decodeUtf8(canonical).gameId, 'games.example.minimal');
       _expectCode(
@@ -846,10 +955,7 @@ void main() {
       final futureProject = _minimalManifestJson();
       (futureProject['compatibility']!
           as Map<String, Object?>)['projectFormat'] = 'v3';
-      expect(
-        codec.decodeJson(futureProject).compatibility.projectFormat,
-        'v3',
-      );
+      expect(codec.decodeJson(futureProject).compatibility.projectFormat, 'v3');
 
       final invalidProject = _minimalManifestJson();
       (invalidProject['compatibility']!
@@ -977,9 +1083,7 @@ void main() {
       );
 
       final branding = _minimalManifestJson()
-        ..['branding'] = <String, Object?>{
-          'icon': 'project/project.json',
-        };
+        ..['branding'] = <String, Object?>{'icon': 'project/project.json'};
       _expectCode(
         () => codec.decodeJson(branding),
         'invalidBrandingReference',
@@ -1038,8 +1142,11 @@ void main() {
       expect(
         () => codec.decodeUtf8(<int>[0xff]),
         throwsA(
-          isA<GamePackageFormatException>()
-              .having((error) => error.code, 'code', 'invalidUtf8'),
+          isA<GamePackageFormatException>().having(
+            (error) => error.code,
+            'code',
+            'invalidUtf8',
+          ),
         ),
       );
     });
@@ -1079,10 +1186,7 @@ Map<String, Object?> _responsiveLayoutJson({
         slot: compactSlot,
         width: compactWidth,
       ),
-      'regular': _layoutVariantJson(
-        breakpoint: 'regular',
-        slot: regularSlot,
-      ),
+      'regular': _layoutVariantJson(breakpoint: 'regular', slot: regularSlot),
       'expanded': _layoutVariantJson(
         breakpoint: 'expanded',
         slot: expandedSlot,
@@ -1104,11 +1208,7 @@ Map<String, Object?> _layoutVariantJson({
       'visibleSecondaryElements': <Object?>[],
     };
 
-void _expectCode(
-  void Function() operation,
-  String code,
-  String path,
-) {
+void _expectCode(void Function() operation, String code, String path) {
   expect(
     operation,
     throwsA(
@@ -1171,6 +1271,15 @@ Map<String, Object?> _validSemanticThemeJson() => <String, Object?>{
       'menuSurface': '#EAF0F8',
       'overworldHudSurface': '#FFFFFF',
       'battleHudSurface': '#FFFFFF',
+    };
+
+Map<String, Object?> _battlePanelJson({required String surface}) =>
+    <String, Object?>{
+      'layout': 'grid',
+      'columns': 2,
+      'shape': 'rounded',
+      'padding': 12.0,
+      'surfaceColor': surface,
     };
 
 Map<String, Object?> _emptyFile(String path) => <String, Object?>{

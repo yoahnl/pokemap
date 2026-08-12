@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_layout_theme.dart';
+import '../theme/pokemap_player_battle_theme.dart';
 import '../theme/pokemap_player_theme.dart';
 import '../theme/pokemap_player_surface_palette_theme.dart';
 
@@ -20,6 +21,8 @@ enum PlayerBattleEntryTone {
   disabled,
 }
 
+enum PlayerBattlePanelKind { commands, moves, target, message }
+
 @immutable
 final class PlayerBattleCommandViewData {
   const PlayerBattleCommandViewData({
@@ -33,6 +36,8 @@ final class PlayerBattleCommandViewData {
     this.trailingLabel,
     this.statusLabel,
     this.iconAssetPath,
+    this.commandId,
+    this.commandIcon,
   });
 
   final int index;
@@ -45,6 +50,8 @@ final class PlayerBattleCommandViewData {
   final bool selected;
   final PlayerBattleEntryTone tone;
   final String? iconAssetPath;
+  final ProjectBattleCommandId? commandId;
+  final ProjectBattleCommandIcon? commandIcon;
 }
 
 @immutable
@@ -93,6 +100,7 @@ final class PlayerBattleViewData {
     required this.interactionsEnabled,
     required this.canGoBack,
     this.forcedReplacement = false,
+    this.panelKind = PlayerBattlePanelKind.commands,
   });
 
   final int revision;
@@ -106,6 +114,7 @@ final class PlayerBattleViewData {
   final bool interactionsEnabled;
   final bool canGoBack;
   final bool forcedReplacement;
+  final PlayerBattlePanelKind panelKind;
 }
 
 sealed class PlayerBattleAction {
@@ -138,16 +147,22 @@ class PlayerBattleSurface extends StatelessWidget {
     required this.data,
     required this.onAction,
     this.itemIconBuilder,
+    this.paintBackground = true,
+    this.onPanelTargeted,
+    this.onHudTargeted,
   });
 
   final PlayerBattleViewData data;
   final ValueChanged<PlayerBattleAction> onAction;
   final Widget Function(String assetPath)? itemIconBuilder;
+  final bool paintBackground;
+  final ValueChanged<PlayerBattlePanelKind>? onPanelTargeted;
+  final VoidCallback? onHudTargeted;
 
   @override
   Widget build(BuildContext context) => PlayerSurfacePaletteScope(
         role: ProjectPresentationSurfaceRole.battleHud,
-        paintBackground: true,
+        paintBackground: paintBackground,
         child: Builder(builder: _build),
       );
 
@@ -175,6 +190,9 @@ class PlayerBattleSurface extends StatelessWidget {
           final compact = resolved == null
               ? contentWidth < 560
               : breakpoint == ProjectPresentationBreakpoint.compact;
+          final compactPortrait = constraints.maxWidth < 480 &&
+              constraints.maxHeight > constraints.maxWidth;
+          final battle = context.playerBattleProfile;
           final hudWidth = math.min(
             compact ? contentWidth * 0.72 : 280.0,
             320.0,
@@ -198,6 +216,8 @@ class PlayerBattleSurface extends StatelessWidget {
             onAction: onAction,
             itemIconBuilder: itemIconBuilder,
             spacingScale: resolved?.spacingScale ?? 1,
+            profile: battle,
+            compactPortrait: compactPortrait,
           );
           final commandPanel = fullScreen
               ? SizedBox(
@@ -220,26 +240,59 @@ class PlayerBattleSurface extends StatelessWidget {
               ),
               children: <Widget>[
                 Align(
-                  alignment: Alignment.topLeft,
-                  child: SizedBox(
-                    width: hudWidth,
-                    child: _BattleHud(data: data.enemy),
+                  key: ValueKey<String>(
+                    'battle-hud-position-enemy-${(battle?.enemyHudPosition ?? ProjectBattleHudPosition.topStart).name}',
+                  ),
+                  alignment: _hudAlignment(
+                    battle?.enemyHudPosition ??
+                        ProjectBattleHudPosition.topStart,
+                  ),
+                  child: GestureDetector(
+                    key: const ValueKey<String>('battle-hud-target-enemy'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onHudTargeted,
+                    child: SizedBox(
+                      width: hudWidth,
+                      child: _BattleHud(
+                        data: data.enemy,
+                        sideId: 'enemy',
+                        profile: battle,
+                      ),
+                    ),
                   ),
                 ),
                 Align(
-                  alignment: compact
-                      ? const Alignment(1, -0.37)
-                      : const Alignment(0.92, 0.15),
-                  child: SizedBox(
-                    width: hudWidth,
-                    child: _BattleHud(data: data.player),
+                  key: ValueKey<String>(
+                    'battle-hud-position-player-${(battle?.playerHudPosition ?? ProjectBattleHudPosition.bottomEnd).name}',
+                  ),
+                  alignment: battle == null
+                      ? (compact
+                          ? const Alignment(1, -0.37)
+                          : const Alignment(0.92, 0.15))
+                      : _hudAlignment(battle.playerHudPosition),
+                  child: GestureDetector(
+                    key: const ValueKey<String>('battle-hud-target-player'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onHudTargeted,
+                    child: SizedBox(
+                      width: hudWidth,
+                      child: _BattleHud(
+                        data: data.player,
+                        sideId: 'player',
+                        profile: battle,
+                      ),
+                    ),
                   ),
                 ),
                 Align(
                   alignment: alignment,
                   child: Padding(
                     padding: EdgeInsets.all(margin),
-                    child: commandPanel,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () => onPanelTargeted?.call(data.panelKind),
+                      child: commandPanel,
+                    ),
                   ),
                 ),
               ],
@@ -252,26 +305,68 @@ class PlayerBattleSurface extends StatelessWidget {
 }
 
 class _BattleHud extends StatelessWidget {
-  const _BattleHud({required this.data});
+  const _BattleHud({
+    required this.data,
+    required this.sideId,
+    required this.profile,
+  });
 
   final PlayerBattleHudViewData data;
+  final String sideId;
+  final ProjectBattlePresentationProfile? profile;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.playerColors;
+    final paletteText = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+      context
+          .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
+          ?.text,
+    );
     final hpRatio = data.maxHp <= 0
         ? 0.0
         : (data.effectiveTargetDisplayedHp / data.maxHp).clamp(0.0, 1.0);
     final hpColor = hpRatio <= 0.2
-        ? colors.danger
+        ? PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+              profile?.hpDangerColor,
+            ) ??
+            colors.danger
         : hpRatio <= 0.5
-            ? colors.warning
-            : colors.success;
+            ? PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                  profile?.hpWarningColor,
+                ) ??
+                colors.warning
+            : PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                  profile?.hpHealthyColor,
+                ) ??
+                colors.success;
     return PlayerPanel(
       padding: const EdgeInsets.all(PlayerSpacing.sm),
       elevated: true,
       role: PlayerPanelRole.battleHud,
       surfaceRole: ProjectPresentationSurfaceRole.battleHud,
+      windowStyleOverride: profile == null
+          ? null
+          : _battleWindowStyle(
+              id: 'battle-hud-$sideId',
+              shape: profile!.hudShape,
+              padding: 12,
+            ),
+      surfaceColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+        context
+            .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
+            ?.surface,
+      ),
+      borderColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+        context
+            .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
+            ?.border,
+      ),
+      textColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+        context
+            .playerSurfacePalette(ProjectPresentationSurfaceRole.battleHud)
+            ?.text,
+      ),
       child: Semantics(
         container: true,
         label: '${data.ownerLabel}, ${data.speciesLabel}, '
@@ -283,6 +378,19 @@ class _BattleHud extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
+              if (profile?.showOwnerLabel ?? true) ...<Widget>[
+                Text(
+                  data.ownerLabel,
+                  key: ValueKey<String>('battle-owner-$sideId'),
+                  style: context.playerTypography
+                      .combatStyle(
+                        Theme.of(context).textTheme.labelSmall ??
+                            const TextStyle(),
+                      )
+                      .copyWith(color: paletteText),
+                ),
+                const SizedBox(height: PlayerSpacing.xxs),
+              ],
               Row(
                 children: <Widget>[
                   Expanded(
@@ -290,28 +398,43 @@ class _BattleHud extends StatelessWidget {
                       data.speciesLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: context.playerTypography.combatStyle(
-                        Theme.of(context).textTheme.titleMedium ??
-                            const TextStyle(),
-                      ),
+                      style: context.playerTypography
+                          .combatStyle(
+                            Theme.of(context).textTheme.titleMedium ??
+                                const TextStyle(),
+                          )
+                          .copyWith(color: paletteText),
                     ),
                   ),
                   const SizedBox(width: PlayerSpacing.xs),
-                  Text(
-                    context.playerL10n.levelLabel(data.level),
-                    style: context.playerTypography.numbersStyle(
-                      Theme.of(context).textTheme.labelMedium ??
-                          const TextStyle(),
+                  if (profile?.showLevel ?? true)
+                    Text(
+                      context.playerL10n.levelLabel(data.level),
+                      key: ValueKey<String>('battle-level-$sideId'),
+                      style: context.playerTypography
+                          .numbersStyle(
+                            Theme.of(context).textTheme.labelMedium ??
+                                const TextStyle(),
+                          )
+                          .copyWith(color: paletteText),
                     ),
-                  ),
                 ],
               ),
               if (data.statusLabel case final status?) ...<Widget>[
                 const SizedBox(height: PlayerSpacing.xxs),
-                PlayerBadge(
-                  label: status,
-                  icon: Icons.warning_amber_rounded,
-                  tone: PlayerBadgeTone.warning,
+                Text(
+                  status,
+                  key: ValueKey<String>('battle-status-$sideId'),
+                  style: context.playerTypography.combatStyle(
+                    (Theme.of(context).textTheme.labelSmall ??
+                            const TextStyle())
+                        .copyWith(
+                      color: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                            profile?.statusColor,
+                          ) ??
+                          colors.warning,
+                    ),
+                  ),
                 ),
               ],
               const SizedBox(height: PlayerSpacing.xs),
@@ -327,26 +450,32 @@ class _BattleHud extends StatelessWidget {
                 duration: context.playerMotion.standard == Duration.zero
                     ? Duration.zero
                     : data.hpTweenDuration ?? context.playerMotion.standard,
-                builder: (context, value, _) => ClipRRect(
-                  borderRadius: BorderRadius.circular(PlayerRadii.pill),
-                  child: LinearProgressIndicator(
-                    minHeight: 8,
-                    value: value,
-                    color: hpColor,
-                    backgroundColor: colors.outline.withValues(alpha: 0.35),
+                builder: (context, value, _) => _BattleHpBar(
+                  key: ValueKey<String>(
+                    'battle-hp-${(profile?.hpBarShape ?? ProjectBattleHpBarShape.rounded).name}-$sideId',
                   ),
+                  value: value,
+                  shape: profile?.hpBarShape ?? ProjectBattleHpBarShape.rounded,
+                  color: hpColor,
+                  backgroundColor: colors.outline.withValues(alpha: 0.35),
                 ),
               ),
-              const SizedBox(height: PlayerSpacing.xxs),
-              Text(
-                context.playerL10n.hpLabel(
-                  data.currentHp,
-                  data.maxHp,
+              if (profile?.showExactHp ?? true) ...<Widget>[
+                const SizedBox(height: PlayerSpacing.xxs),
+                Text(
+                  context.playerL10n.hpLabel(
+                    data.currentHp,
+                    data.maxHp,
+                  ),
+                  key: ValueKey<String>('battle-exact-hp-$sideId'),
+                  style: context.playerTypography
+                      .numbersStyle(
+                        Theme.of(context).textTheme.labelMedium ??
+                            const TextStyle(),
+                      )
+                      .copyWith(color: paletteText),
                 ),
-                style: context.playerTypography.numbersStyle(
-                  Theme.of(context).textTheme.labelMedium ?? const TextStyle(),
-                ),
-              ),
+              ],
             ],
           ),
         ),
@@ -361,27 +490,56 @@ class _BattleCommandPanel extends StatelessWidget {
     required this.onAction,
     required this.itemIconBuilder,
     required this.spacingScale,
+    required this.profile,
+    required this.compactPortrait,
   });
 
   final PlayerBattleViewData data;
   final ValueChanged<PlayerBattleAction> onAction;
   final Widget Function(String assetPath)? itemIconBuilder;
   final double spacingScale;
+  final ProjectBattlePresentationProfile? profile;
+  final bool compactPortrait;
 
   @override
   Widget build(BuildContext context) {
+    final panelProfile = _panelProfile(profile, data.panelKind);
+    final layout = panelProfile.layout == ProjectBattleCommandLayout.radial &&
+            compactPortrait
+        ? ProjectBattleCommandLayout.grid
+        : panelProfile.layout;
     return PlayerPanel(
       key: const ValueKey<String>('battle-command-panel'),
       elevated: true,
       role: PlayerPanelRole.battleHud,
       surfaceRole: ProjectPresentationSurfaceRole.battleHud,
-      padding: EdgeInsets.all(PlayerSpacing.sm * spacingScale),
+      padding: EdgeInsets.all(panelProfile.padding * spacingScale),
+      windowStyleOverride: profile == null
+          ? null
+          : _battleWindowStyle(
+              id: 'battle-${data.panelKind.name}',
+              shape: panelProfile.shape,
+              padding: panelProfile.padding,
+            ),
+      surfaceColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+        panelProfile.surfaceColor,
+      ),
+      borderColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+        panelProfile.borderColor,
+      ),
+      textColorOverride: PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+        panelProfile.textColor,
+      ),
       child: FocusTraversalGroup(
         policy: ReadingOrderTraversalPolicy(),
         child: LayoutBuilder(
           builder: (context, constraints) {
             double gap(double value) => value * spacingScale;
-            final columns = constraints.maxWidth >= 560 ? 2 : 1;
+            final columns = profile == null
+                ? (constraints.maxWidth >= 560 ? 2 : 1)
+                : layout == ProjectBattleCommandLayout.list
+                    ? 1
+                    : panelProfile.columns;
             final entryWidth = columns == 1
                 ? constraints.maxWidth
                 : (constraints.maxWidth - gap(PlayerSpacing.xs)) / 2;
@@ -447,28 +605,58 @@ class _BattleCommandPanel extends StatelessWidget {
                       ),
                     ],
                     SizedBox(height: gap(PlayerSpacing.sm)),
-                    Wrap(
-                      spacing: gap(PlayerSpacing.xs),
-                      runSpacing: gap(PlayerSpacing.xs),
-                      children: <Widget>[
-                        for (final entry in data.commands)
-                          SizedBox(
-                            width: entryWidth,
-                            child: _BattleEntryButton(
-                              entry: entry,
-                              interactionsEnabled: data.interactionsEnabled,
-                              autofocus: entry.selected,
-                              iconBuilder: itemIconBuilder,
-                              onPressed: () => onAction(
-                                PlayerBattleSelectEntryAction(
-                                  snapshotRevision: data.revision,
-                                  entryIndex: entry.index,
+                    if (layout == ProjectBattleCommandLayout.radial)
+                      _BattleRadialCommandLayout(
+                        key: ValueKey<String>(
+                          'battle-panel-${data.panelKind.name}-${layout.name}',
+                        ),
+                        entries: data.commands,
+                        interactionsEnabled: data.interactionsEnabled,
+                        iconBuilder: itemIconBuilder,
+                        showProjectIcon:
+                            data.panelKind == PlayerBattlePanelKind.commands &&
+                                (profile?.showCommandIcons ?? false),
+                        selectionColor:
+                            PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+                          panelProfile.selectionColor,
+                        ),
+                        onAction: onAction,
+                        revision: data.revision,
+                      )
+                    else
+                      Wrap(
+                        key: ValueKey<String>(
+                          'battle-panel-${data.panelKind.name}-${layout.name}',
+                        ),
+                        spacing: gap(PlayerSpacing.xs),
+                        runSpacing: gap(PlayerSpacing.xs),
+                        children: <Widget>[
+                          for (final entry in data.commands)
+                            SizedBox(
+                              width: entryWidth,
+                              child: _BattleEntryButton(
+                                entry: entry,
+                                interactionsEnabled: data.interactionsEnabled,
+                                autofocus: entry.selected,
+                                iconBuilder: itemIconBuilder,
+                                showProjectIcon: data.panelKind ==
+                                        PlayerBattlePanelKind.commands &&
+                                    (profile?.showCommandIcons ?? false),
+                                selectionColor:
+                                    PokeMapPlayerProjectColorResolver
+                                        .tryOpaqueHex(
+                                  panelProfile.selectionColor,
+                                ),
+                                onPressed: () => onAction(
+                                  PlayerBattleSelectEntryAction(
+                                    snapshotRevision: data.revision,
+                                    entryIndex: entry.index,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -480,6 +668,70 @@ class _BattleCommandPanel extends StatelessWidget {
   }
 }
 
+class _BattleRadialCommandLayout extends StatelessWidget {
+  const _BattleRadialCommandLayout({
+    super.key,
+    required this.entries,
+    required this.interactionsEnabled,
+    required this.iconBuilder,
+    required this.showProjectIcon,
+    required this.selectionColor,
+    required this.onAction,
+    required this.revision,
+  });
+
+  final List<PlayerBattleCommandViewData> entries;
+  final bool interactionsEnabled;
+  final Widget Function(String assetPath)? iconBuilder;
+  final bool showProjectIcon;
+  final Color? selectionColor;
+  final ValueChanged<PlayerBattleAction> onAction;
+  final int revision;
+
+  @override
+  Widget build(BuildContext context) {
+    const alignments = <Alignment>[
+      Alignment.topCenter,
+      Alignment.centerRight,
+      Alignment.bottomCenter,
+      Alignment.centerLeft,
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final entryWidth = math.min(180.0, constraints.maxWidth * .34);
+        return SizedBox(
+          height: 216,
+          child: Stack(
+            children: <Widget>[
+              for (var index = 0; index < entries.length; index++)
+                Align(
+                  alignment: alignments[index % alignments.length],
+                  child: SizedBox(
+                    width: entryWidth,
+                    child: _BattleEntryButton(
+                      entry: entries[index],
+                      interactionsEnabled: interactionsEnabled,
+                      autofocus: entries[index].selected,
+                      iconBuilder: iconBuilder,
+                      showProjectIcon: showProjectIcon,
+                      selectionColor: selectionColor,
+                      onPressed: () => onAction(
+                        PlayerBattleSelectEntryAction(
+                          snapshotRevision: revision,
+                          entryIndex: entries[index].index,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _BattleEntryButton extends StatefulWidget {
   const _BattleEntryButton({
     required this.entry,
@@ -487,6 +739,8 @@ class _BattleEntryButton extends StatefulWidget {
     required this.autofocus,
     required this.iconBuilder,
     required this.onPressed,
+    required this.showProjectIcon,
+    required this.selectionColor,
   });
 
   final PlayerBattleCommandViewData entry;
@@ -494,6 +748,8 @@ class _BattleEntryButton extends StatefulWidget {
   final bool autofocus;
   final Widget Function(String assetPath)? iconBuilder;
   final VoidCallback onPressed;
+  final bool showProjectIcon;
+  final Color? selectionColor;
 
   @override
   State<_BattleEntryButton> createState() => _BattleEntryButtonState();
@@ -528,7 +784,7 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
     final enabled = entry.enabled && widget.interactionsEnabled;
     final colors = context.playerColors;
     final foreground = enabled ? colors.textPrimary : colors.textSecondary;
-    final accent = _toneColor(colors, entry.tone);
+    final accent = widget.selectionColor ?? _toneColor(colors, entry.tone);
     final disabledReason = entry.secondaryLabel.isEmpty
         ? context.playerL10n.actionUnavailable
         : entry.secondaryLabel;
@@ -570,6 +826,16 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
                           dimension: 36,
                           child: widget.iconBuilder?.call(path) ??
                               Icon(Icons.inventory_2_outlined, color: accent),
+                        ),
+                      ),
+                    if (entry.iconAssetPath == null &&
+                        widget.showProjectIcon &&
+                        entry.commandIcon != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: PlayerSpacing.sm),
+                        child: Icon(
+                          _commandIcon(entry.commandIcon!),
+                          color: accent,
                         ),
                       ),
                     Expanded(
@@ -632,6 +898,109 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
     );
   }
 }
+
+class _BattleHpBar extends StatelessWidget {
+  const _BattleHpBar({
+    super.key,
+    required this.value,
+    required this.shape,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  final double value;
+  final ProjectBattleHpBarShape shape;
+  final Color color;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (shape == ProjectBattleHpBarShape.segmented) {
+      final active = (value * 10).ceil();
+      return Row(
+        children: <Widget>[
+          for (var index = 0; index < 10; index++) ...<Widget>[
+            Expanded(
+              child: SizedBox(
+                height: 8,
+                child: ColoredBox(
+                  color: index < active ? color : backgroundColor,
+                ),
+              ),
+            ),
+            if (index != 9) const SizedBox(width: 2),
+          ],
+        ],
+      );
+    }
+    final indicator = LinearProgressIndicator(
+      minHeight: 8,
+      value: value,
+      color: color,
+      backgroundColor: backgroundColor,
+    );
+    if (shape == ProjectBattleHpBarShape.flat) return indicator;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(PlayerRadii.pill),
+      child: indicator,
+    );
+  }
+}
+
+Alignment _hudAlignment(ProjectBattleHudPosition position) =>
+    switch (position) {
+      ProjectBattleHudPosition.topStart => Alignment.topLeft,
+      ProjectBattleHudPosition.topEnd => Alignment.topRight,
+      ProjectBattleHudPosition.bottomStart => const Alignment(-1, .35),
+      ProjectBattleHudPosition.bottomEnd => const Alignment(1, .35),
+    };
+
+ProjectBattlePanelPresentationProfile _panelProfile(
+  ProjectBattlePresentationProfile? profile,
+  PlayerBattlePanelKind kind,
+) {
+  if (profile == null) {
+    return const ProjectBattlePanelPresentationProfile();
+  }
+  return switch (kind) {
+    PlayerBattlePanelKind.commands => ProjectBattlePanelPresentationProfile(
+        layout: profile.commandLayout,
+        columns: profile.commandColumns,
+        shape: profile.commandShape,
+        padding: profile.commandPadding,
+        surfaceColor: profile.commandSurfaceColor,
+        borderColor: profile.commandBorderColor,
+        textColor: profile.commandTextColor,
+        selectionColor: profile.commandSelectionColor,
+      ),
+    PlayerBattlePanelKind.moves => profile.moves,
+    PlayerBattlePanelKind.target => profile.target,
+    PlayerBattlePanelKind.message => profile.message,
+  };
+}
+
+ProjectWindowStyleProfile _battleWindowStyle({
+  required String id,
+  required ProjectWindowShape shape,
+  required double padding,
+}) =>
+    ProjectWindowStyleProfile(
+      id: id,
+      fillToken: 'battleHudSurface',
+      borderToken: 'outline',
+      borderWidth: 1,
+      cornerRadius: 16,
+      contentPadding: padding.round(),
+      shadowElevation: 8,
+      shape: shape,
+    );
+
+IconData _commandIcon(ProjectBattleCommandIcon icon) => switch (icon) {
+      ProjectBattleCommandIcon.fight => Icons.sports_martial_arts_rounded,
+      ProjectBattleCommandIcon.bag => Icons.backpack_rounded,
+      ProjectBattleCommandIcon.party => Icons.groups_rounded,
+      ProjectBattleCommandIcon.run => Icons.directions_run_rounded,
+    };
 
 Color _toneColor(
   PokeMapPlayerColors colors,

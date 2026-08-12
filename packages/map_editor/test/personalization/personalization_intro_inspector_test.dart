@@ -118,6 +118,12 @@ void main() {
 
       await tester.tap(
         find.byKey(
+          const ValueKey<String>('personalization-preview-secondary-toggle'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
           const ValueKey<String>('personalization-preview-reduced-motion'),
         ),
       );

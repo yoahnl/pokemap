@@ -5,10 +5,10 @@
       "id": "portrait-leo-happy",
       "logicalPath": "assets/characters/leo-happy.png",
       "artifact": {
-        "digest": "sha256:1db2a0cb8cb2df01c401eb2046988f7191de91ac8c9e36186fda30a496649fde",
-        "handle": "artifact://sha256/1db2a0cb8cb2df01c401eb2046988f7191de91ac8c9e36186fda30a496649fde",
+        "digest": "sha256:21449d85dd6e800051de72a69b224afea2d2b13d885438634321464a36d6f198",
+        "handle": "artifact://sha256/21449d85dd6e800051de72a69b224afea2d2b13d885438634321464a36d6f198",
         "mediaType": "image/png",
-        "byteLength": 78
+        "byteLength": 2232593
       },
       "usages": [],
       "tags": ["portrait"]

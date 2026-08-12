@@ -4,6 +4,12 @@ import 'workspace_handle_store.dart';
 
 const String itemCatalogResourceIdentity = 'itemCatalog';
 
+String pokemonMediaResourceIdentity(String speciesId) =>
+    'pokemonMedia:$speciesId';
+
+String pokemonSpeciesResourceIdentity(String speciesId) =>
+    'pokemonSpecies:$speciesId';
+
 final class ProjectSnapshotException implements Exception {
   const ProjectSnapshotException(this.code, this.message);
 

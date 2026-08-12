@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/personalization/presentation/personalization_project_map_backdrop.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_layer_plan_loader.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_render_plan.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -35,6 +37,61 @@ void main() {
   });
 
   testWidgets('uses the shared read-only project map renderer', (tester) async {
+    final stageMap = manifest.maps.singleWhere((entry) => entry.id == map.id);
+    final previewModel = buildCinematicMapBackdropPreviewModel(
+      asset: CinematicAsset(
+        id: 'fixture-preview',
+        title: map.name,
+        mapId: map.id,
+        stageContext: CinematicStageContext(
+          backdropMode: CinematicStageBackdropMode.projectMap,
+        ),
+        timeline: CinematicTimeline(),
+      ),
+      stageMap: stageMap,
+      mapData: map,
+      availableTilesetIds: manifest.tilesets.map((entry) => entry.id).toSet(),
+      smartTileCatalog: manifest.smartTileCatalog,
+    );
+    final planLoader = CinematicMapBackdropLayerPlanLoader();
+    addTearDown(planLoader.clear);
+    final plan = await tester.runAsync(
+      () => planLoader.load(
+        manifest: manifest,
+        mapData: map,
+        previewModel: previewModel,
+        resolveTilesetPath: (tilesetId) {
+          final tileset = manifest.tilesets.singleWhere(
+            (entry) => entry.id == tilesetId,
+          );
+          return p.join(projectRoot, tileset.relativePath);
+        },
+      ),
+    );
+
+    expect(plan, isNotNull);
+    expect(plan!.diagnostics, isEmpty);
+    expect(plan.hasBitmapInstructions, isTrue);
+    expect(
+      plan.instructions.every(
+        (instruction) => plan.tilesets[instruction.tilesetId]?.image != null,
+      ),
+      isTrue,
+    );
+    final tilePlan = buildCinematicMapBackdropTileRenderPlan(
+      mapData: map,
+      manifest: manifest,
+      tilesets: plan.tilesets,
+    );
+    expect(tilePlan.hasBitmapInstructions, isTrue);
+    expect(
+      tilePlan.instructions.every(
+        (instruction) =>
+            tilePlan.tilesets[instruction.tilesetId]?.image != null,
+      ),
+      isTrue,
+    );
+
     await tester.pumpWidget(
       MaterialApp(
         theme: PokeMapTheme.light(),
@@ -48,6 +105,7 @@ void main() {
                 colors: context.pokeMapColors,
                 projectRootPath: projectRoot,
                 manifest: manifest,
+                planLoader: planLoader,
               ),
             ),
           ),
@@ -55,7 +113,12 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    for (var attempt = 0; attempt < 5; attempt += 1) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
+      await tester.pump();
+    }
 
     expect(
       find.byKey(

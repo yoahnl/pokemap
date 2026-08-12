@@ -40,12 +40,15 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
       children: <Widget>[
         PokeMapSectionHeader(
           title: switch (widget.fixedRole) {
+            ProjectWindowRole.standard => 'Apparence des fenêtres courtes',
             ProjectWindowRole.pauseMenu => 'Apparence du menu Pause',
             ProjectWindowRole.dialogue => 'Apparence de la bulle',
             ProjectWindowRole.battle => 'Apparence du menu de combat',
             _ => 'Fenêtres du jeu',
           },
           description: switch (widget.fixedRole) {
+            ProjectWindowRole.standard =>
+              'Réglez les notifications, confirmations et petits panneaux du jeu.',
             ProjectWindowRole.pauseMenu =>
               'Réglez la forme, les couleurs, les contours et la profondeur du menu.',
             ProjectWindowRole.dialogue =>
@@ -53,7 +56,7 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
             ProjectWindowRole.battle =>
               'Réglez la forme, les couleurs, le contour et la profondeur des commandes de combat.',
             _ =>
-              'Façonnez les cadres du menu Pause et des dialogues. Le grand aperçu reflète chaque changement immédiatement.',
+              'Façonnez chaque famille de fenêtres. Le grand aperçu reflète chaque changement immédiatement.',
           },
         ),
         const SizedBox(height: 8),
@@ -295,25 +298,14 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
     child: PokeMapDropdownField<T>(
       label: label,
       value: value,
-      items: items,
+      items: _withCurrentWindowValue(items, value),
       onChanged: onChanged,
     ),
   );
 
   void _replace(ProjectWindowStyleProfile style) {
     final role = widget.fixedRole ?? _target.role;
-    final currentStyle = widget.profile.resolve(role);
-    widget.onChanged(
-      widget.profile.copyWith(
-        styles: widget.profile.styles
-            .map(
-              (current) => current.id == currentStyle.id
-                  ? style.copyWith(id: currentStyle.id)
-                  : current,
-            )
-            .toList(growable: false),
-      ),
-    );
+    widget.onChanged(_replaceWindowRoleStyle(widget.profile, role, style));
   }
 
   void _applyPreset(ProjectPresentationWindowsProfile preset) {
@@ -323,20 +315,11 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
       return;
     }
     final style = preset.resolve(role);
-    final currentStyle = widget.profile.resolve(role);
+    final updated = _replaceWindowRoleStyle(widget.profile, role, style);
     widget.onChanged(
-      widget.profile.copyWith(
-        styles: widget.profile.styles
-            .map(
-              (current) => current.id == currentStyle.id
-                  ? style.copyWith(id: currentStyle.id)
-                  : current,
-            )
-            .toList(growable: false),
-        pauseBackdropOpacity: role == ProjectWindowRole.pauseMenu
-            ? preset.pauseBackdropOpacity
-            : widget.profile.pauseBackdropOpacity,
-      ),
+      role == ProjectWindowRole.pauseMenu
+          ? updated.copyWith(pauseBackdropOpacity: preset.pauseBackdropOpacity)
+          : updated,
     );
   }
 
@@ -347,6 +330,17 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
     }
     _applyPreset(legacyProjectPresentationWindows);
   }
+}
+
+List<PokeMapDropdownItem<T>> _withCurrentWindowValue<T>(
+  List<PokeMapDropdownItem<T>> items,
+  T value,
+) {
+  if (items.any((item) => item.value == value)) return items;
+  return <PokeMapDropdownItem<T>>[
+    ...items,
+    PokeMapDropdownItem<T>(value: value, label: '$value (valeur du projet)'),
+  ];
 }
 
 enum ProjectWindowShapePreset {
@@ -430,8 +424,10 @@ class _SimpleWindowShapePresets extends StatelessWidget {
 }
 
 enum _WindowTarget {
+  standard('Fenêtres courtes', Icons.web_asset_outlined),
   pause('Menu Pause', Icons.pause_circle_outline_rounded),
-  dialogue('Dialogues', Icons.chat_bubble_outline_rounded);
+  dialogue('Dialogues', Icons.chat_bubble_outline_rounded),
+  battle('Combat', Icons.sports_martial_arts_outlined);
 
   const _WindowTarget(this.label, this.icon);
 
@@ -439,8 +435,10 @@ enum _WindowTarget {
   final IconData icon;
 
   ProjectWindowRole get role => switch (this) {
+    _WindowTarget.standard => ProjectWindowRole.standard,
     _WindowTarget.pause => ProjectWindowRole.pauseMenu,
     _WindowTarget.dialogue => ProjectWindowRole.dialogue,
+    _WindowTarget.battle => ProjectWindowRole.battle,
   };
 }
 
@@ -476,12 +474,72 @@ List<PokeMapDropdownItem<ProjectWindowShape>> _shapeItems(
     value: ProjectWindowShape.cutCorner,
     label: 'Angles coupés',
   ),
+  if (role == ProjectWindowRole.standard)
+    const PokeMapDropdownItem(
+      value: ProjectWindowShape.capsule,
+      label: 'Capsule',
+    ),
   if (role == ProjectWindowRole.dialogue)
     const PokeMapDropdownItem(
       value: ProjectWindowShape.speech,
       label: 'Bulle avec pointe',
     ),
 ];
+
+ProjectPresentationWindowsProfile _replaceWindowRoleStyle(
+  ProjectPresentationWindowsProfile profile,
+  ProjectWindowRole role,
+  ProjectWindowStyleProfile replacement,
+) {
+  final current = profile.resolve(role);
+  final assignments = <String>[
+    profile.defaultStyleId,
+    profile.pauseMenuStyleId,
+    profile.dialogueStyleId,
+    profile.battleStyleId ?? profile.defaultStyleId,
+  ];
+  if (assignments.where((id) => id == current.id).length == 1) {
+    return profile.copyWith(
+      styles: profile.styles
+          .map(
+            (style) => style.id == current.id
+                ? replacement.copyWith(id: current.id)
+                : style,
+          )
+          .toList(growable: false),
+    );
+  }
+
+  final id = _uniqueWindowStyleId(profile, '${current.id}-${role.name}');
+  final withStyle = profile.copyWith(
+    styles: <ProjectWindowStyleProfile>[
+      ...profile.styles,
+      replacement.copyWith(id: id),
+    ],
+  );
+  return switch (role) {
+    ProjectWindowRole.standard => withStyle.copyWith(
+      defaultStyleId: id,
+      battleStyleId: profile.battleStyleId ?? current.id,
+    ),
+    ProjectWindowRole.pauseMenu => withStyle.copyWith(pauseMenuStyleId: id),
+    ProjectWindowRole.dialogue => withStyle.copyWith(dialogueStyleId: id),
+    ProjectWindowRole.battle => withStyle.copyWith(battleStyleId: id),
+  };
+}
+
+String _uniqueWindowStyleId(
+  ProjectPresentationWindowsProfile profile,
+  String candidate,
+) {
+  final ids = profile.styles.map((style) => style.id).toSet();
+  if (!ids.contains(candidate)) return candidate;
+  var suffix = 2;
+  while (ids.contains('$candidate-$suffix')) {
+    suffix += 1;
+  }
+  return '$candidate-$suffix';
+}
 
 List<PokeMapDropdownItem<int>> _intItems(
   List<int> values, {

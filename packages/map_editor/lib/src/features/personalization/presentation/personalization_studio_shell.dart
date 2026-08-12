@@ -32,52 +32,17 @@ class PersonalizationStudioShell extends StatelessWidget {
   Widget build(BuildContext context) => PokeMapPageSurface(
     key: const ValueKey<String>('personalization-studio-shell'),
     padding: const EdgeInsets.all(12),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        _header(context),
-        const SizedBox(height: 12),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) =>
-                _layout(context, constraints.maxWidth),
-          ),
-        ),
-      ],
+    child: LayoutBuilder(
+      builder: (context, constraints) => _layout(context, constraints.maxWidth),
     ),
   );
 
-  Widget _header(BuildContext context) => Row(
-    children: <Widget>[
-      const PokeMapIconTile(
-        icon: Icons.palette_outlined,
-        tone: PokeMapTone.warning,
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              'Personalization Studio',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 2),
-            const Text(
-              'Personnalisez l’apparence et le contenu de vos scènes en jeu.',
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
-
   Widget _layout(BuildContext context, double width) {
-    if (width >= 1100) {
-      final navigationWidth = width >= 1440 ? 260.0 : 220.0;
-      final inspectorWidth = width >= 1440 ? 360.0 : 320.0;
+    final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
+    final effectiveWidth = width / textScale;
+    if (effectiveWidth >= 1100) {
+      final navigationWidth = width >= 1440 ? 190.0 : 180.0;
+      final inspectorWidth = width >= 1440 ? 290.0 : 280.0;
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[

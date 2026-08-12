@@ -25,7 +25,7 @@ void main() {
               child: PersonalizationDialogueInspector(
                 profile: profile,
                 characterOptions: _characters,
-                selectedCharacterId: 'leo',
+                selectedCharacterId: 'leo:happy',
                 showPortrait: true,
                 showName: true,
                 showChoices: false,
@@ -33,11 +33,8 @@ void main() {
                 onShowPortraitChanged: (_) {},
                 onShowNameChanged: (_) {},
                 onShowChoicesChanged: (_) {},
-                onWindowsChanged: (windows) => setHostState(
-                  () => profile = profile.copyWith(windows: windows),
-                ),
-                onLayoutsChanged: (layouts) => setHostState(
-                  () => profile = profile.copyWith(layouts: layouts),
+                onDialogueChanged: (dialogue) => setHostState(
+                  () => profile = profile.copyWith(dialogue: dialogue),
                 ),
                 onImportDialogueFont: () {},
                 onUseSystemDialogueFont: () {},
@@ -54,26 +51,46 @@ void main() {
         findsOneWidget,
       );
     }
-    expect(
-      find.byKey(const ValueKey<String>('window-target-pause')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('window-field-corner-radius')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('window-field-border-width')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('window-field-fill')),
-      findsOneWidget,
-    );
+    for (final field in <String>[
+      'shape',
+      'width',
+      'margin',
+      'padding',
+      'radius',
+      'border',
+      'opacity',
+    ]) {
+      expect(
+        find.byKey(ValueKey<String>('dialogue-geometry-$field')),
+        findsOneWidget,
+      );
+    }
     expect(
       find.byKey(const ValueKey<String>('typography-import-dialogue')),
       findsOneWidget,
     );
+    for (final key in <String>[
+      'dialogue-portrait-editor',
+      'dialogue-portrait-side-start',
+      'dialogue-portrait-side-end',
+      'dialogue-portrait-shape',
+      'dialogue-portrait-size',
+      'dialogue-portrait-frame-width',
+      'dialogue-nameplate-editor',
+      'dialogue-nameplate-style',
+      'dialogue-nameplate-border-width',
+      'dialogue-choice-editor',
+      'dialogue-choice-shape',
+      'dialogue-choice-spacing',
+      'dialogue-choice-disabled-opacity',
+      'dialogue-progress-editor',
+      'dialogue-progress-kind',
+      'dialogue-motion-editor',
+      'dialogue-motion-transition',
+      'dialogue-motion-duration',
+    ]) {
+      expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+    }
 
     final centered = find.byKey(
       const ValueKey<String>('dialogue-layout-center'),
@@ -84,18 +101,18 @@ void main() {
     await tester.tap(centered);
     await tester.pumpAndSettle();
 
-    expect(
-      profile.layouts?.dialogue.compact.slot,
-      ProjectPresentationLayoutSlot.center,
+    expect(profile.dialogue?.placement, ProjectDialoguePlacement.center);
+
+    final portraitEnd = find.byKey(
+      const ValueKey<String>('dialogue-portrait-side-end'),
     );
-    expect(
-      profile.layouts?.dialogue.regular.slot,
-      ProjectPresentationLayoutSlot.center,
-    );
-    expect(
-      profile.layouts?.dialogue.expanded.slot,
-      ProjectPresentationLayoutSlot.center,
-    );
+    await tester.ensureVisible(portraitEnd);
+    await tester.pumpAndSettle();
+    expect(portraitEnd.hitTestable(), findsOneWidget);
+    await tester.tap(portraitEnd);
+    await tester.pumpAndSettle();
+
+    expect(profile.dialogue?.portraitSide, ProjectDialoguePortraitSide.end);
   });
 
   testWidgets('preview toggles drive the shared dialogue surface', (
@@ -122,7 +139,7 @@ void main() {
                     child: PersonalizationDialogueInspector(
                       profile: const ProjectPresentationProfile(),
                       characterOptions: _characters,
-                      selectedCharacterId: 'leo',
+                      selectedCharacterId: 'leo:happy',
                       showPortrait: showPortrait,
                       showName: showName,
                       showChoices: showChoices,
@@ -133,8 +150,7 @@ void main() {
                           setHostState(() => showName = value),
                       onShowChoicesChanged: (value) =>
                           setHostState(() => showChoices = value),
-                      onWindowsChanged: (_) {},
-                      onLayoutsChanged: (_) {},
+                      onDialogueChanged: (_) {},
                       onImportDialogueFont: () {},
                       onUseSystemDialogueFont: () {},
                     ),
@@ -150,6 +166,7 @@ void main() {
                     showDialoguePortrait: showPortrait,
                     showDialogueName: showName,
                     showDialogueChoices: showChoices,
+                    contexts: _dialogueContexts,
                   ),
                 ),
               ],
@@ -167,7 +184,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(PlayerDialogueSurface),
-        matching: find.text('Léo'),
+        matching: find.text('Leo'),
       ),
       findsOneWidget,
     );
@@ -176,7 +193,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(PlayerDialogueSurface),
-        matching: find.text('Léo'),
+        matching: find.text('Leo'),
       ),
       findsNothing,
     );
@@ -195,6 +212,57 @@ void main() {
     expect(find.text('Oui, allons-y !'), findsOneWidget);
     expect(find.text('Pas encore.'), findsOneWidget);
   });
+
+  testWidgets('shows dialogue color inheritance and resets one override', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    ProjectDialoguePresentationProfile? changed;
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: PersonalizationDialogueInspector(
+            profile: const ProjectPresentationProfile(
+              surfacePalettes: ProjectPresentationSurfacePalettesProfile(
+                dialogue: ProjectSurfacePaletteProfile(surface: '#FFFFFF'),
+              ),
+              dialogue: ProjectDialoguePresentationProfile(
+                maxWidthFactor: .72,
+                surfaceColor: '#102030',
+              ),
+            ),
+            characterOptions: _characters,
+            selectedCharacterId: 'leo:happy',
+            showPortrait: true,
+            showName: true,
+            showChoices: false,
+            onCharacterSelected: (_) {},
+            onShowPortraitChanged: (_) {},
+            onShowNameChanged: (_) {},
+            onShowChoicesChanged: (_) {},
+            onDialogueChanged: (dialogue) => changed = dialogue,
+            onImportDialogueFont: () {},
+            onUseSystemDialogueFont: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Surcharge de scène'), findsOneWidget);
+    expect(find.text('Hérité de Style global'), findsNWidgets(8));
+    final reset = find.byKey(
+      const ValueKey<String>('dialogue-color-inherit-surface'),
+    );
+    await tester.ensureVisible(reset);
+    await tester.pumpAndSettle();
+    await tester.tap(reset);
+
+    expect(changed?.surfaceColor, isNull);
+    expect(changed?.maxWidthFactor, .72);
+  });
 }
 
 Future<void> _toggle(WidgetTester tester, String key) async {
@@ -208,10 +276,39 @@ Future<void> _toggle(WidgetTester tester, String key) async {
 
 const _characters = <PersonalizationCharacterPreviewOption>[
   PersonalizationCharacterPreviewOption(
+    id: 'leo:happy',
     characterId: 'leo',
     displayName: 'Léo',
     portraitPath: null,
     expressionId: 'happy',
+    expressionLabel: 'Joyeux',
+    workspaceRevision: 'revision',
+  ),
+];
+
+final _dialogueContexts = <PersonalizationPreviewContextOption>[
+  PersonalizationPreviewContextOption(
+    id: 'dialogue:leo',
+    kind: PersonalizationPreviewContextKind.dialogue,
+    sourceId: 'leo',
+    label: 'Dialogue de Léo',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'dialogue': <String, Object?>{
+        'source': <String, Object?>{
+          'text':
+              'title: Start\n---\n'
+              '<<portrait leo happy>>\n'
+              'Bienvenue à Vermeil.\n'
+              '-> Oui, allons-y !\n'
+              '  Parfait.\n'
+              '-> Pas encore.\n'
+              '  Prends ton temps.\n'
+              '===',
+        },
+      },
+    },
   ),
 ];
 

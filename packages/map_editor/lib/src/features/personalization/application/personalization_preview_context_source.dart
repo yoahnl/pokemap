@@ -6,6 +6,7 @@ import '../../../application/authoring_api/authoring_session_lifecycle.dart';
 enum PersonalizationPreviewContextKind {
   map,
   dialogue,
+  dialogueScenario,
   characterPortrait,
   encounter,
 }
@@ -137,6 +138,12 @@ final class AuthoringPersonalizationPreviewContextSource
           ),
         );
         detail['dialogue'] = (page['items']! as List<Object?>).single;
+        break;
+      case PersonalizationPreviewContextKind.dialogueScenario:
+        final assetId = option.detail['portraitAssetId'];
+        if (assetId is String && option.detail['portraitPath'] != null) {
+          mediaBytes = session.assetBytes(assetId);
+        }
         break;
       case PersonalizationPreviewContextKind.characterPortrait:
         if (option.detail['portraitPath'] != null) {

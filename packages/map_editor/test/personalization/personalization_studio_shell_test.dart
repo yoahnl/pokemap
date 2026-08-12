@@ -23,9 +23,10 @@ void main() {
     );
   });
 
-  testWidgets('uses 260 and 360 pixel panes at 1600 pixels', (tester) async {
+  testWidgets('uses 190 and 290 pixel panes at 1600 pixels', (tester) async {
     await _pumpShell(tester, const Size(1600, 900));
 
+    expect(find.text('Personalization Studio'), findsNothing);
     expect(
       tester
           .getSize(
@@ -34,7 +35,7 @@ void main() {
             ),
           )
           .width,
-      260,
+      190,
     );
     expect(
       tester
@@ -44,12 +45,12 @@ void main() {
             ),
           )
           .width,
-      360,
+      290,
     );
     expect(find.byKey(const ValueKey<String>('test-preview')), findsOneWidget);
   });
 
-  testWidgets('uses 220 and 320 pixel panes at 1200 pixels', (tester) async {
+  testWidgets('uses 180 and 280 pixel panes at 1200 pixels', (tester) async {
     await _pumpShell(tester, const Size(1200, 800));
 
     expect(
@@ -60,7 +61,7 @@ void main() {
             ),
           )
           .width,
-      220,
+      180,
     );
     expect(
       tester
@@ -70,7 +71,7 @@ void main() {
             ),
           )
           .width,
-      320,
+      280,
     );
   });
 
@@ -103,6 +104,31 @@ void main() {
     );
   });
 
+  testWidgets('uses the rail at 1440 pixels with 200 percent text', (
+    tester,
+  ) async {
+    await _pumpShell(tester, const Size(1440, 900), textScale: 2);
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-navigation-rail'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-inspector-pane'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-open-inspector'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('stays usable at 720 pixels with 200 percent text', (
     tester,
   ) async {
@@ -128,6 +154,44 @@ void main() {
       findsOneWidget,
     );
   });
+
+  for (final size in <Size>[
+    const Size(720, 900),
+    const Size(1024, 768),
+    const Size(1440, 900),
+    const Size(1600, 1000),
+  ]) {
+    for (final textScale in <double>[1, 1.5, 2]) {
+      testWidgets('keeps navigation preview and inspector reachable at '
+          '${size.width.toInt()}x${size.height.toInt()} and ${textScale}x', (
+        tester,
+      ) async {
+        await _pumpShell(tester, size, textScale: textScale);
+
+        expect(tester.takeException(), isNull);
+        expect(
+          find.byKey(const ValueKey<String>('test-preview')),
+          findsOneWidget,
+        );
+        final inspector = find.byKey(
+          const ValueKey<String>('personalization-studio-inspector-pane'),
+        );
+        if (inspector.evaluate().isEmpty) {
+          await tester.tap(
+            find.byKey(
+              const ValueKey<String>('personalization-studio-open-inspector'),
+            ),
+          );
+          await tester.pumpAndSettle();
+        }
+        expect(
+          find.byKey(const ValueKey<String>('test-inspector')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
 }
 
 Future<void> _pumpShell(

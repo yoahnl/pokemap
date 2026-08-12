@@ -43,6 +43,10 @@ class PlayerPanel extends StatelessWidget {
     this.elevated = false,
     this.role = PlayerPanelRole.standard,
     this.surfaceRole,
+    this.windowStyleOverride,
+    this.surfaceColorOverride,
+    this.borderColorOverride,
+    this.textColorOverride,
   });
 
   final Widget child;
@@ -50,12 +54,18 @@ class PlayerPanel extends StatelessWidget {
   final bool elevated;
   final PlayerPanelRole role;
   final ProjectPresentationSurfaceRole? surfaceRole;
+  final ProjectWindowStyleProfile? windowStyleOverride;
+  final Color? surfaceColorOverride;
+  final Color? borderColorOverride;
+  final Color? textColorOverride;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.playerColors;
     final semantic = context.playerSemanticTheme;
     final windowTheme = context.playerWindowTheme;
+    final tokenResolver = windowTheme ??
+        PokeMapPlayerWindowTheme(legacyProjectPresentationWindows);
     final palette =
         surfaceRole == null ? null : context.playerSurfacePalette(surfaceRole!);
     final assignment = surfaceRole == null
@@ -67,9 +77,10 @@ class PlayerPanel extends StatelessWidget {
           PlayerPanelRole.menu => ProjectWindowRole.pauseMenu,
           _ => null,
         };
-    final windowStyle = windowTheme == null || windowRole == null
+    final inheritedWindowStyle = windowTheme == null || windowRole == null
         ? null
         : windowTheme.style(windowRole);
+    final windowStyle = windowStyleOverride ?? inheritedWindowStyle;
     final surface = assignment == null
         ? switch (role) {
             PlayerPanelRole.standard =>
@@ -101,14 +112,16 @@ class PlayerPanel extends StatelessWidget {
     final paletteText = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
       palette?.text,
     );
-    final resolvedSurface = paletteSurface ??
+    final resolvedSurface = surfaceColorOverride ??
+        paletteSurface ??
         (windowStyle == null
             ? surface
-            : windowTheme!.resolveToken(windowStyle.fillToken, semantic));
-    final resolvedBorder = paletteBorder ??
+            : tokenResolver.resolveToken(windowStyle.fillToken, semantic));
+    final resolvedBorder = borderColorOverride ??
+        paletteBorder ??
         (windowStyle == null
             ? colors.outline
-            : windowTheme!.resolveToken(windowStyle.borderToken, semantic));
+            : tokenResolver.resolveToken(windowStyle.borderToken, semantic));
     final side = windowStyle?.borderWidth == 0
         ? BorderSide.none
         : BorderSide(
@@ -126,7 +139,9 @@ class PlayerPanel extends StatelessWidget {
       shadowColor: Theme.of(context).colorScheme.shadow,
       shape: shape,
       child: DefaultTextStyle.merge(
-        style: paletteText == null ? null : TextStyle(color: paletteText),
+        style: textColorOverride == null && paletteText == null
+            ? null
+            : TextStyle(color: textColorOverride ?? paletteText),
         child: Padding(
           padding: windowStyle == null
               ? padding
@@ -135,11 +150,23 @@ class PlayerPanel extends StatelessWidget {
         ),
       ),
     );
-    if (palette == null) return panel;
-    return Theme(
-      data: PokeMapPlayerTheme.withSurfacePalette(Theme.of(context), palette),
-      child: panel,
-    );
+    var resolvedTheme = Theme.of(context);
+    if (palette != null) {
+      resolvedTheme = PokeMapPlayerTheme.withSurfacePalette(
+        resolvedTheme,
+        palette,
+      );
+    }
+    if (textColorOverride case final textColor?) {
+      resolvedTheme = resolvedTheme.copyWith(
+        textTheme: resolvedTheme.textTheme.apply(
+          bodyColor: textColor,
+          displayColor: textColor,
+        ),
+      );
+    }
+    if (palette == null && textColorOverride == null) return panel;
+    return Theme(data: resolvedTheme, child: panel);
   }
 }
 
@@ -272,7 +299,12 @@ class PlayerActionButton extends StatefulWidget {
     this.selected = false,
     this.shortcutLabel,
     this.minimumHeight = 48,
-  }) : assert(minimumHeight >= 48);
+    this.shape,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.disabledOpacity = 1,
+  })  : assert(minimumHeight >= 48),
+        assert(disabledOpacity >= 0 && disabledOpacity <= 1);
 
   final String label;
   final IconData icon;
@@ -288,6 +320,10 @@ class PlayerActionButton extends StatefulWidget {
   final bool selected;
   final String? shortcutLabel;
   final double minimumHeight;
+  final OutlinedBorder? shape;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  final double disabledOpacity;
 
   @override
   State<PlayerActionButton> createState() => _PlayerActionButtonState();
@@ -356,6 +392,9 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
         ],
       ],
     );
+    final hasStyleOverride = widget.foregroundColor != null ||
+        widget.backgroundColor != null ||
+        widget.shape != null;
     final button = widget.quiet
         ? TextButton(
             onPressed: widget.onPressed,
@@ -363,7 +402,9 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
             autofocus: widget.autofocus,
             style: TextButton.styleFrom(
               alignment: Alignment.centerLeft,
-              foregroundColor: colors.textSecondary,
+              foregroundColor: widget.foregroundColor ?? colors.textSecondary,
+              backgroundColor: widget.backgroundColor,
+              shape: widget.shape,
             ),
             child: buttonChild,
           )
@@ -372,12 +413,26 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
                 onPressed: widget.onPressed,
                 focusNode: _focusNode,
                 autofocus: widget.autofocus,
+                style: hasStyleOverride
+                    ? OutlinedButton.styleFrom(
+                        foregroundColor: widget.foregroundColor,
+                        backgroundColor: widget.backgroundColor,
+                        shape: widget.shape,
+                      )
+                    : null,
                 child: buttonChild,
               )
             : FilledButton(
                 onPressed: widget.onPressed,
                 focusNode: _focusNode,
                 autofocus: widget.autofocus,
+                style: hasStyleOverride
+                    ? FilledButton.styleFrom(
+                        foregroundColor: widget.foregroundColor,
+                        backgroundColor: widget.backgroundColor,
+                        shape: widget.shape,
+                      )
+                    : null,
                 child: buttonChild,
               );
     return Semantics(
@@ -403,7 +458,12 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
               width: _focused && widget.showFocusHighlight ? 3 : 1,
             ),
           ),
-          child: SizedBox(width: double.infinity, child: button),
+          child: !enabled && widget.disabledOpacity < 1
+              ? Opacity(
+                  opacity: widget.disabledOpacity,
+                  child: SizedBox(width: double.infinity, child: button),
+                )
+              : SizedBox(width: double.infinity, child: button),
         ),
       ),
     );

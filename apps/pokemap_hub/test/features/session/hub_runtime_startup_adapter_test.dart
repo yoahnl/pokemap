@@ -55,6 +55,45 @@ void main() {
       expect(profile?.pause?.actions?.first.id, ProjectPauseActionId.pokedex);
       expect(profile?.pause?.actions?.first.label, 'Carnet');
       expect(profile?.pause?.actions?.last.visible, isFalse);
+      expect(profile?.dialogue?.placement, ProjectDialoguePlacement.top);
+      expect(profile?.dialogue?.maxWidthFactor, .64);
+      expect(profile?.dialogue?.surfaceColor, '#102030');
+      expect(profile?.dialogue?.portraitSide, ProjectDialoguePortraitSide.end);
+      expect(
+        profile?.dialogue?.portraitShape,
+        ProjectDialoguePortraitShape.circle,
+      );
+      expect(
+        profile?.dialogue?.nameplateStyle,
+        ProjectDialogueNameplateStyle.floating,
+      );
+      expect(
+        profile?.dialogue?.choiceShape,
+        ProjectDialogueChoiceShape.cutCorner,
+      );
+      expect(
+        profile?.dialogue?.progressIndicator,
+        ProjectDialogueProgressIndicator.dots,
+      );
+      expect(
+        profile?.dialogue?.portraitTransition,
+        ProjectDialoguePortraitTransition.slide,
+      );
+      expect(profile?.battle?.commandLayout, ProjectBattleCommandLayout.radial);
+      expect(
+        profile?.battle?.effectiveCommands
+            .map((command) => command.id)
+            .toList(growable: false),
+        <ProjectBattleCommandId>[
+          ProjectBattleCommandId.run,
+          ProjectBattleCommandId.fight,
+          ProjectBattleCommandId.party,
+          ProjectBattleCommandId.bag,
+        ],
+      );
+      expect(profile?.battle?.effectiveCommands.first.label, 'Retraite');
+      expect(profile?.battle?.hpBarShape, ProjectBattleHpBarShape.segmented);
+      expect(profile?.battle?.moves.shape, ProjectWindowShape.cutCorner);
       expect(
         profile?.pause?.composition?.expanded.entrySize,
         ProjectPauseEntrySize.large,
@@ -149,7 +188,7 @@ final _manifest = GamePackageManifest(
     supported: const <String>['fr'],
   ),
   presentation: GamePackagePresentation(
-    schemaVersion: 8,
+    schemaVersion: 10,
     title: const GamePackageTitlePresentation(
       title: 'Aube sur Hanazuki',
       subtitle: 'Studio Brume',
@@ -256,6 +295,78 @@ final _manifest = GamePackageManifest(
           showHint: true,
           showRootDetailPanel: true,
         ),
+      ),
+    ),
+    dialogue: const GamePackageDialoguePresentation(
+      placement: 'top',
+      maxWidthFactor: .64,
+      margin: 20,
+      contentPadding: 24,
+      shape: 'speech',
+      cornerRadius: 18,
+      borderWidth: 3,
+      fillOpacity: .82,
+      surfaceColor: '#102030',
+      borderColor: '#A0B0C0',
+      textColor: '#F0F0F0',
+      portraitSide: 'end',
+      portraitSize: 112,
+      portraitShape: 'circle',
+      portraitFrameWidth: 4,
+      portraitFrameColor: '#C0FFEE',
+      nameplateStyle: 'floating',
+      nameplateBorderWidth: 2,
+      nameplateSurfaceColor: '#334455',
+      nameplateBorderColor: '#778899',
+      nameplateTextColor: '#FFFFFF',
+      choiceSpacing: 14,
+      choiceShape: 'cutCorner',
+      choiceDisabledOpacity: .35,
+      choiceSelectedColor: '#FFAA00',
+      progressIndicator: 'dots',
+      progressIndicatorColor: '#00FFAA',
+      portraitTransition: 'slide',
+      portraitTransitionMilliseconds: 320,
+    ),
+    battle: const GamePackageBattlePresentation(
+      commandLayout: 'radial',
+      commandColumns: 2,
+      showCommandIcons: true,
+      commandShape: 'rounded',
+      commandPadding: 12,
+      commands: <GamePackageBattleCommand>[
+        GamePackageBattleCommand(id: 'run', label: 'Retraite', icon: 'run'),
+        GamePackageBattleCommand(id: 'fight'),
+        GamePackageBattleCommand(id: 'party'),
+        GamePackageBattleCommand(id: 'bag'),
+      ],
+      enemyHudPosition: 'topStart',
+      playerHudPosition: 'bottomEnd',
+      showOwnerLabel: true,
+      showLevel: true,
+      showExactHp: true,
+      hpBarShape: 'segmented',
+      hpHealthyColor: '#16794B',
+      hpWarningColor: '#8A5100',
+      hpDangerColor: '#B4233C',
+      statusColor: '#8A5100',
+      moves: GamePackageBattlePanelPresentation(
+        layout: 'grid',
+        columns: 2,
+        shape: 'cutCorner',
+        padding: 16,
+      ),
+      target: GamePackageBattlePanelPresentation(
+        layout: 'grid',
+        columns: 2,
+        shape: 'rounded',
+        padding: 12,
+      ),
+      message: GamePackageBattlePanelPresentation(
+        layout: 'grid',
+        columns: 2,
+        shape: 'rounded',
+        padding: 12,
       ),
     ),
     windows: GamePackagePresentationWindows(

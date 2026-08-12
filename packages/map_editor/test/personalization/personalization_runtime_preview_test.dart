@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -14,6 +18,8 @@ void main() {
         PersonalizationRuntimePreview(
           projectName: 'Pokémon Aurore',
           projectRootPath: '',
+          dialogueData: _dialogueData,
+          battleData: _battleData,
           profile: ProjectPresentationProfile(
             branding: ProjectBrandingProfile(
               accentColor: '#224466',
@@ -50,6 +56,8 @@ void main() {
         PersonalizationRuntimePreview(
           projectName: 'Pokémon Aurore',
           projectRootPath: '',
+          dialogueData: _dialogueData,
+          battleData: _battleData,
           profile: ProjectPresentationProfile(
             typography: ProjectTypographyProfile(
               body: ProjectTypographyRoleProfile(family: 'Aurore Body'),
@@ -75,12 +83,10 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Professeure Saule'), findsOneWidget);
-    expect(find.textContaining('Le monde est peuplé'), findsOneWidget);
+    expect(find.text('Léo'), findsOneWidget);
+    expect(find.textContaining('Bienvenue à Vermeil'), findsOneWidget);
     expect(find.byType(PlayerDialogueSurface), findsOneWidget);
-    final dialogueText = tester.widget<Text>(
-      find.text('Le monde est peuplé de créatures extraordinaires.'),
-    );
+    final dialogueText = tester.widget<Text>(find.text('Bienvenue à Vermeil.'));
     expect(dialogueText.style?.fontFamily, 'Aurore Dialogue');
 
     await tester.tap(
@@ -111,6 +117,8 @@ void main() {
         PersonalizationRuntimePreview(
           projectName: 'Pokémon Aurore',
           projectRootPath: '',
+          dialogueData: _dialogueData,
+          battleData: _battleData,
           profile: ProjectPresentationProfile(
             typography: ProjectTypographyProfile(
               body: ProjectTypographyRoleProfile(family: 'Aurore Body'),
@@ -149,9 +157,9 @@ void main() {
     final battle = tester.widget<PlayerBattleSurface>(
       find.byType(PlayerBattleSurface),
     );
-    expect(battle.data.player.speciesLabel, 'BRINDIBOU');
-    expect(battle.data.player.currentHp, 42);
-    expect(battle.data.player.maxHp, 55);
+    expect(battle.data.player.speciesLabel, 'Brindibou');
+    expect(battle.data.player.currentHp, 24);
+    expect(battle.data.player.maxHp, 24);
     final battleContext = tester.element(find.byType(PlayerBattleSurface));
     expect(battleContext.playerTypography.numbersFamily, 'Aurore Numbers');
   });
@@ -199,6 +207,8 @@ void main() {
         const PersonalizationRuntimePreview(
           projectName: 'Pokémon Aurore',
           projectRootPath: '',
+          dialogueData: _dialogueData,
+          battleData: _battleData,
           profile: ProjectPresentationProfile(
             theme: safeProjectSemanticTheme,
             windows: windows,
@@ -324,6 +334,12 @@ void main() {
 
     await tester.tap(
       find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
         const ValueKey<String>('personalization-preview-reduced-motion'),
       ),
     );
@@ -369,6 +385,12 @@ void main() {
       ),
     );
 
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey<String>('personalization-preview-compare')),
       findsOneWidget,
@@ -424,6 +446,12 @@ void main() {
       ),
     );
 
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
     for (final key in <String>[
       'personalization-preview-viewport-landscape',
       'personalization-preview-viewport-portrait',
@@ -456,6 +484,12 @@ void main() {
       ),
     );
 
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey<String>('personalization-preview-compare')),
       findsNothing,
@@ -496,6 +530,12 @@ void main() {
 
     await tester.tap(
       find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
         const ValueKey<String>('personalization-preview-reduced-motion'),
       ),
     );
@@ -503,6 +543,62 @@ void main() {
 
     final reducedTitleContext = tester.element(find.byType(PlayerTitleSurface));
     expect(reducedTitleContext.playerMotion.fast, Duration.zero);
+  });
+
+  testWidgets('title stage waits for the active decoder to be released', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync('title-stage-release-');
+    addTearDown(() => root.deleteSync(recursive: true));
+    for (final path in <String>['menu.mp4', 'prompt.mp4']) {
+      File('${root.path}/$path').writeAsBytesSync(<int>[0]);
+    }
+    final disposal = Completer<void>();
+    final drivers = <_TitlePlaybackDriver>[];
+
+    await tester.pumpWidget(
+      _app(
+        PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: root.path,
+          profile: ProjectPresentationProfile(
+            titleMotion: ProjectTitleMotionProfile(
+              promptLoop: ProjectResponsiveVideoProfile(
+                landscape: _titleLoop('prompt.mp4'),
+              ),
+              menuLoop: ProjectResponsiveVideoProfile(
+                landscape: _titleLoop('menu.mp4'),
+              ),
+            ),
+            theme: safeProjectSemanticTheme,
+          ),
+          titleMotionDriverFactory: (_) {
+            final driver = _TitlePlaybackDriver(
+              disposalGate: drivers.isEmpty ? disposal : null,
+            );
+            drivers.add(driver);
+            return driver;
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(drivers, hasLength(1));
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-title-preview-stage-prompt'),
+      ),
+    );
+    await tester.pump();
+
+    expect(drivers, hasLength(1));
+    disposal.complete();
+    await tester.pump();
+    await tester.pump();
+
+    expect(drivers, hasLength(2));
+    expect(find.byType(PlayerTitlePromptSurface), findsOneWidget);
   });
 
   testWidgets('title preview switches between the real prompt and menu', (
@@ -600,6 +696,97 @@ void main() {
     );
     semantics.dispose();
   });
+}
+
+ProjectVideoVariantProfile _titleLoop(String path) =>
+    ProjectVideoVariantProfile(
+      videoPath: path,
+      posterPath: '$path.png',
+      durationMilliseconds: 1000,
+      width: 1600,
+      height: 900,
+      bitrateKbps: 1200,
+      sizeBytes: 1,
+      videoCodec: 'h264',
+    );
+
+const _dialogueData = PlayerDialogueViewData(
+  revision: 1,
+  mode: PlayerDialogueMode.line,
+  speaker: 'Léo',
+  text: 'Bienvenue à Vermeil.',
+  fullText: 'Bienvenue à Vermeil.',
+  isCurrentLineFullyRevealed: true,
+  isLastContent: true,
+  choices: <PlayerDialogueChoiceViewData>[],
+);
+
+const _battleData = PlayerBattleViewData(
+  revision: 1,
+  enemy: PlayerBattleHudViewData(
+    ownerLabel: 'SAUVAGE',
+    speciesLabel: 'Roucool',
+    level: 7,
+    currentHp: 31,
+    maxHp: 31,
+  ),
+  player: PlayerBattleHudViewData(
+    ownerLabel: 'JOUEUR',
+    speciesLabel: 'Brindibou',
+    level: 8,
+    currentHp: 24,
+    maxHp: 24,
+  ),
+  battleLabel: 'Herbes de Vermeil',
+  title: 'Que doit faire Brindibou ?',
+  prompt: 'Choisissez une action.',
+  narrationLines: <String>[],
+  commands: <PlayerBattleCommandViewData>[
+    PlayerBattleCommandViewData(
+      index: 0,
+      primaryLabel: 'ATTAQUER',
+      secondaryLabel: 'Choisir une capacité',
+      enabled: true,
+      selected: true,
+      tone: PlayerBattleEntryTone.attack,
+      commandId: ProjectBattleCommandId.fight,
+      commandIcon: ProjectBattleCommandIcon.fight,
+    ),
+  ],
+  interactionsEnabled: true,
+  canGoBack: false,
+);
+
+final class _TitlePlaybackDriver implements PlayerIntroPlaybackDriver {
+  _TitlePlaybackDriver({this.disposalGate});
+
+  final Completer<void>? disposalGate;
+  final snapshot = ValueNotifier<PlayerIntroPlaybackSnapshot>(
+    const PlayerIntroPlaybackSnapshot(),
+  );
+
+  @override
+  ValueListenable<PlayerIntroPlaybackSnapshot> get snapshots => snapshot;
+
+  @override
+  Widget buildVideo() => const SizedBox.expand();
+
+  @override
+  Future<void> initialize() async {
+    snapshot.value = const PlayerIntroPlaybackSnapshot(isInitialized: true);
+  }
+
+  @override
+  Future<void> pause() async {}
+
+  @override
+  Future<void> play() async {}
+
+  @override
+  Future<void> dispose() async {
+    await disposalGate?.future;
+    snapshot.dispose();
+  }
 }
 
 Widget _app(Widget child) => MaterialApp(

@@ -509,7 +509,8 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.editor:
-          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+          '../map_editor/test/personalization/'
+          'phase_6_personalization_studio_export_e2e_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };

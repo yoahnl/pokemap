@@ -10,6 +10,7 @@ void main() {
         'preview.textScale',
         'preview.reducedMotion',
         'preview.compare',
+        'preview.contentSource',
         'studio.sceneNavigation',
         'inspector.targetNavigation',
         'global.colors',
@@ -24,20 +25,30 @@ void main() {
         'pause.windows',
         'pause.typography',
         'pause.actions',
-        'dialogue.layout',
-        'dialogue.windows',
+        'dialogue.geometry',
+        'dialogue.colors',
+        'dialogue.portrait',
+        'dialogue.nameplate',
+        'dialogue.choices',
+        'dialogue.progress',
+        'dialogue.motion',
         'dialogue.typography',
         'dialogue.previewCharacter',
         'dialogue.previewPortrait',
         'dialogue.previewName',
         'dialogue.previewChoices',
         'battle.previewState',
+        'battle.commands',
+        'battle.hud',
+        'battle.moves',
+        'battle.target',
+        'battle.message',
         'battle.layout',
         'battle.windows',
         'battle.typography',
       }),
     );
-    expect(personalizationCapabilityRegistry.descriptors, hasLength(29));
+    expect(personalizationCapabilityRegistry.descriptors, hasLength(40));
   });
 
   test('project capabilities require persistence and runtime evidence', () {
@@ -108,6 +119,66 @@ void main() {
         'orphan.control',
       }),
       throwsStateError,
+    );
+  });
+
+  test('every concrete preview control resolves to an honest capability', () {
+    const controls = <String>{
+      'personalization-preview-viewport-landscape',
+      'personalization-preview-viewport-portrait',
+      'personalization-preview-text-scale-100',
+      'personalization-preview-text-scale-150',
+      'personalization-preview-text-scale-200',
+      'personalization-preview-reduced-motion',
+      'personalization-preview-compare',
+      'personalization-preview-source-project',
+      'personalization-preview-source-demonstration',
+    };
+
+    for (final control in controls) {
+      expect(
+        personalizationCapabilityRegistry.requireByControlKey(control).effect,
+        PersonalizationControlEffect.previewOnly,
+        reason: control,
+      );
+    }
+    expect(
+      personalizationCapabilityRegistry.controlKeys,
+      containsAll(controls),
+    );
+  });
+
+  test('registry rejects duplicate concrete control keys', () {
+    final first = PersonalizationCapabilityDescriptor(
+      id: 'preview.first',
+      scene: PersonalizationStudioScene.dialogue,
+      label: 'Premier',
+      effect: PersonalizationControlEffect.previewOnly,
+      testKey: 'shared-control',
+    );
+    final second = PersonalizationCapabilityDescriptor(
+      id: 'preview.second',
+      scene: PersonalizationStudioScene.dialogue,
+      label: 'Second',
+      effect: PersonalizationControlEffect.previewOnly,
+      testKey: 'other-control',
+      additionalTestKeys: const <String>{'shared-control'},
+    );
+
+    expect(
+      () => PersonalizationCapabilityRegistry(
+        <PersonalizationCapabilityDescriptor>[first, second],
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('visible Studio capability bindings match the registry exactly', () {
+    expect(
+      () => personalizationCapabilityRegistry.requireExactControlIds(
+        personalizationStudioVisibleCapabilityIds,
+      ),
+      returnsNormally,
     );
   });
 }

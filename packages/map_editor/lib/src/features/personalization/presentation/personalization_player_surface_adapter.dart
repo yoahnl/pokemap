@@ -3,15 +3,17 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/personalization_preview.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../theme/theme.dart';
+import '../../../ui/canvas/cinematics/cinematic_map_backdrop_layer_plan_loader.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_character_preview_source.dart';
-import '../application/personalization_preview_fixtures.dart';
+import '../application/personalization_capability_descriptor.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
+import '../application/personalization_visual_target_graph.dart';
 import 'personalization_project_map_backdrop.dart';
 import 'personalization_title_preview_controls.dart';
 
@@ -30,12 +32,16 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     this.showDialogueName = true,
     this.showDialogueChoices = false,
     this.battleState = PersonalizationBattlePreviewState.commands,
+    this.contentSource = PersonalizationPreviewContentSource.project,
     this.mapContext,
     this.dialogueData,
     this.battleData,
-    this.useProjectContent = false,
+    this.battleBackdropPath,
+    this.enemyBattleSpritePath,
+    this.playerBattleSpritePath,
     this.projectManifest,
     this.resolveTilesetPath,
+    this.mapBackdropPlanLoader,
     this.titleStage = PersonalizationTitlePreviewStage.menu,
     this.titleMotionController,
     this.titleMotionDriverFactory,
@@ -56,12 +62,16 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   final bool showDialogueName;
   final bool showDialogueChoices;
   final PersonalizationBattlePreviewState battleState;
+  final PersonalizationPreviewContentSource contentSource;
   final MapData? mapContext;
   final PlayerDialogueViewData? dialogueData;
   final PlayerBattleViewData? battleData;
-  final bool useProjectContent;
+  final String? battleBackdropPath;
+  final String? enemyBattleSpritePath;
+  final String? playerBattleSpritePath;
   final ProjectManifest? projectManifest;
   final String? Function(String tilesetId)? resolveTilesetPath;
+  final CinematicMapBackdropLayerPlanLoader? mapBackdropPlanLoader;
   final PersonalizationTitlePreviewStage titleStage;
   final PlayerTitleMotionController? titleMotionController;
   final PlayerIntroPlaybackFactory? titleMotionDriverFactory;
@@ -83,13 +93,8 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
       PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
     );
     final surface = switch (scene) {
-      PersonalizationStudioScene.globalStyle => GestureDetector(
-        key: const ValueKey<String>(
-          'personalization-preview-target-global-colors',
-        ),
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _target(const GlobalColorsTarget()),
-        child: _globalStyle(presentation, editorColors, editorTheme),
+      PersonalizationStudioScene.globalStyle => _globalTargetSurface(
+        _globalStyle(presentation, editorColors, editorTheme),
       ),
       _ => _surface(scene, presentation, editorColors),
     };
@@ -102,6 +107,26 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     );
   }
 
+  Widget _globalTargetSurface(Widget child) => LayoutBuilder(
+    builder: (context, constraints) => GestureDetector(
+      key: const ValueKey<String>(
+        'personalization-preview-target-global-style',
+      ),
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (details) {
+        final node = PersonalizationVisualTargetGraph.standard().hitTest(
+          scene: PersonalizationStudioScene.globalStyle,
+          normalizedPosition: Offset(
+            details.localPosition.dx / constraints.maxWidth,
+            details.localPosition.dy / constraints.maxHeight,
+          ),
+        );
+        if (node != null) _target(node.target);
+      },
+      child: child,
+    ),
+  );
+
   Widget _surface(
     PersonalizationStudioScene target,
     RuntimePlayerPresentation presentation,
@@ -113,59 +138,67 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
       PersonalizationStudioScene.pause => PlayerPausePreviewShell(
         key: const ValueKey<String>('personalization-pause-composition'),
         gameTitle: projectName,
-        actions: PersonalizationPreviewFixtures.pauseActions,
+        actions: _pauseActions,
         presentation: presentation.pausePresentation,
-        details: PersonalizationPreviewFixtures.pauseDetails,
+        details: _pauseDetails,
         onSelected: (action) =>
             _target(PauseLabelsTarget(actionName: action.name)),
       ),
-      PersonalizationStudioScene.dialogue => PlayerDialogueSurface(
-        key: const ValueKey<String>('personalization-dialogue-composition'),
-        data:
-            dialogueData ??
-            (dialogueCharacter == null && !showDialogueChoices
-                ? PersonalizationPreviewFixtures.dialogue
-                : PersonalizationPreviewFixtures.dialogueFor(
-                    speaker:
-                        dialogueCharacter?.displayName ??
-                        'Personnage de démonstration',
-                    showChoices: showDialogueChoices,
-                  )),
-        showSpeakerName: showDialogueName,
-        portraitBuilder: showDialoguePortrait && dialogueCharacter != null
-            ? (_) => _dialoguePortrait()
-            : null,
-        onAction: (_) => _target(const DialogueAppearanceTarget()),
-      ),
-      PersonalizationStudioScene.battle => PlayerBattleSurface(
-        key: const ValueKey<String>('personalization-battle-composition'),
-        data:
-            battleData ?? PersonalizationPreviewFixtures.battleFor(battleState),
-        onAction: (_) => _target(const BattleCommandsTarget()),
-      ),
+      PersonalizationStudioScene.dialogue =>
+        dialogueData == null
+            ? _unavailable(
+                'Sélectionnez un dialogue du projet pour afficher cette scène.',
+                const ValueKey<String>('personalization-dialogue-unavailable'),
+              )
+            : PlayerDialogueSurface(
+                key: const ValueKey<String>(
+                  'personalization-dialogue-composition',
+                ),
+                data: dialogueData!,
+                showSpeakerName: showDialogueName,
+                portraitBuilder:
+                    showDialoguePortrait &&
+                        (dialogueCharacter != null ||
+                            contentSource ==
+                                PersonalizationPreviewContentSource
+                                    .demonstration)
+                    ? (_) => _dialoguePortrait()
+                    : null,
+                onAction: (_) => _target(const DialogueAppearanceTarget()),
+              ),
+      PersonalizationStudioScene.battle =>
+        battleData == null
+            ? _unavailable(
+                'Sélectionnez une rencontre du projet pour afficher cette scène.',
+                const ValueKey<String>('personalization-battle-unavailable'),
+              )
+            : PlayerBattleScene(
+                key: const ValueKey<String>(
+                  'personalization-battle-composition',
+                ),
+                data: battleData!,
+                onAction: (_) => _target(_battleTarget(battleState)),
+                onHudTargeted: () => _target(const BattleHudTarget()),
+                onPanelTargeted: (kind) => _target(switch (kind) {
+                  PlayerBattlePanelKind.commands =>
+                    const BattleCommandsTarget(),
+                  PlayerBattlePanelKind.moves => const BattleMovesTarget(),
+                  PlayerBattlePanelKind.target => const BattleTargetsTarget(),
+                  PlayerBattlePanelKind.message => const BattleMessageTarget(),
+                }),
+                stage: _battleStage(editorColors),
+              ),
       PersonalizationStudioScene.globalStyle => throw StateError(
         'Global style is a composition, not one player surface.',
       ),
     };
-    final unavailable = switch (target) {
-      PersonalizationStudioScene.dialogue
-          when useProjectContent && dialogueData == null =>
-        _unavailable(
-          'Aucun dialogue exploitable pour cet aperçu.',
-          const ValueKey<String>('personalization-dialogue-unavailable'),
-        ),
-      PersonalizationStudioScene.battle
-          when useProjectContent && battleData == null =>
-        _unavailable(
-          'Aucune rencontre exploitable pour cet aperçu.',
-          const ValueKey<String>('personalization-battle-unavailable'),
-        ),
-      _ => surface,
-    };
+    if (target == PersonalizationStudioScene.battle && battleData != null) {
+      return surface;
+    }
     if (mapContext == null ||
         target == PersonalizationStudioScene.title ||
         target == PersonalizationStudioScene.intro) {
-      return unavailable;
+      return surface;
     }
     return Stack(
       fit: StackFit.expand,
@@ -176,11 +209,101 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
           projectRootPath: projectRootPath,
           manifest: projectManifest,
           resolveTilesetPath: resolveTilesetPath,
+          planLoader: mapBackdropPlanLoader,
         ),
-        unavailable,
+        surface,
       ],
     );
   }
+
+  Widget _battleStage(PokeMapColorTokens editorColors) {
+    final file = battleBackdropPath == null
+        ? null
+        : _fileForPath(battleBackdropPath!);
+    final fallback = mapContext == null
+        ? Builder(
+            builder: (context) =>
+                ColoredBox(color: context.playerColors.background),
+          )
+        : PersonalizationProjectMapBackdrop(
+            map: mapContext!,
+            colors: editorColors,
+            projectRootPath: projectRootPath,
+            manifest: projectManifest,
+            resolveTilesetPath: resolveTilesetPath,
+            planLoader: mapBackdropPlanLoader,
+          );
+    final background = file == null || !file.existsSync()
+        ? battleBackdropPath == null
+              ? fallback
+              : _missingBattleStage(fallback)
+        : Image.file(
+            file,
+            key: const ValueKey<String>('personalization-battle-project-stage'),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                _missingBattleStage(fallback),
+          );
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        background,
+        _battleCreature(
+          path: enemyBattleSpritePath,
+          alignment: const Alignment(.58, -.34),
+          key: const ValueKey<String>('personalization-battle-enemy-sprite'),
+        ),
+        _battleCreature(
+          path: playerBattleSpritePath,
+          alignment: const Alignment(-.58, .18),
+          key: const ValueKey<String>('personalization-battle-player-sprite'),
+        ),
+      ],
+    );
+  }
+
+  Widget _battleCreature({
+    required String? path,
+    required Alignment alignment,
+    required Key key,
+  }) {
+    final file = path == null ? null : _fileForPath(path);
+    if (file == null || !file.existsSync()) {
+      return const SizedBox.shrink();
+    }
+    return Align(
+      alignment: alignment,
+      child: FractionallySizedBox(
+        widthFactor: .28,
+        heightFactor: .28,
+        child: Image.file(
+          file,
+          key: key,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _missingBattleStage(Widget fallback) => Stack(
+    fit: StackFit.expand,
+    children: <Widget>[
+      fallback,
+      const Align(
+        alignment: Alignment.topRight,
+        child: Padding(
+          padding: EdgeInsets.all(PlayerSpacing.sm),
+          child: PlayerBadge(
+            key: ValueKey<String>('personalization-battle-stage-missing'),
+            label: 'Décor de combat introuvable',
+            icon: Icons.warning_amber_rounded,
+            tone: PlayerBadgeTone.warning,
+          ),
+        ),
+      ),
+    ],
+  );
 
   Widget _globalStyle(
     RuntimePlayerPresentation presentation,
@@ -341,14 +464,63 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
         ),
         PersonalizationTitlePreviewStage.menu => PlayerTitleSurface(
           key: const ValueKey<String>('personalization-title-composition'),
-          data: PersonalizationPreviewFixtures.title(
-            projectName,
+          data: _titleData(
             presentation,
-            backgroundContent: _titleMotion(profile.titleMotion?.menuLoop),
+            _titleMotion(profile.titleMotion?.menuLoop),
           ),
           onSelected: (_) => _target(const TitlePresentationTarget()),
         ),
       };
+
+  PlayerTitleSurfaceData _titleData(
+    RuntimePlayerPresentation presentation,
+    Widget? backgroundContent,
+  ) => PlayerTitleSurfaceData(
+    gameTitle: presentation.title.resolveTitle(projectName),
+    author: presentation.title.author,
+    description: presentation.title.description,
+    background: presentation.title.background,
+    backgroundContent: backgroundContent,
+    logo: presentation.title.logo,
+    accentColor: presentation.title.accentColor,
+    layoutVariant: presentation.title.layoutVariant,
+    actions: presentation.title
+        .projectActions(<PlayerTitleMenuAction, PlayerActionAvailability>{
+          for (final action in PlayerTitleMenuAction.values)
+            action: PlayerActionAvailability.enabled,
+        }),
+    actionLabels: presentation.title.actionLabels,
+    actionIcons: presentation.title.actionIcons,
+    initialSelection: PlayerTitleMenuAction.newGame,
+  );
+
+  static Map<PlayerPauseAction, PlayerActionAvailability> get _pauseActions =>
+      <PlayerPauseAction, PlayerActionAvailability>{
+        for (final action in PlayerPauseAction.values)
+          action: PlayerActionAvailability.enabled,
+      };
+
+  static Map<PlayerPauseAction, PlayerPausePreviewDetailData>
+  get _pauseDetails => <PlayerPauseAction, PlayerPausePreviewDetailData>{
+    for (final action in PlayerPauseAction.values)
+      action: PlayerPausePreviewDetailData(
+        action: action,
+        title: _pauseActionTitle(action),
+        message:
+            'Le contenu de cette section dépend de la sauvegarde en cours.',
+      ),
+  };
+
+  static String _pauseActionTitle(PlayerPauseAction action) => switch (action) {
+    PlayerPauseAction.resume => 'Reprendre la partie',
+    PlayerPauseAction.party => 'Équipe',
+    PlayerPauseAction.bag => 'Sac',
+    PlayerPauseAction.pokedex => 'Pokédex',
+    PlayerPauseAction.map => 'Carte',
+    PlayerPauseAction.save => 'Sauvegarder',
+    PlayerPauseAction.options => 'Options',
+    PlayerPauseAction.returnToTitle => 'Retour au titre',
+  };
 
   Widget? _titleMotion(ProjectResponsiveVideoProfile? media) {
     if (media == null) return null;
@@ -375,6 +547,23 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   }
 
   Widget _dialoguePortrait() {
+    if (contentSource == PersonalizationPreviewContentSource.demonstration) {
+      return Builder(
+        builder: (context) => DecoratedBox(
+          key: const ValueKey<String>('personalization-dialogue-demo-portrait'),
+          decoration: BoxDecoration(
+            color: context.playerColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.playerColors.outline),
+          ),
+          child: Icon(
+            Icons.person_rounded,
+            color: context.playerColors.primary,
+            size: 42,
+          ),
+        ),
+      );
+    }
     final bytes = dialogueCharacter?.portraitBytes;
     if (bytes != null && bytes.isNotEmpty) {
       return ClipRRect(
@@ -411,6 +600,15 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
 
   void _target(PersonalizationInspectorTarget target) =>
       onTargeted?.call(target);
+
+  PersonalizationInspectorTarget _battleTarget(
+    PersonalizationBattlePreviewState state,
+  ) => switch (state) {
+    PersonalizationBattlePreviewState.commands => const BattleCommandsTarget(),
+    PersonalizationBattlePreviewState.moves => const BattleMovesTarget(),
+    PersonalizationBattlePreviewState.target => const BattleTargetsTarget(),
+    PersonalizationBattlePreviewState.message => const BattleMessageTarget(),
+  };
 
   Widget _unavailable(String message, Key key) => Center(
     key: key,

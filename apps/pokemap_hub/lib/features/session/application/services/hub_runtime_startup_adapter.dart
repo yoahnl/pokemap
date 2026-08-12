@@ -40,6 +40,8 @@ final class HubRuntimeStartupAdapter
     final theme = presentation?.theme;
     final surfacePalettes = presentation?.surfacePalettes;
     final pause = presentation?.pause;
+    final dialogue = presentation?.dialogue;
+    final battle = presentation?.battle;
     final menuLabels = presentation?.menuLabels;
     final windows = presentation?.windows;
     final layouts = presentation?.layouts;
@@ -51,6 +53,8 @@ final class HubRuntimeStartupAdapter
         theme == null &&
         surfacePalettes == null &&
         pause == null &&
+        dialogue == null &&
+        battle == null &&
         menuLabels == null &&
         windows == null &&
         layouts == null) {
@@ -178,6 +182,59 @@ final class HubRuntimeStartupAdapter
                     pause.composition == null
                         ? null
                         : _projectPauseComposition(pause.composition!),
+              ),
+      dialogue:
+          dialogue == null
+              ? null
+              : ProjectDialoguePresentationProfile(
+                placement: ProjectDialoguePlacement.values.byName(
+                  dialogue.placement,
+                ),
+                maxWidthFactor: dialogue.maxWidthFactor,
+                margin: dialogue.margin,
+                contentPadding: dialogue.contentPadding,
+                shape: ProjectWindowShape.values.byName(dialogue.shape),
+                cornerRadius: dialogue.cornerRadius,
+                borderWidth: dialogue.borderWidth,
+                fillOpacity: dialogue.fillOpacity,
+                surfaceColor: dialogue.surfaceColor,
+                borderColor: dialogue.borderColor,
+                textColor: dialogue.textColor,
+                portraitSide: ProjectDialoguePortraitSide.values.byName(
+                  dialogue.portraitSide,
+                ),
+                portraitSize: dialogue.portraitSize,
+                portraitShape: ProjectDialoguePortraitShape.values.byName(
+                  dialogue.portraitShape,
+                ),
+                portraitFrameWidth: dialogue.portraitFrameWidth,
+                portraitFrameColor: dialogue.portraitFrameColor,
+                nameplateStyle: ProjectDialogueNameplateStyle.values.byName(
+                  dialogue.nameplateStyle,
+                ),
+                nameplateBorderWidth: dialogue.nameplateBorderWidth,
+                nameplateSurfaceColor: dialogue.nameplateSurfaceColor,
+                nameplateBorderColor: dialogue.nameplateBorderColor,
+                nameplateTextColor: dialogue.nameplateTextColor,
+                choiceSpacing: dialogue.choiceSpacing,
+                choiceShape: ProjectDialogueChoiceShape.values.byName(
+                  dialogue.choiceShape,
+                ),
+                choiceDisabledOpacity: dialogue.choiceDisabledOpacity,
+                choiceSelectedColor: dialogue.choiceSelectedColor,
+                progressIndicator: ProjectDialogueProgressIndicator.values
+                    .byName(dialogue.progressIndicator),
+                progressIndicatorColor: dialogue.progressIndicatorColor,
+                portraitTransition: ProjectDialoguePortraitTransition.values
+                    .byName(dialogue.portraitTransition),
+                portraitTransitionMilliseconds:
+                    dialogue.portraitTransitionMilliseconds,
+              ),
+      battle:
+          battle == null
+              ? null
+              : ProjectBattlePresentationProfile.fromJson(
+                Map<String, dynamic>.from(battle.toJson()),
               ),
       menuLabels:
           menuLabels == null

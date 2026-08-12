@@ -149,7 +149,11 @@ test("MCP exposes paginated project presentation preview contexts", async () => 
     const resource = (description.resourceKinds as JsonRecord[]).find(
       (kind) => kind.id === "presentationPreviewContext",
     );
-    assert.equal(resource?.version, 1);
+    assert.equal(resource?.version, 2);
+    const presentationProfile = (
+      description.resourceKinds as JsonRecord[]
+    ).find((kind) => kind.id === "projectPresentationProfile");
+    assert.equal(presentationProfile?.version, 10);
 
     const opened = await toolData(fixture.client, "pokemap_workspace", {
       operation: "open",
@@ -163,7 +167,7 @@ test("MCP exposes paginated project presentation preview contexts", async () => 
       pageSize: 2,
     });
 
-    assert.equal(first.totalAvailable, 4);
+    assert.equal(first.totalAvailable, 7);
     assert.equal(first.returned, 2);
     assert.equal(typeof first.nextCursor, "string");
     assert.deepEqual(
@@ -171,6 +175,40 @@ test("MCP exposes paginated project presentation preview contexts", async () => 
       ["characterPortrait:leo:happy", "dialogue:welcome_leo"],
     );
     assert.equal(record((first.items as JsonRecord[])[0]).availability, "ready");
+
+    const second = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(opened.projectHandle),
+      resourceKind: "presentationPreviewContext",
+      operation: "list",
+      view: "detail",
+      pageSize: 2,
+      cursor: first.nextCursor,
+    });
+    assert.deepEqual(
+      (second.items as JsonRecord[]).map((item) => item.id),
+      [
+        "dialogueScenario:welcome_leo:0:0",
+        "dialogueScenario:welcome_leo:0:1",
+      ],
+    );
+    const characterLine = record((second.items as JsonRecord[])[0]);
+    assert.equal(characterLine.scenarioKind, "characterLine");
+    assert.equal(characterLine.characterName, "Léo");
+    assert.equal(characterLine.portraitAssetId, "portrait-leo-happy");
+
+    const choice = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(opened.projectHandle),
+      resourceKind: "presentationPreviewContext",
+      operation: "get",
+      view: "detail",
+      ids: ["dialogueScenario:welcome_leo:0:2"],
+    });
+    const choiceContext = record((choice.items as JsonRecord[])[0]);
+    assert.equal(choiceContext.scenarioKind, "choice");
+    assert.deepEqual(
+      (choiceContext.choices as JsonRecord[]).map((entry) => entry.label),
+      ["Partir explorer", "Rester au village"],
+    );
   } finally {
     await fixture.client.close();
     await fixture.server.close();

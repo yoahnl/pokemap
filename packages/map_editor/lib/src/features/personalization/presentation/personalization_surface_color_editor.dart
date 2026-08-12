@@ -26,25 +26,45 @@ class PersonalizationSurfaceColorEditor extends StatelessWidget {
       PokeMapSectionHeader(
         title: 'Couleurs de ${_roleLabel(role)}',
         description:
-            'Chaque valeur héritée suit le style global. Personnalisez uniquement ce qui doit être différent ici.',
+            'Chaque valeur suit Style global tant que cette scène ne possède pas sa propre surcharge.',
+      ),
+      const SizedBox(height: 8),
+      PokeMapDiagnosticCallout(
+        key: ValueKey<String>('surface-colors-impact-${role.name}'),
+        severity: PokeMapDiagnosticSeverity.info,
+        message: 'Éléments affectés : ${_impactDescription(role)}.',
       ),
       const SizedBox(height: 8),
       for (final token in _SurfaceColorToken.values) ...<Widget>[
         _tokenCard(context, token),
         const SizedBox(height: 8),
       ],
-      if (palette != null)
-        Align(
-          alignment: Alignment.centerLeft,
-          child: PokeMapButton(
-            key: ValueKey<String>('surface-colors-reset-${role.name}'),
-            size: PokeMapButtonSize.small,
-            variant: PokeMapButtonVariant.secondary,
-            onPressed: () => onChanged(null),
-            leading: const Icon(Icons.restart_alt_rounded),
-            child: const Text('Réutiliser tout le style global'),
-          ),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            PokeMapButton(
+              key: ValueKey<String>('surface-colors-safe-${role.name}'),
+              size: PokeMapButtonSize.small,
+              variant: PokeMapButtonVariant.secondary,
+              onPressed: () => onChanged(_safeSurfacePalette(role)),
+              leading: const Icon(Icons.health_and_safety_outlined),
+              child: const Text('Utiliser une palette sûre'),
+            ),
+            if (palette != null)
+              PokeMapButton(
+                key: ValueKey<String>('surface-colors-reset-${role.name}'),
+                size: PokeMapButtonSize.small,
+                variant: PokeMapButtonVariant.secondary,
+                onPressed: () => onChanged(null),
+                leading: const Icon(Icons.restart_alt_rounded),
+                child: const Text('Réutiliser tout le style global'),
+              ),
+          ],
         ),
+      ),
     ],
   );
 
@@ -69,7 +89,9 @@ class PersonalizationSurfaceColorEditor extends StatelessWidget {
                   children: <Widget>[
                     PokeMapBadge(label: resolved),
                     PokeMapBadge(
-                      label: explicit == null ? 'Hérité' : 'Personnalisé',
+                      label: explicit == null
+                          ? 'Hérité de Style global'
+                          : 'Surcharge de scène',
                       variant: explicit == null
                           ? PokeMapBadgeVariant.info
                           : PokeMapBadgeVariant.success,
@@ -114,6 +136,9 @@ class PersonalizationSurfaceColorEditor extends StatelessWidget {
       context: context,
       tokenLabel: _tokenLabel(token).toLowerCase(),
       currentValue: currentValue,
+      impactDescription:
+          'Avant application, cette couleur affectera ${_impactDescription(role)}.',
+      validator: (value) => _validateContrast(token, value),
     );
     if (value == null || value == currentValue) return;
     onChanged(_replace(token, value));
@@ -122,6 +147,30 @@ class PersonalizationSurfaceColorEditor extends StatelessWidget {
   void _inherit(_SurfaceColorToken token) {
     final updated = _replace(token, null);
     onChanged(_isEmpty(updated) ? null : updated);
+  }
+
+  String? _validateContrast(_SurfaceColorToken token, String value) {
+    final candidate = _replace(token, value);
+    final palettes = replacePersonalizationSurfacePalette(
+      null,
+      role,
+      candidate,
+    );
+    final blocked =
+        validateProjectPresentationProfile(
+          ProjectPresentationProfile(
+            theme: inheritedTheme,
+            surfacePalettes: palettes,
+          ),
+        ).any(
+          (diagnostic) =>
+              diagnostic.severity ==
+                  ProjectPresentationDiagnosticSeverity.error &&
+              diagnostic.path.contains('surfacePalettes'),
+        );
+    return blocked
+        ? 'Cette couleur ne garde pas assez de contraste dans cette scène.'
+        : null;
   }
 
   String? _explicitValue(_SurfaceColorToken token) => switch (token) {
@@ -185,6 +234,20 @@ String _roleLabel(ProjectPresentationSurfaceRole role) => switch (role) {
   _ => 'cette scène',
 };
 
+String _impactDescription(ProjectPresentationSurfaceRole role) =>
+    switch (role) {
+      ProjectPresentationSurfaceRole.title ||
+      ProjectPresentationSurfaceRole.titlePrompt =>
+        'le fond, les boutons et l’invitation de l’écran titre',
+      ProjectPresentationSurfaceRole.pauseMenu =>
+        'le menu Pause, ses actions et leur focus',
+      ProjectPresentationSurfaceRole.dialogue =>
+        'la bulle, le nom, le texte et les choix de dialogue',
+      ProjectPresentationSurfaceRole.battleHud =>
+        'les panneaux, commandes, capacités et messages de combat',
+      _ => 'les éléments visibles de cette scène',
+    };
+
 String _tokenLabel(_SurfaceColorToken token) => switch (token) {
   _SurfaceColorToken.background => 'Arrière-plan',
   _SurfaceColorToken.surface => 'Fenêtre',
@@ -193,6 +256,28 @@ String _tokenLabel(_SurfaceColorToken token) => switch (token) {
   _SurfaceColorToken.accent => 'Boutons et accents',
   _SurfaceColorToken.selection => 'Sélection et focus',
 };
+
+ProjectSurfacePaletteProfile _safeSurfacePalette(
+  ProjectPresentationSurfaceRole role,
+) => ProjectSurfacePaletteProfile(
+  background: safeProjectSemanticTheme.background,
+  surface: switch (role) {
+    ProjectPresentationSurfaceRole.title ||
+    ProjectPresentationSurfaceRole.titlePrompt =>
+      safeProjectSemanticTheme.titleSurface,
+    ProjectPresentationSurfaceRole.pauseMenu =>
+      safeProjectSemanticTheme.menuSurface,
+    ProjectPresentationSurfaceRole.dialogue =>
+      safeProjectSemanticTheme.dialogueSurface,
+    ProjectPresentationSurfaceRole.battleHud =>
+      safeProjectSemanticTheme.battleHudSurface,
+    _ => safeProjectSemanticTheme.surface,
+  },
+  border: safeProjectSemanticTheme.outline,
+  text: safeProjectSemanticTheme.textPrimary,
+  accent: safeProjectSemanticTheme.primary,
+  selection: safeProjectSemanticTheme.primary,
+);
 
 ProjectSurfacePaletteProfile? personalizationSurfacePalette(
   ProjectPresentationSurfacePalettesProfile? palettes,

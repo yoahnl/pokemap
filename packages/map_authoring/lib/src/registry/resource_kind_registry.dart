@@ -135,24 +135,24 @@ final class AuthoringResourceKindRegistry {
       ),
       AuthoringResourceKindDescriptor(
         id: 'projectPresentationProfile',
-        version: 8,
+        version: 10,
         displayName: 'Project presentation profile',
         summary:
             'Authored title and pause actions, responsive intro and motion, branding, typography metrics, contextual palettes, window shapes, surface layouts and combat presentation',
       ),
       AuthoringResourceKindDescriptor(
         id: 'projectPresentationPreset',
-        version: 1,
+        version: 2,
         displayName: 'Project presentation preset',
         summary:
-            'Versioned shareable presentation profile with licensed assets',
+            'Versioned shareable presentation profile with explicit scope, replaced sections and licensed assets',
       ),
       AuthoringResourceKindDescriptor(
         id: 'presentationPreviewContext',
-        version: 1,
+        version: 2,
         displayName: 'Presentation preview context',
         summary:
-            'Read-only project maps, dialogues, portraits and encounters available to presentation previews',
+            'Read-only project maps, dialogue scenarios, portraits and encounters available to presentation previews',
       ),
       AuthoringResourceKindDescriptor(
         id: 'map',

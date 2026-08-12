@@ -224,6 +224,154 @@ void main() {
       );
     });
 
+    test('presentation.update carries complete V9 dialogue geometry', () {
+      const profile = ProjectPresentationProfile(
+        dialogue: ProjectDialoguePresentationProfile(
+          placement: ProjectDialoguePlacement.top,
+          maxWidthFactor: .64,
+          margin: 20,
+          contentPadding: 24,
+          shape: ProjectWindowShape.speech,
+          cornerRadius: 18,
+          borderWidth: 3,
+          fillOpacity: .82,
+          surfaceColor: '#102030',
+          borderColor: '#A0B0C0',
+          textColor: '#F0F0F0',
+          portraitSide: ProjectDialoguePortraitSide.end,
+          portraitSize: 112,
+          portraitShape: ProjectDialoguePortraitShape.circle,
+          portraitFrameWidth: 4,
+          portraitFrameColor: '#C0FFEE',
+          nameplateStyle: ProjectDialogueNameplateStyle.floating,
+          nameplateBorderWidth: 2,
+          nameplateSurfaceColor: '#334455',
+          nameplateBorderColor: '#778899',
+          nameplateTextColor: '#FFFFFF',
+          choiceSpacing: 14,
+          choiceShape: ProjectDialogueChoiceShape.cutCorner,
+          choiceDisabledOpacity: .35,
+          choiceSelectedColor: '#FFAA00',
+          progressIndicator: ProjectDialogueProgressIndicator.dots,
+          progressIndicatorColor: '#00FFAA',
+          portraitTransition: ProjectDialoguePortraitTransition.slide,
+          portraitTransitionMilliseconds: 320,
+        ),
+      );
+      final snapshot = _snapshot();
+      final request = AuthoringRequest(
+        requestId: 'request_presentation_dialogue',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: 'ws_test',
+        parameters: <String, Object?>{'profile': profile.toJson()},
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'presentation-dialogue',
+        dryRun: true,
+      );
+
+      final draft = const PresentationActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: request,
+          planId: 'plan_presentation_dialogue',
+          seed: 42,
+        ),
+      );
+
+      expect(
+        draft.preview['profile'],
+        containsPair(
+          'dialogue',
+          containsPair('placement', 'top'),
+        ),
+      );
+      expect(
+        draft.changeSet.diff.entries.single.after,
+        containsPair(
+          'dialogue',
+          containsPair('surfaceColor', '#102030'),
+        ),
+      );
+      expect(
+        (draft.preview['profile']! as Map)['dialogue'],
+        containsPair('portraitSide', 'end'),
+      );
+      expect(
+        (draft.preview['profile']! as Map)['dialogue'],
+        containsPair('nameplateStyle', 'floating'),
+      );
+      expect(
+        (draft.preview['profile']! as Map)['dialogue'],
+        containsPair('choiceShape', 'cutCorner'),
+      );
+      expect(
+        (draft.preview['profile']! as Map)['dialogue'],
+        containsPair('portraitTransition', 'slide'),
+      );
+    });
+
+    test('presentation.update carries the complete V10 battle contract', () {
+      const profile = ProjectPresentationProfile(
+        battle: ProjectBattlePresentationProfile(
+          commandLayout: ProjectBattleCommandLayout.radial,
+          commandColumns: 2,
+          commandShape: ProjectWindowShape.cutCorner,
+          commandSelectionColor: '#00CCAA',
+          commands: <ProjectBattleCommandProfile>[
+            ProjectBattleCommandProfile(
+              id: ProjectBattleCommandId.run,
+              label: 'Retraite',
+              icon: ProjectBattleCommandIcon.run,
+            ),
+            ProjectBattleCommandProfile(id: ProjectBattleCommandId.fight),
+            ProjectBattleCommandProfile(id: ProjectBattleCommandId.party),
+            ProjectBattleCommandProfile(id: ProjectBattleCommandId.bag),
+          ],
+          enemyHudPosition: ProjectBattleHudPosition.topEnd,
+          playerHudPosition: ProjectBattleHudPosition.bottomStart,
+          hpBarShape: ProjectBattleHpBarShape.segmented,
+          moves: ProjectBattlePanelPresentationProfile(
+            surfaceColor: '#102030',
+          ),
+          target: ProjectBattlePanelPresentationProfile(
+            surfaceColor: '#203040',
+          ),
+          message: ProjectBattlePanelPresentationProfile(
+            surfaceColor: '#304050',
+          ),
+        ),
+      );
+      final snapshot = _snapshot();
+      final request = AuthoringRequest(
+        requestId: 'request_presentation_battle_v10',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: 'ws_test',
+        parameters: <String, Object?>{'profile': profile.toJson()},
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'presentation-battle-v10',
+        dryRun: true,
+      );
+
+      final draft = const PresentationActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: request,
+          planId: 'plan_presentation_battle_v10',
+          seed: 42,
+        ),
+      );
+      final battle = (draft.preview['profile']! as Map)['battle']! as Map;
+
+      expect(battle['commandLayout'], 'radial');
+      expect((battle['commands']! as List).first, containsPair('id', 'run'));
+      expect(battle['enemyHudPosition'], 'topEnd');
+      expect((battle['moves']! as Map)['surfaceColor'], '#102030');
+      expect(draft.changeSet.diff.entries.single.after,
+          containsPair('battle', battle));
+    });
+
     test('presentation.update carries responsive surface layouts', () {
       final profile = ProjectPresentationProfile(
         layouts: suggestedProjectPresentationLayouts('cinematic'),

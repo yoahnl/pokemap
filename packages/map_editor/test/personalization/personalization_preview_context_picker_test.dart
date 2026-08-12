@@ -24,11 +24,16 @@ void main() {
       ),
     );
 
-    expect(find.text('Contexte de l’aperçu'), findsOneWidget);
+    expect(find.text('Scène de test'), findsOneWidget);
+    expect(
+      find.text(
+        'Choisissez la carte et le contenu utilisés pour essayer ce rendu.',
+      ),
+      findsOneWidget,
+    );
     for (final kind in <PersonalizationPreviewContextKind>[
       PersonalizationPreviewContextKind.map,
-      PersonalizationPreviewContextKind.dialogue,
-      PersonalizationPreviewContextKind.characterPortrait,
+      PersonalizationPreviewContextKind.dialogueScenario,
     ]) {
       expect(
         find.byKey(
@@ -46,15 +51,53 @@ void main() {
 
     await tester.tap(
       find.byKey(
-        const ValueKey<String>('personalization-preview-context-dialogue'),
+        const ValueKey<String>(
+          'personalization-preview-context-dialogueScenario',
+        ),
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Deuxième dialogue').last);
+    await tester.tap(find.text('Choix de bienvenue').last);
     await tester.pumpAndSettle();
 
-    expect(changedKind, PersonalizationPreviewContextKind.dialogue);
-    expect(changedId, 'dialogue:second');
+    expect(changedKind, PersonalizationPreviewContextKind.dialogueScenario);
+    expect(changedId, 'dialogueScenario:welcome:0:2');
+  });
+
+  testWidgets('keeps legacy dialogue and portrait pickers as fallback', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        PersonalizationPreviewContextPicker(
+          scene: PersonalizationStudioScene.dialogue,
+          contexts: _contexts
+              .where(
+                (context) =>
+                    context.kind !=
+                    PersonalizationPreviewContextKind.dialogueScenario,
+              )
+              .toList(),
+          selectedIds: const <PersonalizationPreviewContextKind, String?>{},
+          onSelected: (_, _) {},
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-context-dialogue'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'personalization-preview-context-characterPortrait',
+        ),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shows explicit loading, failure and missing-content states', (
@@ -122,7 +165,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Contexte de l’aperçu'), findsOneWidget);
+    expect(find.text('Scène de test'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
@@ -147,6 +190,16 @@ final _contexts = <PersonalizationPreviewContextOption>[
     id: 'characterPortrait:leo:happy',
     kind: PersonalizationPreviewContextKind.characterPortrait,
     label: 'Léo · Heureux',
+  ),
+  _option(
+    id: 'dialogueScenario:welcome:0:0',
+    kind: PersonalizationPreviewContextKind.dialogueScenario,
+    label: 'Réplique de Léo',
+  ),
+  _option(
+    id: 'dialogueScenario:welcome:0:2',
+    kind: PersonalizationPreviewContextKind.dialogueScenario,
+    label: 'Choix de bienvenue',
   ),
 ];
 

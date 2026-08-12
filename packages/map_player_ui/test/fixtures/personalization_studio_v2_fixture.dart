@@ -4,7 +4,10 @@ import 'package:map_player_ui/map_player_ui.dart';
 abstract final class PersonalizationStudioV2Fixture {
   static const projectName = 'Le train de 17h42';
 
-  static PlayerTitleSurfaceData title(RuntimePlayerPresentation presentation) =>
+  static PlayerTitleSurfaceData title(
+    RuntimePlayerPresentation presentation, {
+    String projectName = PersonalizationStudioV2Fixture.projectName,
+  }) =>
       PlayerTitleSurfaceData(
         gameTitle: projectName,
         author: 'POKÉMAP',

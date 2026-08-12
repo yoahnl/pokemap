@@ -279,8 +279,7 @@ class PlayerTitleSurface extends StatelessWidget {
                     ProjectPresentationSecondaryElement.titleDescription,
                   );
               double gap(double value) => value * spacingScale;
-              return SingleChildScrollView(
-                key: const ValueKey<String>('player-title-scroll'),
+              return _PlayerTitleScrollView(
                 padding: EdgeInsets.all(
                   PlayerSpacing.lg + (resolved?.additionalSafeAreaPadding ?? 0),
                 ),
@@ -610,15 +609,29 @@ class PlayerTitleSurface extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 42),
-                for (final (index, action) in data.actions.keys.indexed) ...[
-                  if (index > 0) const SizedBox(height: 5),
-                  _startupPremiumAction(
-                    context,
-                    action: action,
-                    selected: _isStartupHighlighted(action, firstEnabledAction),
+                Expanded(
+                  child: SingleChildScrollView(
+                    key: const ValueKey<String>(
+                      'player-title-premium-actions-scroll',
+                    ),
+                    child: Column(
+                      children: <Widget>[
+                        for (final (index, action)
+                            in data.actions.keys.indexed) ...[
+                          if (index > 0) const SizedBox(height: 5),
+                          _startupPremiumAction(
+                            context,
+                            action: action,
+                            selected: _isStartupHighlighted(
+                              action,
+                              firstEnabledAction,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ],
-                const Spacer(),
+                ),
                 _startupPremiumControls(context),
                 const SizedBox(height: 40),
               ],
@@ -1064,4 +1077,37 @@ class PlayerTitleSurface extends StatelessWidget {
         ProjectTitleActionIcon.info => Icons.info_outline_rounded,
         ProjectTitleActionIcon.home => Icons.home_rounded,
       };
+}
+
+class _PlayerTitleScrollView extends StatefulWidget {
+  const _PlayerTitleScrollView({required this.padding, required this.child});
+
+  final EdgeInsetsGeometry padding;
+  final Widget child;
+
+  @override
+  State<_PlayerTitleScrollView> createState() => _PlayerTitleScrollViewState();
+}
+
+class _PlayerTitleScrollViewState extends State<_PlayerTitleScrollView> {
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scrollbar(
+        key: const ValueKey<String>('player-title-scrollbar'),
+        controller: _controller,
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          key: const ValueKey<String>('player-title-scroll'),
+          controller: _controller,
+          padding: widget.padding,
+          child: widget.child,
+        ),
+      );
 }

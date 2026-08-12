@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../application/authoring_api/authoring_mutation_adapter.dart';
@@ -25,6 +26,9 @@ final class ProjectPresentationPresetService {
     required String destinationPath,
     Map<String, String> licenses = const <String, String>{},
     String? redistributionLicenseSourcePath,
+    ProjectPresentationPresetScope scope =
+        ProjectPresentationPresetScope.complete,
+    List<String> replacedSections = const <String>[],
   }) async {
     final effectiveLicenses = await _catalogPresentationAssets(
       projectRootPath,
@@ -40,6 +44,8 @@ final class ProjectPresentationPresetService {
         'label': label,
         'description': description,
         'licenses': effectiveLicenses,
+        'scope': scope.name,
+        'replacedSections': replacedSections,
       },
       idempotencyKey: identity,
       requestId: identity,
