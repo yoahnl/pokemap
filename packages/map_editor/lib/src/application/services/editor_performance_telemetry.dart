@@ -5,11 +5,18 @@ import 'package:map_core/map_core.dart';
 final class EditorPerformanceSpanName {
   const EditorPerformanceSpanName._();
 
-  static const pointerToDispatch = 'pointer_to_dispatch';
+  static const pointerPreDispatch = 'pointer.pre_dispatch';
+  static const pointerToStatePublish = 'pointer.to_state_publish';
   static const mutationLocal = 'mutation.local';
   static const statePublish = 'state.publish';
-  static const canvasBuild = 'canvas.build';
-  static const canvasPaint = 'canvas.paint';
+  static const canvasPrepare = 'canvas.prepare';
+  static const canvasFutureBuilderBody = 'canvas.future_builder_body';
+  static const canvasPaintRecording = 'canvas.paint_recording';
+  static const maskReadback = 'mask.readback';
+  static const maskPointerMove = 'mask.pointer_move';
+  static const maskCommit = 'mask.commit';
+  static const maskBuild = 'mask.build';
+  static const maskPaint = 'mask.paint';
   static const snapshot = 'snapshot';
   static const plan = 'plan';
   static const apply = 'apply';
@@ -17,11 +24,18 @@ final class EditorPerformanceSpanName {
   static const saveEncode = 'save.encode';
 
   static const all = <String>[
-    pointerToDispatch,
+    pointerPreDispatch,
+    pointerToStatePublish,
     mutationLocal,
     statePublish,
-    canvasBuild,
-    canvasPaint,
+    canvasPrepare,
+    canvasFutureBuilderBody,
+    canvasPaintRecording,
+    maskReadback,
+    maskPointerMove,
+    maskCommit,
+    maskBuild,
+    maskPaint,
     snapshot,
     plan,
     apply,

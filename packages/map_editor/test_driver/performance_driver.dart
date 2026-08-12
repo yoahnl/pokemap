@@ -5,13 +5,15 @@ import 'package:crypto/crypto.dart';
 import 'package:integration_test/integration_test_driver.dart';
 import 'package:path/path.dart' as p;
 
+import 'support/fine_mask_performance_contract.dart';
+
 Future<void> main() async {
   await integrationDriver(
     responseDataCallback: (data) async {
       if (data == null) {
         throw const FormatException('Editor performance response is missing.');
       }
-      validatePerformanceResponse(data);
+      _validatePerformanceData(data, requireProvenance: false);
       final target = data['target']! as String;
       final requestedOutput = data['requestedOutputPath'];
       if (requestedOutput is! String || requestedOutput.trim().isEmpty) {
@@ -69,6 +71,7 @@ Future<void> main() async {
           '--dart-define=POKEMAP_PERF_OUTPUT=$requestedOutput',
         ],
       };
+      validatePerformanceResponse(receipt);
       await output.parent.create(recursive: true);
       final temporary = File('${output.path}.tmp-$pid');
       await temporary.writeAsString(
@@ -83,6 +86,13 @@ Future<void> main() async {
 }
 
 void validatePerformanceResponse(Map<String, dynamic> data) {
+  _validatePerformanceData(data, requireProvenance: true);
+}
+
+void _validatePerformanceData(
+  Map<String, dynamic> data, {
+  required bool requireProvenance,
+}) {
   if (data['schemaVersion'] != 2) {
     throw const FormatException(
       'Editor performance response must use schema V2.',
@@ -96,14 +106,30 @@ void validatePerformanceResponse(Map<String, dynamic> data) {
     );
   }
   if (target == 'integration_test/editor_project_journey_test.dart') {
+    if (requireProvenance) _validateProvenance(data);
     _validateInstrumentation(data);
   } else if (target ==
       'integration_test/editor_canvas_projection_journey_test.dart') {
+    if (requireProvenance) _validateProvenance(data);
     _validateCanvasProjection(data);
+  } else if (target == 'integration_test/editor_fine_mask_journey_test.dart') {
+    validateFineMaskPerformanceReceipt(
+      data,
+      requireProvenance: requireProvenance,
+    );
   }
 }
 
 void _validateCanvasProjection(Map<String, dynamic> data) {
+  final measurementScope = data['measurementScope'];
+  if (measurementScope is! Map ||
+      measurementScope['metric'] != 'canvas.paint_recording' ||
+      measurementScope['includesGpuRaster'] != false ||
+      measurementScope['includesLayoutAndComposition'] != false) {
+    throw const FormatException(
+      'Canvas projection must identify UI-thread picture recording separately from full Flutter frames.',
+    );
+  }
   final results = data['results'];
   const extents = <int>{128, 256, 512, 1024};
   const modes = <String>{'standard', 'smart', 'shadows', 'combined'};
@@ -125,6 +151,15 @@ void _validateCanvasProjection(Map<String, dynamic> data) {
       'Canvas projection response has an incomplete mode and extent matrix.',
     );
   }
+  final sampleCount = data['sampleCountPerModeAndExtent'];
+  if (sampleCount is! int || sampleCount < 30) {
+    throw const FormatException(
+      'Canvas projection response must declare at least 30 samples per row.',
+    );
+  }
+  for (final row in results.whereType<Map>()) {
+    _validateSampleRow(row, expectedSampleCount: sampleCount);
+  }
   final placements = data['placementResults'];
   final placementCounts = placements is List
       ? placements
@@ -138,20 +173,127 @@ void _validateCanvasProjection(Map<String, dynamic> data) {
       'Canvas projection response must cover 100, 1000 and 10000 elements.',
     );
   }
+  for (final row in placements.whereType<Map>()) {
+    _validateSampleRow(row, expectedSampleCount: sampleCount);
+  }
   _validateMemory(data);
   final gates = data['performanceGates'];
-  if (gates is! Map ||
-      gates['combined1024P95Pass'] != true ||
-      gates['repaintP95Pass'] != true ||
-      gates['combinedScaleRatioPass'] != true ||
-      gates['standardControlPass'] != true) {
+  if (gates is! Map) {
+    throw const FormatException(
+      'Canvas projection response must declare repaint budgets.',
+    );
+  }
+  final standard1024 = _canvasRow(results, mode: 'standard', extent: 1024);
+  final combined128 = _canvasRow(results, mode: 'combined', extent: 128);
+  final combined1024 = _canvasRow(results, mode: 'combined', extent: 1024);
+  final standardP95 = standard1024['p95Us']! as int;
+  final combined128P95 = combined128['p95Us']! as int;
+  final combined1024P95 = combined1024['p95Us']! as int;
+  final combinedBudget = gates['combined1024P95BudgetUs'];
+  final repaintBudget = gates['repaintP95BudgetUs'];
+  final scaleBudget = gates['combined1024To128P95RatioBudget'];
+  final standardBudget = gates['standard1024P95ObservationCeilingUs'];
+  final scaleRatio =
+      combined1024P95 / (combined128P95 == 0 ? 1 : combined128P95);
+  if (combinedBudget is! int ||
+      repaintBudget is! int ||
+      scaleBudget is! num ||
+      standardBudget is! int ||
+      combined1024P95 >= combinedBudget ||
+      combined1024P95 >= repaintBudget ||
+      scaleRatio >= scaleBudget ||
+      standardP95 >= standardBudget ||
+      gates['combined1024P95Pass'] != (combined1024P95 < combinedBudget) ||
+      gates['repaintP95Pass'] != (combined1024P95 < repaintBudget) ||
+      gates['combinedScaleRatioPass'] != (scaleRatio < scaleBudget) ||
+      gates['standardControlPass'] != (standardP95 < standardBudget)) {
     throw const FormatException(
       'Canvas projection response must pass every repaint gate.',
     );
   }
 }
 
+Map _canvasRow(
+  List<Object?> rows, {
+  required String mode,
+  required int extent,
+}) {
+  return rows.whereType<Map>().firstWhere(
+    (row) => row['mode'] == mode && row['extent'] == extent,
+  );
+}
+
+void _validateSampleRow(Map row, {required int expectedSampleCount}) {
+  final samples = row['samplesUs'];
+  if (samples is! List ||
+      samples.length != expectedSampleCount ||
+      samples.any((sample) => sample is! int || sample < 0)) {
+    throw const FormatException(
+      'Performance rows must contain the declared non-negative raw samples.',
+    );
+  }
+  final sorted = samples.cast<int>().toList(growable: false)..sort();
+  if (row['p50Us'] != _percentile(sorted, 0.50) ||
+      row['p95Us'] != _percentile(sorted, 0.95) ||
+      row['p99Us'] != _percentile(sorted, 0.99) ||
+      row['maxUs'] != sorted.last) {
+    throw const FormatException(
+      'Performance row percentiles must match its raw samples.',
+    );
+  }
+}
+
+int _percentile(List<int> sorted, double percentile) {
+  final index = (percentile * sorted.length).ceil() - 1;
+  return sorted[index.clamp(0, sorted.length - 1)];
+}
+
+void _validateProvenance(Map<String, dynamic> data) {
+  final commit = data['commit'];
+  final sdk = data['sdk'];
+  final toolchain = data['toolchain'];
+  final flutter = toolchain is Map ? toolchain['flutter'] : null;
+  final dart = toolchain is Map ? toolchain['dart'] : null;
+  final flame = toolchain is Map ? toolchain['flame'] : null;
+  if (data['executionMode'] != 'flutter-profile' ||
+      data['treeState'] != 'clean' ||
+      commit is! String ||
+      !RegExp(r'^[0-9a-f]{40}$').hasMatch(commit) ||
+      sdk is! String ||
+      !_isAvailableText(sdk) ||
+      toolchain is! Map ||
+      dart is! String ||
+      !_isAvailableText(dart) ||
+      flutter is! Map ||
+      flutter['frameworkRevision'] is! String ||
+      !_isAvailableText(flutter['frameworkRevision']! as String) ||
+      flame is! String ||
+      !_isAvailableText(flame)) {
+    throw const FormatException(
+      'Performance receipt must come from a clean profile run with complete provenance.',
+    );
+  }
+}
+
+bool _isAvailableText(String value) {
+  final normalized = value.trim().toLowerCase();
+  return normalized.isNotEmpty &&
+      normalized != 'unavailable' &&
+      normalized != 'unknown' &&
+      normalized != 'malformed';
+}
+
 void _validateInstrumentation(Map<String, dynamic> data) {
+  final measurementScope = data['measurementScope'];
+  if (measurementScope is! Map ||
+      measurementScope['pointerLatencyMetric'] != 'pointer.to_state_publish' ||
+      measurementScope['canvasPaintMetric'] != 'canvas.paint_recording' ||
+      measurementScope['frameMetric'] != 'flutter.frame_total' ||
+      measurementScope['framePolicy'] != 'observation') {
+    throw const FormatException(
+      'Editor project journey must declare distinct pointer, paint-recording and Flutter-frame scopes.',
+    );
+  }
   final instrumentation = data['instrumentation'];
   if (instrumentation is! Map || instrumentation['schemaVersion'] != 1) {
     throw const FormatException(
@@ -160,11 +302,18 @@ void _validateInstrumentation(Map<String, dynamic> data) {
   }
   final spans = instrumentation['spans'];
   const spanNames = <String>{
-    'pointer_to_dispatch',
+    'pointer.pre_dispatch',
+    'pointer.to_state_publish',
     'mutation.local',
     'state.publish',
-    'canvas.build',
-    'canvas.paint',
+    'canvas.prepare',
+    'canvas.future_builder_body',
+    'canvas.paint_recording',
+    'mask.readback',
+    'mask.pointer_move',
+    'mask.commit',
+    'mask.build',
+    'mask.paint',
     'snapshot',
     'plan',
     'apply',
@@ -201,6 +350,12 @@ void _validateInstrumentation(Map<String, dynamic> data) {
       'Editor performance instrumentation dropped samples.',
     );
   }
+  if (instrumentation['coverage'] !=
+      'instrumented editor and authoring application boundaries only') {
+    throw const FormatException(
+      'Editor performance counters must declare their exact instrumented-boundary scope.',
+    );
+  }
   final results = data['results'];
   if (results is! List) {
     throw const FormatException(
@@ -216,22 +371,31 @@ void _validateInstrumentation(Map<String, dynamic> data) {
   _validateHotPathPhase(
     results,
     phaseName: 'pointer-collision-drag',
-    requiredSpan: 'pointer_to_dispatch',
+    requiredSpan: 'pointer.pre_dispatch',
+    expectedSpanCount: 90,
+  );
+  _validateHotPathPhase(
+    results,
+    phaseName: 'pointer-collision-drag',
+    requiredSpan: 'pointer.to_state_publish',
     expectedSpanCount: 90,
     p95BudgetUs: 8000,
   );
-  for (final strokeCount in const <int>[1, 10, 100, 1000]) {
-    _validateHotPathPhase(
-      results,
-      phaseName: 'collision-paint-$strokeCount',
-      requiredSpan: 'mutation.local',
-      expectedSpanCount: strokeCount,
-    );
+  for (final extent in const <int>[128, 256, 512, 1024]) {
+    for (final strokeCount in const <int>[1, 10, 100, 1000]) {
+      _validateHotPathPhase(
+        results,
+        phaseName: 'collision-paint-${extent}x$extent-$strokeCount',
+        requiredSpan: 'mutation.local',
+        expectedSpanCount: strokeCount,
+      );
+    }
   }
   _validateCanonicalPlacementPhase(results);
   _validateMaskMatrix(results);
   _validatePlacementPhase(results);
   _validateMemory(data);
+  _validateFrameMetrics(data);
 }
 
 void _validateHotPathPhase(
@@ -241,14 +405,8 @@ void _validateHotPathPhase(
   required int expectedSpanCount,
   int? p95BudgetUs,
 }) {
-  Map? phase;
-  for (final candidate in results) {
-    if (candidate is Map && candidate['phase'] == phaseName) {
-      phase = candidate;
-      break;
-    }
-  }
-  final instrumentation = phase?['instrumentation'];
+  final phase = _singlePhase(results, phaseName);
+  final instrumentation = phase['instrumentation'];
   final spans = instrumentation is Map ? instrumentation['spans'] : null;
   final metrics = spans is Map ? spans[requiredSpan] : null;
   if (metrics is! Map || metrics['count'] != expectedSpanCount) {
@@ -256,6 +414,7 @@ void _validateHotPathPhase(
       '$phaseName must record exactly $expectedSpanCount $requiredSpan span(s).',
     );
   }
+  _validateSampleRow(metrics, expectedSampleCount: expectedSpanCount);
   if (p95BudgetUs != null &&
       (metrics['p95Us'] is! int || (metrics['p95Us']! as int) >= p95BudgetUs)) {
     throw FormatException(
@@ -282,11 +441,9 @@ void _validateHotPathPhase(
 }
 
 void _validatePlacementPhase(List<Object?> results) {
-  final phase = results.whereType<Map>().cast<Map>().firstWhere(
-    (candidate) => candidate['phase'] == 'tile-placement-90',
-    orElse: () => const <Object?, Object?>{},
-  );
+  final phase = _singlePhase(results, 'tile-placement-90');
   final p95Us = phase['p95Us'];
+  _validateSampleRow(phase, expectedSampleCount: 90);
   if (p95Us is! int || p95Us >= 16000) {
     throw const FormatException(
       'tile-placement-90 must keep P95 below 16000 us.',
@@ -295,10 +452,7 @@ void _validatePlacementPhase(List<Object?> results) {
 }
 
 void _validateCanonicalPlacementPhase(List<Object?> results) {
-  final phase = results.whereType<Map>().firstWhere(
-    (candidate) => candidate['phase'] == 'canonical-element-placement',
-    orElse: () => const <Object?, Object?>{},
-  );
+  final phase = _singlePhase(results, 'canonical-element-placement');
   final instrumentation = phase['instrumentation'];
   final spans = instrumentation is Map ? instrumentation['spans'] : null;
   for (final name in const <String>['snapshot', 'plan', 'apply']) {
@@ -308,16 +462,14 @@ void _validateCanonicalPlacementPhase(List<Object?> results) {
         'canonical-element-placement must record at least one $name span.',
       );
     }
+    _validateSampleRow(metrics, expectedSampleCount: metrics['count']! as int);
   }
 }
 
 void _validateMaskMatrix(List<Object?> results) {
   for (final extent in const <int>[64, 256, 512, 1024]) {
     final phaseName = 'mask-roundtrip-${extent}x$extent';
-    final phase = results.whereType<Map>().firstWhere(
-      (candidate) => candidate['phase'] == phaseName,
-      orElse: () => const <Object?, Object?>{},
-    );
+    final phase = _singlePhase(results, phaseName);
     final instrumentation = phase['instrumentation'];
     final counters = instrumentation is Map
         ? instrumentation['counters']
@@ -329,14 +481,21 @@ void _validateMaskMatrix(List<Object?> results) {
         '$phaseName must record 10 base64 encodes and decodes.',
       );
     }
-    if (phase['p50Us'] is! int ||
-        phase['p95Us'] is! int ||
-        phase['p99Us'] is! int) {
-      throw FormatException(
-        '$phaseName must include P50, P95 and P99 latency.',
-      );
-    }
+    _validateSampleRow(phase, expectedSampleCount: 10);
   }
+}
+
+Map _singlePhase(List<Object?> results, String phaseName) {
+  final matches = results
+      .whereType<Map>()
+      .where((candidate) => candidate['phase'] == phaseName)
+      .toList(growable: false);
+  if (matches.length != 1) {
+    throw FormatException(
+      'Editor performance response must contain exactly one $phaseName phase.',
+    );
+  }
+  return matches.single;
 }
 
 void _validateMemory(Map<String, dynamic> data) {
@@ -356,6 +515,29 @@ void _validateMemory(Map<String, dynamic> data) {
       'Editor performance response must include VM allocations and heap after GC.',
     );
   }
+}
+
+void _validateFrameMetrics(Map<String, dynamic> data) {
+  final metrics = data['frameMetrics'];
+  final samples = metrics is Map
+      ? metrics['frameSpanSamplesMicroseconds']
+      : null;
+  if (metrics is! Map ||
+      metrics['scope'] != 'flutter.frame_total' ||
+      metrics['policy'] != 'observation' ||
+      samples is! List ||
+      samples.length < 30) {
+    throw const FormatException(
+      'Editor project journey must include raw Flutter frame timings.',
+    );
+  }
+  _validateSampleRow(<Object?, Object?>{
+    'samplesUs': samples,
+    'p50Us': metrics['frameSpanP50Us'],
+    'p95Us': metrics['frameSpanP95Us'],
+    'p99Us': metrics['frameSpanP99Us'],
+    'maxUs': samples.cast<int>().reduce((a, b) => a > b ? a : b),
+  }, expectedSampleCount: samples.length);
 }
 
 File _validatedOutput(String relativePath) {

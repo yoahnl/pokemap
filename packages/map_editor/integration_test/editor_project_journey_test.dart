@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' show Offset, Size;
+import 'dart:ui' as ui;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/gestures.dart' show PointerDeviceKind, kPrimaryButton;
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -33,7 +34,15 @@ void main() {
     // 800x600 contract, which would measure an error screen instead of edits.
     await tester.binding.setSurfaceSize(const Size(1280, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    final fixture = await _EditorPerformanceFixture.create();
+    final fixtureData = await rootBundle.load(
+      'assets/cinematics/emotes/emotions.png',
+    );
+    final fixture = await _EditorPerformanceFixture.create(
+      fixtureData.buffer.asUint8List(
+        fixtureData.offsetInBytes,
+        fixtureData.lengthInBytes,
+      ),
+    );
     addTearDown(fixture.dispose);
     final container = ProviderContainer(retry: disableAutomaticProviderRetry);
     addTearDown(container.dispose);
@@ -166,48 +175,61 @@ void main() {
       final pointerSpans =
           pointerInstrumentation['spans']! as Map<String, Object?>;
       expect(
-        (pointerSpans[EditorPerformanceSpanName.pointerToDispatch]!
+        (pointerSpans[EditorPerformanceSpanName.pointerPreDispatch]!
             as Map<String, Object?>)['count'],
         90,
       );
       expect(
-        (pointerSpans[EditorPerformanceSpanName.pointerToDispatch]!
+        (pointerSpans[EditorPerformanceSpanName.pointerToStatePublish]!
+            as Map<String, Object?>)['count'],
+        90,
+      );
+      expect(
+        (pointerSpans[EditorPerformanceSpanName.pointerToStatePublish]!
             as Map<String, Object?>)['p95Us'],
         lessThan(8000),
       );
       _expectNoPersistenceWork(pointerPhase);
 
-      for (final strokeCount in const <int>[1, 10, 100, 1000]) {
-        phases.add(
-          await _measure(
-            'collision-paint-$strokeCount',
-            performanceRecorder,
-            () async {
-              notifier.beginMapStroke();
-              for (var index = 0; index < strokeCount; index += 1) {
-                notifier.paintCollisionAt(
-                  GridPos(x: index % 64, y: (index * 7) % 64),
-                );
-                if (index % 100 == 99) {
-                  await tester.pump(const Duration(milliseconds: 16));
+      for (final extent in const <int>[128, 256, 512, 1024]) {
+        await notifier.loadMap('maps/collision-$extent.json');
+        notifier.setActiveLayer('collision');
+        notifier.selectTool(EditorToolType.collisionPaint);
+        var nextCellIndex = 0;
+        for (final strokeCount in const <int>[1, 10, 100, 1000]) {
+          phases.add(
+            await _measure(
+              'collision-paint-${extent}x$extent-$strokeCount',
+              performanceRecorder,
+              () async {
+                notifier.beginMapStroke();
+                for (var index = 0; index < strokeCount; index += 1) {
+                  final cellIndex = nextCellIndex + index;
+                  notifier.paintCollisionAt(
+                    GridPos(x: cellIndex % extent, y: cellIndex ~/ extent),
+                  );
+                  if (index % 100 == 99) {
+                    await tester.pump(const Duration(milliseconds: 16));
+                  }
                 }
-              }
-              notifier.endMapStroke();
-              await tester.pump(const Duration(milliseconds: 16));
-            },
-          ),
-        );
-        final collisionPhase = phases.last;
-        final collisionInstrumentation =
-            collisionPhase['instrumentation']! as Map<String, Object?>;
-        final collisionSpans =
-            collisionInstrumentation['spans']! as Map<String, Object?>;
-        expect(
-          (collisionSpans[EditorPerformanceSpanName.mutationLocal]!
-              as Map<String, Object?>)['count'],
-          strokeCount,
-        );
-        _expectNoPersistenceWork(collisionPhase);
+                nextCellIndex += strokeCount;
+                notifier.endMapStroke();
+                await tester.pump(const Duration(milliseconds: 16));
+              },
+            ),
+          );
+          final collisionPhase = phases.last;
+          final collisionInstrumentation =
+              collisionPhase['instrumentation']! as Map<String, Object?>;
+          final collisionSpans =
+              collisionInstrumentation['spans']! as Map<String, Object?>;
+          expect(
+            (collisionSpans[EditorPerformanceSpanName.mutationLocal]!
+                as Map<String, Object?>)['count'],
+            strokeCount,
+          );
+          _expectNoPersistenceWork(collisionPhase);
+        }
       }
       expect(notifier.state.isDirty, isTrue);
 
@@ -282,7 +304,7 @@ void main() {
       'executionMode': const bool.fromEnvironment('dart.vm.profile')
           ? 'flutter-profile'
           : 'flutter-debug',
-      'fixture': 'synthetic-interactive-64x64',
+      'fixture': 'synthetic-interactive-collision-matrix',
       'fixtureFingerprint': fixture.fingerprint,
       'warmups': 3,
       'sampleCount': timings.length,
@@ -291,7 +313,8 @@ void main() {
         'mapOpen': 1,
         'tilePlacement': 90,
         'canonicalElementPlacement': 1,
-        'collisionPaint': <int>[1, 10, 100, 1000],
+        'collisionPaintExtents': <int>[128, 256, 512, 1024],
+        'collisionPaintCounts': <int>[1, 10, 100, 1000],
         'pointerCollisionDrag': 90,
         'maskExtents': <int>[64, 256, 512, 1024],
         'undo': 1,
@@ -299,6 +322,10 @@ void main() {
         'save': 1,
       },
       'measurementScope': <String, Object?>{
+        'pointerLatencyMetric': 'pointer.to_state_publish',
+        'canvasPaintMetric': 'canvas.paint_recording',
+        'frameMetric': 'flutter.frame_total',
+        'framePolicy': 'observation',
         'flutterFrames': true,
         'pureCorePaint': false,
         'buildAndRasterCombined': false,
@@ -313,17 +340,17 @@ void main() {
       'results': phases,
       'instrumentation': <String, Object?>{
         'schemaVersion': 1,
-        'coverage': 'application-boundaries',
+        'coverage':
+            'instrumented editor and authoring application boundaries only',
         'canvasPaintScope': 'ui-thread picture recording, excludes GPU raster',
         ...performanceRecorder.snapshot().toJson(),
       },
       'frameMetrics': frameMetrics,
       'thresholdPolicy': <String, Object?>{
-        'observationOnly': false,
+        'interactiveBudgetsRecalculatedByDriver': true,
         'placementP95BudgetUs': 16000,
         'pointerMoveP95BudgetUs': 8000,
-        'minimumHistoricalObservations': 10,
-        'requiredConsecutiveRegressions': 2,
+        'flutterFrameTimingPolicy': 'observation',
       },
     };
   });
@@ -398,6 +425,8 @@ Map<String, Object?> _frameMetrics(List<FrameTiming> timings) {
   final over16 = spans.where((value) => value > 16670).length;
   final over33 = spans.where((value) => value > 33300).length;
   return <String, Object?>{
+    'scope': 'flutter.frame_total',
+    'policy': 'observation',
     'frameCount': timings.length,
     'buildSamplesMicroseconds': build,
     'rasterSamplesMicroseconds': raster,
@@ -435,11 +464,14 @@ final class _EditorPerformanceFixture {
   final String manifestPath;
   final String fingerprint;
 
-  static Future<_EditorPerformanceFixture> create() async {
+  static Future<_EditorPerformanceFixture> create(
+    List<int> tilesetBytes,
+  ) async {
     final root = await Directory.systemTemp.createTemp('pokemap-rm00-editor-');
     final manifestPath = p.join(root.path, 'project.json');
     final mapPath = p.join(root.path, 'maps', 'performance.json');
-    const manifest = ProjectManifest(
+    final tilesetPath = p.join(root.path, 'tilesets', 'profile.png');
+    final manifest = ProjectManifest(
       name: 'RM-00 editor profile',
       version: ProjectVersion.v6,
       maps: <ProjectMapEntry>[
@@ -448,6 +480,12 @@ final class _EditorPerformanceFixture {
           name: 'Performance',
           relativePath: 'maps/performance.json',
         ),
+        for (final extent in <int>[128, 256, 512, 1024])
+          ProjectMapEntry(
+            id: 'collision-$extent',
+            name: 'Collision $extent',
+            relativePath: 'maps/collision-$extent.json',
+          ),
       ],
       tilesets: <ProjectTilesetEntry>[
         ProjectTilesetEntry(
@@ -456,8 +494,8 @@ final class _EditorPerformanceFixture {
           relativePath: 'tilesets/profile.png',
           source: ProjectRegularAtlasTilesetSource(
             assetId: 'profile.png',
-            pixelWidth: 32,
-            pixelHeight: 32,
+            pixelWidth: 128,
+            pixelHeight: 48,
             tileWidth: 32,
             tileHeight: 32,
           ),
@@ -503,6 +541,39 @@ final class _EditorPerformanceFixture {
       mapPath,
       projectDialogueContext: manifest,
     );
+    await Directory(p.dirname(tilesetPath)).create(recursive: true);
+    await File(tilesetPath).writeAsBytes(tilesetBytes, flush: true);
+    final persistedTileset = await File(tilesetPath).readAsBytes();
+    final codec = await ui.instantiateImageCodec(persistedTileset);
+    final frame = await codec.getNextFrame();
+    if (frame.image.width != 128 || frame.image.height != 48) {
+      frame.image.dispose();
+      codec.dispose();
+      throw StateError('Performance fixture tileset must decode as 128x48.');
+    }
+    frame.image.dispose();
+    codec.dispose();
+    final collisionMaps = <MapData>[];
+    for (final extent in <int>[128, 256, 512, 1024]) {
+      final collisionMap = MapData(
+        id: 'collision-$extent',
+        name: 'Collision $extent',
+        size: GridSize(width: extent, height: extent),
+        layers: <MapLayer>[
+          CollisionLayer(
+            id: 'collision',
+            name: 'Collision',
+            collisions: List<bool>.filled(extent * extent, false),
+          ),
+        ],
+      );
+      collisionMaps.add(collisionMap);
+      await FileMapRepository().saveMap(
+        collisionMap,
+        p.join(root.path, 'maps', 'collision-$extent.json'),
+        projectDialogueContext: manifest,
+      );
+    }
     return _EditorPerformanceFixture(
       root: root,
       manifestPath: manifestPath,
@@ -512,6 +583,10 @@ final class _EditorPerformanceFixture {
               jsonEncode(<String, Object?>{
                 'project': manifest.toJson(),
                 'map': map.toJson(),
+                'collisionMaps': collisionMaps
+                    .map((collisionMap) => collisionMap.toJson())
+                    .toList(growable: false),
+                'tilesetSha256': sha256.convert(tilesetBytes).toString(),
               }),
             ),
           )

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import '../ports/idempotency_store.dart';
 import '../support/authoring_fingerprint.dart';
+import '../support/authoring_performance_observer.dart';
 
 final class IdempotencyStoreException implements Exception {
   const IdempotencyStoreException(this.code, this.message);
@@ -21,21 +22,23 @@ final class IdempotencyStoreException implements Exception {
 /// recovery instead of permitting a duplicate mutation. A truncated final
 /// line is ignored because it was never a fully flushed durable event.
 final class FileIdempotencyStore implements IdempotencyStore {
-  FileIdempotencyStore({required String filePath})
-      : _file = File(filePath),
-        _lockFile = File('$filePath.lock'),
-        _compactionFile = File('$filePath.compact'),
-        _backupFile = File('$filePath.backup');
+  FileIdempotencyStore({
+    required String filePath,
+    AuthoringPerformanceObserver? performanceObserver,
+  }) : _performanceObserver = performanceObserver,
+       _file = File(filePath),
+       _lockFile = File('$filePath.lock'),
+       _compactionFile = File('$filePath.compact'),
+       _backupFile = File('$filePath.backup');
 
   final File _file;
   final File _lockFile;
   final File _compactionFile;
   final File _backupFile;
+  final AuthoringPerformanceObserver? _performanceObserver;
 
   @override
-  Future<AuthoringIdempotencyRecord?> read(
-    AuthoringIdempotencyScope scope,
-  ) {
+  Future<AuthoringIdempotencyRecord?> read(AuthoringIdempotencyScope scope) {
     return _withLock(() async {
       final records = await _readUnlocked();
       return records[scope.storageKey];
@@ -133,6 +136,12 @@ final class FileIdempotencyStore implements IdempotencyStore {
   }
 
   Future<T> _withLock<T>(Future<T> Function() operation) async {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemMetadata,
+    );
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemWrite,
+    );
     RandomAccessFile? lock;
     try {
       await _requireSafePaths();
@@ -183,10 +192,7 @@ final class FileIdempotencyStore implements IdempotencyStore {
       );
       if (type == FileSystemEntityType.notFound) {
         await directory.create();
-        type = await FileSystemEntity.type(
-          directory.path,
-          followLinks: false,
-        );
+        type = await FileSystemEntity.type(directory.path, followLinks: false);
       }
       if (type != FileSystemEntityType.directory) {
         throw const IdempotencyStoreException(
@@ -208,6 +214,9 @@ final class FileIdempotencyStore implements IdempotencyStore {
   }
 
   Future<Map<String, AuthoringIdempotencyRecord>> _readUnlocked() async {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemRead,
+    );
     if (!await _file.exists()) return {};
     final bytes = await _file.readAsBytes();
     final records = <String, AuthoringIdempotencyRecord>{};
@@ -218,6 +227,9 @@ final class FileIdempotencyStore implements IdempotencyStore {
       lineStart = index + 1;
       if (lineBytes.isEmpty) continue;
       try {
+        _performanceObserver?.incrementCounter(
+          AuthoringPerformanceCounterName.jsonDecode,
+        );
         final decoded = jsonDecode(utf8.decode(lineBytes));
         if (decoded is! Map) throw const FormatException();
         _applyEvent(records, Map<String, dynamic>.from(decoded));
@@ -234,6 +246,13 @@ final class FileIdempotencyStore implements IdempotencyStore {
   }
 
   Future<void> _appendUnlocked(List<Map<String, Object?>> events) async {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemWrite,
+    );
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.jsonEncode,
+      by: events.length,
+    );
     final writer = await _file.open(mode: FileMode.append);
     try {
       await writer.writeString(
@@ -253,6 +272,13 @@ final class FileIdempotencyStore implements IdempotencyStore {
   Future<void> _compactUnlocked(
     Map<String, AuthoringIdempotencyRecord> records,
   ) async {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemWrite,
+    );
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.jsonEncode,
+      by: records.length,
+    );
     await _deleteIfExists(_compactionFile);
     final orderedKeys = records.keys.toList()..sort();
     final writer = await _compactionFile.open(mode: FileMode.write);
@@ -305,16 +331,16 @@ Future<void> _deleteIfExists(File file) async {
 }
 
 Map<String, Object?> _putEvent(AuthoringIdempotencyRecord record) => {
-      'schemaVersion': 1,
-      'event': 'put',
-      'record': record.toJson(),
-    };
+  'schemaVersion': 1,
+  'event': 'put',
+  'record': record.toJson(),
+};
 
 Map<String, Object?> _removeEvent(AuthoringIdempotencyScope scope) => {
-      'schemaVersion': 1,
-      'event': 'remove',
-      'scope': scope.toJson(),
-    };
+  'schemaVersion': 1,
+  'event': 'remove',
+  'scope': scope.toJson(),
+};
 
 void _applyEvent(
   Map<String, AuthoringIdempotencyRecord> records,

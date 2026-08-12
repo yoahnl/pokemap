@@ -5,13 +5,45 @@ import 'package:map_editor/src/application/services/editor_performance_telemetry
 import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
 
 void main() {
+  test('inactive telemetry does not retain samples or counters', () {
+    for (var index = 0; index < 100000; index += 1) {
+      expect(
+        EditorPerformanceTelemetry.startSpan(
+          EditorPerformanceSpanName.pointerPreDispatch,
+        ),
+        isNull,
+      );
+      EditorPerformanceTelemetry.incrementCounter(
+        EditorPerformanceCounterName.filesystemRead,
+      );
+    }
+
+    final recorder = EditorPerformanceRecorder();
+    final recording = EditorPerformanceTelemetry.startRecording(recorder);
+    addTearDown(recording.close);
+    final snapshot = recorder.snapshot();
+
+    expect(
+      snapshot.spanSamples(EditorPerformanceSpanName.pointerPreDispatch),
+      isEmpty,
+    );
+    expect(snapshot.counter(EditorPerformanceCounterName.filesystemRead), 0);
+  });
+
   test('exposes the complete PERF-000C span catalog', () {
     expect(EditorPerformanceSpanName.all, <String>[
-      'pointer_to_dispatch',
+      'pointer.pre_dispatch',
+      'pointer.to_state_publish',
       'mutation.local',
       'state.publish',
-      'canvas.build',
-      'canvas.paint',
+      'canvas.prepare',
+      'canvas.future_builder_body',
+      'canvas.paint_recording',
+      'mask.readback',
+      'mask.pointer_move',
+      'mask.commit',
+      'mask.build',
+      'mask.paint',
       'snapshot',
       'plan',
       'apply',
@@ -55,14 +87,17 @@ void main() {
     expect(mutationMetrics['p95Us'], 140);
     expect(mutationMetrics['p99Us'], 140);
     expect(mutationMetrics['maxUs'], 140);
-    expect(spans[EditorPerformanceSpanName.canvasPaint], <String, Object?>{
-      'count': 0,
-      'totalUs': 0,
-      'p50Us': 0,
-      'p95Us': 0,
-      'p99Us': 0,
-      'maxUs': 0,
-    });
+    expect(
+      spans[EditorPerformanceSpanName.canvasPaintRecording],
+      <String, Object?>{
+        'count': 0,
+        'totalUs': 0,
+        'p50Us': 0,
+        'p95Us': 0,
+        'p99Us': 0,
+        'maxUs': 0,
+      },
+    );
 
     final delta = recorder.deltaSince(before);
     expect(delta.spanSamples(EditorPerformanceSpanName.mutationLocal), isEmpty);
@@ -75,7 +110,7 @@ void main() {
     recording.close();
     expect(
       EditorPerformanceTelemetry.startSpan(
-        EditorPerformanceSpanName.pointerToDispatch,
+        EditorPerformanceSpanName.pointerPreDispatch,
       ),
       isNull,
     );
@@ -92,7 +127,7 @@ void main() {
 
     for (var index = 0; index < 3; index++) {
       final span = EditorPerformanceTelemetry.startSpan(
-        EditorPerformanceSpanName.canvasPaint,
+        EditorPerformanceSpanName.canvasPaintRecording,
       )!;
       nowMicroseconds += 10;
       span.finish();
@@ -100,7 +135,9 @@ void main() {
 
     final receipt = recorder.snapshot().toJson();
     expect(
-      recorder.snapshot().spanSamples(EditorPerformanceSpanName.canvasPaint),
+      recorder.snapshot().spanSamples(
+        EditorPerformanceSpanName.canvasPaintRecording,
+      ),
       <int>[10, 10],
     );
     expect(receipt['droppedSampleCount'], 1);
@@ -127,7 +164,7 @@ void main() {
     first.close();
     expect(
       EditorPerformanceTelemetry.startSpan(
-        EditorPerformanceSpanName.pointerToDispatch,
+        EditorPerformanceSpanName.pointerPreDispatch,
       ),
       isNull,
     );

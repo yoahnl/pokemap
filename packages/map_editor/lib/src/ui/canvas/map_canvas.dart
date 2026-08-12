@@ -799,6 +799,17 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
 
   @override
   Widget build(BuildContext context) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.canvasPrepare,
+    );
+    try {
+      return _build(context);
+    } finally {
+      span?.finish();
+    }
+  }
+
+  Widget _build(BuildContext context) {
     assert(() {
       widget.debugOnBuild?.call();
       return true;
@@ -948,7 +959,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
 
     return FutureBuilder<_TilesetImageBatch>(
       future: _tilesetImagesFuture,
-      builder: _instrumentCanvasBuilder((context, snapshot) {
+      builder: _instrumentCanvasFutureBuilderBody((context, snapshot) {
         final batch = snapshot.data;
         final tilesetImageResults =
             batch?.generation == _tilesetImageRequestGeneration
@@ -1830,8 +1841,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
               }
             },
             onPanUpdate: (details) {
+              final publicationSpan = EditorPerformanceTelemetry.startSpan(
+                EditorPerformanceSpanName.pointerToStatePublish,
+              );
               final pointerSpan = EditorPerformanceTelemetry.startSpan(
-                EditorPerformanceSpanName.pointerToDispatch,
+                EditorPerformanceSpanName.pointerPreDispatch,
               );
               try {
                 final interaction = _activeGestureInteraction();
@@ -1896,6 +1910,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                 }
               } finally {
                 pointerSpan?.finish();
+                publicationSpan?.finish();
               }
             },
             onPanEnd: (_) {
@@ -2410,12 +2425,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     );
   }
 
-  AsyncWidgetBuilder<T> _instrumentCanvasBuilder<T>(
+  AsyncWidgetBuilder<T> _instrumentCanvasFutureBuilderBody<T>(
     AsyncWidgetBuilder<T> builder,
   ) {
     return (context, snapshot) {
       final span = EditorPerformanceTelemetry.startSpan(
-        EditorPerformanceSpanName.canvasBuild,
+        EditorPerformanceSpanName.canvasFutureBuilderBody,
       );
       try {
         return builder(context, snapshot);
