@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_editor/src/application/services/fine_mask_performance_telemetry.dart';
 
 import '../test_driver/support/fine_mask_performance_contract.dart';
 
@@ -48,6 +49,60 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('rejects a 1024 pointer-move P95 above its budget', () {
+    final receipt = _receipt();
+    final rows = receipt['results']! as List<Map<String, Object?>>;
+    final row = rows.singleWhere((candidate) => candidate['extent'] == 1024);
+    final move = row['moveInstrumentation']! as Map<String, Object?>;
+    final spans = move['spans']! as Map<String, Object?>;
+    spans['mask.pointer_move'] = _metrics(30, sampleUs: 8000);
+
+    expect(
+      () =>
+          validateFineMaskPerformanceReceipt(receipt, requireProvenance: true),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects a 1024 paint P95 above its budget', () {
+    final receipt = _receipt();
+    final rows = receipt['results']! as List<Map<String, Object?>>;
+    final row = rows.singleWhere((candidate) => candidate['extent'] == 1024);
+    final extent = row['extentInstrumentation']! as Map<String, Object?>;
+    final spans = extent['spans']! as Map<String, Object?>;
+    spans['mask.paint'] = _metrics(2, sampleUs: 16700);
+
+    expect(
+      () =>
+          validateFineMaskPerformanceReceipt(receipt, requireProvenance: true),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects unavailable canonical provenance', () {
+    for (final mutation in <void Function(Map<String, dynamic>)>[
+      (receipt) => receipt['sdk'] = 'unavailable',
+      (receipt) => (receipt['toolchain']! as Map<String, Object?>)['dart'] =
+          'unavailable',
+      (receipt) =>
+          ((receipt['toolchain']! as Map<String, Object?>)['flutter']!
+                  as Map<String, Object?>)['frameworkRevision'] =
+              'unavailable',
+      (receipt) => (receipt['toolchain']! as Map<String, Object?>)['flame'] =
+          'unavailable',
+    ]) {
+      final receipt = _receipt();
+      mutation(receipt);
+      expect(
+        () => validateFineMaskPerformanceReceipt(
+          receipt,
+          requireProvenance: true,
+        ),
+        throwsFormatException,
+      );
+    }
+  });
 }
 
 Map<String, dynamic> _receipt() => <String, dynamic>{
@@ -63,6 +118,13 @@ Map<String, dynamic> _receipt() => <String, dynamic>{
     'flame': '1.0.0',
   },
   'pointerMovesPerExtent': 30,
+  'performanceBudgets': <String, Object?>{
+    'schemaVersion': FineMaskPerformanceBudget.schemaVersion,
+    'fineMask1024PointerMoveP95Us':
+        FineMaskPerformanceBudget.pointerMove1024P95Us,
+    'fineMask1024PaintP95Us': FineMaskPerformanceBudget.paint1024P95Us,
+    'frameTimingPolicy': FineMaskPerformanceBudget.frameTimingPolicy,
+  },
   'soakCycles': 3,
   'soakMemory': _memory(heapAfterGcBytes: 2560),
   'soakHeapGrowthBudgetBytes': 32 * 1024 * 1024,
@@ -105,6 +167,8 @@ Map<String, Object?> _row(int extent) {
     'commitInstrumentation': commit,
     'extentInstrumentation': total,
     'frameMetrics': <String, Object?>{
+      'scope': 'flutter.frame_total',
+      'policy': FineMaskPerformanceBudget.frameTimingPolicy,
       'samplesUs': List<int>.filled(30, 1000),
       'p50Us': 1000,
       'p95Us': 1000,
@@ -130,11 +194,12 @@ Map<String, Object?> _instrumentation() => <String, Object?>{
   },
 };
 
-Map<String, Object?> _metrics(int count) => <String, Object?>{
-  'count': count,
-  'samplesUs': List<int>.filled(count, 100),
-  'p50Us': 100,
-  'p95Us': 100,
-  'p99Us': 100,
-  'maxUs': 100,
-};
+Map<String, Object?> _metrics(int count, {int sampleUs = 100}) =>
+    <String, Object?>{
+      'count': count,
+      'samplesUs': List<int>.filled(count, sampleUs),
+      'p50Us': sampleUs,
+      'p95Us': sampleUs,
+      'p99Us': sampleUs,
+      'maxUs': sampleUs,
+    };
