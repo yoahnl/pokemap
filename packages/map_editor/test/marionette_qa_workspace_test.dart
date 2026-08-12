@@ -125,6 +125,26 @@ void main() {
           '/container/Documents/PokeMapMarionetteQA/run-42',
     ]);
   });
+
+  test('builds the sandbox-owned personalization seed command', () {
+    const plan = MarionetteQaSeedLaunchPlan(
+      packageRootPath: '/repo/packages/map_editor',
+      runId: 'phase-b-live',
+    );
+
+    expect(plan.executable, 'flutter');
+    expect(plan.workingDirectory, '/repo/packages/map_editor');
+    expect(plan.arguments, <String>[
+      'run',
+      '-t',
+      'dev/marionette_main.dart',
+      '-d',
+      'macos',
+      '--debug',
+      '--dart-define=MARIONETTE_PROJECT_SEED=personalization-v3',
+      '--dart-define=MARIONETTE_QA_RUN_ID=phase-b-live',
+    ]);
+  });
 }
 
 void _writeProject(Directory root) {
