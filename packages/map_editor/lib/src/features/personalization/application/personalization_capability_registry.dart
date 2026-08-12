@@ -128,6 +128,7 @@ final personalizationCapabilityRegistry = PersonalizationCapabilityRegistry(
       '/presentation/theme',
       'RuntimePlayerPresentation',
       'global-style-color-accent',
+      additionalProjectPaths: const <String>{'/presentation/surfacePalettes'},
     ),
     _project(
       'global.windows',
@@ -152,6 +153,7 @@ final personalizationCapabilityRegistry = PersonalizationCapabilityRegistry(
       '/presentation/layouts/title',
       'PlayerTitleSurface',
       'title-preset-centered',
+      additionalProjectPaths: const <String>{'/presentation/title'},
     ),
     _project(
       'title.media',
@@ -216,6 +218,7 @@ final personalizationCapabilityRegistry = PersonalizationCapabilityRegistry(
       '/presentation/pause',
       'RuntimePlayerPauseShell',
       'pause-action-label-pokedex',
+      additionalProjectPaths: const <String>{'/presentation/menuLabels'},
     ),
     _project(
       'dialogue.geometry',
@@ -224,6 +227,7 @@ final personalizationCapabilityRegistry = PersonalizationCapabilityRegistry(
       '/presentation/dialogue',
       'PlayerDialogueSurface',
       'dialogue-geometry-placement-bottom',
+      additionalProjectPaths: const <String>{'/presentation/layouts/dialogue'},
     ),
     _project(
       'dialogue.colors',
@@ -384,13 +388,15 @@ PersonalizationCapabilityDescriptor _project(
   String label,
   String projectPath,
   String runtimeSurface,
-  String testKey,
-) => PersonalizationCapabilityDescriptor(
+  String testKey, {
+  Set<String> additionalProjectPaths = const <String>{},
+}) => PersonalizationCapabilityDescriptor(
   id: id,
   scene: scene,
   label: label,
   effect: PersonalizationControlEffect.project,
   projectPath: projectPath,
+  additionalProjectPaths: additionalProjectPaths,
   runtimeSurface: runtimeSurface,
   testKey: testKey,
 );

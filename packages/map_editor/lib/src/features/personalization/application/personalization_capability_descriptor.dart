@@ -15,6 +15,7 @@ final class PersonalizationCapabilityDescriptor {
     required this.label,
     required this.effect,
     this.projectPath,
+    this.additionalProjectPaths = const <String>{},
     this.runtimeSurface,
     this.testKey,
     this.additionalTestKeys = const <String>{},
@@ -31,6 +32,9 @@ final class PersonalizationCapabilityDescriptor {
     switch (effect) {
       case PersonalizationControlEffect.project:
         if (projectPath?.startsWith('/presentation/') != true ||
+            additionalProjectPaths.any(
+              (path) => !path.startsWith('/presentation/'),
+            ) ||
             runtimeSurface?.trim().isEmpty != false ||
             testKey == null) {
           throw ArgumentError(
@@ -40,7 +44,10 @@ final class PersonalizationCapabilityDescriptor {
         }
       case PersonalizationControlEffect.previewOnly:
       case PersonalizationControlEffect.navigation:
-        if (projectPath != null || runtimeSurface != null || testKey == null) {
+        if (projectPath != null ||
+            additionalProjectPaths.isNotEmpty ||
+            runtimeSurface != null ||
+            testKey == null) {
           throw ArgumentError(
             'Local capabilities require a test key and cannot claim project '
             'or runtime persistence.',
@@ -54,9 +61,15 @@ final class PersonalizationCapabilityDescriptor {
   final String label;
   final PersonalizationControlEffect effect;
   final String? projectPath;
+  final Set<String> additionalProjectPaths;
   final String? runtimeSurface;
   final String? testKey;
   final Set<String> additionalTestKeys;
 
   Set<String> get testKeys => <String>{?testKey, ...additionalTestKeys};
+
+  Set<String> get projectPaths => <String>{
+    ?projectPath,
+    ...additionalProjectPaths,
+  };
 }
