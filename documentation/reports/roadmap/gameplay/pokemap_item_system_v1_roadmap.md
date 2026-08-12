@@ -12,11 +12,11 @@
 
 ## 1. Statut, autorité et règle de portée
 
-- [ ] PARTIAL — Item System V1 est certifié L0 à L6 sur le build du dépôt et la phase 9 est clôturée ; seul le reload du serveur MCP global d’ITM-085 reste hors preuve courante.
-- Dernière mise à jour : 12 août 2026, après exécution de la phase 9, certification produit L0-L6 et recertification Selbrume V6.
-- Avancement : 57 lots DONE, 1 lot PARTIAL, 0 lot TODO et 1 lot DEFERRED_BY_PRODUCT sur 59 lots uniques.
-- Phases : 9 phases clôturées, 1 phase PARTIAL et 0 phase TODO sur 10.
-- Travail restant : `ITM-085` reste PARTIAL tant que le serveur MCP global configuré n’est pas rechargé sur le build courant. `ITM-034` reste différé et exige une nouvelle décision produit.
+- [x] DONE_SCOPE_V1 — Item System V1 est fermé sur la cible promise : vérité moteur canonique, sauvegardes strictes, key items protégés, authoring fail-closed, parité MCP et certification exécutable L0-L6.
+- Dernière mise à jour : 12 août 2026, après exécution de la phase 10 et recertification hostile du produit.
+- Avancement : 63 lots DONE, 0 lot PARTIAL, 0 lot TODO et 1 lot DEFERRED_BY_PRODUCT sur 64 lots uniques.
+- Phases : 11 phases clôturées, 0 phase PARTIAL et 0 phase TODO sur 11.
+- Travail restant dans cette roadmap : aucun lot exécutable. `ITM-034` reste différé et exige une nouvelle décision produit ; FG-066 et FG-071 restent suivis dans la roadmap mécanique, hors fermeture Item System V1.
 - Unité de suivi : cette roadmap ne maintient pas un second registre de tâches atomiques ; les unités d’exécution officielles sont les lots `ITM-*`.
 - La phase 3 est clôturée sur le périmètre V1 signé ; ITM-034 Repel reste explicitement différé avec FG-065 et ne bloque ni la phase 6, ni la capture minimale.
 - Ce document est la roadmap dédiée à la refonte Item System V1.
@@ -54,7 +54,7 @@ La stratégie retenue est un remplacement progressif du code, livré comme une r
 6. supprimer intégralement les chemins historiques ;
 7. certifier le tout sur une golden slice générique.
 
-### 2.1 État livré après la phase 9
+### 2.1 État livré après la phase 10
 
 | Domaine | État au 12 août 2026 | Autorité actuelle |
 |---|---|---|
@@ -62,13 +62,13 @@ La stratégie retenue est un remplacement progressif du code, livré comme une r
 | Bag et sauvegarde | DONE — piles par itemId, opérations atomiques, receipts, wire strict itemId/quantity et refus typé de tout ancien champ | `BagOperations` et `UnsupportedSaveSchema` |
 | Gameplay | DONE sur le périmètre V1 — overworld, battle, capture minimale, key items, TM/HM, évolution et held items | `ItemCatalogSnapshot`, `ItemCapabilityResolver` et services spécialisés |
 | Producteurs et économie | DONE — New Game, événements, pickups, rewards et shops utilisent les contrats canoniques | `BagOperations` et `ProjectItemReferenceIndex` |
-| Authoring et MCP | DONE techniquement — les neuf mutations produisent 36 receipts distincts sur direct API, JSONL, Editor et MCP officiel ; seul le reload du serveur MCP global configuré reste PARTIAL | map_authoring, adaptateurs de transport et runner L5 |
+| Authoring et MCP | DONE — les neuf mutations produisent 36 receipts distincts sur direct API, JSONL, Editor et MCP officiel ; le contrôle live expose les quatre ressources et neuf actions Item | map_authoring, adaptateurs de transport et runner L5 |
 | Suppression historique | DONE — décisions par catégorie, registries, wrappers dupliqués et ancien wire Bag retirés | ITM-060 à ITM-062 |
-| Certification produit | CERTIFIED sur le build du dépôt — L0 à L6 sont produits par sept receipts exécutés ; l’instance MCP globale périmée reste suivie par ITM-085 | runner Item System V1 de `pokemap_product_certification` |
+| Certification produit | DONE — `GOLDEN_FIXTURE_CERTIFIED` et `PRODUCT_CAPABILITY_CLOSED`, L0 à L6 produits par sept receipts exécutés, matrice hostile incluse | runner Item System V1 de `pokemap_product_certification` |
 
 ### 2.2 Décision de continuation
 
-ITM-060 à ITM-062 ont retiré les décisions historiques par catégorie, les registries, les wrappers devenus inutiles et l’ancien wire Bag. ITM-070 et ITM-071 fournissent une fixture stricte et un flow L6 réellement exécuté par les API de production. La phase 8 a supprimé le faux positif de parité et exécuté les neuf actions `item.*` sur les quatre transports. La phase 9 ferme les parcours held item, HM et hidden item, convertit Selbrume en V6, recertifie sa boutique dynamique et ajoute le collector joueur L4. Le runner reproductible certifie désormais L0 à L6. La continuation ne porte plus que sur le reload du serveur MCP global configuré, soumis à autorisation séparée. Aucun lecteur historique, fallback ou mécanisme de migration ne doit être réintroduit.
+ITM-060 à ITM-062 ont retiré les décisions historiques par catégorie, les registries, les wrappers devenus inutiles et l’ancien wire Bag. ITM-070 et ITM-071 fournissent une fixture stricte et un flow L6 réellement exécuté par les API de production. La phase 8 a supprimé le faux positif de parité et exécuté les neuf actions `item.*` sur les quatre transports. La phase 9 ferme les parcours held item, HM et hidden item, convertit Selbrume en V6, recertifie sa boutique dynamique et ajoute le collector joueur L4. La phase 10 ferme les quatre écarts transversaux révélés par l’audit final puis réécrit les derniers tests qui réclamaient encore des saves historiques. Le runner reproductible distingue désormais la fixture Golden de la fermeture des capacités produit. Aucun lecteur historique, fallback ou mécanisme de migration ne doit être réintroduit.
 
 ## 3. Audit initial vérifié
 
@@ -344,11 +344,12 @@ ItemCatalogSnapshot compose la définition d’objet avec les références exter
 | 5 — Authoring et MCP | 6 | 6 | 0 | 0 | 0 | `ITM-050` à `ITM-055` | — | DONE |
 | 6 — Suppression historique | 3 | 3 | 0 | 0 | 0 | `ITM-060` à `ITM-062` | — | DONE |
 | 7 — Certification | 5 | 5 | 0 | 0 | 0 | `ITM-070` à `ITM-074` | — | DONE |
-| 8 — Vérité des preuves et transports | 11 | 10 | 1 | 0 | 0 | `ITM-080` à `ITM-084`, `ITM-086` à `ITM-090` | `ITM-085` — PARTIAL | PARTIAL |
+| 8 — Vérité des preuves et transports | 11 | 11 | 0 | 0 | 0 | `ITM-080` à `ITM-090` | — | DONE |
 | 9 — Parcours produit et recertification | 6 | 6 | 0 | 0 | 0 | `ITM-100` à `ITM-105` | — | DONE |
-| **Total** | **59** | **57** | **1** | **0** | **1** | **57 lots clôturés** | **1 PARTIAL, 1 différé** | **PARTIAL** |
+| 10 — Fermeture de la cible auditée | 5 | 5 | 0 | 0 | 0 | `ITM-110` à `ITM-114` | — | DONE |
+| **Total** | **64** | **63** | **0** | **0** | **1** | **63 lots clôturés** | **1 différé** | **DONE_SCOPE_V1** |
 
-L’ordre recommandé restant est strict : recharger le MCP global seulement avec l’autorisation adéquate. `ITM-034` reste différé avec FG-065 et n’est pas un lot exécutable sans nouvelle décision produit.
+Il ne reste aucun lot exécutable dans la cible Item System V1. `ITM-034` reste différé avec FG-065 et n’est pas rouvert sans nouvelle décision produit.
 
 ### 7.1 Preuves Git après rebase
 
@@ -363,6 +364,7 @@ L’ordre recommandé restant est strict : recharger le MCP global seulement ave
 | 6 | `6f9e454fb`, `091c60a11`, correctif de revue `5db84a28a`, puis clôture `9fb30476f` |
 | 7 | `7980897a1`, `6a03ab0e0`, `9dfd652c2`, `6de69184f`, puis clôture ITM-074 dans le commit de cette mise à jour |
 | 9 | `77f4bf603`, `e88e4a7b0`, `a199a6cd7`, `4f18a70a9`, `5c1c748cc`, puis receipt L4 exécutable `9efc6bfd5` |
+| 10 | `c6591fc42`, `8bc2764e8`, `57d456003`, `c9c61b198`, puis clôture ITM-114 dans le commit de cette mise à jour |
 
 Ces identifiants remplacent les hashes antérieurs au rebase. Ils prouvent l’historique de la branche dédiée ; ils ne remplacent pas les commandes fraîches exigées pour clôturer les phases 6 et 7.
 
@@ -1330,9 +1332,9 @@ N/A signifie réellement non applicable ; il ne doit pas masquer une exposition 
 - [ ] État Git final consigné.
 - [ ] Statut ITM et proposition de statut FG rapportés sans les maquiller.
 
-## 21. Roadmap complète des travaux restants
+## 21. Historique complet du plan de fermeture
 
-Les lots suivants ferment les écarts prouvés par le contre-audit. Ils ne refont pas le moteur Item déjà fonctionnel et n’ajoutent aucun chemin de compatibilité. Chaque lot doit être livré dans un commit dédié après autorisation Git explicite, avec test écrit ou durci avant le code de production, résultats exacts et état Git final.
+Les lots suivants ont fermé les écarts prouvés par les contre-audits. Ils n’ont pas refait le moteur Item déjà fonctionnel et n’ajoutent aucun chemin de compatibilité. Chaque lot a été livré dans un commit dédié après autorisation Git explicite, avec test écrit ou durci avant le code de production, résultats exacts et état Git final.
 
 ### 21.1 Ordre de livraison
 
@@ -1345,6 +1347,7 @@ Les lots suivants ferment les écarts prouvés par le contre-audit. Ils ne refon
 | 5 | `ITM-090` | Rejouer la matrice et corriger les statuts | ITM-054 et ITM-072 proposés DONE |
 | 6 | `ITM-100` à `ITM-102` | Fermer held item, HM et hidden item côté joueur | L4, FG-068, FG-072 et FG-073 fermables |
 | 7 | `ITM-103` à `ITM-105` | Convertir la fixture Selbrume stricte et recertifier le produit | FG-079 et Item V1 fermables |
+| 8 | `ITM-110` à `ITM-114` | Fermer les invariants transversaux révélés par l’audit final | Cible Item V1 défendable sans faux positif |
 
 ### 21.2 Phase 8 — Vérité des preuves et transports
 
@@ -1400,14 +1403,14 @@ Les lots suivants ferment les écarts prouvés par le contre-audit. Ils ne refon
 
 #### ITM-085 — Smoke du MCP live courant
 
-- [ ] **Résultat PARTIAL :** le build packagé exact du worktree est exécuté par le client MCP officiel, mais l’instance MCP globale configurée pointe encore l’ancien checkout.
+- [x] **Résultat :** le build packagé exact et l’instance MCP live publient les contrats Item courants.
 - **Périmètre :** `tools/pokemap_mcp/dist/`, serveur MCP configuré, copie temporaire de `examples/playable_runtime_host/golden_item_system/` placée sous une racine étroite autorisée.
 - **Procédure :** reconstruire le MCP, recharger explicitement ce build, exécuter `pokemap_describe`, ouvrir la copie jetable, interroger les quatre ressources Item, appliquer les neuf mutations avec requery/validate, puis fermer le workspace.
 - **Gate :** describe live expose quatre ressources et neuf actions Item ; les 36 couples attendus par L5 sont liés au build, au commit et au digest de fixture courants.
 - **Sécurité :** aucune mutation d’un projet utilisateur et aucun élargissement de racine au home. Toute modification de configuration MCP globale exige une autorisation séparée.
 - **Dépendance :** ITM-084. **Commit cible :** `test(items): record live mcp smoke contract` si une fixture ou un test versionné change ; sinon lot de vérification sans commit artificiel.
 
-**Preuve et limite :** `live_item_smoke.test.ts` reconstruit le serveur, copie la Golden fixture sous une racine temporaire étroite, vérifie describe, ressources et neuf mutations, puis ferme le workspace. Le test isolé passe. Aucun reload ni changement de configuration globale n’est effectué sans autorisation séparée ; ce seul point maintient ITM-085 PARTIAL.
+**Preuve :** `live_item_smoke.test.ts` reconstruit le serveur, copie la Golden fixture sous une racine temporaire étroite, vérifie describe, ressources et neuf mutations, puis ferme le workspace. Le contrôle live audité expose les quatre ressources Item, les neuf actions `item.*` et leurs quatre transports ; aucune mutation de projet utilisateur ni extension de racine n’a été effectuée.
 
 #### ITM-086 — Receipt canonique d’exécution L0-L6
 
@@ -1540,7 +1543,7 @@ Les lots suivants ferment les écarts prouvés par le contre-audit. Ils ne refon
 - **Documentation :** mettre à jour cette roadmap et `pokemap_roadmap_mecaniques_fangame.md` ; FG-068, FG-072, FG-073 et FG-079 ne passent DONE qu’avec les preuves de leur propre DoD.
 - **Dépendances :** ITM-100 à ITM-104. **Commit cible :** `docs(items): close item system v1 certification`.
 
-**Verdict :** Item System V1 est `CERTIFIED` sur le build du dépôt. Le runner lie sept receipts exécutés au commit `9efc6bfd5950118ceaa261fe64e337bd4b57b872` et au digest fixture `087542aa5a9bd3c3b59f5da36ebe0e1d1af53c09162fd25404b5d090886d2048`. L0 à L6 sont `PASSED`, y compris L4 avec six probes Flutter et L5 avec 36 couples action/transport. Le smoke MCP global reste séparément PARTIAL : l’instance configurée répond mais ne publie aucun des neuf contrats `item.*` du build courant.
+**Verdict phase 9 :** le runner liait sept receipts exécutés au commit `9efc6bfd5950118ceaa261fe64e337bd4b57b872` et au digest fixture `087542aa5a9bd3c3b59f5da36ebe0e1d1af53c09162fd25404b5d090886d2048`. La phase 10 remplace ce verdict trop large par deux portées explicites et ferme le smoke MCP live ; voir ITM-110 à ITM-114.
 
 | Périmètre frais phase 9 | Résultat exact | Lecture |
 |---|---|---|
@@ -1553,14 +1556,59 @@ Les lots suivants ferment les écarts prouvés par le contre-audit. Ils ne refon
 | `map_player_ui` global | 221/221 ; analyse sans issue | Vert, y compris held item, TM/HM et target picker. |
 | `map_editor` global | borne 6 min : 3 360 réussis, 57 échecs, 9 ignorés ; analyse sans issue | Dette globale fixtures/goldens/async ; tests Item ciblés verts. |
 | Host global | 273 réussis, 14 échecs, 3 ignorés ; analyse 27 infos | Ancien grand parcours Selbrume et evaluation hors DoD Item ; tests Golden/Shop/V6 ciblés verts. |
-| Certification produit | 22/22 ; analyse sans issue ; `overallStatus=CERTIFIED` | Sept receipts exécutés, aucune capacité L0-L6 manquante. |
+| Certification produit | 22/22 ; analyse sans issue ; `overallStatus=CERTIFIED` | Preuve historique de phase 9, remplacée par la certification hostile ITM-113/114. |
 | PMCP-085 | `itemTransportCertificationComplete=true`, 72 ressources, 274 actions, 0 action bloquée/manquante | Les 36 receipts Item sont consommés. |
 | MCP packagé | Item smoke 1/1 en 6,1 s ; check/build réussis | Build courant prouvé. |
-| MCP global configuré | Répond, mais 0 action `item.*` publiée | ITM-085 reste PARTIAL jusqu’au reload autorisé. |
+| MCP global configuré | Observation historique : répondait avec 0 action `item.*` | Écart fermé lors de l’audit phase 10 ; ITM-085 est DONE. |
 | MCP global suite | 23 réussis puis suspension `mutation_server.test.ts`, interruption à 2 min 14 s ; 5 fichiers annulés | Dette worker globale déjà connue, distincte de l’Item smoke vert. |
 | Builds macOS | Editor 69,9 MB ; Host 52,3 MB | Deux builds release réussis. |
 
-### 21.4 Décisions produit qui ne sont pas des lots exécutables
+### 21.4 Phase 10 — Fermeture de la cible auditée
+
+#### ITM-110 — Vérité canonique des capacités runtime
+
+- [x] **But :** faire dépendre validation, authoring, Item Studio, MCP et certification du registre exact consommé par le moteur.
+- **Invariants :** matrice contexte × effet, held effects enregistrés, capture et machines ; toute combinaison sans consommateur runtime est bloquante.
+- **Preuve :** `c6591fc42` retire la vérité maximiste. Battle PP restore, Repel et held effect inconnu sont refusés ; l’Item Studio ne propose plus les effets hors registre.
+
+#### ITM-111 — Frontière unique de sauvegarde Item V1
+
+- [x] **But :** imposer `itemSystemSchemaVersion` et le wire Bag canonique à tous les codecs et checkpoints.
+- **Invariants :** aucun lecteur parallèle, fallback ou ancien `categoryId` ; marqueur absent et ancien wire refusés avant normalisation.
+- **Preuve :** `8bc2764e8` branche les gateways, caches d’évaluation et repositories sur les helpers stricts. Les probes hostiles de marqueur absent et `categoryId` sont verts.
+
+#### ITM-112 — Autorité explicite de consommation des key items
+
+- [x] **But :** empêcher qu’une mutation publique générique consomme une clé par défaut.
+- **Invariants :** catalogue et raison typée obligatoires, override faux par défaut, retrait narratif explicite et auditable.
+- **Preuve :** `57d456003` protège les mutations directes, médecine, TM, évolution, playtest et conséquences de Scene ; 473 tests gameplay passaient après le lot et les probes post-rebase sont verts.
+
+#### ITM-113 — Certification hostile et portée honnête
+
+- [x] **But :** distinguer succès de la fixture et fermeture de toutes les capacités déclarées prêtes.
+- **Invariants :** L0 signe la matrice négative moteur, L1 signe les refus authoring, L4 exécute le rendu hidden item, L6 n’attribue plus ce rendu à un simple lecteur JSON.
+- **Preuve :** `c9c61b198` ajoute `GOLDEN_FIXTURE_CERTIFIED` et `PRODUCT_CAPABILITY_CLOSED`. Le package de certification passe 24/24 avec analyse sans issue.
+
+#### ITM-114 — Nettoyage de cutover et recertification finale
+
+- [x] **But :** retirer les dernières attentes legacy, rejouer la matrice sérialisée et fermer la documentation sur des preuves fraîches.
+- **Preuve runtime :** les deux tests narratifs exigent désormais le rejet des vieux saves ; la sélection save ciblée passe 21/21. La suite runtime globale passe de trois à un seul échec hors Item : 2 317 réussites, 1 golden visuel en échec, 1 ignoré.
+- **Certificat final :** bundle `schemaVersion: 2`, révision `c9c61b19833423f80e98fbb9e5390108715b8a25`, fixture `087542aa5a9bd3c3b59f5da36ebe0e1d1af53c09162fd25404b5d090886d2048`, sept receipts, L0-L6 `CERTIFIED`, 36 receipts L5, aucun evidence gap.
+
+| Périmètre frais phase 10 | Résultat exact | Qualification |
+|---|---|---|
+| `map_core` | 4 150 réussis, 8 échecs, 1 ignoré ; analyse 121 infos | Smart Tiles, budgets, générés/fixtures absents, présentation et roadmap ; aucun échec Item. |
+| `map_gameplay` | 472 réussis, 1 timeout à froid ; probe isolé ensuite 1/1 en 9 s ; analyse touchée sans issue | Aucun échec Item ; timeout benchmark non reproductible. |
+| `map_battle` | 1 746 réussis, 28 échecs ; analyse sans issue | Baseline PSDK externe inchangé. |
+| `map_authoring` | 585/585 ; analyse sans issue | Vert, y compris capability truth et refus hostiles. |
+| `map_runtime` | 2 317 réussis, 1 échec, 1 ignoré ; analyse 7 infos | Les deux attentes legacy sont fermées ; seul ROT-01 reste rouge. |
+| `map_player_ui` | 221/221 ; analyse sans issue | Vert. |
+| `playable_runtime_host` | 274 réussis, 14 échecs, 3 ignorés ; analyse 27 infos | Baseline Selbrume/évaluation hors Item ; Golden Item ciblé vert. |
+| `map_editor` | borne 12 min : 5 173 réussis, 94 échecs, 10 ignorés ; analyse sans issue | Aucun échec Item observé ; dettes fixtures/goldens/async globales. |
+| `pokemap_product_certification` | 24/24 ; analyse sans issue ; CLI final positif | Deux portées explicites fermées et matrice hostile signée. |
+| `pokemap_mcp` | 47/47 en 223 s ; check et build réussis | Plus de timeout worker dans le run final ; 36 receipts Item produits. |
+
+### 21.5 Décisions produit qui ne sont pas des lots exécutables
 
 | Sujet | Statut | Conséquence |
 |---|---|---|

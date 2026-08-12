@@ -56,7 +56,7 @@ void main() {
       expect(overrides['fact_orphan'], isTrue);
     });
 
-    test('loads old disk JSON with an empty Fact runtime state', () async {
+    test('rejects old disk JSON without the strict Item schema', () async {
       final file = File(await repository.filePath());
       await file.writeAsString(jsonEncode({
         'saveId': 'legacy_runtime',
@@ -65,11 +65,16 @@ void main() {
         },
       }));
 
-      final loaded = await repository.load();
-
-      expect(loaded, isNotNull);
-      expect(loaded!.narrativeFactRuntimeState.overridesByFactId, isEmpty);
-      expect(loaded.storyFlags.activeFlags, {'legacy_flag'});
+      await expectLater(
+        repository.load,
+        throwsA(
+          isA<GameSaveException>().having(
+            (error) => error.message,
+            'message',
+            contains('UnsupportedSaveSchema'),
+          ),
+        ),
+      );
     });
 
     test('preserves typed int and Unicode string values on disk', () async {

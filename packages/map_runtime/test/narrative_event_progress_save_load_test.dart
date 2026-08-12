@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/domain/repositories/game_save_repository.dart';
 import 'package:map_runtime/src/application/narrative_runtime_activity_gate.dart';
 import 'package:map_runtime/src/infrastructure/file_game_save_repository.dart';
 
@@ -64,17 +65,21 @@ void main() {
       ]);
     });
 
-    test('old GameState without progress loads an empty V2 namespace',
-        () async {
+    test('old GameState without strict Item schema is rejected', () async {
       final json = const GameState(saveId: 'old_save').toJson()
         ..remove('narrativeEventProgress');
       await File(repository.path).writeAsString(jsonEncode(json));
 
-      final loaded = await repository.load();
-
-      expect(
-          loaded?.narrativeEventProgress, const NarrativeEventProgress.empty());
-      expect(loaded?.consumedEventIds, isEmpty);
+      await expectLater(
+        repository.load,
+        throwsA(
+          isA<GameSaveException>().having(
+            (error) => error.message,
+            'message',
+            contains('UnsupportedSaveSchema'),
+          ),
+        ),
+      );
     });
   });
 }

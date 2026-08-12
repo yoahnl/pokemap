@@ -124,12 +124,16 @@ lot ou de phase :
    encore ouvert, sinon produire une modification documentaire distincte.
 ```
 
-Dernière mise à jour : **2026-08-12** — clôture produit Item System V1, ITM-105.
+Dernière mise à jour : **2026-08-12** — recertification hostile Item System V1, ITM-110 à ITM-114.
 `FG-050`, `FG-060` à `FG-064`, `FG-067`, `FG-069`, `FG-070` et `FG-074` à
 `FG-079` sont recertifiés sur les contrats canoniques stricts. `FG-068`,
 `FG-072`, `FG-073` et `FG-079` passent DONE après les parcours joueur et la
 conversion Selbrume V6. `FG-065` et `FG-066` conservent leur décision produit
-DEFERRED ; `FG-071` reste PARTIAL sur le flow Centre Pokémon distinct.
+DEFERRED ; `FG-071` reste PARTIAL sur le flow Centre Pokémon distinct. La
+phase 10 impose désormais la même vérité contexte × effet au runtime, à
+l’authoring, à l’Item Studio, au MCP et au certificat ; elle ferme aussi les
+dernières attentes de compatibilité des anciens saves et la consommation
+générique des key items.
 
 ---
 
@@ -728,7 +732,7 @@ Objectif : les combats changent réellement la progression joueur/Pokémon.
 | FG-047 | Evolution Check V0 | `✅ DONE` | Évolution niveau, acceptation/refus et préservation d’état, `ce8812bdb` |
 | FG-048 | Post-battle Reward Presentation V0 | `✅ DONE` | Queue ordonnée et overlay décisionnel transactionnel, `c410ac59c` |
 | FG-049 | Capture Formula V0 | `✅ DONE` | Formule HP/ball/status à RNG injecté, `ae187f67b` |
-| FG-050 | Generic Battle Item Handling V0 | `✅ DONE` | Effets combat génériques, consommation atomique et capture canonique ; Golden Item System + 9 tests runtime ciblés, ITM-074 |
+| FG-050 | Generic Battle Item Handling V0 | `✅ DONE` | Matrice battle issue du registre moteur, PP battle refusé, consommation atomique et capture canonique ; `c6591fc42`, `c9c61b198` |
 | FG-051 | Trainer Rewards / Money / Badges V0 | `✅ DONE` | Récompenses différées, idempotence trainer et messages, `f07362f0b` + `c410ac59c` |
 | FG-052 | Switch/Faint Replacement UX Hardening | `⬜ TODO` | — |
 | FG-053 | Battle Parity Target Document | `⬜ TODO` | — |
@@ -939,15 +943,15 @@ FG-* ci-dessous.
 
 | ID | Lot | Statut | Preuve |
 |---|---|---|---|
-| FG-060 | Item Use Effect Registry V0 | `✅ DONE` | Catalogue strict, resolver et service purs HP/statut/revive/PP/key item/Ball ; 468 tests gameplay, ITM-074 |
+| FG-060 | Item Use Effect Registry V0 | `✅ DONE` | Vérité canonique contexte × effet partagée par runtime, validation, authoring, UI, MCP et certification ; `c6591fc42`, `c9c61b198` |
 | FG-061 | Overworld Bag Menu V0 | `✅ DONE` | Pockets, quantités, utilisabilité et action joueur ; 218 tests `map_player_ui`, ITM-074 |
 | FG-062 | Medicine Outside Battle V0 | `✅ DONE` | Cible, consommation exacte, sauvegarde et Golden Item System, ITM-074 |
-| FG-063 | Status Cure / Revive V0 | `✅ DONE` | Cure et revive transactionnels en gameplay/runtime et Golden Item System, ITM-074 |
-| FG-064 | Key Item Gates V0 | `✅ DONE` | Condition directe sur le Bag, non-consommation et save/reload ; 43 gameplay + 41 runtime ciblés, ITM-074 |
-| FG-065 | Repel V0 | `⏸ DEFERRED` | Hors MVP signé le 2026-07-22. |
+| FG-063 | Status Cure / Revive V0 | `✅ DONE` | Cure et revive transactionnels, contexte runtime certifié et Golden Item System ; `c6591fc42`, `c9c61b198` |
+| FG-064 | Key Item Gates V0 | `✅ DONE` | Non-consommation par défaut sur les mutations publiques, override typé et retrait narratif explicite ; `57d456003` |
+| FG-065 | Repel V0 | `⏸ DEFERRED` | Hors MVP signé le 2026-07-22 ; retiré des options authorables tant qu’aucun consommateur runtime n’est enregistré, `c6591fc42`. |
 | FG-066 | Poké Ball Families V0 | `⏸ DEFERRED` | Familles complètes hors MVP ; une Poké Ball minimale reste requise. |
-| FG-067 | Item Pickup Event V0 | `✅ DONE` | Entité item jouable, scénario idempotent, masquage et save/reload ; 41 runtime ciblés + Golden Item System, ITM-074 |
-| FG-068 | Hidden Item Event V0 | `✅ DONE` | Visibilité typée, authoring guidé, interaction/message, idempotence et save/reload ; `a199a6cd7` |
+| FG-067 | Item Pickup Event V0 | `✅ DONE` | Entité item jouable, scénario idempotent et save/reload strict ; Golden Item System et `8bc2764e8` |
+| FG-068 | Hidden Item Event V0 | `✅ DONE` | Visibilité typée, authoring guidé, interaction/message, idempotence et rendu réellement exécuté par le probe L4 ; `a199a6cd7`, `c9c61b198` |
 | FG-069 | Shop Model V0 | `✅ DONE` | Shops persistants, prix/stock et validation catalogue ; lot 3.1, Core 4381/4381 |
 | FG-070 | Shop Runtime V0 | `✅ DONE` | Prix/stock/argent/quantité, UI et transaction sauvegardée ; lots 3.2–3.5 |
 | FG-071 | Heal Center Flow V0 | `🟡 PARTIAL` | Soin complet menu + sauvegarde livré ; commande Scene `HealParty` encore absente |

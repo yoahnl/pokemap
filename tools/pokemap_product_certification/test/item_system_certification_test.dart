@@ -71,6 +71,7 @@ void main() {
         first.toJson(),
         containsPair('goldenFixtureStatus', 'GOLDEN_FIXTURE_CERTIFIED'),
       );
+      expect(first.toJson(), containsPair('schemaVersion', 2));
       expect(
         first.toJson(),
         containsPair('productCapabilityStatus', 'PRODUCT_CAPABILITY_CLOSED'),

@@ -80,7 +80,7 @@ La cible de départ, telle que figée dans la roadmap, impose au minimum les inv
 
 ## 4. Findings bloquants et importants
 
-### AUD-ITM-001 — P0 — La capability truth est auto-référentielle et peut certifier une capacité inexistante
+### AUD-ITM-001 — P0 — RÉSOLU PAR ITM-110 — La capability truth était auto-référentielle
 
 **Promesses violées :** ITM-013, ITM-027, ITM-031, ITM-038, ITM-050 à ITM-053, ITM-087 et la règle « unsupported détecté avant playtest ».
 
@@ -146,7 +146,7 @@ Ce résultat suffit à invalider le statut global CERTIFIED, car trois capacité
 - injecter la même vérité dans core, authoring, editor, runtime et certification ;
 - ajouter des tests négatifs sur toutes les combinaisons non supportées.
 
-### AUD-ITM-002 — P0 — La rupture stricte des anciennes sauvegardes n’est pas totale
+### AUD-ITM-002 — P0 — RÉSOLU PAR ITM-111/114 — La rupture stricte des anciennes sauvegardes n’était pas totale
 
 **Promesses violées :** ITM-023, ITM-062, ITM-088 et les règles « aucun dual reader » et « tout `categoryId` est refusé ».
 
@@ -195,7 +195,7 @@ Les tests actuels de ce mapper ne vérifient que le round-trip et l’identité 
 - tests de contrat partagés injectés dans chaque repository/codec ;
 - probe de régression avec marqueur absent, mauvaise version, `categoryId` et clé inconnue.
 
-### AUD-ITM-003 — P1 — La protection des key items est contournable par les mutations publiques
+### AUD-ITM-003 — P1 — RÉSOLU PAR ITM-112 — La protection des key items était contournable
 
 **Promesses violées :** ITM-024, ITM-041, ITM-055 et la règle « un key item n’est pas consommable par défaut ».
 
@@ -225,7 +225,7 @@ Une conséquence narrative peut légitimement retirer une clé, mais cette inten
 - rendre l’override key item explicite et false par défaut ;
 - donner aux conséquences narratives une commande distincte et auditée si le retrait de clé est voulu.
 
-### AUD-ITM-004 — P1 — Le certificat L0-L6 certifie la fixture signée, pas tout le produit authorable
+### AUD-ITM-004 — P1 — RÉSOLU PAR ITM-113 — Le certificat confondait fixture et produit authorable
 
 **Promesses concernées :** ITM-072, ITM-087 à ITM-090 et ITM-105.
 
@@ -261,7 +261,7 @@ Le second énoncé est pourtant celui que suggère `overallStatus: CERTIFIED` et
 - séparer `GOLDEN_FIXTURE_CERTIFIED` de `PRODUCT_CAPABILITY_CLOSED` ;
 - interdire le verdict produit CERTIFIED si une capacité authorable n’a pas de consommateur runtime certifié.
 
-### AUD-ITM-005 — P1 — La matrice finale globale reste rouge
+### AUD-ITM-005 — P1 — RÉSOLU POUR ITEM PAR ITM-114 — La matrice globale conserve des dettes hors Item
 
 Les tests ciblés Item sont verts, mais plusieurs suites complètes ne le sont pas. Une partie importante des échecs est hors périmètre Item ou dépend d’artefacts externes ; elle ne doit pas être imputée artificiellement à ce chantier. Deux échecs runtime sont toutefois directement révélateurs du cutover : des tests continuent d’attendre le chargement d’anciens JSON alors que la compatibilité devait être supprimée.
 
@@ -286,7 +286,7 @@ Résultats frais :
 
 Ces tests auraient dû être supprimés ou réécrits lors de la suppression explicite de la compatibilité. Leur présence ne prouve pas nécessairement que le chemin principal accepte encore l’ancien format, mais prouve que la bascule n’a pas été nettoyée jusqu’au bout.
 
-### AUD-ITM-006 — P1 — Repel est différé par la roadmap mais encore authorable dans l’Item Studio
+### AUD-ITM-006 — P1 — RÉSOLU PAR ITM-110 — Repel était encore authorable dans l’Item Studio
 
 ITM-034 et FG-065 sont explicitement différés. Le runtime overworld rejette l’effet `repel`. Pourtant `item_effect_editor.dart` propose encore « Repousse 100 pas » parmi les effets guidés.
 
@@ -294,13 +294,13 @@ Le produit permet donc à un utilisateur no-code de sélectionner une capacité 
 
 **Code concerné :** `packages/map_editor/lib/src/features/gameplay/items/item_effect_editor.dart:423-459`.
 
-### AUD-ITM-007 — P2 — Une observation L6 hidden item est attribuée au runner sans traverser le renderer
+### AUD-ITM-007 — P2 — RÉSOLU PAR ITM-113 — L6 attribuait le rendu hidden item au mauvais exécuteur
 
 Le Golden runner vérifie l’état authoré de l’entité cachée et enregistre `hidden_pickup_not_rendered`, mais il ne passe pas lui-même par le renderer Flame pour produire cette observation.
 
 Des tests runtime séparés couvrent réellement le masquage et passent. Le comportement produit est donc prouvé, mais la provenance de l’observation L6 est trop ambitieuse. Le receipt devrait référencer la preuve runtime externe ou renommer l’observation en `hidden_pickup_authored_hidden`.
 
-### AUD-ITM-008 — P2 — La roadmap est déjà obsolète sur ITM-085
+### AUD-ITM-008 — P2 — RÉSOLU PAR ITM-114 — La roadmap était obsolète sur ITM-085
 
 La roadmap indique que le MCP global ne publie pas encore les ressources/actions Item. Le contrôle live frais montre désormais :
 
@@ -575,10 +575,72 @@ Seul ce rapport Markdown est ajouté par l’audit. Aucun fichier de production,
 - Le MCP live a été vérifié sur des copies jetables, pas sur un projet utilisateur.
 - Le comptage lot par lot est volontairement conservateur : un lot devient PARTIEL dès qu’un invariant explicitement promis est contredit, même si 90 % de son implémentation est présente.
 
-## 13. Verdict final
+## 13. Verdict initial avant corrections
 
 **Non : l’Item System V1 n’est pas terminé au sens de la cible initiale.**
 
 Il est suffisamment avancé pour faire fonctionner et certifier un parcours Golden représentatif. Il n’est pas encore suffisamment fermé pour garantir que tout objet déclaré « prêt » par l’authoring est réellement exécutable, que tous les chemins de sauvegarde respectent la rupture stricte, ni que les key items sont protégés par défaut sur toutes les mutations publiques.
 
 La bonne suite n’est pas de refaire tout le système. Elle consiste à fermer cinq lots transversaux précis : vérité moteur, persistance unique, autorité key item, certification hostile et matrice finale. Après ces lots, une nouvelle clôture de phase 9 pourra être défendue sans astérisque de la taille d’un Ronflex.
+
+## 14. Contre-audit après exécution de la phase 10
+
+Les cinq lots ont été implémentés dans l’ordre, chacun commit puis rebasé sur `main` avant le suivant :
+
+| Lot | Commit | Résultat |
+|---|---|---|
+| ITM-110 / R1 | `c6591fc42` | registre moteur canonique partagé et fail-closed |
+| ITM-111 / R2 | `8bc2764e8` | tous les checkpoints et codecs Item passent par la frontière stricte |
+| ITM-112 / R3 | `57d456003` | key items protégés par défaut, retrait narratif explicite |
+| ITM-113 / R4 | `c9c61b198` | matrice hostile signée et portées de certificat séparées |
+| ITM-114 / R5 | commit de clôture de cette mise à jour | derniers tests legacy réécrits, matrice et roadmaps recertifiées |
+
+### 14.1 Invariants hostiles rejoués
+
+- PP restore en battle : refusé par le registre moteur et l’authoring ;
+- Repel overworld : absent de l’Item Studio et refusé tant qu’aucun consommateur n’existe ;
+- held effect inconnu : refusé ;
+- save sans `itemSystemSchemaVersion` : refusé ;
+- Bag avec `categoryId` historique : refusé ;
+- consommation générique d’un key item : refusée sans override explicite ;
+- fixture Golden seule : ne ferme pas `PRODUCT_CAPABILITY_CLOSED` ;
+- receipt incomplet mais `passed` : niveau rétrogradé `PARTIAL`.
+
+### 14.2 Certificat exécutable final
+
+Le CLI de certification a produit dans `/tmp` un bundle lié à :
+
+- révision `c9c61b19833423f80e98fbb9e5390108715b8a25` ;
+- fixture `087542aa5a9bd3c3b59f5da36ebe0e1d1af53c09162fd25404b5d090886d2048` ;
+- bundle de certification `schemaVersion: 2` et sept receipts L0-L6 ;
+- 36 receipts action × transport pour L5.
+
+Verdicts :
+
+- `overallStatus: CERTIFIED` ;
+- `goldenFixtureStatus: GOLDEN_FIXTURE_CERTIFIED` ;
+- `productCapabilityStatus: PRODUCT_CAPABILITY_CLOSED` ;
+- L0 à L6 : `CERTIFIED`, aucun evidence gap.
+
+### 14.3 Matrice sérialisée finale
+
+| Package | Résultat frais | Qualification |
+|---|---:|---|
+| `map_core` | 4 150 réussis, 8 échoués, 1 ignoré | Smart Tiles, budgets, générés/fixtures absents, présentation et roadmap ; aucun échec Item |
+| `map_gameplay` | 472 réussis, 1 timeout froid ; probe isolé ensuite 1/1 | timeout benchmark non reproductible ; zone Item analysée sans issue |
+| `map_battle` | 1 746 réussis, 28 échoués | baseline PSDK externe inchangé ; analyse sans issue |
+| `map_authoring` | 585/585 | vert ; analyse sans issue |
+| `map_runtime` | 2 317 réussis, 1 échoué, 1 ignoré | les deux tests legacy sont fermés ; seul le golden ROT-01 reste rouge |
+| `map_player_ui` | 221/221 | vert ; analyse sans issue |
+| `playable_runtime_host` | 274 réussis, 14 échoués, 3 ignorés | dettes Selbrume/evaluation hors Item ; Golden Item ciblé vert |
+| `map_editor` | borne 12 min : 5 173 réussis, 94 échoués, 10 ignorés | aucune régression Item observée ; analyse sans issue |
+| `pokemap_product_certification` | 24/24 | analyse sans issue, CLI positif |
+| `pokemap_mcp` | 47/47 | check et build réussis |
+
+Les analyses runtime et Host ne contiennent respectivement que 7 et 27 diagnostics `info`, sans erreur ni warning. La première tentative de matrice a été invalidée par un disque plein ; après nettoyage exclusif des artefacts Flutter régénérables du worktree, la matrice ci-dessus a été entièrement rejouée.
+
+### 14.4 Verdict mis à jour
+
+**Oui : l’Item System V1 est terminé au sens de la cible initiale et du périmètre V1 explicitement signé.**
+
+Ce verdict ne transforme pas les suites globales du monorepo en vert et ne rouvre pas Repel, les familles complètes de Balls ou le Heal Center Flow. Il signifie que les écarts Item trouvés par l’audit sont fermés, que toute capacité déclarée prête est liée au registre moteur réel, que les anciens formats sont refusés, que les key items ne sont plus consommables par défaut et que la certification distingue désormais honnêtement le parcours Golden de la fermeture produit.

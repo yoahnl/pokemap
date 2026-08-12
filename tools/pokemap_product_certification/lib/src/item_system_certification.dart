@@ -364,7 +364,7 @@ final class ItemSystemCertificationResult {
       : ItemSystemProductCapabilityStatus.open;
 
   Map<String, Object?> toJson() => <String, Object?>{
-    'schemaVersion': 1,
+    'schemaVersion': 2,
     'domain': 'item_system_v1',
     'sourceRevision': sourceRevision,
     'fixtureSha256': fixtureSha256,
