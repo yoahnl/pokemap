@@ -22,6 +22,7 @@ import '../security/confirmation_token.dart';
 import '../security/secure_mutation_executor.dart';
 import '../security/secure_recovery_executor.dart';
 import '../support/authoring_fingerprint.dart';
+import '../support/authoring_performance_observer.dart';
 import '../transactions/action_planner.dart';
 import '../transactions/authoring_plan.dart';
 import '../transactions/file_idempotency_store.dart';
@@ -58,6 +59,7 @@ final class LocalMapAuthoringMutationApi
         const AuthoringSecurityLimits(),
     DateTime Function()? clock,
     AuthoringTransactionFaultInjector? faultInjector,
+    AuthoringPerformanceObserver? performanceObserver,
   })  : _policy = policy,
         _snapshotLoader = snapshotLoader,
         _actor = actor ?? _localActor,
@@ -70,7 +72,9 @@ final class LocalMapAuthoringMutationApi
         MapMutationDispatcher.canonical(
           artifactStore: artifacts,
           tiledImageCollectionRasterCodec: tiledImageCollectionRasterCodec,
+          performanceObserver: performanceObserver,
         );
+    _performanceObserver = performanceObserver;
   }
 
   final WorkspacePolicy _policy;
@@ -81,6 +85,7 @@ final class LocalMapAuthoringMutationApi
   final AuthoringSecurityLimits _authorizationLimits;
   final DateTime Function() _clock;
   final AuthoringTransactionFaultInjector? _faultInjector;
+  late final AuthoringPerformanceObserver? _performanceObserver;
   final Map<ProjectHandle, _LocalMapAuthoringSession> _sessions = {};
   final Map<WorkspaceHandle, ProjectHandle> _projectsByWorkspace = {};
 
@@ -187,6 +192,7 @@ final class LocalMapAuthoringMutationApi
       authorizationLimits: _authorizationLimits,
       clock: _clock,
       faultInjector: _faultInjector,
+      performanceObserver: _performanceObserver,
     );
     _sessions[projectHandle] = session;
     _projectsByWorkspace[workspaceHandle] = projectHandle;
@@ -386,9 +392,11 @@ final class _LocalMapAuthoringSession {
     required AuthoringSecurityLimits authorizationLimits,
     required DateTime Function() clock,
     AuthoringTransactionFaultInjector? faultInjector,
+    AuthoringPerformanceObserver? performanceObserver,
   }) async {
     final gateway = await LocalTransactionFileGateway.open(
       projectRoot: canonicalProjectRoot,
+      performanceObserver: performanceObserver,
     );
     final history = await FileAuthoringHistoryStore.open(
       projectRoot: canonicalProjectRoot,

@@ -1,18 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' show Size;
+import 'dart:ui' show Offset, Size;
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/gestures.dart' show kPrimaryButton;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/main.dart' show MapEditorApp;
+import 'package:map_editor/src/application/services/editor_performance_telemetry.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:map_editor/src/infrastructure/riverpod_retry_policy.dart';
+import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:path/path.dart' as p;
 
 const _requestedOutputPath = String.fromEnvironment('POKEMAP_PERF_OUTPUT');
@@ -33,6 +36,10 @@ void main() {
     final container = ProviderContainer(retry: disableAutomaticProviderRetry);
     addTearDown(container.dispose);
     final notifier = container.read(editorNotifierProvider.notifier);
+    final performanceRecorder = EditorPerformanceRecorder();
+    final performanceRecording =
+        EditorPerformanceTelemetry.startRecording(performanceRecorder);
+    addTearDown(performanceRecording.close);
     final timings = <FrameTiming>[];
     void captureTimings(List<FrameTiming> batch) => timings.addAll(batch);
     var timingsCallbackRegistered = false;
@@ -63,7 +70,7 @@ void main() {
     );
 
     final phases = <Map<String, Object?>>[];
-    phases.add(await _measure('project-open', () async {
+    phases.add(await _measure('project-open', performanceRecorder, () async {
       await notifier.loadProject(
         fixture.manifestPath,
         rememberAsRecent: false,
@@ -72,15 +79,41 @@ void main() {
     }));
     expect(notifier.state.project?.name, 'RM-00 editor profile');
 
-    phases.add(await _measure('map-open', () async {
+    phases.add(await _measure('map-open', performanceRecorder, () async {
       await notifier.loadMap('maps/performance.json');
       await tester.pump(const Duration(milliseconds: 16));
     }));
     expect(notifier.state.activeMap?.id, 'performance');
 
-    phases.add(await _measure('collision-paint-100', () async {
-      notifier.setActiveLayer('collision');
-      notifier.selectTool(EditorToolType.collisionPaint);
+    notifier.setActiveLayer('collision');
+    notifier.selectTool(EditorToolType.collisionPaint);
+    await tester.pump(const Duration(milliseconds: 16));
+    phases.add(await _measure('pointer-collision-drag', performanceRecorder,
+        () async {
+      final canvas = find.byType(MapCanvas);
+      expect(canvas, findsOneWidget);
+      final gesture = await tester.startGesture(
+        tester.getTopLeft(canvas) + const Offset(16, 16),
+        buttons: kPrimaryButton,
+      );
+      await gesture.moveBy(const Offset(160, 0));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 16));
+    }));
+    final pointerPhase = phases.last;
+    final pointerInstrumentation =
+        pointerPhase['instrumentation']! as Map<String, Object?>;
+    final pointerSpans =
+        pointerInstrumentation['spans']! as Map<String, Object?>;
+    expect(
+      (pointerSpans[EditorPerformanceSpanName.pointerToDispatch]!
+          as Map<String, Object?>)['count'],
+      1,
+    );
+    _expectNoPersistenceWork(pointerPhase);
+
+    phases.add(await _measure(
+        'collision-paint-100', performanceRecorder, () async {
       notifier.beginMapStroke();
       for (var index = 0; index < 100; index += 1) {
         notifier.paintCollisionAt(
@@ -93,21 +126,32 @@ void main() {
       notifier.endMapStroke();
       await tester.pump(const Duration(milliseconds: 16));
     }));
+    final collisionPhase = phases.last;
+    final collisionInstrumentation =
+        collisionPhase['instrumentation']! as Map<String, Object?>;
+    final collisionSpans =
+        collisionInstrumentation['spans']! as Map<String, Object?>;
+    expect(
+      (collisionSpans[EditorPerformanceSpanName.mutationLocal]!
+          as Map<String, Object?>)['count'],
+      100,
+    );
+    _expectNoPersistenceWork(collisionPhase);
     expect(notifier.state.isDirty, isTrue);
 
-    phases.add(await _measure('undo', () async {
+    phases.add(await _measure('undo', performanceRecorder, () async {
       notifier.undoMap();
       await tester.pump(const Duration(milliseconds: 16));
     }));
 
-    phases.add(await _measure('post-undo-paint', () async {
+    phases.add(await _measure('post-undo-paint', performanceRecorder, () async {
       notifier.beginMapStroke();
       notifier.paintCollisionAt(const GridPos(x: 63, y: 63));
       notifier.endMapStroke();
       await tester.pump(const Duration(milliseconds: 16));
     }));
 
-    phases.add(await _measure('save', () async {
+    phases.add(await _measure('save', performanceRecorder, () async {
       final outcome = await notifier.saveActiveMap();
       expect(outcome.name, 'saved');
       await tester.pump(const Duration(milliseconds: 16));
@@ -138,6 +182,7 @@ void main() {
         'projectOpen': 1,
         'mapOpen': 1,
         'collisionPaint': 100,
+        'pointerCollisionDrag': 1,
         'undo': 1,
         'postUndoPaint': 1,
         'save': 1,
@@ -158,6 +203,12 @@ void main() {
         'heapAvailability': 'not exposed by dart:io',
       },
       'results': phases,
+      'instrumentation': <String, Object?>{
+        'schemaVersion': 1,
+        'coverage': 'application-boundaries',
+        'canvasPaintScope': 'ui-thread picture recording, excludes GPU raster',
+        ...performanceRecorder.snapshot().toJson(),
+      },
       'frameMetrics': frameMetrics,
       'thresholdPolicy': <String, Object?>{
         'observationOnly': true,
@@ -168,17 +219,29 @@ void main() {
   });
 }
 
+void _expectNoPersistenceWork(Map<String, Object?> phase) {
+  final instrumentation = phase['instrumentation']! as Map<String, Object?>;
+  final counters = instrumentation['counters']! as Map<String, Object?>;
+  for (final counter in EditorPerformanceCounterName.all) {
+    expect(counters[counter], 0, reason: '${phase['phase']}: $counter');
+  }
+}
+
 Future<Map<String, Object?>> _measure(
   String phase,
+  EditorPerformanceRecorder performanceRecorder,
   Future<void> Function() action,
 ) async {
+  final before = performanceRecorder.snapshot();
   final stopwatch = Stopwatch()..start();
   await action();
   stopwatch.stop();
+  final instrumentation = performanceRecorder.deltaSince(before).toJson();
   return <String, Object?>{
     'phase': phase,
     'durationUs': stopwatch.elapsedMicroseconds,
     'rssBytesAfterPhase': ProcessInfo.currentRss,
+    'instrumentation': instrumentation,
   };
 }
 

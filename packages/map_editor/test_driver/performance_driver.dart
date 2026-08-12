@@ -8,19 +8,11 @@ import 'package:path/path.dart' as p;
 Future<void> main() async {
   await integrationDriver(
     responseDataCallback: (data) async {
-      if (data == null || data['schemaVersion'] != 2) {
-        throw const FormatException(
-          'Editor performance response must use schema V2.',
-        );
+      if (data == null) {
+        throw const FormatException('Editor performance response is missing.');
       }
-      final target = data['target'];
-      if (target is! String ||
-          !RegExp(r'^integration_test/[a-z0-9_]+_test\.dart$')
-              .hasMatch(target)) {
-        throw const FormatException(
-          'Editor performance response must declare its integration target.',
-        );
-      }
+      validatePerformanceResponse(data);
+      final target = data['target']! as String;
       final requestedOutput = data['requestedOutputPath'];
       if (requestedOutput is! String || requestedOutput.trim().isEmpty) {
         throw const FormatException('POKEMAP_PERF_OUTPUT is required.');
@@ -87,6 +79,133 @@ Future<void> main() async {
       stdout.writeln(jsonEncode(receipt));
     },
   );
+}
+
+void validatePerformanceResponse(Map<String, dynamic> data) {
+  if (data['schemaVersion'] != 2) {
+    throw const FormatException(
+      'Editor performance response must use schema V2.',
+    );
+  }
+  final target = data['target'];
+  if (target is! String ||
+      !RegExp(r'^integration_test/[a-z0-9_]+_test\.dart$')
+          .hasMatch(target)) {
+    throw const FormatException(
+      'Editor performance response must declare its integration target.',
+    );
+  }
+  if (target == 'integration_test/editor_project_journey_test.dart') {
+    _validateInstrumentation(data);
+  }
+}
+
+void _validateInstrumentation(Map<String, dynamic> data) {
+  final instrumentation = data['instrumentation'];
+  if (instrumentation is! Map || instrumentation['schemaVersion'] != 1) {
+    throw const FormatException(
+      'Editor performance response must include instrumentation V1.',
+    );
+  }
+  final spans = instrumentation['spans'];
+  const spanNames = <String>{
+    'pointer_to_dispatch',
+    'mutation.local',
+    'state.publish',
+    'canvas.build',
+    'canvas.paint',
+    'save.queue',
+    'save.encode',
+  };
+  if (spans is! Map || spans.keys.toSet().difference(spanNames).isNotEmpty ||
+      spanNames.difference(spans.keys.toSet()).isNotEmpty) {
+    throw const FormatException(
+      'Editor performance response has an invalid span catalog.',
+    );
+  }
+  final counters = instrumentation['counters'];
+  const counterNames = <String>{
+    'filesystem.read',
+    'filesystem.write',
+    'filesystem.metadata',
+    'json.encode',
+    'json.decode',
+    'base64.encode',
+    'base64.decode',
+  };
+  if (counters is! Map ||
+      counters.keys.toSet().difference(counterNames).isNotEmpty ||
+      counterNames.difference(counters.keys.toSet()).isNotEmpty ||
+      counters.values.any((value) => value is! int || value < 0)) {
+    throw const FormatException(
+      'Editor performance response has an invalid counter catalog.',
+    );
+  }
+  if (instrumentation['droppedSampleCount'] != 0) {
+    throw const FormatException(
+      'Editor performance instrumentation dropped samples.',
+    );
+  }
+  final results = data['results'];
+  if (results is! List) {
+    throw const FormatException(
+      'Editor performance response must include measured phases.',
+    );
+  }
+  _validateHotPathPhase(
+    results,
+    phaseName: 'pointer-collision-drag',
+    requiredSpan: 'pointer_to_dispatch',
+    expectedSpanCount: 1,
+  );
+  _validateHotPathPhase(
+    results,
+    phaseName: 'collision-paint-100',
+    requiredSpan: 'mutation.local',
+    expectedSpanCount: 100,
+  );
+}
+
+void _validateHotPathPhase(
+  List<Object?> results, {
+  required String phaseName,
+  required String requiredSpan,
+  required int expectedSpanCount,
+}) {
+  Map? phase;
+  for (final candidate in results) {
+    if (candidate is Map && candidate['phase'] == phaseName) {
+      phase = candidate;
+      break;
+    }
+  }
+  final instrumentation = phase?['instrumentation'];
+  final spans = instrumentation is Map ? instrumentation['spans'] : null;
+  final metrics = spans is Map ? spans[requiredSpan] : null;
+  if (metrics is! Map || metrics['count'] != expectedSpanCount) {
+    throw FormatException(
+      '$phaseName must record exactly $expectedSpanCount $requiredSpan span(s).',
+    );
+  }
+  final counters = instrumentation is Map
+      ? instrumentation['counters']
+      : null;
+  const counterNames = <String>{
+    'filesystem.read',
+    'filesystem.write',
+    'filesystem.metadata',
+    'json.encode',
+    'json.decode',
+    'base64.encode',
+    'base64.decode',
+  };
+  if (counters is! Map ||
+      counterNames.difference(counters.keys.toSet()).isNotEmpty ||
+      counterNames.any((name) => counters[name] != 0)) {
+    throw FormatException(
+      '$phaseName must perform zero filesystem, JSON and base64 work.',
+    );
+  }
 }
 
 File _validatedOutput(String relativePath) {
