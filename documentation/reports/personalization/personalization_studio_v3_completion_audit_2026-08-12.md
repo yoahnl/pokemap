@@ -258,3 +258,22 @@ Verdict R5.3 : `DONE`.
 Le garde-fou de vérité inspectait auparavant uniquement le feature folder Personalization de l'Editor. Il couvre désormais toutes les surfaces de production susceptibles de rendre la preview ou le player, sans scanner les fixtures de test légitimes.
 
 Verdict R5.4 : `DONE`.
+
+### PERS3-R5.5 — Revue de clôture PERS3-00 à PERS3-34
+
+La roadmap canonique possède maintenant un tableau autoritatif lot par lot. PERS3-00 à PERS3-32 sont `DONE` techniquement. PERS3-33 et PERS3-34 restent `PARTIAL` : les images et le nettoyage sont présents, mais l'implémentation visuelle actuelle n'a pas encore reçu l'acceptation humaine explicite requise par le plan.
+
+| Gate frais | Résultat |
+|---|---|
+| Authoring Presentation, preview context et PMCP-085 | `37/37`, analyse ciblée sans problème. |
+| MCP Presentation live local | `3/3`, `npm run check` vert après `npm ci`. |
+| Catalogue du checkout | V10, preset V2, transports `cli/directApi/editor/mcp`, serveur et commit exacts ; worktree propre au moment du contrôle. |
+| Registre de capacités Editor | `7/7`. |
+| Accessibilité publication | `5/5`. |
+| Responsive et inputs Studio | `9/9`. |
+| Contact sheets | `23/23`, six planches Editor/Player paysage, portrait et variantes régénérées. |
+| Player responsive et goldens | `42/42`, analyse ciblée sans problème. |
+
+Le connecteur MCP ambiant configuré dans l'application a retourné `Transport closed`. Il ne prouve donc rien et n'est pas compté. La preuve MCP retenue lance le serveur local du worktree, tandis que `verify:checkout-catalog` lie explicitement l'entrypoint, le commit, les versions et les transports au checkout certifié.
+
+Verdict R5.5 : `DONE` pour le travail de revue. Verdict produit Personalization Studio V3 : `PARTIAL` jusqu'à la revue visuelle humaine de PERS3-33 ; PERS3-34 reste mécaniquement ouvert avec elle.
