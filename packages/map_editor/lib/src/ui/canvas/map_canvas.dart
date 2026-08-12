@@ -37,6 +37,7 @@ import '../../application/services/environment_mask_brush_footprint_resolver.dar
 import '../../application/services/environment_mask_paint_target_resolver.dart';
 import '../../application/services/editor_performance_telemetry.dart';
 import '../../application/services/map_focus_viewport_resolver.dart';
+import '../../application/services/map_cell_stroke_buffer.dart';
 import '../../application/services/map_viewport_navigation.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
@@ -1907,6 +1908,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                   if (isBorderEditing) {
                     _lastBorderPaintCell = gridPos;
                   }
+                } else {
+                  notifier.breakMapStrokeInterpolation();
                 }
               } finally {
                 pointerSpan?.finish();
@@ -2025,6 +2028,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                   ? SystemMouseCursors.precise
                   : SystemMouseCursors.basic,
               onExit: (_) {
+                notifier.breakMapStrokeInterpolation();
                 if (_hoveredTile != null || _hoveredBorderVertex != null) {
                   setState(() {
                     _hoveredTile = null;
@@ -2119,6 +2123,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                               shadowLightPreviewPreset:
                                   shadowLightPreviewPreset,
                               animationClock: _repaintClock,
+                              cellStrokePreview:
+                                  notifier.activeMapCellStrokePreview,
+                              cellStrokeRepaint:
+                                  notifier.activeMapCellStrokeRepaint,
                               debugOnPaint: widget.debugOnPaint,
                               showGrid: _showMapGrid,
                               environmentMaskOverlay: environmentMaskOverlay,
