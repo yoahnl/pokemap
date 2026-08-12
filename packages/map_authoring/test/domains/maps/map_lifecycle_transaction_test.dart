@@ -37,9 +37,24 @@ void main() {
       expect(setup.reader.byteReads, 1);
       expect(
         performanceObserver.started,
-        containsAll(<String>['save.encode', 'save.queue']),
+        containsAll(<String>[
+          'snapshot',
+          'plan',
+          'apply',
+          'save.encode',
+          'save.queue',
+        ]),
       );
-      expect(performanceObserver.finished, performanceObserver.started);
+      expect(
+        performanceObserver.finished,
+        containsAll(<String>[
+          'snapshot',
+          'plan',
+          'apply',
+          'save.encode',
+          'save.queue',
+        ]),
+      );
       expect(performanceObserver.counters['filesystem.write'], greaterThan(0));
       expect(performanceObserver.counters['json.encode'], greaterThan(0));
       expect(

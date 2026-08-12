@@ -22,14 +22,15 @@ Future<void> main() async {
         'rev-parse',
         '--show-toplevel',
       ]);
-      final status = await _git(
-        <String>['status', '--porcelain=v1'],
-        workingDirectory: repositoryRoot,
-      );
-      final diff = await _git(
-        <String>['diff', '--binary', 'HEAD'],
-        workingDirectory: repositoryRoot,
-      );
+      final status = await _git(<String>[
+        'status',
+        '--porcelain=v1',
+      ], workingDirectory: repositoryRoot);
+      final diff = await _git(<String>[
+        'diff',
+        '--binary',
+        'HEAD',
+      ], workingDirectory: repositoryRoot);
       final untracked = await _git(<String>[
         'ls-files',
         '--others',
@@ -37,10 +38,10 @@ Future<void> main() async {
       ], workingDirectory: repositoryRoot);
       final receipt = <String, Object?>{
         ...data,
-        'commit': await _git(
-          <String>['rev-parse', 'HEAD'],
-          workingDirectory: repositoryRoot,
-        ),
+        'commit': await _git(<String>[
+          'rev-parse',
+          'HEAD',
+        ], workingDirectory: repositoryRoot),
         'treeState': status.isEmpty ? 'clean' : 'dirty',
         'sdk': Platform.version,
         'treeFingerprint': await _sourceTreeFingerprint(
@@ -89,14 +90,64 @@ void validatePerformanceResponse(Map<String, dynamic> data) {
   }
   final target = data['target'];
   if (target is! String ||
-      !RegExp(r'^integration_test/[a-z0-9_]+_test\.dart$')
-          .hasMatch(target)) {
+      !RegExp(r'^integration_test/[a-z0-9_]+_test\.dart$').hasMatch(target)) {
     throw const FormatException(
       'Editor performance response must declare its integration target.',
     );
   }
   if (target == 'integration_test/editor_project_journey_test.dart') {
     _validateInstrumentation(data);
+  } else if (target ==
+      'integration_test/editor_canvas_projection_journey_test.dart') {
+    _validateCanvasProjection(data);
+  }
+}
+
+void _validateCanvasProjection(Map<String, dynamic> data) {
+  final results = data['results'];
+  const extents = <int>{128, 256, 512, 1024};
+  const modes = <String>{'standard', 'smart', 'shadows', 'combined'};
+  if (results is! List || results.length != extents.length * modes.length) {
+    throw const FormatException(
+      'Canvas projection response must cover every mode and extent.',
+    );
+  }
+  final matrix = <String>{
+    for (final row in results.whereType<Map>())
+      '${row['mode']}:${row['extent']}',
+  };
+  final expected = <String>{
+    for (final mode in modes)
+      for (final extent in extents) '$mode:$extent',
+  };
+  if (matrix.length != expected.length || !matrix.containsAll(expected)) {
+    throw const FormatException(
+      'Canvas projection response has an incomplete mode and extent matrix.',
+    );
+  }
+  final placements = data['placementResults'];
+  final placementCounts = placements is List
+      ? placements
+            .whereType<Map>()
+            .map((row) => row['placedElementCount'])
+            .toSet()
+      : const <Object?>{};
+  if (placementCounts.length != 3 ||
+      !placementCounts.containsAll(const <int>{100, 1000, 10000})) {
+    throw const FormatException(
+      'Canvas projection response must cover 100, 1000 and 10000 elements.',
+    );
+  }
+  _validateMemory(data);
+  final gates = data['performanceGates'];
+  if (gates is! Map ||
+      gates['combined1024P95Pass'] != true ||
+      gates['repaintP95Pass'] != true ||
+      gates['combinedScaleRatioPass'] != true ||
+      gates['standardControlPass'] != true) {
+    throw const FormatException(
+      'Canvas projection response must pass every repaint gate.',
+    );
   }
 }
 
@@ -114,10 +165,14 @@ void _validateInstrumentation(Map<String, dynamic> data) {
     'state.publish',
     'canvas.build',
     'canvas.paint',
+    'snapshot',
+    'plan',
+    'apply',
     'save.queue',
     'save.encode',
   };
-  if (spans is! Map || spans.keys.toSet().difference(spanNames).isNotEmpty ||
+  if (spans is! Map ||
+      spans.keys.toSet().difference(spanNames).isNotEmpty ||
       spanNames.difference(spans.keys.toSet()).isNotEmpty) {
     throw const FormatException(
       'Editor performance response has an invalid span catalog.',
@@ -154,16 +209,29 @@ void _validateInstrumentation(Map<String, dynamic> data) {
   }
   _validateHotPathPhase(
     results,
-    phaseName: 'pointer-collision-drag',
-    requiredSpan: 'pointer_to_dispatch',
-    expectedSpanCount: 1,
+    phaseName: 'tile-placement-90',
+    requiredSpan: 'mutation.local',
+    expectedSpanCount: 90,
   );
   _validateHotPathPhase(
     results,
-    phaseName: 'collision-paint-100',
-    requiredSpan: 'mutation.local',
-    expectedSpanCount: 100,
+    phaseName: 'pointer-collision-drag',
+    requiredSpan: 'pointer_to_dispatch',
+    expectedSpanCount: 90,
+    p95BudgetUs: 8000,
   );
+  for (final strokeCount in const <int>[1, 10, 100, 1000]) {
+    _validateHotPathPhase(
+      results,
+      phaseName: 'collision-paint-$strokeCount',
+      requiredSpan: 'mutation.local',
+      expectedSpanCount: strokeCount,
+    );
+  }
+  _validateCanonicalPlacementPhase(results);
+  _validateMaskMatrix(results);
+  _validatePlacementPhase(results);
+  _validateMemory(data);
 }
 
 void _validateHotPathPhase(
@@ -171,6 +239,7 @@ void _validateHotPathPhase(
   required String phaseName,
   required String requiredSpan,
   required int expectedSpanCount,
+  int? p95BudgetUs,
 }) {
   Map? phase;
   for (final candidate in results) {
@@ -187,9 +256,13 @@ void _validateHotPathPhase(
       '$phaseName must record exactly $expectedSpanCount $requiredSpan span(s).',
     );
   }
-  final counters = instrumentation is Map
-      ? instrumentation['counters']
-      : null;
+  if (p95BudgetUs != null &&
+      (metrics['p95Us'] is! int || (metrics['p95Us']! as int) >= p95BudgetUs)) {
+    throw FormatException(
+      '$phaseName must keep $requiredSpan P95 below $p95BudgetUs us.',
+    );
+  }
+  final counters = instrumentation is Map ? instrumentation['counters'] : null;
   const counterNames = <String>{
     'filesystem.read',
     'filesystem.write',
@@ -204,6 +277,83 @@ void _validateHotPathPhase(
       counterNames.any((name) => counters[name] != 0)) {
     throw FormatException(
       '$phaseName must perform zero filesystem, JSON and base64 work.',
+    );
+  }
+}
+
+void _validatePlacementPhase(List<Object?> results) {
+  final phase = results.whereType<Map>().cast<Map>().firstWhere(
+    (candidate) => candidate['phase'] == 'tile-placement-90',
+    orElse: () => const <Object?, Object?>{},
+  );
+  final p95Us = phase['p95Us'];
+  if (p95Us is! int || p95Us >= 16000) {
+    throw const FormatException(
+      'tile-placement-90 must keep P95 below 16000 us.',
+    );
+  }
+}
+
+void _validateCanonicalPlacementPhase(List<Object?> results) {
+  final phase = results.whereType<Map>().firstWhere(
+    (candidate) => candidate['phase'] == 'canonical-element-placement',
+    orElse: () => const <Object?, Object?>{},
+  );
+  final instrumentation = phase['instrumentation'];
+  final spans = instrumentation is Map ? instrumentation['spans'] : null;
+  for (final name in const <String>['snapshot', 'plan', 'apply']) {
+    final metrics = spans is Map ? spans[name] : null;
+    if (metrics is! Map || metrics['count'] is! int || metrics['count'] == 0) {
+      throw FormatException(
+        'canonical-element-placement must record at least one $name span.',
+      );
+    }
+  }
+}
+
+void _validateMaskMatrix(List<Object?> results) {
+  for (final extent in const <int>[64, 256, 512, 1024]) {
+    final phaseName = 'mask-roundtrip-${extent}x$extent';
+    final phase = results.whereType<Map>().firstWhere(
+      (candidate) => candidate['phase'] == phaseName,
+      orElse: () => const <Object?, Object?>{},
+    );
+    final instrumentation = phase['instrumentation'];
+    final counters = instrumentation is Map
+        ? instrumentation['counters']
+        : null;
+    if (counters is! Map ||
+        counters['base64.encode'] != 10 ||
+        counters['base64.decode'] != 10) {
+      throw FormatException(
+        '$phaseName must record 10 base64 encodes and decodes.',
+      );
+    }
+    if (phase['p50Us'] is! int ||
+        phase['p95Us'] is! int ||
+        phase['p99Us'] is! int) {
+      throw FormatException(
+        '$phaseName must include P50, P95 and P99 latency.',
+      );
+    }
+  }
+}
+
+void _validateMemory(Map<String, dynamic> data) {
+  final memory = data['memory'];
+  if (memory is! Map ||
+      memory['forcedGarbageCollection'] != true ||
+      memory['garbageCollectionTimestampMicros'] is! int ||
+      const <String>{
+        'allocatedBytes',
+        'allocationCount',
+        'heapBeforeGcBytes',
+        'heapAfterGcBytes',
+        'heapCapacityAfterGcBytes',
+        'externalAfterGcBytes',
+      }.any((name) => memory[name] is! int || (memory[name] as int) < 0)) {
+    throw const FormatException(
+      'Editor performance response must include VM allocations and heap after GC.',
     );
   }
 }
@@ -226,10 +376,7 @@ File _validatedOutput(String relativePath) {
   return output;
 }
 
-Future<String> _git(
-  List<String> arguments, {
-  String? workingDirectory,
-}) async {
+Future<String> _git(List<String> arguments, {String? workingDirectory}) async {
   final result = await Process.run(
     'git',
     arguments,
@@ -247,11 +394,12 @@ Future<String> _sourceTreeFingerprint({
   required String untracked,
 }) async {
   final entries = <Map<String, Object?>>[];
-  final paths = untracked
-      .split('\n')
-      .where((path) => path.trim().isNotEmpty)
-      .toList(growable: false)
-    ..sort();
+  final paths =
+      untracked
+          .split('\n')
+          .where((path) => path.trim().isNotEmpty)
+          .toList(growable: false)
+        ..sort();
   for (final relativePath in paths) {
     final file = File(p.join(repositoryRoot, relativePath));
     try {
@@ -282,10 +430,10 @@ Future<String> _sourceTreeFingerprint({
 }
 
 Future<Map<String, Object?>> _flutterMetadata() async {
-  final result = await Process.run(
-    'flutter',
-    <String>['--version', '--machine'],
-  );
+  final result = await Process.run('flutter', <String>[
+    '--version',
+    '--machine',
+  ]);
   if (result.exitCode != 0) {
     return const <String, Object?>{'status': 'unavailable'};
   }

@@ -5,6 +5,21 @@ import 'package:map_editor/src/application/services/editor_performance_telemetry
 import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
 
 void main() {
+  test('exposes the complete PERF-000C span catalog', () {
+    expect(EditorPerformanceSpanName.all, <String>[
+      'pointer_to_dispatch',
+      'mutation.local',
+      'state.publish',
+      'canvas.build',
+      'canvas.paint',
+      'snapshot',
+      'plan',
+      'apply',
+      'save.queue',
+      'save.encode',
+    ]);
+  });
+
   test('records canonical span distributions and counter deltas', () {
     var nowMicroseconds = 100;
     final recorder = EditorPerformanceRecorder(clock: () => nowMicroseconds);
