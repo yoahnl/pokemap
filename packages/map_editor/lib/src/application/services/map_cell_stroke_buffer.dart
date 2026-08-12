@@ -80,6 +80,7 @@ final class MapCellStrokeBuffer {
   final Map<int, String?> _smartTileHorizontalEdgeOverrides = <int, String?>{};
   final Map<int, String?> _smartTileVerticalEdgeOverrides = <int, String?>{};
   final Map<int, String?> _smartTileCornerOverrides = <int, String?>{};
+  final Set<int> _smartTileTouchedCellIndices = <int>{};
   GridPos? _lastOrigin;
   int _revision = 0;
   int _fullLayerCopyCount = 0;
@@ -90,7 +91,7 @@ final class MapCellStrokeBuffer {
   int get touchedCellCount => switch (kind) {
     MapCellStrokeLayerKind.tile => _tileOverrides.length,
     MapCellStrokeLayerKind.collision => _collisionOverrides.length,
-    MapCellStrokeLayerKind.smartTile => _smartTileCellOverrides.length,
+    MapCellStrokeLayerKind.smartTile => _smartTileTouchedCellIndices.length,
   };
   bool get hasChanges => switch (kind) {
     MapCellStrokeLayerKind.tile =>
@@ -108,7 +109,7 @@ final class MapCellStrokeBuffer {
 
   Iterable<GridPos> get smartTileTouchedCells sync* {
     if (kind != MapCellStrokeLayerKind.smartTile) return;
-    for (final index in _smartTileCellOverrides.keys) {
+    for (final index in _smartTileTouchedCellIndices) {
       yield GridPos(
         x: index % sourceMap.size.width,
         y: index ~/ sourceMap.size.width,
@@ -271,41 +272,39 @@ final class MapCellStrokeBuffer {
     for (final cell in cells) {
       _validateSmartTileCoordinate(cell.x, cell.y, width, height);
       final cellIndex = cell.y * width + cell.x;
-      changed =
-          _setSmartTileOverride(
-            _smartTileCellOverrides,
-            cellIndex,
-            materialId,
-            _sourceSmartTileMaterialAt(cell.x, cell.y),
-          ) ||
-          changed;
+      var cellChanged = _setSmartTileOverride(
+        _smartTileCellOverrides,
+        cellIndex,
+        materialId,
+        _sourceSmartTileMaterialAt(cell.x, cell.y),
+      );
       if (layer.field is SmartTileEdgeField ||
           layer.field is SmartTileMixedField) {
         for (final index in <int>[
           cell.y * width + cell.x,
           (cell.y + 1) * width + cell.x,
         ]) {
-          changed =
+          cellChanged =
               _setSmartTileOverride(
                 _smartTileHorizontalEdgeOverrides,
                 index,
                 materialId,
                 _sourceHorizontalMaterialAtIndex(index),
               ) ||
-              changed;
+              cellChanged;
         }
         for (final index in <int>[
           cell.y * verticalStride + cell.x,
           cell.y * verticalStride + cell.x + 1,
         ]) {
-          changed =
+          cellChanged =
               _setSmartTileOverride(
                 _smartTileVerticalEdgeOverrides,
                 index,
                 materialId,
                 _sourceVerticalMaterialAtIndex(index),
               ) ||
-              changed;
+              cellChanged;
         }
       }
       if (layer.field is SmartTileCornerField ||
@@ -316,15 +315,19 @@ final class MapCellStrokeBuffer {
           (cell.y + 1) * verticalStride + cell.x,
           (cell.y + 1) * verticalStride + cell.x + 1,
         ]) {
-          changed =
+          cellChanged =
               _setSmartTileOverride(
                 _smartTileCornerOverrides,
                 index,
                 materialId,
                 _sourceCornerMaterialAtIndex(index),
               ) ||
-              changed;
+              cellChanged;
         }
+      }
+      if (cellChanged) {
+        _smartTileTouchedCellIndices.add(cellIndex);
+        changed = true;
       }
     }
     if (changed) _publish();

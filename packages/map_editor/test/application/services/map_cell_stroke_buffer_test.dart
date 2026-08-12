@@ -356,6 +356,43 @@ void main() {
     expect(cells[0], 1);
     expect(cells[2 * 8 + 4], 1);
   });
+
+  test('Smart Tile tracks a Wang cell when only its lattice changes', () {
+    const source = MapData(
+      id: 'smart-edge',
+      name: 'Smart edge',
+      size: GridSize(width: 1, height: 1),
+      layers: <MapLayer>[
+        MapLayer.smartTile(
+          id: 'smart',
+          name: 'Smart',
+          presetId: 'terrain',
+          usage: SmartTileUsage.terrain,
+          materialPalette: <String>['', 'grass'],
+          field: SmartTileField.edge(
+            semanticCells: <int>[1],
+            horizontalEdges: <int>[0, 0],
+            verticalEdges: <int>[0, 0],
+          ),
+        ),
+      ],
+    );
+    final buffer = MapCellStrokeBuffer.smartTile(
+      sourceMap: source,
+      layerId: 'smart',
+    );
+
+    expect(
+      buffer.setSmartTileMaterials(
+        cells: const <GridPos>[GridPos(x: 0, y: 0)],
+        materialId: 'grass',
+      ),
+      isTrue,
+    );
+
+    expect(buffer.touchedCellCount, 1);
+    expect(buffer.smartTileTouchedCells, <GridPos>[const GridPos(x: 0, y: 0)]);
+  });
 }
 
 MapData _tileMap(int extent) => MapData(
