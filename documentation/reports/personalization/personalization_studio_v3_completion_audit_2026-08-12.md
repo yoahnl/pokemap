@@ -242,3 +242,19 @@ Le premier passage Hub a révélé une hypothèse incorrecte dans le test : `bra
 `RuntimePlayerPresentationViewData` constitue le snapshot canonique des données effectivement projetées vers les widgets player : copie du titre, typographie chargée, thème, palettes, fenêtres, layouts, Dialogue, Combat et Pause. Les identités d'`ImageProvider`, dépendantes du loader, sont volontairement exclues ; leur résolution reste couverte par l'E2E Hub sur le package réel.
 
 Verdict R5.3 : `DONE`.
+
+### PERS3-R5.4 — Hygiène de la release candidate
+
+| Contrôle | Résultat frais |
+|---|---|
+| Truth guard production élargi | `6/6` avec la fixture contract : aucune fixture démo, faux personnage, faux Pokémon ou promesse « Preview réelle » dans Editor, `map_player_ui`, Hub ou standalone. |
+| Assets et licences | `15/15` sur le preflight package et le preset pack : hashes, codecs, médias responsives, assets référencés et licences redistribuables sont certifiés ; les licences manquantes sont rejetées. |
+| Politique macOS standalone | `2/2` et analyse ciblée sans problème : Swift Package Manager actif, overrides natifs présents, aucune intégration CocoaPods. |
+| Résidus | Aucun fichier `*.actual.*`, `*.diff.*`, `*.tmp` ou `*.temp` hors répertoires générés. Les deux PNG contenant `failure` dans leur nom sont des preuves historiques suivies de Web Cockpit, pas des sorties orphelines de cette phase. |
+| Fichier temporaire R5.3 | `/tmp/pokemap-phase-d-r53.avelunegame` supprimé après la recertification Hub. |
+| Markdown | `bash tools/scripts/check_markdown_hygiene.sh` : succès, aucun nouveau Markdown. |
+| Diff | `git diff --check` : succès ; aucun lockfile modifié par la résolution de dépendances. |
+
+Le garde-fou de vérité inspectait auparavant uniquement le feature folder Personalization de l'Editor. Il couvre désormais toutes les surfaces de production susceptibles de rendre la preview ou le player, sans scanner les fixtures de test légitimes.
+
+Verdict R5.4 : `DONE`.
