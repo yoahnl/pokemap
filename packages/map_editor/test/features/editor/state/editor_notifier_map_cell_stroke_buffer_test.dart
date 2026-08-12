@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/services/placed_element_instance_indexer.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -68,6 +69,99 @@ void main() {
       expect(notifier.state.activeMap, source);
       notifier.redoMap();
       expect(notifier.state.activeMap, committed);
+    },
+  );
+
+  test(
+    'tile stroke commit matches canonical placed-element indexing',
+    () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      const project = ProjectManifest(
+        name: 'Project',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'world',
+            name: 'World',
+            relativePath: 'tilesets/world.png',
+            source: ProjectRegularAtlasTilesetSource(
+              assetId: 'tilesets/world.png',
+              pixelWidth: 32,
+              pixelHeight: 32,
+              tileWidth: 32,
+              tileHeight: 32,
+            ),
+          ),
+        ],
+        elements: <ProjectElementEntry>[
+          ProjectElementEntry(
+            id: 'tree',
+            name: 'Tree',
+            tilesetId: 'world',
+            categoryId: 'nature',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+            ],
+          ),
+        ],
+      );
+      final source = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: 2, height: 1),
+        layers: <MapLayer>[
+          MapLayer.tile(
+            id: 'ground',
+            name: 'Ground',
+            cells: List<int>.filled(2, 0, growable: false),
+          ),
+        ],
+        placedElements: const <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'authored',
+            layerId: 'ground',
+            elementId: 'sign',
+            pos: GridPos(x: 1, y: 0),
+          ),
+        ],
+      );
+      notifier.state = EditorState(
+        project: project,
+        activeMap: source,
+        activeLayerId: 'ground',
+        activeTool: EditorToolType.tilePaint,
+        activeBrush: const EditorBrush.tile(tileId: 1, tilesetId: 'world'),
+        savedMapSnapshot: source,
+      );
+
+      notifier.beginMapStroke();
+      await notifier.paintSelectedBrushAt(
+        const GridPos(x: 0, y: 0),
+        tilesetColumnsById: const <String, int>{},
+        partOfStroke: true,
+      );
+      notifier.endMapStroke();
+
+      final painted = paintTilePatternOnLayer(
+        source,
+        layerId: 'ground',
+        pos: const GridPos(x: 0, y: 0),
+        patternSize: const GridSize(width: 1, height: 1),
+        tiles: const <TileLayerPaletteEntry?>[
+          TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+        ],
+      );
+      final expected = const PlacedElementInstanceIndexer().syncLayer(
+        map: painted,
+        project: project,
+        layerId: 'ground',
+      );
+
+      expect(notifier.state.activeMap, expected);
+      expect(notifier.state.activeMap!.placedElements, hasLength(2));
+      expect(notifier.state.mapUndoStack, hasLength(1));
     },
   );
 
