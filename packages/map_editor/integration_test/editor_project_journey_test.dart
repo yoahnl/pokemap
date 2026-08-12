@@ -191,6 +191,31 @@ void main() {
       );
       _expectNoPersistenceWork(pointerPhase);
 
+      expect(notifier.state.isDirty, isTrue);
+
+      phases.add(
+        await _measure('undo', performanceRecorder, () async {
+          notifier.undoMap();
+          await tester.pump(const Duration(milliseconds: 16));
+        }),
+      );
+
+      phases.add(
+        await _measure('post-undo-paint', performanceRecorder, () async {
+          notifier.beginMapStroke();
+          notifier.paintCollisionAt(const GridPos(x: 63, y: 63));
+          notifier.endMapStroke();
+          await tester.pump(const Duration(milliseconds: 16));
+        }),
+      );
+
+      phases.add(
+        await _measure('save', performanceRecorder, () async {
+          final outcome = await notifier.saveActiveMap();
+          expect(outcome.name, 'saved');
+          await tester.pump(const Duration(milliseconds: 16));
+        }),
+      );
       for (final extent in const <int>[128, 256, 512, 1024]) {
         await notifier.loadMap('maps/collision-$extent.json');
         notifier.setActiveLayer('collision');
@@ -231,31 +256,6 @@ void main() {
           _expectNoPersistenceWork(collisionPhase);
         }
       }
-      expect(notifier.state.isDirty, isTrue);
-
-      phases.add(
-        await _measure('undo', performanceRecorder, () async {
-          notifier.undoMap();
-          await tester.pump(const Duration(milliseconds: 16));
-        }),
-      );
-
-      phases.add(
-        await _measure('post-undo-paint', performanceRecorder, () async {
-          notifier.beginMapStroke();
-          notifier.paintCollisionAt(const GridPos(x: 63, y: 63));
-          notifier.endMapStroke();
-          await tester.pump(const Duration(milliseconds: 16));
-        }),
-      );
-
-      phases.add(
-        await _measure('save', performanceRecorder, () async {
-          final outcome = await notifier.saveActiveMap();
-          expect(outcome.name, 'saved');
-          await tester.pump(const Duration(milliseconds: 16));
-        }),
-      );
       for (final maskExtent in const <int>[64, 256, 512, 1024]) {
         phases.add(
           await _measureSamples(
