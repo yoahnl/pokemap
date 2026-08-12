@@ -1,14 +1,17 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/misc.dart' show Override;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/main.dart' show MapEditorApp;
 import 'package:map_editor/src/debug/marionette_project_bootstrap.dart';
+import 'package:map_editor/src/debug/marionette_personalization_qa_seed.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_feature_authoring_controller.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_feature_inspection.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
@@ -61,14 +64,30 @@ Map<String, Object?> openPersonalizationStudioForMarionette({
 }
 
 /// Debug-only entrypoint for deterministic, observable macOS QA.
-void main() {
+Future<void> main() async {
   // Marionette must be the sole binding initializer in this process.
   MarionetteBinding.ensureInitialized();
 
   const configuredProjectPath = String.fromEnvironment(
     MarionetteProjectBootstrap.projectPathDefine,
   );
-  final bootstrap = MarionetteProjectBootstrap.load(configuredProjectPath);
+  const configuredSeed = String.fromEnvironment(
+    MarionettePersonalizationQaSeed.projectSeedDefine,
+  );
+  const configuredRunId = String.fromEnvironment(
+    MarionettePersonalizationQaSeed.runIdDefine,
+  );
+  final projectPath = await resolveMarionetteProjectPath(
+    configuredProjectPath: configuredProjectPath,
+    configuredSeed: configuredSeed,
+    configuredRunId: configuredRunId,
+    sandboxRoot: Directory.systemTemp,
+    loadAsset: (path) async {
+      final data = await rootBundle.load(path);
+      return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    },
+  );
+  final bootstrap = MarionetteProjectBootstrap.load(projectPath);
   final initialState = bootstrap.createInitialState();
   final container = ProviderContainer(
     retry: disableAutomaticProviderRetry,
@@ -492,6 +511,37 @@ void main() {
       child: const MapEditorApp(),
     ),
   );
+}
+
+Future<String> resolveMarionetteProjectPath({
+  required String configuredProjectPath,
+  required String configuredSeed,
+  required String configuredRunId,
+  required Directory sandboxRoot,
+  required MarionetteQaAssetLoader loadAsset,
+}) async {
+  final hasProject = configuredProjectPath.trim().isNotEmpty;
+  final hasSeed = configuredSeed.trim().isNotEmpty;
+  if (hasProject == hasSeed) {
+    throw StateError(
+      'Exactly one Marionette project path or project seed is required.',
+    );
+  }
+  if (hasProject) {
+    return configuredProjectPath;
+  }
+  if (configuredSeed != MarionettePersonalizationQaSeed.seedId) {
+    throw StateError('Unsupported Marionette project seed: $configuredSeed');
+  }
+  if (configuredRunId.trim().isEmpty) {
+    throw StateError('A Marionette QA run identifier is required.');
+  }
+  final project = await MarionettePersonalizationQaSeed.create(
+    sandboxRoot: sandboxRoot,
+    runId: configuredRunId,
+    loadAsset: loadAsset,
+  );
+  return project.path;
 }
 
 /// Seeds only the debug container; production continues to use EditorNotifier.

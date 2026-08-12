@@ -6,6 +6,8 @@ import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import 'marionette_personalization_qa_seed.dart';
+
 final class MarionetteQaWorkspace {
   const MarionetteQaWorkspace._({
     required this.sourceProjectPath,
@@ -174,5 +176,31 @@ final class MarionetteQaLaunchPlan {
     '--debug',
     '--dart-define=$projectPathDefine='
         '${p.normalize(p.absolute(projectRootPath))}',
+  ];
+}
+
+final class MarionetteQaSeedLaunchPlan {
+  const MarionetteQaSeedLaunchPlan({
+    required this.packageRootPath,
+    required this.runId,
+  });
+
+  final String packageRootPath;
+  final String runId;
+
+  String get executable => 'flutter';
+
+  String get workingDirectory => p.normalize(p.absolute(packageRootPath));
+
+  List<String> get arguments => <String>[
+    'run',
+    '-t',
+    'dev/marionette_main.dart',
+    '-d',
+    'macos',
+    '--debug',
+    '--dart-define=${MarionettePersonalizationQaSeed.projectSeedDefine}='
+        '${MarionettePersonalizationQaSeed.seedId}',
+    '--dart-define=${MarionettePersonalizationQaSeed.runIdDefine}=$runId',
   ];
 }
