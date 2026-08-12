@@ -653,6 +653,37 @@ void main() {
       expect(firstTile.height, lessThan(66));
     });
 
+    testWidgets('capture item control emits the selected Poke Ball entry',
+        (tester) async {
+      var selectedIndex = -1;
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: _snapshot(
+            mode: BattleCommandOverlayMode.bag,
+            entries: <BattleCommandOverlayEntry>[
+              _entry(
+                index: 0,
+                kind: BattleCommandOverlayEntryKind.bag,
+                primaryLabel: 'Poke Ball',
+                secondaryLabel: 'Capture',
+                trailingLabel: 'x5',
+                statusLabel: 'OK',
+                tone: BattleCommandOverlayEntryTone.capture,
+              ),
+            ],
+          ),
+          onEntrySelected: (index) => selectedIndex = index,
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const Key('battle-mobile-entry-0')),
+      );
+      await tester.pump();
+
+      expect(selectedIndex, 0);
+    });
+
     testWidgets('player hp bar shrinks and turns red on low health',
         (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));

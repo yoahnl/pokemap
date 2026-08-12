@@ -54,6 +54,9 @@ final class ItemSystemSchemaEvidenceCollector {
         }
         payload['catalogSchemaVersion'] = catalog.schemaVersion;
         payload['catalogEntryCount'] = catalog.entries.length;
+        payload['catalogEntryIds'] =
+            catalog.entries.map((entry) => entry.id).toList(growable: false)
+              ..sort();
       },
     );
 

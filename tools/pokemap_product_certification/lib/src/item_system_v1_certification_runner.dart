@@ -6,6 +6,7 @@ import 'item_system_execution_receipt.dart';
 import 'item_system_fixture_digest.dart';
 import 'item_system_golden_journey_evidence.dart';
 import 'item_system_persistence_evidence_collector.dart';
+import 'item_system_player_evidence_collector.dart';
 import 'item_system_runtime_evidence_collector.dart';
 import 'item_system_schema_evidence_collector.dart';
 import 'item_system_transport_evidence_collector.dart';
@@ -14,6 +15,7 @@ final class ItemSystemV1CertificationRunner {
   const ItemSystemV1CertificationRunner();
 
   Future<ItemSystemCertificationResult> run({
+    required Directory repositoryRootDirectory,
     required Directory projectRootDirectory,
     required Directory mcpPackageRootDirectory,
     required String sourceRevision,
@@ -50,6 +52,13 @@ final class ItemSystemV1CertificationRunner {
           recordedAtUtc: recordedAtUtc,
           rngSeed: rngSeed,
         );
+    receipts[ItemSystemProofLevel.playerUxL4] =
+        await const ItemSystemPlayerEvidenceCollector().collect(
+          repositoryRootDirectory: repositoryRootDirectory,
+          projectRootDirectory: projectRootDirectory,
+          sourceRevision: sourceRevision,
+          recordedAtUtc: recordedAtUtc,
+        );
     receipts[ItemSystemProofLevel.mcpParityL5] =
         await const ItemSystemTransportEvidenceCollector().collect(
           projectRootDirectory: projectRootDirectory,
@@ -76,10 +85,6 @@ final class ItemSystemV1CertificationRunner {
         sourceRevision: sourceRevision,
         fixtureSha256: fixtureSha256,
         executionReceipts: receipts,
-        partialMissingCapabilitiesByLevel:
-            const <ItemSystemProofLevel, Set<String>>{
-              ItemSystemProofLevel.playerUxL4: <String>{'held_item_controls'},
-            },
       ),
     );
   }

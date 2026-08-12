@@ -29,12 +29,14 @@ void main() {
       const runner = ItemSystemV1CertificationRunner();
 
       final first = await runner.run(
+        repositoryRootDirectory: Directory(repositoryRoot),
         projectRootDirectory: projectRoot,
         mcpPackageRootDirectory: mcpRoot,
         sourceRevision: sourceRevision,
         recordedAtUtc: DateTime.utc(2026, 8, 12, 8),
       );
       final second = await runner.run(
+        repositoryRootDirectory: Directory(repositoryRoot),
         projectRootDirectory: projectRoot,
         mcpPackageRootDirectory: mcpRoot,
         sourceRevision: sourceRevision,
@@ -46,6 +48,7 @@ void main() {
         ItemSystemProofLevel.authoringL1,
         ItemSystemProofLevel.persistenceL2,
         ItemSystemProofLevel.runtimeL3,
+        ItemSystemProofLevel.playerUxL4,
         ItemSystemProofLevel.mcpParityL5,
         ItemSystemProofLevel.goldenFlowL6,
       ]) {
@@ -55,12 +58,8 @@ void main() {
           matches(RegExp(r'^[0-9a-f]{64}$')),
         );
       }
-      expect(
-        first.statusFor(ItemSystemProofLevel.playerUxL4),
-        ItemSystemCertificationStatus.partial,
-      );
-      expect(first.overallStatus, ItemSystemCertificationStatus.partial);
-      expect(first.executionReceipts, hasLength(6));
+      expect(first.overallStatus, ItemSystemCertificationStatus.certified);
+      expect(first.executionReceipts, hasLength(7));
       expect(
         _withoutInformationalTimestamps(first.toJson()),
         _withoutInformationalTimestamps(second.toJson()),

@@ -265,6 +265,85 @@ void main() {
     expect(command?.moveTargetId, 'growl');
   });
 
+  testWidgets('HM target picker emits a compatible replacement command',
+      (tester) async {
+    RuntimePlayerPauseCommand? command;
+    final detail = RuntimePlayerPauseDetailSnapshot(
+      section: RuntimePlayerPauseSection.bag,
+      title: 'Sac',
+      entries: <RuntimePlayerDetailEntrySnapshot>[
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'bag.machines.hm-surf',
+          title: 'HM Surf',
+          bagAction: RuntimePlayerBagItemActionSnapshot(
+            itemTargetId: 'hm-surf',
+            targetKind: RuntimePlayerBagUseTargetKind.partyMoveReplacement,
+            usability: ItemUsabilityState.usable,
+            isEnabled: true,
+            eligiblePartyTargetIds: const <String>{'party.0'},
+          ),
+        ),
+      ],
+      bagTargets: <RuntimePlayerBagPartyTargetSnapshot>[
+        RuntimePlayerBagPartyTargetSnapshot(
+          targetId: 'party.0',
+          label: 'Bulbizarre',
+          moves: const <RuntimePlayerBagMoveTargetSnapshot>[
+            RuntimePlayerBagMoveTargetSnapshot(
+              targetId: 'tackle',
+              label: 'Charge',
+            ),
+            RuntimePlayerBagMoveTargetSnapshot(
+              targetId: 'growl',
+              label: 'Rugissement',
+            ),
+            RuntimePlayerBagMoveTargetSnapshot(
+              targetId: 'vine-whip',
+              label: 'Fouet Lianes',
+            ),
+            RuntimePlayerBagMoveTargetSnapshot(
+              targetId: 'sleep-powder',
+              label: 'Poudre Dodo',
+            ),
+          ],
+        ),
+        RuntimePlayerBagPartyTargetSnapshot(
+          targetId: 'party.1',
+          label: 'Salamèche',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerDetailRouter(
+          snapshot: _detailSnapshot(
+            RuntimePlayerPauseSection.bag,
+            detail: detail,
+          ),
+          onPauseCommand: (value) => command = value,
+        ),
+      ),
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('runtime-player-bag-use-hm-surf'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Salamèche'), findsNothing);
+    expect(find.textContaining('hm-surf'), findsNothing);
+    await tester.tap(
+      find.text('Apprendre à Bulbizarre en oubliant Rugissement'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(command?.itemTargetId, 'hm-surf');
+    expect(command?.partyTargetId, 'party.0');
+    expect(command?.moveTargetId, 'growl');
+  });
+
   testWidgets('party gives, swaps and takes held items with guided labels',
       (tester) async {
     final commands = <RuntimePlayerPauseCommand>[];

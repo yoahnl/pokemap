@@ -29,7 +29,20 @@ void main() {
     );
     expect(receipt.failedCapabilities, isEmpty);
     expect(receipt.fixtureSha256, matches(RegExp(r'^[0-9a-f]{64}$')));
-    expect(receipt.payload['catalogEntryCount'], 9);
+    expect(receipt.payload['catalogEntryCount'], 11);
+    expect(receipt.payload['catalogEntryIds'], <String>[
+      'antidote',
+      'ether',
+      'hidden-tonic',
+      'hm-surf',
+      'lab-key',
+      'leftovers',
+      'lucky-charm',
+      'poke-ball',
+      'potion',
+      'revive',
+      'tm-protect',
+    ]);
     expect(receipt.payload['legacyCatalogRejected'], true);
     expect(receipt.payload['legacySaveRejected'], true);
     expect(receipt.payload['missingSaveSchemaRejected'], true);

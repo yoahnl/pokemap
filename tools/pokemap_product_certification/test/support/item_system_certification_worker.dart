@@ -30,6 +30,7 @@ void main() {
       }
       final sourceRevision = await _sourceRevision(repositoryRoot);
       final result = await const ItemSystemV1CertificationRunner().run(
+        repositoryRootDirectory: Directory(repositoryRoot),
         projectRootDirectory: Directory(projectRoot),
         mcpPackageRootDirectory: Directory(mcpRoot),
         sourceRevision: sourceRevision,
