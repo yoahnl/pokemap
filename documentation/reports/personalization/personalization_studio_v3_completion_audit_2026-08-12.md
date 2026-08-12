@@ -222,3 +222,23 @@ Les trois commandes ont terminé avec le code `0`. Les avertissements Xcode conc
 Le contrôle de politique a trouvé des références CocoaPods historiques dans le projet standalone. Elles ont été supprimées des xcconfig, du workspace, du projet Xcode et du gitignore. Le nouveau test `macos_dependency_manager_policy_test.dart` prouve l’activation SPM, les overrides `gamepads_darwin` et l’absence de toute intégration Pods ; test et analyse ciblée sont verts, puis le standalone a été reconstruit avec succès.
 
 Verdict R5.2 : `DONE`.
+
+### PERS3-R5.3 — Recette V10 de bout en bout
+
+Base de la recette : `d2a21fd2bca47e56912c057b7a94aedf49a208da`.
+
+| Étape | Commande ou preuve | Résultat frais |
+|---|---|---|
+| Editor restart | `flutter test test/personalization/phase_6_personalization_studio_restart_e2e_test.dart --reporter expanded` | `1/1`, succès. |
+| Editor export | `POKEMAP_PHASE6_PACKAGE_OUTPUT=/tmp/pokemap-phase-d-r53.avelunegame flutter test test/personalization/phase_6_personalization_studio_export_e2e_test.dart --reporter expanded` | `1/1`, succès ; package SHA-256 `f11e2c779e4dcf47b592d27cb0b114a3ea6c364568c8efa8c53796c61aed7583`. |
+| Hub install + launch | `POKEMAP_PHASE6_PACKAGE_INPUT=/tmp/pokemap-phase-d-r53.avelunegame flutter test test/presentation/features/player/phase_6_personalization_packaging_e2e_test.dart --reporter expanded` | `1/1`, succès sur le package réellement exporté par Editor. |
+| Standalone | `flutter test test/phase_a_golden_slice_launch_test.dart --plain-name 'standalone forwards the complete V10 presentation'` | `1/1`, succès. |
+| Parité de projection | `flutter test test/player/runtime_player_presentation_test.dart --reporter expanded` | `8/8`, succès ; le vrai `golden_personalization_v3/project.json` V10 produit exactement le même `RuntimePlayerPresentationViewData` par les chemins Hub et standalone. |
+| Analyse parité | `flutter analyze lib/src/player/runtime_player_presentation.dart test/player/runtime_player_presentation_test.dart` | code `0`, aucun problème. |
+| Analyse Hub E2E | `flutter analyze test/presentation/features/player/phase_6_personalization_packaging_e2e_test.dart` | code `0`, aucun problème. |
+
+Le premier passage Hub a révélé une hypothèse incorrecte dans le test : `branding.titleMusic` était forcé comme obligatoire alors que le contrat et l'export Editor l'autorisent à être absent. Le harness résout désormais ce média uniquement lorsqu'il existe. Le produit n'a pas été élargi et l'export sans musique reste valide.
+
+`RuntimePlayerPresentationViewData` constitue le snapshot canonique des données effectivement projetées vers les widgets player : copie du titre, typographie chargée, thème, palettes, fenêtres, layouts, Dialogue, Combat et Pause. Les identités d'`ImageProvider`, dépendantes du loader, sont volontairement exclues ; leur résolution reste couverte par l'E2E Hub sur le package réel.
+
+Verdict R5.3 : `DONE`.
