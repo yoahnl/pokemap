@@ -21,6 +21,7 @@ export 'src/features/personalization/application/personalization_preview_surface
 export 'src/features/personalization/application/personalization_scene_presets.dart';
 export 'src/features/personalization/application/personalization_studio_asset_picker.dart';
 export 'src/features/personalization/application/personalization_studio_session_controller.dart';
+export 'src/features/personalization/application/personalization_v10_field_consumption_matrix.dart';
 export 'src/features/personalization/application/project_branding_image_import_service.dart';
 export 'src/features/personalization/presentation/personalization_live_preview.dart';
 export 'src/features/personalization/presentation/personalization_layout_overlay.dart';
