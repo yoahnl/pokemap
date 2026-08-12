@@ -3,7 +3,7 @@
 Date : 2026-08-12  
 Branche : `codex/perf-000a-hermetic-harness`  
 Base auditée : `557b0fc9067602ee5e4b92450c3be4549c2847ab`  
-Statut proposé : `DONE`
+Statut proposé : `TO REVIEW`
 
 ## Verdict
 
