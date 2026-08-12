@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_player_ui/personalization_preview.dart';
 
 import '../../../ui/canvas/cinematics/cinematic_map_backdrop_layer_plan_loader.dart';
 import '../../../ui/design_system/design_system.dart';
