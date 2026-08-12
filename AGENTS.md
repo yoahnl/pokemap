@@ -247,6 +247,13 @@ git worktree list
 
 Before editing, check the working tree when available. After editing, report final working tree. Never hide unrelated pre-existing changes.
 
+When the user explicitly authorizes both commits and rebases for ticket-by-
+ticket delivery, finish every completed ticket with targeted verification, one
+scoped commit, then a rebase of the ticket branch onto the designated base
+branch. Re-run the relevant verification after the rebase, and never combine
+unfinished tickets in that commit. Ticket-by-ticket delivery alone is not Git
+write authorization.
+
 ---
 
 ## 8. Validation

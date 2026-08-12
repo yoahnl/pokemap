@@ -40,7 +40,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MapEditorApp(),
+        child: const MapEditorApp(
+          enableEditorUpdateHost: false,
+          restoreLastOpenedProjectOnStartup: false,
+        ),
       ),
     );
     for (var index = 0; index < 3; index += 1) {

@@ -18,6 +18,7 @@ import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_m
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_connections_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_toolbelt.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
+import 'package:map_editor/src/features/editor_updates/presentation/editor_update_host.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
@@ -30,6 +31,35 @@ import 'shell_chrome_test_harness.dart';
 
 void main() {
   group('EditorShellPage smoke', () {
+    testWidgets('root app can disable background startup effects',
+        (tester) async {
+      final notifier = _RestoreRecordingEditorNotifier();
+
+      await pumpEditorShellPage(
+        tester,
+        initialState: const EditorState(),
+        overrides: [editorNotifierProvider.overrideWith(() => notifier)],
+        useMapEditorApp: true,
+        enableEditorUpdateHost: false,
+        restoreLastOpenedProjectOnStartup: false,
+      );
+
+      expect(notifier.restoreCalls, 0);
+      expect(find.byType(EditorUpdateHost), findsNothing);
+    });
+
+    testWidgets('restores the last project by default', (tester) async {
+      final notifier = _RestoreRecordingEditorNotifier();
+
+      await pumpEditorShellPage(
+        tester,
+        initialState: const EditorState(),
+        overrides: [editorNotifierProvider.overrideWith(() => notifier)],
+      );
+
+      expect(notifier.restoreCalls, 1);
+    });
+
     testWidgets('composes the map chrome with the adaptive inspector',
         (tester) async {
       await pumpEditorShellPage(
@@ -713,6 +743,19 @@ void main() {
       );
     });
   });
+}
+
+final class _RestoreRecordingEditorNotifier extends EditorNotifier {
+  int restoreCalls = 0;
+
+  @override
+  EditorState build() => const EditorState();
+
+  @override
+  Future<bool> restoreLastOpenedProjectIfAny() async {
+    restoreCalls += 1;
+    return false;
+  }
 }
 
 final class _ImmediateProjectRepository implements ProjectRepository {
