@@ -327,4 +327,105 @@ void main() {
     expect(notifier.state.mapUndoStack, isEmpty);
     expect(notifier.state.isDirty, isFalse);
   });
+
+  test('canonical adoption rebases an active Smart Tile stroke', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    final project = ProjectManifest(
+      name: 'Project',
+      maps: const <ProjectMapEntry>[
+        ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
+      ],
+      tilesets: const <ProjectTilesetEntry>[],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: const <ProjectSmartTileMaterial>[
+          ProjectSmartTileMaterial(
+            id: 'grass',
+            name: 'Grass',
+            connectionGroupId: 'ground',
+          ),
+        ],
+        presets: const <ProjectSmartTilePreset>[
+          ProjectSmartTilePreset(
+            id: 'terrain',
+            name: 'Terrain',
+            usage: SmartTileUsage.terrain,
+            topology: SmartTileTopology.uniform,
+            coveragePolicy: SmartTileCoveragePolicy.sparse,
+            coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: SmartTileTransformPolicy(),
+            defaultMaterialId: 'grass',
+            allowedMaterialIds: <String>['grass'],
+          ),
+        ],
+      ),
+    );
+    const sourceLayer = SmartTileLayer(
+      id: 'smart',
+      name: 'Smart',
+      presetId: 'terrain',
+      usage: SmartTileUsage.terrain,
+      materialPalette: <String>['', 'grass'],
+      field: SmartTileField.cell(semanticCells: <int>[0, 0]),
+    );
+    const source = MapData(
+      id: 'map',
+      name: 'Map',
+      size: GridSize(width: 2, height: 1),
+      layers: <MapLayer>[sourceLayer],
+    );
+    final adoptedLayer = applySmartTileMaterialGesture(
+      sourceLayer,
+      mapSize: source.size,
+      cells: const <GridPos>[GridPos(x: 0, y: 0)],
+      materialId: 'grass',
+    );
+    final adopted = replaceSmartTileLayer(source, layer: adoptedLayer);
+    notifier.state = EditorState(
+      project: project,
+      activeMap: source,
+      activeMapPath: 'maps/map.json',
+      activeLayerId: 'smart',
+      activeTool: EditorToolType.terrainPaint,
+      savedMapSnapshot: source,
+    );
+
+    notifier.beginMapStroke();
+    notifier.paintSmartTileMaterialAt(
+      const GridPos(x: 1, y: 0),
+      materialId: 'grass',
+    );
+    final preview = notifier.activeMapCellStrokePreview!;
+
+    expect(
+      notifier.acceptCanonicalSmartTilePublication(
+        manifest: project,
+        map: adopted,
+        mapRevision: 'revision-2',
+        layerId: 'smart',
+        preservePaintTool: true,
+        preserveCanonicalGestureHistory: true,
+      ),
+      isTrue,
+    );
+
+    expect(notifier.state.mapStrokeStart?.map, same(adopted));
+    expect(preview.sourceMap, same(adopted));
+    expect(preview.smartTileMaterialAt(0, 0), 'grass');
+    expect(preview.smartTileMaterialAt(1, 0), 'grass');
+
+    notifier.endMapStroke();
+
+    expect(
+      smartTileSemanticCells(
+        notifier.state.activeMap!.layers.single as SmartTileLayer,
+      ),
+      <int>[1, 1],
+    );
+    notifier.undoMap();
+    expect(notifier.state.activeMap, adopted);
+  });
 }

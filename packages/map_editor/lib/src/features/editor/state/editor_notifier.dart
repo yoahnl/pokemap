@@ -1265,6 +1265,12 @@ class EditorNotifier extends _$EditorNotifier
     final activeTool = state.activeTool;
     final activeBrush = state.activeBrush;
     final eraserFootprint = state.eraserFootprint;
+    final activeStroke = state.mapStrokeStart;
+    final activeStrokeBuffer = _mapCellStrokeBuffer;
+    final rebaseActiveSmartTileStroke = activeStroke != null &&
+        activeStrokeBuffer != null &&
+        activeStrokeBuffer.kind == MapCellStrokeLayerKind.smartTile &&
+        activeStrokeBuffer.layerId == layerId;
     state = _projectSessionController.openMapDocument(
       current: state.copyWith(
         project: manifest,
@@ -1289,6 +1295,12 @@ class EditorNotifier extends _$EditorNotifier
       isProjectDirty: false,
       errorMessage: null,
     );
+    if (rebaseActiveSmartTileStroke) {
+      activeStrokeBuffer.rebaseSmartTileSource(map);
+      state = state.copyWith(
+        mapStrokeStart: activeStroke.copyWith(map: map, wasDirty: false),
+      );
+    }
     _rememberMapDocumentRevision(
       activeMapPath,
       revision: mapRevision,
