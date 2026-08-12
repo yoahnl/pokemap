@@ -13,7 +13,8 @@
 ## 1. Statut et règles d’exécution
 
 - [x] `DONE` — les lots CHS-001 à CHS-061 sont implémentés et certifiés au 12 août 2026.
-- Clôture canonique : `documentation/reports/editor/character_studio_final_closure_2026-08-12.md`.
+- [x] `DONE_WITH_RESERVATIONS` — les lots de durcissement CHS-062 à CHS-065 sont livrés ; les analyses globales `map_runtime` et `playable_runtime_host` restent arrêtées par des diagnostics `info` préexistants, sans échec fonctionnel Character Studio.
+- Clôture historique CHS-001 à CHS-061 : `documentation/reports/editor/character_studio_final_closure_2026-08-12.md` ; les preuves S13 sont consolidées dans la phase 7 ci-dessous.
 - L’audit de la section 2 reste la photographie historique prise avant l’implémentation.
 - Cette roadmap est le document canonique du chantier Character Studio.
 - Un lot doit rester petit, testable, réversible et livrable indépendamment.
@@ -191,6 +192,7 @@ Les noms définitifs doivent respecter la grammaire du registre existant, mais l
 | 4 — Matrice et runtime d’animation | CHS-040 à CHS-046 | Animations système/custom éditables et jouées réellement | Phase 2 |
 | 5 — Certification et livraison | CHS-050 à CHS-054 | Export, accessibilité, MCP et golden slice certifiés | Phases 3 et 4 |
 | 6 — Durcissement final | CHS-055 à CHS-061 | Preuves desktop réelles, parité des transports et démarrage éditeur certifiés | Phase 5 |
+| 7 — Durcissement transactionnel | CHS-062 à CHS-065 | Références dialogue, brouillons et imports média atomiques certifiés | Phase 6 |
 
 Les phases 3 et 4 peuvent être exécutées par deux flux indépendants une fois les phases 0–2 stabilisées. Leur intégration partage cependant le même read model personnage et doit être fusionnée/testée avant la phase 5.
 
@@ -701,7 +703,55 @@ cd ../../examples/playable_runtime_host && flutter test test/phase_a_golden_slic
 cd ../.. && bash tools/scripts/check_markdown_hygiene.sh && git diff --check
 ```
 
-## 13. Ordonnancement recommandé des sessions
+## 13. Phase 7 — Durcissement transactionnel S13
+
+**Objectif de phase :** fermer les quatre écarts restants révélés par l’audit post-S12 : références de personnages dans les directives de portrait Yarn, perte silencieuse d’un brouillon d’identité à la fermeture, imports média en deux mutations et accumulation future des assets d’animation remplacés.
+
+**Vagues :** CHS-062 → CHS-063 → CHS-064 → CHS-065.
+
+### CHS-062 — Suppression consciente des portraits de dialogue
+
+- [x] **Résultat :** `characterStudio.character.deletePlan` recense les directives `<<portrait character state>>` et `characterStudio.character.delete` les efface ou remplace dans la même transaction que le manifeste et les cartes.
+- **Scope :** sources Yarn UTF-8, preview de dépendances, résolutions `clear` et `replace`, comptage exact ; aucune réécriture des dialogues sans référence au personnage.
+- **Fichiers principaux :** `character_studio_character_actions.dart`, `character_studio_character_actions_test.dart`.
+- **Gate :** 24 tests Authoring ciblés réussis, dont plan, clear, replace et parité Character Studio ; `dart analyze` sans diagnostic.
+- **Commit :** `1447681ff fix(character-studio): resolve dialogue character references`.
+
+### CHS-063 — Brouillons d’identité et fermeture protégée
+
+- [x] **Résultat :** tout brouillon d’identité marque le projet comme non synchronisé et une demande de fermeture propose explicitement de rester ou de quitter sans enregistrer.
+- **Scope :** état sale global, conservation du brouillon après annulation, destruction uniquement après confirmation de sortie ; aucune persistance implicite d’un formulaire incomplet.
+- **Fichiers principaux :** `character_studio_identity_draft_controller.dart`, `editor_shell_page.dart`, `status_bar.dart`, `character_studio_workspace_layout_test.dart`.
+- **Gate :** 28 tests widget ciblés réussis ; scénario de sortie `cancel` puis `exit` prouvé ; `flutter analyze` sans diagnostic.
+- **Commit :** `104120f23 fix(character-studio): guard unsaved identity drafts`.
+
+### CHS-064 — Imports média atomiques et remplacement borné
+
+- [x] **Résultat :** l’import du PNG, sa publication dans le catalogue et son affectation au portrait ou au clip forment une seule mutation canonique ; une réimportation de source portable réutilise son `assetId` et supprime transactionnellement l’ancien blob lorsqu’il n’est plus partagé.
+- **Scope :** binding optionnel des actions `characterStudio.asset.import/replace`, portraits, clips système/custom, source historique vers premier asset portable, API directe, JSONL/CLI, éditeur et MCP live.
+- **Fichiers principaux :** `character_studio_asset_actions.dart`, services d’import portrait/animation, tests Authoring, Editor et `mutation_server.test.ts`.
+- **Gate :** 32 tests Authoring ciblés, 18 tests Editor ciblés et le scénario MCP CHS-058 réussis ; analyses `map_authoring` et `map_editor` sans diagnostic ; build TypeScript MCP réussi.
+- **Commits :** `2ac5e0876 fix(character-studio): make media imports atomic`, puis `bc741d579 fix(character-studio): isolate shared media replacements` après la passe critique sur les assets multi-slots.
+
+### CHS-065 — Recertification et synchronisation S13
+
+- [x] **Résultat :** les verticales Core, Authoring, Editor, Runtime, Player UI, host et MCP ont été rejouées ; le build macOS debug et la politique SPM-only sont prouvés.
+- **Scope :** tests ciblés Character Studio, analyses de packages, build desktop, suite MCP packagée, hygiène Git/Markdown et documentation honnête des réserves globales.
+- **Fichiers principaux :** cette roadmap uniquement.
+- **Réserves :** `map_runtime` conserve 7 diagnostics `info` et `playable_runtime_host` 27 diagnostics `info`, tous hors fichiers S13 ; leurs tests ciblés réussissent respectivement 20/20 et 10/10. `map_core` signale 121 `info` avec un code de sortie nul.
+- **Gate fonctionnelle :** Core 43/43, Authoring 59/59, Editor 94/94, Runtime 20/20, Player UI 11/11, host 10/10, MCP 46/46 plus rejeu ciblé CHS-058, et politique macOS SPM 2/2.
+
+**Verdict des passes S13 :**
+
+| Passe | Verdict | Preuve |
+|---|---|---|
+| Audit / architecture | `PASS` | Les références Yarn, le cache de brouillons, les doubles mutations et le cycle de vie des assets ont été tracés avant modification. |
+| Implémentation | `PASS` | Trois lots produit bornés livrés en quatre commits, dont un correctif issu de la critique, sans nouveau schéma de projet ni nouveau chemin d’écriture. |
+| Tests | `PASS` | Cas positifs, erreurs, annulation de sortie, réécriture clear/replace, atomicité, relecture et parité directe/JSONL/MCP couverts. |
+| Build / validation | `PASS_WITH_RESERVATIONS` | Build macOS et MCP réussis ; réserves d’analyse globales préexistantes consignées sans les masquer. |
+| Critique finale | `PASS_WITH_RISKS` | Pas d’écriture partielle identifiée ; les anciens enregistrements d’assets déjà orphelins ne sont pas nettoyés rétroactivement. |
+
+## 14. Ordonnancement recommandé des sessions
 
 | Session | Lots groupés | Pourquoi ce batch reste cohérent |
 |---|---|---|
@@ -717,10 +767,11 @@ cd ../.. && bash tools/scripts/check_markdown_hygiene.sh && git diff --check
 | S10 | CHS-055, CHS-056 | Harness desktop puis preuve visuelle de vrais sprites |
 | S11 | CHS-057 à CHS-059 | Certification des quatre transports et publication de la parité |
 | S12 | CHS-060, CHS-061 | Démarrage Riverpod sûr puis certification finale consolidée |
+| S13 | CHS-062 à CHS-065 | Références dialogue, brouillons, atomicité média puis recertification verticale |
 
 Chaque session peut produire plusieurs lots, mais le verdict et les tests restent enregistrés lot par lot. On évite ainsi le commit « Character Studio final vraiment final v7 bis » de 18 000 lignes, créature légendaire dont personne ne souhaite faire la review.
 
-## 14. Définition de Done par lot et par phase
+## 15. Définition de Done par lot et par phase
 
 ### Lot terminé
 
@@ -742,7 +793,7 @@ Chaque session peut produire plusieurs lots, mais le verdict et les tests resten
 - [x] Les diagnostics de readiness sont cohérents entre éditeur, export et runtime.
 - [x] Une courte auto-critique recense dette, risques et décision pour la phase suivante.
 
-## 15. Risques et décisions à surveiller
+## 16. Risques et décisions à surveiller
 
 1. **Downgrade v6 :** garder le numéro v6 évite une explosion de contrats Smart Tiles, mais un ancien éditeur qui réécrit des JSON inconnus peut perdre les champs Studio. Mitigation : round-trip testé dans la version courante, warning de version minimale et backup avant downgrade.
 2. **Deux sources d’assets :** le `tilesetId` historique et les nouveaux asset IDs peuvent diverger. Mitigation : resolver unique, fallback explicitement testé, export closure centralisée.
@@ -753,20 +804,20 @@ Chaque session peut produire plusieurs lots, mais le verdict et les tests resten
 7. **Duplication UI :** conserver Character Library et Character Studio comme deux CRUD complets créerait une dérive. Mitigation : un seul adapter canonique, ancien panneau réduit à la navigation ou retiré à la phase 2.
 8. **Dette design system :** l’ancien panneau contient des exceptions historiques. Mitigation : la nouvelle feature n’en hérite pas ; une primitive manquante est ajoutée au design system avant usage.
 9. **Portée narrative :** cinématiques et scènes possèdent plusieurs exécuteurs. Mitigation : une commande de domaine commune, adapters explicites, tests preview/runtime et diagnostics de capacité.
-10. **Roadmap volumineuse :** 35 lots peuvent encourager des implémentations partielles présentées comme finies. Mitigation : gates verticales et statut par couche, pas de `DONE` esthétique.
+10. **Roadmap volumineuse :** 46 lots peuvent encourager des implémentations partielles présentées comme finies. Mitigation : gates verticales et statut par couche, pas de `DONE` esthétique.
 
-## 16. Passes de revue de cette roadmap
+## 17. Passes de revue de cette roadmap
 
 | Passe | Verdict | Vérification |
 |---|---|---|
 | Audit / architecture | `PASS` | Les modèles, l’éditeur, le dialogue, le runtime, les assets et `map_authoring` ont été tracés avant le découpage. |
-| Plan d’implémentation | `PASS` | 42 lots ordonnés en 7 phases et 12 sessions, avec dépendances, fichiers, tests et gates explicites. |
-| Tests / caractérisation | `PASS` | 139 tests ciblés de baseline réussis sur cinq packages ; aucun échec observé. |
-| Build / validation produit | `N/A` | Aucun code produit n’a été modifié dans ce travail de roadmap ; builds et analyses complets sont des gates d’exécution. |
-| Critique finale | `PASS_WITH_RISKS` | Les risques principaux sont le downgrade v6, les références globales, le packaging d’assets et les boucles custom. Les mitigations sont intégrées aux lots. |
+| Plan d’implémentation | `PASS` | 46 lots ordonnés en 8 phases et 13 sessions, avec dépendances, fichiers, tests et gates explicites. |
+| Tests / caractérisation | `PASS` | Baseline initiale conservée et gates S13 rejouées de Core au serveur MCP packagé. |
+| Build / validation produit | `PASS_WITH_RESERVATIONS` | Build macOS SPM réussi ; diagnostics `info` globaux hors S13 consignés en CHS-065. |
+| Critique finale | `PASS_WITH_RISKS` | Le partage multi-slots est protégé ; le nettoyage rétroactif des anciens assets déjà orphelins reste hors scope. |
 
-## 17. Fichiers et changements produits par ce travail
+## 18. Fichiers et changements produits par ce travail
 
 - Document canonique mis à jour : `documentation/reports/roadmap/editor/character_studio_roadmap.md`.
-- Zones couvertes : audit initial, contrat produit, architecture cible, 42 lots en 7 phases, 12 sessions, commandes de gate, Definition of Done, risques et passes de revue.
-- La synchronisation CHS-055 à CHS-061 est documentaire ; les changements produit et tests associés restent tracés par leurs commits et par la clôture finale.
+- Zones couvertes : audit initial, contrat produit, architecture cible, 46 lots en 8 phases, 13 sessions, commandes de gate, Definition of Done, risques et passes de revue.
+- La synchronisation CHS-055 à CHS-065 est documentaire ; les changements produit et tests associés restent tracés par leurs commits et par la clôture finale.
