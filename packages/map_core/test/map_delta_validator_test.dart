@@ -71,7 +71,12 @@ void main() {
               quarterTurns: random.nextInt(4),
             );
             map = upsertMapPlacedElement(map, instance: instance);
-            delta = MapMutationDelta.placedElement(instanceId: instance.id);
+            delta = MapMutationDelta.placedElement(
+              instance: instance,
+              instanceIndex: map.placedElements.indexWhere(
+                (candidate) => candidate.id == instance.id,
+              ),
+            );
         }
 
         final receipt = MapDeltaValidator.validate(
@@ -83,21 +88,31 @@ void main() {
       }
     });
 
-    test('rejects an undeclared layer mutation without scanning its cells', () {
-      final before = _map(1024);
-      final ground = before.layers.whereType<TileLayer>().single;
-      final collision = before.layers.whereType<CollisionLayer>().single;
-      final layers = List<MapLayer>.of(before.layers);
-      layers[before.layers.indexOf(ground)] = ground.copyWith(
-        cells: <int>[...ground.cells]..[0] = 1,
-      );
-      layers[before.layers.indexOf(collision)] = collision.copyWith(
-        collisions: <bool>[...collision.collisions]..[1] = true,
-      );
-      final after = before.copyWith(layers: layers);
+    test(
+      'defers undeclared resources outside the delta to full validation',
+      () {
+        final before = _map(1024);
+        final ground = before.layers.whereType<TileLayer>().single;
+        final collision = before.layers.whereType<CollisionLayer>().single;
+        final layers = List<MapLayer>.of(before.layers);
+        layers[before.layers.indexOf(ground)] = ground.copyWith(
+          cells: <int>[...ground.cells]..[0] = 1,
+        );
+        layers[before.layers.indexOf(collision)] = collision.copyWith(
+          collisions: collision.collisions.sublist(1),
+        );
+        final after = before.copyWith(
+          layers: layers,
+          entities: const <MapEntity>[
+            MapEntity(
+              id: '',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 0, y: 0),
+            ),
+          ],
+        );
 
-      expect(
-        () => MapDeltaValidator.validate(
+        final receipt = MapDeltaValidator.validate(
           DeltaValidationContext(
             before: before,
             after: after,
@@ -106,10 +121,15 @@ void main() {
               cellIndices: <int>{0},
             ),
           ),
-        ),
-        throwsA(isA<ValidationException>()),
-      );
-    });
+        );
+
+        expect(receipt.inspectedLayerCount, 1);
+        expect(
+          () => MapValidator.validate(after),
+          throwsA(isA<ValidationException>()),
+        );
+      },
+    );
 
     test(
       'validates only declared cells while full boundary catches corruption',
@@ -163,6 +183,47 @@ void main() {
         throwsA(isA<ValidationException>()),
       );
 
+      final duplicatePaletteLayers = List<MapLayer>.of(before.layers);
+      duplicatePaletteLayers[before.layers.indexOf(tile)] = tile.copyWith(
+        palette: <TileLayerPaletteEntry>[...tile.palette, tile.palette.single],
+        cells: <int>[...tile.cells]..[3] = 2,
+      );
+      expect(
+        () => MapDeltaValidator.validate(
+          DeltaValidationContext(
+            before: before,
+            after: before.copyWith(layers: duplicatePaletteLayers),
+            delta: const MapMutationDelta.tileCells(
+              layerId: 'ground',
+              cellIndices: <int>{3},
+            ),
+          ),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+
+      final invalidPaletteLayers = List<MapLayer>.of(before.layers);
+      invalidPaletteLayers[before.layers.indexOf(tile)] = tile.copyWith(
+        palette: <TileLayerPaletteEntry>[
+          ...tile.palette,
+          const TileLayerPaletteEntry(tilesetId: '', localTileId: 1),
+        ],
+        cells: <int>[...tile.cells]..[3] = 2,
+      );
+      expect(
+        () => MapDeltaValidator.validate(
+          DeltaValidationContext(
+            before: before,
+            after: before.copyWith(layers: invalidPaletteLayers),
+            delta: const MapMutationDelta.tileCells(
+              layerId: 'ground',
+              cellIndices: <int>{3},
+            ),
+          ),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+
       final smart = before.layers.whereType<SmartTileLayer>().single;
       final field = smart.field as SmartTileMixedField;
       final smartLayers = List<MapLayer>.of(before.layers);
@@ -176,6 +237,48 @@ void main() {
           DeltaValidationContext(
             before: before,
             after: before.copyWith(layers: smartLayers),
+            delta: const MapMutationDelta.smartTileCells(
+              layerId: 'smart',
+              cellIndices: <int>{2},
+            ),
+          ),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+
+      final duplicateMaterialLayers = List<MapLayer>.of(before.layers);
+      duplicateMaterialLayers[before.layers.indexOf(smart)] = smart.copyWith(
+        materialPalette: <String>[...smart.materialPalette, 'grass'],
+        field: field.copyWith(
+          semanticCells: <int>[...field.semanticCells]..[2] = 2,
+        ),
+      );
+      expect(
+        () => MapDeltaValidator.validate(
+          DeltaValidationContext(
+            before: before,
+            after: before.copyWith(layers: duplicateMaterialLayers),
+            delta: const MapMutationDelta.smartTileCells(
+              layerId: 'smart',
+              cellIndices: <int>{2},
+            ),
+          ),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+
+      final invalidMaterialLayers = List<MapLayer>.of(before.layers);
+      invalidMaterialLayers[before.layers.indexOf(smart)] = smart.copyWith(
+        materialPalette: <String>[...smart.materialPalette, ''],
+        field: field.copyWith(
+          semanticCells: <int>[...field.semanticCells]..[2] = 2,
+        ),
+      );
+      expect(
+        () => MapDeltaValidator.validate(
+          DeltaValidationContext(
+            before: before,
+            after: before.copyWith(layers: invalidMaterialLayers),
             delta: const MapMutationDelta.smartTileCells(
               layerId: 'smart',
               cellIndices: <int>{2},
@@ -218,7 +321,10 @@ void main() {
           DeltaValidationContext(
             before: before,
             after: placed,
-            delta: const MapMutationDelta.placedElement(instanceId: 'bad'),
+            delta: MapMutationDelta.placedElement(
+              instance: placed.placedElements.single,
+              instanceIndex: 0,
+            ),
           ),
         ),
         throwsA(isA<ValidationException>()),
@@ -245,8 +351,104 @@ void main() {
         );
 
         expect(receipt.inspectedCellCount, 1);
-        expect(receipt.inspectedLayerCount, before.layers.length);
+        expect(receipt.inspectedLayerCount, 1);
       }
+    });
+
+    test('reports only the layer and resources declared by each delta', () {
+      final before = _map(8);
+      final tile = before.layers.whereType<TileLayer>().single;
+      final tileAfter = paintTileOnLayer(
+        before,
+        layerId: tile.id,
+        pos: const GridPos(x: 0, y: 0),
+        tile: tile.palette.single,
+      );
+      final tileReceipt = MapDeltaValidator.validate(
+        DeltaValidationContext(
+          before: before,
+          after: tileAfter,
+          delta: const MapMutationDelta.tileCells(
+            layerId: 'ground',
+            cellIndices: <int>{0},
+          ),
+        ),
+      );
+
+      expect(tileReceipt.inspectedLayerCount, 1);
+      expect(tileReceipt.inspectedResourceCount, 1);
+
+      final smart = before.layers.whereType<SmartTileLayer>().single;
+      final smartAfter = replaceSmartTileLayer(
+        before,
+        layer: applySmartTileMaterialGesture(
+          smart,
+          mapSize: before.size,
+          cells: const <GridPos>[GridPos(x: 0, y: 0)],
+          materialId: 'grass',
+        ),
+      );
+      final smartReceipt = MapDeltaValidator.validate(
+        DeltaValidationContext(
+          before: before,
+          after: smartAfter,
+          delta: const MapMutationDelta.smartTileCells(
+            layerId: 'smart',
+            cellIndices: <int>{0},
+          ),
+        ),
+      );
+
+      expect(smartReceipt.inspectedLayerCount, 1);
+      expect(smartReceipt.inspectedResourceCount, 1);
+
+      final placements = <MapPlacedElement>[
+        for (var index = 0; index < 32; index++)
+          MapPlacedElement(
+            id: 'existing-$index',
+            layerId: 'ground',
+            elementId: 'tree',
+            pos: GridPos(x: index % 8, y: index ~/ 8),
+          ),
+      ];
+      final placementBefore = before.copyWith(placedElements: placements);
+      const placed = MapPlacedElement(
+        id: 'placed',
+        layerId: 'ground',
+        elementId: 'tree',
+        pos: GridPos(x: 7, y: 7),
+      );
+      final placementAfter = upsertMapPlacedElement(
+        placementBefore,
+        instance: placed,
+      );
+      final placementReceipt = MapDeltaValidator.validate(
+        DeltaValidationContext(
+          before: placementBefore,
+          after: placementAfter,
+          delta: const MapMutationDelta.placedElement(
+            instance: placed,
+            instanceIndex: 32,
+          ),
+        ),
+      );
+
+      expect(placementReceipt.inspectedLayerCount, 1);
+      expect(placementReceipt.inspectedResourceCount, 1);
+      expect(placementReceipt.inspectedPlacedElementCount, 1);
+      expect(
+        () => MapDeltaValidator.validate(
+          DeltaValidationContext(
+            before: placementBefore,
+            after: placementAfter,
+            delta: const MapMutationDelta.placedElement(
+              instance: placed,
+              instanceIndex: 0,
+            ),
+          ),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
     });
   });
 }
