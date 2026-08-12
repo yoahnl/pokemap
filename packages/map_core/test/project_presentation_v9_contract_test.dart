@@ -40,7 +40,7 @@ void main() {
 
       final decoded = ProjectPresentationProfile.fromJson(profile.toJson());
 
-      expect(decoded.schemaVersion, 9);
+      expect(decoded.schemaVersion, 10);
       expect(decoded.dialogue, profile.dialogue);
       expect(validateProjectPresentationProfile(decoded), isEmpty);
     });
@@ -53,7 +53,7 @@ void main() {
         },
       );
 
-      expect(decoded.schemaVersion, 9);
+      expect(decoded.schemaVersion, 10);
       expect(decoded.dialogue, isNull);
     });
 
