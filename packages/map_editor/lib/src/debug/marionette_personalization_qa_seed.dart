@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
+
+import '../application/use_cases/seed_pokemon_demo_data_use_case.dart';
+import '../infrastructure/filesystem/project_filesystem.dart';
 
 typedef MarionetteQaAssetLoader = Future<List<int>> Function(String assetPath);
 
@@ -34,22 +38,33 @@ abstract final class MarionettePersonalizationQaSeed {
     try {
       final stageBytes = await loadAsset(stageAssetPath);
       final portraitBytes = await loadAsset(portraitAssetPath);
-      final portraitDigest = sha256.convert(portraitBytes).toString();
+      final portraitArtifact = ContentArtifactRef.fromBytes(
+        portraitBytes,
+        mediaType: 'image/png',
+      );
       _writeBytes(root, 'assets/maps/qa-village.png', stageBytes);
       _writeBytes(root, 'assets/battle/qa-clearing.png', stageBytes);
       _writeBytes(root, 'assets/characters/qa-leo.png', portraitBytes);
-      _writeBytes(
-        root,
-        'assets/.pokemap-store/$portraitDigest.blob',
-        portraitBytes,
-      );
+      _writeBytes(root, assetBlobStorageKey(portraitArtifact), portraitBytes);
       _writeJson(root, 'project.json', _manifest);
       _writeJson(root, 'maps/qa_village.json', _map);
       _writeText(root, 'dialogues/qa_welcome.yarn', _dialogue);
       _writeJson(
         root,
         'assets/.pokemap-assets.json',
-        _assetRegistry(portraitDigest, portraitBytes.length),
+        AssetCatalog(
+          records: <AssetRecord>[
+            AssetRecord(
+              id: 'portrait-qa-leo',
+              logicalPath: 'assets/characters/qa-leo.png',
+              artifact: portraitArtifact,
+              tags: const <String>['portrait'],
+            ),
+          ],
+        ).toJson(),
+      );
+      await const SeedPokemonDemoDataUseCase().execute(
+        ProjectFileSystem(root.path),
       );
       return Directory(root.resolveSymbolicLinksSync());
     } catch (_) {
@@ -60,7 +75,7 @@ abstract final class MarionettePersonalizationQaSeed {
     }
   }
 
-  static const Map<String, Object?> _manifest = <String, Object?>{
+  static final Map<String, Object?> _manifest = <String, Object?>{
     'name': 'QA Personalization Studio',
     'version': 'v6',
     'maps': <Object?>[
@@ -108,7 +123,7 @@ abstract final class MarionettePersonalizationQaSeed {
         'encounterKind': 'walk',
         'entries': <Object?>[
           <String, Object?>{
-            'speciesId': 'roucool',
+            'speciesId': 'bulbasaur',
             'minLevel': 7,
             'maxLevel': 7,
             'weight': 1,
@@ -140,6 +155,28 @@ abstract final class MarionettePersonalizationQaSeed {
         },
       ],
     },
+    'scenes': <Object?>[_completionScene().toJson()],
+    'eventRegistry': NarrativeEventRegistry(
+      schemaVersion: 1,
+      mode: EventSystemMode.v2Only,
+      records: <NarrativeEventRecord>[
+        NarrativeEventRecord.configuredStructurallyUnchecked(
+          NarrativeEventDefinition(
+            id: 'evt_019abcde-6000-7000-8000-000000000002',
+            name: 'Démarrage QA',
+            source: NarrativeEventSourceRef.mapEnter('qa_village'),
+            conditions: const <NarrativeEventCondition>[],
+            sceneId: 'scene.personalization.qa',
+            reusePolicy: NarrativeEventReusePolicy.oneShot,
+            priority: 0,
+            order: 0,
+          ),
+          enabled: true,
+        ),
+      ],
+      legacyClaims: const <LegacySourceClaim>[],
+    ).toJson(),
+    'pokemon': const ProjectPokemonConfig(enabled: true).toJson(),
     'settings': <String, Object?>{
       'tileWidth': 1,
       'tileHeight': 1,
@@ -148,7 +185,78 @@ abstract final class MarionettePersonalizationQaSeed {
       'defaultMapHeight': 1,
       'defaultPlayerCharacterId': 'qa_leo',
     },
+    'newGame': <String, Object?>{
+      'enabled': true,
+      'startMapId': 'qa_village',
+      'startSpawnId': 'qa_spawn',
+      'playerName': 'Léo',
+      'startingMoney': 500,
+      'initialBag': <Object?>[],
+      'initialParty': <Object?>[
+        <String, Object?>{
+          'speciesId': 'bulbasaur',
+          'natureId': 'hardy',
+          'abilityId': 'overgrow',
+          'level': 5,
+          'knownMoveIds': <Object?>[],
+          'currentHp': 20,
+        },
+      ],
+      'initialFacts': <String, Object?>{},
+      'starterOptions': <Object?>[],
+    },
   };
+
+  static SceneAsset _completionScene() => SceneAsset(
+    id: 'scene.personalization.qa',
+    name: 'Parcours QA',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: <SceneNode>[
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'finish',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.finishGame(
+              endingId: 'ending.personalization.qa',
+              outcome: SceneGameCompletionOutcome.completed,
+              result: SceneFinishGameResult(
+                title: SceneLocalizedText(fallback: 'QA terminée'),
+                summary: SceneLocalizedText(
+                  fallback: 'Le parcours Personalization est vérifié.',
+                ),
+              ),
+              postGamePolicy: ScenePostGamePolicy.returnToTitle,
+            ),
+          ),
+        ),
+        SceneNode(
+          id: 'end',
+          kind: SceneNodeKind.end,
+          payload: SceneEndPayload(
+            outcomePolicy: SceneOutcomePolicy.progression,
+          ),
+        ),
+      ],
+      edges: <SceneEdge>[
+        SceneEdge(
+          id: 'start-finish',
+          fromNodeId: 'start',
+          fromPortId: 'completed',
+          toNodeId: 'finish',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'finish-end',
+          fromNodeId: 'finish',
+          fromPortId: 'completed',
+          toNodeId: 'end',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    ),
+  );
 
   static const Map<String, Object?> _map = <String, Object?>{
     'id': 'qa_village',
@@ -222,26 +330,6 @@ Bienvenue dans le projet de vérification du Personalization Studio.
   Vérifions les six scènes.
 ===
 ''';
-
-  static Map<String, Object?> _assetRegistry(String digest, int byteLength) {
-    return <String, Object?>{
-      'schemaVersion': 1,
-      'records': <Object?>[
-        <String, Object?>{
-          'id': 'portrait-qa-leo',
-          'logicalPath': 'assets/characters/qa-leo.png',
-          'artifact': <String, Object?>{
-            'digest': 'sha256:$digest',
-            'handle': 'artifact://sha256/$digest',
-            'mediaType': 'image/png',
-            'byteLength': byteLength,
-          },
-          'usages': <Object?>[],
-          'tags': <Object?>['portrait'],
-        },
-      ],
-    };
-  }
 
   static void _writeJson(Directory root, String relativePath, Object value) {
     _writeText(
