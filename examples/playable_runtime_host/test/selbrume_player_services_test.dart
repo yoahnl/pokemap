@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import 'support/selbrume_player_service_test_host.dart';
@@ -40,6 +41,7 @@ void main() {
       loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
         maxHpByPartyIndex: <int, int>{},
       ),
+      itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     );
 
     final result = await controller.openShop(shop);
