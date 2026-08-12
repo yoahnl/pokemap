@@ -215,8 +215,10 @@ final class _FixedPreviewContextSource
 
   @override
   Future<List<PersonalizationPreviewContextOption>> load(
-    String projectRoot,
-  ) async => contexts;
+    String projectRoot, {
+    PersonalizationPreviewContextScope scope =
+        PersonalizationPreviewContextScope.all,
+  }) async => contexts;
 }
 
 Future<void> _seedFixtureImages(Directory projectRoot) async {

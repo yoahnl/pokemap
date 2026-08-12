@@ -389,8 +389,10 @@ class EditorNotifier extends _$EditorNotifier
   NarrativeDocumentSessionStatus? _lastNarrativeDocumentStatus;
   String? _narrativeDocumentProjectPath;
   PersonalizationStudioSessionController? _personalizationStudioSession;
-  ProjectManifest? _lastPersonalizationStudioDocument;
+  ProjectManifest? _lastPersonalizationStudioProject;
   NarrativeDocumentSessionStatus? _lastPersonalizationStudioStatus;
+  final _PersonalizationStudioSignal _personalizationStudioSignal =
+      _PersonalizationStudioSignal();
   String? _personalizationStudioProjectPath;
   int _personalizationStudioOperationSequence = 0;
   Future<void> _personalizationStudioMutationTail = Future<void>.value();
@@ -485,6 +487,7 @@ class EditorNotifier extends _$EditorNotifier
       ref.onDispose(() {
         _disposeNarrativeDocumentSession();
         _disposePersonalizationStudioSession();
+        _personalizationStudioSignal.dispose();
       });
     }
     final activeBorderFeatureController =
@@ -1319,7 +1322,7 @@ class EditorNotifier extends _$EditorNotifier
     );
     _personalizationStudioSession = session;
     _personalizationStudioProjectPath = projectPath;
-    _lastPersonalizationStudioDocument = project;
+    _lastPersonalizationStudioProject = project;
     _lastPersonalizationStudioStatus = null;
     session.addListener(_onPersonalizationStudioSessionChanged);
     await session.initialize();
@@ -1337,6 +1340,14 @@ class EditorNotifier extends _$EditorNotifier
 
   void registerPersonalizationStudioPendingEditFlusher(VoidCallback flusher) {
     _personalizationStudioPendingEditFlusher = flusher;
+  }
+
+  void addPersonalizationStudioSessionListener(VoidCallback listener) {
+    _personalizationStudioSignal.addListener(listener);
+  }
+
+  void removePersonalizationStudioSessionListener(VoidCallback listener) {
+    _personalizationStudioSignal.removeListener(listener);
   }
 
   void unregisterPersonalizationStudioPendingEditFlusher(
@@ -1385,7 +1396,7 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     final session = _personalizationStudioSession!;
-    if (state.project != session.state.document) {
+    if (state.project != session.state.savedDocument) {
       state = state.copyWith(
         errorMessage: 'Le projet contient des modifications extérieures au '
             'Personalization Studio. Enregistrez-les avant de continuer.',
@@ -1410,7 +1421,7 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     final session = _personalizationStudioSession!;
-    if (state.project != session.state.document) {
+    if (state.project != session.state.savedDocument) {
       state = state.copyWith(
         errorMessage: 'Sauvegarde bloquée : le projet contient des '
             'modifications extérieures au Personalization Studio.',
@@ -1434,7 +1445,7 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     final session = _personalizationStudioSession!;
-    if (state.project != session.state.document) {
+    if (state.project != session.state.savedDocument) {
       state = state.copyWith(
         errorMessage: 'Undo bloqué : le projet a changé en dehors du '
             'Personalization Studio.',
@@ -1454,7 +1465,7 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     final session = _personalizationStudioSession!;
-    if (state.project != session.state.document) {
+    if (state.project != session.state.savedDocument) {
       state = state.copyWith(
         errorMessage: 'Redo bloqué : le projet a changé en dehors du '
             'Personalization Studio.',
@@ -1504,14 +1515,12 @@ class EditorNotifier extends _$EditorNotifier
     final session = _personalizationStudioSession;
     if (session == null) return;
     final sessionState = session.state;
-    final previousDocument = _lastPersonalizationStudioDocument;
+    final previousProject = _lastPersonalizationStudioProject;
     final previousStatus = _lastPersonalizationStudioStatus;
     final visibleProject = state.project;
 
-    _lastPersonalizationStudioDocument = sessionState.document;
-    _lastPersonalizationStudioStatus = sessionState.status;
-    if (visibleProject != previousDocument &&
-        visibleProject != sessionState.document) {
+    if (visibleProject != previousProject &&
+        visibleProject != sessionState.savedDocument) {
       return;
     }
 
@@ -1538,13 +1547,28 @@ class EditorNotifier extends _$EditorNotifier
     final didFinishSaving =
         sessionState.status == NarrativeDocumentSessionStatus.saved &&
             previousStatus == NarrativeDocumentSessionStatus.saving;
+    final didResolveConflict =
+        previousStatus == NarrativeDocumentSessionStatus.conflicted &&
+            sessionState.status != NarrativeDocumentSessionStatus.conflicted;
+    final didInitializeFromNewerProject =
+        previousStatus == null &&
+            sessionState.status == NarrativeDocumentSessionStatus.saved &&
+            visibleProject != sessionState.savedDocument;
+    final shouldAdoptSavedProject =
+        didFinishSaving || didResolveConflict || didInitializeFromNewerProject;
+    final nextProject = shouldAdoptSavedProject
+        ? sessionState.savedDocument
+        : visibleProject;
+    _lastPersonalizationStudioProject = nextProject;
+    _lastPersonalizationStudioStatus = sessionState.status;
     state = state.copyWith(
-      project: sessionState.document,
+      project: nextProject,
       isProjectDirty: sessionState.isDirty,
       isSaving: sessionState.isSaving,
       statusMessage: statusMessage,
       errorMessage: errorMessage,
     );
+    _personalizationStudioSignal.notify();
     if (didFinishSaving && _narrativeDocumentSession != null) {
       _disposeNarrativeDocumentSession();
       unawaited(initializeNarrativeDocumentSession());
@@ -1559,7 +1583,7 @@ class EditorNotifier extends _$EditorNotifier
     }
     _personalizationStudioSession = null;
     _personalizationStudioProjectPath = null;
-    _lastPersonalizationStudioDocument = null;
+    _lastPersonalizationStudioProject = null;
     _lastPersonalizationStudioStatus = null;
   }
 
@@ -2324,7 +2348,7 @@ class EditorNotifier extends _$EditorNotifier
     if (personalizationSession != null &&
         personalizationSession.state.status !=
             NarrativeDocumentSessionStatus.saved) {
-      if (project != personalizationSession.state.document) {
+      if (project != personalizationSession.state.savedDocument) {
         state = state.copyWith(
           errorMessage: 'Sauvegarde bloquée : le projet contient à la fois '
               'un brouillon de personnalisation et des modifications '
@@ -15120,6 +15144,10 @@ final class _NarrativeAuthoringSaveInterlock {
   final String projectPath;
   final String code;
   final String message;
+}
+
+final class _PersonalizationStudioSignal extends ChangeNotifier {
+  void notify() => notifyListeners();
 }
 
 class _PaintPattern {

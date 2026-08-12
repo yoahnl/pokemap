@@ -94,10 +94,13 @@ final personalizationPreviewContextSourceProvider =
     });
 
 final personalizationPreviewContextOptionsProvider = FutureProvider.autoDispose
-    .family<List<PersonalizationPreviewContextOption>, String>(
-      (ref, projectRoot) => ref
+    .family<
+      List<PersonalizationPreviewContextOption>,
+      ({String projectRoot, PersonalizationPreviewContextScope scope})
+    >(
+      (ref, request) => ref
           .watch(personalizationPreviewContextSourceProvider)
-          .load(projectRoot),
+          .load(request.projectRoot, scope: request.scope),
     );
 
 final personalizationCharacterPreviewSourceProvider =

@@ -120,8 +120,12 @@ class _PersonalizationStudioWorkspaceState
 
   @override
   void dispose() {
-    _pendingCommitNotifier?.unregisterPersonalizationStudioPendingEditFlusher(
+    final notifier = _pendingCommitNotifier;
+    notifier?.unregisterPersonalizationStudioPendingEditFlusher(
       _flushDeferredCommits,
+    );
+    notifier?.removePersonalizationStudioSessionListener(
+      _onPersonalizationStudioSessionChanged,
     );
     final subscription = _titleMusicPreviewSubscription;
     final controller = _titleMusicPreviewController;
@@ -152,13 +156,24 @@ class _PersonalizationStudioWorkspaceState
 
   void _registerPendingCommitFlusher(EditorNotifier notifier) {
     if (identical(_pendingCommitNotifier, notifier)) return;
-    _pendingCommitNotifier?.unregisterPersonalizationStudioPendingEditFlusher(
+    final previous = _pendingCommitNotifier;
+    previous?.unregisterPersonalizationStudioPendingEditFlusher(
       _flushDeferredCommits,
+    );
+    previous?.removePersonalizationStudioSessionListener(
+      _onPersonalizationStudioSessionChanged,
     );
     _pendingCommitNotifier = notifier;
     notifier.registerPersonalizationStudioPendingEditFlusher(
       _flushDeferredCommits,
     );
+    notifier.addPersonalizationStudioSessionListener(
+      _onPersonalizationStudioSessionChanged,
+    );
+  }
+
+  void _onPersonalizationStudioSessionChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _runPreflight({
@@ -2241,11 +2256,26 @@ class _PersonalizationStudioWorkspaceState
         (_preflightProjectRootPath != projectRootPath ||
             _preflightProfile != profile);
     final activePreflightResult = isPreflightStale ? null : _preflightResult;
-    final previewContextState = ref.watch(
-      personalizationPreviewContextOptionsProvider(projectRootPath),
-    );
+    final previewContextScope = switch (_selectedScene) {
+      PersonalizationStudioScene.pause => PersonalizationPreviewContextScope.map,
+      PersonalizationStudioScene.dialogue =>
+        PersonalizationPreviewContextScope.dialogue,
+      PersonalizationStudioScene.battle =>
+        PersonalizationPreviewContextScope.battle,
+      PersonalizationStudioScene.globalStyle ||
+      PersonalizationStudioScene.title ||
+      PersonalizationStudioScene.intro => null,
+    };
+    final previewContextState = previewContextScope == null
+        ? null
+        : ref.watch(
+            personalizationPreviewContextOptionsProvider((
+              projectRoot: projectRootPath,
+              scope: previewContextScope,
+            )),
+          );
     final previewContexts =
-        previewContextState.value ??
+        previewContextState?.value ??
         const <PersonalizationPreviewContextOption>[];
     final characterOptions =
         _selectedScene == PersonalizationStudioScene.dialogue
@@ -2456,8 +2486,9 @@ class _PersonalizationStudioWorkspaceState
                 },
                 contexts: previewContexts,
                 contextsLoading:
-                    previewContextState.isLoading && previewContexts.isEmpty,
-                contextsErrorMessage: previewContextState.hasError
+                    previewContextState?.isLoading == true &&
+                    previewContexts.isEmpty,
+                contextsErrorMessage: previewContextState?.hasError == true
                     ? 'Les données du projet nécessaires à l’aperçu '
                           'n’ont pas pu être chargées.'
                     : null,

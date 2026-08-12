@@ -11,6 +11,33 @@ enum PersonalizationPreviewContextKind {
   encounter,
 }
 
+enum PersonalizationPreviewContextScope {
+  map(<PersonalizationPreviewContextKind>{
+    PersonalizationPreviewContextKind.map,
+  }),
+  dialogue(<PersonalizationPreviewContextKind>{
+    PersonalizationPreviewContextKind.map,
+    PersonalizationPreviewContextKind.dialogue,
+    PersonalizationPreviewContextKind.dialogueScenario,
+    PersonalizationPreviewContextKind.characterPortrait,
+  }),
+  battle(<PersonalizationPreviewContextKind>{
+    PersonalizationPreviewContextKind.map,
+    PersonalizationPreviewContextKind.encounter,
+  }),
+  all(<PersonalizationPreviewContextKind>{
+    PersonalizationPreviewContextKind.map,
+    PersonalizationPreviewContextKind.dialogue,
+    PersonalizationPreviewContextKind.dialogueScenario,
+    PersonalizationPreviewContextKind.characterPortrait,
+    PersonalizationPreviewContextKind.encounter,
+  });
+
+  const PersonalizationPreviewContextScope(this.kinds);
+
+  final Set<PersonalizationPreviewContextKind> kinds;
+}
+
 final class PersonalizationPreviewContextOption {
   PersonalizationPreviewContextOption({
     required this.id,
@@ -70,7 +97,11 @@ final class PersonalizationPreviewContextOption {
 }
 
 abstract interface class PersonalizationPreviewContextSource {
-  Future<List<PersonalizationPreviewContextOption>> load(String projectRoot);
+  Future<List<PersonalizationPreviewContextOption>> load(
+    String projectRoot, {
+    PersonalizationPreviewContextScope scope =
+        PersonalizationPreviewContextScope.all,
+  });
 }
 
 final class AuthoringPersonalizationPreviewContextSource
@@ -83,41 +114,53 @@ final class AuthoringPersonalizationPreviewContextSource
 
   @override
   Future<List<PersonalizationPreviewContextOption>> load(
-    String projectRoot,
-  ) async {
+    String projectRoot, {
+    PersonalizationPreviewContextScope scope =
+        PersonalizationPreviewContextScope.all,
+  }) async {
     final session = await _queries.open(projectRoot);
     final contexts = <PersonalizationPreviewContextOption>[];
-    String? cursor;
     String? revision;
-    do {
-      final page = session.query(
-        AuthoringQueryRequest(
-          resourceKind: 'presentationPreviewContext',
-          operation: AuthoringQueryOperation.list,
-          view: AuthoringQueryView.detail,
-          pageSize: 100,
-          cursor: cursor,
-        ),
-      );
-      final pageRevision = page['snapshotRevision'];
-      final rawItems = page['items'];
-      if (pageRevision is! String || rawItems is! List) {
-        throw const FormatException(
-          'Invalid presentation preview context page.',
+    final kinds = scope == PersonalizationPreviewContextScope.all
+        ? const <PersonalizationPreviewContextKind?>[null]
+        : PersonalizationPreviewContextKind.values
+              .where(scope.kinds.contains)
+              .toList(growable: false);
+    for (final kind in kinds) {
+      String? cursor;
+      do {
+        final page = session.query(
+          AuthoringQueryRequest(
+            resourceKind: 'presentationPreviewContext',
+            operation: AuthoringQueryOperation.list,
+            view: AuthoringQueryView.detail,
+            pageSize: 100,
+            cursor: cursor,
+            filters: kind == null
+                ? const <String, Object?>{}
+                : <String, Object?>{'contextKind': kind.name},
+          ),
         );
-      }
-      revision ??= pageRevision;
-      if (revision != pageRevision) {
-        throw EditorAuthoringStaleSessionException();
-      }
-      for (final raw in rawItems) {
-        final option = PersonalizationPreviewContextOption.fromJson(
-          Map<String, Object?>.from(raw! as Map),
-        );
-        contexts.add(_enrich(session, option));
-      }
-      cursor = page['nextCursor'] as String?;
-    } while (cursor != null);
+        final pageRevision = page['snapshotRevision'];
+        final rawItems = page['items'];
+        if (pageRevision is! String || rawItems is! List) {
+          throw const FormatException(
+            'Invalid presentation preview context page.',
+          );
+        }
+        revision ??= pageRevision;
+        if (revision != pageRevision) {
+          throw EditorAuthoringStaleSessionException();
+        }
+        for (final raw in rawItems) {
+          final option = PersonalizationPreviewContextOption.fromJson(
+            Map<String, Object?>.from(raw! as Map),
+          );
+          contexts.add(_enrich(session, option));
+        }
+        cursor = page['nextCursor'] as String?;
+      } while (cursor != null);
+    }
     return List.unmodifiable(contexts);
   }
 

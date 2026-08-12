@@ -30,63 +30,82 @@ final class PresentationPreviewContextProjector {
     required Iterable<MapData> maps,
     required String? Function(String dialogueId) dialogueSourceText,
     required String? Function(String assetId) portraitAssetPath,
+    Set<String> includedKinds = const <String>{
+      'map',
+      'dialogue',
+      'dialogueScenario',
+      'characterPortrait',
+      'encounter',
+    },
     String? Function(String speciesId)? speciesDisplayName,
     String? Function(String speciesId, bool playerSide)? battleSpritePath,
   }) {
     final loadedMaps = <String, MapData>{
       for (final map in maps) map.id: map,
     };
-    final portraitStateLabels = <String, String>{
-      for (final state in manifest.characterStudioCatalog.portraitStates)
-        state.id: state.displayName,
-    };
-    final playerPokemonOptions = <String, PlayerPokemon>{
-      for (final pokemon in manifest.newGame.initialParty)
-        pokemon.speciesId: pokemon,
-      for (final option in manifest.newGame.starterOptions)
-        option.pokemon.speciesId: option.pokemon,
-    }.values.toList(growable: false);
+    final needsPortraits = includedKinds.contains('characterPortrait');
+    final needsEncounters = includedKinds.contains('encounter');
+    final portraitStateLabels = needsPortraits
+        ? <String, String>{
+            for (final state in manifest.characterStudioCatalog.portraitStates)
+              state.id: state.displayName,
+          }
+        : const <String, String>{};
+    final playerPokemonOptions = needsEncounters
+        ? <String, PlayerPokemon>{
+            for (final pokemon in manifest.newGame.initialParty)
+              pokemon.speciesId: pokemon,
+            for (final option in manifest.newGame.starterOptions)
+              option.pokemon.speciesId: option.pokemon,
+          }.values.toList(growable: false)
+        : const <PlayerPokemon>[];
     final contexts = <PresentationPreviewContextResourceSnapshot>[
-      for (final entry in manifest.maps)
-        _mapContext(
-          entry,
-          loadedMaps[entry.id],
-          workspaceRevision: workspaceRevision,
-        ),
-      for (final dialogue in manifest.dialogues)
-        _dialogueContext(
-          dialogue,
-          workspaceRevision: workspaceRevision,
-          sourceText: dialogueSourceText(dialogue.id),
-        ),
-      for (final character in manifest.characters)
-        for (final portrait in character.portraits)
-          _portraitContext(
-            character,
-            portrait,
+      if (includedKinds.contains('map'))
+        for (final entry in manifest.maps)
+          _mapContext(
+            entry,
+            loadedMaps[entry.id],
             workspaceRevision: workspaceRevision,
-            stateLabel: portraitStateLabels[portrait.portraitStateId],
-            assetPath: portraitAssetPath(portrait.assetId),
           ),
-      for (final table in manifest.encounterTables)
-        _encounterContext(
-          table,
-          workspaceRevision: workspaceRevision,
-          playerPokemonOptions: playerPokemonOptions,
-          speciesDisplayName: speciesDisplayName,
-          battleSpritePath: battleSpritePath,
-        ),
+      if (includedKinds.contains('dialogue'))
+        for (final dialogue in manifest.dialogues)
+          _dialogueContext(
+            dialogue,
+            workspaceRevision: workspaceRevision,
+            sourceText: dialogueSourceText(dialogue.id),
+          ),
+      if (needsPortraits)
+        for (final character in manifest.characters)
+          for (final portrait in character.portraits)
+            _portraitContext(
+              character,
+              portrait,
+              workspaceRevision: workspaceRevision,
+              stateLabel: portraitStateLabels[portrait.portraitStateId],
+              assetPath: portraitAssetPath(portrait.assetId),
+            ),
+      if (needsEncounters)
+        for (final table in manifest.encounterTables)
+          _encounterContext(
+            table,
+            workspaceRevision: workspaceRevision,
+            playerPokemonOptions: playerPokemonOptions,
+            speciesDisplayName: speciesDisplayName,
+            battleSpritePath: battleSpritePath,
+          ),
     ];
-    for (final dialogue in manifest.dialogues) {
-      contexts.addAll(
-        _dialogueScenarioContexts(
-          dialogue,
-          sourceText: dialogueSourceText(dialogue.id),
-          manifest: manifest,
-          workspaceRevision: workspaceRevision,
-          portraitAssetPath: portraitAssetPath,
-        ),
-      );
+    if (includedKinds.contains('dialogueScenario')) {
+      for (final dialogue in manifest.dialogues) {
+        contexts.addAll(
+          _dialogueScenarioContexts(
+            dialogue,
+            sourceText: dialogueSourceText(dialogue.id),
+            manifest: manifest,
+            workspaceRevision: workspaceRevision,
+            portraitAssetPath: portraitAssetPath,
+          ),
+        );
+      }
     }
     return contexts;
   }

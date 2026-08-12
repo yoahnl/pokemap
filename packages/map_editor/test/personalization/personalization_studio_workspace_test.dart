@@ -15,6 +15,65 @@ import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
 import '../shell_chrome_test_harness.dart';
 
 void main() {
+  testWidgets('loads project preview data only for scenes that need it', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-lazy-preview-',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(
+      name: 'Lazy preview Studio',
+    ).copyWith(presentation: const ProjectPresentationProfile());
+    File(
+      '${root.path}/project.json',
+    ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
+    final contexts = _PreviewContextSource(_previewContexts);
+    final characters = _CharacterPreviewSource();
+    await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1600, 900),
+      overrides: [
+        personalizationPreviewContextSourceProvider.overrideWithValue(contexts),
+        personalizationCharacterPreviewSourceProvider.overrideWithValue(
+          characters,
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    expect(contexts.loadCount, 0);
+    expect(characters.loadCount, 0);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-studio-scene-pause')),
+    );
+    await tester.pumpAndSettle();
+    expect(contexts.loadCount, 1);
+    expect(contexts.loadedScopes, <PersonalizationPreviewContextScope>[
+      PersonalizationPreviewContextScope.map,
+    ]);
+    expect(characters.loadCount, 0);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-scene-dialogue'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(contexts.loadCount, 2);
+    expect(contexts.loadedScopes, <PersonalizationPreviewContextScope>[
+      PersonalizationPreviewContextScope.map,
+      PersonalizationPreviewContextScope.dialogue,
+    ]);
+    expect(characters.loadCount, 1);
+  });
+
   testWidgets(
     'keeps slider ticks in preview and journals once when the gesture ends',
     (tester) async {
@@ -273,9 +332,9 @@ void main() {
 
       expect(
         container
-            .read(editorNotifierProvider)
-            .project
-            ?.effectivePresentation
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.draftProfile
             .branding
             .layoutVariant,
         'cinematic',
@@ -662,9 +721,9 @@ void main() {
 
       expect(
         container
-            .read(editorNotifierProvider)
-            .project
-            ?.effectivePresentation
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.draftProfile
             .branding
             .layoutVariant,
         'cinematic',
@@ -696,9 +755,9 @@ void main() {
       await tester.pump();
       expect(
         container
-            .read(editorNotifierProvider)
-            .project
-            ?.effectivePresentation
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.draftProfile
             .branding
             .layoutVariant,
         'standard',
@@ -713,9 +772,9 @@ void main() {
       await tester.pump();
       expect(
         container
-            .read(editorNotifierProvider)
-            .project
-            ?.effectivePresentation
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.draftProfile
             .branding
             .layoutVariant,
         'cinematic',
@@ -952,9 +1011,9 @@ void main() {
 
       expect(
         container
-            .read(editorNotifierProvider)
-            .project
-            ?.effectivePresentation
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.draftProfile
             .windows
             ?.styles
             .every((style) => style.cornerRadius == 24),
@@ -1086,9 +1145,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final branding = container
-        .read(editorNotifierProvider)
-        .project
-        ?.effectivePresentation
+        .read(editorNotifierProvider.notifier)
+        .personalizationStudioSessionState
+        ?.draftProfile
         .branding;
     expect(branding?.accentColor, '#224466');
     expect(branding?.layoutVariant, 'cinematic');
@@ -1165,9 +1224,9 @@ void main() {
     expect(importer.calls, 1);
     expect(
       container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.draftProfile
           .branding
           .titleMusicPath,
       'assets/presentation/branding/title-music-test.ogg',
@@ -1210,9 +1269,9 @@ void main() {
     expect(preview.stopCalls, 2);
     expect(
       container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.draftProfile
           .branding
           .titleMusicPath,
       isNull,
@@ -1301,9 +1360,9 @@ void main() {
 
       expect(
         container
-            .read(editorNotifierProvider)
-            .project
-            ?.effectivePresentation
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.draftProfile
             .intro
             ?.allowReplay,
         isFalse,
@@ -1418,9 +1477,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
 
       final draft = container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.draftProfile
           .typography;
       expect(draft?.display.fontPath, isNull);
       expect(draft?.display.fallbackFamilies, <String>['sans-serif']);
@@ -1518,9 +1577,9 @@ void main() {
     expect(find.textContaining('six chiffres hexadécimaux'), findsOneWidget);
     expect(
       container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.draftProfile
           .theme
           ?.primary,
       safeProjectSemanticTheme.primary,
@@ -1533,9 +1592,9 @@ void main() {
 
     expect(
       container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.draftProfile
           .theme
           ?.primary,
       '#123456',
@@ -1549,7 +1608,11 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 20));
     expect(
-      container.read(editorNotifierProvider).project?.presentation?.theme,
+      container
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.draftProfile
+          .theme,
       isNull,
     );
 
@@ -1559,9 +1622,9 @@ void main() {
     await tester.pump();
     expect(
       container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.draftProfile
           .theme
           ?.primary,
       '#123456',
@@ -1571,7 +1634,11 @@ void main() {
     );
     await tester.pump();
     expect(
-      container.read(editorNotifierProvider).project?.presentation?.theme,
+      container
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.draftProfile
+          .theme,
       isNull,
     );
     expect(projectFile.readAsStringSync(), durableJson);
@@ -1657,9 +1724,9 @@ void main() {
       expect(introImporter.calls, 1);
 
       final intro = container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.draftProfile
           .intro;
       expect(intro, isNotNull);
       expect(intro?.captionsPath, endsWith('.vtt'));
@@ -1761,9 +1828,9 @@ void main() {
     expect(fontImporter.lastRole, ProjectTypographyRole.body);
     expect(previewRegistry.calls, 1);
     final typography = container
-        .read(editorNotifierProvider)
-        .project
-        ?.effectivePresentation
+        .read(editorNotifierProvider.notifier)
+        .personalizationStudioSessionState
+        ?.draftProfile
         .typography;
     expect(
       typography?.body.fontPath,
@@ -1850,9 +1917,9 @@ void main() {
     );
     expect(
       container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
+          .read(editorNotifierProvider.notifier)
+          .personalizationStudioSessionState
+          ?.draftProfile
           .intro,
       isNull,
     );
@@ -2064,14 +2131,38 @@ Future<void> _dragUntilHitTestable(
 
 final class _PreviewContextSource
     implements PersonalizationPreviewContextSource {
-  const _PreviewContextSource(this.contexts);
+  _PreviewContextSource(this.contexts);
 
   final List<PersonalizationPreviewContextOption> contexts;
+  int loadCount = 0;
+  final List<PersonalizationPreviewContextScope> loadedScopes =
+      <PersonalizationPreviewContextScope>[];
 
   @override
   Future<List<PersonalizationPreviewContextOption>> load(
+    String projectRoot, {
+    PersonalizationPreviewContextScope scope =
+        PersonalizationPreviewContextScope.all,
+  }) async {
+    loadCount += 1;
+    loadedScopes.add(scope);
+    return contexts
+        .where((context) => scope.kinds.contains(context.kind))
+        .toList(growable: false);
+  }
+}
+
+final class _CharacterPreviewSource
+    implements PersonalizationCharacterPreviewSource {
+  int loadCount = 0;
+
+  @override
+  Future<List<PersonalizationCharacterPreviewOption>> load(
     String projectRoot,
-  ) async => contexts;
+  ) async {
+    loadCount += 1;
+    return const <PersonalizationCharacterPreviewOption>[];
+  }
 }
 
 final _previewContexts = <PersonalizationPreviewContextOption>[

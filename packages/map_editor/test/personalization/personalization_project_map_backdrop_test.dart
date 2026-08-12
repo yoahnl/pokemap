@@ -128,4 +128,76 @@ void main() {
     );
     expect(find.text('Village de Vermeil'), findsOneWidget);
   });
+
+  testWidgets('keeps its render plan when only presentation changes', (
+    tester,
+  ) async {
+    var currentManifest = manifest;
+    late StateSetter update;
+    final planLoader = CinematicMapBackdropLayerPlanLoader();
+    addTearDown(planLoader.clear);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              update = setState;
+              return SizedBox(
+                width: 960,
+                height: 540,
+                child: PersonalizationProjectMapBackdrop(
+                  map: map,
+                  colors: context.pokeMapColors,
+                  projectRootPath: projectRoot,
+                  manifest: currentManifest,
+                  planLoader: planLoader,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    for (var attempt = 0; attempt < 20; attempt += 1) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
+      await tester.pump();
+      if (find
+          .byKey(const ValueKey<String>('personalization-project-map-renderer'))
+          .evaluate()
+          .isNotEmpty) {
+        break;
+      }
+    }
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-project-map-renderer'),
+      ),
+      findsOneWidget,
+    );
+
+    update(() {
+      currentManifest = manifest.copyWith(
+        presentation: const ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: '#123456'),
+        ),
+      );
+    });
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-project-map-renderer'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-project-map-fallback'),
+      ),
+      findsNothing,
+    );
+  });
 }

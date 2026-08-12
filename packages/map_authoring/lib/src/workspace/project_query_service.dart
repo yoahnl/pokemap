@@ -61,7 +61,7 @@ final class ProjectQueryService {
     var records = worldGraphActionRecords ??
         itemActionRecords ??
         characterStudioRecords ??
-        _records(snapshot, request.resourceKind);
+        _records(snapshot, request);
     records = _applyOperation(records, request);
     records = records
         .where((record) => _matchesFilters(record.detail, request.filters))
@@ -341,7 +341,7 @@ List<_QueryRecord>? _worldGraphActionRecords(
       code: 'query.world_graph_parameters_invalid',
     );
     return _withQueryAction(
-      _records(snapshot, 'worldGraph'),
+      _records(snapshot, request),
       actionId,
     );
   }
@@ -360,7 +360,7 @@ List<_QueryRecord>? _worldGraphActionRecords(
       code: 'query.world_graph_parameters_invalid',
     );
     return _withQueryAction(
-      _records(snapshot, 'worldGraphIssue'),
+      _records(snapshot, request),
       actionId,
     );
   }
@@ -650,8 +650,11 @@ AuthoringQueryPage? _queryMapRegion(
   );
 }
 
-List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
-  switch (resourceKind) {
+List<_QueryRecord> _records(
+  ProjectSnapshot snapshot,
+  AuthoringQueryRequest request,
+) {
+  switch (request.resourceKind) {
     case 'project':
       return [
         _QueryRecord(
@@ -705,9 +708,21 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
           ),
       ];
     case 'presentationPreviewContext':
-      final assetCatalogBytes = snapshot.findResourceBytes(
-        assetCatalogResourceIdentity,
-      );
+      final filteredKind = request.filters['contextKind'];
+      final includedKinds = filteredKind is String
+          ? <String>{filteredKind}
+          : const <String>{
+              'map',
+              'dialogue',
+              'dialogueScenario',
+              'characterPortrait',
+              'encounter',
+            };
+      final needsPortraitAssets = includedKinds.contains('dialogueScenario') ||
+          includedKinds.contains('characterPortrait');
+      final assetCatalogBytes = needsPortraitAssets
+          ? snapshot.findResourceBytes(assetCatalogResourceIdentity)
+          : null;
       final assetCatalog = assetCatalogBytes == null
           ? null
           : _decodeAssetCatalog(assetCatalogBytes);
@@ -715,6 +730,7 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
         manifest: snapshot.manifest,
         workspaceRevision: snapshot.revision,
         maps: snapshot.maps,
+        includedKinds: includedKinds,
         dialogueSourceText: (dialogueId) {
           final bytes = snapshot.findResourceBytes(
             dialogueSourceResourceIdentity(dialogueId),
@@ -1000,7 +1016,8 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
       ];
     default:
       throw StateError(
-        'Canonical queryable resource kind has no query route: $resourceKind',
+        'Canonical queryable resource kind has no query route: '
+        '${request.resourceKind}',
       );
   }
 }

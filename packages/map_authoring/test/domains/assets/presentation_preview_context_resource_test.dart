@@ -6,6 +6,52 @@ import 'package:test/test.dart';
 
 void main() {
   group('presentationPreviewContext resource', () {
+    test('projects only requested kinds without reading unrelated sources', () {
+      final snapshot = _snapshot();
+      var dialogueReads = 0;
+      var portraitReads = 0;
+
+      final contexts = const PresentationPreviewContextProjector().project(
+        manifest: snapshot.manifest,
+        workspaceRevision: snapshot.revision,
+        maps: snapshot.maps,
+        includedKinds: const <String>{'map'},
+        dialogueSourceText: (_) {
+          dialogueReads += 1;
+          return null;
+        },
+        portraitAssetPath: (_) {
+          portraitReads += 1;
+          return null;
+        },
+      );
+
+      expect(
+        contexts.map((context) => context.detail['contextKind']).toSet(),
+        <String>{'map'},
+      );
+      expect(dialogueReads, 0);
+      expect(portraitReads, 0);
+    });
+
+    test('routes the context kind filter before projection', () {
+      final page = const ProjectQueryService().query(
+        _snapshot(),
+        AuthoringQueryRequest(
+          resourceKind: 'presentationPreviewContext',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+          filters: const <String, Object?>{'contextKind': 'map'},
+        ),
+      );
+
+      expect(page.totalAvailable, 2);
+      expect(
+        page.items.map((item) => item['id']),
+        <String>['map:village', 'map:woods'],
+      );
+    });
+
     test('projects every real project-backed preview context', () {
       final snapshot = _snapshot();
       final before = jsonEncode(snapshot.manifest.toJson());

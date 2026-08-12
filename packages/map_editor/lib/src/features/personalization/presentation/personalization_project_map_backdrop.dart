@@ -53,7 +53,7 @@ class _PersonalizationProjectMapBackdropState
   void didUpdateWidget(covariant PersonalizationProjectMapBackdrop oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.map != widget.map ||
-        oldWidget.manifest != widget.manifest ||
+        !_sameBackdropManifest(oldWidget.manifest, widget.manifest) ||
         oldWidget.projectRootPath != widget.projectRootPath ||
         oldWidget.resolveTilesetPath != widget.resolveTilesetPath ||
         oldWidget.planLoader != widget.planLoader) {
@@ -172,6 +172,15 @@ class _PersonalizationProjectMapBackdropState
         ? relativePath
         : p.join(widget.projectRootPath, relativePath);
   }
+}
+
+bool _sameBackdropManifest(
+  ProjectManifest? previous,
+  ProjectManifest? current,
+) {
+  if (identical(previous, current)) return true;
+  if (previous == null || current == null) return false;
+  return previous.copyWith(presentation: current.presentation) == current;
 }
 
 class _ProjectMapFallbackPainter extends CustomPainter {

@@ -14,6 +14,74 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import '../shell_chrome_test_harness.dart';
 
 void main() {
+  test(
+    'keeps the presentation draft outside the global project until save',
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-isolated-draft-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(name: 'Isolated draft');
+      File(
+        '${root.path}/project.json',
+      ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
+      final gateway = _MemoryProfileGateway(project);
+      final container = ProviderContainer(
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectPresentationProfile>(
+                    documentId: 'personalization-isolated-draft',
+                    initialDocument: initialDocument.effectivePresentation,
+                    gateway: gateway,
+                    recoveryStore: _MemoryProfileRecoveryStore(),
+                  ),
+                  initialProject: initialDocument,
+                  projectSnapshot: () => gateway.currentProject,
+                );
+              }),
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      );
+      expect(await notifier.initializePersonalizationStudioSession(), isTrue);
+      const first = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(accentColor: '#123456'),
+      );
+      const second = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(accentColor: '#123456'),
+        title: ProjectTitlePresentationProfile(title: 'Dernière valeur'),
+      );
+
+      expect(await notifier.applyPersonalizationStudioProfile(first), isTrue);
+      expect(await notifier.applyPersonalizationStudioProfile(second), isTrue);
+
+      expect(identical(notifier.state.project, project), isTrue);
+      expect(notifier.state.project?.presentation, project.presentation);
+      expect(notifier.personalizationStudioSessionState?.draftProfile, second);
+      expect(notifier.state.isProjectDirty, isTrue);
+
+      expect(await notifier.savePersonalizationStudio(), isTrue);
+      expect(notifier.state.project?.presentation, second);
+      expect(notifier.state.isProjectDirty, isFalse);
+    },
+  );
+
   test('save then reopen restores the exact presentation profile', () async {
     final root = Directory.systemTemp.createTempSync(
       'personalization-reopen-test-',
