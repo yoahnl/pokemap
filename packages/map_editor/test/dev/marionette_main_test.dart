@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -11,6 +12,30 @@ import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import '../../dev/marionette_main.dart' as marionette;
 
 void main() {
+  test('forwards framework and unhandled errors to Marionette logs', () {
+    final logs = <String>[];
+    final collector = marionette.createMarionetteQaLogCollector()
+      ..start(logs.add);
+    addTearDown(collector.dispose);
+
+    marionette.recordMarionetteFlutterError(
+      collector,
+      FlutterErrorDetails(exception: StateError('framework failure')),
+    );
+    marionette.recordMarionetteUnhandledError(
+      collector,
+      StateError('platform failure'),
+      StackTrace.fromString('qa stack'),
+    );
+
+    expect(logs, hasLength(2));
+    expect(logs.first, contains('framework failure'));
+    expect(
+      logs.last,
+      allOf(contains('platform failure'), contains('qa stack')),
+    );
+  });
+
   test('resolves a sandbox-owned personalization seed', () async {
     final sandbox = Directory.systemTemp.createTempSync(
       'pokemap_marionette_main_seed_',

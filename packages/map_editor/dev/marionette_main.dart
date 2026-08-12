@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -63,10 +64,40 @@ Map<String, Object?> openPersonalizationStudioForMarionette({
   };
 }
 
+PrintLogCollector createMarionetteQaLogCollector() => PrintLogCollector();
+
+void recordMarionetteFlutterError(
+  PrintLogCollector collector,
+  FlutterErrorDetails details,
+) {
+  collector.addLog('FlutterError: ${details.exceptionAsString()}');
+}
+
+void recordMarionetteUnhandledError(
+  PrintLogCollector collector,
+  Object error,
+  StackTrace stackTrace,
+) {
+  collector.addLog('Unhandled error: $error\n$stackTrace');
+}
+
 /// Debug-only entrypoint for deterministic, observable macOS QA.
 Future<void> main() async {
+  final logCollector = createMarionetteQaLogCollector();
   // Marionette must be the sole binding initializer in this process.
-  MarionetteBinding.ensureInitialized();
+  MarionetteBinding.ensureInitialized(
+    MarionetteConfiguration(logCollector: logCollector),
+  );
+  final previousFlutterErrorHandler = FlutterError.onError;
+  FlutterError.onError = (details) {
+    recordMarionetteFlutterError(logCollector, details);
+    previousFlutterErrorHandler?.call(details);
+  };
+  final previousPlatformErrorHandler = ui.PlatformDispatcher.instance.onError;
+  ui.PlatformDispatcher.instance.onError = (error, stackTrace) {
+    recordMarionetteUnhandledError(logCollector, error, stackTrace);
+    return previousPlatformErrorHandler?.call(error, stackTrace) ?? false;
+  };
 
   const configuredProjectPath = String.fromEnvironment(
     MarionetteProjectBootstrap.projectPathDefine,
