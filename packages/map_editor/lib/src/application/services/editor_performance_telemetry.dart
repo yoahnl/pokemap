@@ -309,6 +309,7 @@ Map<String, Object?> _spanMetrics(List<int> samples) {
   final sorted = List<int>.of(samples)..sort();
   return <String, Object?>{
     'count': sorted.length,
+    'samplesUs': sorted,
     'totalUs': sorted.fold<int>(0, (total, value) => total + value),
     'p50Us': _percentile(sorted, 0.50),
     'p95Us': _percentile(sorted, 0.95),

@@ -230,6 +230,10 @@ jobs:
             --driver=test_driver/performance_driver.dart \
             --target=integration_test/editor_canvas_projection_journey_test.dart \
             --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_canvas_projection_journey.json
+          flutter drive --profile -d macos \
+            --driver=test_driver/fine_mask_performance_driver.dart \
+            --target=integration_test/editor_fine_mask_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_fine_mask_journey.json
       - name: Preserve performance observation receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
