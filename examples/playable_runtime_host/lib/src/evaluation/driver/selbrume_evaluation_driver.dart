@@ -1432,8 +1432,32 @@ final class SelbrumeEvaluationDriver
 
   @override
   Future<void> consumeBagItem(String itemId, int quantity) async {
+    final itemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
+      projectRootDirectory: projectRoot.path,
+      pokemonConfig: project.pokemon,
+    );
+    final quantityBefore = const GameStateMutations().itemQuantity(
+      state,
+      itemId,
+    );
+    final nextState = const GameStateMutations().consumeItem(
+      state,
+      itemId: itemId,
+      quantity: quantity,
+      itemCatalog: itemCatalog,
+      reason: ItemConsumptionReason.scriptedUse,
+    );
+    final quantityAfter = const GameStateMutations().itemQuantity(
+      nextState,
+      itemId,
+    );
+    _require(
+      quantityAfter == quantityBefore - quantity,
+      operation: 'bag.consume',
+      message: 'Item consumption was refused by the canonical catalog.',
+    );
     await _commitProbeState(
-      const GameStateMutations().consumeItem(state, itemId, quantity),
+      nextState,
       operation: 'bag.consume',
     );
   }

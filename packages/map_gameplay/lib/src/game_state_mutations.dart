@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'battle_reward.dart';
+import 'items/bag_operation_result.dart';
 import 'items/bag_operations.dart';
 import 'items/item_capability_resolver.dart';
 import 'items/item_catalog_snapshot.dart';
@@ -742,10 +743,33 @@ class GameStateMutations {
   /// No-op sûr si l'id est vide, la quantité invalide, l'item absent ou la
   /// quantité disponible insuffisante.
   GameState consumeItem(
-    GameState state,
-    String itemId,
-    int quantity,
-  ) {
+    GameState state, {
+    required String itemId,
+    required int quantity,
+    required ItemCatalogSnapshot itemCatalog,
+    required ItemConsumptionReason reason,
+    bool allowKeyItemConsumption = false,
+  }) {
+    final definition = itemCatalog.definitionFor(itemId);
+    if (definition == null) return state;
+    final result = _bagOperations.consume(
+      BagConsumeRequest(
+        bag: state.bag,
+        itemId: definition.id,
+        quantity: quantity,
+        reason: reason,
+        itemTags: definition.tags,
+        allowKeyItemConsumption: allowKeyItemConsumption,
+      ),
+    );
+    return result.isSuccess ? state.copyWith(bag: result.bag) : state;
+  }
+
+  GameState removeItemForNarrativeConsequence(
+    GameState state, {
+    required String itemId,
+    required int quantity,
+  }) {
     final result = _bagOperations.take(
       BagTakeRequest(bag: state.bag, itemId: itemId, quantity: quantity),
     );
@@ -762,6 +786,7 @@ class GameStateMutations {
     required String itemId,
     required int healAmount,
     required int maxHp,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
     final normalizedItemId = itemId.trim();
     if (partyIndex < 0 ||
@@ -786,7 +811,14 @@ class GameStateMutations {
       return state;
     }
 
-    final consumedState = consumeItem(state, normalizedItemId, 1);
+    final consumedState = consumeItem(
+      state,
+      itemId: normalizedItemId,
+      quantity: 1,
+      itemCatalog: itemCatalog,
+      reason: ItemConsumptionReason.appliedEffect,
+    );
+    if (identical(consumedState, state)) return state;
     final healedHp = currentHp + healAmount;
     final cappedHp = healedHp > maxHp ? maxHp : healedHp;
     final nextMembers = [...consumedState.party.members];

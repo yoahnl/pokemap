@@ -4,6 +4,29 @@ import 'package:test/test.dart';
 
 void main() {
   const evolutionService = PokemonEvolutionService();
+  final itemCatalog = ItemCatalogSnapshot.fromCatalog(
+    const ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: <ProjectItemDefinition>[
+        ProjectItemDefinition(
+          id: 'leaf-stone',
+          displayName: 'Leaf Stone',
+          pocketId: 'items',
+        ),
+        ProjectItemDefinition(
+          id: 'fire-stone',
+          displayName: 'Fire Stone',
+          pocketId: 'items',
+        ),
+        ProjectItemDefinition(
+          id: 'vault-key',
+          displayName: 'Vault Key',
+          pocketId: 'key-items',
+          tags: <String>{'key-item'},
+        ),
+      ],
+    ),
+  );
 
   group('PokemonEvolutionService', () {
     test('accept preserves identity fields and a compatible ability', () {
@@ -198,6 +221,7 @@ void main() {
           ),
         ),
         sourceMaxHp: 20,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isTrue);
@@ -251,12 +275,42 @@ void main() {
           ),
         ),
         sourceMaxHp: 20,
+        itemCatalog: itemCatalog,
       );
 
       expect(result.isSuccess, isFalse);
       expect(result.failure, PokemonEvolutionItemUseFailure.conditionNotMet);
       expect(result.state, same(state));
       expect(result.state.bag.entries.single.quantity, 1);
+      expect(result.consumptionReceipt, isNull);
+    });
+
+    test('item evolution cannot consume a key item', () {
+      final state = GameState(
+        saveId: 'key-item-evolution',
+        party: PlayerParty(members: <PlayerPokemon>[_pokemon(currentHp: 20)]),
+        bag: const Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'vault-key', quantity: 1),
+          ],
+        ),
+      );
+
+      final result = const PokemonEvolutionItemOperations().useItem(
+        state,
+        itemId: 'vault-key',
+        partyIndex: 0,
+        candidate: _candidate(
+          condition: const PokemonEvolutionCondition.item(
+            itemId: 'vault-key',
+          ),
+        ),
+        sourceMaxHp: 20,
+        itemCatalog: itemCatalog,
+      );
+
+      expect(result.failure, PokemonEvolutionItemUseFailure.protectedKeyItem);
+      expect(result.state, same(state));
       expect(result.consumptionReceipt, isNull);
     });
   });

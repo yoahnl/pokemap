@@ -250,10 +250,10 @@ final class SceneConsequenceRuntimeWriter {
       );
     }
     return _SceneConsequenceRuntimeWriteStep.applied(
-      mutations.consumeItem(
+      mutations.removeItemForNarrativeConsequence(
         gameState,
-        consequence.itemId,
-        consequence.quantity,
+        itemId: consequence.itemId,
+        quantity: consequence.quantity,
       ),
     );
   }

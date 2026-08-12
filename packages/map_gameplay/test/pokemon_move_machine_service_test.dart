@@ -6,6 +6,29 @@ import 'package:test/test.dart';
 
 void main() {
   const service = PokemonMoveMachineService();
+  final itemCatalog = ItemCatalogSnapshot.fromCatalog(
+    const ProjectItemCatalog(
+      schemaVersion: 1,
+      entries: <ProjectItemDefinition>[
+        ProjectItemDefinition(
+          id: 'tm-protect',
+          displayName: 'TM Protect',
+          pocketId: 'machines',
+        ),
+        ProjectItemDefinition(
+          id: 'hm-surf',
+          displayName: 'HM Surf',
+          pocketId: 'machines',
+        ),
+        ProjectItemDefinition(
+          id: 'vault-key-tm',
+          displayName: 'Vault Key TM',
+          pocketId: 'key-items',
+          tags: <String>{'key-item'},
+        ),
+      ],
+    ),
+  );
   const machine = PokemonMoveMachineCandidate(
     itemId: 'tm-protect',
     moveId: 'protect',
@@ -19,6 +42,7 @@ void main() {
       partyIndex: 0,
       candidate: machine,
       decision: const PokemonMoveMachineDecision.learn(),
+      itemCatalog: itemCatalog,
     );
 
     expect(result.status, PokemonMoveMachineUseStatus.learned);
@@ -59,6 +83,7 @@ void main() {
       partyIndex: 0,
       candidate: machine,
       decision: const PokemonMoveMachineDecision.learn(),
+      itemCatalog: itemCatalog,
     );
     final replaced = service.apply(
       state,
@@ -67,6 +92,7 @@ void main() {
       decision: const PokemonMoveMachineDecision.replace(
         expectedMoveId: 'growl',
       ),
+      itemCatalog: itemCatalog,
     );
 
     expect(
@@ -100,6 +126,7 @@ void main() {
       partyIndex: 0,
       candidate: machine,
       decision: const PokemonMoveMachineDecision.decline(),
+      itemCatalog: itemCatalog,
     );
     final stale = service.apply(
       state,
@@ -108,6 +135,7 @@ void main() {
       decision: const PokemonMoveMachineDecision.replace(
         expectedMoveId: 'ember',
       ),
+      itemCatalog: itemCatalog,
     );
 
     expect(declined.status, PokemonMoveMachineUseStatus.declined);
@@ -129,12 +157,14 @@ void main() {
       partyIndex: 0,
       candidate: hm,
       decision: const PokemonMoveMachineDecision.learn(),
+      itemCatalog: itemCatalog,
     );
     final duplicate = service.apply(
       first.state,
       partyIndex: 0,
       candidate: hm,
       decision: const PokemonMoveMachineDecision.learn(),
+      itemCatalog: itemCatalog,
     );
 
     expect(first.status, PokemonMoveMachineUseStatus.learned);
@@ -143,6 +173,31 @@ void main() {
     expect(duplicate.status, PokemonMoveMachineUseStatus.failed);
     expect(duplicate.failure, PokemonMoveMachineUseFailure.alreadyKnown);
     expect(duplicate.state, same(first.state));
+  });
+
+  test('a consumable machine cannot consume a key item', () {
+    const keyMachine = PokemonMoveMachineCandidate(
+      itemId: 'vault-key-tm',
+      moveId: 'protect',
+      maxPp: 10,
+      consumable: true,
+    );
+    final state = _state(
+      moves: const <String>['tackle'],
+      itemId: 'vault-key-tm',
+    );
+
+    final result = service.apply(
+      state,
+      partyIndex: 0,
+      candidate: keyMachine,
+      decision: const PokemonMoveMachineDecision.learn(),
+      itemCatalog: itemCatalog,
+    );
+
+    expect(result.failure, PokemonMoveMachineUseFailure.protectedKeyItem);
+    expect(result.state, same(state));
+    expect(result.consumptionReceipt, isNull);
   });
 }
 

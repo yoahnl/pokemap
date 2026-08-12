@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import 'items/bag_operation_result.dart';
 import 'items/bag_operations.dart';
+import 'items/item_catalog_snapshot.dart';
 
 const _maximumKnownMoveCount = 4;
 
@@ -79,6 +80,7 @@ enum PokemonMoveMachineUseFailure {
   invalidRequest,
   invalidTarget,
   insufficientQuantity,
+  protectedKeyItem,
   alreadyKnown,
   invalidReplacement,
 }
@@ -114,6 +116,7 @@ final class PokemonMoveMachineService {
     required int partyIndex,
     required PokemonMoveMachineCandidate candidate,
     required PokemonMoveMachineDecision decision,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
     if (decision is DeclinePokemonMoveMachineDecision) {
       return PokemonMoveMachineUseResult(
@@ -122,6 +125,10 @@ final class PokemonMoveMachineService {
       );
     }
     final machine = candidate.validated();
+    final definition = itemCatalog.definitionFor(machine.itemId);
+    if (definition == null) {
+      return _failed(state, PokemonMoveMachineUseFailure.invalidRequest);
+    }
     if (partyIndex < 0 || partyIndex >= state.party.members.length) {
       return _failed(
         state,
@@ -180,6 +187,7 @@ final class PokemonMoveMachineService {
               bag: state.bag,
               itemId: machine.itemId,
               quantity: 1,
+              itemTags: definition.tags,
               reason: ItemConsumptionReason.appliedEffect,
             ),
           )
@@ -187,7 +195,9 @@ final class PokemonMoveMachineService {
     if (consumption != null && !consumption.isSuccess) {
       return _failed(
         state,
-        PokemonMoveMachineUseFailure.insufficientQuantity,
+        consumption.failure == BagOperationFailure.protectedKeyItem
+            ? PokemonMoveMachineUseFailure.protectedKeyItem
+            : PokemonMoveMachineUseFailure.insufficientQuantity,
       );
     }
     final nextBag = consumption?.bag ?? state.bag;

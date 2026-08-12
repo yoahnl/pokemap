@@ -13,6 +13,17 @@ void main() {
           displayName: 'Potion',
           pocketId: 'medicine',
         ),
+        ProjectItemDefinition(
+          id: 'lab-key',
+          displayName: 'Lab Key',
+          pocketId: 'key-items',
+          tags: <String>{'key-item'},
+        ),
+        ProjectItemDefinition(
+          id: 'p5_generic_medicine',
+          displayName: 'Generic Medicine',
+          pocketId: 'medicine',
+        ),
       ],
     ),
   );
@@ -67,7 +78,13 @@ void main() {
         ],
       );
 
-      final updated = mutations.consumeItem(state, ' potion ', 2);
+      final updated = mutations.consumeItem(
+        state,
+        itemId: ' potion ',
+        quantity: 2,
+        itemCatalog: itemCatalog,
+        reason: ItemConsumptionReason.scriptedUse,
+      );
       final potion =
           updated.bag.entries.singleWhere((entry) => entry.itemId == 'potion');
       final pokeBall = updated.bag.entries
@@ -84,7 +101,13 @@ void main() {
         ],
       );
 
-      final updated = mutations.consumeItem(state, 'potion', 2);
+      final updated = mutations.consumeItem(
+        state,
+        itemId: 'potion',
+        quantity: 2,
+        itemCatalog: itemCatalog,
+        reason: ItemConsumptionReason.scriptedUse,
+      );
 
       expect(updated.bag.entries, isEmpty);
     });
@@ -98,7 +121,13 @@ void main() {
         ],
       );
 
-      final updated = mutations.consumeItem(state, 'potion', 1);
+      final updated = mutations.consumeItem(
+        state,
+        itemId: 'potion',
+        quantity: 1,
+        itemCatalog: itemCatalog,
+        reason: ItemConsumptionReason.scriptedUse,
+      );
 
       expect(updated.currentMapId, state.currentMapId);
       expect(updated.playerPosition, state.playerPosition);
@@ -116,11 +145,63 @@ void main() {
         ],
       );
 
-      expect(mutations.consumeItem(state, 'ether', 1), same(state));
-      expect(mutations.consumeItem(state, '   ', 1), same(state));
-      expect(mutations.consumeItem(state, 'potion', 0), same(state));
-      expect(mutations.consumeItem(state, 'potion', -1), same(state));
-      expect(mutations.consumeItem(state, 'potion', 2), same(state));
+      GameState consume(String itemId, int quantity) => mutations.consumeItem(
+            state,
+            itemId: itemId,
+            quantity: quantity,
+            itemCatalog: itemCatalog,
+            reason: ItemConsumptionReason.scriptedUse,
+          );
+
+      expect(consume('ether', 1), same(state));
+      expect(consume('   ', 1), same(state));
+      expect(consume('potion', 0), same(state));
+      expect(consume('potion', -1), same(state));
+      expect(consume('potion', 2), same(state));
+    });
+
+    test('protects key items unless consumption is explicitly authorized', () {
+      final state = partyBagState(
+        bagEntries: const <BagEntry>[
+          BagEntry(itemId: 'lab-key', quantity: 1),
+        ],
+      );
+
+      final protected = mutations.consumeItem(
+        state,
+        itemId: 'lab-key',
+        quantity: 1,
+        itemCatalog: itemCatalog,
+        reason: ItemConsumptionReason.scriptedUse,
+      );
+      final authorized = mutations.consumeItem(
+        state,
+        itemId: 'lab-key',
+        quantity: 1,
+        itemCatalog: itemCatalog,
+        reason: ItemConsumptionReason.scriptedUse,
+        allowKeyItemConsumption: true,
+      );
+
+      expect(protected, same(state));
+      expect(authorized.bag.entries, isEmpty);
+    });
+
+    test('narrative removal is distinct and intentionally removes key items',
+        () {
+      final state = partyBagState(
+        bagEntries: const <BagEntry>[
+          BagEntry(itemId: 'lab-key', quantity: 1),
+        ],
+      );
+
+      final removed = mutations.removeItemForNarrativeConsequence(
+        state,
+        itemId: 'lab-key',
+        quantity: 1,
+      );
+
+      expect(removed.bag.entries, isEmpty);
     });
   });
 
@@ -139,6 +220,7 @@ void main() {
         itemId: 'potion',
         healAmount: 8,
         maxHp: 20,
+        itemCatalog: itemCatalog,
       );
 
       expect(updated.party.members.single.currentHp, 14);
@@ -160,6 +242,7 @@ void main() {
         itemId: 'potion',
         healAmount: 20,
         maxHp: 22,
+        itemCatalog: itemCatalog,
       );
 
       expect(updated.party.members.single.currentHp, 22);
@@ -182,6 +265,7 @@ void main() {
           itemId: 'potion',
           healAmount: 5,
           maxHp: 25,
+          itemCatalog: itemCatalog,
         ),
         same(state),
       );
@@ -192,6 +276,7 @@ void main() {
           itemId: 'ether',
           healAmount: 5,
           maxHp: 25,
+          itemCatalog: itemCatalog,
         ),
         same(state),
       );
@@ -202,6 +287,7 @@ void main() {
           itemId: 'potion',
           healAmount: 5,
           maxHp: 20,
+          itemCatalog: itemCatalog,
         ),
         same(state),
       );
@@ -296,6 +382,7 @@ void main() {
         itemId: 'potion',
         healAmount: 10,
         maxHp: 16,
+        itemCatalog: itemCatalog,
       );
       final recovered = mutations.recoverParty(
         healed,
@@ -330,6 +417,7 @@ void main() {
         itemId: 'p5_generic_medicine',
         healAmount: 2,
         maxHp: 5,
+        itemCatalog: itemCatalog,
       );
 
       expect(updated.party.members.single.speciesId, 'p5_generic_species');

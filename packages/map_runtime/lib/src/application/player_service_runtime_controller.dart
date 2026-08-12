@@ -450,6 +450,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         machine: definition.machine!,
         partyIndex: partyIndex,
         replacementMoveId: command.moveTargetId,
+        itemCatalog: itemCatalog,
       );
       if (moveMachineResult != null) return moveMachineResult;
     }
@@ -469,6 +470,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           state: state,
           itemId: definition.id,
           partyIndex: partyIndex,
+          itemCatalog: itemCatalog,
         );
       }
       return const RuntimePlayerPauseCommandResult(
@@ -583,6 +585,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     required ProjectMoveMachineItemDefinition machine,
     required int partyIndex,
     required String? replacementMoveId,
+    required ItemCatalogSnapshot itemCatalog,
   }) async {
     final projectRootDirectory = _projectRootDirectory;
     final pokemonConfig = _pokemonConfig;
@@ -627,6 +630,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         partyIndex: partyIndex,
         candidate: candidate,
         decision: decision,
+        itemCatalog: itemCatalog,
       );
       switch (result.status) {
         case PokemonMoveMachineUseStatus.learned:
@@ -666,6 +670,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
     required GameState state,
     required String itemId,
     required int partyIndex,
+    required ItemCatalogSnapshot itemCatalog,
   }) async {
     final projectRootDirectory = _projectRootDirectory;
     final pokemonConfig = _pokemonConfig;
@@ -720,6 +725,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         partyIndex: partyIndex,
         candidate: eligible.single,
         sourceMaxHp: maxHp,
+        itemCatalog: itemCatalog,
       );
       if (!result.isSuccess) {
         return const RuntimePlayerPauseCommandResult(

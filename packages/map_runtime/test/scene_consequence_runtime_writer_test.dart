@@ -686,6 +686,26 @@ void main() {
       expect(result.message, contains('item_ticket'));
     });
 
+    test('takeItem uses the explicit narrative-removal authority', () {
+      const state = GameState(
+        saveId: 'save_take_key_item',
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'lab-key', quantity: 1),
+          ],
+        ),
+      );
+
+      final result =
+          SceneConsequenceRuntimeWriter(project: _project()).applyOne(
+        state,
+        SceneConsequence.takeItem(itemId: 'lab-key', quantity: 1),
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
+      expect(result.gameState.bag.entries, isEmpty);
+    });
+
     test('givePokemon fails explicitly when the party is full', () {
       final state = GameState(
         saveId: 'save_full_party',

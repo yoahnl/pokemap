@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'game_state_mutations.dart';
+import 'items/bag_operation_result.dart';
 import 'items/item_catalog_snapshot.dart';
 import 'player_storage_operations.dart';
 
@@ -154,10 +155,19 @@ final class SandboxPlayerStateService {
     SandboxPlayerState sandbox, {
     required String itemId,
     required int quantity,
+    required ItemCatalogSnapshot itemCatalog,
+    bool allowKeyItemConsumption = false,
   }) =>
       _next(
         sandbox,
-        mutations.consumeItem(sandbox.state, itemId, quantity),
+        mutations.consumeItem(
+          sandbox.state,
+          itemId: itemId,
+          quantity: quantity,
+          itemCatalog: itemCatalog,
+          reason: ItemConsumptionReason.scriptedUse,
+          allowKeyItemConsumption: allowKeyItemConsumption,
+        ),
         kind: 'bag.consume',
       );
 

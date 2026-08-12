@@ -164,6 +164,18 @@ GameState _buildBetaGameplayState() {
     itemId: _medicineItemId,
     healAmount: 8,
     maxHp: 20,
+    itemCatalog: ItemCatalogSnapshot.fromCatalog(
+      const ProjectItemCatalog(
+        schemaVersion: 1,
+        entries: <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: _medicineItemId,
+            displayName: 'P5 Medicine',
+            pocketId: 'medicine',
+          ),
+        ],
+      ),
+    ),
   );
   state = mutations.recoverParty(
     state,

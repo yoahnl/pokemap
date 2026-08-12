@@ -280,6 +280,7 @@ final class GoldenItemSystemJourney {
       partyIndex: 0,
       candidate: machine!,
       decision: const PokemonMoveMachineDecision.learn(),
+      itemCatalog: itemCatalog,
     );
     _require(learned.isSuccess, 'TM learning failed.');
     state = learned.state;
@@ -302,6 +303,7 @@ final class GoldenItemSystemJourney {
       decision: const PokemonMoveMachineDecision.replace(
         expectedMoveId: 'growl',
       ),
+      itemCatalog: itemCatalog,
     );
     _require(learnedHm.isSuccess, 'HM learning failed.');
     state = learnedHm.state;

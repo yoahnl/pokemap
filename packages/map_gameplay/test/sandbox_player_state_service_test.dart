@@ -53,6 +53,42 @@ void main() {
       );
     });
 
+    test('sandbox consumption cannot remove a key item by default', () {
+      const baseline = GameState(
+        saveId: 'save',
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'lab-key', quantity: 1),
+          ],
+        ),
+      );
+      final catalog = ItemCatalogSnapshot.fromCatalog(
+        const ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: <ProjectItemDefinition>[
+            ProjectItemDefinition(
+              id: 'lab-key',
+              displayName: 'Lab Key',
+              pocketId: 'key-items',
+              tags: <String>{'key-item'},
+            ),
+          ],
+        ),
+      );
+      const service = SandboxPlayerStateService();
+      final opened = service.open(sandboxId: 'key-run', state: baseline);
+
+      final protected = service.consumeItem(
+        opened,
+        itemId: 'lab-key',
+        quantity: 1,
+        itemCatalog: catalog,
+      );
+
+      expect(protected.state, opened.state);
+      expect(protected.state.bag.entries.single.quantity, 1);
+    });
+
     test('save inspector and migration delegate to canonical core contracts',
         () {
       const codec = SaveEnvelopeCodec();

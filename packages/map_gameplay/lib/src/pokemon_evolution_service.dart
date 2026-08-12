@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import 'items/bag_operation_result.dart';
 import 'items/bag_operations.dart';
+import 'items/item_catalog_snapshot.dart';
 import 'pokemon_stat_calculator.dart';
 
 enum PokemonEvolutionTriggerKind {
@@ -353,6 +354,7 @@ enum PokemonEvolutionItemUseFailure {
   invalidRequest,
   invalidTarget,
   insufficientQuantity,
+  protectedKeyItem,
   conditionNotMet,
   ambiguousCandidate,
 }
@@ -403,9 +405,17 @@ final class PokemonEvolutionItemOperations {
     required int partyIndex,
     required PokemonEvolutionCandidate candidate,
     required int sourceMaxHp,
+    required ItemCatalogSnapshot itemCatalog,
   }) {
     final normalizedItemId = itemId.trim();
     if (normalizedItemId.isEmpty || sourceMaxHp <= 0) {
+      return PokemonEvolutionItemUseResult.failed(
+        state,
+        PokemonEvolutionItemUseFailure.invalidRequest,
+      );
+    }
+    final definition = itemCatalog.definitionFor(normalizedItemId);
+    if (definition == null) {
       return PokemonEvolutionItemUseResult.failed(
         state,
         PokemonEvolutionItemUseFailure.invalidRequest,
@@ -443,13 +453,16 @@ final class PokemonEvolutionItemOperations {
         bag: state.bag,
         itemId: normalizedItemId,
         quantity: 1,
+        itemTags: definition.tags,
         reason: ItemConsumptionReason.appliedEffect,
       ),
     );
     if (!consumption.isSuccess) {
       return PokemonEvolutionItemUseResult.failed(
         state,
-        PokemonEvolutionItemUseFailure.insufficientQuantity,
+        consumption.failure == BagOperationFailure.protectedKeyItem
+            ? PokemonEvolutionItemUseFailure.protectedKeyItem
+            : PokemonEvolutionItemUseFailure.insufficientQuantity,
       );
     }
     final nextMembers = [...state.party.members];
