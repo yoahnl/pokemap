@@ -105,7 +105,7 @@ void main() {
       (
         const _ItemMutationScenario('item.set_held_effect', <String, Object?>{
           'itemId': ' potion ',
-          'heldEffectId': 'battle.leftovers',
+          'heldEffectId': 'leftovers',
         }),
         'item.parameter_invalid',
         null,
@@ -115,6 +115,30 @@ void main() {
           'itemId': 'potion',
         }),
         'item.delete_references_blocking',
+        null,
+      ),
+      (
+        _ItemMutationScenario('item.set_battle_effect', <String, Object?>{
+          'itemId': 'potion',
+          'use': const ProjectItemUseDefinition(
+            contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+            target: ProjectItemTargetKind.partyMove,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.restorePp(
+              mode: ProjectItemAmountMode.flat,
+              amount: 10,
+            ),
+          ).toJson(),
+        }),
+        'item.catalog_invalid',
+        null,
+      ),
+      (
+        const _ItemMutationScenario('item.set_held_effect', <String, Object?>{
+          'itemId': 'potion',
+          'heldEffectId': 'never_registered_effect',
+        }),
+        'item.catalog_invalid',
         null,
       ),
     ];

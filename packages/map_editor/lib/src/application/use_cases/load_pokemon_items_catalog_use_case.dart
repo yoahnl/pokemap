@@ -111,7 +111,7 @@ class LoadPokemonItemsCatalogUseCase {
       );
       final validation = validateProjectItemCatalog(
         catalog,
-        capabilityTruth: _editorCapabilityTruth(catalog),
+        capabilityTruth: itemSystemV1CapabilityTruth,
       );
       final blockingDiagnostic = validation.diagnostics
           .where((diagnostic) => diagnostic.isBlocking)
@@ -229,8 +229,8 @@ class LoadPokemonItemsCatalogUseCase {
     }
     entries.sort((left, right) {
       final nameCompare = left.name.toLowerCase().compareTo(
-            right.name.toLowerCase(),
-          );
+        right.name.toLowerCase(),
+      );
       return nameCompare != 0 ? nameCompare : left.id.compareTo(right.id);
     });
     return entries;
@@ -274,33 +274,6 @@ class LoadPokemonItemsCatalogUseCase {
     }
     return 'data/pokemon/catalogs/items.json';
   }
-}
-
-ItemCapabilityTruth _editorCapabilityTruth(ProjectItemCatalog catalog) {
-  final semanticActionIds = <String>{};
-  final heldEffectIds = <String>{};
-  for (final item in catalog.entries) {
-    final heldEffectId = item.heldEffectId?.trim();
-    if (heldEffectId != null && heldEffectId.isNotEmpty) {
-      heldEffectIds.add(heldEffectId);
-    }
-    for (final use in item.uses) {
-      if (use.effect
-          case ProjectItemSemanticActionEffectDefinition(
-            :final actionId,
-          )) {
-        semanticActionIds.add(actionId.trim());
-      }
-    }
-  }
-  return ItemCapabilityTruth(
-    supportedUseContexts: ProjectItemUseContext.values.toSet(),
-    supportedEffects: ProjectItemEffectCapability.values.toSet(),
-    supportedSemanticActionIds: semanticActionIds,
-    supportedHeldEffectIds: heldEffectIds,
-    supportsCapture: true,
-    supportsMoveMachines: true,
-  );
 }
 
 Future<ProjectPokemonConfig> _readProjectPokemonConfig(

@@ -192,6 +192,69 @@ void main() {
         ProjectItemUseContext.values.toSet(),
       );
     });
+
+    test('rejects capabilities that the runtime cannot execute', () {
+      final fixture = _fixture();
+      final scenarios = <(String, Map<String, Object?>)>[
+        (
+          'item.set_overworld_effect',
+          <String, Object?>{
+            'itemId': 'thread-charm',
+            'use': const ProjectItemUseDefinition(
+              contexts: <ProjectItemUseContext>{
+                ProjectItemUseContext.overworld,
+              },
+              target: ProjectItemTargetKind.world,
+              consumption: ProjectItemConsumptionPolicy.onApplied,
+              effect: ProjectItemEffectDefinition.repel(steps: 100),
+            ).toJson(),
+          },
+        ),
+        (
+          'item.set_battle_effect',
+          <String, Object?>{
+            'itemId': 'thread-charm',
+            'use': const ProjectItemUseDefinition(
+              contexts: <ProjectItemUseContext>{
+                ProjectItemUseContext.battle,
+              },
+              target: ProjectItemTargetKind.partyMove,
+              consumption: ProjectItemConsumptionPolicy.onApplied,
+              effect: ProjectItemEffectDefinition.restorePp(
+                mode: ProjectItemAmountMode.flat,
+                amount: 10,
+              ),
+            ).toJson(),
+          },
+        ),
+        (
+          'item.set_held_effect',
+          const <String, Object?>{
+            'itemId': 'thread-charm',
+            'heldEffectId': 'never_registered_effect',
+          },
+        ),
+      ];
+
+      for (final scenario in scenarios) {
+        expect(
+          () => const ItemCatalogActions().build(
+            fixture.context(
+              actionId: scenario.$1,
+              parameters: scenario.$2,
+            ),
+          ),
+          throwsA(
+            isA<ItemCatalogAuthoringException>().having(
+              (error) => error.code,
+              'code',
+              'item.catalog_invalid',
+            ),
+          ),
+          reason: scenario.$1,
+        );
+      }
+    });
   });
 }
 

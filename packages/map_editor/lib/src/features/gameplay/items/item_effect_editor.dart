@@ -250,7 +250,7 @@ final class _UseEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext buildContext) {
-    final effects = _effectOptions(use.effect);
+    final effects = _effectOptions(context, use.effect);
     return PokeMapCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -420,43 +420,51 @@ final class _MachineEditor extends StatelessWidget {
   }
 }
 
-List<(String, String)> _effectOptions(ProjectItemEffectDefinition current) {
-  final values = <(ProjectItemEffectDefinition, String)>[
-    (
-      const ProjectItemEffectDefinition.healHp(
-        mode: ProjectItemAmountMode.flat,
-        amount: 20,
-      ),
-      'Soigne 20 PV',
-    ),
-    (
-      const ProjectItemEffectDefinition.healHp(
-        mode: ProjectItemAmountMode.full,
-      ),
-      'Restaure tous les PV',
-    ),
-    (
-      const ProjectItemEffectDefinition.cureStatus(
-        mode: ProjectItemStatusCureMode.all,
-      ),
-      'Soigne tous les statuts',
-    ),
-    (
-      const ProjectItemEffectDefinition.revive(
-        rateNumerator: 1,
-        rateDenominator: 2,
-      ),
-      'Ranime avec la moitié des PV',
-    ),
-    (
-      const ProjectItemEffectDefinition.restorePp(
-        mode: ProjectItemAmountMode.flat,
-        amount: 10,
-      ),
-      'Restaure 10 PP',
-    ),
-    (const ProjectItemEffectDefinition.repel(steps: 100), 'Repousse 100 pas'),
-  ];
+List<(String, String)> _effectOptions(
+  ProjectItemUseContext context,
+  ProjectItemEffectDefinition current,
+) {
+  final values =
+      <(ProjectItemEffectDefinition, String)>[
+        (
+          const ProjectItemEffectDefinition.healHp(
+            mode: ProjectItemAmountMode.flat,
+            amount: 20,
+          ),
+          'Soigne 20 PV',
+        ),
+        (
+          const ProjectItemEffectDefinition.healHp(
+            mode: ProjectItemAmountMode.full,
+          ),
+          'Restaure tous les PV',
+        ),
+        (
+          const ProjectItemEffectDefinition.cureStatus(
+            mode: ProjectItemStatusCureMode.all,
+          ),
+          'Soigne tous les statuts',
+        ),
+        (
+          const ProjectItemEffectDefinition.revive(
+            rateNumerator: 1,
+            rateDenominator: 2,
+          ),
+          'Ranime avec la moitié des PV',
+        ),
+        (
+          const ProjectItemEffectDefinition.restorePp(
+            mode: ProjectItemAmountMode.flat,
+            amount: 10,
+          ),
+          'Restaure 10 PP',
+        ),
+      ]..removeWhere(
+        (option) => !itemSystemV1CapabilityTruth.supportsUse(
+          context,
+          projectItemEffectCapabilityOf(option.$1),
+        ),
+      );
   final currentIdentity = _effectIdentity(current);
   if (!values.any((option) => _effectIdentity(option.$1) == currentIdentity)) {
     values.insert(0, (current, 'Effet actuel'));

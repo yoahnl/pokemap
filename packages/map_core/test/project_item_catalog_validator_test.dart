@@ -90,6 +90,92 @@ void main() {
       );
     });
 
+    test('item system V1 rejects unsupported context effect combinations', () {
+      final report = validateProjectItemCatalog(
+        ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: <ProjectItemDefinition>[
+            _item(
+              id: 'battle-ether',
+              use: const ProjectItemUseDefinition(
+                contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+                target: ProjectItemTargetKind.partyMove,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: ProjectItemEffectDefinition.restorePp(
+                  mode: ProjectItemAmountMode.flat,
+                  amount: 10,
+                ),
+              ),
+            ),
+            _item(
+              id: 'repel',
+              use: const ProjectItemUseDefinition(
+                contexts: <ProjectItemUseContext>{
+                  ProjectItemUseContext.overworld,
+                },
+                target: ProjectItemTargetKind.world,
+                consumption: ProjectItemConsumptionPolicy.onApplied,
+                effect: ProjectItemEffectDefinition.repel(steps: 100),
+              ),
+            ),
+          ],
+        ),
+        capabilityTruth: itemSystemV1CapabilityTruth,
+      );
+
+      expect(report.hasBlockingDiagnostics, isTrue);
+      expect(
+        report.assessmentFor('battle-ether')?.readiness,
+        ItemCapabilityReadiness.unsupported,
+      );
+      expect(
+        report.assessmentFor('repel')?.readiness,
+        ItemCapabilityReadiness.unsupported,
+      );
+      expect(
+        report.diagnostics
+            .where(
+              (diagnostic) =>
+                  diagnostic.code ==
+                  ProjectItemCatalogDiagnosticCode.unsupportedCapability,
+            )
+            .length,
+        2,
+      );
+    });
+
+    test('item system V1 accepts only registered held effects', () {
+      final report = validateProjectItemCatalog(
+        ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: const <ProjectItemDefinition>[
+            ProjectItemDefinition(
+              id: 'supported-held',
+              displayName: 'Supported Held',
+              pocketId: 'held',
+              heldEffectId: 'leftovers',
+            ),
+            ProjectItemDefinition(
+              id: 'unknown-held',
+              displayName: 'Unknown Held',
+              pocketId: 'held',
+              heldEffectId: 'never_registered_effect',
+            ),
+          ],
+        ),
+        capabilityTruth: itemSystemV1CapabilityTruth,
+      );
+
+      expect(
+        report.assessmentFor('supported-held')?.readiness,
+        ItemCapabilityReadiness.runtimeReady,
+      );
+      expect(
+        report.assessmentFor('unknown-held')?.readiness,
+        ItemCapabilityReadiness.unsupported,
+      );
+    });
+
     test('blocks duplicate item ids and invalid ratios', () {
       final report = validateProjectItemCatalog(
         ProjectItemCatalog(
@@ -298,11 +384,11 @@ ItemCapabilityTruth _truth({
   Set<String> supportedHeldEffectIds = const {'battle.leftovers'},
 }) {
   return ItemCapabilityTruth(
-    supportedUseContexts: const {
-      ProjectItemUseContext.overworld,
-      ProjectItemUseContext.battle,
+    supportedUses: <ItemUseCapability>{
+      for (final context in ProjectItemUseContext.values)
+        for (final effect in supportedEffects)
+          ItemUseCapability(context: context, effect: effect),
     },
-    supportedEffects: supportedEffects,
     supportedSemanticActionIds: supportedSemanticActionIds,
     supportedHeldEffectIds: supportedHeldEffectIds,
     supportsCapture: true,

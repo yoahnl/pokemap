@@ -136,7 +136,7 @@ final class CanonicalItemStudioGateway implements ItemStudioGateway {
       }),
       snapshotRevision: session.snapshotRevision,
       heldEffectOptions: _options(
-        definitions.map((definition) => definition.heldEffectId),
+        itemSystemV1CapabilityTruth.supportedHeldEffectIds,
       ),
       moveOptions: _options(
         definitions.map((definition) => definition.machine?.moveId),

@@ -12,39 +12,103 @@ enum ProjectItemEffectCapability {
 
 enum ItemCapabilityReadiness { runtimeReady, passive, unsupported }
 
+final class ItemUseCapability {
+  const ItemUseCapability({required this.context, required this.effect});
+
+  final ProjectItemUseContext context;
+  final ProjectItemEffectCapability effect;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ItemUseCapability &&
+      other.context == context &&
+      other.effect == effect;
+
+  @override
+  int get hashCode => Object.hash(context, effect);
+}
+
 final class ItemCapabilityTruth {
   ItemCapabilityTruth({
-    Set<ProjectItemUseContext> supportedUseContexts = const {},
-    Set<ProjectItemEffectCapability> supportedEffects = const {},
-    Set<String> supportedSemanticActionIds = const {},
-    Set<String> supportedHeldEffectIds = const {},
+    Set<ItemUseCapability> supportedUses = const <ItemUseCapability>{},
+    Set<String> supportedSemanticActionIds = const <String>{},
+    Set<String> supportedHeldEffectIds = const <String>{},
     this.supportsCapture = false,
     this.supportsMoveMachines = false,
     String presentationPocketFallback = 'items',
-  }) : supportedUseContexts = Set.unmodifiable(supportedUseContexts),
-       supportedEffects = Set.unmodifiable(supportedEffects),
-       supportedSemanticActionIds = Set.unmodifiable(
+  }) : supportedUses = Set<ItemUseCapability>.unmodifiable(supportedUses),
+       supportedSemanticActionIds = Set<String>.unmodifiable(
          supportedSemanticActionIds
              .map((actionId) => actionId.trim())
              .where((actionId) => actionId.isNotEmpty),
        ),
-       supportedHeldEffectIds = Set.unmodifiable(
+       supportedHeldEffectIds = Set<String>.unmodifiable(
          supportedHeldEffectIds
-             .map((effectId) => effectId.trim())
+             .map(
+               (effectId) => effectId.trim().toLowerCase().replaceAll('-', '_'),
+             )
              .where((effectId) => effectId.isNotEmpty),
        ),
        presentationPocketFallback = _requiredFallback(
          presentationPocketFallback,
        );
 
-  final Set<ProjectItemUseContext> supportedUseContexts;
-  final Set<ProjectItemEffectCapability> supportedEffects;
+  final Set<ItemUseCapability> supportedUses;
   final Set<String> supportedSemanticActionIds;
   final Set<String> supportedHeldEffectIds;
   final bool supportsCapture;
   final bool supportsMoveMachines;
   final String presentationPocketFallback;
+
+  bool supportsUse(
+    ProjectItemUseContext context,
+    ProjectItemEffectCapability effect,
+  ) => supportedUses.contains(
+    ItemUseCapability(context: context, effect: effect),
+  );
+
+  bool supportsSemanticAction(String actionId) =>
+      supportedSemanticActionIds.contains(actionId.trim());
+
+  bool supportsHeldEffect(String heldEffectId) => supportedHeldEffectIds
+      .contains(heldEffectId.trim().toLowerCase().replaceAll('-', '_'));
 }
+
+final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
+  supportedUses: <ItemUseCapability>{
+    ItemUseCapability(
+      context: ProjectItemUseContext.overworld,
+      effect: ProjectItemEffectCapability.healHp,
+    ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.overworld,
+      effect: ProjectItemEffectCapability.cureStatus,
+    ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.overworld,
+      effect: ProjectItemEffectCapability.revive,
+    ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.overworld,
+      effect: ProjectItemEffectCapability.restorePp,
+    ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.battle,
+      effect: ProjectItemEffectCapability.healHp,
+    ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.battle,
+      effect: ProjectItemEffectCapability.cureStatus,
+    ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.battle,
+      effect: ProjectItemEffectCapability.revive,
+    ),
+  },
+  supportedHeldEffectIds: <String>{'leftovers'},
+  supportsCapture: true,
+  supportsMoveMachines: true,
+);
 
 final class ItemCapabilityAssessment {
   const ItemCapabilityAssessment({

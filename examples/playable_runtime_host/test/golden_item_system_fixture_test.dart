@@ -168,13 +168,7 @@ void main() {
       );
       final validation = validateProjectItemCatalog(
         catalog,
-        capabilityTruth: ItemCapabilityTruth(
-          supportedUseContexts: ProjectItemUseContext.values.toSet(),
-          supportedEffects: ProjectItemEffectCapability.values.toSet(),
-          supportedHeldEffectIds: const <String>{'leftovers'},
-          supportsCapture: true,
-          supportsMoveMachines: true,
-        ),
+        capabilityTruth: itemSystemV1CapabilityTruth,
       );
       expect(validation.hasBlockingDiagnostics, isFalse);
       expect(

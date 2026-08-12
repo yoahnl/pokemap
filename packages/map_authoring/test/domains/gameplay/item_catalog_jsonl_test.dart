@@ -121,7 +121,7 @@ void main() {
           'item.set_held_effect',
           <String, Object?>{
             'itemId': ' potion ',
-            'heldEffectId': 'battle.leftovers',
+            'heldEffectId': 'leftovers',
           },
         ),
         const _ItemMutationScenario(
@@ -129,9 +129,37 @@ void main() {
           <String, Object?>{'itemId': 'potion'},
         ),
       ];
+      scenarios.addAll(<_ItemMutationScenario>[
+        _ItemMutationScenario(
+          'item.set_battle_effect',
+          <String, Object?>{
+            'itemId': 'potion',
+            'use': const ProjectItemUseDefinition(
+              contexts: <ProjectItemUseContext>{
+                ProjectItemUseContext.battle,
+              },
+              target: ProjectItemTargetKind.partyMove,
+              consumption: ProjectItemConsumptionPolicy.onApplied,
+              effect: ProjectItemEffectDefinition.restorePp(
+                mode: ProjectItemAmountMode.flat,
+                amount: 10,
+              ),
+            ).toJson(),
+          },
+        ),
+        const _ItemMutationScenario(
+          'item.set_held_effect',
+          <String, Object?>{
+            'itemId': 'potion',
+            'heldEffectId': 'never_registered_effect',
+          },
+        ),
+      ]);
       final expectedCodes = <String>[
         'item.parameter_invalid',
         'item.delete_references_blocking',
+        'item.catalog_invalid',
+        'item.catalog_invalid',
       ];
 
       for (var index = 0; index < scenarios.length; index += 1) {
@@ -247,7 +275,7 @@ final List<_ItemMutationScenario> _itemMutationScenarios =
     'item.set_held_effect',
     <String, Object?>{
       'itemId': 'potion',
-      'heldEffectId': 'battle.leftovers',
+      'heldEffectId': 'leftovers',
     },
   ),
   _ItemMutationScenario(

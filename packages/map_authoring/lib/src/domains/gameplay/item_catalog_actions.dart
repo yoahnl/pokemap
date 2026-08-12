@@ -79,6 +79,28 @@ final class ItemCatalogActions {
           details: <String, Object?>{'actionId': context.request.actionId},
         ),
     };
+    final validation = validateProjectItemCatalog(
+      after,
+      capabilityTruth: itemSystemV1CapabilityTruth,
+    );
+    if (validation.hasBlockingDiagnostics) {
+      throw ItemCatalogAuthoringException(
+        'item.catalog_invalid',
+        'The mutation would create an item catalog that the runtime cannot execute.',
+        details: <String, Object?>{
+          'diagnostics': <Object?>[
+            for (final diagnostic in validation.diagnostics)
+              if (diagnostic.isBlocking)
+                <String, Object?>{
+                  'code': diagnostic.code.name,
+                  'path': diagnostic.path,
+                  'itemId': diagnostic.itemId,
+                  'message': diagnostic.message,
+                },
+          ],
+        },
+      );
+    }
     return _draft(context, catalog, after);
   }
 }

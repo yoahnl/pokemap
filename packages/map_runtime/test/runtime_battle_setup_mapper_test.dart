@@ -44,6 +44,19 @@ final _heldItemCatalog = ItemCatalogSnapshot.fromCatalog(
 );
 
 void main() {
+  test('Item System V1 exposes only held effects registered by battle', () {
+    final registry = ItemEffectRegistry();
+
+    for (final heldEffectId
+        in itemSystemV1CapabilityTruth.supportedHeldEffectIds) {
+      expect(
+        registry.supportsHeldEffect(heldEffectId),
+        isTrue,
+        reason: heldEffectId,
+      );
+    }
+  });
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('RuntimeBattleSetupMapper', () {

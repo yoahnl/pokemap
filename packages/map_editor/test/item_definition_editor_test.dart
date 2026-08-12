@@ -133,6 +133,53 @@ void main() {
     expect(saved!.machine!.moveId, 'cut');
     expect(saved!.heldEffectId, 'leftovers');
   });
+
+  testWidgets('offers only runtime-supported effects for each context', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ItemDefinitionEditor(
+              initialDefinition: const ProjectItemDefinition(
+                id: 'context-tonic',
+                displayName: 'Context Tonic',
+                pocketId: 'items',
+              ),
+              onSaved: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await _tapVisible(
+      tester,
+      find.byKey(const Key('item-effect-overworld-toggle')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const Key('item-effect-battle-toggle')),
+    );
+
+    await _tapVisible(
+      tester,
+      find.byKey(const Key('item-effect-overworld-effect-dropdown')),
+    );
+    expect(find.text('Restaure 10 PP'), findsOneWidget);
+    expect(find.text('Repousse 100 pas'), findsNothing);
+    await tester.tapAt(Offset.zero);
+    await tester.pumpAndSettle();
+
+    await _tapVisible(
+      tester,
+      find.byKey(const Key('item-effect-battle-effect-dropdown')),
+    );
+    expect(find.text('Restaure 10 PP'), findsNothing);
+    expect(find.text('Repousse 100 pas'), findsNothing);
+  });
 }
 
 Future<void> _tapVisible(WidgetTester tester, Finder finder) async {

@@ -1059,7 +1059,7 @@ List<_QueryRecord> _itemCatalogRecords(ProjectSnapshot snapshot) {
   if (catalog == null) return const [];
   final report = validateProjectItemCatalog(
     catalog,
-    capabilityTruth: _itemAuthoringCapabilityTruth(catalog),
+    capabilityTruth: itemSystemV1CapabilityTruth,
   );
   final summary = <String, Object?>{
     'id': 'items',
@@ -1166,7 +1166,7 @@ List<_QueryRecord> _itemReadinessRecords(ProjectSnapshot snapshot) {
   if (catalog == null) return const [];
   final report = validateProjectItemCatalog(
     catalog,
-    capabilityTruth: _itemAuthoringCapabilityTruth(catalog),
+    capabilityTruth: itemSystemV1CapabilityTruth,
   );
   final index = buildProjectItemReferenceIndex(
     project: snapshot.manifest,
@@ -1220,25 +1220,6 @@ _QueryRecord _itemReadinessRecord(
           },
       ],
     },
-  );
-}
-
-ItemCapabilityTruth _itemAuthoringCapabilityTruth(ProjectItemCatalog catalog) {
-  return ItemCapabilityTruth(
-    supportedUseContexts: ProjectItemUseContext.values.toSet(),
-    supportedEffects: ProjectItemEffectCapability.values.toSet(),
-    supportedSemanticActionIds: <String>{
-      for (final definition in catalog.entries)
-        for (final use in definition.uses)
-          if (use.effect is ProjectItemSemanticActionEffectDefinition)
-            (use.effect as ProjectItemSemanticActionEffectDefinition).actionId,
-    },
-    supportedHeldEffectIds: <String>{
-      for (final definition in catalog.entries)
-        if (definition.heldEffectId != null) definition.heldEffectId!,
-    },
-    supportsCapture: true,
-    supportsMoveMachines: true,
   );
 }
 

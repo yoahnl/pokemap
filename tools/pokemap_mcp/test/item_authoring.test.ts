@@ -350,6 +350,31 @@ test("MCP describes queries and mutates canonical items", async () => {
         expectedRevision: snapshotRevision,
         domainCode: "item.delete_references_blocking",
       },
+      {
+        slug: "unsupported-battle-pp",
+        actionId: "item.set_battle_effect",
+        parameters: {
+          itemId: "potion",
+          use: {
+            contexts: ["battle"],
+            target: "party_move",
+            consumption: "on_applied",
+            effect: { kind: "restore_pp", mode: "flat", amount: 10 },
+          },
+        },
+        expectedRevision: snapshotRevision,
+        domainCode: "item.catalog_invalid",
+      },
+      {
+        slug: "unknown-held-effect",
+        actionId: "item.set_held_effect",
+        parameters: {
+          itemId: "potion",
+          heldEffectId: "never_registered_effect",
+        },
+        expectedRevision: snapshotRevision,
+        domainCode: "item.catalog_invalid",
+      },
     ]) {
       const error = await toolFailure(client, "pokemap_plan", {
         projectHandle,

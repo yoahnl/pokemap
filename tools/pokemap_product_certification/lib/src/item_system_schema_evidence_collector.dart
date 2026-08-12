@@ -41,13 +41,7 @@ final class ItemSystemSchemaEvidenceCollector {
         final catalog = decodeProjectItemCatalog(catalogJson);
         final validation = validateProjectItemCatalog(
           catalog,
-          capabilityTruth: ItemCapabilityTruth(
-            supportedUseContexts: ProjectItemUseContext.values.toSet(),
-            supportedEffects: ProjectItemEffectCapability.values.toSet(),
-            supportedHeldEffectIds: const <String>{'leftovers'},
-            supportsCapture: true,
-            supportsMoveMachines: true,
-          ),
+          capabilityTruth: itemSystemV1CapabilityTruth,
         );
         if (validation.hasBlockingDiagnostics) {
           throw StateError('The Golden item catalog has blocking diagnostics.');

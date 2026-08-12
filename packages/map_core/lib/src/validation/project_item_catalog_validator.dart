@@ -195,23 +195,19 @@ ProjectItemCatalogValidationReport validateProjectItemCatalog(
         );
       }
       occupiedContexts.addAll(use.contexts);
-      if (!capabilityTruth.supportedUseContexts.containsAll(use.contexts)) {
-        addDiagnostic(
-          ProjectItemCatalogDiagnosticCode.unsupportedCapability,
-          ProjectItemCatalogDiagnosticSeverity.error,
-          'One or more item use contexts are not wired',
-          '$usePath.contexts',
-          entryIndex: index,
-          itemId: itemId,
-        );
-      }
-
       final effectCapability = projectItemEffectCapabilityOf(use.effect);
-      if (!capabilityTruth.supportedEffects.contains(effectCapability)) {
+      final unsupportedContexts = use.contexts
+          .where(
+            (context) =>
+                !capabilityTruth.supportsUse(context, effectCapability),
+          )
+          .toList(growable: false);
+      if (unsupportedContexts.isNotEmpty) {
         addDiagnostic(
           ProjectItemCatalogDiagnosticCode.unsupportedCapability,
           ProjectItemCatalogDiagnosticSeverity.error,
-          'Item effect ${effectCapability.name} is not wired',
+          'Item effect ${effectCapability.name} is not wired for '
+              '${unsupportedContexts.map((context) => context.name).join(', ')}',
           '$usePath.effect.kind',
           entryIndex: index,
           itemId: itemId,
@@ -298,7 +294,7 @@ ProjectItemCatalogValidationReport validateProjectItemCatalog(
     final heldEffectId = item.heldEffectId?.trim();
     if (heldEffectId != null &&
         (heldEffectId.isEmpty ||
-            !capabilityTruth.supportedHeldEffectIds.contains(heldEffectId))) {
+            !capabilityTruth.supportsHeldEffect(heldEffectId))) {
       addDiagnostic(
         ProjectItemCatalogDiagnosticCode.unknownHeldEffect,
         ProjectItemCatalogDiagnosticSeverity.error,
@@ -479,9 +475,7 @@ void _validateEffect(
     case ProjectItemSemanticActionEffectDefinition(:final actionId):
       final normalizedActionId = actionId.trim();
       if (normalizedActionId.isEmpty ||
-          !capabilityTruth.supportedSemanticActionIds.contains(
-            normalizedActionId,
-          )) {
+          !capabilityTruth.supportsSemanticAction(normalizedActionId)) {
         addDiagnostic(
           ProjectItemCatalogDiagnosticCode.unknownSemanticAction,
           ProjectItemCatalogDiagnosticSeverity.error,
