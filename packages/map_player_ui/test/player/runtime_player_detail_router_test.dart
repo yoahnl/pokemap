@@ -264,6 +264,121 @@ void main() {
     expect(command?.moveTargetId, 'growl');
   });
 
+  testWidgets('party gives, swaps and takes held items with guided labels',
+      (tester) async {
+    final commands = <RuntimePlayerPauseCommand>[];
+    final detail = RuntimePlayerPauseDetailSnapshot(
+      section: RuntimePlayerPauseSection.party,
+      title: 'Équipe',
+      entries: <RuntimePlayerDetailEntrySnapshot>[
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'party.0',
+          title: 'Bulbizarre',
+          heldItemAction: RuntimePlayerHeldItemActionSnapshot(
+            partyTargetId: 'party.0',
+            currentItemLabel: 'Baie Oran',
+            options: const <RuntimePlayerHeldItemOptionSnapshot>[
+              RuntimePlayerHeldItemOptionSnapshot(
+                itemTargetId: 'leftovers-charm',
+                label: 'Restes',
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerDetailRouter(
+          snapshot: _detailSnapshot(
+            RuntimePlayerPauseSection.party,
+            detail: detail,
+          ),
+          onPauseCommand: commands.add,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('runtime-player-held-manage-party.0'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Objet tenu : Baie Oran'), findsOneWidget);
+    expect(find.text('Remplacer par Restes'), findsOneWidget);
+    expect(find.text('leftovers-charm'), findsNothing);
+
+    await tester.tap(find.text('Remplacer par Restes'));
+    await tester.pumpAndSettle();
+
+    expect(commands.single.kind, RuntimePlayerPauseCommandKind.equipHeldItem);
+    expect(commands.single.itemTargetId, 'leftovers-charm');
+    expect(commands.single.partyTargetId, 'party.0');
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('runtime-player-held-manage-party.0'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Retirer Baie Oran'));
+    await tester.pumpAndSettle();
+
+    expect(commands.last.kind, RuntimePlayerPauseCommandKind.unequipHeldItem);
+    expect(commands.last.partyTargetId, 'party.0');
+  });
+
+  testWidgets('closing held item picker emits no command', (tester) async {
+    final commands = <RuntimePlayerPauseCommand>[];
+    final detail = RuntimePlayerPauseDetailSnapshot(
+      section: RuntimePlayerPauseSection.party,
+      title: 'Équipe',
+      entries: <RuntimePlayerDetailEntrySnapshot>[
+        RuntimePlayerDetailEntrySnapshot(
+          id: 'party.0',
+          title: 'Bulbizarre',
+          heldItemAction: RuntimePlayerHeldItemActionSnapshot(
+            partyTargetId: 'party.0',
+            options: const <RuntimePlayerHeldItemOptionSnapshot>[
+              RuntimePlayerHeldItemOptionSnapshot(
+                itemTargetId: 'leftovers-charm',
+                label: 'Restes',
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerDetailRouter(
+          snapshot: _detailSnapshot(
+            RuntimePlayerPauseSection.party,
+            detail: detail,
+          ),
+          onPauseCommand: commands.add,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('runtime-player-held-manage-party.0'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('runtime-player-held-close')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(commands, isEmpty);
+  });
+
   testWidgets('map identifies the current area and explains travel limits',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);

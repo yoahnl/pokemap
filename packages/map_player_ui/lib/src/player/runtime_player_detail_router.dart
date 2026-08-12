@@ -73,6 +73,13 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
       );
     }
 
+    if (section == RuntimePlayerPauseSection.party) {
+      return _RuntimePlayerParty(
+        detail: detail,
+        onCommand: onPauseCommand,
+      );
+    }
+
     if (section == RuntimePlayerPauseSection.map) {
       return _RuntimePlayerMap(detail: detail);
     }
@@ -143,6 +150,139 @@ class RuntimePlayerDetailRouter extends StatelessWidget {
         RuntimePlayerPauseSection.root =>
           ProjectPresentationSurfaceRole.pauseMenu,
       };
+}
+
+class _RuntimePlayerParty extends StatelessWidget {
+  const _RuntimePlayerParty({
+    required this.detail,
+    required this.onCommand,
+  });
+
+  final RuntimePlayerPauseDetailSnapshot detail;
+  final ValueChanged<RuntimePlayerPauseCommand>? onCommand;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        key: const ValueKey<String>('runtime-player-detail-party'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (var index = 0;
+              index < detail.entries.length;
+              index++) ...<Widget>[
+            PlayerDetailEntryCard(
+              entry: detail.entries[index],
+              surfaceRole: ProjectPresentationSurfaceRole.party,
+            ),
+            if (detail.entries[index].heldItemAction
+                case final action?) ...<Widget>[
+              const SizedBox(height: PlayerSpacing.xs),
+              PlayerActionButton(
+                key: ValueKey<String>(
+                  'runtime-player-held-manage-${action.partyTargetId}',
+                ),
+                label: PlayerBagStrings.of(context).manageHeldItem,
+                icon: Icons.auto_awesome_rounded,
+                secondary: true,
+                onPressed: onCommand == null
+                    ? null
+                    : () => _showHeldItems(context, action),
+              ),
+            ],
+            if (index != detail.entries.length - 1)
+              const SizedBox(height: PlayerSpacing.sm),
+          ],
+        ],
+      );
+
+  void _showHeldItems(
+    BuildContext context,
+    RuntimePlayerHeldItemActionSnapshot action,
+  ) {
+    final strings = PlayerBagStrings.of(context);
+    showDialog<void>(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(PlayerSpacing.md),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520, maxHeight: 640),
+          child: PlayerPanel(
+            elevated: true,
+            surfaceRole: ProjectPresentationSurfaceRole.party,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                if (action.currentItemLabel case final item?)
+                  Text(
+                    strings.heldItemSummary(item),
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                if (action.currentItemLabel != null)
+                  const SizedBox(height: PlayerSpacing.md),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: action.options.length,
+                    itemBuilder: (context, index) {
+                      final option = action.options[index];
+                      return PlayerActionButton(
+                        key: ValueKey<String>(
+                          'runtime-player-held-option-'
+                          '${action.partyTargetId}-${option.itemTargetId}',
+                        ),
+                        label: action.hasCurrentItem
+                            ? strings.replaceHeldItem(option.label)
+                            : strings.giveHeldItem(option.label),
+                        icon: Icons.swap_horiz_rounded,
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          onCommand!(
+                            RuntimePlayerPauseCommand.equipHeldItem(
+                              itemTargetId: option.itemTargetId,
+                              partyTargetId: action.partyTargetId,
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: PlayerSpacing.xs),
+                  ),
+                ),
+                if (action.currentItemLabel case final item?) ...<Widget>[
+                  const SizedBox(height: PlayerSpacing.xs),
+                  PlayerActionButton(
+                    key: ValueKey<String>(
+                      'runtime-player-held-take-${action.partyTargetId}',
+                    ),
+                    label: strings.takeHeldItem(item),
+                    icon: Icons.remove_circle_outline_rounded,
+                    secondary: true,
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onCommand!(
+                        RuntimePlayerPauseCommand.unequipHeldItem(
+                          partyTargetId: action.partyTargetId,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+                const SizedBox(height: PlayerSpacing.sm),
+                PlayerActionButton(
+                  key: const ValueKey<String>('runtime-player-held-close'),
+                  label: strings.close,
+                  icon: Icons.close,
+                  secondary: true,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _RuntimePlayerMap extends StatelessWidget {

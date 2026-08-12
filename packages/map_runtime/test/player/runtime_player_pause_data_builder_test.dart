@@ -308,6 +308,77 @@ void main() {
     );
   });
 
+  test('projects only supported held items with player-facing labels',
+      () async {
+    final projectRoot = await Directory.systemTemp.createTemp(
+      'pokemap-runtime-held-item-pause-',
+    );
+    addTearDown(() => projectRoot.delete(recursive: true));
+    final details = await const RuntimePlayerPauseDataBuilder().build(
+      gameState: const GameState(
+        saveId: 'held-item-pause',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              heldItemId: 'oran-charm',
+            ),
+          ],
+        ),
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'leftovers-charm', quantity: 1),
+            BagEntry(itemId: 'pretty-ribbon', quantity: 1),
+            BagEntry(itemId: 'future-charm', quantity: 1),
+          ],
+        ),
+      ),
+      projectRootDirectory: projectRoot.path,
+      pokemonConfig: const ProjectPokemonConfig(),
+      locale: 'fr',
+      itemCatalog: _catalogWith(
+        const <ProjectItemDefinition>[
+          ProjectItemDefinition(
+            id: 'leftovers-charm',
+            displayName: 'Restes',
+            pocketId: 'held-items',
+            heldEffectId: 'leftovers',
+          ),
+          ProjectItemDefinition(
+            id: 'oran-charm',
+            displayName: 'Baie Oran',
+            pocketId: 'held-items',
+            heldEffectId: 'oran_berry',
+          ),
+          ProjectItemDefinition(
+            id: 'pretty-ribbon',
+            displayName: 'Joli Ruban',
+            pocketId: 'treasures',
+          ),
+          ProjectItemDefinition(
+            id: 'future-charm',
+            displayName: 'Charme futur',
+            pocketId: 'held-items',
+            heldEffectId: 'future-effect',
+          ),
+        ],
+      ),
+    );
+
+    final action = details[RuntimePlayerPauseSection.party]!
+        .entries
+        .single
+        .heldItemAction!;
+    expect(action.partyTargetId, 'party.0');
+    expect(action.currentItemLabel, 'Baie Oran');
+    expect(
+      action.options.map((option) => (option.itemTargetId, option.label)),
+      <(String, String)>[('leftovers-charm', 'Restes')],
+    );
+  });
+
   test('reports the five canonical item usability states', () async {
     final projectRoot = await Directory.systemTemp.createTemp(
       'pokemap-runtime-item-diagnostics-',

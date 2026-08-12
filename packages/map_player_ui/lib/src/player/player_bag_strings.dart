@@ -14,6 +14,19 @@ final class PlayerBagStrings {
   String get close => _isFrench ? 'Fermer' : 'Close';
   String get chooseTarget =>
       _isFrench ? 'Choisir une cible' : 'Choose a target';
+  String get manageHeldItem =>
+      _isFrench ? 'Gérer l’objet tenu' : 'Manage held item';
+
+  String heldItemSummary(String item) =>
+      _isFrench ? 'Objet tenu : $item' : 'Held item: $item';
+
+  String giveHeldItem(String item) => _isFrench ? 'Donner $item' : 'Give $item';
+
+  String replaceHeldItem(String item) =>
+      _isFrench ? 'Remplacer par $item' : 'Replace with $item';
+
+  String takeHeldItem(String item) =>
+      _isFrench ? 'Retirer $item' : 'Take $item';
 
   String useOn(String pokemon) =>
       _isFrench ? 'Utiliser sur $pokemon' : 'Use on $pokemon';

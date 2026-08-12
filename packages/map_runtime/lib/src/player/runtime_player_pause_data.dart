@@ -77,6 +77,36 @@ final class RuntimePlayerBagPartyTargetSnapshot {
   final List<RuntimePlayerBagMoveTargetSnapshot> moves;
 }
 
+final class RuntimePlayerHeldItemOptionSnapshot {
+  const RuntimePlayerHeldItemOptionSnapshot({
+    required this.itemTargetId,
+    required this.label,
+  })  : assert(itemTargetId != ''),
+        assert(label != '');
+
+  final String itemTargetId;
+  final String label;
+}
+
+final class RuntimePlayerHeldItemActionSnapshot {
+  RuntimePlayerHeldItemActionSnapshot({
+    required this.partyTargetId,
+    this.currentItemLabel,
+    List<RuntimePlayerHeldItemOptionSnapshot> options =
+        const <RuntimePlayerHeldItemOptionSnapshot>[],
+  })  : assert(partyTargetId != ''),
+        assert(currentItemLabel == null || currentItemLabel != ''),
+        options = List<RuntimePlayerHeldItemOptionSnapshot>.unmodifiable(
+          options,
+        );
+
+  final String partyTargetId;
+  final String? currentItemLabel;
+  final List<RuntimePlayerHeldItemOptionSnapshot> options;
+
+  bool get hasCurrentItem => currentItemLabel != null;
+}
+
 /// Generic data-only row rendered by a runtime-owned pause detail surface.
 final class RuntimePlayerDetailEntrySnapshot {
   RuntimePlayerDetailEntrySnapshot({
@@ -86,6 +116,7 @@ final class RuntimePlayerDetailEntrySnapshot {
     this.trailingLabel,
     this.progress,
     this.bagAction,
+    this.heldItemAction,
   }) {
     if (id.trim().isEmpty || title.trim().isEmpty) {
       throw ArgumentError('Detail entry id and title must not be empty.');
@@ -105,6 +136,7 @@ final class RuntimePlayerDetailEntrySnapshot {
   final String? trailingLabel;
   final double? progress;
   final RuntimePlayerBagItemActionSnapshot? bagAction;
+  final RuntimePlayerHeldItemActionSnapshot? heldItemAction;
 }
 
 /// Data-only presentation for one non-root pause section.
@@ -176,7 +208,11 @@ final class RuntimePlayerPauseCommand {
   final String? moveTargetId;
 }
 
-enum RuntimePlayerPauseCommandKind { useBagItem, equipHeldItem, unequipHeldItem }
+enum RuntimePlayerPauseCommandKind {
+  useBagItem,
+  equipHeldItem,
+  unequipHeldItem
+}
 
 enum RuntimePlayerPauseCommandStatus { accepted, unavailable, failed }
 

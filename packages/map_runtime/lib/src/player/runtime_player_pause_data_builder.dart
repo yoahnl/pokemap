@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import '../application/runtime_pokemon_evolution_loader.dart';
 import '../application/runtime_item_catalog_loader.dart';
+import '../application/runtime_battle_combatant_seed_builder.dart';
 import '../application/runtime_move_machine_loader.dart';
 import 'runtime_player_pause_data.dart';
 
@@ -58,6 +59,10 @@ final class RuntimePlayerPauseDataBuilder {
       pokemonConfig: pokemonConfig,
       itemCatalog: resolvedItemCatalog,
     );
+    final heldItemOptions = _buildHeldItemOptions(
+      gameState,
+      resolvedItemCatalog,
+    );
 
     return immutableRuntimePlayerPauseDetails(
       <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
@@ -66,6 +71,8 @@ final class RuntimePlayerPauseDataBuilder {
           speciesById,
           locale: locale,
           isFrench: isFrench,
+          itemCatalog: resolvedItemCatalog,
+          heldItemOptions: heldItemOptions,
         ),
         RuntimePlayerPauseSection.bag: _buildBag(
           gameState,
@@ -149,6 +156,8 @@ final class RuntimePlayerPauseDataBuilder {
     Map<String, _RuntimeSpeciesPresentation> speciesById, {
     required String locale,
     required bool isFrench,
+    required ItemCatalogSnapshot itemCatalog,
+    required List<RuntimePlayerHeldItemOptionSnapshot> heldItemOptions,
   }) {
     final entries = <RuntimePlayerDetailEntrySnapshot>[];
     for (var index = 0; index < gameState.party.members.length; index++) {
@@ -168,6 +177,14 @@ final class RuntimePlayerPauseDataBuilder {
       final nickname = pokemon.nickname.trim();
       final origin = pokemon.provenance?.kind;
       final provenanceMap = pokemon.provenance?.mapId.trim() ?? '';
+      final heldItemId = pokemon.heldItemId.trim();
+      final currentHeldItemLabel = heldItemId.isEmpty
+          ? null
+          : itemCatalog.definitionFor(heldItemId)?.displayName ??
+              (isFrench ? 'Objet tenu inconnu' : 'Unknown held item');
+      final availableHeldItems = heldItemOptions
+          .where((option) => option.itemTargetId != heldItemId)
+          .toList(growable: false);
       final subtitle = isFrench
           ? <String>[
               if (nickname.isNotEmpty) speciesLabel,
@@ -199,6 +216,14 @@ final class RuntimePlayerPauseDataBuilder {
           trailingLabel:
               index == 0 ? (isFrench ? 'En tête' : 'Lead') : '#${index + 1}',
           progress: maxHp <= 0 ? 0 : currentHp / maxHp,
+          heldItemAction:
+              currentHeldItemLabel == null && availableHeldItems.isEmpty
+                  ? null
+                  : RuntimePlayerHeldItemActionSnapshot(
+                      partyTargetId: 'party.$index',
+                      currentItemLabel: currentHeldItemLabel,
+                      options: availableHeldItems,
+                    ),
         ),
       );
     }
@@ -210,6 +235,30 @@ final class RuntimePlayerPauseDataBuilder {
           ? 'Aucun Pokémon dans l’équipe.'
           : 'There are no Pokémon in the party.',
     );
+  }
+
+  List<RuntimePlayerHeldItemOptionSnapshot> _buildHeldItemOptions(
+    GameState gameState,
+    ItemCatalogSnapshot itemCatalog,
+  ) {
+    final options = <RuntimePlayerHeldItemOptionSnapshot>[];
+    for (final entry
+        in gameState.bag.entries.where((entry) => entry.quantity > 0)) {
+      final resolution = resolveRuntimeHeldItemEffect(
+        itemCatalog: itemCatalog,
+        itemId: entry.itemId,
+      );
+      if (resolution.status != RuntimeHeldItemSupportStatus.supported) continue;
+      final definition = itemCatalog.definitionFor(entry.itemId);
+      if (definition == null) continue;
+      options.add(
+        RuntimePlayerHeldItemOptionSnapshot(
+          itemTargetId: definition.id,
+          label: definition.displayName,
+        ),
+      );
+    }
+    return List<RuntimePlayerHeldItemOptionSnapshot>.unmodifiable(options);
   }
 
   RuntimePlayerPauseDetailSnapshot _buildBag(
