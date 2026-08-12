@@ -206,3 +206,19 @@ Source testée : `967ab262d149ed6ad5b97c050b6a3c5aa1337fab`.
 Le premier passage a été invalidé par `ENOSPC`. Trois builds Flutter régénérables du worktree et des répertoires temporaires `dart_test.kernel.*` orphelins, vérifiés sans processus propriétaire, ont été nettoyés. Les relances ont utilisé un `TMPDIR` isolé et supprimé après chaque suite. Aucun source ni travail concurrent n’a été supprimé.
 
 Verdict R5.1 : `PARTIAL`. Les verticales Personalization sont vertes, mais le gate demande les suites complètes sans échec lié au chantier et une séparation explicite de la dette. Cette séparation est maintenant versionnée ; Hub et MCP devront être découpés en commandes bornées lors de la clôture R5.5 pour obtenir une preuve complète.
+
+### PERS3-R5.2 — Builds release communs
+
+Source commune construite : `5c9995f5da5a9e4d6fd2e60633a53bc05d172425`.
+
+| Produit | Commande | Binaire | SHA-256 |
+|---|---|---|---|
+| Editor | `flutter build macos --release` | `packages/map_editor/build/macos/Build/Products/Release/PokeMap.app/Contents/MacOS/PokeMap` | `1f1fbdfa6e5478ada0eca2b8e2da8944e7fb9948e9b74801e99ce2221d9bde7c` |
+| Hub | `flutter build macos --release` | `apps/pokemap_hub/build/macos/Build/Products/Release/PokeMap Hub.app/Contents/MacOS/PokeMap Hub` | `eaa7294d802a3c7cb259e50978b5422b761b9f06f893993ea44116508ca29963` |
+| Standalone | `flutter build macos --release` | `examples/playable_runtime_host/build/macos/Build/Products/Release/PokeMap Selbrume.app/Contents/MacOS/PokeMap Selbrume` | `59bde173169cf61845de9b17206bdef591be598e69d30d1a07a5605bdedaa373` |
+
+Les trois commandes ont terminé avec le code `0`. Les avertissements Xcode concernent l’icône 1024 non assignée, `AVKeyValueStatus` déprécié et la phase Flutter Assemble sans outputs ; aucun n’empêche la production des bundles.
+
+Le contrôle de politique a trouvé des références CocoaPods historiques dans le projet standalone. Elles ont été supprimées des xcconfig, du workspace, du projet Xcode et du gitignore. Le nouveau test `macos_dependency_manager_policy_test.dart` prouve l’activation SPM, les overrides `gamepads_darwin` et l’absence de toute intégration Pods ; test et analyse ciblée sont verts, puis le standalone a été reconstruit avec succès.
+
+Verdict R5.2 : `DONE`.
