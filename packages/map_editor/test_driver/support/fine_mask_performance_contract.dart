@@ -1,3 +1,5 @@
+import 'package:map_editor/src/application/services/fine_mask_performance_telemetry.dart';
+
 void validateFineMaskPerformanceReceipt(
   Map<String, dynamic> data, {
   required bool requireProvenance,
@@ -14,6 +16,19 @@ void validateFineMaskPerformanceReceipt(
     );
   }
   final rows = results.whereType<Map>().toList(growable: false);
+  final budgets = data['performanceBudgets'];
+  if (budgets is! Map ||
+      budgets['schemaVersion'] != FineMaskPerformanceBudget.schemaVersion ||
+      budgets['fineMask1024PointerMoveP95Us'] !=
+          FineMaskPerformanceBudget.pointerMove1024P95Us ||
+      budgets['fineMask1024PaintP95Us'] !=
+          FineMaskPerformanceBudget.paint1024P95Us ||
+      budgets['frameTimingPolicy'] !=
+          FineMaskPerformanceBudget.frameTimingPolicy) {
+    throw const FormatException(
+      'Fine-mask receipt must declare canonical latency budgets and observational frame timing.',
+    );
+  }
   const expectedExtents = <int>{64, 256, 512, 1024};
   final extents = rows.map((row) => row['extent']).toSet();
   if (rows.length != expectedExtents.length ||
@@ -42,6 +57,20 @@ void validateFineMaskPerformanceReceipt(
     _validateNamedSpan(extent, 'mask.readback', expectedCount: 1);
     _validateNamedSpan(extent, 'mask.build', minimumCount: 1);
     _validateNamedSpan(extent, 'mask.paint', minimumCount: 1);
+    if (row['extent'] == 1024) {
+      final moveSpans = move['spans']! as Map;
+      final extentSpans = extent['spans']! as Map;
+      final pointerP95 = (moveSpans['mask.pointer_move']! as Map)['p95Us'];
+      final paintP95 = (extentSpans['mask.paint']! as Map)['p95Us'];
+      if (pointerP95 is! int ||
+          pointerP95 >= FineMaskPerformanceBudget.pointerMove1024P95Us ||
+          paintP95 is! int ||
+          paintP95 >= FineMaskPerformanceBudget.paint1024P95Us) {
+        throw const FormatException(
+          'Fine-mask 1024 pointer and paint P95 must remain inside their canonical budgets.',
+        );
+      }
+    }
     final moveCounters = move['counters'];
     if (moveCounters is! Map ||
         moveCounters.values.any((value) => value != 0)) {
@@ -59,7 +88,11 @@ void validateFineMaskPerformanceReceipt(
     }
     final frameMetrics = row['frameMetrics'];
     final frameSamples = frameMetrics is Map ? frameMetrics['samplesUs'] : null;
-    if (frameMetrics is! Map || frameSamples is! List || frameSamples.isEmpty) {
+    if (frameMetrics is! Map ||
+        frameMetrics['scope'] != 'flutter.frame_total' ||
+        frameMetrics['policy'] != FineMaskPerformanceBudget.frameTimingPolicy ||
+        frameSamples is! List ||
+        frameSamples.isEmpty) {
       throw const FormatException(
         'Fine-mask rows must include raw Flutter frame timings.',
       );
@@ -171,13 +204,25 @@ void _validateProvenance(Map<String, dynamic> data) {
       commit is! String ||
       !RegExp(r'^[0-9a-f]{40}$').hasMatch(commit) ||
       data['sdk'] is! String ||
+      !_isAvailableText(data['sdk']! as String) ||
       toolchain is! Map ||
       toolchain['dart'] is! String ||
+      !_isAvailableText(toolchain['dart']! as String) ||
       flutter is! Map ||
       flutter['frameworkRevision'] is! String ||
-      toolchain['flame'] is! String) {
+      !_isAvailableText(flutter['frameworkRevision']! as String) ||
+      toolchain['flame'] is! String ||
+      !_isAvailableText(toolchain['flame']! as String)) {
     throw const FormatException(
       'Fine-mask receipt must come from a clean profile run with complete provenance.',
     );
   }
+}
+
+bool _isAvailableText(String value) {
+  final normalized = value.trim().toLowerCase();
+  return normalized.isNotEmpty &&
+      normalized != 'unavailable' &&
+      normalized != 'unknown' &&
+      normalized != 'malformed';
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -249,6 +250,164 @@ void main() {
 
     expect(committed?.collisionMask, isNotNull);
     await gesture.up();
+  });
+
+  testWidgets(
+    'pointer cancel restores the widget draft before the next stroke',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(900, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final image = await _image(64);
+      addTearDown(image.dispose);
+      var callbackCount = 0;
+      ElementCollisionProfile? committed;
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: SizedBox(
+            width: 700,
+            height: 900,
+            child: ElementCollisionTripleMaskEditor(
+              image: image,
+              source: const TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+              tileWidth: 64,
+              tileHeight: 64,
+              profile: null,
+              draftPadding: const WarpTriggerPadding(),
+              onProfileChanged: (next) {
+                callbackCount += 1;
+                committed = next;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final surface = find.descendant(
+        of: find.byType(ElementCollisionTripleMaskEditor),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is Listener && widget.onPointerCancel != null,
+        ),
+      );
+      expect(surface, findsOneWidget);
+      final rect = tester.getRect(surface);
+      final cancelled = await tester.startGesture(
+        rect.topLeft + Offset(rect.width * 0.25, rect.height * 0.25),
+        pointer: 41,
+      );
+      await cancelled.moveTo(
+        rect.topLeft + Offset(rect.width * 0.35, rect.height * 0.35),
+      );
+      await tester.pump();
+      await cancelled.cancel();
+      await tester.pump();
+
+      expect(callbackCount, 0);
+
+      final accepted = await tester.startGesture(
+        rect.topLeft + Offset(rect.width * 0.75, rect.height * 0.75),
+        pointer: 42,
+      );
+      await accepted.up();
+      await tester.pump();
+
+      expect(callbackCount, 1);
+      final bits = ElementCollisionMaskCodec.decodePackedBits(
+        widthPx: 64,
+        heightPx: 64,
+        dataBase64: committed!.collisionMask!.dataBase64,
+      );
+      expect(bits[16 * 64 + 16], isFalse);
+      expect(bits[48 * 64 + 48], isTrue);
+    },
+  );
+
+  testWidgets('ignores a stale visual readback after the image changes', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(900, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final firstImage = await _image(64);
+    final secondImage = await _image(64);
+    addTearDown(firstImage.dispose);
+    addTearDown(secondImage.dispose);
+    final firstRead = Completer<FineMaskVisualAlphaRegion>();
+    final secondRead = Completer<FineMaskVisualAlphaRegion>();
+    var readCount = 0;
+    ElementCollisionProfile? committed;
+
+    Future<FineMaskVisualAlphaRegion> reader({
+      required ui.Image image,
+      required Rect sourceRect,
+    }) {
+      readCount += 1;
+      return readCount == 1 ? firstRead.future : secondRead.future;
+    }
+
+    Widget editor(ui.Image image, ElementCollisionProfile? profile) =>
+        CupertinoApp(
+          home: SizedBox(
+            width: 700,
+            height: 900,
+            child: ElementCollisionTripleMaskEditor(
+              image: image,
+              source: const TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+              tileWidth: 64,
+              tileHeight: 64,
+              profile: profile,
+              draftPadding: const WarpTriggerPadding(),
+              visualAlphaReader: reader,
+              onProfileChanged: (next) => committed = next,
+            ),
+          ),
+        );
+
+    await tester.pumpWidget(editor(firstImage, null));
+    await tester.pump();
+    await tester.pumpWidget(
+      editor(
+        secondImage,
+        const ElementCollisionProfile(padding: WarpTriggerPadding(left: 1)),
+      ),
+    );
+    await tester.pump();
+    expect(readCount, 2);
+    secondRead.complete(
+      FineMaskVisualAlphaRegion(
+        width: 64,
+        height: 64,
+        alphaBytes: Uint8List(64 * 64),
+      ),
+    );
+    await tester.pump();
+    firstRead.complete(
+      FineMaskVisualAlphaRegion(
+        width: 64,
+        height: 64,
+        alphaBytes: Uint8List(64 * 64)..fillRange(0, 64 * 64, 255),
+      ),
+    );
+    await tester.pump();
+
+    final surface = find.descendant(
+      of: find.byType(ElementCollisionTripleMaskEditor),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Listener &&
+            widget.onPointerDown != null &&
+            widget.onPointerMove != null &&
+            widget.onPointerCancel != null,
+      ),
+    );
+    expect(surface, findsOneWidget);
+    await tester.tapAt(tester.getCenter(surface));
+    await tester.pump();
+
+    final visualBits = ElementCollisionMaskCodec.decodePackedBits(
+      widthPx: 64,
+      heightPx: 64,
+      dataBase64: committed!.visualMask!.dataBase64,
+    );
+    expect(visualBits, everyElement(isFalse));
   });
 }
 
