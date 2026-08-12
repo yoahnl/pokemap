@@ -55,8 +55,15 @@ void main() {
         await tester.pump();
 
         final duringStroke = container.read(editorNotifierProvider);
+        final preview = container
+            .read(editorNotifierProvider.notifier)
+            .activeMapCellStrokePreview!;
+        expect(duringStroke.activeMap, same(_activeMap));
         expect(
-          (duringStroke.activeMap!.layers.single as CollisionLayer).collisions,
+          <bool>[
+            for (var index = 0; index < 8; index++)
+              preview.collisionAt(index),
+          ],
           const <bool>[
             true,
             true,
@@ -69,7 +76,7 @@ void main() {
           ],
         );
         expect(duringStroke.mapStrokeStart, isNotNull);
-        expect(duringStroke.isDirty, isTrue);
+        expect(duringStroke.isDirty, isFalse);
 
         await gesture.cancel();
         await tester.pump();
@@ -88,6 +95,12 @@ void main() {
         expect(cancelled.canUndoMap, isTrue);
         expect(cancelled.canRedoMap, isTrue);
         expect(cancelled.isDirty, isFalse);
+        expect(
+          container
+              .read(editorNotifierProvider.notifier)
+              .activeMapCellStrokePreview,
+          isNull,
+        );
       },
     );
 

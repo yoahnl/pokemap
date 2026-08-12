@@ -52,6 +52,7 @@ import '../../../application/services/element_collision_profile_generator.dart';
 import '../../../application/services/environment_mask_paint_target_resolver.dart';
 import '../../../application/services/entity_editing_service.dart';
 import '../../../application/services/gameplay_zone_editing_service.dart';
+import '../../../application/services/map_cell_stroke_buffer.dart';
 import '../../../application/services/map_connection_editing_service.dart';
 import '../../../application/services/narrative_event_legacy_authoring_guard.dart';
 import '../../../application/services/narrative_event_source_dependency_guard.dart';
@@ -157,6 +158,11 @@ typedef _MapDiskMutationLease = ({
   MapData? activeMap,
   String? activeMapPath,
 });
+
+final class _MapCellStrokeRepaint extends ChangeNotifier {
+  void repaint() => notifyListeners();
+}
+
 typedef _PendingMapActivation = ({
   String targetPath,
   Object? projectIdentity,
@@ -404,6 +410,11 @@ class EditorNotifier extends _$EditorNotifier
   _PendingSmartTileGesture? _pendingSmartTileGesture;
   DeferredSmartTileGesture? _deferredSmartTileGesture;
   bool _smartTileAutosaveInProgress = false;
+  MapCellStrokeBuffer? _mapCellStrokeBuffer;
+  _MapCellStrokeRepaint? _mapCellStrokeRepaint;
+
+  MapCellStrokeBuffer? get activeMapCellStrokePreview => _mapCellStrokeBuffer;
+  Listenable? get activeMapCellStrokeRepaint => _mapCellStrokeRepaint;
 
   /// Whether the map is only dirty because of Smart Tile work we already own.
   ///
@@ -8224,18 +8235,80 @@ class EditorNotifier extends _$EditorNotifier
         !_canonicalSmartTileGestureOwnsDirtyMap) {
       return;
     }
+    if (state.mapStrokeStart == null && map != null && layerId != null) {
+      final repaint = _MapCellStrokeRepaint();
+      if (activeLayer is TileLayer) {
+        _mapCellStrokeRepaint = repaint;
+        _mapCellStrokeBuffer = MapCellStrokeBuffer.tile(
+          sourceMap: map,
+          layerId: layerId,
+          onChanged: repaint.repaint,
+        );
+      } else if (activeLayer is CollisionLayer) {
+        _mapCellStrokeRepaint = repaint;
+        _mapCellStrokeBuffer = MapCellStrokeBuffer.collision(
+          sourceMap: map,
+          layerId: layerId,
+          onChanged: repaint.repaint,
+        );
+      }
+    }
     state = _mapEditingController.beginStroke(state);
   }
 
   void endMapStroke() {
+    final buffer = _mapCellStrokeBuffer;
+    _mapCellStrokeBuffer = null;
+    _mapCellStrokeRepaint = null;
+    String? commitError;
+    if (buffer != null && buffer.hasChanges) {
+      final span = EditorPerformanceTelemetry.startSpan(
+        EditorPerformanceSpanName.mutationLocal,
+      );
+      try {
+        final project = state.project;
+        final committed = buffer.commit(
+          resolvePlacedElements:
+              project != null && buffer.kind == MapCellStrokeLayerKind.tile
+                  ? (layer) =>
+                      _placedElementInstanceIndexer.resolveLayerInstances(
+                        map: buffer.sourceMap,
+                        project: project,
+                        layer: layer,
+                      )
+                  : null,
+          validate: MapValidator.validate,
+        );
+        _applyMapMutation(
+          previousMap: buffer.sourceMap,
+          updatedMap: committed,
+          preferredActiveLayerId: buffer.layerId,
+          partOfStroke: true,
+          performanceMutationSpan: span,
+        );
+      } catch (error) {
+        commitError = 'Failed to commit map stroke: $error';
+      } finally {
+        span?.finish();
+      }
+    }
     state = _mapEditingController.endStroke(state);
+    if (commitError != null) {
+      state = state.copyWith(errorMessage: commitError);
+    }
     _flushPendingSmartTileGesture();
   }
 
   void cancelMapStroke() {
+    _mapCellStrokeBuffer = null;
+    _mapCellStrokeRepaint = null;
     _pendingSmartTileGesture = null;
     _deferredSmartTileGesture = null;
     state = _mapEditingController.cancelStroke(state);
+  }
+
+  void breakMapStrokeInterpolation() {
+    _mapCellStrokeBuffer?.breakInterpolation();
   }
 
   void _recordSmartTileGesture({
@@ -9266,6 +9339,18 @@ class EditorNotifier extends _$EditorNotifier
       EditorPerformanceSpanName.mutationLocal,
     );
     try {
+      final buffer = _mapCellStrokeBuffer;
+      if (buffer != null &&
+          identical(buffer.sourceMap, map) &&
+          buffer.layerId == layerId &&
+          buffer.kind == MapCellStrokeLayerKind.tile) {
+        buffer.paintTiles(
+          origin: pos,
+          patternSize: pattern.size,
+          tiles: pattern.tiles,
+        );
+        return;
+      }
       final useCase = ref.read(paintTilePatternOnMapUseCaseProvider);
       final painted = useCase.execute(
         map,
@@ -9306,6 +9391,23 @@ class EditorNotifier extends _$EditorNotifier
     required bool partOfStroke,
   }) {
     try {
+      final buffer = _mapCellStrokeBuffer;
+      if (partOfStroke &&
+          buffer != null &&
+          identical(buffer.sourceMap, map) &&
+          buffer.layerId == layerId &&
+          buffer.kind == MapCellStrokeLayerKind.tile) {
+        buffer.paintTiles(
+          origin: pos,
+          patternSize: patternSize,
+          tiles: List<TileLayerPaletteEntry?>.filled(
+            patternSize.width * patternSize.height,
+            null,
+            growable: false,
+          ),
+        );
+        return;
+      }
       final project = state.project;
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(eraseTileOnMapUseCaseProvider);
@@ -9367,6 +9469,18 @@ class EditorNotifier extends _$EditorNotifier
       EditorPerformanceSpanName.mutationLocal,
     );
     try {
+      final buffer = _mapCellStrokeBuffer;
+      if (buffer != null &&
+          identical(buffer.sourceMap, map) &&
+          buffer.layerId == layerId &&
+          buffer.kind == MapCellStrokeLayerKind.collision) {
+        buffer.setCollisions(
+          origin: pos,
+          patternSize: patternSize,
+          value: true,
+        );
+        return;
+      }
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(paintCollisionOnMapUseCaseProvider);
         final painted = useCase.execute(
@@ -9414,6 +9528,19 @@ class EditorNotifier extends _$EditorNotifier
     required bool partOfStroke,
   }) {
     try {
+      final buffer = _mapCellStrokeBuffer;
+      if (partOfStroke &&
+          buffer != null &&
+          identical(buffer.sourceMap, map) &&
+          buffer.layerId == layerId &&
+          buffer.kind == MapCellStrokeLayerKind.collision) {
+        buffer.setCollisions(
+          origin: pos,
+          patternSize: patternSize,
+          value: false,
+        );
+        return;
+      }
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(eraseCollisionOnMapUseCaseProvider);
         final erased = useCase.execute(

@@ -28,7 +28,6 @@ class PlacedElementInstanceIndexer {
     required ProjectManifest project,
     required String layerId,
   }) {
-    final protectedPlacements = _protectedPlacedElementsForLayer(map, layerId);
     final layer = map.layers
         .whereType<TileLayer>()
         .where((entry) => entry.id == layerId)
@@ -36,6 +35,24 @@ class PlacedElementInstanceIndexer {
     if (layer == null) {
       return map;
     }
+    return replaceMapPlacedElementsForLayer(
+      map,
+      layerId: layerId,
+      instances: resolveLayerInstances(
+        map: map,
+        project: project,
+        layer: layer,
+      ),
+    );
+  }
+
+  List<MapPlacedElement> resolveLayerInstances({
+    required MapData map,
+    required ProjectManifest project,
+    required TileLayer layer,
+  }) {
+    final layerId = layer.id;
+    final protectedPlacements = _protectedPlacedElementsForLayer(map, layerId);
     final elements = project.elements
         .where(
           (entry) =>
@@ -60,23 +77,13 @@ class PlacedElementInstanceIndexer {
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
     if (elements.isEmpty) {
-      return _replaceLayerPlacedElements(
-        map,
-        layerId: layerId,
-        protectedPlacements: protectedPlacements,
-        indexedInstances: const [],
-      );
+      return protectedPlacements;
     }
 
     final mapWidth = map.size.width;
     final mapHeight = map.size.height;
     if (mapWidth <= 0 || mapHeight <= 0) {
-      return _replaceLayerPlacedElements(
-        map,
-        layerId: layerId,
-        protectedPlacements: protectedPlacements,
-        indexedInstances: const [],
-      );
+      return protectedPlacements;
     }
 
     final columnsByTilesetId = _resolveTilesetColumns(project);
@@ -241,12 +248,20 @@ class PlacedElementInstanceIndexer {
       return a.elementId.compareTo(b.elementId);
     });
 
-    return _replaceLayerPlacedElements(
-      map,
-      layerId: layerId,
-      protectedPlacements: protectedPlacements,
-      indexedInstances: instances,
-    );
+    final protectedIds = protectedPlacements.map((entry) => entry.id).toSet();
+    final protectedPositions = protectedPlacements
+        .map((entry) => _keyForPos(layerId: entry.layerId, pos: entry.pos))
+        .toSet();
+    return <MapPlacedElement>[
+      ...protectedPlacements,
+      ...instances.where(
+        (entry) =>
+            !protectedIds.contains(entry.id) &&
+            !protectedPositions.contains(
+              _keyForPos(layerId: entry.layerId, pos: entry.pos),
+            ),
+      ),
+    ];
   }
 
   List<MapPlacedElement> _protectedPlacedElementsForLayer(
@@ -276,32 +291,6 @@ class PlacedElementInstanceIndexer {
   bool _isTileIndexed(MapPlacedElement entry) =>
       entry.properties[pokemapPlacementOriginProperty] ==
       pokemapPlacementOriginTileIndex;
-
-  MapData _replaceLayerPlacedElements(
-    MapData map, {
-    required String layerId,
-    required List<MapPlacedElement> protectedPlacements,
-    required List<MapPlacedElement> indexedInstances,
-  }) {
-    final protectedIds = protectedPlacements.map((entry) => entry.id).toSet();
-    final protectedPositions = protectedPlacements
-        .map((entry) => _keyForPos(layerId: entry.layerId, pos: entry.pos))
-        .toSet();
-    return replaceMapPlacedElementsForLayer(
-      map,
-      layerId: layerId,
-      instances: [
-        ...protectedPlacements,
-        ...indexedInstances.where(
-          (entry) =>
-              !protectedIds.contains(entry.id) &&
-              !protectedPositions.contains(
-                _keyForPos(layerId: entry.layerId, pos: entry.pos),
-              ),
-        ),
-      ],
-    );
-  }
 
   String _reserveUniquePlacementId(String baseId, Set<String> reservedIds) {
     if (reservedIds.add(baseId)) {

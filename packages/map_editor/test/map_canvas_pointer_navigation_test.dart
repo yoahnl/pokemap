@@ -499,8 +499,13 @@ void main() {
       await paint.moveBy(const Offset(20, 0));
       await tester.pump();
       final duringPaint = container.read(editorNotifierProvider);
+      final preview = container
+          .read(editorNotifierProvider.notifier)
+          .activeMapCellStrokePreview!;
+      final previewRevision = preview.revision;
       expect(duringPaint.mapStrokeStart, isNotNull);
-      expect(duringPaint.activeMap, isNot(same(_activeMap)));
+      expect(duringPaint.activeMap, same(_activeMap));
+      expect(previewRevision, greaterThan(0));
 
       final pinch = await tester.createGesture(
         kind: ui.PointerDeviceKind.trackpad,
@@ -518,7 +523,14 @@ void main() {
 
       final afterPinch = container.read(editorNotifierProvider);
       expect(afterPinch.mapStrokeStart, same(duringPaint.mapStrokeStart));
-      expect(afterPinch.activeMap, same(duringPaint.activeMap));
+      expect(afterPinch.activeMap, same(_activeMap));
+      expect(
+        container
+            .read(editorNotifierProvider.notifier)
+            .activeMapCellStrokePreview,
+        same(preview),
+      );
+      expect(preview.revision, previewRevision);
       expect(afterPinch.zoom, duringPaint.zoom);
       expect(afterPinch.panOffset, duringPaint.panOffset);
 
@@ -526,8 +538,65 @@ void main() {
       await tester.pump();
       final committed = container.read(editorNotifierProvider);
       expect(committed.mapStrokeStart, isNull);
+      expect(
+        committed.activeMap,
+        isNot(same(_activeMap)),
+        reason: committed.errorMessage,
+      );
       expect(committed.isDirty, isTrue);
       expect(committed.mapUndoStack, hasLength(1));
+    });
+
+    testWidgets('leaving the map breaks stroke interpolation before re-entry', (
+      tester,
+    ) async {
+      final container = _createContainer();
+      final source = MapData(
+        id: 'stroke-exit',
+        name: 'Stroke exit',
+        size: const GridSize(width: 8, height: 1),
+        layers: <MapLayer>[
+          MapLayer.collision(
+            id: 'collision',
+            name: 'Collision',
+            collisions: List<bool>.filled(8, false, growable: false),
+          ),
+        ],
+      );
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _project,
+        activeMap: source,
+        activeLayerId: 'collision',
+        activeTool: EditorToolType.collisionPaint,
+        savedMapSnapshot: source,
+      );
+
+      await _pumpCanvas(tester, container);
+      final origin = tester.getTopLeft(find.byType(MapCanvas));
+      final gesture = await tester.startGesture(
+        origin + const Offset(8, 8),
+        kind: ui.PointerDeviceKind.mouse,
+        buttons: kPrimaryButton,
+      );
+      await gesture.moveTo(origin + const Offset(20, 8));
+      await tester.pump();
+      await gesture.moveTo(origin + const Offset(300, 8));
+      await tester.pump();
+      await gesture.moveTo(origin + const Offset(200, 8));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      final collisions =
+          (container.read(editorNotifierProvider).activeMap!.layers.single
+                  as CollisionLayer)
+              .collisions;
+      expect(collisions[0], isTrue);
+      expect(collisions[6], isTrue);
+      for (var index = 1; index < 6; index++) {
+        expect(collisions[index], isFalse);
+      }
+      expect(container.read(editorNotifierProvider).mapUndoStack, hasLength(1));
     });
 
     testWidgets(

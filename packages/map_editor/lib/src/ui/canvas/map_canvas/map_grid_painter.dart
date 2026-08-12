@@ -404,6 +404,8 @@ class MapGridPainter extends CustomPainter {
   final ProjectManifest? project;
   final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final EditorCanvasRepaintClock? _animationClock;
+  final MapCellStrokeBuffer? cellStrokePreview;
+  final Listenable? cellStrokeRepaint;
   final int _staticAnimationMs;
   final MapGridPaintObserver? debugOnPaint;
   final MapGridCullingDebugObserver? debugOnCulling;
@@ -453,6 +455,8 @@ class MapGridPainter extends CustomPainter {
     this.project,
     this.shadowLightPreviewPreset,
     EditorCanvasRepaintClock? animationClock,
+    this.cellStrokePreview,
+    this.cellStrokeRepaint,
     int editorEntityAnimationMs = 0,
     this.debugOnPaint,
     this.debugOnCulling,
@@ -469,7 +473,16 @@ class MapGridPainter extends CustomPainter {
            shadowProjectionOwner ?? EditorShadowPreviewProjectionOwner(),
        _animationClock = animationClock,
        _staticAnimationMs = editorEntityAnimationMs,
-       super(repaint: animationClock);
+       super(
+         repaint: cellStrokeRepaint == null
+             ? animationClock
+             : animationClock == null
+             ? cellStrokeRepaint
+             : Listenable.merge(<Listenable>[
+                 animationClock,
+                 cellStrokeRepaint,
+               ]),
+       );
 
   int get effectiveAnimationMs =>
       _animationClock?.elapsedMs ?? _staticAnimationMs;
@@ -2090,7 +2103,7 @@ class MapGridPainter extends CustomPainter {
       final rowStart = y * map.size.width;
       for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
         final tileIndex = rowStart + x;
-        final entry = resolveTileLayerCell(layer, tileIndex);
+        final entry = _resolveTileCell(layer, tileIndex);
         if (entry == null) continue;
         if (placedElementTileMask.contains(tileIndex)) continue;
         final shouldDrawCell = shouldPaintEditorTileCellInRenderPass(
@@ -2383,7 +2396,7 @@ class MapGridPainter extends CustomPainter {
             continue;
           }
           final tileIndex = y * map.size.width + x;
-          final tile = resolveTileLayerCell(layer, tileIndex);
+          final tile = _resolveTileCell(layer, tileIndex);
           if (tile == null || tile.tilesetId != tilesetId) continue;
           final sourceTileId =
               (source.y + localY) * tilesPerRow + source.x + localX;
@@ -2759,7 +2772,10 @@ class MapGridPainter extends CustomPainter {
     required EditorMapVisibleCellBounds visibleBounds,
     required _MapGridCullingDebugCounter? cullingCounter,
   }) {
-    if (layer.collisions.isEmpty) return;
+    final previewApplies =
+        cellStrokePreview?.kind == MapCellStrokeLayerKind.collision &&
+        cellStrokePreview?.layerId == layer.id;
+    if (layer.collisions.isEmpty && !previewApplies) return;
     final fillAlpha = (isActive ? 0.34 : 0.24) * layer.opacity;
     final borderAlpha = (isActive ? 0.75 : 0.5) * layer.opacity;
     final fillPaint = Paint()
@@ -2777,8 +2793,7 @@ class MapGridPainter extends CustomPainter {
       final rowStart = y * map.size.width;
       for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
         final index = rowStart + x;
-        if (index < 0 || index >= layer.collisions.length) continue;
-        if (!layer.collisions[index]) continue;
+        if (!_resolveCollisionCell(layer, index)) continue;
         final cell = Rect.fromLTWH(
           x * tileWidth,
           y * tileHeight,
@@ -2789,6 +2804,26 @@ class MapGridPainter extends CustomPainter {
         canvas.drawRect(cell, borderPaint);
       }
     }
+  }
+
+  TileLayerPaletteEntry? _resolveTileCell(TileLayer layer, int index) {
+    final preview = cellStrokePreview;
+    if (preview?.kind == MapCellStrokeLayerKind.tile &&
+        preview?.layerId == layer.id) {
+      return preview!.tileAt(index);
+    }
+    return resolveTileLayerCell(layer, index);
+  }
+
+  bool _resolveCollisionCell(CollisionLayer layer, int index) {
+    final preview = cellStrokePreview;
+    if (preview?.kind == MapCellStrokeLayerKind.collision &&
+        preview?.layerId == layer.id) {
+      return preview!.collisionAt(index);
+    }
+    return index >= 0 &&
+        index < layer.collisions.length &&
+        layer.collisions[index];
   }
 
   void _paintSmartTileLayer(
@@ -3045,6 +3080,8 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.sourceTileHeight != sourceTileHeight ||
         !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById) ||
         oldDelegate._animationClock != _animationClock ||
+        oldDelegate.cellStrokePreview != cellStrokePreview ||
+        oldDelegate.cellStrokeRepaint != cellStrokeRepaint ||
         (_animationClock == null &&
             oldDelegate._animationClock == null &&
             oldDelegate._staticAnimationMs != _staticAnimationMs) ||
