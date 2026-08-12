@@ -31,6 +31,7 @@ void main() {
       find.byKey(const ValueKey<String>('title-action-label-newGame')),
       'Commencer',
     );
+    await tester.pump(const Duration(milliseconds: 350));
     expect(
       changed?.actions
           ?.singleWhere((action) => action.id == ProjectTitleActionId.newGame)
@@ -80,6 +81,7 @@ void main() {
       find.byKey(const ValueKey<String>('title-action-label-newGame')),
       'Commencer',
     );
+    await tester.pump(const Duration(milliseconds: 350));
 
     expect(
       changed?.actions
@@ -128,6 +130,7 @@ void main() {
       find.byKey(const ValueKey<String>('title-copy-title')),
       'Aurore sur Hanazuki',
     );
+    await tester.pump(const Duration(milliseconds: 350));
 
     expect(changed?.title?.title, 'Aurore sur Hanazuki');
     expect(changed?.title?.actions, actions);

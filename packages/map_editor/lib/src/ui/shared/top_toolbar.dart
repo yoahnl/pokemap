@@ -214,8 +214,13 @@ class TopToolbar extends ConsumerWidget {
                           notifier: notifier,
                         )
                     : null,
-                _ =>
-                  toolbar.project != null ? notifier.saveProjectManifest : null,
+                _ => toolbar.project != null
+                    ? () async {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                        await Future<void>.delayed(Duration.zero);
+                        await notifier.saveProjectManifest();
+                      }
+                    : null,
               },
             ),
           ToolbarCapsuleButton(

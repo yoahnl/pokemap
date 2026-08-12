@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -14,8 +15,9 @@ import '../shell_chrome_test_harness.dart';
 
 void main() {
   test('save then reopen restores the exact presentation profile', () async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-reopen-test-');
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-reopen-test-',
+    );
     addTearDown(() => root.deleteSync(recursive: true));
     final projectFile = File('${root.path}/project.json');
     final initial = buildShellChromeProject(name: 'Reopen presentation');
@@ -45,7 +47,9 @@ void main() {
     );
 
     expect(
-        await firstNotifier.initializePersonalizationStudioSession(), isTrue);
+      await firstNotifier.initializePersonalizationStudioSession(),
+      isTrue,
+    );
     expect(
       await firstNotifier.applyPersonalizationStudioProfile(profile),
       isTrue,
@@ -73,8 +77,9 @@ void main() {
       fireImmediately: true,
     );
     addTearDown(secondSubscription.close);
-    final secondNotifier =
-        secondContainer.read(editorNotifierProvider.notifier);
+    final secondNotifier = secondContainer.read(
+      editorNotifierProvider.notifier,
+    );
     secondNotifier.state = EditorState(
       projectRootPath: root.path,
       project: durable,
@@ -97,8 +102,9 @@ void main() {
   });
 
   test('autosave resynchronizes the shared project document session', () async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-autosave-test-');
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-autosave-test-',
+    );
     addTearDown(() => root.deleteSync(recursive: true));
     final project = buildShellChromeProject(name: 'Autosave integration');
     File('${root.path}/project.json').writeAsStringSync(
@@ -126,20 +132,18 @@ void main() {
             );
           },
         ),
-        narrativeProjectDocumentSessionFactoryProvider.overrideWithValue(
-          ({
-            required String projectPath,
-            required ProjectManifest initialDocument,
-          }) {
-            narrativeFactoryCalls += 1;
-            return NarrativeDocumentSession<ProjectManifest>(
-              documentId: 'cinematics',
-              initialDocument: initialDocument,
-              gateway: _MemoryProjectGateway(initialDocument),
-              recoveryStore: _MemoryProjectRecoveryStore(),
-            );
-          },
-        ),
+        narrativeProjectDocumentSessionFactoryProvider.overrideWithValue(({
+          required String projectPath,
+          required ProjectManifest initialDocument,
+        }) {
+          narrativeFactoryCalls += 1;
+          return NarrativeDocumentSession<ProjectManifest>(
+            documentId: 'cinematics',
+            initialDocument: initialDocument,
+            gateway: _MemoryProjectGateway(initialDocument),
+            recoveryStore: _MemoryProjectRecoveryStore(),
+          );
+        }),
       ],
     );
     addTearDown(container.dispose);
@@ -171,6 +175,92 @@ void main() {
     expect(narrativeFactoryCalls, 2);
     expect(notifier.state.isProjectDirty, isFalse);
   });
+
+  test(
+    'serializes rapid presentation commits before writing recovery',
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-serialized-commits-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(name: 'Serialized commits');
+      File(
+        '${root.path}/project.json',
+      ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
+      final recovery = _BlockingProjectRecoveryStore();
+      final container = ProviderContainer(
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectManifest>(
+                    documentId: 'personalization-serialized-commits',
+                    initialDocument: initialDocument,
+                    gateway: _MemoryProjectGateway(project),
+                    recoveryStore: recovery,
+                  ),
+                );
+              }),
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      );
+      expect(await notifier.initializePersonalizationStudioSession(), isTrue);
+
+      const firstProfile = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(accentColor: '#123456'),
+      );
+      const secondProfile = ProjectPresentationProfile(
+        title: ProjectTitlePresentationProfile(title: 'Dernière valeur'),
+      );
+      final first = notifier.applyPersonalizationStudioProfile(firstProfile);
+      await recovery.firstWriteStarted.future;
+      final second = notifier.updatePersonalizationStudioProfile(
+        (current) => current.copyWith(title: secondProfile.title),
+      );
+      final autosave = notifier.setPersonalizationStudioAutosaveEnabled(true);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(recovery.writeCount, 1);
+      expect(recovery.maxConcurrentWrites, 1);
+      expect(
+        notifier.personalizationStudioSessionState?.autosaveEnabled,
+        isFalse,
+      );
+
+      recovery.releaseFirstWrite();
+      expect(await first, isTrue);
+      expect(await second, isTrue);
+      await autosave;
+      expect(recovery.writeCount, 2);
+      expect(recovery.maxConcurrentWrites, 1);
+      expect(
+        notifier.personalizationStudioSessionState?.autosaveEnabled,
+        isTrue,
+      );
+      expect(
+        notifier.personalizationStudioSessionState?.draftProfile,
+        const ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: '#123456'),
+          title: ProjectTitlePresentationProfile(title: 'Dernière valeur'),
+        ),
+      );
+    },
+  );
 }
 
 final class _MemoryProjectGateway
@@ -224,6 +314,40 @@ final class _MemoryProjectRecoveryStore
     NarrativeDocumentRecoveryRecord<ProjectManifest> record,
   ) async {
     this.record = record;
+  }
+}
+
+final class _BlockingProjectRecoveryStore
+    implements NarrativeDocumentRecoveryStore<ProjectManifest> {
+  final Completer<void> firstWriteStarted = Completer<void>();
+  final Completer<void> _firstWriteRelease = Completer<void>();
+  var writeCount = 0;
+  var concurrentWrites = 0;
+  var maxConcurrentWrites = 0;
+
+  void releaseFirstWrite() => _firstWriteRelease.complete();
+
+  @override
+  Future<void> clear() async {}
+
+  @override
+  Future<NarrativeDocumentRecoveryRecord<ProjectManifest>?> read() async =>
+      null;
+
+  @override
+  Future<void> write(
+    NarrativeDocumentRecoveryRecord<ProjectManifest> record,
+  ) async {
+    writeCount += 1;
+    concurrentWrites += 1;
+    if (concurrentWrites > maxConcurrentWrites) {
+      maxConcurrentWrites = concurrentWrites;
+    }
+    if (writeCount == 1) {
+      firstWriteStarted.complete();
+      await _firstWriteRelease.future;
+    }
+    concurrentWrites -= 1;
   }
 }
 

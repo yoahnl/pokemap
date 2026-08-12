@@ -393,6 +393,8 @@ class EditorNotifier extends _$EditorNotifier
   NarrativeDocumentSessionStatus? _lastPersonalizationStudioStatus;
   String? _personalizationStudioProjectPath;
   int _personalizationStudioOperationSequence = 0;
+  Future<void> _personalizationStudioMutationTail = Future<void>.value();
+  VoidCallback? _personalizationStudioPendingEditFlusher;
   String? _lastCanvasObjectSelectionMapId;
   GridPos? _lastCanvasObjectSelectionPosition;
   List<MapCanvasObjectTarget> _lastCanvasObjectSelectionHits =
@@ -1329,6 +1331,55 @@ class EditorNotifier extends _$EditorNotifier
   Future<bool> applyPersonalizationStudioProfile(
     ProjectPresentationProfile profile, {
     String label = 'Modifier la personnalisation',
+  }) => _enqueuePersonalizationStudioMutation(
+    () => _applyPersonalizationStudioProfileNow(profile, label: label),
+  );
+
+  void registerPersonalizationStudioPendingEditFlusher(VoidCallback flusher) {
+    _personalizationStudioPendingEditFlusher = flusher;
+  }
+
+  void unregisterPersonalizationStudioPendingEditFlusher(
+    VoidCallback flusher,
+  ) {
+    if (identical(_personalizationStudioPendingEditFlusher, flusher)) {
+      _personalizationStudioPendingEditFlusher = null;
+    }
+  }
+
+  Future<bool> updatePersonalizationStudioProfile(
+    ProjectPresentationProfile Function(ProjectPresentationProfile current)
+    update, {
+    String label = 'Modifier la personnalisation',
+  }) => _enqueuePersonalizationStudioMutation(() async {
+    if (!await initializePersonalizationStudioSession()) return false;
+    final current = _personalizationStudioSession!.state.draftProfile;
+    return _applyPersonalizationStudioProfileNow(
+      update(current),
+      label: label,
+    );
+  });
+
+  Future<bool> _enqueuePersonalizationStudioMutation(
+    Future<bool> Function() mutation,
+  ) {
+    final requestedProjectPath = _projectWorkspace?.projectManifestPath;
+    final result = _personalizationStudioMutationTail.then((_) async {
+      if (_projectWorkspace?.projectManifestPath != requestedProjectPath) {
+        return false;
+      }
+      return mutation();
+    });
+    _personalizationStudioMutationTail = result.then<void>(
+      (_) {},
+      onError: (_, _) {},
+    );
+    return result;
+  }
+
+  Future<bool> _applyPersonalizationStudioProfileNow(
+    ProjectPresentationProfile profile, {
+    required String label,
   }) async {
     if (!await initializePersonalizationStudioSession()) {
       return false;
@@ -1349,7 +1400,12 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
-  Future<bool> savePersonalizationStudio() async {
+  Future<bool> savePersonalizationStudio() {
+    _personalizationStudioPendingEditFlusher?.call();
+    return _enqueuePersonalizationStudioMutation(_savePersonalizationStudioNow);
+  }
+
+  Future<bool> _savePersonalizationStudioNow() async {
     if (!await initializePersonalizationStudioSession()) {
       return false;
     }
@@ -1368,7 +1424,12 @@ class EditorNotifier extends _$EditorNotifier
     return saved;
   }
 
-  Future<bool> undoPersonalizationStudio() async {
+  Future<bool> undoPersonalizationStudio() {
+    _personalizationStudioPendingEditFlusher?.call();
+    return _enqueuePersonalizationStudioMutation(_undoPersonalizationStudioNow);
+  }
+
+  Future<bool> _undoPersonalizationStudioNow() async {
     if (!await initializePersonalizationStudioSession()) {
       return false;
     }
@@ -1383,7 +1444,12 @@ class EditorNotifier extends _$EditorNotifier
     return session.undo();
   }
 
-  Future<bool> redoPersonalizationStudio() async {
+  Future<bool> redoPersonalizationStudio() {
+    _personalizationStudioPendingEditFlusher?.call();
+    return _enqueuePersonalizationStudioMutation(_redoPersonalizationStudioNow);
+  }
+
+  Future<bool> _redoPersonalizationStudioNow() async {
     if (!await initializePersonalizationStudioSession()) {
       return false;
     }
@@ -1398,14 +1464,28 @@ class EditorNotifier extends _$EditorNotifier
     return session.redo();
   }
 
-  Future<bool> keepPersonalizationStudioDraftOnCurrentProject() async {
+  Future<bool> keepPersonalizationStudioDraftOnCurrentProject() {
+    _personalizationStudioPendingEditFlusher?.call();
+    return _enqueuePersonalizationStudioMutation(
+      _keepPersonalizationStudioDraftOnCurrentProjectNow,
+    );
+  }
+
+  Future<bool> _keepPersonalizationStudioDraftOnCurrentProjectNow() async {
     if (!await initializePersonalizationStudioSession()) {
       return false;
     }
     return _personalizationStudioSession!.keepDraftOnCurrentProject();
   }
 
-  Future<bool> useCurrentProjectInPersonalizationStudio() async {
+  Future<bool> useCurrentProjectInPersonalizationStudio() {
+    _personalizationStudioPendingEditFlusher?.call();
+    return _enqueuePersonalizationStudioMutation(
+      _useCurrentProjectInPersonalizationStudioNow,
+    );
+  }
+
+  Future<bool> _useCurrentProjectInPersonalizationStudioNow() async {
     if (!await initializePersonalizationStudioSession()) {
       return false;
     }
@@ -1413,10 +1493,11 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   Future<void> setPersonalizationStudioAutosaveEnabled(bool enabled) async {
-    if (!await initializePersonalizationStudioSession()) {
-      return;
-    }
-    _personalizationStudioSession!.setAutosaveEnabled(enabled);
+    await _enqueuePersonalizationStudioMutation(() async {
+      if (!await initializePersonalizationStudioSession()) return false;
+      _personalizationStudioSession!.setAutosaveEnabled(enabled);
+      return true;
+    });
   }
 
   void _onPersonalizationStudioSessionChanged() {

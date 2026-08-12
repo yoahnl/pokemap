@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../project_layout_studio.dart';
 import '../project_pause_actions_editor.dart';
 import '../personalization_surface_color_editor.dart';
+import '../personalization_deferred_commit.dart';
 import '../project_typography_editor.dart';
 import '../project_window_studio.dart';
 
@@ -23,6 +24,8 @@ class PersonalizationPauseInspector extends StatelessWidget {
     required this.onLayoutsChanged,
     required this.onImportBodyFont,
     required this.onUseSystemBodyFont,
+    this.onPausePreviewChanged,
+    this.commitCoordinator,
     this.onBodyMetricsChanged,
     this.onSurfacePalettesChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
@@ -30,6 +33,8 @@ class PersonalizationPauseInspector extends StatelessWidget {
 
   final ProjectPresentationProfile profile;
   final ValueChanged<ProjectPausePresentationProfile?> onPauseChanged;
+  final ValueChanged<ProjectPausePresentationProfile?>? onPausePreviewChanged;
+  final PersonalizationDeferredCommitCoordinator? commitCoordinator;
   final ValueChanged<ProjectPresentationWindowsProfile?> onWindowsChanged;
   final ValueChanged<ProjectPresentationLayoutsProfile?> onLayoutsChanged;
   final VoidCallback onImportBodyFont;
@@ -89,6 +94,8 @@ class PersonalizationPauseInspector extends StatelessWidget {
         profile:
             profile.effectivePause ?? const ProjectPausePresentationProfile(),
         onChanged: onPauseChanged,
+        onPreviewChanged: onPausePreviewChanged,
+        commitCoordinator: commitCoordinator,
       ),
     ],
   );

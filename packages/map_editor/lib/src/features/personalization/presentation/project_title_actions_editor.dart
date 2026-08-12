@@ -3,16 +3,21 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/design_system.dart';
+import 'personalization_deferred_commit.dart';
 
 class ProjectTitleActionsEditor extends StatefulWidget {
   const ProjectTitleActionsEditor({
     super.key,
     required this.profile,
     required this.onChanged,
+    this.onPreviewChanged,
+    this.commitCoordinator,
   });
 
   final ProjectTitlePresentationProfile profile;
   final ValueChanged<ProjectTitlePresentationProfile> onChanged;
+  final ValueChanged<ProjectTitlePresentationProfile>? onPreviewChanged;
+  final PersonalizationDeferredCommitCoordinator? commitCoordinator;
 
   @override
   State<ProjectTitleActionsEditor> createState() =>
@@ -22,20 +27,27 @@ class ProjectTitleActionsEditor extends StatefulWidget {
 class _ProjectTitleActionsEditorState extends State<ProjectTitleActionsEditor> {
   late List<ProjectTitleActionProfile> _actions;
   late final Map<ProjectTitleActionId, TextEditingController> _labels;
+  late final Map<ProjectTitleActionId, FocusNode> _focusNodes;
+  late final PersonalizationDeferredCommit _commit;
 
   @override
   void initState() {
     super.initState();
+    _commit = PersonalizationDeferredCommit(widget.commitCoordinator);
     _actions = _effectiveActions(widget.profile.actions);
     _labels = <ProjectTitleActionId, TextEditingController>{
       for (final action in _actions)
         action.id: TextEditingController(text: action.label ?? ''),
+    };
+    _focusNodes = <ProjectTitleActionId, FocusNode>{
+      for (final action in _actions) action.id: _newFocusNode(),
     };
   }
 
   @override
   void didUpdateWidget(covariant ProjectTitleActionsEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_commit.hasPending) return;
     if (oldWidget.profile == widget.profile) return;
     _actions = _effectiveActions(widget.profile.actions);
     for (final action in _actions) {
@@ -43,6 +55,7 @@ class _ProjectTitleActionsEditorState extends State<ProjectTitleActionsEditor> {
         action.id,
         () => TextEditingController(),
       );
+      _focusNodes.putIfAbsent(action.id, _newFocusNode);
       final next = action.label ?? '';
       if (controller.text != next) controller.text = next;
     }
@@ -50,6 +63,13 @@ class _ProjectTitleActionsEditorState extends State<ProjectTitleActionsEditor> {
 
   @override
   void dispose() {
+    _commit.flush();
+    _commit.dispose();
+    for (final node in _focusNodes.values) {
+      node
+        ..removeListener(_flushWhenFocusLeaves)
+        ..dispose();
+    }
     for (final controller in _labels.values) {
       controller.dispose();
     }
@@ -128,6 +148,7 @@ class _ProjectTitleActionsEditorState extends State<ProjectTitleActionsEditor> {
                           'title-action-label-${action.id.name}',
                         ),
                         controller: _labels[action.id],
+                        focusNode: _focusNodes[action.id],
                         hintText: 'Par défaut : ${_label(action.id)}',
                         inputFormatters: <TextInputFormatter>[
                           LengthLimitingTextInputFormatter(
@@ -139,7 +160,9 @@ class _ProjectTitleActionsEditorState extends State<ProjectTitleActionsEditor> {
                           action.copyWith(
                             label: value.trim().isEmpty ? null : value,
                           ),
+                          deferred: true,
                         ),
+                        onSubmitted: (_) => _commit.flush(),
                       ),
                       PokeMapDropdownField<ProjectTitleActionIcon>(
                         key: ValueKey<String>(
@@ -204,12 +227,29 @@ class _ProjectTitleActionsEditorState extends State<ProjectTitleActionsEditor> {
     _publish();
   }
 
-  void _replace(int index, ProjectTitleActionProfile action) {
+  FocusNode _newFocusNode() {
+    final node = FocusNode();
+    node.addListener(_flushWhenFocusLeaves);
+    return node;
+  }
+
+  void _flushWhenFocusLeaves() {
+    if (_focusNodes.values.every((node) => !node.hasFocus)) {
+      _commit.flush();
+    }
+  }
+
+  void _replace(
+    int index,
+    ProjectTitleActionProfile action, {
+    bool deferred = false,
+  }) {
     setState(() => _actions[index] = action);
-    _publish();
+    _publish(deferred: deferred);
   }
 
   void _reset() {
+    _commit.cancel();
     setState(() {
       _actions = _effectiveActions(null);
       for (final action in _actions) {
@@ -219,8 +259,16 @@ class _ProjectTitleActionsEditorState extends State<ProjectTitleActionsEditor> {
     widget.onChanged(widget.profile.copyWith(actions: null));
   }
 
-  void _publish() {
-    widget.onChanged(widget.profile.copyWith(actions: List.of(_actions)));
+  void _publish({bool deferred = false}) {
+    final profile = widget.profile.copyWith(actions: List.of(_actions));
+    if (deferred) {
+      widget.onPreviewChanged?.call(profile);
+      final onChanged = widget.onChanged;
+      _commit.schedule(() => onChanged(profile));
+      return;
+    }
+    _commit.cancel();
+    widget.onChanged(profile);
   }
 }
 

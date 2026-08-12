@@ -13,6 +13,7 @@ class BattlePanelSection extends StatelessWidget {
     required this.profile,
     required this.inheritedTheme,
     required this.onChanged,
+    this.onPreviewChanged,
   });
 
   final String id;
@@ -21,6 +22,7 @@ class BattlePanelSection extends StatelessWidget {
   final ProjectBattlePanelPresentationProfile profile;
   final ProjectSemanticThemeProfile inheritedTheme;
   final ValueChanged<ProjectBattlePanelPresentationProfile> onChanged;
+  final ValueChanged<ProjectBattlePanelPresentationProfile>? onPreviewChanged;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -56,7 +58,10 @@ class BattlePanelSection extends StatelessWidget {
               value: profile.columns,
               min: 1,
               max: 4,
-              onChanged: (value) => onChanged(profile.copyWith(columns: value)),
+              onChanged: (value) =>
+                  onPreviewChanged?.call(profile.copyWith(columns: value)),
+              onChangeEnd: (value) =>
+                  onChanged(profile.copyWith(columns: value)),
             ),
             const SizedBox(height: 12),
             PokeMapDropdownField<ProjectWindowShape>(
@@ -79,7 +84,10 @@ class BattlePanelSection extends StatelessWidget {
               value: profile.padding.round(),
               min: 4,
               max: 32,
-              onChanged: (value) =>
+              onChanged: (value) => onPreviewChanged?.call(
+                profile.copyWith(padding: value.toDouble()),
+              ),
+              onChangeEnd: (value) =>
                   onChanged(profile.copyWith(padding: value.toDouble())),
             ),
           ],

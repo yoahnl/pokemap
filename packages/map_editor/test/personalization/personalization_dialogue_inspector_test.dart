@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -7,6 +8,54 @@ import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  testWidgets('commits one dialogue change after a slider gesture', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final committed = <ProjectDialoguePresentationProfile?>[];
+
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: PersonalizationDialogueInspector(
+            profile: const ProjectPresentationProfile(),
+            characterOptions: _characters,
+            selectedCharacterId: 'leo:happy',
+            showPortrait: true,
+            showName: true,
+            showChoices: false,
+            onCharacterSelected: (_) {},
+            onShowPortraitChanged: (_) {},
+            onShowNameChanged: (_) {},
+            onShowChoicesChanged: (_) {},
+            onDialogueChanged: committed.add,
+            onImportDialogueFont: () {},
+            onUseSystemDialogueFont: () {},
+          ),
+        ),
+      ),
+    );
+
+    final slider = find.descendant(
+      of: find.byKey(const ValueKey<String>('dialogue-geometry-width')),
+      matching: find.byType(CupertinoSlider),
+    );
+    await tester.ensureVisible(slider);
+    await tester.pumpAndSettle();
+    final control = tester.widget<CupertinoSlider>(slider);
+    control.onChangeStart?.call(82);
+    for (final value in <double>[80, 78, 76, 74, 72, 70]) {
+      control.onChanged?.call(value);
+    }
+    expect(committed, isEmpty);
+    control.onChangeEnd?.call(70);
+
+    expect(committed, hasLength(1));
+  });
+
   testWidgets('offers focused dialogue placement appearance and typography', (
     tester,
   ) async {

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/design_system.dart';
+import 'personalization_deferred_commit.dart';
 import 'project_pause_composition_editor.dart';
 
 class ProjectPauseActionsEditor extends StatefulWidget {
@@ -10,10 +11,14 @@ class ProjectPauseActionsEditor extends StatefulWidget {
     super.key,
     required this.profile,
     required this.onChanged,
+    this.onPreviewChanged,
+    this.commitCoordinator,
   });
 
   final ProjectPausePresentationProfile profile;
   final ValueChanged<ProjectPausePresentationProfile?> onChanged;
+  final ValueChanged<ProjectPausePresentationProfile?>? onPreviewChanged;
+  final PersonalizationDeferredCommitCoordinator? commitCoordinator;
 
   @override
   State<ProjectPauseActionsEditor> createState() =>
@@ -25,10 +30,15 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
   late final TextEditingController _title;
   late final TextEditingController _hint;
   late final Map<ProjectPauseActionId, TextEditingController> _labels;
+  late final FocusNode _titleFocusNode;
+  late final FocusNode _hintFocusNode;
+  late final Map<ProjectPauseActionId, FocusNode> _labelFocusNodes;
+  late final PersonalizationDeferredCommit _commit;
 
   @override
   void initState() {
     super.initState();
+    _commit = PersonalizationDeferredCommit(widget.commitCoordinator);
     _actions = _effectiveActions(widget.profile.actions);
     _title = TextEditingController(text: widget.profile.title ?? '');
     _hint = TextEditingController(text: widget.profile.hint ?? '');
@@ -36,11 +46,17 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
       for (final action in _actions)
         action.id: TextEditingController(text: action.label ?? ''),
     };
+    _titleFocusNode = _newFocusNode();
+    _hintFocusNode = _newFocusNode();
+    _labelFocusNodes = <ProjectPauseActionId, FocusNode>{
+      for (final action in _actions) action.id: _newFocusNode(),
+    };
   }
 
   @override
   void didUpdateWidget(covariant ProjectPauseActionsEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_commit.hasPending) return;
     if (oldWidget.profile == widget.profile) return;
     _syncController(_title, widget.profile.title);
     _syncController(_hint, widget.profile.hint);
@@ -50,12 +66,26 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
         action.id,
         () => TextEditingController(),
       );
+      _labelFocusNodes.putIfAbsent(action.id, _newFocusNode);
       _syncController(controller, action.label);
     }
   }
 
   @override
   void dispose() {
+    _commit.flush();
+    _commit.dispose();
+    _titleFocusNode
+      ..removeListener(_flushWhenFocusLeaves)
+      ..dispose();
+    _hintFocusNode
+      ..removeListener(_flushWhenFocusLeaves)
+      ..dispose();
+    for (final node in _labelFocusNodes.values) {
+      node
+        ..removeListener(_flushWhenFocusLeaves)
+        ..dispose();
+    }
     _title.dispose();
     _hint.dispose();
     for (final controller in _labels.values) {
@@ -81,22 +111,26 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
               label: 'Titre',
               fieldKey: const ValueKey<String>('pause-presentation-title'),
               controller: _title,
+              focusNode: _titleFocusNode,
               hintText: 'Par défaut : Pause',
               inputFormatters: <TextInputFormatter>[
                 LengthLimitingTextInputFormatter(projectPauseTitleMaxLength),
               ],
-              onChanged: (_) => _publish(),
+              onChanged: (_) => _publish(deferred: true),
+              onSubmitted: (_) => _commit.flush(),
             ),
             const SizedBox(height: 10),
             PokeMapTextField(
               label: 'Aide de commande',
               fieldKey: const ValueKey<String>('pause-presentation-hint'),
               controller: _hint,
+              focusNode: _hintFocusNode,
               hintText: 'Par défaut : Entrée / bouton A. Pause',
               inputFormatters: <TextInputFormatter>[
                 LengthLimitingTextInputFormatter(projectPauseHintMaxLength),
               ],
-              onChanged: (_) => _publish(),
+              onChanged: (_) => _publish(deferred: true),
+              onSubmitted: (_) => _commit.flush(),
             ),
           ],
         ),
@@ -163,6 +197,7 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
                           'pause-action-label-${action.id.name}',
                         ),
                         controller: _labels[action.id],
+                        focusNode: _labelFocusNodes[action.id],
                         hintText: 'Par défaut : ${_label(action.id)}',
                         inputFormatters: <TextInputFormatter>[
                           LengthLimitingTextInputFormatter(
@@ -174,7 +209,9 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
                           action.copyWith(
                             label: value.trim().isEmpty ? null : value,
                           ),
+                          deferred: true,
                         ),
+                        onSubmitted: (_) => _commit.flush(),
                       ),
                       PokeMapDropdownField<ProjectPauseActionIcon>(
                         key: ValueKey<String>(
@@ -234,7 +271,7 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
             widget.profile.composition ??
             const ProjectResponsivePauseCompositionProfile(),
         onChanged: (composition) =>
-            widget.onChanged(_currentProfile(composition)),
+            _commitImmediately(_currentProfile(composition)),
       ),
     ],
   );
@@ -247,12 +284,31 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
     _publish();
   }
 
-  void _replace(int index, ProjectPauseActionProfile action) {
+  FocusNode _newFocusNode() {
+    final node = FocusNode();
+    node.addListener(_flushWhenFocusLeaves);
+    return node;
+  }
+
+  void _flushWhenFocusLeaves() {
+    if (!_titleFocusNode.hasFocus &&
+        !_hintFocusNode.hasFocus &&
+        _labelFocusNodes.values.every((node) => !node.hasFocus)) {
+      _commit.flush();
+    }
+  }
+
+  void _replace(
+    int index,
+    ProjectPauseActionProfile action, {
+    bool deferred = false,
+  }) {
     setState(() => _actions[index] = action);
-    _publish();
+    _publish(deferred: deferred);
   }
 
   void _reset() {
+    _commit.cancel();
     setState(() {
       _title.clear();
       _hint.clear();
@@ -264,8 +320,20 @@ class _ProjectPauseActionsEditorState extends State<ProjectPauseActionsEditor> {
     widget.onChanged(null);
   }
 
-  void _publish() {
-    widget.onChanged(_currentProfile(widget.profile.composition));
+  void _publish({bool deferred = false}) {
+    final profile = _currentProfile(widget.profile.composition);
+    if (deferred) {
+      widget.onPreviewChanged?.call(profile);
+      final onChanged = widget.onChanged;
+      _commit.schedule(() => onChanged(profile));
+      return;
+    }
+    _commitImmediately(profile);
+  }
+
+  void _commitImmediately(ProjectPausePresentationProfile profile) {
+    _commit.cancel();
+    widget.onChanged(profile);
   }
 
   ProjectPausePresentationProfile _currentProfile(

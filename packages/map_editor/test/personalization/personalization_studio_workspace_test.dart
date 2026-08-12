@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
@@ -15,6 +15,200 @@ import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
 import '../shell_chrome_test_harness.dart';
 
 void main() {
+  testWidgets(
+    'keeps slider ticks in preview and journals once when the gesture ends',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-slider-intent-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(
+        name: 'Slider intent Studio',
+      ).copyWith(presentation: const ProjectPresentationProfile());
+      File(
+        '${root.path}/project.json',
+      ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
+      final recovery = _MemoryProjectRecoveryStore();
+      final container = await pumpEditorCanvasHostHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: root.path,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.personalizationStudio,
+        ),
+        surfaceSize: const Size(1600, 900),
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectManifest>(
+                    documentId: 'personalization-slider-intent',
+                    initialDocument: initialDocument,
+                    gateway: _MemoryProjectGateway(project),
+                    recoveryStore: recovery,
+                  ),
+                );
+              }),
+        ],
+      );
+      await container
+          .read(editorNotifierProvider.notifier)
+          .initializePersonalizationStudioSession();
+      await tester.pump();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('personalization-studio-scene-dialogue'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final slider = find.descendant(
+        of: find.byKey(const ValueKey<String>('dialogue-geometry-width')),
+        matching: find.byType(CupertinoSlider),
+      );
+      tester.widget<CupertinoSlider>(slider).onChangeStart?.call(82);
+      for (final value in <double>[80, 78, 76, 74, 72, 70]) {
+        tester.widget<CupertinoSlider>(slider).onChanged?.call(value);
+        await tester.pump();
+      }
+
+      expect(recovery.writeCount, 0);
+      expect(
+        container
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.draftProfile
+            .dialogue
+            ?.maxWidthFactor,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<PersonalizationLivePreview>(
+              find.byType(PersonalizationLivePreview),
+            )
+            .profile
+            .dialogue
+            ?.maxWidthFactor,
+        .7,
+      );
+
+      tester.widget<CupertinoSlider>(slider).onChangeEnd?.call(70);
+      await tester.pumpAndSettle();
+
+      expect(recovery.writeCount, 1);
+      expect(
+        container
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.draftProfile
+            .dialogue
+            ?.maxWidthFactor,
+        .7,
+      );
+    },
+  );
+
+  testWidgets('flushes pending title typing before saving the Studio', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-title-intent-',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(
+      name: 'Title intent Studio',
+    ).copyWith(presentation: const ProjectPresentationProfile());
+    File(
+      '${root.path}/project.json',
+    ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
+    final recovery = _MemoryProjectRecoveryStore();
+    final gateway = _MemoryProjectGateway(project);
+    final container = await pumpEditorCanvasHostHarness(
+      tester,
+      initialState: EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      ),
+      surfaceSize: const Size(1600, 900),
+      overrides: [
+        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
+          ({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectManifest>(
+                documentId: 'personalization-title-intent',
+                initialDocument: initialDocument,
+                gateway: gateway,
+                recoveryStore: recovery,
+              ),
+            );
+          },
+        ),
+      ],
+    );
+    await container
+        .read(editorNotifierProvider.notifier)
+        .initializePersonalizationStudioSession();
+    await container
+        .read(editorNotifierProvider.notifier)
+        .applyPersonalizationStudioProfile(
+          const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(accentColor: '#5B68F6'),
+            theme: safeProjectSemanticTheme,
+          ),
+        );
+    await tester.pump();
+    recovery.writeCount = 0;
+
+    final title = find.byKey(const ValueKey<String>('title-copy-title'));
+    await tester.enterText(title, 'L');
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.enterText(title, 'Le');
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.enterText(title, 'Le Train');
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(recovery.writeCount, 0);
+    expect(
+      tester
+          .widget<PersonalizationLivePreview>(
+            find.byType(PersonalizationLivePreview),
+          )
+          .profile
+          .title
+          ?.title,
+      'Le Train',
+    );
+
+    final save = find.byKey(
+      const ValueKey<String>('personalization-studio-save'),
+    );
+    expect(tester.widget<PokeMapButton>(save).onPressed, isNotNull);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+
+    final savedProfile = container
+        .read(editorNotifierProvider.notifier)
+        .personalizationStudioSessionState
+        ?.savedProfile;
+    expect(
+      <Object?>[
+        recovery.writeCount,
+        gateway.saveCount,
+        gateway.durableDocument.presentation?.title?.title,
+        savedProfile?.title?.title,
+      ],
+      <Object?>[1, 1, 'Le Train', 'Le Train'],
+    );
+  });
+
   testWidgets(
     'enables Studio actions automatically after deferred initialization',
     (tester) async {
@@ -132,6 +326,12 @@ void main() {
       final picker = find.byKey(
         const ValueKey<String>('personalization-preview-context-dialogue'),
       );
+      await _dragUntilHitTestable(
+        tester,
+        picker,
+        _previewSettingsScrollable(),
+        dy: -240,
+      );
       expect(picker.hitTestable(), findsOneWidget);
       await tester.tap(picker);
       await tester.pumpAndSettle();
@@ -203,6 +403,12 @@ void main() {
 
     final demonstration = find.byKey(
       const ValueKey<String>('personalization-preview-source-demonstration'),
+    );
+    await _dragUntilHitTestable(
+      tester,
+      demonstration,
+      _previewSettingsScrollable(),
+      dy: -240,
     );
     expect(demonstration.hitTestable(), findsOneWidget);
     await tester.tap(demonstration);
@@ -1811,6 +2017,13 @@ Finder _detailScrollable(String _) => find
     )
     .first;
 
+Finder _previewSettingsScrollable() => find.descendant(
+  of: find.byKey(
+    const ValueKey<String>('personalization-preview-settings-scroll'),
+  ),
+  matching: find.byType(Scrollable),
+);
+
 Future<void> _dragUntilHitTestable(
   WidgetTester tester,
   Finder target,
@@ -2020,6 +2233,7 @@ final class _FixedPresentationPreflight
 final class _MemoryProjectRecoveryStore
     implements NarrativeDocumentRecoveryStore<ProjectManifest> {
   NarrativeDocumentRecoveryRecord<ProjectManifest>? record;
+  int writeCount = 0;
 
   @override
   Future<void> clear() async {
@@ -2035,6 +2249,7 @@ final class _MemoryProjectRecoveryStore
   Future<void> write(
     NarrativeDocumentRecoveryRecord<ProjectManifest> record,
   ) async {
+    writeCount += 1;
     this.record = record;
   }
 }

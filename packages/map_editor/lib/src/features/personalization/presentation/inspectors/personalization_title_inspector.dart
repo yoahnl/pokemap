@@ -5,6 +5,7 @@ import '../../../../ui/design_system/design_system.dart';
 import '../../application/project_branding_image_import_service.dart';
 import '../../application/project_title_motion_import_service.dart';
 import '../personalization_surface_color_editor.dart';
+import '../personalization_deferred_commit.dart';
 import '../project_branding_editor.dart';
 import '../project_title_copy_editor.dart';
 import '../project_title_actions_editor.dart';
@@ -35,6 +36,8 @@ class PersonalizationTitleInspector extends StatelessWidget {
     required this.onRemoveTitleMusic,
     required this.onImportMotion,
     required this.onRemoveMotion,
+    this.onPreviewChanged,
+    this.commitCoordinator,
     this.onSurfacePalettesChanged,
     this.onImportTypographyRole,
     this.onUseSystemTypographyRole,
@@ -47,6 +50,8 @@ class PersonalizationTitleInspector extends StatelessWidget {
   final String projectName;
   final String projectRootPath;
   final ValueChanged<ProjectPresentationProfile> onChanged;
+  final ValueChanged<ProjectPresentationProfile>? onPreviewChanged;
+  final PersonalizationDeferredCommitCoordinator? commitCoordinator;
   final ValueChanged<ProjectBrandingImageRole> onImportImage;
   final ValueChanged<ProjectBrandingImageRole> onRemoveImage;
   final VoidCallback onEditAccent;
@@ -102,6 +107,9 @@ class PersonalizationTitleInspector extends StatelessWidget {
         profile: profile.title,
         projectName: projectName,
         onChanged: (title) => onChanged(profile.copyWith(title: title)),
+        onPreviewChanged: (title) =>
+            onPreviewChanged?.call(profile.copyWith(title: title)),
+        commitCoordinator: commitCoordinator,
       ),
       const SizedBox(height: 18),
       ProjectTitleActionsEditor(
@@ -111,6 +119,12 @@ class PersonalizationTitleInspector extends StatelessWidget {
             title: _emptyTitlePresentation(title) ? null : title,
           ),
         ),
+        onPreviewChanged: (title) => onPreviewChanged?.call(
+          profile.copyWith(
+            title: _emptyTitlePresentation(title) ? null : title,
+          ),
+        ),
+        commitCoordinator: commitCoordinator,
       ),
       const SizedBox(height: 18),
       ProjectBrandingEditor(

@@ -39,6 +39,7 @@ import 'personalization_live_preview.dart';
 import 'personalization_readiness_panel.dart';
 import 'personalization_section_actions.dart';
 import 'personalization_scene_actions.dart';
+import 'personalization_deferred_commit.dart';
 import 'personalization_studio_shell.dart';
 import 'personalization_studio_capability_bindings.dart';
 import 'inspectors/personalization_battle_inspector.dart';
@@ -109,10 +110,19 @@ class _PersonalizationStudioWorkspaceState
   bool _isPreflightRunning = false;
   int _preflightRequestId = 0;
   ProjectPresentationProfile? _scenePresetPreviewProfile;
+  ProjectPresentationProfile? _interactionPreviewProfile;
+  final PersonalizationDeferredCommitCoordinator _deferredCommitCoordinator =
+      PersonalizationDeferredCommitCoordinator();
+  late final VoidCallback _flushDeferredCommits =
+      _deferredCommitCoordinator.flush;
+  EditorNotifier? _pendingCommitNotifier;
   bool _isResolvingConflict = false;
 
   @override
   void dispose() {
+    _pendingCommitNotifier?.unregisterPersonalizationStudioPendingEditFlusher(
+      _flushDeferredCommits,
+    );
     final subscription = _titleMusicPreviewSubscription;
     final controller = _titleMusicPreviewController;
     if (subscription != null) {
@@ -128,6 +138,8 @@ class _PersonalizationStudioWorkspaceState
     if (_requestedProjectRootPath == projectRootPath) return;
     _requestedProjectRootPath = projectRootPath;
     _previewContentSources.clear();
+    _interactionPreviewProfile = null;
+    _scenePresetPreviewProfile = null;
     scheduleMicrotask(() async {
       if (!mounted) return;
       await ref
@@ -136,6 +148,17 @@ class _PersonalizationStudioWorkspaceState
       if (!mounted) return;
       setState(() {});
     });
+  }
+
+  void _registerPendingCommitFlusher(EditorNotifier notifier) {
+    if (identical(_pendingCommitNotifier, notifier)) return;
+    _pendingCommitNotifier?.unregisterPersonalizationStudioPendingEditFlusher(
+      _flushDeferredCommits,
+    );
+    _pendingCommitNotifier = notifier;
+    notifier.registerPersonalizationStudioPendingEditFlusher(
+      _flushDeferredCommits,
+    );
   }
 
   Future<void> _runPreflight({
@@ -173,6 +196,50 @@ class _PersonalizationStudioWorkspaceState
     await resolve();
     if (!mounted) return;
     setState(() => _isResolvingConflict = false);
+  }
+
+  void _previewInteractionProfile(
+    String projectRootPath,
+    ProjectPresentationProfile profile,
+  ) {
+    if (_requestedProjectRootPath != projectRootPath) return;
+    if (_interactionPreviewProfile == profile) return;
+    setState(() => _interactionPreviewProfile = profile);
+  }
+
+  Future<void> _commitInteractionProfile({
+    required EditorNotifier notifier,
+    required String projectRootPath,
+    required ProjectPresentationProfile profile,
+    required ProjectPresentationProfile Function(
+      ProjectPresentationProfile current,
+    )
+    update,
+    required String label,
+  }) async {
+    if (_requestedProjectRootPath != projectRootPath) return;
+    final applied = await notifier.updatePersonalizationStudioProfile(
+      update,
+      label: label,
+    );
+    if (!applied || _requestedProjectRootPath != projectRootPath) return;
+    if (!mounted || _interactionPreviewProfile != profile) return;
+    setState(() => _interactionPreviewProfile = null);
+  }
+
+  Future<void> _savePersonalizationStudio(EditorNotifier notifier) async {
+    _deferredCommitCoordinator.flush();
+    await notifier.savePersonalizationStudio();
+  }
+
+  void _undoPersonalizationStudio(EditorNotifier notifier) {
+    _deferredCommitCoordinator.flush();
+    unawaited(notifier.undoPersonalizationStudio());
+  }
+
+  void _redoPersonalizationStudio(EditorNotifier notifier) {
+    _deferredCommitCoordinator.flush();
+    unawaited(notifier.redoPersonalizationStudio());
   }
 
   Future<void> _importBrandingImage({
@@ -984,12 +1051,28 @@ class _PersonalizationStudioWorkspaceState
                   previewFamilies: _fontPreviewFamilies,
                   onChanged: (nextProfile) {
                     unawaited(
-                      notifier.applyPersonalizationStudioProfile(
-                        nextProfile,
+                      _commitInteractionProfile(
+                        notifier: notifier,
+                        projectRootPath: projectRootPath,
+                        profile: nextProfile,
+                        update: (current) => current.copyWith(
+                          title: nextProfile.title != profile.title
+                              ? nextProfile.title
+                              : current.title,
+                          branding: nextProfile.branding != profile.branding
+                              ? nextProfile.branding
+                              : current.branding,
+                          layouts: nextProfile.layouts != profile.layouts
+                              ? nextProfile.layouts
+                              : current.layouts,
+                        ),
                         label: 'Modifier la composition du titre',
                       ),
                     );
                   },
+                  onPreviewChanged: (profile) =>
+                      _previewInteractionProfile(projectRootPath, profile),
+                  commitCoordinator: _deferredCommitCoordinator,
                   onImportImage: (role) {
                     unawaited(
                       _importBrandingImage(
@@ -1303,13 +1386,28 @@ class _PersonalizationStudioWorkspaceState
                   profile.effectivePause ??
                   const ProjectPausePresentationProfile(),
               onChanged: (pause) {
+                final nextProfile = profile.copyWith(
+                  pause: pause,
+                  menuLabels: null,
+                );
                 unawaited(
-                  notifier.applyPersonalizationStudioProfile(
-                    profile.copyWith(pause: pause, menuLabels: null),
+                  _commitInteractionProfile(
+                    notifier: notifier,
+                    projectRootPath: projectRootPath,
+                    profile: nextProfile,
+                    update: (current) => current.copyWith(
+                      pause: nextProfile.pause,
+                      menuLabels: nextProfile.menuLabels,
+                    ),
                     label: 'Modifier les actions du menu Pause',
                   ),
                 );
               },
+              onPreviewChanged: (pause) => _previewInteractionProfile(
+                projectRootPath,
+                profile.copyWith(pause: pause, menuLabels: null),
+              ),
+              commitCoordinator: _deferredCommitCoordinator,
             ),
             const SizedBox(height: 16),
             ProjectWindowStudio(
@@ -1691,13 +1789,28 @@ class _PersonalizationStudioWorkspaceState
           profile: profile,
           previewFamilies: _fontPreviewFamilies,
           onPauseChanged: (pause) {
+            final nextProfile = profile.copyWith(
+              pause: pause,
+              menuLabels: null,
+            );
             unawaited(
-              notifier.applyPersonalizationStudioProfile(
-                profile.copyWith(pause: pause, menuLabels: null),
+              _commitInteractionProfile(
+                notifier: notifier,
+                projectRootPath: projectRootPath,
+                profile: nextProfile,
+                update: (current) => current.copyWith(
+                  pause: nextProfile.pause,
+                  menuLabels: nextProfile.menuLabels,
+                ),
                 label: 'Modifier les actions du menu Pause',
               ),
             );
           },
+          onPausePreviewChanged: (pause) => _previewInteractionProfile(
+            projectRootPath,
+            profile.copyWith(pause: pause, menuLabels: null),
+          ),
+          commitCoordinator: _deferredCommitCoordinator,
           onWindowsChanged: (windows) {
             unawaited(
               notifier.applyPersonalizationStudioProfile(
@@ -1825,13 +1938,22 @@ class _PersonalizationStudioWorkspaceState
               setState(() => _showDialogueChoices = value);
             },
             onDialogueChanged: (dialogue) {
+              final nextProfile = profile.copyWith(dialogue: dialogue);
               unawaited(
-                notifier.applyPersonalizationStudioProfile(
-                  profile.copyWith(dialogue: dialogue),
+                _commitInteractionProfile(
+                  notifier: notifier,
+                  projectRootPath: projectRootPath,
+                  profile: nextProfile,
+                  update: (current) =>
+                      current.copyWith(dialogue: nextProfile.dialogue),
                   label: 'Modifier la bulle de dialogue',
                 ),
               );
             },
+            onDialoguePreviewChanged: (dialogue) => _previewInteractionProfile(
+              projectRootPath,
+              profile.copyWith(dialogue: dialogue),
+            ),
             onImportDialogueFont: () {
               unawaited(
                 _importFont(
@@ -1921,13 +2043,22 @@ class _PersonalizationStudioWorkspaceState
               setState(() => _battlePreviewState = state);
             },
             onBattleChanged: (battle) {
+              final nextProfile = profile.copyWith(battle: battle);
               unawaited(
-                notifier.applyPersonalizationStudioProfile(
-                  profile.copyWith(battle: battle),
+                _commitInteractionProfile(
+                  notifier: notifier,
+                  projectRootPath: projectRootPath,
+                  profile: nextProfile,
+                  update: (current) =>
+                      current.copyWith(battle: nextProfile.battle),
                   label: 'Modifier l’interface des combats',
                 ),
               );
             },
+            onBattlePreviewChanged: (battle) => _previewInteractionProfile(
+              projectRootPath,
+              profile.copyWith(battle: battle),
+            ),
             onWindowsChanged: (windows) {
               unawaited(
                 notifier.applyPersonalizationStudioProfile(
@@ -2086,14 +2217,18 @@ class _PersonalizationStudioWorkspaceState
     final projectRootPath = editorState.projectRootPath!;
     _ensureSession(projectRootPath);
     final notifier = ref.read(editorNotifierProvider.notifier);
+    _registerPendingCommitFlusher(notifier);
     final studioSession = notifier.personalizationStudioSessionState;
     final canEdit =
         studioSession?.isInitialized == true &&
         studioSession?.hasFailed == false &&
         studioSession?.isConflicted == false &&
         studioSession?.isSaving == false;
-    final profile =
+    final sessionProfile =
         studioSession?.draftProfile ?? project.effectivePresentation;
+    final profile = studioSession?.isConflicted == true
+        ? sessionProfile
+        : _interactionPreviewProfile ?? sessionProfile;
     final baselineProfile = studioSession?.savedProfile;
     final hasBlockingDiagnostics = validateProjectPresentationProfile(profile)
         .any(
@@ -2170,7 +2305,7 @@ class _PersonalizationStudioWorkspaceState
                     leading: const Icon(Icons.undo_rounded),
                     onPressed: studioSession?.canUndo == true && canEdit
                         ? () {
-                            unawaited(notifier.undoPersonalizationStudio());
+                            _undoPersonalizationStudio(notifier);
                           }
                         : null,
                     child: const Text('Annuler'),
@@ -2182,7 +2317,7 @@ class _PersonalizationStudioWorkspaceState
                     leading: const Icon(Icons.redo_rounded),
                     onPressed: studioSession?.canRedo == true && canEdit
                         ? () {
-                            unawaited(notifier.redoPersonalizationStudio());
+                            _redoPersonalizationStudio(notifier);
                           }
                         : null,
                     child: const Text('Rétablir'),
@@ -2217,7 +2352,7 @@ class _PersonalizationStudioWorkspaceState
                             canEdit &&
                             !hasBlockingDiagnostics
                         ? () {
-                            unawaited(notifier.savePersonalizationStudio());
+                            unawaited(_savePersonalizationStudio(notifier));
                           }
                         : null,
                     child: const Text('Enregistrer'),
@@ -2279,19 +2414,27 @@ class _PersonalizationStudioWorkspaceState
             ),
           ],
           Expanded(
-            child: PersonalizationStudioShell(
-              key: const ValueKey<String>('personalization-studio-workspace'),
-              selectedScene: _selectedScene,
-              onSceneSelected: (scene) {
-                if (scene != PersonalizationStudioScene.title) {
-                  unawaited(_stopTitleMusicPreview());
-                }
-                setState(() {
-                  _scenePresetPreviewProfile = null;
-                  _selectedScene = scene;
-                  _selectedTarget = _defaultInspectorTarget(scene);
-                });
-              },
+            child: KeyedSubtree(
+              key: ValueKey<String>(
+                'personalization-studio-project-$projectRootPath',
+              ),
+              child: PersonalizationStudioShell(
+                key: const ValueKey<String>(
+                  'personalization-studio-workspace',
+                ),
+                selectedScene: _selectedScene,
+                onSceneSelected: (scene) {
+                  _deferredCommitCoordinator.flush();
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  if (scene != PersonalizationStudioScene.title) {
+                    unawaited(_stopTitleMusicPreview());
+                  }
+                  setState(() {
+                    _scenePresetPreviewProfile = null;
+                    _selectedScene = scene;
+                    _selectedTarget = _defaultInspectorTarget(scene);
+                  });
+                },
               preview: PersonalizationLivePreview(
                 profile: _scenePresetPreviewProfile ?? profile,
                 projectName: project.name,
@@ -2321,6 +2464,8 @@ class _PersonalizationStudioWorkspaceState
                 projectManifest: project,
                 resolveTilesetPath: notifier.getTilesetAbsolutePathById,
                 onTargeted: (target) {
+                  _deferredCommitCoordinator.flush();
+                  FocusManager.instance.primaryFocus?.unfocus();
                   final scene = _sceneForInspectorTarget(target);
                   if (scene != PersonalizationStudioScene.title) {
                     unawaited(_stopTitleMusicPreview());
@@ -2348,6 +2493,7 @@ class _PersonalizationStudioWorkspaceState
               inspectorDescription: _sceneDescription(_selectedScene),
               selectedTarget: _selectedTarget,
               onTargetSelected: (target) {
+                _deferredCommitCoordinator.flush();
                 setState(() => _selectedTarget = target);
               },
               inspector: Column(
@@ -2446,7 +2592,7 @@ class _PersonalizationStudioWorkspaceState
                             canEdit &&
                             !hasBlockingDiagnostics
                         ? () {
-                            unawaited(notifier.savePersonalizationStudio());
+                            unawaited(_savePersonalizationStudio(notifier));
                           }
                         : null,
                     canContinueToExport:
@@ -2478,6 +2624,7 @@ class _PersonalizationStudioWorkspaceState
                   ),
                 ],
               ),
+            ),
             ),
           ),
         ],

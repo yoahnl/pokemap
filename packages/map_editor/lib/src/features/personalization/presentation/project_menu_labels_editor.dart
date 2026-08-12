@@ -3,16 +3,21 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/design_system.dart';
+import 'personalization_deferred_commit.dart';
 
 class ProjectMenuLabelsEditor extends StatefulWidget {
   const ProjectMenuLabelsEditor({
     super.key,
     required this.profile,
     required this.onChanged,
+    this.onPreviewChanged,
+    this.commitCoordinator,
   });
 
   final ProjectMenuLabelsProfile profile;
   final ValueChanged<ProjectMenuLabelsProfile?> onChanged;
+  final ValueChanged<ProjectMenuLabelsProfile?>? onPreviewChanged;
+  final PersonalizationDeferredCommitCoordinator? commitCoordinator;
 
   @override
   State<ProjectMenuLabelsEditor> createState() =>
@@ -21,19 +26,29 @@ class ProjectMenuLabelsEditor extends StatefulWidget {
 
 class _ProjectMenuLabelsEditorState extends State<ProjectMenuLabelsEditor> {
   late final Map<_MenuLabelField, TextEditingController> _controllers;
+  late final Map<_MenuLabelField, FocusNode> _focusNodes;
+  late final PersonalizationDeferredCommit _commit;
 
   @override
   void initState() {
     super.initState();
+    _commit = PersonalizationDeferredCommit(widget.commitCoordinator);
     _controllers = <_MenuLabelField, TextEditingController>{
       for (final field in _MenuLabelField.values)
         field: TextEditingController(text: field.read(widget.profile) ?? ''),
     };
+    _focusNodes = <_MenuLabelField, FocusNode>{
+      for (final field in _MenuLabelField.values) field: FocusNode(),
+    };
+    for (final node in _focusNodes.values) {
+      node.addListener(_flushWhenFocusLeaves);
+    }
   }
 
   @override
   void didUpdateWidget(covariant ProjectMenuLabelsEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_commit.hasPending) return;
     if (oldWidget.profile == widget.profile) return;
     for (final field in _MenuLabelField.values) {
       final next = field.read(widget.profile) ?? '';
@@ -44,6 +59,13 @@ class _ProjectMenuLabelsEditorState extends State<ProjectMenuLabelsEditor> {
 
   @override
   void dispose() {
+    _commit.flush();
+    _commit.dispose();
+    for (final node in _focusNodes.values) {
+      node
+        ..removeListener(_flushWhenFocusLeaves)
+        ..dispose();
+    }
     for (final controller in _controllers.values) {
       controller.dispose();
     }
@@ -79,13 +101,15 @@ class _ProjectMenuLabelsEditorState extends State<ProjectMenuLabelsEditor> {
                         label: field.label,
                         fieldKey: ValueKey<String>('menu-label-${field.name}'),
                         controller: _controllers[field],
+                        focusNode: _focusNodes[field],
                         hintText: 'Par défaut : ${field.fallback}',
                         inputFormatters: <TextInputFormatter>[
                           LengthLimitingTextInputFormatter(
                             projectMenuLabelMaxLength,
                           ),
                         ],
-                        onChanged: (_) => _publish(),
+                        onChanged: (_) => _previewAndSchedule(),
+                        onSubmitted: (_) => _commit.flush(),
                       ),
                     ),
                 ],
@@ -97,7 +121,20 @@ class _ProjectMenuLabelsEditorState extends State<ProjectMenuLabelsEditor> {
     );
   }
 
-  void _publish() {
+  void _flushWhenFocusLeaves() {
+    if (_focusNodes.values.every((node) => !node.hasFocus)) {
+      _commit.flush();
+    }
+  }
+
+  void _previewAndSchedule() {
+    final profile = _currentProfile();
+    widget.onPreviewChanged?.call(profile);
+    final onChanged = widget.onChanged;
+    _commit.schedule(() => onChanged(profile));
+  }
+
+  ProjectMenuLabelsProfile? _currentProfile() {
     String? value(_MenuLabelField field) {
       final text = _controllers[field]!.text.trim();
       return text.isEmpty ? null : text;
@@ -114,9 +151,7 @@ class _ProjectMenuLabelsEditorState extends State<ProjectMenuLabelsEditor> {
       options: value(_MenuLabelField.options),
       returnToTitle: value(_MenuLabelField.returnToTitle),
     );
-    widget.onChanged(
-      profile == const ProjectMenuLabelsProfile() ? null : profile,
-    );
+    return profile == const ProjectMenuLabelsProfile() ? null : profile;
   }
 }
 

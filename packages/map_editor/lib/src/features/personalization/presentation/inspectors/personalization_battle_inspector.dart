@@ -42,6 +42,7 @@ class PersonalizationBattleInspector extends StatefulWidget {
     required this.onImportCombatFont,
     required this.onUseSystemCombatFont,
     this.initialSection,
+    this.onBattlePreviewChanged,
     this.onImportNumbersFont,
     this.onUseSystemNumbersFont,
     this.onCombatMetricsChanged,
@@ -54,6 +55,7 @@ class PersonalizationBattleInspector extends StatefulWidget {
   final PersonalizationBattlePreviewState previewState;
   final ValueChanged<PersonalizationBattlePreviewState> onPreviewStateChanged;
   final ValueChanged<ProjectBattlePresentationProfile> onBattleChanged;
+  final ValueChanged<ProjectBattlePresentationProfile>? onBattlePreviewChanged;
   final ValueChanged<ProjectPresentationWindowsProfile?> onWindowsChanged;
   final ValueChanged<ProjectPresentationLayoutsProfile?> onLayoutsChanged;
   final VoidCallback onImportCombatFont;
@@ -165,6 +167,7 @@ class _PersonalizationBattleInspectorState
       profile: _battle,
       inheritedTheme: widget.profile.theme ?? safeProjectSemanticTheme,
       onChanged: widget.onBattleChanged,
+      onPreviewChanged: widget.onBattlePreviewChanged,
     ),
     PersonalizationBattleInspectorSection.hud => BattleHudSection(
       profile: _battle,
@@ -179,6 +182,8 @@ class _PersonalizationBattleInspectorState
       inheritedTheme: widget.profile.theme ?? safeProjectSemanticTheme,
       onChanged: (value) =>
           widget.onBattleChanged(_battle.copyWith(moves: value)),
+      onPreviewChanged: (value) =>
+          widget.onBattlePreviewChanged?.call(_battle.copyWith(moves: value)),
     ),
     PersonalizationBattleInspectorSection.target => BattlePanelSection(
       id: 'target',
@@ -189,6 +194,8 @@ class _PersonalizationBattleInspectorState
       inheritedTheme: widget.profile.theme ?? safeProjectSemanticTheme,
       onChanged: (value) =>
           widget.onBattleChanged(_battle.copyWith(target: value)),
+      onPreviewChanged: (value) =>
+          widget.onBattlePreviewChanged?.call(_battle.copyWith(target: value)),
     ),
     PersonalizationBattleInspectorSection.message => BattlePanelSection(
       id: 'message',
@@ -199,6 +206,8 @@ class _PersonalizationBattleInspectorState
       inheritedTheme: widget.profile.theme ?? safeProjectSemanticTheme,
       onChanged: (value) =>
           widget.onBattleChanged(_battle.copyWith(message: value)),
+      onPreviewChanged: (value) =>
+          widget.onBattlePreviewChanged?.call(_battle.copyWith(message: value)),
     ),
   };
 

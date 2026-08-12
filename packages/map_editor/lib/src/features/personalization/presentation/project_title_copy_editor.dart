@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/design_system/design_system.dart';
+import 'personalization_deferred_commit.dart';
 
 class ProjectTitleCopyEditor extends StatefulWidget {
   const ProjectTitleCopyEditor({
@@ -10,11 +11,15 @@ class ProjectTitleCopyEditor extends StatefulWidget {
     required this.profile,
     required this.projectName,
     required this.onChanged,
+    this.onPreviewChanged,
+    this.commitCoordinator,
   });
 
   final ProjectTitlePresentationProfile? profile;
   final String projectName;
   final ValueChanged<ProjectTitlePresentationProfile?> onChanged;
+  final ValueChanged<ProjectTitlePresentationProfile?>? onPreviewChanged;
+  final PersonalizationDeferredCommitCoordinator? commitCoordinator;
 
   @override
   State<ProjectTitleCopyEditor> createState() => _ProjectTitleCopyEditorState();
@@ -24,6 +29,8 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
   late final TextEditingController _title;
   late final TextEditingController _subtitle;
   late final TextEditingController _prompt;
+  late final List<FocusNode> _focusNodes;
+  late final PersonalizationDeferredCommit _commit;
   late bool _titleFallback;
   late bool _subtitleFallback;
   late bool _promptFallback;
@@ -31,9 +38,14 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
   @override
   void initState() {
     super.initState();
+    _commit = PersonalizationDeferredCommit(widget.commitCoordinator);
     _title = TextEditingController(text: widget.profile?.title ?? '');
     _subtitle = TextEditingController(text: widget.profile?.subtitle ?? '');
     _prompt = TextEditingController(text: widget.profile?.prompt ?? '');
+    _focusNodes = List<FocusNode>.generate(3, (_) => FocusNode());
+    for (final node in _focusNodes) {
+      node.addListener(_flushWhenFocusLeaves);
+    }
     _titleFallback = widget.profile?.title == null;
     _subtitleFallback = widget.profile?.subtitle == null;
     _promptFallback = widget.profile?.prompt == null;
@@ -42,6 +54,7 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
   @override
   void didUpdateWidget(covariant ProjectTitleCopyEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_commit.hasPending) return;
     if (oldWidget.profile == widget.profile &&
         oldWidget.projectName == widget.projectName) {
       return;
@@ -51,6 +64,13 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
 
   @override
   void dispose() {
+    _commit.flush();
+    _commit.dispose();
+    for (final node in _focusNodes) {
+      node
+        ..removeListener(_flushWhenFocusLeaves)
+        ..dispose();
+    }
     _title.dispose();
     _subtitle.dispose();
     _prompt.dispose();
@@ -76,6 +96,7 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
                   label: 'Titre du jeu',
                   fieldKey: const ValueKey<String>('title-copy-title'),
                   controller: _title,
+                  focusNode: _focusNodes[0],
                   hintText: 'Par défaut : ${widget.projectName}',
                   inputFormatters: <TextInputFormatter>[
                     LengthLimitingTextInputFormatter(
@@ -86,7 +107,7 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
                   textInputAction: TextInputAction.newline,
                   onChanged: (_) {
                     _titleFallback = false;
-                    _publish();
+                    _previewAndSchedule();
                   },
                 ),
                 const SizedBox(height: 8),
@@ -109,6 +130,7 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
                   label: 'Sous-titre',
                   fieldKey: const ValueKey<String>('title-copy-subtitle'),
                   controller: _subtitle,
+                  focusNode: _focusNodes[1],
                   hintText: 'Par défaut : auteur ou studio du projet',
                   inputFormatters: <TextInputFormatter>[
                     LengthLimitingTextInputFormatter(
@@ -119,7 +141,7 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
                   textInputAction: TextInputAction.newline,
                   onChanged: (_) {
                     _subtitleFallback = false;
-                    _publish();
+                    _previewAndSchedule();
                   },
                 ),
                 const SizedBox(height: 8),
@@ -140,6 +162,7 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
                   label: 'Invitation',
                   fieldKey: const ValueKey<String>('title-copy-prompt'),
                   controller: _prompt,
+                  focusNode: _focusNodes[2],
                   hintText: 'Par défaut : description du projet',
                   inputFormatters: <TextInputFormatter>[
                     LengthLimitingTextInputFormatter(
@@ -150,7 +173,7 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
                   textInputAction: TextInputAction.newline,
                   onChanged: (_) {
                     _promptFallback = false;
-                    _publish();
+                    _previewAndSchedule();
                   },
                 ),
                 const SizedBox(height: 8),
@@ -203,15 +226,31 @@ class _ProjectTitleCopyEditorState extends State<ProjectTitleCopyEditor> {
     if (controller.text != value) controller.text = value;
   }
 
+  void _flushWhenFocusLeaves() {
+    if (_focusNodes.every((node) => !node.hasFocus)) {
+      _commit.flush();
+    }
+  }
+
+  void _previewAndSchedule() {
+    final profile = _currentProfile();
+    widget.onPreviewChanged?.call(profile);
+    final onChanged = widget.onChanged;
+    _commit.schedule(() => onChanged(profile));
+  }
+
   void _publish() {
+    _commit.cancel();
+    widget.onChanged(_currentProfile());
+  }
+
+  ProjectTitlePresentationProfile? _currentProfile() {
     final profile = (widget.profile ?? const ProjectTitlePresentationProfile())
         .copyWith(
           title: _titleFallback ? null : _title.text,
           subtitle: _subtitleFallback ? null : _subtitle.text,
           prompt: _promptFallback ? null : _prompt.text,
         );
-    widget.onChanged(
-      profile == const ProjectTitlePresentationProfile() ? null : profile,
-    );
+    return profile == const ProjectTitlePresentationProfile() ? null : profile;
   }
 }

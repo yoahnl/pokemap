@@ -10,11 +10,13 @@ class BattleCommandsSection extends StatefulWidget {
     required this.profile,
     required this.inheritedTheme,
     required this.onChanged,
+    this.onPreviewChanged,
   });
 
   final ProjectBattlePresentationProfile profile;
   final ProjectSemanticThemeProfile inheritedTheme;
   final ValueChanged<ProjectBattlePresentationProfile> onChanged;
+  final ValueChanged<ProjectBattlePresentationProfile>? onPreviewChanged;
 
   @override
   State<BattleCommandsSection> createState() => _BattleCommandsSectionState();
@@ -92,7 +94,10 @@ class _BattleCommandsSectionState extends State<BattleCommandsSection> {
                 value: profile.commandColumns,
                 min: 1,
                 max: 4,
-                onChanged: (value) =>
+                onChanged: (value) => widget.onPreviewChanged?.call(
+                  profile.copyWith(commandColumns: value),
+                ),
+                onChangeEnd: (value) =>
                     onChanged(profile.copyWith(commandColumns: value)),
               ),
               const SizedBox(height: 8),
@@ -131,7 +136,10 @@ class _BattleCommandsSectionState extends State<BattleCommandsSection> {
                 value: profile.commandPadding.round(),
                 min: 4,
                 max: 32,
-                onChanged: (value) => onChanged(
+                onChanged: (value) => widget.onPreviewChanged?.call(
+                  profile.copyWith(commandPadding: value.toDouble()),
+                ),
+                onChangeEnd: (value) => onChanged(
                   profile.copyWith(commandPadding: value.toDouble()),
                 ),
               ),

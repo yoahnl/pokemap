@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -6,6 +7,47 @@ import 'package:map_editor/src/features/personalization/presentation/inspectors/
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 
 void main() {
+  testWidgets('commits one battle change after a slider gesture', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1000, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final committed = <ProjectBattlePresentationProfile>[];
+
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: PersonalizationBattleInspector(
+            profile: const ProjectPresentationProfile(),
+            previewState: PersonalizationBattlePreviewState.commands,
+            onPreviewStateChanged: (_) {},
+            onBattleChanged: committed.add,
+            onWindowsChanged: (_) {},
+            onLayoutsChanged: (_) {},
+            onImportCombatFont: () {},
+            onUseSystemCombatFont: () {},
+          ),
+        ),
+      ),
+    );
+
+    final slider = find.descendant(
+      of: find.byKey(const ValueKey<String>('battle-command-columns')),
+      matching: find.byType(CupertinoSlider),
+    );
+    final control = tester.widget<CupertinoSlider>(slider);
+    control.onChangeStart?.call(2);
+    for (final value in <double>[3, 4, 3, 2]) {
+      control.onChanged?.call(value);
+    }
+    expect(committed, isEmpty);
+    control.onChangeEnd?.call(2);
+
+    expect(committed, hasLength(1));
+  });
+
   testWidgets('shows one focused V10 battle section at a time', (tester) async {
     tester.view.physicalSize = const Size(1000, 900);
     tester.view.devicePixelRatio = 1;

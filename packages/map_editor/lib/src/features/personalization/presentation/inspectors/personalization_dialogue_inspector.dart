@@ -37,6 +37,7 @@ class PersonalizationDialogueInspector extends StatelessWidget {
     required this.onDialogueChanged,
     required this.onImportDialogueFont,
     required this.onUseSystemDialogueFont,
+    this.onDialoguePreviewChanged,
     this.onDialogueMetricsChanged,
     this.previewFamilies = const <ProjectTypographyRole, String>{},
   });
@@ -52,6 +53,8 @@ class PersonalizationDialogueInspector extends StatelessWidget {
   final ValueChanged<bool> onShowNameChanged;
   final ValueChanged<bool> onShowChoicesChanged;
   final ValueChanged<ProjectDialoguePresentationProfile?> onDialogueChanged;
+  final ValueChanged<ProjectDialoguePresentationProfile?>?
+  onDialoguePreviewChanged;
   final VoidCallback onImportDialogueFont;
   final VoidCallback onUseSystemDialogueFont;
   final ValueChanged<ProjectTypographyMetricsProfile>? onDialogueMetricsChanged;
@@ -275,7 +278,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
                 min: 48,
                 max: 160,
                 value: dialogue.portraitSize.round(),
-                onChanged: (value) => onDialogueChanged(
+                onChanged: (value) => onDialoguePreviewChanged?.call(
+                  dialogue.copyWith(portraitSize: value.toDouble()),
+                ),
+                onChangeEnd: (value) => onDialogueChanged(
                   dialogue.copyWith(portraitSize: value.toDouble()),
                 ),
               ),
@@ -286,7 +292,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
                 min: 0,
                 max: 8,
                 value: dialogue.portraitFrameWidth.round(),
-                onChanged: (value) => onDialogueChanged(
+                onChanged: (value) => onDialoguePreviewChanged?.call(
+                  dialogue.copyWith(portraitFrameWidth: value.toDouble()),
+                ),
+                onChangeEnd: (value) => onDialogueChanged(
                   dialogue.copyWith(portraitFrameWidth: value.toDouble()),
                 ),
               ),
@@ -344,7 +353,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
                 min: 0,
                 max: 6,
                 value: dialogue.nameplateBorderWidth.round(),
-                onChanged: (value) => onDialogueChanged(
+                onChanged: (value) => onDialoguePreviewChanged?.call(
+                  dialogue.copyWith(nameplateBorderWidth: value.toDouble()),
+                ),
+                onChangeEnd: (value) => onDialogueChanged(
                   dialogue.copyWith(nameplateBorderWidth: value.toDouble()),
                 ),
               ),
@@ -413,7 +425,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
                 min: 4,
                 max: 24,
                 value: dialogue.choiceSpacing.round(),
-                onChanged: (value) => onDialogueChanged(
+                onChanged: (value) => onDialoguePreviewChanged?.call(
+                  dialogue.copyWith(choiceSpacing: value.toDouble()),
+                ),
+                onChangeEnd: (value) => onDialogueChanged(
                   dialogue.copyWith(choiceSpacing: value.toDouble()),
                 ),
               ),
@@ -424,7 +439,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
                 min: 25,
                 max: 100,
                 value: (dialogue.choiceDisabledOpacity * 100).round(),
-                onChanged: (value) => onDialogueChanged(
+                onChanged: (value) => onDialoguePreviewChanged?.call(
+                  dialogue.copyWith(choiceDisabledOpacity: value / 100),
+                ),
+                onChangeEnd: (value) => onDialogueChanged(
                   dialogue.copyWith(choiceDisabledOpacity: value / 100),
                 ),
               ),
@@ -550,7 +568,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
                 min: 0,
                 max: 800,
                 value: dialogue.portraitTransitionMilliseconds,
-                onChanged: (value) => onDialogueChanged(
+                onChanged: (value) => onDialoguePreviewChanged?.call(
+                  dialogue.copyWith(portraitTransitionMilliseconds: value),
+                ),
+                onChangeEnd: (value) => onDialogueChanged(
                   dialogue.copyWith(portraitTransitionMilliseconds: value),
                 ),
               ),
@@ -607,7 +628,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
             min: 40,
             max: 96,
             value: (dialogue.maxWidthFactor * 100).round(),
-            onChanged: (value) => onDialogueChanged(
+            onChanged: (value) => onDialoguePreviewChanged?.call(
+              dialogue.copyWith(maxWidthFactor: value / 100),
+            ),
+            onChangeEnd: (value) => onDialogueChanged(
               dialogue.copyWith(maxWidthFactor: value / 100),
             ),
           ),
@@ -618,7 +642,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
             min: 0,
             max: 64,
             value: dialogue.margin.round(),
-            onChanged: (value) =>
+            onChanged: (value) => onDialoguePreviewChanged?.call(
+              dialogue.copyWith(margin: value.toDouble()),
+            ),
+            onChangeEnd: (value) =>
                 onDialogueChanged(dialogue.copyWith(margin: value.toDouble())),
           ),
           const SizedBox(height: 12),
@@ -628,7 +655,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
             min: 8,
             max: 48,
             value: dialogue.contentPadding.round(),
-            onChanged: (value) => onDialogueChanged(
+            onChanged: (value) => onDialoguePreviewChanged?.call(
+              dialogue.copyWith(contentPadding: value.toDouble()),
+            ),
+            onChangeEnd: (value) => onDialogueChanged(
               dialogue.copyWith(contentPadding: value.toDouble()),
             ),
           ),
@@ -639,7 +669,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
             min: 0,
             max: 40,
             value: dialogue.cornerRadius.round(),
-            onChanged: (value) => onDialogueChanged(
+            onChanged: (value) => onDialoguePreviewChanged?.call(
+              dialogue.copyWith(cornerRadius: value.toDouble()),
+            ),
+            onChangeEnd: (value) => onDialogueChanged(
               dialogue.copyWith(cornerRadius: value.toDouble()),
             ),
           ),
@@ -650,7 +683,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
             min: 0,
             max: 8,
             value: dialogue.borderWidth.round(),
-            onChanged: (value) => onDialogueChanged(
+            onChanged: (value) => onDialoguePreviewChanged?.call(
+              dialogue.copyWith(borderWidth: value.toDouble()),
+            ),
+            onChangeEnd: (value) => onDialogueChanged(
               dialogue.copyWith(borderWidth: value.toDouble()),
             ),
           ),
@@ -661,7 +697,10 @@ class PersonalizationDialogueInspector extends StatelessWidget {
             min: 40,
             max: 100,
             value: (dialogue.fillOpacity * 100).round(),
-            onChanged: (value) =>
+            onChanged: (value) => onDialoguePreviewChanged?.call(
+              dialogue.copyWith(fillOpacity: value / 100),
+            ),
+            onChangeEnd: (value) =>
                 onDialogueChanged(dialogue.copyWith(fillOpacity: value / 100)),
           ),
           const SizedBox(height: 16),
