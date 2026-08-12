@@ -57,4 +57,27 @@ void main() {
       reason: 'Missing performance workflow entrypoints:\n${missing.join('\n')}',
     );
   });
+
+  test('performance workflow collects the complete PERF-000C matrix', () {
+    final repositoryRoot = Directory.current.parent.parent;
+    final workflow = File(
+      '${repositoryRoot.path}/.github/workflows/'
+      'pokemap_hub_product_certification.yml',
+    ).readAsStringSync();
+    final performanceJob = workflow.substring(
+      workflow.indexOf('  performance-observation:'),
+      workflow.indexOf('\n  windows-desktop-certification:'),
+    );
+
+    expect(
+      RegExp(r'--extents 128,256,512,1024').allMatches(performanceJob),
+      hasLength(2),
+    );
+    expect(
+      performanceJob,
+      contains(
+        '--target=integration_test/editor_canvas_projection_journey_test.dart',
+      ),
+    );
+  });
 }

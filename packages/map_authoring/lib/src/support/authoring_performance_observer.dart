@@ -1,6 +1,9 @@
 final class AuthoringPerformanceSpanName {
   const AuthoringPerformanceSpanName._();
 
+  static const snapshot = 'snapshot';
+  static const plan = 'plan';
+  static const apply = 'apply';
   static const saveQueue = 'save.queue';
   static const saveEncode = 'save.encode';
 }

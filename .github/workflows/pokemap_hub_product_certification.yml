@@ -151,7 +151,7 @@ jobs:
           dart compile exe benchmark/smart_tiles_rich_map_scaling.dart \
             -o build/performance/smart_tiles_rich_map_scaling
           build/performance/smart_tiles_rich_map_scaling \
-            --warmups 1 --samples 5 --extents 128,256 \
+            --warmups 1 --samples 5 --extents 128,256,512,1024 \
             --output build/performance/smart_tiles_rich_map_scaling.json
           dart compile exe benchmark/group_hierarchy_scaling.dart \
             -o build/performance/group_hierarchy_scaling
@@ -185,7 +185,7 @@ jobs:
             -o build/performance/smart_tiles_rich_authoring_scaling
           build/performance/smart_tiles_rich_authoring_scaling \
             --warmups 1 --samples 5 --recovery-samples 1 \
-            --extents 128,256 \
+            --extents 128,256,512,1024 \
             --output build/performance/smart_tiles_rich_authoring_scaling.json
           cd ../map_battle
           dart pub get
@@ -226,6 +226,10 @@ jobs:
             --driver=test_driver/performance_driver.dart \
             --target=integration_test/editor_project_journey_test.dart \
             --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/editor_canvas_projection_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_canvas_projection_journey.json
       - name: Collect Personalization Studio profile journey
         continue-on-error: true
         working-directory: packages/map_editor
