@@ -134,5 +134,7 @@ String _architectureLabel() {
   if (executable.contains('x64') || executable.contains('x86_64')) {
     return 'x64';
   }
-  return Platform.version;
+  if (Platform.version.contains('arm64')) return 'arm64';
+  if (Platform.version.contains('x64')) return 'x64';
+  return 'unknown';
 }

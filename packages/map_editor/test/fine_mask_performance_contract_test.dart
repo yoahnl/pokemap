@@ -83,6 +83,7 @@ void main() {
   test('rejects unavailable canonical provenance', () {
     for (final mutation in <void Function(Map<String, dynamic>)>[
       (receipt) => receipt['sdk'] = 'unavailable',
+      (receipt) => receipt['architecture'] = 'unavailable',
       (receipt) => (receipt['toolchain']! as Map<String, Object?>)['dart'] =
           'unavailable',
       (receipt) =>
@@ -111,6 +112,7 @@ Map<String, dynamic> _receipt() => <String, dynamic>{
   'executionMode': 'flutter-profile',
   'commit': '0123456789abcdef0123456789abcdef01234567',
   'treeState': 'clean',
+  'architecture': 'arm64',
   'sdk': 'Dart 3',
   'toolchain': <String, Object?>{
     'dart': 'Dart 3',

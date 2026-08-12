@@ -251,6 +251,7 @@ int _percentile(List<int> sorted, double percentile) {
 void _validateProvenance(Map<String, dynamic> data) {
   final commit = data['commit'];
   final sdk = data['sdk'];
+  final architecture = data['architecture'];
   final toolchain = data['toolchain'];
   final flutter = toolchain is Map ? toolchain['flutter'] : null;
   final dart = toolchain is Map ? toolchain['dart'] : null;
@@ -261,6 +262,8 @@ void _validateProvenance(Map<String, dynamic> data) {
       !RegExp(r'^[0-9a-f]{40}$').hasMatch(commit) ||
       sdk is! String ||
       !_isAvailableText(sdk) ||
+      architecture is! String ||
+      !const <String>{'arm64', 'x64'}.contains(architecture) ||
       toolchain is! Map ||
       dart is! String ||
       !_isAvailableText(dart) ||
@@ -649,5 +652,7 @@ String _architectureLabel() {
   if (executable.contains('x64') || executable.contains('x86_64')) {
     return 'x64';
   }
-  return Platform.version.contains('arm64') ? 'arm64' : 'unknown';
+  if (Platform.version.contains('arm64')) return 'arm64';
+  if (Platform.version.contains('x64')) return 'x64';
+  return 'unknown';
 }
