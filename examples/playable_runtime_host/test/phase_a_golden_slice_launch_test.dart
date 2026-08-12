@@ -359,6 +359,32 @@ void main() {
         accessibility: const GameSessionAccessibilityOptions(),
       );
 
+      await expectLater(
+        gateway.commit(
+          GameSessionCheckpointCommit(
+            descriptor: descriptor.publicContext,
+            checkpoint: GameSessionCheckpoint(
+              saveId: saveId,
+              createdAt: createdAt,
+              updatedAt: createdAt,
+              playTimeSeconds: 0,
+              state: gameStateFromSaveData(
+                fixtureSave!,
+              ).copyWith(saveId: saveId).toJson(),
+            ),
+            status: SaveStatus.active,
+          ),
+        ),
+        throwsA(isA<UnsupportedSaveSchema>()),
+      );
+      expect(
+        File(
+          '${root.path}${Platform.pathSeparator}'
+          '$kRuntimeHostLaunchSaveFileName',
+        ).existsSync(),
+        isFalse,
+      );
+
       await gateway.commit(
         GameSessionCheckpointCommit(
           descriptor: descriptor.publicContext,
@@ -367,9 +393,9 @@ void main() {
             createdAt: createdAt,
             updatedAt: createdAt.add(const Duration(minutes: 3)),
             playTimeSeconds: 180,
-            state: gameStateFromSaveData(
-              fixtureSave!,
-            ).copyWith(saveId: saveId).toJson(),
+            state: strictGameStateSaveJson(
+              gameStateFromSaveData(fixtureSave).copyWith(saveId: saveId),
+            ),
           ),
           status: SaveStatus.active,
         ),

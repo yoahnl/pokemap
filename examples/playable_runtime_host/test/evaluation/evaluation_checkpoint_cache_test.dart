@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/driver/evaluation_game_fixtures.dart';
@@ -29,11 +30,50 @@ void main() {
 
     expect(loaded.toJson(), state.toJson());
     final entry = cache.entryDirectory('after-lysa', provenance);
+    final save = jsonDecode(
+      await File(p.join(entry.path, 'save.json')).readAsString(),
+    ) as Map<String, dynamic>;
+    expect(save['itemSystemSchemaVersion'], 1);
     expect(File(p.join(entry.path, 'manifest.json')).existsSync(), isTrue);
     expect(File(p.join(entry.path, 'save.json')).existsSync(), isTrue);
     expect(
       entry.listSync().whereType<File>().map((file) => p.basename(file.path)),
       isNot(contains(endsWith('.tmp'))),
+    );
+  });
+
+  test('cache rejects a legacy bag field with a matching digest', () async {
+    final root = await Directory.systemTemp.createTemp('pokemap-checkpoint-');
+    addTearDown(() => root.delete(recursive: true));
+    final cache = EvaluationCheckpointCache(root: root);
+    final provenance = _provenance();
+    await cache.store('after-lysa', provenance, gameStateFixture());
+    final entry = cache.entryDirectory('after-lysa', provenance);
+    final saveFile = File(p.join(entry.path, 'save.json'));
+    final save =
+        jsonDecode(await saveFile.readAsString()) as Map<String, dynamic>;
+    save['bag'] = <String, dynamic>{
+      'entries': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'itemId': 'potion',
+          'quantity': 1,
+          'categoryId': 'medicine',
+        },
+      ],
+    };
+    final saveSource = jsonEncode(save);
+    await saveFile.writeAsString(saveSource);
+    final manifestFile = File(p.join(entry.path, 'manifest.json'));
+    final manifest =
+        jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>;
+    manifest['saveDigestSha256'] = sha256
+        .convert(utf8.encode(saveSource))
+        .toString();
+    await manifestFile.writeAsString(jsonEncode(manifest));
+
+    expect(
+      () => cache.load('after-lysa', provenance),
+      throwsA(isA<EvaluationCheckpointStale>()),
     );
   });
 

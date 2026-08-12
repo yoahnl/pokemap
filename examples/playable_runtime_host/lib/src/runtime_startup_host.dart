@@ -363,7 +363,7 @@ final class StandalonePlayerSaveGateway implements PlayerSaveGateway {
         request.descriptor.slotId != standaloneRuntimeSlotId) {
       throw StateError('The checkpoint belongs to another standalone game.');
     }
-    final state = GameState.fromJson(
+    final state = gameStateFromStrictSaveJson(
       Map<String, dynamic>.from(request.checkpoint.state),
     ).copyWith(saveId: request.checkpoint.saveId);
     final saveData = saveDataFromGameState(state);

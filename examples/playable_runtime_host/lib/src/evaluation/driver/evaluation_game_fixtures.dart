@@ -40,17 +40,15 @@ final class SerializedEvaluationSaveRepository implements GameSaveRepository {
 
   @override
   Future<void> save(GameState value) async {
-    _payload = jsonEncode(value.toJson());
+    _payload = jsonEncode(strictGameStateSaveJson(value));
   }
 
   @override
   Future<GameState?> load() async {
     final payload = _payload;
     if (payload == null) return null;
-    return normalizeLoadedGameState(
-      GameState.fromJson(
-        jsonDecode(payload) as Map<String, dynamic>,
-      ),
+    return gameStateFromStrictSaveJson(
+      jsonDecode(payload) as Map<String, dynamic>,
     );
   }
 

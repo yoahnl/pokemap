@@ -886,7 +886,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       createdAt: createdAt,
       updatedAt: updatedAt,
       playTimeSeconds: _sessionPlayWatch?.elapsed.inSeconds ?? 0,
-      state: state.copyWith(saveId: saveId).toJson(),
+      state: strictGameStateSaveJson(state.copyWith(saveId: saveId)),
     );
   }
 

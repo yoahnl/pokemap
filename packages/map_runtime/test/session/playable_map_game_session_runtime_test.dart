@@ -170,6 +170,10 @@ void main() {
     final checkpoint = await runtime.captureCheckpoint();
     expect(checkpoint?.saveId, save.saveId);
     expect(checkpoint?.playTimeSeconds, greaterThanOrEqualTo(90));
+    expect(
+      checkpoint?.state['itemSystemSchemaVersion'],
+      currentItemSystemSaveSchemaVersion,
+    );
 
     const request = GameCompletionRequest(
       endingId: 'fixture-ending',

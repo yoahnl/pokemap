@@ -102,7 +102,7 @@ final class EvaluationCheckpointCache {
     final id = _checkpointId(checkpointId);
     final entry = entryDirectory(id, provenance);
     await entry.create(recursive: true);
-    final saveJson = jsonEncode(_canonicalize(state.toJson()));
+    final saveJson = jsonEncode(_canonicalize(strictGameStateSaveJson(state)));
     final saveDigest = sha256.convert(utf8.encode(saveJson)).toString();
     final saveFile = File(p.join(entry.path, 'save.json'));
     await _writeAtomically(saveFile, saveJson);
@@ -192,8 +192,8 @@ final class EvaluationCheckpointCache {
       if (decodedSave is! Map) {
         throw const FormatException('Checkpoint save must be an object.');
       }
-      return normalizeLoadedGameState(
-        GameState.fromJson(Map<String, dynamic>.from(decodedSave)),
+      return gameStateFromStrictSaveJson(
+        Map<String, dynamic>.from(decodedSave),
       );
     } on EvaluationCheckpointStale {
       rethrow;

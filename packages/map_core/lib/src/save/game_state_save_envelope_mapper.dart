@@ -1,4 +1,5 @@
 import '../models/game_state.dart';
+import '../models/save_data.dart';
 import '../operations/game_state_persistence.dart';
 import 'game_identity.dart';
 import 'save_contract_exception.dart';
@@ -38,7 +39,7 @@ final class GameStateSaveEnvelopeMapper {
       completedAt: completedAt,
       playTimeSeconds: playTimeSeconds,
       origin: origin,
-      state: scopedState.toJson(),
+      state: strictGameStateSaveJson(scopedState),
     );
   }
 
@@ -51,13 +52,13 @@ final class GameStateSaveEnvelopeMapper {
       );
     }
     try {
-      return normalizeLoadedGameState(
-        GameState.fromJson(
-          Map<String, dynamic>.from(envelope.state),
-        ),
+      return gameStateFromStrictSaveJson(
+        Map<String, dynamic>.from(envelope.state),
       );
     } catch (error) {
-      if (error is SaveContractException) rethrow;
+      if (error is SaveContractException || error is UnsupportedSaveSchema) {
+        rethrow;
+      }
       throw SaveContractException(
         SaveContractErrorCode.invalidField,
         'SaveEnvelope state is not a valid GameState: $error',

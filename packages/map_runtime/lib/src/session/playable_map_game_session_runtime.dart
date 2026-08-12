@@ -372,7 +372,7 @@ final class PlayableMapGameSessionRuntime
       createdAt: _createdAt!,
       updatedAt: updatedAt,
       playTimeSeconds: _basePlayTimeSeconds + _playWatch.elapsed.inSeconds,
-      state: state.toJson(),
+      state: strictGameStateSaveJson(state),
     );
   }
 
