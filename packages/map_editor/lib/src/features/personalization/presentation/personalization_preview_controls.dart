@@ -35,6 +35,7 @@ class PersonalizationPreviewControls extends StatelessWidget {
       children: <Widget>[
         _PreviewOnlySetting(
           label: 'Format',
+          previewOnly: true,
           child: PokeMapSegmentedTabs(
             minimumHeight: 48,
             tabs: <PokeMapSegmentedTab>[
@@ -116,17 +117,22 @@ class PersonalizationPreviewControls extends StatelessWidget {
 }
 
 class _PreviewOnlySetting extends StatelessWidget {
-  const _PreviewOnlySetting({required this.label, required this.child});
+  const _PreviewOnlySetting({
+    required this.label,
+    required this.child,
+    this.previewOnly = false,
+  });
 
   final String label;
   final Widget child;
+  final bool previewOnly;
 
   @override
   Widget build(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.start,
     children: <Widget>[
-      _PreviewOnlyLabel(label: label),
+      _PreviewOnlyLabel(label: label, previewOnly: previewOnly),
       const SizedBox(height: 4),
       child,
     ],
@@ -151,9 +157,10 @@ class _PreviewOnlyAction extends StatelessWidget {
 }
 
 class _PreviewOnlyLabel extends StatelessWidget {
-  const _PreviewOnlyLabel({required this.label});
+  const _PreviewOnlyLabel({required this.label, this.previewOnly = false});
 
   final String label;
+  final bool previewOnly;
 
   @override
   Widget build(BuildContext context) => Wrap(
@@ -162,10 +169,11 @@ class _PreviewOnlyLabel extends StatelessWidget {
     crossAxisAlignment: WrapCrossAlignment.center,
     children: <Widget>[
       Text(label, style: Theme.of(context).textTheme.labelMedium),
-      const PokeMapBadge(
-        label: 'Aperçu uniquement',
-        variant: PokeMapBadgeVariant.info,
-      ),
+      if (previewOnly)
+        const PokeMapBadge(
+          label: 'Aperçu uniquement',
+          variant: PokeMapBadgeVariant.info,
+        ),
     ],
   );
 }

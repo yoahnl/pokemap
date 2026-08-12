@@ -23,7 +23,7 @@ void main() {
     );
   });
 
-  testWidgets('uses 260 and 360 pixel panes at 1600 pixels', (tester) async {
+  testWidgets('uses 190 and 290 pixel panes at 1600 pixels', (tester) async {
     await _pumpShell(tester, const Size(1600, 900));
 
     expect(find.text('Personalization Studio'), findsNothing);
@@ -35,7 +35,7 @@ void main() {
             ),
           )
           .width,
-      260,
+      190,
     );
     expect(
       tester
@@ -45,12 +45,12 @@ void main() {
             ),
           )
           .width,
-      360,
+      290,
     );
     expect(find.byKey(const ValueKey<String>('test-preview')), findsOneWidget);
   });
 
-  testWidgets('uses 220 and 320 pixel panes at 1200 pixels', (tester) async {
+  testWidgets('uses 180 and 280 pixel panes at 1200 pixels', (tester) async {
     await _pumpShell(tester, const Size(1200, 800));
 
     expect(
@@ -61,7 +61,7 @@ void main() {
             ),
           )
           .width,
-      220,
+      180,
     );
     expect(
       tester
@@ -71,7 +71,7 @@ void main() {
             ),
           )
           .width,
-      320,
+      280,
     );
   });
 

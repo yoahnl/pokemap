@@ -2172,8 +2172,11 @@ class _PersonalizationStudioWorkspaceState
                         : null,
                     child: const Text('Rétablir'),
                   ),
-                  SizedBox(
-                    width: 230,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minWidth: 230,
+                      maxWidth: 270,
+                    ),
                     child: PokeMapToggleTile(
                       key: const ValueKey<String>(
                         'personalization-studio-autosave',

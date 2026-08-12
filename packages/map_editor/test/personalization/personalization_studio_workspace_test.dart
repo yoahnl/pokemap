@@ -65,7 +65,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.widget<PokeMapButton>(preset).onPressed, isNotNull);
-      expect(preset.hitTestable(), findsOneWidget);
+      await _dragUntilHitTestable(
+        tester,
+        preset,
+        _detailScrollable('branding'),
+        dy: -400,
+      );
       await tester.tap(preset.hitTestable());
       await tester.pump();
 
@@ -307,9 +312,16 @@ void main() {
           .initializePersonalizationStudioSession();
       await tester.pump();
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('personalization-preset-cinematic')),
+      final cinematicPreset = find.byKey(
+        const ValueKey<String>('personalization-preset-cinematic'),
       );
+      await _dragUntilHitTestable(
+        tester,
+        cinematicPreset,
+        _detailScrollable('branding'),
+        dy: -400,
+      );
+      await tester.tap(cinematicPreset.hitTestable());
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 20));
 
