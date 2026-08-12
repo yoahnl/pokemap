@@ -322,6 +322,76 @@ void main() {
     expect(find.text('Professeure Saule'), findsNothing);
   });
 
+  testWidgets('renders neutral dialogue content in demonstration mode', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationLivePreview(
+          profile: ProjectPresentationProfile(theme: safeProjectSemanticTheme),
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.dialogue,
+          contentSource: PersonalizationPreviewContentSource.demonstration,
+        ),
+      ),
+    );
+
+    expect(find.text('Démonstration'), findsOneWidget);
+    expect(find.byType(PlayerDialogueSurface), findsOneWidget);
+    expect(
+      find.text('Voici comment votre dialogue apparaîtra dans le jeu.'),
+      findsOneWidget,
+    );
+    expect(find.text('Personnage'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-dialogue-demo-portrait'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-dialogue-unavailable'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-project-map-backdrop'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('demonstration dialogue exercises choices without a portrait', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationLivePreview(
+          profile: ProjectPresentationProfile(theme: safeProjectSemanticTheme),
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.dialogue,
+          contentSource: PersonalizationPreviewContentSource.demonstration,
+          showDialoguePortrait: false,
+          showDialogueChoices: true,
+        ),
+      ),
+    );
+
+    expect(find.byType(PlayerDialogueSurface), findsOneWidget);
+    expect(find.text('Premier choix'), findsOneWidget);
+    expect(find.text('Deuxième choix'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-dialogue-demo-portrait'),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('switches between real dialogue scenarios from the project', (
     tester,
   ) async {

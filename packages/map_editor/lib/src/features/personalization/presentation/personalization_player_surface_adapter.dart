@@ -32,6 +32,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
     this.showDialogueName = true,
     this.showDialogueChoices = false,
     this.battleState = PersonalizationBattlePreviewState.commands,
+    this.contentSource = PersonalizationPreviewContentSource.project,
     this.mapContext,
     this.dialogueData,
     this.battleData,
@@ -61,6 +62,7 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   final bool showDialogueName;
   final bool showDialogueChoices;
   final PersonalizationBattlePreviewState battleState;
+  final PersonalizationPreviewContentSource contentSource;
   final MapData? mapContext;
   final PlayerDialogueViewData? dialogueData;
   final PlayerBattleViewData? battleData;
@@ -155,7 +157,11 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
                 data: dialogueData!,
                 showSpeakerName: showDialogueName,
                 portraitBuilder:
-                    showDialoguePortrait && dialogueCharacter != null
+                    showDialoguePortrait &&
+                        (dialogueCharacter != null ||
+                            contentSource ==
+                                PersonalizationPreviewContentSource
+                                    .demonstration)
                     ? (_) => _dialoguePortrait()
                     : null,
                 onAction: (_) => _target(const DialogueAppearanceTarget()),
@@ -541,6 +547,23 @@ class PersonalizationPlayerSurfaceAdapter extends StatelessWidget {
   }
 
   Widget _dialoguePortrait() {
+    if (contentSource == PersonalizationPreviewContentSource.demonstration) {
+      return Builder(
+        builder: (context) => DecoratedBox(
+          key: const ValueKey<String>('personalization-dialogue-demo-portrait'),
+          decoration: BoxDecoration(
+            color: context.playerColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: context.playerColors.outline),
+          ),
+          child: Icon(
+            Icons.person_rounded,
+            color: context.playerColors.primary,
+            size: 42,
+          ),
+        ),
+      );
+    }
     final bytes = dialogueCharacter?.portraitBytes;
     if (bytes != null && bytes.isNotEmpty) {
       return ClipRRect(

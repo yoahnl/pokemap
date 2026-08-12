@@ -8,6 +8,7 @@ import '../../../ui/canvas/cinematics/cinematic_map_backdrop_layer_plan_loader.d
 import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_capability_descriptor.dart';
 import '../application/personalization_character_preview_source.dart';
+import '../application/personalization_demonstration_preview_projection.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_context_source.dart';
 import '../application/personalization_preview_projection.dart';
@@ -173,11 +174,18 @@ class _PersonalizationLivePreviewState
       _selectedPlayerSpeciesId,
     );
     final projectMap = PersonalizationProjectPreviewProjection.map(mapContext);
-    final dialogueData = PersonalizationProjectPreviewProjection.dialogue(
-      dialogueContext,
-      portrait: portraitContext,
-      showChoices: widget.showDialogueChoices,
-    );
+    final dialogueData = switch (widget.contentSource) {
+      PersonalizationPreviewContentSource.demonstration =>
+        PersonalizationDemonstrationPreviewProjection.dialogue(
+          showChoices: widget.showDialogueChoices,
+        ),
+      PersonalizationPreviewContentSource.project =>
+        PersonalizationProjectPreviewProjection.dialogue(
+          dialogueContext,
+          portrait: portraitContext,
+          showChoices: widget.showDialogueChoices,
+        ),
+    };
     final battleData = PersonalizationProjectPreviewProjection.battle(
       encounterContext,
       state: widget.battleState,
@@ -417,6 +425,7 @@ class _PersonalizationLivePreviewState
                 showDialogueName: widget.showDialogueName,
                 showDialogueChoices: widget.showDialogueChoices,
                 battleState: widget.battleState,
+                contentSource: widget.contentSource,
                 mapContext: projectMap,
                 dialogueData: dialogueData,
                 battleData: battleData,
