@@ -10,6 +10,8 @@ import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
 import '../../workspace/project_snapshot.dart';
+import '../gameplay/character_studio/character_studio_animation_clip_actions.dart';
+import '../gameplay/character_studio/character_studio_character_actions.dart';
 import 'asset_actions.dart';
 import 'asset_store.dart';
 
@@ -65,7 +67,12 @@ final class CharacterStudioAssetActions {
     }
     parameters.allow(
       replacing
-          ? const <String>{'artifactHandle', 'assetId', 'sourceRect'}
+          ? const <String>{
+              'artifactHandle',
+              'assetId',
+              'sourceRect',
+              'binding',
+            }
           : const <String>{
               'artifactHandle',
               'assetId',
@@ -73,6 +80,7 @@ final class CharacterStudioAssetActions {
               'mediaKind',
               'sourceRect',
               'tags',
+              'binding',
             },
     );
     final artifactHandle = parameters.string('artifactHandle');
@@ -131,8 +139,22 @@ final class CharacterStudioAssetActions {
               record.id != before.id &&
               record.artifact.digest == before.artifact.digest,
         );
-    final changes = baseDraft.changeSet.changes.toList();
-    final diff = baseDraft.changeSet.diff.entries.toList();
+    final binding = parameters.optionalObject('binding');
+    final bindingDraft = binding == null
+        ? null
+        : _bindingDraft(
+            context,
+            binding: binding,
+            assetId: assetId,
+          );
+    final changes = <AuthoringResourceChange>[
+      ...baseDraft.changeSet.changes,
+      ...?bindingDraft?.changeSet.changes,
+    ];
+    final diff = <AuthoringDiffEntry>[
+      ...baseDraft.changeSet.diff.entries,
+      ...?bindingDraft?.changeSet.diff.entries,
+    ];
     if (orphanedBlobDeleted) {
       final identity = assetBlobResourceIdentity(before.artifact.digest);
       final oldBytes = context.snapshot.findResourceBytes(identity);
@@ -177,14 +199,73 @@ final class CharacterStudioAssetActions {
         'height': image.height,
         'sourceRect': sourceRect,
         'orphanedBlobDeleted': orphanedBlobDeleted,
+        if (binding != null) 'bindingKind': binding['kind'],
       },
       referenceImpact: <String, Object?>{
         ...baseDraft.referenceImpact,
         'portableAssetId': assetId,
         'orphanedBlobDeleted': orphanedBlobDeleted,
+        if (binding != null) 'bindingKind': binding['kind'],
       },
       artifacts: baseDraft.artifacts,
     );
+  }
+
+  AuthoringMutationDraft? _bindingDraft(
+    AuthoringPlanningContext context, {
+    required Map<String, Object?> binding,
+    required String assetId,
+  }) {
+    try {
+      final kind = binding['kind'];
+      if (kind == 'portrait') {
+        final parameters = Map<String, Object?>.from(binding)
+          ..remove('kind')
+          ..['assetId'] = assetId;
+        return const CharacterStudioCharacterActions().build(
+          AuthoringPlanningContext(
+            snapshot: context.snapshot,
+            request: _translatedRequest(
+              context.request,
+              actionId: 'characterStudio.character.portrait.assign',
+              parameters: parameters,
+            ),
+            planId: context.planId,
+            seed: context.seed,
+          ),
+        );
+      }
+      if (kind == 'animationClip') {
+        final parameters = Map<String, Object?>.from(binding)
+          ..remove('kind')
+          ..['kind'] = binding['slotKind']
+          ..remove('slotKind')
+          ..['sourceAssetId'] = assetId;
+        return const CharacterStudioAnimationClipActions().build(
+          AuthoringPlanningContext(
+            snapshot: context.snapshot,
+            request: _translatedRequest(
+              context.request,
+              actionId: 'characterStudio.animationClip.upsert',
+              parameters: parameters,
+            ),
+            planId: context.planId,
+            seed: context.seed,
+          ),
+        );
+      }
+      throw CharacterStudioAssetException(
+        'character_studio.asset.binding_kind_invalid',
+        'Character Studio asset binding must target a portrait or animation clip.',
+        details: <String, Object?>{'kind': kind},
+      );
+    } on ArgumentError catch (error) {
+      if (error.name == 'afterBytes' &&
+          error.message == 'must differ from beforeBytes') {
+        return null;
+      }
+      rethrow;
+    }
   }
 }
 
@@ -319,6 +400,19 @@ final class _CharacterStudioAssetParameters {
     return normalizedContractStrings(value.cast<String>(), key);
   }
 
+  Map<String, Object?>? optionalObject(String key) {
+    final value = values[key];
+    if (value == null) return null;
+    if (value is! Map || value.keys.any((item) => item is! String)) {
+      throw CharacterStudioAssetException(
+        'character_studio.asset.parameter_invalid',
+        'Character Studio asset binding must be a JSON object.',
+        details: <String, Object?>{'parameter': key},
+      );
+    }
+    return Map<String, Object?>.from(value);
+  }
+
   _CharacterStudioMediaKind mediaKind(String key) {
     final value = string(key);
     return _CharacterStudioMediaKind.values.firstWhere(
@@ -393,7 +487,7 @@ AuthoringActionDescriptor _descriptor(
     inputSchemaId: 'pokemap.authoring.$id.input.v1',
     outputSchemaId: 'pokemap.authoring.characterStudio.asset.output.v1',
     riskLevel: riskLevel,
-    resourceKinds: const <String>['assetCatalog', 'assetBlob'],
+    resourceKinds: const <String>['project', 'assetCatalog', 'assetBlob'],
     capabilityIds: const <String>['authoring.characterStudio.assets'],
     requiredPermissions: const <AuthoringPermission>[
       AuthoringPermission.assetWrite,

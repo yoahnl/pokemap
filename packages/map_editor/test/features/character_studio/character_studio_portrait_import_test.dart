@@ -5,7 +5,7 @@ import 'package:map_editor/src/features/character_studio/application/character_s
 
 void main() {
   test(
-    'portrait import stages, imports and assigns through canonical actions',
+    'portrait import stages and binds through one atomic canonical action',
     () async {
       final gateway = _FakePortraitAssetGateway(
         staged: ContentArtifactRef.fromBytes(const <int>[
@@ -29,14 +29,16 @@ void main() {
       expect(gateway.stagedPath, '/outside/elia.png');
       expect(gateway.actions.map((entry) => entry.$1), <String>[
         'characterStudio.asset.import',
-        'characterStudio.character.portrait.assign',
       ]);
       final assetParameters = gateway.actions.first.$2;
-      final assignParameters = gateway.actions.last.$2;
       expect(assetParameters['artifactHandle'], gateway.staged.handle);
       expect(assetParameters['mediaKind'], 'portrait');
-      expect(assignParameters['assetId'], assetParameters['assetId']);
-      expect(assignParameters['fitMode'], 'cover');
+      expect(assetParameters['binding'], <String, Object?>{
+        'kind': 'portrait',
+        'characterId': 'elia',
+        'portraitStateId': 'neutral',
+        'fitMode': 'cover',
+      });
       expect(result.characters.single.portraits.single.assetId, isNotEmpty);
     },
   );
@@ -60,9 +62,15 @@ void main() {
       fitMode: CharacterPortraitFitMode.contain,
     );
 
-    expect(gateway.actions.first.$1, 'characterStudio.asset.replace');
+    expect(gateway.actions, hasLength(1));
+    expect(gateway.actions.single.$1, 'characterStudio.asset.replace');
     expect(gateway.actions.first.$2['assetId'], 'elia-neutral');
-    expect(gateway.actions.last.$2['assetId'], 'elia-neutral');
+    expect(gateway.actions.single.$2['binding'], <String, Object?>{
+      'kind': 'portrait',
+      'characterId': 'elia',
+      'portraitStateId': 'neutral',
+      'fitMode': 'contain',
+    });
   });
 
   test('non PNG source is rejected before any project mutation', () async {
@@ -121,7 +129,8 @@ final class _FakePortraitAssetGateway
     required String operationLabel,
   }) async {
     actions.add((actionId, parameters));
-    if (actionId != 'characterStudio.character.portrait.assign') {
+    final binding = parameters['binding'];
+    if (binding is! Map || binding['kind'] != 'portrait') {
       return expectedProject;
     }
     final character = expectedProject.characters.single;
@@ -130,9 +139,9 @@ final class _FakePortraitAssetGateway
         character.copyWith(
           portraits: <CharacterPortraitVariant>[
             CharacterPortraitVariant(
-              portraitStateId: parameters['portraitStateId']! as String,
+              portraitStateId: binding['portraitStateId']! as String,
               assetId: parameters['assetId']! as String,
-              fitMode: parameters['fitMode'] == 'cover'
+              fitMode: binding['fitMode'] == 'cover'
                   ? CharacterPortraitFitMode.cover
                   : CharacterPortraitFitMode.contain,
             ),

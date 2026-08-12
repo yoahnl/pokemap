@@ -144,7 +144,7 @@ final class CharacterStudioPortraitImportService {
         current?.assetId ??
         'portrait-${_safeSegment(characterId)}-'
             '${_safeSegment(portraitStateId)}-$digestSuffix';
-    final withAsset = await gateway.apply(
+    return gateway.apply(
       projectRootPath: projectRootPath,
       expectedProject: project,
       actionId: current == null
@@ -158,24 +158,24 @@ final class CharacterStudioPortraitImportService {
                   'assets/characters/${_safeSegment(characterId)}/portraits/'
                   '${_safeSegment(portraitStateId)}-$digestSuffix.png',
               'mediaKind': 'portrait',
+              'binding': <String, Object?>{
+                'kind': 'portrait',
+                'characterId': characterId,
+                'portraitStateId': portraitStateId,
+                'fitMode': fitMode.name,
+              },
             }
           : <String, Object?>{
               'artifactHandle': staged.handle,
               'assetId': assetId,
+              'binding': <String, Object?>{
+                'kind': 'portrait',
+                'characterId': characterId,
+                'portraitStateId': portraitStateId,
+                'fitMode': fitMode.name,
+              },
             },
-      operationLabel: 'portrait_asset_${characterId}_$portraitStateId',
-    );
-    return gateway.apply(
-      projectRootPath: projectRootPath,
-      expectedProject: withAsset,
-      actionId: 'characterStudio.character.portrait.assign',
-      parameters: <String, Object?>{
-        'characterId': characterId,
-        'portraitStateId': portraitStateId,
-        'assetId': assetId,
-        'fitMode': fitMode.name,
-      },
-      operationLabel: 'portrait_assign_${characterId}_$portraitStateId',
+      operationLabel: 'portrait_import_${characterId}_$portraitStateId',
     );
   }
 }

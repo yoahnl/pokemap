@@ -31,7 +31,10 @@ final class CharacterAnimationSourceImportService {
     required String sourcePath,
     required bool loop,
   }) async {
-    if (!project.characters.any((character) => character.id == characterId)) {
+    final character = project.characters
+        .where((character) => character.id == characterId)
+        .firstOrNull;
+    if (character == null) {
       throw const CharacterAnimationSourceImportException(
         'character_not_found',
         'Le personnage sélectionné n’existe plus.',
@@ -47,46 +50,75 @@ final class CharacterAnimationSourceImportService {
         'La source d’animation doit être une image PNG.',
       );
     }
+    final currentAssetId = _currentAssetId(character, slotKey);
     final digestSuffix = staged.hexDigest.substring(0, 12);
-    final suffix = _safeSegment(uniqueSuffix());
-    if (suffix.isEmpty) {
+    final suffix = currentAssetId == null ? _safeSegment(uniqueSuffix()) : null;
+    if (suffix != null && suffix.isEmpty) {
       throw const CharacterAnimationSourceImportException(
         'asset_id_suffix_invalid',
         'La source d’animation ne peut pas recevoir un identifiant unique.',
       );
     }
     final assetId =
+        currentAssetId ??
         'sprite-${_safeSegment(characterId)}-'
-        '${_safeSegment(slotKey.stableId)}-$digestSuffix-$suffix';
-    final withAsset = await gateway.apply(
+            '${_safeSegment(slotKey.stableId)}-$digestSuffix-${suffix!}';
+    return gateway.apply(
       projectRootPath: projectRootPath,
       expectedProject: project,
-      actionId: 'characterStudio.asset.import',
+      actionId: currentAssetId == null
+          ? 'characterStudio.asset.import'
+          : 'characterStudio.asset.replace',
       parameters: <String, Object?>{
         'artifactHandle': staged.handle,
         'assetId': assetId,
-        'logicalPath':
-            'assets/characters/${_safeSegment(characterId)}/animations/'
-            '${_safeSegment(slotKey.stableId)}-$digestSuffix-$suffix.png',
-        'mediaKind': 'spriteSheet',
+        if (currentAssetId == null) ...<String, Object?>{
+          'logicalPath':
+              'assets/characters/${_safeSegment(characterId)}/animations/'
+              '${_safeSegment(slotKey.stableId)}-$digestSuffix-$suffix.png',
+          'mediaKind': 'spriteSheet',
+        },
+        'binding': <String, Object?>{
+          'kind': 'animationClip',
+          'characterId': characterId,
+          'slotKind': slotKey.actionParameters['kind'],
+          for (final entry in slotKey.actionParameters.entries)
+            if (entry.key != 'kind') entry.key: entry.value,
+          'frames': const <Object?>[],
+          'loop': loop,
+        },
       },
       operationLabel: 'animation_source_${characterId}_${slotKey.stableId}',
     );
-    return gateway.apply(
-      projectRootPath: projectRootPath,
-      expectedProject: withAsset,
-      actionId: 'characterStudio.animationClip.upsert',
-      parameters: <String, Object?>{
-        'characterId': characterId,
-        ...slotKey.actionParameters,
-        'sourceAssetId': assetId,
-        'frames': const <Object?>[],
-        'loop': loop,
-      },
-      operationLabel:
-          'animation_source_assign_${characterId}_${slotKey.stableId}',
-    );
   }
+}
+
+String? _currentAssetId(
+  ProjectCharacterEntry character,
+  CharacterAnimationSlotKey slotKey,
+) {
+  final value = switch (slotKey.kind) {
+    CharacterAnimationDefinitionKind.system =>
+      character.animations
+          .where(
+            (animation) =>
+                animation.state == slotKey.systemState &&
+                animation.direction == slotKey.direction,
+          )
+          .firstOrNull
+          ?.sourceAssetId,
+    CharacterAnimationDefinitionKind.custom =>
+      character.customAnimations
+          .where(
+            (animation) =>
+                animation.definitionId == slotKey.definitionId &&
+                animation.direction == slotKey.direction,
+          )
+          .firstOrNull
+          ?.sourceAssetId,
+  };
+  final normalized = value?.trim();
+  return normalized == null || normalized.isEmpty ? null : normalized;
 }
 
 String _uniqueSuffix() {

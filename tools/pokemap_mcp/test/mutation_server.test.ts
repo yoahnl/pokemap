@@ -4080,6 +4080,15 @@ test("CHS-058 live MCP certifies animation frame and asset transports", async ()
       assetId: "mcp-hero-sheet",
       logicalPath: "assets/characters/mcp-hero/sheet.png",
       mediaKind: "spriteSheet",
+      binding: {
+        kind: "animationClip",
+        characterId: "mcp-hero",
+        slotKind: "system",
+        state: "idle",
+        direction: "north",
+        frames: [],
+        loop: true,
+      },
     });
     for (const definition of [
       { displayName: "MCP Saluer", mode: "directional" },
@@ -4147,6 +4156,15 @@ test("CHS-058 live MCP certifies animation frame and asset transports", async ()
     await apply("characterStudio.asset.replace", {
       artifactHandle: stagedReplacement.artifactHandle,
       assetId: "mcp-hero-sheet",
+      binding: {
+        kind: "animationClip",
+        characterId: "mcp-hero",
+        slotKind: "system",
+        state: "idle",
+        direction: "north",
+        frames: [],
+        loop: false,
+      },
     });
     await apply("characterStudio.animationFrame.insert", {
       characterId: "mcp-hero",
@@ -4241,6 +4259,9 @@ test("CHS-058 live MCP certifies animation frame and asset transports", async ()
       ids: ["mcp-hero"],
     });
     const character = record((characterQuery.items as unknown[])[0]);
+    const systemClip = record((character.animations as JsonRecord[])[0]);
+    assert.equal(systemClip.sourceAssetId, "mcp-hero-sheet");
+    assert.equal(systemClip.loop, false);
     const customClip = record((character.customAnimations as JsonRecord[])[0]);
     assert.equal(customClip.definitionId, "mcp-acclamer");
     assert.equal(customClip.direction, "south");

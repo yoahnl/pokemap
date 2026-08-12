@@ -75,7 +75,7 @@ void main() {
   );
 
   test(
-    'imports a portable sprite sheet then assigns only the selected slot',
+    'imports and binds a portable sprite sheet in one atomic action',
     () async {
       final gateway = _AssetGateway();
       final service = CharacterAnimationSourceImportService(gateway: gateway);
@@ -94,21 +94,41 @@ void main() {
         loop: true,
       );
 
-      expect(gateway.actions, <String>[
-        'characterStudio.asset.import',
-        'characterStudio.animationClip.upsert',
-      ]);
-      expect(gateway.parameters.last['characterId'], 'elia');
-      expect(gateway.parameters.last['kind'], 'system');
-      expect(gateway.parameters.last['state'], 'idle');
-      expect(gateway.parameters.last['direction'], 'north');
-      expect(gateway.parameters.last['frames'], isEmpty);
-      expect(
-        gateway.parameters.last['sourceAssetId'],
-        startsWith('sprite-elia-'),
-      );
+      expect(gateway.actions, <String>['characterStudio.asset.import']);
+      expect(gateway.parameters.single['binding'], <String, Object?>{
+        'kind': 'animationClip',
+        'characterId': 'elia',
+        'slotKind': 'system',
+        'state': 'idle',
+        'direction': 'north',
+        'frames': <Object?>[],
+        'loop': true,
+      });
+      expect(gateway.parameters.single['assetId'], startsWith('sprite-elia-'));
     },
   );
+
+  test('reimporting a portable source replaces its existing asset', () async {
+    final gateway = _AssetGateway();
+    final service = CharacterAnimationSourceImportService(gateway: gateway);
+    const slot = CharacterAnimationSlotKey.system(
+      state: CharacterAnimationState.idle,
+      direction: EntityFacing.north,
+    );
+
+    await service.import(
+      projectRootPath: '/project',
+      project: _project(withPortableSource: true),
+      characterId: 'elia',
+      slotKey: slot,
+      sourcePath: '/source/replacement.png',
+      loop: false,
+    );
+
+    expect(gateway.actions, <String>['characterStudio.asset.replace']);
+    expect(gateway.parameters.single['assetId'], 'sprite-elia-idle-north');
+    expect((gateway.parameters.single['binding']! as Map)['loop'], isFalse);
+  });
 
   test(
     'reimporting a historical source never reuses its asset record',
@@ -133,7 +153,7 @@ void main() {
         sourcePath: '/source/a.png',
         loop: true,
       );
-      final firstAssetId = gateway.parameters.last['sourceAssetId'];
+      final firstAssetId = gateway.parameters.last['assetId'];
       await service.import(
         projectRootPath: '/project',
         project: project,
@@ -143,7 +163,7 @@ void main() {
         loop: true,
       );
 
-      expect(gateway.parameters.last['sourceAssetId'], isNot(firstAssetId));
+      expect(gateway.parameters.last['assetId'], isNot(firstAssetId));
       expect(
         gateway.actions.where(
           (action) => action == 'characterStudio.asset.import',
@@ -366,13 +386,28 @@ final class _AssetGateway implements CharacterStudioPortraitAssetGateway {
   }
 }
 
-ProjectManifest _project() {
+ProjectManifest _project({bool withPortableSource = false}) {
   return ProjectManifest(
     name: 'Source',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
-    characters: const <ProjectCharacterEntry>[
-      ProjectCharacterEntry(id: 'elia', name: 'Élia', tilesetId: 'elia'),
+    characters: <ProjectCharacterEntry>[
+      ProjectCharacterEntry(
+        id: 'elia',
+        name: 'Élia',
+        tilesetId: 'elia',
+        animations: <CharacterAnimation>[
+          if (withPortableSource)
+            const CharacterAnimation(
+              state: CharacterAnimationState.idle,
+              direction: EntityFacing.north,
+              sourceAssetId: 'sprite-elia-idle-north',
+              frames: <CharacterAnimationFrame>[
+                CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0)),
+              ],
+            ),
+        ],
+      ),
     ],
   );
 }

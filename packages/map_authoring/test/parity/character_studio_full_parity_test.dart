@@ -143,7 +143,6 @@ const List<String> _actionIds = <String>[
   'characterStudio.portraitState.create',
   'characterStudio.character.create',
   'characterStudio.asset.import',
-  'characterStudio.character.portrait.assign',
   'characterStudio.animationDefinition.create',
   'characterStudio.animationClip.upsert',
   'characterStudio.animationFrame.insert',
@@ -157,12 +156,13 @@ const List<Map<String, Object?>> _actionParameters = <Map<String, Object?>>[
     'frameWidth': 4,
     'frameHeight': 8,
   },
-  <String, Object?>{},
   <String, Object?>{
-    'characterId': 'elia',
-    'portraitStateId': 'neutre',
-    'assetId': 'elia-neutral',
-    'fitMode': 'contain',
+    'binding': <String, Object?>{
+      'kind': 'portrait',
+      'characterId': 'elia',
+      'portraitStateId': 'neutre',
+      'fitMode': 'contain',
+    },
   },
   <String, Object?>{'displayName': 'Saluer', 'mode': 'directional'},
   <String, Object?>{
@@ -243,6 +243,15 @@ List<_TransportStep> _animationSteps({
           'logicalPath': 'assets/characters/elia/sheet.png',
           'mediaKind': 'spriteSheet',
           'tags': <String>['heroine'],
+          'binding': <String, Object?>{
+            'kind': 'animationClip',
+            'characterId': 'elia',
+            'slotKind': 'system',
+            'state': 'idle',
+            'direction': 'north',
+            'frames': <Object?>[],
+            'loop': true,
+          },
         },
       ),
       const _TransportStep(
@@ -352,6 +361,15 @@ List<_TransportStep> _animationSteps({
         <String, Object?>{
           'artifactHandle': replacementArtifactHandle,
           'assetId': 'elia-sheet',
+          'binding': <String, Object?>{
+            'kind': 'animationClip',
+            'characterId': 'elia',
+            'slotKind': 'system',
+            'state': 'idle',
+            'direction': 'north',
+            'frames': <Object?>[],
+            'loop': true,
+          },
         },
       ),
       const _TransportStep(

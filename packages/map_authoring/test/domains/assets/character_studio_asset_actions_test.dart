@@ -60,6 +60,112 @@ void main() {
       );
     });
 
+    test('imports and binds a portrait in one atomic draft', () async {
+      final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
+      final staged = await store.put(
+        _png(width: 96, height: 128),
+        declaredMediaType: 'image/png',
+      );
+
+      final draft = await CharacterStudioAssetActions(
+        artifactStore: store,
+      ).build(
+        _context(
+          snapshot: _snapshot(withCharacterStudio: true),
+          actionId: 'characterStudio.asset.import',
+          parameters: <String, Object?>{
+            'artifactHandle': staged.reference.handle,
+            'assetId': 'elia-neutral',
+            'logicalPath': 'assets/characters/elia/neutral.png',
+            'mediaKind': 'portrait',
+            'binding': <String, Object?>{
+              'kind': 'portrait',
+              'characterId': 'elia',
+              'portraitStateId': 'neutral',
+              'fitMode': 'cover',
+            },
+          },
+        ),
+      );
+
+      expect(
+        draft.changeSet.changes.map((change) => change.resource.kind),
+        containsAll(<String>['project', 'assetCatalog', 'assetBlob']),
+      );
+      expect(draft.preview['bindingKind'], 'portrait');
+      final project = _projectAfter(draft);
+      expect(
+          project.characters.single.portraits.single.assetId, 'elia-neutral');
+      expect(
+        project.characters.single.portraits.single.fitMode,
+        CharacterPortraitFitMode.cover,
+      );
+    });
+
+    test('replaces and binds an animation while closing its old blob',
+        () async {
+      final oldBytes = _png(width: 64, height: 64, marker: 1);
+      final newBytes = _png(width: 96, height: 64, marker: 2);
+      final oldArtifact = ContentArtifactRef.fromBytes(
+        oldBytes,
+        mediaType: 'image/png',
+      );
+      final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
+      final staged = await store.put(newBytes, declaredMediaType: 'image/png');
+      final snapshot = _snapshot(
+        withCharacterStudio: true,
+        animationSourceAssetId: 'elia-idle-north',
+        catalog: AssetCatalog(
+          records: <AssetRecord>[
+            AssetRecord(
+              id: 'elia-idle-north',
+              logicalPath: 'assets/characters/elia/idle-north.png',
+              artifact: oldArtifact,
+              tags: const <String>[
+                'character-studio',
+                'character-studio:spriteSheet',
+              ],
+            ),
+          ],
+        ),
+        blobs: <ContentArtifactRef, List<int>>{oldArtifact: oldBytes},
+      );
+
+      final draft = await CharacterStudioAssetActions(
+        artifactStore: store,
+      ).build(
+        _context(
+          snapshot: snapshot,
+          actionId: 'characterStudio.asset.replace',
+          parameters: <String, Object?>{
+            'artifactHandle': staged.reference.handle,
+            'assetId': 'elia-idle-north',
+            'binding': <String, Object?>{
+              'kind': 'animationClip',
+              'characterId': 'elia',
+              'slotKind': 'system',
+              'state': 'idle',
+              'direction': 'north',
+              'frames': <Object?>[],
+              'loop': false,
+            },
+          },
+        ),
+      );
+
+      expect(draft.preview['bindingKind'], 'animationClip');
+      expect(draft.preview['orphanedBlobDeleted'], isTrue);
+      expect(
+        draft.changeSet.changes.where((change) => change.afterBytes == null),
+        hasLength(1),
+      );
+      final animation =
+          _projectAfter(draft).characters.single.animations.single;
+      expect(animation.sourceAssetId, 'elia-idle-north');
+      expect(animation.frames, isEmpty);
+      expect(animation.loop, isFalse);
+    });
+
     test('rejects non-PNG bytes and out-of-bounds source rectangles', () async {
       final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
       final text = await store.put(
@@ -341,13 +447,52 @@ AuthoringPlanningContext _context({
 
 ProjectSnapshot _snapshot({
   AssetCatalog? catalog,
+  bool withCharacterStudio = false,
+  String? animationSourceAssetId,
   Map<ContentArtifactRef, List<int>> blobs =
       const <ContentArtifactRef, List<int>>{},
 }) {
   final manifest = ProjectManifest(
     name: 'Character asset fixture',
     maps: const <ProjectMapEntry>[],
-    tilesets: const <ProjectTilesetEntry>[],
+    tilesets: <ProjectTilesetEntry>[
+      if (withCharacterStudio)
+        const ProjectTilesetEntry(
+          id: 'elia',
+          name: 'Élia',
+          relativePath: 'elia.png',
+        ),
+    ],
+    characterStudioCatalog: ProjectCharacterStudioCatalog(
+      portraitStates: <CharacterPortraitStateDefinition>[
+        if (withCharacterStudio)
+          const CharacterPortraitStateDefinition(
+            id: 'neutral',
+            displayName: 'Neutre',
+          ),
+      ],
+    ),
+    characters: <ProjectCharacterEntry>[
+      if (withCharacterStudio)
+        ProjectCharacterEntry(
+          id: 'elia',
+          name: 'Élia',
+          tilesetId: 'elia',
+          animations: <CharacterAnimation>[
+            if (animationSourceAssetId != null)
+              CharacterAnimation(
+                state: CharacterAnimationState.idle,
+                direction: EntityFacing.north,
+                sourceAssetId: animationSourceAssetId,
+                frames: const <CharacterAnimationFrame>[
+                  CharacterAnimationFrame(
+                    source: TilesetSourceRect(x: 0, y: 0),
+                  ),
+                ],
+              ),
+          ],
+        ),
+    ],
   );
   final projectBytes = utf8.encode(jsonEncode(manifest.toJson()));
   final fingerprints = <String, String>{
@@ -389,6 +534,15 @@ ProjectSnapshot _snapshot({
     resourceFingerprints: fingerprints,
     resourceBytes: resourceBytes,
     resourceStorageKeys: storageKeys,
+  );
+}
+
+ProjectManifest _projectAfter(AuthoringMutationDraft draft) {
+  final bytes = draft.changeSet.changes
+      .singleWhere((change) => change.resource.kind == 'project')
+      .afterBytes!;
+  return ProjectManifest.fromJson(
+    Map<String, dynamic>.from(jsonDecode(utf8.decode(bytes)) as Map),
   );
 }
 
