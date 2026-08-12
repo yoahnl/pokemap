@@ -1,4 +1,5 @@
 import '../exceptions/map_exceptions.dart';
+import '../encounters/encounter_contract.dart';
 import '../models/badge_definition.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
@@ -1419,40 +1420,76 @@ class ProjectValidator {
       if (table.name.trim().isEmpty) {
         throw ValidationException('Encounter table $id name cannot be empty');
       }
-      if (!table.chancePerStep.isFinite ||
-          table.chancePerStep < 0 ||
-          table.chancePerStep > 1) {
+      if (!table.chancePerStep.isFinite) {
         throw ValidationException(
-          'Encounter table $id chancePerStep must be between 0 and 1 '
+          'Encounter table $id chancePerStep must be finite '
           '(got ${table.chancePerStep})',
+          code: 'encounter.chance_not_finite',
+          details: <String, Object?>{'tableId': id},
+        );
+      }
+      if (table.chancePerStep < 0) {
+        throw ValidationException(
+          'Encounter table $id chancePerStep must not be negative '
+          '(got ${table.chancePerStep})',
+          code: 'encounter.chance_negative',
+          details: <String, Object?>{'tableId': id},
+        );
+      }
+      if (table.chancePerStep > 1) {
+        throw ValidationException(
+          'Encounter table $id chancePerStep must not exceed 1 '
+          '(got ${table.chancePerStep})',
+          code: 'encounter.chance_above_one',
+          details: <String, Object?>{'tableId': id},
         );
       }
       for (var i = 0; i < table.conditions.length; i++) {
-        _validateScriptCondition(
-          table.conditions[i],
-          contextLabel: 'Encounter table $id conditions[$i]',
-        );
+        try {
+          _validateScriptCondition(
+            table.conditions[i],
+            contextLabel: 'Encounter table $id conditions[$i]',
+          );
+        } on ValidationException catch (error) {
+          throw ValidationException(
+            error.message,
+            code: 'encounter.condition_invalid',
+            details: <String, Object?>{
+              'tableId': id,
+              'conditionIndex': i,
+              if (error.code != null) 'causeCode': error.code,
+            },
+          );
+        }
       }
       for (var i = 0; i < table.entries.length; i++) {
         final entry = table.entries[i];
         if (entry.speciesId.trim().isEmpty) {
           throw ValidationException(
             'Encounter table $id entry $i has empty speciesId',
+            code: 'encounter.species_empty',
+            details: <String, Object?>{'tableId': id, 'entryIndex': i},
           );
         }
         if (entry.minLevel <= 0 || entry.maxLevel <= 0) {
           throw ValidationException(
             'Encounter table $id entry $i levels must be positive',
+            code: 'encounter.level_non_positive',
+            details: <String, Object?>{'tableId': id, 'entryIndex': i},
           );
         }
         if (entry.minLevel > entry.maxLevel) {
           throw ValidationException(
             'Encounter table $id entry $i minLevel (${entry.minLevel}) > maxLevel (${entry.maxLevel})',
+            code: 'encounter.level_range_invalid',
+            details: <String, Object?>{'tableId': id, 'entryIndex': i},
           );
         }
         if (entry.weight <= 0) {
           throw ValidationException(
             'Encounter table $id entry $i weight must be positive (got ${entry.weight})',
+            code: 'encounter.weight_non_positive',
+            details: <String, Object?>{'tableId': id, 'entryIndex': i},
           );
         }
       }
@@ -2407,6 +2444,12 @@ class MapValidator {
       duplicateMessagePrefix: 'Duplicate trigger ID',
     );
 
+    final encounterTablesById = projectDialogueContext == null
+        ? const <String, ProjectEncounterTable>{}
+        : <String, ProjectEncounterTable>{
+            for (final table in projectDialogueContext.encounterTables)
+              table.id: table,
+          };
     for (final zone in map.gameplayZones) {
       final zoneId =
           _requireNonBlank(zone.id, 'Gameplay zone ID cannot be empty');
@@ -2433,6 +2476,36 @@ class MapValidator {
           zone.kind.name, 'Gameplay zone $zoneId has invalid kind');
       final encounterBattleBackgroundRelativePath =
           zone.encounter?.battleBackgroundRelativePath?.trim();
+      final encounterTableId = zone.encounter?.encounterTableId?.trim();
+      if (encounterTableId != null && encounterTableId.isNotEmpty) {
+        final table = encounterTablesById[encounterTableId];
+        if (projectDialogueContext != null && table == null) {
+          throw ValidationException(
+            'Gameplay zone $zoneId references unknown encounter table: '
+            '$encounterTableId',
+            code: 'encounter.table_unknown',
+            details: <String, Object?>{
+              'zoneId': zoneId,
+              'tableId': encounterTableId,
+            },
+          );
+        }
+        if (table != null &&
+            table.encounterKind != zone.encounter!.encounterKind) {
+          throw ValidationException(
+            'Gameplay zone $zoneId encounter kind '
+            '${zone.encounter!.encounterKind.name} does not match table '
+            '$encounterTableId kind ${table.encounterKind.name}',
+            code: 'encounter.kind_mismatch',
+            details: <String, Object?>{
+              'zoneId': zoneId,
+              'tableId': encounterTableId,
+              'zoneKind': zone.encounter!.encounterKind.name,
+              'tableKind': table.encounterKind.name,
+            },
+          );
+        }
+      }
       if (encounterBattleBackgroundRelativePath != null &&
           encounterBattleBackgroundRelativePath.isNotEmpty) {
         ProjectValidator._validateRelativePath(
@@ -2480,6 +2553,23 @@ class MapValidator {
           'Gameplay zone $zoneId area extends outside map bounds',
         );
       }
+    }
+    final encounterAmbiguities = findEncounterZoneAmbiguities(
+      map.gameplayZones,
+    );
+    if (encounterAmbiguities.isNotEmpty) {
+      final ambiguity = encounterAmbiguities.first;
+      throw ValidationException(
+        'Encounter zones ${ambiguity.zoneIds.join(', ')} overlap with '
+        'equal priority ${ambiguity.priority} for '
+        '${ambiguity.encounterKind.name}',
+        code: 'encounter.zone_ambiguous',
+        details: <String, Object?>{
+          'zoneIds': ambiguity.zoneIds,
+          'priority': ambiguity.priority,
+          'encounterKind': ambiguity.encounterKind.name,
+        },
+      );
     }
     _validateUniqueIds(
       map.gameplayZones,
