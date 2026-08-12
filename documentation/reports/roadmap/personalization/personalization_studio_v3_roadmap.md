@@ -338,10 +338,10 @@ Le tableau suivant est l'état autoritatif après la Phase R5. Les cases des sp�
 | PERS3-30 | DONE technique | Authoring `37/37`, MCP Presentation `3/3` et catalogue exact du worktree V10/V2 sur quatre transports. |
 | PERS3-31 | DONE | Restart, export, installation Hub, standalone et parité de view-data V10. |
 | PERS3-32 | DONE | Matrices Editor et Player, texte 200 %, clavier et manette vertes. |
-| PERS3-33 | PARTIAL | Les 36 goldens de surfaces, quatre goldens du shell complet, six contact sheets et six captures desktop réelles sont générés et inspectés techniquement ; l'acceptation explicite de Yoahn manque. |
-| PERS3-34 | PARTIAL | Le nettoyage technique est vert et aucun artefact de diff ne subsiste ; son gate exige aussi l'approbation produit liée à PERS3-33. |
+| PERS3-33 | DONE | Les 36 goldens de surfaces, quatre goldens du shell complet, six contact sheets et six captures desktop réelles ont été acceptés explicitement par Yoahn le 2026-08-12. |
+| PERS3-34 | DONE | Le nettoyage technique est vert, aucun artefact de diff ne subsiste et l'approbation produit liée à PERS3-33 est acquise. |
 
-Verdict produit V3 : `PARTIAL`. Il ne reste pas une capacité technique cachée à implémenter dans cette roadmap ; il reste la revue visuelle humaine de l'interface actuelle et, si elle révèle des écarts, leur correction ciblée.
+Verdict produit V3 : `DONE`. PERS3-00 à PERS3-34 sont fermés avec preuves techniques fraîches et acceptation visuelle humaine explicite.
 
 ### PERS3-00 — Registre de capacités et interdiction des faux contrôles
 

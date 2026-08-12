@@ -297,13 +297,15 @@ Le premier passage Editor a produit `129` succès et `4` échecs exclusivement s
 
 Verdict R6.8 : `DONE`.
 
-### PERS3-R6.9 — Clôture conditionnelle
+### PERS3-R6.9 — Clôture produit
 
 Les preuves techniques demandées par la finition R6 sont présentes : six scènes paysage/portrait, variantes Dialogue et Combat, quatre goldens du shell complet, six captures du binaire desktop, tests ciblés, analyses et build Editor Release. La roadmap canonique reflète désormais cet inventaire exact.
 
-Deux gates restent volontairement ouverts :
+Les deux derniers gates sont désormais fermés :
 
-- l'acceptation visuelle explicite de Yoahn n'a pas encore été enregistrée ; PERS3-33 reste donc `PARTIAL` et PERS3-34 reste lié à cette décision ;
-- aucun merge ni push n'est effectué sans autorisation distincte. Le rebase final demandé est exécuté après les commits de la phase.
+- Yoahn a explicitement accepté les six captures desktop le 2026-08-12 ; PERS3-33 passe à `DONE` ;
+- le nettoyage technique, les preuves visuelles et l'approbation produit permettent à PERS3-34 de passer à `DONE`.
 
-Verdict R6.9 : `PARTIAL`, bloqué uniquement par la décision produit humaine et l'autorisation de livraison, pas par une capacité technique manquante.
+Aucun merge ni push n'est effectué sans autorisation distincte. Le rebase final demandé est exécuté après le commit de clôture.
+
+Verdict R6.9 : `DONE`. Verdict produit Personalization Studio V3 : `DONE`.
