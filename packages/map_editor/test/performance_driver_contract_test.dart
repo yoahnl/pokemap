@@ -185,6 +185,7 @@ void main() {
       (receipt) => receipt['treeState'] = 'dirty',
       (receipt) => receipt['commit'] = 'unavailable',
       (receipt) => receipt['sdk'] = 'unavailable',
+      (receipt) => receipt['architecture'] = 'unavailable',
       (receipt) => receipt['toolchain'] = <String, Object?>{},
       (receipt) => (receipt['toolchain']! as Map<String, Object?>)['flame'] =
           'unavailable',
@@ -275,6 +276,7 @@ Map<String, dynamic> _validFineMaskReceipt() => <String, dynamic>{
   'executionMode': 'flutter-profile',
   'commit': '0123456789abcdef0123456789abcdef01234567',
   'treeState': 'clean',
+  'architecture': 'arm64',
   'sdk': 'Dart 3',
   'toolchain': <String, Object?>{
     'dart': 'Dart 3',
@@ -364,6 +366,7 @@ Map<String, dynamic> _validCanvasReceipt({int sampleUs = 100}) {
     'executionMode': 'flutter-profile',
     'commit': '0123456789abcdef0123456789abcdef01234567',
     'treeState': 'clean',
+    'architecture': 'arm64',
     'sdk': 'Dart 3',
     'toolchain': <String, Object?>{
       'dart': 'Dart 3',
@@ -432,6 +435,7 @@ Map<String, dynamic> _validProjectReceipt() => <String, dynamic>{
   'executionMode': 'flutter-profile',
   'commit': '0123456789abcdef0123456789abcdef01234567',
   'treeState': 'clean',
+  'architecture': 'arm64',
   'sdk': 'Dart 3',
   'toolchain': <String, Object?>{
     'dart': 'Dart 3',

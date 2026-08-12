@@ -205,6 +205,8 @@ void _validateProvenance(Map<String, dynamic> data) {
       !RegExp(r'^[0-9a-f]{40}$').hasMatch(commit) ||
       data['sdk'] is! String ||
       !_isAvailableText(data['sdk']! as String) ||
+      data['architecture'] is! String ||
+      !const <String>{'arm64', 'x64'}.contains(data['architecture']) ||
       toolchain is! Map ||
       toolchain['dart'] is! String ||
       !_isAvailableText(toolchain['dart']! as String) ||
