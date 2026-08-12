@@ -17,6 +17,7 @@ final class EditorPerformanceSpanName {
   static const maskCommit = 'mask.commit';
   static const maskBuild = 'mask.build';
   static const maskPaint = 'mask.paint';
+  static const mapFullValidation = 'map.validation.full';
   static const snapshot = 'snapshot';
   static const plan = 'plan';
   static const apply = 'apply';
@@ -36,6 +37,7 @@ final class EditorPerformanceSpanName {
     maskCommit,
     maskBuild,
     maskPaint,
+    mapFullValidation,
     snapshot,
     plan,
     apply,

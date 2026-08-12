@@ -248,4 +248,83 @@ void main() {
     notifier.redoMap();
     expect(notifier.state.activeMap, committed);
   });
+
+  test('Smart Tile stroke cancel discards its sparse preview', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    final project = ProjectManifest(
+      name: 'Project',
+      maps: const <ProjectMapEntry>[],
+      tilesets: const <ProjectTilesetEntry>[],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: const <ProjectSmartTileMaterial>[
+          ProjectSmartTileMaterial(
+            id: 'grass',
+            name: 'Grass',
+            connectionGroupId: 'ground',
+          ),
+        ],
+        presets: const <ProjectSmartTilePreset>[
+          ProjectSmartTilePreset(
+            id: 'terrain',
+            name: 'Terrain',
+            usage: SmartTileUsage.terrain,
+            topology: SmartTileTopology.uniform,
+            coveragePolicy: SmartTileCoveragePolicy.sparse,
+            coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: SmartTileTransformPolicy(),
+            defaultMaterialId: 'grass',
+            allowedMaterialIds: <String>['grass'],
+          ),
+        ],
+      ),
+    );
+    final source = MapData(
+      id: 'map',
+      name: 'Map',
+      size: const GridSize(width: 8, height: 8),
+      layers: <MapLayer>[
+        MapLayer.smartTile(
+          id: 'smart',
+          name: 'Smart',
+          presetId: 'terrain',
+          usage: SmartTileUsage.terrain,
+          materialPalette: const <String>['', 'grass'],
+          field: SmartTileField.cell(semanticCells: List<int>.filled(64, 0)),
+        ),
+      ],
+    );
+    notifier.state = EditorState(
+      project: project,
+      activeMap: source,
+      activeLayerId: 'smart',
+      activeTool: EditorToolType.terrainPaint,
+      savedMapSnapshot: source,
+    );
+
+    notifier.beginMapStroke();
+    notifier.paintSmartTileMaterialAt(
+      const GridPos(x: 1, y: 3),
+      materialId: 'grass',
+    );
+    notifier.paintSmartTileMaterialAt(
+      const GridPos(x: 6, y: 3),
+      materialId: 'grass',
+    );
+
+    final preview = notifier.activeMapCellStrokePreview!;
+    expect(preview.touchedCellCount, 6);
+    expect(preview.smartTileMaterialAt(4, 3), 'grass');
+    expect(notifier.state.activeMap, same(source));
+
+    notifier.cancelMapStroke();
+
+    expect(notifier.activeMapCellStrokePreview, isNull);
+    expect(notifier.state.activeMap, same(source));
+    expect(notifier.state.mapUndoStack, isEmpty);
+    expect(notifier.state.isDirty, isFalse);
+  });
 }
