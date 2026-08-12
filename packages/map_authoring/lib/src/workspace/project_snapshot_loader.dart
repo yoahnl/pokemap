@@ -122,6 +122,7 @@ final class ProjectSnapshotLoadProfile {
     required this.resourceCount,
     required this.resourceBytes,
     this.cacheHit = false,
+    this.cacheIdentityReads = 0,
   });
 
   final int initialReadMicroseconds;
@@ -133,14 +134,9 @@ final class ProjectSnapshotLoadProfile {
   final int resourceCount;
   final int resourceBytes;
   final bool cacheHit;
+  final int cacheIdentityReads;
 }
 
-/// Loads every manifest-declared map and external dialogue source twice to
-/// reject mixed disk revisions.
-///
-/// The double read cannot make unrelated filesystem operations atomic, but it
-/// ensures this API never claims a coherent snapshot after observing a change
-/// in any resource that contributes to the returned revision.
 final class ProjectSnapshotLoader {
   ProjectSnapshotLoader({
     required WorkspaceHandleStore handles,
@@ -185,11 +181,19 @@ final class ProjectSnapshotLoader {
   Future<ProjectSnapshot> load(
     ProjectHandle projectHandle, {
     ProjectSnapshotLoadPolicy policy = ProjectSnapshotLoadPolicy.strict,
+    ProjectSnapshotCacheValidation cacheValidation =
+        ProjectSnapshotCacheValidation.canonical,
   }) async {
     final profiler =
         profileSink == null ? null : _ProjectSnapshotLoadProfiler();
+    final cacheIdentityReadsBefore =
+        profiler == null ? 0 : _snapshotCache?.identityReads ?? 0;
     final access = _handles.resolveProject(projectHandle);
-    final cached = await _snapshotCache?.lookup(access, projectHandle);
+    final cached = await _snapshotCache?.lookup(
+      access,
+      projectHandle,
+      validation: cacheValidation,
+    );
     if (cached != null) {
       if (profiler != null) {
         profileSink!(
@@ -197,6 +201,8 @@ final class ProjectSnapshotLoader {
             resourceCount: cached.resourceFingerprints.length,
             resourceBytes: cached.resourceByteLength,
             cacheHit: true,
+            cacheIdentityReads:
+                (_snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
           ),
         );
       }
@@ -606,6 +612,8 @@ final class ProjectSnapshotLoader {
             0,
             (total, resource) => total + resource.bytes.typedBytes.length,
           ),
+          cacheIdentityReads:
+              (_snapshotCache?.identityReads ?? 0) - cacheIdentityReadsBefore,
         ),
       );
     }
@@ -868,6 +876,7 @@ final class _ProjectSnapshotLoadProfiler {
     required int resourceCount,
     required int resourceBytes,
     bool cacheHit = false,
+    int cacheIdentityReads = 0,
   }) {
     _total.stop();
     return ProjectSnapshotLoadProfile(
@@ -880,6 +889,7 @@ final class _ProjectSnapshotLoadProfiler {
       resourceCount: resourceCount,
       resourceBytes: resourceBytes,
       cacheHit: cacheHit,
+      cacheIdentityReads: cacheIdentityReads,
     );
   }
 }
