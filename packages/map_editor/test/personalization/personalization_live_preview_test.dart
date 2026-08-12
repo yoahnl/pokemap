@@ -24,7 +24,8 @@ void main() {
     expect(find.text('Aperçu en direct'), findsOneWidget);
     expect(find.text('Projet réel'), findsOneWidget);
     expect(find.text('Widgets du jeu'), findsOneWidget);
-    expect(find.text('Réglages d’essai'), findsOneWidget);
+    expect(find.text('Réglages d’aperçu'), findsOneWidget);
+    expect(find.text('Données affichées'), findsOneWidget);
     expect(find.text('Aperçu'), findsNothing);
     expect(find.text('Données de démonstration'), findsNothing);
     expect(find.text('Interface du jeu'), findsNothing);
@@ -36,6 +37,119 @@ void main() {
     );
     expect(find.text('Preview réelle'), findsNothing);
   });
+
+  testWidgets(
+    'keeps essential preview settings visible and secondary ones folded',
+    (tester) async {
+      await tester.pumpWidget(
+        _app(
+          const PersonalizationLivePreview(
+            profile: ProjectPresentationProfile(
+              theme: safeProjectSemanticTheme,
+              menuLabels: ProjectMenuLabelsProfile(pokedex: 'Bestiaire'),
+            ),
+            baselineProfile: ProjectPresentationProfile(
+              theme: safeProjectSemanticTheme,
+            ),
+            projectName: 'Pokémon Aurore',
+            projectRootPath: '',
+            scene: PersonalizationStudioScene.title,
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('personalization-preview-primary-settings'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('personalization-preview-data-section'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('personalization-preview-reduced-motion'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('personalization-preview-compare')),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('personalization-preview-secondary-toggle'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('personalization-preview-reduced-motion'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('personalization-preview-compare')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'preserves scene height and avoids overflow at 200 percent text',
+    (tester) async {
+      tester.view.physicalSize = const Size(1672, 941);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        _app(
+          const PersonalizationLivePreview(
+            profile: ProjectPresentationProfile(
+              theme: safeProjectSemanticTheme,
+            ),
+            projectName: 'Pokémon Aurore',
+            projectRootPath: '',
+            scene: PersonalizationStudioScene.dialogue,
+          ),
+          size: const Size(1240, 800),
+          textScale: 2,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester
+            .getSize(
+              find.byKey(
+                const ValueKey<String>(
+                  'personalization-preview-primary-settings',
+                ),
+              ),
+            )
+            .height,
+        lessThanOrEqualTo(112),
+      );
+      expect(
+        tester
+            .getSize(
+              find.byKey(
+                const ValueKey<String>('personalization-preview-canvas'),
+              ),
+            )
+            .height,
+        greaterThanOrEqualTo(460),
+      );
+    },
+  );
 
   testWidgets('exposes only the simple product simulation controls', (
     tester,
@@ -186,6 +300,12 @@ void main() {
       ),
     );
 
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
     expect(
       find.byKey(
         const ValueKey<String>('personalization-preview-reduced-motion'),
@@ -410,7 +530,8 @@ void main() {
       ),
     );
 
-    await tester.tap(
+    await _tapVisible(
+      tester,
       find.byKey(
         const ValueKey<String>(
           'personalization-preview-context-dialogueScenario',
@@ -453,7 +574,8 @@ void main() {
       ),
     );
 
-    await tester.tap(
+    await _tapVisible(
+      tester,
       find.byKey(
         const ValueKey<String>(
           'personalization-preview-context-dialogueScenario',
@@ -497,7 +619,8 @@ void main() {
       ),
     );
 
-    await tester.tap(
+    await _tapVisible(
+      tester,
       find.byKey(
         const ValueKey<String>(
           'personalization-preview-context-dialogueScenario',
@@ -699,13 +822,15 @@ void main() {
         ),
       );
 
-      await tester.tap(
+      await _tapVisible(
+        tester,
         find.byKey(const ValueKey<String>('battle-preview-enemy')),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Mystherbe').last);
       await tester.pumpAndSettle();
-      await tester.tap(
+      await _tapVisible(
+        tester,
         find.byKey(const ValueKey<String>('battle-preview-player')),
       );
       await tester.pumpAndSettle();
@@ -912,9 +1037,27 @@ final _projectContexts = <PersonalizationPreviewContextOption>[
   ),
 ];
 
-Widget _app(Widget child) => MaterialApp(
+Widget _app(
+  Widget child, {
+  Size size = const Size(1000, 700),
+  double textScale = 1,
+}) => MaterialApp(
   theme: PokeMapTheme.light(),
+  builder: (context, appChild) => MediaQuery(
+    data: MediaQuery.of(
+      context,
+    ).copyWith(textScaler: TextScaler.linear(textScale)),
+    child: appChild!,
+  ),
   home: Scaffold(
-    body: Center(child: SizedBox(width: 1000, height: 700, child: child)),
+    body: Center(
+      child: SizedBox(width: size.width, height: size.height, child: child),
+    ),
   ),
 );
+
+Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+}

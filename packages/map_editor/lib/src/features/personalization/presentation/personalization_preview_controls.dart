@@ -29,13 +29,13 @@ class PersonalizationPreviewControls extends StatelessWidget {
       PersonalizationPreviewViewport.portrait,
     ];
     return Wrap(
+      key: const ValueKey<String>('personalization-preview-primary-settings'),
       spacing: 12,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
         _PreviewOnlySetting(
           label: 'Format',
-          previewOnly: true,
           child: PokeMapSegmentedTabs(
             minimumHeight: 48,
             tabs: <PokeMapSegmentedTab>[
@@ -73,107 +73,74 @@ class PersonalizationPreviewControls extends StatelessWidget {
             ],
           ),
         ),
-        if (scenario.supportsReducedMotion)
-          _PreviewOnlyAction(
-            child: PokeMapButton(
-              key: const ValueKey<String>(
-                'personalization-preview-reduced-motion',
-              ),
-              size: PokeMapButtonSize.large,
-              variant: PokeMapButtonVariant.secondary,
-              semanticLabel: 'Mouvement réduit, aperçu uniquement',
-              isSelected: scenario.reducedMotion,
-              onPressed: () => onChanged(
-                scenario.copyWith(reducedMotion: !scenario.reducedMotion),
-              ),
-              leading: const Icon(Icons.motion_photos_off_outlined),
-              child: const Text('Mouvement réduit'),
-            ),
-          ),
-        if (scenario.canCompare)
-          _PreviewOnlyAction(
-            child: PokeMapButton(
-              key: const ValueKey<String>('personalization-preview-compare'),
-              size: PokeMapButtonSize.large,
-              variant: PokeMapButtonVariant.secondary,
-              semanticLabel: 'Comparer avant/après, aperçu uniquement',
-              isSelected: scenario.showComparison,
-              onPressed: () => onChanged(
-                scenario.copyWith(
-                  comparisonEnabled: !scenario.comparisonEnabled,
-                ),
-              ),
-              leading: const Icon(Icons.compare_outlined),
-              child: Text(
-                scenario.showComparison
-                    ? 'Fermer la comparaison'
-                    : 'Comparer avant/après',
-              ),
-            ),
-          ),
       ],
     );
   }
 }
 
-class _PreviewOnlySetting extends StatelessWidget {
-  const _PreviewOnlySetting({
-    required this.label,
-    required this.child,
-    this.previewOnly = false,
+class PersonalizationPreviewSecondaryControls extends StatelessWidget {
+  const PersonalizationPreviewSecondaryControls({
+    super.key,
+    required this.scenario,
+    required this.onChanged,
   });
 
-  final String label;
-  final Widget child;
-  final bool previewOnly;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      _PreviewOnlyLabel(label: label, previewOnly: previewOnly),
-      const SizedBox(height: 4),
-      child,
-    ],
-  );
-}
-
-class _PreviewOnlyAction extends StatelessWidget {
-  const _PreviewOnlyAction({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: <Widget>[
-      const _PreviewOnlyLabel(label: 'Réglage de test'),
-      const SizedBox(height: 4),
-      child,
-    ],
-  );
-}
-
-class _PreviewOnlyLabel extends StatelessWidget {
-  const _PreviewOnlyLabel({required this.label, this.previewOnly = false});
-
-  final String label;
-  final bool previewOnly;
+  final PersonalizationPreviewScenario scenario;
+  final ValueChanged<PersonalizationPreviewScenario> onChanged;
 
   @override
   Widget build(BuildContext context) => Wrap(
-    spacing: 6,
-    runSpacing: 4,
-    crossAxisAlignment: WrapCrossAlignment.center,
+    spacing: 8,
+    runSpacing: 8,
+    children: <Widget>[
+      if (scenario.supportsReducedMotion)
+        PokeMapButton(
+          key: const ValueKey<String>('personalization-preview-reduced-motion'),
+          size: PokeMapButtonSize.medium,
+          variant: PokeMapButtonVariant.secondary,
+          semanticLabel: 'Mouvement réduit, aperçu uniquement',
+          isSelected: scenario.reducedMotion,
+          onPressed: () => onChanged(
+            scenario.copyWith(reducedMotion: !scenario.reducedMotion),
+          ),
+          leading: const Icon(Icons.motion_photos_off_outlined),
+          child: const Text('Mouvement réduit'),
+        ),
+      if (scenario.canCompare)
+        PokeMapButton(
+          key: const ValueKey<String>('personalization-preview-compare'),
+          size: PokeMapButtonSize.medium,
+          variant: PokeMapButtonVariant.secondary,
+          semanticLabel: 'Comparer avant/après, aperçu uniquement',
+          isSelected: scenario.showComparison,
+          onPressed: () => onChanged(
+            scenario.copyWith(comparisonEnabled: !scenario.comparisonEnabled),
+          ),
+          leading: const Icon(Icons.compare_outlined),
+          child: Text(
+            scenario.showComparison
+                ? 'Fermer la comparaison'
+                : 'Comparer avant/après',
+          ),
+        ),
+    ],
+  );
+}
+
+class _PreviewOnlySetting extends StatelessWidget {
+  const _PreviewOnlySetting({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: <Widget>[
       Text(label, style: Theme.of(context).textTheme.labelMedium),
-      if (previewOnly)
-        const PokeMapBadge(
-          label: 'Aperçu uniquement',
-          variant: PokeMapBadgeVariant.info,
-        ),
+      const SizedBox(height: 4),
+      child,
     ],
   );
 }

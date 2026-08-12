@@ -92,6 +92,7 @@ class _PersonalizationLivePreviewState
   double _textScale = 1;
   bool _reducedMotion = false;
   bool _comparisonEnabled = false;
+  bool _secondarySettingsExpanded = false;
   PersonalizationTitlePreviewStage _titleStage =
       PersonalizationTitlePreviewStage.menu;
   int _titleStageSelectionRevision = 0;
@@ -99,6 +100,7 @@ class _PersonalizationLivePreviewState
       PlayerTitleMotionController();
   final PlayerIntroVideoPreviewController _introPreviewController =
       PlayerIntroVideoPreviewController();
+  final ScrollController _settingsScrollController = ScrollController();
   final Map<PersonalizationPreviewContextKind, String?> _selectedContextIds =
       <PersonalizationPreviewContextKind, String?>{};
   String? _selectedEnemySpeciesId;
@@ -132,6 +134,7 @@ class _PersonalizationLivePreviewState
 
   @override
   void dispose() {
+    _settingsScrollController.dispose();
     unawaited(_titleMotionController.releasePlayback());
     unawaited(_introPreviewController.releasePlayback());
     super.dispose();
@@ -261,141 +264,220 @@ class _PersonalizationLivePreviewState
         padding: const EdgeInsets.all(12),
         header: ConstrainedBox(
           constraints: BoxConstraints(
-            maxHeight: (constraints.maxHeight * .55)
-                .clamp(160.0, 420.0)
+            maxHeight: (constraints.maxHeight * .38)
+                .clamp(280.0, 300.0)
                 .toDouble(),
           ),
-          child: SingleChildScrollView(
+          child: Scrollbar(
             key: const ValueKey<String>(
-              'personalization-preview-settings-scroll',
+              'personalization-preview-settings-scrollbar',
             ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: <Widget>[
-                    Text(
-                      'Aperçu en direct',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+            controller: _settingsScrollController,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              key: const ValueKey<String>(
+                'personalization-preview-settings-scroll',
+              ),
+              controller: _settingsScrollController,
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: <Widget>[
+                      Text(
+                        'Aperçu en direct',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      PokeMapBadge(
+                        key: const ValueKey<String>(
+                          'personalization-preview-content-source',
+                        ),
+                        label: switch (widget.contentSource) {
+                          PersonalizationPreviewContentSource.demonstration =>
+                            'Démonstration',
+                          PersonalizationPreviewContentSource.project =>
+                            'Projet réel',
+                        },
+                        variant:
+                            widget.contentSource ==
+                                PersonalizationPreviewContentSource.project
+                            ? PokeMapBadgeVariant.success
+                            : PokeMapBadgeVariant.warning,
+                      ),
+                      Text(
+                        switch (surfaceFidelity) {
+                          PersonalizationPreviewSurfaceFidelity
+                              .playerInterface =>
+                            'Widgets du jeu',
+                          PersonalizationPreviewSurfaceFidelity
+                              .editorBackdrop =>
+                            'Widgets du jeu sur la carte du projet',
+                        },
+                        key: const ValueKey<String>(
+                          'personalization-preview-surface-fidelity',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const PokeMapBadge(
+                        key: ValueKey<String>(
+                          'personalization-preview-local-controls',
+                        ),
+                        label: 'Aperçu uniquement',
+                        variant: PokeMapBadgeVariant.info,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Réglages d’aperçu',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Changez seulement la façon d’observer la scène.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  PersonalizationPreviewControls(
+                    scenario: scenario,
+                    onChanged: _applyScenario,
+                  ),
+                  if (scenario.supportsReducedMotion ||
+                      scenario.canCompare) ...<Widget>[
+                    const SizedBox(height: 8),
+                    PokeMapDisclosure(
+                      toggleKey: const ValueKey<String>(
+                        'personalization-preview-secondary-toggle',
+                      ),
+                      contentKey: const ValueKey<String>(
+                        'personalization-preview-secondary-settings',
+                      ),
+                      label: 'Options d’aperçu',
+                      expanded: _secondarySettingsExpanded,
+                      onExpandedChanged: (value) {
+                        setState(() => _secondarySettingsExpanded = value);
+                      },
+                      child: PersonalizationPreviewSecondaryControls(
+                        scenario: scenario,
+                        onChanged: _applyScenario,
                       ),
                     ),
-                    PokeMapBadge(
-                      key: const ValueKey<String>(
-                        'personalization-preview-content-source',
+                  ],
+                  const Divider(height: 20),
+                  Column(
+                    key: const ValueKey<String>(
+                      'personalization-preview-data-section',
+                    ),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Text(
+                        'Données affichées',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                      label: switch (widget.contentSource) {
-                        PersonalizationPreviewContentSource.demonstration =>
-                          'Démonstration',
-                        PersonalizationPreviewContentSource.project =>
-                          'Projet réel',
-                      },
-                      variant:
+                      const SizedBox(height: 2),
+                      Text(
+                        _previewDataDescription(widget.scene),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (widget.scene ==
+                          PersonalizationStudioScene.title) ...<Widget>[
+                        const SizedBox(height: 8),
+                        PersonalizationTitlePreviewControls(
+                          stage: _titleStage,
+                          onChanged: (stage) =>
+                              unawaited(_selectTitleStage(stage)),
+                        ),
+                      ],
+                      if ((widget.onContentSourceChanged != null &&
+                              (widget.scene ==
+                                      PersonalizationStudioScene.dialogue ||
+                                  widget.scene ==
+                                      PersonalizationStudioScene.battle)) ||
                           widget.contentSource ==
-                              PersonalizationPreviewContentSource.project
-                          ? PokeMapBadgeVariant.success
-                          : PokeMapBadgeVariant.warning,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: <Widget>[
-                    Text(
-                      switch (surfaceFidelity) {
-                        PersonalizationPreviewSurfaceFidelity.playerInterface =>
-                          'Widgets du jeu',
-                        PersonalizationPreviewSurfaceFidelity.editorBackdrop =>
-                          'Widgets du jeu sur la carte du projet',
-                      },
-                      key: const ValueKey<String>(
-                        'personalization-preview-surface-fidelity',
-                      ),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const PokeMapBadge(
-                      key: ValueKey<String>(
-                        'personalization-preview-local-controls',
-                      ),
-                      label: 'Réglages d’essai',
-                      variant: PokeMapBadgeVariant.info,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                PersonalizationPreviewControls(
-                  scenario: scenario,
-                  onChanged: _applyScenario,
-                ),
-                if (widget.scene ==
-                    PersonalizationStudioScene.title) ...<Widget>[
-                  const SizedBox(height: 8),
-                  PersonalizationTitlePreviewControls(
-                    stage: _titleStage,
-                    onChanged: (stage) => unawaited(_selectTitleStage(stage)),
+                              PersonalizationPreviewContentSource
+                                  .project) ...<Widget>[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.end,
+                          children: <Widget>[
+                            if (widget.onContentSourceChanged != null &&
+                                (widget.scene ==
+                                        PersonalizationStudioScene.dialogue ||
+                                    widget.scene ==
+                                        PersonalizationStudioScene.battle))
+                              PersonalizationPreviewSourceSelector(
+                                source: widget.contentSource,
+                                onChanged: widget.onContentSourceChanged!,
+                              ),
+                            if (widget.contentSource ==
+                                PersonalizationPreviewContentSource.project)
+                              PersonalizationPreviewContextPicker(
+                                compact: true,
+                                scene: widget.scene,
+                                contexts: widget.contexts,
+                                selectedIds:
+                                    <
+                                      PersonalizationPreviewContextKind,
+                                      String?
+                                    >{
+                                      for (final kind
+                                          in PersonalizationPreviewContextKind
+                                              .values)
+                                        kind: _context(kind)?.id,
+                                    },
+                                onSelected: (kind, id) {
+                                  setState(() {
+                                    _selectedContextIds[kind] = id;
+                                    if (kind ==
+                                        PersonalizationPreviewContextKind
+                                            .encounter) {
+                                      _selectedEnemySpeciesId = null;
+                                      _selectedPlayerSpeciesId = null;
+                                    }
+                                  });
+                                },
+                                isLoading: widget.contextsLoading,
+                                errorMessage: widget.contextsErrorMessage,
+                              ),
+                          ],
+                        ),
+                      ],
+                      if (widget.scene == PersonalizationStudioScene.battle &&
+                          encounterContext != null) ...<Widget>[
+                        const SizedBox(height: 8),
+                        _PersonalizationBattleContextControls(
+                          enemyOptions: enemyOptions,
+                          playerOptions: playerOptions,
+                          selectedEnemySpeciesId: selectedEnemySpeciesId,
+                          selectedPlayerSpeciesId: selectedPlayerSpeciesId,
+                          onEnemyChanged: (value) {
+                            setState(() => _selectedEnemySpeciesId = value);
+                          },
+                          onPlayerChanged: (value) {
+                            setState(() => _selectedPlayerSpeciesId = value);
+                          },
+                        ),
+                      ],
+                    ],
                   ),
                 ],
-                if (widget.onContentSourceChanged != null &&
-                    (widget.scene == PersonalizationStudioScene.dialogue ||
-                        widget.scene ==
-                            PersonalizationStudioScene.battle)) ...<Widget>[
-                  const SizedBox(height: 8),
-                  PersonalizationPreviewSourceSelector(
-                    source: widget.contentSource,
-                    onChanged: widget.onContentSourceChanged!,
-                  ),
-                ],
-                if (widget.contentSource ==
-                    PersonalizationPreviewContentSource.project)
-                  PersonalizationPreviewContextPicker(
-                    scene: widget.scene,
-                    contexts: widget.contexts,
-                    selectedIds: <PersonalizationPreviewContextKind, String?>{
-                      for (final kind
-                          in PersonalizationPreviewContextKind.values)
-                        kind: _context(kind)?.id,
-                    },
-                    onSelected: (kind, id) {
-                      setState(() {
-                        _selectedContextIds[kind] = id;
-                        if (kind ==
-                            PersonalizationPreviewContextKind.encounter) {
-                          _selectedEnemySpeciesId = null;
-                          _selectedPlayerSpeciesId = null;
-                        }
-                      });
-                    },
-                    isLoading: widget.contextsLoading,
-                    errorMessage: widget.contextsErrorMessage,
-                  ),
-                if (widget.scene == PersonalizationStudioScene.battle &&
-                    encounterContext != null) ...<Widget>[
-                  const SizedBox(height: 8),
-                  _PersonalizationBattleContextControls(
-                    enemyOptions: enemyOptions,
-                    playerOptions: playerOptions,
-                    selectedEnemySpeciesId: selectedEnemySpeciesId,
-                    selectedPlayerSpeciesId: selectedPlayerSpeciesId,
-                    onEnemyChanged: (value) {
-                      setState(() => _selectedEnemySpeciesId = value);
-                    },
-                    onPlayerChanged: (value) {
-                      setState(() => _selectedPlayerSpeciesId = value);
-                    },
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
         ),
         child: PersonalizationPreviewCanvas(
+          key: const ValueKey<String>('personalization-preview-canvas'),
           scenario: scenario,
           contentBuilder:
               _layoutRole == null || widget.onLayoutCommitted == null
@@ -652,3 +734,19 @@ class _PersonalizationBattleContextControls extends StatelessWidget {
         ),
   ];
 }
+
+String _previewDataDescription(PersonalizationStudioScene scene) =>
+    switch (scene) {
+      PersonalizationStudioScene.globalStyle =>
+        'Le décor utilisé pour vérifier l’identité visuelle du jeu.',
+      PersonalizationStudioScene.title =>
+        'Le moment de l’écran titre montré dans la scène.',
+      PersonalizationStudioScene.intro =>
+        'Les médias d’introduction configurés dans le projet.',
+      PersonalizationStudioScene.pause =>
+        'Le décor et les libellés utilisés par le menu Pause.',
+      PersonalizationStudioScene.dialogue =>
+        'Le décor, la réplique et le personnage montrés dans la scène.',
+      PersonalizationStudioScene.battle =>
+        'La rencontre et les créatures montrées dans la scène.',
+    };

@@ -14,6 +14,7 @@ class PersonalizationPreviewContextPicker extends StatelessWidget {
     required this.onSelected,
     this.isLoading = false,
     this.errorMessage,
+    this.compact = false,
   });
 
   final PersonalizationStudioScene scene;
@@ -23,11 +24,34 @@ class PersonalizationPreviewContextPicker extends StatelessWidget {
   onSelected;
   final bool isLoading;
   final String? errorMessage;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final kinds = _kindsForScene(scene, contexts);
     if (kinds.isEmpty) return const SizedBox.shrink();
+    if (compact) {
+      if (isLoading) {
+        return const PokeMapDiagnosticCallout(
+          key: ValueKey<String>('personalization-preview-context-loading'),
+          severity: PokeMapDiagnosticSeverity.info,
+          message: 'Chargement des cartes, dialogues et rencontres…',
+        );
+      }
+      if (errorMessage != null) {
+        return PokeMapDiagnosticCallout(
+          key: const ValueKey<String>('personalization-preview-context-error'),
+          severity: PokeMapDiagnosticSeverity.error,
+          message: errorMessage!,
+        );
+      }
+      return _ContextFields(
+        kinds: kinds,
+        contexts: contexts,
+        selectedIds: selectedIds,
+        onSelected: onSelected,
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
