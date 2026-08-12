@@ -21,6 +21,11 @@ mixin _EditorNotifierPlacedElementPlacement on _$EditorNotifier {
     required MapData sourceDocument,
   });
   void _coerceActiveToolIfIncompatibleWithLayer();
+  void _validatePlacedElementDelta({
+    required MapData before,
+    required MapData after,
+    required String instanceId,
+  });
   void _recordCanonicalPlacedElementPlacement({
     required String projectRootPath,
     required String receiptId,
@@ -101,6 +106,11 @@ mixin _EditorNotifierPlacedElementPlacement on _$EditorNotifier {
         pos: pos,
       );
       final updatedMap = upsertMapPlacedElement(map, instance: intent.instance);
+      _validatePlacedElementDelta(
+        before: map,
+        after: updatedMap,
+        instanceId: intent.instance.id,
+      );
       if (_pendingPlacedElementPlacements.isEmpty &&
           _placedElementPublicationFuture == null) {
         _placedElementPublicationBase = _PlacedElementPublicationBase(

@@ -78,6 +78,23 @@ Future<void> main(List<String> arguments) async {
           samples: samples,
           measure: () => _measureSmartTileCommit(extent, strokeSamples),
         ),
+        'validation': <String, Object?>{
+          'tile': _validationProfiles(
+            fixture: _tileValidationFixture(extent),
+            warmups: warmups,
+            samples: samples,
+          ),
+          'collision': _validationProfiles(
+            fixture: _collisionValidationFixture(extent),
+            warmups: warmups,
+            samples: samples,
+          ),
+          'smartTile': _validationProfiles(
+            fixture: _smartTileValidationFixture(extent),
+            warmups: warmups,
+            samples: samples,
+          ),
+        },
         'workCounts': <String, Object?>{
           'legacyFullLayerCopiesDuringGesture': strokeSamples,
           'legacyMapMaterializationsDuringGesture': strokeSamples,
@@ -125,6 +142,122 @@ Future<void> main(List<String> arguments) async {
     stderr.writeln('map_cell_stroke_scaling: ${error.message}');
     exitCode = 64;
   }
+}
+
+Map<String, Object?> _validationProfiles({
+  required _ValidationFixture fixture,
+  required int warmups,
+  required int samples,
+}) {
+  final receipt = MapDeltaValidator.validate(fixture.context);
+  return <String, Object?>{
+    'incremental': _profile(
+      warmups: warmups,
+      samples: samples,
+      measure: () => _measureIncrementalValidation(fixture),
+    ),
+    'full': _profile(
+      warmups: warmups,
+      samples: samples,
+      measure: () => _measureFullValidation(fixture),
+    ),
+    'workCounts': <String, Object?>{
+      'incrementalInspectedCells': receipt.inspectedCellCount,
+      'incrementalInspectedLayers': receipt.inspectedLayerCount,
+      'incrementalInspectedResources': receipt.inspectedResourceCount,
+      'fullSurfaceCells':
+          fixture.context.after.size.width * fixture.context.after.size.height,
+    },
+  };
+}
+
+_Measurement _measureIncrementalValidation(_ValidationFixture fixture) {
+  final stopwatch = Stopwatch()..start();
+  final receipt = MapDeltaValidator.validate(fixture.context);
+  stopwatch.stop();
+  return _Measurement(
+    elapsedUs: stopwatch.elapsedMicroseconds,
+    checksum: stableFingerprint(<Object?>[
+      receipt.inspectedCellCount,
+      receipt.inspectedLayerCount,
+      receipt.inspectedResourceCount,
+      fixture.checksum,
+    ]),
+  );
+}
+
+_Measurement _measureFullValidation(_ValidationFixture fixture) {
+  final stopwatch = Stopwatch()..start();
+  MapValidator.validate(fixture.context.after);
+  stopwatch.stop();
+  return _Measurement(
+    elapsedUs: stopwatch.elapsedMicroseconds,
+    checksum: fixture.checksum,
+  );
+}
+
+_ValidationFixture _tileValidationFixture(int extent) {
+  final before = _tileMap(extent);
+  final after = paintTileOnLayer(
+    before,
+    layerId: 'ground',
+    pos: GridPos(x: extent - 1, y: extent - 1),
+    tile: const TileLayerPaletteEntry(tilesetId: 'world', localTileId: 6),
+  );
+  return _ValidationFixture(
+    context: DeltaValidationContext(
+      before: before,
+      after: after,
+      delta: MapMutationDelta.tileCells(
+        layerId: 'ground',
+        cellIndices: <int>{extent * extent - 1},
+      ),
+    ),
+    checksum: stableFingerprint(<Object?>['tile', extent]),
+  );
+}
+
+_ValidationFixture _collisionValidationFixture(int extent) {
+  final before = _collisionMap(extent);
+  final after = paintCollisionOnLayer(
+    before,
+    layerId: 'collision',
+    pos: GridPos(x: extent - 1, y: extent - 1),
+  );
+  return _ValidationFixture(
+    context: DeltaValidationContext(
+      before: before,
+      after: after,
+      delta: MapMutationDelta.collisionCells(
+        layerId: 'collision',
+        cellIndices: <int>{extent * extent - 1},
+      ),
+    ),
+    checksum: stableFingerprint(<Object?>['collision', extent]),
+  );
+}
+
+_ValidationFixture _smartTileValidationFixture(int extent) {
+  final before = _smartTileMap(extent);
+  final source = before.layers.single as SmartTileLayer;
+  final updatedLayer = applySmartTileMaterialGesture(
+    source,
+    mapSize: before.size,
+    cells: <GridPos>[GridPos(x: extent - 1, y: extent - 1)],
+    materialId: 'grass',
+  );
+  final after = replaceSmartTileLayer(before, layer: updatedLayer);
+  return _ValidationFixture(
+    context: DeltaValidationContext(
+      before: before,
+      after: after,
+      delta: MapMutationDelta.smartTileCells(
+        layerId: 'smart',
+        cellIndices: <int>{extent * extent - 1},
+      ),
+    ),
+    checksum: stableFingerprint(<Object?>['smartTile', extent]),
+  );
 }
 
 void _requirePointerBudget(Map<String, Object?> profile) {
@@ -182,7 +315,7 @@ _Measurement _measureTileCommit(int extent, int samples) {
   );
   _applyTileSamples(buffer, samples);
   final stopwatch = Stopwatch()..start();
-  final committed = buffer.commit(validate: MapValidator.validate);
+  final committed = buffer.commit(validate: MapDeltaValidator.validate);
   stopwatch.stop();
   _requireCommitted(buffer);
   final layer = committed.layers.single as TileLayer;
@@ -223,7 +356,7 @@ _Measurement _measureCollisionCommit(int extent, int samples) {
   );
   _applyCollisionSamples(buffer, samples);
   final stopwatch = Stopwatch()..start();
-  final committed = buffer.commit(validate: MapValidator.validate);
+  final committed = buffer.commit(validate: MapDeltaValidator.validate);
   stopwatch.stop();
   _requireCommitted(buffer);
   final layer = committed.layers.single as CollisionLayer;
@@ -264,7 +397,7 @@ _Measurement _measureSmartTileCommit(int extent, int samples) {
   );
   _applySmartTileSamples(buffer, samples);
   final stopwatch = Stopwatch()..start();
-  final committed = buffer.commit(validate: MapValidator.validate);
+  final committed = buffer.commit(validate: MapDeltaValidator.validate);
   stopwatch.stop();
   _requireCommitted(buffer);
   final layer = committed.layers.single as SmartTileLayer;
@@ -375,5 +508,12 @@ final class _Measurement {
   const _Measurement({required this.elapsedUs, required this.checksum});
 
   final int elapsedUs;
+  final String checksum;
+}
+
+final class _ValidationFixture {
+  const _ValidationFixture({required this.context, required this.checksum});
+
+  final DeltaValidationContext context;
   final String checksum;
 }

@@ -186,9 +186,15 @@ void main() {
     expect(buffer.validationCount, 1);
     expect(
       recorder.snapshot().spanSamples(
-        EditorPerformanceSpanName.mapFullValidation,
+        EditorPerformanceSpanName.mapIncrementalValidation,
       ),
       hasLength(1),
+    );
+    expect(
+      recorder.snapshot().spanSamples(
+        EditorPerformanceSpanName.mapFullValidation,
+      ),
+      isEmpty,
     );
     expect(notifier.state.mapUndoStack, hasLength(1));
   });
