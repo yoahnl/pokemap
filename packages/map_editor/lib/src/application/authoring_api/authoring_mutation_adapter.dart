@@ -264,7 +264,9 @@ final class AuthoringMutationAdapter
     String? expectedRevision,
     bool dryRun = false,
   }) async {
-    final snapshot = await session.snapshot();
+    final snapshot = await session.snapshot(
+      cacheValidation: ProjectSnapshotCacheValidation.session,
+    );
     final response = await session.mutations.planMutation(
       session.projectHandle,
       AuthoringRequest(
@@ -347,7 +349,9 @@ final class AuthoringMutationAdapter
           mutationPlan,
           operationId: key,
         );
-        final after = await session.snapshot();
+        final after = await session.snapshot(
+          cacheValidation: ProjectSnapshotCacheValidation.session,
+        );
         final mapRevision = narrativeEventBytesFingerprint(
           after.resourceBytes(identity),
         );
@@ -651,7 +655,10 @@ final class _EditorMutationSession {
     }
   }
 
-  Future<ProjectSnapshot> snapshot() => _snapshots.load(projectHandle);
+  Future<ProjectSnapshot> snapshot({
+    ProjectSnapshotCacheValidation cacheValidation =
+        ProjectSnapshotCacheValidation.canonical,
+  }) => _snapshots.load(projectHandle, cacheValidation: cacheValidation);
 
   Future<T> use<T>(Future<T> Function() operation) async {
     if (_closing) {

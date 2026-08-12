@@ -120,6 +120,65 @@ void main() {
       expect(fixture.countingReader!.byteReads, 1);
     });
 
+    test('warm planning trusts the session without filesystem observations',
+        () async {
+      final fixture = await _MutationFixture.create(enableSnapshotCache: true);
+      addTearDown(fixture.dispose);
+      await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'map.save',
+        parameters: {
+          'map': fixture.map.copyWith(name: 'Warmup').toJson(),
+        },
+        idempotencyKey: 'editor_session_plan_warmup',
+      );
+      fixture.countingReader!.resetCounts();
+
+      await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'map.save',
+        parameters: {
+          'map': fixture.map.copyWith(name: 'Session plan').toJson(),
+        },
+        idempotencyKey: 'editor_session_plan_measured',
+      );
+
+      expect(fixture.countingReader!.byteReads, 0);
+      expect(fixture.countingReader!.identityReads, 0);
+    });
+
+    test('apply detects an external change after a session-trusted plan',
+        () async {
+      final fixture = await _MutationFixture.create(enableSnapshotCache: true);
+      addTearDown(fixture.dispose);
+      final plan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'map.save',
+        parameters: {
+          'map': fixture.map.copyWith(name: 'Planned').toJson(),
+        },
+        idempotencyKey: 'editor_external_change_plan',
+      );
+      await File(fixture.mapPath).writeAsString(
+        jsonEncode(fixture.map.copyWith(name: 'External').toJson()),
+      );
+      await File(fixture.mapPath).setLastModified(
+        DateTime.now().add(const Duration(seconds: 2)),
+      );
+
+      await expectLater(
+        fixture.mutations.apply(
+          plan,
+          operationId: 'editor_external_change_apply',
+        ),
+        throwsA(isA<EditorAuthoringMutationFailure>()),
+      );
+      final durable = await FileMapRepository().loadMapDocument(
+        fixture.mapPath,
+      );
+      expect(durable.map.name, 'External');
+    });
+
     test('saves presentation pause labels through the canonical action',
         () async {
       final fixture = await _MutationFixture.create();
@@ -1384,8 +1443,12 @@ final class _CountingEditorReader
   static const _files = LocalProjectFileReader();
   static const _roots = EditorProjectFileReader();
   var byteReads = 0;
+  var identityReads = 0;
 
-  void resetCounts() => byteReads = 0;
+  void resetCounts() {
+    byteReads = 0;
+    identityReads = 0;
+  }
 
   @override
   Future<String> canonicalizeDirectory(String path) =>
@@ -1395,11 +1458,13 @@ final class _CountingEditorReader
   Future<ProjectResourceIdentity?> readIdentity({
     required String projectRoot,
     required String relativePath,
-  }) =>
-      _files.readIdentity(
+  }) {
+    identityReads += 1;
+    return _files.readIdentity(
         projectRoot: projectRoot,
         relativePath: relativePath,
       );
+  }
 
   @override
   Future<List<int>> readBytes({
