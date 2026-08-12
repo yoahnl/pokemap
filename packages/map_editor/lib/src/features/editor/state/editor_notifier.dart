@@ -489,7 +489,8 @@ class EditorNotifier extends _$EditorNotifier
         ref.read(activeBorderFeatureControllerProvider.notifier);
     final borderPreviewController =
         ref.read(borderPreviewControllerProvider.notifier);
-    listenSelf((_, next) {
+
+    void reconcileBorderState(EditorState next) {
       if (_suppressBorderSelectionReconciliation ||
           _hasCanvasObjectSelection(next)) {
         activeBorderFeatureController.clear();
@@ -502,6 +503,16 @@ class EditorNotifier extends _$EditorNotifier
       if (borderPreviewController.current.hasPendingPreview) {
         borderPreviewController.reconcileContext(_borderPreviewContext(next));
       }
+    }
+
+    listenSelf((previous, next) {
+      if (previous == null) {
+        Future<void>.microtask(() {
+          if (ref.mounted) reconcileBorderState(state);
+        });
+        return;
+      }
+      reconcileBorderState(next);
     });
     return const EditorState();
   }
