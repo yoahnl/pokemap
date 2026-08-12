@@ -39,8 +39,8 @@ class PersonalizationStudioShell extends StatelessWidget {
 
   Widget _layout(BuildContext context, double width) {
     if (width >= 1100) {
-      final navigationWidth = width >= 1440 ? 260.0 : 220.0;
-      final inspectorWidth = width >= 1440 ? 360.0 : 320.0;
+      final navigationWidth = width >= 1440 ? 190.0 : 180.0;
+      final inspectorWidth = width >= 1440 ? 290.0 : 280.0;
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[

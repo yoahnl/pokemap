@@ -53,6 +53,10 @@ void main() {
 
       final shell = find.byType(PersonalizationStudioWorkspace);
       expect(shell, findsOneWidget);
+      expect(
+        find.text('Sauvegarde automatique', findRichText: true),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
       await expectLater(
         shell,
@@ -164,6 +168,10 @@ void main() {
 
     final editor = find.byType(EditorShellPage);
     expect(editor, findsOneWidget);
+    final preview = find.byKey(
+      const ValueKey<String>('personalization-studio-preview-pane'),
+    );
+    expect(tester.getSize(preview).width, greaterThanOrEqualTo(700));
     expect(find.textContaining('Chargement des cartes'), findsNothing);
     expect(find.textContaining('Bienvenue à Vermeil'), findsWidgets);
     expect(
@@ -176,6 +184,8 @@ void main() {
       find.byKey(const ValueKey<String>('personalization-dialogue-portrait')),
       findsWidgets,
     );
+    expect(find.text('Aperçu uniquement'), findsOneWidget);
+    expect(find.text('Réglage de test'), findsNothing);
     expect(tester.takeException(), isNull);
     await expectLater(
       editor,

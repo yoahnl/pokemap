@@ -22,6 +22,7 @@ class BattleCommandsSection extends StatefulWidget {
 
 class _BattleCommandsSectionState extends State<BattleCommandsSection> {
   var _group = _BattleCommandsGroup.organization;
+  var _selectedCommand = ProjectBattleCommandId.fight;
 
   ProjectBattlePresentationProfile get profile => widget.profile;
   ProjectSemanticThemeProfile get inheritedTheme => widget.inheritedTheme;
@@ -155,15 +156,32 @@ class _BattleCommandsSectionState extends State<BattleCommandsSection> {
             children: <Widget>[
               Text('Actions', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
-              for (
-                var index = 0;
-                index < profile.effectiveCommands.length;
-                index++
-              ) ...<Widget>[
-                _commandRow(index),
-                if (index != profile.effectiveCommands.length - 1)
-                  const SizedBox(height: 8),
-              ],
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: <Widget>[
+                  for (final command in profile.effectiveCommands)
+                    PokeMapButton(
+                      key: ValueKey<String>(
+                        'battle-command-select-${command.id.name}',
+                      ),
+                      size: PokeMapButtonSize.small,
+                      variant: PokeMapButtonVariant.secondary,
+                      isSelected: command.id == _selectedCommand,
+                      onPressed: () =>
+                          setState(() => _selectedCommand = command.id),
+                      child: Text(
+                        command.label ?? _commandDefaultLabel(command.id),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _commandRow(
+                profile.effectiveCommands.indexWhere(
+                  (command) => command.id == _selectedCommand,
+                ),
+              ),
             ],
           ),
         ),

@@ -214,6 +214,32 @@ void main() {
       findsNothing,
     );
 
+    await tester.tap(
+      find.byKey(const ValueKey<String>('battle-command-group-actions')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('battle-command-label-fight')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('battle-command-label-bag')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('battle-command-select-bag')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('battle-command-label-fight')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('battle-command-label-bag')),
+      findsOneWidget,
+    );
+
     await tester.tap(find.byKey(const ValueKey<String>('battle-section-hud')));
     await tester.pumpAndSettle();
     expect(
