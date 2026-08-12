@@ -216,6 +216,12 @@ tests, documentation, product decisions, bug fixes, CI work, and tooling work.
   roadmaps, tests, reports, and receipts remain the canonical technical
   evidence.
 
+Ticket lifecycle:
+
+- when an agent finishes implementing and verifying a ticket, move it to `TO REVIEW`, never directly to `DONE`;
+- `DONE` is reserved for the user's explicit decision after review, even when every automated criterion is green;
+- keep the implementation evidence, readiness, verdict, remaining criteria, commit, and branch fields accurate when moving the ticket to `TO REVIEW`.
+
 ---
 
 ## 7. Git Safety
