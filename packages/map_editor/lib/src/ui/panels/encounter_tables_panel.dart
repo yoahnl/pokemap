@@ -13,8 +13,6 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
-import 'encounter_probability_projection.dart';
-
 // Keep the encounters panel in one Dart library so the corrective pass can
 // split the noise into neighboring `part` files without changing visibility,
 // notifier contracts, or the existing encounter authoring pipeline.
