@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -10,6 +11,7 @@ import 'package:map_editor/src/features/personalization/presentation/personaliza
 import 'package:map_editor/src/features/personalization/presentation/personalization_title_preview_controls.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   testWidgets('mounts the shared widget for every player scene', (
@@ -20,7 +22,7 @@ void main() {
       PersonalizationStudioScene.intro: PlayerIntroVideoSurface,
       PersonalizationStudioScene.pause: PlayerPauseSurface,
       PersonalizationStudioScene.dialogue: PlayerDialogueSurface,
-      PersonalizationStudioScene.battle: PlayerBattleSurface,
+      PersonalizationStudioScene.battle: PlayerBattleScene,
     };
 
     for (final entry in expectedTypes.entries) {
@@ -30,7 +32,61 @@ void main() {
       if (entry.key == PersonalizationStudioScene.pause) {
         expect(find.byType(RuntimePlayerPauseShell), findsOneWidget);
       }
+      if (entry.key == PersonalizationStudioScene.battle) {
+        expect(find.byType(PlayerBattleSurface), findsOneWidget);
+      }
     }
+  });
+
+  testWidgets('targets title intro and dialogue elements semantically', (
+    tester,
+  ) async {
+    final targets = <PersonalizationInspectorTarget>[];
+
+    await tester.pumpWidget(
+      _app(
+        PersonalizationPlayerSurfaceAdapter(
+          profile: const ProjectPresentationProfile(),
+          projectName: 'Aube',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.title,
+          onTargeted: targets.add,
+        ),
+      ),
+    );
+    await tester.tap(find.byType(PlayerActionButton).first);
+    expect(targets.single, isA<TitlePresentationTarget>());
+
+    targets.clear();
+    await tester.pumpWidget(
+      _app(
+        PersonalizationPlayerSurfaceAdapter(
+          profile: const ProjectPresentationProfile(),
+          projectName: 'Aube',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.intro,
+          onTargeted: targets.add,
+        ),
+      ),
+    );
+    await tester.tap(find.byType(PlayerIntroVideoSurface));
+    expect(targets.single, isA<IntroPresentationTarget>());
+
+    targets.clear();
+    await tester.pumpWidget(
+      _app(
+        PersonalizationPlayerSurfaceAdapter(
+          profile: const ProjectPresentationProfile(),
+          projectName: 'Aube',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.dialogue,
+          dialogueData: _testDialogue,
+          onTargeted: targets.add,
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('dialogue-tap-zone')));
+    expect(targets.single, isA<DialogueAppearanceTarget>());
   });
 
   testWidgets('applies the runtime player theme built from the draft', (
@@ -67,6 +123,7 @@ void main() {
           projectName: 'Aube',
           projectRootPath: '',
           scene: PersonalizationStudioScene.dialogue,
+          dialogueData: _testDialogue,
         ),
       ),
     );
@@ -82,6 +139,7 @@ void main() {
           projectName: 'Aube',
           projectRootPath: '',
           scene: PersonalizationStudioScene.battle,
+          battleData: _testBattle,
         ),
       ),
     );
@@ -509,6 +567,77 @@ void main() {
     await tester.pump();
     expect(drivers.last.disposeCalls, 1);
   });
+
+  testWidgets('renders the project battle stage behind the shared scene', (
+    tester,
+  ) async {
+    final fixture = _acceptanceFixture();
+    await tester.pumpWidget(
+      _app(
+        PersonalizationPlayerSurfaceAdapter(
+          profile: fixture.manifest.presentation!,
+          projectName: fixture.manifest.name,
+          projectRootPath: fixture.root.path,
+          scene: PersonalizationStudioScene.battle,
+          mapContext: fixture.map,
+          projectManifest: fixture.manifest,
+          battleBackdropPath: 'assets/battle/battle-clearing.png',
+          battleData: _testBattle,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(PlayerBattleScene), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-battle-project-stage'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-project-map-backdrop'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+    'names a missing battle stage and falls back to the project map',
+    (tester) async {
+      final fixture = _acceptanceFixture();
+      await tester.pumpWidget(
+        _app(
+          PersonalizationPlayerSurfaceAdapter(
+            profile: fixture.manifest.presentation!,
+            projectName: fixture.manifest.name,
+            projectRootPath: fixture.root.path,
+            scene: PersonalizationStudioScene.battle,
+            mapContext: fixture.map,
+            projectManifest: fixture.manifest,
+            battleBackdropPath: 'assets/battle/missing-clearing.png',
+            battleData: _testBattle,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('personalization-battle-stage-missing'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Décor de combat introuvable'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>('personalization-project-map-backdrop'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 final class _PlaybackDriver implements PlayerIntroPlaybackDriver {
@@ -548,9 +677,90 @@ PersonalizationPlayerSurfaceAdapter _adapter(
   projectName: 'Aube',
   projectRootPath: '',
   scene: scene,
+  dialogueData:
+      scene == PersonalizationStudioScene.dialogue ||
+          scene == PersonalizationStudioScene.globalStyle
+      ? _testDialogue
+      : null,
+  battleData:
+      scene == PersonalizationStudioScene.battle ||
+          scene == PersonalizationStudioScene.globalStyle
+      ? _testBattle
+      : null,
+);
+
+const _testDialogue = PlayerDialogueViewData(
+  revision: 1,
+  mode: PlayerDialogueMode.line,
+  speaker: 'Léo',
+  text: 'Bienvenue à Aube.',
+  fullText: 'Bienvenue à Aube.',
+  isCurrentLineFullyRevealed: true,
+  isLastContent: true,
+  choices: <PlayerDialogueChoiceViewData>[],
+);
+
+const _testBattle = PlayerBattleViewData(
+  revision: 1,
+  enemy: PlayerBattleHudViewData(
+    ownerLabel: 'SAUVAGE',
+    speciesLabel: 'Minoiseau',
+    level: 7,
+    currentHp: 31,
+    maxHp: 31,
+  ),
+  player: PlayerBattleHudViewData(
+    ownerLabel: 'JOUEUR',
+    speciesLabel: 'Partenaire',
+    level: 8,
+    currentHp: 42,
+    maxHp: 55,
+  ),
+  battleLabel: 'Rencontre du projet',
+  title: 'Que doit faire Partenaire ?',
+  prompt: 'Choisissez une action.',
+  narrationLines: <String>[],
+  commands: <PlayerBattleCommandViewData>[
+    PlayerBattleCommandViewData(
+      index: 0,
+      primaryLabel: 'ATTAQUER',
+      secondaryLabel: 'Choisir une capacité',
+      enabled: true,
+      selected: true,
+      tone: PlayerBattleEntryTone.attack,
+      commandId: ProjectBattleCommandId.fight,
+      commandIcon: ProjectBattleCommandIcon.fight,
+    ),
+  ],
+  interactionsEnabled: true,
+  canGoBack: false,
 );
 
 Widget _app(Widget child) => MaterialApp(
   theme: PokeMapTheme.light(),
   home: Scaffold(body: SizedBox(width: 960, height: 640, child: child)),
 );
+
+({Directory root, ProjectManifest manifest, MapData map}) _acceptanceFixture() {
+  final root = Directory(
+    p.join(
+      Directory.current.parent.parent.path,
+      'examples',
+      'playable_runtime_host',
+      'golden_personalization_v3',
+    ),
+  );
+  final manifest = ProjectManifest.fromJson(
+    jsonDecode(File(p.join(root.path, 'project.json')).readAsStringSync())
+        as Map<String, dynamic>,
+  );
+  final map = MapData.fromJson(
+    jsonDecode(
+          File(
+            p.join(root.path, 'maps', 'vermeil_village.json'),
+          ).readAsStringSync(),
+        )
+        as Map<String, dynamic>,
+  );
+  return (root: root, manifest: manifest, map: map);
+}

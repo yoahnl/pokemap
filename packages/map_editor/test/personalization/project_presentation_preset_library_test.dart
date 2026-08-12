@@ -35,6 +35,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('.pokemapstyle'), findsOneWidget);
+    expect(find.textContaining('Portée dialogue'), findsOneWidget);
+    expect(find.textContaining('2 sections'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('preset-library-import')),
@@ -98,6 +100,8 @@ const _preset = ProjectPresentationPresetRecord(
   label: 'Profil Hanazuki',
   description: 'Identité claire pour le train de 17h42.',
   profile: ProjectPresentationProfile(
-    branding: ProjectBrandingProfile(accentColor: '#5B68F6'),
+    dialogue: ProjectDialoguePresentationProfile(maxWidthFactor: .94),
   ),
+  scope: ProjectPresentationPresetScope.dialogue,
+  replacedSections: <String>['dialogue', 'layouts.dialogue'],
 );

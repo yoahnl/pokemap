@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:map_core/map_core.dart'
     show
         ProjectPresentationProfile,
+        ProjectBattlePresentationProfile,
+        ProjectBattlePanelPresentationProfile,
         ProjectDialoguePresentationProfile,
         ProjectPauseActionIcon,
         ProjectPauseActionId,
@@ -54,6 +56,58 @@ import 'game_package_format_exception.dart';
 import 'game_package_manifest.dart';
 import 'package_path_policy.dart';
 import 'strict_json_structure_validator.dart';
+
+GamePackageBattlePresentation _packageBattlePresentation(
+  ProjectBattlePresentationProfile profile,
+) =>
+    GamePackageBattlePresentation(
+      commandLayout: profile.commandLayout.name,
+      commandColumns: profile.commandColumns,
+      showCommandIcons: profile.showCommandIcons,
+      commandShape: profile.commandShape.name,
+      commandPadding: profile.commandPadding.round(),
+      commandSurfaceColor: profile.commandSurfaceColor,
+      commandBorderColor: profile.commandBorderColor,
+      commandTextColor: profile.commandTextColor,
+      commandSelectionColor: profile.commandSelectionColor,
+      commands: profile.commands
+          ?.map(
+            (command) => GamePackageBattleCommand(
+              id: command.id.name,
+              label: command.label,
+              icon: command.icon?.name,
+            ),
+          )
+          .toList(growable: false),
+      hudShape: profile.hudShape.name,
+      enemyHudPosition: profile.enemyHudPosition.name,
+      playerHudPosition: profile.playerHudPosition.name,
+      showOwnerLabel: profile.showOwnerLabel,
+      showLevel: profile.showLevel,
+      showExactHp: profile.showExactHp,
+      hpBarShape: profile.hpBarShape.name,
+      hpHealthyColor: profile.hpHealthyColor,
+      hpWarningColor: profile.hpWarningColor,
+      hpDangerColor: profile.hpDangerColor,
+      statusColor: profile.statusColor,
+      moves: _packageBattlePanel(profile.moves),
+      target: _packageBattlePanel(profile.target),
+      message: _packageBattlePanel(profile.message),
+    );
+
+GamePackageBattlePanelPresentation _packageBattlePanel(
+  ProjectBattlePanelPresentationProfile profile,
+) =>
+    GamePackageBattlePanelPresentation(
+      layout: profile.layout.name,
+      columns: profile.columns,
+      shape: profile.shape.name,
+      padding: profile.padding.round(),
+      surfaceColor: profile.surfaceColor,
+      borderColor: profile.borderColor,
+      textColor: profile.textColor,
+      selectionColor: profile.selectionColor,
+    );
 
 final class GamePackageManifestCodec {
   const GamePackageManifestCodec();
@@ -530,6 +584,7 @@ final class GamePackageManifestCodec {
         'surfacePalettes',
         'pause',
         'dialogue',
+        'battle',
         'menuLabels',
         'windows',
         'layouts',
@@ -547,11 +602,12 @@ final class GamePackageManifestCodec {
         schemaVersion != 6 &&
         schemaVersion != 7 &&
         schemaVersion != 8 &&
-        schemaVersion != 9) {
+        schemaVersion != 9 &&
+        schemaVersion != 10) {
       _fail(
         'presentationVersionUnsupported',
         '$path.schemaVersion',
-        'Only presentation schema versions 1 through 9 are supported.',
+        'Only presentation schema versions 1 through 10 are supported.',
       );
     }
     if (schemaVersion == 1 && json.containsKey('titleMotion')) {
@@ -667,6 +723,13 @@ final class GamePackageManifestCodec {
         'Dialogue presentation requires schema version 9.',
       );
     }
+    if (schemaVersion < 10 && json.containsKey('battle')) {
+      _fail(
+        'presentationVersionUnsupported',
+        '$path.battle',
+        'Battle presentation requires schema version 10.',
+      );
+    }
     final typography = json.containsKey('typography')
         ? _typography(
             json['typography'],
@@ -708,6 +771,9 @@ final class GamePackageManifestCodec {
           : null,
       dialogue: json.containsKey('dialogue')
           ? _dialoguePresentation(json['dialogue'], path: '$path.dialogue')
+          : null,
+      battle: json.containsKey('battle')
+          ? _battlePresentation(json['battle'], path: '$path.battle')
           : null,
       menuLabels: json.containsKey('menuLabels')
           ? _menuLabels(json['menuLabels'], path: '$path.menuLabels')
@@ -1249,6 +1315,57 @@ final class GamePackageManifestCodec {
       actions: json.containsKey('actions') ? packagedActions : null,
       composition: composition?.packaged,
     );
+  }
+
+  GamePackageBattlePresentation _battlePresentation(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{},
+      optional: const <String>{
+        'commandLayout',
+        'commandColumns',
+        'showCommandIcons',
+        'commandShape',
+        'commandPadding',
+        'commandSurfaceColor',
+        'commandBorderColor',
+        'commandTextColor',
+        'commandSelectionColor',
+        'commands',
+        'hudShape',
+        'enemyHudPosition',
+        'playerHudPosition',
+        'showOwnerLabel',
+        'showLevel',
+        'showExactHp',
+        'hpBarShape',
+        'hpHealthyColor',
+        'hpWarningColor',
+        'hpDangerColor',
+        'statusColor',
+        'moves',
+        'target',
+        'message',
+      },
+    );
+    final profile = ProjectBattlePresentationProfile.fromJson(
+      Map<String, dynamic>.from(json),
+    );
+    final diagnostic = validateProjectPresentationProfile(
+      ProjectPresentationProfile(battle: profile),
+    ).firstOrNull;
+    if (diagnostic != null) {
+      _fail(
+        'invalidBattlePresentation',
+        diagnostic.path.replaceFirst(r'$.presentation.battle', path),
+        diagnostic.message,
+      );
+    }
+    return _packageBattlePresentation(profile);
   }
 
   GamePackageDialoguePresentation _dialoguePresentation(

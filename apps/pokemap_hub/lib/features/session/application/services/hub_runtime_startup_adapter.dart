@@ -41,6 +41,7 @@ final class HubRuntimeStartupAdapter
     final surfacePalettes = presentation?.surfacePalettes;
     final pause = presentation?.pause;
     final dialogue = presentation?.dialogue;
+    final battle = presentation?.battle;
     final menuLabels = presentation?.menuLabels;
     final windows = presentation?.windows;
     final layouts = presentation?.layouts;
@@ -53,6 +54,7 @@ final class HubRuntimeStartupAdapter
         surfacePalettes == null &&
         pause == null &&
         dialogue == null &&
+        battle == null &&
         menuLabels == null &&
         windows == null &&
         layouts == null) {
@@ -227,6 +229,12 @@ final class HubRuntimeStartupAdapter
                     .byName(dialogue.portraitTransition),
                 portraitTransitionMilliseconds:
                     dialogue.portraitTransitionMilliseconds,
+              ),
+      battle:
+          battle == null
+              ? null
+              : ProjectBattlePresentationProfile.fromJson(
+                Map<String, dynamic>.from(battle.toJson()),
               ),
       menuLabels:
           menuLabels == null

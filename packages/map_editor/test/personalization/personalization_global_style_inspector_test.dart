@@ -323,11 +323,13 @@ void main() {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: PersonalizationLivePreview(
+                  child: PersonalizationRuntimePreview(
                     profile: profile,
                     projectName: 'Pokémon Aurore',
                     projectRootPath: '',
-                    scene: PersonalizationStudioScene.globalStyle,
+                    initialSurface: PersonalizationStudioScene.globalStyle,
+                    dialogueData: _dialogueData,
+                    battleData: _battleData,
                   ),
                 ),
               ],
@@ -454,6 +456,44 @@ void main() {
     );
   });
 
+  testWidgets('does not hide a contextual palette contrast error', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: PersonalizationGlobalStyleInspector(
+            profile: const ProjectPresentationProfile(
+              theme: safeProjectSemanticTheme,
+              surfacePalettes: ProjectPresentationSurfacePalettesProfile(
+                dialogue: ProjectSurfacePaletteProfile(
+                  surface: '#FFFFFF',
+                  text: '#FFFFFE',
+                ),
+              ),
+            ),
+            section: PersonalizationGlobalStyleSection.colors,
+            onSectionChanged: (_) {},
+            onEditAccent: () {},
+            onEditThemeToken: (_) {},
+            onUseSafeFallback: () {},
+            onWindowsChanged: (_) {},
+            onImportCommonFont: () {},
+            onUseSystemCommonFont: () {},
+            onResetColors: () {},
+            onResetWindows: () {},
+            onResetTypography: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.text('Corrigez les contrastes avant de pouvoir enregistrer.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('remains usable at narrow width and 200 percent text scale', (
     tester,
   ) async {
@@ -509,6 +549,42 @@ void main() {
     semantics.dispose();
   });
 }
+
+const _dialogueData = PlayerDialogueViewData(
+  revision: 1,
+  mode: PlayerDialogueMode.line,
+  speaker: 'Léo',
+  text: 'Bienvenue à Vermeil.',
+  fullText: 'Bienvenue à Vermeil.',
+  isCurrentLineFullyRevealed: true,
+  isLastContent: true,
+  choices: <PlayerDialogueChoiceViewData>[],
+);
+
+const _battleData = PlayerBattleViewData(
+  revision: 1,
+  enemy: PlayerBattleHudViewData(
+    ownerLabel: 'SAUVAGE',
+    speciesLabel: 'Roucool',
+    level: 7,
+    currentHp: 31,
+    maxHp: 31,
+  ),
+  player: PlayerBattleHudViewData(
+    ownerLabel: 'JOUEUR',
+    speciesLabel: 'Brindibou',
+    level: 8,
+    currentHp: 24,
+    maxHp: 24,
+  ),
+  battleLabel: 'Herbes de Vermeil',
+  title: 'Que doit faire Brindibou ?',
+  prompt: 'Choisissez une action.',
+  narrationLines: <String>[],
+  commands: <PlayerBattleCommandViewData>[],
+  interactionsEnabled: true,
+  canGoBack: false,
+);
 
 Widget _app(Widget child) => MaterialApp(
   theme: PokeMapTheme.light(),

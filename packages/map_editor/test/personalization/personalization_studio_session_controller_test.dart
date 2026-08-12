@@ -7,41 +7,43 @@ import '../shell_chrome_test_harness.dart';
 
 void main() {
   group('PersonalizationStudioSessionController', () {
-    test('publishes a presentation draft without persisting project.json',
-        () async {
-      final project = buildShellChromeProject(name: 'Studio session');
-      final gateway = _MemoryProjectGateway(project);
-      final recovery = _MemoryProjectRecoveryStore();
-      final controller = PersonalizationStudioSessionController(
-        session: NarrativeDocumentSession<ProjectManifest>(
-          documentId: 'personalization-studio',
-          initialDocument: project,
-          gateway: gateway,
-          recoveryStore: recovery,
-        ),
-      );
-      addTearDown(controller.dispose);
+    test(
+      'publishes a presentation draft without persisting project.json',
+      () async {
+        final project = buildShellChromeProject(name: 'Studio session');
+        final gateway = _MemoryProjectGateway(project);
+        final recovery = _MemoryProjectRecoveryStore();
+        final controller = PersonalizationStudioSessionController(
+          session: NarrativeDocumentSession<ProjectManifest>(
+            documentId: 'personalization-studio',
+            initialDocument: project,
+            gateway: gateway,
+            recoveryStore: recovery,
+          ),
+        );
+        addTearDown(controller.dispose);
 
-      await controller.initialize();
-      const profile = ProjectPresentationProfile(
-        branding: ProjectBrandingProfile(accentColor: '#123456'),
-      );
+        await controller.initialize();
+        const profile = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: '#123456'),
+        );
 
-      final applied = await controller.applyProfile(
-        profile,
-        operationId: 'accent-1',
-        label: 'Changer la couleur d’accent',
-      );
+        final applied = await controller.applyProfile(
+          profile,
+          operationId: 'accent-1',
+          label: 'Changer la couleur d’accent',
+        );
 
-      expect(applied, isTrue);
-      expect(controller.state.draftProfile, profile);
-      expect(controller.state.savedProfile, project.effectivePresentation);
-      expect(controller.state.document.name, 'Studio session');
-      expect(controller.state.isDirty, isTrue);
-      expect(recovery.record?.document.presentation, profile);
-      expect(gateway.saveCount, 0);
-      expect(gateway.durableDocument, project);
-    });
+        expect(applied, isTrue);
+        expect(controller.state.draftProfile, profile);
+        expect(controller.state.savedProfile, project.effectivePresentation);
+        expect(controller.state.document.name, 'Studio session');
+        expect(controller.state.isDirty, isTrue);
+        expect(recovery.record?.document.presentation, profile);
+        expect(gateway.saveCount, 0);
+        expect(gateway.durableDocument, project);
+      },
+    );
 
     test('treats an identical profile as a no-op', () async {
       const profile = ProjectPresentationProfile(
@@ -108,9 +110,40 @@ void main() {
       expect(controller.state.isDirty, isFalse);
     });
 
-    test('undo and redo move the presentation draft through its history',
-        () async {
-      final project = buildShellChromeProject(name: 'History profile');
+    test(
+      'undo and redo move the presentation draft through its history',
+      () async {
+        final project = buildShellChromeProject(name: 'History profile');
+        final controller = PersonalizationStudioSessionController(
+          session: NarrativeDocumentSession<ProjectManifest>(
+            documentId: 'personalization-studio',
+            initialDocument: project,
+            gateway: _MemoryProjectGateway(project),
+            recoveryStore: _MemoryProjectRecoveryStore(),
+          ),
+        );
+        addTearDown(controller.dispose);
+        await controller.initialize();
+        const profile = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
+        );
+        await controller.applyProfile(
+          profile,
+          operationId: 'history-profile',
+          label: 'Appliquer le profil',
+        );
+
+        expect(await controller.undo(), isTrue);
+        expect(controller.state.draftProfile, project.effectivePresentation);
+        expect(controller.state.canRedo, isTrue);
+        expect(await controller.redo(), isTrue);
+        expect(controller.state.draftProfile, profile);
+        expect(controller.state.canUndo, isTrue);
+      },
+    );
+
+    test('undo and redo restore the exact V10 battle draft', () async {
+      final project = buildShellChromeProject(name: 'Battle history');
       final controller = PersonalizationStudioSessionController(
         session: NarrativeDocumentSession<ProjectManifest>(
           documentId: 'personalization-studio',
@@ -121,22 +154,169 @@ void main() {
       );
       addTearDown(controller.dispose);
       await controller.initialize();
-      const profile = ProjectPresentationProfile(
-        branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
+      const battle = ProjectBattlePresentationProfile(
+        commandLayout: ProjectBattleCommandLayout.radial,
+        moves: ProjectBattlePanelPresentationProfile(
+          shape: ProjectWindowShape.cutCorner,
+        ),
       );
+      final profile = project.effectivePresentation.copyWith(battle: battle);
+
       await controller.applyProfile(
         profile,
-        operationId: 'history-profile',
-        label: 'Appliquer le profil',
+        operationId: 'battle-history-profile',
+        label: 'Personnaliser le combat',
       );
 
+      expect(controller.state.draftProfile.battle, battle);
       expect(await controller.undo(), isTrue);
-      expect(controller.state.draftProfile, project.effectivePresentation);
-      expect(controller.state.canRedo, isTrue);
+      expect(controller.state.draftProfile.battle, isNull);
       expect(await controller.redo(), isTrue);
-      expect(controller.state.draftProfile, profile);
-      expect(controller.state.canUndo, isTrue);
+      expect(controller.state.draftProfile.battle, battle);
     });
+
+    test('records one completed layout gesture as one undo entry', () async {
+      final project = buildShellChromeProject(name: 'Gesture history');
+      final controller = PersonalizationStudioSessionController(
+        session: NarrativeDocumentSession<ProjectManifest>(
+          documentId: 'personalization-studio',
+          initialDocument: project,
+          gateway: _MemoryProjectGateway(project),
+          recoveryStore: _MemoryProjectRecoveryStore(),
+        ),
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      final layouts = suggestedProjectPresentationLayouts('standard');
+      final moved = layouts.copyWith(
+        pauseMenu: layouts.pauseMenu.copyWith(
+          regular: layouts.pauseMenu.regular.copyWith(
+            slot: ProjectPresentationLayoutSlot.right,
+          ),
+        ),
+      );
+
+      expect(
+        await controller.applyProfile(
+          project.effectivePresentation.copyWith(layouts: moved),
+          operationId: 'gesture-1',
+          label: 'Déplacer le menu Pause',
+        ),
+        isTrue,
+      );
+      expect(await controller.undo(), isTrue);
+      expect(controller.state.canUndo, isFalse);
+      expect(controller.state.draftProfile, project.effectivePresentation);
+    });
+
+    test('records a scene preset as one atomic undo entry', () async {
+      final project = buildShellChromeProject(name: 'Preset history');
+      final controller = PersonalizationStudioSessionController(
+        session: NarrativeDocumentSession<ProjectManifest>(
+          documentId: 'personalization-studio',
+          initialDocument: project,
+          gateway: _MemoryProjectGateway(project),
+          recoveryStore: _MemoryProjectRecoveryStore(),
+        ),
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      final preset = personalizationScenePresetsFor(
+        PersonalizationStudioScene.dialogue,
+      ).last;
+
+      expect(
+        await controller.applyProfile(
+          preset.preview(project.effectivePresentation).profile,
+          operationId: 'preset-1',
+          label: 'Appliquer le preset dialogue',
+        ),
+        isTrue,
+      );
+      expect(await controller.undo(), isTrue);
+      expect(controller.state.canUndo, isFalse);
+      expect(controller.state.draftProfile, project.effectivePresentation);
+    });
+
+    test(
+      'repeats undo and redo across gestures and presets deterministically',
+      () async {
+        final project = buildShellChromeProject(name: 'Repeated history');
+        final controller = PersonalizationStudioSessionController(
+          session: NarrativeDocumentSession<ProjectManifest>(
+            documentId: 'personalization-studio',
+            initialDocument: project,
+            gateway: _MemoryProjectGateway(project),
+            recoveryStore: _MemoryProjectRecoveryStore(),
+          ),
+        );
+        addTearDown(controller.dispose);
+        await controller.initialize();
+        final layouts = suggestedProjectPresentationLayouts('standard');
+        final moved = project.effectivePresentation.copyWith(
+          layouts: layouts.copyWith(
+            pauseMenu: layouts.pauseMenu.copyWith(
+              expanded: layouts.pauseMenu.expanded.copyWith(
+                slot: ProjectPresentationLayoutSlot.right,
+              ),
+            ),
+          ),
+        );
+        final preset = personalizationScenePresetsFor(
+          PersonalizationStudioScene.dialogue,
+        ).last;
+        final withPreset = preset.apply(moved);
+
+        await controller.applyProfile(
+          moved,
+          operationId: 'gesture-repeat',
+          label: 'Déplacer Pause',
+        );
+        await controller.applyProfile(
+          withPreset,
+          operationId: 'preset-repeat',
+          label: 'Appliquer Dialogue',
+        );
+
+        expect(await controller.undo(), isTrue);
+        expect(controller.state.draftProfile, moved);
+        expect(await controller.undo(), isTrue);
+        expect(controller.state.draftProfile, project.effectivePresentation);
+        expect(await controller.redo(), isTrue);
+        expect(controller.state.draftProfile, moved);
+        expect(await controller.redo(), isTrue);
+        expect(controller.state.draftProfile, withPreset);
+      },
+    );
+
+    test(
+      'does not announce success when durable confirmation mismatches',
+      () async {
+        final project = buildShellChromeProject(name: 'Mismatch save');
+        final controller = PersonalizationStudioSessionController(
+          session: NarrativeDocumentSession<ProjectManifest>(
+            documentId: 'personalization-studio',
+            initialDocument: project,
+            gateway: _MismatchingProjectGateway(project),
+            recoveryStore: _MemoryProjectRecoveryStore(),
+          ),
+        );
+        addTearDown(controller.dispose);
+        await controller.initialize();
+        await controller.applyProfile(
+          const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(accentColor: '#345678'),
+          ),
+          operationId: 'mismatch-edit',
+          label: 'Modifier le profil',
+        );
+
+        expect(await controller.save(operationId: 'mismatch-save'), isFalse);
+        expect(controller.state.hasFailed, isTrue);
+        expect(controller.state.code, 'savedDocumentMismatch');
+        expect(controller.state.isDirty, isTrue);
+      },
+    );
 
     test('autosave persists the latest scheduled presentation draft', () async {
       final project = buildShellChromeProject(name: 'Autosave profile');
@@ -213,7 +393,7 @@ void main() {
   });
 }
 
-final class _MemoryProjectGateway
+class _MemoryProjectGateway
     implements NarrativeDocumentGateway<ProjectManifest> {
   _MemoryProjectGateway(this.durableDocument);
 
@@ -246,6 +426,23 @@ final class _MemoryProjectGateway
       ),
     );
   }
+}
+
+final class _MismatchingProjectGateway extends _MemoryProjectGateway {
+  _MismatchingProjectGateway(super.durableDocument);
+
+  @override
+  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
+    required String expectedRevision,
+    required ProjectManifest before,
+    required ProjectManifest after,
+    required String operationId,
+  }) async => NarrativeDocumentSaveResult<ProjectManifest>.saved(
+    NarrativeDocumentVersion<ProjectManifest>(
+      revision: 'revision-mismatch',
+      document: before,
+    ),
+  );
 }
 
 final class _MemoryProjectRecoveryStore

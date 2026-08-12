@@ -3,7 +3,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('RuntimeTitleMenuPolicy.singleSave', () {
-    test('projects the four runtime-owned title actions in order', () {
+    test('projects every runtime-owned title action in order', () {
       final projection = const RuntimeTitleMenuPolicy.singleSave().project(
         RuntimePlayerSnapshot(
           revision: 3,
@@ -38,7 +38,9 @@ void main() {
         <RuntimePlayerAction>[
           RuntimePlayerAction.continueGame,
           RuntimePlayerAction.newGame,
+          RuntimePlayerAction.load,
           RuntimePlayerAction.openOptions,
+          RuntimePlayerAction.showCredits,
           RuntimePlayerAction.returnToHost,
         ],
       );
@@ -91,7 +93,7 @@ void main() {
         ),
       );
 
-      expect(projection.actions, hasLength(4));
+      expect(projection.actions, hasLength(6));
       expect(projection.actions,
           everyElement(isA<RuntimePlayerActionAvailability>()));
       expect(

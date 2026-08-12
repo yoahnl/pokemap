@@ -153,7 +153,7 @@ test("MCP exposes paginated project presentation preview contexts", async () => 
     const presentationProfile = (
       description.resourceKinds as JsonRecord[]
     ).find((kind) => kind.id === "projectPresentationProfile");
-    assert.equal(presentationProfile?.version, 9);
+    assert.equal(presentationProfile?.version, 10);
 
     const opened = await toolData(fixture.client, "pokemap_workspace", {
       operation: "open",

@@ -239,7 +239,57 @@ void main() {
     expect(values, isNot(contains(ProjectWindowShape.speech)));
     expect(values, isNot(contains(ProjectWindowShape.capsule)));
   });
+
+  testWidgets('opens every valid custom measure from a reloaded project', (
+    tester,
+  ) async {
+    const custom = ProjectPresentationWindowsProfile(
+      styles: <ProjectWindowStyleProfile>[
+        ProjectWindowStyleProfile(
+          id: 'custom',
+          fillToken: 'menuSurface',
+          borderToken: 'outline',
+          borderWidth: 3,
+          cornerRadius: 13,
+          contentPadding: 13,
+          shadowElevation: 5,
+          fillOpacity: .82,
+        ),
+      ],
+      defaultStyleId: 'custom',
+      pauseMenuStyleId: 'custom',
+      dialogueStyleId: 'custom',
+      battleStyleId: 'custom',
+      pauseBackdropOpacity: .73,
+    );
+
+    await tester.pumpWidget(
+      _app(
+        ProjectWindowStudio(
+          profile: custom,
+          fixedRole: ProjectWindowRole.pauseMenu,
+          onChanged: (_) {},
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(_dropdownValue<double>(tester, 'window-field-fill-opacity'), .82);
+    expect(_dropdownValue<int>(tester, 'window-field-corner-radius'), 13);
+    expect(_dropdownValue<int>(tester, 'window-field-content-padding'), 13);
+    expect(_dropdownValue<int>(tester, 'window-field-shadow'), 5);
+    expect(_dropdownValue<double>(tester, 'window-field-backdrop'), .73);
+  });
 }
+
+T? _dropdownValue<T>(WidgetTester tester, String key) => tester
+    .widget<DropdownButton<T>>(
+      find.descendant(
+        of: find.byKey(ValueKey<String>(key)),
+        matching: find.byType(DropdownButton<T>),
+      ),
+    )
+    .value;
 
 void _changeDropdown<T>(WidgetTester tester, Key fieldKey, T value) {
   final dropdown = tester.widget<DropdownButton<T>>(

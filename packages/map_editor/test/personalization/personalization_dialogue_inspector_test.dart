@@ -166,6 +166,7 @@ void main() {
                     showDialoguePortrait: showPortrait,
                     showDialogueName: showName,
                     showDialogueChoices: showChoices,
+                    contexts: _dialogueContexts,
                   ),
                 ),
               ],
@@ -183,7 +184,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(PlayerDialogueSurface),
-        matching: find.text('Léo'),
+        matching: find.text('Leo'),
       ),
       findsOneWidget,
     );
@@ -192,7 +193,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(PlayerDialogueSurface),
-        matching: find.text('Léo'),
+        matching: find.text('Leo'),
       ),
       findsNothing,
     );
@@ -210,6 +211,57 @@ void main() {
     await _toggle(tester, 'dialogue-preview-choices');
     expect(find.text('Oui, allons-y !'), findsOneWidget);
     expect(find.text('Pas encore.'), findsOneWidget);
+  });
+
+  testWidgets('shows dialogue color inheritance and resets one override', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    ProjectDialoguePresentationProfile? changed;
+    await tester.pumpWidget(
+      _app(
+        SingleChildScrollView(
+          child: PersonalizationDialogueInspector(
+            profile: const ProjectPresentationProfile(
+              surfacePalettes: ProjectPresentationSurfacePalettesProfile(
+                dialogue: ProjectSurfacePaletteProfile(surface: '#FFFFFF'),
+              ),
+              dialogue: ProjectDialoguePresentationProfile(
+                maxWidthFactor: .72,
+                surfaceColor: '#102030',
+              ),
+            ),
+            characterOptions: _characters,
+            selectedCharacterId: 'leo:happy',
+            showPortrait: true,
+            showName: true,
+            showChoices: false,
+            onCharacterSelected: (_) {},
+            onShowPortraitChanged: (_) {},
+            onShowNameChanged: (_) {},
+            onShowChoicesChanged: (_) {},
+            onDialogueChanged: (dialogue) => changed = dialogue,
+            onImportDialogueFont: () {},
+            onUseSystemDialogueFont: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Surcharge de scène'), findsOneWidget);
+    expect(find.text('Hérité de Style global'), findsNWidgets(8));
+    final reset = find.byKey(
+      const ValueKey<String>('dialogue-color-inherit-surface'),
+    );
+    await tester.ensureVisible(reset);
+    await tester.pumpAndSettle();
+    await tester.tap(reset);
+
+    expect(changed?.surfaceColor, isNull);
+    expect(changed?.maxWidthFactor, .72);
   });
 }
 
@@ -231,6 +283,32 @@ const _characters = <PersonalizationCharacterPreviewOption>[
     expressionId: 'happy',
     expressionLabel: 'Joyeux',
     workspaceRevision: 'revision',
+  ),
+];
+
+final _dialogueContexts = <PersonalizationPreviewContextOption>[
+  PersonalizationPreviewContextOption(
+    id: 'dialogue:leo',
+    kind: PersonalizationPreviewContextKind.dialogue,
+    sourceId: 'leo',
+    label: 'Dialogue de Léo',
+    availability: 'ready',
+    diagnosticCodes: const <String>[],
+    detail: const <String, Object?>{
+      'dialogue': <String, Object?>{
+        'source': <String, Object?>{
+          'text':
+              'title: Start\n---\n'
+              '<<portrait leo happy>>\n'
+              'Bienvenue à Vermeil.\n'
+              '-> Oui, allons-y !\n'
+              '  Parfait.\n'
+              '-> Pas encore.\n'
+              '  Prends ton temps.\n'
+              '===',
+        },
+      },
+    },
   ),
 ];
 

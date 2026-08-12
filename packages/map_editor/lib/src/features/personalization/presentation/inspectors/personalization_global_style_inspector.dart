@@ -76,10 +76,10 @@ class _PersonalizationGlobalStyleInspectorState
     final profile = widget.profile;
     final section = widget.section;
     final theme = profile.theme ?? safeProjectSemanticTheme;
-    final diagnostics = validateProjectSemanticTheme(theme);
-    final blocked = diagnostics.any(
+    final blocked = validateProjectPresentationProfile(profile).any(
       (diagnostic) =>
-          diagnostic.severity == ProjectPresentationDiagnosticSeverity.error,
+          diagnostic.severity == ProjectPresentationDiagnosticSeverity.error &&
+          diagnostic.code.toLowerCase().contains('contrast'),
     );
     return Column(
       key: const ValueKey<String>('personalization-global-style-inspector'),

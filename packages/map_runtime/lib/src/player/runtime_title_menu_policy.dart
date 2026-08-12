@@ -22,7 +22,9 @@ final class RuntimeTitleMenuPolicy {
   static const _publicActions = <RuntimePlayerAction>[
     RuntimePlayerAction.continueGame,
     RuntimePlayerAction.newGame,
+    RuntimePlayerAction.load,
     RuntimePlayerAction.openOptions,
+    RuntimePlayerAction.showCredits,
     RuntimePlayerAction.returnToHost,
   ];
 

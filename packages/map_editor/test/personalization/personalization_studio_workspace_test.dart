@@ -953,9 +953,12 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('global-style-tab-typography')),
+      final typographyTab = find.byKey(
+        const ValueKey<String>('global-style-tab-typography'),
       );
+      await tester.ensureVisible(typographyTab);
+      await tester.pump();
+      await tester.tap(typographyTab.hitTestable());
       await tester.pump();
 
       expect(find.byType(ProjectTypographyEditor), findsOneWidget);
@@ -1500,7 +1503,7 @@ void main() {
     await tester.tap(
       find.byKey(
         const ValueKey<String>(
-          'personalization-inspector-target-battleAppearance',
+          'personalization-inspector-target-battleCommands',
         ),
       ),
     );

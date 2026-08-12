@@ -120,7 +120,7 @@ void main() {
       expect(fixture.countingReader!.byteReads, 1);
     });
 
-    test('saves presentation menu labels through the canonical action',
+    test('saves presentation pause labels through the canonical action',
         () async {
       final fixture = await _MutationFixture.create();
       addTearDown(fixture.dispose);
@@ -129,7 +129,14 @@ void main() {
         await projectFile.readAsBytes(),
       );
       final profile = ProjectPresentationProfile(
-        menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+        pause: ProjectPausePresentationProfile(
+          actions: <ProjectPauseActionProfile>[
+            for (final action in defaultProjectPauseActions)
+              action.id == ProjectPauseActionId.pokedex
+                  ? action.copyWith(label: 'Carnet')
+                  : action,
+          ],
+        ),
         typography: const ProjectTypographyProfile(
           combat: ProjectTypographyRoleProfile(family: 'Battle Mono'),
         ),
@@ -151,7 +158,12 @@ void main() {
       );
       expect(result.receipt.actionId, 'presentation.update');
       expect(result.receipt.status, AuthoringReceiptStatus.applied);
-      expect(durable.presentation?.menuLabels?.pokedex, 'Carnet');
+      expect(
+        durable.presentation?.pause?.actions
+            ?.firstWhere((action) => action.id == ProjectPauseActionId.pokedex)
+            .label,
+        'Carnet',
+      );
       expect(
         durable.presentation?.windows?.pauseMenuStyleId,
         'pause-menu',

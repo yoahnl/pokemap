@@ -90,7 +90,14 @@ final class PresentationPresetActions {
     _Parameters parameters,
   ) async {
     parameters.allow(
-      const <String>{'presetId', 'label', 'description', 'licenses'},
+      const <String>{
+        'presetId',
+        'label',
+        'description',
+        'licenses',
+        'scope',
+        'replacedSections',
+      },
     );
     final profile = context.snapshot.manifest.presentation;
     if (profile == null) {
@@ -103,13 +110,39 @@ final class PresentationPresetActions {
     final label = parameters.string('label');
     final description = parameters.string('description');
     final licensePaths = parameters.stringMap('licenses');
+    final scope = parameters.presetScope('scope');
+    final replacedSections = parameters.stringList('replacedSections');
+    if (scope != ProjectPresentationPresetScope.complete &&
+        replacedSections.isEmpty) {
+      throw const PresentationPresetAuthoringException(
+        'presentation.preset.sections_required',
+        'Scoped presets must announce the sections they replace.',
+      );
+    }
+    final scopedProfile = projectPresentationPresetProfileForScope(
+      profile: profile,
+      scope: scope,
+    );
+    if (!projectPresentationPresetScopeHasContent(scopedProfile, scope) ||
+        !projectPresentationPresetSectionsAreValid(
+          profile: scopedProfile,
+          scope: scope,
+          sections: replacedSections,
+        )) {
+      throw const PresentationPresetAuthoringException(
+        'presentation.preset.scope_invalid',
+        'The announced sections must match the exported preset scope.',
+      );
+    }
     _ensurePresetAbsent(context.snapshot.manifest, id);
     final pack = _buildExportPack(
       context.snapshot,
       id: id,
       label: label,
       description: description,
-      profile: profile,
+      profile: scopedProfile,
+      scope: scope,
+      replacedSections: replacedSections,
       licensePaths: licensePaths,
     );
     final bytes = codec.encode(pack);
@@ -160,7 +193,11 @@ final class PresentationPresetActions {
     _ensurePresetAbsent(context.snapshot.manifest, pack.manifest.id);
     final record = _recordFromPack(pack);
     final projected = context.snapshot.manifest.copyWith(
-      presentation: pack.profile,
+      presentation: applyProjectPresentationPresetScope(
+        current: context.snapshot.manifest.effectivePresentation,
+        preset: pack.profile,
+        scope: pack.manifest.scope,
+      ),
       presentationPresets: <ProjectPresentationPresetRecord>[
         ...context.snapshot.manifest.presentationPresets,
         record,
@@ -177,7 +214,9 @@ final class PresentationPresetActions {
       path: '/presentationPresets/${record.id}',
       after: <String, Object?>{
         'preset': record.toJson(),
-        'presentation': pack.profile.toJson(),
+        'presentation': projected.effectivePresentation.toJson(),
+        'scope': pack.manifest.scope.name,
+        'replacedSections': pack.manifest.replacedSections,
       },
     );
     _addImportedAssets(context.snapshot, pack, changes, diffs);
@@ -237,6 +276,8 @@ ProjectPresentationPresetPack _buildExportPack(
   required String label,
   required String description,
   required ProjectPresentationProfile profile,
+  required ProjectPresentationPresetScope scope,
+  required List<String> replacedSections,
   required Map<String, String> licensePaths,
 }) {
   final catalog = _catalog(snapshot);
@@ -300,6 +341,8 @@ ProjectPresentationPresetPack _buildExportPack(
         maximumProfileSchemaVersion:
             ProjectPresentationProfile.supportedSchemaVersion,
       ),
+      scope: scope,
+      replacedSections: replacedSections,
       assets: assets,
     ),
     profile: profile,
@@ -488,6 +531,8 @@ ProjectPresentationPresetRecord _recordFromPack(
       label: pack.manifest.label,
       description: pack.manifest.description,
       profile: pack.profile,
+      scope: pack.manifest.scope,
+      replacedSections: pack.manifest.replacedSections,
       assets: <ProjectPresentationPresetAssetReference>[
         for (final asset in pack.manifest.assets)
           ProjectPresentationPresetAssetReference(
@@ -692,5 +737,43 @@ final class _Parameters {
       result[entry.key as String] = entry.value as String;
     }
     return result;
+  }
+
+  ProjectPresentationPresetScope presetScope(String key) {
+    final value = values[key];
+    if (value == null) return ProjectPresentationPresetScope.complete;
+    if (value is! String) {
+      throw PresentationPresetAuthoringException(
+        'presentation.preset.parameter_invalid',
+        'Preset parameter $key must be a supported scope.',
+      );
+    }
+    return ProjectPresentationPresetScope.values.firstWhere(
+      (scope) => scope.name == value,
+      orElse: () => throw PresentationPresetAuthoringException(
+        'presentation.preset.parameter_invalid',
+        'Preset parameter $key must be a supported scope.',
+      ),
+    );
+  }
+
+  List<String> stringList(String key) {
+    final value = values[key];
+    if (value == null) return const <String>[];
+    if (value is! List || value.any((entry) => entry is! String)) {
+      throw PresentationPresetAuthoringException(
+        'presentation.preset.parameter_invalid',
+        'Preset parameter $key must be a string list.',
+      );
+    }
+    final result = value.cast<String>();
+    if (result.toSet().length != result.length ||
+        result.any((entry) => entry.trim().isEmpty || entry != entry.trim())) {
+      throw PresentationPresetAuthoringException(
+        'presentation.preset.parameter_invalid',
+        'Preset parameter $key must contain unique section paths.',
+      );
+    }
+    return List<String>.unmodifiable(result);
   }
 }

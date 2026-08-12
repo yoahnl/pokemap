@@ -684,6 +684,7 @@ class PersonalizationDialogueInspector extends StatelessWidget {
     _DialogueColor color,
   ) {
     final value = _resolvedColor(dialogue, color);
+    final explicit = _explicitColor(dialogue, color);
     return Row(
       children: <Widget>[
         Expanded(
@@ -695,10 +696,35 @@ class PersonalizationDialogueInspector extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 4),
-              PokeMapBadge(label: value),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: <Widget>[
+                  PokeMapBadge(label: value),
+                  PokeMapBadge(
+                    label: explicit == null
+                        ? 'Hérité de Style global'
+                        : 'Surcharge de scène',
+                    variant: explicit == null
+                        ? PokeMapBadgeVariant.info
+                        : PokeMapBadgeVariant.success,
+                  ),
+                ],
+              ),
             ],
           ),
         ),
+        if (explicit != null) ...<Widget>[
+          const SizedBox(width: 4),
+          PokeMapIconButton(
+            key: ValueKey<String>('dialogue-color-inherit-${color.name}'),
+            tooltip: 'Revenir à la couleur héritée',
+            onPressed: () =>
+                onDialogueChanged(_replaceColor(dialogue, color, null)),
+            icon: const Icon(Icons.link_rounded),
+          ),
+        ],
+        const SizedBox(width: 4),
         PokeMapButton(
           key: ValueKey<String>('dialogue-color-${color.name}'),
           size: PokeMapButtonSize.small,
@@ -770,10 +796,25 @@ class PersonalizationDialogueInspector extends StatelessWidget {
     };
   }
 
+  String? _explicitColor(
+    ProjectDialoguePresentationProfile dialogue,
+    _DialogueColor color,
+  ) => switch (color) {
+    _DialogueColor.surface => dialogue.surfaceColor,
+    _DialogueColor.border => dialogue.borderColor,
+    _DialogueColor.text => dialogue.textColor,
+    _DialogueColor.portraitFrame => dialogue.portraitFrameColor,
+    _DialogueColor.nameplateSurface => dialogue.nameplateSurfaceColor,
+    _DialogueColor.nameplateBorder => dialogue.nameplateBorderColor,
+    _DialogueColor.nameplateText => dialogue.nameplateTextColor,
+    _DialogueColor.choiceSelected => dialogue.choiceSelectedColor,
+    _DialogueColor.progressIndicator => dialogue.progressIndicatorColor,
+  };
+
   ProjectDialoguePresentationProfile _replaceColor(
     ProjectDialoguePresentationProfile dialogue,
     _DialogueColor color,
-    String value,
+    String? value,
   ) => switch (color) {
     _DialogueColor.surface => dialogue.copyWith(surfaceColor: value),
     _DialogueColor.border => dialogue.copyWith(borderColor: value),

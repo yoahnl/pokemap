@@ -6,6 +6,8 @@ enum PersonalizationPreviewContentSource { demonstration, project }
 
 enum PersonalizationPreviewSurfaceFidelity { playerInterface, editorBackdrop }
 
+enum PersonalizationBattlePreviewState { commands, moves, target, message }
+
 final class PersonalizationCapabilityDescriptor {
   PersonalizationCapabilityDescriptor({
     required this.id,
@@ -15,12 +17,16 @@ final class PersonalizationCapabilityDescriptor {
     this.projectPath,
     this.runtimeSurface,
     this.testKey,
+    this.additionalTestKeys = const <String>{},
   }) {
     if (id.trim().isEmpty || label.trim().isEmpty) {
       throw ArgumentError('Capability identity and label must not be blank.');
     }
     if (testKey?.trim().isEmpty ?? false) {
       throw ArgumentError.value(testKey, 'testKey');
+    }
+    if (additionalTestKeys.any((key) => key.trim().isEmpty)) {
+      throw ArgumentError.value(additionalTestKeys, 'additionalTestKeys');
     }
     switch (effect) {
       case PersonalizationControlEffect.project:
@@ -50,4 +56,7 @@ final class PersonalizationCapabilityDescriptor {
   final String? projectPath;
   final String? runtimeSurface;
   final String? testKey;
+  final Set<String> additionalTestKeys;
+
+  Set<String> get testKeys => <String>{?testKey, ...additionalTestKeys};
 }

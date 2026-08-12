@@ -94,6 +94,13 @@ void main() {
         },
       ]);
       expect((encounter['playerPokemon']! as Map)['speciesId'], 'brindibou');
+      expect(
+        (encounter['battleMediaDiagnostics']! as List),
+        <Object?>[
+          'previewContext.enemyBattleSpriteUnavailable',
+          'previewContext.playerBattleSpriteUnavailable',
+        ],
+      );
     });
 
     test('keeps deterministic pagination bound to the snapshot revision', () {
@@ -160,6 +167,124 @@ void main() {
         <Object?>['previewContext.playerPokemonUnavailable'],
       );
       expect(context, isNot(contains('playerPokemon')));
+    });
+
+    test(
+        'projects resolved battle names and sprites without persisting a selection',
+        () {
+      final context = const PresentationPreviewContextProjector()
+          .project(
+            manifest: const ProjectManifest(
+              name: 'Resolved battle',
+              maps: <ProjectMapEntry>[],
+              tilesets: <ProjectTilesetEntry>[],
+              encounterTables: <ProjectEncounterTable>[
+                ProjectEncounterTable(
+                  id: 'grass',
+                  name: 'Herbes',
+                  encounterKind: EncounterKind.walk,
+                  entries: <ProjectEncounterEntry>[
+                    ProjectEncounterEntry(
+                      speciesId: 'enemy-species',
+                      minLevel: 4,
+                      maxLevel: 4,
+                    ),
+                  ],
+                ),
+              ],
+              newGame: ProjectNewGameConfig(
+                initialParty: <PlayerPokemon>[
+                  PlayerPokemon(
+                    speciesId: 'player-species',
+                    natureId: 'hardy',
+                    abilityId: 'starter',
+                    level: 5,
+                  ),
+                ],
+              ),
+            ),
+            workspaceRevision: _revision,
+            maps: const <MapData>[],
+            dialogueSourceText: (_) => null,
+            portraitAssetPath: (_) => null,
+            speciesDisplayName: (id) =>
+                id == 'enemy-species' ? 'Adversaire réel' : 'Partenaire réel',
+            battleSpritePath: (id, playerSide) => playerSide
+                ? 'assets/pokemon/player-back.png'
+                : 'assets/pokemon/enemy-front.png',
+          )
+          .single
+          .detail;
+
+      expect((context['entries']! as List).single,
+          containsPair('displayName', 'Adversaire réel'));
+      expect((context['entries']! as List).single,
+          containsPair('battleSpritePath', 'assets/pokemon/enemy-front.png'));
+      expect(context['playerPokemon'],
+          containsPair('displayName', 'Partenaire réel'));
+      expect(context['playerPokemon'],
+          containsPair('battleSpritePath', 'assets/pokemon/player-back.png'));
+      expect(context['battleMediaDiagnostics'], isEmpty);
+      expect(context, isNot(contains('selectedCreatureId')));
+    });
+
+    test('reports missing species and battle media without inventing them', () {
+      final context = const PresentationPreviewContextProjector()
+          .project(
+            manifest: const ProjectManifest(
+              name: 'Missing battle media',
+              maps: <ProjectMapEntry>[],
+              tilesets: <ProjectTilesetEntry>[],
+              encounterTables: <ProjectEncounterTable>[
+                ProjectEncounterTable(
+                  id: 'grass',
+                  name: 'Herbes',
+                  encounterKind: EncounterKind.walk,
+                  entries: <ProjectEncounterEntry>[
+                    ProjectEncounterEntry(
+                      speciesId: 'unknown-enemy',
+                      minLevel: 4,
+                      maxLevel: 4,
+                    ),
+                  ],
+                ),
+              ],
+              newGame: ProjectNewGameConfig(
+                initialParty: <PlayerPokemon>[
+                  PlayerPokemon(
+                    speciesId: 'unknown-player',
+                    natureId: 'hardy',
+                    abilityId: 'starter',
+                    level: 5,
+                  ),
+                ],
+              ),
+            ),
+            workspaceRevision: _revision,
+            maps: const <MapData>[],
+            dialogueSourceText: (_) => null,
+            portraitAssetPath: (_) => null,
+            speciesDisplayName: (_) => null,
+            battleSpritePath: (_, __) => null,
+          )
+          .single
+          .detail;
+
+      expect(
+        (context['entries']! as List).single,
+        isNot(contains('displayName')),
+      );
+      expect(
+        (context['entries']! as List).single,
+        isNot(contains('battleSpritePath')),
+      );
+      expect(
+        context['battleMediaDiagnostics'],
+        <Object?>[
+          'previewContext.enemyBattleSpriteUnavailable',
+          'previewContext.playerBattleSpriteUnavailable',
+        ],
+      );
     });
 
     test('reports orphan dialogue references without inventing a portrait', () {

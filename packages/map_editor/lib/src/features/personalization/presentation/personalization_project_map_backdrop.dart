@@ -18,6 +18,7 @@ class PersonalizationProjectMapBackdrop extends StatefulWidget {
     required this.projectRootPath,
     this.manifest,
     this.resolveTilesetPath,
+    this.planLoader,
   });
 
   final MapData map;
@@ -25,6 +26,7 @@ class PersonalizationProjectMapBackdrop extends StatefulWidget {
   final String projectRootPath;
   final ProjectManifest? manifest;
   final String? Function(String tilesetId)? resolveTilesetPath;
+  final CinematicMapBackdropLayerPlanLoader? planLoader;
 
   @override
   State<PersonalizationProjectMapBackdrop> createState() =>
@@ -33,10 +35,13 @@ class PersonalizationProjectMapBackdrop extends StatefulWidget {
 
 class _PersonalizationProjectMapBackdropState
     extends State<PersonalizationProjectMapBackdrop> {
-  final CinematicMapBackdropLayerPlanLoader _loader =
+  final CinematicMapBackdropLayerPlanLoader _ownedLoader =
       CinematicMapBackdropLayerPlanLoader();
   CinematicMapBackdropLayerRenderPlan? _plan;
   int _generation = 0;
+
+  CinematicMapBackdropLayerPlanLoader get _loader =>
+      widget.planLoader ?? _ownedLoader;
 
   @override
   void initState() {
@@ -49,14 +54,16 @@ class _PersonalizationProjectMapBackdropState
     super.didUpdateWidget(oldWidget);
     if (oldWidget.map != widget.map ||
         oldWidget.manifest != widget.manifest ||
-        oldWidget.projectRootPath != widget.projectRootPath) {
+        oldWidget.projectRootPath != widget.projectRootPath ||
+        oldWidget.resolveTilesetPath != widget.resolveTilesetPath ||
+        oldWidget.planLoader != widget.planLoader) {
       _reload();
     }
   }
 
   @override
   void dispose() {
-    _loader.clear();
+    _ownedLoader.clear();
     super.dispose();
   }
 

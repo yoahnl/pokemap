@@ -23,7 +23,6 @@ import '../application/personalization_capability_registry.dart';
 import '../application/personalization_character_preview_source.dart';
 import '../application/personalization_inspector_target.dart';
 import '../application/personalization_preview_context_source.dart';
-import '../application/personalization_preview_fixtures.dart';
 import '../application/personalization_preview_surface_descriptor.dart';
 import '../application/personalization_publish_readiness.dart';
 import '../application/personalization_studio_asset_picker.dart';
@@ -37,6 +36,7 @@ import '../application/project_title_motion_import_service.dart';
 import 'personalization_live_preview.dart';
 import 'personalization_readiness_panel.dart';
 import 'personalization_section_actions.dart';
+import 'personalization_scene_actions.dart';
 import 'personalization_studio_shell.dart';
 import 'personalization_studio_capability_bindings.dart';
 import 'inspectors/personalization_battle_inspector.dart';
@@ -103,6 +103,7 @@ class _PersonalizationStudioWorkspaceState
   String? _preflightError;
   bool _isPreflightRunning = false;
   int _preflightRequestId = 0;
+  ProjectPresentationProfile? _scenePresetPreviewProfile;
 
   @override
   void dispose() {
@@ -1134,7 +1135,7 @@ class _PersonalizationStudioWorkspaceState
                   onApply: (preset) {
                     unawaited(
                       notifier.applyPersonalizationStudioProfile(
-                        preset.profile,
+                        preset.applyTo(profile),
                         label: 'Appliquer le profil ${preset.label}',
                       ),
                     );
@@ -1394,12 +1395,18 @@ class _PersonalizationStudioWorkspaceState
         notifier: notifier,
         canEdit: canEdit,
       ),
-      BattleCommandsTarget() || BattleAppearanceTarget() => _buildBattleTarget(
+      BattleCommandsTarget() ||
+      BattleHudTarget() ||
+      BattleMovesTarget() ||
+      BattleTargetsTarget() ||
+      BattleMessageTarget() ||
+      BattleAppearanceTarget() => _buildBattleTarget(
         context: context,
         profile: profile,
         projectRootPath: projectRootPath,
         notifier: notifier,
         canEdit: canEdit,
+        target: target,
       ),
       DialogueAppearanceTarget() ||
       DialogueTypographyTarget() ||
@@ -1866,6 +1873,7 @@ class _PersonalizationStudioWorkspaceState
     required String projectRootPath,
     required EditorNotifier notifier,
     required bool canEdit,
+    required PersonalizationInspectorTarget target,
   }) {
     final typography = profile.typography ?? const ProjectTypographyProfile();
     return Column(
@@ -1893,8 +1901,17 @@ class _PersonalizationStudioWorkspaceState
             profile: profile,
             previewState: _battlePreviewState,
             previewFamilies: _fontPreviewFamilies,
+            initialSection: _battleSectionForTarget(target),
             onPreviewStateChanged: (state) {
               setState(() => _battlePreviewState = state);
+            },
+            onBattleChanged: (battle) {
+              unawaited(
+                notifier.applyPersonalizationStudioProfile(
+                  profile.copyWith(battle: battle),
+                  label: 'Modifier l’interface des combats',
+                ),
+              );
             },
             onWindowsChanged: (windows) {
               unawaited(
@@ -2200,12 +2217,13 @@ class _PersonalizationStudioWorkspaceState
                   unawaited(_stopTitleMusicPreview());
                 }
                 setState(() {
+                  _scenePresetPreviewProfile = null;
                   _selectedScene = scene;
                   _selectedTarget = _defaultInspectorTarget(scene);
                 });
               },
               preview: PersonalizationLivePreview(
-                profile: profile,
+                profile: _scenePresetPreviewProfile ?? profile,
                 projectName: project.name,
                 projectRootPath: projectRootPath,
                 baselineProfile: baselineProfile,
@@ -2231,10 +2249,21 @@ class _PersonalizationStudioWorkspaceState
                     unawaited(_stopTitleMusicPreview());
                   }
                   setState(() {
+                    _scenePresetPreviewProfile = null;
                     _selectedScene = scene;
                     _selectedTarget = target;
                   });
                 },
+                onLayoutCommitted: canEdit
+                    ? (layouts) {
+                        unawaited(
+                          notifier.applyPersonalizationStudioProfile(
+                            profile.copyWith(layouts: layouts),
+                            label: 'Déplacer ou redimensionner un élément',
+                          ),
+                        );
+                      }
+                    : null,
               ),
               inspectorTitle: PersonalizationStudioSceneDescriptor.forSurface(
                 _selectedScene,
@@ -2247,6 +2276,28 @@ class _PersonalizationStudioWorkspaceState
               inspector: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
+                  PersonalizationSceneActions(
+                    scene: _selectedScene,
+                    profile: profile,
+                    onPreviewChanged: (previewProfile) {
+                      setState(
+                        () => _scenePresetPreviewProfile = previewProfile,
+                      );
+                    },
+                    onProfileChanged: canEdit
+                        ? (updatedProfile) {
+                            setState(() => _scenePresetPreviewProfile = null);
+                            unawaited(
+                              notifier.applyPersonalizationStudioProfile(
+                                updatedProfile,
+                                label: 'Appliquer les réglages de la scène',
+                              ),
+                            );
+                          }
+                        : null,
+                  ),
+                  if (_selectedScene != PersonalizationStudioScene.globalStyle)
+                    const SizedBox(height: 12),
                   PersonalizationSectionActions(
                     profile: profile,
                     category: _categoryForInspectorTarget(_selectedTarget),
@@ -2384,6 +2435,10 @@ PersonalizationStudioScene _sceneForInspectorTarget(
   DialogueTypographyTarget() ||
   DialogueLayoutTarget() => PersonalizationStudioScene.dialogue,
   BattleCommandsTarget() ||
+  BattleHudTarget() ||
+  BattleMovesTarget() ||
+  BattleTargetsTarget() ||
+  BattleMessageTarget() ||
   BattleAppearanceTarget() => PersonalizationStudioScene.battle,
 };
 
@@ -2402,7 +2457,22 @@ ProjectPresentationCategory _categoryForInspectorTarget(
   PauseAppearanceTarget() ||
   DialogueAppearanceTarget() ||
   BattleCommandsTarget() ||
+  BattleHudTarget() ||
+  BattleMovesTarget() ||
+  BattleTargetsTarget() ||
+  BattleMessageTarget() ||
   BattleAppearanceTarget() => ProjectPresentationCategory.theme,
+};
+
+PersonalizationBattleInspectorSection? _battleSectionForTarget(
+  PersonalizationInspectorTarget target,
+) => switch (target) {
+  BattleCommandsTarget() => PersonalizationBattleInspectorSection.commands,
+  BattleHudTarget() => PersonalizationBattleInspectorSection.hud,
+  BattleMovesTarget() => PersonalizationBattleInspectorSection.moves,
+  BattleTargetsTarget() => PersonalizationBattleInspectorSection.target,
+  BattleMessageTarget() => PersonalizationBattleInspectorSection.message,
+  _ => null,
 };
 
 PersonalizationStudioScene _sceneForCategory(
@@ -2452,21 +2522,7 @@ String _sceneDescription(PersonalizationStudioScene scene) => switch (scene) {
 };
 
 String _inspectorTargetId(PersonalizationInspectorTarget target) =>
-    switch (target) {
-      GlobalColorsTarget() => 'globalColors',
-      GlobalTypographyTarget() => 'globalTypography',
-      GlobalFormsTarget() => 'globalForms',
-      TitlePresentationTarget() => 'titlePresentation',
-      IntroPresentationTarget() => 'introPresentation',
-      PauseLabelsTarget() => 'pauseLabels',
-      PauseAppearanceTarget() => 'pauseAppearance',
-      PauseLayoutTarget() => 'pauseLayout',
-      DialogueAppearanceTarget() => 'dialogueAppearance',
-      DialogueTypographyTarget() => 'dialogueTypography',
-      DialogueLayoutTarget() => 'dialogueLayout',
-      BattleCommandsTarget() => 'battleCommands',
-      BattleAppearanceTarget() => 'battleAppearance',
-    };
+    personalizationInspectorTargetId(target);
 
 String _categoryName(ProjectPresentationCategory category) =>
     switch (category) {

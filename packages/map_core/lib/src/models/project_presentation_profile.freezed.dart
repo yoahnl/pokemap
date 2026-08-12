@@ -4776,7 +4776,7 @@ as String?,
 /// @nodoc
 mixin _$ProjectPresentationProfile {
 
- int get schemaVersion; ProjectBrandingProfile get branding;@JsonKey(includeIfNull: false) ProjectTitlePresentationProfile? get title;@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? get intro;@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? get titleMotion;@JsonKey(includeIfNull: false) ProjectTypographyProfile? get typography;@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? get theme;@JsonKey(includeIfNull: false) ProjectPresentationSurfacePalettesProfile? get surfacePalettes;@JsonKey(includeIfNull: false) ProjectPausePresentationProfile? get pause;@JsonKey(includeIfNull: false) ProjectDialoguePresentationProfile? get dialogue;@JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? get menuLabels;@JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? get windows;@JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? get layouts;
+ int get schemaVersion; ProjectBrandingProfile get branding;@JsonKey(includeIfNull: false) ProjectTitlePresentationProfile? get title;@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? get intro;@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? get titleMotion;@JsonKey(includeIfNull: false) ProjectTypographyProfile? get typography;@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? get theme;@JsonKey(includeIfNull: false) ProjectPresentationSurfacePalettesProfile? get surfacePalettes;@JsonKey(includeIfNull: false) ProjectPausePresentationProfile? get pause;@JsonKey(includeIfNull: false) ProjectDialoguePresentationProfile? get dialogue;@JsonKey(includeIfNull: false) ProjectBattlePresentationProfile? get battle;@JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? get menuLabels;@JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? get windows;@JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? get layouts;
 /// Create a copy of ProjectPresentationProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -4789,16 +4789,16 @@ $ProjectPresentationProfileCopyWith<ProjectPresentationProfile> get copyWith => 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPresentationProfile&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.title, title) || other.title == title)&&(identical(other.intro, intro) || other.intro == intro)&&(identical(other.titleMotion, titleMotion) || other.titleMotion == titleMotion)&&(identical(other.typography, typography) || other.typography == typography)&&(identical(other.theme, theme) || other.theme == theme)&&(identical(other.surfacePalettes, surfacePalettes) || other.surfacePalettes == surfacePalettes)&&(identical(other.pause, pause) || other.pause == pause)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.menuLabels, menuLabels) || other.menuLabels == menuLabels)&&(identical(other.windows, windows) || other.windows == windows)&&(identical(other.layouts, layouts) || other.layouts == layouts));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPresentationProfile&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.title, title) || other.title == title)&&(identical(other.intro, intro) || other.intro == intro)&&(identical(other.titleMotion, titleMotion) || other.titleMotion == titleMotion)&&(identical(other.typography, typography) || other.typography == typography)&&(identical(other.theme, theme) || other.theme == theme)&&(identical(other.surfacePalettes, surfacePalettes) || other.surfacePalettes == surfacePalettes)&&(identical(other.pause, pause) || other.pause == pause)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.battle, battle) || other.battle == battle)&&(identical(other.menuLabels, menuLabels) || other.menuLabels == menuLabels)&&(identical(other.windows, windows) || other.windows == windows)&&(identical(other.layouts, layouts) || other.layouts == layouts));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,schemaVersion,branding,title,intro,titleMotion,typography,theme,surfacePalettes,pause,dialogue,menuLabels,windows,layouts);
+int get hashCode => Object.hash(runtimeType,schemaVersion,branding,title,intro,titleMotion,typography,theme,surfacePalettes,pause,dialogue,battle,menuLabels,windows,layouts);
 
 @override
 String toString() {
-  return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, title: $title, intro: $intro, titleMotion: $titleMotion, typography: $typography, theme: $theme, surfacePalettes: $surfacePalettes, pause: $pause, dialogue: $dialogue, menuLabels: $menuLabels, windows: $windows, layouts: $layouts)';
+  return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, title: $title, intro: $intro, titleMotion: $titleMotion, typography: $typography, theme: $theme, surfacePalettes: $surfacePalettes, pause: $pause, dialogue: $dialogue, battle: $battle, menuLabels: $menuLabels, windows: $windows, layouts: $layouts)';
 }
 
 
@@ -4809,11 +4809,11 @@ abstract mixin class $ProjectPresentationProfileCopyWith<$Res>  {
   factory $ProjectPresentationProfileCopyWith(ProjectPresentationProfile value, $Res Function(ProjectPresentationProfile) _then) = _$ProjectPresentationProfileCopyWithImpl;
 @useResult
 $Res call({
- int schemaVersion, ProjectBrandingProfile branding,@JsonKey(includeIfNull: false) ProjectTitlePresentationProfile? title,@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,@JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,@JsonKey(includeIfNull: false) ProjectPresentationSurfacePalettesProfile? surfacePalettes,@JsonKey(includeIfNull: false) ProjectPausePresentationProfile? pause,@JsonKey(includeIfNull: false) ProjectDialoguePresentationProfile? dialogue,@JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,@JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? windows,@JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? layouts
+ int schemaVersion, ProjectBrandingProfile branding,@JsonKey(includeIfNull: false) ProjectTitlePresentationProfile? title,@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,@JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,@JsonKey(includeIfNull: false) ProjectPresentationSurfacePalettesProfile? surfacePalettes,@JsonKey(includeIfNull: false) ProjectPausePresentationProfile? pause,@JsonKey(includeIfNull: false) ProjectDialoguePresentationProfile? dialogue,@JsonKey(includeIfNull: false) ProjectBattlePresentationProfile? battle,@JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,@JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? windows,@JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? layouts
 });
 
 
-$ProjectBrandingProfileCopyWith<$Res> get branding;$ProjectTitlePresentationProfileCopyWith<$Res>? get title;$ProjectIntroVideoProfileCopyWith<$Res>? get intro;$ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion;$ProjectTypographyProfileCopyWith<$Res>? get typography;$ProjectSemanticThemeProfileCopyWith<$Res>? get theme;$ProjectPresentationSurfacePalettesProfileCopyWith<$Res>? get surfacePalettes;$ProjectPausePresentationProfileCopyWith<$Res>? get pause;$ProjectDialoguePresentationProfileCopyWith<$Res>? get dialogue;$ProjectMenuLabelsProfileCopyWith<$Res>? get menuLabels;$ProjectPresentationWindowsProfileCopyWith<$Res>? get windows;$ProjectPresentationLayoutsProfileCopyWith<$Res>? get layouts;
+$ProjectBrandingProfileCopyWith<$Res> get branding;$ProjectTitlePresentationProfileCopyWith<$Res>? get title;$ProjectIntroVideoProfileCopyWith<$Res>? get intro;$ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion;$ProjectTypographyProfileCopyWith<$Res>? get typography;$ProjectSemanticThemeProfileCopyWith<$Res>? get theme;$ProjectPresentationSurfacePalettesProfileCopyWith<$Res>? get surfacePalettes;$ProjectPausePresentationProfileCopyWith<$Res>? get pause;$ProjectDialoguePresentationProfileCopyWith<$Res>? get dialogue;$ProjectBattlePresentationProfileCopyWith<$Res>? get battle;$ProjectMenuLabelsProfileCopyWith<$Res>? get menuLabels;$ProjectPresentationWindowsProfileCopyWith<$Res>? get windows;$ProjectPresentationLayoutsProfileCopyWith<$Res>? get layouts;
 
 }
 /// @nodoc
@@ -4826,7 +4826,7 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPresentationProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? schemaVersion = null,Object? branding = null,Object? title = freezed,Object? intro = freezed,Object? titleMotion = freezed,Object? typography = freezed,Object? theme = freezed,Object? surfacePalettes = freezed,Object? pause = freezed,Object? dialogue = freezed,Object? menuLabels = freezed,Object? windows = freezed,Object? layouts = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? schemaVersion = null,Object? branding = null,Object? title = freezed,Object? intro = freezed,Object? titleMotion = freezed,Object? typography = freezed,Object? theme = freezed,Object? surfacePalettes = freezed,Object? pause = freezed,Object? dialogue = freezed,Object? battle = freezed,Object? menuLabels = freezed,Object? windows = freezed,Object? layouts = freezed,}) {
   return _then(_self.copyWith(
 schemaVersion: null == schemaVersion ? _self.schemaVersion : schemaVersion // ignore: cast_nullable_to_non_nullable
 as int,branding: null == branding ? _self.branding : branding // ignore: cast_nullable_to_non_nullable
@@ -4838,7 +4838,8 @@ as ProjectTypographyProfile?,theme: freezed == theme ? _self.theme : theme // ig
 as ProjectSemanticThemeProfile?,surfacePalettes: freezed == surfacePalettes ? _self.surfacePalettes : surfacePalettes // ignore: cast_nullable_to_non_nullable
 as ProjectPresentationSurfacePalettesProfile?,pause: freezed == pause ? _self.pause : pause // ignore: cast_nullable_to_non_nullable
 as ProjectPausePresentationProfile?,dialogue: freezed == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
-as ProjectDialoguePresentationProfile?,menuLabels: freezed == menuLabels ? _self.menuLabels : menuLabels // ignore: cast_nullable_to_non_nullable
+as ProjectDialoguePresentationProfile?,battle: freezed == battle ? _self.battle : battle // ignore: cast_nullable_to_non_nullable
+as ProjectBattlePresentationProfile?,menuLabels: freezed == menuLabels ? _self.menuLabels : menuLabels // ignore: cast_nullable_to_non_nullable
 as ProjectMenuLabelsProfile?,windows: freezed == windows ? _self.windows : windows // ignore: cast_nullable_to_non_nullable
 as ProjectPresentationWindowsProfile?,layouts: freezed == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as ProjectPresentationLayoutsProfile?,
@@ -4948,6 +4949,18 @@ $ProjectDialoguePresentationProfileCopyWith<$Res>? get dialogue {
 
   return $ProjectDialoguePresentationProfileCopyWith<$Res>(_self.dialogue!, (value) {
     return _then(_self.copyWith(dialogue: value));
+  });
+}/// Create a copy of ProjectPresentationProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectBattlePresentationProfileCopyWith<$Res>? get battle {
+    if (_self.battle == null) {
+    return null;
+  }
+
+  return $ProjectBattlePresentationProfileCopyWith<$Res>(_self.battle!, (value) {
+    return _then(_self.copyWith(battle: value));
   });
 }/// Create a copy of ProjectPresentationProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -5067,10 +5080,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectTitlePresentationProfile? title, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme, @JsonKey(includeIfNull: false)  ProjectPresentationSurfacePalettesProfile? surfacePalettes, @JsonKey(includeIfNull: false)  ProjectPausePresentationProfile? pause, @JsonKey(includeIfNull: false)  ProjectDialoguePresentationProfile? dialogue, @JsonKey(includeIfNull: false)  ProjectMenuLabelsProfile? menuLabels, @JsonKey(includeIfNull: false)  ProjectPresentationWindowsProfile? windows, @JsonKey(includeIfNull: false)  ProjectPresentationLayoutsProfile? layouts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectTitlePresentationProfile? title, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme, @JsonKey(includeIfNull: false)  ProjectPresentationSurfacePalettesProfile? surfacePalettes, @JsonKey(includeIfNull: false)  ProjectPausePresentationProfile? pause, @JsonKey(includeIfNull: false)  ProjectDialoguePresentationProfile? dialogue, @JsonKey(includeIfNull: false)  ProjectBattlePresentationProfile? battle, @JsonKey(includeIfNull: false)  ProjectMenuLabelsProfile? menuLabels, @JsonKey(includeIfNull: false)  ProjectPresentationWindowsProfile? windows, @JsonKey(includeIfNull: false)  ProjectPresentationLayoutsProfile? layouts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectPresentationProfile() when $default != null:
-return $default(_that.schemaVersion,_that.branding,_that.title,_that.intro,_that.titleMotion,_that.typography,_that.theme,_that.surfacePalettes,_that.pause,_that.dialogue,_that.menuLabels,_that.windows,_that.layouts);case _:
+return $default(_that.schemaVersion,_that.branding,_that.title,_that.intro,_that.titleMotion,_that.typography,_that.theme,_that.surfacePalettes,_that.pause,_that.dialogue,_that.battle,_that.menuLabels,_that.windows,_that.layouts);case _:
   return orElse();
 
 }
@@ -5088,10 +5101,10 @@ return $default(_that.schemaVersion,_that.branding,_that.title,_that.intro,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectTitlePresentationProfile? title, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme, @JsonKey(includeIfNull: false)  ProjectPresentationSurfacePalettesProfile? surfacePalettes, @JsonKey(includeIfNull: false)  ProjectPausePresentationProfile? pause, @JsonKey(includeIfNull: false)  ProjectDialoguePresentationProfile? dialogue, @JsonKey(includeIfNull: false)  ProjectMenuLabelsProfile? menuLabels, @JsonKey(includeIfNull: false)  ProjectPresentationWindowsProfile? windows, @JsonKey(includeIfNull: false)  ProjectPresentationLayoutsProfile? layouts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectTitlePresentationProfile? title, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme, @JsonKey(includeIfNull: false)  ProjectPresentationSurfacePalettesProfile? surfacePalettes, @JsonKey(includeIfNull: false)  ProjectPausePresentationProfile? pause, @JsonKey(includeIfNull: false)  ProjectDialoguePresentationProfile? dialogue, @JsonKey(includeIfNull: false)  ProjectBattlePresentationProfile? battle, @JsonKey(includeIfNull: false)  ProjectMenuLabelsProfile? menuLabels, @JsonKey(includeIfNull: false)  ProjectPresentationWindowsProfile? windows, @JsonKey(includeIfNull: false)  ProjectPresentationLayoutsProfile? layouts)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPresentationProfile():
-return $default(_that.schemaVersion,_that.branding,_that.title,_that.intro,_that.titleMotion,_that.typography,_that.theme,_that.surfacePalettes,_that.pause,_that.dialogue,_that.menuLabels,_that.windows,_that.layouts);case _:
+return $default(_that.schemaVersion,_that.branding,_that.title,_that.intro,_that.titleMotion,_that.typography,_that.theme,_that.surfacePalettes,_that.pause,_that.dialogue,_that.battle,_that.menuLabels,_that.windows,_that.layouts);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -5108,10 +5121,10 @@ return $default(_that.schemaVersion,_that.branding,_that.title,_that.intro,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectTitlePresentationProfile? title, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme, @JsonKey(includeIfNull: false)  ProjectPresentationSurfacePalettesProfile? surfacePalettes, @JsonKey(includeIfNull: false)  ProjectPausePresentationProfile? pause, @JsonKey(includeIfNull: false)  ProjectDialoguePresentationProfile? dialogue, @JsonKey(includeIfNull: false)  ProjectMenuLabelsProfile? menuLabels, @JsonKey(includeIfNull: false)  ProjectPresentationWindowsProfile? windows, @JsonKey(includeIfNull: false)  ProjectPresentationLayoutsProfile? layouts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectTitlePresentationProfile? title, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme, @JsonKey(includeIfNull: false)  ProjectPresentationSurfacePalettesProfile? surfacePalettes, @JsonKey(includeIfNull: false)  ProjectPausePresentationProfile? pause, @JsonKey(includeIfNull: false)  ProjectDialoguePresentationProfile? dialogue, @JsonKey(includeIfNull: false)  ProjectBattlePresentationProfile? battle, @JsonKey(includeIfNull: false)  ProjectMenuLabelsProfile? menuLabels, @JsonKey(includeIfNull: false)  ProjectPresentationWindowsProfile? windows, @JsonKey(includeIfNull: false)  ProjectPresentationLayoutsProfile? layouts)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPresentationProfile() when $default != null:
-return $default(_that.schemaVersion,_that.branding,_that.title,_that.intro,_that.titleMotion,_that.typography,_that.theme,_that.surfacePalettes,_that.pause,_that.dialogue,_that.menuLabels,_that.windows,_that.layouts);case _:
+return $default(_that.schemaVersion,_that.branding,_that.title,_that.intro,_that.titleMotion,_that.typography,_that.theme,_that.surfacePalettes,_that.pause,_that.dialogue,_that.battle,_that.menuLabels,_that.windows,_that.layouts);case _:
   return null;
 
 }
@@ -5123,7 +5136,7 @@ return $default(_that.schemaVersion,_that.branding,_that.title,_that.intro,_that
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectPresentationProfile extends ProjectPresentationProfile {
-  const _ProjectPresentationProfile({this.schemaVersion = ProjectPresentationProfile.supportedSchemaVersion, this.branding = const ProjectBrandingProfile(), @JsonKey(includeIfNull: false) this.title, @JsonKey(includeIfNull: false) this.intro, @JsonKey(includeIfNull: false) this.titleMotion, @JsonKey(includeIfNull: false) this.typography, @JsonKey(includeIfNull: false) this.theme, @JsonKey(includeIfNull: false) this.surfacePalettes, @JsonKey(includeIfNull: false) this.pause, @JsonKey(includeIfNull: false) this.dialogue, @JsonKey(includeIfNull: false) this.menuLabels, @JsonKey(includeIfNull: false) this.windows, @JsonKey(includeIfNull: false) this.layouts}): super._();
+  const _ProjectPresentationProfile({this.schemaVersion = ProjectPresentationProfile.supportedSchemaVersion, this.branding = const ProjectBrandingProfile(), @JsonKey(includeIfNull: false) this.title, @JsonKey(includeIfNull: false) this.intro, @JsonKey(includeIfNull: false) this.titleMotion, @JsonKey(includeIfNull: false) this.typography, @JsonKey(includeIfNull: false) this.theme, @JsonKey(includeIfNull: false) this.surfacePalettes, @JsonKey(includeIfNull: false) this.pause, @JsonKey(includeIfNull: false) this.dialogue, @JsonKey(includeIfNull: false) this.battle, @JsonKey(includeIfNull: false) this.menuLabels, @JsonKey(includeIfNull: false) this.windows, @JsonKey(includeIfNull: false) this.layouts}): super._();
   factory _ProjectPresentationProfile.fromJson(Map<String, dynamic> json) => _$ProjectPresentationProfileFromJson(json);
 
 @override@JsonKey() final  int schemaVersion;
@@ -5136,6 +5149,7 @@ class _ProjectPresentationProfile extends ProjectPresentationProfile {
 @override@JsonKey(includeIfNull: false) final  ProjectPresentationSurfacePalettesProfile? surfacePalettes;
 @override@JsonKey(includeIfNull: false) final  ProjectPausePresentationProfile? pause;
 @override@JsonKey(includeIfNull: false) final  ProjectDialoguePresentationProfile? dialogue;
+@override@JsonKey(includeIfNull: false) final  ProjectBattlePresentationProfile? battle;
 @override@JsonKey(includeIfNull: false) final  ProjectMenuLabelsProfile? menuLabels;
 @override@JsonKey(includeIfNull: false) final  ProjectPresentationWindowsProfile? windows;
 @override@JsonKey(includeIfNull: false) final  ProjectPresentationLayoutsProfile? layouts;
@@ -5153,16 +5167,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPresentationProfile&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.title, title) || other.title == title)&&(identical(other.intro, intro) || other.intro == intro)&&(identical(other.titleMotion, titleMotion) || other.titleMotion == titleMotion)&&(identical(other.typography, typography) || other.typography == typography)&&(identical(other.theme, theme) || other.theme == theme)&&(identical(other.surfacePalettes, surfacePalettes) || other.surfacePalettes == surfacePalettes)&&(identical(other.pause, pause) || other.pause == pause)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.menuLabels, menuLabels) || other.menuLabels == menuLabels)&&(identical(other.windows, windows) || other.windows == windows)&&(identical(other.layouts, layouts) || other.layouts == layouts));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPresentationProfile&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.title, title) || other.title == title)&&(identical(other.intro, intro) || other.intro == intro)&&(identical(other.titleMotion, titleMotion) || other.titleMotion == titleMotion)&&(identical(other.typography, typography) || other.typography == typography)&&(identical(other.theme, theme) || other.theme == theme)&&(identical(other.surfacePalettes, surfacePalettes) || other.surfacePalettes == surfacePalettes)&&(identical(other.pause, pause) || other.pause == pause)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.battle, battle) || other.battle == battle)&&(identical(other.menuLabels, menuLabels) || other.menuLabels == menuLabels)&&(identical(other.windows, windows) || other.windows == windows)&&(identical(other.layouts, layouts) || other.layouts == layouts));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,schemaVersion,branding,title,intro,titleMotion,typography,theme,surfacePalettes,pause,dialogue,menuLabels,windows,layouts);
+int get hashCode => Object.hash(runtimeType,schemaVersion,branding,title,intro,titleMotion,typography,theme,surfacePalettes,pause,dialogue,battle,menuLabels,windows,layouts);
 
 @override
 String toString() {
-  return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, title: $title, intro: $intro, titleMotion: $titleMotion, typography: $typography, theme: $theme, surfacePalettes: $surfacePalettes, pause: $pause, dialogue: $dialogue, menuLabels: $menuLabels, windows: $windows, layouts: $layouts)';
+  return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, title: $title, intro: $intro, titleMotion: $titleMotion, typography: $typography, theme: $theme, surfacePalettes: $surfacePalettes, pause: $pause, dialogue: $dialogue, battle: $battle, menuLabels: $menuLabels, windows: $windows, layouts: $layouts)';
 }
 
 
@@ -5173,11 +5187,11 @@ abstract mixin class _$ProjectPresentationProfileCopyWith<$Res> implements $Proj
   factory _$ProjectPresentationProfileCopyWith(_ProjectPresentationProfile value, $Res Function(_ProjectPresentationProfile) _then) = __$ProjectPresentationProfileCopyWithImpl;
 @override @useResult
 $Res call({
- int schemaVersion, ProjectBrandingProfile branding,@JsonKey(includeIfNull: false) ProjectTitlePresentationProfile? title,@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,@JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,@JsonKey(includeIfNull: false) ProjectPresentationSurfacePalettesProfile? surfacePalettes,@JsonKey(includeIfNull: false) ProjectPausePresentationProfile? pause,@JsonKey(includeIfNull: false) ProjectDialoguePresentationProfile? dialogue,@JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,@JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? windows,@JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? layouts
+ int schemaVersion, ProjectBrandingProfile branding,@JsonKey(includeIfNull: false) ProjectTitlePresentationProfile? title,@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,@JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,@JsonKey(includeIfNull: false) ProjectPresentationSurfacePalettesProfile? surfacePalettes,@JsonKey(includeIfNull: false) ProjectPausePresentationProfile? pause,@JsonKey(includeIfNull: false) ProjectDialoguePresentationProfile? dialogue,@JsonKey(includeIfNull: false) ProjectBattlePresentationProfile? battle,@JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,@JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? windows,@JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? layouts
 });
 
 
-@override $ProjectBrandingProfileCopyWith<$Res> get branding;@override $ProjectTitlePresentationProfileCopyWith<$Res>? get title;@override $ProjectIntroVideoProfileCopyWith<$Res>? get intro;@override $ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion;@override $ProjectTypographyProfileCopyWith<$Res>? get typography;@override $ProjectSemanticThemeProfileCopyWith<$Res>? get theme;@override $ProjectPresentationSurfacePalettesProfileCopyWith<$Res>? get surfacePalettes;@override $ProjectPausePresentationProfileCopyWith<$Res>? get pause;@override $ProjectDialoguePresentationProfileCopyWith<$Res>? get dialogue;@override $ProjectMenuLabelsProfileCopyWith<$Res>? get menuLabels;@override $ProjectPresentationWindowsProfileCopyWith<$Res>? get windows;@override $ProjectPresentationLayoutsProfileCopyWith<$Res>? get layouts;
+@override $ProjectBrandingProfileCopyWith<$Res> get branding;@override $ProjectTitlePresentationProfileCopyWith<$Res>? get title;@override $ProjectIntroVideoProfileCopyWith<$Res>? get intro;@override $ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion;@override $ProjectTypographyProfileCopyWith<$Res>? get typography;@override $ProjectSemanticThemeProfileCopyWith<$Res>? get theme;@override $ProjectPresentationSurfacePalettesProfileCopyWith<$Res>? get surfacePalettes;@override $ProjectPausePresentationProfileCopyWith<$Res>? get pause;@override $ProjectDialoguePresentationProfileCopyWith<$Res>? get dialogue;@override $ProjectBattlePresentationProfileCopyWith<$Res>? get battle;@override $ProjectMenuLabelsProfileCopyWith<$Res>? get menuLabels;@override $ProjectPresentationWindowsProfileCopyWith<$Res>? get windows;@override $ProjectPresentationLayoutsProfileCopyWith<$Res>? get layouts;
 
 }
 /// @nodoc
@@ -5190,7 +5204,7 @@ class __$ProjectPresentationProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPresentationProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? schemaVersion = null,Object? branding = null,Object? title = freezed,Object? intro = freezed,Object? titleMotion = freezed,Object? typography = freezed,Object? theme = freezed,Object? surfacePalettes = freezed,Object? pause = freezed,Object? dialogue = freezed,Object? menuLabels = freezed,Object? windows = freezed,Object? layouts = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? schemaVersion = null,Object? branding = null,Object? title = freezed,Object? intro = freezed,Object? titleMotion = freezed,Object? typography = freezed,Object? theme = freezed,Object? surfacePalettes = freezed,Object? pause = freezed,Object? dialogue = freezed,Object? battle = freezed,Object? menuLabels = freezed,Object? windows = freezed,Object? layouts = freezed,}) {
   return _then(_ProjectPresentationProfile(
 schemaVersion: null == schemaVersion ? _self.schemaVersion : schemaVersion // ignore: cast_nullable_to_non_nullable
 as int,branding: null == branding ? _self.branding : branding // ignore: cast_nullable_to_non_nullable
@@ -5202,7 +5216,8 @@ as ProjectTypographyProfile?,theme: freezed == theme ? _self.theme : theme // ig
 as ProjectSemanticThemeProfile?,surfacePalettes: freezed == surfacePalettes ? _self.surfacePalettes : surfacePalettes // ignore: cast_nullable_to_non_nullable
 as ProjectPresentationSurfacePalettesProfile?,pause: freezed == pause ? _self.pause : pause // ignore: cast_nullable_to_non_nullable
 as ProjectPausePresentationProfile?,dialogue: freezed == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
-as ProjectDialoguePresentationProfile?,menuLabels: freezed == menuLabels ? _self.menuLabels : menuLabels // ignore: cast_nullable_to_non_nullable
+as ProjectDialoguePresentationProfile?,battle: freezed == battle ? _self.battle : battle // ignore: cast_nullable_to_non_nullable
+as ProjectBattlePresentationProfile?,menuLabels: freezed == menuLabels ? _self.menuLabels : menuLabels // ignore: cast_nullable_to_non_nullable
 as ProjectMenuLabelsProfile?,windows: freezed == windows ? _self.windows : windows // ignore: cast_nullable_to_non_nullable
 as ProjectPresentationWindowsProfile?,layouts: freezed == layouts ? _self.layouts : layouts // ignore: cast_nullable_to_non_nullable
 as ProjectPresentationLayoutsProfile?,
@@ -5313,6 +5328,18 @@ $ProjectDialoguePresentationProfileCopyWith<$Res>? get dialogue {
 
   return $ProjectDialoguePresentationProfileCopyWith<$Res>(_self.dialogue!, (value) {
     return _then(_self.copyWith(dialogue: value));
+  });
+}/// Create a copy of ProjectPresentationProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectBattlePresentationProfileCopyWith<$Res>? get battle {
+    if (_self.battle == null) {
+    return null;
+  }
+
+  return $ProjectBattlePresentationProfileCopyWith<$Res>(_self.battle!, (value) {
+    return _then(_self.copyWith(battle: value));
   });
 }/// Create a copy of ProjectPresentationProfile
 /// with the given fields replaced by the non-null parameter values.

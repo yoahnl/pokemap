@@ -44,14 +44,18 @@ void main() {
       expect(executed, <String>{'utf8-key-order'});
     });
 
-    test('rejects non-finite and non-integral numbers', () {
+    test('rejects non-finite numbers and canonically encodes decimals', () {
       expect(
         () => CanonicalJson.encode(<String, Object?>{'value': double.nan}),
         throwsA(isA<CanonicalJsonException>()),
       );
       expect(
-        () => CanonicalJson.encode(<String, Object?>{'value': 1.5}),
-        throwsA(isA<CanonicalJsonException>()),
+        CanonicalJson.encode(<String, Object?>{
+          'negativeZero': -0.0,
+          'ratio': .82,
+          'whole': 20.0,
+        }),
+        '{"negativeZero":0,"ratio":0.82,"whole":20}',
       );
     });
 

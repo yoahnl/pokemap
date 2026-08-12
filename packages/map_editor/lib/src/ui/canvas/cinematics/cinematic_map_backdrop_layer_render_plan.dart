@@ -73,8 +73,8 @@ final class CinematicMapBackdropLayerRenderPlan {
 
   bool get hasBitmapInstructions => instructions.isNotEmpty;
   bool get hasForegroundInstructions => instructions.any(
-        (instruction) => instruction.renderPass.paintsAfterActorOverlay,
-      );
+    (instruction) => instruction.renderPass.paintsAfterActorOverlay,
+  );
   double get pixelWidth => mapWidth * tileWidth.toDouble();
   double get pixelHeight => mapHeight * tileHeight.toDouble();
 }
@@ -116,8 +116,9 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
     map: mapData,
     manifest: manifest,
   );
-  final generatedPlacementIds =
-      collectCinematicBackdropGeneratedPlacementIds(mapData);
+  final generatedPlacementIds = collectCinematicBackdropGeneratedPlacementIds(
+    mapData,
+  );
 
   for (var i = 0; i < mapData.layers.length; i++) {
     final layer = mapData.layers[i];
@@ -247,8 +248,9 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
     instructions: List<CinematicMapBackdropLayerBitmapInstruction>.unmodifiable(
       instructions,
     ),
-    diagnostics:
-        List<CinematicMapBackdropTileDiagnostic>.unmodifiable(diagnostics),
+    diagnostics: List<CinematicMapBackdropTileDiagnostic>.unmodifiable(
+      diagnostics,
+    ),
   );
 }
 
@@ -282,8 +284,9 @@ Set<String> collectCinematicMapBackdropLayerTilesetIds({
   }
   for (final placement in mapData.placedElements) {
     final element = _elementById(manifest, placement.elementId);
-    final frame =
-        element?.frames.isEmpty ?? true ? null : element!.frames.primaryFrame;
+    final frame = element?.frames.isEmpty ?? true
+        ? null
+        : element!.frames.primaryFrame;
     final tilesetId = _frameTilesetId(frame, element?.tilesetId ?? '');
     if (tilesetId.isNotEmpty) {
       ids.add(tilesetId);
@@ -393,11 +396,8 @@ int _appendTileInstructions({
         .where((candidate) => candidate.id == entry.tilesetId)
         .first;
     final source = manifestTileset.source;
-    final slices = <({
-      String assetId,
-      ui.Rect sourceRect,
-      ui.Rect destinationRect,
-    })>[];
+    final slices =
+        <({String assetId, ui.Rect sourceRect, ui.Rect destinationRect})>[];
     if (source == null) {
       final asset = _availableTilesetAsset(
         tilesetId: entry.tilesetId,
@@ -448,7 +448,8 @@ int _appendTileInstructions({
         _addDiagnostic(
           diagnostics,
           code: 'sourceRectOutOfBounds',
-          message: 'Tuile ${entry.localTileId} hors atlas pour '
+          message:
+              'Tuile ${entry.localTileId} hors atlas pour '
               '${entry.tilesetId}.',
           layerId: layer.id,
           tilesetId: entry.tilesetId,
@@ -467,7 +468,8 @@ int _appendTileInstructions({
         _addDiagnostic(
           diagnostics,
           code: 'sourceRectOutOfBounds',
-          message: 'Tuile ${entry.localTileId} non résolue pour '
+          message:
+              'Tuile ${entry.localTileId} non résolue pour '
               '${entry.tilesetId}.',
           layerId: layer.id,
           tilesetId: entry.tilesetId,
@@ -493,12 +495,16 @@ int _appendTileInstructions({
       }
     }
     for (final slice in slices) {
-      final asset = tilesets[slice.assetId] ?? tilesets[entry.tilesetId];
+      final resolvedAssetId = tilesets.containsKey(slice.assetId)
+          ? slice.assetId
+          : entry.tilesetId;
+      final asset = tilesets[resolvedAssetId];
       if (asset == null || !asset.isAvailable) {
         _addDiagnostic(
           diagnostics,
           code: asset?.status.name ?? 'missingResolvedTileset',
-          message: asset?.diagnosticMessage ??
+          message:
+              asset?.diagnosticMessage ??
               'Image de tileset indisponible pour ${slice.assetId}.',
           layerId: layer.id,
           tilesetId: entry.tilesetId,
@@ -520,7 +526,8 @@ int _appendTileInstructions({
         _addDiagnostic(
           diagnostics,
           code: 'sourceRectOutOfBounds',
-          message: 'Tuile ${entry.localTileId} hors atlas pour '
+          message:
+              'Tuile ${entry.localTileId} hors atlas pour '
               '${entry.tilesetId}.',
           layerId: layer.id,
           tilesetId: entry.tilesetId,
@@ -537,7 +544,7 @@ int _appendTileInstructions({
               ? CinematicMapBackdropRenderPass.tileForeground
               : CinematicMapBackdropRenderPass.tileBackground,
           zOrder: nextZ++,
-          tilesetId: slice.assetId,
+          tilesetId: resolvedAssetId,
           sourceRect: slice.sourceRect,
           destinationRect: slice.destinationRect,
           opacity: _opacity(layer.opacity),
@@ -584,7 +591,8 @@ int _appendSmartTileInstructions({
     _addDiagnostic(
       diagnostics,
       code: code,
-      message: 'Preset Smart Tile ${layer.presetId} introuvable pour '
+      message:
+          'Preset Smart Tile ${layer.presetId} introuvable pour '
           '${layer.name}.',
       layerId: layer.id,
     );
@@ -620,7 +628,8 @@ int _appendSmartTileInstructions({
         _addDiagnostic(
           diagnostics,
           code: 'smartTileSourceRectOutOfBounds',
-          message: 'Smart Tile ${layer.presetId} hors atlas pour '
+          message:
+              'Smart Tile ${layer.presetId} hors atlas pour '
               '${visual.tilesetId}.',
           layerId: layer.id,
           tilesetId: visual.tilesetId,
@@ -632,16 +641,15 @@ int _appendSmartTileInstructions({
       final isForeground = switch (visual.channel) {
         SmartTileRenderChannel.canopy ||
         SmartTileRenderChannel.foreground ||
-        SmartTileRenderChannel.actorOcclusion =>
-          true,
+        SmartTileRenderChannel.actorOcclusion => true,
         SmartTileRenderChannel.ground ||
         SmartTileRenderChannel.understory ||
-        SmartTileRenderChannel.shadow =>
-          false,
+        SmartTileRenderChannel.shadow => false,
       };
       instructions.add(
         CinematicMapBackdropLayerBitmapInstruction(
-          id: '${layer.id}:smartTile:${visual.cellX}:${visual.cellY}:'
+          id:
+              '${layer.id}:smartTile:${visual.cellX}:${visual.cellY}:'
               '${visual.ruleId}:${visual.candidateId}:'
               '${visual.channel.name}:$nextZ',
           layerId: layer.id,
@@ -762,8 +770,11 @@ int _appendPlacedElementInstructions({
         : const <GridPos>{};
     final splitByCollision =
         collisionCells.isNotEmpty && (source.width > 1 || source.height > 1);
-    final isForegroundElement =
-        _shouldElementRenderInForeground(placement, element, layer);
+    final isForegroundElement = _shouldElementRenderInForeground(
+      placement,
+      element,
+      layer,
+    );
     final layerIndex = mapData.layers.indexOf(layer);
     final transform = QuarterTurnGridTransform(
       sourceSize: GridSize(width: source.width, height: source.height),
@@ -781,8 +792,8 @@ int _appendPlacedElementInstructions({
         final renderPass = isForegroundElement
             ? CinematicMapBackdropRenderPass.placedForeground
             : (splitByCollision && !collisionCells.contains(localPos)
-                ? CinematicMapBackdropRenderPass.placedForeground
-                : CinematicMapBackdropRenderPass.placedBackground);
+                  ? CinematicMapBackdropRenderPass.placedForeground
+                  : CinematicMapBackdropRenderPass.placedBackground);
         final sourceRect = _tileSourceRect(
           tileWidth: tileWidth,
           tileHeight: tileHeight,
@@ -865,7 +876,8 @@ CinematicResolvedTilesetAsset? _availableTilesetAsset({
     _addDiagnostic(
       diagnostics,
       code: tileset?.status.name ?? 'missingResolvedTileset',
-      message: tileset?.diagnosticMessage ??
+      message:
+          tileset?.diagnosticMessage ??
           'Image de tileset indisponible pour $tilesetId.',
       layerId: layer.id,
       tilesetId: tilesetId,

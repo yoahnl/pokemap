@@ -33,77 +33,141 @@ class PersonalizationPreviewControls extends StatelessWidget {
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: <Widget>[
-        PokeMapSegmentedTabs(
-          minimumHeight: 48,
-          tabs: <PokeMapSegmentedTab>[
-            for (final viewport in viewports)
-              PokeMapSegmentedTab(
-                key: ValueKey<String>(
-                  'personalization-preview-viewport-${viewport.name}',
-                ),
-                label: _viewportLabel(viewport),
-                icon: _viewportIcon(viewport),
-                selected: scenario.viewport == viewport,
-                onTap: () => onChanged(scenario.copyWith(viewport: viewport)),
-              ),
-          ],
-        ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            const Text('Taille du texte'),
-            PokeMapSegmentedTabs(
-              minimumHeight: 48,
-              tabs: <PokeMapSegmentedTab>[
-                for (final entry in textScales)
-                  PokeMapSegmentedTab(
-                    key: ValueKey<String>(
-                      'personalization-preview-text-scale-${entry.$1}',
-                    ),
-                    label: '${entry.$1} %',
-                    selected: scenario.textScale == entry.$2,
-                    onTap: () =>
-                        onChanged(scenario.copyWith(textScale: entry.$2)),
+        _PreviewOnlySetting(
+          label: 'Format',
+          child: PokeMapSegmentedTabs(
+            minimumHeight: 48,
+            tabs: <PokeMapSegmentedTab>[
+              for (final viewport in viewports)
+                PokeMapSegmentedTab(
+                  key: ValueKey<String>(
+                    'personalization-preview-viewport-${viewport.name}',
                   ),
-              ],
-            ),
-          ],
+                  label: _viewportLabel(viewport),
+                  semanticLabel:
+                      '${_viewportLabel(viewport)}, aperçu uniquement',
+                  icon: _viewportIcon(viewport),
+                  selected: scenario.viewport == viewport,
+                  onTap: () => onChanged(scenario.copyWith(viewport: viewport)),
+                ),
+            ],
+          ),
+        ),
+        _PreviewOnlySetting(
+          label: 'Taille du texte',
+          child: PokeMapSegmentedTabs(
+            minimumHeight: 48,
+            tabs: <PokeMapSegmentedTab>[
+              for (final entry in textScales)
+                PokeMapSegmentedTab(
+                  key: ValueKey<String>(
+                    'personalization-preview-text-scale-${entry.$1}',
+                  ),
+                  label: '${entry.$1} %',
+                  semanticLabel: '${entry.$1} %, aperçu uniquement',
+                  selected: scenario.textScale == entry.$2,
+                  onTap: () =>
+                      onChanged(scenario.copyWith(textScale: entry.$2)),
+                ),
+            ],
+          ),
         ),
         if (scenario.supportsReducedMotion)
-          PokeMapButton(
-            key: const ValueKey<String>(
-              'personalization-preview-reduced-motion',
+          _PreviewOnlyAction(
+            child: PokeMapButton(
+              key: const ValueKey<String>(
+                'personalization-preview-reduced-motion',
+              ),
+              size: PokeMapButtonSize.large,
+              variant: PokeMapButtonVariant.secondary,
+              semanticLabel: 'Mouvement réduit, aperçu uniquement',
+              isSelected: scenario.reducedMotion,
+              onPressed: () => onChanged(
+                scenario.copyWith(reducedMotion: !scenario.reducedMotion),
+              ),
+              leading: const Icon(Icons.motion_photos_off_outlined),
+              child: const Text('Mouvement réduit'),
             ),
-            size: PokeMapButtonSize.large,
-            variant: PokeMapButtonVariant.secondary,
-            isSelected: scenario.reducedMotion,
-            onPressed: () => onChanged(
-              scenario.copyWith(reducedMotion: !scenario.reducedMotion),
-            ),
-            leading: const Icon(Icons.motion_photos_off_outlined),
-            child: const Text('Mouvement réduit'),
           ),
         if (scenario.canCompare)
-          PokeMapButton(
-            key: const ValueKey<String>('personalization-preview-compare'),
-            size: PokeMapButtonSize.large,
-            variant: PokeMapButtonVariant.secondary,
-            isSelected: scenario.showComparison,
-            onPressed: () => onChanged(
-              scenario.copyWith(comparisonEnabled: !scenario.comparisonEnabled),
-            ),
-            leading: const Icon(Icons.compare_outlined),
-            child: Text(
-              scenario.showComparison
-                  ? 'Fermer la comparaison'
-                  : 'Comparer avant/après',
+          _PreviewOnlyAction(
+            child: PokeMapButton(
+              key: const ValueKey<String>('personalization-preview-compare'),
+              size: PokeMapButtonSize.large,
+              variant: PokeMapButtonVariant.secondary,
+              semanticLabel: 'Comparer avant/après, aperçu uniquement',
+              isSelected: scenario.showComparison,
+              onPressed: () => onChanged(
+                scenario.copyWith(
+                  comparisonEnabled: !scenario.comparisonEnabled,
+                ),
+              ),
+              leading: const Icon(Icons.compare_outlined),
+              child: Text(
+                scenario.showComparison
+                    ? 'Fermer la comparaison'
+                    : 'Comparer avant/après',
+              ),
             ),
           ),
       ],
     );
   }
+}
+
+class _PreviewOnlySetting extends StatelessWidget {
+  const _PreviewOnlySetting({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      _PreviewOnlyLabel(label: label),
+      const SizedBox(height: 4),
+      child,
+    ],
+  );
+}
+
+class _PreviewOnlyAction extends StatelessWidget {
+  const _PreviewOnlyAction({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      const _PreviewOnlyLabel(label: 'Réglage de test'),
+      const SizedBox(height: 4),
+      child,
+    ],
+  );
+}
+
+class _PreviewOnlyLabel extends StatelessWidget {
+  const _PreviewOnlyLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+    spacing: 6,
+    runSpacing: 4,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: <Widget>[
+      Text(label, style: Theme.of(context).textTheme.labelMedium),
+      const PokeMapBadge(
+        label: 'Aperçu uniquement',
+        variant: PokeMapBadgeVariant.info,
+      ),
+    ],
+  );
 }
 
 String _viewportLabel(PersonalizationPreviewViewport viewport) =>

@@ -8,6 +8,8 @@ export 'src/features/personalization/application/project_presentation_presets.da
 export 'src/features/personalization/application/project_window_style_presets.dart';
 export 'src/features/personalization/application/personalization_publish_readiness.dart';
 export 'src/features/personalization/application/personalization_inspector_target.dart';
+export 'src/features/personalization/application/personalization_layout_gesture_planner.dart';
+export 'src/features/personalization/application/personalization_visual_target_graph.dart';
 export 'src/features/personalization/application/personalization_capability_descriptor.dart';
 export 'src/features/personalization/application/personalization_capability_registry.dart';
 export 'src/features/personalization/application/personalization_character_preview_source.dart';
@@ -16,10 +18,13 @@ export 'src/features/personalization/application/personalization_project_preview
 export 'src/features/personalization/application/personalization_preview_projection.dart';
 export 'src/features/personalization/application/personalization_preview_scenario.dart';
 export 'src/features/personalization/application/personalization_preview_surface_descriptor.dart';
+export 'src/features/personalization/application/personalization_scene_presets.dart';
 export 'src/features/personalization/application/personalization_studio_asset_picker.dart';
 export 'src/features/personalization/application/personalization_studio_session_controller.dart';
 export 'src/features/personalization/application/project_branding_image_import_service.dart';
 export 'src/features/personalization/presentation/personalization_live_preview.dart';
+export 'src/features/personalization/presentation/personalization_layout_overlay.dart';
+export 'src/features/personalization/presentation/personalization_scene_actions.dart';
 export 'src/features/personalization/presentation/personalization_readiness_panel.dart';
 export 'src/features/personalization/presentation/personalization_runtime_preview.dart';
 export 'src/features/personalization/presentation/personalization_studio_shell.dart';

@@ -68,6 +68,18 @@ void main() {
           .cornerRadius,
       8,
     );
+    expect(
+      presentation.battleProfile?.commandLayout,
+      ProjectBattleCommandLayout.radial,
+    );
+    expect(
+      presentation.battleProfile?.effectiveCommands.first.id,
+      ProjectBattleCommandId.run,
+    );
+    expect(
+      presentation.battleProfile?.message.shape,
+      ProjectWindowShape.cutCorner,
+    );
     expect(tester.takeException(), isNull);
   });
 }

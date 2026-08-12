@@ -9,8 +9,7 @@ final class CanonicalJsonException extends FormatException {
 
 /// Canonical JSON encoder for PokeMap persisted contracts.
 ///
-/// Package manifests contain only integral numeric values. Rejecting doubles
-/// avoids platform-dependent number rendering outside that contract.
+/// Numeric values use Dart's shortest deterministic JSON representation.
 abstract final class CanonicalJson {
   static const int maxSafeInteger = 9007199254740991;
 
@@ -40,11 +39,19 @@ abstract final class CanonicalJson {
         }
         output.write(value);
       case double():
-        throw CanonicalJsonException(
-          value.isFinite
-              ? 'Non-integral JSON numbers are outside the PokeMap contract.'
-              : 'Non-finite numbers are not valid JSON.',
-        );
+        if (!value.isFinite) {
+          throw const CanonicalJsonException(
+            'Non-finite numbers are not valid JSON.',
+          );
+        }
+        if (value == 0) {
+          output.write('0');
+        } else if (value == value.truncateToDouble() &&
+            value.abs() <= maxSafeInteger) {
+          output.write(value.toInt());
+        } else {
+          output.write(jsonEncode(value));
+        }
       case String():
         _validateUnicodeScalarSequence(value);
         output.write(jsonEncode(value));

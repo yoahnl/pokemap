@@ -135,17 +135,17 @@ final class AuthoringResourceKindRegistry {
       ),
       AuthoringResourceKindDescriptor(
         id: 'projectPresentationProfile',
-        version: 9,
+        version: 10,
         displayName: 'Project presentation profile',
         summary:
             'Authored title and pause actions, responsive intro and motion, branding, typography metrics, contextual palettes, window shapes, surface layouts and combat presentation',
       ),
       AuthoringResourceKindDescriptor(
         id: 'projectPresentationPreset',
-        version: 1,
+        version: 2,
         displayName: 'Project presentation preset',
         summary:
-            'Versioned shareable presentation profile with licensed assets',
+            'Versioned shareable presentation profile with explicit scope, replaced sections and licensed assets',
       ),
       AuthoringResourceKindDescriptor(
         id: 'presentationPreviewContext',

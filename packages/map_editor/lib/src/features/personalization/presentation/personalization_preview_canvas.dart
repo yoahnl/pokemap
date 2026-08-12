@@ -19,10 +19,17 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
     super.key,
     required this.scenario,
     required this.surfaceBuilder,
+    this.contentBuilder,
   });
 
   final PersonalizationPreviewScenario scenario;
   final PersonalizationStudioSceneBuilder surfaceBuilder;
+  final Widget Function(
+    BuildContext context,
+    ProjectPresentationBreakpoint breakpoint,
+    Widget child,
+  )?
+  contentBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -68,34 +75,57 @@ class PersonalizationPreviewCanvas extends StatelessWidget {
                         'personalization-preview-viewport-frame-'
                         '${scenario.viewport.name}',
                       ),
-                      child: AnimatedSwitcher(
-                        duration:
-                            scenario.effectiveReducedMotion ||
-                                MediaQuery.disableAnimationsOf(context)
-                            ? Duration.zero
-                            : const Duration(milliseconds: 160),
-                        child: scenario.showComparison
-                            ? _ComparisonPreview(
-                                key: ValueKey<String>(
-                                  'personalization-comparison-'
-                                  '${scenario.surface.name}-'
-                                  '${scenario.viewport.name}',
-                                ),
-                                before: _buildBaseline(),
-                                after: surfaceBuilder(
-                                  profile: scenario.draftProfile,
-                                  scene: scenario.surface,
-                                  aspectRatio: scenario.viewport.aspectRatio,
-                                  reducedMotion:
-                                      scenario.effectiveReducedMotion,
-                                ),
-                              )
-                            : surfaceBuilder(
-                                profile: scenario.draftProfile,
-                                scene: scenario.surface,
-                                aspectRatio: scenario.viewport.aspectRatio,
-                                reducedMotion: scenario.effectiveReducedMotion,
-                              ),
+                      child: Builder(
+                        builder: (context) {
+                          final content = AnimatedSwitcher(
+                            duration:
+                                scenario.effectiveReducedMotion ||
+                                    MediaQuery.disableAnimationsOf(context)
+                                ? Duration.zero
+                                : const Duration(milliseconds: 160),
+                            child: scenario.showComparison
+                                ? _ComparisonPreview(
+                                    key: ValueKey<String>(
+                                      'personalization-comparison-'
+                                      '${scenario.surface.name}-'
+                                      '${scenario.viewport.name}',
+                                    ),
+                                    before: _buildBaseline(),
+                                    after: surfaceBuilder(
+                                      profile: scenario.draftProfile,
+                                      scene: scenario.surface,
+                                      aspectRatio:
+                                          scenario.viewport.aspectRatio,
+                                      reducedMotion:
+                                          scenario.effectiveReducedMotion,
+                                    ),
+                                  )
+                                : surfaceBuilder(
+                                    profile: scenario.draftProfile,
+                                    scene: scenario.surface,
+                                    aspectRatio: scenario.viewport.aspectRatio,
+                                    reducedMotion:
+                                        scenario.effectiveReducedMotion,
+                                  ),
+                          );
+                          final builder = contentBuilder;
+                          if (builder == null || scenario.showComparison) {
+                            return content;
+                          }
+                          final breakpoint =
+                              const ProjectPresentationLayoutResolver()
+                                  .classify(
+                                    width:
+                                        metrics.logicalWidth -
+                                        metrics.safeLeft -
+                                        metrics.safeRight,
+                                    height:
+                                        metrics.logicalHeight -
+                                        metrics.safeTop -
+                                        metrics.safeBottom,
+                                  );
+                          return builder(context, breakpoint, content);
+                        },
                       ),
                     ),
                   ),
