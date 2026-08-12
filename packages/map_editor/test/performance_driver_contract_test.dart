@@ -551,6 +551,8 @@ Map<String, Object?> _instrumentation() => <String, Object?>{
       'mask.commit',
       'mask.build',
       'mask.paint',
+      'map.validation.incremental',
+      'map.validation.full',
       'snapshot',
       'plan',
       'apply',

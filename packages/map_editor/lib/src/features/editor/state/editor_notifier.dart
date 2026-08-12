@@ -5748,7 +5748,12 @@ class EditorNotifier extends _$EditorNotifier
         return;
       }
       final updated = replaceSmartTileLayer(map, layer: paintedLayer);
-      _validateSmartTileMap(updated);
+      _validateSmartTileDelta(
+        before: map,
+        after: updated,
+        layerId: layerId,
+        cells: selectedCells,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -6011,7 +6016,12 @@ class EditorNotifier extends _$EditorNotifier
           return false;
         }
         final updated = replaceSmartTileLayer(map, layer: erasedLayer);
-        _validateSmartTileMap(updated);
+        _validateSmartTileDelta(
+          before: map,
+          after: updated,
+          layerId: layerId,
+          cells: erasedCells,
+        );
         _applyMapMutation(
           previousMap: map,
           updatedMap: updated,
@@ -8339,6 +8349,7 @@ class EditorNotifier extends _$EditorNotifier
       try {
         final project = state.project;
         final committed = buffer.commit(
+          project: project,
           resolvePlacedElements:
               project != null && buffer.kind == MapCellStrokeLayerKind.tile
                   ? (layer) =>
@@ -8348,9 +8359,7 @@ class EditorNotifier extends _$EditorNotifier
                         layer: layer,
                       )
                   : null,
-          validate: buffer.kind == MapCellStrokeLayerKind.smartTile
-              ? _validateSmartTileMap
-              : MapValidator.validate,
+          validate: EditorPerformanceTelemetry.validateMapDelta,
         );
         _applyMapMutation(
           previousMap: buffer.sourceMap,
@@ -8824,7 +8833,12 @@ class EditorNotifier extends _$EditorNotifier
       );
       if (painted == layer) return;
       final updated = replaceSmartTileLayer(map, layer: painted);
-      _validateSmartTileMap(updated);
+      _validateSmartTileDelta(
+        before: map,
+        after: updated,
+        layerId: pending.layerId,
+        cells: pending.cells,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -8870,15 +8884,42 @@ class EditorNotifier extends _$EditorNotifier
       state.projectRootPath == entry.projectRootPath &&
       state.activeMap?.id == entry.mapId;
 
-  void _validateSmartTileMap(MapData map) {
-    final span = EditorPerformanceTelemetry.startSpan(
-      EditorPerformanceSpanName.mapFullValidation,
+  void _validateSmartTileDelta({
+    required MapData before,
+    required MapData after,
+    required String layerId,
+    required Iterable<GridPos> cells,
+  }) {
+    EditorPerformanceTelemetry.validateMapDelta(
+      DeltaValidationContext(
+        before: before,
+        after: after,
+        project: state.project,
+        delta: MapMutationDelta.smartTileCells(
+          layerId: layerId,
+          cellIndices: <int>{
+            for (final cell in cells)
+              cell.y * before.size.width + cell.x,
+          },
+        ),
+      ),
     );
-    try {
-      MapValidator.validate(map, projectDialogueContext: state.project);
-    } finally {
-      span?.finish();
-    }
+  }
+
+  @override
+  void _validatePlacedElementDelta({
+    required MapData before,
+    required MapData after,
+    required String instanceId,
+  }) {
+    EditorPerformanceTelemetry.validateMapDelta(
+      DeltaValidationContext(
+        before: before,
+        after: after,
+        project: state.project,
+        delta: MapMutationDelta.placedElement(instanceId: instanceId),
+      ),
+    );
   }
 
   void _syncCanonicalSmartTileHistoryFlags() {

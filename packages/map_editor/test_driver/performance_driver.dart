@@ -317,6 +317,8 @@ void _validateInstrumentation(Map<String, dynamic> data) {
     'mask.commit',
     'mask.build',
     'mask.paint',
+    'map.validation.incremental',
+    'map.validation.full',
     'snapshot',
     'plan',
     'apply',

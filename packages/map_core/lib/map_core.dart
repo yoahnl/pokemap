@@ -329,6 +329,7 @@ export 'src/operations/tileset_library_tree.dart';
 export 'src/operations/dialogue_library_tree.dart';
 export 'src/operations/project_dialogue_refs.dart';
 export 'src/validation/validators.dart';
+export 'src/validation/map_delta_validator.dart';
 export 'src/validation/project_item_catalog_validator.dart';
 export 'src/validation/border_validation.dart';
 export 'src/validation/dialogue_validation.dart';

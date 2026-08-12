@@ -212,6 +212,18 @@ void main() {
       for (final counter in EditorPerformanceCounterName.all) {
         expect(recorder.snapshot().counter(counter), 0, reason: counter);
       }
+      expect(
+        recorder.snapshot().spanSamples(
+          EditorPerformanceSpanName.mapIncrementalValidation,
+        ),
+        hasLength(100),
+      );
+      expect(
+        recorder.snapshot().spanSamples(
+          EditorPerformanceSpanName.mapFullValidation,
+        ),
+        isEmpty,
+      );
       final sortedSamples = samplesUs.toList()..sort();
       final p50 = sortedSamples[(sortedSamples.length * 0.50).ceil() - 1];
       final p95 = sortedSamples[(sortedSamples.length * 0.95).ceil() - 1];
