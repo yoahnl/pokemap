@@ -114,6 +114,16 @@ void main() {
       find.byKey(const ValueKey<String>('runtime-pause-detail-scroll')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-pause-navigation-scrollbar'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('runtime-pause-detail-scrollbar')),
+      findsOneWidget,
+    );
     expect(find.text('DÉTAIL ÉQUIPE'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -317,6 +327,12 @@ void main() {
     }
 
     expect(focusController.logicalSelectionId, 'pause.returnToTitle');
+    expect(
+      find.byKey(
+        const ValueKey<String>('runtime-pause-navigation-scrollbar'),
+      ),
+      findsOneWidget,
+    );
     final focusedRect = tester.getRect(
       find.byKey(const ValueKey<String>('pause.returnToTitle')),
     );

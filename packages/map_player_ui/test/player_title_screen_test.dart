@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -98,40 +99,68 @@ void main() {
     expect(selected, hasLength(1), reason: 'Disabled actions cannot dispatch.');
   });
 
-  testWidgets('title fits a narrow portrait viewport with text scaling',
+  testWidgets('title keeps every long action reachable at 200 percent text',
       (tester) async {
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
-      MediaQuery(
-        data: const MediaQueryData(textScaler: TextScaler.linear(1.4)),
-        child: _app(
-          PlayerTitleScreen(
-            data: PlayerTitleViewData(
-              gameTitle: 'Une très longue aventure',
-              author: 'Studio',
-              actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
-                for (final action in PlayerTitleMenuAction.values)
-                  action: PlayerActionAvailability.enabled,
-              },
-              actionLabels: const <PlayerTitleMenuAction, String>{
-                PlayerTitleMenuAction.continueGame:
-                    'Continuer depuis la dernière sauvegarde disponible',
-                PlayerTitleMenuAction.creditsAbout:
-                    'Crédits, licences et informations sur le studio',
-              },
-            ),
-            onSelected: (_) {},
+      _app(
+        PlayerTitleScreen(
+          data: PlayerTitleViewData(
+            gameTitle: 'Une très longue aventure',
+            author: 'Studio',
+            actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
+              for (final action in PlayerTitleMenuAction.values)
+                action: PlayerActionAvailability.enabled,
+            },
+            actionLabels: const <PlayerTitleMenuAction, String>{
+              PlayerTitleMenuAction.continueGame:
+                  'Continuer depuis la dernière sauvegarde disponible',
+              PlayerTitleMenuAction.newGame:
+                  'Commencer une nouvelle aventure extraordinaire',
+              PlayerTitleMenuAction.load:
+                  'Charger une sauvegarde parmi toutes les aventures',
+              PlayerTitleMenuAction.options:
+                  'Configurer toutes les options du jeu',
+              PlayerTitleMenuAction.creditsAbout:
+                  'Crédits, licences et informations sur le studio',
+              PlayerTitleMenuAction.returnToHub:
+                  'Quitter cette aventure et retourner au Hub',
+            },
           ),
+          onSelected: (_) {},
         ),
+        textScaler: const TextScaler.linear(2),
       ),
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.byKey(const ValueKey<String>('player-title-scroll')),
-        findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('player-title-scrollbar')),
+      findsOneWidget,
+    );
+    final scroll = tester.widget<SingleChildScrollView>(
+      find.byKey(const ValueKey<String>('player-title-scroll')),
+    );
+    expect(scroll.controller, isNotNull);
+    expect(scroll.controller!.position.maxScrollExtent, greaterThan(0));
+
+    for (var index = 1; index < PlayerTitleMenuAction.values.length; index++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+    }
+
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      contains('Quitter cette aventure'),
+    );
+    final lastAction = tester.getRect(
+      find.text('Quitter cette aventure et retourner au Hub'),
+    );
+    expect(lastAction.top, greaterThanOrEqualTo(0));
+    expect(lastAction.bottom, lessThanOrEqualTo(640));
   });
 
   testWidgets('cinematic branding selects the authored title layout',
@@ -429,10 +458,19 @@ void main() {
   });
 }
 
-Widget _app(Widget child, {ThemeData? theme}) => MaterialApp(
+Widget _app(
+  Widget child, {
+  ThemeData? theme,
+  TextScaler textScaler = TextScaler.noScaling,
+}) =>
+    MaterialApp(
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: theme ?? PokeMapPlayerTheme.light(),
+      builder: (context, appChild) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        child: appChild!,
+      ),
       home: child,
     );

@@ -151,6 +151,34 @@ void main() {
     },
   );
 
+  testWidgets('announces that the logical viewport is entirely contained', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationLivePreview(
+          profile: ProjectPresentationProfile(theme: safeProjectSemanticTheme),
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          scene: PersonalizationStudioScene.pause,
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-contained-frame'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('Aperçu paysage entièrement visible'),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
   testWidgets('exposes only the simple product simulation controls', (
     tester,
   ) async {

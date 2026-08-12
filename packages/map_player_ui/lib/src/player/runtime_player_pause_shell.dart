@@ -467,26 +467,32 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     ProjectResolvedSurfaceLayout? resolved,
     ProjectPauseCompositionVariantProfile? composition,
   }) {
-    return PlayerPauseNavigation(
-      gameTitle: widget.gameTitle,
-      actions: widget.actions,
-      onSelected: widget.onSelected,
-      scrollKey: scrollKey,
-      scrollController: _navigationScrollControllers.putIfAbsent(
-        layout,
-        () => ScrollController(
-          debugLabel: 'Runtime pause navigation ${layout.name}',
-        ),
+    final controller = _navigationScrollControllers.putIfAbsent(
+      layout,
+      () => ScrollController(
+        debugLabel: 'Runtime pause navigation ${layout.name}',
       ),
-      focusController: _focusController,
-      labels: widget.labels,
-      presentation: widget.presentation,
-      showGameTitle: resolved == null ||
-          resolved.variant.visibleSecondaryElements.contains(
-            ProjectPresentationSecondaryElement.pauseGameTitle,
-          ),
-      composition: composition,
-      compositionLayoutName: layout.name,
+    );
+    return Scrollbar(
+      key: const ValueKey<String>('runtime-pause-navigation-scrollbar'),
+      controller: controller,
+      thumbVisibility: true,
+      child: PlayerPauseNavigation(
+        gameTitle: widget.gameTitle,
+        actions: widget.actions,
+        onSelected: widget.onSelected,
+        scrollKey: scrollKey,
+        scrollController: controller,
+        focusController: _focusController,
+        labels: widget.labels,
+        presentation: widget.presentation,
+        showGameTitle: resolved == null ||
+            resolved.variant.visibleSecondaryElements.contains(
+              ProjectPresentationSecondaryElement.pauseGameTitle,
+            ),
+        composition: composition,
+        compositionLayoutName: layout.name,
+      ),
     );
   }
 
@@ -507,6 +513,12 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
     RuntimePlayerLayoutClass layout,
   ) {
     final hasDetail = widget.pauseSection != RuntimePlayerPauseSection.root;
+    final controller = _detailScrollControllers.putIfAbsent(
+      layout,
+      () => ScrollController(
+        debugLabel: 'Runtime pause detail ${layout.name}',
+      ),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -536,21 +548,21 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         ),
         const SizedBox(height: PlayerSpacing.sm),
         Expanded(
-          child: SingleChildScrollView(
-            key: const ValueKey<String>('runtime-pause-detail-scroll'),
-            controller: _detailScrollControllers.putIfAbsent(
-              layout,
-              () => ScrollController(
-                debugLabel: 'Runtime pause detail ${layout.name}',
-              ),
+          child: Scrollbar(
+            key: const ValueKey<String>('runtime-pause-detail-scrollbar'),
+            controller: controller,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              key: const ValueKey<String>('runtime-pause-detail-scroll'),
+              controller: controller,
+              child: hasDetail
+                  ? widget.detail
+                  : PlayerEmptyState(
+                      icon: Icons.gamepad_rounded,
+                      title: _presentation.resolvedTitle(context.playerL10n),
+                      message: context.playerL10n.actionUnavailable,
+                    ),
             ),
-            child: hasDetail
-                ? widget.detail
-                : PlayerEmptyState(
-                    icon: Icons.gamepad_rounded,
-                    title: _presentation.resolvedTitle(context.playerL10n),
-                    message: context.playerL10n.actionUnavailable,
-                  ),
           ),
         ),
       ],
