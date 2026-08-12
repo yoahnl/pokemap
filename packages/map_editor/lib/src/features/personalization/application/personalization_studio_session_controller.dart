@@ -74,6 +74,7 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
 
   final NarrativeDocumentSession<ProjectManifest> _session;
   bool _disposed = false;
+  int _conflictResolutionSequence = 0;
 
   PersonalizationStudioSessionState get state =>
       PersonalizationStudioSessionState.fromDocumentState(_session.state);
@@ -99,6 +100,18 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
   Future<bool> undo() => _session.undo();
 
   Future<bool> redo() => _session.redo();
+
+  Future<bool> keepDraftOnCurrentProject() {
+    final sequence = ++_conflictResolutionSequence;
+    return _session.rebaseConflict(
+      merge: (local, external) =>
+          external.copyWith(presentation: local.presentation),
+      operationId: 'personalization_conflict_keep_$sequence',
+      label: 'Conserver le brouillon de personnalisation',
+    );
+  }
+
+  Future<bool> useCurrentProject() => _session.discard();
 
   void setAutosaveEnabled(bool enabled) {
     _session.setAutosaveEnabled(enabled);

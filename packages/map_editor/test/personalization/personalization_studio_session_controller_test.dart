@@ -390,6 +390,104 @@ void main() {
       expect(controller.state.code, 'persistenceValidationFailed');
       expect(gateway.saveCount, 0);
     });
+
+    test(
+      'keeps the recovered presentation on top of the current project',
+      () async {
+        const recoveredProfile = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: '#456789'),
+        );
+        const currentProfile = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: '#987654'),
+        );
+        final previousProject = buildShellChromeProject(
+          name: 'Previous project',
+        );
+        final currentProject = buildShellChromeProject(
+          name: 'Current project',
+        ).copyWith(presentation: currentProfile);
+        final recovery = _MemoryProjectRecoveryStore()
+          ..record = NarrativeDocumentRecoveryRecord<ProjectManifest>(
+            documentId: 'personalization-studio',
+            baseRevision: 'revision-previous',
+            baseline: previousProject,
+            document: previousProject.copyWith(presentation: recoveredProfile),
+          );
+        final gateway = _MemoryProjectGateway(currentProject)
+          ..revision = 'revision-current';
+        final controller = PersonalizationStudioSessionController(
+          session: NarrativeDocumentSession<ProjectManifest>(
+            documentId: 'personalization-studio',
+            initialDocument: previousProject,
+            gateway: gateway,
+            recoveryStore: recovery,
+          ),
+        );
+        addTearDown(controller.dispose);
+
+        await controller.initialize();
+        expect(controller.state.isConflicted, isTrue);
+
+        expect(await controller.keepDraftOnCurrentProject(), isTrue);
+
+        expect(controller.state.isConflicted, isFalse);
+        expect(controller.state.isDirty, isTrue);
+        expect(controller.state.document.name, 'Current project');
+        expect(controller.state.draftProfile, recoveredProfile);
+        expect(recovery.record?.baseline, currentProject);
+        expect(recovery.record?.document.name, 'Current project');
+        expect(recovery.record?.document.presentation, recoveredProfile);
+
+        expect(
+          await controller.save(operationId: 'save-recovered-profile'),
+          isTrue,
+        );
+        expect(gateway.durableDocument.name, 'Current project');
+        expect(gateway.durableDocument.presentation, recoveredProfile);
+      },
+    );
+
+    test('uses the current project and clears the recovered draft', () async {
+      const recoveredProfile = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(accentColor: '#456789'),
+      );
+      const currentProfile = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(accentColor: '#987654'),
+      );
+      final previousProject = buildShellChromeProject(name: 'Previous project');
+      final currentProject = buildShellChromeProject(
+        name: 'Current project',
+      ).copyWith(presentation: currentProfile);
+      final recovery = _MemoryProjectRecoveryStore()
+        ..record = NarrativeDocumentRecoveryRecord<ProjectManifest>(
+          documentId: 'personalization-studio',
+          baseRevision: 'revision-previous',
+          baseline: previousProject,
+          document: previousProject.copyWith(presentation: recoveredProfile),
+        );
+      final gateway = _MemoryProjectGateway(currentProject)
+        ..revision = 'revision-current';
+      final controller = PersonalizationStudioSessionController(
+        session: NarrativeDocumentSession<ProjectManifest>(
+          documentId: 'personalization-studio',
+          initialDocument: previousProject,
+          gateway: gateway,
+          recoveryStore: recovery,
+        ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      expect(controller.state.isConflicted, isTrue);
+
+      expect(await controller.useCurrentProject(), isTrue);
+
+      expect(controller.state.isConflicted, isFalse);
+      expect(controller.state.isDirty, isFalse);
+      expect(controller.state.document, currentProject);
+      expect(controller.state.draftProfile, currentProfile);
+      expect(recovery.record, isNull);
+    });
   });
 }
 

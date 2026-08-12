@@ -609,7 +609,7 @@ void main() {
   });
 
   testWidgets(
-    'explains an external personalization conflict in product terms',
+    'resolves a personalization conflict and re-enables the controls',
     (tester) async {
       final root = Directory.systemTemp.createTempSync(
         'personalization-studio-conflict-',
@@ -621,7 +621,18 @@ void main() {
       File(
         '${root.path}/project.json',
       ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
-      final gateway = _ConflictingProjectGateway(project);
+      final gateway = _MemoryProjectGateway(project);
+      final recovery = _MemoryProjectRecoveryStore()
+        ..record = NarrativeDocumentRecoveryRecord<ProjectManifest>(
+          documentId: 'personalization-studio-conflict',
+          baseRevision: 'revision-before-current-project',
+          baseline: project,
+          document: project.copyWith(
+            presentation: const ProjectPresentationProfile(
+              branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
+            ),
+          ),
+        );
       final container = await pumpEditorCanvasHostHarness(
         tester,
         initialState: EditorState(
@@ -629,7 +640,7 @@ void main() {
           project: project,
           workspaceMode: EditorWorkspaceMode.personalizationStudio,
         ),
-        surfaceSize: const Size(1600, 900),
+        surfaceSize: const Size(1600, 1200),
         overrides: [
           personalizationStudioSessionControllerFactoryProvider
               .overrideWithValue(({
@@ -641,7 +652,7 @@ void main() {
                     documentId: 'personalization-studio-conflict',
                     initialDocument: initialDocument,
                     gateway: gateway,
-                    recoveryStore: _MemoryProjectRecoveryStore(),
+                    recoveryStore: recovery,
                   ),
                 );
               }),
@@ -649,23 +660,83 @@ void main() {
       );
       final notifier = container.read(editorNotifierProvider.notifier);
       await notifier.initializePersonalizationStudioSession();
-      await notifier.applyPersonalizationStudioProfile(
-        const ProjectPresentationProfile(
-          branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
-        ),
-      );
-
-      expect(await notifier.savePersonalizationStudio(), isFalse);
       await tester.pump();
 
       expect(
         container.read(editorNotifierProvider).errorMessage,
-        'La personnalisation a été modifiée ailleurs. Vos changements sont '
-        'conservés ; rouvrez le projet avant d’enregistrer.',
+        'Un brouillon de personnalisation ne correspond plus au projet '
+        'actuel. Choisissez la version à conserver dans le Studio.',
       );
       expect(
-        find.textContaining('Conflit de personnalisation détecté'),
+        find.byKey(
+          const ValueKey<String>('personalization-studio-conflict-banner'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('personalization-studio-conflict-use-project'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey<String>('personalization-studio-conflict-keep-draft'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('personalization-studio-conflict-use-project'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('personalization-studio-conflict-banner'),
+        ),
         findsNothing,
+      );
+      expect(container.read(editorNotifierProvider).errorMessage, isNull);
+      expect(
+        container
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.isConflicted,
+        isFalse,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('personalization-studio-scene-globalStyle'),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('global-style-tab-windows')),
+      );
+      await tester.pump();
+      final softShape = find.byKey(const ValueKey<String>('global-shape-soft'));
+      await _dragUntilHitTestable(
+        tester,
+        softShape,
+        _detailScrollable('windows'),
+        dy: -300,
+      );
+      await tester.tap(softShape.hitTestable());
+      await tester.pump();
+
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project
+            ?.effectivePresentation
+            .windows
+            ?.styles
+            .every((style) => style.cornerRadius == 24),
+        isTrue,
       );
     },
   );
@@ -1881,38 +1952,6 @@ final class _MemoryProjectGateway
       NarrativeDocumentVersion<ProjectManifest>(
         revision: revision,
         document: durableDocument,
-      ),
-    );
-  }
-}
-
-final class _ConflictingProjectGateway
-    implements NarrativeDocumentGateway<ProjectManifest> {
-  _ConflictingProjectGateway(this.document);
-
-  final ProjectManifest document;
-
-  @override
-  Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
-    return NarrativeDocumentVersion<ProjectManifest>(
-      revision: 'revision-1',
-      document: document,
-    );
-  }
-
-  @override
-  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
-    required String expectedRevision,
-    required ProjectManifest before,
-    required ProjectManifest after,
-    required String operationId,
-  }) async {
-    return NarrativeDocumentSaveResult<ProjectManifest>.conflicted(
-      code: 'staleRevision',
-      message: 'Une version externe plus récente existe.',
-      external: NarrativeDocumentVersion<ProjectManifest>(
-        revision: 'revision-2',
-        document: document,
       ),
     );
   }

@@ -648,6 +648,44 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
     return _commitLocalCandidate(candidate);
   }
 
+  Future<bool> rebaseConflict({
+    required T Function(T local, T external) merge,
+    required String operationId,
+    required String label,
+  }) async {
+    final external = _state.externalVersion;
+    if (_state.status != NarrativeDocumentSessionStatus.conflicted ||
+        external == null ||
+        _disposed) {
+      return false;
+    }
+    final document = merge(_state.document, external.document);
+    var history = NarrativeUndoStack<T>(capacity: _historyCapacity);
+    if (document != external.document) {
+      history = history.record(
+        operationId: _requiredText(operationId, 'operationId'),
+        label: _requiredText(label, 'label'),
+        before: external.document,
+        after: document,
+      );
+    }
+    final candidate = _state.copyWith(
+      document: document,
+      baseline: external.document,
+      baselineRevision: external.revision,
+      status: document == external.document
+          ? NarrativeDocumentSessionStatus.saved
+          : NarrativeDocumentSessionStatus.dirty,
+      history: history,
+      externalVersion: null,
+      code: null,
+      message: document == external.document
+          ? 'External version kept.'
+          : 'Local changes kept on top of the external revision.',
+    );
+    return _commitLocalCandidate(candidate);
+  }
+
   Future<bool> reloadExternal() async {
     final external = _state.externalVersion;
     if (_state.status != NarrativeDocumentSessionStatus.conflicted ||

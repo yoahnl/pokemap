@@ -1398,6 +1398,20 @@ class EditorNotifier extends _$EditorNotifier
     return session.redo();
   }
 
+  Future<bool> keepPersonalizationStudioDraftOnCurrentProject() async {
+    if (!await initializePersonalizationStudioSession()) {
+      return false;
+    }
+    return _personalizationStudioSession!.keepDraftOnCurrentProject();
+  }
+
+  Future<bool> useCurrentProjectInPersonalizationStudio() async {
+    if (!await initializePersonalizationStudioSession()) {
+      return false;
+    }
+    return _personalizationStudioSession!.useCurrentProject();
+  }
+
   Future<void> setPersonalizationStudioAutosaveEnabled(bool enabled) async {
     if (!await initializePersonalizationStudioSession()) {
       return;
@@ -1426,8 +1440,8 @@ class EditorNotifier extends _$EditorNotifier
             'le Studio. '
             '${sessionState.message ?? sessionState.code ?? 'Réessayez plus tard.'}',
       NarrativeDocumentSessionStatus.conflicted =>
-        'La personnalisation a été modifiée ailleurs. Vos changements sont '
-            'conservés ; rouvrez le projet avant d’enregistrer.',
+        'Un brouillon de personnalisation ne correspond plus au projet '
+            'actuel. Choisissez la version à conserver dans le Studio.',
       _ => null,
     };
     final statusMessage = switch (sessionState.status) {

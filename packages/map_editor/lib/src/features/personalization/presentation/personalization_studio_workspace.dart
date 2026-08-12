@@ -9,6 +9,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/l10n/l10n.dart';
 
 import '../../../app/providers/core/repository_providers.dart';
+import '../../../ui/design_system/pokemap_action_banner.dart';
 import '../../../ui/design_system/pokemap_badge.dart';
 import '../../../ui/design_system/pokemap_button.dart';
 import '../../../ui/design_system/pokemap_card.dart';
@@ -16,6 +17,7 @@ import '../../../ui/design_system/pokemap_diagnostic_callout.dart';
 import '../../../ui/design_system/pokemap_dialog.dart';
 import '../../../ui/design_system/pokemap_empty_state.dart';
 import '../../../ui/design_system/pokemap_toggle_tile.dart';
+import '../../../ui/design_system/pokemap_tone.dart';
 import '../../../ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import '../../editor/state/editor_notifier.dart';
 import '../application/personalization_capability_descriptor.dart';
@@ -107,6 +109,7 @@ class _PersonalizationStudioWorkspaceState
   bool _isPreflightRunning = false;
   int _preflightRequestId = 0;
   ProjectPresentationProfile? _scenePresetPreviewProfile;
+  bool _isResolvingConflict = false;
 
   @override
   void dispose() {
@@ -162,6 +165,14 @@ class _PersonalizationStudioWorkspaceState
         _preflightError = context.pokeMapL10n.personalizationPreflightReadError;
       });
     }
+  }
+
+  Future<void> _resolveConflict(Future<bool> Function() resolve) async {
+    if (_isResolvingConflict) return;
+    setState(() => _isResolvingConflict = true);
+    await resolve();
+    if (!mounted) return;
+    setState(() => _isResolvingConflict = false);
   }
 
   Future<void> _importBrandingImage({
@@ -2215,6 +2226,59 @@ class _PersonalizationStudioWorkspaceState
               ),
             ),
           ),
+          if (studioSession?.isConflicted == true) ...<Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: PokeMapActionBanner(
+                key: const ValueKey<String>(
+                  'personalization-studio-conflict-banner',
+                ),
+                title: 'Brouillon de personnalisation à réconcilier',
+                message:
+                    'Un ancien brouillon et le projet actuel contiennent des '
+                    'versions différentes. Choisissez celle à utiliser pour '
+                    'réactiver tous les réglages.',
+                tone: PokeMapTone.warning,
+                actions: <PokeMapActionBannerAction>[
+                  PokeMapActionBannerAction(
+                    key: const ValueKey<String>(
+                      'personalization-studio-conflict-use-project',
+                    ),
+                    label: 'Utiliser le projet actuel',
+                    variant: PokeMapButtonVariant.secondary,
+                    isLoading: _isResolvingConflict,
+                    onPressed: _isResolvingConflict
+                        ? null
+                        : () {
+                            unawaited(
+                              _resolveConflict(
+                                notifier
+                                    .useCurrentProjectInPersonalizationStudio,
+                              ),
+                            );
+                          },
+                  ),
+                  PokeMapActionBannerAction(
+                    key: const ValueKey<String>(
+                      'personalization-studio-conflict-keep-draft',
+                    ),
+                    label: 'Conserver mon brouillon',
+                    isLoading: _isResolvingConflict,
+                    onPressed: _isResolvingConflict
+                        ? null
+                        : () {
+                            unawaited(
+                              _resolveConflict(
+                                notifier
+                                    .keepPersonalizationStudioDraftOnCurrentProject,
+                              ),
+                            );
+                          },
+                  ),
+                ],
+              ),
+            ),
+          ],
           Expanded(
             child: PersonalizationStudioShell(
               key: const ValueKey<String>('personalization-studio-workspace'),
