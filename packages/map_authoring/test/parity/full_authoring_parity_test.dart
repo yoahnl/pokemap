@@ -139,7 +139,7 @@ void main() {
               (descriptor) => descriptor.id == 'projectPresentationProfile',
             )
             .version,
-        9,
+        10,
       );
       expect(
         catalog.requireMutationAction('presentation.preset.export').toJson(),
@@ -531,6 +531,16 @@ void main() {
       expect(directEvidence['dialogueChoiceShape'], 'cutCorner');
       expect(directEvidence['dialogueProgressIndicator'], 'dots');
       expect(directEvidence['dialoguePortraitTransition'], 'slide');
+      expect(directEvidence['battleCommandLayout'], 'radial');
+      expect(directEvidence['battleCommandOrder'], <String>[
+        'run',
+        'fight',
+        'party',
+        'bag',
+      ]);
+      expect(directEvidence['battleRunLabel'], 'Retraite');
+      expect(directEvidence['battleHpBarShape'], 'segmented');
+      expect(directEvidence['battleMovesShape'], 'cutCorner');
     });
 
     test('presentation preset export has direct API and JSONL CLI parity',
@@ -1270,6 +1280,15 @@ final class _GoldenHarness {
           manifest.presentation?.dialogue?.progressIndicator.name,
       'dialoguePortraitTransition':
           manifest.presentation?.dialogue?.portraitTransition.name,
+      'battleCommandLayout': manifest.presentation?.battle?.commandLayout.name,
+      'battleCommandOrder': manifest.presentation?.battle?.effectiveCommands
+          .map((command) => command.id.name)
+          .toList(growable: false),
+      'battleRunLabel': manifest.presentation?.battle?.effectiveCommands
+          .firstWhere((command) => command.id == ProjectBattleCommandId.run)
+          .label,
+      'battleHpBarShape': manifest.presentation?.battle?.hpBarShape.name,
+      'battleMovesShape': manifest.presentation?.battle?.moves.shape.name,
     };
   }
 
@@ -1443,6 +1462,23 @@ final ProjectPresentationProfile _responsivePresentationProfile =
     progressIndicatorColor: '#00FFAA',
     portraitTransition: ProjectDialoguePortraitTransition.slide,
     portraitTransitionMilliseconds: 320,
+  ),
+  battle: ProjectBattlePresentationProfile(
+    commandLayout: ProjectBattleCommandLayout.radial,
+    commands: <ProjectBattleCommandProfile>[
+      ProjectBattleCommandProfile(
+        id: ProjectBattleCommandId.run,
+        label: 'Retraite',
+        icon: ProjectBattleCommandIcon.run,
+      ),
+      ProjectBattleCommandProfile(id: ProjectBattleCommandId.fight),
+      ProjectBattleCommandProfile(id: ProjectBattleCommandId.party),
+      ProjectBattleCommandProfile(id: ProjectBattleCommandId.bag),
+    ],
+    hpBarShape: ProjectBattleHpBarShape.segmented,
+    moves: ProjectBattlePanelPresentationProfile(
+      shape: ProjectWindowShape.cutCorner,
+    ),
   ),
   typography: ProjectTypographyProfile(
     combat: ProjectTypographyRoleProfile(

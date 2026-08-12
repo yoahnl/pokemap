@@ -129,6 +129,44 @@ void main() {
       findsOneWidget,
     );
   });
+
+  for (final size in <Size>[
+    const Size(720, 900),
+    const Size(1024, 768),
+    const Size(1440, 900),
+    const Size(1600, 1000),
+  ]) {
+    for (final textScale in <double>[1, 1.5, 2]) {
+      testWidgets('keeps navigation preview and inspector reachable at '
+          '${size.width.toInt()}x${size.height.toInt()} and ${textScale}x', (
+        tester,
+      ) async {
+        await _pumpShell(tester, size, textScale: textScale);
+
+        expect(tester.takeException(), isNull);
+        expect(
+          find.byKey(const ValueKey<String>('test-preview')),
+          findsOneWidget,
+        );
+        final inspector = find.byKey(
+          const ValueKey<String>('personalization-studio-inspector-pane'),
+        );
+        if (inspector.evaluate().isEmpty) {
+          await tester.tap(
+            find.byKey(
+              const ValueKey<String>('personalization-studio-open-inspector'),
+            ),
+          );
+          await tester.pumpAndSettle();
+        }
+        expect(
+          find.byKey(const ValueKey<String>('test-inspector')),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
 }
 
 Future<void> _pumpShell(

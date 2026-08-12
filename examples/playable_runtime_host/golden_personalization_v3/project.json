@@ -12,6 +12,20 @@
   ],
   "tilesets": [
     {
+      "id": "vermeil-stage",
+      "name": "Décor d’acceptation de Vermeil",
+      "relativePath": "assets/maps/vermeil-village-stage.png",
+      "source": {
+        "kind": "regular_atlas",
+        "assetId": "asset-vermeil-stage",
+        "pixelWidth": 1672,
+        "pixelHeight": 941,
+        "tileWidth": 1672,
+        "tileHeight": 941,
+        "tileProperties": []
+      }
+    },
+    {
       "id": "leo-overworld",
       "name": "Léo — sprite de test",
       "relativePath": "assets/characters/leo-happy.png"
@@ -91,7 +105,7 @@
     ]
   },
   "presentation": {
-    "schemaVersion": 8,
+    "schemaVersion": 10,
     "branding": {
       "iconPath": "assets/presentation/icon.png",
       "coverPath": "assets/presentation/cover.png",
@@ -109,9 +123,9 @@
           "width": 1280,
           "height": 720,
           "bitrateKbps": 128,
-          "sizeBytes": 25,
+          "sizeBytes": 89643,
           "videoCodec": "h264",
-          "audioCodec": "none",
+          "audioCodec": "aac",
           "focalX": 0.5,
           "focalY": 0.5
         }
@@ -122,13 +136,13 @@
     "titleMotion": {
       "promptLoop": {
         "landscape": {
-          "videoPath": "assets/presentation/intro/intro.mp4",
+          "videoPath": "assets/presentation/title-loop.mp4",
           "posterPath": "assets/presentation/intro/poster.png",
           "durationMilliseconds": 1000,
           "width": 1280,
           "height": 720,
           "bitrateKbps": 128,
-          "sizeBytes": 25,
+          "sizeBytes": 63283,
           "videoCodec": "h264",
           "audioCodec": "none",
           "focalX": 0.5,
@@ -190,6 +204,114 @@
       "menuSurface": "#EAF0F8",
       "overworldHudSurface": "#FFFFFF",
       "battleHudSurface": "#FFFFFF"
+    },
+    "title": {
+      "title": "L’Aube de Vermeil",
+      "subtitle": "Une aventure au bout des rails",
+      "prompt": "Appuyez pour commencer",
+      "actions": [
+        {
+          "id": "continueGame",
+          "label": "Continuer",
+          "icon": "play",
+          "visible": true
+        },
+        {
+          "id": "newGame",
+          "label": "Nouveau voyage",
+          "icon": "sparkles",
+          "visible": true
+        },
+        {
+          "id": "load",
+          "label": "Charger",
+          "icon": "folder",
+          "visible": true
+        },
+        {
+          "id": "options",
+          "label": "Réglages",
+          "icon": "settings",
+          "visible": true
+        },
+        {
+          "id": "creditsAbout",
+          "label": "À propos",
+          "icon": "info",
+          "visible": true
+        },
+        {
+          "id": "returnToHub",
+          "label": "Retour au Hub",
+          "icon": "home",
+          "visible": true
+        }
+      ]
+    },
+    "surfacePalettes": {
+      "title": {
+        "background": "#F4F7FB",
+        "surface": "#D9F4F6",
+        "border": "#003A44",
+        "text": "#101827",
+        "accent": "#003A44",
+        "selection": "#126E78"
+      },
+      "pauseMenu": {
+        "background": "#F4F7FB",
+        "surface": "#EAF0F8",
+        "border": "#003A44",
+        "text": "#101827",
+        "accent": "#003A44",
+        "selection": "#126E78"
+      },
+      "dialogue": {
+        "background": "#000000",
+        "surface": "#FFFFFF",
+        "border": "#003A44",
+        "text": "#101827",
+        "accent": "#003A44",
+        "selection": "#126E78"
+      },
+      "battle": {
+        "background": "#000000",
+        "surface": "#FFFFFF",
+        "border": "#102B33",
+        "text": "#101827",
+        "accent": "#003A44",
+        "selection": "#126E78"
+      }
+    },
+    "dialogue": {
+      "placement": "bottom",
+      "maxWidthFactor": 0.82,
+      "margin": 12,
+      "contentPadding": 18,
+      "shape": "speech",
+      "cornerRadius": 12,
+      "borderWidth": 2,
+      "fillOpacity": 0.96,
+      "surfaceColor": "#FFFFFF",
+      "borderColor": "#003A44",
+      "textColor": "#101827",
+      "portraitSide": "start",
+      "portraitSize": 112,
+      "portraitShape": "rounded",
+      "portraitFrameWidth": 2,
+      "portraitFrameColor": "#E2B54A",
+      "nameplateStyle": "floating",
+      "nameplateBorderWidth": 1,
+      "nameplateSurfaceColor": "#102B33",
+      "nameplateBorderColor": "#E2B54A",
+      "nameplateTextColor": "#FFFFFF",
+      "choiceSpacing": 10,
+      "choiceShape": "cutCorner",
+      "choiceDisabledOpacity": 0.45,
+      "choiceSelectedColor": "#E2B54A",
+      "progressIndicator": "chevron",
+      "progressIndicatorColor": "#102B33",
+      "portraitTransition": "slide",
+      "portraitTransitionMilliseconds": 220
     },
     "pause": {
       "title": "Escale",
@@ -312,6 +434,80 @@
       "dialogueStyleId": "dialogue",
       "battleStyleId": "battle",
       "pauseBackdropOpacity": 0.8
+    },
+    "battle": {
+      "commandLayout": "radial",
+      "commandColumns": 2,
+      "showCommandIcons": true,
+      "commandShape": "cutCorner",
+      "commandPadding": 14,
+      "commandSurfaceColor": "#102B33",
+      "commandBorderColor": "#E2B54A",
+      "commandTextColor": "#F8F3E7",
+      "commandSelectionColor": "#E2B54A",
+      "commands": [
+        {
+          "id": "run",
+          "label": "Battre en retraite",
+          "icon": "run"
+        },
+        {
+          "id": "fight",
+          "label": "Techniques",
+          "icon": "fight"
+        },
+        {
+          "id": "party",
+          "label": "Compagnons",
+          "icon": "party"
+        },
+        {
+          "id": "bag",
+          "label": "Sacoche",
+          "icon": "bag"
+        }
+      ],
+      "hudShape": "rounded",
+      "enemyHudPosition": "topEnd",
+      "playerHudPosition": "bottomStart",
+      "showOwnerLabel": true,
+      "showLevel": true,
+      "showExactHp": true,
+      "hpBarShape": "segmented",
+      "hpHealthyColor": "#1F8A5B",
+      "hpWarningColor": "#C47A12",
+      "hpDangerColor": "#C13A50",
+      "statusColor": "#7B61A8",
+      "moves": {
+        "layout": "grid",
+        "columns": 2,
+        "shape": "rounded",
+        "padding": 14,
+        "surfaceColor": "#F4EEDC",
+        "borderColor": "#102B33",
+        "textColor": "#102B33",
+        "selectionColor": "#E2B54A"
+      },
+      "target": {
+        "layout": "list",
+        "columns": 1,
+        "shape": "capsule",
+        "padding": 12,
+        "surfaceColor": "#F4EEDC",
+        "borderColor": "#102B33",
+        "textColor": "#102B33",
+        "selectionColor": "#E2B54A"
+      },
+      "message": {
+        "layout": "list",
+        "columns": 1,
+        "shape": "cutCorner",
+        "padding": 18,
+        "surfaceColor": "#102B33",
+        "borderColor": "#E2B54A",
+        "textColor": "#F8F3E7",
+        "selectionColor": "#E2B54A"
+      }
     },
     "layouts": {
       "title": {

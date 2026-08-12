@@ -39,18 +39,32 @@ class PersonalizationSurfaceColorEditor extends StatelessWidget {
         _tokenCard(context, token),
         const SizedBox(height: 8),
       ],
-      if (palette != null)
-        Align(
-          alignment: Alignment.centerLeft,
-          child: PokeMapButton(
-            key: ValueKey<String>('surface-colors-reset-${role.name}'),
-            size: PokeMapButtonSize.small,
-            variant: PokeMapButtonVariant.secondary,
-            onPressed: () => onChanged(null),
-            leading: const Icon(Icons.restart_alt_rounded),
-            child: const Text('Réutiliser tout le style global'),
-          ),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            PokeMapButton(
+              key: ValueKey<String>('surface-colors-safe-${role.name}'),
+              size: PokeMapButtonSize.small,
+              variant: PokeMapButtonVariant.secondary,
+              onPressed: () => onChanged(_safeSurfacePalette(role)),
+              leading: const Icon(Icons.health_and_safety_outlined),
+              child: const Text('Utiliser une palette sûre'),
+            ),
+            if (palette != null)
+              PokeMapButton(
+                key: ValueKey<String>('surface-colors-reset-${role.name}'),
+                size: PokeMapButtonSize.small,
+                variant: PokeMapButtonVariant.secondary,
+                onPressed: () => onChanged(null),
+                leading: const Icon(Icons.restart_alt_rounded),
+                child: const Text('Réutiliser tout le style global'),
+              ),
+          ],
         ),
+      ),
     ],
   );
 
@@ -242,6 +256,28 @@ String _tokenLabel(_SurfaceColorToken token) => switch (token) {
   _SurfaceColorToken.accent => 'Boutons et accents',
   _SurfaceColorToken.selection => 'Sélection et focus',
 };
+
+ProjectSurfacePaletteProfile _safeSurfacePalette(
+  ProjectPresentationSurfaceRole role,
+) => ProjectSurfacePaletteProfile(
+  background: safeProjectSemanticTheme.background,
+  surface: switch (role) {
+    ProjectPresentationSurfaceRole.title ||
+    ProjectPresentationSurfaceRole.titlePrompt =>
+      safeProjectSemanticTheme.titleSurface,
+    ProjectPresentationSurfaceRole.pauseMenu =>
+      safeProjectSemanticTheme.menuSurface,
+    ProjectPresentationSurfaceRole.dialogue =>
+      safeProjectSemanticTheme.dialogueSurface,
+    ProjectPresentationSurfaceRole.battleHud =>
+      safeProjectSemanticTheme.battleHudSurface,
+    _ => safeProjectSemanticTheme.surface,
+  },
+  border: safeProjectSemanticTheme.outline,
+  text: safeProjectSemanticTheme.textPrimary,
+  accent: safeProjectSemanticTheme.primary,
+  selection: safeProjectSemanticTheme.primary,
+);
 
 ProjectSurfacePaletteProfile? personalizationSurfacePalette(
   ProjectPresentationSurfacePalettesProfile? palettes,

@@ -328,7 +328,7 @@ void main() {
     expect(commands.single.snapshotRevision, 12);
   });
 
-  testWidgets('projects four runtime actions in mobile and desktop layouts',
+  testWidgets('projects every runtime action in mobile and desktop layouts',
       (tester) async {
     for (final size in <Size>[const Size(390, 844), const Size(1280, 720)]) {
       tester.view.physicalSize = size;
@@ -356,8 +356,8 @@ void main() {
       expect(find.text('Nouveau jeu'), findsOneWidget);
       expect(find.text('Options'), findsOneWidget);
       expect(find.text('Retour au Hub'), findsOneWidget);
-      expect(find.text('Charger'), findsNothing);
-      expect(find.text('Crédits & à propos'), findsNothing);
+      expect(find.text('Charger'), findsOneWidget);
+      expect(find.text('Crédits / À propos'), findsOneWidget);
       expect(
         find.byKey(
           ValueKey<String>(
@@ -406,6 +406,57 @@ void main() {
       findsOneWidget,
     );
     await tester.tap(find.text('Retour au Hub'));
+
+    expect(commands, hasLength(1));
+    expect(commands.single.action, RuntimePlayerAction.returnToHost);
+  });
+
+  testWidgets('controller follows authored title order and runtime identity', (
+    tester,
+  ) async {
+    final controller = PlayerRuntimeStartupShellController();
+    final commands = <RuntimePlayerCommand>[];
+
+    await tester.pumpWidget(
+      _app(
+        PlayerRuntimeStartupShell(
+          controller: controller,
+          branding: branding,
+          snapshot: _startup(
+            RuntimeStartupPhase.titleMenu,
+            player: _titlePlayer(),
+          ),
+          titlePresentation: const RuntimePlayerTitlePresentation(
+            author: 'PokeMap',
+            actions: <ProjectTitleActionProfile>[
+              ProjectTitleActionProfile(id: ProjectTitleActionId.options),
+              ProjectTitleActionProfile(
+                id: ProjectTitleActionId.continueGame,
+              ),
+              ProjectTitleActionProfile(id: ProjectTitleActionId.returnToHub),
+            ],
+          ),
+          onStartupCommand: (_) {},
+          onPlayerCommand: commands.add,
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+      ),
+    );
+
+    controller.handle(
+      const PlayerInputCommand.press(
+        PlayerInputAction.down,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pump();
+    controller.handle(
+      const PlayerInputCommand.press(
+        PlayerInputAction.confirm,
+        source: PlayerInputSource.controller,
+      ),
+    );
 
     expect(commands, hasLength(1));
     expect(commands.single.action, RuntimePlayerAction.returnToHost);

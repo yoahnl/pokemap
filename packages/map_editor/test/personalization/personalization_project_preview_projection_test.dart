@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/personalization_hub.dart';
-import 'package:map_editor/src/features/personalization/application/personalization_preview_fixtures.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
@@ -15,6 +14,11 @@ void main() {
       _encounter,
       state: PersonalizationBattlePreviewState.commands,
     );
+    final battleBackdrop =
+        PersonalizationProjectPreviewProjection.battleBackdropPath(
+          map,
+          _encounter,
+        );
 
     expect(map?.id, 'vermeil_village');
     expect(dialogue?.speaker, 'Léo');
@@ -23,6 +27,7 @@ void main() {
     expect(battle?.enemy.level, 7);
     expect(battle?.player.speciesLabel, 'Brindibou');
     expect(battle?.player.level, 8);
+    expect(battleBackdrop, 'assets/battle/battle-clearing.png');
   });
 
   test('projects authored dialogue choices without hidden demo copy', () {
@@ -148,6 +153,22 @@ final _map = PersonalizationPreviewContextOption(
       'name': 'Village de Vermeil',
       'size': <String, Object?>{'width': 12, 'height': 8},
       'version': 'v6',
+      'gameplayZones': <Object?>[
+        <String, Object?>{
+          'id': 'vermeil_grass_zone',
+          'name': 'Herbes de Vermeil',
+          'kind': 'encounter',
+          'area': <String, Object?>{
+            'pos': <String, Object?>{'x': 0, 'y': 0},
+            'size': <String, Object?>{'width': 1, 'height': 1},
+          },
+          'encounter': <String, Object?>{
+            'encounterTableId': 'vermeil_grass',
+            'encounterKind': 'walk',
+            'battleBackgroundRelativePath': 'assets/battle/battle-clearing.png',
+          },
+        },
+      ],
     },
   },
 );
@@ -240,6 +261,7 @@ final _portrait = PersonalizationPreviewContextOption(
 );
 
 final _encounter = _encounterWith(<String, Object?>{
+  'encounterTableId': 'vermeil_grass',
   'entries': <Object?>[
     <String, Object?>{
       'speciesId': 'roucool',

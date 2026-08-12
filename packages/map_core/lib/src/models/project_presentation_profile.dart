@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'project_dialogue_presentation_profile.dart';
+import 'project_battle_presentation_profile.dart';
 import 'project_presentation_layout_profile.dart';
 import 'project_presentation_surface_role.dart';
 import 'project_presentation_visual_profile.dart';
@@ -517,6 +518,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
     ProjectPresentationSurfacePalettesProfile? surfacePalettes,
     @JsonKey(includeIfNull: false) ProjectPausePresentationProfile? pause,
     @JsonKey(includeIfNull: false) ProjectDialoguePresentationProfile? dialogue,
+    @JsonKey(includeIfNull: false) ProjectBattlePresentationProfile? battle,
     @JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,
     @JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? windows,
     @JsonKey(includeIfNull: false) ProjectPresentationLayoutsProfile? layouts,
@@ -527,7 +529,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         _migrateProjectPresentationProfileJson(json),
       );
 
-  static const int supportedSchemaVersion = 9;
+  static const int supportedSchemaVersion = 10;
 
   ProjectPresentationWindowsProfile get effectiveWindows =>
       windows ?? legacyProjectPresentationWindows;
@@ -545,6 +547,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
             surfacePalettes != null ||
             pause != null ||
             dialogue != null ||
+            battle != null ||
             menuLabels != null ||
             windows != null)
           ProjectPresentationCategory.theme,
@@ -702,6 +705,7 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
   );
   _validatePause(profile.effectivePause, diagnostics);
   _validateDialogue(profile.dialogue, diagnostics);
+  _validateBattle(profile.battle, diagnostics);
   _validateMenuLabels(profile.menuLabels, diagnostics);
   _validateWindows(
     profile.windows,
@@ -798,6 +802,150 @@ void _validateLayouts(
           'Only secondary elements from this surface may be shown.',
         );
       }
+    }
+  }
+}
+
+void _validateBattle(
+  ProjectBattlePresentationProfile? battle,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (battle == null) return;
+
+  void error(String code, String path, String message) => _presentationError(
+    diagnostics,
+    code,
+    ProjectPresentationCategory.theme,
+    path,
+    message,
+  );
+
+  void validateColumns(int value, String path, String code) {
+    if (value >= 1 && value <= 4) return;
+    error(code, path, 'Choose between one and four columns.');
+  }
+
+  void validatePadding(double value, String path, String code) {
+    if (value.isFinite && value >= 4 && value <= 32) return;
+    error(code, path, 'Panel padding must stay between 4 and 32 pixels.');
+  }
+
+  void validateShape(ProjectWindowShape shape, String path, String code) {
+    if (shape != ProjectWindowShape.speech) return;
+    error(code, path, 'Speech bubbles are reserved for dialogue.');
+  }
+
+  void validateColor(String? value, String path) {
+    if (value == null || RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(value)) return;
+    error(
+      'battleColorInvalid',
+      path,
+      'Use an opaque hexadecimal color such as #16794B.',
+    );
+  }
+
+  validateColumns(
+    battle.commandColumns,
+    r'$.presentation.battle.commandColumns',
+    'battleCommandColumnsOutOfRange',
+  );
+  validatePadding(
+    battle.commandPadding,
+    r'$.presentation.battle.commandPadding',
+    'battleCommandPaddingOutOfRange',
+  );
+  validateShape(
+    battle.commandShape,
+    r'$.presentation.battle.commandShape',
+    'battleCommandShapeUnsupported',
+  );
+  validateShape(
+    battle.hudShape,
+    r'$.presentation.battle.hudShape',
+    'battleHudShapeUnsupported',
+  );
+
+  final commands = battle.effectiveCommands;
+  final commandIds = commands.map((command) => command.id).toList();
+  if (commandIds.toSet().length != commandIds.length) {
+    error(
+      'battleCommandIdDuplicate',
+      r'$.presentation.battle.commands',
+      'Each battle command may appear only once.',
+    );
+  }
+  if (commandIds.toSet().length != ProjectBattleCommandId.values.length ||
+      !commandIds.toSet().containsAll(ProjectBattleCommandId.values)) {
+    error(
+      'battleCommandSetIncomplete',
+      r'$.presentation.battle.commands',
+      'Fight, bag, party and run must all remain available.',
+    );
+  }
+  for (var index = 0; index < commands.length; index++) {
+    final label = commands[index].label;
+    if (label == null) continue;
+    if (label.trim().isEmpty ||
+        label.length > 40 ||
+        RegExp(r'[\u0000-\u001F\u007F]').hasMatch(label)) {
+      error(
+        'battleCommandLabelInvalid',
+        '\$.presentation.battle.commands[$index].label',
+        'Battle command labels must contain between one and forty characters.',
+      );
+    }
+  }
+
+  if (battle.enemyHudPosition == battle.playerHudPosition) {
+    error(
+      'battleHudPositionConflict',
+      r'$.presentation.battle.playerHudPosition',
+      'Enemy and player panels must use distinct positions.',
+    );
+  }
+
+  for (final color in <({String field, String? value})>[
+    (field: 'commandSurfaceColor', value: battle.commandSurfaceColor),
+    (field: 'commandBorderColor', value: battle.commandBorderColor),
+    (field: 'commandTextColor', value: battle.commandTextColor),
+    (field: 'commandSelectionColor', value: battle.commandSelectionColor),
+    (field: 'hpHealthyColor', value: battle.hpHealthyColor),
+    (field: 'hpWarningColor', value: battle.hpWarningColor),
+    (field: 'hpDangerColor', value: battle.hpDangerColor),
+    (field: 'statusColor', value: battle.statusColor),
+  ]) {
+    validateColor(color.value, '\$.presentation.battle.${color.field}');
+  }
+
+  for (final entry
+      in <({String field, ProjectBattlePanelPresentationProfile panel})>[
+        (field: 'moves', panel: battle.moves),
+        (field: 'target', panel: battle.target),
+        (field: 'message', panel: battle.message),
+      ]) {
+    final path = '\$.presentation.battle.${entry.field}';
+    validateColumns(
+      entry.panel.columns,
+      '$path.columns',
+      'battlePanelColumnsOutOfRange',
+    );
+    validatePadding(
+      entry.panel.padding,
+      '$path.padding',
+      'battlePanelPaddingOutOfRange',
+    );
+    validateShape(
+      entry.panel.shape,
+      '$path.shape',
+      'battlePanelShapeUnsupported',
+    );
+    for (final color in <({String field, String? value})>[
+      (field: 'surfaceColor', value: entry.panel.surfaceColor),
+      (field: 'borderColor', value: entry.panel.borderColor),
+      (field: 'textColor', value: entry.panel.textColor),
+      (field: 'selectionColor', value: entry.panel.selectionColor),
+    ]) {
+      validateColor(color.value, '$path.${color.field}');
     }
   }
 }
@@ -2240,8 +2388,21 @@ Map<String, dynamic> _migrateProjectPresentationProfileJson(
       'Dialogue presentation requires schema version 9.',
     );
   }
-  if (schemaVersion == 9) {
+  if (schemaVersion is int &&
+      schemaVersion < 10 &&
+      source.containsKey('battle')) {
+    throw const FormatException(
+      'Battle presentation requires schema version 10.',
+    );
+  }
+  if (schemaVersion == 10) {
     return _migrateProjectPausePresentation(Map<String, dynamic>.from(source));
+  }
+  if (schemaVersion == 9) {
+    return _migrateProjectPausePresentation(
+      Map<String, dynamic>.from(source)
+        ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion,
+    );
   }
   if (schemaVersion == 8) {
     return _migrateProjectPausePresentation(

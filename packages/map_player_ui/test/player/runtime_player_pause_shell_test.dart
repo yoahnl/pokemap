@@ -182,6 +182,50 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('authored expanded placement moves the real pause panel', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1280, 800));
+    final base = suggestedProjectPresentationLayouts('standard');
+
+    for (final (slot, expected) in <(ProjectPresentationLayoutSlot, Alignment)>[
+      (ProjectPresentationLayoutSlot.left, Alignment.centerLeft),
+      (ProjectPresentationLayoutSlot.center, Alignment.center),
+      (ProjectPresentationLayoutSlot.right, Alignment.centerRight),
+    ]) {
+      final layouts = base.copyWith(
+        pauseMenu: base.pauseMenu.copyWith(
+          expanded: base.pauseMenu.expanded.copyWith(slot: slot),
+        ),
+      );
+      await tester.pumpWidget(
+        _app(
+          RuntimePlayerPauseShell.root(
+            gameTitle: 'Aube',
+            actions: _actions(),
+            onSelected: (_) {},
+            detail: const SizedBox.shrink(),
+          ),
+          layouts: layouts,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final alignedAncestors = tester
+          .widgetList<Align>(
+            find.ancestor(
+              of: find.byKey(
+                const ValueKey<String>('runtime-pause-navigation'),
+              ),
+              matching: find.byType(Align),
+            ),
+          )
+          .map((align) => align.alignment);
+      expect(alignedAncestors, contains(expected));
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('text scale 2 keeps every action target at least 48 pixels',
       (tester) async {
     await _setSurface(tester, const Size(390, 844));
@@ -471,6 +515,72 @@ void main() {
     await tester.pump();
 
     expect(selected, <PlayerPauseAction>[PlayerPauseAction.resume]);
+  });
+
+  testWidgets('controller skips a visible unavailable authored action', (
+    tester,
+  ) async {
+    await _setSurface(tester, const Size(1280, 800));
+    final selected = <PlayerPauseAction>[];
+    final focusController = RuntimePlayerFocusController(
+      logicalSelectionId: 'pause.resume',
+      activeInputSource: PlayerInputSource.controller,
+    );
+    addTearDown(focusController.dispose);
+    final actions = _actions()
+      ..[PlayerPauseAction.pokedex] = const PlayerActionAvailability.disabled(
+        'Pokédex indisponible',
+      );
+
+    await tester.pumpWidget(
+      _app(
+        RuntimePlayerPauseShell.root(
+          gameTitle: 'Aube',
+          actions: actions,
+          onSelected: selected.add,
+          detail: const SizedBox.shrink(),
+          focusController: focusController,
+          activeInputSource: PlayerInputSource.controller,
+          presentation: PlayerPausePresentation.fromProfile(
+            const ProjectPausePresentationProfile(
+              actions: <ProjectPauseActionProfile>[
+                ProjectPauseActionProfile(id: ProjectPauseActionId.resume),
+                ProjectPauseActionProfile(
+                  id: ProjectPauseActionId.pokedex,
+                  label: 'Bestiaire',
+                ),
+                ProjectPauseActionProfile(id: ProjectPauseActionId.party),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Bestiaire'), findsOneWidget);
+    final actionsContext = tester.element(
+      find.byKey(const ValueKey<String>('runtime-player-actions-context')),
+    );
+    Actions.invoke(
+      actionsContext,
+      const RuntimePlayerLogicalIntent(
+        PlayerInputAction.down,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pump();
+
+    expect(focusController.logicalSelectionId, 'pause.party');
+    Actions.invoke(
+      actionsContext,
+      const RuntimePlayerLogicalIntent(
+        PlayerInputAction.confirm,
+        source: PlayerInputSource.controller,
+      ),
+    );
+    await tester.pump();
+    expect(selected, <PlayerPauseAction>[PlayerPauseAction.party]);
   });
 
   testWidgets('authored expanded composition controls entries and root panel', (

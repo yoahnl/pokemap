@@ -298,7 +298,7 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
     child: PokeMapDropdownField<T>(
       label: label,
       value: value,
-      items: items,
+      items: _withCurrentWindowValue(items, value),
       onChanged: onChanged,
     ),
   );
@@ -330,6 +330,17 @@ class _ProjectWindowStudioState extends State<ProjectWindowStudio> {
     }
     _applyPreset(legacyProjectPresentationWindows);
   }
+}
+
+List<PokeMapDropdownItem<T>> _withCurrentWindowValue<T>(
+  List<PokeMapDropdownItem<T>> items,
+  T value,
+) {
+  if (items.any((item) => item.value == value)) return items;
+  return <PokeMapDropdownItem<T>>[
+    ...items,
+    PokeMapDropdownItem<T>(value: value, label: '$value (valeur du projet)'),
+  ];
 }
 
 enum ProjectWindowShapePreset {

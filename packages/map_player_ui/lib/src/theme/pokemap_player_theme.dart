@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import 'pokemap_player_window_theme.dart';
+import 'pokemap_player_battle_theme.dart';
 import 'pokemap_player_dialogue_theme.dart';
 import 'pokemap_player_layout_theme.dart';
 import 'pokemap_player_surface_palette_theme.dart';
@@ -767,6 +768,17 @@ abstract final class PokeMapPlayerTheme {
         .where((extension) => extension is! PokeMapPlayerDialogueTheme)
         .toList(growable: true)
       ..add(PokeMapPlayerDialogueTheme(dialogue));
+    return theme.copyWith(extensions: extensions);
+  }
+
+  static ThemeData withBattleProfile(
+    ThemeData theme,
+    ProjectBattlePresentationProfile battle,
+  ) {
+    final extensions = theme.extensions.values
+        .where((extension) => extension is! PokeMapPlayerBattleTheme)
+        .toList(growable: true)
+      ..add(PokeMapPlayerBattleTheme(battle));
     return theme.copyWith(extensions: extensions);
   }
 

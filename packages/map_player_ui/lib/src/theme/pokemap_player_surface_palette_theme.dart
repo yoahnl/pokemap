@@ -33,6 +33,8 @@ extension PokeMapPlayerSurfacePaletteContext on BuildContext {
   ProjectSurfacePaletteProfile? playerSurfacePalette(
     ProjectPresentationSurfaceRole role,
   ) =>
+      dependOnInheritedWidgetOfExactType<_ResolvedPlayerSurfacePalette>()
+          ?.palette ??
       Theme.of(this)
           .extension<PokeMapPlayerSurfacePaletteTheme>()
           ?.resolve(role);
@@ -61,8 +63,27 @@ class PlayerSurfacePaletteScope extends StatelessWidget {
     final background = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
       palette.background,
     );
-    final content = Theme(data: theme, child: child);
+    final content = Theme(
+      data: theme,
+      child: _ResolvedPlayerSurfacePalette(
+        palette: palette,
+        child: child,
+      ),
+    );
     if (!paintBackground || background == null) return content;
     return ColoredBox(color: background, child: content);
   }
+}
+
+class _ResolvedPlayerSurfacePalette extends InheritedWidget {
+  const _ResolvedPlayerSurfacePalette({
+    required this.palette,
+    required super.child,
+  });
+
+  final ProjectSurfacePaletteProfile palette;
+
+  @override
+  bool updateShouldNotify(_ResolvedPlayerSurfacePalette oldWidget) =>
+      oldWidget.palette != palette;
 }

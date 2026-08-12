@@ -1,14 +1,33 @@
 {
   "id": "vermeil_village",
   "name": "Village de Vermeil",
-  "size": {"width": 12, "height": 8},
+  "size": {"width": 1, "height": 1},
   "version": "v6",
+  "tilesetId": "vermeil-stage",
+  "layers": [
+    {
+      "runtimeType": "tile",
+      "id": "vermeil-stage-layer",
+      "name": "Décor du village",
+      "isVisible": true,
+      "opacity": 1.0,
+      "purpose": "visual",
+      "palette": [
+        {
+          "tilesetId": "vermeil-stage",
+          "localTileId": 0,
+          "transform": {"quarterTurns": 0, "flipX": false}
+        }
+      ],
+      "cells": [1]
+    }
+  ],
   "entities": [
     {
       "id": "spawn_village",
       "name": "Arrivée au village",
       "kind": "spawn",
-      "pos": {"x": 4, "y": 5},
+      "pos": {"x": 0, "y": 0},
       "blocksMovement": false,
       "spawn": {"role": "player_start", "facing": "north"}
     },
@@ -16,7 +35,7 @@
       "id": "npc_leo",
       "name": "Léo",
       "kind": "npc",
-      "pos": {"x": 6, "y": 4},
+      "pos": {"x": 0, "y": 0},
       "npc": {
         "displayName": "Léo",
         "facing": "west",
@@ -29,10 +48,11 @@
       "id": "vermeil_grass_zone",
       "name": "Herbes de Vermeil",
       "kind": "encounter",
-      "area": {"pos": {"x": 8, "y": 1}, "size": {"width": 3, "height": 3}},
+      "area": {"pos": {"x": 0, "y": 0}, "size": {"width": 1, "height": 1}},
       "encounter": {
         "encounterTableId": "vermeil_grass",
-        "encounterKind": "walk"
+        "encounterKind": "walk",
+        "battleBackgroundRelativePath": "assets/battle/battle-clearing.png"
       }
     }
   ],

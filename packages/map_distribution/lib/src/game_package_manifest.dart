@@ -265,6 +265,7 @@ final class GamePackagePresentation {
     this.surfacePalettes,
     this.pause,
     this.dialogue,
+    this.battle,
     this.menuLabels,
     this.windows,
     this.layouts,
@@ -280,6 +281,7 @@ final class GamePackagePresentation {
   final GamePackagePresentationSurfacePalettes? surfacePalettes;
   final GamePackagePausePresentation? pause;
   final GamePackageDialoguePresentation? dialogue;
+  final GamePackageBattlePresentation? battle;
   final GamePackageMenuLabels? menuLabels;
   final GamePackagePresentationWindows? windows;
   final GamePackagePresentationLayouts? layouts;
@@ -302,6 +304,7 @@ final class GamePackagePresentation {
         if (schemaVersion >= 8 && pause != null) 'pause': pause!.toJson(),
         if (schemaVersion >= 9 && dialogue != null)
           'dialogue': dialogue!.toJson(),
+        if (schemaVersion >= 10 && battle != null) 'battle': battle!.toJson(),
         if (menuLabels != null) 'menuLabels': menuLabels!.toJson(),
         if (schemaVersion >= 3 && windows != null)
           'windows': windows!.toJson(
@@ -310,6 +313,142 @@ final class GamePackagePresentation {
           ),
         if (schemaVersion >= 4 && layouts != null)
           'layouts': layouts!.toJson(includeBattle: schemaVersion >= 5),
+      };
+}
+
+final class GamePackageBattleCommand {
+  const GamePackageBattleCommand({
+    required this.id,
+    this.label,
+    this.icon,
+  });
+
+  final String id;
+  final String? label;
+  final String? icon;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'id': id,
+        if (label != null) 'label': label,
+        if (icon != null) 'icon': icon,
+      };
+}
+
+final class GamePackageBattlePanelPresentation {
+  const GamePackageBattlePanelPresentation({
+    required this.layout,
+    required this.columns,
+    required this.shape,
+    required this.padding,
+    this.surfaceColor,
+    this.borderColor,
+    this.textColor,
+    this.selectionColor,
+  });
+
+  final String layout;
+  final int columns;
+  final String shape;
+  final int padding;
+  final String? surfaceColor;
+  final String? borderColor;
+  final String? textColor;
+  final String? selectionColor;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'layout': layout,
+        'columns': columns,
+        'shape': shape,
+        'padding': padding,
+        if (surfaceColor != null) 'surfaceColor': surfaceColor,
+        if (borderColor != null) 'borderColor': borderColor,
+        if (textColor != null) 'textColor': textColor,
+        if (selectionColor != null) 'selectionColor': selectionColor,
+      };
+}
+
+final class GamePackageBattlePresentation {
+  const GamePackageBattlePresentation({
+    required this.commandLayout,
+    required this.commandColumns,
+    required this.showCommandIcons,
+    required this.commandShape,
+    required this.commandPadding,
+    required this.enemyHudPosition,
+    required this.playerHudPosition,
+    required this.showOwnerLabel,
+    required this.showLevel,
+    required this.showExactHp,
+    required this.hpBarShape,
+    required this.hpHealthyColor,
+    required this.hpWarningColor,
+    required this.hpDangerColor,
+    required this.statusColor,
+    required this.moves,
+    required this.target,
+    required this.message,
+    this.commandSurfaceColor,
+    this.commandBorderColor,
+    this.commandTextColor,
+    this.commandSelectionColor,
+    this.commands,
+    this.hudShape = 'rounded',
+  });
+
+  final String commandLayout;
+  final int commandColumns;
+  final bool showCommandIcons;
+  final String commandShape;
+  final int commandPadding;
+  final String? commandSurfaceColor;
+  final String? commandBorderColor;
+  final String? commandTextColor;
+  final String? commandSelectionColor;
+  final List<GamePackageBattleCommand>? commands;
+  final String hudShape;
+  final String enemyHudPosition;
+  final String playerHudPosition;
+  final bool showOwnerLabel;
+  final bool showLevel;
+  final bool showExactHp;
+  final String hpBarShape;
+  final String hpHealthyColor;
+  final String hpWarningColor;
+  final String hpDangerColor;
+  final String statusColor;
+  final GamePackageBattlePanelPresentation moves;
+  final GamePackageBattlePanelPresentation target;
+  final GamePackageBattlePanelPresentation message;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'commandLayout': commandLayout,
+        'commandColumns': commandColumns,
+        'showCommandIcons': showCommandIcons,
+        'commandShape': commandShape,
+        'commandPadding': commandPadding,
+        if (commandSurfaceColor != null)
+          'commandSurfaceColor': commandSurfaceColor,
+        if (commandBorderColor != null)
+          'commandBorderColor': commandBorderColor,
+        if (commandTextColor != null) 'commandTextColor': commandTextColor,
+        if (commandSelectionColor != null)
+          'commandSelectionColor': commandSelectionColor,
+        if (commands != null)
+          'commands': commands!.map((value) => value.toJson()).toList(),
+        'hudShape': hudShape,
+        'enemyHudPosition': enemyHudPosition,
+        'playerHudPosition': playerHudPosition,
+        'showOwnerLabel': showOwnerLabel,
+        'showLevel': showLevel,
+        'showExactHp': showExactHp,
+        'hpBarShape': hpBarShape,
+        'hpHealthyColor': hpHealthyColor,
+        'hpWarningColor': hpWarningColor,
+        'hpDangerColor': hpDangerColor,
+        'statusColor': statusColor,
+        'moves': moves.toJson(),
+        'target': target.toJson(),
+        'message': message.toJson(),
       };
 }
 

@@ -374,6 +374,56 @@ final class ProjectSnapshotLoader {
       profiler?.recordDecodeModel(dialogueDecodeTimer!);
     }
 
+    if (manifest.pokemon.enabled) {
+      final speciesIds = <String>{
+        for (final table in manifest.encounterTables)
+          for (final entry in table.entries) entry.speciesId,
+        for (final pokemon in manifest.newGame.initialParty) pokemon.speciesId,
+        for (final starter in manifest.newGame.starterOptions)
+          starter.pokemon.speciesId,
+      }.toList()
+        ..sort();
+      for (final speciesId in speciesIds) {
+        final speciesPath = validateProjectRelativePath(
+          '${manifest.pokemon.speciesDir}/$speciesId.json',
+        ).join('/');
+        if (!occupiedPaths.add(speciesPath)) {
+          throw const ProjectSnapshotException(
+            'project.resource_path_conflict',
+            'Two project resources resolve to the same storage path.',
+          );
+        }
+        final speciesBytes = await _readOptional(access, speciesPath);
+        if (speciesBytes != null) {
+          resources.add(
+            _LoadedProjectResource(
+              relativePath: speciesPath,
+              identity: pokemonSpeciesResourceIdentity(speciesId),
+              bytes: speciesBytes,
+            ),
+          );
+        }
+        final mediaPath = validateProjectRelativePath(
+          '${manifest.pokemon.mediaDir}/$speciesId.json',
+        ).join('/');
+        if (!occupiedPaths.add(mediaPath)) {
+          throw const ProjectSnapshotException(
+            'project.resource_path_conflict',
+            'Two project resources resolve to the same storage path.',
+          );
+        }
+        final mediaBytes = await _readOptional(access, mediaPath);
+        if (mediaBytes == null) continue;
+        resources.add(
+          _LoadedProjectResource(
+            relativePath: mediaPath,
+            identity: pokemonMediaResourceIdentity(speciesId),
+            bytes: mediaBytes,
+          ),
+        );
+      }
+    }
+
     final assetCatalogReadTimer = profiler?.startStage();
     final assetCatalogBytes = await _readOptional(
       access,

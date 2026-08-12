@@ -381,21 +381,11 @@ class _TypographyMetricsEditor extends StatelessWidget {
                 label: 'Taille',
                 value: value.sizeScale,
                 enabled: onChanged != null,
-                items: <PokeMapDropdownItem<double>>[
-                  for (final scale in const <double>[
-                    .75,
-                    .9,
-                    1,
-                    1.1,
-                    1.25,
-                    1.5,
-                    1.75,
-                  ])
-                    PokeMapDropdownItem<double>(
-                      value: scale,
-                      label: '${(scale * 100).round()} %',
-                    ),
-                ],
+                items: _withCurrentMetric(
+                  current: value.sizeScale,
+                  values: const <double>[.75, .9, 1, 1.1, 1.25, 1.5, 1.75],
+                  label: (scale) => '${(scale * 100).round()} %',
+                ),
                 onChanged: (next) =>
                     onChanged!(value.copyWith(sizeScale: next)),
               ),
@@ -421,20 +411,11 @@ class _TypographyMetricsEditor extends StatelessWidget {
                 label: 'Interligne',
                 value: value.lineHeight,
                 enabled: onChanged != null,
-                items: <PokeMapDropdownItem<double>>[
-                  for (final height in const <double>[
-                    1,
-                    1.15,
-                    1.25,
-                    1.4,
-                    1.6,
-                    1.8,
-                  ])
-                    PokeMapDropdownItem<double>(
-                      value: height,
-                      label: '$height×',
-                    ),
-                ],
+                items: _withCurrentMetric(
+                  current: value.lineHeight,
+                  values: const <double>[1, 1.15, 1.25, 1.4, 1.6, 1.8],
+                  label: (height) => '$height×',
+                ),
                 onChanged: (next) =>
                     onChanged!(value.copyWith(lineHeight: next)),
               ),
@@ -446,13 +427,11 @@ class _TypographyMetricsEditor extends StatelessWidget {
                 label: 'Espacement',
                 value: value.letterSpacing,
                 enabled: onChanged != null,
-                items: <PokeMapDropdownItem<double>>[
-                  for (final spacing in const <double>[-1, 0, .5, 1, 2, 4])
-                    PokeMapDropdownItem<double>(
-                      value: spacing,
-                      label: '${spacing}px',
-                    ),
-                ],
+                items: _withCurrentMetric(
+                  current: value.letterSpacing,
+                  values: const <double>[-1, 0, .5, 1, 2, 4],
+                  label: (spacing) => '${spacing}px',
+                ),
                 onChanged: (next) =>
                     onChanged!(value.copyWith(letterSpacing: next)),
               ),
@@ -462,6 +441,20 @@ class _TypographyMetricsEditor extends StatelessWidget {
       ],
     );
   }
+}
+
+List<PokeMapDropdownItem<double>> _withCurrentMetric({
+  required double current,
+  required List<double> values,
+  required String Function(double value) label,
+}) {
+  final resolved = values.contains(current)
+      ? values
+      : <double>[...values, current];
+  return <PokeMapDropdownItem<double>>[
+    for (final value in resolved)
+      PokeMapDropdownItem<double>(value: value, label: label(value)),
+  ];
 }
 
 ProjectTypographyRoleProfile _profileForRole(

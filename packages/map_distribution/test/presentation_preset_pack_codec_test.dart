@@ -99,6 +99,55 @@ void main() {
     expect(decoded.files['licenses/icon.txt'], license);
   });
 
+  test('roundtrips scope metadata and migrates V1 as complete', () {
+    final scoped = ProjectPresentationPresetPack(
+      manifest: PresentationPresetPackManifest(
+        id: 'dialogue-wide',
+        label: 'Dialogue large',
+        description: 'Remplace uniquement le dialogue.',
+        compatibility: const PresentationPresetCompatibility(
+          minimumProfileSchemaVersion:
+              ProjectPresentationProfile.supportedSchemaVersion,
+          maximumProfileSchemaVersion:
+              ProjectPresentationProfile.supportedSchemaVersion,
+        ),
+        scope: ProjectPresentationPresetScope.dialogue,
+        replacedSections: const <String>['dialogue', 'layouts.dialogue'],
+      ),
+      profile: const ProjectPresentationProfile(
+        dialogue: ProjectDialoguePresentationProfile(maxWidthFactor: .94),
+      ),
+    );
+
+    final decoded = codec.decode(codec.encode(scoped));
+
+    expect(decoded.manifest.formatVersion, 2);
+    expect(decoded.manifest.scope, ProjectPresentationPresetScope.dialogue);
+    expect(
+      decoded.manifest.replacedSections,
+      <String>['dialogue', 'layouts.dialogue'],
+    );
+
+    final legacy = ProjectPresentationPresetPack(
+      manifest: PresentationPresetPackManifest(
+        formatVersion: 1,
+        id: 'legacy-v5',
+        label: 'Ancien V5',
+        description: 'Profil complet historique.',
+        compatibility: const PresentationPresetCompatibility(
+          minimumProfileSchemaVersion: 5,
+          maximumProfileSchemaVersion:
+              ProjectPresentationProfile.supportedSchemaVersion,
+        ),
+      ),
+      profile: const ProjectPresentationProfile(),
+    );
+    final migrated = codec.decode(codec.encode(legacy));
+
+    expect(migrated.manifest.scope, ProjectPresentationPresetScope.complete);
+    expect(migrated.manifest.replacedSections, isEmpty);
+  });
+
   test('rejects traversal before exposing any file', () {
     final archive = Archive()
       ..addFile(ArchiveFile('../escape.txt', 1, <int>[0]))
@@ -112,6 +161,34 @@ void main() {
           (error) => error.code,
           'code',
           'presetPackInvalidPath',
+        ),
+      ),
+    );
+  });
+
+  test('rejects an incomplete scoped preset', () {
+    expect(
+      () => ProjectPresentationPresetPack(
+        manifest: PresentationPresetPackManifest(
+          id: 'empty-dialogue',
+          label: 'Dialogue vide',
+          description: 'Ne doit pas être accepté.',
+          compatibility: const PresentationPresetCompatibility(
+            minimumProfileSchemaVersion:
+                ProjectPresentationProfile.supportedSchemaVersion,
+            maximumProfileSchemaVersion:
+                ProjectPresentationProfile.supportedSchemaVersion,
+          ),
+          scope: ProjectPresentationPresetScope.dialogue,
+          replacedSections: const <String>['dialogue'],
+        ),
+        profile: const ProjectPresentationProfile(),
+      ),
+      throwsA(
+        isA<PresentationPresetPackException>().having(
+          (error) => error.code,
+          'code',
+          'presetPackScopeIncomplete',
         ),
       ),
     );

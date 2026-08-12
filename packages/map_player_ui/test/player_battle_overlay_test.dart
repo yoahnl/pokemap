@@ -7,6 +7,224 @@ import 'package:map_runtime/map_runtime.dart';
 import 'fixtures/personalization_studio_v2_fixture.dart';
 
 void main() {
+  testWidgets(
+    'V10 reorders and relabels root commands without changing runtime indices',
+    (tester) async {
+      BattlePresentationCommand? command;
+      const profile = ProjectBattlePresentationProfile(
+        commands: <ProjectBattleCommandProfile>[
+          ProjectBattleCommandProfile(
+            id: ProjectBattleCommandId.run,
+            label: 'Retraite',
+          ),
+          ProjectBattleCommandProfile(
+            id: ProjectBattleCommandId.fight,
+            label: 'Techniques',
+          ),
+          ProjectBattleCommandProfile(
+            id: ProjectBattleCommandId.party,
+            label: 'Alliés',
+          ),
+          ProjectBattleCommandProfile(
+            id: ProjectBattleCommandId.bag,
+            label: 'Inventaire',
+          ),
+        ],
+      );
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(),
+        onCommand: (value) => command = value,
+        theme: PokeMapPlayerTheme.withBattleProfile(
+          PokeMapPlayerTheme.dark(),
+          profile,
+        ),
+      );
+
+      expect(find.text('Retraite'), findsOneWidget);
+      expect(find.text('Techniques'), findsOneWidget);
+      expect(find.text('Alliés'), findsOneWidget);
+      expect(find.text('Inventaire'), findsOneWidget);
+
+      await tester.tap(find.text('Retraite'));
+
+      expect(
+        command,
+        isA<BattleSelectEntryCommand>()
+            .having((value) => value.entryIndex, 'runtime index', 3)
+            .having(
+              (value) => value.expectedMode,
+              'mode',
+              BattleCommandOverlayMode.root,
+            ),
+      );
+    },
+  );
+
+  testWidgets('V10 renders radial commands and falls back in compact portrait',
+      (
+    tester,
+  ) async {
+    const profile = ProjectBattlePresentationProfile(
+      commandLayout: ProjectBattleCommandLayout.radial,
+    );
+    final theme = PokeMapPlayerTheme.withBattleProfile(
+      PokeMapPlayerTheme.dark(),
+      profile,
+    );
+    await tester.binding.setSurfaceSize(const Size(900, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpOverlay(
+      tester,
+      snapshot: _rootSnapshot(),
+      onCommand: (_) {},
+      theme: theme,
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('battle-panel-commands-radial')),
+      findsOneWidget,
+    );
+    final top = tester.getCenter(
+      find.byKey(const ValueKey<String>('battle-entry-0')),
+    );
+    final right = tester.getCenter(
+      find.byKey(const ValueKey<String>('battle-entry-1')),
+    );
+    final bottom = tester.getCenter(
+      find.byKey(const ValueKey<String>('battle-entry-2')),
+    );
+    expect(top.dy, lessThan(right.dy));
+    expect(bottom.dy, greaterThan(right.dy));
+    expect(right.dx, greaterThan(top.dx));
+
+    await tester.binding.setSurfaceSize(const Size(390, 760));
+    await _pumpOverlay(
+      tester,
+      snapshot: _rootSnapshot(),
+      onCommand: (_) {},
+      theme: theme,
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('battle-panel-commands-grid')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('V10 styles HUD, HP and each battle panel independently', (
+    tester,
+  ) async {
+    const profile = ProjectBattlePresentationProfile(
+      commandLayout: ProjectBattleCommandLayout.list,
+      commandColumns: 1,
+      commandShape: ProjectWindowShape.cutCorner,
+      commandPadding: 20,
+      commandSurfaceColor: '#102030',
+      commandBorderColor: '#FFAA00',
+      commandTextColor: '#FFFFFF',
+      commandSelectionColor: '#00CCAA',
+      hudShape: ProjectWindowShape.rectangle,
+      enemyHudPosition: ProjectBattleHudPosition.topEnd,
+      playerHudPosition: ProjectBattleHudPosition.bottomStart,
+      showOwnerLabel: false,
+      showLevel: false,
+      showExactHp: false,
+      hpBarShape: ProjectBattleHpBarShape.segmented,
+      hpHealthyColor: '#00AA55',
+      hpWarningColor: '#FFAA00',
+      hpDangerColor: '#CC2244',
+      statusColor: '#8844FF',
+      moves: ProjectBattlePanelPresentationProfile(
+        layout: ProjectBattleCommandLayout.grid,
+        columns: 2,
+        shape: ProjectWindowShape.rounded,
+        padding: 16,
+        surfaceColor: '#334455',
+      ),
+    );
+    await _pumpOverlay(
+      tester,
+      snapshot: _snapshot(),
+      onCommand: (_) {},
+      theme: PokeMapPlayerTheme.withBattleProfile(
+        PokeMapPlayerTheme.dark(),
+        profile,
+      ),
+    );
+
+    expect(
+        find.byKey(const ValueKey<String>('battle-owner-enemy')), findsNothing);
+    expect(
+        find.byKey(const ValueKey<String>('battle-level-enemy')), findsNothing);
+    expect(find.byKey(const ValueKey<String>('battle-exact-hp-enemy')),
+        findsNothing);
+    expect(find.byKey(const ValueKey<String>('battle-hp-segmented-enemy')),
+        findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('battle-hud-position-enemy-topEnd')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+          const ValueKey<String>('battle-hud-position-player-bottomStart')),
+      findsOneWidget,
+    );
+
+    final panel = find.byKey(const ValueKey<String>('battle-command-panel'));
+    final material = tester.widget<Material>(
+      find.descendant(of: panel, matching: find.byType(Material)).first,
+    );
+    expect(material.color, const Color(0xFF334455));
+    expect(material.shape, isA<RoundedRectangleBorder>());
+  });
+
+  testWidgets('V10 colors the runtime-owned HP thresholds at zero and max', (
+    tester,
+  ) async {
+    const profile = ProjectBattlePresentationProfile(
+      hpBarShape: ProjectBattleHpBarShape.flat,
+      hpHealthyColor: '#00AA55',
+      hpWarningColor: '#FFAA00',
+      hpDangerColor: '#CC2244',
+      statusColor: '#8844FF',
+    );
+    final theme = PokeMapPlayerTheme.withBattleProfile(
+      PokeMapPlayerTheme.dark(),
+      profile,
+    );
+
+    for (final state in <({int hp, Color color})>[
+      (hp: 0, color: const Color(0xFFCC2244)),
+      (hp: 40, color: const Color(0xFFFFAA00)),
+      (hp: 100, color: const Color(0xFF00AA55)),
+    ]) {
+      await _pumpOverlay(
+        tester,
+        snapshot: _snapshot(
+          enemyHp: state.hp,
+          enemyMaxHp: 100,
+          enemyStatus: 'PARALYSIE PROLONGÉE',
+        ),
+        onCommand: (_) {},
+        theme: theme,
+      );
+
+      final progress = tester.widget<LinearProgressIndicator>(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey<String>('battle-hp-flat-enemy'),
+          ),
+          matching: find.byType(LinearProgressIndicator),
+        ),
+      );
+      expect(progress.color, state.color);
+      expect(find.text('PARALYSIE PROLONGÉE'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('renders canonical battle data and emits a versioned command',
       (tester) async {
     BattlePresentationCommand? command;
@@ -17,6 +235,7 @@ void main() {
     );
 
     expect(find.text('Tonnerre'), findsOneWidget);
+    expect(find.byType(PlayerBattleScene), findsOneWidget);
     expect(find.text('ÉLECTRIK · PP 12/15'), findsOneWidget);
     expect(find.text('PAR'), findsOneWidget);
 
@@ -194,6 +413,9 @@ BattleCommandOverlaySnapshot _snapshot({
   BattlePresentationPhase phase = BattlePresentationPhase.choosingCommand,
   BattleCommandOverlayMode mode = BattleCommandOverlayMode.fight,
   bool canGoBack = true,
+  int enemyHp = 23,
+  int enemyMaxHp = 80,
+  String? enemyStatus = 'PAR',
 }) {
   return BattleCommandOverlaySnapshot(
     revision: 9,
@@ -204,9 +426,9 @@ BattleCommandOverlaySnapshot _snapshot({
     enemyHud: _hud(
       owner: 'ENNEMI',
       species: 'Roucarnage',
-      hp: 23,
-      maxHp: 80,
-      status: 'PAR',
+      hp: enemyHp,
+      maxHp: enemyMaxHp,
+      status: enemyStatus,
     ),
     playerHud: _hud(
       owner: 'JOUEUR',
@@ -245,6 +467,58 @@ BattleCommandOverlaySnapshot _snapshot({
     canGoBack: canGoBack,
   );
 }
+
+BattleCommandOverlaySnapshot _rootSnapshot() => BattleCommandOverlaySnapshot(
+      revision: 12,
+      mode: BattleCommandOverlayMode.root,
+      panelRect: const Rect.fromLTWH(12, 300, 366, 270),
+      enemyHud: _hud(owner: 'ENNEMI', species: 'Roucool', hp: 20, maxHp: 20),
+      playerHud: _hud(owner: 'JOUEUR', species: 'Brindibou', hp: 24, maxHp: 30),
+      battleLabel: 'COMBAT SAUVAGE',
+      title: 'COMMANDES',
+      prompt: 'Choisissez une action.',
+      narrationLines: const <String>[],
+      entries: const <BattleCommandOverlayEntry>[
+        BattleCommandOverlayEntry(
+          index: 0,
+          kind: BattleCommandOverlayEntryKind.root,
+          primaryLabel: 'ATTAQUER',
+          secondaryLabel: 'Choisir une capacité',
+          enabled: true,
+          selected: true,
+          tone: BattleCommandOverlayEntryTone.attack,
+        ),
+        BattleCommandOverlayEntry(
+          index: 1,
+          kind: BattleCommandOverlayEntryKind.root,
+          primaryLabel: 'SAC',
+          secondaryLabel: 'Utiliser un objet',
+          enabled: true,
+          selected: false,
+          tone: BattleCommandOverlayEntryTone.medicine,
+        ),
+        BattleCommandOverlayEntry(
+          index: 2,
+          kind: BattleCommandOverlayEntryKind.root,
+          primaryLabel: 'ÉQUIPE',
+          secondaryLabel: 'Changer de Pokémon',
+          enabled: true,
+          selected: false,
+          tone: BattleCommandOverlayEntryTone.switching,
+        ),
+        BattleCommandOverlayEntry(
+          index: 3,
+          kind: BattleCommandOverlayEntryKind.root,
+          primaryLabel: 'FUITE',
+          secondaryLabel: 'Quitter le combat',
+          enabled: true,
+          selected: false,
+          tone: BattleCommandOverlayEntryTone.neutral,
+        ),
+      ],
+      interactionsEnabled: true,
+      canGoBack: false,
+    );
 
 BattleCommandOverlayHudSnapshot _hud({
   required String owner,

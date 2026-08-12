@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
@@ -622,9 +623,21 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     if (player == null || _isTitleOptions(player)) return false;
     final projection =
         const RuntimeTitleMenuPolicy.singleSave().project(player);
-    final enabled = projection.actions
-        .where((availability) => availability.isEnabled)
-        .toList(growable: false);
+    final availabilityByAction =
+        <RuntimePlayerAction, RuntimePlayerActionAvailability>{
+      for (final availability in projection.actions)
+        availability.action: availability,
+    };
+    final authored = widget.titlePresentation.actions;
+    final orderedActions = authored == null
+        ? projection.actions.map((availability) => availability.action)
+        : authored.where((action) => action.visible).map(
+            (action) => _runtimeAction(_titleActionFromProject(action.id)));
+    final enabled = <RuntimePlayerActionAvailability>[
+      for (final action in orderedActions)
+        if (availabilityByAction[action] case final availability?)
+          if (availability.isEnabled) availability,
+    ];
     if (enabled.isEmpty) return false;
     final current = enabled.indexWhere(
       (availability) =>
@@ -666,9 +679,21 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       switch (action) {
         RuntimePlayerAction.continueGame => PlayerTitleMenuAction.continueGame,
         RuntimePlayerAction.newGame => PlayerTitleMenuAction.newGame,
+        RuntimePlayerAction.load => PlayerTitleMenuAction.load,
         RuntimePlayerAction.openOptions => PlayerTitleMenuAction.options,
+        RuntimePlayerAction.showCredits => PlayerTitleMenuAction.creditsAbout,
         RuntimePlayerAction.returnToHost => PlayerTitleMenuAction.returnToHub,
         _ => throw ArgumentError.value(action, 'action'),
+      };
+
+  PlayerTitleMenuAction _titleActionFromProject(ProjectTitleActionId action) =>
+      switch (action) {
+        ProjectTitleActionId.continueGame => PlayerTitleMenuAction.continueGame,
+        ProjectTitleActionId.newGame => PlayerTitleMenuAction.newGame,
+        ProjectTitleActionId.load => PlayerTitleMenuAction.load,
+        ProjectTitleActionId.options => PlayerTitleMenuAction.options,
+        ProjectTitleActionId.creditsAbout => PlayerTitleMenuAction.creditsAbout,
+        ProjectTitleActionId.returnToHub => PlayerTitleMenuAction.returnToHub,
       };
 
   RuntimePlayerAction _runtimeAction(PlayerTitleMenuAction action) =>

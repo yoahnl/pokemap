@@ -297,6 +297,65 @@ void main() {
       },
     );
 
+    test('round-trips V10 battle commands, HUD and state panels', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 10,
+          'branding': <String, Object?>{},
+          'battle': <String, Object?>{
+            'commandLayout': 'radial',
+            'commandColumns': 2,
+            'showCommandIcons': true,
+            'commandShape': 'cutCorner',
+            'commandPadding': 16,
+            'commandSelectionColor': '#00CCAA',
+            'commands': <Object?>[
+              <String, Object?>{'id': 'run', 'label': 'Retraite'},
+              <String, Object?>{'id': 'fight', 'label': 'Techniques'},
+              <String, Object?>{'id': 'party'},
+              <String, Object?>{'id': 'bag'},
+            ],
+            'hudShape': 'rectangle',
+            'enemyHudPosition': 'topEnd',
+            'playerHudPosition': 'bottomStart',
+            'showOwnerLabel': false,
+            'showLevel': false,
+            'showExactHp': false,
+            'hpBarShape': 'segmented',
+            'hpHealthyColor': '#00AA55',
+            'hpWarningColor': '#FFAA00',
+            'hpDangerColor': '#CC2244',
+            'statusColor': '#8844FF',
+            'moves': _battlePanelJson(surface: '#102030'),
+            'target': _battlePanelJson(surface: '#203040'),
+            'message': _battlePanelJson(surface: '#304050'),
+          },
+        };
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.presentation?.battle?.commandLayout, 'radial');
+      expect(manifest.presentation?.battle?.commands?.first.id, 'run');
+      expect(manifest.presentation?.battle?.enemyHudPosition, 'topEnd');
+      expect(manifest.presentation?.battle?.moves.surfaceColor, '#102030');
+      expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('rejects battle presentation before V10', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 9,
+          'branding': <String, Object?>{},
+          'battle': <String, Object?>{},
+        };
+
+      _expectCode(
+        () => codec.decodeJson(json),
+        'presentationVersionUnsupported',
+        r'$.presentation.battle',
+      );
+    });
+
     test('rejects pause actions declared before presentation schema V8', () {
       final json = _minimalManifestJson()
         ..['presentation'] = <String, Object?>{
@@ -1212,6 +1271,15 @@ Map<String, Object?> _validSemanticThemeJson() => <String, Object?>{
       'menuSurface': '#EAF0F8',
       'overworldHudSurface': '#FFFFFF',
       'battleHudSurface': '#FFFFFF',
+    };
+
+Map<String, Object?> _battlePanelJson({required String surface}) =>
+    <String, Object?>{
+      'layout': 'grid',
+      'columns': 2,
+      'shape': 'rounded',
+      'padding': 12.0,
+      'surfaceColor': surface,
     };
 
 Map<String, Object?> _emptyFile(String path) => <String, Object?>{

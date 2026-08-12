@@ -679,6 +679,8 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
               'id': preset.id,
               'label': preset.label,
               'description': preset.description,
+              'scope': preset.scope.name,
+              'replacedSections': preset.replacedSections,
               'configuredCategories': <String>[
                 for (final category in preset.configuredCategories)
                   category.name,
@@ -689,6 +691,8 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
               'id': preset.id,
               'label': preset.label,
               'description': preset.description,
+              'scope': preset.scope.name,
+              'replacedSections': preset.replacedSections,
               'configuredCategories': <String>[
                 for (final category in preset.configuredCategories)
                   category.name,
@@ -724,6 +728,15 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
         },
         portraitAssetPath: (assetId) =>
             assetCatalog?.find(assetId)?.logicalPath,
+        speciesDisplayName: (speciesId) => _pokemonSpeciesDisplayName(
+          snapshot,
+          speciesId,
+        ),
+        battleSpritePath: (speciesId, playerSide) => _pokemonBattleSpritePath(
+          snapshot,
+          speciesId,
+          playerSide: playerSide,
+        ),
       );
       return <_QueryRecord>[
         for (final context in contexts)
@@ -1666,6 +1679,55 @@ Map<String, Object?> _scenarioSummary(ScenarioAsset scenario) => {
       'nodeCount': scenario.nodes.length,
       'edgeCount': scenario.edges.length,
     };
+
+String? _pokemonSpeciesDisplayName(
+  ProjectSnapshot snapshot,
+  String speciesId,
+) {
+  final bytes = snapshot.findResourceBytes(
+    pokemonSpeciesResourceIdentity(speciesId),
+  );
+  if (bytes == null) return null;
+  try {
+    final json = jsonDecode(utf8.decode(bytes));
+    if (json is! Map || json['id'] != speciesId) return null;
+    final names = json['names'];
+    if (names is Map) {
+      final french = names['fr'];
+      if (french is String && french.trim().isNotEmpty) return french.trim();
+      final first = names.values.whereType<String>().firstOrNull;
+      if (first != null && first.trim().isNotEmpty) return first.trim();
+    }
+  } on Object {
+    return null;
+  }
+  return null;
+}
+
+String? _pokemonBattleSpritePath(
+  ProjectSnapshot snapshot,
+  String speciesId, {
+  required bool playerSide,
+}) {
+  final bytes = snapshot.findResourceBytes(
+    pokemonMediaResourceIdentity(speciesId),
+  );
+  if (bytes == null) return null;
+  try {
+    final json = jsonDecode(utf8.decode(bytes));
+    if (json is! Map || json['speciesId'] != speciesId) return null;
+    final variants = json['variants'];
+    if (variants is! Map || variants.isEmpty) return null;
+    final defaultFormId = json['defaultFormId'];
+    final rawVariant =
+        variants[defaultFormId] ?? variants['base'] ?? variants.values.first;
+    if (rawVariant is! Map) return null;
+    final path = rawVariant[playerSide ? 'backStatic' : 'frontStatic'];
+    return path is String && path.trim().isNotEmpty ? path.trim() : null;
+  } on Object {
+    return null;
+  }
+}
 
 AssetCatalog _decodeAssetCatalog(List<int> bytes) {
   try {

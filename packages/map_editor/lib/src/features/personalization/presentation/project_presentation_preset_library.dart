@@ -126,7 +126,8 @@ class _PresetCard extends StatelessWidget {
         ],
         const SizedBox(height: 4),
         Text(
-          '${preset.configuredCategories.length} sections • '
+          '${preset.scope == ProjectPresentationPresetScope.complete ? 'Profil complet' : 'Portée ${preset.scope.name}'} • '
+          '${preset.replacedSections.isEmpty ? preset.configuredCategories.length : preset.replacedSections.length} sections • '
           '${preset.assets.length} assets avec licence',
         ),
         const SizedBox(height: 10),

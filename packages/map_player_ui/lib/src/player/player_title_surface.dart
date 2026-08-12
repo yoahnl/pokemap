@@ -610,15 +610,29 @@ class PlayerTitleSurface extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 42),
-                for (final (index, action) in data.actions.keys.indexed) ...[
-                  if (index > 0) const SizedBox(height: 5),
-                  _startupPremiumAction(
-                    context,
-                    action: action,
-                    selected: _isStartupHighlighted(action, firstEnabledAction),
+                Expanded(
+                  child: SingleChildScrollView(
+                    key: const ValueKey<String>(
+                      'player-title-premium-actions-scroll',
+                    ),
+                    child: Column(
+                      children: <Widget>[
+                        for (final (index, action)
+                            in data.actions.keys.indexed) ...[
+                          if (index > 0) const SizedBox(height: 5),
+                          _startupPremiumAction(
+                            context,
+                            action: action,
+                            selected: _isStartupHighlighted(
+                              action,
+                              firstEnabledAction,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ],
-                const Spacer(),
+                ),
                 _startupPremiumControls(context),
                 const SizedBox(height: 40),
               ],

@@ -133,6 +133,72 @@ void main() {
   });
 
   test(
+    'catalog projection stays empty when Character Studio has no character',
+    () {
+      final options = PersonalizationCharacterPreviewCatalogProjection.project(
+        workspaceRevision: 'revision-empty',
+        portraitStates: const <Map<String, Object?>>[
+          <String, Object?>{
+            'id': 'neutral',
+            'displayName': 'Neutre',
+            'sortOrder': 0,
+          },
+        ],
+        characters: const <Map<String, Object?>>[],
+        assets: const <String, PersonalizationCharacterPreviewAsset>{},
+      );
+
+      expect(options, isEmpty);
+    },
+  );
+
+  test(
+    'character preview cache refreshes after a canonical revision change',
+    () async {
+      final sourceFixture = Directory(
+        p.join(
+          Directory.current.parent.parent.path,
+          'examples',
+          'playable_runtime_host',
+          'golden_personalization_v3',
+        ),
+      );
+      final projectRoot = await Directory.systemTemp.createTemp(
+        'personalization_character_revision_',
+      );
+      addTearDown(() => projectRoot.delete(recursive: true));
+      await _copyDirectory(sourceFixture, projectRoot);
+      final queries = AuthoringQueryAdapter(
+        fileReader: const EditorProjectFileReader(),
+      );
+      addTearDown(queries.closeAll);
+      final source = AuthoringPersonalizationCharacterPreviewSource(
+        queries: queries,
+      );
+
+      final first = await source.load(projectRoot.path);
+      final cached = await source.load(projectRoot.path);
+      final firstRevision = first.single.workspaceRevision;
+      expect(identical(cached, first), isTrue);
+
+      final projectFile = File(p.join(projectRoot.path, 'project.json'));
+      final projectJson = jsonDecode(await projectFile.readAsString()) as Map;
+      projectJson['name'] = 'Fixture révisée';
+      await projectFile.writeAsString(jsonEncode(projectJson));
+      await queries.invalidate(projectRoot.path);
+
+      final refreshed = await source.load(projectRoot.path);
+
+      expect(identical(refreshed, first), isFalse);
+      expect(refreshed.single.workspaceRevision, isNot(firstRevision));
+      expect(
+        refreshed.map((option) => option.id),
+        first.map((option) => option.id),
+      );
+    },
+  );
+
+  test(
     'canonical source reads project contexts without demo fallback',
     () async {
       final queries = AuthoringQueryAdapter(
@@ -251,5 +317,20 @@ final class _CharacterSource implements PersonalizationCharacterPreviewSource {
         workspaceRevision: 'revision',
       ),
     ];
+  }
+}
+
+Future<void> _copyDirectory(Directory source, Directory destination) async {
+  await for (final entity in source.list()) {
+    final targetPath = p.join(destination.path, p.basename(entity.path));
+    switch (entity) {
+      case File():
+        await entity.copy(targetPath);
+      case Directory():
+        final target = await Directory(targetPath).create();
+        await _copyDirectory(entity, target);
+      case Link():
+        break;
+    }
   }
 }

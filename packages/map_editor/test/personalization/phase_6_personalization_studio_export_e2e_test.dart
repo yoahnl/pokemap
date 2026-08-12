@@ -121,15 +121,20 @@ void main() {
       if (configuredOutput != null && await packageFile.exists()) {
         fail('POKEMAP_PHASE6_PACKAGE_OUTPUT must not already exist.');
       }
-      final artifact = await const GamePackageExportService().exportToFile(
-        projectRoot: projectRoot,
-        profile: neutralExportProfile(
-          gameId: 'games.example.phase6-golden',
-          title: 'Aube',
-          version: '1.0.0',
-        ),
-        outputFile: packageFile,
-      );
+      late final GamePackageExportArtifact artifact;
+      try {
+        artifact = await const GamePackageExportService().exportToFile(
+          projectRoot: projectRoot,
+          profile: neutralExportProfile(
+            gameId: 'games.example.phase6-golden',
+            title: 'Aube',
+            version: '1.0.0',
+          ),
+          outputFile: packageFile,
+        );
+      } on GamePackageExportException catch (error) {
+        fail('$error\nCause: ${error.cause}');
+      }
 
       expect(await packageFile.exists(), isTrue);
       expect(await packageFile.length(), greaterThan(0));
@@ -138,13 +143,17 @@ void main() {
         artifact.personalizationPreflight.configuredCategories,
         <GamePackagePersonalizationCategory>[
           GamePackagePersonalizationCategory.branding,
+          GamePackagePersonalizationCategory.title,
           GamePackagePersonalizationCategory.intro,
           GamePackagePersonalizationCategory.titleMotion,
           GamePackagePersonalizationCategory.typography,
           GamePackagePersonalizationCategory.theme,
+          GamePackagePersonalizationCategory.surfacePalettes,
           GamePackagePersonalizationCategory.pause,
           GamePackagePersonalizationCategory.windows,
           GamePackagePersonalizationCategory.layouts,
+          GamePackagePersonalizationCategory.dialogue,
+          GamePackagePersonalizationCategory.battle,
         ],
       );
       expect(
@@ -190,6 +199,23 @@ void main() {
       expect(
         artifact.manifest.presentation?.layouts?.battle?.regular.slot,
         'right',
+      );
+      expect(
+        artifact.manifest.presentation?.dialogue?.placement,
+        profile.dialogue?.placement.name,
+      );
+      expect(
+        artifact.manifest.presentation?.battle?.commandLayout,
+        profile.battle?.commandLayout.name,
+      );
+      for (final entry in artifact.manifest.content.files) {
+        expect(p.isAbsolute(entry.path), isFalse);
+        expect(p.split(entry.path), isNot(contains('..')));
+        expect(entry.sha256, matches(RegExp(r'^[0-9a-f]{64}$')));
+      }
+      expect(
+        artifact.personalizationPreflight.packageSha256,
+        matches(RegExp(r'^[0-9a-f]{64}$')),
       );
     },
   );
@@ -243,6 +269,10 @@ const _presentationAssetMediaTypes = <String, ({String id, String mediaType})>{
   'assets/presentation/icon.png': (id: 'phase6-icon', mediaType: 'image/png'),
   'assets/presentation/cover.png': (id: 'phase6-cover', mediaType: 'image/png'),
   'assets/presentation/hero.png': (id: 'phase6-hero', mediaType: 'image/png'),
+  'assets/presentation/title-loop.mp4': (
+    id: 'phase6-title-loop',
+    mediaType: 'video/mp4',
+  ),
   'assets/presentation/intro/intro.mp4': (
     id: 'phase6-intro-video',
     mediaType: 'video/mp4',

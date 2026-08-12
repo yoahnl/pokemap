@@ -248,6 +248,12 @@ final class GamePackageExportService {
               : _packageSurfacePalettes(
                   projection.presentation.surfacePalettes!,
                 ),
+          dialogue: projection.presentation.dialogue == null
+              ? null
+              : _packageDialogue(projection.presentation.dialogue!),
+          battle: projection.presentation.battle == null
+              ? null
+              : _packageBattle(projection.presentation.battle!),
           pause: projection.presentation.pause == null
               ? null
               : GamePackagePausePresentation(
@@ -586,6 +592,90 @@ final class GamePackageExportService {
     menuSurface: theme.menuSurface,
     overworldHudSurface: theme.overworldHudSurface,
     battleHudSurface: theme.battleHudSurface,
+  );
+
+  static GamePackageBattlePresentation _packageBattle(
+    ProjectBattlePresentationProfile profile,
+  ) => GamePackageBattlePresentation(
+    commandLayout: profile.commandLayout.name,
+    commandColumns: profile.commandColumns,
+    showCommandIcons: profile.showCommandIcons,
+    commandShape: profile.commandShape.name,
+    commandPadding: profile.commandPadding.round(),
+    commandSurfaceColor: profile.commandSurfaceColor,
+    commandBorderColor: profile.commandBorderColor,
+    commandTextColor: profile.commandTextColor,
+    commandSelectionColor: profile.commandSelectionColor,
+    commands: profile.commands
+        ?.map(
+          (command) => GamePackageBattleCommand(
+            id: command.id.name,
+            label: command.label,
+            icon: command.icon?.name,
+          ),
+        )
+        .toList(growable: false),
+    hudShape: profile.hudShape.name,
+    enemyHudPosition: profile.enemyHudPosition.name,
+    playerHudPosition: profile.playerHudPosition.name,
+    showOwnerLabel: profile.showOwnerLabel,
+    showLevel: profile.showLevel,
+    showExactHp: profile.showExactHp,
+    hpBarShape: profile.hpBarShape.name,
+    hpHealthyColor: profile.hpHealthyColor,
+    hpWarningColor: profile.hpWarningColor,
+    hpDangerColor: profile.hpDangerColor,
+    statusColor: profile.statusColor,
+    moves: _packageBattlePanel(profile.moves),
+    target: _packageBattlePanel(profile.target),
+    message: _packageBattlePanel(profile.message),
+  );
+
+  static GamePackageDialoguePresentation _packageDialogue(
+    ProjectDialoguePresentationProfile profile,
+  ) => GamePackageDialoguePresentation(
+    placement: profile.placement.name,
+    maxWidthFactor: profile.maxWidthFactor,
+    margin: profile.margin,
+    contentPadding: profile.contentPadding,
+    shape: profile.shape.name,
+    cornerRadius: profile.cornerRadius,
+    borderWidth: profile.borderWidth,
+    fillOpacity: profile.fillOpacity,
+    surfaceColor: profile.surfaceColor,
+    borderColor: profile.borderColor,
+    textColor: profile.textColor,
+    portraitSide: profile.portraitSide.name,
+    portraitSize: profile.portraitSize,
+    portraitShape: profile.portraitShape.name,
+    portraitFrameWidth: profile.portraitFrameWidth,
+    portraitFrameColor: profile.portraitFrameColor,
+    nameplateStyle: profile.nameplateStyle.name,
+    nameplateBorderWidth: profile.nameplateBorderWidth,
+    nameplateSurfaceColor: profile.nameplateSurfaceColor,
+    nameplateBorderColor: profile.nameplateBorderColor,
+    nameplateTextColor: profile.nameplateTextColor,
+    choiceSpacing: profile.choiceSpacing,
+    choiceShape: profile.choiceShape.name,
+    choiceDisabledOpacity: profile.choiceDisabledOpacity,
+    choiceSelectedColor: profile.choiceSelectedColor,
+    progressIndicator: profile.progressIndicator.name,
+    progressIndicatorColor: profile.progressIndicatorColor,
+    portraitTransition: profile.portraitTransition.name,
+    portraitTransitionMilliseconds: profile.portraitTransitionMilliseconds,
+  );
+
+  static GamePackageBattlePanelPresentation _packageBattlePanel(
+    ProjectBattlePanelPresentationProfile profile,
+  ) => GamePackageBattlePanelPresentation(
+    layout: profile.layout.name,
+    columns: profile.columns,
+    shape: profile.shape.name,
+    padding: profile.padding.round(),
+    surfaceColor: profile.surfaceColor,
+    borderColor: profile.borderColor,
+    textColor: profile.textColor,
+    selectionColor: profile.selectionColor,
   );
 
   static GamePackagePresentationWindows _packageWindows(

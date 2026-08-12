@@ -204,14 +204,16 @@ final class PresentationPresetAsset {
 
 final class PresentationPresetPackManifest {
   PresentationPresetPackManifest({
-    this.formatVersion = 1,
+    this.formatVersion = 2,
     required this.id,
     required this.label,
     required this.description,
     required this.compatibility,
+    this.scope = ProjectPresentationPresetScope.complete,
+    this.replacedSections = const <String>[],
     Iterable<PresentationPresetAsset> assets = const [],
   }) : assets = _orderedAssets(assets) {
-    if (formatVersion != 1) {
+    if (formatVersion != 1 && formatVersion != 2) {
       _fail(
         'presetPackVersionUnsupported',
         r'$.formatVersion',
@@ -236,18 +238,38 @@ final class PresentationPresetPackManifest {
         'Preset compatibility bounds are invalid.',
       );
     }
+    if (formatVersion == 1 &&
+        (scope != ProjectPresentationPresetScope.complete ||
+            replacedSections.isNotEmpty)) {
+      _fail(
+        'presetPackScopeRequiresV2',
+        r'$.formatVersion',
+        'Scoped presentation presets require preset pack format version 2.',
+      );
+    }
+    if (scope != ProjectPresentationPresetScope.complete &&
+        replacedSections.isEmpty) {
+      _fail(
+        'presetPackSectionsRequired',
+        r'$.replacedSections',
+        'Scoped presentation presets must announce replaced sections.',
+      );
+    }
   }
 
   factory PresentationPresetPackManifest.fromJson(Map<String, dynamic> json) {
+    final formatVersion = _integer(json['formatVersion'], r'$.formatVersion');
     _requireKeys(
       json,
-      const <String>{
+      <String>{
         'formatVersion',
         'id',
         'label',
         'description',
         'compatibility',
         'assets',
+        if (formatVersion >= 2) 'scope',
+        if (formatVersion >= 2) 'replacedSections',
       },
       r'$',
     );
@@ -261,13 +283,19 @@ final class PresentationPresetPackManifest {
       );
     }
     return PresentationPresetPackManifest(
-      formatVersion: _integer(json['formatVersion'], r'$.formatVersion'),
+      formatVersion: formatVersion,
       id: _string(json['id'], r'$.id'),
       label: _string(json['label'], r'$.label'),
       description: _string(json['description'], r'$.description'),
       compatibility: PresentationPresetCompatibility.fromJson(
         Map<String, dynamic>.from(compatibility),
       ),
+      scope: formatVersion >= 2
+          ? _presetScope(json['scope'], r'$.scope')
+          : ProjectPresentationPresetScope.complete,
+      replacedSections: formatVersion >= 2
+          ? _stringList(json['replacedSections'], r'$.replacedSections')
+          : const <String>[],
       assets: assets.map((raw) {
         if (raw is! Map) {
           _fail(
@@ -288,6 +316,8 @@ final class PresentationPresetPackManifest {
   final String label;
   final String description;
   final PresentationPresetCompatibility compatibility;
+  final ProjectPresentationPresetScope scope;
+  final List<String> replacedSections;
   final List<PresentationPresetAsset> assets;
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -296,6 +326,8 @@ final class PresentationPresetPackManifest {
         'label': label,
         'description': description,
         'compatibility': compatibility.toJson(),
+        if (formatVersion >= 2) 'scope': scope.name,
+        if (formatVersion >= 2) 'replacedSections': replacedSections,
         'assets': <Object?>[for (final asset in assets) asset.toJson()],
       };
 }
@@ -340,6 +372,24 @@ Map<String, Uint8List> _validatePackFiles(
       'presetPackProfileInvalid',
       diagnostics.first.path,
       diagnostics.first.message,
+    );
+  }
+  if (!projectPresentationPresetScopeHasContent(profile, manifest.scope)) {
+    _fail(
+      'presetPackScopeIncomplete',
+      r'$.profile',
+      'The preset profile does not contain its announced scope.',
+    );
+  }
+  if (!projectPresentationPresetSectionsAreValid(
+    profile: profile,
+    scope: manifest.scope,
+    sections: manifest.replacedSections,
+  )) {
+    _fail(
+      'presetPackSectionsInvalid',
+      r'$.replacedSections',
+      'The preset sections do not match the scoped profile.',
     );
   }
   if (files.length > presentationPresetMaxFiles) {
@@ -607,6 +657,32 @@ int _integer(Object? value, String path) {
     _fail('presetPackManifestInvalid', path, 'Expected an integer.');
   }
   return value;
+}
+
+ProjectPresentationPresetScope _presetScope(Object? value, String path) {
+  if (value is! String) {
+    _fail('presetPackManifestInvalid', path, 'Expected a preset scope.');
+  }
+  return ProjectPresentationPresetScope.values.firstWhere(
+    (scope) => scope.name == value,
+    orElse: () => _fail(
+      'presetPackScopeUnsupported',
+      path,
+      'The preset scope is unsupported.',
+    ),
+  );
+}
+
+List<String> _stringList(Object? value, String path) {
+  if (value is! List || value.any((entry) => entry is! String)) {
+    _fail('presetPackManifestInvalid', path, 'Expected a string list.');
+  }
+  final result = value.cast<String>();
+  if (result.toSet().length != result.length ||
+      result.any((entry) => entry.trim().isEmpty || entry != entry.trim())) {
+    _fail('presetPackManifestInvalid', path, 'Preset sections are invalid.');
+  }
+  return List<String>.unmodifiable(result);
 }
 
 void _boundedText(String value, String path, int maximum) {

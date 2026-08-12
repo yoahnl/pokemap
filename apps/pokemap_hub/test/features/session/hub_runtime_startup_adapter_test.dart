@@ -79,6 +79,21 @@ void main() {
         profile?.dialogue?.portraitTransition,
         ProjectDialoguePortraitTransition.slide,
       );
+      expect(profile?.battle?.commandLayout, ProjectBattleCommandLayout.radial);
+      expect(
+        profile?.battle?.effectiveCommands
+            .map((command) => command.id)
+            .toList(growable: false),
+        <ProjectBattleCommandId>[
+          ProjectBattleCommandId.run,
+          ProjectBattleCommandId.fight,
+          ProjectBattleCommandId.party,
+          ProjectBattleCommandId.bag,
+        ],
+      );
+      expect(profile?.battle?.effectiveCommands.first.label, 'Retraite');
+      expect(profile?.battle?.hpBarShape, ProjectBattleHpBarShape.segmented);
+      expect(profile?.battle?.moves.shape, ProjectWindowShape.cutCorner);
       expect(
         profile?.pause?.composition?.expanded.entrySize,
         ProjectPauseEntrySize.large,
@@ -173,7 +188,7 @@ final _manifest = GamePackageManifest(
     supported: const <String>['fr'],
   ),
   presentation: GamePackagePresentation(
-    schemaVersion: 9,
+    schemaVersion: 10,
     title: const GamePackageTitlePresentation(
       title: 'Aube sur Hanazuki',
       subtitle: 'Studio Brume',
@@ -312,6 +327,47 @@ final _manifest = GamePackageManifest(
       progressIndicatorColor: '#00FFAA',
       portraitTransition: 'slide',
       portraitTransitionMilliseconds: 320,
+    ),
+    battle: const GamePackageBattlePresentation(
+      commandLayout: 'radial',
+      commandColumns: 2,
+      showCommandIcons: true,
+      commandShape: 'rounded',
+      commandPadding: 12,
+      commands: <GamePackageBattleCommand>[
+        GamePackageBattleCommand(id: 'run', label: 'Retraite', icon: 'run'),
+        GamePackageBattleCommand(id: 'fight'),
+        GamePackageBattleCommand(id: 'party'),
+        GamePackageBattleCommand(id: 'bag'),
+      ],
+      enemyHudPosition: 'topStart',
+      playerHudPosition: 'bottomEnd',
+      showOwnerLabel: true,
+      showLevel: true,
+      showExactHp: true,
+      hpBarShape: 'segmented',
+      hpHealthyColor: '#16794B',
+      hpWarningColor: '#8A5100',
+      hpDangerColor: '#B4233C',
+      statusColor: '#8A5100',
+      moves: GamePackageBattlePanelPresentation(
+        layout: 'grid',
+        columns: 2,
+        shape: 'cutCorner',
+        padding: 16,
+      ),
+      target: GamePackageBattlePanelPresentation(
+        layout: 'grid',
+        columns: 2,
+        shape: 'rounded',
+        padding: 12,
+      ),
+      message: GamePackageBattlePanelPresentation(
+        layout: 'grid',
+        columns: 2,
+        shape: 'rounded',
+        padding: 12,
+      ),
     ),
     windows: GamePackagePresentationWindows(
       styles: const <GamePackageWindowStyle>[

@@ -163,7 +163,7 @@ void main() {
     },
   );
 
-  test('standalone forwards the complete V8 presentation', () async {
+  test('standalone forwards the complete V10 presentation', () async {
     final acceptanceProject =
         jsonDecode(
               await File(
@@ -208,6 +208,14 @@ void main() {
       presentation.layoutProfile?.battle?.regular.slot,
       ProjectPresentationLayoutSlot.right,
     );
+    expect(
+      presentation.dialogueProfile?.placement,
+      ProjectDialoguePlacement.bottom,
+    );
+    expect(
+      presentation.battleProfile?.commandLayout,
+      ProjectBattleCommandLayout.radial,
+    );
   });
 
   test('standalone loads the complete V3 acceptance project', () async {
@@ -221,7 +229,10 @@ void main() {
     expect(bundle.manifest.name, 'L’Aube de Vermeil');
     expect(bundle.map.id, 'vermeil_village');
     expect(bundle.map.entities.map((entity) => entity.id), contains('npc_leo'));
-    expect(bundle.manifest.presentation?.schemaVersion, 8);
+    expect(
+      bundle.manifest.presentation?.schemaVersion,
+      ProjectPresentationProfile.supportedSchemaVersion,
+    );
   });
 
   test(

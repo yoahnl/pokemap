@@ -116,6 +116,12 @@ void main() {
                 for (final action in PlayerTitleMenuAction.values)
                   action: PlayerActionAvailability.enabled,
               },
+              actionLabels: const <PlayerTitleMenuAction, String>{
+                PlayerTitleMenuAction.continueGame:
+                    'Continuer depuis la dernière sauvegarde disponible',
+                PlayerTitleMenuAction.creditsAbout:
+                    'Crédits, licences et informations sur le studio',
+              },
             ),
             onSelected: (_) {},
           ),
@@ -386,6 +392,40 @@ void main() {
     expect(find.byKey(const ValueKey<String>('player-title-startup-visual')),
         findsOneWidget);
     expect(find.text('PokeMap'), findsNothing);
+  });
+
+  testWidgets('premium startup menu scrolls every authored title action', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(995, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      _app(
+        PlayerTitleScreen(
+          data: PlayerTitleViewData(
+            gameTitle: 'Le Train de 17h42',
+            author: 'PokeMap',
+            layoutVariant: PlayerTitleLayoutVariant.runtimeStartupCinematic,
+            actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
+              for (final action in PlayerTitleMenuAction.values)
+                action: PlayerActionAvailability.enabled,
+            },
+          ),
+          onSelected: (_) {},
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('player-title-premium-actions-scroll'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Crédits / À propos'), findsOneWidget);
+    expect(find.text('Retour au Hub'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
 

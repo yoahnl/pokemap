@@ -870,11 +870,11 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     const presentationKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationProfile",
     );
-    assert.equal(Number(presentationKind?.version), 9);
+    assert.equal(Number(presentationKind?.version), 10);
     const presetKind = (described.resourceKinds as JsonRecord[]).find(
       (kind) => String(kind.id) === "projectPresentationPreset",
     );
-    assert.equal(Number(presetKind?.version), 1);
+    assert.equal(Number(presetKind?.version), 2);
     const presentationAction = (
       record(described.fullParity).mutationActions as JsonRecord[]
     ).find((action) => String(action.actionId) === "presentation.update");
@@ -895,7 +895,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       actionId: "presentation.update",
       parameters: {
         profile: {
-          schemaVersion: 9,
+          schemaVersion: 10,
           branding: { accentColor: "#126E78" },
           title: {
             title: "Aube sur Hanazuki",
@@ -984,6 +984,27 @@ test("MCP applies and rereads the authored presentation profile", async () => {
             progressIndicatorColor: "#00FFAA",
             portraitTransition: "slide",
             portraitTransitionMilliseconds: 320,
+          },
+          battle: {
+            commandLayout: "radial",
+            commandColumns: 2,
+            showCommandIcons: true,
+            commands: [
+              { id: "run", label: "Retraite", icon: "run" },
+              { id: "fight", label: "Techniques", icon: "fight" },
+              { id: "party", label: "Alliés", icon: "party" },
+              { id: "bag", label: "Inventaire", icon: "bag" },
+            ],
+            hpBarShape: "segmented",
+            hpHealthyColor: "#00AA55",
+            hpWarningColor: "#FFAA00",
+            hpDangerColor: "#CC2244",
+            moves: {
+              layout: "grid",
+              columns: 2,
+              shape: "cutCorner",
+              padding: 16,
+            },
           },
           windows: {
             styles: [
@@ -1147,6 +1168,26 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       "dots",
     );
     assert.equal(
+      record(record(project.presentation).battle).commandLayout,
+      "radial",
+    );
+    assert.deepEqual(
+      (record(record(project.presentation).battle).commands as JsonRecord[]).map(
+        (command) => command.id,
+      ),
+      ["run", "fight", "party", "bag"],
+    );
+    assert.equal(
+      record(
+        (record(record(project.presentation).battle).commands as unknown[])[0],
+      ).label,
+      "Retraite",
+    );
+    assert.equal(
+      record(record(project.presentation).battle).hpBarShape,
+      "segmented",
+    );
+    assert.equal(
       record(record(record(project.presentation).typography).combat).family,
       "Battle Mono",
     );
@@ -1259,6 +1300,14 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       record(record(presentationItem.profile).dialogue).choiceSelectedColor,
       "#FFAA00",
     );
+    assert.equal(
+      record(record(presentationItem.profile).battle).commandLayout,
+      "radial",
+    );
+    assert.equal(
+      record(record(record(presentationItem.profile).battle).moves).shape,
+      "cutCorner",
+    );
     const finalValidation = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
     });
@@ -1276,6 +1325,8 @@ test("MCP applies and rereads the authored presentation profile", async () => {
           label: "Avelune Profile",
           description: "Shareable MCP presentation profile.",
           licenses: {},
+          scope: "dialogue",
+          replacedSections: ["dialogue", "layouts.dialogue"],
         },
         expectedRevision: finalValidation.snapshotRevision,
         idempotencyKey: "idem-mcp-preset-export",
@@ -1304,10 +1355,13 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       operation: "list",
       view: "detail",
     });
-    assert.equal(
-      record((presetResource.items as unknown[])[0]).id,
-      "avelune-profile",
-    );
+    const presetItem = record((presetResource.items as unknown[])[0]);
+    assert.equal(presetItem.id, "avelune-profile");
+    assert.equal(presetItem.scope, "dialogue");
+    assert.deepEqual(presetItem.replacedSections, [
+      "dialogue",
+      "layouts.dialogue",
+    ]);
 
     const deletePreview = await toolData(fixture.client, "pokemap_plan", {
       projectHandle,
@@ -1401,9 +1455,98 @@ test("MCP applies and rereads the authored presentation profile", async () => {
         view: "detail",
       },
     );
+    const reimportedPreset = record(
+      (reimportedResource.items as unknown[])[0],
+    );
+    assert.equal(reimportedPreset.id, "avelune-profile");
+    assert.equal(reimportedPreset.scope, "dialogue");
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("MCP applies and rereads title motion and intro accessibility", async () => {
+  const fixture = await mutationFixture();
+  try {
+    await writePresentationMediaCatalog(fixture.root);
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+
+    await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: String(validated.snapshotRevision),
+      actionId: "presentation.update",
+      parameters: {
+        profile: {
+          schemaVersion: 9,
+          branding: { layoutVariant: "standard" },
+          intro: {
+            media: {
+              landscape: presentationVideo(
+                "presentation/intro-landscape.mp4",
+                "presentation/intro-landscape.png",
+              ),
+            },
+            allowReplay: true,
+            reducedMotionBehavior: "poster",
+          },
+          titleMotion: {
+            promptLoop: {
+              landscape: presentationVideo(
+                "presentation/prompt-landscape.mp4",
+                "presentation/prompt-landscape.png",
+              ),
+            },
+          },
+        },
+      },
+      sequence: "phase-c-media",
+    });
+
+    const queried = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "projectPresentationProfile",
+      operation: "list",
+      view: "detail",
+    });
+    const profile = record(record((queried.items as unknown[])[0]).profile);
+    assert.equal(record(profile.intro).allowReplay, true);
+    assert.equal(record(profile.intro).reducedMotionBehavior, "poster");
     assert.equal(
-      record((reimportedResource.items as unknown[])[0]).id,
-      "avelune-profile",
+      record(record(record(profile.intro).media).landscape).videoPath,
+      "presentation/intro-landscape.mp4",
+    );
+    assert.equal(
+      record(record(record(profile.titleMotion).promptLoop).landscape)
+        .videoPath,
+      "presentation/prompt-landscape.mp4",
+    );
+
+    const persisted = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    assert.equal(
+      record(record(persisted.presentation).intro).allowReplay,
+      true,
+    );
+    assert.equal(
+      record(
+        record(
+          record(record(persisted.presentation).titleMotion).promptLoop,
+        ).landscape,
+      ).posterPath,
+      "presentation/prompt-landscape.png",
     );
   } finally {
     await fixture.client.close();
@@ -1412,6 +1555,68 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     await rm(fixture.root, { recursive: true, force: true });
   }
 });
+
+function presentationVideo(videoPath: string, posterPath: string): JsonRecord {
+  return {
+    videoPath,
+    posterPath,
+    durationMilliseconds: 6000,
+    width: 1920,
+    height: 1080,
+    bitrateKbps: 2500,
+    sizeBytes: 4000000,
+    videoCodec: "h264",
+    audioCodec: "none",
+  };
+}
+
+async function writePresentationMediaCatalog(root: string): Promise<void> {
+  const assets = [
+    ["intro-landscape", "presentation/intro-landscape.mp4", "video/mp4"],
+    ["intro-landscape-poster", "presentation/intro-landscape.png", "image/png"],
+    ["prompt-landscape", "presentation/prompt-landscape.mp4", "video/mp4"],
+    ["prompt-landscape-poster", "presentation/prompt-landscape.png", "image/png"],
+    ["presentation-license", "presentation/license.txt", "text/plain"],
+  ] as const;
+  const records: JsonRecord[] = [];
+  await mkdir(join(root, "assets/.pokemap-store"), { recursive: true });
+  await mkdir(join(root, "presentation"), { recursive: true });
+  for (const [id, logicalPath, mediaType] of assets) {
+    const bytes = Buffer.from(`presentation-media:${id}`, "utf8");
+    const logicalName = Buffer.from("artifact-content", "utf8");
+    const pathLength = Buffer.alloc(8);
+    pathLength.writeBigUInt64BE(BigInt(logicalName.length));
+    const byteLength = Buffer.alloc(8);
+    byteLength.writeBigUInt64BE(BigInt(bytes.length));
+    const hexDigest = createHash("sha256")
+      .update(pathLength)
+      .update(logicalName)
+      .update(byteLength)
+      .update(bytes)
+      .digest("hex");
+    await writeFile(join(root, logicalPath), bytes);
+    await writeFile(
+      join(root, `assets/.pokemap-store/${hexDigest}.blob`),
+      bytes,
+    );
+    records.push({
+      id,
+      logicalPath,
+      artifact: {
+        digest: `sha256:${hexDigest}`,
+        handle: `artifact://sha256/${hexDigest}`,
+        mediaType,
+        byteLength: bytes.length,
+      },
+      usages: [],
+      tags: [],
+    });
+  }
+  await writeFile(
+    join(root, "assets/.pokemap-assets.json"),
+    JSON.stringify({ schemaVersion: 1, records }),
+  );
+}
 
 function responsiveLayout(
   compactSlot: string,

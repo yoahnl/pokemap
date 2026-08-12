@@ -6,14 +6,18 @@ import 'game_package_manifest.dart';
 
 enum GamePackagePersonalizationCategory {
   branding,
+  title,
   intro,
   titleMotion,
   typography,
   theme,
+  surfacePalettes,
   pause,
   menuLabels,
   windows,
   layouts,
+  dialogue,
+  battle,
 }
 
 /// Immutable proof that an inspected package satisfies the presentation
@@ -133,6 +137,10 @@ final class GamePackagePersonalizationPreflight {
       );
     }
 
+    if (presentation?.title != null) {
+      categories.add(GamePackagePersonalizationCategory.title);
+    }
+
     final intro = presentation?.intro;
     if (intro != null) {
       categories.add(GamePackagePersonalizationCategory.intro);
@@ -212,6 +220,9 @@ final class GamePackagePersonalizationPreflight {
     if (presentation?.theme != null) {
       categories.add(GamePackagePersonalizationCategory.theme);
     }
+    if (presentation?.surfacePalettes != null) {
+      categories.add(GamePackagePersonalizationCategory.surfacePalettes);
+    }
     if (presentation?.pause != null) {
       categories.add(GamePackagePersonalizationCategory.pause);
     }
@@ -223,6 +234,12 @@ final class GamePackagePersonalizationPreflight {
     }
     if (presentation?.layouts != null) {
       categories.add(GamePackagePersonalizationCategory.layouts);
+    }
+    if (presentation?.dialogue != null) {
+      categories.add(GamePackagePersonalizationCategory.dialogue);
+    }
+    if (presentation?.battle != null) {
+      categories.add(GamePackagePersonalizationCategory.battle);
     }
 
     return GamePackagePersonalizationPreflightReceipt(

@@ -29,6 +29,8 @@ class PersonalizationRuntimePreview extends StatefulWidget {
     this.initialViewport = PersonalizationPreviewViewport.landscape,
     this.titleMotionDriverFactory,
     this.introDriverFactory,
+    this.dialogueData,
+    this.battleData,
   });
 
   final ProjectPresentationProfile profile;
@@ -39,6 +41,8 @@ class PersonalizationRuntimePreview extends StatefulWidget {
   final PersonalizationPreviewViewport initialViewport;
   final PlayerIntroPlaybackFactory? titleMotionDriverFactory;
   final PlayerIntroPlaybackFactory? introDriverFactory;
+  final PlayerDialogueViewData? dialogueData;
+  final PlayerBattleViewData? battleData;
 
   @override
   State<PersonalizationRuntimePreview> createState() =>
@@ -201,6 +205,8 @@ class _PersonalizationRuntimePreviewState
     allowMediaPlayback: !_comparisonEnabled,
     introPreviewController: _comparisonEnabled ? null : _introPreviewController,
     introDriverFactory: widget.introDriverFactory,
+    dialogueData: widget.dialogueData,
+    battleData: widget.battleData,
   );
 
   void _selectSurface(PersonalizationStudioScene surface) {

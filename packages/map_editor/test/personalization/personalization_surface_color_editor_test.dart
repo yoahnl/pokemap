@@ -118,6 +118,43 @@ void main() {
     await tester.tap(reset);
     expect(changed, isNull);
   });
+
+  testWidgets('replaces an invalid scene override with a safe palette', (
+    tester,
+  ) async {
+    ProjectSurfacePaletteProfile? changed;
+    await tester.pumpWidget(
+      _app(
+        PersonalizationSurfaceColorEditor(
+          role: ProjectPresentationSurfaceRole.dialogue,
+          palette: const ProjectSurfacePaletteProfile(
+            surface: '#FFFFFF',
+            text: '#FFFFFE',
+          ),
+          inheritedTheme: safeProjectSemanticTheme,
+          onChanged: (palette) => changed = palette,
+        ),
+      ),
+    );
+
+    final safe = find.byKey(
+      const ValueKey<String>('surface-colors-safe-dialogue'),
+    );
+    await tester.ensureVisible(safe);
+    await tester.pumpAndSettle();
+    await tester.tap(safe);
+
+    final diagnostics = validateProjectPresentationProfile(
+      ProjectPresentationProfile(
+        theme: safeProjectSemanticTheme,
+        surfacePalettes: ProjectPresentationSurfacePalettesProfile(
+          dialogue: changed,
+        ),
+      ),
+    ).where((diagnostic) => diagnostic.path.contains('surfacePalettes'));
+    expect(changed, isNotNull);
+    expect(diagnostics, isEmpty);
+  });
 }
 
 Widget _app(Widget child) => MaterialApp(

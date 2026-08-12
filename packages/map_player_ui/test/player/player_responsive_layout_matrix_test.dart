@@ -9,6 +9,12 @@ import '../fixtures/personalization_studio_v2_fixture.dart';
 void main() {
   final scenarios = <_LayoutScenario>[
     const _LayoutScenario(
+      name: 'product compact',
+      size: Size(720, 900),
+      textScales: <double>[1, 1.5, 2],
+      breakpoint: ProjectPresentationBreakpoint.regular,
+    ),
+    const _LayoutScenario(
       name: 'phone portrait',
       size: Size(390, 844),
       textScales: <double>[1, 2],
@@ -32,9 +38,21 @@ void main() {
     const _LayoutScenario(
       name: 'tablet landscape',
       size: Size(1024, 768),
-      textScales: <double>[1, 2],
+      textScales: <double>[1, 1.5, 2],
       safeArea: EdgeInsets.all(16),
       breakpoint: ProjectPresentationBreakpoint.regular,
+    ),
+    const _LayoutScenario(
+      name: 'product desktop',
+      size: Size(1440, 900),
+      textScales: <double>[1, 1.5, 2],
+      breakpoint: ProjectPresentationBreakpoint.expanded,
+    ),
+    const _LayoutScenario(
+      name: 'product large desktop',
+      size: Size(1600, 1000),
+      textScales: <double>[1, 1.5, 2],
+      breakpoint: ProjectPresentationBreakpoint.expanded,
     ),
     const _LayoutScenario(
       name: 'desktop HD',

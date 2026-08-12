@@ -57,6 +57,40 @@ void main() {
       expect(pack.profile, snapshot.manifest.presentation);
     });
 
+    test('exports only the announced scoped profile', () async {
+      final store = MemoryArtifactStore(maximumArtifactBytes: 1 << 20);
+      final snapshot = _snapshot(
+        presentation: const ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
+          dialogue: ProjectDialoguePresentationProfile(
+            placement: ProjectDialoguePlacement.top,
+          ),
+        ),
+      );
+      final draft = await PresentationPresetActions(artifactStore: store).build(
+        _context(
+          snapshot,
+          actionId: 'presentation.preset.export',
+          parameters: const <String, Object?>{
+            'presetId': 'dialogue-top',
+            'label': 'Dialogue haut',
+            'description': 'Dialogue uniquement.',
+            'licenses': <String, Object?>{},
+            'scope': 'dialogue',
+            'replacedSections': <String>['dialogue'],
+          },
+        ),
+      );
+
+      final pack = const PresentationPresetPackCodec().decode(
+        await store.read(draft.artifacts.single.uri),
+      );
+      expect(pack.profile.dialogue, snapshot.manifest.presentation?.dialogue);
+      expect(pack.profile.branding, const ProjectBrandingProfile());
+      expect(pack.profile.intro, isNull);
+      expect(pack.manifest.scope, ProjectPresentationPresetScope.dialogue);
+    });
+
     test('plans and applies a staged pack atomically', () async {
       final store = MemoryArtifactStore(maximumArtifactBytes: 1 << 20);
       final profile = ProjectPresentationProfile(
@@ -112,6 +146,64 @@ void main() {
       expect(applied.preview['staged'], isTrue);
     });
 
+    test('imports a scoped preset without replacing unrelated presentation',
+        () async {
+      final store = MemoryArtifactStore(maximumArtifactBytes: 1 << 20);
+      final bytes = const PresentationPresetPackCodec().encode(
+        ProjectPresentationPresetPack(
+          manifest: PresentationPresetPackManifest(
+            id: 'dialogue-top',
+            label: 'Dialogue haut',
+            description: 'Dialogue uniquement.',
+            compatibility: const PresentationPresetCompatibility(
+              minimumProfileSchemaVersion:
+                  ProjectPresentationProfile.supportedSchemaVersion,
+              maximumProfileSchemaVersion:
+                  ProjectPresentationProfile.supportedSchemaVersion,
+            ),
+            scope: ProjectPresentationPresetScope.dialogue,
+            replacedSections: const <String>['dialogue'],
+          ),
+          profile: const ProjectPresentationProfile(
+            dialogue: ProjectDialoguePresentationProfile(
+              placement: ProjectDialoguePlacement.top,
+            ),
+          ),
+        ),
+      );
+      final artifact = await store.put(bytes);
+      final snapshot = _snapshot(
+        presentation: const ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(
+            heroPath: 'assets/presentation/hero.png',
+          ),
+        ),
+      );
+      final draft = await PresentationPresetActions(artifactStore: store).build(
+        _context(
+          snapshot,
+          actionId: 'presentation.preset.import_apply',
+          parameters: <String, Object?>{
+            'artifactHandle': artifact.reference.handle,
+          },
+        ),
+      );
+
+      final projected = _projectedManifest(draft);
+      expect(
+        projected.presentation?.branding.heroPath,
+        'assets/presentation/hero.png',
+      );
+      expect(
+        projected.presentation?.dialogue?.placement,
+        ProjectDialoguePlacement.top,
+      );
+      expect(
+        projected.presentationPresets.single.scope,
+        ProjectPresentationPresetScope.dialogue,
+      );
+    });
+
     test('requires plan and apply requests to use their matching mode',
         () async {
       final store = MemoryArtifactStore(maximumArtifactBytes: 1 << 20);
@@ -142,6 +234,8 @@ void main() {
         label: 'Classique',
         description: 'Présentation classique.',
         profile: ProjectPresentationProfile(),
+        scope: ProjectPresentationPresetScope.title,
+        replacedSections: <String>['title'],
       );
       final snapshot = _snapshotWithManifest(
         const ProjectManifest(
@@ -164,6 +258,8 @@ void main() {
       expect(page.totalAvailable, 1);
       expect(page.items.single['id'], 'classic');
       expect(page.items.single['profile'], record.profile.toJson());
+      expect(page.items.single['scope'], 'title');
+      expect(page.items.single['replacedSections'], <String>['title']);
     });
   });
 }

@@ -98,13 +98,17 @@ void main() {
       built.personalizationPreflight.configuredCategories,
       <GamePackagePersonalizationCategory>[
         GamePackagePersonalizationCategory.branding,
+        GamePackagePersonalizationCategory.title,
         GamePackagePersonalizationCategory.intro,
         GamePackagePersonalizationCategory.titleMotion,
         GamePackagePersonalizationCategory.typography,
         GamePackagePersonalizationCategory.theme,
+        GamePackagePersonalizationCategory.surfacePalettes,
         GamePackagePersonalizationCategory.pause,
         GamePackagePersonalizationCategory.windows,
         GamePackagePersonalizationCategory.layouts,
+        GamePackagePersonalizationCategory.dialogue,
+        GamePackagePersonalizationCategory.battle,
       ],
     );
     expect(
@@ -175,6 +179,7 @@ Future<void> _copyAcceptanceAssets(Directory projectRoot) async {
     'assets/presentation/icon.png',
     'assets/presentation/cover.png',
     'assets/presentation/hero.png',
+    'assets/presentation/title-loop.mp4',
     'assets/presentation/intro/intro.mp4',
     'assets/presentation/intro/poster.png',
     'assets/presentation/intro/captions.vtt',

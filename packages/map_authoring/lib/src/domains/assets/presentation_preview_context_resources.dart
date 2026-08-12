@@ -30,6 +30,8 @@ final class PresentationPreviewContextProjector {
     required Iterable<MapData> maps,
     required String? Function(String dialogueId) dialogueSourceText,
     required String? Function(String assetId) portraitAssetPath,
+    String? Function(String speciesId)? speciesDisplayName,
+    String? Function(String speciesId, bool playerSide)? battleSpritePath,
   }) {
     final loadedMaps = <String, MapData>{
       for (final map in maps) map.id: map,
@@ -38,8 +40,12 @@ final class PresentationPreviewContextProjector {
       for (final state in manifest.characterStudioCatalog.portraitStates)
         state.id: state.displayName,
     };
-    final playerPokemon = manifest.newGame.initialParty.firstOrNull ??
-        manifest.newGame.starterOptions.firstOrNull?.pokemon;
+    final playerPokemonOptions = <String, PlayerPokemon>{
+      for (final pokemon in manifest.newGame.initialParty)
+        pokemon.speciesId: pokemon,
+      for (final option in manifest.newGame.starterOptions)
+        option.pokemon.speciesId: option.pokemon,
+    }.values.toList(growable: false);
     final contexts = <PresentationPreviewContextResourceSnapshot>[
       for (final entry in manifest.maps)
         _mapContext(
@@ -66,7 +72,9 @@ final class PresentationPreviewContextProjector {
         _encounterContext(
           table,
           workspaceRevision: workspaceRevision,
-          playerPokemon: playerPokemon,
+          playerPokemonOptions: playerPokemonOptions,
+          speciesDisplayName: speciesDisplayName,
+          battleSpritePath: battleSpritePath,
         ),
     ];
     for (final dialogue in manifest.dialogues) {
@@ -301,8 +309,12 @@ PresentationPreviewContextResourceSnapshot _portraitContext(
 PresentationPreviewContextResourceSnapshot _encounterContext(
   ProjectEncounterTable table, {
   required String workspaceRevision,
-  required PlayerPokemon? playerPokemon,
+  required List<PlayerPokemon> playerPokemonOptions,
+  String? Function(String speciesId)? speciesDisplayName,
+  String? Function(String speciesId, bool playerSide)? battleSpritePath,
 }) {
+  final enemySpeciesIds = table.entries.map((entry) => entry.speciesId).toSet();
+  final playerPokemon = playerPokemonOptions.firstOrNull;
   final diagnostics = <String>[
     if (table.entries.isEmpty) 'previewContext.encounterTableEmpty',
     if (playerPokemon == null) 'previewContext.playerPokemonUnavailable',
@@ -318,9 +330,49 @@ PresentationPreviewContextResourceSnapshot _encounterContext(
       'encounterTableId': table.id,
       'encounterKind': table.encounterKind.name,
       'entries': <Object?>[
-        for (final entry in table.entries) entry.toJson(),
+        for (final entry in table.entries)
+          <String, Object?>{
+            ...entry.toJson(),
+            if (speciesDisplayName?.call(entry.speciesId) case final name?)
+              'displayName': name,
+            if (battleSpritePath?.call(entry.speciesId, false)
+                case final sprite?)
+              'battleSpritePath': sprite,
+          },
       ],
-      if (playerPokemon != null) 'playerPokemon': playerPokemon.toJson(),
+      if (playerPokemon != null)
+        'playerPokemon': <String, Object?>{
+          ...playerPokemon.toJson(),
+          if (speciesDisplayName?.call(playerPokemon.speciesId)
+              case final name?)
+            'displayName': name,
+          if (battleSpritePath?.call(playerPokemon.speciesId, true)
+              case final sprite?)
+            'battleSpritePath': sprite,
+        },
+      'playerPokemonOptions': <Object?>[
+        for (final pokemon in playerPokemonOptions)
+          <String, Object?>{
+            ...pokemon.toJson(),
+            if (speciesDisplayName?.call(pokemon.speciesId) case final name?)
+              'displayName': name,
+            if (battleSpritePath?.call(pokemon.speciesId, true)
+                case final sprite?)
+              'battleSpritePath': sprite,
+          },
+      ],
+      'battleMediaDiagnostics': <String>[
+        if (battleSpritePath != null &&
+            enemySpeciesIds.any(
+              (speciesId) => battleSpritePath(speciesId, false) == null,
+            ))
+          'previewContext.enemyBattleSpriteUnavailable',
+        if (battleSpritePath != null &&
+            playerPokemonOptions.any(
+              (pokemon) => battleSpritePath(pokemon.speciesId, true) == null,
+            ))
+          'previewContext.playerBattleSpriteUnavailable',
+      ],
     },
   );
 }
