@@ -2877,6 +2877,11 @@ class MapGridPainter extends CustomPainter {
           ? sourceTileHeight.toDouble()
           : tileHeight,
       patternOwnerIndex: patternIndex,
+      cellContextResolver:
+          cellStrokePreview?.kind == MapCellStrokeLayerKind.smartTile &&
+              cellStrokePreview?.layerId == layer.id
+          ? cellStrokePreview!.smartTileContextAt
+          : null,
     );
     final visuals = batch.visuals;
     cullingCounter?.smartTileVisualVisits += visuals.length;

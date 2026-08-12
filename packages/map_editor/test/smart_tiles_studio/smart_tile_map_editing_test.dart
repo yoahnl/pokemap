@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/map_tool_preview.dart';
+import 'package:map_editor/src/application/services/editor_performance_telemetry.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -85,10 +86,15 @@ void main() {
       const GridPos(x: 0, y: 0),
       materialId: 'grass',
     );
-    var edited = notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(notifier.state.activeMap, same(map));
+    expect(
+      notifier.activeMapCellStrokePreview!.smartTileMaterialAt(0, 0),
+      'grass',
+    );
     expect(notifier.state.errorMessage, isNull);
-    expect(smartTileSemanticCells(edited), [1]);
     notifier.endMapStroke();
+    var edited = notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(smartTileSemanticCells(edited), [1]);
     expect(notifier.state.mapUndoStack, hasLength(1));
     expect(notifier.state.isDirty, isTrue);
 
@@ -117,6 +123,74 @@ void main() {
     notifier.undoMap();
     edited = notifier.state.activeMap!.layers.single as SmartTileLayer;
     expect(smartTileSemanticCells(edited), [1]);
+  });
+
+  test('Smart Tile drag validates and materializes only on release', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    final source = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v6,
+      size: const GridSize(width: 128, height: 128),
+      layers: <MapLayer>[
+        MapLayer.smartTile(
+          id: 'smart',
+          name: 'Smart',
+          presetId: 'terrain',
+          usage: SmartTileUsage.terrain,
+          materialPalette: const <String>['', 'grass'],
+          field: SmartTileField.cell(
+            semanticCells: List<int>.filled(128 * 128, 0, growable: false),
+          ),
+        ),
+      ],
+    );
+    notifier.state = EditorState(
+      project: _project,
+      activeMap: source,
+      savedMapSnapshot: source,
+      activeLayerId: 'smart',
+      activeTool: EditorToolType.terrainPaint,
+    );
+    final recorder = EditorPerformanceRecorder();
+    final recording = EditorPerformanceTelemetry.startRecording(recorder);
+    addTearDown(recording.close);
+
+    notifier.beginMapStroke();
+    for (var x = 0; x < 100; x++) {
+      notifier.paintSmartTileMaterialAt(
+        GridPos(x: x, y: 8),
+        materialId: 'grass',
+      );
+    }
+
+    final buffer = notifier.activeMapCellStrokePreview!;
+    expect(notifier.state.activeMap, same(source));
+    expect(buffer.touchedCellCount, 100);
+    expect(buffer.fullLayerCopyCount, 0);
+    expect(buffer.mapMaterializationCount, 0);
+    expect(buffer.validationCount, 0);
+    expect(
+      recorder.snapshot().spanSamples(
+        EditorPerformanceSpanName.mapFullValidation,
+      ),
+      isEmpty,
+    );
+
+    notifier.endMapStroke();
+
+    expect(buffer.fullLayerCopyCount, 1);
+    expect(buffer.mapMaterializationCount, 1);
+    expect(buffer.validationCount, 1);
+    expect(
+      recorder.snapshot().spanSamples(
+        EditorPerformanceSpanName.mapFullValidation,
+      ),
+      hasLength(1),
+    );
+    expect(notifier.state.mapUndoStack, hasLength(1));
   });
 
   test('edge Smart Tile fields keep paint, preview, erase, and history', () {

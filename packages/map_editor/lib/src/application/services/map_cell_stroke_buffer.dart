@@ -1,6 +1,6 @@
 import 'package:map_core/map_core.dart';
 
-enum MapCellStrokeLayerKind { tile, collision }
+enum MapCellStrokeLayerKind { tile, collision, smartTile }
 
 final class MapCellStrokeBuffer {
   MapCellStrokeBuffer.tile({
@@ -25,12 +25,24 @@ final class MapCellStrokeBuffer {
          onChanged: onChanged,
        );
 
+  MapCellStrokeBuffer.smartTile({
+    required MapData sourceMap,
+    required String layerId,
+    void Function()? onChanged,
+  }) : this._(
+         sourceMap: sourceMap,
+         layerId: layerId,
+         kind: MapCellStrokeLayerKind.smartTile,
+         onChanged: onChanged,
+       );
+
   MapCellStrokeBuffer._({
-    required this.sourceMap,
+    required MapData sourceMap,
     required this.layerId,
     required this.kind,
     required void Function()? onChanged,
-  }) : _layerIndex = sourceMap.layers.indexWhere(
+  }) : _sourceMap = sourceMap,
+       _layerIndex = sourceMap.layers.indexWhere(
          (layer) => layer.id == layerId,
        ),
        _onChanged = onChanged {
@@ -46,9 +58,15 @@ final class MapCellStrokeBuffer {
         'Active layer is not a collision layer: $layerId',
       );
     }
+    if (kind == MapCellStrokeLayerKind.smartTile && layer is! SmartTileLayer) {
+      throw ValidationException(
+        'Active layer is not a Smart Tile layer: $layerId',
+      );
+    }
   }
 
-  final MapData sourceMap;
+  MapData _sourceMap;
+  MapData get sourceMap => _sourceMap;
   final String layerId;
   final MapCellStrokeLayerKind kind;
   final int _layerIndex;
@@ -58,6 +76,10 @@ final class MapCellStrokeBuffer {
   final List<TileLayerPaletteEntry> _tilePaletteAdditions =
       <TileLayerPaletteEntry>[];
   final Map<int, bool> _collisionOverrides = <int, bool>{};
+  final Map<int, String?> _smartTileCellOverrides = <int, String?>{};
+  final Map<int, String?> _smartTileHorizontalEdgeOverrides = <int, String?>{};
+  final Map<int, String?> _smartTileVerticalEdgeOverrides = <int, String?>{};
+  final Map<int, String?> _smartTileCornerOverrides = <int, String?>{};
   GridPos? _lastOrigin;
   int _revision = 0;
   int _fullLayerCopyCount = 0;
@@ -68,12 +90,31 @@ final class MapCellStrokeBuffer {
   int get touchedCellCount => switch (kind) {
     MapCellStrokeLayerKind.tile => _tileOverrides.length,
     MapCellStrokeLayerKind.collision => _collisionOverrides.length,
+    MapCellStrokeLayerKind.smartTile => _smartTileCellOverrides.length,
   };
-  bool get hasChanges =>
-      touchedCellCount > 0 || _tilePaletteAdditions.isNotEmpty;
+  bool get hasChanges => switch (kind) {
+    MapCellStrokeLayerKind.tile =>
+      _tileOverrides.isNotEmpty || _tilePaletteAdditions.isNotEmpty,
+    MapCellStrokeLayerKind.collision => _collisionOverrides.isNotEmpty,
+    MapCellStrokeLayerKind.smartTile =>
+      _smartTileCellOverrides.isNotEmpty ||
+          _smartTileHorizontalEdgeOverrides.isNotEmpty ||
+          _smartTileVerticalEdgeOverrides.isNotEmpty ||
+          _smartTileCornerOverrides.isNotEmpty,
+  };
   int get fullLayerCopyCount => _fullLayerCopyCount;
   int get mapMaterializationCount => _mapMaterializationCount;
   int get validationCount => _validationCount;
+
+  Iterable<GridPos> get smartTileTouchedCells sync* {
+    if (kind != MapCellStrokeLayerKind.smartTile) return;
+    for (final index in _smartTileCellOverrides.keys) {
+      yield GridPos(
+        x: index % sourceMap.size.width,
+        y: index ~/ sourceMap.size.width,
+      );
+    }
+  }
 
   TileLayerPaletteEntry? tileAt(int index) {
     if (kind != MapCellStrokeLayerKind.tile) return null;
@@ -92,6 +133,249 @@ final class MapCellStrokeBuffer {
     return index >= 0 &&
         index < source.collisions.length &&
         source.collisions[index];
+  }
+
+  String? smartTileMaterialAt(int x, int y) {
+    if (kind != MapCellStrokeLayerKind.smartTile) return null;
+    _validateSmartTileCoordinate(
+      x,
+      y,
+      sourceMap.size.width,
+      sourceMap.size.height,
+    );
+    final index = y * sourceMap.size.width + x;
+    if (_smartTileCellOverrides.containsKey(index)) {
+      return _smartTileCellOverrides[index];
+    }
+    return smartTileMaterialIdAt(
+      sourceMap.layers[_layerIndex] as SmartTileLayer,
+      mapSize: sourceMap.size,
+      x: x,
+      y: y,
+    );
+  }
+
+  SmartTileCellContext smartTileContextAt({
+    required ProjectSmartTilePreset preset,
+    required int x,
+    required int y,
+  }) {
+    if (kind != MapCellStrokeLayerKind.smartTile) {
+      throw StateError('The stroke does not target a Smart Tile layer');
+    }
+    final width = sourceMap.size.width;
+    final height = sourceMap.size.height;
+    _validateSmartTileCoordinate(x, y, width, height);
+    if (preset.topology == SmartTileTopology.uniform ||
+        preset.topology == SmartTileTopology.cardinal4 ||
+        preset.topology == SmartTileTopology.blob8) {
+      return SmartTileCellContext.fromCellGrid(
+        width: width,
+        height: height,
+        x: x,
+        y: y,
+        materialAt: smartTileMaterialAt,
+      );
+    }
+    SmartTileObservedSlot horizontal(int edgeX, int edgeY) =>
+        SmartTileObservedSlot.inside(
+          materialId: _smartTileHorizontalEdgeMaterialIdAt(edgeX, edgeY),
+        );
+    SmartTileObservedSlot vertical(int edgeX, int edgeY) =>
+        SmartTileObservedSlot.inside(
+          materialId: _smartTileVerticalEdgeMaterialIdAt(edgeX, edgeY),
+        );
+    SmartTileObservedSlot corner(int cornerX, int cornerY) =>
+        SmartTileObservedSlot.inside(
+          materialId: _smartTileCornerMaterialIdAt(cornerX, cornerY),
+        );
+    return switch (preset.topology) {
+      SmartTileTopology.wangEdge4 => SmartTileCellContext(
+        centerMaterialId: smartTileMaterialAt(x, y),
+        observed: SmartTileObservedSignature(
+          northEdge: horizontal(x, y),
+          eastEdge: vertical(x + 1, y),
+          southEdge: horizontal(x, y + 1),
+          westEdge: vertical(x, y),
+        ),
+      ),
+      SmartTileTopology.wangCorner4 => SmartTileCellContext(
+        centerMaterialId: smartTileMaterialAt(x, y),
+        observed: SmartTileObservedSignature(
+          northEastCorner: corner(x + 1, y),
+          southEastCorner: corner(x + 1, y + 1),
+          southWestCorner: corner(x, y + 1),
+          northWestCorner: corner(x, y),
+        ),
+      ),
+      SmartTileTopology.wang8 => SmartTileCellContext(
+        centerMaterialId: smartTileMaterialAt(x, y),
+        observed: SmartTileObservedSignature(
+          northEdge: horizontal(x, y),
+          northEastCorner: corner(x + 1, y),
+          eastEdge: vertical(x + 1, y),
+          southEastCorner: corner(x + 1, y + 1),
+          southEdge: horizontal(x, y + 1),
+          southWestCorner: corner(x, y + 1),
+          westEdge: vertical(x, y),
+          northWestCorner: corner(x, y),
+        ),
+      ),
+      SmartTileTopology.uniform ||
+      SmartTileTopology.cardinal4 ||
+      SmartTileTopology.blob8 => throw StateError(
+        'Cell topologies are handled before lattice sampling.',
+      ),
+    };
+  }
+
+  bool smartTileCellHasAuthoredValue(int x, int y) {
+    if (smartTileMaterialAt(x, y) != null) return true;
+    final layer = sourceMap.layers[_layerIndex] as SmartTileLayer;
+    if (layer.field is SmartTileEdgeField ||
+        layer.field is SmartTileMixedField) {
+      if (_smartTileHorizontalEdgeMaterialIdAt(x, y) != null ||
+          _smartTileHorizontalEdgeMaterialIdAt(x, y + 1) != null ||
+          _smartTileVerticalEdgeMaterialIdAt(x, y) != null ||
+          _smartTileVerticalEdgeMaterialIdAt(x + 1, y) != null) {
+        return true;
+      }
+    }
+    if (layer.field is SmartTileCornerField ||
+        layer.field is SmartTileMixedField) {
+      return _smartTileCornerMaterialIdAt(x, y) != null ||
+          _smartTileCornerMaterialIdAt(x + 1, y) != null ||
+          _smartTileCornerMaterialIdAt(x, y + 1) != null ||
+          _smartTileCornerMaterialIdAt(x + 1, y + 1) != null;
+    }
+    return false;
+  }
+
+  bool setSmartTileMaterials({
+    required Iterable<GridPos> cells,
+    required String? materialId,
+  }) {
+    if (kind != MapCellStrokeLayerKind.smartTile) {
+      throw StateError('The stroke does not target a Smart Tile layer');
+    }
+    final canonicalMaterialId = materialId?.trim();
+    if (materialId != null &&
+        (canonicalMaterialId!.isEmpty || canonicalMaterialId != materialId)) {
+      throw const ValidationException('Smart Tile material must be canonical');
+    }
+    final layer = sourceMap.layers[_layerIndex] as SmartTileLayer;
+    final width = sourceMap.size.width;
+    final height = sourceMap.size.height;
+    final verticalStride = width + 1;
+    var changed = false;
+    for (final cell in cells) {
+      _validateSmartTileCoordinate(cell.x, cell.y, width, height);
+      final cellIndex = cell.y * width + cell.x;
+      changed =
+          _setSmartTileOverride(
+            _smartTileCellOverrides,
+            cellIndex,
+            materialId,
+            _sourceSmartTileMaterialAt(cell.x, cell.y),
+          ) ||
+          changed;
+      if (layer.field is SmartTileEdgeField ||
+          layer.field is SmartTileMixedField) {
+        for (final index in <int>[
+          cell.y * width + cell.x,
+          (cell.y + 1) * width + cell.x,
+        ]) {
+          changed =
+              _setSmartTileOverride(
+                _smartTileHorizontalEdgeOverrides,
+                index,
+                materialId,
+                _sourceHorizontalMaterialAtIndex(index),
+              ) ||
+              changed;
+        }
+        for (final index in <int>[
+          cell.y * verticalStride + cell.x,
+          cell.y * verticalStride + cell.x + 1,
+        ]) {
+          changed =
+              _setSmartTileOverride(
+                _smartTileVerticalEdgeOverrides,
+                index,
+                materialId,
+                _sourceVerticalMaterialAtIndex(index),
+              ) ||
+              changed;
+        }
+      }
+      if (layer.field is SmartTileCornerField ||
+          layer.field is SmartTileMixedField) {
+        for (final index in <int>[
+          cell.y * verticalStride + cell.x,
+          cell.y * verticalStride + cell.x + 1,
+          (cell.y + 1) * verticalStride + cell.x,
+          (cell.y + 1) * verticalStride + cell.x + 1,
+        ]) {
+          changed =
+              _setSmartTileOverride(
+                _smartTileCornerOverrides,
+                index,
+                materialId,
+                _sourceCornerMaterialAtIndex(index),
+              ) ||
+              changed;
+        }
+      }
+    }
+    if (changed) _publish();
+    return changed;
+  }
+
+  bool setSmartTileMaterialAt({
+    required GridPos origin,
+    required String? materialId,
+  }) {
+    final changed = setSmartTileMaterials(
+      cells: _pointsTo(origin),
+      materialId: materialId,
+    );
+    _lastOrigin = origin;
+    return changed;
+  }
+
+  void rebaseSmartTileSource(MapData map) {
+    if (kind != MapCellStrokeLayerKind.smartTile ||
+        map.id != sourceMap.id ||
+        map.size != sourceMap.size ||
+        _layerIndex >= map.layers.length ||
+        map.layers[_layerIndex] is! SmartTileLayer ||
+        map.layers[_layerIndex].id != layerId) {
+      throw const ValidationException(
+        'Smart Tile stroke cannot rebase onto an incompatible map',
+      );
+    }
+    _sourceMap = map;
+    _removeMatchingSmartTileOverrides(
+      _smartTileCellOverrides,
+      (index) {
+        final x = index % map.size.width;
+        final y = index ~/ map.size.width;
+        return _sourceSmartTileMaterialAt(x, y);
+      },
+    );
+    _removeMatchingSmartTileOverrides(
+      _smartTileHorizontalEdgeOverrides,
+      _sourceHorizontalMaterialAtIndex,
+    );
+    _removeMatchingSmartTileOverrides(
+      _smartTileVerticalEdgeOverrides,
+      _sourceVerticalMaterialAtIndex,
+    );
+    _removeMatchingSmartTileOverrides(
+      _smartTileCornerOverrides,
+      _sourceCornerMaterialAtIndex,
+    );
+    _publish();
   }
 
   void paintTiles({
@@ -158,6 +442,7 @@ final class MapCellStrokeBuffer {
     final materializedLayer = switch (kind) {
       MapCellStrokeLayerKind.tile => _materializeTileLayer(),
       MapCellStrokeLayerKind.collision => _materializeCollisionLayer(),
+      MapCellStrokeLayerKind.smartTile => _materializeSmartTileLayer(),
     };
     layers[_layerIndex] = materializedLayer;
     _mapMaterializationCount += 1;
@@ -351,6 +636,166 @@ final class MapCellStrokeBuffer {
       collisions[entry.key] = entry.value;
     }
     return source.copyWith(collisions: collisions);
+  }
+
+  SmartTileLayer _materializeSmartTileLayer() {
+    _fullLayerCopyCount += 1;
+    final source = sourceMap.layers[_layerIndex] as SmartTileLayer;
+    final palette = List<String>.of(source.materialPalette);
+    final paletteIndices = <String, int>{
+      for (var index = 0; index < palette.length; index++)
+        palette[index]: index,
+    };
+    int materialIndex(String? materialId) {
+      if (materialId == null) return 0;
+      final existing = paletteIndices[materialId];
+      if (existing != null) return existing;
+      palette.add(materialId);
+      final added = palette.length - 1;
+      paletteIndices[materialId] = added;
+      return added;
+    }
+
+    List<int> materialize(List<int> values, Map<int, String?> overrides) {
+      final next = List<int>.of(values);
+      for (final entry in overrides.entries) {
+        next[entry.key] = materialIndex(entry.value);
+      }
+      return next;
+    }
+
+    final semanticCells = materialize(
+      smartTileSemanticCells(source),
+      _smartTileCellOverrides,
+    );
+    final field = switch (source.field) {
+      SmartTileCellField() => SmartTileField.cell(semanticCells: semanticCells),
+      SmartTileEdgeField(:final horizontalEdges, :final verticalEdges) =>
+        SmartTileField.edge(
+          semanticCells: semanticCells,
+          horizontalEdges: materialize(
+            horizontalEdges,
+            _smartTileHorizontalEdgeOverrides,
+          ),
+          verticalEdges: materialize(
+            verticalEdges,
+            _smartTileVerticalEdgeOverrides,
+          ),
+        ),
+      SmartTileCornerField(:final corners) => SmartTileField.corner(
+        semanticCells: semanticCells,
+        corners: materialize(corners, _smartTileCornerOverrides),
+      ),
+      SmartTileMixedField(
+        :final horizontalEdges,
+        :final verticalEdges,
+        :final corners,
+      ) =>
+        SmartTileField.mixed(
+          semanticCells: semanticCells,
+          horizontalEdges: materialize(
+            horizontalEdges,
+            _smartTileHorizontalEdgeOverrides,
+          ),
+          verticalEdges: materialize(
+            verticalEdges,
+            _smartTileVerticalEdgeOverrides,
+          ),
+          corners: materialize(corners, _smartTileCornerOverrides),
+        ),
+    };
+    return source.copyWith(materialPalette: palette, field: field);
+  }
+
+  bool _setSmartTileOverride(
+    Map<int, String?> overrides,
+    int index,
+    String? value,
+    String? sourceValue,
+  ) {
+    final current = overrides.containsKey(index)
+        ? overrides[index]
+        : sourceValue;
+    if (current == value) return false;
+    if (sourceValue == value) {
+      overrides.remove(index);
+    } else {
+      overrides[index] = value;
+    }
+    return true;
+  }
+
+  void _removeMatchingSmartTileOverrides(
+    Map<int, String?> overrides,
+    String? Function(int index) sourceValueAt,
+  ) {
+    for (final entry in overrides.entries.toList(growable: false)) {
+      if (sourceValueAt(entry.key) == entry.value) {
+        overrides.remove(entry.key);
+      }
+    }
+  }
+
+  String? _sourceSmartTileMaterialAt(int x, int y) => smartTileMaterialIdAt(
+    sourceMap.layers[_layerIndex] as SmartTileLayer,
+    mapSize: sourceMap.size,
+    x: x,
+    y: y,
+  );
+
+  String? _sourceHorizontalMaterialAtIndex(int index) {
+    final source = sourceMap.layers[_layerIndex] as SmartTileLayer;
+    return _materialIdForIndex(source, smartTileHorizontalEdges(source)[index]);
+  }
+
+  String? _sourceVerticalMaterialAtIndex(int index) {
+    final source = sourceMap.layers[_layerIndex] as SmartTileLayer;
+    return _materialIdForIndex(source, smartTileVerticalEdges(source)[index]);
+  }
+
+  String? _sourceCornerMaterialAtIndex(int index) {
+    final source = sourceMap.layers[_layerIndex] as SmartTileLayer;
+    return _materialIdForIndex(source, smartTileCorners(source)[index]);
+  }
+
+  String? _smartTileHorizontalEdgeMaterialIdAt(int x, int y) {
+    final width = sourceMap.size.width;
+    _validateSmartTileCoordinate(x, y, width, sourceMap.size.height + 1);
+    final index = y * width + x;
+    return _smartTileHorizontalEdgeOverrides.containsKey(index)
+        ? _smartTileHorizontalEdgeOverrides[index]
+        : _sourceHorizontalMaterialAtIndex(index);
+  }
+
+  String? _smartTileVerticalEdgeMaterialIdAt(int x, int y) {
+    final width = sourceMap.size.width + 1;
+    _validateSmartTileCoordinate(x, y, width, sourceMap.size.height);
+    final index = y * width + x;
+    return _smartTileVerticalEdgeOverrides.containsKey(index)
+        ? _smartTileVerticalEdgeOverrides[index]
+        : _sourceVerticalMaterialAtIndex(index);
+  }
+
+  String? _smartTileCornerMaterialIdAt(int x, int y) {
+    final width = sourceMap.size.width + 1;
+    _validateSmartTileCoordinate(x, y, width, sourceMap.size.height + 1);
+    final index = y * width + x;
+    return _smartTileCornerOverrides.containsKey(index)
+        ? _smartTileCornerOverrides[index]
+        : _sourceCornerMaterialAtIndex(index);
+  }
+
+  String? _materialIdForIndex(SmartTileLayer layer, int index) =>
+      index <= 0 || index >= layer.materialPalette.length
+      ? null
+      : layer.materialPalette[index];
+
+  void _validateSmartTileCoordinate(int x, int y, int width, int height) {
+    if (x < 0 || y < 0 || x >= width || y >= height) {
+      throw RangeError(
+        'Smart Tile coordinate ($x, $y) is outside $width x $height',
+      );
+    }
   }
 
   bool _isInBounds(int x, int y) =>

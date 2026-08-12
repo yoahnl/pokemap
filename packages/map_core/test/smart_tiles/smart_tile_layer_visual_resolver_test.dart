@@ -117,6 +117,89 @@ void main() {
     expect(visuals.single.sourceRect.x, 32);
   });
 
+  test('a sparse context resolver previews unpublished Smart Tile cells', () {
+    const preset = ProjectSmartTilePreset(
+      id: 'preview',
+      name: 'Preview',
+      usage: SmartTileUsage.terrain,
+      topology: SmartTileTopology.uniform,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.template,
+      ),
+      transformPolicy: SmartTileTransformPolicy(),
+      defaultMaterialId: 'grass',
+      allowedMaterialIds: <String>['grass'],
+      rules: <SmartTileRule>[
+        SmartTileRule(
+          id: 'grass',
+          centerMatch: SmartTileSlotMatch.material('grass'),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(
+              id: 'grass',
+              parts: <SmartTileVisualPart>[
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: 'atlas',
+                      column: 0,
+                      row: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    const layer = SmartTileLayer(
+      id: 'terrain',
+      name: 'Terrain',
+      presetId: 'preview',
+      usage: SmartTileUsage.terrain,
+      materialPalette: <String>['', 'grass'],
+      field: SmartTileField.cell(semanticCells: <int>[0, 0]),
+    );
+    const map = MapData(
+      id: 'map',
+      name: 'Map',
+      size: GridSize(width: 2, height: 1),
+      layers: <MapLayer>[layer],
+    );
+    final catalog = ProjectSmartTileCatalog(
+      atlases: const <ProjectSmartTileAtlas>[atlas],
+      materials: materials,
+      presets: const <ProjectSmartTilePreset>[preset],
+    );
+
+    final persisted = resolveSmartTileLayerVisualBatch(
+      map: map,
+      layer: layer,
+      catalog: catalog,
+      pass: SmartTileVisualPass.background,
+    );
+    final preview = resolveSmartTileLayerVisualBatch(
+      map: map,
+      layer: layer,
+      catalog: catalog,
+      pass: SmartTileVisualPass.background,
+      cellContextResolver: ({required preset, required x, required y}) =>
+          SmartTileCellContext.fromCellGrid(
+        width: 2,
+        height: 1,
+        x: x,
+        y: y,
+        materialAt: (cellX, _) => cellX == 1 ? 'grass' : null,
+      ),
+    );
+
+    expect(persisted.visuals, isEmpty);
+    expect(preview.visuals, hasLength(1));
+    expect(preview.visuals.single.cellX, 1);
+    expect(preview.visuals.single.ruleId, 'grass');
+  });
+
   for (final scenario in <({
     SmartTileTopology topology,
     SmartTileTemplateHint template,
