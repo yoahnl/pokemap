@@ -63,6 +63,13 @@
       "partyIndex": 0
     },
     {
+      "id": "learn_move_hm",
+      "operation": "use_move_machine",
+      "itemId": "hm-surf",
+      "partyIndex": 0,
+      "replaceMoveId": "growl"
+    },
+    {
       "id": "battle_reward",
       "operation": "apply_trainer_reward",
       "trainerId": "golden_item_trainer"

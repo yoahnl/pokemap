@@ -88,6 +88,7 @@ final class ItemSystemV1CertificationProfile {
     'capture_attempt',
     'equip_held_item',
     'learn_move_tm',
+    'learn_move_hm',
     'battle_reward',
     'save_reload',
   ];
@@ -107,13 +108,18 @@ final class ItemSystemV1CertificationProfile {
     'capture_succeeded',
     'held_item_equipped',
     'tm_learned',
+    'hm_compatible_target_selected',
+    'hm_learned_without_consumption',
+    'field_ability_still_locked_after_hm',
     'trainer_reward_applied',
+    'field_ability_unlocked_by_reward',
     'party_member_fainted_in_battle',
     'revived_overworld',
     'key_item_gate_preserved',
     'passive_item_preserved',
     'strict_save_wire_written',
     'runtime_save_reloaded',
+    'hm_and_explicit_surf_gate_persisted',
   };
 
   static Set<String> requiredCapabilitiesFor(ItemSystemProofLevel level) {
@@ -479,6 +485,7 @@ void _validateGoldenFinalState(Map<String, Object?> json) {
       canonicalBag.length != bag.length ||
       !_sameIntMap(canonicalBag, const <String, int>{
         'ether': 1,
+        'hm-surf': 1,
         'lab-key': 1,
         'lucky-charm': 1,
         'poke-ball': 2,
@@ -490,7 +497,7 @@ void _validateGoldenFinalState(Map<String, Object?> json) {
       !_requiredStringList(
         moves.first,
         'finalKnownMoveIds[0]',
-      ).contains('protect') ||
+      ).toSet().containsAll(const <String>{'protect', 'surf'}) ||
       !completed.contains('golden_item.pickup') ||
       !flags.contains('golden_item.pickup_collected')) {
     throw const FormatException('Golden flow final state is invalid.');

@@ -11,5 +11,9 @@
       "moveId": "protect"
     }
   ],
-  "hm": []
+  "hm": [
+    {
+      "moveId": "surf"
+    }
+  ]
 }

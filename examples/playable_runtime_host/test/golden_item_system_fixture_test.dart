@@ -25,9 +25,16 @@ void main() {
       expect(project.maps, hasLength(1));
       expect(project.newGame.enabled, isTrue);
       expect(project.newGame.initialParty, hasLength(1));
-      expect(project.newGame.initialBag, hasLength(8));
+      expect(project.newGame.initialBag, hasLength(9));
       expect(project.encounterTables, hasLength(1));
       expect(project.shops, hasLength(1));
+      expect(project.badges.single.id, 'tidal-badge');
+      expect(project.badges.single.fieldAbilityUnlock, FieldAbility.surf);
+      expect(project.trainers.single.rewardBadgeId, 'tidal-badge');
+      expect(
+        project.trainers.single.rewardFieldAbilityUnlock,
+        FieldAbility.surf,
+      );
       expect(
         project.trainers.single.rewardItemGrants,
         const <ProjectTrainerItemGrant>[
@@ -92,6 +99,7 @@ void main() {
         'poke-ball',
         'lab-key',
         'tm-protect',
+        'hm-surf',
         'leftovers',
         'lucky-charm',
       });
@@ -104,6 +112,14 @@ void main() {
             .singleWhere((entry) => entry.id == 'tm-protect')
             .machine,
         isNotNull,
+      );
+      expect(
+        catalog.entries.singleWhere((entry) => entry.id == 'hm-surf').machine,
+        const ProjectMoveMachineItemDefinition(
+          moveId: 'surf',
+          kind: ProjectMoveMachineKind.hm,
+          consumable: false,
+        ),
       );
       expect(
         catalog.entries
@@ -177,6 +193,7 @@ void main() {
           'capture_attempt',
           'equip_held_item',
           'learn_move_tm',
+          'learn_move_hm',
           'battle_reward',
           'save_reload',
         ]),

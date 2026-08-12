@@ -150,6 +150,20 @@
       }
     },
     {
+      "id": "hm-surf",
+      "displayName": "HM Surf",
+      "pocketId": "machines",
+      "description": "Teaches Surf without being consumed.",
+      "tags": [
+        "machine"
+      ],
+      "machine": {
+        "moveId": "surf",
+        "kind": "hm",
+        "consumable": false
+      }
+    },
+    {
       "id": "leftovers",
       "displayName": "Leftovers",
       "pocketId": "held-items",

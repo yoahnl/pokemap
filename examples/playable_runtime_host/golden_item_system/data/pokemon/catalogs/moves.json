@@ -46,6 +46,36 @@
       },
       "pp": 10,
       "engineSupportLevel": "structured_supported"
+    },
+    {
+      "id": "leech-seed",
+      "name": "Leech Seed",
+      "source": "golden_item_system",
+      "type": "grass",
+      "category": "status",
+      "target": "normal",
+      "basePower": 0,
+      "accuracy": {
+        "kind": "percent",
+        "value": 90
+      },
+      "pp": 10,
+      "engineSupportLevel": "structured_supported"
+    },
+    {
+      "id": "surf",
+      "name": "Surf",
+      "source": "golden_item_system",
+      "type": "water",
+      "category": "special",
+      "target": "allAdjacentFoes",
+      "basePower": 90,
+      "accuracy": {
+        "kind": "percent",
+        "value": 100
+      },
+      "pp": 15,
+      "engineSupportLevel": "structured_supported"
     }
   ]
 }

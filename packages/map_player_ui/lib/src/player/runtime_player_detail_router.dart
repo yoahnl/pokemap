@@ -387,7 +387,9 @@ class _RuntimePlayerBag extends StatelessWidget {
       builder: (context) {
         final availableHeight = MediaQuery.sizeOf(context).height - 32;
         final buttons = <Widget>[];
-        for (final target in detail.bagTargets) {
+        for (final target in detail.bagTargets.where(
+          (target) => action.allowsPartyTarget(target.targetId),
+        )) {
           if (action.targetKind == RuntimePlayerBagUseTargetKind.partyMember ||
               (action.targetKind ==
                       RuntimePlayerBagUseTargetKind.partyMoveReplacement &&

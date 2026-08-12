@@ -24,7 +24,10 @@ final class RuntimePlayerBagItemActionSnapshot {
     required this.usability,
     required this.isEnabled,
     this.unavailableReason,
-  }) {
+    Set<String>? eligiblePartyTargetIds,
+  }) : eligiblePartyTargetIds = eligiblePartyTargetIds == null
+            ? null
+            : Set<String>.unmodifiable(eligiblePartyTargetIds) {
     if (itemTargetId.trim().isEmpty) {
       throw ArgumentError.value(
         itemTargetId,
@@ -45,6 +48,10 @@ final class RuntimePlayerBagItemActionSnapshot {
   final ItemUsabilityState usability;
   final bool isEnabled;
   final String? unavailableReason;
+  final Set<String>? eligiblePartyTargetIds;
+
+  bool allowsPartyTarget(String targetId) =>
+      eligiblePartyTargetIds?.contains(targetId) ?? true;
 }
 
 final class RuntimePlayerBagMoveTargetSnapshot {

@@ -77,6 +77,7 @@ final class GoldenItemSystemJourney {
     'capture_attempt',
     'equip_held_item',
     'learn_move_tm',
+    'learn_move_hm',
     'battle_reward',
     'save_reload',
   ];
@@ -111,7 +112,7 @@ final class GoldenItemSystemJourney {
       projectRootDirectory: root,
       pokemonConfig: project.pokemon,
     );
-    _require(itemCatalog.definitions.length == 9, 'Incomplete item catalog.');
+    _require(itemCatalog.definitions.length == 10, 'Incomplete item catalog.');
 
     final observations = <String>[];
     var state = createNewGameStateFromProject(
@@ -124,6 +125,7 @@ final class GoldenItemSystemJourney {
       _sameIntMap(_bagQuantities(state), const <String, int>{
         'antidote': 1,
         'ether': 1,
+        'hm-surf': 1,
         'lab-key': 1,
         'leftovers': 1,
         'lucky-charm': 1,
@@ -281,6 +283,37 @@ final class GoldenItemSystemJourney {
     state = learned.state;
     observations.add('tm_learned');
 
+    final hm = await RuntimeMoveMachineLoader().loadCandidate(
+      projectRootDirectory: root,
+      pokemonConfig: project.pokemon,
+      itemId: 'hm-surf',
+      speciesRef: state.party.members.first.speciesId,
+      fallbackSpeciesId: state.party.members.first.speciesId,
+    );
+    _require(hm != null, 'HM compatibility was not resolved.');
+    observations.add('hm_compatible_target_selected');
+    final hmQuantityBefore = _bagQuantities(state)['hm-surf'];
+    final learnedHm = const PokemonMoveMachineService().apply(
+      state,
+      partyIndex: 0,
+      candidate: hm!,
+      decision: const PokemonMoveMachineDecision.replace(
+        expectedMoveId: 'growl',
+      ),
+    );
+    _require(learnedHm.isSuccess, 'HM learning failed.');
+    state = learnedHm.state;
+    _require(
+      _bagQuantities(state)['hm-surf'] == hmQuantityBefore,
+      'HM was consumed.',
+    );
+    observations.add('hm_learned_without_consumption');
+    _require(
+      !state.progression.unlockedFieldAbilities.contains(FieldAbility.surf),
+      'Learning Surf unlocked its field ability implicitly.',
+    );
+    observations.add('field_ability_still_locked_after_hm');
+
     final trainer = project.trainers.singleWhere(
       (candidate) => candidate.id == 'golden_item_trainer',
     );
@@ -304,6 +337,12 @@ final class GoldenItemSystemJourney {
     );
     _require(_bagQuantities(state)['revive'] == 1, 'Trainer reward failed.');
     observations.add('trainer_reward_applied');
+    _require(
+      state.trainerProfile.badgeIds.contains('tidal-badge') &&
+          state.progression.unlockedFieldAbilities.contains(FieldAbility.surf),
+      'The authored reward did not unlock Surf explicitly.',
+    );
+    observations.add('field_ability_unlocked_by_reward');
 
     state = _faintSecondPartyMember(state, rngSeed);
     _require(state.party.members[1].currentHp == 0, 'Battle faint failed.');
@@ -349,6 +388,14 @@ final class GoldenItemSystemJourney {
     _require(reloaded != null, 'Runtime save could not be reloaded.');
     state = reloaded!;
     observations.add('runtime_save_reloaded');
+    _require(
+      _bagQuantities(state)['hm-surf'] == 1 &&
+          state.party.members.first.knownMoveIds.contains('surf') &&
+          state.trainerProfile.badgeIds.contains('tidal-badge') &&
+          state.progression.unlockedFieldAbilities.contains(FieldAbility.surf),
+      'HM or explicit Surf gate did not survive save/reload.',
+    );
+    observations.add('hm_and_explicit_surf_gate_persisted');
 
     final finalBag = _bagQuantities(state);
     final storyFlags = state.storyFlags.activeFlags.toList(growable: false)

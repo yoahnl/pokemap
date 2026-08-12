@@ -192,6 +192,7 @@ void main() {
             targetKind: RuntimePlayerBagUseTargetKind.partyMoveReplacement,
             usability: ItemUsabilityState.usable,
             isEnabled: true,
+            eligiblePartyTargetIds: const <String>{'party.0'},
           ),
         ),
       ],
@@ -249,7 +250,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Apprendre à Carapuce'), findsOneWidget);
+    expect(find.text('Apprendre à Carapuce'), findsNothing);
     expect(
       find.text('Apprendre à Bulbizarre en oubliant Rugissement'),
       findsOneWidget,

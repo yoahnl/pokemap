@@ -159,6 +159,13 @@
       ]
     }
   ],
+  "badges": [
+    {
+      "id": "tidal-badge",
+      "label": "Tidal Badge",
+      "fieldAbilityUnlock": "surf"
+    }
+  ],
   "trainers": [
     {
       "id": "golden_item_trainer",
@@ -166,6 +173,8 @@
       "trainerClass": "Researcher",
       "battleDifficulty": 2,
       "moneyReward": 240,
+      "rewardBadgeId": "tidal-badge",
+      "rewardFieldAbilityUnlock": "surf",
       "rewardItemGrants": [
         {
           "itemId": "revive",
@@ -228,6 +237,10 @@
         "quantity": 1
       },
       {
+        "itemId": "hm-surf",
+        "quantity": 1
+      },
+      {
         "itemId": "leftovers",
         "quantity": 1
       },
@@ -244,12 +257,14 @@
         "level": 5,
         "knownMoveIds": [
           "tackle",
-          "growl"
+          "growl",
+          "leech-seed"
         ],
         "currentHp": 8,
         "currentPpByMoveId": {
           "tackle": 20,
-          "growl": 30
+          "growl": 30,
+          "leech-seed": 10
         },
         "statusId": "poison"
       }

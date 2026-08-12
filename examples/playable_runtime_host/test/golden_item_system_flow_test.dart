@@ -51,6 +51,7 @@ void main() {
       'capture_attempt',
       'equip_held_item',
       'learn_move_tm',
+      'learn_move_hm',
       'battle_reward',
       'save_reload',
     ]);
@@ -71,17 +72,23 @@ void main() {
         'capture_succeeded',
         'held_item_equipped',
         'tm_learned',
+        'hm_compatible_target_selected',
+        'hm_learned_without_consumption',
+        'field_ability_still_locked_after_hm',
         'trainer_reward_applied',
+        'field_ability_unlocked_by_reward',
         'party_member_fainted_in_battle',
         'revived_overworld',
         'key_item_gate_preserved',
         'passive_item_preserved',
         'strict_save_wire_written',
         'runtime_save_reloaded',
+        'hm_and_explicit_surf_gate_persisted',
       }),
     );
     expect(first.finalBagQuantities, const <String, int>{
       'ether': 1,
+      'hm-surf': 1,
       'lab-key': 1,
       'lucky-charm': 1,
       'poke-ball': 2,
@@ -94,7 +101,8 @@ void main() {
     expect(first.finalHeldItemIds, const <String>['leftovers', '']);
     expect(first.finalKnownMoveIds.first, const <String>[
       'tackle',
-      'growl',
+      'surf',
+      'leech-seed',
       'protect',
     ]);
     expect(first.completedStepIds, contains('golden_item.pickup'));

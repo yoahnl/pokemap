@@ -51,7 +51,6 @@ void main() {
       types: const <String>['fire'],
       baseHp: 39,
     );
-
     final state = GameState(
       saveId: 'save-1',
       currentMapId: 'route',
@@ -205,6 +204,15 @@ void main() {
       types: const <String>['fire'],
       baseHp: 39,
     );
+    await _writeSpecies(
+      speciesDirectory,
+      fileName: '007-squirtle.json',
+      id: 'squirtle',
+      nationalDex: 7,
+      names: const <String, String>{'fr': 'Carapuce'},
+      types: const <String>['water'],
+      baseHp: 44,
+    );
     await _writeJson(
       projectRoot,
       'data/pokemon/catalogs/items.json',
@@ -269,6 +277,13 @@ void main() {
               currentHp: 20,
               knownMoveIds: <String>['scratch'],
             ),
+            PlayerPokemon(
+              speciesId: 'squirtle',
+              natureId: 'hardy',
+              abilityId: 'torrent',
+              currentHp: 20,
+              knownMoveIds: <String>['tackle'],
+            ),
           ],
         ),
         bag: Bag(
@@ -306,6 +321,7 @@ void main() {
       action.targetKind,
       RuntimePlayerBagUseTargetKind.partyMoveReplacement,
     );
+    expect(action.eligiblePartyTargetIds, const <String>{'party.0'});
   });
 
   test('projects only supported held items with player-facing labels',

@@ -326,6 +326,9 @@ final class RuntimePlayerPauseDataBuilder {
           usability: usability,
           isEnabled: usability == ItemUsabilityState.usable,
           unavailableReason: unavailableReason,
+          eligiblePartyTargetIds: isMoveMachine
+              ? moveMachines.eligiblePartyTargetIdsFor(entry.itemId)
+              : null,
         ),
       );
     }).toList(growable: false);
@@ -387,13 +390,15 @@ final class RuntimePlayerPauseDataBuilder {
     final loader = RuntimeMoveMachineLoader();
     final itemIds = <String>{};
     final compatibleItemIds = <String>{};
+    final eligiblePartyTargetIdsByItemId = <String, Set<String>>{};
     for (final entry
         in gameState.bag.entries.where((entry) => entry.quantity > 0)) {
       try {
         final machine = itemCatalog.definitionFor(entry.itemId)?.machine;
         if (machine == null) continue;
         itemIds.add(entry.itemId);
-        for (final pokemon in gameState.party.members) {
+        for (final partyEntry in gameState.party.members.asMap().entries) {
+          final pokemon = partyEntry.value;
           final candidate =
               await loader.learnsetLoader.loadMoveMachineCandidate(
             projectRootDirectory: projectRootDirectory,
@@ -409,7 +414,9 @@ final class RuntimePlayerPauseDataBuilder {
           if (candidate != null &&
               !pokemon.knownMoveIds.contains(candidate.moveId)) {
             compatibleItemIds.add(entry.itemId);
-            break;
+            eligiblePartyTargetIdsByItemId
+                .putIfAbsent(entry.itemId, () => <String>{})
+                .add('party.${partyEntry.key}');
           }
         }
       } on Object {
@@ -419,6 +426,7 @@ final class RuntimePlayerPauseDataBuilder {
     return _RuntimeMoveMachineAvailability(
       itemIds: itemIds,
       compatibleItemIds: compatibleItemIds,
+      eligiblePartyTargetIdsByItemId: eligiblePartyTargetIdsByItemId,
     );
   }
 
@@ -755,11 +763,24 @@ final class _RuntimeMoveMachineAvailability {
   _RuntimeMoveMachineAvailability({
     required Set<String> itemIds,
     required Set<String> compatibleItemIds,
+    required Map<String, Set<String>> eligiblePartyTargetIdsByItemId,
   })  : itemIds = Set<String>.unmodifiable(itemIds),
-        compatibleItemIds = Set<String>.unmodifiable(compatibleItemIds);
+        compatibleItemIds = Set<String>.unmodifiable(compatibleItemIds),
+        eligiblePartyTargetIdsByItemId = Map<String, Set<String>>.unmodifiable(
+          eligiblePartyTargetIdsByItemId.map(
+            (itemId, targetIds) => MapEntry(
+              itemId,
+              Set<String>.unmodifiable(targetIds),
+            ),
+          ),
+        );
 
   final Set<String> itemIds;
   final Set<String> compatibleItemIds;
+  final Map<String, Set<String>> eligiblePartyTargetIdsByItemId;
+
+  Set<String> eligiblePartyTargetIdsFor(String itemId) =>
+      eligiblePartyTargetIdsByItemId[itemId] ?? const <String>{};
 }
 
 String? _readNestedString(
