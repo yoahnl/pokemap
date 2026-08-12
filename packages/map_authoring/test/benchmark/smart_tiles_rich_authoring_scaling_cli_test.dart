@@ -70,7 +70,8 @@ void main() {
     expect(work['objectCount'], greaterThan(0));
     expect(work['affectedResourceCount'], greaterThanOrEqualTo(4));
     expect(work['diffEntryCount'], greaterThanOrEqualTo(4));
-    expect(work['journalBytes'], greaterThan(0));
+    expect(work['journalBytes'], 0);
+    expect(work['recoveryJournalBytes'], greaterThan(0));
     expect(work['recoveredResourceCount'], greaterThanOrEqualTo(4));
     expect('${row['reopenedSnapshotChecksum']}', isNotEmpty);
   }, timeout: const Timeout(Duration(minutes: 3)));

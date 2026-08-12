@@ -255,6 +255,73 @@ void main() {
       expect(compactedLines.single, isNot(contains('receipt-completed')));
     });
 
+    test('reuses one validated file snapshot until another writer changes it',
+        () async {
+      var fullReads = 0;
+      final store = FileIdempotencyStore(
+        filePath: ledgerPath,
+        onFullRead: () => fullReads += 1,
+      );
+      final ledger = AuthoringIdempotencyLedger(
+        store: store,
+        clock: () => now,
+      );
+      final request = _request(requestId: 'req-cache');
+
+      await ledger.execute(
+        scope: _scope(),
+        request: request,
+        operationId: 'operation-cache',
+        apply: () => _receipt(request, 'receipt-cache'),
+      );
+      expect(fullReads, 1);
+
+      expect(
+          await ledger.inspect(scope: _scope(), request: request), isNotNull);
+      expect(fullReads, 1);
+
+      await File(ledgerPath).writeAsString(
+        '{"corrupt":true}\n',
+        mode: FileMode.append,
+      );
+      await expectLater(
+        () => store.read(_scope()),
+        throwsA(
+          isA<IdempotencyStoreException>().having(
+            (error) => error.code,
+            'code',
+            'idempotency.store_corrupt',
+          ),
+        ),
+      );
+      expect(fullReads, 2);
+    });
+
+    test('first ledger access compacts expired completed receipts', () async {
+      final request = _request(requestId: 'req-expired');
+      final scope = _scope();
+      final first = AuthoringIdempotencyLedger(
+        store: FileIdempotencyStore(filePath: ledgerPath),
+        clock: () => now,
+        completedRetention: const Duration(hours: 1),
+      );
+      await first.execute(
+        scope: scope,
+        request: request,
+        operationId: 'operation-expired',
+        apply: () => _receipt(request, 'receipt-expired'),
+      );
+      now = now.add(const Duration(hours: 2));
+      final reopened = AuthoringIdempotencyLedger(
+        store: FileIdempotencyStore(filePath: ledgerPath),
+        clock: () => now,
+        completedRetention: const Duration(hours: 1),
+      );
+
+      expect(await reopened.inspect(scope: scope, request: request), isNull);
+      expect(await File(ledgerPath).readAsString(), isEmpty);
+    });
+
     test('scope validation rejects path-like identities', () {
       expect(
         () => _scope(projectId: '/Users/private/project'),

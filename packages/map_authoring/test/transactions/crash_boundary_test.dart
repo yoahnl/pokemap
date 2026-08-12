@@ -22,10 +22,7 @@ void main() {
       expect(await harness.readB(), TransactionTestHarness.afterB);
       expect(await harness.readCreated(), TransactionTestHarness.afterCreated);
       expect(await harness.readDeleted(), isNull);
-      expect(
-        (await harness.readJournal())?.status,
-        AuthoringTransactionStatus.committed,
-      );
+      expect(await harness.readJournal(), isNull);
 
       final replayWithoutPlan = JournaledAuthoringTransaction(
         plans: AuthoringPlanStore(clock: () => harness.now),
@@ -54,6 +51,40 @@ void main() {
         operationId: 'operation-after-restart',
       );
       expect(durableReplay.toJson(), first.toJson());
+    });
+
+    test('cleanup failure never turns a durable commit into a failed apply',
+        () async {
+      final harness = await TransactionTestHarness.create();
+      addTearDown(harness.dispose);
+      final gateway = _DeleteFailingGateway(harness.gateway);
+      final transaction = JournaledAuthoringTransaction(
+        plans: harness.planStore,
+        gateway: gateway,
+        idempotency: harness.ledger,
+        clock: () => harness.now,
+      );
+
+      final receipt = await transaction.apply(
+        planId: harness.plan.planId,
+        request: harness.plan.request,
+        currentProjectRevision: harness.currentProjectRevision,
+        scope: harness.scope,
+        operationId: harness.operationId,
+      );
+      final replay = await transaction.apply(
+        planId: harness.plan.planId,
+        request: harness.plan.request,
+        currentProjectRevision: harness.currentProjectRevision,
+        scope: harness.scope,
+        operationId: 'operation-cleanup-retry',
+      );
+
+      expect(receipt.status, AuthoringReceiptStatus.applied);
+      expect(replay.toJson(), receipt.toJson());
+      expect(gateway.deleteAttempts, 2);
+      expect(await harness.readA(), TransactionTestHarness.afterA);
+      expect(await harness.readJournal(), isNull);
     });
 
     for (final checkpoint in [
@@ -280,4 +311,89 @@ void main() {
       );
     });
   });
+}
+
+final class _DeleteFailingGateway implements TransactionFileGateway {
+  _DeleteFailingGateway(this.delegate);
+
+  final TransactionFileGateway delegate;
+  int deleteAttempts = 0;
+  int failuresRemaining = 1;
+
+  @override
+  Future<void> deleteTransaction(String operationId) async {
+    deleteAttempts += 1;
+    if (failuresRemaining > 0) {
+      failuresRemaining -= 1;
+      throw const TransactionFileGatewayException(
+        'transaction.cleanup_failed',
+        'Injected cleanup failure.',
+      );
+    }
+    return delegate.deleteTransaction(operationId);
+  }
+
+  @override
+  Future<List<AuthoringTransactionJournal>> listJournals() =>
+      delegate.listJournals();
+
+  @override
+  Future<void> promoteStaged({
+    required String operationId,
+    required String storageKey,
+    required TransactionPayloadKind kind,
+    required String? expectedCurrentRevision,
+  }) =>
+      delegate.promoteStaged(
+        operationId: operationId,
+        storageKey: storageKey,
+        kind: kind,
+        expectedCurrentRevision: expectedCurrentRevision,
+      );
+
+  @override
+  Future<AuthoringTransactionJournal?> readJournal(String operationId) =>
+      delegate.readJournal(operationId);
+
+  @override
+  Future<List<int>?> readResource(String storageKey) =>
+      delegate.readResource(storageKey);
+
+  @override
+  Future<String?> readResourceRevision(String storageKey) =>
+      delegate.readResourceRevision(storageKey);
+
+  @override
+  Future<TransactionStagedPayload> readStagedPayload({
+    required String operationId,
+    required String storageKey,
+    required TransactionPayloadKind kind,
+  }) =>
+      delegate.readStagedPayload(
+        operationId: operationId,
+        storageKey: storageKey,
+        kind: kind,
+      );
+
+  @override
+  Future<void> stagePayload({
+    required String operationId,
+    required String storageKey,
+    required TransactionPayloadKind kind,
+    required List<int>? bytes,
+  }) =>
+      delegate.stagePayload(
+        operationId: operationId,
+        storageKey: storageKey,
+        kind: kind,
+        bytes: bytes,
+      );
+
+  @override
+  Future<T> withExclusiveWriteLock<T>(Future<T> Function() operation) =>
+      delegate.withExclusiveWriteLock(operation);
+
+  @override
+  Future<void> writeJournal(AuthoringTransactionJournal journal) =>
+      delegate.writeJournal(journal);
 }

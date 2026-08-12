@@ -42,6 +42,7 @@ final class AuthoringIdempotencyLedger {
   final IdempotencyStore _store;
   final AuthoringIdempotencyClock _clock;
   final Duration completedRetention;
+  Future<void>? _initialPrune;
 
   Future<AuthoringReceipt> execute({
     required AuthoringIdempotencyScope scope,
@@ -50,6 +51,7 @@ final class AuthoringIdempotencyLedger {
     required FutureOr<AuthoringReceipt> Function() apply,
   }) async {
     _requireScopeMatchesRequest(scope, request);
+    await _ensureInitialPrune();
     final now = _clock().toUtc();
     final payloadFingerprint = _payloadFingerprint(request);
     final pending = AuthoringIdempotencyRecord(
@@ -107,6 +109,7 @@ final class AuthoringIdempotencyLedger {
     required AuthoringRequest request,
   }) async {
     _requireScopeMatchesRequest(scope, request);
+    await _ensureInitialPrune();
     final existing = await _store.read(scope);
     if (existing == null) return null;
     if (existing.payloadFingerprint != _payloadFingerprint(request)) {
@@ -130,8 +133,10 @@ final class AuthoringIdempotencyLedger {
 
   Future<AuthoringIdempotencyRecord?> recordForRecovery(
     AuthoringIdempotencyScope scope,
-  ) =>
-      _store.read(scope);
+  ) async {
+    await _ensureInitialPrune();
+    return _store.read(scope);
+  }
 
   /// Completes the existing pending record from a verified journal receipt.
   Future<AuthoringReceipt> completeRecovered({
@@ -139,6 +144,7 @@ final class AuthoringIdempotencyLedger {
     required String operationId,
     required AuthoringReceipt receipt,
   }) async {
+    await _ensureInitialPrune();
     final existing = await _store.read(scope);
     if (existing == null || existing.operationId != operationId) {
       throw AuthoringIdempotencyException(
@@ -160,6 +166,11 @@ final class AuthoringIdempotencyLedger {
       receipt: receipt,
     );
     return (await _store.complete(completed)).receipt!;
+  }
+
+  Future<void> _ensureInitialPrune() {
+    return _initialPrune ??=
+        _store.pruneExpired(_clock().toUtc()).then<void>((_) {});
   }
 }
 

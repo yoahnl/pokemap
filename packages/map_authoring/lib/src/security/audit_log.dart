@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../support/authoring_file_snapshot.dart';
 import '../support/authoring_fingerprint.dart';
 import 'audit_record.dart';
 
@@ -23,10 +24,12 @@ abstract interface class AuthoringAuditLog {
 
 /// Locked, flushed, hash-chained JSONL audit sink inside project metadata.
 final class FileAuthoringAuditLog implements AuthoringAuditLog {
-  FileAuthoringAuditLog._(this._projectRoot);
+  FileAuthoringAuditLog._(this._projectRoot, this._onFullRead);
 
-  static Future<FileAuthoringAuditLog> open(
-      {required String projectRoot}) async {
+  static Future<FileAuthoringAuditLog> open({
+    required String projectRoot,
+    void Function()? onFullRead,
+  }) async {
     try {
       final directory = Directory(projectRoot);
       if ((await directory.stat()).type != FileSystemEntityType.directory) {
@@ -35,7 +38,10 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
           'The audit project root is not a directory.',
         );
       }
-      return FileAuthoringAuditLog._(await directory.resolveSymbolicLinks());
+      return FileAuthoringAuditLog._(
+        await directory.resolveSymbolicLinks(),
+        onFullRead,
+      );
     } on AuthoringAuditLogException {
       rethrow;
     } on Object {
@@ -47,6 +53,9 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
   }
 
   final String _projectRoot;
+  final void Function()? _onFullRead;
+  _AuditAppendIndex? _cachedAppendIndex;
+  AuthoringFileSnapshot? _cachedSnapshot;
 
   static final Map<String, Future<void>> _inProcessLocks = {};
 
@@ -55,14 +64,14 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
     return _guard(() async {
       await _withLock(() async {
         final file = await _auditFile();
-        final events = await _readEvents(file);
-        if (events.any((event) => event.record.auditId == record.auditId)) {
+        final index = await _readAppendIndex(file);
+        if (index.auditIds.contains(record.auditId)) {
           throw const AuthoringAuditLogException(
             'audit.identity_conflict',
             'The audit identity is already present.',
           );
         }
-        final previousDigest = events.isEmpty ? null : events.last.digest;
+        final previousDigest = index.lastDigest;
         final event = _AuditEvent(
           previousDigest: previousDigest,
           record: record,
@@ -75,6 +84,11 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
         } finally {
           await writer.close();
         }
+        _cachedAppendIndex = _AuditAppendIndex(
+          auditIds: <String>{...index.auditIds, record.auditId},
+          lastDigest: event.digest,
+        );
+        _cachedSnapshot = await AuthoringFileSnapshot.capture(file);
       });
     });
   }
@@ -164,9 +178,25 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
   }
 
   Future<List<_AuditEvent>> _readEvents(File file) async {
-    if (!await file.exists()) return const [];
+    final snapshot = await AuthoringFileSnapshot.capture(file);
+    _onFullRead?.call();
+    if (snapshot == null) {
+      _cachedAppendIndex = const _AuditAppendIndex(
+        auditIds: <String>{},
+        lastDigest: null,
+      );
+      _cachedSnapshot = null;
+      return const [];
+    }
     final content = await file.readAsString();
-    if (content.isEmpty) return const [];
+    if (content.isEmpty) {
+      _cachedAppendIndex = const _AuditAppendIndex(
+        auditIds: <String>{},
+        lastDigest: null,
+      );
+      _cachedSnapshot = snapshot;
+      return const [];
+    }
     final lines = content.split('\n');
     if (lines.last.isEmpty) lines.removeLast();
     if (lines.any((line) => line.isEmpty)) throw const FormatException();
@@ -183,7 +213,20 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
       events.add(event);
       expectedPrevious = event.digest;
     }
+    _cachedAppendIndex = _AuditAppendIndex(
+      auditIds: <String>{for (final event in events) event.record.auditId},
+      lastDigest: expectedPrevious,
+    );
+    _cachedSnapshot = snapshot;
     return events;
+  }
+
+  Future<_AuditAppendIndex> _readAppendIndex(File file) async {
+    final snapshot = await AuthoringFileSnapshot.capture(file);
+    final cached = _cachedAppendIndex;
+    if (cached != null && snapshot == _cachedSnapshot) return cached;
+    await _readEvents(file);
+    return _cachedAppendIndex!;
   }
 
   Future<T> _guard<T>(Future<T> Function() operation) async {
@@ -241,6 +284,13 @@ final class _AuditEvent {
         'record': record.toJson(),
         'digest': digest,
       };
+}
+
+final class _AuditAppendIndex {
+  const _AuditAppendIndex({required this.auditIds, required this.lastDigest});
+
+  final Set<String> auditIds;
+  final String? lastDigest;
 }
 
 String _eventDigest(String? previousDigest, AuthoringAuditRecord record) {

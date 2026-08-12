@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../security/authoring_permission.dart';
+import '../support/authoring_file_snapshot.dart';
 import '../support/authoring_fingerprint.dart';
 import 'authoring_history.dart';
 import 'history_store.dart';
@@ -19,10 +20,11 @@ final class AuthoringHistoryStoreException implements Exception {
 
 /// Locked, hash-chained JSONL history with snapshot-bound pagination.
 final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
-  FileAuthoringHistoryStore._(this._projectRoot);
+  FileAuthoringHistoryStore._(this._projectRoot, this._onFullRead);
 
   static Future<FileAuthoringHistoryStore> open({
     required String projectRoot,
+    void Function()? onFullRead,
   }) async {
     try {
       final directory = Directory(projectRoot);
@@ -34,6 +36,7 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
       }
       return FileAuthoringHistoryStore._(
         await directory.resolveSymbolicLinks(),
+        onFullRead,
       );
     } on AuthoringHistoryStoreException {
       rethrow;
@@ -46,6 +49,9 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
   }
 
   final String _projectRoot;
+  final void Function()? _onFullRead;
+  _HistoryAppendIndex? _cachedAppendIndex;
+  AuthoringFileSnapshot? _cachedSnapshot;
 
   static final Map<String, Future<void>> _inProcessLocks = {};
 
@@ -54,12 +60,11 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
     return _guard(() async {
       await _withLock(() async {
         final file = await _historyFile();
-        final state = await _readState(file);
+        final state = await _readAppendIndex(file);
         final key = _entryKey(entry.projectId, entry.entryId);
-        final existing = state.entries[key];
-        if (existing != null) {
-          if (canonicalAuthoringJson(existing.entry.toJson()) ==
-              canonicalAuthoringJson(entry.toJson())) {
+        final existingFingerprint = state.entryFingerprints[key];
+        if (existingFingerprint != null) {
+          if (existingFingerprint == _entryFingerprint(entry)) {
             return;
           }
           throw const AuthoringHistoryStoreException(
@@ -175,7 +180,7 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
         if (stored.entry.nonUndoableReason != null) return stored.entry;
         await _appendEvent(
           file,
-          state,
+          _HistoryAppendIndex.fromState(state),
           type: 'markNonUndoable',
           payload: {
             'projectId': safeProject,
@@ -183,6 +188,8 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
             'reason': reason,
           },
         );
+        _cachedAppendIndex = null;
+        _cachedSnapshot = null;
         return stored.entry.markNonUndoable(reason);
       });
     });
@@ -190,7 +197,7 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
 
   Future<void> _appendEvent(
     File file,
-    _HistoryState state, {
+    _HistoryAppendIndex state, {
     required String type,
     required Map<String, Object?> payload,
   }) async {
@@ -215,12 +222,26 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
     } finally {
       await writer.close();
     }
+    _cachedAppendIndex = _applyIndexedEvent(state, event);
+    _cachedSnapshot = await AuthoringFileSnapshot.capture(file);
   }
 
   Future<_HistoryState> _readState(File file) async {
-    if (!await file.exists()) return _HistoryState.empty();
+    final snapshot = await AuthoringFileSnapshot.capture(file);
+    _onFullRead?.call();
+    if (snapshot == null) {
+      final state = _HistoryState.empty();
+      _cachedAppendIndex = _HistoryAppendIndex.fromState(state);
+      _cachedSnapshot = null;
+      return state;
+    }
     final content = await file.readAsString();
-    if (content.isEmpty) return _HistoryState.empty();
+    if (content.isEmpty) {
+      final state = _HistoryState.empty();
+      _cachedAppendIndex = _HistoryAppendIndex.fromState(state);
+      _cachedSnapshot = snapshot;
+      return state;
+    }
     final lines = content.split('\n');
     if (lines.last.isEmpty) lines.removeLast();
     if (lines.any((line) => line.isEmpty)) throw const FormatException();
@@ -285,11 +306,22 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
       lastSequence = event.sequence;
       lastDigest = event.digest;
     }
-    return _HistoryState(
+    final state = _HistoryState(
       entries: entries,
       lastSequence: lastSequence,
       lastDigest: lastDigest,
     );
+    _cachedAppendIndex = _HistoryAppendIndex.fromState(state);
+    _cachedSnapshot = snapshot;
+    return state;
+  }
+
+  Future<_HistoryAppendIndex> _readAppendIndex(File file) async {
+    final snapshot = await AuthoringFileSnapshot.capture(file);
+    final cached = _cachedAppendIndex;
+    if (cached != null && snapshot == _cachedSnapshot) return cached;
+    await _readState(file);
+    return _cachedAppendIndex!;
   }
 
   Future<T> _withLock<T>(Future<T> Function() operation) async {
@@ -408,6 +440,29 @@ final class _StoredHistoryEntry {
   final int sequence;
 }
 
+final class _HistoryAppendIndex {
+  const _HistoryAppendIndex({
+    required this.entryFingerprints,
+    required this.lastSequence,
+    required this.lastDigest,
+  });
+
+  factory _HistoryAppendIndex.fromState(_HistoryState state) {
+    return _HistoryAppendIndex(
+      entryFingerprints: <String, String>{
+        for (final entry in state.entries.entries)
+          entry.key: _entryFingerprint(entry.value.entry),
+      },
+      lastSequence: state.lastSequence,
+      lastDigest: state.lastDigest,
+    );
+  }
+
+  final Map<String, String> entryFingerprints;
+  final int lastSequence;
+  final String? lastDigest;
+}
+
 final class _HistoryEvent {
   _HistoryEvent({
     required this.sequence,
@@ -459,6 +514,31 @@ final class _HistoryEvent {
         'digest': digest,
       };
 }
+
+_HistoryAppendIndex _applyIndexedEvent(
+  _HistoryAppendIndex state,
+  _HistoryEvent event,
+) {
+  final fingerprints = Map<String, String>.of(state.entryFingerprints);
+  if (event.type == 'append') {
+    final entry = AuthoringHistoryEntry.fromJson(
+      Map<String, dynamic>.from(event.payload['entry']! as Map),
+    );
+    fingerprints[_entryKey(entry.projectId, entry.entryId)] =
+        _entryFingerprint(entry);
+  }
+  return _HistoryAppendIndex(
+    entryFingerprints: fingerprints,
+    lastSequence: event.sequence,
+    lastDigest: event.digest,
+  );
+}
+
+String _entryFingerprint(AuthoringHistoryEntry entry) =>
+    computeAuthoringJsonFingerprint(
+      entry.toJson(),
+      logicalName: 'authoring-history-entry.json',
+    );
 
 final class _DecodedHistoryCursor {
   const _DecodedHistoryCursor({

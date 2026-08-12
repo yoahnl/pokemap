@@ -100,6 +100,59 @@ void main() {
         ),
       );
     });
+
+    test('reuses a validated append index and detects external changes',
+        () async {
+      final project = await Directory.systemTemp.createTemp('pokemap_audit_');
+      addTearDown(() => project.delete(recursive: true));
+      final seed = await FileAuthoringAuditLog.open(projectRoot: project.path);
+      await seed.append(
+        _record(
+          id: 'audit-cache-0',
+          decision: AuthoringAuditDecision.succeeded,
+        ),
+      );
+      var fullReads = 0;
+      final log = await FileAuthoringAuditLog.open(
+        projectRoot: project.path,
+        onFullRead: () => fullReads += 1,
+      );
+
+      await log.append(
+        _record(
+          id: 'audit-cache-1',
+          decision: AuthoringAuditDecision.succeeded,
+        ),
+      );
+      await log.append(
+        _record(
+          id: 'audit-cache-2',
+          decision: AuthoringAuditDecision.succeeded,
+        ),
+      );
+      expect(fullReads, 1);
+
+      final file = File(
+        _join(project.path, '.pokemap', 'authoring', 'audit.jsonl'),
+      );
+      await file.writeAsString('{"corrupt":true}\n', mode: FileMode.append);
+      await expectLater(
+        () => log.append(
+          _record(
+            id: 'audit-cache-3',
+            decision: AuthoringAuditDecision.succeeded,
+          ),
+        ),
+        throwsA(
+          isA<AuthoringAuditLogException>().having(
+            (error) => error.code,
+            'code',
+            'audit.corrupt',
+          ),
+        ),
+      );
+      expect(fullReads, 2);
+    });
   });
 
   group('SecureAuthoringMutationExecutor', () {

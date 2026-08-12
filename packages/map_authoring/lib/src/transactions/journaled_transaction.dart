@@ -101,7 +101,15 @@ final class JournaledAuthoringTransaction {
         scope: scope,
         request: request,
       );
-      if (replay != null) return replay;
+      if (replay != null) {
+        final record = await _idempotency.recordForRecovery(scope);
+        await _deleteTransactionBestEffort(
+          record?.status == AuthoringIdempotencyStatus.completed
+              ? record!.operationId
+              : operationId,
+        );
+        return replay;
+      }
       await precondition?.call();
 
       final plan = _plans.resolve(
@@ -220,7 +228,7 @@ final class JournaledAuthoringTransaction {
         operationId,
       );
 
-      return _idempotency.execute(
+      final receipt = await _idempotency.execute(
         scope: scope,
         request: request,
         operationId: operationId,
@@ -303,7 +311,17 @@ final class JournaledAuthoringTransaction {
           return intendedReceipt;
         },
       );
+      await _deleteTransactionBestEffort(operationId);
+      return receipt;
     });
+  }
+
+  Future<void> _deleteTransactionBestEffort(String operationId) async {
+    try {
+      await _gateway.deleteTransaction(operationId);
+    } on Object {
+      return;
+    }
   }
 
   Future<AuthoringRevisionSet> _currentRevisions(

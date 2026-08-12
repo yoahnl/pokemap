@@ -42,10 +42,7 @@ void main() {
         await harness.readDeleted(),
         TransactionTestHarness.beforeDeleted,
       );
-      expect(
-        (await harness.readJournal())?.status,
-        AuthoringTransactionStatus.compensated,
-      );
+      expect(await harness.readJournal(), isNull);
     });
 
     test('compensation refuses a promoted resource changed by another writer',

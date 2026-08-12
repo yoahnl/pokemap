@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../ports/idempotency_store.dart';
+import '../support/authoring_file_snapshot.dart';
 import '../support/authoring_fingerprint.dart';
 
 final class IdempotencyStoreException implements Exception {
@@ -21,16 +22,23 @@ final class IdempotencyStoreException implements Exception {
 /// recovery instead of permitting a duplicate mutation. A truncated final
 /// line is ignored because it was never a fully flushed durable event.
 final class FileIdempotencyStore implements IdempotencyStore {
-  FileIdempotencyStore({required String filePath})
-      : _file = File(filePath),
+  FileIdempotencyStore({
+    required String filePath,
+    void Function()? onFullRead,
+  })  : _file = File(filePath),
         _lockFile = File('$filePath.lock'),
         _compactionFile = File('$filePath.compact'),
-        _backupFile = File('$filePath.backup');
+        _backupFile = File('$filePath.backup'),
+        _onFullRead = onFullRead;
 
   final File _file;
   final File _lockFile;
   final File _compactionFile;
   final File _backupFile;
+  final void Function()? _onFullRead;
+  Map<String, AuthoringIdempotencyRecord> _cachedRecords = {};
+  AuthoringFileSnapshot? _cachedSnapshot;
+  bool _cacheInitialized = false;
 
   @override
   Future<AuthoringIdempotencyRecord?> read(
@@ -208,7 +216,17 @@ final class FileIdempotencyStore implements IdempotencyStore {
   }
 
   Future<Map<String, AuthoringIdempotencyRecord>> _readUnlocked() async {
-    if (!await _file.exists()) return {};
+    final snapshot = await AuthoringFileSnapshot.capture(_file);
+    if (_cacheInitialized && snapshot == _cachedSnapshot) {
+      return Map<String, AuthoringIdempotencyRecord>.of(_cachedRecords);
+    }
+    _onFullRead?.call();
+    if (snapshot == null) {
+      _cachedRecords = {};
+      _cachedSnapshot = null;
+      _cacheInitialized = true;
+      return {};
+    }
     final bytes = await _file.readAsBytes();
     final records = <String, AuthoringIdempotencyRecord>{};
     var lineStart = 0;
@@ -230,6 +248,9 @@ final class FileIdempotencyStore implements IdempotencyStore {
     }
     // Bytes after the final newline are an uncommitted partial append. They
     // cannot authorize a replay and are deliberately ignored.
+    _cachedRecords = Map<String, AuthoringIdempotencyRecord>.of(records);
+    _cachedSnapshot = snapshot;
+    _cacheInitialized = true;
     return records;
   }
 
@@ -242,6 +263,16 @@ final class FileIdempotencyStore implements IdempotencyStore {
       await writer.flush();
     } finally {
       await writer.close();
+    }
+    if (_cacheInitialized) {
+      final records = Map<String, AuthoringIdempotencyRecord>.of(
+        _cachedRecords,
+      );
+      for (final event in events) {
+        _applyEvent(records, Map<String, dynamic>.from(event));
+      }
+      _cachedRecords = records;
+      _cachedSnapshot = await AuthoringFileSnapshot.capture(_file);
     }
   }
 
@@ -274,6 +305,9 @@ final class FileIdempotencyStore implements IdempotencyStore {
     }
     await _compactionFile.rename(_file.path);
     await _deleteIfExists(_backupFile);
+    _cachedRecords = Map<String, AuthoringIdempotencyRecord>.of(records);
+    _cachedSnapshot = await AuthoringFileSnapshot.capture(_file);
+    _cacheInitialized = true;
   }
 
   Future<void> _recoverCompactionUnlocked() async {

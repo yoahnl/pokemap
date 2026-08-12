@@ -307,7 +307,7 @@ Future<_ImportMeasurement> _measureImport(
     final journal = File(
       '${root.path}/.pokemap/authoring/transactions/$operationId/journal.json',
     );
-    final journalBytes = await journal.length();
+    final journalBytes = await journal.exists() ? await journal.length() : 0;
 
     await mutations.detachWorkspace(opened.workspaceHandle);
     var reopenToken = 0;

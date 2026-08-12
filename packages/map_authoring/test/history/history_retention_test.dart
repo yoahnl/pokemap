@@ -113,6 +113,46 @@ void main() {
         'history.blob_missing',
       );
     });
+
+    test('reuses a validated append index and detects external changes',
+        () async {
+      final project = await Directory.systemTemp.createTemp('pokemap_history_');
+      addTearDown(() => project.delete(recursive: true));
+      final seed = await FileAuthoringHistoryStore.open(
+        projectRoot: project.path,
+      );
+      await seed.append(_entry(0));
+      var fullReads = 0;
+      final store = await FileAuthoringHistoryStore.open(
+        projectRoot: project.path,
+        onFullRead: () => fullReads += 1,
+      );
+
+      await store.append(_entry(1));
+      await store.append(_entry(2));
+      expect(fullReads, 1);
+
+      final file = File(
+        [
+          project.path,
+          '.pokemap',
+          'authoring',
+          'history.jsonl',
+        ].join(Platform.pathSeparator),
+      );
+      await file.writeAsString('{"corrupt":true}\n', mode: FileMode.append);
+      await expectLater(
+        () => store.append(_entry(3)),
+        throwsA(
+          isA<AuthoringHistoryStoreException>().having(
+            (error) => error.code,
+            'code',
+            'history.store_corrupt',
+          ),
+        ),
+      );
+      expect(fullReads, 2);
+    });
   });
 
   group('FileAuthoringContentBlobStore', () {
