@@ -4,7 +4,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('writes sparse tile and collision stroke scaling evidence', () async {
+  test('writes sparse tile collision and Smart Tile scaling evidence',
+      () async {
     final output = await _temporaryOutput('map_cell_stroke');
     final result = await _run(<String>[
       '--warmups',
@@ -33,6 +34,8 @@ void main() {
         'tileCommit',
         'collisionPointerSamples',
         'collisionCommit',
+        'smartTilePointerSamples',
+        'smartTileCommit',
       ]) {
         final profile = Map<String, Object?>.from(row[key]! as Map);
         expect(profile['samplesUs'], hasLength(1));

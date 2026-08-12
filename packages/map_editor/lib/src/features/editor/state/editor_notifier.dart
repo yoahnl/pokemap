@@ -5699,6 +5699,32 @@ class EditorNotifier extends _$EditorNotifier
       return;
     }
     try {
+      final buffer = _mapCellStrokeBuffer;
+      if (partOfStroke &&
+          buffer != null &&
+          identical(buffer.sourceMap, map) &&
+          buffer.layerId == layerId &&
+          buffer.kind == MapCellStrokeLayerKind.smartTile) {
+        final changed = selectedCells.length == 1
+            ? buffer.setSmartTileMaterialAt(
+                origin: selectedCells.single,
+                materialId: materialId,
+              )
+            : buffer.setSmartTileMaterials(
+                cells: selectedCells,
+                materialId: materialId,
+              );
+        if (!changed) return;
+        _recordSmartTileGesture(
+          mapId: map.id,
+          layerId: layerId,
+          materialId: materialId,
+          cells: buffer.smartTileTouchedCells,
+          commitImmediately: false,
+          selection: selection,
+        );
+        return;
+      }
       final paintedLayer = applySmartTileMaterialGesture(
         activeLayer,
         mapSize: map.size,
@@ -5710,10 +5736,7 @@ class EditorNotifier extends _$EditorNotifier
         return;
       }
       final updated = replaceSmartTileLayer(map, layer: paintedLayer);
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: state.project,
-      );
+      _validateSmartTileMap(updated);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -5894,6 +5917,7 @@ class EditorNotifier extends _$EditorNotifier
       );
     } else if (layer is SmartTileLayer) {
       try {
+        final buffer = _mapCellStrokeBuffer;
         final erasedCells = <GridPos>[];
         for (var y = 0; y < patternSize.height; y++) {
           for (var x = 0; x < patternSize.width; x++) {
@@ -5905,12 +5929,18 @@ class EditorNotifier extends _$EditorNotifier
                 targetY >= map.size.height) {
               continue;
             }
-            final hasAuthoredValue = smartTileCellHasAuthoredValue(
-              layer,
-              mapSize: map.size,
-              x: targetX,
-              y: targetY,
-            );
+            final hasAuthoredValue = partOfStroke &&
+                    buffer != null &&
+                    identical(buffer.sourceMap, map) &&
+                    buffer.layerId == layerId &&
+                    buffer.kind == MapCellStrokeLayerKind.smartTile
+                ? buffer.smartTileCellHasAuthoredValue(targetX, targetY)
+                : smartTileCellHasAuthoredValue(
+                    layer,
+                    mapSize: map.size,
+                    x: targetX,
+                    y: targetY,
+                  );
             if (!hasAuthoredValue) continue;
             erasedCells.add(GridPos(x: targetX, y: targetY));
           }
@@ -5934,6 +5964,30 @@ class EditorNotifier extends _$EditorNotifier
           );
           return true;
         }
+        if (partOfStroke &&
+            buffer != null &&
+            identical(buffer.sourceMap, map) &&
+            buffer.layerId == layerId &&
+            buffer.kind == MapCellStrokeLayerKind.smartTile) {
+          final changed = erasedCells.length == 1
+              ? buffer.setSmartTileMaterialAt(
+                  origin: erasedCells.single,
+                  materialId: null,
+                )
+              : buffer.setSmartTileMaterials(
+                  cells: erasedCells,
+                  materialId: null,
+                );
+          if (!changed) return false;
+          _recordSmartTileGesture(
+            mapId: map.id,
+            layerId: layerId,
+            materialId: null,
+            cells: buffer.smartTileTouchedCells,
+            commitImmediately: false,
+          );
+          return true;
+        }
         final erasedLayer = applySmartTileMaterialGesture(
           layer,
           mapSize: map.size,
@@ -5945,10 +5999,7 @@ class EditorNotifier extends _$EditorNotifier
           return false;
         }
         final updated = replaceSmartTileLayer(map, layer: erasedLayer);
-        MapValidator.validate(
-          updated,
-          projectDialogueContext: state.project,
-        );
+        _validateSmartTileMap(updated);
         _applyMapMutation(
           previousMap: map,
           updatedMap: updated,
@@ -8252,6 +8303,13 @@ class EditorNotifier extends _$EditorNotifier
           layerId: layerId,
           onChanged: repaint.repaint,
         );
+      } else if (activeLayer is SmartTileLayer) {
+        _mapCellStrokeRepaint = repaint;
+        _mapCellStrokeBuffer = MapCellStrokeBuffer.smartTile(
+          sourceMap: map,
+          layerId: layerId,
+          onChanged: repaint.repaint,
+        );
       }
     }
     state = _mapEditingController.beginStroke(state);
@@ -8278,7 +8336,9 @@ class EditorNotifier extends _$EditorNotifier
                         layer: layer,
                       )
                   : null,
-          validate: MapValidator.validate,
+          validate: buffer.kind == MapCellStrokeLayerKind.smartTile
+              ? _validateSmartTileMap
+              : MapValidator.validate,
         );
         _applyMapMutation(
           previousMap: buffer.sourceMap,
@@ -8735,6 +8795,14 @@ class EditorNotifier extends _$EditorNotifier
     final layer = _findLayerById(map, pending.layerId);
     if (layer is! SmartTileLayer) return;
     pending.rollbackState = state;
+    final buffer = _mapCellStrokeBuffer;
+    if (state.mapStrokeStart != null &&
+        buffer != null &&
+        buffer.kind == MapCellStrokeLayerKind.smartTile &&
+        buffer.layerId == pending.layerId) {
+      buffer.rebaseSmartTileSource(map);
+      return;
+    }
     try {
       final painted = applySmartTileMaterialGesture(
         layer,
@@ -8744,7 +8812,7 @@ class EditorNotifier extends _$EditorNotifier
       );
       if (painted == layer) return;
       final updated = replaceSmartTileLayer(map, layer: painted);
-      MapValidator.validate(updated, projectDialogueContext: state.project);
+      _validateSmartTileMap(updated);
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -8789,6 +8857,17 @@ class EditorNotifier extends _$EditorNotifier
   ) =>
       state.projectRootPath == entry.projectRootPath &&
       state.activeMap?.id == entry.mapId;
+
+  void _validateSmartTileMap(MapData map) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.mapFullValidation,
+    );
+    try {
+      MapValidator.validate(map, projectDialogueContext: state.project);
+    } finally {
+      span?.finish();
+    }
+  }
 
   void _syncCanonicalSmartTileHistoryFlags() {
     final canUndoCanonical = _canonicalSmartTileUndoStack.isNotEmpty &&

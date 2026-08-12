@@ -49,8 +49,14 @@ Future<void> main(List<String> arguments) async {
         samples: samples,
         measure: () => _measureCollisionSamples(extent, strokeSamples),
       );
+      final smartTilePointerSamples = _profile(
+        warmups: warmups,
+        samples: samples,
+        measure: () => _measureSmartTileSamples(extent, strokeSamples),
+      );
       _requirePointerBudget(tilePointerSamples);
       _requirePointerBudget(collisionPointerSamples);
+      _requirePointerBudget(smartTilePointerSamples);
       results.add(<String, Object?>{
         'extent': extent,
         'strokeSamples': strokeSamples,
@@ -65,6 +71,12 @@ Future<void> main(List<String> arguments) async {
           warmups: warmups,
           samples: samples,
           measure: () => _measureCollisionCommit(extent, strokeSamples),
+        ),
+        'smartTilePointerSamples': smartTilePointerSamples,
+        'smartTileCommit': _profile(
+          warmups: warmups,
+          samples: samples,
+          measure: () => _measureSmartTileCommit(extent, strokeSamples),
         ),
         'workCounts': <String, Object?>{
           'legacyFullLayerCopiesDuringGesture': strokeSamples,
@@ -117,7 +129,7 @@ Future<void> main(List<String> arguments) async {
 
 void _requirePointerBudget(Map<String, Object?> profile) {
   if ((profile['p95Us']! as int) >= _pointerSamplesP95BudgetUs) {
-    throw StateError('Pointer sample batch exceeded the PERF-003 budget.');
+    throw StateError('Pointer sample batch exceeded the map cell budget.');
   }
 }
 
@@ -226,6 +238,47 @@ _Measurement _measureCollisionCommit(int extent, int samples) {
   );
 }
 
+_Measurement _measureSmartTileSamples(int extent, int samples) {
+  final buffer = MapCellStrokeBuffer.smartTile(
+    sourceMap: _smartTileMap(extent),
+    layerId: 'smart',
+  );
+  final stopwatch = Stopwatch()..start();
+  _applySmartTileSamples(buffer, samples);
+  stopwatch.stop();
+  _requireSparse(buffer, samples);
+  return _Measurement(
+    elapsedUs: stopwatch.elapsedMicroseconds,
+    checksum: stableFingerprint(<Object?>[
+      buffer.touchedCellCount,
+      buffer.smartTileMaterialAt(samples - 1, 0),
+      buffer.revision,
+    ]),
+  );
+}
+
+_Measurement _measureSmartTileCommit(int extent, int samples) {
+  final buffer = MapCellStrokeBuffer.smartTile(
+    sourceMap: _smartTileMap(extent),
+    layerId: 'smart',
+  );
+  _applySmartTileSamples(buffer, samples);
+  final stopwatch = Stopwatch()..start();
+  final committed = buffer.commit(validate: MapValidator.validate);
+  stopwatch.stop();
+  _requireCommitted(buffer);
+  final layer = committed.layers.single as SmartTileLayer;
+  return _Measurement(
+    elapsedUs: stopwatch.elapsedMicroseconds,
+    checksum: stableFingerprint(<Object?>[
+      buffer.touchedCellCount,
+      smartTileSemanticCells(layer).first,
+      smartTileSemanticCells(layer)[samples - 1],
+      smartTileSemanticCells(layer).length,
+    ]),
+  );
+}
+
 void _applyTileSamples(MapCellStrokeBuffer buffer, int samples) {
   for (var x = 0; x < samples; x++) {
     buffer.paintTiles(
@@ -244,6 +297,15 @@ void _applyCollisionSamples(MapCellStrokeBuffer buffer, int samples) {
       origin: GridPos(x: x, y: 0),
       patternSize: const GridSize(width: 1, height: 1),
       value: true,
+    );
+  }
+}
+
+void _applySmartTileSamples(MapCellStrokeBuffer buffer, int samples) {
+  for (var x = 0; x < samples; x++) {
+    buffer.setSmartTileMaterialAt(
+      origin: GridPos(x: x, y: 0),
+      materialId: 'grass',
     );
   }
 }
@@ -287,6 +349,24 @@ MapData _collisionMap(int extent) => MapData(
       id: 'collision',
       name: 'Collision',
       collisions: List<bool>.filled(extent * extent, false, growable: false),
+    ),
+  ],
+);
+
+MapData _smartTileMap(int extent) => MapData(
+  id: 'smart-$extent',
+  name: 'Smart Tile $extent',
+  size: GridSize(width: extent, height: extent),
+  layers: <MapLayer>[
+    MapLayer.smartTile(
+      id: 'smart',
+      name: 'Smart',
+      presetId: 'terrain',
+      usage: SmartTileUsage.terrain,
+      materialPalette: const <String>['', 'grass'],
+      field: SmartTileField.cell(
+        semanticCells: List<int>.filled(extent * extent, 0, growable: false),
+      ),
     ),
   ],
 );

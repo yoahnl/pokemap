@@ -44,6 +44,7 @@ void main() {
       'mask.commit',
       'mask.build',
       'mask.paint',
+      'map.validation.full',
       'snapshot',
       'plan',
       'apply',
