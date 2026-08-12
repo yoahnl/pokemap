@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,6 +7,8 @@ import '../../application/services/narrative_undo_stack.dart';
 
 typedef NarrativeRecoveryDocumentEncoder<T> = Object? Function(T document);
 typedef NarrativeRecoveryDocumentDecoder<T> = T Function(Object? value);
+typedef NarrativeRecoveryDocumentMigrationDetector =
+    bool Function(Object? value);
 
 /// File-backed crash-recovery journal for one narrative document session.
 ///
@@ -18,13 +21,18 @@ final class FileNarrativeDocumentRecoveryStore<T>
     required String journalPath,
     required NarrativeRecoveryDocumentEncoder<T> encodeDocument,
     required NarrativeRecoveryDocumentDecoder<T> decodeDocument,
-  })  : _journal = File(_requiredPath(journalPath)),
-        _encodeDocument = encodeDocument,
-        _decodeDocument = decodeDocument;
+    NarrativeRecoveryDocumentMigrationDetector? needsMigration,
+  }) : _journal = File(_requiredPath(journalPath)),
+       _encodeDocument = encodeDocument,
+       _decodeDocument = decodeDocument,
+       _needsMigration = needsMigration;
 
   final File _journal;
   final NarrativeRecoveryDocumentEncoder<T> _encodeDocument;
   final NarrativeRecoveryDocumentDecoder<T> _decodeDocument;
+  final NarrativeRecoveryDocumentMigrationDetector? _needsMigration;
+  _PendingRecoveryMutation<T>? _pendingMutation;
+  Future<void>? _drainFuture;
 
   String get journalPath => _journal.path;
 
@@ -41,11 +49,23 @@ final class FileNarrativeDocumentRecoveryStore<T>
     } on Object catch (error) {
       throw FormatException('Recovery journal cannot be decoded: $error');
     }
-    return _decodeRecord(_object(decoded, 'journal'));
+    final json = _object(decoded, 'journal');
+    final record = _decodeRecord(json);
+    if (_recordNeedsMigration(json)) {
+      await write(record);
+    }
+    return record;
   }
 
   @override
-  Future<void> write(NarrativeDocumentRecoveryRecord<T> record) async {
+  Future<void> write(NarrativeDocumentRecoveryRecord<T> record) {
+    return _enqueueMutation(record);
+  }
+
+  @override
+  Future<void> clear() => _enqueueMutation(null);
+
+  Future<void> _writeNow(NarrativeDocumentRecoveryRecord<T> record) async {
     final temp = File('${_journal.path}.tmp');
     await _journal.parent.create(recursive: true);
     final bytes = utf8.encode(jsonEncode(_encodeRecord(record)));
@@ -70,8 +90,7 @@ final class FileNarrativeDocumentRecoveryStore<T>
     }
   }
 
-  @override
-  Future<void> clear() async {
+  Future<void> _clearNow() async {
     if (await _journal.exists()) {
       await _journal.delete();
     }
@@ -79,6 +98,64 @@ final class FileNarrativeDocumentRecoveryStore<T>
     if (await temp.exists()) {
       await temp.delete();
     }
+  }
+
+  Future<void> _enqueueMutation(NarrativeDocumentRecoveryRecord<T>? record) {
+    final completer = Completer<void>();
+    final pending = _pendingMutation;
+    _pendingMutation = _PendingRecoveryMutation<T>(
+      record: record,
+      waiters: <Completer<void>>[...?pending?.waiters, completer],
+    );
+    _drainFuture ??= _drainMutations();
+    return completer.future;
+  }
+
+  Future<void> _drainMutations() async {
+    while (true) {
+      final mutation = _pendingMutation;
+      if (mutation == null) break;
+      _pendingMutation = null;
+      try {
+        final record = mutation.record;
+        if (record == null) {
+          await _clearNow();
+        } else {
+          await _writeNow(record);
+        }
+        for (final waiter in mutation.waiters) {
+          waiter.complete();
+        }
+      } on Object catch (error, stackTrace) {
+        for (final waiter in mutation.waiters) {
+          waiter.completeError(error, stackTrace);
+        }
+      }
+    }
+    _drainFuture = null;
+    if (_pendingMutation != null) {
+      _drainFuture = _drainMutations();
+    }
+  }
+
+  bool _recordNeedsMigration(Map<String, Object?> json) {
+    final needsMigration = _needsMigration;
+    if (needsMigration == null) return false;
+    if (needsMigration(json['baseline']) || needsMigration(json['document'])) {
+      return true;
+    }
+    for (final field in <String>['undoEntries', 'redoEntries']) {
+      final entries = json[field];
+      if (entries is! List) continue;
+      for (final entry in entries) {
+        if (entry is Map &&
+            (needsMigration(entry['before']) ||
+                needsMigration(entry['after']))) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   Map<String, Object?> _encodeRecord(
@@ -104,9 +181,7 @@ final class FileNarrativeDocumentRecoveryStore<T>
     };
   }
 
-  NarrativeDocumentRecoveryRecord<T> _decodeRecord(
-    Map<String, Object?> json,
-  ) {
+  NarrativeDocumentRecoveryRecord<T> _decodeRecord(Map<String, Object?> json) {
     final schemaVersion = _integer(json['schemaVersion'], 'schemaVersion');
     if (schemaVersion != 1) {
       throw FormatException(
@@ -140,6 +215,13 @@ final class FileNarrativeDocumentRecoveryStore<T>
       }),
     );
   }
+}
+
+final class _PendingRecoveryMutation<T> {
+  const _PendingRecoveryMutation({required this.record, required this.waiters});
+
+  final NarrativeDocumentRecoveryRecord<T>? record;
+  final List<Completer<void>> waiters;
 }
 
 String _requiredPath(String value) {

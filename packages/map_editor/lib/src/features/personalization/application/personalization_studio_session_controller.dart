@@ -21,11 +21,12 @@ final class PersonalizationStudioSessionState {
   });
 
   factory PersonalizationStudioSessionState.fromDocumentState(
-    NarrativeDocumentSessionState<ProjectManifest> state,
+    NarrativeDocumentSessionState<ProjectPresentationProfile> state,
+    ProjectManifest project,
   ) {
     return PersonalizationStudioSessionState(
-      document: state.document,
-      savedDocument: state.baseline,
+      document: _projectWithProfile(project, state.document),
+      savedDocument: _projectWithProfile(project, state.baseline),
       status: state.status,
       isInitialized: state.isInitialized,
       isDirty: state.isDirty,
@@ -66,26 +67,35 @@ final class PersonalizationStudioSessionState {
 /// lots without duplicating that safety-critical state machine.
 final class PersonalizationStudioSessionController extends ChangeNotifier {
   PersonalizationStudioSessionController({
-    required NarrativeDocumentSession<ProjectManifest> session,
-  }) : _session = session {
+    required NarrativeDocumentSession<ProjectPresentationProfile> session,
+    required ProjectManifest initialProject,
+    ProjectManifest Function()? projectSnapshot,
+  }) : _session = session,
+       _project = initialProject,
+       _projectSnapshot = projectSnapshot {
     _session.setPersistenceGuard(_persistenceIssue);
     _session.addListener(_onSessionChanged);
   }
 
-  final NarrativeDocumentSession<ProjectManifest> _session;
+  final NarrativeDocumentSession<ProjectPresentationProfile> _session;
+  final ProjectManifest Function()? _projectSnapshot;
+  ProjectManifest _project;
   bool _disposed = false;
   int _conflictResolutionSequence = 0;
 
   PersonalizationStudioSessionState get state =>
-      PersonalizationStudioSessionState.fromDocumentState(_session.state);
+      PersonalizationStudioSessionState.fromDocumentState(
+        _session.state,
+        _project,
+      );
 
   Future<void> initialize() async {
     await _session.initialize();
+    _synchronizeProject();
     final comparison = _session.comparison;
     if (_session.state.status != NarrativeDocumentSessionStatus.conflicted ||
         comparison == null ||
-        comparison.baseline.effectivePresentation !=
-            comparison.external.effectivePresentation) {
+        comparison.baseline != comparison.external) {
       return;
     }
     await keepDraftOnCurrentProject();
@@ -99,7 +109,7 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
     return _session.apply(
       operationId: operationId,
       label: label,
-      document: _session.state.document.copyWith(presentation: profile),
+      document: profile,
     );
   }
 
@@ -114,8 +124,7 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
   Future<bool> keepDraftOnCurrentProject() {
     final sequence = ++_conflictResolutionSequence;
     return _session.rebaseConflict(
-      merge: (local, external) =>
-          external.copyWith(presentation: local.presentation),
+      merge: (local, external) => local,
       operationId: 'personalization_conflict_keep_$sequence',
       label: 'Restaurer les derniers réglages visuels',
     );
@@ -127,21 +136,26 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
     _session.setAutosaveEnabled(enabled);
   }
 
-  static String? _persistenceIssue(ProjectManifest document) {
-    final errors =
-        validateProjectPresentationProfile(
-          document.effectivePresentation,
-        ).where(
-          (diagnostic) =>
-              diagnostic.severity ==
-              ProjectPresentationDiagnosticSeverity.error,
-        );
+  static String? _persistenceIssue(ProjectPresentationProfile document) {
+    final errors = validateProjectPresentationProfile(document).where(
+      (diagnostic) =>
+          diagnostic.severity == ProjectPresentationDiagnosticSeverity.error,
+    );
     if (errors.isEmpty) return null;
     return 'Sauvegarde bloquée : ${errors.first.message}';
   }
 
   void _onSessionChanged() {
-    if (!_disposed) notifyListeners();
+    if (_disposed) return;
+    _synchronizeProject();
+    notifyListeners();
+  }
+
+  void _synchronizeProject() {
+    final snapshot = _projectSnapshot;
+    if (snapshot != null) {
+      _project = snapshot();
+    }
   }
 
   @override
@@ -152,4 +166,12 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
     _session.dispose();
     super.dispose();
   }
+}
+
+ProjectManifest _projectWithProfile(
+  ProjectManifest project,
+  ProjectPresentationProfile profile,
+) {
+  if (profile == project.effectivePresentation) return project;
+  return project.copyWith(presentation: profile);
 }

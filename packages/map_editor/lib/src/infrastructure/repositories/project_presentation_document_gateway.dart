@@ -18,7 +18,7 @@ typedef ProjectPresentationCanonicalSave =
 /// Project-manifest document gateway dedicated to presentation-only sessions.
 ///
 final class ProjectPresentationDocumentGateway
-    implements NarrativeDocumentGateway<ProjectManifest> {
+    implements NarrativeDocumentGateway<ProjectPresentationProfile> {
   ProjectPresentationDocumentGateway({
     required String projectPath,
     AtomicProjectManifestPersistence? persistence,
@@ -34,39 +34,40 @@ final class ProjectPresentationDocumentGateway
   final AtomicProjectManifestPersistence _persistence;
   final ProjectPresentationAssetCleaner _assetCleaner;
   final ProjectPresentationCanonicalSave? _canonicalSave;
+  ProjectManifest? _currentProject;
 
   ProjectPresentationAssetCleanupResult? lastAssetCleanupResult;
+  ProjectManifest get currentProject => _currentProject!;
 
   @override
-  Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
+  Future<NarrativeDocumentVersion<ProjectPresentationProfile>> read() async {
     final bytes = await File(projectPath).readAsBytes();
-    return NarrativeDocumentVersion<ProjectManifest>(
+    final project = decodeValidatedNarrativeEventAuthoringProject(
+      bytes,
+    ).manifest;
+    _currentProject = project;
+    return NarrativeDocumentVersion<ProjectPresentationProfile>(
       revision: narrativeEventBytesFingerprint(bytes),
-      document: decodeValidatedNarrativeEventAuthoringProject(bytes).manifest,
+      document: project.effectivePresentation,
     );
   }
 
   @override
-  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
+  Future<NarrativeDocumentSaveResult<ProjectPresentationProfile>> save({
     required String expectedRevision,
-    required ProjectManifest before,
-    required ProjectManifest after,
+    required ProjectPresentationProfile before,
+    required ProjectPresentationProfile after,
     required String operationId,
   }) async {
-    if (before.copyWith(presentation: after.presentation) != after) {
-      return const NarrativeDocumentSaveResult<ProjectManifest>.failed(
-        code: 'unsupportedDocumentMutation',
-        message: 'This document session can persist presentation changes only.',
-      );
-    }
-
     final current = await _readOrFailure();
-    if (current case NarrativeDocumentSaveFailed<ProjectManifest>()) {
+    if (current
+        case NarrativeDocumentSaveFailed<ProjectPresentationProfile>()) {
       return current;
     }
-    final live = current as NarrativeDocumentVersion<ProjectManifest>;
+    final live =
+        current as NarrativeDocumentVersion<ProjectPresentationProfile>;
     if (live.revision != expectedRevision || live.document != before) {
-      return NarrativeDocumentSaveResult<ProjectManifest>.conflicted(
+      return NarrativeDocumentSaveResult<ProjectPresentationProfile>.conflicted(
         code: 'staleProjectRevision',
         message: 'The project changed since the Personalization Studio opened.',
         external: live,
@@ -76,23 +77,26 @@ final class ProjectPresentationDocumentGateway
     if (_canonicalSave case final canonicalSave?) {
       try {
         await canonicalSave(
-          profile: after.effectivePresentation,
+          profile: after,
           expectedProjectRevision: expectedRevision,
           operationId: operationId,
         );
       } on Object catch (error) {
         final external = await _readOrFailure();
-        if (external case NarrativeDocumentVersion<ProjectManifest>()) {
+        if (external
+            case NarrativeDocumentVersion<ProjectPresentationProfile>()) {
           if (external.revision != expectedRevision ||
               external.document != before) {
-            return NarrativeDocumentSaveResult<ProjectManifest>.conflicted(
+            return NarrativeDocumentSaveResult<
+              ProjectPresentationProfile
+            >.conflicted(
               code: 'staleProjectRevision',
               message: 'The project changed while the presentation was saved.',
               external: external,
             );
           }
         }
-        return NarrativeDocumentSaveResult<ProjectManifest>.failed(
+        return NarrativeDocumentSaveResult<ProjectPresentationProfile>.failed(
           code: 'canonicalPresentationUpdateFailed',
           message: 'The canonical presentation update failed: $error',
         );
@@ -102,14 +106,15 @@ final class ProjectPresentationDocumentGateway
 
     late final NarrativeAuthoringPersistenceResult persistenceResult;
     try {
+      final liveProject = _currentProject!;
       persistenceResult = await _persistence.persistProjectDocument(
         projectPath: projectPath,
         operationId: operationId,
-        before: before,
-        after: after,
+        before: liveProject,
+        after: liveProject.copyWith(presentation: after),
       );
     } on Object catch (error) {
-      return NarrativeDocumentSaveResult<ProjectManifest>.failed(
+      return NarrativeDocumentSaveResult<ProjectPresentationProfile>.failed(
         code: 'projectManifestWriteFailed',
         message: 'The project manifest could not be persisted: $error',
       );
@@ -122,32 +127,39 @@ final class ProjectPresentationDocumentGateway
 
     if (_isConflictCode(persistenceResult.code)) {
       final external = await _readOrFailure();
-      if (external case NarrativeDocumentSaveFailed<ProjectManifest>()) {
+      if (external
+          case NarrativeDocumentSaveFailed<ProjectPresentationProfile>()) {
         return external;
       }
-      return NarrativeDocumentSaveResult<ProjectManifest>.conflicted(
+      return NarrativeDocumentSaveResult<ProjectPresentationProfile>.conflicted(
         code: persistenceResult.code,
         message: persistenceResult.message,
-        external: external as NarrativeDocumentVersion<ProjectManifest>,
+        external:
+            external as NarrativeDocumentVersion<ProjectPresentationProfile>,
       );
     }
-    return NarrativeDocumentSaveResult<ProjectManifest>.failed(
+    return NarrativeDocumentSaveResult<ProjectPresentationProfile>.failed(
       code: persistenceResult.code,
       message: persistenceResult.message,
     );
   }
 
-  Future<NarrativeDocumentSaveResult<ProjectManifest>> _finishCommittedSave({
-    required ProjectManifest before,
-    required ProjectManifest after,
+  Future<NarrativeDocumentSaveResult<ProjectPresentationProfile>>
+  _finishCommittedSave({
+    required ProjectPresentationProfile before,
+    required ProjectPresentationProfile after,
   }) async {
     final durable = await _readOrFailure();
-    if (durable case NarrativeDocumentSaveFailed<ProjectManifest>()) {
+    if (durable
+        case NarrativeDocumentSaveFailed<ProjectPresentationProfile>()) {
       return durable;
     }
-    final version = durable as NarrativeDocumentVersion<ProjectManifest>;
+    final version =
+        durable as NarrativeDocumentVersion<ProjectPresentationProfile>;
     if (version.document != after) {
-      return const NarrativeDocumentSaveResult<ProjectManifest>.failed(
+      return const NarrativeDocumentSaveResult<
+        ProjectPresentationProfile
+      >.failed(
         code: 'durableDocumentMismatch',
         message:
             'Persistence completed but the durable document does not '
@@ -157,22 +169,24 @@ final class ProjectPresentationDocumentGateway
     try {
       lastAssetCleanupResult = await _assetCleaner.cleanStaleAssets(
         projectRoot: File(projectPath).parent,
-        previousProfile: before.effectivePresentation,
-        currentProfile: after.effectivePresentation,
+        previousProfile: before,
+        currentProfile: after,
       );
     } on Object catch (error) {
       lastAssetCleanupResult = ProjectPresentationAssetCleanupResult.failed(
         error,
       );
     }
-    return NarrativeDocumentSaveResult<ProjectManifest>.saved(version);
+    return NarrativeDocumentSaveResult<ProjectPresentationProfile>.saved(
+      version,
+    );
   }
 
   Future<Object> _readOrFailure() async {
     try {
       return await read();
     } on Object catch (error) {
-      return NarrativeDocumentSaveResult<ProjectManifest>.failed(
+      return NarrativeDocumentSaveResult<ProjectPresentationProfile>.failed(
         code: 'projectManifestReadFailed',
         message: 'The project manifest cannot be read safely: $error',
       );

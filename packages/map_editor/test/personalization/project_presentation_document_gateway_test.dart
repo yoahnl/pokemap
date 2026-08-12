@@ -28,16 +28,17 @@ void main() {
             layoutVariant: 'cinematic',
           ),
         );
-        final after = before.document.copyWith(presentation: profile);
-
         final result = await gateway.save(
           expectedRevision: before.revision,
           before: before.document,
-          after: after,
+          after: profile,
           operationId: 'save-presentation-1',
         );
 
-        expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+        expect(
+          result,
+          isA<NarrativeDocumentSaved<ProjectPresentationProfile>>(),
+        );
         final durableRoot =
             jsonDecode(fixture.projectFile.readAsStringSync())
                 as Map<String, dynamic>;
@@ -60,13 +61,11 @@ void main() {
           persistence: const AtomicProjectManifestPersistence(),
         );
         final before = await gateway.read();
-        final external = before.document.copyWith(name: 'External edit');
+        final external = fixture.initialProject.copyWith(name: 'External edit');
         fixture.writeProject(external);
         final externalBytes = fixture.projectFile.readAsBytesSync();
-        final local = before.document.copyWith(
-          presentation: const ProjectPresentationProfile(
-            branding: ProjectBrandingProfile(accentColor: '#123456'),
-          ),
+        const local = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: '#123456'),
         );
 
         final result = await gateway.save(
@@ -76,7 +75,10 @@ void main() {
           operationId: 'stale-presentation-save',
         );
 
-        expect(result, isA<NarrativeDocumentSaveConflicted<ProjectManifest>>());
+        expect(
+          result,
+          isA<NarrativeDocumentSaveConflicted<ProjectPresentationProfile>>(),
+        );
         expect(fixture.projectFile.readAsBytesSync(), externalBytes);
       },
     );
@@ -119,61 +121,61 @@ void main() {
       final result = await gateway.save(
         expectedRevision: before.revision,
         before: before.document,
-        after: before.document.copyWith(presentation: profile),
+        after: profile,
         operationId: 'canonical-presentation-save',
       );
 
-      expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+      expect(result, isA<NarrativeDocumentSaved<ProjectPresentationProfile>>());
       expect(canonicalSaveCalls, 1);
-      expect((await gateway.read()).document.presentation, profile);
+      expect((await gateway.read()).document, profile);
     });
 
-    test('reports an explicit failure when the canonical mutation rejects',
-        () async {
-      final fixture = _GatewayFixture.create();
-      addTearDown(fixture.dispose);
-      final gateway = ProjectPresentationDocumentGateway(
-        projectPath: fixture.projectFile.path,
-        canonicalSave:
-            ({
-              required profile,
-              required expectedProjectRevision,
-              required operationId,
-            }) async {
-              throw StateError('validation rejected');
-            },
-      );
-      final before = await gateway.read();
+    test(
+      'reports an explicit failure when the canonical mutation rejects',
+      () async {
+        final fixture = _GatewayFixture.create();
+        addTearDown(fixture.dispose);
+        final gateway = ProjectPresentationDocumentGateway(
+          projectPath: fixture.projectFile.path,
+          canonicalSave:
+              ({
+                required profile,
+                required expectedProjectRevision,
+                required operationId,
+              }) async {
+                throw StateError('validation rejected');
+              },
+        );
+        final before = await gateway.read();
 
-      final result = await gateway.save(
-        expectedRevision: before.revision,
-        before: before.document,
-        after: before.document.copyWith(
-          presentation: const ProjectPresentationProfile(
+        final result = await gateway.save(
+          expectedRevision: before.revision,
+          before: before.document,
+          after: const ProjectPresentationProfile(
             menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
           ),
-        ),
-        operationId: 'rejected-canonical-presentation-save',
-      );
+          operationId: 'rejected-canonical-presentation-save',
+        );
 
-      expect(
-        result,
-        isA<NarrativeDocumentSaveFailed<ProjectManifest>>()
-            .having(
-              (value) => value.code,
-              'code',
-              'canonicalPresentationUpdateFailed',
-            )
-            .having(
-              (value) => value.message,
-              'message',
-              contains('validation rejected'),
-            ),
-      );
-      expect((await gateway.read()).document, before.document);
-    });
+        expect(
+          result,
+          isA<NarrativeDocumentSaveFailed<ProjectPresentationProfile>>()
+              .having(
+                (value) => value.code,
+                'code',
+                'canonicalPresentationUpdateFailed',
+              )
+              .having(
+                (value) => value.message,
+                'message',
+                contains('validation rejected'),
+              ),
+        );
+        expect((await gateway.read()).document, before.document);
+      },
+    );
 
-    test('rejects a mutation outside the presentation profile', () async {
+    test('preserves project fields outside the presentation profile', () async {
       final fixture = _GatewayFixture.create();
       addTearDown(fixture.dispose);
       final gateway = ProjectPresentationDocumentGateway(
@@ -185,19 +187,19 @@ void main() {
       final result = await gateway.save(
         expectedRevision: before.revision,
         before: before.document,
-        after: before.document.copyWith(name: 'Not a presentation edit'),
-        operationId: 'invalid-presentation-save',
+        after: const ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: '#456789'),
+        ),
+        operationId: 'profile-only-presentation-save',
       );
 
-      expect(
-        result,
-        isA<NarrativeDocumentSaveFailed<ProjectManifest>>().having(
-          (value) => value.code,
-          'code',
-          'unsupportedDocumentMutation',
-        ),
+      expect(result, isA<NarrativeDocumentSaved<ProjectPresentationProfile>>());
+      final durable = ProjectManifest.fromJson(
+        jsonDecode(fixture.projectFile.readAsStringSync())
+            as Map<String, dynamic>,
       );
-      expect((await gateway.read()).document, before.document);
+      expect(durable.name, fixture.initialProject.name);
+      expect(durable.maps, fixture.initialProject.maps);
     });
 
     test(
@@ -250,11 +252,14 @@ void main() {
         final result = await gateway.save(
           expectedRevision: before.revision,
           before: before.document,
-          after: before.document.copyWith(presentation: newProfile),
+          after: newProfile,
           operationId: 'replace-presentation-assets',
         );
 
-        expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+        expect(
+          result,
+          isA<NarrativeDocumentSaved<ProjectPresentationProfile>>(),
+        );
         expect(oldVideo.existsSync(), isFalse);
         expect(oldPoster.existsSync(), isFalse);
         expect(newVideo.existsSync(), isTrue);
@@ -281,15 +286,16 @@ void main() {
         final result = await gateway.save(
           expectedRevision: before.revision,
           before: before.document,
-          after: before.document.copyWith(
-            presentation: const ProjectPresentationProfile(
-              branding: ProjectBrandingProfile(accentColor: '#123456'),
-            ),
+          after: const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(accentColor: '#123456'),
           ),
           operationId: 'save-despite-cleanup-error',
         );
 
-        expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+        expect(
+          result,
+          isA<NarrativeDocumentSaved<ProjectPresentationProfile>>(),
+        );
         expect(gateway.lastAssetCleanupResult?.failures, isNotEmpty);
       },
     );

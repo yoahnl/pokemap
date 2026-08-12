@@ -39,7 +39,6 @@ import '../../../infrastructure/repositories/map_lifecycle_transaction_file_gate
 import '../../../infrastructure/repositories/narrative_event_spatial_link_journal_repository.dart';
 import '../../../infrastructure/repositories/narrative_activity_journal_repository.dart';
 import '../../../infrastructure/repositories/narrative_event_migration_persistence_repository.dart';
-import '../../../infrastructure/repositories/personalization_project_recovery_store.dart';
 import '../../../infrastructure/repositories/project_presentation_document_gateway.dart';
 import '../../../infrastructure/repositories/project_manifest_narrative_document_gateway.dart';
 
@@ -263,39 +262,38 @@ final personalizationStudioSessionControllerFactoryProvider =
           'recovery',
           'personalization-studio.json',
         );
+        final gateway = ProjectPresentationDocumentGateway(
+          projectPath: projectPath,
+          persistence: persistence,
+          canonicalSave:
+              ({
+                required profile,
+                required expectedProjectRevision,
+                required operationId,
+              }) async {
+                await authoringMutations.savePresentation(
+                  profile,
+                  p.dirname(projectPath),
+                  expectedProjectRevision: expectedProjectRevision,
+                  operationId: operationId,
+                );
+              },
+        );
         return PersonalizationStudioSessionController(
-          session: NarrativeDocumentSession<ProjectManifest>(
+          session: NarrativeDocumentSession<ProjectPresentationProfile>(
             documentId: 'personalization-studio',
-            initialDocument: initialDocument,
-            gateway: ProjectPresentationDocumentGateway(
-              projectPath: projectPath,
-              persistence: persistence,
-              canonicalSave:
-                  ({
-                    required profile,
-                    required expectedProjectRevision,
-                    required operationId,
-                  }) async {
-                    await authoringMutations.savePresentation(
-                      profile,
-                      p.dirname(projectPath),
-                      expectedProjectRevision: expectedProjectRevision,
-                      operationId: operationId,
-                    );
-                  },
-            ),
-            recoveryStore: PersonalizationProjectRecoveryStore(
-              currentProject: initialDocument,
-              profileStore:
-                  FileNarrativeDocumentRecoveryStore<
-                    ProjectPresentationProfile
-                  >(
-                    journalPath: journalPath,
-                    encodeDocument: (profile) => profile.toJson(),
-                    decodeDocument: _decodeRecoveryPresentationProfile,
-                  ),
-            ),
+            initialDocument: initialDocument.effectivePresentation,
+            gateway: gateway,
+            recoveryStore:
+                FileNarrativeDocumentRecoveryStore<ProjectPresentationProfile>(
+                  journalPath: journalPath,
+                  encodeDocument: (profile) => profile.toJson(),
+                  decodeDocument: _decodeRecoveryPresentationProfile,
+                  needsMigration: _isLegacyRecoveryPresentationDocument,
+                ),
           ),
+          initialProject: initialDocument,
+          projectSnapshot: () => gateway.currentProject,
         );
       };
     });
@@ -434,4 +432,8 @@ ProjectPresentationProfile _decodeRecoveryPresentationProfile(Object? value) {
     return _decodeRecoveryProjectManifest(json).effectivePresentation;
   }
   return ProjectPresentationProfile.fromJson(json);
+}
+
+bool _isLegacyRecoveryPresentationDocument(Object? value) {
+  return value is Map && value.containsKey('name') && value.containsKey('maps');
 }

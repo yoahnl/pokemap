@@ -111,7 +111,7 @@ void main() {
       const JsonEncoder.withIndent('  ').convert(project.toJson()),
       flush: true,
     );
-    final personalizationGateway = _MemoryProjectGateway(project);
+    final personalizationGateway = _MemoryProfileGateway(project);
     final scheduler = _ManualAutosaveScheduler();
     var narrativeFactoryCalls = 0;
     final container = ProviderContainer(
@@ -122,13 +122,15 @@ void main() {
             required ProjectManifest initialDocument,
           }) {
             return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
+              session: NarrativeDocumentSession<ProjectPresentationProfile>(
                 documentId: 'personalization-studio',
-                initialDocument: initialDocument,
+                initialDocument: initialDocument.effectivePresentation,
                 gateway: personalizationGateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
+                recoveryStore: _MemoryProfileRecoveryStore(),
                 autosaveScheduler: scheduler.schedule,
               ),
+              initialProject: initialDocument,
+              projectSnapshot: () => personalizationGateway.currentProject,
             );
           },
         ),
@@ -187,7 +189,8 @@ void main() {
       File(
         '${root.path}/project.json',
       ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
-      final recovery = _BlockingProjectRecoveryStore();
+      final recovery = _BlockingProfileRecoveryStore();
+      final gateway = _MemoryProfileGateway(project);
       final container = ProviderContainer(
         overrides: [
           personalizationStudioSessionControllerFactoryProvider
@@ -196,12 +199,14 @@ void main() {
                 required ProjectManifest initialDocument,
               }) {
                 return PersonalizationStudioSessionController(
-                  session: NarrativeDocumentSession<ProjectManifest>(
+                  session: NarrativeDocumentSession<ProjectPresentationProfile>(
                     documentId: 'personalization-serialized-commits',
-                    initialDocument: initialDocument,
-                    gateway: _MemoryProjectGateway(project),
+                    initialDocument: initialDocument.effectivePresentation,
+                    gateway: gateway,
                     recoveryStore: recovery,
                   ),
+                  initialProject: initialDocument,
+                  projectSnapshot: () => gateway.currentProject,
                 );
               }),
         ],
@@ -317,8 +322,62 @@ final class _MemoryProjectRecoveryStore
   }
 }
 
-final class _BlockingProjectRecoveryStore
-    implements NarrativeDocumentRecoveryStore<ProjectManifest> {
+final class _MemoryProfileGateway
+    implements NarrativeDocumentGateway<ProjectPresentationProfile> {
+  _MemoryProfileGateway(this.currentProject);
+
+  ProjectManifest currentProject;
+  var revision = 'revision-1';
+  var saveCount = 0;
+
+  @override
+  Future<NarrativeDocumentVersion<ProjectPresentationProfile>> read() async {
+    return NarrativeDocumentVersion<ProjectPresentationProfile>(
+      revision: revision,
+      document: currentProject.effectivePresentation,
+    );
+  }
+
+  @override
+  Future<NarrativeDocumentSaveResult<ProjectPresentationProfile>> save({
+    required String expectedRevision,
+    required ProjectPresentationProfile before,
+    required ProjectPresentationProfile after,
+    required String operationId,
+  }) async {
+    saveCount += 1;
+    currentProject = currentProject.copyWith(presentation: after);
+    revision = 'revision-${saveCount + 1}';
+    return NarrativeDocumentSaveResult<ProjectPresentationProfile>.saved(
+      NarrativeDocumentVersion<ProjectPresentationProfile>(
+        revision: revision,
+        document: after,
+      ),
+    );
+  }
+}
+
+final class _MemoryProfileRecoveryStore
+    implements NarrativeDocumentRecoveryStore<ProjectPresentationProfile> {
+  NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>? record;
+
+  @override
+  Future<void> clear() async => record = null;
+
+  @override
+  Future<NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>?>
+  read() async => record;
+
+  @override
+  Future<void> write(
+    NarrativeDocumentRecoveryRecord<ProjectPresentationProfile> record,
+  ) async {
+    this.record = record;
+  }
+}
+
+final class _BlockingProfileRecoveryStore
+    implements NarrativeDocumentRecoveryStore<ProjectPresentationProfile> {
   final Completer<void> firstWriteStarted = Completer<void>();
   final Completer<void> _firstWriteRelease = Completer<void>();
   var writeCount = 0;
@@ -331,12 +390,12 @@ final class _BlockingProjectRecoveryStore
   Future<void> clear() async {}
 
   @override
-  Future<NarrativeDocumentRecoveryRecord<ProjectManifest>?> read() async =>
-      null;
+  Future<NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>?>
+  read() async => null;
 
   @override
   Future<void> write(
-    NarrativeDocumentRecoveryRecord<ProjectManifest> record,
+    NarrativeDocumentRecoveryRecord<ProjectPresentationProfile> record,
   ) async {
     writeCount += 1;
     concurrentWrites += 1;

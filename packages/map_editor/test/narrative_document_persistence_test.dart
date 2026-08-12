@@ -78,6 +78,33 @@ void main() {
       expect(await journal.exists(), isTrue);
       expect(await journal.readAsString(), '{not-json');
     });
+
+    test(
+      'serializes concurrent mutations and keeps the latest record',
+      () async {
+        final store = FileNarrativeDocumentRecoveryStore<String>(
+          journalPath: journalPath,
+          encodeDocument: (document) => document,
+          decodeDocument: (value) => value! as String,
+        );
+        final writes = List<Future<void>>.generate(20, (index) {
+          return store.write(
+            NarrativeDocumentRecoveryRecord<String>(
+              documentId: 'personalization-studio',
+              baseRevision: 'revision-A',
+              baseline: 'baseline',
+              document: '$index-${'x' * 65536}',
+            ),
+          );
+        });
+
+        await Future.wait(writes);
+
+        final restored = await store.read();
+        expect(restored?.document, startsWith('19-'));
+        expect(await File('$journalPath.tmp').exists(), isFalse);
+      },
+    );
   });
 
   group('ProjectManifestNarrativeDocumentGateway', () {
@@ -135,10 +162,12 @@ void main() {
       final cases = <ProjectManifest>[
         before.copyWith(cinematics: [cinematic, second]),
         before.copyWith(cinematics: const []),
-        before.copyWith(cinematics: [
-          _cinematic(title: 'Introduction modifiée'),
-          second,
-        ]),
+        before.copyWith(
+          cinematics: [
+            _cinematic(title: 'Introduction modifiée'),
+            second,
+          ],
+        ),
       ];
 
       for (final after in cases) {
@@ -153,82 +182,88 @@ void main() {
       expect(persistence.calls, 0);
     });
 
-    test('maps stale persistence to a conflict with the external document',
-        () async {
-      final external = _project(
-        cinematics: [_cinematic(title: 'Modification externe')],
-      );
-      final persistence = _RecordingPersistence(
-        handler: (_) async {
-          await _writeManifest(projectFile, external);
-          return const NarrativeAuthoringPersistenceResult(
-            status: NarrativeAuthoringPersistenceStatus.persistenceFailed,
-            code: 'projectChangedBeforeCommit',
-            message: 'Concurrent write.',
-          );
-        },
-      );
-      final gateway = ProjectManifestNarrativeDocumentGateway(
-        projectPath: projectFile.path,
-        persistence: persistence,
-      );
-      final version = await gateway.read();
-      final after = before.copyWith(
-        cinematics: [_cinematic(title: 'Modification locale')],
-      );
+    test(
+      'maps stale persistence to a conflict with the external document',
+      () async {
+        final external = _project(
+          cinematics: [_cinematic(title: 'Modification externe')],
+        );
+        final persistence = _RecordingPersistence(
+          handler: (_) async {
+            await _writeManifest(projectFile, external);
+            return const NarrativeAuthoringPersistenceResult(
+              status: NarrativeAuthoringPersistenceStatus.persistenceFailed,
+              code: 'projectChangedBeforeCommit',
+              message: 'Concurrent write.',
+            );
+          },
+        );
+        final gateway = ProjectManifestNarrativeDocumentGateway(
+          projectPath: projectFile.path,
+          persistence: persistence,
+        );
+        final version = await gateway.read();
+        final after = before.copyWith(
+          cinematics: [_cinematic(title: 'Modification locale')],
+        );
 
-      final result = await gateway.save(
-        expectedRevision: version.revision,
-        before: before,
-        after: after,
-        operationId: 'cinematic-title-local',
-      );
+        final result = await gateway.save(
+          expectedRevision: version.revision,
+          before: before,
+          after: after,
+          operationId: 'cinematic-title-local',
+        );
 
-      expect(result, isA<NarrativeDocumentSaveConflicted<ProjectManifest>>());
-      final conflict =
-          result as NarrativeDocumentSaveConflicted<ProjectManifest>;
-      expect(conflict.code, 'projectChangedBeforeCommit');
-      expect(conflict.external.document, external);
-      expect(persistence.calls, 1);
-    });
+        expect(result, isA<NarrativeDocumentSaveConflicted<ProjectManifest>>());
+        final conflict =
+            result as NarrativeDocumentSaveConflicted<ProjectManifest>;
+        expect(conflict.code, 'projectChangedBeforeCommit');
+        expect(conflict.external.document, external);
+        expect(persistence.calls, 1);
+      },
+    );
 
-    test('returns the exact durable document and revision after commit',
-        () async {
-      late ProjectManifest after;
-      final persistence = _RecordingPersistence(
-        handler: (transaction) async {
-          await _writeManifest(projectFile, transaction.after);
-          return const NarrativeAuthoringPersistenceResult.committed();
-        },
-      );
-      final gateway = ProjectManifestNarrativeDocumentGateway(
-        projectPath: projectFile.path,
-        persistence: persistence,
-      );
-      final version = await gateway.read();
-      after = before.copyWith(
-        cinematics: [_cinematic(title: 'Introduction enregistrée')],
-      );
+    test(
+      'returns the exact durable document and revision after commit',
+      () async {
+        late ProjectManifest after;
+        final persistence = _RecordingPersistence(
+          handler: (transaction) async {
+            await _writeManifest(projectFile, transaction.after);
+            return const NarrativeAuthoringPersistenceResult.committed();
+          },
+        );
+        final gateway = ProjectManifestNarrativeDocumentGateway(
+          projectPath: projectFile.path,
+          persistence: persistence,
+        );
+        final version = await gateway.read();
+        after = before.copyWith(
+          cinematics: [_cinematic(title: 'Introduction enregistrée')],
+        );
 
-      final result = await gateway.save(
-        expectedRevision: version.revision,
-        before: before,
-        after: after,
-        operationId: 'cinematic-title-save',
-      );
+        final result = await gateway.save(
+          expectedRevision: version.revision,
+          before: before,
+          after: after,
+          operationId: 'cinematic-title-save',
+        );
 
-      expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
-      final saved = result as NarrativeDocumentSaved<ProjectManifest>;
-      final durableBytes = await projectFile.readAsBytes();
-      expect(saved.version.document, after);
-      expect(
-        saved.version.revision,
-        narrativeEventBytesFingerprint(durableBytes),
-      );
-      expect(persistence.calls, 1);
-      expect(
-          persistence.lastTransaction!.mutation, isA<NarrativeAssetUpdated>());
-    });
+        expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+        final saved = result as NarrativeDocumentSaved<ProjectManifest>;
+        final durableBytes = await projectFile.readAsBytes();
+        expect(saved.version.document, after);
+        expect(
+          saved.version.revision,
+          narrativeEventBytesFingerprint(durableBytes),
+        );
+        expect(persistence.calls, 1);
+        expect(
+          persistence.lastTransaction!.mutation,
+          isA<NarrativeAssetUpdated>(),
+        );
+      },
+    );
   });
 }
 
@@ -238,7 +273,8 @@ final class _RecordingPersistence
 
   final Future<NarrativeAuthoringPersistenceResult> Function(
     NarrativeAuthoringTransaction transaction,
-  )? handler;
+  )?
+  handler;
   int calls = 0;
   NarrativeAuthoringTransaction? lastTransaction;
 
@@ -270,11 +306,7 @@ CinematicAsset _cinematic({
   String id = 'cinematic_intro',
   required String title,
 }) {
-  return CinematicAsset(
-    id: id,
-    title: title,
-    timeline: CinematicTimeline(),
-  );
+  return CinematicAsset(id: id, title: title, timeline: CinematicTimeline());
 }
 
 Future<void> _writeManifest(File file, ProjectManifest manifest) async {

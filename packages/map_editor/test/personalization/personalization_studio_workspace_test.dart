@@ -28,7 +28,7 @@ void main() {
       File(
         '${root.path}/project.json',
       ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
-      final recovery = _MemoryProjectRecoveryStore();
+      final recovery = _MemoryProfileRecoveryStore();
       final container = await pumpEditorCanvasHostHarness(
         tester,
         initialState: EditorState(
@@ -44,12 +44,13 @@ void main() {
                 required ProjectManifest initialDocument,
               }) {
                 return PersonalizationStudioSessionController(
-                  session: NarrativeDocumentSession<ProjectManifest>(
+                  session: NarrativeDocumentSession<ProjectPresentationProfile>(
                     documentId: 'personalization-slider-intent',
-                    initialDocument: initialDocument,
-                    gateway: _MemoryProjectGateway(project),
+                    initialDocument: initialDocument.effectivePresentation,
+                    gateway: _MemoryProfileGateway(project),
                     recoveryStore: recovery,
                   ),
+                  initialProject: initialDocument,
                 );
               }),
         ],
@@ -125,8 +126,8 @@ void main() {
     File(
       '${root.path}/project.json',
     ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
-    final recovery = _MemoryProjectRecoveryStore();
-    final gateway = _MemoryProjectGateway(project);
+    final recovery = _MemoryProfileRecoveryStore();
+    final gateway = _MemoryProfileGateway(project);
     final container = await pumpEditorCanvasHostHarness(
       tester,
       initialState: EditorState(
@@ -142,12 +143,13 @@ void main() {
             required ProjectManifest initialDocument,
           }) {
             return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
+              session: NarrativeDocumentSession<ProjectPresentationProfile>(
                 documentId: 'personalization-title-intent',
-                initialDocument: initialDocument,
+                initialDocument: initialDocument.effectivePresentation,
                 gateway: gateway,
                 recoveryStore: recovery,
               ),
+              initialProject: initialDocument,
             );
           },
         ),
@@ -222,7 +224,7 @@ void main() {
       File(
         '${root.path}/project.json',
       ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
-      final gateway = _DelayedProjectGateway(project);
+      final gateway = _DelayedProfileGateway(project);
 
       final container = await pumpEditorCanvasHostHarness(
         tester,
@@ -239,12 +241,13 @@ void main() {
                 required ProjectManifest initialDocument,
               }) {
                 return PersonalizationStudioSessionController(
-                  session: NarrativeDocumentSession<ProjectManifest>(
+                  session: NarrativeDocumentSession<ProjectPresentationProfile>(
                     documentId: 'personalization-studio-deferred',
-                    initialDocument: initialDocument,
+                    initialDocument: initialDocument.effectivePresentation,
                     gateway: gateway,
-                    recoveryStore: _MemoryProjectRecoveryStore(),
+                    recoveryStore: _MemoryProfileRecoveryStore(),
                   ),
+                  initialProject: initialDocument,
                 );
               }),
         ],
@@ -501,7 +504,7 @@ void main() {
         flush: true,
       );
       final preflight = _FixedPresentationPreflight();
-      final gateway = _MemoryProjectGateway(project);
+      final gateway = _MemoryProfileGateway(project);
       var exportCalls = 0;
 
       final container = await pumpEditorCanvasHostHarness(
@@ -529,12 +532,13 @@ void main() {
                 required ProjectManifest initialDocument,
               }) {
                 return PersonalizationStudioSessionController(
-                  session: NarrativeDocumentSession<ProjectManifest>(
+                  session: NarrativeDocumentSession<ProjectPresentationProfile>(
                     documentId: 'personalization-preflight-ui',
-                    initialDocument: initialDocument,
+                    initialDocument: initialDocument.effectivePresentation,
                     gateway: gateway,
-                    recoveryStore: _MemoryProjectRecoveryStore(),
+                    recoveryStore: _MemoryProfileRecoveryStore(),
                   ),
+                  initialProject: initialDocument,
                 );
               }),
         ],
@@ -609,8 +613,8 @@ void main() {
         '  ',
       ).convert(project.toJson());
       projectFile.writeAsStringSync(durableJson, flush: true);
-      final gateway = _MemoryProjectGateway(project);
-      final recoveryStore = _MemoryProjectRecoveryStore();
+      final gateway = _MemoryProfileGateway(project);
+      final recoveryStore = _MemoryProfileRecoveryStore();
 
       final container = await pumpEditorCanvasHostHarness(
         tester,
@@ -627,12 +631,13 @@ void main() {
                 required ProjectManifest initialDocument,
               }) {
                 return PersonalizationStudioSessionController(
-                  session: NarrativeDocumentSession<ProjectManifest>(
+                  session: NarrativeDocumentSession<ProjectPresentationProfile>(
                     documentId: 'personalization-studio',
-                    initialDocument: initialDocument,
+                    initialDocument: initialDocument.effectivePresentation,
                     gateway: gateway,
                     recoveryStore: recoveryStore,
                   ),
+                  initialProject: initialDocument,
                 );
               }),
         ],
@@ -761,7 +766,7 @@ void main() {
     File(
       '${root.path}/project.json',
     ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
-    final gateway = _MemoryProjectGateway(project);
+    final gateway = _MemoryProfileGateway(project);
     final container = await pumpEditorCanvasHostHarness(
       tester,
       initialState: EditorState(
@@ -777,12 +782,13 @@ void main() {
             required ProjectManifest initialDocument,
           }) {
             return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
+              session: NarrativeDocumentSession<ProjectPresentationProfile>(
                 documentId: 'personalization-studio-contrast',
-                initialDocument: initialDocument,
+                initialDocument: initialDocument.effectivePresentation,
                 gateway: gateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
+                recoveryStore: _MemoryProfileRecoveryStore(),
               ),
+              initialProject: initialDocument,
             );
           },
         ),
@@ -832,16 +838,14 @@ void main() {
       File(
         '${root.path}/project.json',
       ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
-      final gateway = _MemoryProjectGateway(project);
-      final recovery = _MemoryProjectRecoveryStore()
-        ..record = NarrativeDocumentRecoveryRecord<ProjectManifest>(
+      final gateway = _MemoryProfileGateway(project);
+      final recovery = _MemoryProfileRecoveryStore()
+        ..record = NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>(
           documentId: 'personalization-studio-conflict',
           baseRevision: 'revision-before-current-project',
-          baseline: previousProject,
-          document: previousProject.copyWith(
-            presentation: const ProjectPresentationProfile(
-              branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
-            ),
+          baseline: previousProject.effectivePresentation,
+          document: const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
           ),
         );
       final container = await pumpEditorCanvasHostHarness(
@@ -859,12 +863,13 @@ void main() {
                 required ProjectManifest initialDocument,
               }) {
                 return PersonalizationStudioSessionController(
-                  session: NarrativeDocumentSession<ProjectManifest>(
+                  session: NarrativeDocumentSession<ProjectPresentationProfile>(
                     documentId: 'personalization-studio-conflict',
-                    initialDocument: initialDocument,
+                    initialDocument: initialDocument.effectivePresentation,
                     gateway: gateway,
                     recoveryStore: recovery,
                   ),
+                  initialProject: initialDocument,
                 );
               }),
         ],
@@ -1018,7 +1023,7 @@ void main() {
       '  ',
     ).convert(project.toJson());
     projectFile.writeAsStringSync(durableJson, flush: true);
-    final gateway = _MemoryProjectGateway(project);
+    final gateway = _MemoryProfileGateway(project);
 
     final container = await pumpEditorCanvasHostHarness(
       tester,
@@ -1035,12 +1040,13 @@ void main() {
             required ProjectManifest initialDocument,
           }) {
             return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
+              session: NarrativeDocumentSession<ProjectPresentationProfile>(
                 documentId: 'personalization-studio-branding',
-                initialDocument: initialDocument,
+                initialDocument: initialDocument.effectivePresentation,
                 gateway: gateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
+                recoveryStore: _MemoryProfileRecoveryStore(),
               ),
+              initialProject: initialDocument,
             );
           },
         ),
@@ -1105,7 +1111,7 @@ void main() {
       '  ',
     ).convert(project.toJson());
     projectFile.writeAsStringSync(durableJson, flush: true);
-    final gateway = _MemoryProjectGateway(project);
+    final gateway = _MemoryProfileGateway(project);
     final picker = _FixedTitleMusicPicker('/source/title.ogg');
     final importer = _FixedTitleMusicImporter();
     final preview = _FixedTitleMusicPreviewController();
@@ -1125,12 +1131,13 @@ void main() {
             required ProjectManifest initialDocument,
           }) {
             return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
+              session: NarrativeDocumentSession<ProjectPresentationProfile>(
                 documentId: 'personalization-studio-title-music',
-                initialDocument: initialDocument,
+                initialDocument: initialDocument.effectivePresentation,
                 gateway: gateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
+                recoveryStore: _MemoryProfileRecoveryStore(),
               ),
+              initialProject: initialDocument,
             );
           },
         ),
@@ -1240,7 +1247,7 @@ void main() {
         '  ',
       ).convert(project.toJson());
       projectFile.writeAsStringSync(durableJson, flush: true);
-      final gateway = _MemoryProjectGateway(project);
+      final gateway = _MemoryProfileGateway(project);
 
       final container = await pumpEditorCanvasHostHarness(
         tester,
@@ -1257,12 +1264,13 @@ void main() {
                 required ProjectManifest initialDocument,
               }) {
                 return PersonalizationStudioSessionController(
-                  session: NarrativeDocumentSession<ProjectManifest>(
+                  session: NarrativeDocumentSession<ProjectPresentationProfile>(
                     documentId: 'personalization-studio-intro',
-                    initialDocument: initialDocument,
+                    initialDocument: initialDocument.effectivePresentation,
                     gateway: gateway,
-                    recoveryStore: _MemoryProjectRecoveryStore(),
+                    recoveryStore: _MemoryProfileRecoveryStore(),
                   ),
+                  initialProject: initialDocument,
                 );
               }),
         ],
@@ -1339,7 +1347,7 @@ void main() {
         '  ',
       ).convert(project.toJson());
       projectFile.writeAsStringSync(durableJson, flush: true);
-      final gateway = _MemoryProjectGateway(project);
+      final gateway = _MemoryProfileGateway(project);
 
       final container = await pumpEditorCanvasHostHarness(
         tester,
@@ -1356,12 +1364,13 @@ void main() {
                 required ProjectManifest initialDocument,
               }) {
                 return PersonalizationStudioSessionController(
-                  session: NarrativeDocumentSession<ProjectManifest>(
+                  session: NarrativeDocumentSession<ProjectPresentationProfile>(
                     documentId: 'personalization-studio-typography',
-                    initialDocument: initialDocument,
+                    initialDocument: initialDocument.effectivePresentation,
                     gateway: gateway,
-                    recoveryStore: _MemoryProjectRecoveryStore(),
+                    recoveryStore: _MemoryProfileRecoveryStore(),
                   ),
+                  initialProject: initialDocument,
                 );
               }),
         ],
@@ -1440,7 +1449,7 @@ void main() {
       '  ',
     ).convert(project.toJson());
     projectFile.writeAsStringSync(durableJson, flush: true);
-    final gateway = _MemoryProjectGateway(project);
+    final gateway = _MemoryProfileGateway(project);
 
     final container = await pumpEditorCanvasHostHarness(
       tester,
@@ -1457,12 +1466,13 @@ void main() {
             required ProjectManifest initialDocument,
           }) {
             return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
+              session: NarrativeDocumentSession<ProjectPresentationProfile>(
                 documentId: 'personalization-studio-theme',
-                initialDocument: initialDocument,
+                initialDocument: initialDocument.effectivePresentation,
                 gateway: gateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
+                recoveryStore: _MemoryProfileRecoveryStore(),
               ),
+              initialProject: initialDocument,
             );
           },
         ),
@@ -1582,7 +1592,7 @@ void main() {
         '  ',
       ).convert(project.toJson());
       projectFile.writeAsStringSync(durableJson, flush: true);
-      final gateway = _MemoryProjectGateway(project);
+      final gateway = _MemoryProfileGateway(project);
       final assetPicker = _FixedAssetPicker(
         intro: const PersonalizationStudioIntroAssetSelection(
           videoPath: '/source/opening.mp4',
@@ -1607,12 +1617,13 @@ void main() {
                 required ProjectManifest initialDocument,
               }) {
                 return PersonalizationStudioSessionController(
-                  session: NarrativeDocumentSession<ProjectManifest>(
+                  session: NarrativeDocumentSession<ProjectPresentationProfile>(
                     documentId: 'personalization-studio-import',
-                    initialDocument: initialDocument,
+                    initialDocument: initialDocument.effectivePresentation,
                     gateway: gateway,
-                    recoveryStore: _MemoryProjectRecoveryStore(),
+                    recoveryStore: _MemoryProfileRecoveryStore(),
                   ),
+                  initialProject: initialDocument,
                 );
               }),
           personalizationStudioAssetPickerProvider.overrideWithValue(
@@ -1675,7 +1686,7 @@ void main() {
       '  ',
     ).convert(project.toJson());
     projectFile.writeAsStringSync(durableJson, flush: true);
-    final gateway = _MemoryProjectGateway(project);
+    final gateway = _MemoryProfileGateway(project);
     final assetPicker = _FixedAssetPicker(
       font: const PersonalizationStudioFontAssetSelection(
         fontPath: '/source/body.otf',
@@ -1700,12 +1711,13 @@ void main() {
             required ProjectManifest initialDocument,
           }) {
             return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
+              session: NarrativeDocumentSession<ProjectPresentationProfile>(
                 documentId: 'personalization-studio-font-import',
-                initialDocument: initialDocument,
+                initialDocument: initialDocument.effectivePresentation,
                 gateway: gateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
+                recoveryStore: _MemoryProfileRecoveryStore(),
               ),
+              initialProject: initialDocument,
             );
           },
         ),
@@ -1777,7 +1789,7 @@ void main() {
     final project = buildShellChromeProject(
       name: 'Import Error Studio',
     ).copyWith(presentation: const ProjectPresentationProfile());
-    final gateway = _MemoryProjectGateway(project);
+    final gateway = _MemoryProfileGateway(project);
     final assetPicker = _FixedAssetPicker(
       introError: const PersonalizationStudioAssetSelectionException(
         code: 'introSelectionIncomplete',
@@ -1801,12 +1813,13 @@ void main() {
             required ProjectManifest initialDocument,
           }) {
             return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
+              session: NarrativeDocumentSession<ProjectPresentationProfile>(
                 documentId: 'personalization-studio-import-error',
-                initialDocument: initialDocument,
+                initialDocument: initialDocument.effectivePresentation,
                 gateway: gateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
+                recoveryStore: _MemoryProfileRecoveryStore(),
               ),
+              initialProject: initialDocument,
             );
           },
         ),
@@ -2146,44 +2159,44 @@ PersonalizationPreviewContextOption _dialogueContext({
   },
 );
 
-final class _MemoryProjectGateway
-    implements NarrativeDocumentGateway<ProjectManifest> {
-  _MemoryProjectGateway(this.durableDocument);
+final class _MemoryProfileGateway
+    implements NarrativeDocumentGateway<ProjectPresentationProfile> {
+  _MemoryProfileGateway(this.durableDocument);
 
   ProjectManifest durableDocument;
   var revision = 'revision-1';
   var saveCount = 0;
 
   @override
-  Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
-    return NarrativeDocumentVersion<ProjectManifest>(
+  Future<NarrativeDocumentVersion<ProjectPresentationProfile>> read() async {
+    return NarrativeDocumentVersion<ProjectPresentationProfile>(
       revision: revision,
-      document: durableDocument,
+      document: durableDocument.effectivePresentation,
     );
   }
 
   @override
-  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
+  Future<NarrativeDocumentSaveResult<ProjectPresentationProfile>> save({
     required String expectedRevision,
-    required ProjectManifest before,
-    required ProjectManifest after,
+    required ProjectPresentationProfile before,
+    required ProjectPresentationProfile after,
     required String operationId,
   }) async {
     saveCount += 1;
-    durableDocument = after;
+    durableDocument = durableDocument.copyWith(presentation: after);
     revision = 'revision-${saveCount + 1}';
-    return NarrativeDocumentSaveResult<ProjectManifest>.saved(
-      NarrativeDocumentVersion<ProjectManifest>(
+    return NarrativeDocumentSaveResult<ProjectPresentationProfile>.saved(
+      NarrativeDocumentVersion<ProjectPresentationProfile>(
         revision: revision,
-        document: durableDocument,
+        document: after,
       ),
     );
   }
 }
 
-final class _DelayedProjectGateway
-    implements NarrativeDocumentGateway<ProjectManifest> {
-  _DelayedProjectGateway(this.document);
+final class _DelayedProfileGateway
+    implements NarrativeDocumentGateway<ProjectPresentationProfile> {
+  _DelayedProfileGateway(this.document);
 
   final ProjectManifest document;
   final Completer<void> _initialization = Completer<void>();
@@ -2191,22 +2204,22 @@ final class _DelayedProjectGateway
   void releaseInitialization() => _initialization.complete();
 
   @override
-  Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
+  Future<NarrativeDocumentVersion<ProjectPresentationProfile>> read() async {
     await _initialization.future;
-    return NarrativeDocumentVersion<ProjectManifest>(
+    return NarrativeDocumentVersion<ProjectPresentationProfile>(
       revision: 'revision-1',
-      document: document,
+      document: document.effectivePresentation,
     );
   }
 
   @override
-  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
+  Future<NarrativeDocumentSaveResult<ProjectPresentationProfile>> save({
     required String expectedRevision,
-    required ProjectManifest before,
-    required ProjectManifest after,
+    required ProjectPresentationProfile before,
+    required ProjectPresentationProfile after,
     required String operationId,
-  }) async => NarrativeDocumentSaveResult<ProjectManifest>.saved(
-    NarrativeDocumentVersion<ProjectManifest>(
+  }) async => NarrativeDocumentSaveResult<ProjectPresentationProfile>.saved(
+    NarrativeDocumentVersion<ProjectPresentationProfile>(
       revision: 'revision-2',
       document: after,
     ),
@@ -2230,9 +2243,9 @@ final class _FixedPresentationPreflight
   }
 }
 
-final class _MemoryProjectRecoveryStore
-    implements NarrativeDocumentRecoveryStore<ProjectManifest> {
-  NarrativeDocumentRecoveryRecord<ProjectManifest>? record;
+final class _MemoryProfileRecoveryStore
+    implements NarrativeDocumentRecoveryStore<ProjectPresentationProfile> {
+  NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>? record;
   int writeCount = 0;
 
   @override
@@ -2241,13 +2254,14 @@ final class _MemoryProjectRecoveryStore
   }
 
   @override
-  Future<NarrativeDocumentRecoveryRecord<ProjectManifest>?> read() async {
+  Future<NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>?>
+  read() async {
     return record;
   }
 
   @override
   Future<void> write(
-    NarrativeDocumentRecoveryRecord<ProjectManifest> record,
+    NarrativeDocumentRecoveryRecord<ProjectPresentationProfile> record,
   ) async {
     writeCount += 1;
     this.record = record;

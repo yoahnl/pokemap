@@ -7,19 +7,60 @@ import '../shell_chrome_test_harness.dart';
 
 void main() {
   group('PersonalizationStudioSessionController', () {
+    test('keeps the session and recovery history profile-only', () async {
+      final project = buildShellChromeProject(name: 'Profile-only session');
+      final gateway = _MemoryProfileGateway(project);
+      final recovery = _MemoryProfileRecoveryStore();
+      final controller = PersonalizationStudioSessionController(
+        session: NarrativeDocumentSession<ProjectPresentationProfile>(
+          documentId: 'personalization-studio',
+          initialDocument: project.effectivePresentation,
+          gateway: gateway,
+          recoveryStore: recovery,
+        ),
+        initialProject: project,
+        projectSnapshot: () => gateway.currentProject,
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      const profile = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(accentColor: '#123456'),
+      );
+
+      expect(
+        await controller.applyProfile(
+          profile,
+          operationId: 'profile-only-edit',
+          label: 'Modifier le profil',
+        ),
+        isTrue,
+      );
+
+      expect(recovery.record?.baseline, project.effectivePresentation);
+      expect(recovery.record?.document, profile);
+      expect(
+        recovery.record?.undoEntries.single.before,
+        project.effectivePresentation,
+      );
+      expect(recovery.record?.undoEntries.single.after, profile);
+      expect(controller.state.document.name, 'Profile-only session');
+      expect(controller.state.draftProfile, profile);
+    });
+
     test(
       'publishes a presentation draft without persisting project.json',
       () async {
         final project = buildShellChromeProject(name: 'Studio session');
-        final gateway = _MemoryProjectGateway(project);
-        final recovery = _MemoryProjectRecoveryStore();
+        final gateway = _MemoryProfileGateway(project);
+        final recovery = _MemoryProfileRecoveryStore();
         final controller = PersonalizationStudioSessionController(
-          session: NarrativeDocumentSession<ProjectManifest>(
+          session: NarrativeDocumentSession<ProjectPresentationProfile>(
             documentId: 'personalization-studio',
-            initialDocument: project,
+            initialDocument: project.effectivePresentation,
             gateway: gateway,
             recoveryStore: recovery,
           ),
+          initialProject: project,
         );
         addTearDown(controller.dispose);
 
@@ -39,7 +80,7 @@ void main() {
         expect(controller.state.savedProfile, project.effectivePresentation);
         expect(controller.state.document.name, 'Studio session');
         expect(controller.state.isDirty, isTrue);
-        expect(recovery.record?.document.presentation, profile);
+        expect(recovery.record?.document, profile);
         expect(gateway.saveCount, 0);
         expect(gateway.durableDocument, project);
       },
@@ -52,15 +93,16 @@ void main() {
       final project = buildShellChromeProject(
         name: 'Unchanged profile',
       ).copyWith(presentation: profile);
-      final gateway = _MemoryProjectGateway(project);
-      final recovery = _MemoryProjectRecoveryStore();
+      final gateway = _MemoryProfileGateway(project);
+      final recovery = _MemoryProfileRecoveryStore();
       final controller = PersonalizationStudioSessionController(
-        session: NarrativeDocumentSession<ProjectManifest>(
+        session: NarrativeDocumentSession<ProjectPresentationProfile>(
           documentId: 'personalization-studio',
-          initialDocument: project,
+          initialDocument: project.effectivePresentation,
           gateway: gateway,
           recoveryStore: recovery,
         ),
+        initialProject: project,
       );
       addTearDown(controller.dispose);
       await controller.initialize();
@@ -80,14 +122,15 @@ void main() {
 
     test('saves the exact draft and adopts it as the new baseline', () async {
       final project = buildShellChromeProject(name: 'Saved profile');
-      final gateway = _MemoryProjectGateway(project);
+      final gateway = _MemoryProfileGateway(project);
       final controller = PersonalizationStudioSessionController(
-        session: NarrativeDocumentSession<ProjectManifest>(
+        session: NarrativeDocumentSession<ProjectPresentationProfile>(
           documentId: 'personalization-studio',
-          initialDocument: project,
+          initialDocument: project.effectivePresentation,
           gateway: gateway,
-          recoveryStore: _MemoryProjectRecoveryStore(),
+          recoveryStore: _MemoryProfileRecoveryStore(),
         ),
+        initialProject: project,
       );
       addTearDown(controller.dispose);
       await controller.initialize();
@@ -115,12 +158,13 @@ void main() {
       () async {
         final project = buildShellChromeProject(name: 'History profile');
         final controller = PersonalizationStudioSessionController(
-          session: NarrativeDocumentSession<ProjectManifest>(
+          session: NarrativeDocumentSession<ProjectPresentationProfile>(
             documentId: 'personalization-studio',
-            initialDocument: project,
-            gateway: _MemoryProjectGateway(project),
-            recoveryStore: _MemoryProjectRecoveryStore(),
+            initialDocument: project.effectivePresentation,
+            gateway: _MemoryProfileGateway(project),
+            recoveryStore: _MemoryProfileRecoveryStore(),
           ),
+          initialProject: project,
         );
         addTearDown(controller.dispose);
         await controller.initialize();
@@ -145,12 +189,13 @@ void main() {
     test('undo and redo restore the exact V10 battle draft', () async {
       final project = buildShellChromeProject(name: 'Battle history');
       final controller = PersonalizationStudioSessionController(
-        session: NarrativeDocumentSession<ProjectManifest>(
+        session: NarrativeDocumentSession<ProjectPresentationProfile>(
           documentId: 'personalization-studio',
-          initialDocument: project,
-          gateway: _MemoryProjectGateway(project),
-          recoveryStore: _MemoryProjectRecoveryStore(),
+          initialDocument: project.effectivePresentation,
+          gateway: _MemoryProfileGateway(project),
+          recoveryStore: _MemoryProfileRecoveryStore(),
         ),
+        initialProject: project,
       );
       addTearDown(controller.dispose);
       await controller.initialize();
@@ -178,12 +223,13 @@ void main() {
     test('records one completed layout gesture as one undo entry', () async {
       final project = buildShellChromeProject(name: 'Gesture history');
       final controller = PersonalizationStudioSessionController(
-        session: NarrativeDocumentSession<ProjectManifest>(
+        session: NarrativeDocumentSession<ProjectPresentationProfile>(
           documentId: 'personalization-studio',
-          initialDocument: project,
-          gateway: _MemoryProjectGateway(project),
-          recoveryStore: _MemoryProjectRecoveryStore(),
+          initialDocument: project.effectivePresentation,
+          gateway: _MemoryProfileGateway(project),
+          recoveryStore: _MemoryProfileRecoveryStore(),
         ),
+        initialProject: project,
       );
       addTearDown(controller.dispose);
       await controller.initialize();
@@ -212,12 +258,13 @@ void main() {
     test('records a scene preset as one atomic undo entry', () async {
       final project = buildShellChromeProject(name: 'Preset history');
       final controller = PersonalizationStudioSessionController(
-        session: NarrativeDocumentSession<ProjectManifest>(
+        session: NarrativeDocumentSession<ProjectPresentationProfile>(
           documentId: 'personalization-studio',
-          initialDocument: project,
-          gateway: _MemoryProjectGateway(project),
-          recoveryStore: _MemoryProjectRecoveryStore(),
+          initialDocument: project.effectivePresentation,
+          gateway: _MemoryProfileGateway(project),
+          recoveryStore: _MemoryProfileRecoveryStore(),
         ),
+        initialProject: project,
       );
       addTearDown(controller.dispose);
       await controller.initialize();
@@ -243,12 +290,13 @@ void main() {
       () async {
         final project = buildShellChromeProject(name: 'Repeated history');
         final controller = PersonalizationStudioSessionController(
-          session: NarrativeDocumentSession<ProjectManifest>(
+          session: NarrativeDocumentSession<ProjectPresentationProfile>(
             documentId: 'personalization-studio',
-            initialDocument: project,
-            gateway: _MemoryProjectGateway(project),
-            recoveryStore: _MemoryProjectRecoveryStore(),
+            initialDocument: project.effectivePresentation,
+            gateway: _MemoryProfileGateway(project),
+            recoveryStore: _MemoryProfileRecoveryStore(),
           ),
+          initialProject: project,
         );
         addTearDown(controller.dispose);
         await controller.initialize();
@@ -294,12 +342,13 @@ void main() {
       () async {
         final project = buildShellChromeProject(name: 'Mismatch save');
         final controller = PersonalizationStudioSessionController(
-          session: NarrativeDocumentSession<ProjectManifest>(
+          session: NarrativeDocumentSession<ProjectPresentationProfile>(
             documentId: 'personalization-studio',
-            initialDocument: project,
-            gateway: _MismatchingProjectGateway(project),
-            recoveryStore: _MemoryProjectRecoveryStore(),
+            initialDocument: project.effectivePresentation,
+            gateway: _MismatchingProfileGateway(project),
+            recoveryStore: _MemoryProfileRecoveryStore(),
           ),
+          initialProject: project,
         );
         addTearDown(controller.dispose);
         await controller.initialize();
@@ -320,16 +369,17 @@ void main() {
 
     test('autosave persists the latest scheduled presentation draft', () async {
       final project = buildShellChromeProject(name: 'Autosave profile');
-      final gateway = _MemoryProjectGateway(project);
+      final gateway = _MemoryProfileGateway(project);
       final scheduler = _ManualAutosaveScheduler();
       final controller = PersonalizationStudioSessionController(
-        session: NarrativeDocumentSession<ProjectManifest>(
+        session: NarrativeDocumentSession<ProjectPresentationProfile>(
           documentId: 'personalization-studio',
-          initialDocument: project,
+          initialDocument: project.effectivePresentation,
           gateway: gateway,
-          recoveryStore: _MemoryProjectRecoveryStore(),
+          recoveryStore: _MemoryProfileRecoveryStore(),
           autosaveScheduler: scheduler.schedule,
         ),
+        initialProject: project,
       );
       addTearDown(controller.dispose);
       await controller.initialize();
@@ -354,16 +404,17 @@ void main() {
 
     test('blocks persistence while presentation contrast is invalid', () async {
       final project = buildShellChromeProject(name: 'Invalid contrast');
-      final gateway = _MemoryProjectGateway(project);
+      final gateway = _MemoryProfileGateway(project);
       final scheduler = _ManualAutosaveScheduler();
       final controller = PersonalizationStudioSessionController(
-        session: NarrativeDocumentSession<ProjectManifest>(
+        session: NarrativeDocumentSession<ProjectPresentationProfile>(
           documentId: 'personalization-studio',
-          initialDocument: project,
+          initialDocument: project.effectivePresentation,
           gateway: gateway,
-          recoveryStore: _MemoryProjectRecoveryStore(),
+          recoveryStore: _MemoryProfileRecoveryStore(),
           autosaveScheduler: scheduler.schedule,
         ),
+        initialProject: project,
       );
       addTearDown(controller.dispose);
       await controller.initialize();
@@ -406,22 +457,25 @@ void main() {
         final currentProject = buildShellChromeProject(
           name: 'Current project',
         ).copyWith(presentation: currentProfile);
-        final recovery = _MemoryProjectRecoveryStore()
-          ..record = NarrativeDocumentRecoveryRecord<ProjectManifest>(
-            documentId: 'personalization-studio',
-            baseRevision: 'revision-previous',
-            baseline: previousProject,
-            document: previousProject.copyWith(presentation: recoveredProfile),
-          );
-        final gateway = _MemoryProjectGateway(currentProject)
+        final recovery = _MemoryProfileRecoveryStore()
+          ..record =
+              NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>(
+                documentId: 'personalization-studio',
+                baseRevision: 'revision-previous',
+                baseline: previousProject.effectivePresentation,
+                document: recoveredProfile,
+              );
+        final gateway = _MemoryProfileGateway(currentProject)
           ..revision = 'revision-current';
         final controller = PersonalizationStudioSessionController(
-          session: NarrativeDocumentSession<ProjectManifest>(
+          session: NarrativeDocumentSession<ProjectPresentationProfile>(
             documentId: 'personalization-studio',
-            initialDocument: previousProject,
+            initialDocument: previousProject.effectivePresentation,
             gateway: gateway,
             recoveryStore: recovery,
           ),
+          initialProject: previousProject,
+          projectSnapshot: () => gateway.currentProject,
         );
         addTearDown(controller.dispose);
 
@@ -434,9 +488,8 @@ void main() {
         expect(controller.state.isDirty, isTrue);
         expect(controller.state.document.name, 'Current project');
         expect(controller.state.draftProfile, recoveredProfile);
-        expect(recovery.record?.baseline, currentProject);
-        expect(recovery.record?.document.name, 'Current project');
-        expect(recovery.record?.document.presentation, recoveredProfile);
+        expect(recovery.record?.baseline, currentProfile);
+        expect(recovery.record?.document, recoveredProfile);
 
         expect(
           await controller.save(operationId: 'save-recovered-profile'),
@@ -459,22 +512,25 @@ void main() {
         final currentProject = previousProject.copyWith(
           name: 'Current project',
         );
-        final recovery = _MemoryProjectRecoveryStore()
-          ..record = NarrativeDocumentRecoveryRecord<ProjectManifest>(
-            documentId: 'personalization-studio',
-            baseRevision: 'revision-previous',
-            baseline: previousProject,
-            document: previousProject.copyWith(presentation: recoveredProfile),
-          );
-        final gateway = _MemoryProjectGateway(currentProject)
+        final recovery = _MemoryProfileRecoveryStore()
+          ..record =
+              NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>(
+                documentId: 'personalization-studio',
+                baseRevision: 'revision-previous',
+                baseline: previousProject.effectivePresentation,
+                document: recoveredProfile,
+              );
+        final gateway = _MemoryProfileGateway(currentProject)
           ..revision = 'revision-current';
         final controller = PersonalizationStudioSessionController(
-          session: NarrativeDocumentSession<ProjectManifest>(
+          session: NarrativeDocumentSession<ProjectPresentationProfile>(
             documentId: 'personalization-studio',
-            initialDocument: currentProject,
+            initialDocument: currentProject.effectivePresentation,
             gateway: gateway,
             recoveryStore: recovery,
           ),
+          initialProject: currentProject,
+          projectSnapshot: () => gateway.currentProject,
         );
         addTearDown(controller.dispose);
 
@@ -499,22 +555,24 @@ void main() {
       final currentProject = buildShellChromeProject(
         name: 'Current project',
       ).copyWith(presentation: currentProfile);
-      final recovery = _MemoryProjectRecoveryStore()
-        ..record = NarrativeDocumentRecoveryRecord<ProjectManifest>(
+      final recovery = _MemoryProfileRecoveryStore()
+        ..record = NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>(
           documentId: 'personalization-studio',
           baseRevision: 'revision-previous',
-          baseline: previousProject,
-          document: previousProject.copyWith(presentation: recoveredProfile),
+          baseline: previousProject.effectivePresentation,
+          document: recoveredProfile,
         );
-      final gateway = _MemoryProjectGateway(currentProject)
+      final gateway = _MemoryProfileGateway(currentProject)
         ..revision = 'revision-current';
       final controller = PersonalizationStudioSessionController(
-        session: NarrativeDocumentSession<ProjectManifest>(
+        session: NarrativeDocumentSession<ProjectPresentationProfile>(
           documentId: 'personalization-studio',
-          initialDocument: previousProject,
+          initialDocument: previousProject.effectivePresentation,
           gateway: gateway,
           recoveryStore: recovery,
         ),
+        initialProject: previousProject,
+        projectSnapshot: () => gateway.currentProject,
       );
       addTearDown(controller.dispose);
 
@@ -532,61 +590,63 @@ void main() {
   });
 }
 
-class _MemoryProjectGateway
-    implements NarrativeDocumentGateway<ProjectManifest> {
-  _MemoryProjectGateway(this.durableDocument);
+class _MemoryProfileGateway
+    implements NarrativeDocumentGateway<ProjectPresentationProfile> {
+  _MemoryProfileGateway(this.durableDocument);
 
   ProjectManifest durableDocument;
   var revision = 'revision-1';
   var saveCount = 0;
 
+  ProjectManifest get currentProject => durableDocument;
+
   @override
-  Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
-    return NarrativeDocumentVersion<ProjectManifest>(
+  Future<NarrativeDocumentVersion<ProjectPresentationProfile>> read() async {
+    return NarrativeDocumentVersion<ProjectPresentationProfile>(
       revision: revision,
-      document: durableDocument,
+      document: durableDocument.effectivePresentation,
     );
   }
 
   @override
-  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
+  Future<NarrativeDocumentSaveResult<ProjectPresentationProfile>> save({
     required String expectedRevision,
-    required ProjectManifest before,
-    required ProjectManifest after,
+    required ProjectPresentationProfile before,
+    required ProjectPresentationProfile after,
     required String operationId,
   }) async {
     saveCount += 1;
-    durableDocument = after;
+    durableDocument = durableDocument.copyWith(presentation: after);
     revision = 'revision-${saveCount + 1}';
-    return NarrativeDocumentSaveResult<ProjectManifest>.saved(
-      NarrativeDocumentVersion<ProjectManifest>(
+    return NarrativeDocumentSaveResult<ProjectPresentationProfile>.saved(
+      NarrativeDocumentVersion<ProjectPresentationProfile>(
         revision: revision,
-        document: durableDocument,
+        document: after,
       ),
     );
   }
 }
 
-final class _MismatchingProjectGateway extends _MemoryProjectGateway {
-  _MismatchingProjectGateway(super.durableDocument);
+final class _MismatchingProfileGateway extends _MemoryProfileGateway {
+  _MismatchingProfileGateway(super.durableDocument);
 
   @override
-  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
+  Future<NarrativeDocumentSaveResult<ProjectPresentationProfile>> save({
     required String expectedRevision,
-    required ProjectManifest before,
-    required ProjectManifest after,
+    required ProjectPresentationProfile before,
+    required ProjectPresentationProfile after,
     required String operationId,
-  }) async => NarrativeDocumentSaveResult<ProjectManifest>.saved(
-    NarrativeDocumentVersion<ProjectManifest>(
+  }) async => NarrativeDocumentSaveResult<ProjectPresentationProfile>.saved(
+    NarrativeDocumentVersion<ProjectPresentationProfile>(
       revision: 'revision-mismatch',
       document: before,
     ),
   );
 }
 
-final class _MemoryProjectRecoveryStore
-    implements NarrativeDocumentRecoveryStore<ProjectManifest> {
-  NarrativeDocumentRecoveryRecord<ProjectManifest>? record;
+final class _MemoryProfileRecoveryStore
+    implements NarrativeDocumentRecoveryStore<ProjectPresentationProfile> {
+  NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>? record;
   var writeCount = 0;
 
   @override
@@ -595,13 +655,14 @@ final class _MemoryProjectRecoveryStore
   }
 
   @override
-  Future<NarrativeDocumentRecoveryRecord<ProjectManifest>?> read() async {
+  Future<NarrativeDocumentRecoveryRecord<ProjectPresentationProfile>?>
+  read() async {
     return record;
   }
 
   @override
   Future<void> write(
-    NarrativeDocumentRecoveryRecord<ProjectManifest> record,
+    NarrativeDocumentRecoveryRecord<ProjectPresentationProfile> record,
   ) async {
     writeCount += 1;
     this.record = record;
