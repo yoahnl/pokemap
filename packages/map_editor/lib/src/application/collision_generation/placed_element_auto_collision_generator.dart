@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'element_visual_occupancy_analyzer.dart';
 import 'placed_element_collision_params.dart';
 import 'placed_element_mask_heuristics_v1.dart';
+import '../services/editor_performance_telemetry.dart';
 
 /// Orchestre le décodage image → [ElementCollisionProfile] avec **trois** rôles :
 /// [ElementCollisionProfile.visualMask], [ElementCollisionProfile.collisionMask],
@@ -102,7 +103,7 @@ class PlacedElementAutoCollisionGenerator {
     final visualMask = ElementCollisionPixelMask(
       widthPx: maskWidthPx,
       heightPx: maskHeightPx,
-      dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+      dataBase64: EditorPerformanceTelemetry.encodePackedCollisionMask(
         widthPx: maskWidthPx,
         heightPx: maskHeightPx,
         solidPixels: visualPixels,
@@ -111,7 +112,7 @@ class PlacedElementAutoCollisionGenerator {
     final collisionMask = ElementCollisionPixelMask(
       widthPx: maskWidthPx,
       heightPx: maskHeightPx,
-      dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+      dataBase64: EditorPerformanceTelemetry.encodePackedCollisionMask(
         widthPx: maskWidthPx,
         heightPx: maskHeightPx,
         solidPixels: derived.collision,
@@ -120,13 +121,13 @@ class PlacedElementAutoCollisionGenerator {
     final occlusionMask = ElementCollisionPixelMask(
       widthPx: maskWidthPx,
       heightPx: maskHeightPx,
-      dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+      dataBase64: EditorPerformanceTelemetry.encodePackedCollisionMask(
         widthPx: maskWidthPx,
         heightPx: maskHeightPx,
         solidPixels: derived.occlusion,
       ),
     );
-    final cells = ElementCollisionMaskCodec.cellsFromPixelMask(
+    final cells = EditorPerformanceTelemetry.collisionCellsFromPixelMask(
       mask: collisionMask,
       tileWidth: tileWidth,
       tileHeight: tileHeight,

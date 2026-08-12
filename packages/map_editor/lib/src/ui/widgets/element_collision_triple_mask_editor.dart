@@ -9,6 +9,7 @@ import 'package:flutter/material.dart' show Colors;
 import 'package:map_core/map_core.dart';
 
 import '../../application/models/element_collision_truth_summary.dart';
+import '../../application/services/editor_performance_telemetry.dart';
 import '../shared/cupertino_editor_widgets.dart';
 
 /// Mode de la surface d’édition : **aperçu** (lecture seule) ou peinture sur
@@ -178,7 +179,7 @@ class _ElementCollisionTripleMaskEditorState
       return null;
     }
     try {
-      return ElementCollisionMaskCodec.decodePackedBits(
+      return EditorPerformanceTelemetry.decodePackedCollisionMask(
         widthPx: w,
         heightPx: h,
         dataBase64: m.dataBase64,
@@ -257,7 +258,7 @@ class _ElementCollisionTripleMaskEditorState
       widthPx: _wPx,
       heightPx: _hPx,
       encoding: ElementCollisionMaskEncoding.packedBitsV1,
-      dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+      dataBase64: EditorPerformanceTelemetry.encodePackedCollisionMask(
         widthPx: _wPx,
         heightPx: _hPx,
         solidPixels: bits,
@@ -272,7 +273,7 @@ class _ElementCollisionTripleMaskEditorState
     if (_visualBits != null && _visualBits!.length == _wPx * _hPx) {
       visualMask = _maskFromBits(_visualBits!);
     }
-    final derivedCells = ElementCollisionMaskCodec.cellsFromPixelMask(
+    final derivedCells = EditorPerformanceTelemetry.collisionCellsFromPixelMask(
       mask: collisionMask,
       tileWidth: widget.tileWidth,
       tileHeight: widget.tileHeight,

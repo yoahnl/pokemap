@@ -35,6 +35,7 @@ import '../../application/shadow/editor_static_shadow_preview.dart';
 import '../../application/services/environment_generated_placement_hover_resolver.dart';
 import '../../application/services/environment_mask_brush_footprint_resolver.dart';
 import '../../application/services/environment_mask_paint_target_resolver.dart';
+import '../../application/services/editor_performance_telemetry.dart';
 import '../../application/services/map_focus_viewport_resolver.dart';
 import '../../application/services/map_viewport_navigation.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
@@ -947,7 +948,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
 
     return FutureBuilder<_TilesetImageBatch>(
       future: _tilesetImagesFuture,
-      builder: (context, snapshot) {
+      builder: _instrumentCanvasBuilder((context, snapshot) {
         final batch = snapshot.data;
         final tilesetImageResults =
             batch?.generation == _tilesetImageRequestGeneration
@@ -1829,60 +1830,72 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
               }
             },
             onPanUpdate: (details) {
-              final interaction = _activeGestureInteraction();
-              if (interaction == null ||
-                  !_ensureCurrentInteractionContext(interaction)) {
-                return;
-              }
-              final interactionKind = interaction.kind;
-              if (interactionKind ==
-                  MapCanvasInteractionKind.draggingSelection) {
-                _updateObjectMovePreview(details.localPosition);
-                return;
-              }
-              if (interactionKind == MapCanvasInteractionKind.drawingZone &&
-                  _zoneDragStart != null) {
-                final gridPos = _screenToGrid(
-                  details.localPosition,
-                  state.panOffset,
-                  state.zoom,
-                  activeMap.size,
-                  tileWidth,
-                  tileHeight,
-                );
-                if (gridPos != null) {
-                  notifier.setGameplayZoneDraftArea(
-                    _rectFromCorners(_zoneDragStart!, gridPos),
+              final pointerSpan = EditorPerformanceTelemetry.startSpan(
+                EditorPerformanceSpanName.pointerToDispatch,
+              );
+              try {
+                final interaction = _activeGestureInteraction();
+                if (interaction == null ||
+                    !_ensureCurrentInteractionContext(interaction)) {
+                  return;
+                }
+                final interactionKind = interaction.kind;
+                if (interactionKind ==
+                    MapCanvasInteractionKind.draggingSelection) {
+                  _updateObjectMovePreview(details.localPosition);
+                  pointerSpan?.finish();
+                  return;
+                }
+                if (interactionKind == MapCanvasInteractionKind.drawingZone &&
+                    _zoneDragStart != null) {
+                  final gridPos = _screenToGrid(
+                    details.localPosition,
+                    state.panOffset,
+                    state.zoom,
+                    activeMap.size,
+                    tileWidth,
+                    tileHeight,
                   );
-                }
-                return;
-              }
-              final isActiveStroke =
-                  interactionKind == MapCanvasInteractionKind.paintingStroke ||
-                  interactionKind == MapCanvasInteractionKind.borderGesture;
-              if (!isActiveStroke || !isStrokeEditingTool) return;
-              final gridPos = screenToActiveToolGrid(details.localPosition);
-              if (gridPos != null) {
-                if (isSmartTileShapeTool) {
-                  if (_smartTileShapeEnd != gridPos) {
-                    setState(() => _smartTileShapeEnd = gridPos);
+                  if (gridPos != null) {
+                    notifier.setGameplayZoneDraftArea(
+                      _rectFromCorners(_zoneDragStart!, gridPos),
+                    );
                   }
+                  pointerSpan?.finish();
                   return;
                 }
-                if (isEnvironmentMaskEditing &&
-                    _lastEnvironmentMaskPaintCell == gridPos) {
-                  return;
+                final isActiveStroke =
+                    interactionKind ==
+                        MapCanvasInteractionKind.paintingStroke ||
+                    interactionKind == MapCanvasInteractionKind.borderGesture;
+                if (!isActiveStroke || !isStrokeEditingTool) return;
+                final gridPos = screenToActiveToolGrid(details.localPosition);
+                if (gridPos != null) {
+                  if (isSmartTileShapeTool) {
+                    if (_smartTileShapeEnd != gridPos) {
+                      setState(() => _smartTileShapeEnd = gridPos);
+                    }
+                    pointerSpan?.finish();
+                    return;
+                  }
+                  if (isEnvironmentMaskEditing &&
+                      _lastEnvironmentMaskPaintCell == gridPos) {
+                    return;
+                  }
+                  if (isBorderEditing && _lastBorderPaintCell == gridPos) {
+                    return;
+                  }
+                  pointerSpan?.finish();
+                  applyToolAt(gridPos, partOfStroke: true);
+                  if (isEnvironmentMaskEditing) {
+                    _lastEnvironmentMaskPaintCell = gridPos;
+                  }
+                  if (isBorderEditing) {
+                    _lastBorderPaintCell = gridPos;
+                  }
                 }
-                if (isBorderEditing && _lastBorderPaintCell == gridPos) {
-                  return;
-                }
-                applyToolAt(gridPos, partOfStroke: true);
-                if (isEnvironmentMaskEditing) {
-                  _lastEnvironmentMaskPaintCell = gridPos;
-                }
-                if (isBorderEditing) {
-                  _lastBorderPaintCell = gridPos;
-                }
+              } finally {
+                pointerSpan?.finish();
               }
             },
             onPanEnd: (_) {
@@ -2393,8 +2406,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             ],
           ),
         );
-      },
+      }),
     );
+  }
+
+  AsyncWidgetBuilder<T> _instrumentCanvasBuilder<T>(
+    AsyncWidgetBuilder<T> builder,
+  ) {
+    return (context, snapshot) {
+      final span = EditorPerformanceTelemetry.startSpan(
+        EditorPerformanceSpanName.canvasBuild,
+      );
+      try {
+        return builder(context, snapshot);
+      } finally {
+        span?.finish();
+      }
+    };
   }
 
   void _scheduleNarrativeEventCameraFocus({

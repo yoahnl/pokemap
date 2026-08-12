@@ -10,6 +10,7 @@ import '../../references/reference_impact.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
+import '../../support/authoring_performance_observer.dart';
 import '../../workspace/project_snapshot.dart';
 
 /// Stable domain failure returned by map action adapters.
@@ -33,7 +34,10 @@ final class MapAuthoringException implements Exception {
 
 /// Pure map lifecycle adapter. It never receives a filesystem write port.
 final class MapLifecycleAdapter {
-  const MapLifecycleAdapter();
+  const MapLifecycleAdapter({AuthoringPerformanceObserver? performanceObserver})
+      : _performanceObserver = performanceObserver;
+
+  final AuthoringPerformanceObserver? _performanceObserver;
 
   AuthoringMutationDraft create(AuthoringPlanningContext context) {
     final parameters = _Parameters(
@@ -156,7 +160,18 @@ final class MapLifecycleAdapter {
     final before = _requireMap(snapshot, updated.id);
     _validateProjected(snapshot.manifest, [updated]);
     final beforeBytes = snapshot.resourceBytes('map:${updated.id}');
-    final afterBytes = encodeMapAuthoringDocument(updated);
+    final encodeSpan = _performanceObserver?.startSpan(
+      AuthoringPerformanceSpanName.saveEncode,
+    );
+    late final List<int> afterBytes;
+    try {
+      afterBytes = encodeMapAuthoringDocument(updated);
+      _performanceObserver?.incrementCounter(
+        AuthoringPerformanceCounterName.jsonEncode,
+      );
+    } finally {
+      encodeSpan?.finish();
+    }
     _requireChanged(beforeBytes, afterBytes);
     final resource = _existingResource(snapshot, 'map', updated.id);
     return AuthoringMutationDraft(

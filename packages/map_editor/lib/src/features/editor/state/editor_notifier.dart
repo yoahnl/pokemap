@@ -47,6 +47,7 @@ import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
 import '../../../application/services/editor_palette_session_service.dart';
+import '../../../application/services/editor_performance_telemetry.dart';
 import '../../../application/services/element_collision_profile_generator.dart';
 import '../../../application/services/environment_mask_paint_target_resolver.dart';
 import '../../../application/services/entity_editing_service.dart';
@@ -9192,6 +9193,9 @@ class EditorNotifier extends _$EditorNotifier
     required _PaintPattern pattern,
     required String failureLabel,
   }) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.mutationLocal,
+    );
     try {
       final useCase = ref.read(paintTilePatternOnMapUseCaseProvider);
       final painted = useCase.execute(
@@ -9215,9 +9219,12 @@ class EditorNotifier extends _$EditorNotifier
         updatedMap: committed,
         preferredActiveLayerId: layerId,
         partOfStroke: true,
+        performanceMutationSpan: span,
       );
     } catch (e) {
       _setPaintError('Failed to paint $failureLabel: $e');
+    } finally {
+      span?.finish();
     }
   }
 
@@ -9287,6 +9294,9 @@ class EditorNotifier extends _$EditorNotifier
     required GridSize patternSize,
     required String failureLabel,
   }) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.mutationLocal,
+    );
     try {
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(paintCollisionOnMapUseCaseProvider);
@@ -9300,6 +9310,7 @@ class EditorNotifier extends _$EditorNotifier
           updatedMap: painted,
           preferredActiveLayerId: layerId,
           partOfStroke: true,
+          performanceMutationSpan: span,
         );
         return;
       }
@@ -9316,9 +9327,12 @@ class EditorNotifier extends _$EditorNotifier
         updatedMap: painted,
         preferredActiveLayerId: layerId,
         partOfStroke: true,
+        performanceMutationSpan: span,
       );
     } catch (e) {
       _setPaintError('Failed to paint collision $failureLabel: $e');
+    } finally {
+      span?.finish();
     }
   }
 
@@ -13797,6 +13811,7 @@ class EditorNotifier extends _$EditorNotifier
     bool updateHoveredTile = false,
     String? statusMessage,
     Object? mapWriteLeaseToken,
+    EditorPerformanceSpan? performanceMutationSpan,
   }) {
     if (_rejectNonCanonicalActiveMapAuthoring() ||
         _rejectNarrativeEventSourceCleanupMapMutation() ||
@@ -13834,7 +13849,15 @@ class EditorNotifier extends _$EditorNotifier
     if (outgoingPaletteKey != incomingPaletteKey || layerIdentityChanged) {
       adopted = _activatePaletteContext(adopted);
     }
-    state = adopted;
+    performanceMutationSpan?.finish();
+    final publishSpan = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.statePublish,
+    );
+    try {
+      state = adopted;
+    } finally {
+      publishSpan?.finish();
+    }
   }
 
   int _findLayerIndexById(MapData map, String layerId) {

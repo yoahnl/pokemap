@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -10,9 +11,11 @@ void main() {
     test('map save verifies only its touched payload without a full reload',
         () async {
       final original = _map('town');
+      final performanceObserver = _PerformanceObserver();
       final setup = await _Setup.create(
         maps: [original],
         enableSnapshotCache: true,
+        performanceObserver: performanceObserver,
       );
       addTearDown(setup.dispose);
       final request = await setup.requestAsync(
@@ -32,6 +35,13 @@ void main() {
 
       expect(applied['snapshotRevision'], startsWith('sha256:'));
       expect(setup.reader.byteReads, 1);
+      expect(
+        performanceObserver.started,
+        containsAll(<String>['save.encode', 'save.queue']),
+      );
+      expect(performanceObserver.finished, performanceObserver.started);
+      expect(performanceObserver.counters['filesystem.write'], greaterThan(0));
+      expect(performanceObserver.counters['json.encode'], greaterThan(0));
       expect(
           (await setup.snapshots.load(setup.projectHandle))
               .mapById('town')!
@@ -459,6 +469,7 @@ final class _Setup {
     DateTime Function()? clock,
     Duration handleTtl = const Duration(minutes: 15),
     AuthoringActor? actor,
+    AuthoringPerformanceObserver? performanceObserver,
   }) async {
     final root = await Directory.systemTemp.createTemp('map-lifecycle-');
     final manifest = ProjectManifest(
@@ -513,6 +524,7 @@ final class _Setup {
       clock: clock,
       faultInjector: faultInjector,
       actor: actor,
+      performanceObserver: performanceObserver,
     );
     await mutations.attachProject(
       projectRootPath: root.path,
@@ -558,6 +570,33 @@ final class _Setup {
     await mutations.detachWorkspace(workspaceHandle);
     if (await root.exists()) await root.delete(recursive: true);
   }
+}
+
+final class _PerformanceObserver implements AuthoringPerformanceObserver {
+  final List<String> started = <String>[];
+  final List<String> finished = <String>[];
+  final Map<String, int> counters = <String, int>{};
+
+  @override
+  AuthoringPerformanceSpan startSpan(String name) {
+    started.add(name);
+    return _PerformanceSpan(name, finished);
+  }
+
+  @override
+  void incrementCounter(String name, {int by = 1}) {
+    counters.update(name, (value) => value + by, ifAbsent: () => by);
+  }
+}
+
+final class _PerformanceSpan implements AuthoringPerformanceSpan {
+  _PerformanceSpan(this.name, this.finished);
+
+  final String name;
+  final List<String> finished;
+
+  @override
+  void finish() => finished.add(name);
 }
 
 final class _CountingLocalReader

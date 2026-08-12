@@ -4,6 +4,7 @@ import 'dart:io';
 import '../ports/project_file_reader.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../support/authoring_fingerprint.dart';
+import '../support/authoring_performance_observer.dart';
 import 'transaction_journal.dart';
 
 /// Project-local filesystem adapter with atomic-per-file replacement.
@@ -12,10 +13,14 @@ import 'transaction_journal.dart';
 /// staged payloads make the ordered sequence recoverable after any completed
 /// filesystem call.
 final class LocalTransactionFileGateway implements TransactionFileGateway {
-  LocalTransactionFileGateway._(this._projectRoot);
+  LocalTransactionFileGateway._(
+    this._projectRoot,
+    this._performanceObserver,
+  );
 
   static Future<LocalTransactionFileGateway> open({
     required String projectRoot,
+    AuthoringPerformanceObserver? performanceObserver,
   }) async {
     try {
       final directory = Directory(projectRoot);
@@ -27,6 +32,7 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
       }
       return LocalTransactionFileGateway._(
         await directory.resolveSymbolicLinks(),
+        performanceObserver,
       );
     } on TransactionFileGatewayException {
       rethrow;
@@ -39,6 +45,7 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
   }
 
   final String _projectRoot;
+  final AuthoringPerformanceObserver? _performanceObserver;
 
   @override
   Future<T> withExclusiveWriteLock<T>(Future<T> Function() operation) async {
@@ -48,7 +55,14 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
       lock = await File(_join(internalRoot.path, 'write.lock')).open(
         mode: FileMode.append,
       );
-      await lock.lock(FileLock.exclusive);
+      final queueSpan = _performanceObserver?.startSpan(
+        AuthoringPerformanceSpanName.saveQueue,
+      );
+      try {
+        await lock.lock(FileLock.exclusive);
+      } finally {
+        queueSpan?.finish();
+      }
     } on TransactionFileGatewayException {
       rethrow;
     } on Object {
@@ -71,6 +85,9 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
 
   @override
   Future<List<int>?> readResource(String storageKey) {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemRead,
+    );
     return _guardIo(() async {
       final file = await _resourceFile(storageKey, createParents: false);
       final type = await FileSystemEntity.type(file.path, followLinks: false);
@@ -115,6 +132,9 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
     required TransactionPayloadKind kind,
     required List<int>? bytes,
   }) {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemWrite,
+    );
     return _guardIo(() async {
       final payload = TransactionStagedPayload(
         storageKey: storageKey,
@@ -151,6 +171,9 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
           suffix: '${kind.name}.payload',
         );
       }
+      _performanceObserver?.incrementCounter(
+        AuthoringPerformanceCounterName.jsonEncode,
+      );
       final descriptor = utf8.encode(jsonEncode({
         'schemaVersion': 1,
         'storageKey': storageKey,
@@ -175,6 +198,9 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
     required String storageKey,
     required TransactionPayloadKind kind,
   }) {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemRead,
+    );
     return _guardIo(() async {
       final paths = await _payloadPaths(
         operationId,
@@ -189,6 +215,9 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
         );
       }
       try {
+        _performanceObserver?.incrementCounter(
+          AuthoringPerformanceCounterName.jsonDecode,
+        );
         final decoded = jsonDecode(await paths.descriptor.readAsString());
         if (decoded is! Map) throw const FormatException();
         final descriptor = Map<String, dynamic>.from(decoded);
@@ -243,6 +272,9 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
     required TransactionPayloadKind kind,
     required String? expectedCurrentRevision,
   }) {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemWrite,
+    );
     return _guardIo(() async {
       final currentRevision = await readResourceRevision(storageKey);
       if (currentRevision != expectedCurrentRevision) {
@@ -294,6 +326,12 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
 
   @override
   Future<void> writeJournal(AuthoringTransactionJournal journal) {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemWrite,
+    );
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.jsonEncode,
+    );
     return _guardIo(() async {
       final directory = await _operationDirectory(
         journal.operationId,
@@ -309,11 +347,17 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
 
   @override
   Future<AuthoringTransactionJournal?> readJournal(String operationId) {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemRead,
+    );
     return _guardIo(() async {
       final directory = await _operationDirectory(operationId, create: false);
       final journalFile = File(_join(directory.path, 'journal.json'));
       if (!await journalFile.exists()) return null;
       try {
+        _performanceObserver?.incrementCounter(
+          AuthoringPerformanceCounterName.jsonDecode,
+        );
         final decoded = jsonDecode(await journalFile.readAsString());
         if (decoded is! Map) throw const FormatException();
         final journal = AuthoringTransactionJournal.fromJson(
@@ -334,6 +378,9 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
 
   @override
   Future<List<AuthoringTransactionJournal>> listJournals() {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemMetadata,
+    );
     return _guardIo(() async {
       final root = await _ensureInternalRoot();
       final journals = <AuthoringTransactionJournal>[];
@@ -354,6 +401,9 @@ final class LocalTransactionFileGateway implements TransactionFileGateway {
 
   @override
   Future<void> deleteTransaction(String operationId) {
+    _performanceObserver?.incrementCounter(
+      AuthoringPerformanceCounterName.filesystemWrite,
+    );
     return _guardIo(() async {
       final directory = await _operationDirectory(operationId, create: false);
       final type = await FileSystemEntity.type(
