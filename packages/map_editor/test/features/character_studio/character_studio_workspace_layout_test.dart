@@ -1,3 +1,5 @@
+import 'dart:ui' show AppExitResponse;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -181,6 +183,47 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('identity drafts mark the shell dirty and guard app exit', (
+    tester,
+  ) async {
+    await pumpEditorShellPage(
+      tester,
+      initialState: EditorState(
+        projectRootPath: '/tmp/character-studio-layout',
+        project: _characterStudioProject(),
+        workspaceMode: EditorWorkspaceMode.characterStudio,
+        selectedCharacterId: 'elia',
+      ),
+      surfaceSize: const Size(1672, 1000),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('character-identity-name')),
+      'Élia modifiée',
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('status-bar-project-dirty-chip')),
+      findsOneWidget,
+    );
+
+    final stayFuture = tester.binding.handleRequestAppExit();
+    await tester.pumpAndSettle();
+    expect(find.text('Quitter sans enregistrer ?'), findsOneWidget);
+    await tester.tap(find.text('Rester dans PokeMap'));
+    await tester.pumpAndSettle();
+    expect(await stayFuture, AppExitResponse.cancel);
+    expect(find.text('Élia modifiée'), findsOneWidget);
+
+    final exitFuture = tester.binding.handleRequestAppExit();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Quitter sans enregistrer'));
+    await tester.pumpAndSettle();
+    expect(await exitFuture, AppExitResponse.exit);
+    expect(find.text('Modifications non enregistrées'), findsNothing);
   });
 
   testWidgets('changing character never discards an identity draft silently', (

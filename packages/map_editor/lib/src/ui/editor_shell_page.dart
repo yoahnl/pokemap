@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart'
@@ -45,6 +46,7 @@ import '../features/narrative/state/narrative_event_builder_v2_providers.dart';
 import '../features/narrative/state/narrative_validator_providers.dart';
 import '../application/services/narrative_document_session.dart';
 import '../features/border_studio/state/border_studio_providers.dart';
+import '../features/character_studio/presentation/identity/character_studio_identity_draft_controller.dart';
 
 const double _kRightInspectorDefaultWidth = 336;
 const double _kRightInspectorMinWidth = 280;
@@ -83,7 +85,8 @@ class EditorShellPage extends ConsumerStatefulWidget {
   ConsumerState<EditorShellPage> createState() => _EditorShellPageState();
 }
 
-class _EditorShellPageState extends ConsumerState<EditorShellPage> {
+class _EditorShellPageState extends ConsumerState<EditorShellPage>
+    with WidgetsBindingObserver {
   Timer? _toastTimer;
   final GlobalKey _projectExplorerKey = GlobalKey(
     debugLabel: 'shared-project-explorer',
@@ -97,6 +100,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   String? _toastMessage;
   bool _toastIsError = false;
   bool _didAttemptProjectAutoRestore = false;
+  bool _isHandlingAppExit = false;
 
   /// When false, the right ResizablePane (map / tileset / narrative inspector) is omitted so the center stage uses full width.
   bool _rightInspectorVisible = true;
@@ -147,6 +151,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Provider mutations are intentionally deferred after the first frame:
     // auto-restore loads a project (state mutation), and Riverpod disallows
     // mutating providers during build/init lifecycle phases.
@@ -163,10 +168,41 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _toastTimer?.cancel();
     _worldMapInspectorFocusNode.dispose();
     _worldMapSelectionFocusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  Future<AppExitResponse> didRequestAppExit() async {
+    if (!ref.read(characterStudioIdentityDraftProvider).hasDrafts) {
+      return AppExitResponse.exit;
+    }
+    if (!mounted || _isHandlingAppExit) return AppExitResponse.cancel;
+    _isHandlingAppExit = true;
+    try {
+      final shouldExit = await showPokeMapConfirmationDialog<bool>(
+        context: context,
+        title: 'Quitter sans enregistrer ?',
+        message:
+            'Une identité de personnage contient des modifications non enregistrées.',
+        actions: const <PokeMapDialogAction<bool>>[
+          PokeMapDialogAction<bool>(label: 'Rester dans PokeMap', value: false),
+          PokeMapDialogAction<bool>(
+            label: 'Quitter sans enregistrer',
+            value: true,
+            variant: PokeMapButtonVariant.danger,
+          ),
+        ],
+      );
+      if (shouldExit != true) return AppExitResponse.cancel;
+      ref.read(characterStudioIdentityDraftProvider.notifier).clearAll();
+      return AppExitResponse.exit;
+    } finally {
+      _isHandlingAppExit = false;
+    }
   }
 
   void _flashToast(

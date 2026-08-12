@@ -9,6 +9,7 @@ import '../design_system/pokemap_dialog.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_toast_replay_provider.dart';
 import '../../features/editor/state/models/editor_workspace_mode.dart';
+import '../../features/character_studio/presentation/identity/character_studio_identity_draft_controller.dart';
 import '../../features/editor_updates/application/editor_update_providers.dart';
 import '../../theme/theme.dart';
 
@@ -107,6 +108,10 @@ class _StatusBarState extends ConsumerState<StatusBar> {
     );
 
     final state = ref.watch(editorNotifierProvider);
+    final hasIdentityDrafts = ref.watch(
+      characterStudioIdentityDraftProvider.select((state) => state.hasDrafts),
+    );
+    final hasUnsavedProjectChanges = state.isProjectDirty || hasIdentityDrafts;
     final installedVersionLabel =
         ref.watch(editorInstalledVersionProvider).when(
               data: (version) => 'v$version',
@@ -123,24 +128,24 @@ class _StatusBarState extends ConsumerState<StatusBar> {
     final hasError = state.errorMessage != null;
     final primaryMessage = hasError
         ? state.errorMessage!
-        : state.isProjectDirty
+        : hasUnsavedProjectChanges
             ? pendingProjectSaveMessage
             : state.statusMessage ?? 'Prêt';
 
     // Left status pill styling
     final pillBg = hasError
         ? colors.errorSoft
-        : (state.isProjectDirty
+        : (hasUnsavedProjectChanges
             ? colors.warning.withValues(alpha: 0.15)
             : colors.brandPrimarySoft);
     final pillBorder = hasError
         ? colors.errorBorder
-        : (state.isProjectDirty
+        : (hasUnsavedProjectChanges
             ? colors.warning.withValues(alpha: 0.4)
             : colors.brandPrimaryBorder);
     final pillText = hasError
         ? colors.error
-        : (state.isProjectDirty ? colors.warning : colors.brandPrimary);
+        : (hasUnsavedProjectChanges ? colors.warning : colors.brandPrimary);
     final pillIcon = hasError
         ? CupertinoIcons.exclamationmark_triangle_fill
         : CupertinoIcons.sparkles;
@@ -149,7 +154,7 @@ class _StatusBarState extends ConsumerState<StatusBar> {
       builder: (context, constraints) {
         final wideLayoutThreshold = 1100 +
             (activeMap == null ? 0 : 300) +
-            (state.isProjectDirty ? 180 : 0);
+            (hasUnsavedProjectChanges ? 180 : 0);
         final isWide = constraints.maxWidth >= wideLayoutThreshold;
 
         return Container(
@@ -248,14 +253,16 @@ class _StatusBarState extends ConsumerState<StatusBar> {
                       height: 6,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: state.isProjectDirty
+                        color: hasUnsavedProjectChanges
                             ? colors.warning
                             : colors.success,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      state.isProjectDirty ? 'Non synchronisé' : 'Synchronisé',
+                      hasUnsavedProjectChanges
+                          ? 'Non synchronisé'
+                          : 'Synchronisé',
                       style: TextStyle(
                         color: colors.textSecondary,
                         fontSize: 11,
@@ -299,14 +306,14 @@ class _StatusBarState extends ConsumerState<StatusBar> {
                         shape: BoxShape.circle,
                         color: hasError
                             ? colors.error
-                            : (state.isProjectDirty
+                            : (hasUnsavedProjectChanges
                                 ? colors.warning
                                 : colors.success),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Projet : ${hasError ? 'Erreur' : (state.isProjectDirty ? 'Modifié' : 'Bon')}',
+                      'Projet : ${hasError ? 'Erreur' : (hasUnsavedProjectChanges ? 'Modifié' : 'Bon')}',
                       style: TextStyle(
                         color: colors.textSecondary,
                         fontSize: 11,
@@ -335,7 +342,7 @@ class _StatusBarState extends ConsumerState<StatusBar> {
                 ),
                 const SizedBox(width: 16),
               ],
-              if (state.isProjectDirty) ...[
+              if (hasUnsavedProjectChanges) ...[
                 _rightSegment(
                   colors,
                   'Projet non sauvegardé',

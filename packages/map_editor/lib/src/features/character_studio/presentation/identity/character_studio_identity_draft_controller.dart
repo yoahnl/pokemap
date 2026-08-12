@@ -49,6 +49,8 @@ final class CharacterStudioIdentityDraftState {
 
   final Map<String, CharacterIdentityFormDraft> drafts;
 
+  bool get hasDrafts => drafts.isNotEmpty;
+
   CharacterIdentityFormDraft? draftFor({
     required String projectRootPath,
     required String characterId,
@@ -92,6 +94,11 @@ final class CharacterStudioIdentityDraftController
     state = CharacterStudioIdentityDraftState(
       drafts: Map<String, CharacterIdentityFormDraft>.unmodifiable(next),
     );
+  }
+
+  void clearAll() {
+    if (!state.hasDrafts) return;
+    state = const CharacterStudioIdentityDraftState();
   }
 }
 
