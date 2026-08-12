@@ -38,7 +38,9 @@ class PersonalizationStudioShell extends StatelessWidget {
   );
 
   Widget _layout(BuildContext context, double width) {
-    if (width >= 1100) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
+    final effectiveWidth = width / textScale;
+    if (effectiveWidth >= 1100) {
       final navigationWidth = width >= 1440 ? 190.0 : 180.0;
       final inspectorWidth = width >= 1440 ? 290.0 : 280.0;
       return Row(

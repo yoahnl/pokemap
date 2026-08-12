@@ -104,6 +104,31 @@ void main() {
     );
   });
 
+  testWidgets('uses the rail at 1440 pixels with 200 percent text', (
+    tester,
+  ) async {
+    await _pumpShell(tester, const Size(1440, 900), textScale: 2);
+
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-navigation-rail'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-inspector-pane'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('personalization-studio-open-inspector'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('stays usable at 720 pixels with 200 percent text', (
     tester,
   ) async {

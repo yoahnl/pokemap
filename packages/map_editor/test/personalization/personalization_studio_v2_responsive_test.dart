@@ -20,8 +20,13 @@ void main() {
     ),
     const _StudioScenario(
       size: Size(1440, 900),
-      textScales: <double>[1, 2],
+      textScales: <double>[1],
       layoutKey: 'personalization-studio-navigation-list',
+    ),
+    const _StudioScenario(
+      size: Size(1440, 900),
+      textScales: <double>[2],
+      layoutKey: 'personalization-studio-navigation-rail',
     ),
     const _StudioScenario(
       size: Size(1600, 1000),
@@ -50,7 +55,7 @@ void main() {
             expect(target, findsOneWidget);
             expect(tester.getSize(target).height, greaterThanOrEqualTo(48));
           }
-          if (scenario.size.width < 1100) {
+          if (scenario.layoutKey != 'personalization-studio-navigation-list') {
             expect(
               tester
                   .getSize(
