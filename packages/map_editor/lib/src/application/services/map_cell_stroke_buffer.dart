@@ -73,6 +73,7 @@ final class MapCellStrokeBuffer {
   final void Function()? _onChanged;
   final Map<int, TileLayerPaletteEntry?> _tileOverrides =
       <int, TileLayerPaletteEntry?>{};
+  final Set<int> _tileTouchedCellIndices = <int>{};
   final List<TileLayerPaletteEntry> _tilePaletteAdditions =
       <TileLayerPaletteEntry>[];
   final Map<int, bool> _collisionOverrides = <int, bool>{};
@@ -437,7 +438,8 @@ final class MapCellStrokeBuffer {
   }
 
   MapData commit({
-    required void Function(MapData map) validate,
+    required void Function(DeltaValidationContext context) validate,
+    ProjectManifest? project,
     List<MapPlacedElement> Function(TileLayer layer)? resolvePlacedElements,
   }) {
     if (!hasChanges) return sourceMap;
@@ -465,7 +467,28 @@ final class MapCellStrokeBuffer {
             ],
           );
     _validationCount += 1;
-    validate(committed);
+    validate(
+      DeltaValidationContext(
+        before: sourceMap,
+        after: committed,
+        project: project,
+        delta: switch (kind) {
+          MapCellStrokeLayerKind.tile => MapMutationDelta.tileCells(
+            layerId: layerId,
+            cellIndices: _tileTouchedCellIndices,
+            placedElementLayerReindexed: resolvePlacedElements != null,
+          ),
+          MapCellStrokeLayerKind.collision => MapMutationDelta.collisionCells(
+            layerId: layerId,
+            cellIndices: _collisionOverrides.keys.toSet(),
+          ),
+          MapCellStrokeLayerKind.smartTile => MapMutationDelta.smartTileCells(
+            layerId: layerId,
+            cellIndices: _smartTileTouchedCellIndices,
+          ),
+        },
+      ),
+    );
     return committed;
   }
 
@@ -549,6 +572,7 @@ final class MapCellStrokeBuffer {
         } else {
           _tileOverrides[index] = value;
         }
+        _tileTouchedCellIndices.add(index);
         changed = true;
       }
     }

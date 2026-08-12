@@ -29,9 +29,9 @@ void main() {
     expect(buffer.tileAt(5 * 1024 + 999), tileA);
 
     final committed = buffer.commit(
-      validate: (map) {
+      validate: (context) {
         validations += 1;
-        MapValidator.validate(map);
+        MapDeltaValidator.validate(context);
       },
     );
 
@@ -118,7 +118,7 @@ void main() {
       tiles: const <TileLayerPaletteEntry?>[null],
     );
 
-    expect(buffer.commit(validate: MapValidator.validate), expected);
+    expect(buffer.commit(validate: MapDeltaValidator.validate), expected);
   });
 
   test('transient tile paint preserves the canonical palette side effect', () {
@@ -154,7 +154,7 @@ void main() {
     );
 
     expect(buffer.hasChanges, isTrue);
-    expect(buffer.commit(validate: MapValidator.validate), expected);
+    expect(buffer.commit(validate: MapDeltaValidator.validate), expected);
   });
 
   test('canvas exit breaks interpolation before re-entry', () {
@@ -211,7 +211,7 @@ void main() {
         );
       }
 
-      expect(buffer.commit(validate: MapValidator.validate), expected);
+      expect(buffer.commit(validate: MapDeltaValidator.validate), expected);
     },
   );
 
@@ -234,7 +234,7 @@ void main() {
       expect(buffer.touchedCellCount, entry.value);
       expect(buffer.fullLayerCopyCount, 0);
       expect(buffer.mapMaterializationCount, 0);
-      final committed = buffer.commit(validate: MapValidator.validate);
+      final committed = buffer.commit(validate: MapDeltaValidator.validate);
       expect(buffer.fullLayerCopyCount, 1);
       expect(buffer.mapMaterializationCount, 1);
       expect(
@@ -266,9 +266,9 @@ void main() {
     expect(buffer.smartTileMaterialAt(999, 7), 'grass');
 
     final committed = buffer.commit(
-      validate: (map) {
+      validate: (context) {
         validations += 1;
-        MapValidator.validate(map);
+        MapDeltaValidator.validate(context);
       },
     );
 
@@ -321,7 +321,7 @@ void main() {
     );
     final expected = replaceSmartTileLayer(source, layer: expectedLayer);
 
-    expect(buffer.commit(validate: MapValidator.validate), expected);
+    expect(buffer.commit(validate: MapDeltaValidator.validate), expected);
   });
 
   test('Smart Tile rebase preserves local cells over a canonical adoption', () {
@@ -349,7 +349,7 @@ void main() {
     expect(buffer.smartTileMaterialAt(0, 0), 'grass');
     expect(buffer.smartTileMaterialAt(4, 2), 'grass');
     expect(buffer.touchedCellCount, 1);
-    final committed = buffer.commit(validate: MapValidator.validate);
+    final committed = buffer.commit(validate: MapDeltaValidator.validate);
     final cells = smartTileSemanticCells(
       committed.layers.single as SmartTileLayer,
     );

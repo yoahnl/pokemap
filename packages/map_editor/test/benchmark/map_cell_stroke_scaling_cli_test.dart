@@ -50,6 +50,24 @@ void main() {
       }
       final extent = row['extent']! as int;
       final strokeSamples = row['strokeSamples']! as int;
+      final validations = Map<String, Object?>.from(row['validation']! as Map);
+      for (final kind in <String>['tile', 'collision', 'smartTile']) {
+        final validation = Map<String, Object?>.from(validations[kind]! as Map);
+        for (final mode in <String>['incremental', 'full']) {
+          final profile = Map<String, Object?>.from(validation[mode]! as Map);
+          expect(profile['samplesUs'], hasLength(1));
+          expect(profile['p50Us'], isA<int>());
+          expect(profile['p95Us'], isA<int>());
+          expect(profile['p99Us'], isA<int>());
+          expect(profile['maxUs'], isA<int>());
+        }
+        final counts = Map<String, Object?>.from(
+          validation['workCounts']! as Map,
+        );
+        expect(counts['incrementalInspectedCells'], inInclusiveRange(1, 9));
+        expect(counts['incrementalInspectedLayers'], 1);
+        expect(counts['fullSurfaceCells'], extent * extent);
+      }
       expect(row['workCounts'], <String, Object?>{
         'legacyFullLayerCopiesDuringGesture': strokeSamples,
         'legacyMapMaterializationsDuringGesture': strokeSamples,

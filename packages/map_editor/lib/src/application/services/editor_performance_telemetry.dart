@@ -17,6 +17,7 @@ final class EditorPerformanceSpanName {
   static const maskCommit = 'mask.commit';
   static const maskBuild = 'mask.build';
   static const maskPaint = 'mask.paint';
+  static const mapIncrementalValidation = 'map.validation.incremental';
   static const mapFullValidation = 'map.validation.full';
   static const snapshot = 'snapshot';
   static const plan = 'plan';
@@ -37,6 +38,7 @@ final class EditorPerformanceSpanName {
     maskCommit,
     maskBuild,
     maskPaint,
+    mapIncrementalValidation,
     mapFullValidation,
     snapshot,
     plan,
@@ -249,6 +251,41 @@ final class EditorPerformanceTelemetry {
 
   static void incrementCounter(String name, {int by = 1}) {
     _activeRecording?._recorder.incrementCounter(name, by: by);
+  }
+
+  static MapDeltaValidationReceipt validateMapDelta(
+    DeltaValidationContext context,
+  ) {
+    final span = startSpan(EditorPerformanceSpanName.mapIncrementalValidation);
+    try {
+      return MapDeltaValidator.validate(context);
+    } finally {
+      span?.finish();
+    }
+  }
+
+  static void validateFullMap(
+    MapData map, {
+    ProjectManifest? projectDialogueContext,
+  }) {
+    final span = startSpan(EditorPerformanceSpanName.mapFullValidation);
+    try {
+      MapValidator.validate(
+        map,
+        projectDialogueContext: projectDialogueContext,
+      );
+    } finally {
+      span?.finish();
+    }
+  }
+
+  static T traceFullMapValidation<T>(T Function() body) {
+    final span = startSpan(EditorPerformanceSpanName.mapFullValidation);
+    try {
+      return body();
+    } finally {
+      span?.finish();
+    }
   }
 
   static String encodeJson(Object? value) {
