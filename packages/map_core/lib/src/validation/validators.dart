@@ -3166,20 +3166,17 @@ class MapValidator {
     MapPlacedElement instance, {
     ProjectManifest? projectDialogueContext,
   }) {
-    final layerById = <String, MapLayer>{
-      for (final layer in map.layers) layer.id: layer,
-    };
-    final elementById = projectDialogueContext == null
-        ? const <String, ProjectElementEntry>{}
-        : {
-            for (final element in projectDialogueContext.elements)
-              element.id: element,
-          };
+    final layer = map.layers
+        .where((candidate) => candidate.id == instance.layerId)
+        .firstOrNull;
+    final element = projectDialogueContext?.elements
+        .where((candidate) => candidate.id == instance.elementId)
+        .firstOrNull;
     _validatePlacedElement(
       map: map,
       instance: instance,
-      layerById: layerById,
-      elementById: elementById,
+      layerById: <String, MapLayer>{?layer?.id: layer!},
+      elementById: <String, ProjectElementEntry>{?element?.id: element!},
       projectDialogueContext: projectDialogueContext,
     );
   }

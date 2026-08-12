@@ -24,7 +24,7 @@ mixin _EditorNotifierPlacedElementPlacement on _$EditorNotifier {
   void _validatePlacedElementDelta({
     required MapData before,
     required MapData after,
-    required String instanceId,
+    required MapPlacedElement instance,
   });
   void _recordCanonicalPlacedElementPlacement({
     required String projectRootPath,
@@ -109,7 +109,7 @@ mixin _EditorNotifierPlacedElementPlacement on _$EditorNotifier {
       _validatePlacedElementDelta(
         before: map,
         after: updatedMap,
-        instanceId: intent.instance.id,
+        instance: intent.instance,
       );
       if (_pendingPlacedElementPlacements.isEmpty &&
           _placedElementPublicationFuture == null) {
