@@ -447,6 +447,47 @@ void main() {
       },
     );
 
+    test(
+      'automatically rebases a recovered profile when only the project changed',
+      () async {
+        const recoveredProfile = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: '#456789'),
+        );
+        final previousProject = buildShellChromeProject(
+          name: 'Previous project',
+        );
+        final currentProject = previousProject.copyWith(
+          name: 'Current project',
+        );
+        final recovery = _MemoryProjectRecoveryStore()
+          ..record = NarrativeDocumentRecoveryRecord<ProjectManifest>(
+            documentId: 'personalization-studio',
+            baseRevision: 'revision-previous',
+            baseline: previousProject,
+            document: previousProject.copyWith(presentation: recoveredProfile),
+          );
+        final gateway = _MemoryProjectGateway(currentProject)
+          ..revision = 'revision-current';
+        final controller = PersonalizationStudioSessionController(
+          session: NarrativeDocumentSession<ProjectManifest>(
+            documentId: 'personalization-studio',
+            initialDocument: currentProject,
+            gateway: gateway,
+            recoveryStore: recovery,
+          ),
+        );
+        addTearDown(controller.dispose);
+
+        await controller.initialize();
+
+        expect(controller.state.isConflicted, isFalse);
+        expect(controller.state.isDirty, isTrue);
+        expect(controller.state.document.name, 'Current project');
+        expect(controller.state.draftProfile, recoveredProfile);
+        expect(recovery.record?.baseRevision, 'revision-current');
+      },
+    );
+
     test('uses the current project and clears the recovered draft', () async {
       const recoveredProfile = ProjectPresentationProfile(
         branding: ProjectBrandingProfile(accentColor: '#456789'),

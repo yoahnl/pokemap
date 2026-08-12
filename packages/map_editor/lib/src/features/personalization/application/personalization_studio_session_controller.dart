@@ -79,7 +79,17 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
   PersonalizationStudioSessionState get state =>
       PersonalizationStudioSessionState.fromDocumentState(_session.state);
 
-  Future<void> initialize() => _session.initialize();
+  Future<void> initialize() async {
+    await _session.initialize();
+    final comparison = _session.comparison;
+    if (_session.state.status != NarrativeDocumentSessionStatus.conflicted ||
+        comparison == null ||
+        comparison.baseline.effectivePresentation !=
+            comparison.external.effectivePresentation) {
+      return;
+    }
+    await keepDraftOnCurrentProject();
+  }
 
   Future<bool> applyProfile(
     ProjectPresentationProfile profile, {
@@ -107,7 +117,7 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
       merge: (local, external) =>
           external.copyWith(presentation: local.presentation),
       operationId: 'personalization_conflict_keep_$sequence',
-      label: 'Conserver le brouillon de personnalisation',
+      label: 'Restaurer les derniers réglages visuels',
     );
   }
 

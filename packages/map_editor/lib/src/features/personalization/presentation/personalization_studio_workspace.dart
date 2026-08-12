@@ -2233,18 +2233,17 @@ class _PersonalizationStudioWorkspaceState
                 key: const ValueKey<String>(
                   'personalization-studio-conflict-banner',
                 ),
-                title: 'Brouillon de personnalisation à réconcilier',
+                title: 'Quels réglages visuels voulez-vous utiliser ?',
                 message:
-                    'Un ancien brouillon et le projet actuel contiennent des '
-                    'versions différentes. Choisissez celle à utiliser pour '
-                    'réactiver tous les réglages.',
+                    'Le projet a été modifié depuis votre dernière session. '
+                    'Vos derniers réglages visuels sont toujours disponibles.',
                 tone: PokeMapTone.warning,
                 actions: <PokeMapActionBannerAction>[
                   PokeMapActionBannerAction(
                     key: const ValueKey<String>(
                       'personalization-studio-conflict-use-project',
                     ),
-                    label: 'Utiliser le projet actuel',
+                    label: 'Garder les réglages du projet',
                     variant: PokeMapButtonVariant.secondary,
                     isLoading: _isResolvingConflict,
                     onPressed: _isResolvingConflict
@@ -2262,7 +2261,7 @@ class _PersonalizationStudioWorkspaceState
                     key: const ValueKey<String>(
                       'personalization-studio-conflict-keep-draft',
                     ),
-                    label: 'Conserver mon brouillon',
+                    label: 'Restaurer mes derniers réglages',
                     isLoading: _isResolvingConflict,
                     onPressed: _isResolvingConflict
                         ? null

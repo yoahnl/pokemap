@@ -39,6 +39,7 @@ import '../../../infrastructure/repositories/map_lifecycle_transaction_file_gate
 import '../../../infrastructure/repositories/narrative_event_spatial_link_journal_repository.dart';
 import '../../../infrastructure/repositories/narrative_activity_journal_repository.dart';
 import '../../../infrastructure/repositories/narrative_event_migration_persistence_repository.dart';
+import '../../../infrastructure/repositories/personalization_project_recovery_store.dart';
 import '../../../infrastructure/repositories/project_presentation_document_gateway.dart';
 import '../../../infrastructure/repositories/project_manifest_narrative_document_gateway.dart';
 
@@ -283,10 +284,16 @@ final personalizationStudioSessionControllerFactoryProvider =
                     );
                   },
             ),
-            recoveryStore: FileNarrativeDocumentRecoveryStore<ProjectManifest>(
-              journalPath: journalPath,
-              encodeDocument: (document) => document.toJson(),
-              decodeDocument: _decodeRecoveryProjectManifest,
+            recoveryStore: PersonalizationProjectRecoveryStore(
+              currentProject: initialDocument,
+              profileStore:
+                  FileNarrativeDocumentRecoveryStore<
+                    ProjectPresentationProfile
+                  >(
+                    journalPath: journalPath,
+                    encodeDocument: (profile) => profile.toJson(),
+                    decodeDocument: _decodeRecoveryPresentationProfile,
+                  ),
             ),
           ),
         );
@@ -406,4 +413,25 @@ ProjectManifest _decodeRecoveryProjectManifest(Object? value) {
   final manifest = ProjectManifest.fromJson(json);
   ProjectValidator.validate(manifest);
   return manifest;
+}
+
+ProjectPresentationProfile _decodeRecoveryPresentationProfile(Object? value) {
+  if (value is! Map) {
+    throw const FormatException(
+      'A recovery presentation profile must be a JSON object.',
+    );
+  }
+  final json = <String, dynamic>{};
+  for (final entry in value.entries) {
+    if (entry.key is! String) {
+      throw const FormatException(
+        'A recovery presentation profile contains a non-string key.',
+      );
+    }
+    json[entry.key as String] = entry.value;
+  }
+  if (json.containsKey('name') && json.containsKey('maps')) {
+    return _decodeRecoveryProjectManifest(json).effectivePresentation;
+  }
+  return ProjectPresentationProfile.fromJson(json);
 }

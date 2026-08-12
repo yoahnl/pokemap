@@ -50,6 +50,13 @@ void main() {
       '${root.path}/.pokemap/recovery/personalization-studio.json',
     );
     expect(journal.existsSync(), isTrue);
+    final journalJson =
+        jsonDecode(journal.readAsStringSync()) as Map<String, dynamic>;
+    final journalDocument =
+        journalJson['document'] as Map<String, dynamic>;
+    expect(journalDocument['schemaVersion'], 10);
+    expect(journalDocument, isNot(contains('maps')));
+    expect(journalDocument, isNot(contains('name')));
     expect(
       ProjectManifest.fromJson(
         jsonDecode(projectFile.readAsStringSync()) as Map<String, dynamic>,
@@ -103,5 +110,96 @@ void main() {
       secondNotifier.personalizationStudioSessionState?.draftProfile,
       profile,
     );
+  });
+
+  test('migrates a stale full-project journal without blocking the Studio',
+      () async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-legacy-recovery-test-',
+    );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final projectFile = File('${root.path}/project.json');
+    final recoveryFile = File(
+      '${root.path}/.pokemap/recovery/personalization-studio.json',
+    );
+    final previousProject = buildShellChromeProject(name: 'Previous project');
+    const currentProfile = ProjectPresentationProfile();
+    final currentProject = previousProject.copyWith(
+      name: 'Current project',
+      presentation: currentProfile,
+    );
+    const recoveredProfile = ProjectPresentationProfile(
+      branding: ProjectBrandingProfile(accentColor: '#765432'),
+    );
+    projectFile.writeAsStringSync(
+      const JsonEncoder.withIndent('  ').convert(currentProject.toJson()),
+      flush: true,
+    );
+    recoveryFile.parent.createSync(recursive: true);
+    final legacyBaseline = <String, Object?>{
+      ...previousProject.toJson(),
+      'presentation': <String, Object?>{
+        ...currentProfile.toJson(),
+        'schemaVersion': 4,
+      },
+    };
+    final legacyDocument = <String, Object?>{
+      ...previousProject.toJson(),
+      'presentation': <String, Object?>{
+        ...recoveredProfile.toJson(),
+        'schemaVersion': 4,
+      },
+    };
+    recoveryFile.writeAsStringSync(
+      jsonEncode(<String, Object?>{
+        'schemaVersion': 1,
+        'documentId': 'personalization-studio',
+        'baseRevision': 'stale-project-revision',
+        'baseline': legacyBaseline,
+        'document': legacyDocument,
+        'undoEntries': <Object?>[
+          <String, Object?>{
+            'operationId': 'legacy-edit',
+            'label': 'Ancienne modification',
+            'before': legacyBaseline,
+            'after': legacyDocument,
+          },
+        ],
+        'redoEntries': <Object?>[],
+      }),
+      flush: true,
+    );
+    final legacyJournalLength = recoveryFile.lengthSync();
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final subscription = container.listen<EditorState>(
+      editorNotifierProvider,
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(
+      projectRootPath: root.path,
+      project: currentProject,
+      workspaceMode: EditorWorkspaceMode.personalizationStudio,
+    );
+
+    expect(await notifier.initializePersonalizationStudioSession(), isTrue);
+
+    final session = notifier.personalizationStudioSessionState;
+    expect(session?.isConflicted, isFalse);
+    expect(session?.isDirty, isTrue);
+    expect(session?.draftProfile, recoveredProfile);
+    expect(notifier.state.project?.name, 'Current project');
+    final migratedJournal =
+        jsonDecode(recoveryFile.readAsStringSync()) as Map<String, dynamic>;
+    final migratedDocument =
+        migratedJournal['document'] as Map<String, dynamic>;
+    expect(migratedDocument['schemaVersion'], 10);
+    expect(migratedDocument, isNot(contains('maps')));
+    expect(migratedDocument, isNot(contains('name')));
+    expect(recoveryFile.lengthSync(), lessThan(legacyJournalLength ~/ 4));
   });
 }

@@ -1440,15 +1440,15 @@ class EditorNotifier extends _$EditorNotifier
             'le Studio. '
             '${sessionState.message ?? sessionState.code ?? 'Réessayez plus tard.'}',
       NarrativeDocumentSessionStatus.conflicted =>
-        'Un brouillon de personnalisation ne correspond plus au projet '
-            'actuel. Choisissez la version à conserver dans le Studio.',
+        'Deux versions des réglages visuels existent. Choisissez celle à '
+            'utiliser.',
       _ => null,
     };
     final statusMessage = switch (sessionState.status) {
       NarrativeDocumentSessionStatus.dirty =>
         sessionState.message ?? 'Modifications de personnalisation en attente.',
       NarrativeDocumentSessionStatus.recovered =>
-        'Brouillon de personnalisation non enregistré récupéré.',
+        'Réglages visuels non enregistrés récupérés.',
       NarrativeDocumentSessionStatus.saved
           when previousStatus == NarrativeDocumentSessionStatus.saving =>
         'Personnalisation enregistrée.',

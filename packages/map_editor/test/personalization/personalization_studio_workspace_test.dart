@@ -615,9 +615,14 @@ void main() {
         'personalization-studio-conflict-',
       );
       addTearDown(() => root.deleteSync(recursive: true));
-      final project = buildShellChromeProject(
+      final previousProject = buildShellChromeProject(
         name: 'Conflict Studio',
       ).copyWith(presentation: const ProjectPresentationProfile());
+      final project = previousProject.copyWith(
+        presentation: const ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: '#123456'),
+        ),
+      );
       File(
         '${root.path}/project.json',
       ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
@@ -626,8 +631,8 @@ void main() {
         ..record = NarrativeDocumentRecoveryRecord<ProjectManifest>(
           documentId: 'personalization-studio-conflict',
           baseRevision: 'revision-before-current-project',
-          baseline: project,
-          document: project.copyWith(
+          baseline: previousProject,
+          document: previousProject.copyWith(
             presentation: const ProjectPresentationProfile(
               branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
             ),
@@ -664,9 +669,15 @@ void main() {
 
       expect(
         container.read(editorNotifierProvider).errorMessage,
-        'Un brouillon de personnalisation ne correspond plus au projet '
-        'actuel. Choisissez la version à conserver dans le Studio.',
+        'Deux versions des réglages visuels existent. Choisissez celle à '
+        'utiliser.',
       );
+      expect(
+        find.text('Quels réglages visuels voulez-vous utiliser ?'),
+        findsOneWidget,
+      );
+      expect(find.text('Garder les réglages du projet'), findsOneWidget);
+      expect(find.text('Restaurer mes derniers réglages'), findsOneWidget);
       expect(
         find.byKey(
           const ValueKey<String>('personalization-studio-conflict-banner'),
