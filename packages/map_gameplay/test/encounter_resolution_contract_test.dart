@@ -78,6 +78,11 @@ void main() {
       final reorderedResult = _check(world, reordered, seed: 8122026);
 
       expect(original.status, GameplayEncounterCheckStatus.triggered);
+      expect(original.zoneId, 'only');
+      expect(original.tableId, 'alpha');
+      expect(original.encounterKind, EncounterKind.walk);
+      expect(original.encounter?.speciesId, 'zubat');
+      expect(original.encounter?.level, 7);
       expect(repeated.encounter?.toJson(), original.encounter?.toJson());
       expect(reorderedResult.encounter?.toJson(), original.encounter?.toJson());
 

@@ -281,6 +281,38 @@ void main() {
         returnsNormally,
       );
     });
+
+    test('reports duplicate zone identity before overlap ambiguity', () {
+      final project = _project(
+        encounterTables: <ProjectEncounterTable>[
+          _table(),
+          _table(id: 'forest_walk_2'),
+        ],
+      );
+      final map = _map(
+        zones: <MapGameplayZone>[
+          _zone(id: 'duplicate', tableId: 'forest_walk'),
+          _zone(id: 'duplicate', tableId: 'forest_walk_2'),
+        ],
+      );
+
+      expect(
+        () => MapValidator.validate(map, projectDialogueContext: project),
+        throwsA(
+          isA<ValidationException>()
+              .having(
+                (error) => error.toString(),
+                'message',
+                contains('Duplicate gameplay zone ID'),
+              )
+              .having(
+                (error) => error.code,
+                'code',
+                isNot('encounter.zone_ambiguous'),
+              ),
+        ),
+      );
+    });
   });
 }
 

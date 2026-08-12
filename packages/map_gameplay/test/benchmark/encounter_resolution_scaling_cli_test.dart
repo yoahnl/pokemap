@@ -40,6 +40,7 @@ void main() {
     expect(run.stdout, contains('median_us='));
     expect(run.stdout, contains('p95_us='));
     expect(run.stdout, contains('resolved='));
+    expect(run.stdout, contains('candidates_per_position_min=3'));
   });
 
   test('encounter benchmark remains hermetic and avoids fragile thresholds',

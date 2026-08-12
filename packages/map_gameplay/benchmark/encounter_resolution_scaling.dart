@@ -34,7 +34,8 @@ void main(List<String> args) {
   final p95 = samples[((samples.length - 1) * 0.95).ceil()];
   print(
     'entries=$entries zones=$zones warmup=$warmup iterations=$iterations '
-    'seed=$seed median_us=$median p95_us=$p95 resolved=$resolved',
+    'seed=$seed median_us=$median p95_us=$p95 resolved=$resolved '
+    'candidates_per_position_min=${fixture.candidatesPerPositionMin}',
   );
 }
 
@@ -94,36 +95,77 @@ _Fixture _fixture({required int entries, required int zones}) {
     tilesets: const <ProjectTilesetEntry>[],
     encounterTables: tables,
   );
+  final positions = <GridPos>[
+    for (var index = 0; index < zones; index++) GridPos(x: index * 4 + 1, y: 1),
+  ];
+  final gameplayZones = <MapGameplayZone>[
+    MapGameplayZone(
+      id: 'fallback_zone',
+      name: 'Fallback zone',
+      kind: GameplayZoneKind.encounter,
+      area: MapRect(
+        pos: const GridPos(x: 0, y: 0),
+        size: GridSize(width: zones * 4, height: 4),
+      ),
+      priority: 0,
+      encounter: const EncounterZonePayload(
+        encounterTableId: 'table_0',
+        encounterKind: EncounterKind.walk,
+      ),
+    ),
+    MapGameplayZone(
+      id: 'regional_zone',
+      name: 'Regional zone',
+      kind: GameplayZoneKind.encounter,
+      area: MapRect(
+        pos: const GridPos(x: 0, y: 0),
+        size: GridSize(width: zones * 4, height: 4),
+      ),
+      priority: 1,
+      encounter: EncounterZonePayload(
+        encounterTableId: 'table_${zones > 1 ? 1 : 0}',
+        encounterKind: EncounterKind.walk,
+      ),
+    ),
+    for (var index = 0; index < zones; index++)
+      MapGameplayZone(
+        id: 'zone_$index',
+        name: 'Zone $index',
+        kind: GameplayZoneKind.encounter,
+        area: MapRect(
+          pos: GridPos(x: index * 4, y: 0),
+          size: const GridSize(width: 4, height: 4),
+        ),
+        priority: 2,
+        encounter: EncounterZonePayload(
+          encounterTableId: 'table_$index',
+          encounterKind: EncounterKind.walk,
+        ),
+      ),
+  ];
   final map = MapData(
     id: 'benchmark_map',
     name: 'Benchmark map',
     version: ProjectVersion.v6,
     size: GridSize(width: zones * 4, height: 4),
-    gameplayZones: <MapGameplayZone>[
-      for (var index = 0; index < zones; index++)
-        MapGameplayZone(
-          id: 'zone_$index',
-          name: 'Zone $index',
-          kind: GameplayZoneKind.encounter,
-          area: MapRect(
-            pos: GridPos(x: index * 4, y: 0),
-            size: const GridSize(width: 4, height: 4),
-          ),
-          encounter: EncounterZonePayload(
-            encounterTableId: 'table_$index',
-            encounterKind: EncounterKind.walk,
-          ),
-        ),
-    ],
+    gameplayZones: gameplayZones,
   );
   MapValidator.validate(map, projectDialogueContext: project);
+  final candidatesPerPositionMin = positions
+      .map(
+        (position) => gameplayZones
+            .where((zone) => _contains(zone.area, position))
+            .length,
+      )
+      .reduce(min);
+  if (candidatesPerPositionMin < 3) {
+    throw StateError('Encounter benchmark candidate workload is incomplete.');
+  }
   return _Fixture(
     project: project,
     map: map,
-    positions: <GridPos>[
-      for (var index = 0; index < zones; index++)
-        GridPos(x: index * 4 + 1, y: 1),
-    ],
+    positions: positions,
+    candidatesPerPositionMin: candidatesPerPositionMin,
     gameState: const GameState(
       saveId: 'benchmark',
       storyFlags: StoryFlags(activeFlags: <String>{'benchmark_open'}),
@@ -134,6 +176,13 @@ _Fixture _fixture({required int entries, required int zones}) {
       ),
     ),
   );
+}
+
+bool _contains(MapRect area, GridPos position) {
+  return position.x >= area.pos.x &&
+      position.x < area.pos.x + area.size.width &&
+      position.y >= area.pos.y &&
+      position.y < area.pos.y + area.size.height;
 }
 
 int _positiveOption(List<String> args, String name, int fallback) {
@@ -168,11 +217,13 @@ class _Fixture {
     required this.project,
     required this.map,
     required this.positions,
+    required this.candidatesPerPositionMin,
     required this.gameState,
   });
 
   final ProjectManifest project;
   final MapData map;
   final List<GridPos> positions;
+  final int candidatesPerPositionMin;
   final GameState gameState;
 }

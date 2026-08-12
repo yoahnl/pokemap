@@ -2554,6 +2554,11 @@ class MapValidator {
         );
       }
     }
+    _validateUniqueIds(
+      map.gameplayZones,
+      (zone) => zone.id,
+      duplicateMessagePrefix: 'Duplicate gameplay zone ID',
+    );
     final encounterAmbiguities = findEncounterZoneAmbiguities(
       map.gameplayZones,
     );
@@ -2571,12 +2576,6 @@ class MapValidator {
         },
       );
     }
-    _validateUniqueIds(
-      map.gameplayZones,
-      (zone) => zone.id,
-      duplicateMessagePrefix: 'Duplicate gameplay zone ID',
-    );
-
     _validateMapMetadata(map);
   }
 
