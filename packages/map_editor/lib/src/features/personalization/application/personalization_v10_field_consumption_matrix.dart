@@ -96,19 +96,21 @@ final class PersonalizationFieldConsumptionMatrix {
   final Map<String, String> excludedFieldReasons;
 
   void requireCompleteFor(Set<String> fieldGroups) {
-    final uncovered =
-        fieldGroups
-            .where(
-              (path) =>
-                  !excludedFieldReasons.containsKey(path) &&
-                  !entries.any((entry) => entry.covers(path)),
-            )
-            .toList(growable: false)
-          ..sort();
-    if (uncovered.isNotEmpty) {
+    final uncovered = <String>[];
+    final ambiguous = <String>[];
+    for (final path in fieldGroups) {
+      if (excludedFieldReasons.containsKey(path)) continue;
+      final owners = entries.where((entry) => entry.covers(path)).length;
+      if (owners == 0) uncovered.add(path);
+      if (owners > 1) ambiguous.add(path);
+    }
+    uncovered.sort();
+    ambiguous.sort();
+    if (uncovered.isNotEmpty || ambiguous.isNotEmpty) {
       throw StateError(
         'Presentation V$schemaVersion fields without control, preview, '
-        'runtime, export and MCP evidence: $uncovered.',
+        'runtime, export and MCP evidence: $uncovered; fields with competing '
+        'owners: $ambiguous.',
       );
     }
   }
@@ -147,8 +149,24 @@ final personalizationV10FieldConsumptionMatrix =
         ),
         _entry(
           capabilityId: 'global.typography',
-          fieldGroups: const <String>{'/presentation/typography'},
+          fieldGroups: const <String>{
+            '/presentation/typography/display',
+            '/presentation/typography/body',
+          },
           previewWidget: 'PlayerTitleSurface',
+        ),
+        _entry(
+          capabilityId: 'dialogue.typography',
+          fieldGroups: const <String>{'/presentation/typography/dialogue'},
+          previewWidget: 'PlayerDialogueSurface',
+        ),
+        _entry(
+          capabilityId: 'battle.typography',
+          fieldGroups: const <String>{
+            '/presentation/typography/numbers',
+            '/presentation/typography/combat',
+          },
+          previewWidget: 'PlayerBattleScene',
         ),
         _entry(
           capabilityId: 'global.colors',
@@ -179,14 +197,121 @@ final personalizationV10FieldConsumptionMatrix =
         _entry(
           capabilityId: 'dialogue.geometry',
           fieldGroups: const <String>{
-            '/presentation/dialogue',
+            '/presentation/dialogue/placement',
+            '/presentation/dialogue/shape',
+            '/presentation/dialogue/cornerRadius',
+            '/presentation/dialogue/borderWidth',
+            '/presentation/dialogue/contentPadding',
+            '/presentation/dialogue/margin',
+            '/presentation/dialogue/maxWidthFactor',
             '/presentation/layouts/dialogue',
           },
           previewWidget: 'PlayerDialogueSurface',
         ),
         _entry(
+          capabilityId: 'dialogue.colors',
+          fieldGroups: const <String>{
+            '/presentation/dialogue/surfaceColor',
+            '/presentation/dialogue/borderColor',
+            '/presentation/dialogue/textColor',
+            '/presentation/dialogue/fillOpacity',
+          },
+          previewWidget: 'PlayerDialogueSurface',
+        ),
+        _entry(
+          capabilityId: 'dialogue.portrait',
+          fieldGroups: const <String>{
+            '/presentation/dialogue/portraitSide',
+            '/presentation/dialogue/portraitSize',
+            '/presentation/dialogue/portraitFrameWidth',
+            '/presentation/dialogue/portraitFrameColor',
+            '/presentation/dialogue/portraitShape',
+          },
+          previewWidget: 'PlayerDialogueSurface',
+        ),
+        _entry(
+          capabilityId: 'dialogue.nameplate',
+          fieldGroups: const <String>{
+            '/presentation/dialogue/nameplateStyle',
+            '/presentation/dialogue/nameplateBorderWidth',
+            '/presentation/dialogue/nameplateSurfaceColor',
+            '/presentation/dialogue/nameplateBorderColor',
+            '/presentation/dialogue/nameplateTextColor',
+          },
+          previewWidget: 'PlayerDialogueSurface',
+        ),
+        _entry(
+          capabilityId: 'dialogue.choices',
+          fieldGroups: const <String>{
+            '/presentation/dialogue/choiceShape',
+            '/presentation/dialogue/choiceSpacing',
+            '/presentation/dialogue/choiceSelectedColor',
+            '/presentation/dialogue/choiceDisabledOpacity',
+          },
+          previewWidget: 'PlayerDialogueSurface',
+        ),
+        _entry(
+          capabilityId: 'dialogue.progress',
+          fieldGroups: const <String>{
+            '/presentation/dialogue/progressIndicator',
+            '/presentation/dialogue/progressIndicatorColor',
+          },
+          previewWidget: 'PlayerDialogueSurface',
+        ),
+        _entry(
+          capabilityId: 'dialogue.motion',
+          fieldGroups: const <String>{
+            '/presentation/dialogue/portraitTransition',
+            '/presentation/dialogue/portraitTransitionMilliseconds',
+          },
+          previewWidget: 'PlayerDialogueSurface',
+        ),
+        _entry(
+          capabilityId: 'battle.commands',
+          fieldGroups: const <String>{
+            '/presentation/battle/commands',
+            '/presentation/battle/commandLayout',
+            '/presentation/battle/commandColumns',
+            '/presentation/battle/commandPadding',
+            '/presentation/battle/commandSurfaceColor',
+            '/presentation/battle/commandBorderColor',
+            '/presentation/battle/commandTextColor',
+            '/presentation/battle/commandSelectionColor',
+            '/presentation/battle/showCommandIcons',
+            '/presentation/battle/commandShape',
+          },
+          previewWidget: 'PlayerBattleScene',
+        ),
+        _entry(
           capabilityId: 'battle.hud',
-          fieldGroups: const <String>{'/presentation/battle'},
+          fieldGroups: const <String>{
+            '/presentation/battle/playerHudPosition',
+            '/presentation/battle/enemyHudPosition',
+            '/presentation/battle/hudShape',
+            '/presentation/battle/hpBarShape',
+            '/presentation/battle/hpHealthyColor',
+            '/presentation/battle/hpWarningColor',
+            '/presentation/battle/hpDangerColor',
+            '/presentation/battle/statusColor',
+            '/presentation/battle/showLevel',
+            '/presentation/battle/showExactHp',
+            '/presentation/battle/showOwnerLabel',
+          },
+          previewWidget: 'PlayerBattleScene',
+        ),
+        _entry(
+          capabilityId: 'battle.moves',
+          fieldGroups: const <String>{'/presentation/battle/moves'},
+          previewWidget: 'PlayerBattleScene',
+        ),
+        _entry(
+          capabilityId: 'battle.target',
+          fieldGroups: const <String>{'/presentation/battle/target'},
+          previewWidget: 'PlayerBattleScene',
+        ),
+        _entry(
+          capabilityId: 'battle.message',
+          fieldGroups: const <String>{'/presentation/battle/message'},
           previewWidget: 'PlayerBattleScene',
         ),
         _entry(
