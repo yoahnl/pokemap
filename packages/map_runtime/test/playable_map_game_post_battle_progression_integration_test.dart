@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
@@ -81,6 +83,151 @@ void main() {
     );
     await _waitForNarrativeOutcomeIdle(game);
     expect(game.debugFlowPhaseName, 'overworld');
+  });
+
+  test(
+      'trainer victory is exactly once through interaction publication save reload and reinteraction',
+      () async {
+    final repository = _RoundTripMemoryGameSaveRepository(_state());
+    final loadedDialogues = <String>[];
+    final game = _TestPlayableMapGame(
+      bundle: _bundleWithTrainerLifecycle(),
+      projectFilePath: '/tmp/post-battle/project.json',
+      saveData: saveDataFromGameState(_state()),
+      saveRepository: repository,
+      postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(
+        resolveReward: _pendingMoveAndUnlockResolution,
+      ),
+      runtimePlayerPokemonProgressionCatalogLoader: _loadCatalogs,
+      dialogueSessionLoader: (resolved) async {
+        loadedDialogues.add(resolved.dialogueId);
+        return _singleLineDialogueSession(resolved.dialogueId);
+      },
+    );
+    game.onGameResize(Vector2(640, 480));
+    await game.onLoad();
+    await _waitForActivationDispatch(game);
+
+    expect(
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      isTrue,
+    );
+    await _waitForFlowPhase(game, 'dialogue');
+    expect(loadedDialogues, <String>['iris_before']);
+    expect(
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      isTrue,
+    );
+    final request = game.debugPendingBattleRequest;
+    expect(request, isA<TrainerBattleStartRequest>());
+    final context = RuntimeActiveBattleContext.withLineupMapping(
+      request: request!,
+      playerPartyIndex: 0,
+      playerPartySlotIndicesByLineupIndex: const <int>[0],
+    );
+    game.debugResetBattleForTest();
+
+    await game.debugStartPostBattleForTest(
+      context: context,
+      outcome: _outcome(),
+    );
+    await _acknowledgePostBattle(game);
+    await _waitForFlowPhase(game, 'dialogue');
+
+    final committed = game.gameStateSnapshot;
+    expect(committed.party.members.single.currentHp, 9);
+    expect(committed.party.members.single.experience, 335);
+    expect(committed.trainerProfile.money, 100);
+    expect(committed.trainerProfile.badgeIds, <String>['marsh_badge']);
+    expect(committed.progression.unlockedFieldAbilities,
+        <FieldAbility>[FieldAbility.cut]);
+    expect(
+      committed.storyFlags.activeFlags,
+      contains('trainer_defeated:trainer_iris'),
+    );
+    expect(committed.completedBattleRequestIds, contains(request.requestId));
+    expect(loadedDialogues, <String>['iris_before', 'iris_victory']);
+
+    expect(
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      isTrue,
+    );
+    await _waitForNarrativeOutcomeIdle(game);
+    final beforeReplay = game.gameStateSnapshot;
+    await game.debugStartPostBattleForTest(
+      context: context,
+      outcome: _outcome(),
+    );
+    await _acknowledgePostBattle(game);
+    expect(game.gameStateSnapshot, beforeReplay);
+    expect(loadedDialogues, <String>['iris_before', 'iris_victory']);
+
+    expect(await game.saveGame(), isTrue);
+    expect(repository.saveCount, 1);
+    final restoredState = await repository.load();
+    expect(restoredState, isNotNull);
+    expect(
+      restoredState!.completedBattleRequestIds,
+      contains(request.requestId),
+    );
+
+    final reconstructedDialogues = <String>[];
+    final reconstructed = _TestPlayableMapGame(
+      bundle: _bundleWithTrainerLifecycle(),
+      projectFilePath: '/tmp/post-battle/project.json',
+      saveData: saveDataFromGameState(restoredState),
+      saveRepository: repository,
+      postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(
+        resolveReward: _pendingMoveAndUnlockResolution,
+      ),
+      runtimePlayerPokemonProgressionCatalogLoader: _loadCatalogs,
+      dialogueSessionLoader: (resolved) async {
+        reconstructedDialogues.add(resolved.dialogueId);
+        return _singleLineDialogueSession(resolved.dialogueId);
+      },
+    );
+    reconstructed.onGameResize(Vector2(640, 480));
+    await reconstructed.onLoad();
+    await _waitForActivationDispatch(reconstructed);
+
+    expect(
+      reconstructed.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      isTrue,
+    );
+    await _waitForFlowPhase(reconstructed, 'dialogue');
+    expect(reconstructedDialogues, <String>['iris_victory']);
+    expect(reconstructed.debugPendingBattleRequest, isNull);
+    expect(
+      reconstructed.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      isTrue,
+    );
+    await _waitForNarrativeOutcomeIdle(reconstructed);
+
+    final beforeReloadReplay = reconstructed.gameStateSnapshot;
+    await reconstructed.debugStartPostBattleForTest(
+      context: context,
+      outcome: _outcome(),
+    );
+    await _acknowledgePostBattle(reconstructed);
+    expect(reconstructed.gameStateSnapshot, beforeReloadReplay);
+    expect(reconstructedDialogues, <String>['iris_victory']);
+    expect(reconstructed.gameStateSnapshot.trainerProfile.money, 100);
+    expect(
+        reconstructed.gameStateSnapshot.party.members.single.experience, 335);
+    expect(reconstructed.gameStateSnapshot.trainerProfile.badgeIds,
+        <String>['marsh_badge']);
+    expect(reconstructed.gameStateSnapshot.progression.unlockedFieldAbilities,
+        <FieldAbility>[FieldAbility.cut]);
   });
 
   test('trainer defeat opens authored dialogue before whiteout recovery',
@@ -455,6 +602,7 @@ final class _TestPlayableMapGame extends PlayableMapGame {
     required super.saveData,
     required super.postBattleDecisionCoordinator,
     required super.runtimePlayerPokemonProgressionCatalogLoader,
+    super.saveRepository,
     super.dialogueSessionLoader,
     super.postBattleOverlayMounter,
     super.beforePostBattleStateCommit,
@@ -464,6 +612,34 @@ final class _TestPlayableMapGame extends PlayableMapGame {
 
   @override
   bool get isLoaded => true;
+}
+
+final class _RoundTripMemoryGameSaveRepository implements GameSaveRepository {
+  _RoundTripMemoryGameSaveRepository(GameState state) : _state = state;
+
+  GameState? _state;
+  int saveCount = 0;
+
+  @override
+  Future<void> save(GameState state) async {
+    final encoded = jsonEncode(saveDataFromGameState(state).toJson());
+    final decoded = SaveData.fromJson(
+      jsonDecode(encoded) as Map<String, dynamic>,
+    );
+    _state = gameStateFromSaveData(decoded);
+    saveCount += 1;
+  }
+
+  @override
+  Future<GameState?> load() async => _state;
+
+  @override
+  Future<bool> exists() async => _state != null;
+
+  @override
+  Future<void> delete() async {
+    _state = null;
+  }
 }
 
 Future<void> _acknowledgePostBattle(PlayableMapGame game) async {
@@ -593,6 +769,7 @@ Future<RuntimePlayerPokemonProgressionCatalogs> _loadCatalogs({
       'growl': 40,
       'tail_whip': 30,
       'focus_energy': 30,
+      'quick_attack': 30,
     },
   );
 }
@@ -680,6 +857,38 @@ Future<RuntimeBattleRewardResolution> _pendingMoveResolution({
     progression: const BattleProgressionService().apply(
       state: postWriteBackState,
       context: context,
+      reward: reward,
+      applyAuthoredRewards: false,
+    ),
+  );
+}
+
+Future<RuntimeBattleRewardResolution> _pendingMoveAndUnlockResolution({
+  required RuntimeMapBundle bundle,
+  required GameState postWriteBackState,
+  required RuntimeActiveBattleContext runtimeContext,
+  required BattleOutcome outcome,
+}) async {
+  final base = await _pendingMoveResolution(
+    bundle: bundle,
+    postWriteBackState: postWriteBackState,
+    runtimeContext: runtimeContext,
+    outcome: outcome,
+  );
+  final reward = BattleReward(
+    sourceKind: BattleRewardSourceKind.trainer,
+    trainerId: 'trainer_iris',
+    money: 100,
+    badgeId: 'marsh_badge',
+    fieldAbilityUnlock: FieldAbility.cut,
+  );
+  return RuntimeBattleRewardResolution(
+    baseState: postWriteBackState,
+    reward: reward,
+    progressionContext: base.progressionContext,
+    progression: const BattleProgressionService().apply(
+      state: postWriteBackState,
+      context: base.progressionContext,
       reward: reward,
       applyAuthoredRewards: false,
     ),
