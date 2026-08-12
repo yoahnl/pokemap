@@ -96,7 +96,7 @@ class PersonalizationPreviewSecondaryControls extends StatelessWidget {
       if (scenario.supportsReducedMotion)
         PokeMapButton(
           key: const ValueKey<String>('personalization-preview-reduced-motion'),
-          size: PokeMapButtonSize.medium,
+          size: PokeMapButtonSize.large,
           variant: PokeMapButtonVariant.secondary,
           semanticLabel: 'Mouvement réduit, aperçu uniquement',
           isSelected: scenario.reducedMotion,
@@ -109,7 +109,7 @@ class PersonalizationPreviewSecondaryControls extends StatelessWidget {
       if (scenario.canCompare)
         PokeMapButton(
           key: const ValueKey<String>('personalization-preview-compare'),
-          size: PokeMapButtonSize.medium,
+          size: PokeMapButtonSize.large,
           variant: PokeMapButtonVariant.secondary,
           semanticLabel: 'Comparer avant/après, aperçu uniquement',
           isSelected: scenario.showComparison,

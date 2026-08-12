@@ -56,6 +56,7 @@ class _PersonalizationRuntimePreviewState
   double _textScale = 1;
   bool _reducedMotion = false;
   bool _comparisonEnabled = false;
+  bool _secondarySettingsExpanded = false;
   PersonalizationTitlePreviewStage _titleStage =
       PersonalizationTitlePreviewStage.menu;
   int _titleStageSelectionRevision = 0;
@@ -170,6 +171,30 @@ class _PersonalizationRuntimePreviewState
               _comparisonEnabled = value.comparisonEnabled;
             }),
           ),
+          if (scenario.supportsReducedMotion ||
+              scenario.canCompare) ...<Widget>[
+            const SizedBox(height: 8),
+            PokeMapDisclosure(
+              toggleKey: const ValueKey<String>(
+                'personalization-preview-secondary-toggle',
+              ),
+              label: 'Options d’aperçu',
+              expanded: _secondarySettingsExpanded,
+              onExpandedChanged: (value) {
+                setState(() => _secondarySettingsExpanded = value);
+              },
+              child: PersonalizationPreviewSecondaryControls(
+                scenario: scenario,
+                onChanged: (value) => setState(() {
+                  _surface = value.surface;
+                  _viewport = value.viewport;
+                  _textScale = value.textScale;
+                  _reducedMotion = value.reducedMotion;
+                  _comparisonEnabled = value.comparisonEnabled;
+                }),
+              ),
+            ),
+          ],
           if (_surface == PersonalizationStudioScene.title) ...<Widget>[
             const SizedBox(height: 12),
             PersonalizationTitlePreviewControls(

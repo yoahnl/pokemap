@@ -76,6 +76,16 @@ void main() {
               matching: find.byType(Scrollable),
             )
             .first;
+        final secondaryToggle = find.byKey(
+          const ValueKey<String>('personalization-preview-secondary-toggle'),
+        );
+        await tester.scrollUntilVisible(
+          secondaryToggle,
+          160,
+          scrollable: settingsScroll,
+        );
+        await tester.tap(secondaryToggle);
+        await tester.pumpAndSettle();
         final reducedMotion = find.byKey(
           const ValueKey<String>('personalization-preview-reduced-motion'),
         );

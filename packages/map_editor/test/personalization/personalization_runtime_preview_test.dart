@@ -334,6 +334,12 @@ void main() {
 
     await tester.tap(
       find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
         const ValueKey<String>('personalization-preview-reduced-motion'),
       ),
     );
@@ -379,6 +385,12 @@ void main() {
       ),
     );
 
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey<String>('personalization-preview-compare')),
       findsOneWidget,
@@ -434,6 +446,12 @@ void main() {
       ),
     );
 
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
     for (final key in <String>[
       'personalization-preview-viewport-landscape',
       'personalization-preview-viewport-portrait',
@@ -466,6 +484,12 @@ void main() {
       ),
     );
 
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey<String>('personalization-preview-compare')),
       findsNothing,
@@ -504,6 +528,12 @@ void main() {
     final titleContext = tester.element(find.byType(PlayerTitleSurface));
     expect(titleContext.playerMotion.fast, isNot(Duration.zero));
 
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-secondary-toggle'),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(
         const ValueKey<String>('personalization-preview-reduced-motion'),
