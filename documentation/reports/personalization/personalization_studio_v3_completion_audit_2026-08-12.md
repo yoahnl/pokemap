@@ -296,3 +296,14 @@ Périmètre certifié : previews, contextes projet, Dialogue, Combat, Titre, Pau
 Le premier passage Editor a produit `129` succès et `4` échecs exclusivement sur les goldens du shell complet : `1440x900`, `1024x768`, `720x900` à texte `200 %`, et Dialogue à `1672x941`. Ces quatre références dataient d'avant la simplification de l'en-tête de preview. Les rendus actuels ont été inspectés avant régénération : options secondaires repliées, scroll visible, canvas plus haut et aucun overflow. La relance complète est ensuite passée à `133/133`. Tous les artefacts temporaires de comparaison Flutter ont été supprimés.
 
 Verdict R6.8 : `DONE`.
+
+### PERS3-R6.9 — Clôture conditionnelle
+
+Les preuves techniques demandées par la finition R6 sont présentes : six scènes paysage/portrait, variantes Dialogue et Combat, quatre goldens du shell complet, six captures du binaire desktop, tests ciblés, analyses et build Editor Release. La roadmap canonique reflète désormais cet inventaire exact.
+
+Deux gates restent volontairement ouverts :
+
+- l'acceptation visuelle explicite de Yoahn n'a pas encore été enregistrée ; PERS3-33 reste donc `PARTIAL` et PERS3-34 reste lié à cette décision ;
+- aucun merge ni push n'est effectué sans autorisation distincte. Le rebase final demandé est exécuté après les commits de la phase.
+
+Verdict R6.9 : `PARTIAL`, bloqué uniquement par la décision produit humaine et l'autorisation de livraison, pas par une capacité technique manquante.
