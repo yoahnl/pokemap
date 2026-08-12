@@ -48,6 +48,12 @@ final class ItemSystemPlayerEvidenceCollector {
         testPath: 'test/player/runtime_player_detail_router_test.dart',
         plainName: 'party gives, swaps and takes held items with guided labels',
       ),
+      'hidden_pickup_rendering': const _PlayerEvidenceProbe(
+        packagePath: 'packages/map_runtime',
+        testPath: 'test/item_pickup_give_item_readiness_test.dart',
+        plainName:
+            'playable hidden item interaction remains available without rendering',
+      ),
     };
     final succeeded = <String>{};
     final failed = <String>{};

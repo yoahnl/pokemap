@@ -500,7 +500,7 @@ final class GoldenItemSystemJourney {
           hiddenEntity.item?.visibility == MapEntityItemVisibility.hidden,
       'Hidden pickup is not authored as a hidden item entity.',
     );
-    observations.add('hidden_pickup_not_rendered');
+    observations.add('hidden_pickup_authored_hidden');
     GameState current = state;
     final messages = <String>[];
 

@@ -150,6 +150,91 @@ final class ItemSystemSchemaEvidenceCollector {
       },
     );
 
+    await _execute(
+      'capability_matrix_rejection',
+      succeeded: succeeded,
+      failed: failed,
+      errors: errors,
+      operation: () async {
+        final hostileCatalog = ProjectItemCatalog(
+          schemaVersion: 1,
+          entries: const <ProjectItemDefinition>[
+            ProjectItemDefinition(
+              id: 'battle-ether',
+              displayName: 'Battle Ether',
+              pocketId: 'medicine',
+              uses: <ProjectItemUseDefinition>[
+                ProjectItemUseDefinition(
+                  contexts: <ProjectItemUseContext>{
+                    ProjectItemUseContext.battle,
+                  },
+                  target: ProjectItemTargetKind.partyMove,
+                  consumption: ProjectItemConsumptionPolicy.onApplied,
+                  effect: ProjectItemEffectDefinition.restorePp(
+                    mode: ProjectItemAmountMode.flat,
+                    amount: 10,
+                  ),
+                ),
+              ],
+            ),
+            ProjectItemDefinition(
+              id: 'unknown-held-effect',
+              displayName: 'Unknown Held Effect',
+              pocketId: 'held',
+              heldEffectId: 'never_registered_effect',
+            ),
+            ProjectItemDefinition(
+              id: 'overworld-repel',
+              displayName: 'Overworld Repel',
+              pocketId: 'items',
+              uses: <ProjectItemUseDefinition>[
+                ProjectItemUseDefinition(
+                  contexts: <ProjectItemUseContext>{
+                    ProjectItemUseContext.overworld,
+                  },
+                  target: ProjectItemTargetKind.world,
+                  consumption: ProjectItemConsumptionPolicy.onApplied,
+                  effect: ProjectItemEffectDefinition.repel(steps: 100),
+                ),
+              ],
+            ),
+          ],
+        );
+        final validation = validateProjectItemCatalog(
+          hostileCatalog,
+          capabilityTruth: itemSystemV1CapabilityTruth,
+        );
+        final rejections = <Object?>[];
+        for (final itemId in const <String>[
+          'battle-ether',
+          'unknown-held-effect',
+          'overworld-repel',
+        ]) {
+          final assessment = validation.assessmentFor(itemId);
+          final blockingCodes =
+              validation.diagnostics
+                  .where(
+                    (diagnostic) =>
+                        diagnostic.itemId == itemId && diagnostic.isBlocking,
+                  )
+                  .map((diagnostic) => diagnostic.code.name)
+                  .toSet()
+                  .toList()
+                ..sort();
+          if (assessment?.readiness != ItemCapabilityReadiness.unsupported ||
+              blockingCodes.isEmpty) {
+            throw StateError('$itemId was not rejected by runtime truth.');
+          }
+          rejections.add(<String, Object?>{
+            'blockingCodes': blockingCodes,
+            'itemId': itemId,
+            'readiness': assessment!.readiness.name,
+          });
+        }
+        payload['capabilityMatrixRejections'] = rejections;
+      },
+    );
+
     if (errors.isNotEmpty) payload['errors'] = errors;
     return ItemSystemExecutionReceipt.record(
       level: ItemSystemProofLevel.schemaL0,

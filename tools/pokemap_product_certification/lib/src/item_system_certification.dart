@@ -37,6 +37,27 @@ enum ItemSystemCertificationStatus {
   blocked,
 }
 
+enum ItemSystemGoldenFixtureStatus { certified, notCertified }
+
+extension ItemSystemGoldenFixtureStatusWireName
+    on ItemSystemGoldenFixtureStatus {
+  String get wireName => switch (this) {
+    ItemSystemGoldenFixtureStatus.certified => 'GOLDEN_FIXTURE_CERTIFIED',
+    ItemSystemGoldenFixtureStatus.notCertified =>
+      'GOLDEN_FIXTURE_NOT_CERTIFIED',
+  };
+}
+
+enum ItemSystemProductCapabilityStatus { closed, open }
+
+extension ItemSystemProductCapabilityStatusWireName
+    on ItemSystemProductCapabilityStatus {
+  String get wireName => switch (this) {
+    ItemSystemProductCapabilityStatus.closed => 'PRODUCT_CAPABILITY_CLOSED',
+    ItemSystemProductCapabilityStatus.open => 'PRODUCT_CAPABILITY_OPEN',
+  };
+}
+
 extension ItemSystemCertificationStatusWireName
     on ItemSystemCertificationStatus {
   String get wireName => switch (this) {
@@ -99,7 +120,7 @@ final class ItemSystemV1CertificationProfile {
     'initial_bag_strict',
     'pickup_scenario_applied',
     'pickup_scenario_idempotent',
-    'hidden_pickup_not_rendered',
+    'hidden_pickup_authored_hidden',
     'hidden_pickup_interacted_with_message',
     'hidden_pickup_idempotent',
     'status_cured_overworld',
@@ -134,12 +155,14 @@ final class ItemSystemV1CertificationProfile {
         'bag_schema',
         'save_schema',
         'legacy_rejection',
+        'capability_matrix_rejection',
       },
       ItemSystemProofLevel.authoringL1 => const <String>{
         'catalog_crud',
         'effect_authoring',
         'usage_readiness',
         'reference_guards',
+        'authoring_capability_rejection',
       },
       ItemSystemProofLevel.persistenceL2 => const <String>{
         'new_game_items',
@@ -164,6 +187,7 @@ final class ItemSystemV1CertificationProfile {
         'capture_controls',
         'move_machine_controls',
         'held_item_controls',
+        'hidden_pickup_rendering',
       },
       ItemSystemProofLevel.mcpParityL5 => requiredItemActionIds,
       ItemSystemProofLevel.goldenFlowL6 => requiredGoldenObservations,
@@ -316,16 +340,28 @@ final class ItemSystemCertificationResult {
   }
 
   bool get technicalCertificationPassed =>
+      productCapabilityStatus == ItemSystemProductCapabilityStatus.closed &&
+      goldenFixtureStatus == ItemSystemGoldenFixtureStatus.certified;
+
+  ItemSystemGoldenFixtureStatus get goldenFixtureStatus =>
+      statusFor(ItemSystemProofLevel.goldenFlowL6) ==
+          ItemSystemCertificationStatus.certified
+      ? ItemSystemGoldenFixtureStatus.certified
+      : ItemSystemGoldenFixtureStatus.notCertified;
+
+  ItemSystemProductCapabilityStatus get productCapabilityStatus =>
       const <ItemSystemProofLevel>[
         ItemSystemProofLevel.schemaL0,
         ItemSystemProofLevel.authoringL1,
         ItemSystemProofLevel.persistenceL2,
         ItemSystemProofLevel.runtimeL3,
+        ItemSystemProofLevel.playerUxL4,
         ItemSystemProofLevel.mcpParityL5,
-        ItemSystemProofLevel.goldenFlowL6,
       ].every(
         (level) => statusFor(level) == ItemSystemCertificationStatus.certified,
-      );
+      )
+      ? ItemSystemProductCapabilityStatus.closed
+      : ItemSystemProductCapabilityStatus.open;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'schemaVersion': 1,
@@ -333,6 +369,8 @@ final class ItemSystemCertificationResult {
     'sourceRevision': sourceRevision,
     'fixtureSha256': fixtureSha256,
     'overallStatus': overallStatus.wireName,
+    'goldenFixtureStatus': goldenFixtureStatus.wireName,
+    'productCapabilityStatus': productCapabilityStatus.wireName,
     'levels': levelResults
         .map((result) => result.toJson())
         .toList(growable: false),
@@ -423,16 +461,15 @@ final class ItemSystemCertificationEvaluator {
     final missing = ItemSystemV1CertificationProfile.requiredCapabilitiesFor(
       level,
     ).difference(receipt.succeededCapabilities).toList()..sort();
+    final status = receipt.verdict == ItemSystemExecutionVerdict.failed
+        ? ItemSystemCertificationStatus.regressed
+        : missing.isNotEmpty ||
+              receipt.verdict == ItemSystemExecutionVerdict.partial
+        ? ItemSystemCertificationStatus.partial
+        : ItemSystemCertificationStatus.certified;
     return ItemSystemCertificationLevelResult(
       level: level,
-      status: switch (receipt.verdict) {
-        ItemSystemExecutionVerdict.passed =>
-          ItemSystemCertificationStatus.certified,
-        ItemSystemExecutionVerdict.partial =>
-          ItemSystemCertificationStatus.partial,
-        ItemSystemExecutionVerdict.failed =>
-          ItemSystemCertificationStatus.regressed,
-      },
+      status: status,
       missingEvidenceIds: List<String>.unmodifiable(missing),
       executionReceiptSha256: receipt.evidenceSha256,
     );

@@ -63,7 +63,7 @@ void main() {
         'initial_bag_strict',
         'pickup_scenario_applied',
         'pickup_scenario_idempotent',
-        'hidden_pickup_not_rendered',
+        'hidden_pickup_authored_hidden',
         'hidden_pickup_interacted_with_message',
         'hidden_pickup_idempotent',
         'status_cured_overworld',

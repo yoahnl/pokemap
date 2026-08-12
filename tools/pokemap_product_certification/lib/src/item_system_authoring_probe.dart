@@ -80,6 +80,44 @@ final itemSystemAuthoringProbeActions = <ItemSystemAuthoringProbeAction>[
   }),
 ];
 
+final itemSystemRejectedAuthoringProbeActions =
+    <ItemSystemAuthoringProbeAction>[
+      ItemSystemAuthoringProbeAction(
+        'item.set_battle_effect',
+        <String, Object?>{
+          'itemId': 'cert-probe',
+          'use': const ProjectItemUseDefinition(
+            contexts: <ProjectItemUseContext>{ProjectItemUseContext.battle},
+            target: ProjectItemTargetKind.partyMove,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.restorePp(
+              mode: ProjectItemAmountMode.flat,
+              amount: 10,
+            ),
+          ).toJson(),
+        },
+      ),
+      const ItemSystemAuthoringProbeAction(
+        'item.set_held_effect',
+        <String, Object?>{
+          'itemId': 'cert-probe',
+          'heldEffectId': 'never_registered_effect',
+        },
+      ),
+      ItemSystemAuthoringProbeAction(
+        'item.set_overworld_effect',
+        <String, Object?>{
+          'itemId': 'cert-probe',
+          'use': const ProjectItemUseDefinition(
+            contexts: <ProjectItemUseContext>{ProjectItemUseContext.overworld},
+            target: ProjectItemTargetKind.world,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.repel(steps: 100),
+          ).toJson(),
+        },
+      ),
+    ];
+
 void verifyItemSystemAuthoringProbeState(
   ProjectItemCatalog catalog,
   String actionId,

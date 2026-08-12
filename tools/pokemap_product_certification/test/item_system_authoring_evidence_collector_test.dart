@@ -57,6 +57,11 @@ void main() {
         receipt.payload['referenceGuardCode'],
         'item.delete_references_blocking',
       );
+      expect(receipt.payload['rejectedCapabilityActions'], <String>[
+        'item.set_battle_effect:item.catalog_invalid',
+        'item.set_held_effect:item.catalog_invalid',
+        'item.set_overworld_effect:item.catalog_invalid',
+      ]);
       expect(await catalog.readAsBytes(), catalogBefore);
     },
   );

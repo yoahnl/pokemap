@@ -46,6 +46,23 @@ void main() {
     expect(receipt.payload['legacyCatalogRejected'], true);
     expect(receipt.payload['legacySaveRejected'], true);
     expect(receipt.payload['missingSaveSchemaRejected'], true);
+    expect(receipt.payload['capabilityMatrixRejections'], <Object?>[
+      <String, Object?>{
+        'blockingCodes': <String>['unsupportedCapability'],
+        'itemId': 'battle-ether',
+        'readiness': 'unsupported',
+      },
+      <String, Object?>{
+        'blockingCodes': <String>['unknownHeldEffect'],
+        'itemId': 'unknown-held-effect',
+        'readiness': 'unsupported',
+      },
+      <String, Object?>{
+        'blockingCodes': <String>['unsupportedCapability'],
+        'itemId': 'overworld-repel',
+        'readiness': 'unsupported',
+      },
+    ]);
     expect(
       ItemSystemExecutionReceipt.fromJson(
         receipt.toJson(),

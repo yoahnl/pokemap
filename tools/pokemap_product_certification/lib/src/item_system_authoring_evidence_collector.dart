@@ -151,11 +151,27 @@ final class ItemSystemAuthoringEvidenceCollector {
       }
       succeeded.add('reference_guards');
 
+      final rejectedCapabilityActions = <String>[];
+      for (final action in itemSystemRejectedAuthoringProbeActions) {
+        rejectedCapabilityActions.add(
+          await _rejectAction(
+            action,
+            projectHandle: opened.projectHandle,
+            workspaceHandle: opened.workspaceHandle,
+            snapshots: snapshots,
+            mutations: mutations,
+          ),
+        );
+      }
+      rejectedCapabilityActions.sort();
+      succeeded.add('authoring_capability_rejection');
+
       final finalSnapshot = await snapshots.load(opened.projectHandle);
       payload
         ..['queriedResourceKinds'] = queriedResourceKinds
         ..['actionReceipts'] = actionReceipts
         ..['referenceGuardCode'] = referenceGuardCode
+        ..['rejectedCapabilityActions'] = rejectedCapabilityActions
         ..['finalRevision'] = finalSnapshot.revision;
     } on Object catch (error) {
       failed.addAll(required.difference(succeeded));
@@ -183,6 +199,36 @@ final class ItemSystemAuthoringEvidenceCollector {
       recordedAtUtc: recordedAtUtc,
     );
   }
+}
+
+Future<String> _rejectAction(
+  ItemSystemAuthoringProbeAction action, {
+  required ProjectHandle projectHandle,
+  required WorkspaceHandle workspaceHandle,
+  required ProjectSnapshotLoader snapshots,
+  required LocalMapAuthoringMutationApi mutations,
+}) async {
+  final snapshot = await snapshots.load(projectHandle);
+  try {
+    await mutations.plan(
+      projectHandle,
+      AuthoringRequest(
+        requestId: 'cert-reject-${action.slug}',
+        actionId: action.actionId,
+        actionVersion: 1,
+        workspaceHandle: workspaceHandle.value,
+        parameters: action.parameters,
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'cert-reject-${action.slug}',
+      ),
+    );
+  } on ItemCatalogAuthoringException catch (error) {
+    if (error.code == 'item.catalog_invalid') {
+      return '${action.actionId}:${error.code}';
+    }
+    rethrow;
+  }
+  throw StateError('${action.actionId} accepted a runtime-inexecutable value.');
 }
 
 Future<String> _applyAction(

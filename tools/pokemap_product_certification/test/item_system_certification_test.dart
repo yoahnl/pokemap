@@ -59,6 +59,22 @@ void main() {
         );
       }
       expect(first.overallStatus, ItemSystemCertificationStatus.certified);
+      expect(
+        first.goldenFixtureStatus,
+        ItemSystemGoldenFixtureStatus.certified,
+      );
+      expect(
+        first.productCapabilityStatus,
+        ItemSystemProductCapabilityStatus.closed,
+      );
+      expect(
+        first.toJson(),
+        containsPair('goldenFixtureStatus', 'GOLDEN_FIXTURE_CERTIFIED'),
+      );
+      expect(
+        first.toJson(),
+        containsPair('productCapabilityStatus', 'PRODUCT_CAPABILITY_CLOSED'),
+      );
       expect(first.executionReceipts, hasLength(7));
       expect(
         _withoutInformationalTimestamps(first.toJson()),
@@ -103,7 +119,93 @@ void main() {
       expect(result.statusFor(level), ItemSystemCertificationStatus.missing);
     }
     expect(result.overallStatus, ItemSystemCertificationStatus.missing);
+    expect(
+      result.goldenFixtureStatus,
+      ItemSystemGoldenFixtureStatus.notCertified,
+    );
+    expect(
+      result.productCapabilityStatus,
+      ItemSystemProductCapabilityStatus.open,
+    );
   });
+
+  test('golden fixture certification does not close product capabilities', () {
+    const sourceRevision = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const fixtureSha256 =
+        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+    final required = ItemSystemV1CertificationProfile.requiredCapabilitiesFor(
+      ItemSystemProofLevel.goldenFlowL6,
+    );
+    final receipt = ItemSystemExecutionReceipt.record(
+      level: ItemSystemProofLevel.goldenFlowL6,
+      sourceRevision: sourceRevision,
+      fixtureSha256: fixtureSha256,
+      payload: const <String, Object?>{'probe': 'golden'},
+      attemptedCapabilities: required,
+      succeededCapabilities: required,
+      failedCapabilities: const <String>{},
+      producer: 'test',
+      runnerVersion: '1.0.0',
+      recordedAtUtc: DateTime.utc(2026, 8, 12),
+    );
+
+    final result = const ItemSystemCertificationEvaluator().evaluate(
+      ItemSystemCertificationRequest(
+        sourceRevision: sourceRevision,
+        fixtureSha256: fixtureSha256,
+        executionReceipts: <ItemSystemProofLevel, ItemSystemExecutionReceipt>{
+          ItemSystemProofLevel.goldenFlowL6: receipt,
+        },
+      ),
+    );
+
+    expect(result.goldenFixtureStatus, ItemSystemGoldenFixtureStatus.certified);
+    expect(
+      result.productCapabilityStatus,
+      ItemSystemProductCapabilityStatus.open,
+    );
+    expect(result.overallStatus, ItemSystemCertificationStatus.missing);
+  });
+
+  test(
+    'passed receipts missing required capabilities cannot certify a level',
+    () {
+      const sourceRevision = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+      const fixtureSha256 =
+          'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+      final receipt = ItemSystemExecutionReceipt.record(
+        level: ItemSystemProofLevel.schemaL0,
+        sourceRevision: sourceRevision,
+        fixtureSha256: fixtureSha256,
+        payload: const <String, Object?>{'probe': 'incomplete'},
+        attemptedCapabilities: const <String>{'catalog_schema'},
+        succeededCapabilities: const <String>{'catalog_schema'},
+        failedCapabilities: const <String>{},
+        producer: 'test',
+        runnerVersion: '1.0.0',
+        recordedAtUtc: DateTime.utc(2026, 8, 12),
+      );
+
+      final result = const ItemSystemCertificationEvaluator().evaluate(
+        ItemSystemCertificationRequest(
+          sourceRevision: sourceRevision,
+          fixtureSha256: fixtureSha256,
+          executionReceipts: <ItemSystemProofLevel, ItemSystemExecutionReceipt>{
+            ItemSystemProofLevel.schemaL0: receipt,
+          },
+        ),
+      );
+
+      expect(
+        result.statusFor(ItemSystemProofLevel.schemaL0),
+        ItemSystemCertificationStatus.partial,
+      );
+      expect(
+        result.productCapabilityStatus,
+        ItemSystemProductCapabilityStatus.open,
+      );
+    },
+  );
 
   test(
     'golden receipt rejects missing observations and forged final state',
