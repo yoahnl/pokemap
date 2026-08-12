@@ -12,11 +12,11 @@
 
 ## 1. Statut, autorité et règle de portée
 
-- [ ] PARTIAL — le contre-audit final du 11 août 2026 confirme le moteur Item V1, mais invalide la clôture de `ITM-054` et `ITM-072` faute de preuves exécutées suffisamment fines.
-- Dernière mise à jour : 11 août 2026, après contre-audit de conformité entre les promesses, le code, les transports et les preuves L0-L6.
-- Avancement : 39 lots DONE, 2 lots PARTIAL, 17 lots TODO et 1 lot DEFERRED_BY_PRODUCT sur 59 lots uniques.
-- Phases : 6 phases clôturées, 2 phases PARTIAL et 2 phases TODO sur 10.
-- Travail restant : 17 lots immédiatement exécutables (`ITM-080` à `ITM-090`, puis `ITM-100` à `ITM-105`) ; `ITM-034` reste différé et exige une nouvelle décision produit.
+- [ ] PARTIAL — la phase 8 clôt la certification technique L0-L3, L5 et L6 par des receipts exécutés ; L4 et les parcours produit de phase 9 restent à fermer.
+- Dernière mise à jour : 12 août 2026, après exécution de la phase 8 et recertification complète des preuves et transports.
+- Avancement : 51 lots DONE, 1 lot PARTIAL, 6 lots TODO et 1 lot DEFERRED_BY_PRODUCT sur 59 lots uniques.
+- Phases : 8 phases clôturées, 1 phase PARTIAL et 1 phase TODO sur 10.
+- Travail restant : `ITM-085` reste PARTIAL tant que le serveur MCP global configuré n’est pas rechargé sur le build courant ; 6 lots produit (`ITM-100` à `ITM-105`) restent TODO. `ITM-034` reste différé et exige une nouvelle décision produit.
 - Unité de suivi : cette roadmap ne maintient pas un second registre de tâches atomiques ; les unités d’exécution officielles sont les lots `ITM-*`.
 - La phase 3 est clôturée sur le périmètre V1 signé ; ITM-034 Repel reste explicitement différé avec FG-065 et ne bloque ni la phase 6, ni la capture minimale.
 - Ce document est la roadmap dédiée à la refonte Item System V1.
@@ -54,7 +54,7 @@ La stratégie retenue est un remplacement progressif du code, livré comme une r
 6. supprimer intégralement les chemins historiques ;
 7. certifier le tout sur une golden slice générique.
 
-### 2.1 État livré après la phase 5
+### 2.1 État livré après la phase 8
 
 | Domaine | État au 11 août 2026 | Autorité actuelle |
 |---|---|---|
@@ -62,13 +62,13 @@ La stratégie retenue est un remplacement progressif du code, livré comme une r
 | Bag et sauvegarde | DONE — piles par itemId, opérations atomiques, receipts, wire strict itemId/quantity et refus typé de tout ancien champ | `BagOperations` et `UnsupportedSaveSchema` |
 | Gameplay | DONE sur le périmètre V1 — overworld, battle, capture minimale, key items, TM/HM, évolution et held items | `ItemCatalogSnapshot`, `ItemCapabilityResolver` et services spécialisés |
 | Producteurs et économie | DONE — New Game, événements, pickups, rewards et shops utilisent les contrats canoniques | `BagOperations` et `ProjectItemReferenceIndex` |
-| Authoring et MCP | PARTIAL — les contrats existent, mais seule `item.create` est réellement exécutée sur les quatre transports ; le MCP live chargé ne les expose pas | map_authoring et ses adaptateurs de transport |
+| Authoring et MCP | DONE techniquement — les neuf mutations produisent 36 receipts distincts sur direct API, JSONL, Editor et MCP officiel ; seul le reload du serveur MCP global configuré reste PARTIAL | map_authoring, adaptateurs de transport et runner L5 |
 | Suppression historique | DONE — décisions par catégorie, registries, wrappers dupliqués et ancien wire Bag retirés | ITM-060 à ITM-062 |
-| Certification produit | PARTIAL — L6 est exécuté ; L0 à L3 sont encore alimentés par des preuves de test synthétiques, L4 et L5 restent incomplets | ITM-070 à ITM-074 |
+| Certification produit | PARTIAL produit — L0-L3, L5 et L6 sont CERTIFIED par exécution ; L4 reste PARTIAL jusqu’aux parcours joueur held item et HM | runner Item System V1 de `pokemap_product_certification` |
 
 ### 2.2 Décision de continuation
 
-ITM-060 à ITM-062 ont bien retiré les décisions historiques par catégorie, les registries, les wrappers devenus inutiles et l’ancien wire Bag. ITM-070 et ITM-071 fournissent une fixture stricte et un flow L6 réellement exécuté par les API de production. En revanche, le contre-audit a montré que `AuthoringFullParityCatalog._endToEndEvidenceFor()` attribue aux neuf actions `item.*` les mêmes fichiers de preuve alors que les tests de transport n’exécutent réellement que `item.create`. Il a aussi montré que le package de certification sait évaluer des preuves L0-L6, mais ne collecte pas encore de receipts de production pour L0 à L5. La continuation est donc obligatoire : phase 8 pour rendre les preuves fail-closed et exécutables, phase 9 pour fermer les parcours joueur et la recertification Selbrume. Aucun lecteur historique, fallback ou mécanisme de migration ne doit être réintroduit.
+ITM-060 à ITM-062 ont retiré les décisions historiques par catégorie, les registries, les wrappers devenus inutiles et l’ancien wire Bag. ITM-070 et ITM-071 fournissent une fixture stricte et un flow L6 réellement exécuté par les API de production. La phase 8 a supprimé le faux positif de parité, exécuté les neuf actions `item.*` sur les quatre transports, lié chaque preuve au commit, à la fixture et à l’état observé, puis introduit des collectors réels pour L0-L3 et L5. Le runner reproductible certifie désormais L0-L3, L5 et L6 et maintient honnêtement L4 PARTIAL. La continuation porte donc uniquement sur le reload du serveur MCP global configuré et sur la phase 9 : parcours joueur held item/HM/hidden item, fixture Selbrume V6 et recertification produit finale. Aucun lecteur historique, fallback ou mécanisme de migration ne doit être réintroduit.
 
 ## 3. Audit initial vérifié
 
@@ -341,14 +341,14 @@ ItemCatalogSnapshot compose la définition d’objet avec les références exter
 | 2 — Bag transactionnel | 5 | 5 | 0 | 0 | 0 | `ITM-020` à `ITM-024` | — | DONE |
 | 3 — Consommateurs gameplay | 12 | 11 | 0 | 0 | 1 | `ITM-025` à `ITM-027`, `ITM-030` à `ITM-033`, `ITM-035` à `ITM-038` | `ITM-034` — DEFERRED_BY_PRODUCT | DONE_SCOPE_V1 |
 | 4 — Producteurs et économie | 5 | 5 | 0 | 0 | 0 | `ITM-040` à `ITM-044` | — | DONE |
-| 5 — Authoring et MCP | 6 | 5 | 1 | 0 | 0 | `ITM-050` à `ITM-053`, `ITM-055` | `ITM-054` — PARTIAL | PARTIAL |
+| 5 — Authoring et MCP | 6 | 6 | 0 | 0 | 0 | `ITM-050` à `ITM-055` | — | DONE |
 | 6 — Suppression historique | 3 | 3 | 0 | 0 | 0 | `ITM-060` à `ITM-062` | — | DONE |
-| 7 — Certification | 5 | 4 | 1 | 0 | 0 | `ITM-070`, `ITM-071`, `ITM-073`, `ITM-074` | `ITM-072` — PARTIAL | PARTIAL |
-| 8 — Vérité des preuves et transports | 11 | 0 | 0 | 11 | 0 | — | `ITM-080` à `ITM-090` | TODO |
+| 7 — Certification | 5 | 5 | 0 | 0 | 0 | `ITM-070` à `ITM-074` | — | DONE |
+| 8 — Vérité des preuves et transports | 11 | 10 | 1 | 0 | 0 | `ITM-080` à `ITM-084`, `ITM-086` à `ITM-090` | `ITM-085` — PARTIAL | PARTIAL |
 | 9 — Parcours produit et recertification | 6 | 0 | 0 | 6 | 0 | — | `ITM-100` à `ITM-105` | TODO |
-| **Total** | **59** | **39** | **2** | **17** | **1** | **39 lots clôturés** | **17 exécutables, 2 PARTIAL, 1 différé** | **PARTIAL** |
+| **Total** | **59** | **51** | **1** | **6** | **1** | **51 lots clôturés** | **6 TODO, 1 PARTIAL, 1 différé** | **PARTIAL** |
 
-L’ordre recommandé est strict : rendre d’abord la matrice de transport fail-closed, produire ensuite des receipts L0-L5 réellement exécutés, puis seulement fermer les parcours utilisateur. `ITM-034` reste différé avec FG-065 et n’entre pas dans les 17 lots exécutables.
+L’ordre recommandé restant est strict : recharger le MCP global seulement avec l’autorisation adéquate, puis fermer les parcours utilisateur de phase 9. `ITM-034` reste différé avec FG-065 et n’entre pas dans les 6 lots TODO.
 
 ### 7.1 Preuves Git après rebase
 
@@ -1033,7 +1033,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-054 — Transport JSONL/CLI et MCP
 
-- [ ] **Résultat PARTIAL :** les ressources/actions Item sont déclarées sur direct API, CLI, Editor et MCP, mais seule `item.create` est exécutée de bout en bout sur les quatre transports.
+- [x] **Résultat :** les quatre ressources et neuf mutations Item sont déclarées et réellement exécutées sur direct API, JSONL/CLI, Editor et MCP officiel.
 - **Fichiers à modifier :**
   - packages/map_authoring/lib/src/tooling/jsonl_worker.dart
   - packages/map_authoring/lib/src/registry/action_registry.dart
@@ -1049,6 +1049,8 @@ Résultat attendu : exit code 0 pour chaque commande.
 - **Dépendances :** ITM-051 et ITM-052.
 
 **Contre-audit ITM-054 :** les adaptateurs génériques savent acheminer les contrats canoniques et les catalogues annoncent bien quatre ressources et neuf mutations. Toutefois, `AuthoringFullParityCatalog._endToEndEvidenceFor()` associe à toutes les actions `item.*` les mêmes fichiers de test, alors que `item_catalog_jsonl_test.dart`, `item_authoring_transport_test.dart` et `item_authoring.test.ts` n’exécutent réellement que `item.create`. Une déclaration de contrat, une énumération dans describe ou un fichier de test commun ne constitue pas une preuve d’exécution par action. `ITM-080` à `ITM-085` ferment ce lot sans modifier ses contrats fonctionnels.
+
+**Clôture phase 8 :** la parité est désormais fail-closed et action-scoped. Les tests directs/JSONL, Editor et MCP exécutent chaque mutation et vérifient receipt, requery, validation et état sémantique final. Le collector L5 rejoue les 36 couples, rejette toute preuve d’une autre révision, fixture, action ou transport et fournit le bundle consommé par PMCP-085. Le serveur MCP packagé du worktree passe le smoke officiel ; le reload de l’instance globale configurée reste suivi séparément par ITM-085.
 
 ### ITM-055 — Séparer authoring et mutation de save
 
@@ -1068,7 +1070,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 **Preuves ITM-055 :** `PlaytestPlayerStateService` est l'unique frontière publique pour `bag.give` et `bag.consume` côté playtest. Il exige une session vivante liée aux mêmes `WorkspaceHandle` et `ProjectHandle`, sépare `playtest.run` de `playtest.control`, réserve atomiquement chaque identifiant de session et libère les sessions terminales après un échec de commande ou d'arrêt. Il n'accepte aucun chemin de sauvegarde et retourne un receipt non durable `playtest_player_state`. Les deux commandes traversent réellement `RuntimePlaytestPort`, `EvaluationPlaytestDriver` et l'unique `EvaluationCommandDispatcher` avant d'appliquer `GameStateMutations` ; `item.*` et `campaign.new_game.update` restent des mutations de projet avec `project.write` et receipts authoring journalisés. L'ancien catalogue de descripteurs `sandbox.*`, non exécutable, a été supprimé sans alias. Le describe MCP n'annonce aucune mutation Bag ; `bag.give` et `sandbox.bag.give` sont refusés avec le code `map.action_unsupported`, y compris avec un `savePath`, sans modifier le fichier témoin hors `projectRoot`. Le catalogue canonique accompagne désormais toute requête shop jusqu'au host et les stocks utilisent exclusivement la clé `shopId::stateId::itemId`, sans cas spécial historique. Après rebase, la suite `map_authoring` complète termine avec 562 tests réussis et `dart analyze` sans problème. Les preuves runtime et host ciblées du lot terminaient respectivement avec 12 et 10 tests réussis ; la validation post-rebase confirme à nouveau les 12 tests runtime et le scénario host borné. La suite MCP sérialisée du lot termine avec 42 tests réussis en 195,4 secondes ; les deux scénarios Item/playtest repassent après rebase et `npm run check` ne signale aucune erreur TypeScript.
 
-**Gate de phase 5 :** PARTIAL. ITM-050 à ITM-053 et ITM-055 sont clôturés. ITM-054 reste ouvert jusqu’à l’exécution distincte des neuf mutations sur direct API, JSONL, Editor et MCP, puis au smoke live du build courant. Aucun droit d’écriture arbitraire dans une sauvegarde utilisateur n’a été introduit.
+**Gate de phase 5 :** DONE. ITM-050 à ITM-055 sont clôturés ; les 36 couples action/transport sont exécutés et consommables par le runner. Aucun droit d’écriture arbitraire dans une sauvegarde utilisateur n’a été introduit.
 
 ## 14. Phase 6 — Suppression totale des chemins historiques
 
@@ -1120,7 +1122,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ## 15. Phase 7 — Certification et clôture
 
-**Statut de phase :** PARTIAL. ITM-070, ITM-071, ITM-073 et ITM-074 sont clôturés. ITM-072 reste ouvert : son évaluateur est fail-closed, mais ses preuves L0 à L5 ne sont pas encore collectées par des runners de production.
+**Statut de phase :** DONE après phase 8. ITM-070 à ITM-074 sont clôturés ; ITM-072 consomme désormais les receipts exécutés par les collectors L0-L3, L5 et L6 et conserve L4 PARTIAL comme verdict produit explicite.
 
 ### ITM-070 — Fixture Golden Item System
 
@@ -1162,7 +1164,7 @@ Résultat attendu : exit code 0 pour chaque commande.
 
 ### ITM-072 — Certification produit
 
-- [ ] **Résultat PARTIAL :** le modèle L0-L6 et son évaluateur existent ; seule la preuve L6 provient d’un flow de production réutilisable.
+- [x] **Résultat :** le modèle L0-L6 est alimenté par des receipts exécutés, liés au commit et à la fixture ; L4 reste explicitement PARTIAL sans contaminer la certification technique des autres niveaux.
 - **Fichiers à modifier :**
   - tools/pokemap_product_certification/lib/pokemap_product_certification.dart
   - tools/pokemap_product_certification/test/item_system_certification_test.dart
@@ -1171,6 +1173,8 @@ Résultat attendu : exit code 0 pour chaque commande.
 - **Dépendances :** ITM-071 et ITM-054.
 
 **Contre-audit ITM-072 :** `ItemSystemV1CertificationProfile` définit correctement L0 à L6 et refuse les preuves incomplètes. L6 consomme bien le receipt ITM-071 réellement exécuté. En revanche, le test de certification construit lui-même les ensembles de capacités attendus et des chaînes de 64 caractères jouant le rôle de digests pour L0 à L3 ; aucun collector du package n’exécute actuellement les codecs, l’authoring, la persistance ou le runtime pour produire ces preuves. Le modèle est utile, mais un test de modèle ne peut pas s’auto-déclarer preuve produit. `ITM-086` à `ITM-090` introduisent les receipts canoniques, les collectors et le runner nécessaires.
+
+**Clôture phase 8 :** `ItemSystemV1CertificationRunner` exécute les codecs stricts, l’authoring, la persistance, les services runtime, les quatre transports et `GoldenItemSystemJourney`. Chaque receipt recalcule ses digests de source, fixture, payload et état observé. Une commande produit le JSON canonique : L0, L1, L2, L3, L5 et L6 sont CERTIFIED ; L4 reste PARTIAL pour `held_item_controls`. La suite complète du package passe 22/22 et l’analyse ne remonte aucune issue.
 
 ### ITM-073 — Matrice finale de validation
 
@@ -1243,11 +1247,11 @@ Les commandes ciblées de recertification terminent avec 11 tests Core, 43 Gamep
 | C | ITM-020 → ITM-024 | DONE | ITM-022 et ITM-023 après ITM-021 | Bag API stable |
 | D1 | ITM-025 → ITM-038 hors ITM-034 différé | DONE_SCOPE_V1 | Classification, capture, machines et held après resolver | Consommateurs |
 | D2 | ITM-040 → ITM-044 | DONE | Rewards et shops après BagOperations | Producteurs |
-| E | ITM-050 → ITM-055 | PARTIAL | UI après actions ; transports après contrats | ITM-054 à reprendre |
+| E | ITM-050 → ITM-055 | DONE | UI après actions ; transports après contrats | Parité action-scoped |
 | F | ITM-060 → ITM-062 | DONE | Non | Suppression historique |
-| G | ITM-070 → ITM-074 | PARTIAL | Non | ITM-072 à reprendre |
-| H | ITM-080 → ITM-085 | TODO | ITM-081 à ITM-083 peuvent être préparés séparément | Vérité des transports |
-| I | ITM-086 → ITM-090 | TODO | Les collectors L0/L1 et L2/L3 après le receipt commun | Certification exécutable |
+| G | ITM-070 → ITM-074 | DONE | Non | Receipts exécutés |
+| H | ITM-080 → ITM-085 | PARTIAL | ITM-081 à ITM-083 peuvent être préparés séparément | Reload du MCP global configuré |
+| I | ITM-086 → ITM-090 | DONE | Les collectors L0/L1 et L2/L3 après le receipt commun | Certification exécutable |
 | J | ITM-100 → ITM-105 | TODO | Held item, HM et hidden item sont indépendants ; tests Flutter en série | Clôture produit |
 
 Une vague n’autorise pas plusieurs modifications concurrentes du même modèle généré, du même codec ou de save_data.dart.
@@ -1345,96 +1349,133 @@ Les lots suivants ferment les écarts prouvés par le contre-audit. Ils ne refon
 
 #### ITM-080 — Rendre la preuve de transport fail-closed
 
-- [ ] **But :** supprimer le faux positif qui attribue les mêmes tests aux neuf actions `item.*`.
+- [x] **Résultat :** le faux positif qui attribuait les mêmes tests aux neuf actions `item.*` est supprimé.
 - **Fichiers :** `packages/map_authoring/lib/src/parity/full_authoring_parity.dart`, `packages/map_authoring/test/parity/full_authoring_parity_test.dart`.
 - **Tests d’abord :** prouver que `item.create` conserve ses preuves et que les huit actions non exécutées n’obtiennent aucune preuve E2E par simple appartenance au domaine Item.
 - **Gate :** `dart test test/parity/full_authoring_parity_test.dart` et `dart analyze` réussissent ; PMCP ne peut plus déclarer une action Item fully-E2E sans receipt spécifique.
 - **Dépendance :** aucune. **Commit cible :** `fix(items): fail close transport evidence`.
 
+**Preuve :** `AuthoringFullParityCatalog` ne produit plus de certification Item à partir d’un nom de fichier partagé. Les tests prouvent qu’une action sans exécution propre reste incomplète et PMCP échoue fermé sans bundle de receipts.
+
 #### ITM-081 — Matrice direct API et JSONL des neuf mutations
 
-- [ ] **But :** exécuter `item.create`, `item.update`, `item.clone`, `item.delete_apply`, `item.set_overworld_effect`, `item.set_battle_effect`, `item.set_held_effect`, `item.set_capture_effect` et `item.set_tm_hm_move` par les deux premiers transports.
+- [x] **Résultat :** les neuf mutations sont exécutées par direct API et JSONL avec état final canonique équivalent.
 - **Fichiers :** `packages/map_authoring/test/domains/gameplay/item_catalog_actions_test.dart`, `packages/map_authoring/test/domains/gameplay/item_catalog_jsonl_test.dart`, puis uniquement les handlers de `packages/map_authoring/lib/src/domains/gameplay/` si un écart réel est découvert.
 - **Tests d’abord :** pour chaque action, planifier, appliquer avec une révision attendue, relire le catalogue et comparer l’état final direct/JSONL ; couvrir révision périmée, identifiant invalide, delete référencé et absence de mutation sur refus.
 - **Gate :** les 18 couples action/transport produisent un receipt distinct et un état final canonique équivalent.
 - **Dépendance :** ITM-080. **Commit cible :** `test(items): prove direct and jsonl mutation parity`.
 
+**Preuve :** 18 couples produisent des receipts distincts ; révision périmée, identifiant invalide, suppression référencée et refus sans mutation sont couverts.
+
 #### ITM-082 — Matrice Editor des neuf mutations
 
-- [ ] **But :** prouver que l’adaptateur Editor transporte chaque mutation sémantique sans logique Item privée.
+- [x] **Résultat :** l’adaptateur Editor transporte les neuf mutations sémantiques sans logique Item privée.
 - **Fichiers :** `packages/map_editor/test/authoring_api/item_authoring_transport_test.dart`, `packages/map_editor/lib/src/application/authoring_api/authoring_mutation_adapter.dart` uniquement si le test révèle un défaut.
 - **Tests d’abord :** exécuter les neuf actions, vérifier receipt, requery, révision, undo et restauration exacte ; vérifier qu’un refus ne crée aucune entrée d’historique.
 - **Gate :** neuf actions Editor réussies et `flutter analyze` sans erreur ni warning sur le périmètre touché.
 - **Dépendances :** ITM-080 et ITM-081. **Commit cible :** `test(items): prove editor mutation parity`.
 
+**Preuve :** les neuf actions vérifient receipt, requery, révision, undo et restauration exacte ; un refus ne crée aucune entrée d’historique.
+
 #### ITM-083 — Matrice MCP des neuf mutations
 
-- [ ] **But :** exécuter les neuf actions via le client MCP officiel sur un projet temporaire repo-owned.
+- [x] **Résultat :** les neuf actions sont exécutées via le client MCP officiel sur une copie temporaire repo-owned.
 - **Fichiers :** `tools/pokemap_mcp/test/item_authoring.test.ts`, `tools/pokemap_mcp/src/authoring_client.ts` uniquement si nécessaire.
 - **Tests d’abord :** `workspace.open`, query de révision, plan, apply, requery et validation pour chaque action ; couvrir confirmation de suppression, révision périmée et refus sans mutation.
 - **Gate :** neuf receipts MCP distincts, `npm test`, `npm run check` et `npm run build` réussis.
 - **Dépendances :** ITM-080 et ITM-081. **Commit cible :** `test(items): prove mcp mutation parity`.
 
+**Preuve :** le smoke isolé du build packagé passe en 6,8 s avec neuf receipts, requery et validation. La suite MCP globale reste fragile sous charge et produit deux `worker.timeout`, consignés dans ITM-090 ; `npm run check` et `npm run build` passent.
+
 #### ITM-084 — Réconcilier PMCP-085 action par action
 
-- [ ] **But :** alimenter la matrice de parité avec les preuves réellement exécutées, jamais avec un nom de fichier partagé.
+- [x] **Résultat :** PMCP-085 consomme les preuves réellement exécutées, action par action, jamais un nom de fichier partagé.
 - **Fichiers :** `packages/map_authoring/lib/src/parity/full_authoring_parity.dart`, `packages/map_authoring/test/parity/full_authoring_parity_test.dart`, `packages/map_authoring/tool/pmcp085_conformance.dart` si le format de receipt doit évoluer.
 - **Tests d’abord :** un transport absent laisse uniquement l’action concernée incomplète ; une preuve d’une autre action, révision ou fixture est rejetée.
 - **Gate :** les neuf actions Item ont quatre transports prouvés. `transportCertificationComplete` peut rester faux pour d’autres domaines sans dégrader le verdict Item.
 - **Dépendances :** ITM-081 à ITM-083. **Commit cible :** `fix(items): reconcile action scoped parity receipts`.
 
+**Preuve :** le bundle lie action, transport, source, fixture, executor, receipt normalisé et digest d’état. Le run frais rapporte 72 ressources, 274 mutations et `itemTransportCertificationComplete: true` ; la certification globale des autres domaines reste indépendante.
+
 #### ITM-085 — Smoke du MCP live courant
 
-- [ ] **But :** vérifier le build réellement chargé, pas seulement les sources du worktree.
+- [ ] **Résultat PARTIAL :** le build packagé exact du worktree est exécuté par le client MCP officiel, mais l’instance MCP globale configurée pointe encore l’ancien checkout.
 - **Périmètre :** `tools/pokemap_mcp/dist/`, serveur MCP configuré, copie temporaire de `examples/playable_runtime_host/golden_item_system/` placée sous une racine étroite autorisée.
 - **Procédure :** reconstruire le MCP, recharger explicitement ce build, exécuter `pokemap_describe`, ouvrir la copie jetable, interroger les quatre ressources Item, appliquer les neuf mutations avec requery/validate, puis fermer le workspace.
 - **Gate :** describe live expose quatre ressources et neuf actions Item ; les 36 couples attendus par L5 sont liés au build, au commit et au digest de fixture courants.
 - **Sécurité :** aucune mutation d’un projet utilisateur et aucun élargissement de racine au home. Toute modification de configuration MCP globale exige une autorisation séparée.
 - **Dépendance :** ITM-084. **Commit cible :** `test(items): record live mcp smoke contract` si une fixture ou un test versionné change ; sinon lot de vérification sans commit artificiel.
 
+**Preuve et limite :** `live_item_smoke.test.ts` reconstruit le serveur, copie la Golden fixture sous une racine temporaire étroite, vérifie describe, ressources et neuf mutations, puis ferme le workspace. Le test isolé passe. Aucun reload ni changement de configuration globale n’est effectué sans autorisation séparée ; ce seul point maintient ITM-085 PARTIAL.
+
 #### ITM-086 — Receipt canonique d’exécution L0-L6
 
-- [ ] **But :** remplacer les chaînes arbitraires utilisées comme preuves par un contrat calculé et vérifiable.
+- [x] **Résultat :** les chaînes arbitraires sont remplacées par un contrat calculé, vérifiable et profondément immuable.
 - **Fichiers à créer :** `tools/pokemap_product_certification/lib/src/item_system_execution_receipt.dart`, `tools/pokemap_product_certification/test/item_system_execution_receipt_test.dart` ; exporter depuis `tools/pokemap_product_certification/lib/pokemap_product_certification.dart`.
 - **Contrat :** niveau, commit, digest SHA-256 de fixture, digest SHA-256 du payload canonique, capacités tentées/réussies/échouées, producteur, version du runner, horodatage informatif et verdict.
 - **Tests d’abord :** le digest est recalculé depuis le payload ; capability dupliquée, inconnue, non exécutée, digest forgé ou révision discordante est refusée.
 - **Gate :** aucun collector ne peut construire directement un statut CERTIFIED.
 - **Dépendance :** ITM-071. **Commit cible :** `feat(items): define executable certification receipts`.
 
+**Preuve :** le receipt lie niveau, source, fixture, payload, capacités et producteur ; digest forgé, source discordante, capacité inconnue ou non exécutée sont refusés. L’horodatage informatif n’altère pas le digest de preuve.
+
 #### ITM-087 — Collectors L0 schema et L1 authoring
 
-- [ ] **But :** produire L0 et L1 en exécutant les APIs réelles sur la fixture Golden.
+- [x] **Résultat :** L0 et L1 sont produits par exécution des APIs réelles sur la fixture Golden.
 - **Fichiers à créer :** `tools/pokemap_product_certification/lib/src/item_system_schema_evidence_collector.dart`, `tools/pokemap_product_certification/lib/src/item_system_authoring_evidence_collector.dart`, tests homonymes sous `tools/pokemap_product_certification/test/` ; ajouter `map_authoring` aux dépendances directes si nécessaire.
 - **L0 :** décoder catalogue et save V1, valider Bag strict, puis prouver le refus des champs historiques et du marqueur de schéma absent.
 - **L1 :** charger les quatre ressources, exécuter CRUD/effects/readiness/reference guards via map_authoring et produire les receipts correspondants.
 - **Gate :** aucune liste de capacités attendues n’est copiée dans le test pour simuler le succès ; elle provient des opérations réellement terminées.
 - **Dépendance :** ITM-086. **Commit cible :** `feat(items): collect schema and authoring evidence`.
 
+**Preuve :** L0 décode catalogue et save stricts puis prouve le refus des marqueurs/champs historiques ; L1 charge les ressources et exécute CRUD, effets, readiness et guards via map_authoring.
+
 #### ITM-088 — Collectors L2 persistence et L3 runtime
 
-- [ ] **But :** produire L2 et L3 depuis la persistance et les services runtime de production.
+- [x] **Résultat :** L2 et L3 proviennent de la persistance et des services runtime de production.
 - **Fichiers à créer :** `tools/pokemap_product_certification/lib/src/item_system_persistence_evidence_collector.dart`, `tools/pokemap_product_certification/lib/src/item_system_runtime_evidence_collector.dart`, tests homonymes.
 - **L2 :** exécuter new game, pickup idempotent, shop, reward et `FileGameSaveRepository` avec round-trip strict et digests avant/après.
 - **L3 :** exécuter medicine overworld/battle, capture, key gate, TM, held item et passif via les services déjà utilisés par `GoldenItemSystemJourney` ; ne pas réimplémenter les mutations dans le collector.
 - **Gate :** toute capacité non atteinte ou sans observation avant/après reste PARTIAL ; les sauvegardes anciennes restent refusées.
 - **Dépendance :** ITM-086. **Commit cible :** `feat(items): collect persistence and runtime evidence`.
 
+**Preuve :** L2 exécute new game, pickup idempotent, shop, reward et round-trip strict ; L3 consomme la Golden journey pour medicine, capture, key gate, TM, held item et passif sans réimplémenter les mutations.
+
 #### ITM-089 — Collector L5 et runner de certification
 
-- [ ] **But :** composer L0-L6 en une commande reproductible et fail-closed.
+- [x] **Résultat :** L0-L6 sont composés par une commande reproductible et fail-closed.
 - **Fichiers à créer :** `tools/pokemap_product_certification/lib/src/item_system_transport_evidence_collector.dart`, `tools/pokemap_product_certification/lib/src/item_system_v1_certification_runner.dart`, `tools/pokemap_product_certification/bin/certify_item_system_v1.dart` ; durcir `tools/pokemap_product_certification/test/item_system_certification_test.dart`.
 - **Entrées :** receipts ITM-081 à ITM-085, collectors ITM-087/088 et receipt L6 de `GoldenItemSystemJourney` ; L4 reste PARTIAL jusqu’à ITM-100/101.
 - **Sortie :** JSON canonique L0-L6 lié au commit et aux fixtures, avec raisons précises pour chaque niveau non certifié.
 - **Gate :** supprimer les helpers de test qui fabriquent `_completeEvidence` ou des pseudo-digests ; deux exécutions inchangées produisent le même payload hors horodatage informatif.
 - **Dépendances :** ITM-084 à ITM-088. **Commit cible :** `feat(items): run executable item certification`.
 
+**Preuve :** `dart run bin/certify_item_system_v1.dart` construit le MCP, exécute les collectors et écrit certification plus bundle transport. L0-L3, L5 et L6 sont CERTIFIED, L4 reste PARTIAL ; les 36 receipts L5 sont liés à la source, à la fixture et aux états observés.
+
 #### ITM-090 — Recertification technique de la phase 8
 
-- [ ] **But :** rejouer la matrice complète et mettre les statuts au niveau des preuves fraîches.
+- [x] **Résultat :** la matrice complète est rejouée et les statuts reflètent les preuves fraîches, sans déclarer vertes les dettes globales hors Item.
 - **Commandes minimales :** suites et analyses `map_core`, `map_gameplay`, `map_battle`, `map_authoring`, `map_runtime`, `map_player_ui`, `map_editor`, host et certification ; PMCP-085 ; tests/check/build MCP ; deux builds macOS ; smoke MCP live ; hygiène Markdown.
 - **Gate :** ITM-054 et ITM-072 ne passent DONE que si les receipts action/transport et L0-L6 sont consommables par le runner. L4 peut rester PARTIAL sans bloquer la clôture technique de L0-L3, L5 et L6.
 - **Documentation :** mettre à jour ce fichier et proposer les changements FG dans `pokemap_roadmap_mecaniques_fangame.md` avec résultats exacts, sans masquer les dettes hors Item.
 - **Dépendance :** ITM-089. **Commit cible :** `test(items): recertify executable evidence matrix`.
+
+**Verdict :** la clôture technique est acquise pour L0-L3, L5 et L6. L4 reste PARTIAL par contrat ; ITM-085 reste PARTIAL uniquement pour le reload du serveur MCP global configuré. ITM-054 et ITM-072 passent DONE car leurs receipts sont exécutés et consommés par le runner.
+
+| Périmètre frais | Résultat exact | Lecture |
+|---|---|---|
+| `map_core` | 4 145 réussis, 7 échecs, 1 ignoré ; analyse sans erreur/warning, 121 infos | Échecs de gates/fixtures historiques, round-trip de présentation et save canonique hors changement phase 8. |
+| `map_gameplay` | 468/468 ; analyse sans erreur/warning, 1 info | Vert. |
+| `map_battle` | 1 746 réussis, 28 échecs ; analyse sans issue | Corpus et artefacts PSDK externes absents ou désynchronisés. |
+| `map_authoring` | 573/573 ; analyse sans issue | Vert, y compris la parité Item action-scoped. |
+| `map_runtime` | 2 308 réussis, 3 échecs, 1 ignoré ; analyse sans erreur/warning, 7 infos | Deux anciennes sauvegardes narratives sans schéma strict et une preuve visuelle historique. |
+| `map_player_ui` | 218/218 ; analyse sans issue | Vert ; L4 reste fonctionnellement partiel faute de contrôles held item. |
+| `map_editor` | 5 406 réussis, 124 échecs, 11 ignorés avant arrêt à 12 min 20 s ; analyse sans issue ; build macOS réussi | Suite globale bloquée après fixtures V2/goldens et dettes async hors Item ; tests Item ciblés verts. |
+| `playable_runtime_host` | 248 réussis, 25 échecs, 3 ignorés avant blocage ; analyse sans erreur/warning, 27 infos ; build macOS réussi | Probe web Selbrume puis runner inactif plus de deux heures ; Golden Item ciblé vert. |
+| `pokemap_product_certification` | 22/22 ; analyse sans issue | Vert après exclusion du worker CLI de la découverte automatique des tests. |
+| `pokemap_mcp` | suite globale : 42 réussis, 2 `worker.timeout` ; smoke Item isolé : 1/1 en 6,8 s ; check/build réussis | Fragilité de timeout sous charge conservée comme dette globale ; contrat Item packagé prouvé. |
+| Runner L0-L6 | L0-L3, L5, L6 CERTIFIED ; L4 PARTIAL | Verdict technique attendu et fail-closed. |
+| Builds macOS | `PokeMap.app` 69,9 MB et `PokeMap Selbrume.app` 52,3 MB | Réussis en release. |
 
 ### 21.3 Phase 9 — Parcours produit et recertification
 

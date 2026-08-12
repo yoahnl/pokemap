@@ -124,7 +124,7 @@ lot ou de phase :
    encore ouvert, sinon produire une modification documentaire distincte.
 ```
 
-Dernière mise à jour : **2026-08-11** — recertification Item System V1, ITM-074.
+Dernière mise à jour : **2026-08-12** — certification exécutable Item System V1, ITM-090.
 `FG-050`, `FG-060` à `FG-064`, `FG-067`, `FG-069`, `FG-070` et `FG-074` à
 `FG-078` sont recertifiés sur les contrats canoniques stricts. `FG-072` et
 `FG-073` restent partiels faute de parcours joueur complet, `FG-079` redevient
@@ -1209,6 +1209,26 @@ Résultats exacts : 11 Core, 43 Gameplay, 41 Runtime, 14 Editor et 6 Host
 réussis ; la commande Selbrume échoue au setup avec 0 test réussi et 1 échec.
 La matrice globale, les analyses et les deux builds macOS sont consignés dans
 ITM-073 de la roadmap Item System V1.
+
+### Certification exécutable Item System V1 — ITM-090
+
+La phase 8 ne modifie pas les statuts FG issus d’ITM-074, mais remplace leurs
+preuves déclaratives par un runner fail-closed. L0 schema, L1 authoring, L2
+persistence, L3 runtime, L5 transports et L6 Golden flow sont désormais
+CERTIFIED par des receipts liés au commit, à la fixture et aux états observés.
+L4 reste PARTIAL et confirme les mêmes écarts produit : aucun contrôle joueur
+held item complet pour FG-072, aucun parcours HM complet pour FG-073 et aucun
+objet caché jouable pour FG-068. FG-079 reste PARTIAL tant que Selbrume demeure
+sur son manifeste V2 refusé par le runtime V6.
+
+La preuve L5 exécute les neuf mutations Item sur direct API, JSONL, Editor et
+client MCP officiel, soit 36 couples action/transport. Le serveur MCP packagé du
+worktree passe son smoke isolé ; le serveur MCP global configuré n’a pas été
+rechargé sans autorisation spécifique. La suite de certification produit passe
+22/22 et les deux builds macOS réussissent. Les suites globales historiques
+restent rouges dans Core, Battle, Runtime, Editor, Host et MCP ; leurs résultats
+exacts et leur attribution hors Item sont consignés dans ITM-090 de la roadmap
+Item System V1.
 
 ---
 

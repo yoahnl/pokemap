@@ -143,7 +143,7 @@ Future<void> _runFlutterWorker({
 }) async {
   final result = await Process.run('flutter', <String>[
     'test',
-    'test/support/item_system_certification_worker_test.dart',
+    'test/support/item_system_certification_worker.dart',
     '--plain-name',
     'writes executable Item System V1 certification artifacts',
     '--dart-define=POKEMAP_REPOSITORY_ROOT=${repositoryRoot.path}',
