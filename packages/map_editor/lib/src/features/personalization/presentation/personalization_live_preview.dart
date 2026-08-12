@@ -186,13 +186,21 @@ class _PersonalizationLivePreviewState
           showChoices: widget.showDialogueChoices,
         ),
     };
-    final battleData = PersonalizationProjectPreviewProjection.battle(
-      encounterContext,
-      state: widget.battleState,
-      presentation: widget.profile.battle,
-      enemySpeciesId: selectedEnemySpeciesId,
-      playerSpeciesId: selectedPlayerSpeciesId,
-    );
+    final battleData = switch (widget.contentSource) {
+      PersonalizationPreviewContentSource.demonstration =>
+        PersonalizationDemonstrationPreviewProjection.battle(
+          state: widget.battleState,
+          presentation: widget.profile.battle,
+        ),
+      PersonalizationPreviewContentSource.project =>
+        PersonalizationProjectPreviewProjection.battle(
+          encounterContext,
+          state: widget.battleState,
+          presentation: widget.profile.battle,
+          enemySpeciesId: selectedEnemySpeciesId,
+          playerSpeciesId: selectedPlayerSpeciesId,
+        ),
+    };
     final battleSprites =
         PersonalizationProjectPreviewProjection.battleSpritePaths(
           encounterContext,

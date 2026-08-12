@@ -555,6 +555,64 @@ void main() {
   });
 
   for (final entry
+      in <(PersonalizationBattlePreviewState, PlayerBattlePanelKind)>[
+        (
+          PersonalizationBattlePreviewState.commands,
+          PlayerBattlePanelKind.commands,
+        ),
+        (PersonalizationBattlePreviewState.moves, PlayerBattlePanelKind.moves),
+        (
+          PersonalizationBattlePreviewState.target,
+          PlayerBattlePanelKind.target,
+        ),
+        (
+          PersonalizationBattlePreviewState.message,
+          PlayerBattlePanelKind.message,
+        ),
+      ]) {
+    testWidgets(
+      'renders neutral ${entry.$1.name} battle content in demonstration mode',
+      (tester) async {
+        await tester.pumpWidget(
+          _app(
+            PersonalizationLivePreview(
+              profile: const ProjectPresentationProfile(
+                theme: safeProjectSemanticTheme,
+              ),
+              projectName: 'Pokémon Aurore',
+              projectRootPath: '',
+              scene: PersonalizationStudioScene.battle,
+              contentSource: PersonalizationPreviewContentSource.demonstration,
+              battleState: entry.$1,
+            ),
+          ),
+        );
+
+        final surface = tester.widget<PlayerBattleSurface>(
+          find.byType(PlayerBattleSurface),
+        );
+        expect(find.text('Démonstration'), findsOneWidget);
+        expect(find.byType(PlayerBattleScene), findsOneWidget);
+        expect(surface.data.panelKind, entry.$2);
+        expect(surface.data.enemy.speciesLabel, 'Créature adverse');
+        expect(surface.data.player.speciesLabel, 'Partenaire');
+        expect(
+          find.byKey(
+            const ValueKey<String>('personalization-battle-unavailable'),
+          ),
+          findsNothing,
+        );
+        expect(
+          find.byKey(
+            const ValueKey<String>('personalization-project-map-backdrop'),
+          ),
+          findsNothing,
+        );
+      },
+    );
+  }
+
+  for (final entry
       in <(PersonalizationBattlePreviewState, PersonalizationInspectorTarget)>{
         (
           PersonalizationBattlePreviewState.commands,
