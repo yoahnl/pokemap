@@ -7,6 +7,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/shadow/editor_shadow_preview_projection_index.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
+import 'support/vm_memory_probe.dart';
+
 const _requestedOutputPath = String.fromEnvironment('POKEMAP_PERF_OUTPUT');
 const _target = 'integration_test/editor_canvas_projection_journey_test.dart';
 const _viewportSize = ui.Size(512, 512);
@@ -22,23 +24,39 @@ void main() {
     (tester) async {
       final tileImage = await _solidTileImage();
       addTearDown(tileImage.dispose);
+      final memoryProbe = await VmMemoryProbe.connect();
+      addTearDown(memoryProbe.close);
       final results = <Map<String, Object?>>[];
+      final placementResults = <Map<String, Object?>>[];
 
-      for (final mode in _CanvasProfileMode.values) {
-        for (final extent in _extents) {
+      final memory = await memoryProbe.measure(() async {
+        for (final mode in _CanvasProfileMode.values) {
+          for (final extent in _extents) {
+            final fixture = _CanvasProfileFixture.create(
+              mode: mode,
+              extent: extent,
+            );
+            results.add(
+              _measurePainter(fixture: fixture, tileImage: tileImage),
+            );
+            await tester.pump();
+          }
+        }
+        for (final placedElementCount in const <int>[100, 1000, 10000]) {
           final fixture = _CanvasProfileFixture.create(
-            mode: mode,
-            extent: extent,
+            mode: _CanvasProfileMode.shadows,
+            extent: 1024,
+            placedElementCount: placedElementCount,
           );
-          results.add(
-            _measurePainter(
-              fixture: fixture,
-              tileImage: tileImage,
-            ),
+          final result = _measurePainter(
+            fixture: fixture,
+            tileImage: tileImage,
           );
+          expect(result['placedElementCount'], placedElementCount);
+          placementResults.add(result);
           await tester.pump();
         }
-      }
+      });
 
       Map<String, Object?> resultFor(_CanvasProfileMode mode, int extent) =>
           results.singleWhere(
@@ -80,6 +98,8 @@ void main() {
           'constantViewport': true,
         },
         'results': results,
+        'placementResults': placementResults,
+        'memory': memory.toJson(),
         'summary': <String, Object?>{
           'standard1024P95Us': standard1024P95,
           'combined128P95Us': combined128P95,
@@ -89,15 +109,18 @@ void main() {
         },
         'performanceGates': <String, Object?>{
           'combined1024P95BudgetUs': 8000,
+          'repaintP95BudgetUs': 16670,
           'combined1024To128P95RatioBudget': 1.5,
           'standard1024P95ObservationCeilingUs': 4000,
           'combined1024P95Pass': combined1024P95 < 8000,
+          'repaintP95Pass': combined1024P95 < 16670,
           'combinedScaleRatioPass': combinedScaleRatio <= 1.5,
           'standardControlPass': standard1024P95 < 4000,
         },
       };
 
       expect(combined1024P95, lessThan(8000));
+      expect(combined1024P95, lessThan(16670));
       expect(combinedScaleRatio, lessThanOrEqualTo(1.5));
       expect(standard1024P95, lessThan(4000));
       expect(tester.takeException(), isNull);
@@ -248,6 +271,7 @@ final class _CanvasProfileFixture {
   factory _CanvasProfileFixture.create({
     required _CanvasProfileMode mode,
     required int extent,
+    int? placedElementCount,
   }) {
     final cellCount = extent * extent;
     final layers = <MapLayer>[];
@@ -284,28 +308,42 @@ final class _CanvasProfileFixture {
 
     final placedElements = <MapPlacedElement>[];
     if (mode.includesShadows) {
-      placedElements.add(
-        const MapPlacedElement(
-          id: 'visible-projected-building',
-          layerId: 'base',
-          elementId: 'building-caster',
-          pos: GridPos(x: 8, y: 8),
-          quarterTurns: 1,
-        ),
-      );
-      var index = 0;
-      for (var y = 4; y < extent; y += 16) {
-        for (var x = 4; x < extent; x += 16) {
+      if (placedElementCount != null) {
+        for (var index = 0; index < placedElementCount; index += 1) {
           placedElements.add(
             MapPlacedElement(
               id: 'placed-$index',
               layerId: 'base',
               elementId: index.isEven ? 'static-caster' : 'building-caster',
-              pos: GridPos(x: x, y: y),
+              pos: GridPos(x: (index * 37) % extent, y: (index * 101) % extent),
               quarterTurns: index % 4,
             ),
           );
-          index += 1;
+        }
+      } else {
+        placedElements.add(
+          const MapPlacedElement(
+            id: 'visible-projected-building',
+            layerId: 'base',
+            elementId: 'building-caster',
+            pos: GridPos(x: 8, y: 8),
+            quarterTurns: 1,
+          ),
+        );
+        var index = 0;
+        for (var y = 4; y < extent; y += 16) {
+          for (var x = 4; x < extent; x += 16) {
+            placedElements.add(
+              MapPlacedElement(
+                id: 'placed-$index',
+                layerId: 'base',
+                elementId: index.isEven ? 'static-caster' : 'building-caster',
+                pos: GridPos(x: x, y: y),
+                quarterTurns: index % 4,
+              ),
+            );
+            index += 1;
+          }
         }
       }
     }

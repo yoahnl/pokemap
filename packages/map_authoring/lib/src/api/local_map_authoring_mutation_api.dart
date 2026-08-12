@@ -369,6 +369,7 @@ final class _LocalMapAuthoringSession {
     required AuthoringUndoService undoService,
     required AuthoringHistoryStore history,
     required SecureAuthoringRecoveryExecutor recoveryExecutor,
+    required AuthoringPerformanceObserver? performanceObserver,
   })  : _snapshotLoader = snapshotLoader,
         _dispatcher = dispatcher,
         _actor = actor,
@@ -379,7 +380,8 @@ final class _LocalMapAuthoringSession {
         _executor = executor,
         _undoService = undoService,
         _history = history,
-        _recoveryExecutor = recoveryExecutor;
+        _recoveryExecutor = recoveryExecutor,
+        _performanceObserver = performanceObserver;
 
   static Future<_LocalMapAuthoringSession> open({
     required String canonicalProjectRoot,
@@ -480,6 +482,7 @@ final class _LocalMapAuthoringSession {
       undoService: undoService,
       history: history,
       recoveryExecutor: recoveryExecutor,
+      performanceObserver: performanceObserver,
     );
   }
 
@@ -497,6 +500,7 @@ final class _LocalMapAuthoringSession {
   final AuthoringUndoService _undoService;
   final AuthoringHistoryStore _history;
   final SecureAuthoringRecoveryExecutor _recoveryExecutor;
+  final AuthoringPerformanceObserver? _performanceObserver;
 
   Future<AuthoringMutationHistoryResult> listMutationHistory({
     required int limit,
@@ -544,12 +548,20 @@ final class _LocalMapAuthoringSession {
             descriptor.requiredPermissions.map(_permissionScope),
       ),
     );
-    final snapshot = await _snapshotLoader.load(projectHandle);
-    final plan = await _planner.plan(
-      request: request,
-      snapshot: snapshot,
-      build: _dispatcher.build,
+    final snapshot = await _loadSnapshot();
+    final span = _performanceObserver?.startSpan(
+      AuthoringPerformanceSpanName.plan,
     );
+    late final AuthoringPlan plan;
+    try {
+      plan = await _planner.plan(
+        request: request,
+        snapshot: snapshot,
+        build: _dispatcher.build,
+      );
+    } finally {
+      span?.finish();
+    }
     return AuthoringMutationPlanResult(
       plan: plan,
       snapshotRevision: snapshot.revision,
@@ -560,7 +572,7 @@ final class _LocalMapAuthoringSession {
   Future<AuthoringMutationConfirmationResult> confirmMutation(
     String planId,
   ) async {
-    final snapshot = await _snapshotLoader.load(projectHandle);
+    final snapshot = await _loadSnapshot();
     final plan = _plans.resolve(
       _safeIdentity(planId, 'planId'),
       currentProjectRevision: snapshot.revision,
@@ -597,33 +609,42 @@ final class _LocalMapAuthoringSession {
         message: 'Mutation apply requires an idempotency key.',
       );
     }
-    final snapshot = await _snapshotLoader.load(projectHandle);
+    final snapshot = await _loadSnapshot();
     final descriptor = _dispatcher.descriptor(plan.request.actionId);
-    final receipt = await _executor.apply(
-      actor: _actor,
-      projectId: projectId,
-      action: descriptor,
-      plan: plan,
-      currentProjectRevision: snapshot.revision,
-      scope: AuthoringIdempotencyScope(
-        actorId: _actor.actorId,
-        projectId: projectId,
-        actionId: descriptor.id,
-        actionVersion: descriptor.version,
-        key: key,
-      ),
-      operationId: safeOperationId,
-      confirmationToken: confirmationToken == null
-          ? null
-          : AuthoringConfirmationToken.fromWireValue(confirmationToken),
+    final span = _performanceObserver?.startSpan(
+      AuthoringPerformanceSpanName.apply,
     );
-    final projected = receipt.status == AuthoringReceiptStatus.applied
-        ? await _snapshotLoader.adoptAppliedChanges(
-            projectHandle,
-            baseRevision: plan.baseRevision,
-            changes: plan.changeSet.changes,
-          )
-        : null;
+    late final AuthoringReceipt receipt;
+    ProjectSnapshot? projected;
+    try {
+      receipt = await _executor.apply(
+        actor: _actor,
+        projectId: projectId,
+        action: descriptor,
+        plan: plan,
+        currentProjectRevision: snapshot.revision,
+        scope: AuthoringIdempotencyScope(
+          actorId: _actor.actorId,
+          projectId: projectId,
+          actionId: descriptor.id,
+          actionVersion: descriptor.version,
+          key: key,
+        ),
+        operationId: safeOperationId,
+        confirmationToken: confirmationToken == null
+            ? null
+            : AuthoringConfirmationToken.fromWireValue(confirmationToken),
+      );
+      projected = receipt.status == AuthoringReceiptStatus.applied
+          ? await _snapshotLoader.adoptAppliedChanges(
+              projectHandle,
+              baseRevision: plan.baseRevision,
+              changes: plan.changeSet.changes,
+            )
+          : null;
+    } finally {
+      span?.finish();
+    }
     return _mutationResult(receipt, snapshot: projected);
   }
 
@@ -631,7 +652,7 @@ final class _LocalMapAuthoringSession {
     required String entryId,
     required String idempotencyKey,
   }) async {
-    final snapshot = await _snapshotLoader.load(projectHandle);
+    final snapshot = await _loadSnapshot();
     final prepared = await _undoService.planUndo(
       actor: _actor,
       projectId: projectId,
@@ -658,8 +679,7 @@ final class _LocalMapAuthoringSession {
     AuthoringReceipt receipt, {
     ProjectSnapshot? snapshot,
   }) async {
-    final resolvedSnapshot =
-        snapshot ?? await _snapshotLoader.load(projectHandle);
+    final resolvedSnapshot = snapshot ?? await _loadSnapshot();
     return AuthoringMutationResult(
       receipt: receipt,
       snapshotRevision: resolvedSnapshot.revision,
@@ -672,6 +692,17 @@ final class _LocalMapAuthoringSession {
         'workspace.mutation_handle_mismatch',
         'The request workspace does not own this mutation session.',
       );
+    }
+  }
+
+  Future<ProjectSnapshot> _loadSnapshot() async {
+    final span = _performanceObserver?.startSpan(
+      AuthoringPerformanceSpanName.snapshot,
+    );
+    try {
+      return await _snapshotLoader.load(projectHandle);
+    } finally {
+      span?.finish();
     }
   }
 }

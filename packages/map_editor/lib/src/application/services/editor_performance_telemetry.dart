@@ -10,6 +10,9 @@ final class EditorPerformanceSpanName {
   static const statePublish = 'state.publish';
   static const canvasBuild = 'canvas.build';
   static const canvasPaint = 'canvas.paint';
+  static const snapshot = 'snapshot';
+  static const plan = 'plan';
+  static const apply = 'apply';
   static const saveQueue = 'save.queue';
   static const saveEncode = 'save.encode';
 
@@ -19,6 +22,9 @@ final class EditorPerformanceSpanName {
     statePublish,
     canvasBuild,
     canvasPaint,
+    snapshot,
+    plan,
+    apply,
     saveQueue,
     saveEncode,
   ];

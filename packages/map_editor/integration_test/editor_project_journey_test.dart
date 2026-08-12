@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:ui' show Offset, Size;
 
 import 'package:crypto/crypto.dart';
-import 'package:flutter/gestures.dart' show kPrimaryButton;
+import 'package:flutter/gestures.dart' show PointerDeviceKind, kPrimaryButton;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +17,8 @@ import 'package:map_editor/src/infrastructure/repositories/file_repositories.dar
 import 'package:map_editor/src/infrastructure/riverpod_retry_policy.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:path/path.dart' as p;
+
+import 'support/vm_memory_probe.dart';
 
 const _requestedOutputPath = String.fromEnvironment('POKEMAP_PERF_OUTPUT');
 
@@ -37,9 +39,12 @@ void main() {
     addTearDown(container.dispose);
     final notifier = container.read(editorNotifierProvider.notifier);
     final performanceRecorder = EditorPerformanceRecorder();
-    final performanceRecording =
-        EditorPerformanceTelemetry.startRecording(performanceRecorder);
+    final performanceRecording = EditorPerformanceTelemetry.startRecording(
+      performanceRecorder,
+    );
     addTearDown(performanceRecording.close);
+    final memoryProbe = await VmMemoryProbe.connect();
+    addTearDown(memoryProbe.close);
     final timings = <FrameTiming>[];
     void captureTimings(List<FrameTiming> batch) => timings.addAll(batch);
     var timingsCallbackRegistered = false;
@@ -61,101 +66,204 @@ void main() {
     // substitute because those pipeline phases can overlap.
     SchedulerBinding.instance.addTimingsCallback(captureTimings);
     timingsCallbackRegistered = true;
-    addTearDown(
-      () {
-        if (!timingsCallbackRegistered) return;
-        SchedulerBinding.instance.removeTimingsCallback(captureTimings);
-        timingsCallbackRegistered = false;
-      },
-    );
+    addTearDown(() {
+      if (!timingsCallbackRegistered) return;
+      SchedulerBinding.instance.removeTimingsCallback(captureTimings);
+      timingsCallbackRegistered = false;
+    });
 
     final phases = <Map<String, Object?>>[];
-    phases.add(await _measure('project-open', performanceRecorder, () async {
-      await notifier.loadProject(
-        fixture.manifestPath,
-        rememberAsRecent: false,
-      );
-      await tester.pump(const Duration(milliseconds: 16));
-    }));
-    expect(notifier.state.project?.name, 'RM-00 editor profile');
-
-    phases.add(await _measure('map-open', performanceRecorder, () async {
-      await notifier.loadMap('maps/performance.json');
-      await tester.pump(const Duration(milliseconds: 16));
-    }));
-    expect(notifier.state.activeMap?.id, 'performance');
-
-    notifier.setActiveLayer('collision');
-    notifier.selectTool(EditorToolType.collisionPaint);
-    await tester.pump(const Duration(milliseconds: 16));
-    phases.add(await _measure('pointer-collision-drag', performanceRecorder,
-        () async {
-      final canvas = find.byType(MapCanvas);
-      expect(canvas, findsOneWidget);
-      final gesture = await tester.startGesture(
-        tester.getTopLeft(canvas) + const Offset(16, 16),
-        buttons: kPrimaryButton,
-      );
-      await gesture.moveBy(const Offset(160, 0));
-      await gesture.up();
-      await tester.pump(const Duration(milliseconds: 16));
-    }));
-    final pointerPhase = phases.last;
-    final pointerInstrumentation =
-        pointerPhase['instrumentation']! as Map<String, Object?>;
-    final pointerSpans =
-        pointerInstrumentation['spans']! as Map<String, Object?>;
-    expect(
-      (pointerSpans[EditorPerformanceSpanName.pointerToDispatch]!
-          as Map<String, Object?>)['count'],
-      1,
-    );
-    _expectNoPersistenceWork(pointerPhase);
-
-    phases.add(await _measure(
-        'collision-paint-100', performanceRecorder, () async {
-      notifier.beginMapStroke();
-      for (var index = 0; index < 100; index += 1) {
-        notifier.paintCollisionAt(
-          GridPos(x: index % 64, y: (index * 7) % 64),
-        );
-        if (index % 10 == 9) {
+    final journeyMemory = await memoryProbe.measure(() async {
+      phases.add(
+        await _measure('project-open', performanceRecorder, () async {
+          await notifier.loadProject(
+            fixture.manifestPath,
+            rememberAsRecent: false,
+          );
           await tester.pump(const Duration(milliseconds: 16));
-        }
+        }),
+      );
+      expect(notifier.state.project?.name, 'RM-00 editor profile');
+
+      phases.add(
+        await _measure('map-open', performanceRecorder, () async {
+          await notifier.loadMap('maps/performance.json');
+          await tester.pump(const Duration(milliseconds: 16));
+        }),
+      );
+      expect(notifier.state.activeMap?.id, 'performance');
+
+      notifier.setActiveLayer('objects');
+      notifier.selectTool(EditorToolType.tilePaint);
+      notifier.selectTilesetEditorContext('profile-tiles');
+      notifier.selectPaletteTile(1);
+      await tester.pump(const Duration(milliseconds: 16));
+      phases.add(
+        await _measureSamples(
+          'tile-placement-90',
+          performanceRecorder,
+          samples: 90,
+          action: (index) async {
+            notifier.beginMapStroke();
+            await notifier.paintSelectedBrushAt(
+              GridPos(x: index % 64, y: (index * 11) % 64),
+              tilesetColumnsById: const <String, int>{'profile-tiles': 1},
+            );
+            notifier.endMapStroke();
+          },
+        ),
+      );
+      final placementPhase = phases.last;
+      expect(placementPhase['p95Us'], lessThan(16000));
+      _expectNoPersistenceWork(placementPhase);
+
+      notifier.selectProjectElement('profile-marker');
+      phases.add(
+        await _measure(
+          'canonical-element-placement',
+          performanceRecorder,
+          () async {
+            await notifier.placeSelectedProjectElementAt(
+              const GridPos(x: 10, y: 10),
+            );
+          },
+        ),
+      );
+      expect(
+        notifier.state.activeMap?.placedElements.any(
+          (element) =>
+              element.pos == const GridPos(x: 10, y: 10) &&
+              element.properties[pokemapPlacementOriginProperty] ==
+                  pokemapPlacementOriginAuthored,
+        ),
+        isTrue,
+      );
+
+      notifier.setActiveLayer('collision');
+      notifier.selectTool(EditorToolType.collisionPaint);
+      await tester.pump(const Duration(milliseconds: 16));
+      phases.add(
+        await _measure('pointer-collision-drag', performanceRecorder, () async {
+          final canvas = find.byType(MapCanvas);
+          expect(canvas, findsOneWidget);
+          final canvasRect = tester.getRect(canvas);
+          final gesture = await tester.startGesture(
+            canvasRect.center - const Offset(160, 0),
+            kind: PointerDeviceKind.mouse,
+            buttons: kPrimaryButton,
+          );
+          for (var index = 0; index < 90; index += 1) {
+            await gesture.moveBy(Offset(index.isEven ? 160 : -160, 0));
+            await tester.pump(const Duration(milliseconds: 1));
+          }
+          await gesture.up();
+          await tester.pump(const Duration(milliseconds: 16));
+        }),
+      );
+      final pointerPhase = phases.last;
+      final pointerInstrumentation =
+          pointerPhase['instrumentation']! as Map<String, Object?>;
+      final pointerSpans =
+          pointerInstrumentation['spans']! as Map<String, Object?>;
+      expect(
+        (pointerSpans[EditorPerformanceSpanName.pointerToDispatch]!
+            as Map<String, Object?>)['count'],
+        90,
+      );
+      expect(
+        (pointerSpans[EditorPerformanceSpanName.pointerToDispatch]!
+            as Map<String, Object?>)['p95Us'],
+        lessThan(8000),
+      );
+      _expectNoPersistenceWork(pointerPhase);
+
+      for (final strokeCount in const <int>[1, 10, 100, 1000]) {
+        phases.add(
+          await _measure(
+            'collision-paint-$strokeCount',
+            performanceRecorder,
+            () async {
+              notifier.beginMapStroke();
+              for (var index = 0; index < strokeCount; index += 1) {
+                notifier.paintCollisionAt(
+                  GridPos(x: index % 64, y: (index * 7) % 64),
+                );
+                if (index % 100 == 99) {
+                  await tester.pump(const Duration(milliseconds: 16));
+                }
+              }
+              notifier.endMapStroke();
+              await tester.pump(const Duration(milliseconds: 16));
+            },
+          ),
+        );
+        final collisionPhase = phases.last;
+        final collisionInstrumentation =
+            collisionPhase['instrumentation']! as Map<String, Object?>;
+        final collisionSpans =
+            collisionInstrumentation['spans']! as Map<String, Object?>;
+        expect(
+          (collisionSpans[EditorPerformanceSpanName.mutationLocal]!
+              as Map<String, Object?>)['count'],
+          strokeCount,
+        );
+        _expectNoPersistenceWork(collisionPhase);
       }
-      notifier.endMapStroke();
-      await tester.pump(const Duration(milliseconds: 16));
-    }));
-    final collisionPhase = phases.last;
-    final collisionInstrumentation =
-        collisionPhase['instrumentation']! as Map<String, Object?>;
-    final collisionSpans =
-        collisionInstrumentation['spans']! as Map<String, Object?>;
-    expect(
-      (collisionSpans[EditorPerformanceSpanName.mutationLocal]!
-          as Map<String, Object?>)['count'],
-      100,
-    );
-    _expectNoPersistenceWork(collisionPhase);
-    expect(notifier.state.isDirty, isTrue);
+      expect(notifier.state.isDirty, isTrue);
 
-    phases.add(await _measure('undo', performanceRecorder, () async {
-      notifier.undoMap();
-      await tester.pump(const Duration(milliseconds: 16));
-    }));
+      phases.add(
+        await _measure('undo', performanceRecorder, () async {
+          notifier.undoMap();
+          await tester.pump(const Duration(milliseconds: 16));
+        }),
+      );
 
-    phases.add(await _measure('post-undo-paint', performanceRecorder, () async {
-      notifier.beginMapStroke();
-      notifier.paintCollisionAt(const GridPos(x: 63, y: 63));
-      notifier.endMapStroke();
-      await tester.pump(const Duration(milliseconds: 16));
-    }));
+      phases.add(
+        await _measure('post-undo-paint', performanceRecorder, () async {
+          notifier.beginMapStroke();
+          notifier.paintCollisionAt(const GridPos(x: 63, y: 63));
+          notifier.endMapStroke();
+          await tester.pump(const Duration(milliseconds: 16));
+        }),
+      );
 
-    phases.add(await _measure('save', performanceRecorder, () async {
-      final outcome = await notifier.saveActiveMap();
-      expect(outcome.name, 'saved');
-      await tester.pump(const Duration(milliseconds: 16));
-    }));
+      phases.add(
+        await _measure('save', performanceRecorder, () async {
+          final outcome = await notifier.saveActiveMap();
+          expect(outcome.name, 'saved');
+          await tester.pump(const Duration(milliseconds: 16));
+        }),
+      );
+      for (final maskExtent in const <int>[64, 256, 512, 1024]) {
+        phases.add(
+          await _measureSamples(
+            'mask-roundtrip-${maskExtent}x$maskExtent',
+            performanceRecorder,
+            samples: 10,
+            action: (_) async {
+              final solidPixels = List<bool>.generate(
+                maskExtent * maskExtent,
+                (index) => index % 7 == 0,
+                growable: false,
+              );
+              final encoded =
+                  EditorPerformanceTelemetry.encodePackedCollisionMask(
+                    widthPx: maskExtent,
+                    heightPx: maskExtent,
+                    solidPixels: solidPixels,
+                  );
+              final decoded =
+                  EditorPerformanceTelemetry.decodePackedCollisionMask(
+                    widthPx: maskExtent,
+                    heightPx: maskExtent,
+                    dataBase64: encoded,
+                  );
+              expect(decoded.length, solidPixels.length);
+            },
+          ),
+        );
+      }
+    });
     await tester.pump(const Duration(milliseconds: 100));
     await Future<void>.delayed(const Duration(milliseconds: 100));
 
@@ -167,22 +275,25 @@ void main() {
 
     binding.reportData = <String, dynamic>{
       'schemaVersion': 2,
-      'generatorVersion': 1,
+      'generatorVersion': 2,
       'benchmark': 'editor_project_journey',
       'target': 'integration_test/editor_project_journey_test.dart',
       'requestedOutputPath': _requestedOutputPath,
       'executionMode': const bool.fromEnvironment('dart.vm.profile')
           ? 'flutter-profile'
           : 'flutter-debug',
-      'fixture': 'synthetic-collision-64x64',
+      'fixture': 'synthetic-interactive-64x64',
       'fixtureFingerprint': fixture.fingerprint,
       'warmups': 3,
       'sampleCount': timings.length,
       'iterations': <String, Object?>{
         'projectOpen': 1,
         'mapOpen': 1,
-        'collisionPaint': 100,
-        'pointerCollisionDrag': 1,
+        'tilePlacement': 90,
+        'canonicalElementPlacement': 1,
+        'collisionPaint': <int>[1, 10, 100, 1000],
+        'pointerCollisionDrag': 90,
+        'maskExtents': <int>[64, 256, 512, 1024],
         'undo': 1,
         'postUndoPaint': 1,
         'save': 1,
@@ -191,16 +302,13 @@ void main() {
         'flutterFrames': true,
         'pureCorePaint': false,
         'buildAndRasterCombined': false,
-        // Profile mode does not expose debug rebuild callbacks. Null plus an
-        // availability reason is intentional; missing evidence is never zero.
         'rebuildCount': null,
         'rebuildCountAvailability':
             'Flutter profile mode does not expose debug rebuild callbacks',
       },
       'memory': <String, Object?>{
         'rssBytes': ProcessInfo.currentRss,
-        'heapBytes': null,
-        'heapAvailability': 'not exposed by dart:io',
+        ...journeyMemory.toJson(),
       },
       'results': phases,
       'instrumentation': <String, Object?>{
@@ -211,7 +319,9 @@ void main() {
       },
       'frameMetrics': frameMetrics,
       'thresholdPolicy': <String, Object?>{
-        'observationOnly': true,
+        'observationOnly': false,
+        'placementP95BudgetUs': 16000,
+        'pointerMoveP95BudgetUs': 8000,
         'minimumHistoricalObservations': 10,
         'requiredConsecutiveRegressions': 2,
       },
@@ -242,6 +352,33 @@ Future<Map<String, Object?>> _measure(
     'durationUs': stopwatch.elapsedMicroseconds,
     'rssBytesAfterPhase': ProcessInfo.currentRss,
     'instrumentation': instrumentation,
+  };
+}
+
+Future<Map<String, Object?>> _measureSamples(
+  String phase,
+  EditorPerformanceRecorder performanceRecorder, {
+  required int samples,
+  required Future<void> Function(int index) action,
+}) async {
+  final before = performanceRecorder.snapshot();
+  final samplesUs = <int>[];
+  for (var index = 0; index < samples; index += 1) {
+    final stopwatch = Stopwatch()..start();
+    await action(index);
+    stopwatch.stop();
+    samplesUs.add(stopwatch.elapsedMicroseconds);
+  }
+  final sorted = List<int>.of(samplesUs)..sort();
+  return <String, Object?>{
+    'phase': phase,
+    'samplesUs': samplesUs,
+    'p50Us': _percentile(sorted, 0.50),
+    'p95Us': _percentile(sorted, 0.95),
+    'p99Us': _percentile(sorted, 0.99),
+    'maxUs': sorted.last,
+    'rssBytesAfterPhase': ProcessInfo.currentRss,
+    'instrumentation': performanceRecorder.deltaSince(before).toJson(),
   };
 }
 
@@ -312,13 +449,47 @@ final class _EditorPerformanceFixture {
           relativePath: 'maps/performance.json',
         ),
       ],
-      tilesets: <ProjectTilesetEntry>[],
+      tilesets: <ProjectTilesetEntry>[
+        ProjectTilesetEntry(
+          id: 'profile-tiles',
+          name: 'Profile tiles',
+          relativePath: 'tilesets/profile.png',
+          source: ProjectRegularAtlasTilesetSource(
+            assetId: 'profile.png',
+            pixelWidth: 32,
+            pixelHeight: 32,
+            tileWidth: 32,
+            tileHeight: 32,
+          ),
+        ),
+      ],
+      elementCategories: <ProjectElementCategory>[
+        ProjectElementCategory(id: 'profile', name: 'Profile'),
+      ],
+      elements: <ProjectElementEntry>[
+        ProjectElementEntry(
+          id: 'profile-marker',
+          name: 'Profile marker',
+          tilesetId: 'profile-tiles',
+          categoryId: 'profile',
+          frames: <TilesetVisualFrame>[
+            TilesetVisualFrame(
+              source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+            ),
+          ],
+        ),
+      ],
     );
     final map = MapData(
       id: 'performance',
       name: 'Performance',
       size: const GridSize(width: 64, height: 64),
       layers: <MapLayer>[
+        TileLayer(
+          id: 'objects',
+          name: 'Objects',
+          cells: List<int>.filled(64 * 64, 0),
+        ),
         CollisionLayer(
           id: 'collision',
           name: 'Collision',
@@ -336,10 +507,14 @@ final class _EditorPerformanceFixture {
       root: root,
       manifestPath: manifestPath,
       fingerprint: sha256
-          .convert(utf8.encode(jsonEncode(<String, Object?>{
-            'project': manifest.toJson(),
-            'map': map.toJson(),
-          })))
+          .convert(
+            utf8.encode(
+              jsonEncode(<String, Object?>{
+                'project': manifest.toJson(),
+                'map': map.toJson(),
+              }),
+            ),
+          )
           .toString(),
     );
   }
