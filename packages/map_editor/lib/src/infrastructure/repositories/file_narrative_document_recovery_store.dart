@@ -10,6 +10,83 @@ typedef NarrativeRecoveryDocumentDecoder<T> = T Function(Object? value);
 typedef NarrativeRecoveryDocumentMigrationDetector =
     bool Function(Object? value);
 
+final class NarrativeRecoveryStoreDiagnostics {
+  int _readRequests = 0;
+  int _writeRequests = 0;
+  int _clearRequests = 0;
+  int _durableWrites = 0;
+  int _durableClears = 0;
+  int _verificationReads = 0;
+  int _bytesRead = 0;
+  int _bytesWritten = 0;
+
+  int get readRequests => _readRequests;
+  int get writeRequests => _writeRequests;
+  int get clearRequests => _clearRequests;
+  int get durableWrites => _durableWrites;
+  int get durableClears => _durableClears;
+  int get verificationReads => _verificationReads;
+  int get bytesRead => _bytesRead;
+  int get bytesWritten => _bytesWritten;
+
+  NarrativeRecoveryIoSnapshot snapshot() => NarrativeRecoveryIoSnapshot(
+    readRequests: readRequests,
+    writeRequests: writeRequests,
+    clearRequests: clearRequests,
+    durableWrites: durableWrites,
+    durableClears: durableClears,
+    verificationReads: verificationReads,
+    bytesRead: bytesRead,
+    bytesWritten: bytesWritten,
+  );
+}
+
+final class NarrativeRecoveryIoSnapshot {
+  const NarrativeRecoveryIoSnapshot({
+    required this.readRequests,
+    required this.writeRequests,
+    required this.clearRequests,
+    required this.durableWrites,
+    required this.durableClears,
+    required this.verificationReads,
+    required this.bytesRead,
+    required this.bytesWritten,
+  });
+
+  final int readRequests;
+  final int writeRequests;
+  final int clearRequests;
+  final int durableWrites;
+  final int durableClears;
+  final int verificationReads;
+  final int bytesRead;
+  final int bytesWritten;
+
+  NarrativeRecoveryIoSnapshot deltaFrom(NarrativeRecoveryIoSnapshot before) {
+    return NarrativeRecoveryIoSnapshot(
+      readRequests: readRequests - before.readRequests,
+      writeRequests: writeRequests - before.writeRequests,
+      clearRequests: clearRequests - before.clearRequests,
+      durableWrites: durableWrites - before.durableWrites,
+      durableClears: durableClears - before.durableClears,
+      verificationReads: verificationReads - before.verificationReads,
+      bytesRead: bytesRead - before.bytesRead,
+      bytesWritten: bytesWritten - before.bytesWritten,
+    );
+  }
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'readRequests': readRequests,
+    'writeRequests': writeRequests,
+    'clearRequests': clearRequests,
+    'durableWrites': durableWrites,
+    'durableClears': durableClears,
+    'verificationReads': verificationReads,
+    'bytesRead': bytesRead,
+    'bytesWritten': bytesWritten,
+  };
+}
+
 /// File-backed crash-recovery journal for one narrative document session.
 ///
 /// The journal is written through a flushed sibling file then atomically
@@ -22,15 +99,18 @@ final class FileNarrativeDocumentRecoveryStore<T>
     required NarrativeRecoveryDocumentEncoder<T> encodeDocument,
     required NarrativeRecoveryDocumentDecoder<T> decodeDocument,
     NarrativeRecoveryDocumentMigrationDetector? needsMigration,
+    NarrativeRecoveryStoreDiagnostics? diagnostics,
   }) : _journal = File(_requiredPath(journalPath)),
        _encodeDocument = encodeDocument,
        _decodeDocument = decodeDocument,
-       _needsMigration = needsMigration;
+       _needsMigration = needsMigration,
+       _diagnostics = diagnostics;
 
   final File _journal;
   final NarrativeRecoveryDocumentEncoder<T> _encodeDocument;
   final NarrativeRecoveryDocumentDecoder<T> _decodeDocument;
   final NarrativeRecoveryDocumentMigrationDetector? _needsMigration;
+  final NarrativeRecoveryStoreDiagnostics? _diagnostics;
   _PendingRecoveryMutation<T>? _pendingMutation;
   Future<void>? _drainFuture;
 
@@ -38,12 +118,15 @@ final class FileNarrativeDocumentRecoveryStore<T>
 
   @override
   Future<NarrativeDocumentRecoveryRecord<T>?> read() async {
+    _diagnostics?._readRequests += 1;
     if (!await _journal.exists()) {
       return null;
     }
     final Object? decoded;
     try {
-      decoded = jsonDecode(await _journal.readAsString());
+      final source = await _journal.readAsString();
+      _diagnostics?._bytesRead += utf8.encode(source).length;
+      decoded = jsonDecode(source);
     } on FormatException {
       rethrow;
     } on Object catch (error) {
@@ -59,11 +142,15 @@ final class FileNarrativeDocumentRecoveryStore<T>
 
   @override
   Future<void> write(NarrativeDocumentRecoveryRecord<T> record) {
+    _diagnostics?._writeRequests += 1;
     return _enqueueMutation(record);
   }
 
   @override
-  Future<void> clear() => _enqueueMutation(null);
+  Future<void> clear() {
+    _diagnostics?._clearRequests += 1;
+    return _enqueueMutation(null);
+  }
 
   Future<void> _writeNow(NarrativeDocumentRecoveryRecord<T> record) async {
     final temp = File('${_journal.path}.tmp');
@@ -79,9 +166,14 @@ final class FileNarrativeDocumentRecoveryStore<T>
 
     // Verify the exact flushed envelope before exposing it as recovery data.
     try {
-      final verification = jsonDecode(await temp.readAsString());
+      final verificationSource = await temp.readAsString();
+      _diagnostics?._verificationReads += 1;
+      _diagnostics?._bytesRead += utf8.encode(verificationSource).length;
+      final verification = jsonDecode(verificationSource);
       _decodeRecord(_object(verification, 'journal'));
       await temp.rename(_journal.path);
+      _diagnostics?._durableWrites += 1;
+      _diagnostics?._bytesWritten += bytes.length;
     } on Object {
       if (await temp.exists()) {
         await temp.delete();
@@ -98,6 +190,7 @@ final class FileNarrativeDocumentRecoveryStore<T>
     if (await temp.exists()) {
       await temp.delete();
     }
+    _diagnostics?._durableClears += 1;
   }
 
   Future<void> _enqueueMutation(NarrativeDocumentRecoveryRecord<T>? record) {

@@ -27,10 +27,12 @@ void main() {
     });
 
     test('round-trips the complete recovery envelope atomically', () async {
+      final diagnostics = NarrativeRecoveryStoreDiagnostics();
       final store = FileNarrativeDocumentRecoveryStore<String>(
         journalPath: journalPath,
         encodeDocument: (document) => document,
         decodeDocument: (value) => value! as String,
+        diagnostics: diagnostics,
       );
       const entry = NarrativeUndoEntry<String>(
         operationId: 'cinematic-title-1',
@@ -58,9 +60,17 @@ void main() {
       expect(restored.undoEntries.single.operationId, 'cinematic-title-1');
       expect(restored.redoEntries.single.after, 'après');
       expect(await File('$journalPath.tmp').exists(), isFalse);
+      expect(diagnostics.writeRequests, 1);
+      expect(diagnostics.durableWrites, 1);
+      expect(diagnostics.verificationReads, 1);
+      expect(diagnostics.readRequests, 1);
+      expect(diagnostics.bytesWritten, greaterThan(0));
+      expect(diagnostics.bytesRead, greaterThan(0));
 
       await store.clear();
       expect(await File(journalPath).exists(), isFalse);
+      expect(diagnostics.clearRequests, 1);
+      expect(diagnostics.durableClears, 1);
     });
 
     test('reports malformed evidence without deleting it', () async {
@@ -82,10 +92,12 @@ void main() {
     test(
       'serializes concurrent mutations and keeps the latest record',
       () async {
+        final diagnostics = NarrativeRecoveryStoreDiagnostics();
         final store = FileNarrativeDocumentRecoveryStore<String>(
           journalPath: journalPath,
           encodeDocument: (document) => document,
           decodeDocument: (value) => value! as String,
+          diagnostics: diagnostics,
         );
         final writes = List<Future<void>>.generate(20, (index) {
           return store.write(
@@ -103,6 +115,8 @@ void main() {
         final restored = await store.read();
         expect(restored?.document, startsWith('19-'));
         expect(await File('$journalPath.tmp').exists(), isFalse);
+        expect(diagnostics.writeRequests, 20);
+        expect(diagnostics.durableWrites, lessThan(20));
       },
     );
   });

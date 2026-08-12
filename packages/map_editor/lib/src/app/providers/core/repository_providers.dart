@@ -249,12 +249,20 @@ typedef PersonalizationStudioSessionControllerFactory =
       required ProjectManifest initialDocument,
     });
 
+final personalizationRecoveryStoreDiagnosticsProvider =
+    Provider<NarrativeRecoveryStoreDiagnostics>(
+      (ref) => NarrativeRecoveryStoreDiagnostics(),
+    );
+
 final personalizationStudioSessionControllerFactoryProvider =
     Provider<PersonalizationStudioSessionControllerFactory>((ref) {
       final persistence = ref
           .watch(fileProjectRepositoryProvider)
           .narrativeAuthoringPersistence;
       final authoringMutations = ref.watch(authoringMutationAdapterProvider);
+      final recoveryDiagnostics = ref.watch(
+        personalizationRecoveryStoreDiagnosticsProvider,
+      );
       return ({
         required String projectPath,
         required ProjectManifest initialDocument,
@@ -293,6 +301,7 @@ final personalizationStudioSessionControllerFactoryProvider =
                   encodeDocument: (profile) => profile.toJson(),
                   decodeDocument: _decodeRecoveryPresentationProfile,
                   needsMigration: _isLegacyRecoveryPresentationDocument,
+                  diagnostics: recoveryDiagnostics,
                 ),
           ),
           initialProject: initialDocument,

@@ -226,6 +226,15 @@ jobs:
             --driver=test_driver/performance_driver.dart \
             --target=integration_test/editor_project_journey_test.dart \
             --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json
+      - name: Collect Personalization Studio profile journey
+        continue-on-error: true
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/personalization_performance_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/personalization_studio_journey.json
       - name: Preserve performance observation receipts
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

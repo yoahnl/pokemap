@@ -130,9 +130,22 @@ void main() {
         matching: find.byType(CupertinoSlider),
       );
       tester.widget<CupertinoSlider>(slider).onChangeStart?.call(82);
-      for (final value in <double>[80, 78, 76, 74, 72, 70]) {
+      final values = List<double>.generate(
+        100,
+        (index) => 82 - (12 * (index + 1) / 100),
+      );
+      final livePreview = find.byType(PersonalizationLivePreview);
+      for (final value in values) {
         tester.widget<CupertinoSlider>(slider).onChanged?.call(value);
         await tester.pump();
+        expect(
+          tester
+              .widget<PersonalizationLivePreview>(livePreview)
+              .profile
+              .dialogue
+              ?.maxWidthFactor,
+          closeTo(value.round() / 100, 0.000001),
+        );
       }
 
       expect(recovery.writeCount, 0);
@@ -160,6 +173,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(recovery.writeCount, 1);
+      expect(recovery.record?.undoEntries, hasLength(1));
       expect(
         container
             .read(editorNotifierProvider.notifier)
