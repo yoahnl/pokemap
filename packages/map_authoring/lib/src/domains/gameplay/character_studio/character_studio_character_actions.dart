@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
 import '../../../contracts/action_descriptor.dart';
 import '../../../transactions/action_planner.dart';
 import '../../../transactions/authoring_plan.dart';
+import '../../narrative/dialogue_source_store.dart';
 import 'character_studio_action_support.dart';
 
 final class CharacterStudioCharacterActions {
@@ -339,13 +342,19 @@ final class CharacterStudioCharacterActions {
       CharacterStudioReferenceTargetKind.character,
       characterId,
     );
+    final dialogueReferences = _dialoguePortraitReferences(
+      context,
+      characterId: characterId,
+    );
+    final dependencyCount = references.length + dialogueReferences.length;
     final basePreview = <String, Object?>{
       'characterId': characterId,
       'dependencies': <Object?>[
         for (final reference in references)
           characterStudioReferenceJson(reference),
+        ...dialogueReferences,
       ],
-      'requiresResolution': references.isNotEmpty,
+      'requiresResolution': dependencyCount > 0,
       'choices': const <Object?>['replace', 'clear', 'cancel'],
       'replacementCandidates': <Object?>[
         for (final character in manifest.characters)
@@ -371,7 +380,7 @@ final class CharacterStudioCharacterActions {
       );
     }
     final resolution = parameters.optionalString('resolution');
-    if (references.isNotEmpty && resolution == null) {
+    if (dependencyCount > 0 && resolution == null) {
       throw CharacterStudioActionException(
         'character_studio.character.resolution_required',
         'Referenced characters require replace, clear, or cancel.',
@@ -423,6 +432,23 @@ final class CharacterStudioCharacterActions {
       deletedId: characterId,
       replacementId: replacementId,
     );
+    final projectedDialogueSources = <String, List<int>>{};
+    if (resolution == 'clear' || resolution == 'replace') {
+      for (final dialogue in manifest.dialogues) {
+        final identity = dialogueSourceResourceIdentity(dialogue.id);
+        final beforeBytes = context.snapshot.findResourceBytes(identity);
+        if (beforeBytes == null) continue;
+        final beforeSource = _decodeDialogueSource(dialogue.id, beforeBytes);
+        final afterSource = _rewriteDialoguePortraitCharacter(
+          beforeSource,
+          deletedId: characterId,
+          replacementId: replacementId,
+        );
+        if (afterSource != beforeSource) {
+          projectedDialogueSources[dialogue.id] = utf8.encode(afterSource);
+        }
+      }
+    }
     _validateManifest(resolvedManifest);
     for (final map in projectedMaps.values) {
       MapValidator.validate(map, projectDialogueContext: resolvedManifest);
@@ -434,15 +460,79 @@ final class CharacterStudioCharacterActions {
       path: '/characters/$characterId',
       before: before.toJson(),
       projectedMaps: projectedMaps,
+      projectedDialogueSources: projectedDialogueSources,
       preview: <String, Object?>{
         ...basePreview,
         'resolution': resolution,
         'replacementId': replacementId,
-        'resolvedDependencyCount': references.length,
+        'resolvedDependencyCount': dependencyCount,
       },
     );
   }
 }
+
+List<Map<String, Object?>> _dialoguePortraitReferences(
+  AuthoringPlanningContext context, {
+  required String characterId,
+}) {
+  final references = <Map<String, Object?>>[];
+  for (final dialogue in context.snapshot.manifest.dialogues) {
+    final identity = dialogueSourceResourceIdentity(dialogue.id);
+    final bytes = context.snapshot.findResourceBytes(identity);
+    if (bytes == null) continue;
+    final source = _decodeDialogueSource(dialogue.id, bytes);
+    for (final match in _portraitDirectivePattern.allMatches(source)) {
+      if (match.group(2) != characterId) continue;
+      final lineNumber =
+          '\n'.allMatches(source.substring(0, match.start)).length + 1;
+      references.add(<String, Object?>{
+        'sourceKind': 'dialogue',
+        'sourceId': dialogue.id,
+        'path': '\$.dialogues[${dialogue.id}].lines[$lineNumber]',
+        'targetKind': 'character',
+        'targetId': characterId,
+      });
+    }
+  }
+  return references;
+}
+
+String _decodeDialogueSource(String dialogueId, List<int> bytes) {
+  try {
+    return utf8.decode(bytes, allowMalformed: false);
+  } on Object {
+    throw CharacterStudioActionException(
+      'character_studio.dialogue_source_not_utf8',
+      'A dialogue using this character is not valid UTF-8.',
+      details: <String, Object?>{'dialogueId': dialogueId},
+    );
+  }
+}
+
+String _rewriteDialoguePortraitCharacter(
+  String source, {
+  required String deletedId,
+  required String? replacementId,
+}) {
+  final lines = source.split('\n');
+  final rewritten = <String>[];
+  for (final line in lines) {
+    final match = _portraitDirectivePattern.firstMatch(line);
+    if (match == null || match.group(2) != deletedId) {
+      rewritten.add(line);
+      continue;
+    }
+    if (replacementId != null) {
+      rewritten.add('${match.group(1)}$replacementId${match.group(3)}');
+    }
+  }
+  return rewritten.join('\n');
+}
+
+final RegExp _portraitDirectivePattern = RegExp(
+  r'^([ \t]*<<portrait\s+)([^\s>]+)(\s+[^\s>]+>>[ \t]*\r?)$',
+  multiLine: true,
+);
 
 String _availableCharacterId(ProjectManifest manifest, String baseId) {
   final existing = manifest.characters.map((character) => character.id).toSet();

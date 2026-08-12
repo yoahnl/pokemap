@@ -193,6 +193,30 @@ void main() {
       expect(draft.changeSet.changes, hasLength(1));
     });
 
+    test('delete plan reports dialogue portrait dependencies', () {
+      final draft = const CharacterStudioCharacterActions().build(
+        _context(
+          snapshot: _snapshot(
+            dialogueSource: '''title: Start
+---
+<<portrait elia neutral>>
+Élia: Bonjour.
+===
+''',
+          ),
+          actionId: 'characterStudio.character.deletePlan',
+          parameters: const <String, Object?>{'characterId': 'elia'},
+          dryRun: true,
+        ),
+      );
+      final dependencies = draft.preview['dependencies']! as List<Object?>;
+
+      expect(draft.preview['requiresResolution'], isTrue);
+      expect(dependencies, hasLength(1));
+      expect((dependencies.single! as Map)['sourceKind'], 'dialogue');
+      expect((dependencies.single! as Map)['sourceId'], 'intro');
+    });
+
     test('referenced deletion requires an explicit resolution', () {
       expect(
         () => const CharacterStudioCharacterActions().build(
@@ -271,6 +295,59 @@ void main() {
       );
       expect(map.entities.single.npc!.characterId, 'nox');
     });
+
+    test('clear deletion removes dialogue portrait directives', () {
+      final draft = const CharacterStudioCharacterActions().build(
+        _context(
+          snapshot: _snapshot(
+            dialogueSource: '''title: Start
+---
+<<portrait elia neutral>>
+Élia: Bonjour.
+===
+''',
+          ),
+          actionId: 'characterStudio.character.delete',
+          parameters: const <String, Object?>{
+            'characterId': 'elia',
+            'resolution': 'clear',
+          },
+        ),
+      );
+
+      expect(
+        _dialogueAfter(draft),
+        '''title: Start
+---
+Élia: Bonjour.
+===
+''',
+      );
+    });
+
+    test('replace deletion rewrites dialogue portrait character IDs', () {
+      final draft = const CharacterStudioCharacterActions().build(
+        _context(
+          snapshot: _snapshot(
+            dialogueSource: '''title: Start
+---
+<<portrait elia neutral>>
+Élia: Bonjour.
+===
+''',
+          ),
+          actionId: 'characterStudio.character.delete',
+          parameters: const <String, Object?>{
+            'characterId': 'elia',
+            'resolution': 'replace',
+            'replacementId': 'nox',
+          },
+        ),
+      );
+
+      expect(_dialogueAfter(draft), contains('<<portrait nox neutral>>'));
+      expect(_dialogueAfter(draft), contains('Élia: Bonjour.'));
+    });
   });
 }
 
@@ -300,6 +377,7 @@ AuthoringPlanningContext _context({
 ProjectSnapshot _snapshot({
   bool withReferences = false,
   String? defaultPlayerCharacterId,
+  String? dialogueSource,
 }) {
   final manifest = ProjectManifest(
     name: 'Character action fixture',
@@ -390,6 +468,14 @@ ProjectSnapshot _snapshot({
             ),
           ]
         : const <CinematicAsset>[],
+    dialogues: <ProjectDialogueEntry>[
+      if (dialogueSource != null)
+        const ProjectDialogueEntry(
+          id: 'intro',
+          name: 'Introduction',
+          relativePath: 'dialogues/intro.yarn',
+        ),
+    ],
   );
   final map = MapData(
     id: 'village',
@@ -408,6 +494,8 @@ ProjectSnapshot _snapshot({
   );
   final projectBytes = utf8.encode(jsonEncode(manifest.toJson()));
   final mapBytes = utf8.encode(jsonEncode(map.toJson()));
+  final dialogueBytes =
+      dialogueSource == null ? null : utf8.encode(dialogueSource);
   return ProjectSnapshot(
     projectHandle: const ProjectHandle('character_action_project'),
     revision:
@@ -423,14 +511,22 @@ ProjectSnapshot _snapshot({
         mapBytes,
         logicalName: 'maps/village.json',
       ),
+      if (dialogueBytes != null)
+        'dialogueSource:intro': computeAuthoringBytesFingerprint(
+          dialogueBytes,
+          logicalName: 'dialogues/intro.yarn',
+        ),
     },
     resourceBytes: <String, List<int>>{
       'project': projectBytes,
       'map:village': mapBytes,
+      if (dialogueBytes != null) 'dialogueSource:intro': dialogueBytes,
     },
-    resourceStorageKeys: const <String, String>{
+    resourceStorageKeys: <String, String>{
       'project': 'project.json',
       'map:village': 'maps/village.json',
+      if (dialogueSource != null)
+        'dialogueSource:intro': 'dialogues/intro.yarn',
     },
   );
 }
@@ -455,4 +551,11 @@ MapData _projectedMap(AuthoringMutationDraft draft, String mapId) {
       jsonDecode(utf8.decode(change.afterBytes!)) as Map,
     ),
   );
+}
+
+String _dialogueAfter(AuthoringMutationDraft draft) {
+  final change = draft.changeSet.changes.singleWhere(
+    (change) => change.resource.kind == 'dialogue',
+  );
+  return utf8.decode(change.afterBytes!);
 }
