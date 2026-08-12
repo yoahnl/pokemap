@@ -12,7 +12,9 @@
 
 ## 1. Statut et règles d’exécution
 
-- [ ] `NOT_STARTED` — aucun lot d’implémentation n’a encore été exécuté.
+- [x] `DONE` — les lots CHS-001 à CHS-061 sont implémentés et certifiés au 12 août 2026.
+- Clôture canonique : `documentation/reports/editor/character_studio_final_closure_2026-08-12.md`.
+- L’audit de la section 2 reste la photographie historique prise avant l’implémentation.
 - Cette roadmap est le document canonique du chantier Character Studio.
 - Un lot doit rester petit, testable, réversible et livrable indépendamment.
 - Une phase permet de traiter plusieurs lots dans la même session, uniquement selon les vagues indiquées ; deux lots qui touchent le même modèle, codec ou fichier généré restent séquentiels.
@@ -188,6 +190,7 @@ Les noms définitifs doivent respecter la grammaire du registre existant, mais l
 | 3 — Portraits et dialogues | CHS-030 à CHS-036 | Portraits globaux éditables et réellement affichés en dialogue | Phase 2 |
 | 4 — Matrice et runtime d’animation | CHS-040 à CHS-046 | Animations système/custom éditables et jouées réellement | Phase 2 |
 | 5 — Certification et livraison | CHS-050 à CHS-054 | Export, accessibilité, MCP et golden slice certifiés | Phases 3 et 4 |
+| 6 — Durcissement final | CHS-055 à CHS-061 | Preuves desktop réelles, parité des transports et démarrage éditeur certifiés | Phase 5 |
 
 Les phases 3 et 4 peuvent être exécutées par deux flux indépendants une fois les phases 0–2 stabilisées. Leur intégration partage cependant le même read model personnage et doit être fusionnée/testée avant la phase 5.
 
@@ -201,7 +204,7 @@ Les phases 3 et 4 peuvent être exécutées par deux flux indépendants une fois
 
 ### CHS-001 — Caractériser les contrats historiques
 
-- [ ] **Résultat :** verrouiller JSON, fallbacks et validations existants avant évolution.
+- [x] **Résultat :** verrouiller JSON, fallbacks et validations existants avant évolution.
 - **Scope :** fixtures v6, `idle/walk/run`, `tilesetId` implicite, default player, round-trip manifeste, cadence runtime.
 - **Fichiers principaux :** `packages/map_core/test/project_manifest_character_compatibility_test.dart`, `packages/map_runtime/test/player_component_test.dart`, fixtures existantes du manifeste.
 - **Tests à ajouter :** ancien projet sans champ Studio ; animation legacy sans source dédiée ; ordre/fallback des états ; sauvegarde d’un personnage partiel.
@@ -210,7 +213,7 @@ Les phases 3 et 4 peuvent être exécutées par deux flux indépendants une fois
 
 ### CHS-002 — Ajouter le schéma Character Studio additif
 
-- [ ] **Résultat :** modèles globaux, portraits et clips custom sérialisables dans v6.
+- [x] **Résultat :** modèles globaux, portraits et clips custom sérialisables dans v6.
 - **Scope :** classes et enums listés en 4.1, defaults vides, égalité/copyWith, exports publics, génération ciblée si le package l’utilise.
 - **Fichiers principaux :** `packages/map_core/lib/src/models/project_manifest.dart`, `packages/map_core/lib/src/models/enums.dart`, `packages/map_core/lib/map_core.dart`, fichiers générés directement associés.
 - **Tests :** `packages/map_core/test/project_character_studio_model_test.dart` avec JSON minimal, JSON complet, `single`, `directional`, source legacy et source dédiée.
@@ -220,7 +223,7 @@ Les phases 3 et 4 peuvent être exécutées par deux flux indépendants une fois
 
 ### CHS-003 — Migration, normalisation et round-trip v6
 
-- [ ] **Résultat :** ouvrir, éditer et resauvegarder un ancien projet sans perte ni migration forcée.
+- [x] **Résultat :** ouvrir, éditer et resauvegarder un ancien projet sans perte ni migration forcée.
 - **Scope :** defaults de décodage, normalisation d’ID, conservation des listes legacy, règle de warning pour ouverture par une version trop ancienne.
 - **Fichiers principaux :** codecs/manifeste dans `packages/map_core/lib/src/models/`, chargeur de projet concerné, `packages/map_core/test/fixtures/` si une fixture consolidée est nécessaire.
 - **Tests :** `packages/map_core/test/project_character_studio_migration_test.dart` couvrant ancien → nouveau → JSON, nouveau → JSON → nouveau, clés inconnues et stabilité de l’ID lors d’un rename.
@@ -229,7 +232,7 @@ Les phases 3 et 4 peuvent être exécutées par deux flux indépendants une fois
 
 ### CHS-004 — Validation, readiness et index de références
 
-- [ ] **Résultat :** distinguer clairement données invalides, personnage incomplet et capacité optionnelle absente.
+- [x] **Résultat :** distinguer clairement données invalides, personnage incomplet et capacité optionnelle absente.
 - **Scope :** unicité, références globales, règles mode/direction, géométrie, couverture Base, diagnostics portrait/custom, usages de suppression.
 - **Fichiers principaux :** validateur de projet dans `packages/map_core/lib/src/validation/`, modèles de diagnostics/readiness, index de références narratif/personnage.
 - **Tests :** `packages/map_core/test/project_character_studio_validation_test.dart`, `packages/map_core/test/character_studio_reference_index_test.dart`.
@@ -255,7 +258,7 @@ dart analyze
 
 ### CHS-010 — Projections et ressources de lecture Character Studio
 
-- [ ] **Résultat :** snapshots immuables du catalogue, des personnages, de la couverture et des dépendances.
+- [x] **Résultat :** snapshots immuables du catalogue, des personnages, de la couverture et des dépendances.
 - **Scope :** resources list/get, filtres, tri, selected status, readiness détaillée, révision de workspace.
 - **Fichiers principaux :** nouveau domaine `packages/map_authoring/lib/src/domains/gameplay/character_studio/`, `packages/map_authoring/lib/src/registry/resource_kind_registry.dart`, barrels du package.
 - **Tests :** `packages/map_authoring/test/domains/gameplay/character_studio_resource_test.dart`.
@@ -264,7 +267,7 @@ dart analyze
 
 ### CHS-011 — Mutations du catalogue global de portraits
 
-- [ ] **Résultat :** créer, renommer, réordonner et supprimer sûrement les états de portrait.
+- [x] **Résultat :** créer, renommer, réordonner et supprimer sûrement les états de portrait.
 - **Scope :** slug initial, ID stable, libellé validé, collisions, `expectedRevision`, `dryRun`, `deletePlan`, replace/clear transactionnel.
 - **Fichiers principaux :** domaine Character Studio authoring, `action_registry.dart`, contrats de mutation.
 - **Tests :** `character_studio_portrait_state_actions_test.dart` avec succès, conflit de révision, doublon, rename, dépendances dialogue/personnage et rollback.
@@ -273,7 +276,7 @@ dart analyze
 
 ### CHS-012 — Mutations du catalogue global d’animations
 
-- [ ] **Résultat :** gérer les définitions custom sans altérer Base/Marche/Course.
+- [x] **Résultat :** gérer les définitions custom sans altérer Base/Marche/Course.
 - **Scope :** create/update/reorder, modes `single/directional`, immutabilité conditionnelle du mode, delete plan incluant clips/cinématiques/scènes.
 - **Fichiers principaux :** domaine Character Studio authoring et registry.
 - **Tests :** `character_studio_animation_definition_actions_test.dart`.
@@ -282,7 +285,7 @@ dart analyze
 
 ### CHS-013 — Mutations d’identité et de portraits par personnage
 
-- [ ] **Résultat :** CRUD personnage, default player et affectations de portraits via actions spécialisées.
+- [x] **Résultat :** CRUD personnage, default player et affectations de portraits via actions spécialisées.
 - **Scope :** create/update, tags/rôle, set default, assign/replace/clear portrait, delete plan cross-références.
 - **Fichiers principaux :** domaine authoring Character Studio ; adaptation ou remplacement ciblé de `campaign.character.upsert/delete` sans casser leurs callers.
 - **Tests :** `character_studio_character_actions_test.dart`, incluant compatibilité des actions campaign historiques.
@@ -291,7 +294,7 @@ dart analyze
 
 ### CHS-014 — Mutations de clips, directions et frames
 
-- [ ] **Résultat :** éditer un slot de matrice et sa timeline sans sauvegarde globale opaque.
+- [x] **Résultat :** éditer un slot de matrice et sa timeline sans sauvegarde globale opaque.
 - **Scope :** upsert/delete clip, source, loop, insert/update/reorder/delete frame, durées, rectangles, built-in/custom, `single/directional`.
 - **Fichiers principaux :** domaine authoring Character Studio, registry et sérialisation de payload.
 - **Tests :** `character_studio_animation_clip_actions_test.dart` avec toutes les directions, limites d’index, géométrie et atomicité.
@@ -300,7 +303,7 @@ dart analyze
 
 ### CHS-015 — Import, remplacement et portabilité des assets
 
-- [ ] **Résultat :** portraits et spritesheets custom entrent dans le catalogue d’assets avec identité portable.
+- [x] **Résultat :** portraits et spritesheets custom entrent dans le catalogue d’assets avec identité portable.
 - **Scope :** PNG supporté, dimensions, copie contrôlée, déduplication, remplacement, référence logique, fermeture des assets orphelins, source rectangle.
 - **Fichiers principaux :** `packages/map_authoring/lib/src/domains/assets/asset_store.dart`, actions assets, nouveau bridge Character Studio.
 - **Tests :** `packages/map_authoring/test/domains/assets/character_studio_asset_actions_test.dart` avec chemins hors root, doublon, fichier manquant, remplacement et cleanup sûr.
@@ -309,7 +312,7 @@ dart analyze
 
 ### CHS-016 — Adapter l’éditeur à l’API canonique
 
-- [ ] **Résultat :** une seule voie d’écriture pour les personnages.
+- [x] **Résultat :** une seule voie d’écriture pour les personnages.
 - **Scope :** providers, session de workspace, `AuthoringMutationAdapter`, migration progressive de `character_use_cases.dart`, gestion d’expiration/reopen, feedback erreurs/révision.
 - **Fichiers principaux :** `packages/map_editor/lib/src/application/use_cases/character_use_cases.dart`, providers editor/authoring, nouveau feature `character_studio/application/`.
 - **Tests :** `packages/map_editor/test/features/character_studio/character_studio_authoring_adapter_test.dart`.
@@ -318,7 +321,7 @@ dart analyze
 
 ### CHS-017 — Parité API directe, JSONL/CLI, éditeur et MCP
 
-- [ ] **Résultat :** surface officiellement découvrable sur tous les transports PokeMap.
+- [x] **Résultat :** surface officiellement découvrable sur tous les transports PokeMap.
 - **Scope :** catalogue d’actions/resources, schémas JSON, exemples, JSONL native flow, MCP catalog, rebuild de `tools/pokemap_mcp`, live `pokemap_describe`.
 - **Fichiers principaux :** tests de parity `packages/map_authoring/test/parity/`, `tools/pokemap_mcp/`, `pokemap_authoring_api_mcp_action_catalog.md` uniquement si le catalogue généré exige une mise à jour explicite.
 - **Tests :** scénario create state → create character → import/assign portrait → create custom definition → upsert frames → save/reopen/read.
@@ -347,7 +350,7 @@ dart analyze
 
 ### CHS-020 — Route workspace et navigation Explorer
 
-- [ ] **Résultat :** `Character Studio` devient un mode de workspace de premier rang.
+- [x] **Résultat :** `Character Studio` devient un mode de workspace de premier rang.
 - **Scope :** `EditorWorkspaceMode.characterStudio`, controller, providers, `EditorCanvasHost`, sélection Explorer, titre/description/badge, restauration de mode.
 - **Fichiers principaux :** `editor_workspace_mode.dart`, `editor_workspace_controller.dart`, `editor_canvas_host.dart`, `project_explorer_panel.dart`, workspace providers.
 - **Tests :** `packages/map_editor/test/character_studio_workspace_routing_test.dart`.
@@ -356,7 +359,7 @@ dart analyze
 
 ### CHS-021 — Shell trois colonnes responsive
 
-- [ ] **Résultat :** structure visuelle fidèle au mockup premium.
+- [x] **Résultat :** structure visuelle fidèle au mockup premium.
 - **Scope :** header, statut runtime, save feedback, bibliothèque, canvas central, inspecteur, seuils grand/moyen/petit, drawers/panneaux alternables.
 - **Fichiers principaux :** nouveau `packages/map_editor/lib/src/features/character_studio/presentation/character_studio_workspace.dart` et widgets locaux composés uniquement de primitives design system.
 - **Tests :** `character_studio_workspace_layout_test.dart` aux largeurs 1672, 1440, 1280 et largeur minimale supportée ; absence d’overflow.
@@ -365,7 +368,7 @@ dart analyze
 
 ### CHS-022 — Bibliothèque et onglet Identité
 
-- [ ] **Résultat :** créer, chercher, filtrer, sélectionner, modifier et supprimer un personnage depuis le Studio.
+- [x] **Résultat :** créer, chercher, filtrer, sélectionner, modifier et supprimer un personnage depuis le Studio.
 - **Scope :** row compacte, avatar, rôles/tags, compteurs portraits/animations, filtres Tous/Joueurs/PNJ/incomplets, formulaire identité, default player, delete plan.
 - **Fichiers principaux :** `features/character_studio/presentation/library/`, `identity/`, read model/application de la feature.
 - **Tests :** `character_studio_library_test.dart`, `character_studio_identity_test.dart`, `character_studio_delete_flow_test.dart`.
@@ -374,7 +377,7 @@ dart analyze
 
 ### CHS-023 — Primitives d’aperçu portrait/sprite partagées
 
-- [ ] **Résultat :** rendu asynchrone, zoom, fond transparent et erreurs unifiés avant les deux onglets média.
+- [x] **Résultat :** rendu asynchrone, zoom, fond transparent et erreurs unifiés avant les deux onglets média.
 - **Scope :** cache par asset/révision, checkerboard tokenisé, contain/cover, pixelated rendering pour sprites, loading/error/empty, annulation des résolutions obsolètes.
 - **Fichiers principaux :** `features/character_studio/presentation/preview/`, resolver application partagé.
 - **Tests :** `character_studio_media_preview_test.dart`, tests cache/stale request.
@@ -399,7 +402,7 @@ flutter analyze
 
 ### CHS-030 — Gestionnaire global des états de portrait
 
-- [ ] **Résultat :** créer et administrer les expressions au niveau projet.
+- [x] **Résultat :** créer et administrer les expressions au niveau projet.
 - **Scope :** liste triée, create, rename, drag/reorder ou commandes accessibles, couverture globale, delete plan, replace/clear, libellé/ID séparés.
 - **Fichiers principaux :** `features/character_studio/presentation/catalog/portrait_state_manager.dart` et state associé.
 - **Tests :** `character_studio_portrait_state_manager_test.dart`.
@@ -408,7 +411,7 @@ flutter analyze
 
 ### CHS-031 — Onglet Portraits et affectation par personnage
 
-- [ ] **Résultat :** grille fidèle au mockup 1, avec aperçu principal et import/remplacement.
+- [x] **Résultat :** grille fidèle au mockup 1, avec aperçu principal et import/remplacement.
 - **Scope :** sélection d’état, cartes défini/non défini, add/replace/clear, preview grand format, zoom, fond, fit/cadrage, raccourci vers catalogue global.
 - **Fichiers principaux :** `features/character_studio/presentation/portraits/`.
 - **Tests :** `character_studio_portraits_tab_test.dart`, `character_studio_portrait_import_test.dart`.
@@ -417,7 +420,7 @@ flutter analyze
 
 ### CHS-032 — Inspecteur portrait, couverture et aperçu de dialogue
 
-- [ ] **Résultat :** inspecteur droit complet et lisible.
+- [x] **Résultat :** inspecteur droit complet et lisible.
 - **Scope :** libellé, clé stable read-only, source, replace, fit/crop, validation, compteur d’usages, personnages manquants, bulle de dialogue d’aperçu.
 - **Fichiers principaux :** `features/character_studio/presentation/portraits/portrait_inspector.dart`, diagnostics/read model.
 - **Tests :** `character_studio_portrait_inspector_test.dart`.
@@ -426,7 +429,7 @@ flutter analyze
 
 ### CHS-033 — Contrat de dialogue structuré et rétrocompatible
 
-- [ ] **Résultat :** une ligne peut porter `characterId` et `portraitStateId` optionnels sans casser les dialogues texte existants.
+- [x] **Résultat :** une ligne peut porter `characterId` et `portraitStateId` optionnels sans casser les dialogues texte existants.
 - **Scope :** nouvelle version lisible du document runtime ou extension additive explicitement testée, codec acceptant les versions historiques, directive Yarn PokeMap avant la ligne, propagation dans choix/branches.
 - **Syntaxe proposée :** `<<portrait elia surprised>>` s’applique uniquement à la ligne suivante ; sans directive, parsing historique `Speaker: texte` inchangé.
 - **Fichiers principaux :** `packages/map_core/lib/src/dialogue/runtime_dialogue_document.dart`, compilateur Yarn, codecs/diagnostics associés.
@@ -436,7 +439,7 @@ flutter analyze
 
 ### CHS-034 — Pickers personnage/expression dans Dialogue Studio
 
-- [ ] **Résultat :** auteur no-code, directive masquée et round-trip fidèle.
+- [x] **Résultat :** auteur no-code, directive masquée et round-trip fidèle.
 - **Scope :** enrichir `DeLineStep`, pickers guidés, état par défaut, preview, encode/decode Yarn, copier/coller, lignes de choix.
 - **Fichiers principaux :** `features/dialogue/application/dialogue_editor_model.dart`, `dialogue_yarn_codec.dart`, widgets du Dialogue Studio.
 - **Tests :** `dialogue_character_portrait_picker_test.dart`, `dialogue_yarn_portrait_round_trip_test.dart`.
@@ -445,7 +448,7 @@ flutter analyze
 
 ### CHS-035 — Résolution runtime des portraits
 
-- [ ] **Résultat :** convertir les IDs de dialogue en asset affichable avec fallback sûr.
+- [x] **Résultat :** convertir les IDs de dialogue en asset affichable avec fallback sûr.
 - **Scope :** resolver manifeste/catalogue/assets, cache, snapshot enrichi, speaker legacy, référence supprimée, asset absent, préchargement borné.
 - **Fichiers principaux :** `packages/map_runtime/lib/src/application/dialogue_runtime_models.dart`, `presentation/flutter/dialogue_presentation_snapshot.dart`, nouveau resolver portrait.
 - **Tests :** `packages/map_runtime/test/dialogue_portrait_resolver_test.dart`, extension de `dialogue_presentation_snapshot_test.dart` et `compiled_dialogue_runtime_test.dart`.
@@ -454,7 +457,7 @@ flutter analyze
 
 ### CHS-036 — Affichage portrait dans `map_player_ui`
 
-- [ ] **Résultat :** portrait réellement visible dans la bulle de dialogue joueur.
+- [x] **Résultat :** portrait réellement visible dans la bulle de dialogue joueur.
 - **Scope :** layout avec/sans portrait, speaker, texte long, choix, petits écrans, safe areas, accessibilité, animation de changement discrète et testable.
 - **Fichiers principaux :** `packages/map_player_ui/lib/src/player/player_dialogue_overlay.dart`, design tokens/composants existants si extension nécessaire.
 - **Tests :** `player_dialogue_portrait_overlay_test.dart`, goldens clair/sombre, portrait absent, texte long, choix et narrow layout.
@@ -487,7 +490,7 @@ flutter test test/player_dialogue_overlay_test.dart test/player_dialogue_portrai
 
 ### CHS-040 — Gestionnaire global des définitions d’animation
 
-- [ ] **Résultat :** catalogue système + custom compréhensible au niveau projet.
+- [x] **Résultat :** catalogue système + custom compréhensible au niveau projet.
 - **Scope :** Base/Marche/Course read-only, create custom, nom, mode, tri, couverture, delete plan, migration de mode explicite.
 - **Fichiers principaux :** `features/character_studio/presentation/catalog/animation_definition_manager.dart`.
 - **Tests :** `character_studio_animation_definition_manager_test.dart`.
@@ -496,7 +499,7 @@ flutter test test/player_dialogue_overlay_test.dart test/player_dialogue_portrai
 
 ### CHS-041 — Read model et grille de matrice unifiée
 
-- [ ] **Résultat :** tableau Base/Marche/Course/custom × N/S/E/O ou slot unique.
+- [x] **Résultat :** tableau Base/Marche/Course/custom × N/S/E/O ou slot unique.
 - **Scope :** ordering global, statut requis/optionnel, défini/manquant/invalide, compte de frames, sélection clavier, filtres, focus conservé.
 - **Fichiers principaux :** `features/character_studio/application/character_animation_matrix_model.dart`, `presentation/animations/animation_matrix.dart`.
 - **Tests :** `character_animation_matrix_model_test.dart`, `character_animation_matrix_widget_test.dart`.
@@ -505,7 +508,7 @@ flutter test test/player_dialogue_overlay_test.dart test/player_dialogue_portrai
 
 ### CHS-042 — Source, découpe et timeline de frames
 
-- [ ] **Résultat :** éditer précisément le contenu du slot sélectionné.
+- [x] **Résultat :** éditer précisément le contenu du slot sélectionné.
 - **Scope :** choisir/remplacer source, dimensions, grille assistée, rectangles, ajout/suppression/duplication/réordre, durée par frame, validation instantanée.
 - **Fichiers principaux :** `features/character_studio/presentation/animations/frame_timeline.dart`, `sprite_source_inspector.dart`, modèles de formulaire.
 - **Tests :** `character_animation_frame_timeline_test.dart`, `character_animation_source_slicing_test.dart`.
@@ -514,7 +517,7 @@ flutter test test/player_dialogue_overlay_test.dart test/player_dialogue_portrai
 
 ### CHS-043 — Aperçu live, playback et boucle
 
-- [ ] **Résultat :** preview centrale fidèle aux durées et à l’ordre réel des frames.
+- [x] **Résultat :** preview centrale fidèle aux durées et à l’ordre réel des frames.
 - **Scope :** play/pause, frame step, vitesse d’aperçu non persistée, loop persistée, direction, zoom pixel-perfect, fond, empty/error, annulation au changement de slot.
 - **Fichiers principaux :** `features/character_studio/presentation/animations/animation_preview.dart`, controller/ticker testable.
 - **Tests :** `character_animation_preview_test.dart` avec fake clock, boucle/non-boucle et changement de sélection.
@@ -523,7 +526,7 @@ flutter test test/player_dialogue_overlay_test.dart test/player_dialogue_portrai
 
 ### CHS-044 — Source dédiée et fallbacks runtime système
 
-- [ ] **Résultat :** Base/Marche/Course peuvent utiliser une source dédiée sans régression legacy.
+- [x] **Résultat :** Base/Marche/Course peuvent utiliser une source dédiée sans régression legacy.
 - **Scope :** resolver source, préchargement, `overworld_actor_component.dart`, player/NPC/cinematic previews, fallback `tilesetId`, cadence et direction.
 - **Fichiers principaux :** `packages/map_runtime/lib/src/presentation/flame/overworld_actor_component.dart`, `application/runtime_character_refs.dart`, resolvers actor existants.
 - **Tests :** `character_animation_source_resolver_test.dart`, extensions ciblées de `player_component_test.dart` et previews editor concernées.
@@ -532,7 +535,7 @@ flutter test test/player_dialogue_overlay_test.dart test/player_dialogue_portrai
 
 ### CHS-045 — Contrat runtime dédié pour animation custom
 
-- [ ] **Résultat :** jouer une custom sur un acteur, attendre ou interrompre proprement, puis restaurer son état.
+- [x] **Résultat :** jouer une custom sur un acteur, attendre ou interrompre proprement, puis restaurer son état.
 - **Scope :** commande pure identifiée par définition, direction facultative, loop/count/duration, policy d’interruption, completion déterministe, fallback/diagnostic.
 - **Fichiers principaux :** modèles cinématiques/scènes de `map_core`, port runtime dans `map_runtime/application`, sink Flame ; ne pas toucher à la sémantique `actorEmote`.
 - **Tests :** `character_custom_animation_runtime_test.dart`, tests interruption, acteur absent, clip absent, `single/directional`, restauration Base.
@@ -541,7 +544,7 @@ flutter test test/player_dialogue_overlay_test.dart test/player_dialogue_portrai
 
 ### CHS-046 — Authoring cinématique/scène et previews custom
 
-- [ ] **Résultat :** déclencher une custom depuis les outils narratifs no-code et voir le même résultat en preview/runtime.
+- [x] **Résultat :** déclencher une custom depuis les outils narratifs no-code et voir le même résultat en preview/runtime.
 - **Scope :** nouveau step/command dédié, picker acteur + définition + direction, diagnostics de capacité, timeline preview, encode/decode, exécuteur scene runtime.
 - **Fichiers principaux :** Cinematic Builder, modèles de commande interactifs, `scene_interactive_command_runtime_executor.dart`, `flame_cinematic_runtime_playback_sink.dart`, preview adapters.
 - **Tests :** builder widget tests, codec tests, `cinematic_custom_character_animation_test.dart`, scene runtime executor tests.
@@ -568,7 +571,7 @@ flutter test test/character_animation_source_resolver_test.dart test/character_c
 
 ### CHS-050 — Export, installation et fermeture des assets
 
-- [ ] **Résultat :** tous les assets Studio nécessaires sont emballés et résolus dans le projet jouable.
+- [x] **Résultat :** tous les assets Studio nécessaires sont emballés et résolus dans le projet jouable.
 - **Scope :** dependency closure, chemins portables, déduplication, assets orphelins, invalidation cache, import/export/reimport, diagnostics précis.
 - **Fichiers principaux :** pipeline d’export du projet, asset manifest runtime, install/import du projet jouable.
 - **Tests :** `character_studio_export_asset_closure_test.dart`, fixture exportée avec portraits, sources dédiées et custom.
@@ -577,7 +580,7 @@ flutter test test/character_animation_source_resolver_test.dart test/character_c
 
 ### CHS-051 — Responsive, accessibilité et goldens premium
 
-- [ ] **Résultat :** visuel stabilisé et interactions utilisables hors écran de démonstration.
+- [x] **Résultat :** visuel stabilisé et interactions utilisables hors écran de démonstration.
 - **Scope :** thèmes clair/sombre, 1672/1440/1280/minimum, focus order, clavier, screen reader, contrastes, longs libellés FR, 0/1/50 personnages, 0/20 états/custom.
 - **Fichiers principaux :** tests/goldens Character Studio ; extensions design system seulement si un vrai primitive manque.
 - **Tests :** goldens shell/portrait/matrice/inspecteurs/empty/error, widget tests keyboard/semantics/overflow.
@@ -586,7 +589,7 @@ flutter test test/character_animation_source_resolver_test.dart test/character_c
 
 ### CHS-052 — Golden slice end-to-end
 
-- [ ] **Résultat :** scénario déterministe complet prouvant la chaîne de valeur.
+- [x] **Résultat :** scénario déterministe complet prouvant la chaîne de valeur.
 - **Scénario :** ouvrir projet v6 → créer `Surprise` → assigner portrait à Élia → créer custom `Saluer` directionnelle → configurer quatre clips → ajouter ligne de dialogue avec portrait → ajouter commande cinématique → sauvegarder → fermer/réouvrir → exporter → lancer → voir portrait → jouer Saluer → restaurer Base.
 - **Couches prouvées :** modèles, validation, actions, JSONL/MCP, éditeur no-code, persistance, export, runtime et UI joueur.
 - **Fichiers principaux :** fixture golden consolidée et tests d’intégration existants appropriés ; pas de deuxième framework de certification.
@@ -595,7 +598,7 @@ flutter test test/character_animation_source_resolver_test.dart test/character_c
 
 ### CHS-053 — Certification MCP live et documentation de contrat
 
-- [ ] **Résultat :** vérifier le serveur réellement construit, pas seulement des registry tests.
+- [x] **Résultat :** vérifier le serveur réellement construit, pas seulement des registry tests.
 - **Scope :** rebuild MCP, démarrage, `pokemap_describe`, ressources/actions listées, mutation dry-run puis apply dans un workspace autorisé, requery, fermeture.
 - **Fichiers principaux :** tests MCP/JSONL et catalogue canonique si nécessaire.
 - **Gate :** aucune action fantôme dans la documentation ; aucun comportement Studio disponible uniquement depuis l’éditeur.
@@ -603,7 +606,7 @@ flutter test test/character_animation_source_resolver_test.dart test/character_c
 
 ### CHS-054 — Validation complète et dossier de clôture
 
-- [ ] **Résultat :** décision explicite `DONE`, `PARTIAL` ou `BLOCKED` avec preuves fraîches.
+- [x] **Résultat :** décision explicite `DONE`, `PARTIAL` ou `BLOCKED` avec preuves fraîches.
 - **Scope :** format ciblé, tests/analyzes package par package, builds nécessaires, markdown hygiene, diff check, inventaire des changements, risques restants, état Git final.
 - **Commandes minimales :** suites complètes `map_core`, `map_authoring`, `map_editor`, `map_runtime`, `map_player_ui`, `tools/pokemap_mcp`, puis smoke du host jouable si le flux export/runtime est touché.
 - **Gate :** aucun lot n’est marqué terminé si sa preuve de couche applicable manque ; les échecs legacy non liés sont séparés et documentés avec leur commande exacte.
@@ -622,7 +625,83 @@ cd ../../examples/playable_runtime_host && flutter test && flutter analyze
 cd ../.. && bash tools/scripts/check_markdown_hygiene.sh && git diff --check
 ```
 
-## 12. Ordonnancement recommandé des sessions
+---
+
+## 12. Phase 6 — Durcissement post-certification
+
+**Objectif de phase :** fermer les derniers écarts découverts par l’usage réel après S9 : prouver les sprites dans l’interface, certifier chaque transport Character Studio et supprimer l’assertion Riverpod qui pouvait polluer le démarrage de l’application.
+
+**Vagues :** CHS-055 → CHS-056 → CHS-057/058 → CHS-059 → CHS-060 → CHS-061.
+
+### CHS-055 — Harness desktop déterministe
+
+- [x] **Résultat :** un entrypoint Marionette ouvre un projet explicite sans modifier la logique de production.
+- **Scope :** bootstrap desktop de développement, `MARIONETTE_PROJECT_PATH`, contexte projet et ouverture déterministe du Studio.
+- **Fichiers principaux :** `packages/map_editor/dev/marionette_main.dart`, `packages/map_editor/test/dev/marionette_main_test.dart`.
+- **Gate :** l’entrypoint reste séparé de `main.dart`, refuse les chemins ambigus et publie le projet réellement restauré.
+- **Commit :** `6076307e6 test(character-studio): add desktop visual harness`.
+
+### CHS-056 — Preuves de vrais sprites dans les previews
+
+- [x] **Résultat :** la matrice et l’aperçu live prouvent le rendu de sources PNG réelles, pas seulement la présence de widgets.
+- **Scope :** thumbnails par slot, preview centrale, fixture image, golden 1920 × 1080 et stabilité responsive.
+- **Fichiers principaux :** `character_studio_workspace.dart`, `character_studio_responsive_accessibility_golden_test.dart`, `character_studio_real-sprite-previews_1920x1080.png`.
+- **Gate :** le golden contient des pixels différents par direction et l’aperçu live du slot sélectionné.
+- **Commit :** `4e1526549 test(character-studio): certify real sprite previews`.
+
+### CHS-057 — Transports identité et portraits
+
+- [x] **Résultat :** les mutations d’identité, default player, portraits et états globaux sont prouvées sur API directe, JSONL/CLI, éditeur et MCP.
+- **Scope :** create/update/delete plan/delete, assign/clear portrait, create/update/reorder/delete plan/delete d’état, receipts et erreurs.
+- **Fichiers principaux :** worker JSONL, parity Character Studio, adapter éditeur et tests du serveur MCP.
+- **Gate :** scénario complet avec révision, relecture et absence d’écriture partielle sur erreur.
+- **Commit :** `c0d818d16 test(character-studio): certify identity and portrait transports`.
+
+### CHS-058 — Transports animations, frames et assets
+
+- [x] **Résultat :** toutes les mutations d’animation et d’asset sont prouvées sur les quatre transports.
+- **Scope :** définitions, clips, frames, import/replace, payloads JSONL, receipts éditeur et cycle MCP.
+- **Fichiers principaux :** worker JSONL, parity Character Studio, `editor_receipt_presenter.dart`, adapter éditeur et tests MCP.
+- **Gate :** source importée, clip créé, frames insérées/modifiées/réordonnées/supprimées, puis relecture identique.
+- **Commit :** `fd75320ab test(character-studio): certify animation transports`.
+
+### CHS-059 — Publication canonique des preuves de parité
+
+- [x] **Résultat :** les 25 actions Character Studio portent leurs preuves de transport dans `fullParity`.
+- **Scope :** registre canonique, test exhaustif des IDs, publication par le serveur MCP réellement packagé.
+- **Fichiers principaux :** `full_authoring_parity.dart`, `full_authoring_parity_test.dart`, `mutation_server.test.ts`.
+- **Gate :** aucune action Character Studio absente, fantôme ou dépourvue de la certification attendue.
+- **Commit :** `d979c44f1 test(authoring): register character studio parity evidence`.
+
+### CHS-060 — Réconciliation Riverpod sûre au démarrage
+
+- [x] **Résultat :** le montage initial de `EditorNotifier` ne modifie plus un provider pendant la construction de l’arbre Flutter.
+- **Scope :** différer uniquement la première réconciliation Border, conserver les réconciliations synchrones suivantes et relire l’état courant après la microtask.
+- **Fichiers principaux :** `editor_notifier.dart`, `editor_notifier_startup_reconciliation_test.dart`.
+- **Gate :** reproduction widget de l’assertion historique, puis 59/59 tests ciblés et `flutter analyze` sans diagnostic.
+- **Commit :** `c0d6fa36a fix(editor): defer startup selection reconciliation`.
+
+### CHS-061 — Certification finale et roadmap synchronisée
+
+- [x] **Résultat :** chaîne Character Studio recertifiée de `map_core` au desktop réel, roadmap CHS-001…CHS-061 et dossier de clôture consolidé.
+- **Scope :** suites verticales, analyses, smoke host, build macOS, serveur MCP packagé, cycle MCP live, captures desktop, hygiène Git/Markdown et risques résiduels.
+- **Fichiers principaux :** cette roadmap et `documentation/reports/editor/character_studio_final_closure_2026-08-12.md`.
+- **Gate :** preuves fraîches consignées dans la clôture, aucun fichier produit modifié dans ce lot documentaire et worktree propre après commit.
+
+**Gate de phase 6 :**
+
+```bash
+cd packages/map_core && dart test test/project_character_studio_model_test.dart test/project_character_studio_migration_test.dart test/project_character_studio_validation_test.dart test/character_studio_reference_index_test.dart test/runtime_dialogue_portrait_metadata_test.dart test/character_custom_animation_runtime_contract_test.dart test/cinematic_character_custom_animation_contract_test.dart && dart analyze
+cd ../map_authoring && dart test test/domains/gameplay/character_studio_resource_test.dart test/domains/gameplay/character_studio_portrait_state_actions_test.dart test/domains/gameplay/character_studio_animation_definition_actions_test.dart test/domains/gameplay/character_studio_character_actions_test.dart test/domains/gameplay/character_studio_animation_clip_actions_test.dart test/domains/assets/character_studio_asset_actions_test.dart test/parity/character_studio_full_parity_test.dart && dart analyze
+cd ../map_editor && flutter test test/features/character_studio test/character_studio_export_asset_closure_test.dart test/character_studio_golden_slice_e2e_test.dart test/character_studio_workspace_routing_test.dart && flutter analyze && flutter build macos --debug
+cd ../map_runtime && flutter test test/character_animation_source_resolver_test.dart test/character_custom_animation_runtime_test.dart test/character_studio_golden_slice_runtime_test.dart test/cinematic_custom_character_animation_test.dart test/dialogue_portrait_resolver_test.dart && flutter analyze
+cd ../map_player_ui && flutter test test/player_dialogue_overlay_test.dart test/player_dialogue_portrait_overlay_test.dart && flutter analyze
+cd ../../tools/pokemap_mcp && npm run check && npm test
+cd ../../examples/playable_runtime_host && flutter test test/phase_a_golden_slice_launch_test.dart && flutter analyze
+cd ../.. && bash tools/scripts/check_markdown_hygiene.sh && git diff --check
+```
+
+## 13. Ordonnancement recommandé des sessions
 
 | Session | Lots groupés | Pourquoi ce batch reste cohérent |
 |---|---|---|
@@ -635,32 +714,35 @@ cd ../.. && bash tools/scripts/check_markdown_hygiene.sh && git diff --check
 | S7 | CHS-040 à CHS-043 | Catalogue, matrice, timeline et preview d’animation |
 | S8 | CHS-044 à CHS-046 | Consommation runtime et authoring narratif des custom |
 | S9 | CHS-050 à CHS-054 | Packaging, golden slice, MCP live et certification |
+| S10 | CHS-055, CHS-056 | Harness desktop puis preuve visuelle de vrais sprites |
+| S11 | CHS-057 à CHS-059 | Certification des quatre transports et publication de la parité |
+| S12 | CHS-060, CHS-061 | Démarrage Riverpod sûr puis certification finale consolidée |
 
 Chaque session peut produire plusieurs lots, mais le verdict et les tests restent enregistrés lot par lot. On évite ainsi le commit « Character Studio final vraiment final v7 bis » de 18 000 lignes, créature légendaire dont personne ne souhaite faire la review.
 
-## 13. Définition de Done par lot et par phase
+## 14. Définition de Done par lot et par phase
 
 ### Lot terminé
 
-- [ ] Scope et non-goals respectés.
-- [ ] Tests du lot écrits et verts.
-- [ ] API publique/barrels/génération ajustés seulement si nécessaires.
-- [ ] Validation et messages no-code actionnables.
-- [ ] Parité MCP évaluée : prouvée, explicitement N/A ou lot dépendant identifié.
-- [ ] Pas de couleur hardcodée ni primitive editor hors design system.
-- [ ] Diff limité au lot, aucun travail concurrent écrasé.
-- [ ] État Git final et limites rapportés.
+- [x] Scope et non-goals respectés.
+- [x] Tests du lot écrits et verts.
+- [x] API publique/barrels/génération ajustés seulement si nécessaires.
+- [x] Validation et messages no-code actionnables.
+- [x] Parité MCP évaluée : prouvée, explicitement N/A ou lot dépendant identifié.
+- [x] Pas de couleur hardcodée ni primitive editor hors design system.
+- [x] Diff limité au lot, aucun travail concurrent écrasé.
+- [x] État Git final et limites rapportés.
 
 ### Phase terminée
 
-- [ ] Tous les lots de la phase satisfont leur gate.
-- [ ] Suites croisées de la phase vertes.
-- [ ] Reload/persistence prouvés pour toute nouvelle donnée.
-- [ ] Aucun chemin d’écriture alternatif ne contourne l’API canonique.
-- [ ] Les diagnostics de readiness sont cohérents entre éditeur, export et runtime.
-- [ ] Une courte auto-critique recense dette, risques et décision pour la phase suivante.
+- [x] Tous les lots de la phase satisfont leur gate.
+- [x] Suites croisées de la phase vertes.
+- [x] Reload/persistence prouvés pour toute nouvelle donnée.
+- [x] Aucun chemin d’écriture alternatif ne contourne l’API canonique.
+- [x] Les diagnostics de readiness sont cohérents entre éditeur, export et runtime.
+- [x] Une courte auto-critique recense dette, risques et décision pour la phase suivante.
 
-## 14. Risques et décisions à surveiller
+## 15. Risques et décisions à surveiller
 
 1. **Downgrade v6 :** garder le numéro v6 évite une explosion de contrats Smart Tiles, mais un ancien éditeur qui réécrit des JSON inconnus peut perdre les champs Studio. Mitigation : round-trip testé dans la version courante, warning de version minimale et backup avant downgrade.
 2. **Deux sources d’assets :** le `tilesetId` historique et les nouveaux asset IDs peuvent diverger. Mitigation : resolver unique, fallback explicitement testé, export closure centralisée.
@@ -673,19 +755,18 @@ Chaque session peut produire plusieurs lots, mais le verdict et les tests resten
 9. **Portée narrative :** cinématiques et scènes possèdent plusieurs exécuteurs. Mitigation : une commande de domaine commune, adapters explicites, tests preview/runtime et diagnostics de capacité.
 10. **Roadmap volumineuse :** 35 lots peuvent encourager des implémentations partielles présentées comme finies. Mitigation : gates verticales et statut par couche, pas de `DONE` esthétique.
 
-## 15. Passes de revue de cette roadmap
+## 16. Passes de revue de cette roadmap
 
 | Passe | Verdict | Vérification |
 |---|---|---|
 | Audit / architecture | `PASS` | Les modèles, l’éditeur, le dialogue, le runtime, les assets et `map_authoring` ont été tracés avant le découpage. |
-| Plan d’implémentation | `PASS` | 35 lots ordonnés, dépendances, fichiers, tests et gates sont explicités. |
+| Plan d’implémentation | `PASS` | 42 lots ordonnés en 7 phases et 12 sessions, avec dépendances, fichiers, tests et gates explicites. |
 | Tests / caractérisation | `PASS` | 139 tests ciblés de baseline réussis sur cinq packages ; aucun échec observé. |
 | Build / validation produit | `N/A` | Aucun code produit n’a été modifié dans ce travail de roadmap ; builds et analyses complets sont des gates d’exécution. |
 | Critique finale | `PASS_WITH_RISKS` | Les risques principaux sont le downgrade v6, les références globales, le packaging d’assets et les boucles custom. Les mitigations sont intégrées aux lots. |
 
-## 16. Fichiers et changements produits par ce travail
+## 17. Fichiers et changements produits par ce travail
 
-- Nouveau document : `documentation/reports/roadmap/editor/character_studio_roadmap.md`.
-- Zones créées : audit initial, contrat produit, architecture cible, 35 lots en 6 phases, vagues d’exécution, commandes de gate, Definition of Done, risques et passes de revue.
-- Aucun fichier de production, test ou fixture n’est modifié par la rédaction de cette roadmap.
-
+- Document canonique mis à jour : `documentation/reports/roadmap/editor/character_studio_roadmap.md`.
+- Zones couvertes : audit initial, contrat produit, architecture cible, 42 lots en 7 phases, 12 sessions, commandes de gate, Definition of Done, risques et passes de revue.
+- La synchronisation CHS-055 à CHS-061 est documentaire ; les changements produit et tests associés restent tracés par leurs commits et par la clôture finale.
