@@ -1671,6 +1671,7 @@ class EditorNotifier extends _$EditorNotifier
 
   String _mapDocumentRevisionKey(String path) => p.normalize(p.absolute(path));
 
+  @override
   String? _mapDocumentRevisionFor(
     String path, {
     MapData? sourceDocument,
@@ -1789,6 +1790,14 @@ class EditorNotifier extends _$EditorNotifier
     String targetKey, {
     DirtyMapActivationDecision? dirtyDecision,
   }) async {
+    if (hasPendingPlacedElementPublications &&
+        !await drainPlacedElementPublications()) {
+      return _projectReplacementAuthorization(
+        dirtyDecision == null
+            ? MapActivationOutcome.busy
+            : MapActivationOutcome.unavailable,
+      );
+    }
     if (_mapDiskMutationLease != null || state.isSaving) {
       return _projectReplacementAuthorization(
         dirtyDecision == null
@@ -2298,10 +2307,64 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   @override
+  Future<bool> _savePlacedElementPublicationBase(
+    _PlacedElementPublicationBase base,
+  ) async {
+    final lease = _beginMapDiskMutationLease();
+    if (lease == null) return false;
+    _placedElementPublicationMapWriteLeaseToken = lease.token;
+    try {
+      final savedRevision =
+          await ref.read(saveMapUseCaseProvider).executeRevisioned(
+                base.map,
+                base.mapPath,
+                expectedRevision: base.mapRevision,
+                projectDialogueContext: base.project,
+              );
+      final canAcceptSave = _ownsMapDiskMutationLease(lease.token) &&
+          _sameNullableNormalizedPath(
+            state.projectRootPath,
+            base.projectRootPath,
+          ) &&
+          _sameNullableNormalizedPath(state.activeMapPath, base.mapPath) &&
+          state.activeMap?.id == base.map.id;
+      if (!canAcceptSave) return false;
+      _rememberMapDocumentRevision(
+        base.mapPath,
+        revision: savedRevision,
+        sourceDocument: base.map,
+      );
+      state = state.copyWith(
+        savedMapSnapshot: base.map,
+        errorMessage: null,
+      );
+      return true;
+    } on Object catch (error) {
+      if (_ownsMapDiskMutationLease(lease.token)) {
+        state = state.copyWith(
+          errorMessage: 'Impossible de publier les placements : $error',
+        );
+      }
+      return false;
+    } finally {
+      if (identical(_placedElementPublicationMapWriteLeaseToken, lease.token)) {
+        _placedElementPublicationMapWriteLeaseToken = null;
+      }
+      _endMapDiskMutationLease(lease);
+    }
+  }
+
+  @override
   Future<ActiveMapSaveOutcome> saveActiveMap({
     bool confirmBulkPlacementLoss = false,
     PendingBorderSaveDecision? pendingBorderDecision,
   }) async {
+    if (hasPendingPlacedElementPublications) {
+      if (!await drainPlacedElementPublications()) {
+        return ActiveMapSaveOutcome.failed;
+      }
+      if (!state.isDirty) return ActiveMapSaveOutcome.saved;
+    }
     final map = state.activeMap;
     final path = state.activeMapPath;
     if (map == null || path == null) {
@@ -2600,6 +2663,10 @@ class EditorNotifier extends _$EditorNotifier
     Object? mapWriteLeaseToken,
     bool forceReload = false,
   }) async {
+    if (hasPendingPlacedElementPublications &&
+        !await drainPlacedElementPublications()) {
+      return MapActivationOutcome.saveBlocked;
+    }
     final fs = _projectWorkspace;
     if (fs == null) return MapActivationOutcome.unavailable;
     final isInternalReload = mapWriteLeaseToken != null;
@@ -8697,6 +8764,8 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   void undoMap() {
+    if (_placedElementPublicationInProgress) return;
+    _cancelLatestPendingPlacedElementPlacementBeforeUndo();
     // History commands must never terminate a gesture still owned by the
     // canvas. Pointer-up or cancellation remains its single terminal event.
     if (state.mapStrokeStart != null ||
@@ -13797,6 +13866,7 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
+  @override
   void _applyMapMutation({
     required MapData previousMap,
     required MapData updatedMap,
