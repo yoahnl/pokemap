@@ -92,6 +92,9 @@ void main() {
           'tileHeightPx': 32,
         },
         'measurementScope': <String, Object?>{
+          'metric': 'canvas.paint_recording',
+          'includesGpuRaster': false,
+          'includesLayoutAndComposition': false,
           'uiThreadCanvasRecord': true,
           'pictureRasterization': false,
           'shadowProjectionWarmupExcluded': true,
