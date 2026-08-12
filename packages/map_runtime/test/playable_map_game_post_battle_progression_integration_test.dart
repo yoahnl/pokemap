@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -88,11 +90,19 @@ void main() {
   test(
       'trainer victory is exactly once through interaction publication save reload and reinteraction',
       () async {
+    final projectRoot = await Directory.systemTemp.createTemp(
+      'pokemap-trainer-exactly-once-',
+    );
+    addTearDown(() => projectRoot.delete(recursive: true));
+    await _writeTrainerBattleFixtures(projectRoot);
+    final bundle = _bundleWithTrainerLifecycle(
+      projectRootDirectory: projectRoot.path,
+    );
     final repository = _RoundTripMemoryGameSaveRepository(_state());
     final loadedDialogues = <String>[];
     final game = _TestPlayableMapGame(
-      bundle: _bundleWithTrainerLifecycle(),
-      projectFilePath: '/tmp/post-battle/project.json',
+      bundle: bundle,
+      projectFilePath: p.join(projectRoot.path, 'project.json'),
       saveData: saveDataFromGameState(_state()),
       saveRepository: repository,
       postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(
@@ -124,8 +134,15 @@ void main() {
     );
     final request = game.debugPendingBattleRequest;
     expect(request, isA<TrainerBattleStartRequest>());
+    await game.debugOpenBattleForTest(request!);
+    await game.debugWaitForBattleOverlaySync();
+    expect(game.debugFlowPhaseName, 'battle');
+    expect(game.debugBattleOverlayMounted, isTrue);
+    expect(game.debugPsdkBattleSessionActive, isTrue);
+    expect(game.debugBattleSessionSnapshot, isNotNull);
+    expect(game.debugBattleSessionSnapshot!.state.enemy.speciesId, 'rival');
     final context = RuntimeActiveBattleContext.withLineupMapping(
-      request: request!,
+      request: request,
       playerPartyIndex: 0,
       playerPartySlotIndicesByLineupIndex: const <int>[0],
     );
@@ -179,8 +196,8 @@ void main() {
 
     final reconstructedDialogues = <String>[];
     final reconstructed = _TestPlayableMapGame(
-      bundle: _bundleWithTrainerLifecycle(),
-      projectFilePath: '/tmp/post-battle/project.json',
+      bundle: bundle,
+      projectFilePath: p.join(projectRoot.path, 'project.json'),
       saveData: saveDataFromGameState(restoredState),
       saveRepository: repository,
       postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(
@@ -228,6 +245,7 @@ void main() {
         <String>['marsh_badge']);
     expect(reconstructed.gameStateSnapshot.progression.unlockedFieldAbilities,
         <FieldAbility>[FieldAbility.cut]);
+    await reconstructed.debugWaitForBattlePrewarm();
   });
 
   test('trainer defeat opens authored dialogue before whiteout recovery',
@@ -907,6 +925,138 @@ Future<RuntimeBattleRewardResolution> _failingResolution({
   );
 }
 
+Future<void> _writeTrainerBattleFixtures(Directory projectRoot) async {
+  await _writeTrainerBattleJson(
+    projectRoot,
+    'data/pokemon/species/hero.json',
+    _trainerBattleSpecies(
+      id: 'hero',
+      nationalDex: 1,
+      type: 'normal',
+      abilityId: 'hero_power',
+    ),
+  );
+  await _writeTrainerBattleJson(
+    projectRoot,
+    'data/pokemon/species/rival.json',
+    _trainerBattleSpecies(
+      id: 'rival',
+      nationalDex: 2,
+      type: 'dark',
+      abilityId: 'rival_power',
+    ),
+  );
+  await _writeTrainerBattleJson(
+    projectRoot,
+    'data/pokemon/catalogs/moves.json',
+    <String, dynamic>{
+      'schemaVersion': 1,
+      'kind': 'pokemon_catalog',
+      'catalog': 'moves',
+      'meta': <String, Object>{'description': 'Trainer integration fixture'},
+      'entries': <Map<String, Object?>>[
+        _trainerBattleMove('tackle', 40),
+        _trainerBattleMove('growl', 0, pp: 40),
+        _trainerBattleMove('tail_whip', 0, pp: 30),
+        _trainerBattleMove('focus_energy', 0, pp: 30),
+        _trainerBattleMove('quick_attack', 40, pp: 30),
+      ],
+    },
+  );
+  for (final speciesId in <String>['hero', 'rival']) {
+    await _writeTrainerBattleJson(
+      projectRoot,
+      'data/pokemon/learnsets/$speciesId.json',
+      <String, dynamic>{
+        'startingMoves': <String>[],
+        'relearnMoves': <String>[],
+        'levelUp': <Map<String, Object>>[],
+      },
+    );
+  }
+}
+
+Map<String, dynamic> _trainerBattleSpecies({
+  required String id,
+  required int nationalDex,
+  required String type,
+  required String abilityId,
+}) {
+  return <String, dynamic>{
+    'id': id,
+    'slug': id,
+    'nationalDex': nationalDex,
+    'names': <String, String>{'en': id},
+    'speciesName': <String, String>{'en': id},
+    'genIntroduced': 1,
+    'typing': <String, Object>{
+      'types': <String>[type]
+    },
+    'baseStats': <String, int>{
+      'hp': 45,
+      'atk': 49,
+      'def': 49,
+      'spa': 49,
+      'spd': 49,
+      'spe': 49,
+      'bst': 290,
+    },
+    'abilities': <String, String>{'primary': abilityId},
+    'breeding': <String, Object>{
+      'genderRatio': <String, double>{'male': 0.5, 'female': 0.5},
+      'eggGroups': <String>['field'],
+      'hatchCycles': 20,
+    },
+    'progression': <String, Object>{
+      'growthRateId': 'medium',
+      'baseExp': 64,
+      'catchRate': 45,
+      'baseFriendship': 50,
+    },
+    'refs': <String, String>{
+      'learnset': id,
+      'evolution': id,
+      'media': id,
+    },
+    'dexContent': <String, Object>{'heightM': 1.0, 'weightKg': 10.0},
+    'sourceMeta': <String, Object>{'seededBy': 'test', 'seedVersion': 1},
+  };
+}
+
+Map<String, Object?> _trainerBattleMove(
+  String id,
+  int power, {
+  int pp = 35,
+}) {
+  return PokemonMove(
+    id: id,
+    name: id,
+    names: <String, String>{'en': id},
+    generation: 1,
+    source: 'trainer_integration_fixture',
+    type: 'normal',
+    category:
+        power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.physical,
+    target: PokemonMoveTarget.normal,
+    basePower: power,
+    accuracy: power == 0
+        ? const PokemonMoveAccuracy.alwaysHits()
+        : const PokemonMoveAccuracy.percent(value: 100),
+    pp: pp,
+    engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+  ).toJson();
+}
+
+Future<void> _writeTrainerBattleJson(
+  Directory projectRoot,
+  String relativePath,
+  Map<String, dynamic> value,
+) async {
+  final file = File(p.join(projectRoot.path, relativePath));
+  await file.parent.create(recursive: true);
+  await file.writeAsString(jsonEncode(value));
+}
+
 RuntimeMapBundle _bundle() {
   return RuntimeMapBundle(
     manifest: const ProjectManifest(
@@ -953,7 +1103,9 @@ RuntimeMapBundle _bundle() {
   );
 }
 
-RuntimeMapBundle _bundleWithTrainerLifecycle() {
+RuntimeMapBundle _bundleWithTrainerLifecycle({
+  String projectRootDirectory = '/tmp/post-battle',
+}) {
   final base = _bundle();
   return RuntimeMapBundle(
     manifest: base.manifest.copyWith(
@@ -982,8 +1134,22 @@ RuntimeMapBundle _bundleWithTrainerLifecycle() {
           preBattleDialogueId: 'iris_before',
           victoryDialogueId: 'iris_victory',
           defeatDialogueId: 'iris_defeat',
+          team: <ProjectTrainerPokemonEntry>[
+            ProjectTrainerPokemonEntry(
+              speciesId: 'rival',
+              level: 14,
+              moves: <String>['quick_attack'],
+            ),
+          ],
         ),
       ],
+      pokemon: const ProjectPokemonConfig(
+        speciesDir: 'data/pokemon/species',
+        learnsetsDir: 'data/pokemon/learnsets',
+        catalogFiles: <String, String>{
+          'moves': 'data/pokemon/catalogs/moves.json',
+        },
+      ),
     ),
     map: base.map.copyWith(
       entities: <MapEntity>[
@@ -1001,7 +1167,7 @@ RuntimeMapBundle _bundleWithTrainerLifecycle() {
         ),
       ],
     ),
-    projectRootDirectory: base.projectRootDirectory,
+    projectRootDirectory: projectRootDirectory,
     tilesetAbsolutePathsById: base.tilesetAbsolutePathsById,
   );
 }
