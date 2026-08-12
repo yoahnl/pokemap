@@ -32,6 +32,7 @@ import '../transactions/local_transaction_file_gateway.dart';
 import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
 import '../workspace/project_snapshot.dart';
+import '../workspace/project_snapshot_cache.dart';
 import '../workspace/project_snapshot_loader.dart';
 import '../workspace/workspace_handle_store.dart';
 import '../workspace/workspace_policy.dart';
@@ -537,7 +538,9 @@ final class _LocalMapAuthoringSession {
         ),
       ),
     );
-    final snapshot = await _loadSnapshot();
+    final snapshot = await _loadSnapshot(
+      cacheValidation: ProjectSnapshotCacheValidation.session,
+    );
     final span = _performanceObserver?.startSpan(
       AuthoringPerformanceSpanName.plan,
     );
@@ -561,7 +564,9 @@ final class _LocalMapAuthoringSession {
   Future<AuthoringMutationConfirmationResult> confirmMutation(
     String planId,
   ) async {
-    final snapshot = await _loadSnapshot();
+    final snapshot = await _loadSnapshot(
+      cacheValidation: ProjectSnapshotCacheValidation.session,
+    );
     final plan = _plans.resolve(
       _safeIdentity(planId, 'planId'),
       currentProjectRevision: snapshot.revision,
@@ -684,12 +689,18 @@ final class _LocalMapAuthoringSession {
     }
   }
 
-  Future<ProjectSnapshot> _loadSnapshot() async {
+  Future<ProjectSnapshot> _loadSnapshot({
+    ProjectSnapshotCacheValidation cacheValidation =
+        ProjectSnapshotCacheValidation.canonical,
+  }) async {
     final span = _performanceObserver?.startSpan(
       AuthoringPerformanceSpanName.snapshot,
     );
     try {
-      return await _snapshotLoader.load(projectHandle);
+      return await _snapshotLoader.load(
+        projectHandle,
+        cacheValidation: cacheValidation,
+      );
     } finally {
       span?.finish();
     }

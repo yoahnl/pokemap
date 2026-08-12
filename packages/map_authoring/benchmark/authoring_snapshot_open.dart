@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:map_authoring/map_authoring.dart';
 
@@ -10,6 +11,7 @@ const _knownFixtures = <String>{
   'intermediate',
   'selbrume',
   'synthetic-10mb',
+  'synthetic-65mb-asset',
 };
 
 Future<void> main(List<String> arguments) async {
@@ -29,10 +31,12 @@ Future<void> main(List<String> arguments) async {
     final warmups = cli.nonNegativeInt('warmups', fallback: 2);
     final samples = cli.positiveInt('samples', fallback: 15);
     final cycles = cli.positiveInt('cycles', fallback: 10);
-    final modes = cli.strings('modes', fallback: 'cold,warm');
+    final modes = cli.strings('modes', fallback: 'cold,warm,session');
     if (modes.isEmpty ||
-        modes.any((mode) => !{'cold', 'warm'}.contains(mode))) {
-      throw const FormatException('modes must contain only cold or warm');
+        modes.any((mode) => !{'cold', 'warm', 'session'}.contains(mode))) {
+      throw const FormatException(
+        'modes must contain only cold, warm or session',
+      );
     }
     final fixtures = cli.strings(
       'fixtures',
@@ -83,6 +87,11 @@ Future<void> main(List<String> arguments) async {
             int projectionUs,
             int loaderTotalUs,
             int snapshotCacheHits,
+            int cacheIdentityReads,
+            int cacheStoredAuthoringBytes,
+            int cacheStoredAssetBlobBytes,
+            int cacheServedBytes,
+            int cacheSessionRevision,
           })>[];
           for (var index = 0; index < samples; index += 1) {
             measured.add(await _measure(fixture, roots, cycles, mode));
@@ -103,6 +112,13 @@ Future<void> main(List<String> arguments) async {
             'resourceCount': measured.first.resourceCount,
             'resourceBytes': measured.first.resourceBytes,
             'snapshotCacheHits': measured.first.snapshotCacheHits,
+            'cacheIdentityReads': measured.first.cacheIdentityReads,
+            'cacheStoredAuthoringBytes':
+                measured.first.cacheStoredAuthoringBytes,
+            'cacheStoredAssetBlobBytes':
+                measured.first.cacheStoredAssetBlobBytes,
+            'cacheServedBytes': measured.first.cacheServedBytes,
+            'cacheSessionRevision': measured.first.cacheSessionRevision,
             'datasetFingerprint': fingerprint,
             'snapshotChecksum': checksum,
             'rssBytesAfterSamples': ProcessInfo.currentRss,
@@ -192,6 +208,11 @@ Future<
       int projectionUs,
       int loaderTotalUs,
       int snapshotCacheHits,
+      int cacheIdentityReads,
+      int cacheStoredAuthoringBytes,
+      int cacheStoredAssetBlobBytes,
+      int cacheServedBytes,
+      int cacheSessionRevision,
     })> _measure(
   Directory fixture,
   List<String> allowedRoots,
@@ -228,7 +249,9 @@ Future<
   }
 
   final stopwatch = Stopwatch();
-  if (mode == 'warm') {
+  ProjectSnapshotCache? activeSnapshotCache;
+  ProjectHandle? activeProjectHandle;
+  if (mode == 'warm' || mode == 'session') {
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: allowedRoots,
       fileReader: reader,
@@ -242,17 +265,24 @@ Future<
       fileReader: reader,
       handles: handles,
     ).openProject(fixture.path);
+    activeSnapshotCache = ProjectSnapshotCache();
+    activeProjectHandle = opened.projectHandle;
     final loader = ProjectSnapshotLoader(
       handles: handles,
       profileSink: profiles.add,
       fingerprintCache: ProjectSnapshotFingerprintCache(),
-      snapshotCache: ProjectSnapshotCache(),
+      snapshotCache: activeSnapshotCache,
     );
     await loader.load(opened.projectHandle);
     profiles.clear();
     stopwatch.start();
     for (var cycle = 0; cycle < cycles; cycle += 1) {
-      final snapshot = await loader.load(opened.projectHandle);
+      final snapshot = await loader.load(
+        opened.projectHandle,
+        cacheValidation: mode == 'session'
+            ? ProjectSnapshotCacheValidation.session
+            : ProjectSnapshotCacheValidation.canonical,
+      );
       mapCount += snapshot.maps.length;
       revisions.add(snapshot.revision);
     }
@@ -309,6 +339,16 @@ Future<
       (total, profile) => total + profile.totalMicroseconds,
     ),
     snapshotCacheHits: profiles.where((profile) => profile.cacheHit).length,
+    cacheIdentityReads: profiles.fold<int>(
+      0,
+      (total, profile) => total + profile.cacheIdentityReads,
+    ),
+    cacheStoredAuthoringBytes: activeSnapshotCache?.storedAuthoringBytes ?? 0,
+    cacheStoredAssetBlobBytes: activeSnapshotCache?.storedAssetBlobBytes ?? 0,
+    cacheServedBytes: activeSnapshotCache?.servedBytes ?? 0,
+    cacheSessionRevision: activeProjectHandle == null
+        ? 0
+        : activeSnapshotCache?.sessionRevisionFor(activeProjectHandle) ?? 0,
   );
 }
 
@@ -327,6 +367,8 @@ Future<Directory> _resolveFixture(String name) async {
       return Directory('${repository.path}/selbrume');
     case 'synthetic-10mb':
       return _syntheticFixture();
+    case 'synthetic-65mb-asset':
+      return _syntheticAssetFixture();
   }
   throw FormatException('unknown fixture: $name');
 }
@@ -352,6 +394,44 @@ Future<Directory> _syntheticFixture() async {
     }
     sink.write(suffix);
     await sink.close();
+  }
+  return Directory(directory.resolveSymbolicLinksSync());
+}
+
+Future<Directory> _syntheticAssetFixture() async {
+  final directory = Directory(
+    'build/performance/fixtures/synthetic-65mb-asset',
+  );
+  await directory.create(recursive: true);
+  final project = File('${directory.path}/project.json');
+  await project.writeAsString(
+    '{"name":"Synthetic 65 MiB asset","version":"v6",'
+    '"maps":[],"tilesets":[]}',
+  );
+  final catalogFile = File('${directory.path}/$assetCatalogStorageKey');
+  if (!await catalogFile.exists()) {
+    final bytes = Uint8List(65 * 1024 * 1024);
+    final artifact = ContentArtifactRef.fromBytes(
+      bytes,
+      mediaType: 'application/octet-stream',
+    );
+    final blob = File('${directory.path}/${assetBlobStorageKey(artifact)}');
+    await blob.parent.create(recursive: true);
+    await blob.writeAsBytes(bytes, flush: true);
+    await catalogFile.parent.create(recursive: true);
+    await catalogFile.writeAsString(
+      jsonEncode(
+        AssetCatalog(
+          records: [
+            AssetRecord(
+              id: 'large-fixture',
+              logicalPath: 'assets/large-fixture.bin',
+              artifact: artifact,
+            ),
+          ],
+        ).toJson(),
+      ),
+    );
   }
   return Directory(directory.resolveSymbolicLinksSync());
 }

@@ -46,10 +46,88 @@ void main() {
       expect(harness.snapshotCache!.hits, 1);
     });
 
+    test('session reuse performs no filesystem identity observations',
+        () async {
+      final harness = await _Harness.create(enableSnapshotCache: true);
+      addTearDown(harness.dispose);
+      final first = await harness.load();
+      harness.reader.resetCounts();
+
+      final second = await harness.loader.load(
+        harness.projectHandle,
+        cacheValidation: ProjectSnapshotCacheValidation.session,
+      );
+
+      expect(second.revision, first.revision);
+      expect(harness.reader.byteReads, 0);
+      expect(harness.reader.identityReads, 0);
+      expect(harness.snapshotCache!.sessionHits, 1);
+      expect(harness.snapshotCache!.identityReads, greaterThan(0));
+    });
+
+    test('canonical lookup detects changes hidden from the session snapshot',
+        () async {
+      final harness = await _Harness.create(enableSnapshotCache: true);
+      addTearDown(harness.dispose);
+      final before = await harness.load();
+      final firstSessionRevision = harness.snapshotCache!.sessionRevisionFor(
+        harness.projectHandle,
+      );
+      await harness.rewriteMap(name: 'External');
+      harness.reader.resetCounts();
+
+      final session = await harness.loader.load(
+        harness.projectHandle,
+        cacheValidation: ProjectSnapshotCacheValidation.session,
+      );
+      expect(session.revision, before.revision);
+      expect(harness.reader.identityReads, 0);
+
+      final canonical = await harness.load();
+      expect(canonical.revision, isNot(before.revision));
+      expect(canonical.mapById('alpha')!.name, 'External');
+      expect(harness.snapshotCache!.invalidations, greaterThan(0));
+      expect(
+        harness.snapshotCache!.sessionRevisionFor(harness.projectHandle),
+        greaterThan(firstSessionRevision!),
+      );
+    });
+
+    test('canonical reuse binds the cache to the renewed project handle',
+        () async {
+      final harness = await _Harness.create(enableSnapshotCache: true);
+      addTearDown(harness.dispose);
+      final before = await harness.load();
+      final renewedHandle = await harness.registerAdditionalHandle();
+
+      final rebound = await harness.loader.load(renewedHandle);
+      expect(rebound.revision, before.revision);
+      harness.reader.resetCounts();
+
+      final session = await harness.loader.load(
+        renewedHandle,
+        cacheValidation: ProjectSnapshotCacheValidation.session,
+      );
+      expect(session.revision, before.revision);
+      expect(harness.reader.byteReads, 0);
+      expect(harness.reader.identityReads, 0);
+
+      final originalSession = await harness.loader.load(
+        harness.projectHandle,
+        cacheValidation: ProjectSnapshotCacheValidation.session,
+      );
+      expect(originalSession.revision, before.revision);
+      expect(harness.reader.byteReads, 0);
+      expect(harness.reader.identityReads, 0);
+    });
+
     test('adopts a committed map post-image without a strict reload', () async {
       final harness = await _Harness.create(enableSnapshotCache: true);
       addTearDown(harness.dispose);
       final before = await harness.load();
+      final beforeSessionRevision = harness.snapshotCache!.sessionRevisionFor(
+        harness.projectHandle,
+      );
       final beforeBytes = before.resourceBytes('map:alpha');
       final afterBytes = _mapJson('Committed').codeUnits;
       await harness.rewriteMap(name: 'Committed');
@@ -82,6 +160,11 @@ void main() {
       final strict = await harness.loadStrictFresh();
       expect(projected.revision, strict.revision);
       expect(projected.resourceFingerprints, strict.resourceFingerprints);
+      expect(harness.snapshotCache!.canonicalHits, greaterThan(0));
+      expect(
+        harness.snapshotCache!.sessionRevisionFor(harness.projectHandle),
+        greaterThan(beforeSessionRevision!),
+      );
     });
 
     test('refuses projection when committed bytes were replaced externally',
@@ -260,6 +343,7 @@ final class _Harness {
   final WorkspaceHandleStore handles;
   final _CountingIdentityReader reader;
   final ProjectSnapshotCache? snapshotCache;
+  final List<WorkspaceHandle> _additionalWorkspaces = [];
   Future<void> Function()? onSecondObservation;
 
   Future<ProjectSnapshot> load() async {
@@ -307,7 +391,29 @@ final class _Harness {
     }
   }
 
+  Future<ProjectHandle> registerAdditionalHandle() async {
+    final canonicalRoot = await reader.canonicalizeDirectory(root.path);
+    final registered = handles.registerProject(
+      projectName: 'Fingerprint cache',
+      initialFingerprint: 'renewed',
+      readBytes: (relativePath) => reader.readBytes(
+        projectRoot: canonicalRoot,
+        relativePath: relativePath,
+      ),
+      readIdentity: (relativePath) => reader.readIdentity(
+        projectRoot: canonicalRoot,
+        relativePath: relativePath,
+      ),
+      canReuseSnapshots: true,
+    );
+    _additionalWorkspaces.add(registered.workspaceHandle);
+    return registered.projectHandle;
+  }
+
   void dispose() {
+    for (final workspace in _additionalWorkspaces) {
+      handles.closeWorkspace(workspace);
+    }
     handles.closeWorkspace(workspaceHandle);
     if (root.existsSync()) root.deleteSync(recursive: true);
   }
