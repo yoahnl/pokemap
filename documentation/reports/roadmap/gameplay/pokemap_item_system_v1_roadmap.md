@@ -1593,7 +1593,7 @@ Les lots suivants ont fermé les écarts prouvés par les contre-audits. Ils n�
 
 - [x] **But :** retirer les dernières attentes legacy, rejouer la matrice sérialisée et fermer la documentation sur des preuves fraîches.
 - **Preuve runtime :** les deux tests narratifs exigent désormais le rejet des vieux saves ; la sélection save ciblée passe 21/21. La suite runtime globale passe de trois à un seul échec hors Item : 2 317 réussites, 1 golden visuel en échec, 1 ignoré.
-- **Certificat final :** bundle `schemaVersion: 2`, révision `c9c61b19833423f80e98fbb9e5390108715b8a25`, fixture `087542aa5a9bd3c3b59f5da36ebe0e1d1af53c09162fd25404b5d090886d2048`, sept receipts, L0-L6 `CERTIFIED`, 36 receipts L5, aucun evidence gap.
+- **Certificat final :** bundle `schemaVersion: 2`, révision produit recertifiée `d10b2eff61606e17ca78ee72c98e9a04f266e515`, fixture `087542aa5a9bd3c3b59f5da36ebe0e1d1af53c09162fd25404b5d090886d2048`, sept receipts, L0-L6 `CERTIFIED`, 36 receipts L5, aucun evidence gap.
 
 | Périmètre frais phase 10 | Résultat exact | Qualification |
 |---|---|---|

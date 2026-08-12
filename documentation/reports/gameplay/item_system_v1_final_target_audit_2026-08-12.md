@@ -610,7 +610,7 @@ Les cinq lots ont été implémentés dans l’ordre, chacun commit puis rebasé
 
 Le CLI de certification a produit dans `/tmp` un bundle lié à :
 
-- révision `c9c61b19833423f80e98fbb9e5390108715b8a25` ;
+- révision produit recertifiée `d10b2eff61606e17ca78ee72c98e9a04f266e515` ;
 - fixture `087542aa5a9bd3c3b59f5da36ebe0e1d1af53c09162fd25404b5d090886d2048` ;
 - bundle de certification `schemaVersion: 2` et sept receipts L0-L6 ;
 - 36 receipts action × transport pour L5.
