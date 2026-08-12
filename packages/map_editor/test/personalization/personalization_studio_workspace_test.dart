@@ -226,8 +226,12 @@ void main() {
     );
     expect(
       find.byKey(
-        const ValueKey<String>('personalization-dialogue-unavailable'),
+        const ValueKey<String>('personalization-dialogue-composition'),
       ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Voici comment votre dialogue apparaîtra dans le jeu.'),
       findsOneWidget,
     );
     await tester.tap(
@@ -256,6 +260,10 @@ void main() {
         ),
         matching: find.text('Démonstration'),
       ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Voici comment votre dialogue apparaîtra dans le jeu.'),
       findsOneWidget,
     );
     final after = container.read(editorNotifierProvider);
