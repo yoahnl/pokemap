@@ -277,3 +277,22 @@ La roadmap canonique possède maintenant un tableau autoritatif lot par lot. PER
 Le connecteur MCP ambiant configuré dans l'application a retourné `Transport closed`. Il ne prouve donc rien et n'est pas compté. La preuve MCP retenue lance le serveur local du worktree, tandis que `verify:checkout-catalog` lie explicitement l'entrypoint, le commit, les versions et les transports au checkout certifié.
 
 Verdict R5.5 : `DONE` pour le travail de revue. Verdict produit Personalization Studio V3 : `PARTIAL` jusqu'à la revue visuelle humaine de PERS3-33 ; PERS3-34 reste mécaniquement ouvert avec elle.
+
+## 11. Exécution Phase R6 — finition visuelle
+
+### PERS3-R6.8 — Certification ciblée et build Editor
+
+Périmètre certifié : previews, contextes projet, Dialogue, Combat, Titre, Pause, responsive, goldens Editor/Player et harness desktop Marionette. Aucun contrat persistant, schéma ou transport d'authoring n'a changé ; la parité MCP est donc `N/A` pour ce lot.
+
+| Gate | Résultat frais |
+|---|---|
+| Editor ciblé | `133/133`, succès en concurrence `1`. |
+| Player ciblé | `93/93`, succès en concurrence `1`. |
+| Analyse Editor | `8` périmètres analysés, aucun problème. |
+| Analyse Player | `9` fichiers analysés, aucun problème. |
+| Build Editor | `flutter build macos --release`, code `0`, bundle de `70,4 Mo`. |
+| Binaire | `packages/map_editor/build/macos/Build/Products/Release/PokeMap.app/Contents/MacOS/PokeMap`, SHA-256 `5d1d9ce31115b957ef75cc5e34432e337dee613075f39faea54e36d246444df1`. |
+
+Le premier passage Editor a produit `129` succès et `4` échecs exclusivement sur les goldens du shell complet : `1440x900`, `1024x768`, `720x900` à texte `200 %`, et Dialogue à `1672x941`. Ces quatre références dataient d'avant la simplification de l'en-tête de preview. Les rendus actuels ont été inspectés avant régénération : options secondaires repliées, scroll visible, canvas plus haut et aucun overflow. La relance complète est ensuite passée à `133/133`. Tous les artefacts temporaires de comparaison Flutter ont été supprimés.
+
+Verdict R6.8 : `DONE`.
