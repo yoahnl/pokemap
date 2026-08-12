@@ -9029,14 +9029,17 @@ class EditorNotifier extends _$EditorNotifier
   void _validatePlacedElementDelta({
     required MapData before,
     required MapData after,
-    required String instanceId,
+    required MapPlacedElement instance,
   }) {
     EditorPerformanceTelemetry.validateMapDelta(
       DeltaValidationContext(
         before: before,
         after: after,
         project: state.project,
-        delta: MapMutationDelta.placedElement(instanceId: instanceId),
+        delta: MapMutationDelta.placedElement(
+          instance: instance,
+          instanceIndex: after.placedElements.length - 1,
+        ),
       ),
     );
   }

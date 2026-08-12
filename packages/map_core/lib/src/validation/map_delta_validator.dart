@@ -26,8 +26,10 @@ sealed class MapMutationDelta {
     required Set<int> cellIndices,
   }) = SmartTileCellMapMutationDelta;
 
-  const factory MapMutationDelta.placedElement({required String instanceId}) =
-      PlacedElementMapMutationDelta;
+  const factory MapMutationDelta.placedElement({
+    required MapPlacedElement instance,
+    required int instanceIndex,
+  }) = PlacedElementMapMutationDelta;
 }
 
 final class TileCellMapMutationDelta extends MapMutationDelta {
@@ -63,9 +65,13 @@ final class SmartTileCellMapMutationDelta extends MapMutationDelta {
 }
 
 final class PlacedElementMapMutationDelta extends MapMutationDelta {
-  const PlacedElementMapMutationDelta({required this.instanceId});
+  const PlacedElementMapMutationDelta({
+    required this.instance,
+    required this.instanceIndex,
+  });
 
-  final String instanceId;
+  final MapPlacedElement instance;
+  final int instanceIndex;
 }
 
 final class DeltaValidationContext {
@@ -122,7 +128,7 @@ final class MapDeltaValidator {
   const MapDeltaValidator._();
 
   static MapDeltaValidationReceipt validate(DeltaValidationContext context) {
-    _validateMapEnvelope(context);
+    _validateMapIdentity(context);
     return switch (context.delta) {
       TileCellMapMutationDelta delta => _validateTileCells(context, delta),
       CollisionCellMapMutationDelta delta => _validateCollisionCells(
@@ -140,23 +146,14 @@ final class MapDeltaValidator {
     };
   }
 
-  static void _validateMapEnvelope(DeltaValidationContext context) {
+  static void _validateMapIdentity(DeltaValidationContext context) {
     final before = context.before;
     final after = context.after;
     if (before.id != after.id ||
         before.name != after.name ||
         before.size != after.size ||
         before.version != after.version ||
-        before.visualStack != after.visualStack ||
-        before.tilesetId != after.tilesetId ||
-        !_sameReferences(before.entities, after.entities) ||
-        !_sameReferences(before.connections, after.connections) ||
-        !_sameReferences(before.warps, after.warps) ||
-        !_sameReferences(before.triggers, after.triggers) ||
-        !_sameReferences(before.gameplayZones, after.gameplayZones) ||
-        before.mapMetadata != after.mapMetadata ||
-        !_sameMapEntries(before.properties, after.properties) ||
-        !_sameReferences(before.events, after.events)) {
+        before.tilesetId != after.tilesetId) {
       throw const ValidationException(
         'Incremental map validation received an undeclared map mutation',
       );
@@ -177,13 +174,6 @@ final class MapDeltaValidator {
         'Tile layer ${after.id} contains an undeclared mutation',
       );
     }
-    for (var index = 0; index < before.palette.length; index++) {
-      if (before.palette[index] != after.palette[index]) {
-        throw ValidationException(
-          'Tile layer ${after.id} changed an existing palette entry',
-        );
-      }
-    }
     final expectedCellCount =
         context.after.size.width * context.after.size.height;
     if (after.cells.length != expectedCellCount) {
@@ -193,13 +183,18 @@ final class MapDeltaValidator {
       );
     }
     final paletteEntries = <TileLayerPaletteEntry>{};
-    for (var index = 0; index < after.palette.length; index++) {
+    for (
+      var index = before.palette.length;
+      index < after.palette.length;
+      index++
+    ) {
       final entry = after.palette[index];
       if (entry.tilesetId.trim().isEmpty ||
           entry.tilesetId != entry.tilesetId.trim() ||
           entry.localTileId < 0 ||
           entry.transform.quarterTurns < 0 ||
           entry.transform.quarterTurns > 3 ||
+          before.palette.contains(entry) ||
           !paletteEntries.add(entry)) {
         throw ValidationException(
           'Tile layer ${after.id} has invalid palette entry at index $index',
@@ -218,11 +213,11 @@ final class MapDeltaValidator {
     }
     final placedCount = delta.placedElementLayerReindexed
         ? _validatePlacedElementLayer(context, after.id)
-        : _requirePlacedElementsUntouched(context);
+        : 0;
     return MapDeltaValidationReceipt(
       inspectedCellCount: delta.cellIndices.length,
-      inspectedLayerCount: context.after.layers.length,
-      inspectedResourceCount: 1 + after.palette.length,
+      inspectedLayerCount: 1,
+      inspectedResourceCount: 1 + after.palette.length - before.palette.length,
       inspectedPlacedElementCount: placedCount,
     );
   }
@@ -243,10 +238,9 @@ final class MapDeltaValidator {
       );
     }
     _validateIndices(delta.cellIndices, expectedCellCount, after.id);
-    _requirePlacedElementsUntouched(context);
     return MapDeltaValidationReceipt(
       inspectedCellCount: delta.cellIndices.length,
-      inspectedLayerCount: context.after.layers.length,
+      inspectedLayerCount: 1,
       inspectedResourceCount: 1,
       inspectedPlacedElementCount: 0,
     );
@@ -264,9 +258,6 @@ final class MapDeltaValidator {
         before.usage != after.usage ||
         before.layerSeed != after.layerSeed ||
         before.animationActivation != after.animationActivation ||
-        !_sameReferences(before.patternStrokes, after.patternStrokes) ||
-        !_sameMapEntries(before.candidateWeights, after.candidateWeights) ||
-        !_sameMapEntries(before.properties, after.properties) ||
         before.field.runtimeType != after.field.runtimeType) {
       throw ValidationException(
         'Smart Tile layer ${after.id} contains an undeclared mutation',
@@ -278,14 +269,6 @@ final class MapDeltaValidator {
         'Smart Tile layer ${after.id} removed a material palette entry',
       );
     }
-    for (var index = 0; index < before.materialPalette.length; index++) {
-      if (before.materialPalette[index] != palette[index]) {
-        throw ValidationException(
-          'Smart Tile layer ${after.id} changed an existing material palette '
-          'entry',
-        );
-      }
-    }
     if (palette.isEmpty || palette.first.isNotEmpty) {
       throw ValidationException(
         'Smart Tile layer ${after.id} materialPalette must start with the '
@@ -293,10 +276,15 @@ final class MapDeltaValidator {
       );
     }
     final materialIds = <String>{};
-    for (var index = 1; index < palette.length; index++) {
+    for (
+      var index = before.materialPalette.length;
+      index < palette.length;
+      index++
+    ) {
       final value = palette[index];
       if (value.trim().isEmpty ||
           value != value.trim() ||
+          before.materialPalette.contains(value) ||
           !materialIds.add(value)) {
         throw ValidationException(
           'Smart Tile layer ${after.id} has invalid material at palette '
@@ -304,7 +292,9 @@ final class MapDeltaValidator {
         );
       }
     }
-    _validateSmartTileProject(context.project, after, materialIds);
+    if (materialIds.isNotEmpty) {
+      _validateSmartTileProject(context.project, after, materialIds);
+    }
     final width = context.after.size.width;
     final height = context.after.size.height;
     final expectedCellCount = width * height;
@@ -389,15 +379,15 @@ final class MapDeltaValidator {
     for (final index in cornerIndices) {
       _validateMaterialIndex(after, 'corners', index, corners[index]);
     }
-    _requirePlacedElementsUntouched(context);
     return MapDeltaValidationReceipt(
       inspectedCellCount:
           delta.cellIndices.length +
           horizontalIndices.length +
           verticalIndices.length +
           cornerIndices.length,
-      inspectedLayerCount: context.after.layers.length,
-      inspectedResourceCount: 1 + palette.length,
+      inspectedLayerCount: 1,
+      inspectedResourceCount:
+          1 + palette.length - before.materialPalette.length,
       inspectedPlacedElementCount: 0,
     );
   }
@@ -406,46 +396,27 @@ final class MapDeltaValidator {
     DeltaValidationContext context,
     PlacedElementMapMutationDelta delta,
   ) {
-    _requireLayersUntouched(context);
-    final before = context.before.placedElements;
     final after = context.after.placedElements;
-    final oldIndex = before.indexWhere((entry) => entry.id == delta.instanceId);
-    final newIndex = after.indexWhere((entry) => entry.id == delta.instanceId);
-    if (newIndex < 0 ||
-        (oldIndex < 0 && after.length != before.length + 1) ||
-        (oldIndex >= 0 && after.length != before.length)) {
+    if (delta.instanceIndex < 0 ||
+        delta.instanceIndex >= after.length ||
+        after[delta.instanceIndex] != delta.instance ||
+        (after.length != context.before.placedElements.length &&
+            after.length != context.before.placedElements.length + 1)) {
       throw ValidationException(
-        'Placed element delta ${delta.instanceId} has an invalid collection '
-        'shape',
+        'Placed element delta ${delta.instance.id} does not match the '
+        'declared instance index',
       );
-    }
-    for (var index = 0; index < before.length; index++) {
-      if (index == oldIndex) continue;
-      final afterIndex = oldIndex < 0 ? index : index;
-      if (!identical(before[index], after[afterIndex])) {
-        throw ValidationException(
-          'Placed element delta ${delta.instanceId} changed another instance',
-        );
-      }
-    }
-    final seenIds = <String>{};
-    for (final instance in after) {
-      if (!seenIds.add(instance.id.trim())) {
-        throw ValidationException(
-          'Duplicate placed element instance ID: ${instance.id.trim()}',
-        );
-      }
     }
     MapValidator.validatePlacedElement(
       context.after,
-      after[newIndex],
+      delta.instance,
       projectDialogueContext: context.project,
     );
     return MapDeltaValidationReceipt(
       inspectedCellCount: 0,
-      inspectedLayerCount: context.after.layers.length,
+      inspectedLayerCount: 1,
       inspectedResourceCount: 1,
-      inspectedPlacedElementCount: after.length,
+      inspectedPlacedElementCount: 1,
     );
   }
 
@@ -458,22 +429,14 @@ final class MapDeltaValidator {
         'Incremental map validation cannot add or remove layers',
       );
     }
-    var targetIndex = -1;
-    for (var index = 0; index < context.before.layers.length; index++) {
-      final before = context.before.layers[index];
-      final after = context.after.layers[index];
-      if (before.id == layerId) {
-        targetIndex = index;
-        continue;
-      }
-      if (!identical(before, after)) {
-        throw ValidationException(
-          'Incremental map validation found an undeclared layer mutation: '
-          '${before.id}',
-        );
-      }
-    }
+    final targetIndex = context.before.layers.indexWhere(
+      (layer) => layer.id == layerId,
+    );
+    final afterTargetIndex = context.after.layers.indexWhere(
+      (layer) => layer.id == layerId,
+    );
     if (targetIndex < 0 ||
+        afterTargetIndex != targetIndex ||
         context.before.layers[targetIndex] is! T ||
         context.after.layers[targetIndex] is! T) {
       throw ValidationException(
@@ -484,20 +447,6 @@ final class MapDeltaValidator {
       before: context.before.layers[targetIndex] as T,
       after: context.after.layers[targetIndex] as T,
     );
-  }
-
-  static void _requireLayersUntouched(DeltaValidationContext context) {
-    if (context.before.layers.length != context.after.layers.length) {
-      throw const ValidationException('Placed element delta changed layers');
-    }
-    for (var index = 0; index < context.before.layers.length; index++) {
-      if (!identical(
-        context.before.layers[index],
-        context.after.layers[index],
-      )) {
-        throw const ValidationException('Placed element delta changed layers');
-      }
-    }
   }
 
   static void _validateLayerIdentity(MapLayer before, MapLayer after) {
@@ -571,49 +520,12 @@ final class MapDeltaValidator {
     }
   }
 
-  static int _requirePlacedElementsUntouched(DeltaValidationContext context) {
-    if (!_sameReferences(
-      context.before.placedElements,
-      context.after.placedElements,
-    )) {
-      throw const ValidationException(
-        'Incremental map validation found an undeclared placed element '
-        'mutation',
-      );
-    }
-    return 0;
-  }
-
   static int _validatePlacedElementLayer(
     DeltaValidationContext context,
     String layerId,
   ) {
-    final beforeOther = context.before.placedElements
-        .where((instance) => instance.layerId != layerId)
-        .toList(growable: false);
-    final afterOther = context.after.placedElements
-        .where((instance) => instance.layerId != layerId)
-        .toList(growable: false);
-    if (beforeOther.length != afterOther.length) {
-      throw const ValidationException(
-        'Tile delta changed placed elements on another layer',
-      );
-    }
-    for (var index = 0; index < beforeOther.length; index++) {
-      if (!identical(beforeOther[index], afterOther[index])) {
-        throw const ValidationException(
-          'Tile delta changed placed elements on another layer',
-        );
-      }
-    }
-    final seenIds = <String>{};
     var count = 0;
     for (final instance in context.after.placedElements) {
-      if (!seenIds.add(instance.id.trim())) {
-        throw ValidationException(
-          'Duplicate placed element instance ID: ${instance.id.trim()}',
-        );
-      }
       if (instance.layerId == layerId) {
         MapValidator.validatePlacedElement(
           context.after,
@@ -624,23 +536,5 @@ final class MapDeltaValidator {
       }
     }
     return count;
-  }
-
-  static bool _sameReferences<T>(List<T> before, List<T> after) {
-    if (before.length != after.length) return false;
-    for (var index = 0; index < before.length; index++) {
-      if (!identical(before[index], after[index])) return false;
-    }
-    return true;
-  }
-
-  static bool _sameMapEntries<K, V>(Map<K, V> before, Map<K, V> after) {
-    if (before.length != after.length) return false;
-    for (final entry in before.entries) {
-      if (!after.containsKey(entry.key) || after[entry.key] != entry.value) {
-        return false;
-      }
-    }
-    return true;
   }
 }
