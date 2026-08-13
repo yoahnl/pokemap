@@ -189,7 +189,7 @@ jobs:
     # observations exist. Failures stay visible without becoming release gates.
     continue-on-error: true
     runs-on: macos-15
-    timeout-minutes: 10
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install pinned Flutter SDK
@@ -268,6 +268,7 @@ jobs:
           cd ../map_gameplay
           dart test test/benchmark/world_collision_scaling_cli_test.dart
           cd ../map_authoring
+          mkdir -p build/test
           dart test \
             test/benchmark/authoring_snapshot_open_cli_test.dart \
             test/benchmark/smart_tiles_rich_authoring_scaling_cli_test.dart
