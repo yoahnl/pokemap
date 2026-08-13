@@ -1,0 +1,785 @@
+{
+  "contractId": "pokemap.cinematic-v2",
+  "formatVersion": 1,
+  "ticketId": "BETA-CIN-001",
+  "status": "review-candidate",
+  "projectSchema": {
+    "requiredVersion": "v7",
+    "requiredCapabilities": [
+      "scene.preSession",
+      "cinematic.presentation"
+    ],
+    "oldRuntimePolicy": "failClosed",
+    "legacyReadPolicy": "v6WithoutV2Only",
+    "futureVersionPolicy": "failClosed",
+    "presentationAssetSchemaVersion": 1
+  },
+  "assetFamilies": [
+    {
+      "id": "world",
+      "model": "CinematicAsset",
+      "idNamespace": "worldCinematic",
+      "sceneNodeKind": "worldCinematic",
+      "allowedSceneProfiles": [
+        "world"
+      ],
+      "polymorphicFallback": false
+    },
+    {
+      "id": "presentation",
+      "model": "PresentationCinematicAsset",
+      "idNamespace": "presentationCinematic",
+      "sceneNodeKind": "presentationCinematic",
+      "allowedSceneProfiles": [
+        "preSession",
+        "preview"
+      ],
+      "polymorphicFallback": false
+    }
+  ],
+  "sceneProfiles": [
+    {
+      "id": "world",
+      "allowedCapabilities": [
+        "world.dialogue",
+        "world.condition",
+        "world.action",
+        "world.battle",
+        "world.cinematic",
+        "world.branch",
+        "world.merge"
+      ],
+      "forbiddenCapabilities": []
+    },
+    {
+      "id": "preSession",
+      "allowedCapabilities": [
+        "flow.start",
+        "flow.end",
+        "flow.condition.draftLocal",
+        "flow.branch",
+        "flow.merge",
+        "presentation.cinematic",
+        "input.message",
+        "input.choice",
+        "input.text",
+        "input.confirmation",
+        "input.selection",
+        "draft.assign"
+      ],
+      "forbiddenCapabilities": [
+        "world.dialogue",
+        "world.action",
+        "world.battle",
+        "world.cinematic",
+        "world.map",
+        "world.warp",
+        "world.shop",
+        "world.pc",
+        "world.fact"
+      ],
+      "validationAuthority": "sharedCapabilityMatrix",
+      "runtimePolicy": "failClosed"
+    }
+  ],
+  "structuredInputs": {
+    "requestKinds": [
+      "message",
+      "choice",
+      "text",
+      "confirmation",
+      "selection"
+    ],
+    "resultKinds": [
+      "acknowledged",
+      "choiceSelected",
+      "textSubmitted",
+      "confirmed",
+      "selectionSubmitted",
+      "cancelled"
+    ],
+    "terminalEmission": "exactlyOnce",
+    "rawCharactersInRuntimeInputEvent": false,
+    "textUnit": "unicodeGraphemeCluster",
+    "imeCompositionRequired": true
+  },
+  "timeline": {
+    "tickUnit": "microsecond",
+    "ticksPerSecond": 1000000,
+    "intervalSemantics": "[startUs,endUs)",
+    "runtimeClock": "monotonic",
+    "editorSeek": "explicitDeterministic",
+    "pausePolicy": "freezeClock",
+    "trackKinds": [
+      "visual",
+      "audio",
+      "caption",
+      "interaction",
+      "marker"
+    ],
+    "simultaneousClips": true,
+    "zeroDurationPolicy": "markersOnly",
+    "nonLinearLogicAllowed": false,
+    "easingAuthority": "sharedEvaluator"
+  },
+  "executionOutcomes": {
+    "terminal": [
+      "completed",
+      "skipped",
+      "cancelled",
+      "failed"
+    ],
+    "emission": "exactlyOnce",
+    "disposedPolicy": "cancelledReasonNotOutcome",
+    "lateCallbackPolicy": "ignoredByRunToken",
+    "restorePolicy": "explicitCheckpointOnly"
+  },
+  "newGame": {
+    "entrypointField": "preSessionSceneId",
+    "projectConfig": "immutable",
+    "pipeline": "NewGameDraft->NewGameSeed->GameState",
+    "commit": "exactlyOnce",
+    "slotDecision": "beforePreSession",
+    "overwriteConfirmation": "beforePreSession",
+    "oldSaveOnNonCompletion": "untouched",
+    "crashPolicyV1": "abandonDraftAndReturnToTitle",
+    "stalePolicy": "rejectProjectRevisionOrRunTokenDrift",
+    "preloadPolicy": "immutableBytesOnlyAfterSlotDecision",
+    "preloadForbiddenObjects": [
+      "GameState",
+      "RuntimeSession",
+      "WorldInstance",
+      "SaveDescriptor"
+    ],
+    "commitTokenParts": [
+      "projectRevision",
+      "slotId",
+      "draftRevision"
+    ]
+  },
+  "migration": {
+    "sourceField": "starterSelectionSceneId",
+    "targetField": "preSessionSceneId",
+    "mode": "explicitOfflineDryRunThenApply",
+    "runtimeDualRead": false,
+    "automaticRuntimeMigration": false,
+    "compatibleSourceRequirement": "preSessionCapabilityWhitelist",
+    "incompatibleSourcePolicy": "blockWithoutMutation",
+    "postCutoverLegacyFieldPolicy": "reject"
+  },
+  "media": {
+    "logicalIdentity": "stableMediaId",
+    "contentIdentity": "sha256",
+    "projectPathPattern": "assets/presentation/cinematics/<mediaId>/<file>",
+    "packagePathPattern": "presentation/cinematics/media/<mediaId>/<file>",
+    "importTransaction": [
+      "stage",
+      "probeRealContent",
+      "validate",
+      "hash",
+      "publishManifestAtomically",
+      "cleanupOrRollback"
+    ],
+    "pathSecurity": [
+      "canonicalProjectRoot",
+      "rejectTraversal",
+      "rejectSymlinkEscape",
+      "recheckBeforePublish",
+      "verifyMimeAgainstHeader",
+      "boundedDecompression"
+    ],
+    "metadata": [
+      "poster",
+      "captions",
+      "locales",
+      "license",
+      "source",
+      "sha256"
+    ],
+    "audioModes": [
+      "muted",
+      "mixerManaged"
+    ],
+    "audioAuthority": "RuntimeAudioMixer",
+    "videoAudioDirectPlayback": false,
+    "cachePolicy": "boundedLruDisposeOnEvictionAndLifecycle",
+    "offlinePackageRequired": true
+  },
+  "securityAndBudgets": {
+    "maxArchiveBytes": 1073741824,
+    "maxArchiveEntries": 20000,
+    "maxFileBytes": 268435456,
+    "maxTotalPayloadBytes": 1073741824,
+    "maxImageDimension": 8192,
+    "maxImagePixels": 67108864,
+    "maxPresentationPayloadBytes": 230686720,
+    "maxSequenceDurationUs": 900000000,
+    "maxVideoWidth": 3840,
+    "maxVideoHeight": 2160,
+    "maxConcurrentVideoDecoders": 1,
+    "deviceCacheBytes": "profiledByBETA-CIN-032"
+  },
+  "packageOwnership": {
+    "packages": [
+      {
+        "id": "map_core",
+        "owns": [
+          "models",
+          "codecs",
+          "capabilityMatrix",
+          "stableErrors",
+          "NewGameDraft",
+          "NewGameSeed",
+          "pureTimelineEvaluator"
+        ]
+      },
+      {
+        "id": "map_gameplay",
+        "owns": [
+          "NewGameSeedToGameState"
+        ]
+      },
+      {
+        "id": "map_authoring",
+        "owns": [
+          "semanticOperations",
+          "semanticQueries",
+          "referenceGraph"
+        ]
+      },
+      {
+        "id": "map_runtime",
+        "owns": [
+          "preSessionOrchestration",
+          "runtimeClock",
+          "saveTransaction",
+          "RuntimeAudioMixer",
+          "mediaLifecyclePorts"
+        ]
+      },
+      {
+        "id": "map_player_ui",
+        "owns": [
+          "sharedPresentationRenderer",
+          "structuredInputWidgets",
+          "videoAdapter"
+        ]
+      },
+      {
+        "id": "map_distribution",
+        "owns": [
+          "mediaSecurity",
+          "offlinePackage",
+          "platformPreflight"
+        ]
+      },
+      {
+        "id": "map_editor",
+        "owns": [
+          "CinematicStudio",
+          "sharedRendererPreview",
+          "guidedAuthoring"
+        ]
+      }
+    ],
+    "dependencyEdges": [
+      {
+        "from": "map_gameplay",
+        "to": "map_core"
+      },
+      {
+        "from": "map_authoring",
+        "to": "map_core"
+      },
+      {
+        "from": "map_runtime",
+        "to": "map_core"
+      },
+      {
+        "from": "map_runtime",
+        "to": "map_gameplay"
+      },
+      {
+        "from": "map_runtime",
+        "to": "map_authoring"
+      },
+      {
+        "from": "map_player_ui",
+        "to": "map_core"
+      },
+      {
+        "from": "map_player_ui",
+        "to": "map_runtime"
+      },
+      {
+        "from": "map_distribution",
+        "to": "map_core"
+      },
+      {
+        "from": "map_editor",
+        "to": "map_authoring"
+      },
+      {
+        "from": "map_editor",
+        "to": "map_distribution"
+      },
+      {
+        "from": "map_editor",
+        "to": "map_gameplay"
+      },
+      {
+        "from": "map_editor",
+        "to": "map_player_ui"
+      }
+    ],
+    "forbiddenEdges": [
+      {
+        "from": "map_core",
+        "to": "map_runtime"
+      },
+      {
+        "from": "map_runtime",
+        "to": "map_player_ui"
+      },
+      {
+        "from": "map_authoring",
+        "to": "map_editor"
+      },
+      {
+        "from": "map_editor",
+        "to": "map_runtime"
+      }
+    ]
+  },
+  "sharedRenderer": {
+    "implementationOwner": "map_player_ui",
+    "runtimeSurfaceConsumer": "map_player_ui",
+    "runtimeStateSource": "map_runtime",
+    "previewConsumer": "map_editor",
+    "evaluatorOwner": "map_core",
+    "secondRendererAllowed": false,
+    "previewClock": "explicitEditorClock"
+  },
+  "authoringParity": {
+    "requiredTransports": [
+      "directApi",
+      "jsonlCli",
+      "editor",
+      "mcp"
+    ],
+    "resourceKinds": [
+      "cinematic",
+      "presentationCinematic",
+      "presentationMedia",
+      "scene"
+    ],
+    "actionPrefixes": [
+      "presentationCinematic.*",
+      "presentationMedia.*",
+      "scene.preSession.*"
+    ],
+    "wholeProjectJsonIsSemanticProof": false,
+    "transportCertification": "4/4Required"
+  },
+  "platformMatrix": [
+    {
+      "platform": "macOS",
+      "staticAndText": "target",
+      "audioVideo": "conditionalUntilBETA-CIN-047",
+      "packaging": "spmOnly"
+    },
+    {
+      "platform": "iOS",
+      "staticAndText": "target",
+      "audioVideo": "conditionalUntilBETA-CIN-047",
+      "packaging": "platformBuildRequired"
+    },
+    {
+      "platform": "Android",
+      "staticAndText": "target",
+      "audioVideo": "conditionalUntilBETA-CIN-047",
+      "packaging": "platformBuildRequired"
+    },
+    {
+      "platform": "Web",
+      "staticAndText": "target",
+      "audioVideo": "conditionalAutoplayAndOfflinePreflight",
+      "packaging": "webBuildRequired"
+    },
+    {
+      "platform": "Windows",
+      "staticAndText": "target",
+      "audioVideo": "unsupportedUntilPluginAndBuildCertification",
+      "packaging": "explicitPosterFallbackOrFail"
+    },
+    {
+      "platform": "Linux",
+      "staticAndText": "target",
+      "audioVideo": "unsupportedUntilPluginAndBuildCertification",
+      "packaging": "explicitPosterFallbackOrFail"
+    }
+  ],
+  "accessibilityAndInput": {
+    "required": [
+      "keyboard",
+      "touch",
+      "gamepad",
+      "ime",
+      "screenReader",
+      "focusOrder",
+      "localizedCaptions",
+      "skip",
+      "pause",
+      "replay"
+    ],
+    "reducedMotionPolicy": "userPreferenceWins",
+    "reducedFlashesPolicy": "userPreferenceWins",
+    "captionFallback": "localeThenProjectDefaultThenExplicitUnavailable"
+  },
+  "observability": {
+    "events": [
+      "prepare",
+      "start",
+      "fallback",
+      "skip",
+      "failure",
+      "dispose"
+    ],
+    "terminalEvent": "exactlyOnePerRun",
+    "correlationFields": [
+      "runId",
+      "projectRevision",
+      "assetId",
+      "contentHash",
+      "stableErrorCode"
+    ],
+    "forbiddenLogFields": [
+      "playerName",
+      "submittedText",
+      "subtitleText",
+      "absolutePath"
+    ],
+    "exportableDiagnostics": true
+  },
+  "performanceGates": {
+    "lifecycleCycles": 50,
+    "maxConcurrentVideoDecoders": 1,
+    "finalOpenMediaHandles": 0,
+    "rssDriftPercentCycles5To50": 10,
+    "skipP95Ms": 100,
+    "posterP95Ms": 500,
+    "firstVideoFrameP95Ms": 1000,
+    "maxMainIsolateStallMs": 100,
+    "uiFrameBudgetMs": 16.7,
+    "uiFramesWithinBudgetPercent": 99
+  },
+  "stableErrorCodes": [
+    "cinematic.presentation.project_version_unsupported",
+    "cinematic.presentation.asset_schema_unsupported",
+    "cinematic.presentation.capability_unsupported",
+    "cinematic.presentation.reference_missing",
+    "cinematic.presentation.media_missing",
+    "cinematic.presentation.media_unsupported",
+    "cinematic.presentation.media_corrupt",
+    "cinematic.presentation.media_security_rejected",
+    "cinematic.presentation.budget_exceeded",
+    "cinematic.presentation.playback_failed",
+    "scene.pre_session.capability_forbidden",
+    "scene.pre_session.entrypoint_invalid",
+    "new_game.draft_stale",
+    "new_game.overwrite_required",
+    "new_game.commit_duplicate",
+    "new_game.commit_failed",
+    "authoring.revision_conflict",
+    "authoring.transport_unsupported",
+    "platform.capability_unsupported"
+  ],
+  "deliveryRails": {
+    "preSessionTextOnly": {
+      "tickets": [
+        "BETA-CIN-003",
+        "BETA-CIN-004",
+        "BETA-CIN-005",
+        "BETA-CIN-007",
+        "BETA-CIN-016",
+        "BETA-CIN-034",
+        "BETA-CIN-035"
+      ],
+      "forbiddenDependencies": [
+        "cinematic.presentation"
+      ],
+      "canary": "BETA-CIN-035"
+    },
+    "presentation": {
+      "tickets": [
+        "BETA-CIN-002",
+        "BETA-CIN-013",
+        "BETA-CIN-014",
+        "BETA-CIN-017",
+        "BETA-CIN-018",
+        "BETA-CIN-019",
+        "BETA-CIN-020",
+        "BETA-CIN-021"
+      ],
+      "joinsPreSessionAt": "BETA-WLD-008"
+    }
+  },
+  "legacyCutover": {
+    "orderedTickets": [
+      "BETA-CIN-042",
+      "BETA-CIN-043",
+      "BETA-CIN-044",
+      "BETA-CIN-010"
+    ],
+    "dualReaderAfterCutover": false,
+    "legacyFallbackAfterCutover": false,
+    "automaticMigrationAfterCutover": false,
+    "certificationAfterCutover": [
+      "BETA-LCH-001",
+      "BETA-CIN-008"
+    ]
+  },
+  "nonGoalsV1": [
+    "production Dart models or codecs in BETA-CIN-001",
+    "runtime implementation in BETA-CIN-001",
+    "editor UI implementation in BETA-CIN-001",
+    "Yarn dialogue in preSession before a dedicated adapter",
+    "Presentation cinematics in world scenes before BETA-CIN-009",
+    "persistent NewGameDraft crash checkpoints",
+    "Windows or Linux video without BETA-CIN-047 certification",
+    "non-linear logic inside the presentation timeline",
+    "a second renderer or audio authority",
+    "automatic legacy conversion at runtime"
+  ],
+  "decisions": [
+    {
+      "id": "CIN-ADR-001",
+      "title": "Project version and capability gate",
+      "ownerPackages": [
+        "map_core"
+      ],
+      "consequence": "CIN-V2 project data requires V7 and old runtimes reject it before execution.",
+      "verificationTickets": [
+        "BETA-CIN-013",
+        "BETA-CIN-042"
+      ]
+    },
+    {
+      "id": "CIN-ADR-002",
+      "title": "Disjoint cinematic asset families",
+      "ownerPackages": [
+        "map_core"
+      ],
+      "consequence": "World and Presentation assets never share a nullable polymorphic model or identifier namespace.",
+      "verificationTickets": [
+        "BETA-CIN-002"
+      ]
+    },
+    {
+      "id": "CIN-ADR-003",
+      "title": "Scene profiles and capability matrix",
+      "ownerPackages": [
+        "map_core",
+        "map_authoring"
+      ],
+      "consequence": "Build, validation and runtime consume one fail-closed preSession capability matrix.",
+      "verificationTickets": [
+        "BETA-CIN-003",
+        "BETA-CIN-006"
+      ]
+    },
+    {
+      "id": "CIN-ADR-004",
+      "title": "Structured awaitable inputs",
+      "ownerPackages": [
+        "map_core",
+        "map_player_ui"
+      ],
+      "consequence": "Scene execution exchanges typed requests and results, never raw input characters.",
+      "verificationTickets": [
+        "BETA-CIN-004",
+        "BETA-CIN-039"
+      ]
+    },
+    {
+      "id": "CIN-ADR-005",
+      "title": "Absolute deterministic timeline",
+      "ownerPackages": [
+        "map_core"
+      ],
+      "consequence": "All tracks share integer microseconds and half-open clip intervals.",
+      "verificationTickets": [
+        "BETA-CIN-002",
+        "BETA-CIN-015"
+      ]
+    },
+    {
+      "id": "CIN-ADR-006",
+      "title": "Exactly-once execution outcome",
+      "ownerPackages": [
+        "map_core",
+        "map_runtime"
+      ],
+      "consequence": "Every execution emits one completed, skipped, cancelled or failed terminal outcome.",
+      "verificationTickets": [
+        "BETA-CIN-005",
+        "BETA-CIN-017"
+      ]
+    },
+    {
+      "id": "CIN-ADR-007",
+      "title": "Transactional New Game pipeline",
+      "ownerPackages": [
+        "map_core",
+        "map_gameplay",
+        "map_runtime"
+      ],
+      "consequence": "Draft creation, seed projection and GameState persistence are separated and commit exactly once.",
+      "verificationTickets": [
+        "BETA-CIN-016",
+        "BETA-CIN-045"
+      ]
+    },
+    {
+      "id": "CIN-ADR-008",
+      "title": "Single preSession entrypoint and controlled migration",
+      "ownerPackages": [
+        "map_core",
+        "map_authoring"
+      ],
+      "consequence": "Runtime reads only preSessionSceneId; starterSelectionSceneId can be converted only by an explicit compatible offline operation.",
+      "verificationTickets": [
+        "BETA-CIN-013",
+        "BETA-CIN-043"
+      ]
+    },
+    {
+      "id": "CIN-ADR-009",
+      "title": "preSession lifecycle and preload boundary",
+      "ownerPackages": [
+        "map_runtime"
+      ],
+      "consequence": "Slot and overwrite are resolved first; preload cannot create world or save state and is disposed on non-completion.",
+      "verificationTickets": [
+        "BETA-CIN-034",
+        "BETA-CIN-040"
+      ]
+    },
+    {
+      "id": "CIN-ADR-010",
+      "title": "Single audio and media lifecycle authority",
+      "ownerPackages": [
+        "map_runtime",
+        "map_player_ui"
+      ],
+      "consequence": "Video audio is muted or mixer-managed and every decoder/cache handle follows runtime lifecycle disposal.",
+      "verificationTickets": [
+        "BETA-CIN-018",
+        "BETA-CIN-032"
+      ]
+    },
+    {
+      "id": "CIN-ADR-011",
+      "title": "Transactional secure media catalog",
+      "ownerPackages": [
+        "map_authoring",
+        "map_distribution"
+      ],
+      "consequence": "Stable logical media IDs, content hashes, atomic import and reference-aware deletion protect package integrity.",
+      "verificationTickets": [
+        "BETA-CIN-014",
+        "BETA-CIN-028",
+        "BETA-CIN-029"
+      ]
+    },
+    {
+      "id": "CIN-ADR-012",
+      "title": "Shared evaluator and renderer",
+      "ownerPackages": [
+        "map_core",
+        "map_player_ui",
+        "map_editor"
+      ],
+      "consequence": "Runtime and Studio preview use the same renderer semantics and differ only by their clock source.",
+      "verificationTickets": [
+        "BETA-CIN-015",
+        "BETA-CIN-017",
+        "BETA-CIN-020"
+      ]
+    },
+    {
+      "id": "CIN-ADR-013",
+      "title": "Four-transport semantic authoring parity",
+      "ownerPackages": [
+        "map_authoring",
+        "map_editor"
+      ],
+      "consequence": "Direct API, JSONL/CLI, Editor and MCP expose the same Presentation and preSession semantics.",
+      "verificationTickets": [
+        "BETA-CIN-006",
+        "BETA-CIN-019",
+        "BETA-CIN-044"
+      ]
+    },
+    {
+      "id": "CIN-ADR-014",
+      "title": "Accessibility and input are contract requirements",
+      "ownerPackages": [
+        "map_core",
+        "map_player_ui",
+        "map_editor"
+      ],
+      "consequence": "Reduced motion and flashes, captions, focus and all supported input families are certifiable behavior.",
+      "verificationTickets": [
+        "BETA-CIN-011",
+        "BETA-CIN-039",
+        "BETA-CIN-041"
+      ]
+    },
+    {
+      "id": "CIN-ADR-015",
+      "title": "Stable diagnostics and privacy",
+      "ownerPackages": [
+        "map_core",
+        "map_runtime",
+        "map_authoring"
+      ],
+      "consequence": "Stable codes correlate execution without recording names, authored text, captions or absolute paths.",
+      "verificationTickets": [
+        "BETA-CIN-030",
+        "BETA-CIN-033"
+      ]
+    },
+    {
+      "id": "CIN-ADR-016",
+      "title": "Measured performance and platform promotion",
+      "ownerPackages": [
+        "map_runtime",
+        "map_distribution"
+      ],
+      "consequence": "Budgets and platform support are promoted only by fresh lifecycle, build and packaging evidence.",
+      "verificationTickets": [
+        "BETA-CIN-032",
+        "BETA-CIN-047",
+        "BETA-LCH-001"
+      ]
+    },
+    {
+      "id": "CIN-ADR-017",
+      "title": "Canary-first strict legacy cutover",
+      "ownerPackages": [
+        "map_core",
+        "map_runtime",
+        "map_authoring",
+        "map_editor"
+      ],
+      "consequence": "Legacy readers, writers, bridges and fallbacks are removed only after canary proof and never survive the cutover gate.",
+      "verificationTickets": [
+        "BETA-CIN-042",
+        "BETA-CIN-043",
+        "BETA-CIN-044",
+        "BETA-CIN-010"
+      ]
+    }
+  ]
+}

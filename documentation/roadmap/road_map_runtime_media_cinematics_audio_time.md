@@ -600,6 +600,8 @@ Un lot ne peut être proposé comme terminé que si les preuves fraîches compre
 
 **Sortie obligatoire :** schéma/version, timebase, capabilities, packages, audio/vidéo, preload, draft/crash, entrypoint, migration, plateformes, cutover legacy et gates de preuve sont tous tranchés. Ce ticket ne crée encore ni modèle Dart, ni runtime, ni UI.
 
+**Contrats proposés à la review :** [`cinematic_v2_architecture_contract.md`](../architecture/cinematic_v2_architecture_contract.md) et [`cinematic_v2_contract_v1.json`](../architecture/contracts/cinematic_v2_contract_v1.json). Ils restent `review-candidate` jusqu'à la validation explicite de Yoahn ; les lots dépendants ne doivent pas les traiter comme figés avant cette validation.
+
 ### BETA-CIN-012 — Caractériser la baseline UI en parallèle
 
 **Objectif :** rendre reproductibles le timer pendant et les goldens Cinematics déjà rouges afin que les lots UI futurs ne puissent pas masquer une régression derrière la dette existante.
