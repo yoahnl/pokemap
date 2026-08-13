@@ -95,7 +95,7 @@ jobs:
               r"expectedSpanCount:) 90,"
           )
           driver_source, tile_count = tile_pattern.subn(
-              r"\1 180,",
+              r"\1 154,",
               driver_source,
               count=1,
           )
@@ -120,7 +120,7 @@ jobs:
           grep -n "strokeCount + 1" \
             build/performance/editor_project_journey_phase_isolated.dart \
             build/performance/performance_driver_buffered.dart
-          grep -n "expectedSpanCount: 180" \
+          grep -n "expectedSpanCount: 154" \
             build/performance/performance_driver_buffered.dart
           test -z "$(git status --porcelain)"
       - name: Run canonical project gate with buffered instrumentation contract
