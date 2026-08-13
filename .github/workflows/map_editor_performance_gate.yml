@@ -1,0 +1,81 @@
+name: Map Editor performance gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      performance_soak_minutes:
+        description: Run the editor paint and undo soak for this many minutes
+        required: true
+        default: 30
+        type: number
+  pull_request:
+    paths:
+      - "packages/map_editor/**"
+      - "apps/pokemap_hub/test/release/map_editor_performance_gate_workflow_test.dart"
+      - ".github/workflows/map_editor_performance_gate.yml"
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.46.0-0.3.pre
+  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+
+jobs:
+  map-editor-performance-gate:
+    runs-on: macos-15
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Verify editor performance receipt contracts
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter test --no-pub \
+            test/performance_driver_contract_test.dart \
+            test/fine_mask_performance_contract_test.dart
+      - name: Run sequential editor profile gates
+        working-directory: packages/map_editor
+        env:
+          PERF_SOAK_MINUTES: ${{ github.event_name == 'workflow_dispatch' && inputs.performance_soak_minutes || github.head_ref == 'codex/perf-009-soak-gate-v2' && 30 || 0 }}
+        run: |
+          set -euo pipefail
+          mkdir -p build/performance
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/editor_project_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/editor_canvas_projection_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_canvas_projection_journey.json
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/editor_performance_soak_journey_test.dart \
+            --dart-define=POKEMAP_PERF_SOAK_MINUTES="$PERF_SOAK_MINUTES" \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_performance_soak_journey.json
+          flutter drive --profile -d macos \
+            --driver=test_driver/fine_mask_performance_driver.dart \
+            --target=integration_test/editor_fine_mask_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_fine_mask_journey.json
+      - name: Preserve blocking editor performance receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pokemap-editor-performance-gate-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            packages/map_editor/build/performance/editor_project_journey.json
+            packages/map_editor/build/performance/editor_canvas_projection_journey.json
+            packages/map_editor/build/performance/editor_performance_soak_journey.json
+            packages/map_editor/build/performance/editor_fine_mask_journey.json
