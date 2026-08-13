@@ -16,6 +16,7 @@ import 'package:map_editor/src/features/border_map_editing/state/border_preview_
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
+import 'package:map_editor/src/application/models/map_history_entry.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:path/path.dart' as p;
@@ -89,10 +90,9 @@ void main() {
           fixture.notifier.state.mapUndoStack,
           hasLength(initialHistoryLength + 1),
         );
-        expect(
-          fixture.notifier.state.mapUndoStack.last.map,
-          same(fixture.baseMap),
-        );
+        final historyEntry =
+            fixture.notifier.state.mapUndoStack.last as MapHistoryDeltaEntry;
+        expect(historyEntry.delta.applyBackward(candidate), fixture.baseMap);
         expect(fixture.notifier.state.mapRedoStack, isEmpty);
         expect(fixture.notifier.state.savedMapSnapshot, same(candidate));
         expect(fixture.notifier.state.isDirty, isFalse);

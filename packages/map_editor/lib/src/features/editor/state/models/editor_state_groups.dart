@@ -2,6 +2,7 @@ import 'dart:ui' show Offset;
 
 import 'package:map_core/map_core.dart';
 
+import '../../../../application/models/map_history_entry.dart';
 import '../../../../application/models/map_history_snapshot.dart';
 import '../../tools/editor_tool.dart';
 import '../editor_state.dart';
@@ -246,8 +247,8 @@ class EditorDocumentStatusState {
     required this.errorMessage,
   });
 
-  final List<MapHistorySnapshot> mapUndoStack;
-  final List<MapHistorySnapshot> mapRedoStack;
+  final List<MapHistoryEntry> mapUndoStack;
+  final List<MapHistoryEntry> mapRedoStack;
   final MapHistorySnapshot? mapStrokeStart;
   final MapData? savedMapSnapshot;
   final bool canUndoMap;
@@ -259,8 +260,8 @@ class EditorDocumentStatusState {
   final String? errorMessage;
 
   EditorDocumentStatusState copyWith({
-    List<MapHistorySnapshot>? mapUndoStack,
-    List<MapHistorySnapshot>? mapRedoStack,
+    List<MapHistoryEntry>? mapUndoStack,
+    List<MapHistoryEntry>? mapRedoStack,
     Object? mapStrokeStart = _editorStateGroupsUnset,
     Object? savedMapSnapshot = _editorStateGroupsUnset,
     bool? canUndoMap,

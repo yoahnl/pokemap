@@ -217,6 +217,17 @@ jobs:
             test/evaluation/interactive_frame_metrics_test.dart \
             test/evaluation/interactive_worker_client_test.dart \
             test/evaluation/pokemap_eval_cli_test.dart
+      - name: Collect bounded editor history receipt
+        continue-on-error: true
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          dart run benchmark/map_history_delta_scaling.dart \
+            --warmups 1 --samples 5 --entries 10000 --operations 10000 \
+            --tile-extent 1024 \
+            --output build/performance/map_history_delta_scaling.json
+          flutter test --no-pub \
+            test/benchmark/map_history_delta_scaling_cli_test.dart
       - name: Collect editor profile journey
         continue-on-error: true
         working-directory: packages/map_editor

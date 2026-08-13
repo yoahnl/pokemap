@@ -223,8 +223,8 @@ return $default(_that.map,_that.activeLayerId,_that.selectedEntityId,_that.selec
 /// @nodoc
 
 
-class _MapHistorySnapshot implements MapHistorySnapshot {
-  const _MapHistorySnapshot({required this.map, this.activeLayerId, this.selectedEntityId, this.selectedWarpId, this.selectedTriggerId, this.selectedMapEventId, this.selectedGameplayZoneId, this.selectedPlacedElementInstanceId, this.npcWaypointPlacementEntityId, this.wasDirty = false});
+class _MapHistorySnapshot extends MapHistorySnapshot {
+  const _MapHistorySnapshot({required this.map, this.activeLayerId, this.selectedEntityId, this.selectedWarpId, this.selectedTriggerId, this.selectedMapEventId, this.selectedGameplayZoneId, this.selectedPlacedElementInstanceId, this.npcWaypointPlacementEntityId, this.wasDirty = false}): super._();
   
 
 @override final  MapData map;

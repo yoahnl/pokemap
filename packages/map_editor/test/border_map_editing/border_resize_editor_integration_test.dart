@@ -3,6 +3,7 @@ import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/use_case_providers.dart';
+import 'package:map_editor/src/application/models/map_history_entry.dart';
 import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_preview_providers.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -101,7 +102,9 @@ void main() {
       expect(resized, isNot(same(source)));
       expect(resized.size, const GridSize(width: 2, height: 1));
       expect(notifier.state.mapUndoStack, hasLength(1));
-      expect(notifier.state.mapUndoStack.single.map, same(source));
+      final historyEntry =
+          notifier.state.mapUndoStack.single as MapHistoryDeltaEntry;
+      expect(historyEntry.delta.applyBackward(resized), source);
       expect(notifier.state.hoveredTile, isNull);
 
       expect(container.read(borderResizeFeedbackProvider), isNull);
