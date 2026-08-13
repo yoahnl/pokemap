@@ -244,18 +244,45 @@ void main() {
 |---|---|---|
 | FG-024 | `DONE` | summary duplicate |
 | FG-999 | `TODO` | summary-only lot |
+| ID | Lot | Statut | Preuve |
+|---|---|---|---|
+| FG-Y | malformed after summary | ??? | — |
 ''',
         gameplayReports: const <String, String>{},
       );
 
       expect(dashboard.entries.single.id, 'FG-024');
       expect(dashboard.entries.single.status, GameplayRoadmapStatus.done);
+      expect(
+        dashboard.diagnostics.map((diagnostic) => diagnostic.code),
+        everyElement(GameplayRoadmapDiagnosticCode.malformedCanonicalLotRow),
+      );
+      expect(
+        dashboard.diagnostics.map((diagnostic) => diagnostic.lotId),
+        orderedEquals(<String>['FG-025', 'FG-Y']),
+      );
+    });
+
+    test('does not treat an arbitrary FG row as a summary header', () {
+      final dashboard = GameplayRoadmapDashboard.build(
+        roadmapMarkdown: '''
+| ID | Lot | Statut | Preuve |
+|---|---|---|---|
+| FG-024 | Capture | `DONE` | canonical report |
+
+| FG | arbitrary row | not a summary header |
+| FG-X | malformed canonical row | ??? | — |
+''',
+        gameplayReports: const <String, String>{},
+      );
+
+      expect(dashboard.entries.single.id, 'FG-024');
       expect(dashboard.diagnostics, hasLength(1));
       expect(
         dashboard.diagnostics.single.code,
         GameplayRoadmapDiagnosticCode.malformedCanonicalLotRow,
       );
-      expect(dashboard.diagnostics.single.lotId, 'FG-025');
+      expect(dashboard.diagnostics.single.lotId, 'FG-X');
     });
 
     test('one fresh structured receipt can prove several canonical lots', () {

@@ -146,13 +146,13 @@ final class GameplayRoadmapDashboard {
 
       final cells = _splitMarkdownTableRow(line);
       final candidateId = cells.length > 1 ? cells[1] : '';
-      if (candidateId.toUpperCase() == 'FG') {
+      final nextLine = index + 1 < lines.length ? lines[index + 1] : null;
+      if (_isFgSummaryTableHeader(cells, nextLine)) {
         insideFgSummaryTable = true;
         continue;
       }
       if (insideFgSummaryTable) {
-        final trimmedLine = line.trim();
-        if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
+        if (_isFgSummaryTableRow(cells)) {
           continue;
         }
         insideFgSummaryTable = false;
@@ -506,6 +506,30 @@ GameplayRoadmapEvidenceState _diagnoseStructuredEvidence({
 }
 
 bool _isCodeFence(String line) => RegExp(r'^\s*(?:`{3,}|~{3,})').hasMatch(line);
+
+bool _isFgSummaryTableRow(List<String> cells) =>
+    cells.length == 5 && cells.first.isEmpty && cells.last.isEmpty;
+
+bool _isFgSummaryTableHeader(List<String> cells, String? nextLine) {
+  if (nextLine == null ||
+      cells.length != 5 ||
+      cells.first.isNotEmpty ||
+      cells.last.isNotEmpty ||
+      cells[1].toUpperCase() != 'FG' ||
+      !cells[2].toLowerCase().startsWith('statut') ||
+      !cells[3].toLowerCase().startsWith('preuve')) {
+    return false;
+  }
+
+  final dividerCells = _splitMarkdownTableRow(nextLine);
+  return dividerCells.length == cells.length &&
+      dividerCells.first.isEmpty &&
+      dividerCells.last.isEmpty &&
+      dividerCells
+          .skip(1)
+          .take(dividerCells.length - 2)
+          .every((cell) => RegExp(r'^:?-{3,}:?$').hasMatch(cell));
+}
 
 List<String> _splitMarkdownTableRow(String line) {
   final cells = <String>[];
