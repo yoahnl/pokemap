@@ -95,9 +95,9 @@ jobs:
             --candidate-sha "$GITHUB_SHA" \
             ../..
 
-  map-editor-quality:
+  map-editor-functional-quality:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install pinned Flutter SDK
@@ -115,9 +115,25 @@ jobs:
           flutter pub get
           flutter test --no-pub --timeout 2m -r expanded
           flutter analyze --no-pub
+
+  map-editor-performance-quality:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - name: Map editor performance lane
         working-directory: packages/map_editor
         run: |
+          flutter pub get
           for run_number in 1 2 3; do
             echo "Performance process $run_number of 3"
             flutter test --no-pub --timeout 2m -r expanded \

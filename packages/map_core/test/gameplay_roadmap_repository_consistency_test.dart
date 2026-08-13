@@ -7,14 +7,20 @@ void main() {
   test('repository roadmap has unique coherent canonical gameplay lots',
       () async {
     final roadmapFile = File('../../pokemap_roadmap_mecaniques_fangame.md');
-    final reportsDirectory = Directory('../../reports/gameplay');
+    final reportsDirectory = Directory('../../documentation/reports/gameplay');
     final reports = <String, String>{};
-    await for (final entity in reportsDirectory.list()) {
+    await for (final entity in reportsDirectory.list(
+      recursive: true,
+      followLinks: false,
+    )) {
       if (entity is! File || !entity.path.toLowerCase().endsWith('.md')) {
         continue;
       }
-      final name = entity.uri.pathSegments.last;
-      reports['reports/gameplay/$name'] = await entity.readAsString();
+      final relativePath = entity.path
+          .substring(reportsDirectory.path.length + 1)
+          .replaceAll(Platform.pathSeparator, '/');
+      reports['documentation/reports/gameplay/$relativePath'] =
+          await entity.readAsString();
     }
 
     final dashboard = GameplayRoadmapDashboard.build(

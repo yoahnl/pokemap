@@ -232,6 +232,32 @@ void main() {
       expect(dashboard.hasBlockingDiagnostics, isFalse);
     });
 
+    test('ignores FG summary tables without masking malformed rows', () {
+      final dashboard = GameplayRoadmapDashboard.build(
+        roadmapMarkdown: '''
+| ID | Lot | Statut | Preuve |
+|---|---|---|---|
+| FG-024 | Capture | `DONE` | canonical report |
+| FG-025 | Party full | `UNKNOWN` | malformed canonical row |
+
+| FG | Statut recertifié | Preuve fraîche et limite |
+|---|---|---|
+| FG-024 | `DONE` | summary duplicate |
+| FG-999 | `TODO` | summary-only lot |
+''',
+        gameplayReports: const <String, String>{},
+      );
+
+      expect(dashboard.entries.single.id, 'FG-024');
+      expect(dashboard.entries.single.status, GameplayRoadmapStatus.done);
+      expect(dashboard.diagnostics, hasLength(1));
+      expect(
+        dashboard.diagnostics.single.code,
+        GameplayRoadmapDiagnosticCode.malformedCanonicalLotRow,
+      );
+      expect(dashboard.diagnostics.single.lotId, 'FG-025');
+    });
+
     test('one fresh structured receipt can prove several canonical lots', () {
       final dashboard = GameplayRoadmapDashboard.build(
         roadmapMarkdown: '''
@@ -572,7 +598,8 @@ void main() {
           await Directory.systemTemp.createTemp('pokemap_dashboard_render_');
       addTearDown(() => temporaryRoot.delete(recursive: true));
       await Directory(
-        '${temporaryRoot.path}${Platform.pathSeparator}reports'
+        '${temporaryRoot.path}${Platform.pathSeparator}documentation'
+        '${Platform.pathSeparator}reports'
         '${Platform.pathSeparator}gameplay',
       ).create(recursive: true);
       await File(
@@ -605,7 +632,8 @@ void main() {
           await Directory.systemTemp.createTemp('pokemap_dashboard_nested_');
       addTearDown(() => temporaryRoot.delete(recursive: true));
       final nested = await Directory(
-        '${temporaryRoot.path}${Platform.pathSeparator}reports'
+        '${temporaryRoot.path}${Platform.pathSeparator}documentation'
+        '${Platform.pathSeparator}reports'
         '${Platform.pathSeparator}gameplay${Platform.pathSeparator}nested',
       ).create(recursive: true);
       await File(
@@ -672,7 +700,8 @@ void main() {
       addTearDown(() => temporaryRoot.delete(recursive: true));
       addTearDown(() => externalEvidence.delete(recursive: true));
       await Directory(
-        '${temporaryRoot.path}${Platform.pathSeparator}reports'
+        '${temporaryRoot.path}${Platform.pathSeparator}documentation'
+        '${Platform.pathSeparator}reports'
         '${Platform.pathSeparator}gameplay',
       ).create(recursive: true);
       await File(
@@ -727,7 +756,8 @@ void main() {
           await Directory.systemTemp.createTemp('pokemap_dashboard_check_');
       addTearDown(() => temporaryRoot.delete(recursive: true));
       await Directory(
-        '${temporaryRoot.path}${Platform.pathSeparator}reports'
+        '${temporaryRoot.path}${Platform.pathSeparator}documentation'
+        '${Platform.pathSeparator}reports'
         '${Platform.pathSeparator}gameplay',
       ).create(recursive: true);
       await File(
@@ -740,7 +770,8 @@ void main() {
 | FG-180 | Duplicate | `✅ DONE` | report |
 ''');
       await File(
-        '${temporaryRoot.path}${Platform.pathSeparator}reports'
+        '${temporaryRoot.path}${Platform.pathSeparator}documentation'
+        '${Platform.pathSeparator}reports'
         '${Platform.pathSeparator}gameplay${Platform.pathSeparator}'
         'fg_180_readiness.md',
       ).writeAsString('Proposed status: **DONE**\n');

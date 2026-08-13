@@ -133,10 +133,12 @@ final class GameplayRoadmapDashboard {
     final parsedLots = <_ParsedCanonicalLot>[];
     final canonicalIds = <String>{};
     var insideCodeFence = false;
+    var insideFgSummaryTable = false;
     final lines = roadmapMarkdown.split('\n');
     for (var index = 0; index < lines.length; index++) {
       final line = lines[index];
       if (_isCodeFence(line)) {
+        insideFgSummaryTable = false;
         insideCodeFence = !insideCodeFence;
         continue;
       }
@@ -144,6 +146,17 @@ final class GameplayRoadmapDashboard {
 
       final cells = _splitMarkdownTableRow(line);
       final candidateId = cells.length > 1 ? cells[1] : '';
+      if (candidateId.toUpperCase() == 'FG') {
+        insideFgSummaryTable = true;
+        continue;
+      }
+      if (insideFgSummaryTable) {
+        final trimmedLine = line.trim();
+        if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
+          continue;
+        }
+        insideFgSummaryTable = false;
+      }
       if (!candidateId.toUpperCase().startsWith('FG-')) continue;
 
       final lineNumber = index + 1;

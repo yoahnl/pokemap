@@ -81,6 +81,122 @@ void main() {
     );
   });
 
+  test('isolates map editor functional and performance quality lanes', () {
+    final repositoryRoot = Directory.current.parent.parent;
+    final workflow = File(
+      '${repositoryRoot.path}/.github/workflows/'
+      'pokemap_hub_product_certification.yml',
+    ).readAsStringSync();
+
+    String job(String name, String nextName) {
+      final start = workflow.indexOf('  $name:');
+      final end = workflow.indexOf('\n  $nextName:', start);
+      expect(start, greaterThanOrEqualTo(0), reason: 'Missing job: $name');
+      expect(end, greaterThan(start), reason: 'Missing job: $nextName');
+      return workflow.substring(start, end);
+    }
+
+    expect(workflow, isNot(contains('\n  map-editor-quality:\n')));
+    final functionalJob = job(
+      'map-editor-functional-quality',
+      'map-editor-performance-quality',
+    );
+    final performanceJob = job(
+      'map-editor-performance-quality',
+      'map-editor-performance-gate',
+    );
+    expect(
+      functionalJob,
+      allOf(
+        startsWith(
+          '  map-editor-functional-quality:\n'
+          '    runs-on: macos-15\n'
+          '    timeout-minutes: 60\n',
+        ),
+        endsWith(
+          '          flutter pub get\n'
+          '          flutter test --no-pub --timeout 2m -r expanded\n'
+          '          flutter analyze --no-pub\n',
+        ),
+      ),
+    );
+    expect(
+      performanceJob,
+      allOf(
+        startsWith(
+          '  map-editor-performance-quality:\n'
+          '    runs-on: macos-15\n'
+          '    timeout-minutes: 45\n',
+        ),
+        contains('      - name: Install pinned Flutter SDK\n'),
+        contains(r'"refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"'),
+        contains(r'= "$FLUTTER_REVISION"'),
+        contains('for run_number in 1 2 3; do'),
+      ),
+    );
+    expect(
+      RegExp(r'^          flutter pub get$', multiLine: true)
+          .allMatches(performanceJob),
+      hasLength(1),
+    );
+    expect(
+      RegExp(
+        r'^            flutter test --no-pub --timeout 2m -r expanded \\$',
+        multiLine: true,
+      ).allMatches(performanceJob),
+      hasLength(1),
+    );
+    for (final flag in const <String>[
+      '--tags performance',
+      '--run-skipped',
+      '--concurrency=1',
+    ]) {
+      expect(
+        RegExp(
+          '^              ${RegExp.escape(flag)} ' r'\\$',
+          multiLine: true,
+        ).allMatches(performanceJob),
+        hasLength(1),
+        reason: flag,
+      );
+    }
+
+    const manifests = <String>[
+      'test/cinematic_builder_characterization_performance_test.dart',
+      'test/event_registry_persistence_performance_test.dart',
+      'test/narrative_event_authoring_snapshot_performance_test.dart',
+      'test/narrative_event_validation_incremental_performance_test.dart',
+      'test/narrative_global_search_performance_test.dart',
+      'test/narrative_large_project_workspace_performance_test.dart',
+    ];
+    final declaredManifests = RegExp(
+      r'(test/[a-z0-9_]+_performance_test\.dart)',
+    ).allMatches(performanceJob).map((match) => match.group(1)).toList();
+    expect(declaredManifests, orderedEquals(manifests));
+    expect(
+      manifests.where(
+        (path) => !File(
+          '${repositoryRoot.path}/packages/map_editor/$path',
+        ).existsSync(),
+      ),
+      isEmpty,
+    );
+    expect(
+      workflow,
+      allOf(
+        contains(
+          '\n  map-editor-performance-gate:\n'
+          "    if: github.event_name != 'pull_request'\n",
+        ),
+        contains(
+          '\n  performance-observation:\n'
+          '    needs: map-editor-performance-gate\n'
+          "    if: github.event_name != 'pull_request'\n",
+        ),
+      ),
+    );
+  });
+
   test('performance workflow has a blocking sequential PERF-009 gate', () {
     final repositoryRoot = Directory.current.parent.parent;
     final workflow =
