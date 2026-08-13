@@ -29,5 +29,15 @@ abstract class MapHistorySnapshot
   int get sequence => 0;
 
   @override
-  int get retainedBytes => estimateMapDataSnapshotBytes(map) + 96;
+  int get retainedBytes =>
+      estimateMapDataSnapshotBytes(map) +
+      estimateMapHistoryValueBytes(activeLayerId) +
+      estimateMapHistoryValueBytes(selectedEntityId) +
+      estimateMapHistoryValueBytes(selectedWarpId) +
+      estimateMapHistoryValueBytes(selectedTriggerId) +
+      estimateMapHistoryValueBytes(selectedMapEventId) +
+      estimateMapHistoryValueBytes(selectedGameplayZoneId) +
+      estimateMapHistoryValueBytes(selectedPlacedElementInstanceId) +
+      estimateMapHistoryValueBytes(npcWaypointPlacementEntityId) +
+      96;
 }
