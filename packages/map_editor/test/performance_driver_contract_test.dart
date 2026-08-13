@@ -14,6 +14,140 @@ void main() {
     );
   });
 
+  test('rejects an unsupported editor performance target', () {
+    expect(
+      () => performance_driver.validatePerformanceResponse(<String, dynamic>{
+        'schemaVersion': 2,
+        'target': 'integration_test/unsupported_performance_test.dart',
+      }),
+      throwsFormatException,
+    );
+  });
+
+  test('accepts a complete PERF-009 soak receipt', () {
+    expect(
+      () => performance_driver.validatePerformanceResponse(_validSoakReceipt()),
+      returnsNormally,
+    );
+  });
+
+  test('rejects persistence work inside the paint undo soak', () {
+    final receipt = _validSoakReceipt();
+    final scenario = receipt['scenarioA']! as Map<String, Object?>;
+    final cycles = scenario['cycles']! as List<Map<String, Object?>>;
+    final instrumentation =
+        cycles.first['paintInstrumentation']! as Map<String, Object?>;
+    final counters = instrumentation['counters']! as Map<String, Object?>;
+    counters['filesystem.write'] = 1;
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects falsified post-GC soak growth', () {
+    final receipt = _validSoakReceipt();
+    final scenario = receipt['scenarioA']! as Map<String, Object?>;
+    scenario['heapGrowthBytes'] = 0;
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects post-GC soak growth at the declared budget', () {
+    final receipt = _validSoakReceipt();
+    final scenario = receipt['scenarioA']! as Map<String, Object?>;
+    scenario['memoryAfterSoak'] = _memory(heapAfterGcBytes: 34 * 1024 * 1024);
+    scenario['heapGrowthBytes'] = 32 * 1024 * 1024;
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects dropped paint soak instrumentation samples', () {
+    final receipt = _validSoakReceipt();
+    final scenario = receipt['scenarioA']! as Map<String, Object?>;
+    final cycles = scenario['cycles']! as List<Map<String, Object?>>;
+    final instrumentation =
+        cycles.first['paintInstrumentation']! as Map<String, Object?>;
+    instrumentation['droppedSampleCount'] = 1;
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects a large-project soak below 10000 elements', () {
+    final receipt = _validSoakReceipt();
+    final scenario = receipt['scenarioC']! as Map<String, Object?>;
+    scenario['placedElementCount'] = 9999;
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects large-project save samples above their budget', () {
+    final receipt = _validSoakReceipt();
+    final scenario = receipt['scenarioC']! as Map<String, Object?>;
+    scenario['saveMetrics'] = _sampleMetrics(List<int>.filled(5, 5000000));
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test(
+    'keeps debug soak timing observational while validating its receipt',
+    () {
+      final receipt = _validSoakReceipt();
+      receipt['executionMode'] = 'flutter-debug';
+      final scenario = receipt['scenarioC']! as Map<String, Object?>;
+      final cycles = scenario['cycles']! as List<Map<String, Object?>>;
+      for (final cycle in cycles) {
+        cycle['saveUs'] = 5000000;
+      }
+      scenario['saveMetrics'] = _sampleMetrics(List<int>.filled(5, 5000000));
+
+      expect(
+        () => performance_driver.validatePerformancePayload(receipt),
+        returnsNormally,
+      );
+    },
+  );
+
+  test('rejects filesystem work inside a large-project mutation', () {
+    final receipt = _validSoakReceipt();
+    final scenario = receipt['scenarioC']! as Map<String, Object?>;
+    final cycles = scenario['cycles']! as List<Map<String, Object?>>;
+    final instrumentation =
+        cycles.first['mutationInstrumentation']! as Map<String, Object?>;
+    final counters = instrumentation['counters']! as Map<String, Object?>;
+    counters['filesystem.read'] = 1;
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects a missing fine-mask soak companion', () {
+    final receipt = _validSoakReceipt()..remove('scenarioB');
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
   test('rejects an incomplete PERF-000C canvas matrix', () {
     expect(
       () => performance_driver.validatePerformanceResponse(<String, dynamic>{
@@ -499,16 +633,129 @@ Map<String, Object?> _canvasRow({
   'maxUs': sampleUs,
 };
 
-Map<String, Object?> _memory() => <String, Object?>{
-  'allocatedBytes': 1024,
-  'allocationCount': 10,
-  'heapBeforeGcBytes': 4096,
-  'heapAfterGcBytes': 2048,
-  'heapCapacityAfterGcBytes': 8192,
-  'externalAfterGcBytes': 0,
-  'forcedGarbageCollection': true,
-  'garbageCollectionTimestampMicros': 42,
+Map<String, dynamic> _validSoakReceipt() => <String, dynamic>{
+  'schemaVersion': 2,
+  'target': 'integration_test/editor_performance_soak_journey_test.dart',
+  'executionMode': 'flutter-profile',
+  'commit': '0123456789abcdef0123456789abcdef01234567',
+  'treeState': 'clean',
+  'architecture': 'arm64',
+  'sdk': 'Dart 3',
+  'toolchain': <String, Object?>{
+    'dart': 'Dart 3',
+    'flutter': <String, Object?>{'frameworkRevision': 'flutter-sha'},
+    'flame': '1.0.0',
+  },
+  'iterations': <String, Object?>{
+    'paintUndoCycles': 10,
+    'paintedCellsPerCycle': 100,
+    'configuredExtendedSoakMinutes': 0,
+    'largeProjectPlacedElements': 10000,
+    'largeProjectSaveCycles': 5,
+  },
+  'performanceBudgets': <String, Object?>{
+    'mutationP95Us': 8000,
+    'undoP95Us': 50000,
+    'largeProjectMutationP95Us': 16000,
+    'largeProjectSaveP95Us': 5000000,
+    'paintUndoHeapGrowthBytes': 32 * 1024 * 1024,
+    'largeProjectHeapGrowthBytes': 64 * 1024 * 1024,
+  },
+  'scenarioA': <String, Object?>{
+    'name': 'paint-undo',
+    'extent': 128,
+    'cycles': <Map<String, Object?>>[
+      for (var cycle = 0; cycle < 10; cycle += 1)
+        <String, Object?>{
+          'cycle': cycle + 1,
+          'paintedCells': 100,
+          'paintUs': 1000,
+          'undoUs': 500,
+          'paintInstrumentation': _soakInstrumentation(mutationCount: 101),
+        },
+    ],
+    'mutationMetrics': _sampleMetrics(List<int>.filled(1010, 100)),
+    'paintMetrics': _sampleMetrics(List<int>.filled(10, 1000)),
+    'undoMetrics': _sampleMetrics(List<int>.filled(10, 500)),
+    'memoryBaseline': _memory(heapAfterGcBytes: 2 * 1024 * 1024),
+    'memoryAfterSoak': _memory(heapAfterGcBytes: 3 * 1024 * 1024),
+    'heapGrowthBytes': 1024 * 1024,
+  },
+  'scenarioB': <String, Object?>{
+    'companionTarget': 'integration_test/editor_fine_mask_journey_test.dart',
+    'requiredByCertificationGate': true,
+  },
+  'scenarioC': <String, Object?>{
+    'name': 'large-project-save',
+    'placedElementCount': 10000,
+    'saveCycles': 5,
+    'cycles': <Map<String, Object?>>[
+      for (var cycle = 0; cycle < 5; cycle += 1)
+        <String, Object?>{
+          'cycle': cycle + 1,
+          'mutationUs': 1000,
+          'saveUs': 2000,
+          'mutationInstrumentation': _soakInstrumentation(publishCount: 1),
+          'saveInstrumentation': _soakInstrumentation(
+            saveCount: 1,
+            filesystemWrites: 1,
+            jsonEncodes: 1,
+          ),
+        },
+    ],
+    'mutationMetrics': _sampleMetrics(List<int>.filled(5, 1000)),
+    'saveMetrics': _sampleMetrics(List<int>.filled(5, 2000)),
+    'memoryBaseline': _memory(heapAfterGcBytes: 4 * 1024 * 1024),
+    'memoryAfterSoak': _memory(heapAfterGcBytes: 5 * 1024 * 1024),
+    'heapGrowthBytes': 1024 * 1024,
+    'reloadedPlacedElementCount': 10000,
+  },
 };
+
+Map<String, Object?> _sampleMetrics(List<int> samples) {
+  final sorted = List<int>.of(samples)..sort();
+  return <String, Object?>{
+    'samplesUs': samples,
+    'p50Us':
+        sorted[((sorted.length * 0.50).ceil() - 1).clamp(0, sorted.length - 1)],
+    'p95Us':
+        sorted[((sorted.length * 0.95).ceil() - 1).clamp(0, sorted.length - 1)],
+    'p99Us':
+        sorted[((sorted.length * 0.99).ceil() - 1).clamp(0, sorted.length - 1)],
+    'maxUs': sorted.last,
+  };
+}
+
+Map<String, Object?> _soakInstrumentation({
+  int mutationCount = 0,
+  int publishCount = 0,
+  int saveCount = 0,
+  int filesystemWrites = 0,
+  int jsonEncodes = 0,
+}) {
+  final instrumentation = _instrumentation();
+  final spans = instrumentation['spans']! as Map<String, Object?>;
+  spans['mutation.local'] = _spanMetrics(mutationCount, 100);
+  spans['state.publish'] = _spanMetrics(publishCount, 100);
+  spans['save.queue'] = _spanMetrics(saveCount, 100);
+  spans['save.encode'] = _spanMetrics(saveCount, 100);
+  final counters = instrumentation['counters']! as Map<String, Object?>;
+  counters['filesystem.write'] = filesystemWrites;
+  counters['json.encode'] = jsonEncodes;
+  return instrumentation;
+}
+
+Map<String, Object?> _memory({int heapAfterGcBytes = 2048}) =>
+    <String, Object?>{
+      'allocatedBytes': 1024,
+      'allocationCount': 10,
+      'heapBeforeGcBytes': 4096,
+      'heapAfterGcBytes': heapAfterGcBytes,
+      'heapCapacityAfterGcBytes': heapAfterGcBytes * 2,
+      'externalAfterGcBytes': 0,
+      'forcedGarbageCollection': true,
+      'garbageCollectionTimestampMicros': 42,
+    };
 
 Map<String, dynamic> _validProjectReceipt() => <String, dynamic>{
   'schemaVersion': 2,

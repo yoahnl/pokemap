@@ -116,6 +116,47 @@ void main() {
       );
       expect(store.length, 0);
     });
+
+    test('releases applied payload without changing replay identity', () async {
+      final snapshot = _snapshot();
+      final store = AuthoringPlanStore(
+        clock: () => DateTime.utc(2026, 7, 31, 12),
+      );
+      final planner = AuthoringActionPlanner(
+        store: store,
+        tokenFactory: (prefix) => '${prefix}released',
+        seedFactory: () => 7,
+      );
+      final request = AuthoringRequest(
+        requestId: 'req-release',
+        actionId: 'maps.update',
+        actionVersion: 1,
+        workspaceHandle: 'workspace:fixture',
+        parameters: <String, Object?>{'payload': 'x' * (1024 * 1024)},
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'idem-release',
+      );
+      final plan = await planner.plan(
+        request: request,
+        snapshot: snapshot,
+        build: _draft,
+      );
+      final requestBytes = plan.authorizationRequestBytes;
+      final payloadFingerprint = plan.idempotencyPayloadFingerprint;
+      final projectedRevision = plan.projectedRevision;
+
+      plan.releaseAppliedPayload();
+
+      expect(plan.request.parameters, isEmpty);
+      expect(plan.request.requestId, request.requestId);
+      expect(plan.request.actionId, request.actionId);
+      expect(plan.request.idempotencyKey, request.idempotencyKey);
+      expect(plan.authorizationRequestBytes, requestBytes);
+      expect(plan.idempotencyPayloadFingerprint, payloadFingerprint);
+      expect(plan.projectedRevision, projectedRevision);
+      expect(plan.appliedPayloadReleased, isTrue);
+      expect(() => plan.changeSet, throwsStateError);
+    });
   });
 
   group('AuthoringChangeSet', () {

@@ -84,9 +84,9 @@ final class JournaledAuthoringTransaction {
   /// Returns a completed durable receipt without preparing transaction files.
   Future<AuthoringReceipt?> inspectReplay({
     required AuthoringIdempotencyScope scope,
-    required AuthoringRequest request,
+    required AuthoringPlan plan,
   }) =>
-      _idempotency.inspect(scope: scope, request: request);
+      _idempotency.inspectPlan(scope: scope, plan: plan);
 
   Future<AuthoringReceipt> apply({
     required String planId,

@@ -80,4 +80,59 @@ void main() {
       ),
     );
   });
+
+  test('performance workflow has a blocking sequential PERF-009 gate', () {
+    final repositoryRoot = Directory.current.parent.parent;
+    final workflow =
+        File(
+          '${repositoryRoot.path}/.github/workflows/'
+          'pokemap_hub_product_certification.yml',
+        ).readAsStringSync();
+    final gateStart = workflow.indexOf('  map-editor-performance-gate:');
+    expect(gateStart, greaterThanOrEqualTo(0));
+    if (gateStart < 0) return;
+    final gate = workflow.substring(
+      gateStart,
+      workflow.indexOf('\n  performance-observation:'),
+    );
+    const soakTarget =
+        '--target=integration_test/editor_performance_soak_journey_test.dart';
+    const fineMaskTarget =
+        '--target=integration_test/editor_fine_mask_journey_test.dart';
+
+    expect(gate, isNot(contains('continue-on-error: true')));
+    expect(gate, contains('test/performance_driver_contract_test.dart'));
+    expect(gate, contains('test/fine_mask_performance_contract_test.dart'));
+    expect(
+      gate,
+      contains('--target=integration_test/editor_project_journey_test.dart'),
+    );
+    expect(
+      gate,
+      contains(
+        '--target=integration_test/editor_canvas_projection_journey_test.dart',
+      ),
+    );
+    expect(gate, contains(soakTarget));
+    expect(gate, contains(fineMaskTarget));
+    expect(gate.indexOf(soakTarget), lessThan(gate.indexOf(fineMaskTarget)));
+    expect(gate, contains('POKEMAP_PERF_SOAK_MINUTES='));
+    expect(gate, contains('if-no-files-found: error'));
+    expect(
+      workflow,
+      contains(
+        'performance_soak_minutes:\n'
+        '        description: Run the editor paint and undo soak for this many minutes\n'
+        '        required: true\n'
+        '        default: 30',
+      ),
+    );
+    expect(
+      File(
+        '${repositoryRoot.path}/packages/map_editor/integration_test/'
+        'editor_performance_soak_journey_test.dart',
+      ).existsSync(),
+      isTrue,
+    );
+  });
 }

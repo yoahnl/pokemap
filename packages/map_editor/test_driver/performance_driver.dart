@@ -13,7 +13,7 @@ Future<void> main() async {
       if (data == null) {
         throw const FormatException('Editor performance response is missing.');
       }
-      _validatePerformanceData(data, requireProvenance: false);
+      validatePerformancePayload(data);
       final target = data['target']! as String;
       final requestedOutput = data['requestedOutputPath'];
       if (requestedOutput is! String || requestedOutput.trim().isEmpty) {
@@ -89,6 +89,10 @@ void validatePerformanceResponse(Map<String, dynamic> data) {
   _validatePerformanceData(data, requireProvenance: true);
 }
 
+void validatePerformancePayload(Map<String, dynamic> data) {
+  _validatePerformanceData(data, requireProvenance: false);
+}
+
 void _validatePerformanceData(
   Map<String, dynamic> data, {
   required bool requireProvenance,
@@ -116,6 +120,338 @@ void _validatePerformanceData(
     validateFineMaskPerformanceReceipt(
       data,
       requireProvenance: requireProvenance,
+    );
+  } else if (target ==
+      'integration_test/editor_performance_soak_journey_test.dart') {
+    if (requireProvenance) _validateProvenance(data);
+    _validatePerformanceSoak(data);
+  } else if (!const <String>{
+    'integration_test/editor_asset_cache_journey_test.dart',
+    'integration_test/editor_codec_offload_journey_test.dart',
+    'integration_test/personalization_performance_journey_test.dart',
+  }.contains(target)) {
+    throw FormatException('Unsupported editor performance target: $target.');
+  }
+}
+
+void _validatePerformanceSoak(Map<String, dynamic> data) {
+  final iterations = data['iterations'];
+  final budgets = data['performanceBudgets'];
+  final enforceBudgets = data['executionMode'] == 'flutter-profile';
+  if (iterations is! Map ||
+      iterations['paintUndoCycles'] is! int ||
+      (iterations['paintUndoCycles']! as int) < 10 ||
+      iterations['paintedCellsPerCycle'] is! int ||
+      (iterations['paintedCellsPerCycle']! as int) < 100 ||
+      iterations['configuredExtendedSoakMinutes'] is! int ||
+      (iterations['configuredExtendedSoakMinutes']! as int) < 0 ||
+      iterations['largeProjectPlacedElements'] is! int ||
+      (iterations['largeProjectPlacedElements']! as int) < 10000 ||
+      iterations['largeProjectSaveCycles'] is! int ||
+      (iterations['largeProjectSaveCycles']! as int) < 5) {
+    throw const FormatException(
+      'PERF-009 must declare the bounded A and C soak iteration matrix.',
+    );
+  }
+  if (budgets is! Map ||
+      budgets['mutationP95Us'] != 8000 ||
+      budgets['undoP95Us'] != 50000 ||
+      budgets['largeProjectMutationP95Us'] != 16000 ||
+      budgets['largeProjectSaveP95Us'] != 5000000 ||
+      budgets['paintUndoHeapGrowthBytes'] != 32 * 1024 * 1024 ||
+      budgets['largeProjectHeapGrowthBytes'] != 64 * 1024 * 1024) {
+    throw const FormatException(
+      'PERF-009 must use the versioned latency and post-GC heap budgets.',
+    );
+  }
+  _validatePaintUndoSoak(
+    data['scenarioA'],
+    expectedCycles: iterations['paintUndoCycles']! as int,
+    expectedPaintedCells: iterations['paintedCellsPerCycle']! as int,
+    enforceBudgets: enforceBudgets,
+  );
+  _validateFineMaskSoakCompanion(data['scenarioB']);
+  _validateLargeProjectSoak(
+    data['scenarioC'],
+    expectedPlacedElements: iterations['largeProjectPlacedElements']! as int,
+    expectedSaveCycles: iterations['largeProjectSaveCycles']! as int,
+    enforceBudgets: enforceBudgets,
+  );
+}
+
+void _validateFineMaskSoakCompanion(Object? value) {
+  if (value is! Map ||
+      value['companionTarget'] !=
+          'integration_test/editor_fine_mask_journey_test.dart' ||
+      value['requiredByCertificationGate'] != true) {
+    throw const FormatException(
+      'PERF-009 scenario B must require the canonical fine-mask soak receipt.',
+    );
+  }
+}
+
+void _validatePaintUndoSoak(
+  Object? value, {
+  required int expectedCycles,
+  required int expectedPaintedCells,
+  required bool enforceBudgets,
+}) {
+  if (value is! Map ||
+      value['name'] != 'paint-undo' ||
+      value['extent'] is! int ||
+      (value['extent']! as int) < 128) {
+    throw const FormatException(
+      'PERF-009 scenario A must identify its paint and undo fixture.',
+    );
+  }
+  final cycles = value['cycles'];
+  if (cycles is! List || cycles.length != expectedCycles) {
+    throw const FormatException(
+      'PERF-009 scenario A must contain every declared paint and undo cycle.',
+    );
+  }
+  final paintSamples = <int>[];
+  final undoSamples = <int>[];
+  final mutationSamples = <int>[];
+  for (var index = 0; index < cycles.length; index += 1) {
+    final cycle = cycles[index];
+    if (cycle is! Map ||
+        cycle['cycle'] != index + 1 ||
+        cycle['paintedCells'] != expectedPaintedCells ||
+        cycle['paintUs'] is! int ||
+        (cycle['paintUs']! as int) < 0 ||
+        cycle['undoUs'] is! int ||
+        (cycle['undoUs']! as int) < 0) {
+      throw const FormatException(
+        'PERF-009 scenario A contains an invalid cycle.',
+      );
+    }
+    final instrumentation = cycle['paintInstrumentation'];
+    _validateSnapshotCatalog(instrumentation);
+    _validateZeroPersistenceCounters(instrumentation);
+    final mutation = _spanMetricsFromSnapshot(
+      instrumentation,
+      'mutation.local',
+      expectedCount: expectedPaintedCells + 1,
+    );
+    mutationSamples.addAll((mutation['samplesUs']! as List).cast<int>());
+    paintSamples.add(cycle['paintUs']! as int);
+    undoSamples.add(cycle['undoUs']! as int);
+  }
+  _validateSamplesEqual(value['mutationMetrics'], mutationSamples);
+  _validateSamplesEqual(value['paintMetrics'], paintSamples);
+  _validateSamplesEqual(value['undoMetrics'], undoSamples);
+  final mutationMetrics = value['mutationMetrics']! as Map;
+  final undoMetrics = value['undoMetrics']! as Map;
+  if (enforceBudgets &&
+      ((mutationMetrics['p95Us']! as int) >= 8000 ||
+          (undoMetrics['p95Us']! as int) >= 50000)) {
+    throw const FormatException(
+      'PERF-009 scenario A exceeds its mutation or undo latency budget.',
+    );
+  }
+  _validateHeapGrowth(
+    value,
+    growthBudgetBytes: 32 * 1024 * 1024,
+    enforceBudget: enforceBudgets,
+  );
+}
+
+void _validateLargeProjectSoak(
+  Object? value, {
+  required int expectedPlacedElements,
+  required int expectedSaveCycles,
+  required bool enforceBudgets,
+}) {
+  if (value is! Map ||
+      value['name'] != 'large-project-save' ||
+      value['placedElementCount'] != expectedPlacedElements ||
+      expectedPlacedElements < 10000 ||
+      value['reloadedPlacedElementCount'] != expectedPlacedElements ||
+      value['saveCycles'] != expectedSaveCycles) {
+    throw const FormatException(
+      'PERF-009 scenario C must mutate, save and reload at least 10000 elements.',
+    );
+  }
+  final cycles = value['cycles'];
+  if (cycles is! List || cycles.length != expectedSaveCycles) {
+    throw const FormatException(
+      'PERF-009 scenario C must contain every declared mutation and save cycle.',
+    );
+  }
+  final mutationSamples = <int>[];
+  final saveSamples = <int>[];
+  for (var index = 0; index < cycles.length; index += 1) {
+    final cycle = cycles[index];
+    if (cycle is! Map ||
+        cycle['cycle'] != index + 1 ||
+        cycle['mutationUs'] is! int ||
+        (cycle['mutationUs']! as int) < 0 ||
+        cycle['saveUs'] is! int ||
+        (cycle['saveUs']! as int) < 0) {
+      throw const FormatException(
+        'PERF-009 scenario C contains an invalid cycle.',
+      );
+    }
+    final mutationInstrumentation = cycle['mutationInstrumentation'];
+    _validateSnapshotCatalog(mutationInstrumentation);
+    _validateZeroPersistenceCounters(mutationInstrumentation);
+    _spanMetricsFromSnapshot(
+      mutationInstrumentation,
+      'state.publish',
+      expectedCount: 1,
+    );
+    final saveInstrumentation = cycle['saveInstrumentation'];
+    _validateSnapshotCatalog(saveInstrumentation);
+    _spanMetricsFromSnapshot(
+      saveInstrumentation,
+      'save.queue',
+      expectedCount: 1,
+    );
+    _spanMetricsFromSnapshot(
+      saveInstrumentation,
+      'save.encode',
+      expectedCount: 1,
+    );
+    final counters = (saveInstrumentation! as Map)['counters']! as Map;
+    if (counters['filesystem.write'] is! int ||
+        (counters['filesystem.write']! as int) <= 0 ||
+        counters['json.encode'] is! int ||
+        (counters['json.encode']! as int) <= 0) {
+      throw const FormatException(
+        'PERF-009 scenario C saves must prove filesystem and JSON work outside mutation.',
+      );
+    }
+    mutationSamples.add(cycle['mutationUs']! as int);
+    saveSamples.add(cycle['saveUs']! as int);
+  }
+  _validateSamplesEqual(value['mutationMetrics'], mutationSamples);
+  _validateSamplesEqual(value['saveMetrics'], saveSamples);
+  final mutationMetrics = value['mutationMetrics']! as Map;
+  final saveMetrics = value['saveMetrics']! as Map;
+  final mutationP95Us = mutationMetrics['p95Us']! as int;
+  final saveP95Us = saveMetrics['p95Us']! as int;
+  if (enforceBudgets && (mutationP95Us >= 16000 || saveP95Us >= 5000000)) {
+    throw FormatException(
+      'PERF-009 scenario C exceeds its latency budget: '
+      'mutation P95=$mutationP95Us us, save P95=$saveP95Us us.',
+    );
+  }
+  _validateHeapGrowth(
+    value,
+    growthBudgetBytes: 64 * 1024 * 1024,
+    enforceBudget: enforceBudgets,
+  );
+}
+
+void _validateHeapGrowth(
+  Map value, {
+  required int growthBudgetBytes,
+  required bool enforceBudget,
+}) {
+  final baseline = value['memoryBaseline'];
+  final afterSoak = value['memoryAfterSoak'];
+  _validateMemoryEvidence(baseline);
+  _validateMemoryEvidence(afterSoak);
+  final actualGrowth =
+      ((afterSoak! as Map)['heapAfterGcBytes']! as int) -
+      ((baseline! as Map)['heapAfterGcBytes']! as int);
+  if (value['heapGrowthBytes'] != actualGrowth ||
+      (enforceBudget && actualGrowth >= growthBudgetBytes)) {
+    throw FormatException(
+      'PERF-009 post-GC heap growth must be exact and below '
+      '$growthBudgetBytes bytes: observed $actualGrowth bytes, '
+      'baseline ${(baseline as Map)['heapAfterGcBytes']} bytes, '
+      'after ${(afterSoak as Map)['heapAfterGcBytes']} bytes.',
+    );
+  }
+}
+
+void _validateSnapshotCatalog(Object? value) {
+  const spanNames = <String>{
+    'pointer.pre_dispatch',
+    'pointer.to_state_publish',
+    'mutation.local',
+    'state.publish',
+    'canvas.prepare',
+    'canvas.future_builder_body',
+    'canvas.paint_recording',
+    'mask.readback',
+    'mask.pointer_move',
+    'mask.commit',
+    'mask.build',
+    'mask.paint',
+    'map.validation.incremental',
+    'map.validation.full',
+    'snapshot',
+    'plan',
+    'apply',
+    'save.queue',
+    'save.encode',
+  };
+  const counterNames = <String>{
+    'filesystem.read',
+    'filesystem.write',
+    'filesystem.metadata',
+    'json.encode',
+    'json.decode',
+    'base64.encode',
+    'base64.decode',
+  };
+  final spans = value is Map ? value['spans'] : null;
+  final counters = value is Map ? value['counters'] : null;
+  if (value is! Map ||
+      spans is! Map ||
+      spans.keys.toSet().difference(spanNames).isNotEmpty ||
+      spanNames.difference(spans.keys.toSet()).isNotEmpty ||
+      counters is! Map ||
+      counters.keys.toSet().difference(counterNames).isNotEmpty ||
+      counterNames.difference(counters.keys.toSet()).isNotEmpty ||
+      counters.values.any((counter) => counter is! int || counter < 0) ||
+      value['droppedSampleCount'] != 0) {
+    throw const FormatException(
+      'PERF-009 instrumentation must contain the complete catalog without dropped samples.',
+    );
+  }
+}
+
+void _validateZeroPersistenceCounters(Object? value) {
+  final counters = (value! as Map)['counters']! as Map;
+  if (counters.values.any((counter) => counter != 0)) {
+    throw const FormatException(
+      'PERF-009 mutations must perform zero filesystem, JSON and base64 work.',
+    );
+  }
+}
+
+Map _spanMetricsFromSnapshot(
+  Object? value,
+  String spanName, {
+  required int expectedCount,
+}) {
+  final spans = (value! as Map)['spans']! as Map;
+  final metrics = spans[spanName];
+  if (metrics is! Map || metrics['count'] != expectedCount) {
+    throw FormatException(
+      'PERF-009 must record exactly $expectedCount $spanName span(s).',
+    );
+  }
+  _validateSampleRow(metrics, expectedSampleCount: expectedCount);
+  return metrics;
+}
+
+void _validateSamplesEqual(Object? value, List<int> expectedSamples) {
+  if (value is! Map) {
+    throw const FormatException('PERF-009 metrics are missing.');
+  }
+  _validateSampleRow(value, expectedSampleCount: expectedSamples.length);
+  final samples = (value['samplesUs']! as List).cast<int>();
+  if (samples.length != expectedSamples.length ||
+      Iterable<int>.generate(
+        samples.length,
+      ).any((index) => samples[index] != expectedSamples[index])) {
+    throw const FormatException(
+      'PERF-009 aggregate metrics must match their raw cycle samples.',
     );
   }
 }
@@ -568,7 +904,10 @@ Map _singlePhase(List<Object?> results, String phaseName) {
 }
 
 void _validateMemory(Map<String, dynamic> data) {
-  final memory = data['memory'];
+  _validateMemoryEvidence(data['memory']);
+}
+
+void _validateMemoryEvidence(Object? memory) {
   if (memory is! Map ||
       memory['forcedGarbageCollection'] != true ||
       memory['garbageCollectionTimestampMicros'] is! int ||

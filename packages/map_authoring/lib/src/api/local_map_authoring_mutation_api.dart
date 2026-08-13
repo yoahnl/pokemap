@@ -605,6 +605,8 @@ final class _LocalMapAuthoringSession {
     }
     final snapshot = await _loadSnapshot();
     final descriptor = _dispatcher.descriptor(plan.request.actionId);
+    final payloadWasReleased = plan.appliedPayloadReleased;
+    final changes = payloadWasReleased ? null : plan.changeSet.changes;
     final span = _performanceObserver?.startSpan(
       AuthoringPerformanceSpanName.apply,
     );
@@ -629,13 +631,18 @@ final class _LocalMapAuthoringSession {
             ? null
             : AuthoringConfirmationToken.fromWireValue(confirmationToken),
       );
-      projected = receipt.status == AuthoringReceiptStatus.applied
+      projected = receipt.status == AuthoringReceiptStatus.applied &&
+              changes != null &&
+              receipt.extensions['planId'] == plan.planId
           ? await _snapshotLoader.adoptAppliedChanges(
               projectHandle,
               baseRevision: plan.baseRevision,
-              changes: plan.changeSet.changes,
+              changes: changes,
             )
           : null;
+      if (receipt.status == AuthoringReceiptStatus.applied) {
+        plan.releaseAppliedPayload();
+      }
     } finally {
       span?.finish();
     }

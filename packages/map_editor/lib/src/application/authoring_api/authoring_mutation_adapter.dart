@@ -601,6 +601,9 @@ final class _EditorMutationSession {
       policy: policy,
       snapshotLoader: snapshots,
       artifactStore: artifactStore,
+      authorizationLimits: const AuthoringSecurityLimits(
+        maxRequestBytes: 64 << 20,
+      ),
       tiledImageCollectionRasterCodec:
           const ImagePackageTiledImageCollectionRasterCodec(),
       performanceObserver: const _EditorAuthoringPerformanceObserver(),
