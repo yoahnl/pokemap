@@ -5,6 +5,7 @@ import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/smart_tile.dart';
 import 'map_placed_element_animation.dart';
+import 'smart_tile_cell_context.dart';
 import 'smart_tile_layer_context.dart';
 import 'smart_tile_pattern_operations.dart';
 import 'smart_tile_resolver.dart';
@@ -98,6 +99,12 @@ final class SmartTileLayerVisualBatch {
 typedef _SmartTilePatternOwner = ({
   SmartTilePatternStroke stroke,
   ProjectSmartTilePattern pattern,
+});
+
+typedef SmartTileCellContextResolver = SmartTileCellContext Function({
+  required ProjectSmartTilePreset preset,
+  required int x,
+  required int y,
 });
 
 /// Sparse, reusable ownership projection for pattern strokes in one layer.
@@ -235,6 +242,7 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
   double sourceCellHeight = 32,
   SmartTileGeometryRect? viewportBounds,
   SmartTilePatternOwnerIndex? patternOwnerIndex,
+  SmartTileCellContextResolver? cellContextResolver,
 }) {
   ProjectSmartTilePreset? preset;
   for (final candidate in catalog.presets) {
@@ -341,13 +349,18 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
   for (var y = scan.startY; y < scan.endY; y++) {
     for (var x = scan.startX; x < scan.endX; x++) {
       ownerCellVisits += 1;
-      final context = smartTileCellContextForLayerCell(
-        layer: layer,
-        map: map,
-        preset: preset,
-        x: x,
-        y: y,
-      );
+      final context = cellContextResolver?.call(
+            preset: preset,
+            x: x,
+            y: y,
+          ) ??
+          smartTileCellContextForLayerCell(
+            layer: layer,
+            map: map,
+            preset: preset,
+            x: x,
+            y: y,
+          );
       final resolution = resolver.resolve(
         context: context,
         x: x,

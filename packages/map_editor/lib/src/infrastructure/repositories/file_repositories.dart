@@ -16,6 +16,7 @@ import '../../application/ports/pokemon_read_repository.dart';
 import '../../application/ports/pokemon_write_repository.dart';
 import '../../application/ports/project_workspace.dart';
 import '../../application/services/map_lifecycle_transaction_service.dart';
+import '../../application/services/editor_performance_telemetry.dart';
 import '../../application/services/pokemon_project_data_reader.dart';
 import '../../domain/models/map_document_persistence.dart';
 import '../../domain/repositories/repositories.dart';
@@ -334,7 +335,7 @@ class FileMapRepository
   }) async {
     debugPrint('FileMapRepository: Validating and saving map to $path');
     _requireSupportedVisualStackForWrite(map);
-    MapValidator.validate(
+    EditorPerformanceTelemetry.validateFullMap(
       map,
       projectDialogueContext: projectDialogueContext,
     );
@@ -351,7 +352,7 @@ class FileMapRepository
   }) async {
     debugPrint('FileMapRepository: CAS saving map to $path');
     _requireSupportedVisualStackForWrite(map);
-    MapValidator.validate(
+    EditorPerformanceTelemetry.validateFullMap(
       map,
       projectDialogueContext: projectDialogueContext,
     );
@@ -426,6 +427,7 @@ class FileMapRepository
         map: decodeValidatedNarrativeEventAuthoringMap(
           snapshot.bytes,
           path,
+          validateMap: EditorPerformanceTelemetry.validateFullMap,
         ),
         revision: snapshot.revision,
       );

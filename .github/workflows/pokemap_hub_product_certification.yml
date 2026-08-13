@@ -8,6 +8,11 @@ on:
         required: true
         default: false
         type: boolean
+      performance_soak_minutes:
+        description: Run the editor paint and undo soak for this many minutes
+        required: true
+        default: 30
+        type: number
   pull_request:
     paths:
       - "apps/pokemap_hub/**"
@@ -32,6 +37,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: pokemap-hub-product-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   FLUTTER_VERSION: 3.46.0-0.3.pre
@@ -69,6 +78,7 @@ jobs:
       - name: Product certification contracts
         working-directory: tools/pokemap_product_certification
         run: |
+          npm ci --prefix ../pokemap_mcp
           flutter pub get
           flutter test
           flutter analyze
@@ -85,9 +95,9 @@ jobs:
             --candidate-sha "$GITHUB_SHA" \
             ../..
 
-  map-editor-quality:
+  map-editor-functional-quality:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install pinned Flutter SDK
@@ -105,9 +115,25 @@ jobs:
           flutter pub get
           flutter test --no-pub --timeout 2m -r expanded
           flutter analyze --no-pub
+
+  map-editor-performance-quality:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
       - name: Map editor performance lane
         working-directory: packages/map_editor
         run: |
+          flutter pub get
           for run_number in 1 2 3; do
             echo "Performance process $run_number of 3"
             flutter test --no-pub --timeout 2m -r expanded \
@@ -122,12 +148,71 @@ jobs:
               test/narrative_large_project_workspace_performance_test.dart
           done
 
+  map-editor-performance-gate:
+    if: github.event_name != 'pull_request'
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Verify editor performance receipt contracts
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter test --no-pub \
+            test/performance_driver_contract_test.dart \
+            test/perf_009_project_performance_driver_test.dart \
+            test/fine_mask_performance_contract_test.dart
+      - name: Run sequential editor profile gates
+        working-directory: packages/map_editor
+        run: |
+          mkdir -p build/performance
+          flutter drive --profile -d macos \
+            --driver=test_driver/perf_009_project_performance_driver.dart \
+            --target=integration_test/editor_project_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/editor_canvas_projection_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_canvas_projection_journey.json
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/editor_performance_soak_journey_test.dart \
+            --dart-define=POKEMAP_PERF_SOAK_MINUTES=${{ inputs.performance_soak_minutes || 0 }} \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_performance_soak_journey.json
+          flutter drive --profile -d macos \
+            --driver=test_driver/fine_mask_performance_driver.dart \
+            --target=integration_test/editor_fine_mask_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_fine_mask_journey.json
+      - name: Preserve blocking editor performance receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pokemap-editor-performance-gate-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            packages/map_editor/build/performance/editor_project_journey.json
+            packages/map_editor/build/performance/editor_canvas_projection_journey.json
+            packages/map_editor/build/performance/editor_performance_soak_journey.json
+            packages/map_editor/build/performance/editor_fine_mask_journey.json
+
   performance-observation:
+    needs: map-editor-performance-gate
+    if: github.event_name != 'pull_request'
     # PERF-RM-00 is collection-only until at least ten comparable historical
     # observations exist. Failures stay visible without becoming release gates.
     continue-on-error: true
     runs-on: macos-15
-    timeout-minutes: 10
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install pinned Flutter SDK
@@ -148,18 +233,11 @@ jobs:
           mkdir -p packages/map_core/build/performance
           cd packages/map_core
           dart pub get
-          dart compile exe benchmark/surface_role_scaling.dart \
-            -o build/performance/surface_role_scaling
-          build/performance/surface_role_scaling \
-            --warmups 1 --samples 5 --sizes 400,2500 \
-            --fixtures dense,mixed --modes topology \
-            --output build/performance/surface_role_scaling.json
-          dart compile exe benchmark/map_paint_gesture.dart \
-            -o build/performance/map_paint_gesture
-          build/performance/map_paint_gesture \
-            --warmups 1 --samples 5 --sizes 256,1024 \
-            --stroke-lengths 1,100,1000 \
-            --output build/performance/map_paint_gesture.json
+          dart compile exe benchmark/smart_tiles_rich_map_scaling.dart \
+            -o build/performance/smart_tiles_rich_map_scaling
+          build/performance/smart_tiles_rich_map_scaling \
+            --warmups 1 --samples 5 --extents 128,256,512,1024 \
+            --output build/performance/smart_tiles_rich_map_scaling.json
           dart compile exe benchmark/group_hierarchy_scaling.dart \
             -o build/performance/group_hierarchy_scaling
           build/performance/group_hierarchy_scaling \
@@ -188,6 +266,12 @@ jobs:
             --warmups 1 --samples 5 --fixtures small,selbrume \
             --roots 1,3 --cycles 1 \
             --output build/performance/authoring_snapshot_open.json
+          dart compile exe benchmark/smart_tiles_rich_authoring_scaling.dart \
+            -o build/performance/smart_tiles_rich_authoring_scaling
+          build/performance/smart_tiles_rich_authoring_scaling \
+            --warmups 1 --samples 5 --recovery-samples 1 \
+            --extents 128,256,512,1024 \
+            --output build/performance/smart_tiles_rich_authoring_scaling.json
           cd ../map_battle
           dart pub get
           mkdir -p build/performance
@@ -201,14 +285,16 @@ jobs:
         run: |
           cd packages/map_core
           dart test \
-            test/benchmark/surface_role_scaling_cli_test.dart \
-            test/benchmark/map_paint_gesture_cli_test.dart \
+            test/benchmark/smart_tiles_rich_map_scaling_cli_test.dart \
             test/benchmark/group_hierarchy_scaling_cli_test.dart \
             test/benchmark/json_roundtrip_scaling_cli_test.dart
           cd ../map_gameplay
           dart test test/benchmark/world_collision_scaling_cli_test.dart
           cd ../map_authoring
-          dart test test/benchmark/authoring_snapshot_open_cli_test.dart
+          mkdir -p build/test
+          dart test \
+            test/benchmark/authoring_snapshot_open_cli_test.dart \
+            test/benchmark/smart_tiles_rich_authoring_scaling_cli_test.dart
           cd ../map_battle
           dart test test/benchmark/battle_turn_baseline_cli_test.dart
           cd ../../examples/playable_runtime_host
@@ -217,15 +303,34 @@ jobs:
             test/evaluation/interactive_frame_metrics_test.dart \
             test/evaluation/interactive_worker_client_test.dart \
             test/evaluation/pokemap_eval_cli_test.dart
+      - name: Collect bounded editor history receipt
+        continue-on-error: true
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          dart run benchmark/map_history_delta_scaling.dart \
+            --warmups 1 --samples 5 --entries 10000 --operations 10000 \
+            --tile-extent 1024 \
+            --output build/performance/map_history_delta_scaling.json
+          flutter test --no-pub \
+            test/benchmark/map_history_delta_scaling_cli_test.dart
       - name: Collect editor profile journey
         continue-on-error: true
         working-directory: packages/map_editor
         run: |
           flutter pub get
           flutter drive --profile -d macos \
-            --driver=test_driver/performance_driver.dart \
+            --driver=test_driver/perf_009_project_performance_driver.dart \
             --target=integration_test/editor_project_journey_test.dart \
             --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/editor_canvas_projection_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_canvas_projection_journey.json
+          flutter drive --profile -d macos \
+            --driver=test_driver/fine_mask_performance_driver.dart \
+            --target=integration_test/editor_fine_mask_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_fine_mask_journey.json
       - name: Collect Personalization Studio profile journey
         continue-on-error: true
         working-directory: packages/map_editor

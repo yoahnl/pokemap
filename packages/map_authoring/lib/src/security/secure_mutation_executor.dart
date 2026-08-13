@@ -1,9 +1,6 @@
-import 'dart:convert';
-
 import '../contracts/action_descriptor.dart';
 import '../contracts/authoring_receipt.dart';
 import '../ports/idempotency_store.dart';
-import '../support/authoring_fingerprint.dart';
 import '../transactions/authoring_plan.dart';
 import '../transactions/journaled_transaction.dart';
 import 'audit_log.dart';
@@ -59,7 +56,7 @@ final class SecureAuthoringMutationExecutor {
       );
       replay = await _transaction.inspectReplay(
         scope: scope,
-        request: plan.request,
+        plan: plan,
       );
       if (replay != null) {
         authorization = _policy.authorize(
@@ -70,9 +67,7 @@ final class SecureAuthoringMutationExecutor {
             actionId: plan.request.actionId,
             actionVersion: plan.request.actionVersion,
             riskLevel: action.riskLevel,
-            requestBytes: utf8
-                .encode(canonicalAuthoringJson(plan.request.toJson()))
-                .length,
+            requestBytes: plan.authorizationRequestBytes,
             touchedResources: 0,
             additionalPermissions: action.requiredPermissions
                 .map(_securityPermissionForDescriptor),
@@ -92,11 +87,7 @@ final class SecureAuthoringMutationExecutor {
             actionId: plan.request.actionId,
             actionVersion: plan.request.actionVersion,
             riskLevel: action.riskLevel,
-            requestBytes: utf8
-                .encode(
-                  canonicalAuthoringJson(plan.request.toJson()),
-                )
-                .length,
+            requestBytes: plan.authorizationRequestBytes,
             touchedResources: plan.changeSet.changes.length,
             planId: plan.planId,
             diffFingerprint: binding.diffFingerprint,

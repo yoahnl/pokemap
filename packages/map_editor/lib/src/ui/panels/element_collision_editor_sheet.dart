@@ -16,10 +16,7 @@ import '../../ui/widgets/element_collision_triple_mask_editor.dart';
 const ElementCollisionAuthoringService _authoringService =
     ElementCollisionAuthoringService();
 
-enum _ElementCollisionAuthoringMode {
-  grid,
-  fineMask,
-}
+enum _ElementCollisionAuthoringMode { grid, fineMask }
 
 Future<ElementCollisionProfile?> showElementCollisionEditorSheet({
   required BuildContext context,
@@ -84,6 +81,8 @@ class _ElementCollisionEditorSheetState
   final List<Offset> _pendingPolygon = <Offset>[];
   Offset? _lastBrushPoint;
   Offset? _hoverGridPoint;
+  final ElementCollisionFineMaskController _fineMaskController =
+      ElementCollisionFineMaskController();
 
   @override
   void initState() {
@@ -140,7 +139,12 @@ class _ElementCollisionEditorSheetState
                   source: widget.source,
                   finalCellCount: snapshot.finalCells.length,
                   onCancel: () => Navigator.of(context).pop(),
-                  onSave: () => Navigator.of(context).pop(_buildSavedProfile()),
+                  onSave: () {
+                    final committed = _fineMaskController.commitActiveStroke();
+                    Navigator.of(
+                      context,
+                    ).pop(_buildSavedProfile(profileOverride: committed));
+                  },
                 ),
                 const SizedBox(height: 14),
                 if (_authoringMode == _ElementCollisionAuthoringMode.grid) ...[
@@ -162,9 +166,9 @@ class _ElementCollisionEditorSheetState
                         : null,
                     onClearPolygon: _pendingPolygon.isNotEmpty
                         ? () => setState(() {
-                              _pendingPolygon.clear();
-                              _hoverGridPoint = null;
-                            })
+                            _pendingPolygon.clear();
+                            _hoverGridPoint = null;
+                          })
                         : null,
                     onResetOverrides: () {
                       setState(() {
@@ -211,6 +215,7 @@ class _ElementCollisionEditorSheetState
                 _CollisionAuthoringModeSelector(
                   mode: _authoringMode,
                   onChanged: (mode) {
+                    _fineMaskController.commitActiveStroke();
                     setState(() {
                       _authoringMode = mode;
                       _lastBrushPoint = null;
@@ -221,8 +226,8 @@ class _ElementCollisionEditorSheetState
                 ),
                 const SizedBox(height: 8),
                 Expanded(
-                  child: _authoringMode ==
-                          _ElementCollisionAuthoringMode.fineMask
+                  child:
+                      _authoringMode == _ElementCollisionAuthoringMode.fineMask
                       ? CupertinoScrollbar(
                           child: SingleChildScrollView(
                             child: ElementCollisionTripleMaskEditor(
@@ -232,6 +237,7 @@ class _ElementCollisionEditorSheetState
                               tileHeight: widget.tileHeight,
                               profile: _draftProfile,
                               draftPadding: _draftPadding,
+                              controller: _fineMaskController,
                               onProfileChanged: (next) {
                                 setState(() {
                                   _draftProfile = next;
@@ -251,13 +257,15 @@ class _ElementCollisionEditorSheetState
                                 decoration: BoxDecoration(
                                   color: EditorChrome.largeIslandSurfaceColor(
                                     context,
-                                    tint: PokeMapLegacyColors.white
-                                        .withValues(alpha: 0.02),
+                                    tint: PokeMapLegacyColors.white.withValues(
+                                      alpha: 0.02,
+                                    ),
                                   ),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color:
-                                        PokeMapLegacyColors.separator(context),
+                                    color: PokeMapLegacyColors.separator(
+                                      context,
+                                    ),
                                   ),
                                 ),
                                 child: Column(
@@ -297,7 +305,8 @@ class _ElementCollisionEditorSheetState
                                             canvasConstraints.maxHeight,
                                           );
                                           return MouseRegion(
-                                            cursor: _tool ==
+                                            cursor:
+                                                _tool ==
                                                     _ElementCollisionEditorTool
                                                         .preview
                                                 ? SystemMouseCursors.basic
@@ -311,35 +320,38 @@ class _ElementCollisionEditorSheetState
                                                 return;
                                               }
                                               setState(
-                                                  () => _hoverGridPoint = next);
+                                                () => _hoverGridPoint = next,
+                                              );
                                             },
                                             onExit: (_) {
                                               if (_hoverGridPoint != null) {
-                                                setState(() =>
-                                                    _hoverGridPoint = null);
+                                                setState(
+                                                  () => _hoverGridPoint = null,
+                                                );
                                               }
                                             },
                                             child: GestureDetector(
                                               behavior: HitTestBehavior.opaque,
                                               onTapUp: (details) =>
                                                   _handleCanvasTap(
-                                                      details.localPosition,
-                                                      canvasSize),
+                                                    details.localPosition,
+                                                    canvasSize,
+                                                  ),
                                               onDoubleTapDown: (details) =>
                                                   _handleCanvasDoubleTap(
-                                                details.localPosition,
-                                                canvasSize,
-                                              ),
+                                                    details.localPosition,
+                                                    canvasSize,
+                                                  ),
                                               onPanStart: (details) =>
                                                   _handleCanvasPanStart(
-                                                details.localPosition,
-                                                canvasSize,
-                                              ),
+                                                    details.localPosition,
+                                                    canvasSize,
+                                                  ),
                                               onPanUpdate: (details) =>
                                                   _handleCanvasPanUpdate(
-                                                details.localPosition,
-                                                canvasSize,
-                                              ),
+                                                    details.localPosition,
+                                                    canvasSize,
+                                                  ),
                                               onPanEnd: (_) =>
                                                   _lastBrushPoint = null,
                                               child: DecoratedBox(
@@ -356,8 +368,7 @@ class _ElementCollisionEditorSheetState
                                                   ),
                                                 ),
                                                 child: CustomPaint(
-                                                  painter:
-                                                      _ElementCollisionCanvasPainter(
+                                                  painter: _ElementCollisionCanvasPainter(
                                                     image: widget.image,
                                                     source: widget.source,
                                                     tileWidth: widget.tileWidth,
@@ -414,35 +425,42 @@ class _ElementCollisionEditorSheetState
                                         setState(() => _showOverrides = value),
                                     paddingEditor:
                                         ElementCollisionPaddingEditor(
-                                      padding: _draftPadding,
-                                      usesManualPrimaryShape:
-                                          snapshot.usesManualPrimaryShape,
-                                      maxHorizontal: math.max(
-                                          0,
-                                          widget.source.width *
-                                                  widget.tileWidth -
-                                              1),
-                                      maxVertical: math.max(
-                                          0,
-                                          widget.source.height *
-                                                  widget.tileHeight -
-                                              1),
-                                      onChanged: (next) {
-                                        setState(() {
-                                          _draftPadding = next;
-                                          final recalculated = _authoringService
-                                              .recalculateFromPadding(
-                                            source: widget.source,
-                                            tileWidth: widget.tileWidth,
-                                            tileHeight: widget.tileHeight,
-                                            padding: next,
-                                            current: _draftProfile,
-                                          );
-                                          _draftProfile =
-                                              _preserveDraftMasks(recalculated);
-                                        });
-                                      },
-                                    ),
+                                          padding: _draftPadding,
+                                          usesManualPrimaryShape:
+                                              snapshot.usesManualPrimaryShape,
+                                          maxHorizontal: math.max(
+                                            0,
+                                            widget.source.width *
+                                                    widget.tileWidth -
+                                                1,
+                                          ),
+                                          maxVertical: math.max(
+                                            0,
+                                            widget.source.height *
+                                                    widget.tileHeight -
+                                                1,
+                                          ),
+                                          onChanged: (next) {
+                                            setState(() {
+                                              _draftPadding = next;
+                                              final recalculated =
+                                                  _authoringService
+                                                      .recalculateFromPadding(
+                                                        source: widget.source,
+                                                        tileWidth:
+                                                            widget.tileWidth,
+                                                        tileHeight:
+                                                            widget.tileHeight,
+                                                        padding: next,
+                                                        current: _draftProfile,
+                                                      );
+                                              _draftProfile =
+                                                  _preserveDraftMasks(
+                                                    recalculated,
+                                                  );
+                                            });
+                                          },
+                                        ),
                                   ),
                                 ),
                               ),
@@ -482,7 +500,9 @@ class _ElementCollisionEditorSheetState
     );
   }
 
-  ElementCollisionProfile _buildSavedProfile() {
+  ElementCollisionProfile _buildSavedProfile({
+    ElementCollisionProfile? profileOverride,
+  }) {
     final snapshot = _describe();
     final rebuilt = _authoringService.rebuild(
       source: widget.source,
@@ -494,11 +514,14 @@ class _ElementCollisionEditorSheetState
       manualAddedCells: snapshot.manualAddedCells,
       manualRemovedCells: snapshot.manualRemovedCells,
     );
-    return _preserveDraftMasks(rebuilt);
+    return _preserveDraftMasks(rebuilt, currentOverride: profileOverride);
   }
 
-  ElementCollisionProfile _preserveDraftMasks(ElementCollisionProfile next) {
-    final current = _draftProfile;
+  ElementCollisionProfile _preserveDraftMasks(
+    ElementCollisionProfile next, {
+    ElementCollisionProfile? currentOverride,
+  }) {
+    final current = currentOverride ?? _draftProfile;
     if (current == null) {
       return next;
     }
@@ -507,10 +530,21 @@ class _ElementCollisionEditorSheetState
         current.occlusionMask == null) {
       return next;
     }
+    final collisionMask = current.collisionMask;
+    final cells = collisionMask == null
+        ? next.cells
+        : ElementCollisionMaskCodec.cellsFromPixelMask(
+            mask: collisionMask,
+            tileWidth: widget.tileWidth,
+            tileHeight: widget.tileHeight,
+            sourceWidthInTiles: widget.source.width,
+            sourceHeightInTiles: widget.source.height,
+          );
     return next.copyWith(
       visualMask: current.visualMask,
-      collisionMask: current.collisionMask,
+      collisionMask: collisionMask,
       occlusionMask: current.occlusionMask,
+      cells: cells,
     );
   }
 
@@ -720,10 +754,7 @@ class _EditorHeader extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 '$elementName • source ${source.width}x${source.height} • $finalCellCount cellule${finalCellCount > 1 ? 's' : ''} finales',
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: secondary, fontSize: 12),
               ),
             ],
           ),
@@ -799,10 +830,7 @@ class _EditorToolbar extends StatelessWidget {
           label: 'Utiliser le padding comme base',
           onPressed: onRestoreBase,
         ),
-        _ToolbarAction(
-          label: 'Vider toute collision',
-          onPressed: onClearAll,
-        ),
+        _ToolbarAction(label: 'Vider toute collision', onPressed: onClearAll),
       ],
     );
   }
@@ -879,28 +907,19 @@ class _EditorSidebar extends StatelessWidget {
                 truthSummary.mode == ElementCollisionTruthMode.fineMask
                     ? 'Le gameplay utilise le masque fin. Les ${snapshot.finalCells.length} cellule${snapshot.finalCells.length > 1 ? 's' : ''} affichées ici servent de projection de compatibilité.'
                     : 'Le gameplay utilise ${snapshot.finalCells.length} cellule${snapshot.finalCells.length > 1 ? 's' : ''} de grille quand aucun masque fin n’est défini.',
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: secondary, fontSize: 11),
               ),
               const SizedBox(height: 8),
               Text(
                 'Source sprite: ${source.width} colonnes × ${source.height} lignes',
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: secondary, fontSize: 11),
               ),
               const SizedBox(height: 8),
               Text(
                 snapshot.source == ElementCollisionProfileSource.manual
                     ? 'Base métier actuelle: forme principale auteur. Le padding reste disponible comme aide secondaire, mais il ne reprend pas la main au rebuild.'
                     : 'Base métier actuelle: padding automatique. Utilisez un polygone forme si vous voulez remplacer cette base par une vraie silhouette de bâtiment.',
-                style: TextStyle(
-                  color: secondary,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: secondary, fontSize: 11),
               ),
               if (pendingPolygonPreviewCount > 0) ...[
                 const SizedBox(height: 8),
@@ -917,10 +936,7 @@ class _EditorSidebar extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        _SidebarSection(
-          title: 'Padding auto',
-          child: paddingEditor,
-        ),
+        _SidebarSection(title: 'Padding auto', child: paddingEditor),
         const SizedBox(height: 12),
         _SidebarSection(
           title: 'Affichage',
@@ -956,10 +972,7 @@ class _EditorSidebar extends StatelessWidget {
           title: 'Aide',
           child: Text(
             'Polygone forme: définit une base coarse de bâtiment. Pinceau + / -: applique des retouches locales. Le padding auto reste un outil secondaire pour les cas simples. Le gameplay suit la source active affichée en haut.',
-            style: TextStyle(
-              color: secondary,
-              fontSize: 11,
-            ),
+            style: TextStyle(color: secondary, fontSize: 11),
           ),
         ),
       ],
@@ -993,10 +1006,7 @@ class _CollisionAuthoringModeSelector extends StatelessWidget {
             ),
             _ElementCollisionAuthoringMode.fineMask: Padding(
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              child: Text(
-                'Masque fin',
-                style: TextStyle(fontSize: 11),
-              ),
+              child: Text('Masque fin', style: TextStyle(fontSize: 11)),
             ),
           },
           onValueChanged: (next) {
@@ -1073,10 +1083,7 @@ class _CollisionTruthBanner extends StatelessWidget {
           ),
           for (final note in summary.notes) ...[
             const SizedBox(height: 2),
-            Text(
-              note,
-              style: TextStyle(color: secondary, fontSize: 11),
-            ),
+            Text(note, style: TextStyle(color: secondary, fontSize: 11)),
           ],
         ],
       ),
@@ -1247,10 +1254,7 @@ class ElementCollisionPaddingEditor extends StatelessWidget {
           usesManualPrimaryShape
               ? 'Le padding reste stocké comme réglage secondaire. Tant qu’une forme principale auteur existe, il ne redéfinit pas la base métier.'
               : 'Le padding génère la base automatique actuelle. Vous pouvez ensuite ajouter ou retirer quelques cellules localement.',
-          style: TextStyle(
-            color: secondary,
-            fontSize: 11,
-          ),
+          style: TextStyle(color: secondary, fontSize: 11),
         ),
         const SizedBox(height: 10),
         Wrap(
@@ -1322,20 +1326,12 @@ class _PaddingStepper extends StatelessWidget {
       decoration: BoxDecoration(
         color: PokeMapLegacyColors.black.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: PokeMapLegacyColors.separator(context),
-        ),
+        border: Border.all(color: PokeMapLegacyColors.separator(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: secondary,
-              fontSize: 11,
-            ),
-          ),
+          Text(label, style: TextStyle(color: secondary, fontSize: 11)),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -1379,10 +1375,7 @@ class _PaddingStepper extends StatelessWidget {
 }
 
 class _SidebarSection extends StatelessWidget {
-  const _SidebarSection({
-    required this.title,
-    required this.child,
-  });
+  const _SidebarSection({required this.title, required this.child});
 
   final String title;
   final Widget child;
@@ -1398,9 +1391,7 @@ class _SidebarSection extends StatelessWidget {
           tint: PokeMapLegacyColors.white.withValues(alpha: 0.018),
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: PokeMapLegacyColors.separator(context),
-        ),
+        border: Border.all(color: PokeMapLegacyColors.separator(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1439,10 +1430,7 @@ class _DisplayToggle extends StatelessWidget {
       child: Row(
         children: [
           Expanded(child: Text(label)),
-          MacosSwitch(
-            value: value,
-            onChanged: onChanged,
-          ),
+          MacosSwitch(value: value, onChanged: onChanged),
         ],
       ),
     );
@@ -1450,10 +1438,7 @@ class _DisplayToggle extends StatelessWidget {
 }
 
 class _LegendChip extends StatelessWidget {
-  const _LegendChip({
-    required this.label,
-    required this.color,
-  });
+  const _LegendChip({required this.label, required this.color});
 
   final String label;
   final Color color;
@@ -1515,10 +1500,7 @@ class _ToolButton extends StatelessWidget {
 }
 
 class _ToolbarAction extends StatelessWidget {
-  const _ToolbarAction({
-    required this.label,
-    required this.onPressed,
-  });
+  const _ToolbarAction({required this.label, required this.onPressed});
 
   final String label;
   final VoidCallback? onPressed;
@@ -1576,7 +1558,9 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-          targetRect.inflate(10), const Radius.circular(18)),
+        targetRect.inflate(10),
+        const Radius.circular(18),
+      ),
       Paint()..color = PokeMapLegacyColors.black.withValues(alpha: 0.1),
     );
 
@@ -1705,10 +1689,12 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
     if (pendingPolygon.isNotEmpty) {
       final path = Path();
       final points = pendingPolygon
-          .map((point) => Offset(
-                targetRect.left + (point.dx / source.width) * targetRect.width,
-                targetRect.top + (point.dy / source.height) * targetRect.height,
-              ))
+          .map(
+            (point) => Offset(
+              targetRect.left + (point.dx / source.width) * targetRect.width,
+              targetRect.top + (point.dy / source.height) * targetRect.height,
+            ),
+          )
           .toList(growable: false);
       path.moveTo(points.first.dx, points.first.dy);
       for (final point in points.skip(1)) {
@@ -1823,8 +1809,10 @@ class _ElementCollisionCanvasPainter extends CustomPainter {
         oldDelegate.showBase != showBase ||
         oldDelegate.showFinal != showFinal ||
         oldDelegate.showOverrides != showOverrides ||
-        !_sameCells(oldDelegate.pendingPolygonPreviewCells,
-            pendingPolygonPreviewCells) ||
+        !_sameCells(
+          oldDelegate.pendingPolygonPreviewCells,
+          pendingPolygonPreviewCells,
+        ) ||
         oldDelegate.hoverGridPoint != hoverGridPoint ||
         oldDelegate.highlightPolygonClosure != highlightPolygonClosure ||
         !_sameOffsets(oldDelegate.pendingPolygon, pendingPolygon);

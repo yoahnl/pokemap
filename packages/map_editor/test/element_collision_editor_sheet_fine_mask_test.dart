@@ -10,32 +10,34 @@ import 'package:map_editor/src/ui/widgets/element_collision_triple_mask_editor.d
 
 void main() {
   testWidgets(
-      'collision editor sheet exposes grid and fine mask authoring modes',
-      (tester) async {
-    await tester.binding.setSurfaceSize(const Size(1600, 900));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    'collision editor sheet exposes grid and fine mask authoring modes',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final image = await _testImage(width: 64, height: 64);
-    await _pumpEditorLauncher(
-      tester,
-      image: image,
-      initialProfile: const ElementCollisionProfile(
-        cells: [GridPos(x: 1, y: 1)],
-      ),
-    );
+      final image = await _testImage(width: 64, height: 64);
+      await _pumpEditorLauncher(
+        tester,
+        image: image,
+        initialProfile: const ElementCollisionProfile(
+          cells: [GridPos(x: 1, y: 1)],
+        ),
+      );
 
-    await tester.tap(find.text('Open collision editor'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Open collision editor'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Source utilisée par le gameplay'), findsOneWidget);
-    expect(find.text('Collision par grille'), findsWidgets);
-    expect(find.text('Masque fin'), findsOneWidget);
-    expect(find.text('Pinceau +'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('Source utilisée par le gameplay'), findsOneWidget);
+      expect(find.text('Collision par grille'), findsWidgets);
+      expect(find.text('Masque fin'), findsOneWidget);
+      expect(find.text('Pinceau +'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
-  testWidgets('fine mask mode shows collision and occlusion mask labels',
-      (tester) async {
+  testWidgets('fine mask mode shows collision and occlusion mask labels', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -59,12 +61,15 @@ void main() {
     expect(find.textContaining('Masque occlusion'), findsWidgets);
     expect(find.textContaining('ne bloque pas'), findsWidgets);
     expect(
-        find.textContaining('Mode aperçu : édition désactivée'), findsNothing);
+      find.textContaining('Mode aperçu : édition désactivée'),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('nested element edit sheet can open the collision editor',
-      (tester) async {
+  testWidgets('nested element edit sheet can open the collision editor', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -120,8 +125,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('profile with collisionMask opens with fine collision visible',
-      (tester) async {
+  testWidgets('profile with collisionMask opens with fine collision visible', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -144,33 +150,85 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('saving preserves existing collision visual and occlusion masks',
-      (tester) async {
+  testWidgets(
+    'saving preserves existing collision visual and occlusion masks',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final image = await _testImage(width: 64, height: 64);
+      late Future<ElementCollisionProfile?> result;
+      final collisionMask = _mask(widthPx: 64, heightPx: 64, solidIndex: 1);
+      final visualMask = _mask(widthPx: 64, heightPx: 64, solidIndex: 2);
+      final occlusionMask = _mask(widthPx: 64, heightPx: 64, solidIndex: 3);
+
+      await _pumpEditorLauncher(
+        tester,
+        image: image,
+        onOpen: (context) {
+          result = showElementCollisionEditorSheet(
+            context: context,
+            elementName: 'selbrume maison fine',
+            image: image,
+            source: _source,
+            tileWidth: 16,
+            tileHeight: 16,
+            initialProfile: ElementCollisionProfile(
+              visualMask: visualMask,
+              collisionMask: collisionMask,
+              occlusionMask: occlusionMask,
+              cells: const [GridPos(x: 3, y: 3)],
+            ),
+          );
+        },
+      );
+
+      await tester.tap(find.text('Open collision editor'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sauvegarder'));
+      await tester.pumpAndSettle();
+
+      final saved = await result;
+      expect(saved, isNotNull);
+      expect(saved!.collisionMask?.dataBase64, collisionMask.dataBase64);
+      expect(saved.visualMask?.dataBase64, visualMask.dataBase64);
+      expect(saved.occlusionMask?.dataBase64, occlusionMask.dataBase64);
+      expect(
+        saved.cells,
+        ElementCollisionMaskCodec.cellsFromPixelMask(
+          mask: collisionMask,
+          tileWidth: 16,
+          tileHeight: 16,
+          sourceWidthInTiles: _source.width,
+          sourceHeightInTiles: _source.height,
+        ),
+      );
+    },
+  );
+
+  testWidgets('saving an empty fine collision mask preserves empty cells', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final image = await _testImage(width: 64, height: 64);
     late Future<ElementCollisionProfile?> result;
-    final collisionMask = _mask(widthPx: 64, heightPx: 64, solidIndex: 1);
-    final visualMask = _mask(widthPx: 64, heightPx: 64, solidIndex: 2);
-    final occlusionMask = _mask(widthPx: 64, heightPx: 64, solidIndex: 3);
-
+    final collisionMask = _emptyMask(widthPx: 64, heightPx: 64);
     await _pumpEditorLauncher(
       tester,
       image: image,
       onOpen: (context) {
         result = showElementCollisionEditorSheet(
           context: context,
-          elementName: 'selbrume maison fine',
+          elementName: 'empty fine collision',
           image: image,
           source: _source,
           tileWidth: 16,
           tileHeight: 16,
           initialProfile: ElementCollisionProfile(
-            visualMask: visualMask,
             collisionMask: collisionMask,
-            occlusionMask: occlusionMask,
-            cells: const [GridPos(x: 3, y: 3)],
+            cells: const [GridPos(x: 0, y: 0)],
           ),
         );
       },
@@ -182,14 +240,13 @@ void main() {
     await tester.pumpAndSettle();
 
     final saved = await result;
-    expect(saved, isNotNull);
-    expect(saved!.collisionMask?.dataBase64, collisionMask.dataBase64);
-    expect(saved.visualMask?.dataBase64, visualMask.dataBase64);
-    expect(saved.occlusionMask?.dataBase64, occlusionMask.dataBase64);
+    expect(saved?.collisionMask?.dataBase64, collisionMask.dataBase64);
+    expect(saved?.cells, isEmpty);
   });
 
-  testWidgets('triple mask editor starts in paint collision mode',
-      (tester) async {
+  testWidgets('triple mask editor starts in paint collision mode', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -225,7 +282,9 @@ void main() {
     expect(find.text('Peindre'), findsOneWidget);
     expect(find.text('Effacer'), findsOneWidget);
     expect(
-        find.textContaining('Mode aperçu : édition désactivée'), findsNothing);
+      find.textContaining('Mode aperçu : édition désactivée'),
+      findsNothing,
+    );
 
     await tester.tap(
       find
@@ -247,8 +306,62 @@ void main() {
     expect(bits, contains(true));
   });
 
-  testWidgets('triple mask editor paints a visible brush footprint',
-      (tester) async {
+  testWidgets('saving the sheet commits an active fine-mask stroke', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final image = await _testImage(width: 64, height: 64);
+    final initial = ElementCollisionProfile(
+      collisionMask: _emptyMask(widthPx: 64, heightPx: 64),
+    );
+    await _pumpEditorLauncher(tester, image: image, initialProfile: initial);
+    final result = showElementCollisionEditorSheet(
+      context: tester.element(find.text('Open collision editor')),
+      elementName: 'active stroke save',
+      image: image,
+      source: _source,
+      tileWidth: 16,
+      tileHeight: 16,
+      initialProfile: initial,
+    );
+    await tester.pumpAndSettle();
+    final surface = find.descendant(
+      of: find.byType(ElementCollisionTripleMaskEditor),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Listener &&
+            widget.onPointerDown != null &&
+            widget.onPointerMove != null &&
+            widget.onPointerUp != null,
+      ),
+    );
+    expect(surface, findsOneWidget);
+    await tester.ensureVisible(surface);
+    await tester.pumpAndSettle();
+    final gesture = await tester.startGesture(
+      tester.getCenter(surface),
+      pointer: 42,
+    );
+    await gesture.moveBy(const Offset(8, 8));
+    await tester.pump();
+
+    await tester.tap(find.text('Sauvegarder'));
+    await tester.pumpAndSettle();
+
+    final saved = await result;
+    final bits = ElementCollisionMaskCodec.decodePackedBits(
+      widthPx: saved!.collisionMask!.widthPx,
+      heightPx: saved.collisionMask!.heightPx,
+      dataBase64: saved.collisionMask!.dataBase64,
+    );
+    expect(bits, contains(true));
+    await gesture.up();
+  });
+
+  testWidgets('triple mask editor paints a visible brush footprint', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -387,8 +500,9 @@ void main() {
     expect(bits.where((bit) => bit).length, greaterThan(1));
   });
 
-  testWidgets('triple mask editor previews the brush footprint on hover',
-      (tester) async {
+  testWidgets('triple mask editor previews the brush footprint on hover', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -419,8 +533,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final gesture =
-        await tester.createGesture(kind: ui.PointerDeviceKind.mouse);
+    final gesture = await tester.createGesture(
+      kind: ui.PointerDeviceKind.mouse,
+    );
     addTearDown(gesture.removePointer);
     await gesture.addPointer(location: Offset.zero);
     await gesture.moveTo(tester.getCenter(find.byType(CustomPaint).last));
@@ -485,8 +600,9 @@ void main() {
     expect(bits.where((bit) => !bit).length, greaterThan(1));
   });
 
-  testWidgets('triple mask editor sculpts legacy grid collision by default',
-      (tester) async {
+  testWidgets('triple mask editor sculpts legacy grid collision by default', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -636,10 +752,7 @@ Future<void> _pumpEditorLauncher(
   );
 }
 
-Future<ui.Image> _testImage({
-  required int width,
-  required int height,
-}) async {
+Future<ui.Image> _testImage({required int width, required int height}) async {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
   final paint = ui.Paint()..color = const Color(0xFF496D94);
@@ -684,9 +797,19 @@ ElementCollisionPixelMask _fullMask({
   );
 }
 
-const _source = TilesetSourceRect(
-  x: 0,
-  y: 0,
-  width: 4,
-  height: 4,
-);
+ElementCollisionPixelMask _emptyMask({
+  required int widthPx,
+  required int heightPx,
+}) {
+  return ElementCollisionPixelMask(
+    widthPx: widthPx,
+    heightPx: heightPx,
+    dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+      widthPx: widthPx,
+      heightPx: heightPx,
+      solidPixels: List<bool>.filled(widthPx * heightPx, false),
+    ),
+  );
+}
+
+const _source = TilesetSourceRect(x: 0, y: 0, width: 4, height: 4);

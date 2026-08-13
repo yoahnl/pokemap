@@ -47,10 +47,12 @@ import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
 import '../../../application/services/editor_palette_session_service.dart';
+import '../../../application/services/editor_performance_telemetry.dart';
 import '../../../application/services/element_collision_profile_generator.dart';
 import '../../../application/services/environment_mask_paint_target_resolver.dart';
 import '../../../application/services/entity_editing_service.dart';
 import '../../../application/services/gameplay_zone_editing_service.dart';
+import '../../../application/services/map_cell_stroke_buffer.dart';
 import '../../../application/services/map_connection_editing_service.dart';
 import '../../../application/services/narrative_event_legacy_authoring_guard.dart';
 import '../../../application/services/narrative_event_source_dependency_guard.dart';
@@ -156,6 +158,11 @@ typedef _MapDiskMutationLease = ({
   MapData? activeMap,
   String? activeMapPath,
 });
+
+final class _MapCellStrokeRepaint extends ChangeNotifier {
+  void repaint() => notifyListeners();
+}
+
 typedef _PendingMapActivation = ({
   String targetPath,
   Object? projectIdentity,
@@ -407,6 +414,11 @@ class EditorNotifier extends _$EditorNotifier
   _PendingSmartTileGesture? _pendingSmartTileGesture;
   DeferredSmartTileGesture? _deferredSmartTileGesture;
   bool _smartTileAutosaveInProgress = false;
+  MapCellStrokeBuffer? _mapCellStrokeBuffer;
+  _MapCellStrokeRepaint? _mapCellStrokeRepaint;
+
+  MapCellStrokeBuffer? get activeMapCellStrokePreview => _mapCellStrokeBuffer;
+  Listenable? get activeMapCellStrokeRepaint => _mapCellStrokeRepaint;
 
   /// Whether the map is only dirty because of Smart Tile work we already own.
   ///
@@ -1253,6 +1265,12 @@ class EditorNotifier extends _$EditorNotifier
     final activeTool = state.activeTool;
     final activeBrush = state.activeBrush;
     final eraserFootprint = state.eraserFootprint;
+    final activeStroke = state.mapStrokeStart;
+    final activeStrokeBuffer = _mapCellStrokeBuffer;
+    final rebaseActiveSmartTileStroke = activeStroke != null &&
+        activeStrokeBuffer != null &&
+        activeStrokeBuffer.kind == MapCellStrokeLayerKind.smartTile &&
+        activeStrokeBuffer.layerId == layerId;
     state = _projectSessionController.openMapDocument(
       current: state.copyWith(
         project: manifest,
@@ -1277,6 +1295,12 @@ class EditorNotifier extends _$EditorNotifier
       isProjectDirty: false,
       errorMessage: null,
     );
+    if (rebaseActiveSmartTileStroke) {
+      activeStrokeBuffer.rebaseSmartTileSource(map);
+      state = state.copyWith(
+        mapStrokeStart: activeStroke.copyWith(map: map, wasDirty: false),
+      );
+    }
     _rememberMapDocumentRevision(
       activeMapPath,
       revision: mapRevision,
@@ -1790,6 +1814,7 @@ class EditorNotifier extends _$EditorNotifier
 
   String _mapDocumentRevisionKey(String path) => p.normalize(p.absolute(path));
 
+  @override
   String? _mapDocumentRevisionFor(
     String path, {
     MapData? sourceDocument,
@@ -1908,6 +1933,14 @@ class EditorNotifier extends _$EditorNotifier
     String targetKey, {
     DirtyMapActivationDecision? dirtyDecision,
   }) async {
+    if (hasPendingPlacedElementPublications &&
+        !await drainPlacedElementPublications()) {
+      return _projectReplacementAuthorization(
+        dirtyDecision == null
+            ? MapActivationOutcome.busy
+            : MapActivationOutcome.unavailable,
+      );
+    }
     if (_mapDiskMutationLease != null || state.isSaving) {
       return _projectReplacementAuthorization(
         dirtyDecision == null
@@ -2417,10 +2450,64 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   @override
+  Future<bool> _savePlacedElementPublicationBase(
+    _PlacedElementPublicationBase base,
+  ) async {
+    final lease = _beginMapDiskMutationLease();
+    if (lease == null) return false;
+    _placedElementPublicationMapWriteLeaseToken = lease.token;
+    try {
+      final savedRevision =
+          await ref.read(saveMapUseCaseProvider).executeRevisioned(
+                base.map,
+                base.mapPath,
+                expectedRevision: base.mapRevision,
+                projectDialogueContext: base.project,
+              );
+      final canAcceptSave = _ownsMapDiskMutationLease(lease.token) &&
+          _sameNullableNormalizedPath(
+            state.projectRootPath,
+            base.projectRootPath,
+          ) &&
+          _sameNullableNormalizedPath(state.activeMapPath, base.mapPath) &&
+          state.activeMap?.id == base.map.id;
+      if (!canAcceptSave) return false;
+      _rememberMapDocumentRevision(
+        base.mapPath,
+        revision: savedRevision,
+        sourceDocument: base.map,
+      );
+      state = state.copyWith(
+        savedMapSnapshot: base.map,
+        errorMessage: null,
+      );
+      return true;
+    } on Object catch (error) {
+      if (_ownsMapDiskMutationLease(lease.token)) {
+        state = state.copyWith(
+          errorMessage: 'Impossible de publier les placements : $error',
+        );
+      }
+      return false;
+    } finally {
+      if (identical(_placedElementPublicationMapWriteLeaseToken, lease.token)) {
+        _placedElementPublicationMapWriteLeaseToken = null;
+      }
+      _endMapDiskMutationLease(lease);
+    }
+  }
+
+  @override
   Future<ActiveMapSaveOutcome> saveActiveMap({
     bool confirmBulkPlacementLoss = false,
     PendingBorderSaveDecision? pendingBorderDecision,
   }) async {
+    if (hasPendingPlacedElementPublications) {
+      if (!await drainPlacedElementPublications()) {
+        return ActiveMapSaveOutcome.failed;
+      }
+      if (!state.isDirty) return ActiveMapSaveOutcome.saved;
+    }
     final map = state.activeMap;
     final path = state.activeMapPath;
     if (map == null || path == null) {
@@ -2719,6 +2806,10 @@ class EditorNotifier extends _$EditorNotifier
     Object? mapWriteLeaseToken,
     bool forceReload = false,
   }) async {
+    if (hasPendingPlacedElementPublications &&
+        !await drainPlacedElementPublications()) {
+      return MapActivationOutcome.saveBlocked;
+    }
     final fs = _projectWorkspace;
     if (fs == null) return MapActivationOutcome.unavailable;
     final isInternalReload = mapWriteLeaseToken != null;
@@ -5739,6 +5830,32 @@ class EditorNotifier extends _$EditorNotifier
       return;
     }
     try {
+      final buffer = _mapCellStrokeBuffer;
+      if (partOfStroke &&
+          buffer != null &&
+          identical(buffer.sourceMap, map) &&
+          buffer.layerId == layerId &&
+          buffer.kind == MapCellStrokeLayerKind.smartTile) {
+        final changed = selectedCells.length == 1
+            ? buffer.setSmartTileMaterialAt(
+                origin: selectedCells.single,
+                materialId: materialId,
+              )
+            : buffer.setSmartTileMaterials(
+                cells: selectedCells,
+                materialId: materialId,
+              );
+        if (!changed) return;
+        _recordSmartTileGesture(
+          mapId: map.id,
+          layerId: layerId,
+          materialId: materialId,
+          cells: buffer.smartTileTouchedCells,
+          commitImmediately: false,
+          selection: selection,
+        );
+        return;
+      }
       final paintedLayer = applySmartTileMaterialGesture(
         activeLayer,
         mapSize: map.size,
@@ -5750,9 +5867,11 @@ class EditorNotifier extends _$EditorNotifier
         return;
       }
       final updated = replaceSmartTileLayer(map, layer: paintedLayer);
-      MapValidator.validate(
-        updated,
-        projectDialogueContext: state.project,
+      _validateSmartTileDelta(
+        before: map,
+        after: updated,
+        layerId: layerId,
+        cells: selectedCells,
       );
       _applyMapMutation(
         previousMap: map,
@@ -5934,6 +6053,7 @@ class EditorNotifier extends _$EditorNotifier
       );
     } else if (layer is SmartTileLayer) {
       try {
+        final buffer = _mapCellStrokeBuffer;
         final erasedCells = <GridPos>[];
         for (var y = 0; y < patternSize.height; y++) {
           for (var x = 0; x < patternSize.width; x++) {
@@ -5945,12 +6065,18 @@ class EditorNotifier extends _$EditorNotifier
                 targetY >= map.size.height) {
               continue;
             }
-            final hasAuthoredValue = smartTileCellHasAuthoredValue(
-              layer,
-              mapSize: map.size,
-              x: targetX,
-              y: targetY,
-            );
+            final hasAuthoredValue = partOfStroke &&
+                    buffer != null &&
+                    identical(buffer.sourceMap, map) &&
+                    buffer.layerId == layerId &&
+                    buffer.kind == MapCellStrokeLayerKind.smartTile
+                ? buffer.smartTileCellHasAuthoredValue(targetX, targetY)
+                : smartTileCellHasAuthoredValue(
+                    layer,
+                    mapSize: map.size,
+                    x: targetX,
+                    y: targetY,
+                  );
             if (!hasAuthoredValue) continue;
             erasedCells.add(GridPos(x: targetX, y: targetY));
           }
@@ -5974,6 +6100,30 @@ class EditorNotifier extends _$EditorNotifier
           );
           return true;
         }
+        if (partOfStroke &&
+            buffer != null &&
+            identical(buffer.sourceMap, map) &&
+            buffer.layerId == layerId &&
+            buffer.kind == MapCellStrokeLayerKind.smartTile) {
+          final changed = erasedCells.length == 1
+              ? buffer.setSmartTileMaterialAt(
+                  origin: erasedCells.single,
+                  materialId: null,
+                )
+              : buffer.setSmartTileMaterials(
+                  cells: erasedCells,
+                  materialId: null,
+                );
+          if (!changed) return false;
+          _recordSmartTileGesture(
+            mapId: map.id,
+            layerId: layerId,
+            materialId: null,
+            cells: buffer.smartTileTouchedCells,
+            commitImmediately: false,
+          );
+          return true;
+        }
         final erasedLayer = applySmartTileMaterialGesture(
           layer,
           mapSize: map.size,
@@ -5985,9 +6135,11 @@ class EditorNotifier extends _$EditorNotifier
           return false;
         }
         final updated = replaceSmartTileLayer(map, layer: erasedLayer);
-        MapValidator.validate(
-          updated,
-          projectDialogueContext: state.project,
+        _validateSmartTileDelta(
+          before: map,
+          after: updated,
+          layerId: layerId,
+          cells: erasedCells,
         );
         _applyMapMutation(
           previousMap: map,
@@ -8276,18 +8428,88 @@ class EditorNotifier extends _$EditorNotifier
         !_canonicalSmartTileGestureOwnsDirtyMap) {
       return;
     }
+    if (state.mapStrokeStart == null && map != null && layerId != null) {
+      final repaint = _MapCellStrokeRepaint();
+      if (activeLayer is TileLayer) {
+        _mapCellStrokeRepaint = repaint;
+        _mapCellStrokeBuffer = MapCellStrokeBuffer.tile(
+          sourceMap: map,
+          layerId: layerId,
+          onChanged: repaint.repaint,
+        );
+      } else if (activeLayer is CollisionLayer) {
+        _mapCellStrokeRepaint = repaint;
+        _mapCellStrokeBuffer = MapCellStrokeBuffer.collision(
+          sourceMap: map,
+          layerId: layerId,
+          onChanged: repaint.repaint,
+        );
+      } else if (activeLayer is SmartTileLayer) {
+        _mapCellStrokeRepaint = repaint;
+        _mapCellStrokeBuffer = MapCellStrokeBuffer.smartTile(
+          sourceMap: map,
+          layerId: layerId,
+          onChanged: repaint.repaint,
+        );
+      }
+    }
     state = _mapEditingController.beginStroke(state);
   }
 
   void endMapStroke() {
+    final buffer = _mapCellStrokeBuffer;
+    _mapCellStrokeBuffer = null;
+    _mapCellStrokeRepaint = null;
+    String? commitError;
+    if (buffer != null && buffer.hasChanges) {
+      final span = EditorPerformanceTelemetry.startSpan(
+        EditorPerformanceSpanName.mutationLocal,
+      );
+      try {
+        final project = state.project;
+        final committed = buffer.commit(
+          project: project,
+          resolvePlacedElements:
+              project != null && buffer.kind == MapCellStrokeLayerKind.tile
+                  ? (layer) =>
+                      _placedElementInstanceIndexer.resolveLayerInstances(
+                        map: buffer.sourceMap,
+                        project: project,
+                        layer: layer,
+                      )
+                  : null,
+          validate: EditorPerformanceTelemetry.validateMapDelta,
+        );
+        _applyMapMutation(
+          previousMap: buffer.sourceMap,
+          updatedMap: committed,
+          preferredActiveLayerId: buffer.layerId,
+          partOfStroke: true,
+          performanceMutationSpan: span,
+        );
+      } catch (error) {
+        commitError = 'Failed to commit map stroke: $error';
+      } finally {
+        span?.finish();
+      }
+    }
     state = _mapEditingController.endStroke(state);
+    if (commitError != null) {
+      state = state.copyWith(errorMessage: commitError);
+    }
     _flushPendingSmartTileGesture();
   }
 
   void cancelMapStroke() {
+    _mapCellStrokeBuffer = null;
+    _mapCellStrokeRepaint = null;
     _pendingSmartTileGesture = null;
     _deferredSmartTileGesture = null;
     state = _mapEditingController.cancelStroke(state);
+  }
+
+  void breakMapStrokeInterpolation() {
+    _mapCellStrokeBuffer?.breakInterpolation();
   }
 
   void _recordSmartTileGesture({
@@ -8713,6 +8935,14 @@ class EditorNotifier extends _$EditorNotifier
     final layer = _findLayerById(map, pending.layerId);
     if (layer is! SmartTileLayer) return;
     pending.rollbackState = state;
+    final buffer = _mapCellStrokeBuffer;
+    if (state.mapStrokeStart != null &&
+        buffer != null &&
+        buffer.kind == MapCellStrokeLayerKind.smartTile &&
+        buffer.layerId == pending.layerId) {
+      buffer.rebaseSmartTileSource(map);
+      return;
+    }
     try {
       final painted = applySmartTileMaterialGesture(
         layer,
@@ -8722,7 +8952,12 @@ class EditorNotifier extends _$EditorNotifier
       );
       if (painted == layer) return;
       final updated = replaceSmartTileLayer(map, layer: painted);
-      MapValidator.validate(updated, projectDialogueContext: state.project);
+      _validateSmartTileDelta(
+        before: map,
+        after: updated,
+        layerId: pending.layerId,
+        cells: pending.cells,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -8767,6 +9002,47 @@ class EditorNotifier extends _$EditorNotifier
   ) =>
       state.projectRootPath == entry.projectRootPath &&
       state.activeMap?.id == entry.mapId;
+
+  void _validateSmartTileDelta({
+    required MapData before,
+    required MapData after,
+    required String layerId,
+    required Iterable<GridPos> cells,
+  }) {
+    EditorPerformanceTelemetry.validateMapDelta(
+      DeltaValidationContext(
+        before: before,
+        after: after,
+        project: state.project,
+        delta: MapMutationDelta.smartTileCells(
+          layerId: layerId,
+          cellIndices: <int>{
+            for (final cell in cells)
+              cell.y * before.size.width + cell.x,
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  void _validatePlacedElementDelta({
+    required MapData before,
+    required MapData after,
+    required MapPlacedElement instance,
+  }) {
+    EditorPerformanceTelemetry.validateMapDelta(
+      DeltaValidationContext(
+        before: before,
+        after: after,
+        project: state.project,
+        delta: MapMutationDelta.placedElement(
+          instance: instance,
+          instanceIndex: after.placedElements.length - 1,
+        ),
+      ),
+    );
+  }
 
   void _syncCanonicalSmartTileHistoryFlags() {
     final canUndoCanonical = _canonicalSmartTileUndoStack.isNotEmpty &&
@@ -8816,6 +9092,8 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   void undoMap() {
+    if (_placedElementPublicationInProgress) return;
+    _cancelLatestPendingPlacedElementPlacementBeforeUndo();
     // History commands must never terminate a gesture still owned by the
     // canvas. Pointer-up or cancellation remains its single terminal event.
     if (state.mapStrokeStart != null ||
@@ -9312,7 +9590,22 @@ class EditorNotifier extends _$EditorNotifier
     required _PaintPattern pattern,
     required String failureLabel,
   }) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.mutationLocal,
+    );
     try {
+      final buffer = _mapCellStrokeBuffer;
+      if (buffer != null &&
+          identical(buffer.sourceMap, map) &&
+          buffer.layerId == layerId &&
+          buffer.kind == MapCellStrokeLayerKind.tile) {
+        buffer.paintTiles(
+          origin: pos,
+          patternSize: pattern.size,
+          tiles: pattern.tiles,
+        );
+        return;
+      }
       final useCase = ref.read(paintTilePatternOnMapUseCaseProvider);
       final painted = useCase.execute(
         map,
@@ -9335,9 +9628,12 @@ class EditorNotifier extends _$EditorNotifier
         updatedMap: committed,
         preferredActiveLayerId: layerId,
         partOfStroke: true,
+        performanceMutationSpan: span,
       );
     } catch (e) {
       _setPaintError('Failed to paint $failureLabel: $e');
+    } finally {
+      span?.finish();
     }
   }
 
@@ -9350,6 +9646,23 @@ class EditorNotifier extends _$EditorNotifier
     required bool partOfStroke,
   }) {
     try {
+      final buffer = _mapCellStrokeBuffer;
+      if (partOfStroke &&
+          buffer != null &&
+          identical(buffer.sourceMap, map) &&
+          buffer.layerId == layerId &&
+          buffer.kind == MapCellStrokeLayerKind.tile) {
+        buffer.paintTiles(
+          origin: pos,
+          patternSize: patternSize,
+          tiles: List<TileLayerPaletteEntry?>.filled(
+            patternSize.width * patternSize.height,
+            null,
+            growable: false,
+          ),
+        );
+        return;
+      }
       final project = state.project;
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(eraseTileOnMapUseCaseProvider);
@@ -9407,7 +9720,22 @@ class EditorNotifier extends _$EditorNotifier
     required GridSize patternSize,
     required String failureLabel,
   }) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.mutationLocal,
+    );
     try {
+      final buffer = _mapCellStrokeBuffer;
+      if (buffer != null &&
+          identical(buffer.sourceMap, map) &&
+          buffer.layerId == layerId &&
+          buffer.kind == MapCellStrokeLayerKind.collision) {
+        buffer.setCollisions(
+          origin: pos,
+          patternSize: patternSize,
+          value: true,
+        );
+        return;
+      }
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(paintCollisionOnMapUseCaseProvider);
         final painted = useCase.execute(
@@ -9420,6 +9748,7 @@ class EditorNotifier extends _$EditorNotifier
           updatedMap: painted,
           preferredActiveLayerId: layerId,
           partOfStroke: true,
+          performanceMutationSpan: span,
         );
         return;
       }
@@ -9436,9 +9765,12 @@ class EditorNotifier extends _$EditorNotifier
         updatedMap: painted,
         preferredActiveLayerId: layerId,
         partOfStroke: true,
+        performanceMutationSpan: span,
       );
     } catch (e) {
       _setPaintError('Failed to paint collision $failureLabel: $e');
+    } finally {
+      span?.finish();
     }
   }
 
@@ -9451,6 +9783,19 @@ class EditorNotifier extends _$EditorNotifier
     required bool partOfStroke,
   }) {
     try {
+      final buffer = _mapCellStrokeBuffer;
+      if (partOfStroke &&
+          buffer != null &&
+          identical(buffer.sourceMap, map) &&
+          buffer.layerId == layerId &&
+          buffer.kind == MapCellStrokeLayerKind.collision) {
+        buffer.setCollisions(
+          origin: pos,
+          patternSize: patternSize,
+          value: false,
+        );
+        return;
+      }
       if (patternSize.width == 1 && patternSize.height == 1) {
         final useCase = ref.read(eraseCollisionOnMapUseCaseProvider);
         final erased = useCase.execute(
@@ -13903,6 +14248,7 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
+  @override
   void _applyMapMutation({
     required MapData previousMap,
     required MapData updatedMap,
@@ -13917,6 +14263,7 @@ class EditorNotifier extends _$EditorNotifier
     bool updateHoveredTile = false,
     String? statusMessage,
     Object? mapWriteLeaseToken,
+    EditorPerformanceSpan? performanceMutationSpan,
   }) {
     if (_rejectNonCanonicalActiveMapAuthoring() ||
         _rejectNarrativeEventSourceCleanupMapMutation() ||
@@ -13954,7 +14301,15 @@ class EditorNotifier extends _$EditorNotifier
     if (outgoingPaletteKey != incomingPaletteKey || layerIdentityChanged) {
       adopted = _activatePaletteContext(adopted);
     }
-    state = adopted;
+    performanceMutationSpan?.finish();
+    final publishSpan = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.statePublish,
+    );
+    try {
+      state = adopted;
+    } finally {
+      publishSpan?.finish();
+    }
   }
 
   int _findLayerIndexById(MapData map, String layerId) {

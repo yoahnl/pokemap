@@ -30,6 +30,7 @@ import '../ports/artifact_store.dart';
 import '../registry/mutation_registry.dart';
 import '../transactions/action_planner.dart';
 import '../transactions/authoring_plan.dart';
+import '../support/authoring_performance_observer.dart';
 import '../domains/maps/border_actions.dart';
 import '../domains/maps/collision_actions.dart';
 import '../domains/maps/entity_actions.dart';
@@ -70,15 +71,24 @@ final class MapMutationDispatcher {
   factory MapMutationDispatcher.canonical({
     ArtifactStore? artifactStore,
     TiledImageCollectionRasterCodec? tiledImageCollectionRasterCodec,
+    AuthoringPerformanceObserver? performanceObserver,
   }) {
-    const lifecycle = MapLifecycleActions();
+    final lifecycle = MapLifecycleActions(
+      adapter: MapLifecycleAdapter(
+        performanceObserver: performanceObserver,
+      ),
+    );
     const operations = MapOperationsActions();
     const smartTileCatalog = SmartTileCatalogActions();
     const smartTileCells = SmartTileCellActions();
     const smartTileLayers = SmartTileLayerActions();
     const smartTilePatterns = SmartTilePatternActions();
     const border = BorderActions();
-    const collision = CollisionActions();
+    final collision = CollisionActions(
+      inspector: EffectiveCollisionInspector(
+        performanceObserver: performanceObserver,
+      ),
+    );
     const entity = EntityActions();
     const environment = EnvironmentActions();
     const placedElement = PlacedElementActions();

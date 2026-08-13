@@ -4,6 +4,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:path/path.dart' as p;
 
 import '../../application/authoring_api/authoring_mutation_adapter.dart';
+import '../../application/services/editor_performance_telemetry.dart';
 
 /// Editor-owned adapter for the read-only filesystem capability expected by
 /// `map_authoring`.
@@ -26,6 +27,9 @@ final class EditorProjectFileReader
 
   @override
   Future<String> canonicalizeDirectory(String path) {
+    EditorPerformanceTelemetry.incrementCounter(
+      EditorPerformanceCounterName.filesystemMetadata,
+    );
     return _delegate.canonicalizeDirectory(path);
   }
 
@@ -34,6 +38,9 @@ final class EditorProjectFileReader
     required String projectRoot,
     required String relativePath,
   }) {
+    EditorPerformanceTelemetry.incrementCounter(
+      EditorPerformanceCounterName.filesystemRead,
+    );
     return _delegate.readBytes(
       projectRoot: projectRoot,
       relativePath: relativePath,
@@ -45,6 +52,9 @@ final class EditorProjectFileReader
     required String projectRoot,
     required String relativePath,
   }) {
+    EditorPerformanceTelemetry.incrementCounter(
+      EditorPerformanceCounterName.filesystemMetadata,
+    );
     final delegate = _delegate;
     if (delegate is! ProjectSnapshotCacheIdentityReader) {
       return Future.value();
@@ -60,6 +70,9 @@ final class EditorProjectFileReader
     var directory = File(p.normalize(p.absolute(resourcePath))).parent;
     while (true) {
       final manifest = File(p.join(directory.path, 'project.json'));
+      EditorPerformanceTelemetry.incrementCounter(
+        EditorPerformanceCounterName.filesystemMetadata,
+      );
       if (await manifest.exists()) {
         return canonicalizeDirectory(directory.path);
       }

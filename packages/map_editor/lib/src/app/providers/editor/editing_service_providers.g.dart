@@ -120,7 +120,7 @@ final class MapHistoryCoordinatorProvider
 }
 
 String _$mapHistoryCoordinatorHash() =>
-    r'bc8d7aa066d77dfe27ad1f80e4a78ed3df4f1d35';
+    r'dd82add82e5d2c14d47ee8629e51e10afb6be83e';
 
 @ProviderFor(elementCollisionProfileGenerator)
 final elementCollisionProfileGeneratorProvider =

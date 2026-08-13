@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
+import '../../support/authoring_performance_observer.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
@@ -121,7 +122,9 @@ final class CollisionWalkabilityReport {
 
 /// Computes the same cell-level collision sources consumed by gameplay.
 final class EffectiveCollisionInspector {
-  const EffectiveCollisionInspector();
+  const EffectiveCollisionInspector({this.performanceObserver});
+
+  final AuthoringPerformanceObserver? performanceObserver;
 
   EffectiveCollisionCell queryAt({
     required ProjectManifest manifest,
@@ -316,6 +319,11 @@ final class EffectiveCollisionInspector {
         element: element,
       );
       final mask = profile.collisionMask;
+      if (mask != null) {
+        performanceObserver?.incrementCounter(
+          AuthoringPerformanceCounterName.base64Decode,
+        );
+      }
       final sourceCells = mask == null
           ? profile.cells
           : ElementCollisionMaskCodec.cellsFromPixelMask(

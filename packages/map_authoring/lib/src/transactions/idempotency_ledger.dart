@@ -4,6 +4,7 @@ import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
 import '../ports/idempotency_store.dart';
 import '../support/authoring_fingerprint.dart';
+import 'authoring_plan.dart';
 
 typedef AuthoringIdempotencyClock = DateTime Function();
 
@@ -53,7 +54,8 @@ final class AuthoringIdempotencyLedger {
     _requireScopeMatchesRequest(scope, request);
     await _ensureInitialPrune();
     final now = _clock().toUtc();
-    final payloadFingerprint = _payloadFingerprint(request);
+    final payloadFingerprint =
+        computeAuthoringIdempotencyPayloadFingerprint(request);
     final pending = AuthoringIdempotencyRecord(
       scope: scope,
       payloadFingerprint: payloadFingerprint,
@@ -109,10 +111,28 @@ final class AuthoringIdempotencyLedger {
     required AuthoringRequest request,
   }) async {
     _requireScopeMatchesRequest(scope, request);
+    return _inspect(
+      scope,
+      computeAuthoringIdempotencyPayloadFingerprint(request),
+    );
+  }
+
+  Future<AuthoringReceipt?> inspectPlan({
+    required AuthoringIdempotencyScope scope,
+    required AuthoringPlan plan,
+  }) async {
+    _requireScopeMatchesRequest(scope, plan.request);
+    return _inspect(scope, plan.idempotencyPayloadFingerprint);
+  }
+
+  Future<AuthoringReceipt?> _inspect(
+    AuthoringIdempotencyScope scope,
+    String payloadFingerprint,
+  ) async {
     await _ensureInitialPrune();
     final existing = await _store.read(scope);
     if (existing == null) return null;
-    if (existing.payloadFingerprint != _payloadFingerprint(request)) {
+    if (existing.payloadFingerprint != payloadFingerprint) {
       throw AuthoringIdempotencyException(
         code: 'idempotency.payload_conflict',
         message: 'This idempotency key was used with another payload.',
@@ -172,18 +192,6 @@ final class AuthoringIdempotencyLedger {
     return _initialPrune ??=
         _store.pruneExpired(_clock().toUtc()).then<void>((_) {});
   }
-}
-
-String _payloadFingerprint(AuthoringRequest request) {
-  return computeAuthoringJsonFingerprint(
-    {
-      'parameters': request.parameters,
-      'expectedRevision': request.expectedRevision,
-      'dryRun': request.dryRun,
-      'extensions': request.extensions,
-    },
-    logicalName: 'idempotency-payload.json',
-  );
 }
 
 void _requireScopeMatchesRequest(

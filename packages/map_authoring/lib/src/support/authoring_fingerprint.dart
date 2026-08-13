@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
 
+import '../contracts/authoring_request.dart';
 import '../contracts/json_contract_support.dart';
 
 /// Computes the same framed SHA-256 form used by project snapshots.
@@ -37,6 +38,20 @@ String computeAuthoringJsonFingerprint(
   return computeAuthoringBytesFingerprint(
     utf8.encode(canonicalAuthoringJson(value)),
     logicalName: logicalName,
+  );
+}
+
+String computeAuthoringIdempotencyPayloadFingerprint(
+  AuthoringRequest request,
+) {
+  return computeAuthoringJsonFingerprint(
+    {
+      'parameters': request.parameters,
+      'expectedRevision': request.expectedRevision,
+      'dryRun': request.dryRun,
+      'extensions': request.extensions,
+    },
+    logicalName: 'idempotency-payload.json',
   );
 }
 

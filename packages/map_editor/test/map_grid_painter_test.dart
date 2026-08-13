@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/map_tool_preview.dart';
+import 'package:map_editor/src/application/services/map_cell_stroke_buffer.dart';
 import 'package:map_editor/src/features/editor/application/map_placed_element_rotation_planner.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.dart';
@@ -52,6 +53,125 @@ void main() {
         returnsNormally,
       );
       recorder.endRecording().dispose();
+    });
+
+    test('paints an unpublished Smart Tile stroke preview', () async {
+      final tilesetImage = await _solidColorImage(
+        width: 32,
+        height: 32,
+        color: const ui.Color(0xFF2ACF61),
+      );
+      const layer = SmartTileLayer(
+        id: 'smart',
+        name: 'Smart',
+        presetId: 'terrain',
+        usage: SmartTileUsage.terrain,
+        materialPalette: <String>['', 'grass'],
+        field: SmartTileField.cell(semanticCells: <int>[0, 0]),
+      );
+      const map = MapData(
+        id: 'smart-preview',
+        name: 'Smart preview',
+        size: GridSize(width: 2, height: 1),
+        layers: <MapLayer>[layer],
+      );
+      final project = ProjectManifest(
+        name: 'Smart preview',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        smartTileCatalog: ProjectSmartTileCatalog(
+          atlases: const <ProjectSmartTileAtlas>[
+            ProjectSmartTileAtlas(
+              id: 'atlas',
+              name: 'Atlas',
+              tilesetId: 'tiles',
+              columns: 1,
+              rows: 1,
+            ),
+          ],
+          materials: const <ProjectSmartTileMaterial>[
+            ProjectSmartTileMaterial(
+              id: 'grass',
+              name: 'Grass',
+              connectionGroupId: 'ground',
+            ),
+          ],
+          presets: const <ProjectSmartTilePreset>[
+            ProjectSmartTilePreset(
+              id: 'terrain',
+              name: 'Terrain',
+              usage: SmartTileUsage.terrain,
+              topology: SmartTileTopology.uniform,
+              coveragePolicy: SmartTileCoveragePolicy.sparse,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
+              defaultMaterialId: 'grass',
+              allowedMaterialIds: <String>['grass'],
+              rules: <SmartTileRule>[
+                SmartTileRule(
+                  id: 'grass',
+                  centerMatch: SmartTileSlotMatch.material('grass'),
+                  candidates: <SmartTileCandidate>[
+                    SmartTileCandidate(
+                      id: 'grass',
+                      parts: <SmartTileVisualPart>[
+                        SmartTileVisualPart(
+                          source: SmartTileVisualSource.frame(
+                            frame: SmartTileFrameRef(
+                              atlasId: 'atlas',
+                              column: 0,
+                              row: 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      final preview = MapCellStrokeBuffer.smartTile(
+        sourceMap: map,
+        layerId: 'smart',
+      )..setSmartTileMaterials(
+          cells: const <GridPos>[GridPos(x: 1, y: 0)],
+          materialId: 'grass',
+        );
+      final recorder = ui.PictureRecorder();
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: <String, ui.Image?>{'tiles': tilesetImage},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{'tiles': 1},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        project: project,
+        cellStrokePreview: preview,
+        showGrid: false,
+        showEditorOverlays: false,
+      ).paint(ui.Canvas(recorder), const ui.Size(64, 32));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(64, 32);
+      final pixels =
+          (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+
+      expect(_rgbaAt(pixels, 64, 16, 16)[3], 0);
+      expect(_rgbaAt(pixels, 64, 48, 16), <int>[42, 207, 97, 255]);
+
+      picture.dispose();
+      image.dispose();
+      tilesetImage.dispose();
     });
 
     test('renders fractional visual-only tile objects', () async {
@@ -1431,6 +1551,58 @@ void main() {
       image.dispose();
       tilesetImage.dispose();
     });
+  });
+
+  test('paints a sparse collision stroke preview before map publication',
+      () async {
+    final source = MapData(
+      id: 'collision-preview',
+      name: 'Collision preview',
+      size: const GridSize(width: 2, height: 1),
+      layers: <MapLayer>[
+        MapLayer.collision(
+          id: 'collision',
+          name: 'Collision',
+          collisions: List<bool>.filled(2, false, growable: false),
+        ),
+      ],
+    );
+    final preview = MapCellStrokeBuffer.collision(
+      sourceMap: source,
+      layerId: 'collision',
+    )..setCollisions(
+        origin: const GridPos(x: 1, y: 0),
+        patternSize: const GridSize(width: 1, height: 1),
+        value: true,
+      );
+    final recorder = ui.PictureRecorder();
+    MapGridPainter(
+      map: source,
+      zoom: 1,
+      offset: ui.Offset.zero,
+      tileWidth: 32,
+      tileHeight: 32,
+      tilesetImagesById: const <String, ui.Image?>{},
+      sourceTileWidth: 32,
+      sourceTileHeight: 32,
+      tilesPerRowById: const <String, int>{},
+      warps: const <MapWarp>[],
+      gameplayZones: const <MapGameplayZone>[],
+      connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+      cellStrokePreview: preview,
+      showGrid: false,
+      showEditorOverlays: false,
+    ).paint(ui.Canvas(recorder), const ui.Size(64, 32));
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(64, 32);
+    final pixels =
+        (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+
+    expect(_rgbaAt(pixels, 64, 16, 16)[3], 0);
+    expect(_rgbaAt(pixels, 64, 48, 16)[3], greaterThan(0));
+
+    picture.dispose();
+    image.dispose();
   });
 
   group('EditorCanvasRepaintClock', () {
