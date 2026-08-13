@@ -17,6 +17,7 @@ jobs:
       - name: Stage split map editor quality workflow
         run: |
           python3 - <<'PY'
+          import base64
           from pathlib import Path
 
           source = Path('.github/workflows/pokemap_hub_product_certification.yml')
@@ -26,59 +27,7 @@ jobs:
           end_marker = '\n  map-editor-performance-gate:\n'
           start = text.index(start_marker)
           end = text.index(end_marker, start)
-          replacement = r'''
-  map-editor-functional-quality:
-    runs-on: macos-15
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Install pinned Flutter SDK
-        run: |
-          git init "$RUNNER_TEMP/flutter"
-          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
-          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
-            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
-          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
-          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
-          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
-      - name: Map editor functional lane
-        working-directory: packages/map_editor
-        run: |
-          flutter pub get
-          flutter test --no-pub --timeout 2m -r expanded
-          flutter analyze --no-pub
-
-  map-editor-performance-quality:
-    runs-on: macos-15
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Install pinned Flutter SDK
-        run: |
-          git init "$RUNNER_TEMP/flutter"
-          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
-          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
-            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
-          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
-          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
-          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
-      - name: Map editor performance lane
-        working-directory: packages/map_editor
-        run: |
-          flutter pub get
-          for run_number in 1 2 3; do
-            echo "Performance process $run_number of 3"
-            flutter test --no-pub --timeout 2m -r expanded \
-              --tags performance \
-              --run-skipped \
-              --concurrency=1 \
-              test/cinematic_builder_characterization_performance_test.dart \
-              test/event_registry_persistence_performance_test.dart \
-              test/narrative_event_authoring_snapshot_performance_test.dart \
-              test/narrative_event_validation_incremental_performance_test.dart \
-              test/narrative_global_search_performance_test.dart \
-              test/narrative_large_project_workspace_performance_test.dart
-          done'''
+          replacement = base64.b64decode('CiAgbWFwLWVkaXRvci1mdW5jdGlvbmFsLXF1YWxpdHk6CiAgICBydW5zLW9uOiBtYWNvcy0xNQogICAgdGltZW91dC1taW51dGVzOiA2MAogICAgc3RlcHM6CiAgICAgIC0gdXNlczogYWN0aW9ucy9jaGVja291dEAxMWJkNzE5MDFiYmU1YjE2MzBjZWVhNzNkMjc1OTczNjRjOWFmNjgzCiAgICAgIC0gbmFtZTogSW5zdGFsbCBwaW5uZWQgRmx1dHRlciBTREsKICAgICAgICBydW46IHwKICAgICAgICAgIGdpdCBpbml0ICIkUlVOTkVSX1RFTVAvZmx1dHRlciIKICAgICAgICAgIGdpdCAtQyAiJFJVTk5FUl9URU1QL2ZsdXR0ZXIiIHJlbW90ZSBhZGQgb3JpZ2luIGh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0CiAgICAgICAgICBnaXQgLUMgIiRSVU5ORVJfVEVNUC9mbHV0dGVyIiBmZXRjaCAtLWRlcHRoIDEgb3JpZ2luIFwKICAgICAgICAgICAgInJlZnMvdGFncy8kRkxVVFRFUl9WRVJTSU9OOnJlZnMvdGFncy8kRkxVVFRFUl9WRVJTSU9OIgogICAgICAgICAgZ2l0IC1DICIkUlVOTkVSX1RFTVAvZmx1dHRlciIgY2hlY2tvdXQgLS1kZXRhY2ggIiRGTFVUVEVSX1ZFUlNJT04iCiAgICAgICAgICB0ZXN0ICIkKGdpdCAtQyAiJFJVTk5FUl9URU1QL2ZsdXR0ZXIiIHJldi1wYXJzZSBIRUFEKSIgPSAiJEZMVVRURVJfUkVWSVNJT04iCiAgICAgICAgICBlY2hvICIkUlVOTkVSX1RFTVAvZmx1dHRlci9iaW4iID4+ICIkR0lUSFVCX1BBVEgiCiAgICAgIC0gbmFtZTogTWFwIGVkaXRvciBmdW5jdGlvbmFsIGxhbmUKICAgICAgICB3b3JraW5nLWRpcmVjdG9yeTogcGFja2FnZXMvbWFwX2VkaXRvcgogICAgICAgIHJ1bjogfAogICAgICAgICAgZmx1dHRlciBwdWIgZ2V0CiAgICAgICAgICBmbHV0dGVyIHRlc3QgLS1uby1wdWIgLS10aW1lb3V0IDJtIC1yIGV4cGFuZGVkCiAgICAgICAgICBmbHV0dGVyIGFuYWx5emUgLS1uby1wdWIKCiAgbWFwLWVkaXRvci1wZXJmb3JtYW5jZS1xdWFsaXR5OgogICAgcnVucy1vbjogbWFjb3MtMTUKICAgIHRpbWVvdXQtbWludXRlczogNDUKICAgIHN0ZXBzOgogICAgICAtIHVzZXM6IGFjdGlvbnMvY2hlY2tvdXRAMTFiZDcxOTAxYmJlNWIxNjMwY2VlYTczZDI3NTk3MzY0YzlhZjY4MwogICAgICAtIG5hbWU6IEluc3RhbGwgcGlubmVkIEZsdXR0ZXIgU0RLCiAgICAgICAgcnVuOiB8CiAgICAgICAgICBnaXQgaW5pdCAiJFJVTk5FUl9URU1QL2ZsdXR0ZXIiCiAgICAgICAgICBnaXQgLUMgIiRSVU5ORVJfVEVNUC9mbHV0dGVyIiByZW1vdGUgYWRkIG9yaWdpbiBodHRwczovL2dpdGh1Yi5jb20vZmx1dHRlci9mbHV0dGVyLmdpdAogICAgICAgICAgZ2l0IC1DICIkUlVOTkVSX1RFTVAvZmx1dHRlciIgZmV0Y2ggLS1kZXB0aCAxIG9yaWdpbiBcCiAgICAgICAgICAgICJyZWZzL3RhZ3MvJEZMVVRURVJfVkVSU0lPTjpyZWZzL3RhZ3MvJEZMVVRURVJfVkVSU0lPTiIKICAgICAgICAgIGdpdCAtQyAiJFJVTk5FUl9URU1QL2ZsdXR0ZXIiIGNoZWNrb3V0IC0tZGV0YWNoICIkRkxVVFRFUl9WRVJTSU9OIgogICAgICAgICAgdGVzdCAiJChnaXQgLUMgIiRSVU5ORVJfVEVNUC9mbHV0dGVyIiByZXYtcGFyc2UgSEVBRCkiID0gIiRGTFVUVEVSX1JFVklTSU9OIgogICAgICAgICAgZWNobyAiJFJVTk5FUl9URU1QL2ZsdXR0ZXIvYmluIiA+PiAiJEdJVEhVQl9QQVRIIgogICAgICAtIG5hbWU6IE1hcCBlZGl0b3IgcGVyZm9ybWFuY2UgbGFuZQogICAgICAgIHdvcmtpbmctZGlyZWN0b3J5OiBwYWNrYWdlcy9tYXBfZWRpdG9yCiAgICAgICAgcnVuOiB8CiAgICAgICAgICBmbHV0dGVyIHB1YiBnZXQKICAgICAgICAgIGZvciBydW5fbnVtYmVyIGluIDEgMiAzOyBkbwogICAgICAgICAgICBlY2hvICJQZXJmb3JtYW5jZSBwcm9jZXNzICRydW5fbnVtYmVyIG9mIDMiCiAgICAgICAgICAgIGZsdXR0ZXIgdGVzdCAtLW5vLXB1YiAtLXRpbWVvdXQgMm0gLXIgZXhwYW5kZWQgXAogICAgICAgICAgICAgIC0tdGFncyBwZXJmb3JtYW5jZSBcCiAgICAgICAgICAgICAgLS1ydW4tc2tpcHBlZCBcCiAgICAgICAgICAgICAgLS1jb25jdXJyZW5jeT0xIFwKICAgICAgICAgICAgICB0ZXN0L2NpbmVtYXRpY19idWlsZGVyX2NoYXJhY3Rlcml6YXRpb25fcGVyZm9ybWFuY2VfdGVzdC5kYXJ0IFwKICAgICAgICAgICAgICB0ZXN0L2V2ZW50X3JlZ2lzdHJ5X3BlcnNpc3RlbmNlX3BlcmZvcm1hbmNlX3Rlc3QuZGFydCBcCiAgICAgICAgICAgICAgdGVzdC9uYXJyYXRpdmVfZXZlbnRfYXV0aG9yaW5nX3NuYXBzaG90X3BlcmZvcm1hbmNlX3Rlc3QuZGFydCBcCiAgICAgICAgICAgICAgdGVzdC9uYXJyYXRpdmVfZXZlbnRfdmFsaWRhdGlvbl9pbmNyZW1lbnRhbF9wZXJmb3JtYW5jZV90ZXN0LmRhcnQgXAogICAgICAgICAgICAgIHRlc3QvbmFycmF0aXZlX2dsb2JhbF9zZWFyY2hfcGVyZm9ybWFuY2VfdGVzdC5kYXJ0IFwKICAgICAgICAgICAgICB0ZXN0L25hcnJhdGl2ZV9sYXJnZV9wcm9qZWN0X3dvcmtzcGFjZV9wZXJmb3JtYW5jZV90ZXN0LmRhcnQKICAgICAgICAgIGRvbmU=').decode()
           patched = text[:start] + replacement + text[end:]
           if patched == text:
               raise SystemExit('workflow patch produced no change')
