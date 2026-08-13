@@ -72,14 +72,16 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
     ProjectManifest Function()? projectSnapshot,
   }) : _session = session,
        _project = initialProject,
+       _durableProject = initialProject,
        _projectSnapshot = projectSnapshot {
-    _session.setPersistenceGuard(_persistenceIssue);
+    _session.setPersistenceGuard(_persistenceIssueFor);
     _session.addListener(_onSessionChanged);
   }
 
   final NarrativeDocumentSession<ProjectPresentationProfile> _session;
   final ProjectManifest Function()? _projectSnapshot;
   ProjectManifest _project;
+  ProjectManifest _durableProject;
   bool _disposed = false;
   int _conflictResolutionSequence = 0;
 
@@ -121,6 +123,20 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
 
   Future<bool> redo() => _session.redo();
 
+  bool get hasPendingProjectChanges =>
+      !_sameProjectOutsidePresentation(_project, _durableProject);
+
+  bool adoptProjectSnapshot(ProjectManifest project) {
+    if (project.effectivePresentation != state.savedProfile) {
+      return false;
+    }
+    _project = project;
+    _session.reevaluatePersistenceGuard();
+    return true;
+  }
+
+  Future<bool> refreshCurrentProject() => _session.refreshBaseline();
+
   Future<bool> keepDraftOnCurrentProject() {
     final sequence = ++_conflictResolutionSequence;
     return _session.rebaseConflict(
@@ -145,6 +161,16 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
     return 'Sauvegarde bloquée : ${errors.first.message}';
   }
 
+  String? _persistenceIssueFor(ProjectPresentationProfile document) {
+    final validationIssue = _persistenceIssue(document);
+    if (validationIssue != null) return validationIssue;
+    if (hasPendingProjectChanges) {
+      return 'Sauvegarde automatique suspendue pendant l’enregistrement des '
+          'autres modifications du projet.';
+    }
+    return null;
+  }
+
   void _onSessionChanged() {
     if (_disposed) return;
     _synchronizeProject();
@@ -154,7 +180,14 @@ final class PersonalizationStudioSessionController extends ChangeNotifier {
   void _synchronizeProject() {
     final snapshot = _projectSnapshot;
     if (snapshot != null) {
-      _project = snapshot();
+      final hasLocalProjectChanges = !_sameProjectOutsidePresentation(
+        _project,
+        _durableProject,
+      );
+      _durableProject = snapshot();
+      if (!hasLocalProjectChanges) {
+        _project = _durableProject;
+      }
     }
   }
 
@@ -174,4 +207,11 @@ ProjectManifest _projectWithProfile(
 ) {
   if (profile == project.effectivePresentation) return project;
   return project.copyWith(presentation: profile);
+}
+
+bool _sameProjectOutsidePresentation(
+  ProjectManifest left,
+  ProjectManifest right,
+) {
+  return left.copyWith(presentation: right.presentation) == right;
 }

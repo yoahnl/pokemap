@@ -560,6 +560,53 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
     }
   }
 
+  Future<bool> refreshBaseline() async {
+    if (!_state.isInitialized ||
+        _disposed ||
+        _state.status == NarrativeDocumentSessionStatus.saving ||
+        _state.status == NarrativeDocumentSessionStatus.conflicted) {
+      return false;
+    }
+    _cancelAutosave();
+    final generation = ++_operationGeneration;
+    try {
+      final external = await _gateway.read();
+      if (!_canAdopt(generation)) return false;
+      if (external.document != _state.baseline) {
+        return _adoptConflict(
+          _state,
+          code: 'staleDocumentRevision',
+          message: 'The durable document changed while the session was open.',
+          external: external,
+        );
+      }
+      if (external.revision == _state.baselineRevision) {
+        _scheduleAutosaveIfNeeded();
+        return true;
+      }
+      return await _commitLocalCandidate(
+        _state.copyWith(
+          baseline: external.document,
+          baselineRevision: external.revision,
+          status: _state.document == external.document
+              ? NarrativeDocumentSessionStatus.saved
+              : NarrativeDocumentSessionStatus.dirty,
+          externalVersion: null,
+          code: null,
+          message: 'The durable revision was refreshed.',
+        ),
+      );
+    } on Object catch (error) {
+      if (_canAdopt(generation)) {
+        _publishFailure(
+          code: 'baselineRefreshFailed',
+          message: 'The durable document could not be refreshed: $error',
+        );
+      }
+      return false;
+    }
+  }
+
   Future<bool> _adoptSaved(
     NarrativeDocumentVersion<T> version,
     NarrativeDocumentSessionState<T> savingSnapshot,
@@ -788,6 +835,12 @@ final class NarrativeDocumentSession<T> extends ChangeNotifier {
     if (_disposed || identical(_persistenceGuard, persistenceGuard)) return;
     _cancelAutosave();
     _persistenceGuard = persistenceGuard;
+    _scheduleAutosaveIfNeeded();
+  }
+
+  void reevaluatePersistenceGuard() {
+    if (_disposed) return;
+    _cancelAutosave();
     _scheduleAutosaveIfNeeded();
   }
 

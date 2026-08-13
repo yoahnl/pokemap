@@ -998,6 +998,7 @@ class EditorNotifier extends _$EditorNotifier
     ProjectManifest manifest, {
     String? statusMessage,
   }) {
+    _personalizationStudioSession?.adoptProjectSnapshot(manifest);
     state = statusMessage == null
         ? state.copyWith(
             project: manifest,
@@ -1396,11 +1397,7 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     final session = _personalizationStudioSession!;
-    if (state.project != session.state.savedDocument) {
-      state = state.copyWith(
-        errorMessage: 'Le projet contient des modifications extérieures au '
-            'Personalization Studio. Enregistrez-les avant de continuer.',
-      );
+    if (!_adoptVisibleProjectForPersonalization(session)) {
       return false;
     }
     final sequence = ++_personalizationStudioOperationSequence;
@@ -1421,11 +1418,11 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     final session = _personalizationStudioSession!;
-    if (state.project != session.state.savedDocument) {
-      state = state.copyWith(
-        errorMessage: 'Sauvegarde bloquée : le projet contient des '
-            'modifications extérieures au Personalization Studio.',
-      );
+    if (!_adoptVisibleProjectForPersonalization(session)) {
+      return false;
+    }
+    if (session.hasPendingProjectChanges &&
+        !await _saveProjectChangesBeforePersonalization(session)) {
       return false;
     }
     final sequence = ++_personalizationStudioOperationSequence;
@@ -1445,11 +1442,7 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     final session = _personalizationStudioSession!;
-    if (state.project != session.state.savedDocument) {
-      state = state.copyWith(
-        errorMessage: 'Undo bloqué : le projet a changé en dehors du '
-            'Personalization Studio.',
-      );
+    if (!_adoptVisibleProjectForPersonalization(session)) {
       return false;
     }
     return session.undo();
@@ -1465,14 +1458,72 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     final session = _personalizationStudioSession!;
-    if (state.project != session.state.savedDocument) {
-      state = state.copyWith(
-        errorMessage: 'Redo bloqué : le projet a changé en dehors du '
-            'Personalization Studio.',
-      );
+    if (!_adoptVisibleProjectForPersonalization(session)) {
       return false;
     }
     return session.redo();
+  }
+
+  bool _adoptVisibleProjectForPersonalization(
+    PersonalizationStudioSessionController session,
+  ) {
+    final project = state.project;
+    if (project != null &&
+        (project == session.state.savedDocument ||
+            session.adoptProjectSnapshot(project))) {
+      return true;
+    }
+    state = state.copyWith(
+      errorMessage: 'Les réglages visuels du projet ont changé ailleurs. '
+          'Rechargez le Studio avant de continuer.',
+    );
+    return false;
+  }
+
+  Future<bool> _saveProjectChangesBeforePersonalization(
+    PersonalizationStudioSessionController session,
+  ) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) return false;
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      await ref.read(projectRepositoryProvider).saveProject(
+            project,
+            workspace.projectManifestPath,
+          );
+      if (!identical(state.project, project)) {
+        state = state.copyWith(
+          isSaving: false,
+          errorMessage: 'Le projet a encore changé pendant la sauvegarde. '
+              'Réessayez pour conserver la dernière version.',
+        );
+        return false;
+      }
+      if (!await session.refreshCurrentProject()) {
+        state = state.copyWith(
+          isSaving: false,
+          errorMessage: 'Le projet a été sauvegardé, mais le Studio n’a pas '
+              'pu se resynchroniser. Vos réglages visuels sont conservés.',
+        );
+        return false;
+      }
+      state = state.copyWith(
+        isSaving: false,
+        isProjectDirty: true,
+        statusMessage: 'Modifications du projet enregistrées. '
+            'Enregistrement des réglages visuels…',
+        errorMessage: null,
+      );
+      return true;
+    } on Object catch (error) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Impossible d’enregistrer les autres modifications du '
+            'projet : $error',
+      );
+      return false;
+    }
   }
 
   Future<bool> keepPersonalizationStudioDraftOnCurrentProject() {
@@ -2348,15 +2399,6 @@ class EditorNotifier extends _$EditorNotifier
     if (personalizationSession != null &&
         personalizationSession.state.status !=
             NarrativeDocumentSessionStatus.saved) {
-      if (project != personalizationSession.state.savedDocument) {
-        state = state.copyWith(
-          errorMessage: 'Sauvegarde bloquée : le projet contient à la fois '
-              'un brouillon de personnalisation et des modifications '
-              'extérieures. Résolvez ou annulez le brouillon avant de '
-              'continuer.',
-        );
-        return false;
-      }
       return savePersonalizationStudio();
     }
     final narrativeSession = _narrativeDocumentSession;

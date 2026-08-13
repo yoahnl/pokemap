@@ -15,6 +15,108 @@ import '../shell_chrome_test_harness.dart';
 
 void main() {
   test(
+    'preserves a scene layout update when the title is edited and saved',
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-scene-title-save-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final scene = SceneAsset.fromJson({
+        'id': 'scene_intro',
+        'name': 'Introduction',
+        'graph': {
+          'startNodeId': 'node_start',
+          'nodes': [
+            {'id': 'node_start', 'kind': 'start'},
+            {'id': 'node_end', 'kind': 'end'},
+          ],
+          'edges': [
+            {
+              'id': 'edge_end',
+              'fromNodeId': 'node_start',
+              'fromPortId': 'completed',
+              'toNodeId': 'node_end',
+              'kind': 'default',
+            },
+          ],
+        },
+        'layout': {
+          'nodeLayouts': [
+            {'nodeId': 'node_start', 'x': 24.0, 'y': 80.0},
+            {'nodeId': 'node_end', 'x': 320.0, 'y': 80.0},
+          ],
+        },
+      });
+      final project = buildShellChromeProject(
+        name: 'Scene and title',
+      ).copyWith(scenes: [scene]);
+      final projectFile = File('${root.path}/project.json');
+      projectFile.writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(project.toJson()),
+        flush: true,
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final subscription = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      );
+      expect(await notifier.initializePersonalizationStudioSession(), isTrue);
+      final movedScene = updateSceneNodeLayout(
+        scene,
+        nodeId: 'node_end',
+        x: 512.5,
+        y: 196.25,
+      ).updatedScene;
+      notifier.applyInMemoryProjectManifest(
+        project.copyWith(scenes: [movedScene]),
+        statusMessage: 'Scene node layout updated',
+      );
+      final titled = project.effectivePresentation.copyWith(
+        title: const ProjectTitlePresentationProfile(title: 'Le train UwU'),
+      );
+
+      expect(
+        await notifier.applyPersonalizationStudioProfile(
+          titled,
+          label: 'Modifier le titre',
+        ),
+        isTrue,
+      );
+      expect(notifier.state.errorMessage, isNull);
+      final saved = await notifier.saveProjectManifest();
+      expect(
+        saved,
+        isTrue,
+        reason: '${notifier.state.errorMessage} '
+            '${notifier.personalizationStudioSessionState?.code} '
+            '${notifier.personalizationStudioSessionState?.message}',
+      );
+
+      final durable = ProjectManifest.fromJson(
+        jsonDecode(projectFile.readAsStringSync()) as Map<String, dynamic>,
+      );
+      expect(durable.effectivePresentation.title?.title, 'Le train UwU');
+      expect(
+        durable.scenes.single.layout.nodeLayouts.firstWhere(
+          (layout) => layout.nodeId == 'node_end',
+        ),
+        SceneNodeLayout(nodeId: 'node_end', x: 512.5, y: 196.25),
+      );
+      expect(notifier.state.project, durable);
+      expect(notifier.state.isProjectDirty, isFalse);
+    },
+  );
+
+  test(
     'keeps the presentation draft outside the global project until save',
     () async {
       final root = Directory.systemTemp.createTempSync(
@@ -79,6 +181,79 @@ void main() {
       expect(await notifier.savePersonalizationStudio(), isTrue);
       expect(notifier.state.project?.presentation, second);
       expect(notifier.state.isProjectDirty, isFalse);
+    },
+  );
+
+  test(
+    'cancels presentation autosave when other project changes arrive',
+    () async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-autosave-interlock-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(name: 'Autosave interlock');
+      File(
+        '${root.path}/project.json',
+      ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
+      final gateway = _MemoryProfileGateway(project);
+      final scheduler = _ManualAutosaveScheduler();
+      final container = ProviderContainer(
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+            required String projectPath,
+            required ProjectManifest initialDocument,
+          }) {
+            return PersonalizationStudioSessionController(
+              session: NarrativeDocumentSession<ProjectPresentationProfile>(
+                documentId: 'personalization-autosave-interlock',
+                initialDocument: initialDocument.effectivePresentation,
+                gateway: gateway,
+                recoveryStore: _MemoryProfileRecoveryStore(),
+                autosaveScheduler: scheduler.schedule,
+              ),
+              initialProject: initialDocument,
+              projectSnapshot: () => gateway.currentProject,
+            );
+          }),
+        ],
+      );
+      addTearDown(container.dispose);
+      final subscription = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        projectRootPath: root.path,
+        project: project,
+        workspaceMode: EditorWorkspaceMode.personalizationStudio,
+      );
+      expect(await notifier.initializePersonalizationStudioSession(), isTrue);
+      await notifier.setPersonalizationStudioAutosaveEnabled(true);
+      expect(
+        await notifier.updatePersonalizationStudioProfile(
+          (current) => current.copyWith(
+            title: const ProjectTitlePresentationProfile(title: 'Le train UwU'),
+          ),
+        ),
+        isTrue,
+      );
+      expect(scheduler.activeTasks, hasLength(1));
+
+      notifier.applyInMemoryProjectManifest(
+        project.copyWith(name: 'Autosave interlock updated'),
+      );
+
+      expect(scheduler.activeTasks, isEmpty);
+      expect(gateway.saveCount, 0);
+      expect(
+        notifier.personalizationStudioSessionState?.draftProfile.title?.title,
+        'Le train UwU',
+      );
+      expect(notifier.state.project?.name, 'Autosave interlock updated');
     },
   );
 
@@ -480,6 +655,9 @@ final class _BlockingProfileRecoveryStore
 
 final class _ManualAutosaveScheduler {
   final List<_ManualAutosaveTask> _tasks = <_ManualAutosaveTask>[];
+
+  List<_ManualAutosaveTask> get activeTasks =>
+      _tasks.where((task) => !task.cancelled).toList(growable: false);
 
   NarrativeDocumentAutosaveHandle schedule(
     Duration delay,

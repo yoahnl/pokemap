@@ -120,6 +120,42 @@ void main() {
       expect(gateway.saveCount, 0);
     });
 
+    test('refreshes the durable revision without losing the local draft', () async {
+      final project = buildShellChromeProject(name: 'Refresh baseline');
+      final gateway = _MemoryProfileGateway(project);
+      final recovery = _MemoryProfileRecoveryStore();
+      final controller = PersonalizationStudioSessionController(
+        session: NarrativeDocumentSession<ProjectPresentationProfile>(
+          documentId: 'personalization-refresh-baseline',
+          initialDocument: project.effectivePresentation,
+          gateway: gateway,
+          recoveryStore: recovery,
+        ),
+        initialProject: project,
+        projectSnapshot: () => gateway.currentProject,
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      const profile = ProjectPresentationProfile(
+        title: ProjectTitlePresentationProfile(title: 'Le train UwU'),
+      );
+      await controller.applyProfile(
+        profile,
+        operationId: 'refresh-title',
+        label: 'Modifier le titre',
+      );
+      gateway
+        ..durableDocument = project.copyWith(name: 'Refresh baseline updated')
+        ..revision = 'revision-2';
+
+      expect(await controller.refreshCurrentProject(), isTrue);
+
+      expect(controller.state.draftProfile, profile);
+      expect(controller.state.savedProfile, project.effectivePresentation);
+      expect(controller.state.isDirty, isTrue);
+      expect(recovery.record?.baseRevision, 'revision-2');
+    });
+
     test('saves the exact draft and adopts it as the new baseline', () async {
       final project = buildShellChromeProject(name: 'Saved profile');
       final gateway = _MemoryProfileGateway(project);
