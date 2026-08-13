@@ -81,9 +81,7 @@ Future<void> main(List<String> arguments) async {
     '$repoRoot${Platform.pathSeparator}'
     'pokemap_roadmap_mecaniques_fangame.md',
   );
-  final reportsDirectory = Directory(
-    '$repoRoot${Platform.pathSeparator}reports${Platform.pathSeparator}gameplay',
-  );
+  final reportsDirectory = await _resolveGameplayReportsDirectory(repoRoot);
 
   if (!await roadmapFile.exists()) {
     stderr.writeln('Roadmap not found: ${roadmapFile.path}');
@@ -157,6 +155,21 @@ Future<void> main(List<String> arguments) async {
       '${diagnostic.code.name}: ${diagnostic.message}',
     );
   }
+}
+
+Future<Directory> _resolveGameplayReportsDirectory(String repoRoot) async {
+  final separator = Platform.pathSeparator;
+  final candidates = <Directory>[
+    Directory(
+      '$repoRoot${separator}documentation${separator}reports'
+      '${separator}gameplay',
+    ),
+    Directory('$repoRoot${separator}reports${separator}gameplay'),
+  ];
+  for (final candidate in candidates) {
+    if (await candidate.exists()) return candidate;
+  }
+  return candidates.first;
 }
 
 String _relativePath(String root, String path) {
