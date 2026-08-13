@@ -163,6 +163,7 @@ jobs:
           printf 'ticket=BETA-PERF-006\naudited_sha=%s\n' "$(git rev-parse HEAD)" > "$RUNNER_TEMP/evidence/perf-006/metadata.txt"
           cd packages/map_authoring
           dart pub get
+          mkdir -p build/test
           dart test -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-006/map_authoring_test.log"
           dart analyze 2>&1 | tee "$RUNNER_TEMP/evidence/perf-006/map_authoring_analyze.log"
           dart run benchmark/authoring_snapshot_open.dart --warmups 1 --samples 5 --fixtures small,intermediate,synthetic-10mb --roots 1 --cycles 10 --modes warm,session --output build/performance/perf_006_snapshot_boundary_clean.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-006/snapshot_benchmark.log"
