@@ -15,11 +15,18 @@ export 'src/ports/project_file_reader.dart'
         ProjectResourceIdentityReader,
         ProjectSnapshotCacheIdentityReader;
 export 'src/references/project_reference_index.dart' show ProjectReferenceIndex;
+export 'src/security/authorization_policy.dart' show AuthoringSecurityLimits;
+export 'src/support/authoring_performance_observer.dart';
 export 'src/workspace/project_open_service.dart' show ProjectOpenService;
 export 'src/workspace/project_query_service.dart' show ProjectQueryService;
 export 'src/workspace/project_snapshot.dart'
     show ProjectSnapshot, ProjectSnapshotLoadDiagnostic;
-export 'src/workspace/project_snapshot_cache.dart' show ProjectSnapshotCache;
+export 'src/workspace/project_snapshot_cache.dart'
+    show
+        ProjectSnapshotCache,
+        ProjectSnapshotCacheAdmission,
+        ProjectSnapshotCacheBudget,
+        ProjectSnapshotCacheValidation;
 export 'src/workspace/project_snapshot_fingerprint_cache.dart'
     show ProjectSnapshotFingerprintCache;
 export 'src/workspace/project_snapshot_loader.dart'

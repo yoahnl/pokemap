@@ -5,11 +5,13 @@ final class PlacedElementMutationIntent {
     required this.actionId,
     required this.parameters,
     required this.instanceId,
+    required this.instance,
   });
 
   final String actionId;
   final Map<String, Object?> parameters;
   final String instanceId;
+  final MapPlacedElement instance;
 }
 
 final class PlacedElementEditingService {
@@ -54,6 +56,7 @@ final class PlacedElementEditingService {
         'instance': instance.toJson(),
       }),
       instanceId: instanceId,
+      instance: instance,
     );
   }
 

@@ -82,7 +82,9 @@ Future<void> main(List<String> arguments) async {
     'pokemap_roadmap_mecaniques_fangame.md',
   );
   final reportsDirectory = Directory(
-    '$repoRoot${Platform.pathSeparator}reports${Platform.pathSeparator}gameplay',
+    '$repoRoot${Platform.pathSeparator}'
+    'documentation${Platform.pathSeparator}'
+    'reports${Platform.pathSeparator}gameplay',
   );
 
   if (!await roadmapFile.exists()) {

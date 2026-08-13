@@ -26,10 +26,20 @@ Future<void> main() async {
 /// is configured inside [MaterialApp.builder] to ensure all pages, overlays,
 /// dialogs, and routes can resolve legacy [MacosTheme] properties safely.
 class MapEditorApp extends StatelessWidget {
-  const MapEditorApp({super.key});
+  const MapEditorApp({
+    super.key,
+    this.enableEditorUpdateHost = true,
+    this.restoreLastOpenedProjectOnStartup = true,
+  });
+
+  final bool enableEditorUpdateHost;
+  final bool restoreLastOpenedProjectOnStartup;
 
   @override
   Widget build(BuildContext context) {
+    final shell = EditorShellPage(
+      restoreLastOpenedProjectOnStartup: restoreLastOpenedProjectOnStartup,
+    );
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -38,9 +48,7 @@ class MapEditorApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       theme: PokeMapTheme.light(),
       darkTheme: PokeMapTheme.dark(),
-      home: const EditorUpdateHost(
-        child: EditorShellPage(),
-      ),
+      home: enableEditorUpdateHost ? EditorUpdateHost(child: shell) : shell,
     );
   }
 }

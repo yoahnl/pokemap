@@ -35,7 +35,9 @@ import '../../application/shadow/editor_static_shadow_preview.dart';
 import '../../application/services/environment_generated_placement_hover_resolver.dart';
 import '../../application/services/environment_mask_brush_footprint_resolver.dart';
 import '../../application/services/environment_mask_paint_target_resolver.dart';
+import '../../application/services/editor_performance_telemetry.dart';
 import '../../application/services/map_focus_viewport_resolver.dart';
+import '../../application/services/map_cell_stroke_buffer.dart';
 import '../../application/services/map_viewport_navigation.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
@@ -87,6 +89,7 @@ import '../../theme/theme.dart';
 // synchronisation des ressources. Le painter et le cache d'images vivent dans
 // des part files dédiés pour rendre cette surface re-reviewable.
 part 'map_canvas/map_grid_painter.dart';
+part 'map_canvas/editor_canvas_picture_cache.dart';
 part 'map_canvas/map_connection_context_layer.dart';
 part 'map_canvas/map_canvas_tileset_path_collector.dart';
 part 'map_canvas/tile_layer_hover_highlight_painter.dart';
@@ -551,6 +554,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       MapCanvasInteractionController();
   final EditorShadowPreviewProjectionOwner _shadowPreviewProjectionOwner =
       EditorShadowPreviewProjectionOwner();
+  final EditorCanvasPictureCacheOwner _pictureCacheOwner =
+      EditorCanvasPictureCacheOwner();
   final Set<int> _pressedMapPointers = <int>{};
   final Set<LogicalKeyboardKey> _pressedContextMenuKeys =
       <LogicalKeyboardKey>{};
@@ -717,6 +722,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   void dispose() {
     _disposeOwnedRepaintResources();
     _shadowPreviewProjectionOwner.clear();
+    _pictureCacheOwner.dispose();
     _releaseTilesetImagesFuture(_tilesetImagesFuture);
     _tilesetImagesFuture = null;
     _pressedMapPointers.clear();
@@ -798,6 +804,17 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
 
   @override
   Widget build(BuildContext context) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.canvasPrepare,
+    );
+    try {
+      return _build(context);
+    } finally {
+      span?.finish();
+    }
+  }
+
+  Widget _build(BuildContext context) {
     assert(() {
       widget.debugOnBuild?.call();
       return true;
@@ -947,7 +964,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
 
     return FutureBuilder<_TilesetImageBatch>(
       future: _tilesetImagesFuture,
-      builder: (context, snapshot) {
+      builder: _instrumentCanvasFutureBuilderBody((context, snapshot) {
         final batch = snapshot.data;
         final tilesetImageResults =
             batch?.generation == _tilesetImageRequestGeneration
@@ -1829,60 +1846,78 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
               }
             },
             onPanUpdate: (details) {
-              final interaction = _activeGestureInteraction();
-              if (interaction == null ||
-                  !_ensureCurrentInteractionContext(interaction)) {
-                return;
-              }
-              final interactionKind = interaction.kind;
-              if (interactionKind ==
-                  MapCanvasInteractionKind.draggingSelection) {
-                _updateObjectMovePreview(details.localPosition);
-                return;
-              }
-              if (interactionKind == MapCanvasInteractionKind.drawingZone &&
-                  _zoneDragStart != null) {
-                final gridPos = _screenToGrid(
-                  details.localPosition,
-                  state.panOffset,
-                  state.zoom,
-                  activeMap.size,
-                  tileWidth,
-                  tileHeight,
-                );
-                if (gridPos != null) {
-                  notifier.setGameplayZoneDraftArea(
-                    _rectFromCorners(_zoneDragStart!, gridPos),
+              final publicationSpan = EditorPerformanceTelemetry.startSpan(
+                EditorPerformanceSpanName.pointerToStatePublish,
+              );
+              final pointerSpan = EditorPerformanceTelemetry.startSpan(
+                EditorPerformanceSpanName.pointerPreDispatch,
+              );
+              try {
+                final interaction = _activeGestureInteraction();
+                if (interaction == null ||
+                    !_ensureCurrentInteractionContext(interaction)) {
+                  return;
+                }
+                final interactionKind = interaction.kind;
+                if (interactionKind ==
+                    MapCanvasInteractionKind.draggingSelection) {
+                  _updateObjectMovePreview(details.localPosition);
+                  pointerSpan?.finish();
+                  return;
+                }
+                if (interactionKind == MapCanvasInteractionKind.drawingZone &&
+                    _zoneDragStart != null) {
+                  final gridPos = _screenToGrid(
+                    details.localPosition,
+                    state.panOffset,
+                    state.zoom,
+                    activeMap.size,
+                    tileWidth,
+                    tileHeight,
                   );
-                }
-                return;
-              }
-              final isActiveStroke =
-                  interactionKind == MapCanvasInteractionKind.paintingStroke ||
-                  interactionKind == MapCanvasInteractionKind.borderGesture;
-              if (!isActiveStroke || !isStrokeEditingTool) return;
-              final gridPos = screenToActiveToolGrid(details.localPosition);
-              if (gridPos != null) {
-                if (isSmartTileShapeTool) {
-                  if (_smartTileShapeEnd != gridPos) {
-                    setState(() => _smartTileShapeEnd = gridPos);
+                  if (gridPos != null) {
+                    notifier.setGameplayZoneDraftArea(
+                      _rectFromCorners(_zoneDragStart!, gridPos),
+                    );
                   }
+                  pointerSpan?.finish();
                   return;
                 }
-                if (isEnvironmentMaskEditing &&
-                    _lastEnvironmentMaskPaintCell == gridPos) {
-                  return;
+                final isActiveStroke =
+                    interactionKind ==
+                        MapCanvasInteractionKind.paintingStroke ||
+                    interactionKind == MapCanvasInteractionKind.borderGesture;
+                if (!isActiveStroke || !isStrokeEditingTool) return;
+                final gridPos = screenToActiveToolGrid(details.localPosition);
+                if (gridPos != null) {
+                  if (isSmartTileShapeTool) {
+                    if (_smartTileShapeEnd != gridPos) {
+                      setState(() => _smartTileShapeEnd = gridPos);
+                    }
+                    pointerSpan?.finish();
+                    return;
+                  }
+                  if (isEnvironmentMaskEditing &&
+                      _lastEnvironmentMaskPaintCell == gridPos) {
+                    return;
+                  }
+                  if (isBorderEditing && _lastBorderPaintCell == gridPos) {
+                    return;
+                  }
+                  pointerSpan?.finish();
+                  applyToolAt(gridPos, partOfStroke: true);
+                  if (isEnvironmentMaskEditing) {
+                    _lastEnvironmentMaskPaintCell = gridPos;
+                  }
+                  if (isBorderEditing) {
+                    _lastBorderPaintCell = gridPos;
+                  }
+                } else {
+                  notifier.breakMapStrokeInterpolation();
                 }
-                if (isBorderEditing && _lastBorderPaintCell == gridPos) {
-                  return;
-                }
-                applyToolAt(gridPos, partOfStroke: true);
-                if (isEnvironmentMaskEditing) {
-                  _lastEnvironmentMaskPaintCell = gridPos;
-                }
-                if (isBorderEditing) {
-                  _lastBorderPaintCell = gridPos;
-                }
+              } finally {
+                pointerSpan?.finish();
+                publicationSpan?.finish();
               }
             },
             onPanEnd: (_) {
@@ -1997,6 +2032,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                   ? SystemMouseCursors.precise
                   : SystemMouseCursors.basic,
               onExit: (_) {
+                notifier.breakMapStrokeInterpolation();
                 if (_hoveredTile != null || _hoveredBorderVertex != null) {
                   setState(() {
                     _hoveredTile = null;
@@ -2024,6 +2060,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                           project: state.project,
                           shadowLightPreviewPreset: shadowLightPreviewPreset,
                           animationClock: _repaintClock,
+                          pictureCacheOwner: _pictureCacheOwner,
                         ),
                       ),
                     Positioned.fill(
@@ -2091,6 +2128,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                               shadowLightPreviewPreset:
                                   shadowLightPreviewPreset,
                               animationClock: _repaintClock,
+                              pictureCacheOwner: _pictureCacheOwner,
+                              cellStrokePreview:
+                                  notifier.activeMapCellStrokePreview,
+                              cellStrokeRepaint:
+                                  notifier.activeMapCellStrokeRepaint,
                               debugOnPaint: widget.debugOnPaint,
                               showGrid: _showMapGrid,
                               environmentMaskOverlay: environmentMaskOverlay,
@@ -2393,8 +2435,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             ],
           ),
         );
-      },
+      }),
     );
+  }
+
+  AsyncWidgetBuilder<T> _instrumentCanvasFutureBuilderBody<T>(
+    AsyncWidgetBuilder<T> builder,
+  ) {
+    return (context, snapshot) {
+      final span = EditorPerformanceTelemetry.startSpan(
+        EditorPerformanceSpanName.canvasFutureBuilderBody,
+      );
+      try {
+        return builder(context, snapshot);
+      } finally {
+        span?.finish();
+      }
+    };
   }
 
   void _scheduleNarrativeEventCameraFocus({

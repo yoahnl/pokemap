@@ -30,7 +30,11 @@ EditorMapSessionCoordinator editorMapSessionCoordinator(Ref ref) {
 
 @riverpod
 MapHistoryCoordinator mapHistoryCoordinator(Ref ref) {
-  return const MapHistoryCoordinator(maxEntries: 100);
+  return const MapHistoryCoordinator(
+    maxEntries: kMapHistoryMaxEntries,
+    maxRetainedBytes: kMapHistoryMaxRetainedBytes,
+    checkpointInterval: kMapHistoryCheckpointInterval,
+  );
 }
 
 @riverpod

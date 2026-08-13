@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/services/editor_performance_telemetry.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -97,6 +98,43 @@ void main() {
       }.difference(frame));
     }
     expect(h.painted(), isEmpty, reason: 'no erase may be dropped');
+  });
+
+  test('an active drag stays local and publishes once on release', () async {
+    final h = await _Harness.create();
+    addTearDown(h.dispose);
+    final source = h.notifier.state.activeMap!;
+    final recorder = EditorPerformanceRecorder();
+    final recording = EditorPerformanceTelemetry.startRecording(recorder);
+    addTearDown(recording.close);
+
+    h.notifier.beginMapStroke();
+    for (var x = 0; x < 3; x++) {
+      h.notifier.paintSmartTileMaterialAt(
+        GridPos(x: x, y: 0),
+        materialId: 'grass',
+      );
+    }
+
+    final preview = h.notifier.activeMapCellStrokePreview!;
+    expect(h.notifier.state.activeMap, same(source));
+    expect(h.notifier.state.mapUndoStack, isEmpty);
+    expect(preview.touchedCellCount, 3);
+    for (var x = 0; x < 3; x++) {
+      expect(preview.smartTileMaterialAt(x, 0), 'grass');
+    }
+    for (final counter in EditorPerformanceCounterName.all) {
+      expect(recorder.snapshot().counter(counter), 0);
+    }
+
+    h.notifier.endMapStroke();
+
+    expect(h.notifier.state.mapUndoStack, hasLength(1));
+    expect(preview.fullLayerCopyCount, 1);
+    expect(preview.mapMaterializationCount, 1);
+    expect(preview.validationCount, 1);
+    await h.settle();
+    expect(h.painted(), hasLength(3));
   });
 }
 

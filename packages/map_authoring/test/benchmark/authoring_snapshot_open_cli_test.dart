@@ -33,7 +33,7 @@ void main() {
       '--cycles',
       '1',
       '--modes',
-      'cold,warm',
+      'cold,warm,session',
       '--output',
       output.path,
     ]);
@@ -45,8 +45,11 @@ void main() {
     expect(payload['benchmark'], 'authoring_snapshot_open');
     final rows =
         (payload['results']! as List<Object?>).cast<Map<String, Object?>>();
-    expect(rows, hasLength(4));
-    expect(rows.map((row) => row['mode']).toSet(), {'cold', 'warm'});
+    expect(rows, hasLength(6));
+    expect(
+      rows.map((row) => row['mode']).toSet(),
+      {'cold', 'warm', 'session'},
+    );
     expect(rows.map((row) => row['rootCount']).toSet(), <Object?>{1, 3});
     expect(rows.every((row) => row['fixture'] == 'small'), isTrue);
     expect(
@@ -54,6 +57,16 @@ void main() {
     expect(
       rows.where((row) => row['mode'] == 'warm').every(
             (row) => (row['snapshotCacheHits']! as int) > 0,
+          ),
+      isTrue,
+    );
+    expect(
+      rows.where((row) => row['mode'] == 'session').every(
+            (row) =>
+                row['cacheIdentityReads'] == 0 &&
+                (row['cacheStoredAuthoringBytes']! as int) > 0 &&
+                (row['cacheServedBytes']! as int) > 0 &&
+                (row['cacheSessionRevision']! as int) > 0,
           ),
       isTrue,
     );

@@ -1,9 +1,6 @@
 part of 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
-enum _EditorMapTileRenderPass {
-  background,
-  foreground,
-}
+enum _EditorMapTileRenderPass { background, foreground }
 
 final Expando<_EditorObjectVisualIndexCache> _editorObjectVisualIndexCache =
     Expando<_EditorObjectVisualIndexCache>('editorObjectVisualIndex');
@@ -252,6 +249,7 @@ final class EditorMapVisibleCellBounds {
     return x < right && x + width > left && y < bottom && y + height > top;
   }
 }
+
 @visibleForTesting
 EditorMapVisibleCellBounds resolveEditorMapVisibleCellBounds({
   required Size viewportSize,
@@ -349,9 +347,8 @@ final class MapGridCullingDebugSnapshot {
   final int placedElementPassVisits;
 }
 
-typedef MapGridCullingDebugObserver = void Function(
-  MapGridCullingDebugSnapshot snapshot,
-);
+typedef MapGridCullingDebugObserver =
+    void Function(MapGridCullingDebugSnapshot snapshot);
 
 final class _MapGridCullingDebugCounter {
   int tileCellVisits = 0;
@@ -407,9 +404,38 @@ class MapGridPainter extends CustomPainter {
   final ProjectManifest? project;
   final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final EditorCanvasRepaintClock? _animationClock;
+  final EditorCanvasPictureCacheOwner? pictureCacheOwner;
+  final MapCellStrokeBuffer? cellStrokePreview;
+  final Listenable? cellStrokeRepaint;
   final int _staticAnimationMs;
+  late final Set<String> _animatedTileLayerIds = {
+    for (final layer in map.layers.whereType<TileLayer>())
+      if (editorTileLayerNeedsAnimation(layer, project)) layer.id,
+  };
+  late final Set<String> _animatedObjectLayerIds = {
+    for (final layer in map.layers.whereType<ObjectLayer>())
+      if (editorObjectLayerNeedsAnimation(layer, project)) layer.id,
+  };
+  late final Set<String> _animatedSmartTileLayerIds = {
+    for (final layer in map.layers.whereType<SmartTileLayer>())
+      if (editorSmartTileLayerNeedsAnimation(layer, project)) layer.id,
+  };
+  late final Set<String> _animatedPlacedElementLayerIds = {
+    for (final layer in map.layers.whereType<TileLayer>())
+      if (editorPlacedElementLayerNeedsAnimation(map, layer, project)) layer.id,
+  };
+  late final bool _entitiesNeedAnimation = mapEntitiesNeedEditorFrameAnimation(
+    map,
+    project,
+  );
+  late final bool _borderNeedsAnimation = editorCanvasBorderNeedsAnimation(
+    map: map,
+    project: project,
+    borderPreview: borderPreview,
+  );
   final MapGridPaintObserver? debugOnPaint;
   final MapGridCullingDebugObserver? debugOnCulling;
+  final EditorCanvasPictureCacheObserver? debugOnPictureCache;
   final bool showGrid;
   final bool showEntityEditorChrome;
   final bool showEditorOverlays;
@@ -456,9 +482,13 @@ class MapGridPainter extends CustomPainter {
     this.project,
     this.shadowLightPreviewPreset,
     EditorCanvasRepaintClock? animationClock,
+    this.pictureCacheOwner,
+    this.cellStrokePreview,
+    this.cellStrokeRepaint,
     int editorEntityAnimationMs = 0,
     this.debugOnPaint,
     this.debugOnCulling,
+    this.debugOnPictureCache,
     this.showGrid = true,
     this.showEntityEditorChrome = true,
     this.showEditorOverlays = true,
@@ -468,17 +498,37 @@ class MapGridPainter extends CustomPainter {
     this.environmentGeneratedDeletePreviewId,
     this.borderPreview,
     this.borderDiagnosticOverlayPalette,
-  })  : _shadowProjectionOwner =
-            shadowProjectionOwner ?? EditorShadowPreviewProjectionOwner(),
-        _animationClock = animationClock,
-        _staticAnimationMs = editorEntityAnimationMs,
-        super(repaint: animationClock);
+  }) : _shadowProjectionOwner =
+           shadowProjectionOwner ?? EditorShadowPreviewProjectionOwner(),
+       _animationClock = animationClock,
+       _staticAnimationMs = editorEntityAnimationMs,
+       super(
+         repaint: cellStrokeRepaint == null
+             ? animationClock
+             : animationClock == null
+             ? cellStrokeRepaint
+             : Listenable.merge(<Listenable>[
+                 animationClock,
+                 cellStrokeRepaint,
+               ]),
+       );
 
   int get effectiveAnimationMs =>
       _animationClock?.elapsedMs ?? _staticAnimationMs;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final span = EditorPerformanceTelemetry.startSpan(
+      EditorPerformanceSpanName.canvasPaintRecording,
+    );
+    try {
+      _paint(canvas, size);
+    } finally {
+      span?.finish();
+    }
+  }
+
+  void _paint(Canvas canvas, Size size) {
     assert(() {
       debugOnPaint?.call();
       return true;
@@ -497,9 +547,48 @@ class MapGridPainter extends CustomPainter {
       tileWidth: tileWidth,
       tileHeight: tileHeight,
     );
+    final revisions = pictureCacheOwner?.resolveRevisions(
+      map: map,
+      project: project,
+      imagesById: tilesetImagesById,
+      overlayToken: (
+        hoveredTile,
+        activeLayerId,
+        toolPreview == null ? 0 : identityHashCode(toolPreview),
+        selectedEntityId,
+        selectedMapEventId,
+        selectedWarpId,
+        selectedTriggerId,
+        selectedGameplayZoneId,
+        selectedPlacedElementInstanceId,
+        placedElementRotationPreview == null
+            ? 0
+            : identityHashCode(placedElementRotationPreview),
+        narrativeEventFocusTarget == null
+            ? 0
+            : identityHashCode(narrativeEventFocusTarget),
+        narrativeEventSourceProposal == null
+            ? 0
+            : identityHashCode(narrativeEventSourceProposal),
+        gameplayZoneDraftArea,
+        cellStrokePreview?.revision,
+        environmentMaskOverlay == null
+            ? 0
+            : identityHashCode(environmentMaskOverlay),
+        environmentBrushCursorOverlay == null
+            ? 0
+            : identityHashCode(environmentBrushCursorOverlay),
+        environmentGeneratedAddPreview == null
+            ? 0
+            : identityHashCode(environmentGeneratedAddPreview),
+        environmentGeneratedDeletePreviewId,
+        borderPreview == null ? 0 : identityHashCode(borderPreview),
+      ),
+    );
     final cullingObserver = debugOnCulling;
-    final cullingCounter =
-        cullingObserver == null ? null : _MapGridCullingDebugCounter();
+    final cullingCounter = cullingObserver == null
+        ? null
+        : _MapGridCullingDebugCounter();
     final projectContext = project;
     final shadowProjection = projectContext == null
         ? null
@@ -510,7 +599,8 @@ class MapGridPainter extends CustomPainter {
             tileHeight: tileHeight,
             lightPreviewPreset: shadowLightPreviewPreset,
           );
-    final visiblePlacedElements = shadowProjection?.placedElementsIn(
+    final visiblePlacedElements =
+        shadowProjection?.placedElementsIn(
           EditorShadowPreviewCellViewport(
             left: visibleBounds.left,
             top: visibleBounds.top,
@@ -535,10 +625,10 @@ class MapGridPainter extends CustomPainter {
         compositionPlan.visibleTileLayersInPaintOrder;
     final foregroundTileCellIndicesByLayerId =
         buildEditorForegroundTileCellIndicesByLayerId(
-      map: map,
-      project: project,
-      placedElements: visiblePlacedElements,
-    );
+          map: map,
+          project: project,
+          placedElements: visiblePlacedElements,
+        );
     final shadowViewport = EditorShadowPreviewViewport(
       left: visibleBounds.left * tileWidth,
       top: visibleBounds.top * tileHeight,
@@ -547,10 +637,10 @@ class MapGridPainter extends CustomPainter {
     );
     final projectedBuildingShadowPreviewInstructions =
         shadowProjection?.projectedBuildingInstructionsIn(shadowViewport) ??
-            const <EditorStaticShadowPreviewInstruction>[];
+        const <EditorStaticShadowPreviewInstruction>[];
     final staticShadowPreviewInstructions =
         shadowProjection?.staticInstructionsIn(shadowViewport) ??
-            const <EditorStaticShadowPreviewInstruction>[];
+        const <EditorStaticShadowPreviewInstruction>[];
     if (cullingCounter != null) {
       cullingCounter.projectedBuildingShadowInstructionVisits +=
           projectedBuildingShadowPreviewInstructions.length;
@@ -562,126 +652,328 @@ class MapGridPainter extends CustomPainter {
     for (final step in compositionPlan.steps) {
       switch (step.kind) {
         case MapVisualCompositionStepKind.smartTileLayer:
-          _paintSmartTileLayer(
+          final smartBackgroundLayer = step.layer! as SmartTileLayer;
+          _paintCachedPicture(
             canvas,
-            step.layer! as SmartTileLayer,
-            pass: SmartTileVisualPass.background,
+            cacheId: 'smart:${smartBackgroundLayer.id}:background',
             visibleBounds: visibleBounds,
-            cullingCounter: cullingCounter,
-          );
-        case MapVisualCompositionStepKind.tileBackgroundLayer:
-          _paintTileLayer(
-            canvas,
-            step.layer! as TileLayer,
-            renderPass: _EditorMapTileRenderPass.background,
-            foregroundTileCellIndicesByLayerId:
-                foregroundTileCellIndicesByLayerId,
-            visibleBounds: visibleBounds,
-            visiblePlacedElements: visiblePlacedElements,
-            cullingCounter: cullingCounter,
-          );
-        case MapVisualCompositionStepKind.borderLayer:
-          if (borderCatalog != null) {
-            const BorderPreviewPainter().paintLayer(
-              canvas,
-              map: map,
-              layer: step.layer! as BorderLayer,
-              catalog: borderCatalog,
-              frameImagesByKey: tilesetImagesById,
-              sourceTileWidth: sourceTileWidth,
-              sourceTileHeight: sourceTileHeight,
-              displayScale:
-                  sourceTileWidth <= 0 ? 1 : tileWidth / sourceTileWidth,
-              elapsedMs: effectiveAnimationMs,
-              preview: borderPreview,
-            );
-          }
-        case MapVisualCompositionStepKind.shadows:
-          paintEditorStaticShadowPreviewInstructions(
-            canvas,
-            projectedBuildingShadowPreviewInstructions,
-          );
-          paintEditorStaticShadowPreviewInstructions(
-            canvas,
-            staticShadowPreviewInstructions,
-          );
-        case MapVisualCompositionStepKind.placedElements:
-          _paintPlacedElementsForLayer(
-            canvas,
-            step.layer! as TileLayer,
-            renderPass: _EditorMapTileRenderPass.background,
-            visiblePlacedElements: visiblePlacedElements,
-            cullingCounter: cullingCounter,
-          );
-        case MapVisualCompositionStepKind.backgroundEntities:
-          _paintEntities(
-            canvas,
-            foregroundPass: false,
-          );
-          for (final smartLayer in map.layers
-              .where((layer) => layer.isVisible)
-              .whereType<SmartTileLayer>()) {
-            _paintSmartTileLayer(
-              canvas,
-              smartLayer,
-              pass: SmartTileVisualPass.actorOcclusion,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.layerRevision(smartBackgroundLayer.id) ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+              revisions?.geometryRevision ?? 0,
+              cellStrokePreview?.layerId == smartBackgroundLayer.id
+                  ? cellStrokePreview?.revision ?? 0
+                  : 0,
+            ),
+            animated: _animatedSmartTileLayerIds.contains(
+              smartBackgroundLayer.id,
+            ),
+            paint: (target) => _paintSmartTileLayer(
+              target,
+              smartBackgroundLayer,
+              pass: SmartTileVisualPass.background,
               visibleBounds: visibleBounds,
               cullingCounter: cullingCounter,
-            );
-          }
-        case MapVisualCompositionStepKind.foregroundTilesAndPlacedElements:
-          for (final layer in tileLayersInPaintOrder) {
-            _paintTileLayer(
-              canvas,
-              layer,
-              renderPass: _EditorMapTileRenderPass.foreground,
+            ),
+          );
+        case MapVisualCompositionStepKind.tileBackgroundLayer:
+          final tileBackgroundLayer = step.layer! as TileLayer;
+          _paintCachedPicture(
+            canvas,
+            cacheId: 'tile:${tileBackgroundLayer.id}:background',
+            visibleBounds: visibleBounds,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.layerRevision(tileBackgroundLayer.id) ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+              revisions?.placedElementsRevision ?? 0,
+              revisions?.geometryRevision ?? 0,
+              cellStrokePreview?.layerId == tileBackgroundLayer.id
+                  ? cellStrokePreview?.revision ?? 0
+                  : 0,
+            ),
+            animated: _animatedTileLayerIds.contains(tileBackgroundLayer.id),
+            paint: (target) => _paintTileLayer(
+              target,
+              tileBackgroundLayer,
+              renderPass: _EditorMapTileRenderPass.background,
               foregroundTileCellIndicesByLayerId:
                   foregroundTileCellIndicesByLayerId,
               visibleBounds: visibleBounds,
               visiblePlacedElements: visiblePlacedElements,
               cullingCounter: cullingCounter,
-            );
-            _paintPlacedElementsForLayer(
+            ),
+          );
+        case MapVisualCompositionStepKind.borderLayer:
+          if (borderCatalog != null) {
+            final borderLayer = step.layer! as BorderLayer;
+            _paintCachedPicture(
               canvas,
-              layer,
-              renderPass: _EditorMapTileRenderPass.foreground,
-              visiblePlacedElements: visiblePlacedElements,
-              cullingCounter: cullingCounter,
+              cacheId: 'border:${borderLayer.id}',
+              visibleBounds: visibleBounds,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.layerRevision(borderLayer.id) ?? 0,
+                revisions?.projectRevision ?? 0,
+                revisions?.assetsRevision ?? 0,
+                identityHashCode(borderPreview),
+              ),
+              animated: _borderNeedsAnimation,
+              paint: (target) => const BorderPreviewPainter().paintLayer(
+                target,
+                map: map,
+                layer: borderLayer,
+                catalog: borderCatalog,
+                frameImagesByKey: tilesetImagesById,
+                sourceTileWidth: sourceTileWidth,
+                sourceTileHeight: sourceTileHeight,
+                displayScale: sourceTileWidth <= 0
+                    ? 1
+                    : tileWidth / sourceTileWidth,
+                elapsedMs: effectiveAnimationMs,
+                preview: borderPreview,
+              ),
             );
           }
-          for (final smartLayer in map.layers
-              .where((layer) => layer.isVisible)
-              .whereType<SmartTileLayer>()) {
-            _paintSmartTileLayer(
-              canvas,
-              smartLayer,
-              pass: SmartTileVisualPass.foreground,
-              visibleBounds: visibleBounds,
+        case MapVisualCompositionStepKind.shadows:
+          _paintCachedPicture(
+            canvas,
+            cacheId: 'shadows',
+            visibleBounds: visibleBounds,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.mapRevision ?? 0,
+              revisions?.projectRevision ?? 0,
+              shadowLightPreviewPreset,
+            ),
+            animated: false,
+            paint: (target) {
+              paintEditorStaticShadowPreviewInstructions(
+                target,
+                projectedBuildingShadowPreviewInstructions,
+              );
+              paintEditorStaticShadowPreviewInstructions(
+                target,
+                staticShadowPreviewInstructions,
+              );
+            },
+          );
+        case MapVisualCompositionStepKind.placedElements:
+          final placedBackgroundLayer = step.layer! as TileLayer;
+          _paintCachedPicture(
+            canvas,
+            cacheId: 'placed:${placedBackgroundLayer.id}:background',
+            visibleBounds: visibleBounds,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.placedElementsRevision ?? 0,
+              revisions?.layerRevision(placedBackgroundLayer.id) ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+              revisions?.geometryRevision ?? 0,
+              environmentGeneratedDeletePreviewId,
+            ),
+            animated: _animatedPlacedElementLayerIds.contains(
+              placedBackgroundLayer.id,
+            ),
+            paint: (target) => _paintPlacedElementsForLayer(
+              target,
+              placedBackgroundLayer,
+              renderPass: _EditorMapTileRenderPass.background,
+              visiblePlacedElements: visiblePlacedElements,
               cullingCounter: cullingCounter,
+            ),
+          );
+        case MapVisualCompositionStepKind.backgroundEntities:
+          _paintCachedPicture(
+            canvas,
+            cacheId: 'entities:background',
+            visibleBounds: visibleBounds,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.entitiesRevision ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+              revisions?.geometryRevision ?? 0,
+              selectedEntityId,
+              showEntityEditorChrome,
+            ),
+            animated: _entitiesNeedAnimation,
+            paint: (target) => _paintEntities(target, foregroundPass: false),
+          );
+          for (final smartLayer
+              in map.layers
+                  .where((layer) => layer.isVisible)
+                  .whereType<SmartTileLayer>()) {
+            _paintCachedPicture(
+              canvas,
+              cacheId: 'smart:${smartLayer.id}:actor-occlusion',
+              visibleBounds: visibleBounds,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.layerRevision(smartLayer.id) ?? 0,
+                revisions?.projectRevision ?? 0,
+                revisions?.assetsRevision ?? 0,
+                revisions?.geometryRevision ?? 0,
+                cellStrokePreview?.layerId == smartLayer.id
+                    ? cellStrokePreview?.revision ?? 0
+                    : 0,
+              ),
+              animated: _animatedSmartTileLayerIds.contains(smartLayer.id),
+              paint: (target) => _paintSmartTileLayer(
+                target,
+                smartLayer,
+                pass: SmartTileVisualPass.actorOcclusion,
+                visibleBounds: visibleBounds,
+                cullingCounter: cullingCounter,
+              ),
+            );
+          }
+        case MapVisualCompositionStepKind.foregroundTilesAndPlacedElements:
+          for (final layer in tileLayersInPaintOrder) {
+            _paintCachedPicture(
+              canvas,
+              cacheId: 'tile:${layer.id}:foreground',
+              visibleBounds: visibleBounds,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.layerRevision(layer.id) ?? 0,
+                revisions?.projectRevision ?? 0,
+                revisions?.assetsRevision ?? 0,
+                revisions?.placedElementsRevision ?? 0,
+                revisions?.geometryRevision ?? 0,
+                cellStrokePreview?.layerId == layer.id
+                    ? cellStrokePreview?.revision ?? 0
+                    : 0,
+              ),
+              animated: _animatedTileLayerIds.contains(layer.id),
+              paint: (target) => _paintTileLayer(
+                target,
+                layer,
+                renderPass: _EditorMapTileRenderPass.foreground,
+                foregroundTileCellIndicesByLayerId:
+                    foregroundTileCellIndicesByLayerId,
+                visibleBounds: visibleBounds,
+                visiblePlacedElements: visiblePlacedElements,
+                cullingCounter: cullingCounter,
+              ),
+            );
+            _paintCachedPicture(
+              canvas,
+              cacheId: 'placed:${layer.id}:foreground',
+              visibleBounds: visibleBounds,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.placedElementsRevision ?? 0,
+                revisions?.layerRevision(layer.id) ?? 0,
+                revisions?.projectRevision ?? 0,
+                revisions?.assetsRevision ?? 0,
+                revisions?.geometryRevision ?? 0,
+                environmentGeneratedDeletePreviewId,
+              ),
+              animated: _animatedPlacedElementLayerIds.contains(layer.id),
+              paint: (target) => _paintPlacedElementsForLayer(
+                target,
+                layer,
+                renderPass: _EditorMapTileRenderPass.foreground,
+                visiblePlacedElements: visiblePlacedElements,
+                cullingCounter: cullingCounter,
+              ),
+            );
+          }
+          for (final smartLayer
+              in map.layers
+                  .where((layer) => layer.isVisible)
+                  .whereType<SmartTileLayer>()) {
+            _paintCachedPicture(
+              canvas,
+              cacheId: 'smart:${smartLayer.id}:foreground',
+              visibleBounds: visibleBounds,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.layerRevision(smartLayer.id) ?? 0,
+                revisions?.projectRevision ?? 0,
+                revisions?.assetsRevision ?? 0,
+                revisions?.geometryRevision ?? 0,
+                cellStrokePreview?.layerId == smartLayer.id
+                    ? cellStrokePreview?.revision ?? 0
+                    : 0,
+              ),
+              animated: _animatedSmartTileLayerIds.contains(smartLayer.id),
+              paint: (target) => _paintSmartTileLayer(
+                target,
+                smartLayer,
+                pass: SmartTileVisualPass.foreground,
+                visibleBounds: visibleBounds,
+                cullingCounter: cullingCounter,
+              ),
             );
           }
         case MapVisualCompositionStepKind.foregroundEntities:
-          _paintEntities(
+          _paintCachedPicture(
             canvas,
-            foregroundPass: true,
+            cacheId: 'entities:foreground',
+            visibleBounds: visibleBounds,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.entitiesRevision ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+              revisions?.geometryRevision ?? 0,
+              selectedEntityId,
+              showEntityEditorChrome,
+            ),
+            animated: _entitiesNeedAnimation,
+            paint: (target) => _paintEntities(target, foregroundPass: true),
           );
         case MapVisualCompositionStepKind.collisionOverlay:
           for (final layer
               in compositionPlan.visibleCollisionLayersInPaintOrder) {
-            _paintCollisionLayer(
+            _paintCachedPicture(
               canvas,
-              layer,
-              isActive: layer.id == activeLayerId,
+              cacheId: 'collision:${layer.id}',
               visibleBounds: visibleBounds,
-              cullingCounter: cullingCounter,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.layerRevision(layer.id) ?? 0,
+                revisions?.geometryRevision ?? 0,
+                layer.id == activeLayerId,
+                cellStrokePreview?.layerId == layer.id
+                    ? cellStrokePreview?.revision ?? 0
+                    : 0,
+              ),
+              animated: false,
+              paint: (target) => _paintCollisionLayer(
+                target,
+                layer,
+                isActive: layer.id == activeLayerId,
+                visibleBounds: visibleBounds,
+                cullingCounter: cullingCounter,
+              ),
             );
           }
         case MapVisualCompositionStepKind.objectLayer:
-          _paintObjectLayer(
+          final objectLayer = step.layer! as ObjectLayer;
+          _paintCachedPicture(
             canvas,
-            step.layer! as ObjectLayer,
+            cacheId: 'object:${objectLayer.id}',
             visibleBounds: visibleBounds,
-            cullingCounter: cullingCounter,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.layerRevision(objectLayer.id) ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+            ),
+            animated: _animatedObjectLayerIds.contains(objectLayer.id),
+            paint: (target) => _paintObjectLayer(
+              target,
+              objectLayer,
+              visibleBounds: visibleBounds,
+              cullingCounter: cullingCounter,
+            ),
           );
         case MapVisualCompositionStepKind.environmentNoop:
           break;
@@ -689,27 +981,19 @@ class MapGridPainter extends CustomPainter {
     }
 
     if (showGrid) {
-      final gridPaint = Paint()
-        ..color = PokeMapLegacyColors.white10
-        ..strokeWidth = 1.0 / zoom
-        ..style = PaintingStyle.stroke;
-
-      for (var x = visibleBounds.left; x <= visibleBounds.right; x++) {
-        cullingCounter?.gridLineVisits += 1;
-        canvas.drawLine(
-          Offset(x * tileWidth, visibleBounds.top * tileHeight),
-          Offset(x * tileWidth, visibleBounds.bottom * tileHeight),
-          gridPaint,
-        );
-      }
-      for (var y = visibleBounds.top; y <= visibleBounds.bottom; y++) {
-        cullingCounter?.gridLineVisits += 1;
-        canvas.drawLine(
-          Offset(visibleBounds.left * tileWidth, y * tileHeight),
-          Offset(visibleBounds.right * tileWidth, y * tileHeight),
-          gridPaint,
-        );
-      }
+      _paintCachedPicture(
+        canvas,
+        cacheId: 'grid',
+        visibleBounds: visibleBounds,
+        revisions: revisions,
+        revisionToken: revisions?.geometryRevision ?? 0,
+        animated: false,
+        paint: (target) => _paintGrid(
+          target,
+          visibleBounds: visibleBounds,
+          cullingCounter: cullingCounter,
+        ),
+      );
     }
 
     if (showEditorOverlays) {
@@ -787,11 +1071,11 @@ class MapGridPainter extends CustomPainter {
             0,
             (total, index) => total + index.sourceObjectCount,
           ),
-          objectVisualDefinitionCacheSize:
-              cullingCounter.objectIndices.fold<int>(
-            0,
-            (total, index) => total + index.cachedVisualDefinitionCount,
-          ),
+          objectVisualDefinitionCacheSize: cullingCounter.objectIndices
+              .fold<int>(
+                0,
+                (total, index) => total + index.cachedVisualDefinitionCount,
+              ),
           objectSpatialBucketCount: cullingCounter.objectIndices.fold<int>(
             0,
             (total, index) => total + index.spatialBucketCount,
@@ -808,6 +1092,95 @@ class MapGridPainter extends CustomPainter {
         ),
       );
     }
+  }
+
+  void _paintGrid(
+    Canvas canvas, {
+    required EditorMapVisibleCellBounds visibleBounds,
+    required _MapGridCullingDebugCounter? cullingCounter,
+  }) {
+    final gridPaint = Paint()
+      ..color = PokeMapLegacyColors.white10
+      ..strokeWidth = 1.0 / zoom
+      ..style = PaintingStyle.stroke;
+    for (var x = visibleBounds.left; x <= visibleBounds.right; x++) {
+      cullingCounter?.gridLineVisits += 1;
+      canvas.drawLine(
+        Offset(x * tileWidth, visibleBounds.top * tileHeight),
+        Offset(x * tileWidth, visibleBounds.bottom * tileHeight),
+        gridPaint,
+      );
+    }
+    for (var y = visibleBounds.top; y <= visibleBounds.bottom; y++) {
+      cullingCounter?.gridLineVisits += 1;
+      canvas.drawLine(
+        Offset(visibleBounds.left * tileWidth, y * tileHeight),
+        Offset(visibleBounds.right * tileWidth, y * tileHeight),
+        gridPaint,
+      );
+    }
+  }
+
+  void _paintCachedPicture(
+    Canvas canvas, {
+    required String cacheId,
+    required EditorMapVisibleCellBounds visibleBounds,
+    required EditorCanvasPaintRevisionSnapshot? revisions,
+    required Object revisionToken,
+    required bool animated,
+    required void Function(Canvas canvas) paint,
+  }) {
+    final owner = pictureCacheOwner;
+    if (owner == null || revisions == null || debugOnCulling != null) {
+      paint(canvas);
+      return;
+    }
+    if (animated) {
+      _reportPictureCache(
+        cacheId,
+        EditorCanvasPictureCacheDisposition.animated,
+      );
+      paint(canvas);
+      return;
+    }
+    final key = _EditorCanvasPictureCacheKey(
+      slot: _EditorCanvasPictureCacheSlot(
+        mapId: map.id,
+        cacheId: cacheId,
+        visibleBounds: visibleBounds,
+        zoom: zoom,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+      ),
+      revisionToken: revisionToken,
+    );
+    final cached = owner._pictureFor(key);
+    if (cached != null) {
+      _reportPictureCache(cacheId, EditorCanvasPictureCacheDisposition.hit);
+      canvas.drawPicture(cached);
+      return;
+    }
+    _reportPictureCache(cacheId, EditorCanvasPictureCacheDisposition.miss);
+    final recorder = ui.PictureRecorder();
+    paint(Canvas(recorder));
+    final picture = recorder.endRecording();
+    owner._store(key, picture);
+    canvas.drawPicture(picture);
+  }
+
+  void _reportPictureCache(
+    String cacheId,
+    EditorCanvasPictureCacheDisposition disposition,
+  ) {
+    assert(() {
+      debugOnPictureCache?.call(
+        EditorCanvasPictureCacheEvent(
+          cacheId: cacheId,
+          disposition: disposition,
+        ),
+      );
+      return true;
+    }());
   }
 
   void _paintNarrativeEventBridgeHighlight(
@@ -975,28 +1348,31 @@ class MapGridPainter extends CustomPainter {
       final activationRect = _warpActivationRect(warp);
       if (activationRect != rect) {
         final areaPaint = Paint()
-          ..color = (warp.triggerMode == MapWarpTriggerMode.onBump
-                  ? PokeMapLegacyColors.orangeAccent
-                  : PokeMapLegacyColors.cyanAccent)
-              .withValues(alpha: isSelected ? 0.18 : 0.12)
+          ..color =
+              (warp.triggerMode == MapWarpTriggerMode.onBump
+                      ? PokeMapLegacyColors.orangeAccent
+                      : PokeMapLegacyColors.cyanAccent)
+                  .withValues(alpha: isSelected ? 0.18 : 0.12)
           ..style = PaintingStyle.fill;
         final areaBorder = Paint()
-          ..color = (warp.triggerMode == MapWarpTriggerMode.onBump
-                  ? PokeMapLegacyColors.orangeAccent
-                  : PokeMapLegacyColors.cyanAccent)
-              .withValues(alpha: isSelected ? 0.75 : 0.55)
+          ..color =
+              (warp.triggerMode == MapWarpTriggerMode.onBump
+                      ? PokeMapLegacyColors.orangeAccent
+                      : PokeMapLegacyColors.cyanAccent)
+                  .withValues(alpha: isSelected ? 0.75 : 0.55)
           ..style = PaintingStyle.stroke
           ..strokeWidth = isSelected ? 1.8 / zoom : 1.2 / zoom;
         canvas.drawRect(activationRect, areaPaint);
         canvas.drawRect(activationRect, areaBorder);
       }
       final fillPaint = Paint()
-        ..color = (isSelected
-                ? (warp.triggerMode == MapWarpTriggerMode.onBump
-                    ? PokeMapLegacyColors.orangeAccent
-                    : PokeMapLegacyColors.cyanAccent)
-                : PokeMapLegacyColors.purpleAccent)
-            .withValues(alpha: isSelected ? 0.42 : 0.34)
+        ..color =
+            (isSelected
+                    ? (warp.triggerMode == MapWarpTriggerMode.onBump
+                          ? PokeMapLegacyColors.orangeAccent
+                          : PokeMapLegacyColors.cyanAccent)
+                    : PokeMapLegacyColors.purpleAccent)
+                .withValues(alpha: isSelected ? 0.42 : 0.34)
         ..style = PaintingStyle.fill;
       final borderPaint = Paint()
         ..color = isSelected
@@ -1101,7 +1477,8 @@ class MapGridPainter extends CustomPainter {
       quarterTurns: selectedInstance.quarterTurns,
     );
     final preview = placedElementRotationPreview;
-    final destinationSize = preview?.instance?.id == selectedInstance.id &&
+    final destinationSize =
+        preview?.instance?.id == selectedInstance.id &&
             preview?.previewFootprint != null
         ? preview!.previewFootprint!.destinationSize
         : persistedTransform.destinationSize;
@@ -1149,8 +1526,10 @@ class MapGridPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     final markerThickness = (1.8 / zoom).clamp(1.0, 3.0);
     final markerLength =
-        ((tileWidth < tileHeight ? tileWidth : tileHeight) * 0.45)
-            .clamp(6.0, 22.0);
+        ((tileWidth < tileHeight ? tileWidth : tileHeight) * 0.45).clamp(
+          6.0,
+          22.0,
+        );
     for (final facing in allowedApproachFacings) {
       Rect markerRect;
       switch (facing) {
@@ -1184,19 +1563,13 @@ class MapGridPainter extends CustomPainter {
           break;
       }
       canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          markerRect,
-          Radius.circular(markerThickness),
-        ),
+        RRect.fromRectAndRadius(markerRect, Radius.circular(markerThickness)),
         markerPaint,
       );
     }
   }
 
-  void _paintEntities(
-    Canvas canvas, {
-    required bool foregroundPass,
-  }) {
+  void _paintEntities(Canvas canvas, {required bool foregroundPass}) {
     if (map.entities.isEmpty) return;
     for (final entity in map.entities) {
       // Les entités "normales" restent entre fond et décor avant-plan.
@@ -1238,8 +1611,9 @@ class MapGridPainter extends CustomPainter {
           canvas.drawRRect(
             shade,
             Paint()
-              ..color = PokeMapLegacyColors.black
-                  .withValues(alpha: isSelected ? 0.28 : 0.2)
+              ..color = PokeMapLegacyColors.black.withValues(
+                alpha: isSelected ? 0.28 : 0.2,
+              )
               ..style = PaintingStyle.fill,
           );
         }
@@ -1327,10 +1701,7 @@ class MapGridPainter extends CustomPainter {
       }
       textPainter.paint(
         canvas,
-        Offset(
-          rect.left + (4 / zoom),
-          rect.top + (3 / zoom),
-        ),
+        Offset(rect.left + (4 / zoom), rect.top + (3 / zoom)),
       );
     }
   }
@@ -1401,10 +1772,7 @@ class MapGridPainter extends CustomPainter {
     )..layout();
     tp.paint(
       canvas,
-      Offset(
-        rect.center.dx - tp.width / 2,
-        rect.center.dy - tp.height / 2,
-      ),
+      Offset(rect.center.dx - tp.width / 2, rect.center.dy - tp.height / 2),
     );
   }
 
@@ -1428,8 +1796,9 @@ class MapGridPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, Radius.circular(5 / zoom)),
       Paint()
-        ..color = (isSelected ? PokeMapLegacyColors.white : color)
-            .withValues(alpha: isSelected ? 0.95 : 0.55)
+        ..color = (isSelected ? PokeMapLegacyColors.white : color).withValues(
+          alpha: isSelected ? 0.95 : 0.55,
+        )
         ..style = PaintingStyle.stroke
         ..strokeWidth = isSelected ? 2.4 / zoom : 1.5 / zoom,
     );
@@ -1449,15 +1818,13 @@ class MapGridPainter extends CustomPainter {
       return;
     }
 
-    final badge = RRect.fromRectAndRadius(
-      badgeRect,
-      Radius.circular(4 / zoom),
-    );
+    final badge = RRect.fromRectAndRadius(badgeRect, Radius.circular(4 / zoom));
     canvas.drawRRect(
       badge,
       Paint()
-        ..color = PokeMapLegacyColors.black
-            .withValues(alpha: isSelected ? 0.72 : 0.56)
+        ..color = PokeMapLegacyColors.black.withValues(
+          alpha: isSelected ? 0.72 : 0.56,
+        )
         ..style = PaintingStyle.fill,
     );
 
@@ -1572,19 +1939,12 @@ class MapGridPainter extends CustomPainter {
       }
       textPainter.paint(
         canvas,
-        Offset(
-          rect.left + (4 / zoom),
-          rect.top + (3 / zoom),
-        ),
+        Offset(rect.left + (4 / zoom), rect.top + (3 / zoom)),
       );
     }
   }
 
-  void _paintConnections(
-    Canvas canvas,
-    double gridWidth,
-    double gridHeight,
-  ) {
+  void _paintConnections(Canvas canvas, double gridWidth, double gridHeight) {
     if (map.connections.isEmpty) {
       return;
     }
@@ -1608,7 +1968,8 @@ class MapGridPainter extends CustomPainter {
       canvas.drawRRect(badge, fillPaint);
       canvas.drawRRect(badge, borderPaint);
 
-      final label = connectionLabelsByDirection[connection.direction] ??
+      final label =
+          connectionLabelsByDirection[connection.direction] ??
           connection.targetMapId;
       final textPainter = TextPainter(
         text: TextSpan(
@@ -1645,29 +2006,29 @@ class MapGridPainter extends CustomPainter {
     );
     return switch (direction) {
       MapConnectionDirection.north => Rect.fromLTWH(
-          (gridWidth - badgeWidth) / 2,
-          inset,
-          badgeWidth,
-          shortSide,
-        ),
+        (gridWidth - badgeWidth) / 2,
+        inset,
+        badgeWidth,
+        shortSide,
+      ),
       MapConnectionDirection.south => Rect.fromLTWH(
-          (gridWidth - badgeWidth) / 2,
-          gridHeight - inset - shortSide,
-          badgeWidth,
-          shortSide,
-        ),
+        (gridWidth - badgeWidth) / 2,
+        gridHeight - inset - shortSide,
+        badgeWidth,
+        shortSide,
+      ),
       MapConnectionDirection.east => Rect.fromLTWH(
-          gridWidth - inset - badgeWidth,
-          (gridHeight / 2) - shortSide - (2 / zoom),
-          badgeWidth,
-          shortSide,
-        ),
+        gridWidth - inset - badgeWidth,
+        (gridHeight / 2) - shortSide - (2 / zoom),
+        badgeWidth,
+        shortSide,
+      ),
       MapConnectionDirection.west => Rect.fromLTWH(
-          inset,
-          (gridHeight / 2) - shortSide - (2 / zoom),
-          badgeWidth,
-          shortSide,
-        ),
+        inset,
+        (gridHeight / 2) - shortSide - (2 / zoom),
+        badgeWidth,
+        shortSide,
+      ),
     };
   }
 
@@ -1718,10 +2079,7 @@ class MapGridPainter extends CustomPainter {
     _paintCollisionErasePreview(canvas, preview);
   }
 
-  void _paintElementPlacementPreview(
-    Canvas canvas,
-    MapToolPreview preview,
-  ) {
+  void _paintElementPlacementPreview(Canvas canvas, MapToolPreview preview) {
     final elementId = preview.elementId;
     final layerId = activeLayerId;
     final projectContext = project;
@@ -1737,8 +2095,9 @@ class MapGridPainter extends CustomPainter {
       applyCollision: false,
     );
     final isValid = preview.validity == MapToolPreviewValidity.valid;
-    final previewColor =
-        isValid ? rotationPreviewAcceptedColor : rotationPreviewRejectedColor;
+    final previewColor = isValid
+        ? rotationPreviewAcceptedColor
+        : rotationPreviewRejectedColor;
     _paintPlacedElement(
       canvas,
       placed,
@@ -1762,8 +2121,9 @@ class MapGridPainter extends CustomPainter {
     final tiles = preview.tiles;
     if (tiles == null) return;
     if (sourceTileWidth > 0 && sourceTileHeight > 0) {
-      final alpha =
-          preview.validity == MapToolPreviewValidity.valid ? 0.6 : 0.3;
+      final alpha = preview.validity == MapToolPreviewValidity.valid
+          ? 0.6
+          : 0.3;
       final tilePaint = Paint()
         ..color = PokeMapLegacyColors.white.withValues(alpha: alpha);
       final sources = <String, ProjectTilesetSource?>{
@@ -1820,7 +2180,8 @@ class MapGridPainter extends CustomPainter {
           final scaleX = tileWidth / sourceTileWidth;
           final scaleY = tileHeight / sourceTileHeight;
           for (final slice in visual.frameAt(effectiveAnimationMs).slices) {
-            final image = tilesetImagesById[slice.assetId] ??
+            final image =
+                tilesetImagesById[slice.assetId] ??
                 tilesetImagesById[entry.tilesetId];
             if (image == null) continue;
             final sourceRect = Rect.fromLTWH(
@@ -2073,10 +2434,10 @@ class MapGridPainter extends CustomPainter {
     final foregroundCells = foregroundTileCellIndicesByLayerId[layer.id];
     final shouldRenderThisLayer =
         renderPass == _EditorMapTileRenderPass.background
-            ? !explicitForeground ||
-                (foregroundCells != null && foregroundCells.isNotEmpty)
-            : explicitForeground ||
-                (foregroundCells != null && foregroundCells.isNotEmpty);
+        ? !explicitForeground ||
+              (foregroundCells != null && foregroundCells.isNotEmpty)
+        : explicitForeground ||
+              (foregroundCells != null && foregroundCells.isNotEmpty);
     if (!shouldRenderThisLayer) {
       return;
     }
@@ -2095,7 +2456,7 @@ class MapGridPainter extends CustomPainter {
       final rowStart = y * map.size.width;
       for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
         final tileIndex = rowStart + x;
-        final entry = resolveTileLayerCell(layer, tileIndex);
+        final entry = _resolveTileCell(layer, tileIndex);
         if (entry == null) continue;
         if (placedElementTileMask.contains(tileIndex)) continue;
         final shouldDrawCell = shouldPaintEditorTileCellInRenderPass(
@@ -2144,7 +2505,8 @@ class MapGridPainter extends CustomPainter {
         final scaleX = tileWidth / sourceTileWidth;
         final scaleY = tileHeight / sourceTileHeight;
         for (final slice in visual.frameAt(effectiveAnimationMs).slices) {
-          final image = tilesetImagesById[slice.assetId] ??
+          final image =
+              tilesetImagesById[slice.assetId] ??
               tilesetImagesById[entry.tilesetId];
           if (image == null) continue;
           final sourceRect = Rect.fromLTWH(
@@ -2228,7 +2590,8 @@ class MapGridPainter extends CustomPainter {
       ?..objectTileCandidateVisits += batch.work.candidateObjectVisits
       ..objectIndices.add(index);
     for (final visual in visuals) {
-      final image = tilesetImagesById[visual.assetId] ??
+      final image =
+          tilesetImagesById[visual.assetId] ??
           tilesetImagesById[visual.tilesetId];
       if (image == null) continue;
       final source = visual.sourceRect;
@@ -2362,10 +2725,7 @@ class MapGridPainter extends CustomPainter {
       if (entry == null || entry.frames.isEmpty) {
         continue;
       }
-      final frame = entityEditorPickFrame(
-        entry.frames,
-        effectiveAnimationMs,
-      );
+      final frame = entityEditorPickFrame(entry.frames, effectiveAnimationMs);
       final tilesetId = frame.tilesetId.trim().isNotEmpty
           ? frame.tilesetId.trim()
           : entry.tilesetId.trim();
@@ -2389,7 +2749,7 @@ class MapGridPainter extends CustomPainter {
             continue;
           }
           final tileIndex = y * map.size.width + x;
-          final tile = resolveTileLayerCell(layer, tileIndex);
+          final tile = _resolveTileCell(layer, tileIndex);
           if (tile == null || tile.tilesetId != tilesetId) continue;
           final sourceTileId =
               (source.y + localY) * tilesPerRow + source.x + localX;
@@ -2464,10 +2824,7 @@ class MapGridPainter extends CustomPainter {
     if (entry == null || entry.frames.isEmpty) {
       return;
     }
-    final frame = entityEditorPickFrame(
-      entry.frames,
-      effectiveAnimationMs,
-    );
+    final frame = entityEditorPickFrame(entry.frames, effectiveAnimationMs);
     final tilesetId = frame.tilesetId.trim().isNotEmpty
         ? frame.tilesetId.trim()
         : entry.tilesetId.trim();
@@ -2486,8 +2843,9 @@ class MapGridPainter extends CustomPainter {
       sourceSize: GridSize(width: width, height: height),
       quarterTurns: instance.quarterTurns,
     );
-    final resolvedOpacity =
-        (opacity * instance.opacity).clamp(0.0, 1.0).toDouble();
+    final resolvedOpacity = (opacity * instance.opacity)
+        .clamp(0.0, 1.0)
+        .toDouble();
 
     for (var localY = 0; localY < height; localY++) {
       for (var localX = 0; localX < width; localX++) {
@@ -2678,9 +3036,7 @@ class MapGridPainter extends CustomPainter {
     final elementById = <String, ProjectElementEntry>{
       for (final entry in projectContext.elements) entry.id: entry,
     };
-    final projected = instance.copyWith(
-      quarterTurns: footprint.quarterTurns,
-    );
+    final projected = instance.copyWith(quarterTurns: footprint.quarterTurns);
     final previewColor = preview.rejection == null
         ? rotationPreviewAcceptedColor
         : rotationPreviewRejectedColor;
@@ -2746,8 +3102,9 @@ class MapGridPainter extends CustomPainter {
     required int localY,
     required bool foregroundPass,
   }) {
-    final collisionCells =
-        instance.applyCollision ? entry.collisionProfile?.cells : null;
+    final collisionCells = instance.applyCollision
+        ? entry.collisionProfile?.cells
+        : null;
     if (collisionCells == null || collisionCells.isEmpty) {
       return !foregroundPass;
     }
@@ -2768,15 +3125,19 @@ class MapGridPainter extends CustomPainter {
     required EditorMapVisibleCellBounds visibleBounds,
     required _MapGridCullingDebugCounter? cullingCounter,
   }) {
-    if (layer.collisions.isEmpty) return;
+    final previewApplies =
+        cellStrokePreview?.kind == MapCellStrokeLayerKind.collision &&
+        cellStrokePreview?.layerId == layer.id;
+    if (layer.collisions.isEmpty && !previewApplies) return;
     final fillAlpha = (isActive ? 0.34 : 0.24) * layer.opacity;
     final borderAlpha = (isActive ? 0.75 : 0.5) * layer.opacity;
     final fillPaint = Paint()
       ..color = PokeMapLegacyColors.deepOrange.withValues(alpha: fillAlpha)
       ..style = PaintingStyle.fill;
     final borderPaint = Paint()
-      ..color =
-          PokeMapLegacyColors.deepOrangeAccent.withValues(alpha: borderAlpha)
+      ..color = PokeMapLegacyColors.deepOrangeAccent.withValues(
+        alpha: borderAlpha,
+      )
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2 / zoom;
 
@@ -2785,8 +3146,7 @@ class MapGridPainter extends CustomPainter {
       final rowStart = y * map.size.width;
       for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
         final index = rowStart + x;
-        if (index < 0 || index >= layer.collisions.length) continue;
-        if (!layer.collisions[index]) continue;
+        if (!_resolveCollisionCell(layer, index)) continue;
         final cell = Rect.fromLTWH(
           x * tileWidth,
           y * tileHeight,
@@ -2799,6 +3159,26 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
+  TileLayerPaletteEntry? _resolveTileCell(TileLayer layer, int index) {
+    final preview = cellStrokePreview;
+    if (preview?.kind == MapCellStrokeLayerKind.tile &&
+        preview?.layerId == layer.id) {
+      return preview!.tileAt(index);
+    }
+    return resolveTileLayerCell(layer, index);
+  }
+
+  bool _resolveCollisionCell(CollisionLayer layer, int index) {
+    final preview = cellStrokePreview;
+    if (preview?.kind == MapCellStrokeLayerKind.collision &&
+        preview?.layerId == layer.id) {
+      return preview!.collisionAt(index);
+    }
+    return index >= 0 &&
+        index < layer.collisions.length &&
+        layer.collisions[index];
+  }
+
   void _paintSmartTileLayer(
     Canvas canvas,
     SmartTileLayer layer, {
@@ -2809,7 +3189,8 @@ class MapGridPainter extends CustomPainter {
     final catalog = project?.smartTileCatalog;
     if (catalog == null || catalog.isEmpty) return;
     final cachedIndex = _editorPatternOwnerIndexCache[layer];
-    final patternIndex = cachedIndex != null &&
+    final patternIndex =
+        cachedIndex != null &&
             identical(cachedIndex.catalog, catalog) &&
             cachedIndex.mapWidth == map.size.width &&
             cachedIndex.mapHeight == map.size.height
@@ -2842,11 +3223,18 @@ class MapGridPainter extends CustomPainter {
       endY: visibleBounds.bottom,
       destinationCellWidth: tileWidth,
       destinationCellHeight: tileHeight,
-      sourceCellWidth:
-          sourceTileWidth > 0 ? sourceTileWidth.toDouble() : tileWidth,
-      sourceCellHeight:
-          sourceTileHeight > 0 ? sourceTileHeight.toDouble() : tileHeight,
+      sourceCellWidth: sourceTileWidth > 0
+          ? sourceTileWidth.toDouble()
+          : tileWidth,
+      sourceCellHeight: sourceTileHeight > 0
+          ? sourceTileHeight.toDouble()
+          : tileHeight,
       patternOwnerIndex: patternIndex,
+      cellContextResolver:
+          cellStrokePreview?.kind == MapCellStrokeLayerKind.smartTile &&
+              cellStrokePreview?.layerId == layer.id
+          ? cellStrokePreview!.smartTileContextAt
+          : null,
     );
     final visuals = batch.visuals;
     cullingCounter?.smartTileVisualVisits += visuals.length;
@@ -2892,15 +3280,17 @@ class MapGridPainter extends CustomPainter {
       canvas.drawRect(
         draftRect,
         Paint()
-          ..color =
-              PokeMapLegacyColors.gameplayEncounter.withValues(alpha: 0.18)
+          ..color = PokeMapLegacyColors.gameplayEncounter.withValues(
+            alpha: 0.18,
+          )
           ..style = PaintingStyle.fill,
       );
       canvas.drawRect(
         draftRect,
         Paint()
-          ..color =
-              PokeMapLegacyColors.gameplayEncounter.withValues(alpha: 0.85)
+          ..color = PokeMapLegacyColors.gameplayEncounter.withValues(
+            alpha: 0.85,
+          )
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.0 / zoom
           ..strokeCap = StrokeCap.round,
@@ -2957,10 +3347,7 @@ class MapGridPainter extends CustomPainter {
       }
       textPainter.paint(
         canvas,
-        Offset(
-          rect.left + (4 / zoom),
-          rect.top + (3 / zoom),
-        ),
+        Offset(rect.left + (4 / zoom), rect.top + (3 / zoom)),
       );
     }
   }
@@ -3051,6 +3438,9 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.sourceTileHeight != sourceTileHeight ||
         !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById) ||
         oldDelegate._animationClock != _animationClock ||
+        oldDelegate.pictureCacheOwner != pictureCacheOwner ||
+        oldDelegate.cellStrokePreview != cellStrokePreview ||
+        oldDelegate.cellStrokeRepaint != cellStrokeRepaint ||
         (_animationClock == null &&
             oldDelegate._animationClock == null &&
             oldDelegate._staticAnimationMs != _staticAnimationMs) ||

@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 
 import '../errors/application_errors.dart';
+import '../services/editor_performance_telemetry.dart';
 import '../services/tiled_image_collection_raster_codec.dart';
 import 'authoring_query_adapter.dart';
 import 'authoring_session_lifecycle.dart';
@@ -264,7 +264,9 @@ final class AuthoringMutationAdapter
     String? expectedRevision,
     bool dryRun = false,
   }) async {
-    final snapshot = await session.snapshot();
+    final snapshot = await session.snapshot(
+      cacheValidation: ProjectSnapshotCacheValidation.session,
+    );
     final response = await session.mutations.planMutation(
       session.projectHandle,
       AuthoringRequest(
@@ -347,7 +349,9 @@ final class AuthoringMutationAdapter
           mutationPlan,
           operationId: key,
         );
-        final after = await session.snapshot();
+        final after = await session.snapshot(
+          cacheValidation: ProjectSnapshotCacheValidation.session,
+        );
         final mapRevision = narrativeEventBytesFingerprint(
           after.resourceBytes(identity),
         );
@@ -535,9 +539,12 @@ final class AuthoringMutationAdapter
   }
 }
 
-Map<String, Object?> _strictJsonMap(Map<String, dynamic> value) =>
-    (jsonDecode(jsonEncode(value)) as Map<String, dynamic>)
-        .cast<String, Object?>();
+Map<String, Object?> _strictJsonMap(Map<String, dynamic> value) {
+  final encoded = EditorPerformanceTelemetry.encodeJson(value);
+  return (EditorPerformanceTelemetry.decodeJson(encoded)
+          as Map<String, dynamic>)
+      .cast<String, Object?>();
+}
 
 final class _EditorMutationSession {
   _EditorMutationSession._({
@@ -594,8 +601,12 @@ final class _EditorMutationSession {
       policy: policy,
       snapshotLoader: snapshots,
       artifactStore: artifactStore,
+      authorizationLimits: const AuthoringSecurityLimits(
+        maxRequestBytes: 64 << 20,
+      ),
       tiledImageCollectionRasterCodec:
           const ImagePackageTiledImageCollectionRasterCodec(),
+      performanceObserver: const _EditorAuthoringPerformanceObserver(),
     );
     try {
       await mutations.attachProject(
@@ -647,7 +658,10 @@ final class _EditorMutationSession {
     }
   }
 
-  Future<ProjectSnapshot> snapshot() => _snapshots.load(projectHandle);
+  Future<ProjectSnapshot> snapshot({
+    ProjectSnapshotCacheValidation cacheValidation =
+        ProjectSnapshotCacheValidation.canonical,
+  }) => _snapshots.load(projectHandle, cacheValidation: cacheValidation);
 
   Future<T> use<T>(Future<T> Function() operation) async {
     if (_closing) {
@@ -686,6 +700,32 @@ final class _EditorMutationSession {
     await reads.close(workspaceHandle);
     _onClosed();
   }
+}
+
+final class _EditorAuthoringPerformanceObserver
+    implements AuthoringPerformanceObserver {
+  const _EditorAuthoringPerformanceObserver();
+
+  @override
+  AuthoringPerformanceSpan? startSpan(String name) {
+    final span = EditorPerformanceTelemetry.startSpan(name);
+    return span == null ? null : _EditorAuthoringPerformanceSpan(span);
+  }
+
+  @override
+  void incrementCounter(String name, {int by = 1}) {
+    EditorPerformanceTelemetry.incrementCounter(name, by: by);
+  }
+}
+
+final class _EditorAuthoringPerformanceSpan
+    implements AuthoringPerformanceSpan {
+  const _EditorAuthoringPerformanceSpan(this._span);
+
+  final EditorPerformanceSpan _span;
+
+  @override
+  void finish() => _span.finish();
 }
 
 Future<void> _closeMutationSessions(

@@ -1,23 +1,32 @@
+import 'dart:convert';
+
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
 import '../contracts/json_contract_support.dart';
+import '../support/authoring_fingerprint.dart';
 import 'change_set.dart';
 
-/// Fully frozen output of one pure planning pass.
 final class AuthoringPlan {
   AuthoringPlan({
     required String planId,
     required String receiptId,
-    required this.request,
+    required AuthoringRequest request,
     required String baseRevision,
     required this.seed,
     required DateTime createdAt,
     required DateTime expiresAt,
-    required this.changeSet,
+    required AuthoringChangeSet changeSet,
     Map<String, Object?> preview = const {},
     Map<String, Object?> referenceImpact = const {},
     Iterable<AuthoringArtifactRef> artifacts = const [],
-  })  : planId = _nonBlank(planId, 'planId'),
+  })  : _request = request,
+        _changeSet = changeSet,
+        projectedRevision = changeSet.projectedRevision,
+        authorizationRequestBytes =
+            utf8.encode(canonicalAuthoringJson(request.toJson())).length,
+        idempotencyPayloadFingerprint =
+            computeAuthoringIdempotencyPayloadFingerprint(request),
+        planId = _nonBlank(planId, 'planId'),
         receiptId = _nonBlank(receiptId, 'receiptId'),
         baseRevision = _revision(baseRevision, 'baseRevision'),
         createdAt = createdAt.toUtc(),
@@ -42,19 +51,42 @@ final class AuthoringPlan {
 
   final String planId;
   final String receiptId;
-  final AuthoringRequest request;
+  AuthoringRequest _request;
+  AuthoringRequest get request => _request;
+  final int authorizationRequestBytes;
+  final String idempotencyPayloadFingerprint;
   final String baseRevision;
   final int seed;
   final DateTime createdAt;
   final DateTime expiresAt;
-  final AuthoringChangeSet changeSet;
+  AuthoringChangeSet? _changeSet;
+  AuthoringChangeSet get changeSet =>
+      _changeSet ??
+      (throw StateError('Applied plan payload has already been released.'));
   final Map<String, Object?> preview;
   final Map<String, Object?> referenceImpact;
   final List<AuthoringArtifactRef> artifacts;
 
-  String get projectedRevision => changeSet.projectedRevision;
+  final String projectedRevision;
+  bool get appliedPayloadReleased => _changeSet == null;
   bool get applicable => !request.dryRun;
   String? get nonApplicableReason => applicable ? null : 'dry_run';
+
+  void releaseAppliedPayload() {
+    if (_request.parameters.isNotEmpty) {
+      _request = AuthoringRequest(
+        requestId: _request.requestId,
+        actionId: _request.actionId,
+        actionVersion: _request.actionVersion,
+        workspaceHandle: _request.workspaceHandle,
+        expectedRevision: _request.expectedRevision,
+        idempotencyKey: _request.idempotencyKey,
+        dryRun: _request.dryRun,
+        extensions: _request.extensions,
+      );
+    }
+    _changeSet = null;
+  }
 
   AuthoringReceipt toPlannedReceipt() {
     return AuthoringReceipt(

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/misc.dart' show Override;
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/main.dart' show MapEditorApp;
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor_updates/application/editor_update_providers.dart';
@@ -79,6 +80,9 @@ Future<ProviderContainer> pumpEditorShellPage(
   String? cupertinoFontFamily,
   List<Override> overrides = const <Override>[],
   bool settleInitialFrame = true,
+  bool useMapEditorApp = false,
+  bool enableEditorUpdateHost = true,
+  bool restoreLastOpenedProjectOnStartup = true,
 }) async {
   _installMacosAccentColorMock();
   final container = ProviderContainer(
@@ -115,10 +119,16 @@ Future<ProviderContainer> pumpEditorShellPage(
             fontFamily: fontFamily,
           ),
         );
-  await tester.pumpWidget(
-    UncontrolledProviderScope(
-      container: container,
-      child: MaterialApp(
+  final shell = EditorShellPage(
+    restoreLastOpenedProjectOnStartup: restoreLastOpenedProjectOnStartup,
+  );
+  final app = useMapEditorApp
+      ? MapEditorApp(
+          enableEditorUpdateHost: enableEditorUpdateHost,
+          restoreLastOpenedProjectOnStartup:
+              restoreLastOpenedProjectOnStartup,
+        )
+      : MaterialApp(
         theme: theme,
         builder: (context, child) {
           Widget result = PokeMapMacosCompatibilityBridge(
@@ -139,8 +149,12 @@ Future<ProviderContainer> pumpEditorShellPage(
           }
           return result;
         },
-        home: const EditorShellPage(),
-      ),
+        home: shell,
+      );
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: app,
     ),
   );
   await tester.pump();

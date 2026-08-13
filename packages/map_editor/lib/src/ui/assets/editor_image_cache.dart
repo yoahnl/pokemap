@@ -6,6 +6,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/scheduler.dart';
 import 'package:path/path.dart' as p;
 
+import '../../application/services/editor_performance_telemetry.dart';
+
 enum EditorImageFailureKind {
   invalidPath,
   missingFile,
@@ -34,14 +36,14 @@ class EditorImageFailure {
 /// Call [dispose] when the consumer no longer paints or inspects [image].
 class EditorImageLoadResult {
   EditorImageLoadResult.success(ui.Image decodedImage)
-      : image = decodedImage,
-        failure = null,
-        _lease = _EditorImageConsumerLease();
+    : image = decodedImage,
+      failure = null,
+      _lease = _EditorImageConsumerLease();
 
   const EditorImageLoadResult.failure(EditorImageFailure loadFailure)
-      : image = null,
-        failure = loadFailure,
-        _lease = null;
+    : image = null,
+      failure = loadFailure,
+      _lease = null;
 
   final ui.Image? image;
   final EditorImageFailure? failure;
@@ -108,13 +110,11 @@ class EditorImageCacheDiagnostics {
   final bool isDisposed;
 }
 
-typedef EditorImageBytesTransform = FutureOr<Uint8List> Function(
-  Uint8List bytes,
-);
+typedef EditorImageBytesTransform =
+    FutureOr<Uint8List> Function(Uint8List bytes);
 
-typedef EditorImageRetirementScheduler = void Function(
-  void Function() disposeImage,
-);
+typedef EditorImageRetirementScheduler =
+    void Function(void Function() disposeImage);
 
 class EditorImageCache {
   static const int defaultMaximumDecodedBytes = 32 * 1024 * 1024;
@@ -124,7 +124,7 @@ class EditorImageCache {
     this.maximumDecodedBytes = defaultMaximumDecodedBytes,
     EditorImageRetirementScheduler? retirementScheduler,
   }) : _scheduleRetirement =
-            retirementScheduler ?? _scheduleAfterConsumerFrame {
+           retirementScheduler ?? _scheduleAfterConsumerFrame {
     if (maximumDecodedBytes <= 0) {
       throw ArgumentError.value(
         maximumDecodedBytes,
@@ -140,8 +140,9 @@ class EditorImageCache {
 
   final Map<_EditorImageSlot, _EditorImageCacheEntry> _entries =
       <_EditorImageSlot, _EditorImageCacheEntry>{};
-  final Expando<bool> _disposedImageIdentities =
-      Expando<bool>('disposed editor image');
+  final Expando<bool> _disposedImageIdentities = Expando<bool>(
+    'disposed editor image',
+  );
 
   var _hits = 0;
   var _misses = 0;
@@ -157,22 +158,22 @@ class EditorImageCache {
   var _disposed = false;
 
   EditorImageCacheDiagnostics get diagnostics => EditorImageCacheDiagnostics(
-        sessionKey: sessionKey,
-        entries: _entries.length,
-        hits: _hits,
-        misses: _misses,
-        invalidations: _invalidations,
-        missingFiles: _missingFiles,
-        readFailures: _readFailures,
-        decodeFailures: _decodeFailures,
-        disposedImages: _disposedImages,
-        maximumDecodedBytes: maximumDecodedBytes,
-        residentDecodedBytes: _residentDecodedBytes,
-        peakDecodedBytes: _peakDecodedBytes,
-        evictions: _evictions,
-        inFlightLoads: _inFlightLoads,
-        isDisposed: _disposed,
-      );
+    sessionKey: sessionKey,
+    entries: _entries.length,
+    hits: _hits,
+    misses: _misses,
+    invalidations: _invalidations,
+    missingFiles: _missingFiles,
+    readFailures: _readFailures,
+    decodeFailures: _decodeFailures,
+    disposedImages: _disposedImages,
+    maximumDecodedBytes: maximumDecodedBytes,
+    residentDecodedBytes: _residentDecodedBytes,
+    peakDecodedBytes: _peakDecodedBytes,
+    evictions: _evictions,
+    inFlightLoads: _inFlightLoads,
+    isDisposed: _disposed,
+  );
 
   Future<EditorImageLoadResult> load(
     String? path, {
@@ -204,6 +205,9 @@ class EditorImageCache {
     }
 
     final unresolvedFile = File(rawPath).absolute;
+    EditorPerformanceTelemetry.incrementCounter(
+      EditorPerformanceCounterName.filesystemMetadata,
+    );
     if (!await unresolvedFile.exists()) {
       _misses += 1;
       _missingFiles += 1;
@@ -219,9 +223,11 @@ class EditorImageCache {
     late final String canonicalPath;
     late final FileStat stat;
     try {
-      canonicalPath = p.normalize(
-        await unresolvedFile.resolveSymbolicLinks(),
+      EditorPerformanceTelemetry.incrementCounter(
+        EditorPerformanceCounterName.filesystemMetadata,
+        by: 2,
       );
+      canonicalPath = p.normalize(await unresolvedFile.resolveSymbolicLinks());
       stat = await File(canonicalPath).stat();
     } on Object catch (error) {
       _misses += 1;
@@ -251,10 +257,7 @@ class EditorImageCache {
     if (current != null && current.fingerprint == fingerprint) {
       _hits += 1;
       _touch(slot, current);
-      return _acquireConsumer(
-        current,
-        canonicalPath: canonicalPath,
-      );
+      return _acquireConsumer(current, canonicalPath: canonicalPath);
     }
 
     _misses += 1;
@@ -276,10 +279,7 @@ class EditorImageCache {
     );
     _entries[slot] = entry;
     _trackDecode(slot, entry);
-    return _acquireConsumer(
-      entry,
-      canonicalPath: canonicalPath,
-    );
+    return _acquireConsumer(entry, canonicalPath: canonicalPath);
   }
 
   Future<EditorImageLoadResult> loadCrop(
@@ -302,9 +302,11 @@ class EditorImageCache {
     late final String canonicalPath;
     late final FileStat stat;
     try {
-      canonicalPath = p.normalize(
-        await unresolvedFile.resolveSymbolicLinks(),
+      EditorPerformanceTelemetry.incrementCounter(
+        EditorPerformanceCounterName.filesystemMetadata,
+        by: 2,
       );
+      canonicalPath = p.normalize(await unresolvedFile.resolveSymbolicLinks());
       stat = await File(canonicalPath).stat();
     } on Object catch (error) {
       source.dispose();
@@ -322,7 +324,8 @@ class EditorImageCache {
 
     final slot = _EditorImageSlot(
       canonicalPath: canonicalPath,
-      variantKey: 'crop:$variantKey:'
+      variantKey:
+          'crop:$variantKey:'
           '${sourceRect.left},${sourceRect.top},'
           '${sourceRect.width},${sourceRect.height}',
       targetWidth: null,
@@ -390,6 +393,9 @@ class EditorImageCache {
     final file = File(trimmed).absolute;
     String canonicalPath;
     try {
+      EditorPerformanceTelemetry.incrementCounter(
+        EditorPerformanceCounterName.filesystemMetadata,
+      );
       canonicalPath = p.normalize(await file.resolveSymbolicLinks());
     } on Object {
       canonicalPath = p.normalize(file.path);
@@ -426,6 +432,9 @@ class EditorImageCache {
   }) async {
     Uint8List bytes;
     try {
+      EditorPerformanceTelemetry.incrementCounter(
+        EditorPerformanceCounterName.filesystemRead,
+      );
       bytes = await File(canonicalPath).readAsBytes();
       if (bytes.isEmpty) {
         _readFailures += 1;
@@ -608,10 +617,7 @@ class EditorImageCache {
     }
   }
 
-  void _trackDecode(
-    _EditorImageSlot slot,
-    _EditorImageCacheEntry entry,
-  ) {
+  void _trackDecode(_EditorImageSlot slot, _EditorImageCacheEntry entry) {
     _inFlightLoads++;
     unawaited(
       entry.future.then<void>((result) {
@@ -664,10 +670,7 @@ class EditorImageCache {
     _entries[slot] = entry;
   }
 
-  void _removeEntry(
-    _EditorImageSlot slot,
-    _EditorImageCacheEntry entry,
-  ) {
+  void _removeEntry(_EditorImageSlot slot, _EditorImageCacheEntry entry) {
     if (identical(_entries[slot], entry)) {
       _entries.remove(slot);
       _residentDecodedBytes -= entry.decodedBytes;
@@ -731,12 +734,12 @@ class _EditorImageSlot {
 
   @override
   int get hashCode => Object.hash(
-        canonicalPath,
-        variantKey,
-        targetWidth,
-        targetHeight,
-        allowUpscaling,
-      );
+    canonicalPath,
+    variantKey,
+    targetWidth,
+    targetHeight,
+    allowUpscaling,
+  );
 }
 
 class _EditorImageFingerprint {
@@ -760,10 +763,7 @@ class _EditorImageFingerprint {
 }
 
 class _EditorImageCacheEntry {
-  _EditorImageCacheEntry({
-    required this.fingerprint,
-    required this.future,
-  });
+  _EditorImageCacheEntry({required this.fingerprint, required this.future});
 
   final _EditorImageFingerprint fingerprint;
   final Future<_EditorImageMasterResult> future;
@@ -775,12 +775,12 @@ class _EditorImageCacheEntry {
 
 class _EditorImageMasterResult {
   const _EditorImageMasterResult.success(ui.Image decodedImage)
-      : image = decodedImage,
-        failure = null;
+    : image = decodedImage,
+      failure = null;
 
   const _EditorImageMasterResult.failure(EditorImageFailure loadFailure)
-      : image = null,
-        failure = loadFailure;
+    : image = null,
+      failure = loadFailure;
 
   final ui.Image? image;
   final EditorImageFailure? failure;

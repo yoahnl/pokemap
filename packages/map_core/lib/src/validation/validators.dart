@@ -2107,220 +2107,13 @@ class MapValidator {
           };
 
     for (final instance in map.placedElements) {
-      final instanceId = _requireNonBlank(
-        instance.id,
-        'Placed element instance ID cannot be empty',
+      _validatePlacedElement(
+        map: map,
+        instance: instance,
+        layerById: layerById,
+        elementById: elementById,
+        projectDialogueContext: projectDialogueContext,
       );
-      final layerId = _requireNonBlank(
-        instance.layerId,
-        'Placed element instance $instanceId has empty layerId',
-      );
-      final elementId = _requireNonBlank(
-        instance.elementId,
-        'Placed element instance $instanceId has empty elementId',
-      );
-      final layer = layerById[layerId];
-      if (layer == null) {
-        throw ValidationException(
-          'Placed element instance $instanceId references unknown layer: $layerId',
-        );
-      }
-      if (layer is! TileLayer) {
-        throw ValidationException(
-          'Placed element instance $instanceId must reference a tile layer: $layerId',
-        );
-      }
-      _validatePositionInBounds(
-        instance.pos,
-        map.size,
-        errorLabel: 'Placed element instance $instanceId origin',
-      );
-      if (instance.quarterTurns < 0 || instance.quarterTurns > 3) {
-        throw ValidationException(
-          'Placed element instance $instanceId has invalid quarterTurns: '
-          '${instance.quarterTurns}',
-        );
-      }
-      if (instance.opacity < 0 || instance.opacity > 1) {
-        throw ValidationException(
-          'Placed element instance $instanceId has invalid opacity: ${instance.opacity}',
-        );
-      }
-      for (final key in instance.properties.keys) {
-        if (key.trim().isEmpty) {
-          throw ValidationException(
-            'Placed element instance $instanceId has an empty property key',
-          );
-        }
-      }
-      final animation = instance.animation;
-      if (animation != null) {
-        if (animation.speed <= 0) {
-          throw ValidationException(
-            'Placed element instance $instanceId has invalid animation speed: ${animation.speed}',
-          );
-        }
-        final startOffsetMs = animation.startOffsetMs;
-        if (startOffsetMs != null && startOffsetMs < 0) {
-          throw ValidationException(
-            'Placed element instance $instanceId has negative animation startOffsetMs: $startOffsetMs',
-          );
-        }
-      }
-      for (var behaviorIndex = 0;
-          behaviorIndex < instance.behaviors.length;
-          behaviorIndex++) {
-        final behavior = instance.behaviors[behaviorIndex];
-        final behaviorId = behavior.id.trim();
-        const maxBehaviorCooldownMs = 600000;
-        if (behaviorId.isEmpty) {
-          throw ValidationException(
-            'Placed element instance $instanceId behavior[$behaviorIndex] has empty id',
-          );
-        }
-        for (var i = behaviorIndex + 1; i < instance.behaviors.length; i++) {
-          if (instance.behaviors[i].id.trim() == behaviorId) {
-            throw ValidationException(
-              'Placed element instance $instanceId has duplicate behavior id "$behaviorId"',
-            );
-          }
-        }
-        final trigger = behavior.trigger;
-        final triggerScope = behavior.triggerScope;
-        switch (triggerScope) {
-          case MapPlacedElementTriggerScope.defaultScope:
-            break;
-          case MapPlacedElementTriggerScope.oncePerEnter:
-            if (trigger != MapPlacedElementTriggerType.onEnter) {
-              throw ValidationException(
-                'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope oncePerEnter requires trigger onEnter',
-              );
-            }
-            break;
-          case MapPlacedElementTriggerScope.whileInsideSingleShot:
-            if (trigger != MapPlacedElementTriggerType.onEnter &&
-                trigger != MapPlacedElementTriggerType.onNear) {
-              throw ValidationException(
-                'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope whileInsideSingleShot requires trigger onEnter or onNear',
-              );
-            }
-            break;
-          case MapPlacedElementTriggerScope.facingOnly:
-            if (trigger != MapPlacedElementTriggerType.onAction &&
-                trigger != MapPlacedElementTriggerType.onNear) {
-              throw ValidationException(
-                'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope facingOnly requires trigger onAction or onNear',
-              );
-            }
-            break;
-          case MapPlacedElementTriggerScope.nearCardinalOnly:
-            if (trigger != MapPlacedElementTriggerType.onNear) {
-              throw ValidationException(
-                'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope nearCardinalOnly requires trigger onNear',
-              );
-            }
-            break;
-        }
-        final cooldownMs = behavior.cooldownMs;
-        if (cooldownMs != null) {
-          if (cooldownMs < 0) {
-            throw ValidationException(
-              'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] has negative cooldownMs: $cooldownMs',
-            );
-          }
-          if (cooldownMs > maxBehaviorCooldownMs) {
-            throw ValidationException(
-              'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] has excessive cooldownMs: $cooldownMs (max $maxBehaviorCooldownMs)',
-            );
-          }
-        }
-        final effect = behavior.effect;
-        final behaviorLabel =
-            'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId]';
-        switch (effect.type) {
-          case MapPlacedElementEffectType.showMessage:
-            final message = effect.message?.trim() ?? '';
-            if (message.isEmpty) {
-              throw ValidationException(
-                '$behaviorLabel showMessage requires a non-empty message',
-              );
-            }
-            break;
-          case MapPlacedElementEffectType.openDialogue:
-            final dialogue = effect.dialogue;
-            if (dialogue == null) {
-              throw ValidationException(
-                '$behaviorLabel openDialogue requires a dialogue reference',
-              );
-            }
-            final dialogueId = dialogue.dialogueId.trim();
-            if (dialogueId.isEmpty) {
-              throw ValidationException(
-                '$behaviorLabel openDialogue requires a non-empty dialogueId',
-              );
-            }
-            final scriptPath = dialogue.scriptPathRelative.trim();
-            if (scriptPath.startsWith('/') || scriptPath.startsWith(r'\')) {
-              throw ValidationException(
-                '$behaviorLabel dialogue scriptPathRelative must be relative',
-              );
-            }
-            if (scriptPath.contains('..')) {
-              throw ValidationException(
-                '$behaviorLabel dialogue scriptPathRelative must not contain ..',
-              );
-            }
-            assertValidDialogueStartNode(
-              dialogue.startNode,
-              contextLabel: '$behaviorLabel dialogue',
-            );
-            if (projectDialogueContext != null && scriptPath.isEmpty) {
-              final exists = projectDialogueContext.dialogues
-                  .any((entry) => entry.id == dialogueId);
-              if (!exists) {
-                throw ValidationException(
-                  '$behaviorLabel references unknown dialogue id "$dialogueId"',
-                );
-              }
-            }
-            break;
-          case MapPlacedElementEffectType.setAnimationEnabled:
-            if (effect.animationEnabled == null) {
-              throw ValidationException(
-                '$behaviorLabel setAnimationEnabled requires animationEnabled',
-              );
-            }
-            break;
-          case MapPlacedElementEffectType.playAnimationOnce:
-            break;
-        }
-      }
-      if (projectDialogueContext != null) {
-        final element = elementById[elementId];
-        if (element == null) {
-          throw ValidationException(
-            'Placed element instance $instanceId references unknown element: $elementId',
-          );
-        }
-        final footprint = resolveMapPlacedElementFootprint(
-          instance: instance,
-          element: element,
-        ).destinationSize;
-        final right = instance.pos.x + footprint.width;
-        final bottom = instance.pos.y + footprint.height;
-        if (right > map.size.width || bottom > map.size.height) {
-          throw ValidationException(
-            'Placed element instance $instanceId footprint '
-            '${footprint.width}x${footprint.height} exceeds map bounds from '
-            'origin (${instance.pos.x}, ${instance.pos.y})',
-          );
-        }
-        if (animation != null && animation.enabled && element.frames.isEmpty) {
-          throw ValidationException(
-            'Placed element instance $instanceId enables animation but source element $elementId has no frames',
-          );
-        }
-      }
     }
     _validateUniqueIds(
       map.placedElements,
@@ -3365,6 +3158,249 @@ class MapValidator {
       throw ValidationException(
         '$errorLabel is out of map bounds at (${pos.x}, ${pos.y})',
       );
+    }
+  }
+
+  static void validatePlacedElement(
+    MapData map,
+    MapPlacedElement instance, {
+    ProjectManifest? projectDialogueContext,
+  }) {
+    final layer = map.layers
+        .where((candidate) => candidate.id == instance.layerId)
+        .firstOrNull;
+    final element = projectDialogueContext?.elements
+        .where((candidate) => candidate.id == instance.elementId)
+        .firstOrNull;
+    _validatePlacedElement(
+      map: map,
+      instance: instance,
+      layerById: <String, MapLayer>{?layer?.id: layer!},
+      elementById: <String, ProjectElementEntry>{?element?.id: element!},
+      projectDialogueContext: projectDialogueContext,
+    );
+  }
+
+  static void _validatePlacedElement({
+    required MapData map,
+    required MapPlacedElement instance,
+    required Map<String, MapLayer> layerById,
+    required Map<String, ProjectElementEntry> elementById,
+    required ProjectManifest? projectDialogueContext,
+  }) {
+    final instanceId = _requireNonBlank(
+      instance.id,
+      'Placed element instance ID cannot be empty',
+    );
+    final layerId = _requireNonBlank(
+      instance.layerId,
+      'Placed element instance $instanceId has empty layerId',
+    );
+    final elementId = _requireNonBlank(
+      instance.elementId,
+      'Placed element instance $instanceId has empty elementId',
+    );
+    final layer = layerById[layerId];
+    if (layer == null) {
+      throw ValidationException(
+        'Placed element instance $instanceId references unknown layer: $layerId',
+      );
+    }
+    if (layer is! TileLayer) {
+      throw ValidationException(
+        'Placed element instance $instanceId must reference a tile layer: $layerId',
+      );
+    }
+    _validatePositionInBounds(
+      instance.pos,
+      map.size,
+      errorLabel: 'Placed element instance $instanceId origin',
+    );
+    if (instance.quarterTurns < 0 || instance.quarterTurns > 3) {
+      throw ValidationException(
+        'Placed element instance $instanceId has invalid quarterTurns: '
+        '${instance.quarterTurns}',
+      );
+    }
+    if (instance.opacity < 0 || instance.opacity > 1) {
+      throw ValidationException(
+        'Placed element instance $instanceId has invalid opacity: ${instance.opacity}',
+      );
+    }
+    for (final key in instance.properties.keys) {
+      if (key.trim().isEmpty) {
+        throw ValidationException(
+          'Placed element instance $instanceId has an empty property key',
+        );
+      }
+    }
+    final animation = instance.animation;
+    if (animation != null) {
+      if (animation.speed <= 0) {
+        throw ValidationException(
+          'Placed element instance $instanceId has invalid animation speed: ${animation.speed}',
+        );
+      }
+      final startOffsetMs = animation.startOffsetMs;
+      if (startOffsetMs != null && startOffsetMs < 0) {
+        throw ValidationException(
+          'Placed element instance $instanceId has negative animation startOffsetMs: $startOffsetMs',
+        );
+      }
+    }
+    for (var behaviorIndex = 0;
+        behaviorIndex < instance.behaviors.length;
+        behaviorIndex++) {
+      final behavior = instance.behaviors[behaviorIndex];
+      final behaviorId = behavior.id.trim();
+      const maxBehaviorCooldownMs = 600000;
+      if (behaviorId.isEmpty) {
+        throw ValidationException(
+          'Placed element instance $instanceId behavior[$behaviorIndex] has empty id',
+        );
+      }
+      for (var i = behaviorIndex + 1; i < instance.behaviors.length; i++) {
+        if (instance.behaviors[i].id.trim() == behaviorId) {
+          throw ValidationException(
+            'Placed element instance $instanceId has duplicate behavior id "$behaviorId"',
+          );
+        }
+      }
+      final trigger = behavior.trigger;
+      final triggerScope = behavior.triggerScope;
+      switch (triggerScope) {
+        case MapPlacedElementTriggerScope.defaultScope:
+          break;
+        case MapPlacedElementTriggerScope.oncePerEnter:
+          if (trigger != MapPlacedElementTriggerType.onEnter) {
+            throw ValidationException(
+              'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope oncePerEnter requires trigger onEnter',
+            );
+          }
+          break;
+        case MapPlacedElementTriggerScope.whileInsideSingleShot:
+          if (trigger != MapPlacedElementTriggerType.onEnter &&
+              trigger != MapPlacedElementTriggerType.onNear) {
+            throw ValidationException(
+              'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope whileInsideSingleShot requires trigger onEnter or onNear',
+            );
+          }
+          break;
+        case MapPlacedElementTriggerScope.facingOnly:
+          if (trigger != MapPlacedElementTriggerType.onAction &&
+              trigger != MapPlacedElementTriggerType.onNear) {
+            throw ValidationException(
+              'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope facingOnly requires trigger onAction or onNear',
+            );
+          }
+          break;
+        case MapPlacedElementTriggerScope.nearCardinalOnly:
+          if (trigger != MapPlacedElementTriggerType.onNear) {
+            throw ValidationException(
+              'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] triggerScope nearCardinalOnly requires trigger onNear',
+            );
+          }
+          break;
+      }
+      final cooldownMs = behavior.cooldownMs;
+      if (cooldownMs != null) {
+        if (cooldownMs < 0) {
+          throw ValidationException(
+            'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] has negative cooldownMs: $cooldownMs',
+          );
+        }
+        if (cooldownMs > maxBehaviorCooldownMs) {
+          throw ValidationException(
+            'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId] has excessive cooldownMs: $cooldownMs (max $maxBehaviorCooldownMs)',
+          );
+        }
+      }
+      final effect = behavior.effect;
+      final behaviorLabel =
+          'Placed element instance $instanceId behavior[$behaviorIndex id=$behaviorId]';
+      switch (effect.type) {
+        case MapPlacedElementEffectType.showMessage:
+          final message = effect.message?.trim() ?? '';
+          if (message.isEmpty) {
+            throw ValidationException(
+              '$behaviorLabel showMessage requires a non-empty message',
+            );
+          }
+          break;
+        case MapPlacedElementEffectType.openDialogue:
+          final dialogue = effect.dialogue;
+          if (dialogue == null) {
+            throw ValidationException(
+              '$behaviorLabel openDialogue requires a dialogue reference',
+            );
+          }
+          final dialogueId = dialogue.dialogueId.trim();
+          if (dialogueId.isEmpty) {
+            throw ValidationException(
+              '$behaviorLabel openDialogue requires a non-empty dialogueId',
+            );
+          }
+          final scriptPath = dialogue.scriptPathRelative.trim();
+          if (scriptPath.startsWith('/') || scriptPath.startsWith(r'\')) {
+            throw ValidationException(
+              '$behaviorLabel dialogue scriptPathRelative must be relative',
+            );
+          }
+          if (scriptPath.contains('..')) {
+            throw ValidationException(
+              '$behaviorLabel dialogue scriptPathRelative must not contain ..',
+            );
+          }
+          assertValidDialogueStartNode(
+            dialogue.startNode,
+            contextLabel: '$behaviorLabel dialogue',
+          );
+          if (projectDialogueContext != null && scriptPath.isEmpty) {
+            final exists = projectDialogueContext.dialogues
+                .any((entry) => entry.id == dialogueId);
+            if (!exists) {
+              throw ValidationException(
+                '$behaviorLabel references unknown dialogue id "$dialogueId"',
+              );
+            }
+          }
+          break;
+        case MapPlacedElementEffectType.setAnimationEnabled:
+          if (effect.animationEnabled == null) {
+            throw ValidationException(
+              '$behaviorLabel setAnimationEnabled requires animationEnabled',
+            );
+          }
+          break;
+        case MapPlacedElementEffectType.playAnimationOnce:
+          break;
+      }
+    }
+    if (projectDialogueContext != null) {
+      final element = elementById[elementId];
+      if (element == null) {
+        throw ValidationException(
+          'Placed element instance $instanceId references unknown element: $elementId',
+        );
+      }
+      final footprint = resolveMapPlacedElementFootprint(
+        instance: instance,
+        element: element,
+      ).destinationSize;
+      final right = instance.pos.x + footprint.width;
+      final bottom = instance.pos.y + footprint.height;
+      if (right > map.size.width || bottom > map.size.height) {
+        throw ValidationException(
+          'Placed element instance $instanceId footprint '
+          '${footprint.width}x${footprint.height} exceeds map bounds from '
+          'origin (${instance.pos.x}, ${instance.pos.y})',
+        );
+      }
+      if (animation != null && animation.enabled && element.frames.isEmpty) {
+        throw ValidationException(
+          'Placed element instance $instanceId enables animation but source element $elementId has no frames',
+        );
+      }
     }
   }
 }

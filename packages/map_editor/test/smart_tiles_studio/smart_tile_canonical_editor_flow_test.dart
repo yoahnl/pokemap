@@ -387,15 +387,14 @@ void main() {
       const GridPos(x: 0, y: 0),
       materialId: 'not_allowed',
     );
-    expect(notifier.state.activeMap, isNot(baseline));
-    final optimisticLayer =
-        notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(notifier.state.activeMap, same(baseline));
+    final preview = notifier.activeMapCellStrokePreview!;
+    expect(preview.smartTileMaterialAt(0, 0), 'not_allowed');
     expect(
-      smartTileSemanticCells(optimisticLayer),
-      isNot(smartTileSemanticCells(baselineLayer)),
+      (notifier.state.activeMap!.layers.single as SmartTileLayer)
+          .candidateWeights,
+      baselineLayer.candidateWeights,
     );
-    expect(optimisticLayer.materialPalette, contains('not_allowed'));
-    expect(optimisticLayer.candidateWeights, baselineLayer.candidateWeights);
     notifier.endMapStroke();
 
     await _waitUntil(
