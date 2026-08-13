@@ -217,6 +217,85 @@ void main() {
     expect(owner.entryCount, lessThanOrEqualTo(owner.maxEntries));
   });
 
+  test('geometry changes invalidate cell-backed cached layers', () {
+    final owner = EditorCanvasPictureCacheOwner(maxEntries: 16);
+    addTearDown(owner.dispose);
+    final staticSmartMap = _map.copyWith(
+      size: const GridSize(width: 3, height: 2),
+      layers: _map.layers
+          .map(
+            (layer) => switch (layer) {
+              TileLayer() => layer.copyWith(
+                cells: const <int>[1, 0, 0, 0, 0, 0],
+              ),
+              SmartTileLayer() => layer.copyWith(
+                animationActivation: SmartTileAnimationActivation.onEnter,
+                field: SmartTileField.cell(
+                  semanticCells: const <int>[1, 1, 1, 1, 1, 1],
+                ),
+              ),
+              CollisionLayer() => layer.copyWith(
+                collisions: const <bool>[
+                  false,
+                  true,
+                  false,
+                  false,
+                  true,
+                  false,
+                ],
+              ),
+              _ => layer,
+            },
+          )
+          .toList(growable: false),
+    );
+    _record(
+      _painter(owner: owner, map: staticSmartMap),
+      size: const ui.Size(16, 16),
+    );
+    final events = <EditorCanvasPictureCacheEvent>[];
+
+    _record(
+      _painter(
+        owner: owner,
+        map: staticSmartMap.copyWith(size: const GridSize(width: 2, height: 3)),
+        onCacheEvent: events.add,
+      ),
+      size: const ui.Size(16, 16),
+    );
+
+    for (final cacheId in const <String>[
+      'smart:water:background',
+      'collision:collision',
+    ]) {
+      expect(
+        events
+            .where((event) => event.cacheId == cacheId)
+            .map((event) => event.disposition),
+        <EditorCanvasPictureCacheDisposition>[
+          EditorCanvasPictureCacheDisposition.miss,
+        ],
+        reason: cacheId,
+      );
+    }
+  });
+
+  test('dispose releases cached map revision state', () {
+    final owner = EditorCanvasPictureCacheOwner(maxEntries: 8);
+    owner.resolveRevisions(
+      map: _map,
+      project: _project,
+      imagesById: const <String, ui.Image?>{},
+      overlayToken: 0,
+    );
+    _record(_painter(owner: owner));
+
+    owner.dispose();
+
+    expect(owner.entryCount, 0);
+    expect(owner.revisionMapCount, 0);
+  });
+
   test('cached and uncached static renders remain pixel-identical', () async {
     final tile = await _tileImage();
     addTearDown(tile.dispose);
@@ -267,9 +346,9 @@ MapGridPainter _painter({
   );
 }
 
-void _record(MapGridPainter painter) {
+void _record(MapGridPainter painter, {ui.Size size = const ui.Size(64, 64)}) {
   final recorder = ui.PictureRecorder();
-  painter.paint(ui.Canvas(recorder), const ui.Size(64, 64));
+  painter.paint(ui.Canvas(recorder), size);
   recorder.endRecording().dispose();
 }
 

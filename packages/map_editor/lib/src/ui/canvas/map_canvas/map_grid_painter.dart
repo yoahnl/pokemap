@@ -662,6 +662,7 @@ class MapGridPainter extends CustomPainter {
               revisions?.layerRevision(smartBackgroundLayer.id) ?? 0,
               revisions?.projectRevision ?? 0,
               revisions?.assetsRevision ?? 0,
+              revisions?.geometryRevision ?? 0,
               cellStrokePreview?.layerId == smartBackgroundLayer.id
                   ? cellStrokePreview?.revision ?? 0
                   : 0,
@@ -816,6 +817,7 @@ class MapGridPainter extends CustomPainter {
                 revisions?.layerRevision(smartLayer.id) ?? 0,
                 revisions?.projectRevision ?? 0,
                 revisions?.assetsRevision ?? 0,
+                revisions?.geometryRevision ?? 0,
                 cellStrokePreview?.layerId == smartLayer.id
                     ? cellStrokePreview?.revision ?? 0
                     : 0,
@@ -895,6 +897,7 @@ class MapGridPainter extends CustomPainter {
                 revisions?.layerRevision(smartLayer.id) ?? 0,
                 revisions?.projectRevision ?? 0,
                 revisions?.assetsRevision ?? 0,
+                revisions?.geometryRevision ?? 0,
                 cellStrokePreview?.layerId == smartLayer.id
                     ? cellStrokePreview?.revision ?? 0
                     : 0,
@@ -936,6 +939,7 @@ class MapGridPainter extends CustomPainter {
               revisions: revisions,
               revisionToken: (
                 revisions?.layerRevision(layer.id) ?? 0,
+                revisions?.geometryRevision ?? 0,
                 layer.id == activeLayerId,
                 cellStrokePreview?.layerId == layer.id
                     ? cellStrokePreview?.revision ?? 0

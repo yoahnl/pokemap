@@ -208,6 +208,9 @@ final class EditorCanvasPictureCacheOwner {
   void dispose() {
     if (_disposed) return;
     clear();
+    _mapRevisionStates.clear();
+    _project = null;
+    _imagesById = null;
     _disposed = true;
   }
 
