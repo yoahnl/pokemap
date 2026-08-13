@@ -362,6 +362,69 @@ void main() {
       expect(recorded.canUndoMap, isFalse);
     });
 
+    test('charges retained layer metadata against the byte budget', () {
+      const coordinator = MapHistoryCoordinator(
+        maxEntries: 20,
+        maxRetainedBytes: 4096,
+        checkpointInterval: 0,
+      );
+      final suffix = List<String>.filled(128, 'x').join();
+      final before = _tileMap(extent: 8);
+      final layer = (before.layers.single as TileLayer).copyWith(
+        palette: List<TileLayerPaletteEntry>.generate(
+          128,
+          (index) => TileLayerPaletteEntry(
+            tilesetId: 'tileset-$index-$suffix',
+            localTileId: index,
+          ),
+        ),
+      );
+      final mapWithPalette = before.copyWith(layers: <MapLayer>[layer]);
+      final cells = List<int>.from(layer.cells)..[17] = 9;
+      final after = mapWithPalette.copyWith(
+        layers: <MapLayer>[layer.copyWith(cells: cells)],
+      );
+
+      final recorded = coordinator.recordMutation(
+        before: mapWithPalette,
+        after: after,
+        selectionBefore: selection,
+        undoStack: const <MapHistoryEntry>[],
+        redoStack: const <MapHistoryEntry>[],
+      );
+
+      expect(recorded.undoStack, isEmpty);
+      expect(recorded.canUndoMap, isFalse);
+    });
+
+    test('charges retained selection identifiers against the byte budget', () {
+      const coordinator = MapHistoryCoordinator(
+        maxEntries: 20,
+        maxRetainedBytes: 4096,
+        checkpointInterval: 0,
+      );
+      final before = _tileMap(extent: 8);
+      final cells = List<int>.from((before.layers.single as TileLayer).cells)
+        ..[17] = 9;
+      final after = before.copyWith(
+        layers: <MapLayer>[
+          (before.layers.single as TileLayer).copyWith(cells: cells),
+        ],
+      );
+      final retainedIdentifier = List<String>.filled(5000, 'x').join();
+
+      final recorded = coordinator.recordMutation(
+        before: before,
+        after: after,
+        selectionBefore: MapHistorySelection(activeLayerId: retainedIdentifier),
+        undoStack: const <MapHistoryEntry>[],
+        redoStack: const <MapHistoryEntry>[],
+      );
+
+      expect(recorded.undoStack, isEmpty);
+      expect(recorded.canUndoMap, isFalse);
+    });
+
     test('keeps the delta when its periodic checkpoint exceeds the budget', () {
       const coordinator = MapHistoryCoordinator(
         maxEntries: 20,

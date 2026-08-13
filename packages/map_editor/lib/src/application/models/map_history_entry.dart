@@ -26,6 +26,13 @@ final class MapHistorySelection {
   final String? selectedEntityId;
   final String? selectedWarpId;
   final String? selectedTriggerId;
+
+  int get retainedBytes =>
+      estimateMapHistoryValueBytes(activeLayerId) +
+      estimateMapHistoryValueBytes(selectedEntityId) +
+      estimateMapHistoryValueBytes(selectedWarpId) +
+      estimateMapHistoryValueBytes(selectedTriggerId) +
+      32;
 }
 
 final class MapHistoryCheckpoint {
@@ -89,7 +96,10 @@ final class MapHistoryDeltaEntry implements MapHistoryEntry {
 
   @override
   late final int retainedBytes =
-      delta.retainedBytes + (checkpoint?.retainedBytes ?? 0) + 64;
+      delta.retainedBytes +
+      targetSelection.retainedBytes +
+      (checkpoint?.retainedBytes ?? 0) +
+      64;
 
   MapData restore(MapData current) {
     try {

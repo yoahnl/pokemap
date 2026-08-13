@@ -445,7 +445,8 @@ final class _TileLayerDelta implements _MapLayerDelta {
   int get changedValueCount => cells.changedValueCount;
 
   @override
-  int get retainedBytes => cells.retainedBytes + 64;
+  int get retainedBytes =>
+      estimateMapHistoryValueBytes(shell) + cells.retainedBytes + 64;
 
   @override
   MapLayer apply(MapLayer current, MapHistoryDirection direction) {
@@ -467,7 +468,8 @@ final class _CollisionLayerDelta implements _MapLayerDelta {
   int get changedValueCount => collisions.changedValueCount;
 
   @override
-  int get retainedBytes => collisions.retainedBytes + 64;
+  int get retainedBytes =>
+      estimateMapHistoryValueBytes(shell) + collisions.retainedBytes + 64;
 
   @override
   MapLayer apply(MapLayer current, MapHistoryDirection direction) {
@@ -491,7 +493,8 @@ final class _SmartTileLayerDelta implements _MapLayerDelta {
   int get changedValueCount => field.changedValueCount;
 
   @override
-  int get retainedBytes => field.retainedBytes + 96;
+  int get retainedBytes =>
+      estimateMapHistoryValueBytes(shell) + field.retainedBytes + 96;
 
   @override
   MapLayer apply(MapLayer current, MapHistoryDirection direction) {
