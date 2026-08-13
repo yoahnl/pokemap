@@ -5,8 +5,8 @@
 | Champ | Valeur |
 |---|---|
 | Type | Roadmap produit transverse |
-| Statut | Proposition initiale à valider |
-| Date de référence | 2 août 2026 |
+| Statut | Roadmap canonique proposée pour exécution par lots ; décisions P0 à figer dans `BETA-CIN-001` |
+| Date de référence | 13 août 2026 |
 | Périmètre | Runtime intégré, playtest, médias, cinématiques, audio, temps, personnalisation et qualité associée |
 | Public | Équipe produit et agents d'implémentation PokeMap |
 
@@ -61,8 +61,10 @@ Interaction avec un point d'observation
 | `map_gameplay` | Décisions de gameplay et de temps mondial ne dépendant ni de Flutter ni de Flame |
 | `map_battle` | Intégrations audio ou temporelles du combat uniquement à travers des contrats explicites |
 | `map_runtime` | Lecture des médias, rendu Flame, audio, caméra, overlays, cycle de vie et exécution du playtest |
+| `map_player_ui` | Renderer Flutter partagé, surfaces de présentation et interactions structurées du Player |
 | `map_authoring` | Actions sémantiques canoniques utilisables par l'éditeur, la CLI et MCP |
 | `map_editor` | Parcours no-code, prévisualisation et composition de l'expérience d'authoring |
+| `map_distribution` | Packaging déterministe, sécurité des médias, hashes, installation et vérification offline |
 | Application de composition | Assemblage de l'éditeur et du runtime sans dépendance de l'éditeur vers les détails internes du runtime |
 
 ### 3.2 Règles permanentes
@@ -203,13 +205,13 @@ Les statuts de cette version correspondent à l'audit préparatoire. Ils ne cons
 
 ---
 
-## 9. Phase 4 — Scènes cinématiques panoramiques et temps réel
+## 9. Phase 4 — Cinématiques de présentation composées
 
-**Objectif :** compléter les cinématiques in-game avec une scène visuelle générique pouvant afficher un décor animé, interactif ou synchronisé.
+**Objectif :** fournir une cinématique de présentation hors monde, indépendante d'une map et d'un `GameState`, capable de composer des calques, du texte, des médias et des transitions. Une composition panoramique est une capacité de cette famille, pas une troisième famille de cinématique.
 
 | ID | Capacité | Statut | Critère de sortie |
 |---|---|---:|---|
-| CIN-RT-01 | Scène panoramique canonique | ⬜ | Une cinématique peut ouvrir une surface visuelle indépendante de la carte principale. |
+| CIN-RT-01 | Présentation canonique | ⬜ | Une cinématique de présentation peut ouvrir une surface visuelle indépendante du monde et de la carte principale. |
 | CIN-RT-02 | Parallaxe multicouche | ⬜ | Plusieurs couches défilent avec des vitesses, directions et modes de répétition configurables. |
 | CIN-RT-03 | Boucle visuelle | ⬜ | Une couche bouclée ne présente pas de rupture visible aux dimensions validées. |
 | CIN-RT-04 | Séquence non bouclée | ⬜ | Une scène peut avoir une durée et une fin déterminées sans répétition. |
@@ -226,13 +228,13 @@ Les statuts de cette version correspondent à l'audit préparatoire. Ils ne cons
 
 **Dépendances :** Phases 1 à 3.
 
-**Sortie de phase :** un événement quelconque peut ouvrir une scène panoramique multicouche, synchronisée avec l'audio, contrôlable et correctement restaurée.
+**Sortie de phase :** une Scene peut lancer une présentation multicouche hors monde, synchronisée avec l'audio, contrôlable, accessible et correctement restaurée.
 
 ---
 
 ## 10. Phase 5 — Cinématiques vidéo
 
-**Objectif :** permettre l'utilisation encadrée de vidéos pré-rendues dans les projets PokeMap.
+**Objectif :** permettre l'utilisation encadrée de vidéos pré-rendues comme capacité d'une cinématique de présentation, sans créer une famille de cinématique ou un lecteur concurrent.
 
 | ID | Capacité | Statut | Critère de sortie |
 |---|---|---:|---|
@@ -257,23 +259,23 @@ Les statuts de cette version correspondent à l'audit préparatoire. Ils ne cons
 
 ## 11. Phase 6 — Évolution du Cinematic Studio
 
-**Objectif :** réunir les cinématiques linéaires, panoramiques et vidéo dans une expérience d'authoring cohérente.
+**Objectif :** réunir deux familles explicites — cinématique de monde et cinématique de présentation — dans une expérience d'authoring cohérente. Panorama, composition multicouche et vidéo sont des capacités du mode présentation.
 
 ### 11.1 Fondations observées
 
 | ID | Capacité | Statut | Décision |
 |---|---|---:|---|
-| CIN-ST-01 | Modèle `CinematicAsset` canonique | ✅ | Le conserver comme base des cinématiques linéaires et l'étendre uniquement par contrats génériques. |
+| CIN-ST-01 | Modèle `CinematicAsset` monde | ✅ | Le conserver pour les cinématiques in-engine ; ne pas l'étendre par des champs nullable de présentation. |
 | CIN-ST-02 | Actions linéaires in-game | ✅ | Conserver caméra, acteur, dialogue, audio, fondus, secousses, effets et marqueurs. |
 | CIN-ST-03 | Prévisualisation runtime | 🟡 | Revalider la parité après stabilisation de la ligne de base. |
-| CIN-ST-04 | Ancien Cutscene Studio | 🟡 | Le maintenir comme pont de compatibilité explicite, sans le promouvoir comme format final. |
+| CIN-ST-04 | Ancien Cutscene Studio | 🔧 | Le retirer intégralement après canary du remplacement : zéro reader, bridge, fallback, conversion automatique, route ou surface legacy. |
 | CIN-ST-05 | V1 linéaire | 🟡 | Elle peut être clôturée fonctionnellement après preuve fraîche, mais ne couvre pas la vision cinématique complète. |
 
 ### 11.2 Extensions à réaliser
 
 | ID | Capacité | Statut | Critère de sortie |
 |---|---|---:|---|
-| CIN-ST-06 | Types de séquence | ⬜ | Le Studio distingue clairement in-game, panoramique et vidéo. |
+| CIN-ST-06 | Familles de cinématique | ⬜ | Le Studio distingue clairement monde et présentation ; panorama et vidéo restent des capacités de présentation. |
 | CIN-ST-07 | Timeline temporelle | ⬜ | Chaque élément possède une position et une durée explicites. |
 | CIN-ST-08 | Pistes simultanées | ⬜ | Caméra, image, acteur, dialogue, audio et effets peuvent se chevaucher. |
 | CIN-ST-09 | Réorganisation visuelle | ⬜ | Les éléments sont déplaçables et redimensionnables avec annulation. |
@@ -285,9 +287,129 @@ Les statuts de cette version correspondent à l'audit préparatoire. Ils ne cons
 | CIN-ST-15 | Modularisation de l'espace de travail | 🔧 | Le grand workspace actuel est séparé par responsabilités sans régression de parcours. |
 | CIN-ST-16 | Diagnostic de parité | ⬜ | Toute divergence entre preview et runtime est visible et couverte par une fixture partagée. |
 
-**Dépendances :** Phases 1, 2, 4 et 5.
+**Dépendances :** contrats CIN-V2, Phase 2 pour les médias, Phase 4 pour la présentation composée et Phase 5 pour la capacité vidéo. La pré-session sans présentation reste livrable sans dépendre des Phases 4 et 5.
 
-**Sortie de phase :** une personne non développeuse peut construire, prévisualiser, diagnostiquer et publier les trois familles de cinématiques depuis un seul Studio cohérent.
+**Sortie de phase :** une personne non développeuse peut construire, prévisualiser, diagnostiquer et publier les deux familles de cinématiques depuis un seul Studio cohérent, et Narrative Studio peut les orchestrer sans devenir un second moteur de timeline.
+
+### 11.3 CIN-V2 — Roadmap exécutable cinématiques de présentation et pré-session
+
+Cette famille est le graphe d'exécution canonique du chantier. Les identifiants historiques `BETA-WLD-008`, `BETA-WLD-009` et `BETA-LCH-001` sont conservés. `Bloqué par` dans le cockpit Notion est la source de vérité ; les champs texte et la relation inverse `Bloque` doivent en être des projections synchronisées.
+
+Règles de découpage :
+
+- un ticket d'implémentation possède un seul owner, un livrable vérifiable et aucun second chantier caché ; il est redécoupé si son delta n'est plus révisable indépendamment ;
+- `BETA-WLD-009`, `BETA-CIN-010`, `BETA-CIN-028` et `BETA-CIN-008` sont des gates d'agrégation, pas des sacs de code supplémentaires ;
+- la voie pré-session sans présentation reste indépendante de la voie média/renderer jusqu'à leur jointure ;
+- la baseline UI rouge ne bloque jamais `map_core`, le draft, le seed ou l'évaluateur headless ;
+- le cutover legacy n'est lancé qu'après un canary du remplacement canonique ;
+- le gate final agrège des reçus déjà verts et n'a pas le droit de corriger un comportement.
+
+#### A. Décisions et baselines
+
+| Ordre | Ticket | Livrable atomique | Bloqué par | Preuve de sortie |
+|---:|---|---|---|---|
+| 0.395 | `BETA-CIN-012` | Caractériser la route Cinematics, le timer pendant et les goldens rouges. | — | Baseline reproductible, dettes attribuées et nouvelles régressions distinguables. |
+| 0.400 | `BETA-CIN-001` | ADR monde/présentation/preSession, frontières de packages et matrice des décisions P0. | — | Toutes les décisions P0 sont tranchées, sans code runtime ou UI. |
+| 0.405 | `BETA-CIN-011` | Co-concevoir l'UX/UI et obtenir la validation humaine explicite. | `CIN-001` | Wireframes, maquettes, prototype, états, a11y et handoff approuvés par Yoahn. |
+
+#### B. Contrats Presentation et médias
+
+| Ordre | Ticket | Livrable atomique | Bloqué par | Preuve de sortie |
+|---:|---|---|---|---|
+| 0.410 | `BETA-CIN-002` | `PresentationCinematicAsset`, codec versionné, timebase absolue, tracks et clips purs. | `CIN-001` | Roundtrip canonique, versions futures rejetées, aucune dépendance Flutter/Flame. |
+| 0.425 | `BETA-CIN-013` | Graphe de références, usages, preflight inter-assets et suppression sûre. | `CIN-002` | Une ressource active ne peut jamais être supprimée ; références absentes diagnostiquées. |
+| 0.430 | `BETA-CIN-014` | Catalogue média Presentation et identités stables. | `CIN-002`, `CIN-013` | Image, audio, vidéo, poster et captions possèdent une identité stable et queryable. |
+| 0.432 | `BETA-CIN-029` | Import transactionnel et probe technique réel. | `CIN-014` | Import atomique ; MIME/magic, dimensions, durée et codec constatés avant commit. |
+| 0.434 | `BETA-CIN-030` | Métadonnées, captions, fallbacks, provenance, licences et budgets authorés. | `CIN-029` | Métadonnées complètes, fallbacks actionnables et budgets par asset/séquence. |
+| 0.436 | `BETA-CIN-048` | Sécurité des médias et corpus hostiles. | `CIN-029`, `CIN-030` | Traversal, symlink, TOCTOU, archive bomb, MIME trompeur et fichiers excessifs rejetés avant écriture hors staging. |
+| 0.440 | `BETA-CIN-015` | Évaluateur déterministe render-neutral. | `CIN-002` | Seek/timebase produisent le même `PresentationFrame` sans map, Flame ou `GameState`. |
+| 0.445 | `BETA-CIN-017` | Renderer Flutter partagé statique dans `map_player_ui`. | `CIN-014`, `CIN-015` | Player et Editor rendent le même frame, sans renderer bis ni cycle de packages. |
+| 0.447 | `BETA-CIN-031` | Compositing, animations et transitions partagés. | `CIN-017` | Calques, z-order, transform, opacity, easing et transitions suivent le frame canonique. |
+| 0.450 | `BETA-CIN-018` | Autorité audio/vidéo unique et lecture intégrée. | `CIN-030`, `CIN-031` | Une seule politique mute/volume/ducking ; jamais deux autorités audio concurrentes. |
+| 0.452 | `BETA-CIN-032` | Lifecycle, skip, captions, reduced motion/flash, cache et cleanup. | `CIN-018` | Pause/reprise/skip/error libèrent exactement une fois tous les handles et respectent l'accessibilité. |
+
+#### C. Scene, interactions et New Game sans dépendance Presentation
+
+| Ordre | Ticket | Livrable atomique | Bloqué par | Preuve de sortie |
+|---:|---|---|---|---|
+| 0.415 | `BETA-CIN-003` | `SceneExecutionProfile.preSession` et capability gate unique. | `CIN-001` | Actions monde refusées au build et au runtime avec le même diagnostic. |
+| 0.420 | `BETA-CIN-004` | Requêtes/résultats structurés awaitables, validation, cancel et stale revision. | `CIN-001` | Aucun caractère ni contrôle UI ne traverse `RuntimeInputEvent`. |
+| 0.435 | `BETA-CIN-005` | `NewGameDraft` immuable/versionné et commandes de mutation pures. | `CIN-003`, `CIN-004` | Cancel/stale/retry n'écrivent aucune session, save ou configuration projet. |
+| 0.438 | `BETA-CIN-007` | Entrypoint optionnel unique et migration contrôlée de `starterSelectionSceneId`. | `CIN-003`, `CIN-005` | Un seul nom canonique ; Scene incompatible bloquée ; absence de flow préservée. |
+| 0.442 | `BETA-CIN-016` | Commit exact-once `NewGameDraft → NewGameSeed`. | `CIN-005` | Aucun commit partiel ou mutation de `ProjectNewGameConfig`. |
+| 0.444 | `BETA-CIN-034` | Surfaces Player choice/text/confirmation/selection. | `CIN-004`, `CIN-011` | IME, clavier, tactile, manette, graphemes, focus et stale request couverts. |
+| 0.446 | `BETA-CIN-035` | Projection `NewGameSeed → GameState` dans `map_gameplay`. | `CIN-016` | Le même seed produit un état déterministe ; starter reste une extension de gameplay. |
+| 0.455 | `BETA-LCH-001` | Phase Player preSession, slot/overwrite, preload, cancel/retry et création session. | `CIN-007`, `CIN-016`, `CIN-034`, `CIN-035` | Flow absent ou textuel fonctionne sans Presentation ; ancienne save intacte avant commit. |
+
+#### D. Scene → Presentation et authoring canonique
+
+| Ordre | Ticket | Livrable atomique | Bloqué par | Preuve de sortie |
+|---:|---|---|---|---|
+| 0.460 | `BETA-WLD-008` | Nœud Scene typé Presentation et exécution awaitable. | `CIN-003`, `CIN-015`, `CIN-032` | `completed/cancelled/failed` exact-once ; non-régression des Cinematics monde canoniques. |
+| 0.462 | `BETA-CIN-006` | Actions et validations headless Scene/preSession. | `CIN-003`, `CIN-004`, `CIN-005` | Template, capabilities, draft bindings et diagnostics passent en API directe/JSONL. |
+| 0.464 | `BETA-CIN-019` | Resources, queries et actions sémantiques Presentation en API directe/JSONL. | `CIN-013`, `CIN-014` | Tracks/clips/layers/media queryables ; dry-run, CAS, receipts, undo et pagination prouvés. |
+| 0.466 | `BETA-CIN-033` | Adaptateur MCP et certification des quatre transports. | `CIN-006`, `CIN-019` | API directe, JSONL/CLI, Editor et MCP = 4/4 E2E avec catalogue live. |
+
+#### E. UI atomique
+
+| Ordre | Ticket | Livrable atomique | Bloqué par | Preuve de sortie |
+|---:|---|---|---|---|
+| 0.470 | `BETA-CIN-020` | Routes typées et adoption de la session documentaire Narrative existante. | `CIN-011`, `CIN-012` | Dirty guard, undo/redo, autosave, conflit et restauration communs. |
+| 0.472 | `BETA-CIN-021` | Library et création mode-aware. | `CIN-002`, `CIN-019`, `CIN-020` | Mode → template → titre, badges, filtres, duplication et réouverture. |
+| 0.474 | `BETA-CIN-022` | Extraire/stabiliser le Builder monde. | `CIN-011`, `CIN-012`, `CIN-020` | Aucune régression map/acteurs/caméra et responsabilités sorties du workspace géant. |
+| 0.476 | `BETA-CIN-023` | Canvas Presentation et layer stack. | `CIN-017`, `CIN-019`, `CIN-020` | Ratio, safe areas, fonds, calques, médias et z-order sans contrôles monde parasites. |
+| 0.478 | `BETA-CIN-024` | Timeline et transports partagés. | `CIN-002`, `CIN-022`, `CIN-023` | Move/resize/scrub/zoom, raccourcis et commit unique après drag. |
+| 0.480 | `BETA-CIN-025` | Palette/picker preSession dans Scene Builder. | `CIN-006`, `CIN-021`, `WLD-008` | Capabilities visibles et incompatibilités expliquées, sans IDs manuels. |
+| 0.482 | `BETA-CIN-039` | Transaction atomique create-and-link. | `CIN-020`, `CIN-021`, `CIN-025` | Créer/lier/revenir forme un seul undo et ne produit aucun asset orphelin. |
+| 0.484 | `BETA-CIN-026` | Diagnostics et récupération UI. | `CIN-013`, `CIN-021` à `CIN-025`, `CIN-032` | Missing/corrupt/unsupported media, retry/fix/open-source et live feedback sans catch silencieux. |
+| 0.486 | `BETA-CIN-040` | Design system, a11y, l10n et responsive. | `CIN-026` | Aucun contrôle ad hoc ; clavier/focus/semantics ; FR/EN ; 1280–1920 et text scale 100–150 %. |
+| 0.488 | `BETA-CIN-041` | Certification visuelle et parité preview/runtime. | `CIN-024`, `CIN-039`, `CIN-040` | Goldens frais et même asset/même timestamp dans Editor et vrai runtime. |
+| 0.490 | `BETA-WLD-009` | Gate d'intégration du nouveau Cinematic Studio. | `CIN-021` à `CIN-026`, `CIN-039` à `CIN-041` | Les deux modes et le flow preSession passent le contrat validé de `CIN-011`. |
+
+#### F. Distribution, canary, cutover et certification
+
+| Ordre | Ticket | Livrable atomique | Bloqué par | Preuve de sortie |
+|---:|---|---|---|---|
+| 0.492 | `BETA-CIN-027` | Packaging déterministe et réinstallation offline. | `CIN-013`, `CIN-030`, `CIN-032`, `CIN-048` | Layout, hashes, captions, fallbacks, licences et budgets vérifiés après réinstallation. |
+| 0.494 | `BETA-CIN-037` | Observabilité structurée et respect de la vie privée. | `CIN-032`, `LCH-001`, `WLD-008` | Un terminal event/runId ; aucun chemin absolu, sous-titre ou donnée joueur dans les logs. |
+| 0.496 | `BETA-CIN-038` | Performance et mémoire mesurées. | `CIN-037`, `WLD-009` | 50 cycles, un décodeur max, zéro handle final, RSS ≤10 %, skip p95 <100 ms, première frame p95 <1 s. |
+| 0.498 | `BETA-CIN-042` | Canary E2E du remplacement avant cutover. | `CIN-027`, `CIN-033`, `LCH-001`, `WLD-008`, `WLD-009` | Authoring → package → install → preSession → map → save/reload vert avant suppression legacy. |
+| 0.500 | `BETA-CIN-043` | Retrait legacy core/runtime et réécriture des fixtures retenues. | `CIN-042` | Zéro reader/bridge/fallback runtime et rejet fail-closed avant mutation. |
+| 0.502 | `BETA-CIN-044` | Retrait legacy Editor/authoring/CLI/MCP. | `CIN-042`, `CIN-043` | Zéro route, widget, schema, action, query ou transport legacy. |
+| 0.504 | `BETA-CIN-010` | Gate de cutover legacy intégral. | `CIN-043`, `CIN-044` | `rg` production sans marqueur legacy, suites canoniques vertes et aucun dual-reader. |
+| 0.506 | `BETA-CIN-036` | Compatibilité project/package/save et rollback. | `CIN-010`, `CIN-027`, `LCH-001` | Migration canonique, future version rejetée, crash ancien/nouveau atomique, ancienne save inchangée avant commit. |
+| 0.508 | `BETA-CIN-045` | Build macOS courant et politique SPM-only. | `CIN-010`, `CIN-027`, `WLD-009` | Editor/Player/Hub release buildés au SHA courant, zéro Pods. |
+| 0.510 | `BETA-CIN-046` | Builds et E2E iOS/Android. | `CIN-010`, `CIN-027`, `LCH-001`, `WLD-009` | Bundles release et parcours device réels sur les deux plateformes. |
+| 0.512 | `BETA-CIN-047` | Décision et preuve Web/Windows/Linux. | `CIN-010`, `CIN-027` | Backend certifié ou fallback poster/hors scope déclaré, testé et non trompeur. |
+| 0.514 | `BETA-CIN-028` | Gate builds et plateformes. | `CIN-045`, `CIN-046`, `CIN-047` | Chaque plateforme a son verdict et son receipt ; aucune moyenne ne masque un rouge. |
+| 0.516 | `BETA-CIN-008` | Certification finale neutre de bout en bout. | `CIN-010`, `CIN-028`, `CIN-033`, `CIN-036`, `CIN-038`, `CIN-041`, `LCH-001` | Matrice complète avec/sans preSession/Presentation, input, lifecycle, crash, package, save/reload et legacy rejeté. |
+| 0.700 | `BETA-CIN-009` | Généraliser aux interludes, endings et transitions. | `CIN-008` | Deux fixtures hors New Game prouvent l'absence de spécialisation identité. |
+
+Dans Notion, les relations `Bloqué par` de `BETA-CIN-008` doivent contenir uniquement `CIN-010`, `CIN-028`, `CIN-033`, `CIN-036`, `CIN-038`, `CIN-041` et `BETA-LCH-001`.
+
+Projection contrôlée le 13 août 2026 : **51 tickets, 122 dépendances, 2 racines, 0 cycle et 0 violation d'ordre**. Les 51 pages Notion ont été relues individuellement après écriture ; parents, relations inverses, ordre et readiness correspondent tous à ce graphe.
+
+### 11.4 Chemin critique et parallélisation
+
+```mermaid
+flowchart LR
+    ADR["CIN-001 ADR"] --> PM["Presentation model"]
+    ADR --> PS["preSession contracts"]
+    PM --> MEDIA["Media + security"]
+    PM --> EVAL["Evaluator + renderer"]
+    PS --> DRAFT["Draft + seed + Player phase"]
+    DRAFT --> TEXTCANARY["preSession without Presentation"]
+    MEDIA --> PRESENT["Presentation playback"]
+    EVAL --> PRESENT
+    PRESENT --> JOIN["Scene → Presentation"]
+    TEXTCANARY --> JOIN
+    JOIN --> AUTHORING["Authoring 4/4 + UI"]
+    AUTHORING --> PACKAGE["Package + canary"]
+    PACKAGE --> CUTOVER["Strict legacy cutover"]
+    CUTOVER --> CERT["Builds + final E2E"]
+```
+
+`CIN-001` et `CIN-012` sont les deux racines immédiatement parallélisables. Après `CIN-001`, `CIN-002`, `CIN-003`, `CIN-004` et `CIN-011` peuvent avancer en parallèle tandis que `CIN-012` poursuit la caractérisation UI. La pré-session textuelle doit atteindre son canary sans attendre la vidéo, le compositing ou le Studio Presentation. `CIN-010` ne peut jamais avancer en parallèle de writers/readers canoniques encore instables.
 
 ---
 
@@ -405,9 +527,9 @@ Ces lots accompagnent les phases fonctionnelles ; ils ne constituent pas une pha
 | 1 | Playtest de carte | PT-01 à PT-10 | Boucle éditer → tester → diagnostiquer |
 | 2 | Médias | MED-01 à MED-12 | Bibliothèque commune importable et exportable |
 | 3 | Audio | AUD-01 à AUD-26 | Vertical slice audio générique |
-| 4 | Cinématiques temps réel | CIN-RT-01 à CIN-RT-14 | Scène panoramique multicouche réutilisable |
-| 5 | Vidéo | CIN-VID-01 à CIN-VID-12 | Lecture vidéo robuste et accessible |
-| 6 | Studio et jeu complet | CIN-ST-01 à CIN-ST-16, PT-11 à PT-13 | Authoring cinématique unifié et playtest complet |
+| 4 | Présentation composée | CIN-RT-01 à CIN-RT-14 | Présentation hors monde multicouche réutilisable |
+| 5 | Capacité vidéo | CIN-VID-01 à CIN-VID-12 | Lecture vidéo robuste et accessible dans Presentation |
+| 6 | Studio et jeu complet | CIN-ST-01 à CIN-ST-16, CIN-V2, PT-11 à PT-13 | Authoring des deux familles et playtest complet |
 | 7 | Temps | TIME-01 à TIME-16 | Cycle temporel simulable et persistant |
 | 8 | Personnalisation | PERS-01 à PERS-14 | Parcours de personnalisation compréhensible |
 | 9 | Calendrier | CAL-01 à CAL-08 | Jours et récurrences optionnels |
@@ -420,10 +542,10 @@ flowchart LR
     BASE["Base stable"] --> PT["Playtest intégré"]
     PT --> MED["Bibliothèque média"]
     MED --> AUD["Moteur audio"]
-    PT --> CRT["Cinématiques temps réel"]
+    PT --> CRT["Présentation composée"]
     MED --> CRT
     AUD --> CRT
-    MED --> VID["Cinématiques vidéo"]
+    MED --> VID["Capacité vidéo"]
     AUD --> VID
     CRT --> CST["Cinematic Studio étendu"]
     VID --> CST
@@ -470,37 +592,16 @@ Un lot ne peut être proposé comme terminé que si les preuves fraîches compre
 
 ---
 
-## 18. Prochain lot recommandé
+## 18. Prochains lots recommandés
 
-### PT-FOUNDATION-01 — Playtest de la carte courante
+### BETA-CIN-001 — Figer les frontières et les décisions P0
 
-**Objectif :** ouvrir la carte courante dans le véritable runtime depuis PokeMap en utilisant un snapshot temporaire, un point de départ choisi et une sauvegarde isolée.
+**Objectif :** produire l'ADR et les matrices qui rendent les deux voies CIN-V2 implémentables sans couplage accidentel entre monde, Presentation, Scene, New Game et Player.
 
-**Périmètre minimal :**
+**Sortie obligatoire :** schéma/version, timebase, capabilities, packages, audio/vidéo, preload, draft/crash, entrypoint, migration, plateformes, cutover legacy et gates de preuve sont tous tranchés. Ce ticket ne crée encore ni modèle Dart, ni runtime, ni UI.
 
-- lancer et arrêter le runtime embarqué ;
-- transmettre un snapshot non enregistré ;
-- sélectionner un spawn ou une position de test valide ;
-- créer une sauvegarde éphémère distincte ;
-- recommencer la session ;
-- restaurer proprement l'éditeur après la sortie ;
-- afficher les erreurs de lancement de manière actionnable.
+### BETA-CIN-012 — Caractériser la baseline UI en parallèle
 
-**Non-objectifs du premier lot :**
+**Objectif :** rendre reproductibles le timer pendant et les goldens Cinematics déjà rouges afin que les lots UI futurs ne puissent pas masquer une régression derrière la dette existante.
 
-- lancer le jeu complet depuis l'écran-titre ;
-- rechargement à chaud universel ;
-- éditeur de profils de progression avancés ;
-- développement audio, vidéo, cinématique ou temporel ;
-- création de contenu pour un projet particulier.
-
-**Critère de succès utilisateur :**
-
-```text
-Je modifie une carte dans PokeMap,
-je choisis où commencer,
-j'appuie sur Tester,
-je joue immédiatement dans le vrai runtime,
-puis je reviens à l'éditeur sans altérer mes sauvegardes de jeu.
-```
-
+`BETA-CIN-012` ne bloque que les lots UI et visuels. Après `BETA-CIN-001`, les contrats `CIN-002`, `CIN-003` et `CIN-004` peuvent démarrer en parallèle, tandis que `CIN-011` poursuit la co-conception validée avec Yoahn.
