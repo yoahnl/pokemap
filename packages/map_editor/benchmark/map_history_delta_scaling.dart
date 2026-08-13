@@ -74,9 +74,15 @@ Future<void> main(List<String> arguments) async {
     final tileCells = List<int>.from(
       (tileBefore.layers.single as TileLayer).cells,
     )..[_tileCellsIndex(tileExtent)] = 1;
+    final tileLayer = tileBefore.layers.single as TileLayer;
     final tileAfter = tileBefore.copyWith(
       layers: <MapLayer>[
-        (tileBefore.layers.single as TileLayer).copyWith(cells: tileCells),
+        tileLayer.copyWith(
+          palette: const <TileLayerPaletteEntry>[
+            TileLayerPaletteEntry(tilesetId: 'tileset', localTileId: 7),
+          ],
+          cells: tileCells,
+        ),
       ],
     );
     final tileDelta = MapHistoryDelta.between(tileBefore, tileAfter);

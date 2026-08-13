@@ -37,9 +37,14 @@ void main() {
     expect(receipt['operations'], 100);
     expect(receipt['tileExtent'], 128);
     expect(receipt['changedValues'], 1);
+    expect(receipt['tileChangedValues'], 2);
     expect(
       receipt['deltaRetainedBytes']! as int,
       lessThan(receipt['legacySnapshotRetainedBytes']! as int),
+    );
+    expect(
+      receipt['tileDeltaRetainedBytes']! as int,
+      lessThan(receipt['tileLegacySnapshotRetainedBytes']! as int),
     );
     expect(receipt['largeHistoryOperationP95BudgetUs'], 50000);
     expect(

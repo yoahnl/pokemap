@@ -403,106 +403,173 @@ abstract interface class _MapLayerDelta {
     if (before is TileLayer && after is TileLayer) {
       final beforeShell = before.copyWith(cells: const <int>[]);
       final afterShell = after.copyWith(cells: const <int>[]);
-      if (beforeShell == afterShell) {
-        return _TileLayerDelta(
-          shell: beforeShell,
-          cells: _listDelta(before.cells, after.cells)!,
-        );
-      }
+      return _TileLayerDelta(
+        beforeShell: beforeShell,
+        afterShell: beforeShell == afterShell ? null : afterShell,
+        cells: _listDelta(before.cells, after.cells),
+      );
     }
     if (before is CollisionLayer && after is CollisionLayer) {
       final beforeShell = before.copyWith(collisions: const <bool>[]);
       final afterShell = after.copyWith(collisions: const <bool>[]);
-      if (beforeShell == afterShell) {
-        return _CollisionLayerDelta(
-          shell: beforeShell,
-          collisions: _listDelta(before.collisions, after.collisions)!,
-        );
-      }
+      return _CollisionLayerDelta(
+        beforeShell: beforeShell,
+        afterShell: beforeShell == afterShell ? null : afterShell,
+        collisions: _listDelta(before.collisions, after.collisions),
+      );
     }
     if (before is SmartTileLayer && after is SmartTileLayer) {
-      final field = _SmartTileFieldDelta.between(before.field, after.field);
-      if (field != null &&
-          before.copyWith(field: _emptySmartTileField(before.field)) ==
-              after.copyWith(field: _emptySmartTileField(after.field))) {
-        return _SmartTileLayerDelta(
-          shell: before.copyWith(field: _emptySmartTileField(before.field)),
-          field: field,
-        );
-      }
+      final beforeShell = _smartTileLayerShell(before);
+      final afterShell = _smartTileLayerShell(after);
+      final sparseField = _SmartTileFieldDelta.between(
+        before.field,
+        after.field,
+      );
+      return _SmartTileLayerDelta(
+        beforeShell: beforeShell,
+        afterShell: beforeShell == afterShell ? null : afterShell,
+        sparseField: sparseField,
+        replacementField: sparseField == null && before.field != after.field
+            ? _ValueDelta<SmartTileField>(before.field, after.field)
+            : null,
+      );
     }
     return _ReplacementLayerDelta(before, after);
   }
 }
 
 final class _TileLayerDelta implements _MapLayerDelta {
-  const _TileLayerDelta({required this.shell, required this.cells});
+  const _TileLayerDelta({
+    required this.beforeShell,
+    required this.afterShell,
+    required this.cells,
+  });
 
-  final TileLayer shell;
-  final _ReversibleListDelta<int> cells;
+  final TileLayer beforeShell;
+  final TileLayer? afterShell;
+  final _ReversibleListDelta<int>? cells;
 
   @override
-  int get changedValueCount => cells.changedValueCount;
+  int get changedValueCount =>
+      (afterShell == null ? 0 : 1) + (cells?.changedValueCount ?? 0);
 
   @override
   int get retainedBytes =>
-      estimateMapHistoryValueBytes(shell) + cells.retainedBytes + 64;
+      estimateMapHistoryValueBytes(beforeShell) +
+      (afterShell == null ? 0 : estimateMapHistoryValueBytes(afterShell)) +
+      (cells?.retainedBytes ?? 0) +
+      64;
 
   @override
   MapLayer apply(MapLayer current, MapHistoryDirection direction) {
-    if (current is! TileLayer ||
-        current.copyWith(cells: const <int>[]) != shell) {
+    if (current is! TileLayer) {
       throw const MapHistoryDivergence('map_history_tile_layer_diverged');
     }
-    return current.copyWith(cells: cells.apply(current.cells, direction));
+    final expectedShell = direction == MapHistoryDirection.backward
+        ? afterShell ?? beforeShell
+        : beforeShell;
+    if (current.copyWith(cells: const <int>[]) != expectedShell) {
+      throw const MapHistoryDivergence('map_history_tile_layer_diverged');
+    }
+    final targetShell = direction == MapHistoryDirection.backward
+        ? beforeShell
+        : afterShell ?? beforeShell;
+    return targetShell.copyWith(
+      cells: cells?.apply(current.cells, direction) ?? current.cells,
+    );
   }
 }
 
 final class _CollisionLayerDelta implements _MapLayerDelta {
-  const _CollisionLayerDelta({required this.shell, required this.collisions});
+  const _CollisionLayerDelta({
+    required this.beforeShell,
+    required this.afterShell,
+    required this.collisions,
+  });
 
-  final CollisionLayer shell;
-  final _ReversibleListDelta<bool> collisions;
+  final CollisionLayer beforeShell;
+  final CollisionLayer? afterShell;
+  final _ReversibleListDelta<bool>? collisions;
 
   @override
-  int get changedValueCount => collisions.changedValueCount;
+  int get changedValueCount =>
+      (afterShell == null ? 0 : 1) + (collisions?.changedValueCount ?? 0);
 
   @override
   int get retainedBytes =>
-      estimateMapHistoryValueBytes(shell) + collisions.retainedBytes + 64;
+      estimateMapHistoryValueBytes(beforeShell) +
+      (afterShell == null ? 0 : estimateMapHistoryValueBytes(afterShell)) +
+      (collisions?.retainedBytes ?? 0) +
+      64;
 
   @override
   MapLayer apply(MapLayer current, MapHistoryDirection direction) {
-    if (current is! CollisionLayer ||
-        current.copyWith(collisions: const <bool>[]) != shell) {
+    if (current is! CollisionLayer) {
       throw const MapHistoryDivergence('map_history_collision_layer_diverged');
     }
-    return current.copyWith(
-      collisions: collisions.apply(current.collisions, direction),
+    final expectedShell = direction == MapHistoryDirection.backward
+        ? afterShell ?? beforeShell
+        : beforeShell;
+    if (current.copyWith(collisions: const <bool>[]) != expectedShell) {
+      throw const MapHistoryDivergence('map_history_collision_layer_diverged');
+    }
+    final targetShell = direction == MapHistoryDirection.backward
+        ? beforeShell
+        : afterShell ?? beforeShell;
+    return targetShell.copyWith(
+      collisions:
+          collisions?.apply(current.collisions, direction) ??
+          current.collisions,
     );
   }
 }
 
 final class _SmartTileLayerDelta implements _MapLayerDelta {
-  const _SmartTileLayerDelta({required this.shell, required this.field});
+  const _SmartTileLayerDelta({
+    required this.beforeShell,
+    required this.afterShell,
+    required this.sparseField,
+    required this.replacementField,
+  });
 
-  final SmartTileLayer shell;
-  final _SmartTileFieldDelta field;
+  final SmartTileLayer beforeShell;
+  final SmartTileLayer? afterShell;
+  final _SmartTileFieldDelta? sparseField;
+  final _ValueDelta<SmartTileField>? replacementField;
 
   @override
-  int get changedValueCount => field.changedValueCount;
+  int get changedValueCount =>
+      (afterShell == null ? 0 : 1) +
+      (sparseField?.changedValueCount ?? 0) +
+      (replacementField == null ? 0 : 1);
 
   @override
   int get retainedBytes =>
-      estimateMapHistoryValueBytes(shell) + field.retainedBytes + 96;
+      estimateMapHistoryValueBytes(beforeShell) +
+      (afterShell == null ? 0 : estimateMapHistoryValueBytes(afterShell)) +
+      (sparseField?.retainedBytes ?? 0) +
+      (replacementField?.retainedBytes ?? 0) +
+      96;
 
   @override
   MapLayer apply(MapLayer current, MapHistoryDirection direction) {
-    if (current is! SmartTileLayer ||
-        current.copyWith(field: _emptySmartTileField(current.field)) != shell) {
+    if (current is! SmartTileLayer) {
       throw const MapHistoryDivergence('map_history_smart_tile_layer_diverged');
     }
-    return current.copyWith(field: field.apply(current.field, direction));
+    final expectedShell = direction == MapHistoryDirection.backward
+        ? afterShell ?? beforeShell
+        : beforeShell;
+    if (_smartTileLayerShell(current) != expectedShell) {
+      throw const MapHistoryDivergence('map_history_smart_tile_layer_diverged');
+    }
+    final targetShell = direction == MapHistoryDirection.backward
+        ? beforeShell
+        : afterShell ?? beforeShell;
+    final targetField =
+        sparseField?.apply(current.field, direction) ??
+        replacementField?.apply(current.field, direction) ??
+        current.field;
+    return targetShell.copyWith(field: targetField);
   }
 }
 
@@ -687,26 +754,8 @@ bool _sameLayerIdentity(List<MapLayer> before, List<MapLayer> after) {
   return true;
 }
 
-SmartTileField _emptySmartTileField(SmartTileField field) {
-  return switch (field) {
-    SmartTileCellField value => value.copyWith(semanticCells: const <int>[]),
-    SmartTileCornerField value => value.copyWith(
-      semanticCells: const <int>[],
-      corners: const <int>[],
-    ),
-    SmartTileEdgeField value => value.copyWith(
-      semanticCells: const <int>[],
-      horizontalEdges: const <int>[],
-      verticalEdges: const <int>[],
-    ),
-    SmartTileMixedField value => value.copyWith(
-      semanticCells: const <int>[],
-      horizontalEdges: const <int>[],
-      verticalEdges: const <int>[],
-      corners: const <int>[],
-    ),
-  };
-}
+SmartTileLayer _smartTileLayerShell(SmartTileLayer layer) =>
+    layer.copyWith(field: const SmartTileField.cell(semanticCells: <int>[]));
 
 List<int> _smartTileSemanticCells(SmartTileField field) => switch (field) {
   SmartTileCellField value => value.semanticCells,

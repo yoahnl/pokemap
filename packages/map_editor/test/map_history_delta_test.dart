@@ -30,6 +30,68 @@ void main() {
       );
     });
 
+    test('keeps simultaneous tile palette and cell edits sparse', () {
+      final before = _tileMap(extent: 1024);
+      final layer = before.layers.single as TileLayer;
+      final cells = List<int>.from(layer.cells)..[812345] = 1;
+      final after = before.copyWith(
+        layers: <MapLayer>[
+          layer.copyWith(
+            palette: const <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(tilesetId: 'tileset', localTileId: 7),
+            ],
+            cells: cells,
+          ),
+        ],
+      );
+
+      final delta = MapHistoryDelta.between(before, after);
+
+      expect(delta.changedValueCount, 2);
+      expect(delta.retainedBytes, lessThan(4096));
+      expect(delta.applyBackward(after), before);
+      expect(delta.applyForward(before), after);
+    });
+
+    test('keeps simultaneous Smart Tile palette and field edits sparse', () {
+      const extent = 256;
+      final before = MapData(
+        id: 'map',
+        name: 'Map',
+        size: const GridSize(width: extent, height: extent),
+        layers: <MapLayer>[
+          SmartTileLayer(
+            id: 'smart',
+            name: 'Smart',
+            presetId: 'preset',
+            usage: SmartTileUsage.terrain,
+            field: SmartTileField.cell(
+              semanticCells: List<int>.filled(extent * extent, 0),
+            ),
+          ),
+        ],
+      );
+      final layer = before.layers.single as SmartTileLayer;
+      final semanticCells = List<int>.from(
+        (layer.field as SmartTileCellField).semanticCells,
+      )..[12345] = 1;
+      final after = before.copyWith(
+        layers: <MapLayer>[
+          layer.copyWith(
+            materialPalette: const <String>['', 'grass'],
+            field: SmartTileField.cell(semanticCells: semanticCells),
+          ),
+        ],
+      );
+
+      final delta = MapHistoryDelta.between(before, after);
+
+      expect(delta.changedValueCount, 2);
+      expect(delta.retainedBytes, lessThan(4096));
+      expect(delta.applyBackward(after), before);
+      expect(delta.applyForward(before), after);
+    });
+
     test('patches collision and every Smart Tile lattice reversibly', () {
       const before = MapData(
         id: 'map',
