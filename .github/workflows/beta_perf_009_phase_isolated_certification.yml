@@ -49,6 +49,7 @@ jobs:
           cp integration_test/editor_project_journey_test.dart \
             build/performance/editor_project_journey_phase_isolated.dart
           python3 - <<'PY'
+          import re
           from pathlib import Path
 
           path = Path('build/performance/editor_project_journey_phase_isolated.dart')
@@ -67,19 +68,17 @@ jobs:
               raise SystemExit('canonical collision phase anchor not found')
           source = source.replace(phase_anchor, phase_replacement, 1)
 
-          count_anchor = """          expect(
-            (collisionSpans[EditorPerformanceSpanName.mutationLocal]!
-                as Map<String, Object?>)['count'],
-            strokeCount,
-          );"""
-          count_replacement = """          expect(
-            (collisionSpans[EditorPerformanceSpanName.mutationLocal]!
-                as Map<String, Object?>)['count'],
-            strokeCount + 1,
-          );"""
-          if count_anchor not in source:
+          count_pattern = re.compile(
+              r"(collisionSpans\[EditorPerformanceSpanName\.mutationLocal\]!\s*"
+              r"as Map<String, Object\?>\)\['count'\],\s*)strokeCount,"
+          )
+          source, replacement_count = count_pattern.subn(
+              r"\1strokeCount + 1,",
+              source,
+              count=1,
+          )
+          if replacement_count != 1:
               raise SystemExit('canonical stroke instrumentation anchor not found')
-          source = source.replace(count_anchor, count_replacement, 1)
           path.write_text(source)
           PY
           grep -n "drainPlacedElementPublications" \
