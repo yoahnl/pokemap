@@ -13,26 +13,7 @@ on:
         required: true
         default: 30
         type: number
-  pull_request:
-    paths:
-      - "apps/pokemap_hub/**"
-      - "packages/map_core/**"
-      - "packages/map_authoring/**"
-      - "packages/map_battle/**"
-      - "packages/map_distribution/**"
-      - "packages/map_editor/**"
-      - "packages/map_gameplay/**"
-      - "packages/map_player_ui/**"
-      - "packages/map_runtime/**"
-      - "examples/playable_runtime_host/**"
-      - "documentation/reports/performance/**"
-      - "tools/performance/**"
-      - "pokemap_roadmap_mecaniques_fangame.md"
-      - "documentation/reports/gameplay/**"
-      - "tools/pokemap_product_certification/**"
-      - ".github/workflows/pokemap_hub_product_certification.yml"
   push:
-    branches: [main]
     tags: ["pokemap-hub-v*"]
 
 permissions:

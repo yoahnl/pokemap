@@ -19,18 +19,7 @@ on:
         description: Type RELEASE in release mode
         required: false
         type: string
-  pull_request:
-    paths:
-      - "packages/map_core/**"
-      - "packages/map_distribution/**"
-      - "packages/map_editor/**"
-      - "packages/map_gameplay/**"
-      - "packages/map_runtime/**"
-      - "apps/pokemap_hub/tool/release/notarize_macos_release.sh"
-      - "apps/pokemap_hub/tool/release/sign_macos_app.sh"
-      - ".github/workflows/pokemap_desktop_release.yml"
   push:
-    branches: [main]
     tags: ["pokemap-v*"]
 
 permissions:

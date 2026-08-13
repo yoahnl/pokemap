@@ -1,7 +1,6 @@
 name: BETA-PERF-009 final certification
 
 on:
-  pull_request:
   workflow_dispatch:
 
 permissions:

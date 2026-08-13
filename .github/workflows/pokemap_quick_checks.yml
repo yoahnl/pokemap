@@ -1,0 +1,79 @@
+name: PokeMap quick checks
+
+on:
+  pull_request:
+    paths:
+      - "apps/pokemap_hub/**"
+      - "packages/**"
+      - "examples/playable_runtime_host/**"
+      - "tools/pokemap_product_certification/**"
+      - ".github/workflows/**"
+  push:
+    branches: [main]
+    paths:
+      - "apps/pokemap_hub/**"
+      - "packages/**"
+      - "examples/playable_runtime_host/**"
+      - "tools/pokemap_product_certification/**"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pokemap-quick-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.46.0-0.3.pre
+  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+
+jobs:
+  repository-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Hub workflow contracts
+        working-directory: apps/pokemap_hub
+        run: |
+          flutter pub get
+          flutter test --no-pub --timeout 2m \
+            test/release/ci_cost_workflow_test.dart \
+            test/release/desktop_platform_release_gate_test.dart \
+            test/release/intro_codec_fixture_test.dart \
+            test/release/mobile_platform_release_gate_test.dart \
+            test/release/performance_observation_workflow_test.dart
+          flutter analyze --no-pub lib test/release
+      - name: Core roadmap contracts
+        working-directory: packages/map_core
+        run: |
+          dart pub get
+          dart test \
+            test/gameplay_roadmap_dashboard_test.dart \
+            test/gameplay_roadmap_dashboard_cli_test.dart \
+            test/gameplay_roadmap_repository_consistency_test.dart
+          dart analyze \
+            lib/src/tooling/gameplay_roadmap_dashboard.dart \
+            tool/generate_gameplay_roadmap_dashboard.dart \
+            test/gameplay_roadmap_dashboard_test.dart \
+            test/gameplay_roadmap_dashboard_cli_test.dart \
+            test/gameplay_roadmap_repository_consistency_test.dart
+      - name: Editor smoke and static checks
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter test --no-pub --timeout 2m \
+            test/release/github_distribution_workflow_test.dart \
+            test/tileset_grid_metrics_test.dart \
+            test/map_editing_controller_test.dart
+          flutter analyze --no-pub lib test/release

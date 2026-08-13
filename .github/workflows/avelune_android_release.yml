@@ -19,18 +19,7 @@ on:
         description: Type RELEASE in release mode
         required: false
         type: string
-  pull_request:
-    paths:
-      - "apps/pokemap_hub/**"
-      - "packages/map_core/**"
-      - "packages/map_distribution/**"
-      - "packages/map_editor/**"
-      - "packages/map_gameplay/**"
-      - "packages/map_player_ui/**"
-      - "packages/map_runtime/**"
-      - ".github/workflows/avelune_android_release.yml"
   push:
-    branches: [main]
     tags: ["avelune-v*"]
 
 permissions:
