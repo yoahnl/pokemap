@@ -1,0 +1,254 @@
+name: BETA PERF stop-ship certification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.46.0-0.3.pre
+  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+
+jobs:
+  perf-000-001:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Certify BETA-PERF-000 and BETA-PERF-001
+        run: |
+          set -euo pipefail
+          git checkout --detach cc5a72ab12802d845260beeca4478aac2fe3f540
+          test "$(git rev-parse HEAD)" = "cc5a72ab12802d845260beeca4478aac2fe3f540"
+          mkdir -p "$RUNNER_TEMP/evidence/perf-000-001"
+          printf 'tickets=BETA-PERF-000,BETA-PERF-001\naudited_sha=%s\nrunner_arch=%s\n' "$(git rev-parse HEAD)" "$(uname -m)" > "$RUNNER_TEMP/evidence/perf-000-001/metadata.txt"
+          cd packages/map_authoring
+          dart pub get
+          dart test --reporter expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-000-001/map_authoring_test.log"
+          dart analyze 2>&1 | tee "$RUNNER_TEMP/evidence/perf-000-001/map_authoring_analyze.log"
+          cd ../map_editor
+          flutter pub get
+          flutter test --no-pub --reporter expanded test/application/services/editor_performance_telemetry_test.dart test/performance_driver_contract_test.dart test/integration_support/vm_memory_probe_test.dart test/map_canvas_pointer_navigation_test.dart test/collision_generation/placed_element_auto_collision_copy_test.dart test/element_collision_editor_sheet_fine_mask_test.dart test/smart_tiles_studio/smart_tile_canonical_editor_flow_test.dart 2>&1 | tee "$RUNNER_TEMP/evidence/perf-000-001/map_editor_targeted_test.log"
+          flutter drive --profile -d macos --driver=test_driver/fine_mask_performance_driver.dart --target=integration_test/editor_fine_mask_journey_test.dart --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_fine_mask_journey.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-000-001/fine_mask_profile.log"
+          flutter drive --profile -d macos --driver=test_driver/performance_driver.dart --target=integration_test/editor_project_journey_test.dart --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-000-001/project_profile.log"
+          flutter drive --profile -d macos --driver=test_driver/performance_driver.dart --target=integration_test/editor_canvas_projection_journey_test.dart --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_canvas_projection_journey.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-000-001/canvas_profile.log"
+          cp build/performance/editor_fine_mask_journey.json "$RUNNER_TEMP/evidence/perf-000-001/"
+          cp build/performance/editor_project_journey.json "$RUNNER_TEMP/evidence/perf-000-001/"
+          cp build/performance/editor_canvas_projection_journey.json "$RUNNER_TEMP/evidence/perf-000-001/"
+      - name: Upload BETA-PERF-000 and BETA-PERF-001 evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: beta-perf-000-001-cc5a72ab12802d845260beeca4478aac2fe3f540
+          if-no-files-found: error
+          retention-days: 30
+          path: ${{ runner.temp }}/evidence/perf-000-001
+
+  perf-002-005:
+    runs-on: macos-15
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Certify BETA-PERF-002
+        run: |
+          set -euo pipefail
+          git checkout --force --detach 9e2fc923f5f5e1c149d7a79cf682aca7a9ca13cb
+          git clean -fdx
+          mkdir -p "$RUNNER_TEMP/evidence/perf-002"
+          printf 'ticket=BETA-PERF-002\naudited_sha=%s\n' "$(git rev-parse HEAD)" > "$RUNNER_TEMP/evidence/perf-002/metadata.txt"
+          cd packages/map_editor
+          flutter pub get
+          flutter test --no-pub test/editor_notifier_placed_element_placement_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-002/placement_test.log"
+          flutter test --no-pub test/application/services/placed_element_editing_service_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-002/service_test.log"
+          flutter test --no-pub test/features/editor/state/editor_notifier_map_activation_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-002/activation_test.log"
+          flutter analyze --no-pub 2>&1 | tee "$RUNNER_TEMP/evidence/perf-002/analyze.log"
+          cd ../map_authoring
+          dart pub get
+          dart test test/domains/maps/spatial_object_contract_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-002/authoring_contract_test.log"
+      - name: Certify BETA-PERF-003
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          git checkout --force --detach 5692949f1c011930e3c7b4fcacc3d6c7d976fe52
+          git clean -fdx
+          mkdir -p "$RUNNER_TEMP/evidence/perf-003"
+          printf 'ticket=BETA-PERF-003\naudited_sha=%s\n' "$(git rev-parse HEAD)" > "$RUNNER_TEMP/evidence/perf-003/metadata.txt"
+          cd packages/map_editor
+          flutter pub get
+          flutter test --no-pub --concurrency=1 test/application/services/map_cell_stroke_buffer_test.dart test/features/editor/state/editor_notifier_map_cell_stroke_buffer_test.dart test/benchmark/map_cell_stroke_scaling_cli_test.dart test/editor_notifier_eraser_footprint_test.dart test/map_editing_controller_test.dart test/placed_element_instance_indexer_test.dart test/map_canvas_interaction_arbitration_test.dart test/map_canvas_pointer_navigation_test.dart test/map_grid_painter_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-003/targeted_test.log"
+          flutter analyze --no-pub 2>&1 | tee "$RUNNER_TEMP/evidence/perf-003/analyze.log"
+          dart run benchmark/map_cell_stroke_scaling.dart --warmups 1 --samples 5 --extents 128,256,512,1024 --output build/performance/map_cell_stroke_scaling.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-003/benchmark.log"
+          cp build/performance/map_cell_stroke_scaling.json "$RUNNER_TEMP/evidence/perf-003/"
+      - name: Certify BETA-PERF-004
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          git checkout --force --detach 993cb50aead6b75ede4e889ac82c5109dabe2289
+          git clean -fdx
+          mkdir -p "$RUNNER_TEMP/evidence/perf-004"
+          printf 'ticket=BETA-PERF-004\naudited_sha=%s\n' "$(git rev-parse HEAD)" > "$RUNNER_TEMP/evidence/perf-004/metadata.txt"
+          cd packages/map_editor
+          flutter pub get
+          flutter test --no-pub --concurrency=1 test/application/services/editor_performance_telemetry_test.dart test/application/services/map_cell_stroke_buffer_test.dart test/features/editor/state/editor_notifier_map_cell_stroke_buffer_test.dart test/benchmark/map_cell_stroke_scaling_cli_test.dart test/map_grid_painter_test.dart test/smart_tiles_studio/smart_tile_map_editing_test.dart test/smart_tiles_studio/smart_tile_gesture_burst_test.dart test/smart_tiles_studio/smart_tile_canonical_editor_flow_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-004/targeted_test.log"
+          dart run benchmark/map_cell_stroke_scaling.dart --warmups 2 --samples 10 --extents 128,256,512,1024 --output build/performance/map_cell_stroke_scaling.perf004.review.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-004/benchmark.log"
+          cp build/performance/map_cell_stroke_scaling.perf004.review.json "$RUNNER_TEMP/evidence/perf-004/"
+      - name: Certify BETA-PERF-005
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          git checkout --force --detach 75032618ccc4f9bdc6ea44d138fa25bcc68f5b39
+          git clean -fdx
+          mkdir -p "$RUNNER_TEMP/evidence/perf-005"
+          printf 'ticket=BETA-PERF-005\naudited_sha=%s\n' "$(git rev-parse HEAD)" > "$RUNNER_TEMP/evidence/perf-005/metadata.txt"
+          cd packages/map_core
+          dart pub get
+          dart test test/map_delta_validator_test.dart test/placed_element_behaviors_test.dart test/placed_element_animation_test.dart test/placed_element_opacity_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-005/core_test.log"
+          cd ../map_editor
+          flutter pub get
+          flutter test --no-pub test/application/services/map_cell_stroke_buffer_test.dart test/application/use_cases/map_incremental_validation_test.dart test/smart_tiles_studio/smart_tile_map_editing_test.dart test/editor_notifier_placed_element_placement_test.dart test/infrastructure/repositories/map_full_validation_boundary_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-005/editor_test.log"
+          dart run benchmark/map_cell_stroke_scaling.dart --warmups 1 --samples 3 --extents 128,256,512,1024 --output build/performance/perf_005_validation_final.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-005/benchmark.log"
+          cp build/performance/perf_005_validation_final.json "$RUNNER_TEMP/evidence/perf-005/"
+      - name: Upload BETA-PERF-002 through BETA-PERF-005 evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: beta-perf-002-005-historical-certification
+          if-no-files-found: error
+          retention-days: 30
+          path: ${{ runner.temp }}/evidence/perf-00[2-5]
+
+  perf-006-008:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Certify BETA-PERF-006
+        run: |
+          set -euo pipefail
+          git checkout --force --detach 29bd2f8b3e7531f56a675fe1a82a832929057731
+          git clean -fdx
+          mkdir -p "$RUNNER_TEMP/evidence/perf-006"
+          printf 'ticket=BETA-PERF-006\naudited_sha=%s\n' "$(git rev-parse HEAD)" > "$RUNNER_TEMP/evidence/perf-006/metadata.txt"
+          cd packages/map_authoring
+          dart pub get
+          dart test -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-006/map_authoring_test.log"
+          dart analyze 2>&1 | tee "$RUNNER_TEMP/evidence/perf-006/map_authoring_analyze.log"
+          dart run benchmark/authoring_snapshot_open.dart --warmups 1 --samples 5 --fixtures small,intermediate,synthetic-10mb --roots 1 --cycles 10 --modes warm,session --output build/performance/perf_006_snapshot_boundary_clean.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-006/snapshot_benchmark.log"
+          dart run benchmark/authoring_snapshot_open.dart --warmups 1 --samples 1 --fixtures synthetic-65mb-asset --roots 1 --cycles 1 --modes session --output build/performance/perf_006_asset_65mb_clean.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-006/asset_benchmark.log"
+          cp build/performance/perf_006_snapshot_boundary_clean.json "$RUNNER_TEMP/evidence/perf-006/"
+          cp build/performance/perf_006_asset_65mb_clean.json "$RUNNER_TEMP/evidence/perf-006/"
+          cd ../map_editor
+          flutter pub get
+          flutter test --no-pub test/authoring_api/authoring_session_lifecycle_test.dart test/smart_tiles_studio/smart_tile_canonical_editor_flow_test.dart test/editor_notifier_placed_element_placement_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-006/editor_regression_test.log"
+      - name: Certify BETA-PERF-007
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          git checkout --force --detach 28551bf40257a920d186cc7ee5711088459ca2d4
+          git clean -fdx
+          mkdir -p "$RUNNER_TEMP/evidence/perf-007"
+          printf 'ticket=BETA-PERF-007\naudited_sha=%s\n' "$(git rev-parse HEAD)" > "$RUNNER_TEMP/evidence/perf-007/metadata.txt"
+          cd packages/map_editor
+          flutter pub get
+          flutter test --no-pub test/map_history_delta_test.dart test/benchmark/map_history_delta_scaling_cli_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-007/delta_test.log"
+          flutter analyze --no-pub 2>&1 | tee "$RUNNER_TEMP/evidence/perf-007/analyze.log"
+          dart run benchmark/map_history_delta_scaling.dart --output build/performance/map_history_delta_scaling.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-007/benchmark.log"
+          flutter build macos --debug --no-pub 2>&1 | tee "$RUNNER_TEMP/evidence/perf-007/build_macos.log"
+          cp build/performance/map_history_delta_scaling.json "$RUNNER_TEMP/evidence/perf-007/"
+      - name: Certify BETA-PERF-008
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          git checkout --force --detach f950684ec9c3f427dbc0294789f1217acfb7d165
+          git clean -fdx
+          mkdir -p "$RUNNER_TEMP/evidence/perf-008"
+          printf 'ticket=BETA-PERF-008\naudited_sha=%s\n' "$(git rev-parse HEAD)" > "$RUNNER_TEMP/evidence/perf-008/metadata.txt"
+          cd packages/map_editor
+          flutter pub get
+          flutter test --no-pub test/ui/canvas/editor_canvas_picture_cache_test.dart test/ui/canvas/editor_canvas_smart_tile_animation_test.dart test/performance_driver_contract_test.dart test/map_grid_painter_test.dart test/ui/canvas/map_connection_context_layer_test.dart test/ui/world_map/world_map_rebuild_isolation_test.dart test/ui/world_map/world_map_large_map_performance_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-008/targeted_test.log"
+          flutter analyze --no-pub 2>&1 | tee "$RUNNER_TEMP/evidence/perf-008/analyze.log"
+          flutter test -d macos --no-pub integration_test/editor_canvas_projection_journey_test.dart 2>&1 | tee "$RUNNER_TEMP/evidence/perf-008/debug_journey.log"
+          flutter drive --profile -d macos --driver=test_driver/performance_driver.dart --target=integration_test/editor_canvas_projection_journey_test.dart --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_canvas_projection_perf008_review.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-008/profile_journey.log"
+          cp build/performance/editor_canvas_projection_perf008_review.json "$RUNNER_TEMP/evidence/perf-008/"
+      - name: Upload BETA-PERF-006 through BETA-PERF-008 evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: beta-perf-006-008-historical-certification
+          if-no-files-found: error
+          retention-days: 30
+          path: ${{ runner.temp }}/evidence/perf-00[6-8]
+
+  perf-009:
+    runs-on: macos-15
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Certify BETA-PERF-009 with 30 minute soak
+        run: |
+          set -euo pipefail
+          git checkout --force --detach 39050457f479504ec78cd4381896a1c49fdc1168
+          git clean -fdx
+          mkdir -p "$RUNNER_TEMP/evidence/perf-009"
+          printf 'ticket=BETA-PERF-009\naudited_sha=%s\nsoak_minutes=30\n' "$(git rev-parse HEAD)" > "$RUNNER_TEMP/evidence/perf-009/metadata.txt"
+          cd packages/map_editor
+          flutter pub get
+          flutter test --no-pub test/performance_driver_contract_test.dart test/fine_mask_performance_contract_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-009/contract_test.log"
+          flutter drive --profile -d macos --driver=test_driver/performance_driver.dart --target=integration_test/editor_project_journey_test.dart --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-009/project_profile.log"
+          flutter drive --profile -d macos --driver=test_driver/performance_driver.dart --target=integration_test/editor_canvas_projection_journey_test.dart --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_canvas_projection_journey.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-009/canvas_profile.log"
+          flutter drive --profile -d macos --driver=test_driver/performance_driver.dart --target=integration_test/editor_performance_soak_journey_test.dart --dart-define=POKEMAP_PERF_SOAK_MINUTES=30 --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_performance_soak_journey.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-009/soak_profile.log"
+          flutter drive --profile -d macos --driver=test_driver/fine_mask_performance_driver.dart --target=integration_test/editor_fine_mask_journey_test.dart --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_fine_mask_journey.json 2>&1 | tee "$RUNNER_TEMP/evidence/perf-009/fine_mask_profile.log"
+          cp build/performance/editor_project_journey.json "$RUNNER_TEMP/evidence/perf-009/"
+          cp build/performance/editor_canvas_projection_journey.json "$RUNNER_TEMP/evidence/perf-009/"
+          cp build/performance/editor_performance_soak_journey.json "$RUNNER_TEMP/evidence/perf-009/"
+          cp build/performance/editor_fine_mask_journey.json "$RUNNER_TEMP/evidence/perf-009/"
+      - name: Upload BETA-PERF-009 evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: beta-perf-009-39050457f479504ec78cd4381896a1c49fdc1168
+          if-no-files-found: error
+          retention-days: 30
+          path: ${{ runner.temp }}/evidence/perf-009
