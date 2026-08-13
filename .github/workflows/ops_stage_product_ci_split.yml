@@ -1,0 +1,101 @@
+name: Ops stage product CI split
+
+on:
+  push:
+    branches: [codex/perf-009-soak-gate]
+    paths:
+      - ".github/workflows/ops_stage_product_ci_split.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  stage:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Stage split map editor quality workflow
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          source = Path('.github/workflows/pokemap_hub_product_certification.yml')
+          staged = Path('tools/ci/pokemap_hub_product_certification.staged.yml')
+          text = source.read_text()
+          start_marker = '\n  map-editor-quality:\n'
+          end_marker = '\n  map-editor-performance-gate:\n'
+          start = text.index(start_marker)
+          end = text.index(end_marker, start)
+          replacement = r'''
+  map-editor-functional-quality:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Map editor functional lane
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter test --no-pub --timeout 2m -r expanded
+          flutter analyze --no-pub
+
+  map-editor-performance-quality:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Map editor performance lane
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          for run_number in 1 2 3; do
+            echo "Performance process $run_number of 3"
+            flutter test --no-pub --timeout 2m -r expanded \
+              --tags performance \
+              --run-skipped \
+              --concurrency=1 \
+              test/cinematic_builder_characterization_performance_test.dart \
+              test/event_registry_persistence_performance_test.dart \
+              test/narrative_event_authoring_snapshot_performance_test.dart \
+              test/narrative_event_validation_incremental_performance_test.dart \
+              test/narrative_global_search_performance_test.dart \
+              test/narrative_large_project_workspace_performance_test.dart
+          done'''
+          patched = text[:start] + replacement + text[end:]
+          if patched == text:
+              raise SystemExit('workflow patch produced no change')
+          if '\n  map-editor-quality:\n' in patched:
+              raise SystemExit('legacy combined quality job still present')
+          if '\n  map-editor-functional-quality:\n' not in patched:
+              raise SystemExit('functional quality job missing')
+          if '\n  map-editor-performance-quality:\n' not in patched:
+              raise SystemExit('performance quality job missing')
+          staged.parent.mkdir(parents=True, exist_ok=True)
+          staged.write_text(patched)
+          PY
+      - name: Commit staged workflow blob
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/ci/pokemap_hub_product_certification.staged.yml
+          git diff --cached --check
+          git commit -m "ci: stage split map editor quality workflow"
+          git push origin HEAD:codex/perf-009-soak-gate
