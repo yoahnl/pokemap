@@ -74,6 +74,7 @@ jobs:
       - name: Product certification contracts
         working-directory: tools/pokemap_product_certification
         run: |
+          npm ci --prefix ../pokemap_mcp
           flutter pub get
           flutter test
           flutter analyze
@@ -147,13 +148,14 @@ jobs:
           flutter pub get
           flutter test --no-pub \
             test/performance_driver_contract_test.dart \
+            test/perf_009_project_performance_driver_test.dart \
             test/fine_mask_performance_contract_test.dart
       - name: Run sequential editor profile gates
         working-directory: packages/map_editor
         run: |
           mkdir -p build/performance
           flutter drive --profile -d macos \
-            --driver=test_driver/performance_driver.dart \
+            --driver=test_driver/perf_009_project_performance_driver.dart \
             --target=integration_test/editor_project_journey_test.dart \
             --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json
           flutter drive --profile -d macos \
@@ -294,7 +296,7 @@ jobs:
         run: |
           flutter pub get
           flutter drive --profile -d macos \
-            --driver=test_driver/performance_driver.dart \
+            --driver=test_driver/perf_009_project_performance_driver.dart \
             --target=integration_test/editor_project_journey_test.dart \
             --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json
           flutter drive --profile -d macos \
