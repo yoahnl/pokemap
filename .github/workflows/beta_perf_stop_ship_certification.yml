@@ -36,6 +36,7 @@ jobs:
           printf 'tickets=BETA-PERF-000,BETA-PERF-001\naudited_sha=%s\nrunner_arch=%s\n' "$(git rev-parse HEAD)" "$(uname -m)" > "$RUNNER_TEMP/evidence/perf-000-001/metadata.txt"
           cd packages/map_authoring
           dart pub get
+          mkdir -p build/test
           dart test --reporter expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-000-001/map_authoring_test.log"
           dart analyze 2>&1 | tee "$RUNNER_TEMP/evidence/perf-000-001/map_authoring_analyze.log"
           cd ../map_editor
