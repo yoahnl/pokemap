@@ -16,13 +16,13 @@ jobs:
         with:
           ref: codex/perf-009-soak-gate
           fetch-depth: 0
-      - name: Patch certification workflow
+      - name: Stage certification workflow repair
         run: |
           python3 - <<'PY'
           from pathlib import Path
 
-          path = Path('.github/workflows/pokemap_hub_product_certification.yml')
-          source = path.read_text()
+          source_path = Path('.github/workflows/pokemap_hub_product_certification.yml')
+          source = source_path.read_text()
           replacements = (
               (
                   "          flutter pub get\n          flutter test\n          flutter analyze",
@@ -47,14 +47,15 @@ jobs:
                       f'Expected {expected_count} occurrence(s), found {actual_count}'
                   )
               source = source.replace(old, new)
-          path.write_text(source)
+          staged_path = Path('tools/ci/pokemap_hub_product_certification.staged.yml')
+          staged_path.parent.mkdir(parents=True, exist_ok=True)
+          staged_path.write_text(source)
           PY
-          git diff --check
-          git diff -- .github/workflows/pokemap_hub_product_certification.yml
-      - name: Commit workflow repair
+          git diff --check -- tools/ci/pokemap_hub_product_certification.staged.yml
+      - name: Publish staged workflow blob
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .github/workflows/pokemap_hub_product_certification.yml
-          git commit -m "ci: align product certification with PERF-009"
+          git add tools/ci/pokemap_hub_product_certification.staged.yml
+          git commit -m "ci: stage corrected product certification workflow"
           git push origin HEAD:codex/perf-009-soak-gate
