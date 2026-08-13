@@ -1,0 +1,44 @@
+name: Validate roadmap report path repair
+
+on:
+  push:
+    branches:
+      - ops/validate-roadmap-report-path
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.46.0-0.3.pre
+  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ops/validate-roadmap-report-path
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Validate canonical and historical report layouts
+        working-directory: packages/map_core
+        run: |
+          dart pub get
+          dart analyze \
+            tool/generate_gameplay_roadmap_dashboard.dart \
+            test/gameplay_roadmap_repository_layout_test.dart
+          dart test \
+            test/gameplay_roadmap_dashboard_test.dart \
+            test/gameplay_roadmap_repository_layout_test.dart
+          dart run tool/generate_gameplay_roadmap_dashboard.dart \
+            --check \
+            --candidate-sha "$(git rev-parse HEAD)" \
+            ../..
