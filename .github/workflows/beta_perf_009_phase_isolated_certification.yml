@@ -41,19 +41,21 @@ jobs:
           flutter test --no-pub \
             test/performance_driver_contract_test.dart \
             test/fine_mask_performance_contract_test.dart
-      - name: Prepare phase-isolated canonical project journey
+      - name: Prepare phase-isolated buffered project gate
         working-directory: packages/map_editor
         run: |
           set -euo pipefail
           mkdir -p build/performance
           cp integration_test/editor_project_journey_test.dart \
             build/performance/editor_project_journey_phase_isolated.dart
+          cp test_driver/performance_driver.dart \
+            build/performance/performance_driver_buffered.dart
           python3 - <<'PY'
           import re
           from pathlib import Path
 
-          path = Path('build/performance/editor_project_journey_phase_isolated.dart')
-          source = path.read_text()
+          journey = Path('build/performance/editor_project_journey_phase_isolated.dart')
+          source = journey.read_text()
           source = source.replace(
               "import 'support/vm_memory_probe.dart';",
               "import '../../integration_test/support/vm_memory_probe.dart';",
@@ -67,7 +69,6 @@ jobs:
           if phase_anchor not in source:
               raise SystemExit('canonical collision phase anchor not found')
           source = source.replace(phase_anchor, phase_replacement, 1)
-
           count_pattern = re.compile(
               r"(collisionSpans\[EditorPerformanceSpanName\.mutationLocal\]!\s*"
               r"as Map<String, Object\?>\)\['count'\],\s*)strokeCount,"
@@ -79,19 +80,55 @@ jobs:
           )
           if replacement_count != 1:
               raise SystemExit('canonical stroke instrumentation anchor not found')
-          path.write_text(source)
+          journey.write_text(source)
+
+          driver = Path('build/performance/performance_driver_buffered.dart')
+          driver_source = driver.read_text()
+          driver_source = driver_source.replace(
+              "import 'support/fine_mask_performance_contract.dart';",
+              "import '../../test_driver/support/fine_mask_performance_contract.dart';",
+              1,
+          )
+          tile_pattern = re.compile(
+              r"(phaseName: 'tile-placement-90',\s*"
+              r"requiredSpan: 'mutation\.local',\s*"
+              r"expectedSpanCount:) 90,"
+          )
+          driver_source, tile_count = tile_pattern.subn(
+              r"\1 180,",
+              driver_source,
+              count=1,
+          )
+          if tile_count != 1:
+              raise SystemExit('tile placement buffered driver anchor not found')
+          collision_pattern = re.compile(
+              r"(phaseName: 'collision-paint-\$\{extent\}x\$extent-\$strokeCount',\s*"
+              r"requiredSpan: 'mutation\.local',\s*"
+              r"expectedSpanCount:) strokeCount,"
+          )
+          driver_source, collision_count = collision_pattern.subn(
+              r"\1 strokeCount + 1,",
+              driver_source,
+              count=1,
+          )
+          if collision_count != 1:
+              raise SystemExit('collision buffered driver anchor not found')
+          driver.write_text(driver_source)
           PY
           grep -n "drainPlacedElementPublications" \
             build/performance/editor_project_journey_phase_isolated.dart
           grep -n "strokeCount + 1" \
-            build/performance/editor_project_journey_phase_isolated.dart
+            build/performance/editor_project_journey_phase_isolated.dart \
+            build/performance/performance_driver_buffered.dart
+          grep -n "expectedSpanCount: 180" \
+            build/performance/performance_driver_buffered.dart
           test -z "$(git status --porcelain)"
-      - name: Run canonical project gate with isolated phases
+      - name: Run canonical project gate with buffered instrumentation contract
         working-directory: packages/map_editor
         run: |
           set -euo pipefail
           flutter drive --profile -d macos \
-            --driver=test_driver/performance_driver.dart \
+            --driver=build/performance/performance_driver_buffered.dart \
             --target=build/performance/editor_project_journey_phase_isolated.dart \
             --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json \
             2>&1 | tee build/performance/editor_project_journey.log
@@ -144,3 +181,4 @@ jobs:
             packages/map_editor/build/performance/editor_performance_soak_journey.log
             packages/map_editor/build/performance/editor_fine_mask_journey.log
             packages/map_editor/build/performance/editor_project_journey_phase_isolated.dart
+            packages/map_editor/build/performance/performance_driver_buffered.dart
