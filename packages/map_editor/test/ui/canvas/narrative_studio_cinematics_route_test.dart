@@ -478,21 +478,25 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = 1.25;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    for (final size in <Size>[
+    final sizes = <Size>[
       const Size(1280, 768),
       const Size(1366, 768),
       const Size(1440, 900),
       const Size(1672, 941),
       const Size(1920, 941),
-    ]) {
-      await pumpEditorShellPage(
-        tester,
-        initialState: EditorState(
-          project: _cinematicsProject(),
-          workspaceMode: EditorWorkspaceMode.cutscene,
-        ),
-        surfaceSize: size,
-      );
+    ];
+    await pumpEditorShellPage(
+      tester,
+      initialState: EditorState(
+        project: _cinematicsProject(),
+        workspaceMode: EditorWorkspaceMode.cutscene,
+      ),
+      surfaceSize: sizes.first,
+    );
+
+    for (final size in sizes) {
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpAndSettle();
 
       expect(find.byType(NarrativeStudioProductShell), findsOneWidget);
       expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
