@@ -1,0 +1,56 @@
+name: BETA-PERF-004 parity certification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.46.0-0.3.pre
+  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+
+jobs:
+  perf-004-parity:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Certify direct and JSONL Smart Tile parity at PERF-004 SHA
+        run: |
+          set -euo pipefail
+          git checkout --force --detach 993cb50aead6b75ede4e889ac82c5109dabe2289
+          git clean -fdx
+          mkdir -p "$RUNNER_TEMP/evidence/perf-004-parity"
+          printf 'ticket=BETA-PERF-004\naudited_sha=%s\n' "$(git rev-parse HEAD)" > "$RUNNER_TEMP/evidence/perf-004-parity/metadata.txt"
+          cd packages/map_authoring
+          dart pub get
+          mkdir -p build/test
+          dart test test/tooling/jsonl_smart_tile_native_flow_test.dart -r expanded 2>&1 | tee "$RUNNER_TEMP/evidence/perf-004-parity/direct_jsonl.log"
+      - name: Certify MCP Smart Tile parity at PERF-004 SHA
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/tools/pokemap_mcp"
+          npm ci
+          npm run build
+          node --import tsx --test --test-concurrency=1 --test-name-pattern='Smart Tile|smart tile|smart_tile' test/mutation_server.test.ts 2>&1 | tee "$RUNNER_TEMP/evidence/perf-004-parity/mcp_smart_tile.log"
+          grep -Eq '# pass [1-9][0-9]*' "$RUNNER_TEMP/evidence/perf-004-parity/mcp_smart_tile.log"
+      - name: Upload BETA-PERF-004 parity evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: beta-perf-004-parity-993cb50aead6b75ede4e889ac82c5109dabe2289
+          if-no-files-found: error
+          retention-days: 30
+          path: ${{ runner.temp }}/evidence/perf-004-parity
