@@ -19,6 +19,7 @@ void main() {
       expect(
         () => const MapHistoryCoordinator().applyMutation(
           previousMap: map,
+          updatedMap: map,
           activeLayerId: null,
           selectedEntityId: null,
           selectedWarpId: null,

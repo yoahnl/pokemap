@@ -2,6 +2,7 @@ import 'dart:ui' show Offset;
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../application/models/map_history_entry.dart';
 import '../../../application/models/map_history_snapshot.dart';
 import '../../smart_tiles_studio/application/smart_tile_studio_launch_context.dart';
 import 'models/encounter_studio_section.dart';
@@ -135,8 +136,8 @@ abstract class EditorState with _$EditorState {
     @Default(Offset.zero) Offset panOffset,
 
     // Statut document / historique
-    @Default([]) List<MapHistorySnapshot> mapUndoStack,
-    @Default([]) List<MapHistorySnapshot> mapRedoStack,
+    @Default([]) List<MapHistoryEntry> mapUndoStack,
+    @Default([]) List<MapHistoryEntry> mapRedoStack,
     MapHistorySnapshot? mapStrokeStart,
     MapData? savedMapSnapshot,
     @Default(false) bool canUndoMap,

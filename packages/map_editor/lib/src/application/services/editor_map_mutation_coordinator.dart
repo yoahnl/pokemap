@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 
+import '../models/map_history_entry.dart';
 import '../models/map_history_snapshot.dart';
 import 'editor_map_session_coordinator.dart';
 import 'map_history_coordinator.dart';
@@ -14,8 +15,8 @@ class EditorMapHistoryState {
     required this.isDirty,
   });
 
-  final List<MapHistorySnapshot> undoStack;
-  final List<MapHistorySnapshot> redoStack;
+  final List<MapHistoryEntry> undoStack;
+  final List<MapHistoryEntry> redoStack;
   final MapHistorySnapshot? strokeStart;
   final bool canUndoMap;
   final bool canRedoMap;
@@ -68,8 +69,8 @@ class EditorMapMutationCoordinator {
     required String? selectedGameplayZoneId,
     required String? selectedPlacedElementInstanceId,
     required String? npcWaypointPlacementEntityId,
-    required List<MapHistorySnapshot> undoStack,
-    required List<MapHistorySnapshot> redoStack,
+    required List<MapHistoryEntry> undoStack,
+    required List<MapHistoryEntry> redoStack,
     required MapHistorySnapshot? strokeStart,
     required bool currentDirty,
   }) {
@@ -100,8 +101,8 @@ class EditorMapMutationCoordinator {
 
   EditorMapHistoryState finalizeStroke({
     required MapData? currentMap,
-    required List<MapHistorySnapshot> undoStack,
-    required List<MapHistorySnapshot> redoStack,
+    required List<MapHistoryEntry> undoStack,
+    required List<MapHistoryEntry> redoStack,
     required MapHistorySnapshot? strokeStart,
     required MapData? savedMapSnapshot,
     required bool currentDirty,
@@ -126,8 +127,8 @@ class EditorMapMutationCoordinator {
 
   EditorMapMutationState? rollbackStroke({
     required String? selectedTilesetEditorId,
-    required List<MapHistorySnapshot> undoStack,
-    required List<MapHistorySnapshot> redoStack,
+    required List<MapHistoryEntry> undoStack,
+    required List<MapHistoryEntry> redoStack,
     required MapHistorySnapshot? strokeStart,
     required MapData? savedMapSnapshot,
   }) {
@@ -171,8 +172,8 @@ class EditorMapMutationCoordinator {
     required String? selectedWarpId,
     required String? selectedTriggerId,
     required String? selectedTilesetEditorId,
-    required List<MapHistorySnapshot> undoStack,
-    required List<MapHistorySnapshot> redoStack,
+    required List<MapHistoryEntry> undoStack,
+    required List<MapHistoryEntry> redoStack,
     required MapHistorySnapshot? strokeStart,
     required String? preferredActiveLayerId,
     required String? preferredSelectedEntityId,
@@ -184,6 +185,7 @@ class EditorMapMutationCoordinator {
   }) {
     final history = _historyCoordinator.applyMutation(
       previousMap: previousMap,
+      updatedMap: updatedMap,
       activeLayerId: activeLayerId,
       selectedEntityId: selectedEntityId,
       selectedWarpId: selectedWarpId,
@@ -227,8 +229,8 @@ class EditorMapMutationCoordinator {
     required String? selectedEntityId,
     required String? selectedWarpId,
     required String? selectedTriggerId,
-    required List<MapHistorySnapshot> undoStack,
-    required List<MapHistorySnapshot> redoStack,
+    required List<MapHistoryEntry> undoStack,
+    required List<MapHistoryEntry> redoStack,
     required MapData? savedMapSnapshot,
   }) {
     final history = _historyCoordinator.undo(
@@ -274,8 +276,8 @@ class EditorMapMutationCoordinator {
     required String? selectedEntityId,
     required String? selectedWarpId,
     required String? selectedTriggerId,
-    required List<MapHistorySnapshot> undoStack,
-    required List<MapHistorySnapshot> redoStack,
+    required List<MapHistoryEntry> undoStack,
+    required List<MapHistoryEntry> redoStack,
     required MapData? savedMapSnapshot,
   }) {
     final history = _historyCoordinator.redo(
