@@ -176,6 +176,55 @@ void _validateCanvasProjection(Map<String, dynamic> data) {
   for (final row in placements.whereType<Map>()) {
     _validateSampleRow(row, expectedSampleCount: sampleCount);
   }
+  final cachedRepaints = data['cachedRepaintResults'];
+  if (cachedRepaints is! List || cachedRepaints.length != extents.length) {
+    throw const FormatException(
+      'Canvas projection response must cover cached repaint at every extent.',
+    );
+  }
+  final cachedExtentMatrix = <Object?>{
+    for (final row in cachedRepaints.whereType<Map>()) row['extent'],
+  };
+  if (cachedExtentMatrix.length != extents.length ||
+      !cachedExtentMatrix.containsAll(extents)) {
+    throw const FormatException(
+      'Canvas cached repaint response has an incomplete extent matrix.',
+    );
+  }
+  for (final row in cachedRepaints.whereType<Map>()) {
+    _validateSampleRow(row, expectedSampleCount: sampleCount);
+    final hits = row['staticCacheHitsDuringSamples'];
+    final misses = row['staticCacheMissesDuringSamples'];
+    final entryCount = row['cacheEntryCount'];
+    final dirtyRegion = row['dirtyRegion'];
+    final dirtyLeft = dirtyRegion is Map ? dirtyRegion['leftCell'] : null;
+    final dirtyTop = dirtyRegion is Map ? dirtyRegion['topCell'] : null;
+    final dirtyRight = dirtyRegion is Map ? dirtyRegion['rightCell'] : null;
+    final dirtyBottom = dirtyRegion is Map ? dirtyRegion['bottomCell'] : null;
+    final dirtyCellCount = dirtyRegion is Map ? dirtyRegion['cellCount'] : null;
+    if (row['mode'] != 'animationTick' ||
+        hits is! int ||
+        hits <= 0 ||
+        misses != 0 ||
+        entryCount is! int ||
+        entryCount <= 0 ||
+        entryCount > 64 ||
+        dirtyRegion is! Map ||
+        dirtyRegion['policy'] != 'visibleViewport' ||
+        dirtyLeft is! int ||
+        dirtyTop is! int ||
+        dirtyRight is! int ||
+        dirtyBottom is! int ||
+        dirtyRight <= dirtyLeft ||
+        dirtyBottom <= dirtyTop ||
+        dirtyCellCount is! int ||
+        dirtyCellCount != (dirtyRight - dirtyLeft) * (dirtyBottom - dirtyTop) ||
+        dirtyCellCount > (row['extent'] as int) * (row['extent'] as int)) {
+      throw const FormatException(
+        'Canvas cached repaint must reuse warmed static pictures within its bounded dirty region.',
+      );
+    }
+  }
   _validateMemory(data);
   final gates = data['performanceGates'];
   if (gates is! Map) {
@@ -186,27 +235,42 @@ void _validateCanvasProjection(Map<String, dynamic> data) {
   final standard1024 = _canvasRow(results, mode: 'standard', extent: 1024);
   final combined128 = _canvasRow(results, mode: 'combined', extent: 128);
   final combined1024 = _canvasRow(results, mode: 'combined', extent: 1024);
+  final cachedRepaint1024 = _canvasRow(
+    cachedRepaints,
+    mode: 'animationTick',
+    extent: 1024,
+  );
   final standardP95 = standard1024['p95Us']! as int;
   final combined128P95 = combined128['p95Us']! as int;
   final combined1024P95 = combined1024['p95Us']! as int;
+  final cachedRepaint1024P95 = cachedRepaint1024['p95Us']! as int;
   final combinedBudget = gates['combined1024P95BudgetUs'];
   final repaintBudget = gates['repaintP95BudgetUs'];
   final scaleBudget = gates['combined1024To128P95RatioBudget'];
   final standardBudget = gates['standard1024P95ObservationCeilingUs'];
+  final cachedRepaintBudget = gates['cachedRepaint1024P95BudgetUs'];
   final scaleRatio =
       combined1024P95 / (combined128P95 == 0 ? 1 : combined128P95);
   if (combinedBudget is! int ||
       repaintBudget is! int ||
       scaleBudget is! num ||
       standardBudget is! int ||
+      cachedRepaintBudget is! int ||
       combined1024P95 >= combinedBudget ||
       combined1024P95 >= repaintBudget ||
       scaleRatio >= scaleBudget ||
       standardP95 >= standardBudget ||
+      cachedRepaint1024P95 >= cachedRepaintBudget ||
       gates['combined1024P95Pass'] != (combined1024P95 < combinedBudget) ||
       gates['repaintP95Pass'] != (combined1024P95 < repaintBudget) ||
       gates['combinedScaleRatioPass'] != (scaleRatio < scaleBudget) ||
       gates['standardControlPass'] != (standardP95 < standardBudget)) {
+    throw const FormatException(
+      'Canvas projection response must pass every repaint gate.',
+    );
+  }
+  if (gates['cachedRepaint1024P95Pass'] !=
+      (cachedRepaint1024P95 < cachedRepaintBudget)) {
     throw const FormatException(
       'Canvas projection response must pass every repaint gate.',
     );

@@ -89,6 +89,7 @@ import '../../theme/theme.dart';
 // synchronisation des ressources. Le painter et le cache d'images vivent dans
 // des part files dédiés pour rendre cette surface re-reviewable.
 part 'map_canvas/map_grid_painter.dart';
+part 'map_canvas/editor_canvas_picture_cache.dart';
 part 'map_canvas/map_connection_context_layer.dart';
 part 'map_canvas/map_canvas_tileset_path_collector.dart';
 part 'map_canvas/tile_layer_hover_highlight_painter.dart';
@@ -553,6 +554,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       MapCanvasInteractionController();
   final EditorShadowPreviewProjectionOwner _shadowPreviewProjectionOwner =
       EditorShadowPreviewProjectionOwner();
+  final EditorCanvasPictureCacheOwner _pictureCacheOwner =
+      EditorCanvasPictureCacheOwner();
   final Set<int> _pressedMapPointers = <int>{};
   final Set<LogicalKeyboardKey> _pressedContextMenuKeys =
       <LogicalKeyboardKey>{};
@@ -719,6 +722,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   void dispose() {
     _disposeOwnedRepaintResources();
     _shadowPreviewProjectionOwner.clear();
+    _pictureCacheOwner.dispose();
     _releaseTilesetImagesFuture(_tilesetImagesFuture);
     _tilesetImagesFuture = null;
     _pressedMapPointers.clear();
@@ -2056,6 +2060,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                           project: state.project,
                           shadowLightPreviewPreset: shadowLightPreviewPreset,
                           animationClock: _repaintClock,
+                          pictureCacheOwner: _pictureCacheOwner,
                         ),
                       ),
                     Positioned.fill(
@@ -2123,6 +2128,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                               shadowLightPreviewPreset:
                                   shadowLightPreviewPreset,
                               animationClock: _repaintClock,
+                              pictureCacheOwner: _pictureCacheOwner,
                               cellStrokePreview:
                                   notifier.activeMapCellStrokePreview,
                               cellStrokeRepaint:

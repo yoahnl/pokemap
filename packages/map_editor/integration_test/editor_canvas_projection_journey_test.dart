@@ -6,6 +6,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/shadow/editor_shadow_preview_projection_index.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
+import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.dart';
 
 import 'support/vm_memory_probe.dart';
 
@@ -28,6 +29,7 @@ void main() {
       addTearDown(memoryProbe.close);
       final results = <Map<String, Object?>>[];
       final placementResults = <Map<String, Object?>>[];
+      final cachedRepaintResults = <Map<String, Object?>>[];
 
       final memory = await memoryProbe.measure(() async {
         for (final mode in _CanvasProfileMode.values) {
@@ -56,6 +58,16 @@ void main() {
           placementResults.add(result);
           await tester.pump();
         }
+        for (final extent in _extents) {
+          final fixture = _CanvasProfileFixture.create(
+            mode: _CanvasProfileMode.combined,
+            extent: extent,
+          );
+          cachedRepaintResults.add(
+            _measureCachedRepaint(fixture: fixture, tileImage: tileImage),
+          );
+          await tester.pump();
+        }
       });
 
       Map<String, Object?> resultFor(_CanvasProfileMode mode, int extent) =>
@@ -70,6 +82,10 @@ void main() {
       final standard1024P95 = standard1024['p95Us']! as int;
       final combined128P95 = combined128['p95Us']! as int;
       final combined1024P95 = combined1024['p95Us']! as int;
+      final cachedRepaint1024 = cachedRepaintResults.singleWhere(
+        (result) => result['extent'] == 1024,
+      );
+      final cachedRepaint1024P95 = cachedRepaint1024['p95Us']! as int;
       final combinedScaleRatio =
           combined1024P95 / (combined128P95 == 0 ? 1 : combined128P95);
 
@@ -99,15 +115,21 @@ void main() {
           'pictureRasterization': false,
           'shadowProjectionWarmupExcluded': true,
           'constantViewport': true,
+          'cachedRepaintMetric': 'animation_tick.static_picture_reuse',
+          'animationClockStepMs': 110,
+          'staticPictureWarmupExcluded': true,
+          'cacheMaxEntries': 64,
         },
         'results': results,
         'placementResults': placementResults,
+        'cachedRepaintResults': cachedRepaintResults,
         'memory': memory.toJson(),
         'summary': <String, Object?>{
           'standard1024P95Us': standard1024P95,
           'combined128P95Us': combined128P95,
           'combined1024P95Us': combined1024P95,
           'combined1024To128P95Ratio': combinedScaleRatio,
+          'cachedRepaint1024P95Us': cachedRepaint1024P95,
           'rssBytesAfterRun': ProcessInfo.currentRss,
         },
         'performanceGates': <String, Object?>{
@@ -115,17 +137,20 @@ void main() {
           'repaintP95BudgetUs': 16670,
           'combined1024To128P95RatioBudget': 1.5,
           'standard1024P95ObservationCeilingUs': 4000,
+          'cachedRepaint1024P95BudgetUs': 8000,
           'combined1024P95Pass': combined1024P95 < 8000,
           'repaintP95Pass': combined1024P95 < 16670,
-          'combinedScaleRatioPass': combinedScaleRatio <= 1.5,
+          'combinedScaleRatioPass': combinedScaleRatio < 1.5,
           'standardControlPass': standard1024P95 < 4000,
+          'cachedRepaint1024P95Pass': cachedRepaint1024P95 < 8000,
         },
       };
 
       expect(combined1024P95, lessThan(8000));
       expect(combined1024P95, lessThan(16670));
-      expect(combinedScaleRatio, lessThanOrEqualTo(1.5));
+      expect(combinedScaleRatio, lessThan(1.5));
       expect(standard1024P95, lessThan(4000));
+      expect(cachedRepaint1024P95, lessThan(8000));
       expect(tester.takeException(), isNull);
     },
   );
@@ -188,11 +213,87 @@ Map<String, Object?> _measurePainter({
   };
 }
 
+Map<String, Object?> _measureCachedRepaint({
+  required _CanvasProfileFixture fixture,
+  required ui.Image tileImage,
+}) {
+  final projectionOwner = EditorShadowPreviewProjectionOwner();
+  final pictureCacheOwner = EditorCanvasPictureCacheOwner();
+  final clock = EditorCanvasRepaintClock();
+  try {
+    final painter = _painter(
+      fixture: fixture,
+      tileImage: tileImage,
+      projectionOwner: projectionOwner,
+      pictureCacheOwner: pictureCacheOwner,
+      animationClock: clock,
+    );
+    final dirtyBounds = resolveEditorMapVisibleCellBounds(
+      viewportSize: _viewportSize,
+      mapSize: fixture.map.size,
+      zoom: 1,
+      offset: ui.Offset.zero,
+      tileWidth: 32,
+      tileHeight: 32,
+    );
+    for (var index = 0; index < _warmups; index += 1) {
+      clock.update(Duration(milliseconds: (index + 1) * 110));
+      _recordPaint(painter);
+    }
+    final hitsBeforeSamples = pictureCacheOwner.hitCount;
+    final missesBeforeSamples = pictureCacheOwner.missCount;
+    final samplesUs = <int>[];
+    for (var index = 0; index < _samples; index += 1) {
+      clock.update(Duration(milliseconds: (_warmups + index + 1) * 110));
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      final stopwatch = Stopwatch()..start();
+      painter.paint(canvas, _viewportSize);
+      stopwatch.stop();
+      samplesUs.add(stopwatch.elapsedMicroseconds);
+      recorder.endRecording().dispose();
+    }
+    final sorted = List<int>.of(samplesUs)..sort();
+    return <String, Object?>{
+      'mode': 'animationTick',
+      'extent': fixture.extent,
+      'mapCellCount': fixture.extent * fixture.extent,
+      'placedElementCount': fixture.map.placedElements.length,
+      'samplesUs': samplesUs,
+      'p50Us': _percentile(sorted, 0.50),
+      'p95Us': _percentile(sorted, 0.95),
+      'p99Us': _percentile(sorted, 0.99),
+      'maxUs': sorted.last,
+      'staticCacheHitsDuringSamples':
+          pictureCacheOwner.hitCount - hitsBeforeSamples,
+      'staticCacheMissesDuringSamples':
+          pictureCacheOwner.missCount - missesBeforeSamples,
+      'cacheEntryCount': pictureCacheOwner.entryCount,
+      'dirtyRegion': <String, Object?>{
+        'policy': 'visibleViewport',
+        'leftCell': dirtyBounds.left,
+        'topCell': dirtyBounds.top,
+        'rightCell': dirtyBounds.right,
+        'bottomCell': dirtyBounds.bottom,
+        'cellCount':
+            (dirtyBounds.right - dirtyBounds.left) *
+            (dirtyBounds.bottom - dirtyBounds.top),
+      },
+      'rssBytesAfterFixture': ProcessInfo.currentRss,
+    };
+  } finally {
+    clock.dispose();
+    pictureCacheOwner.dispose();
+  }
+}
+
 MapGridPainter _painter({
   required _CanvasProfileFixture fixture,
   required ui.Image tileImage,
   required EditorShadowPreviewProjectionOwner projectionOwner,
   MapGridCullingDebugObserver? debugOnCulling,
+  EditorCanvasPictureCacheOwner? pictureCacheOwner,
+  EditorCanvasRepaintClock? animationClock,
 }) {
   return MapGridPainter(
     map: fixture.map,
@@ -210,6 +311,8 @@ MapGridPainter _painter({
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
     project: _profileProject,
+    animationClock: animationClock,
+    pictureCacheOwner: pictureCacheOwner,
     editorEntityAnimationMs: 220,
     showGrid: false,
     showEntityEditorChrome: false,
@@ -388,6 +491,22 @@ final _profileProject = ProjectManifest(
         connectionGroupId: 'grass',
       ),
     ],
+    animations: const <ProjectSmartTileAnimation>[
+      ProjectSmartTileAnimation(
+        id: 'grass-wave',
+        name: 'Grass wave',
+        frames: <ProjectSmartTileAnimationFrame>[
+          ProjectSmartTileAnimationFrame(
+            frame: SmartTileFrameRef(atlasId: 'smart-atlas', column: 0, row: 0),
+            durationMs: 110,
+          ),
+          ProjectSmartTileAnimationFrame(
+            frame: SmartTileFrameRef(atlasId: 'smart-atlas', column: 0, row: 0),
+            durationMs: 110,
+          ),
+        ],
+      ),
+    ],
     presets: const <ProjectSmartTilePreset>[
       ProjectSmartTilePreset(
         id: 'smart-terrain',
@@ -410,12 +529,8 @@ final _profileProject = ProjectManifest(
                 id: 'ground',
                 parts: <SmartTileVisualPart>[
                   SmartTileVisualPart(
-                    source: SmartTileVisualSource.frame(
-                      frame: SmartTileFrameRef(
-                        atlasId: 'smart-atlas',
-                        column: 0,
-                        row: 0,
-                      ),
+                    source: SmartTileVisualSource.animation(
+                      animationId: 'grass-wave',
                     ),
                   ),
                 ],

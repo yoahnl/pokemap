@@ -20,6 +20,7 @@ class MapConnectionContextLayer extends StatelessWidget {
     required this.project,
     this.shadowLightPreviewPreset,
     this.animationClock,
+    this.pictureCacheOwner,
   });
 
   static const double inactiveOpacity = 0.36;
@@ -38,6 +39,7 @@ class MapConnectionContextLayer extends StatelessWidget {
   final ProjectManifest? project;
   final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final EditorCanvasRepaintClock? animationClock;
+  final EditorCanvasPictureCacheOwner? pictureCacheOwner;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +93,7 @@ class MapConnectionContextLayer extends StatelessWidget {
                             project: project,
                             shadowLightPreviewPreset: shadowLightPreviewPreset,
                             animationClock: animationClock,
+                            pictureCacheOwner: pictureCacheOwner,
                             showGrid: false,
                             showEntityEditorChrome: false,
                             showEditorOverlays: false,

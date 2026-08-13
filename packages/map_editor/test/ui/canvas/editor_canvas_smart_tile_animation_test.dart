@@ -91,5 +91,65 @@ void main() {
         );
       },
     );
+
+    test('an animated atlas tile keeps the editor clock running', () {
+      const map = MapData(
+        id: 'animated-atlas-map',
+        name: 'Animated atlas map',
+        size: GridSize(width: 1, height: 1),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'water',
+            name: 'Water',
+            palette: <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(tilesetId: 'world', localTileId: 1),
+            ],
+            cells: <int>[1],
+          ),
+        ],
+      );
+      const project = ProjectManifest(
+        name: 'Animated atlas project',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'world',
+            name: 'World',
+            relativePath: 'world.png',
+            source: ProjectRegularAtlasTilesetSource(
+              assetId: 'world',
+              pixelWidth: 64,
+              pixelHeight: 64,
+              tileWidth: 32,
+              tileHeight: 32,
+              tileAnimations: <ProjectRegularAtlasTileAnimation>[
+                ProjectRegularAtlasTileAnimation(
+                  tileId: 1,
+                  frames: <ProjectImageCollectionAnimationFrame>[
+                    ProjectImageCollectionAnimationFrame(
+                      tileId: 1,
+                      durationMs: 110,
+                    ),
+                    ProjectImageCollectionAnimationFrame(
+                      tileId: 2,
+                      durationMs: 110,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      expect(
+        editorCanvasNeedsAnimation(
+          map: map,
+          project: project,
+          borderPreview: null,
+        ),
+        isTrue,
+      );
+    });
   });
 }

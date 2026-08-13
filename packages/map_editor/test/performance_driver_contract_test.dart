@@ -26,6 +26,63 @@ void main() {
     );
   });
 
+  test('accepts a complete cached repaint matrix', () {
+    expect(
+      () =>
+          performance_driver.validatePerformanceResponse(_validCanvasReceipt()),
+      returnsNormally,
+    );
+  });
+
+  test('rejects a missing cached repaint matrix', () {
+    final receipt = _validCanvasReceipt()..remove('cachedRepaintResults');
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects static cache misses after repaint warmup', () {
+    final receipt = _validCanvasReceipt();
+    final rows = receipt['cachedRepaintResults']! as List<Map<String, Object?>>;
+    rows.last['staticCacheMissesDuringSamples'] = 1;
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects a cached repaint without a measured dirty region', () {
+    final receipt = _validCanvasReceipt();
+    final rows = receipt['cachedRepaintResults']! as List<Map<String, Object?>>;
+    rows.last.remove('dirtyRegion');
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects cached repaint samples above the declared budget', () {
+    final receipt = _validCanvasReceipt();
+    final rows = receipt['cachedRepaintResults']! as List<Map<String, Object?>>;
+    rows.last = <String, Object?>{
+      ...rows.last,
+      'samplesUs': List<int>.filled(90, 20000),
+      'p50Us': 20000,
+      'p95Us': 20000,
+      'p99Us': 20000,
+      'maxUs': 20000,
+    };
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
   test('rejects canvas rows without raw samples', () {
     final receipt = _validCanvasReceipt();
     final results = receipt['results']! as List<Map<String, Object?>>;
@@ -389,15 +446,39 @@ Map<String, dynamic> _validCanvasReceipt({int sampleUs = 100}) {
           sampleUs: sampleUs,
         ),
     ],
+    'cachedRepaintResults': <Map<String, Object?>>[
+      for (final extent in const <int>[128, 256, 512, 1024])
+        <String, Object?>{
+          ..._canvasRow(
+            mode: 'animationTick',
+            extent: extent,
+            placedElementCount: 2,
+            sampleUs: sampleUs,
+          ),
+          'staticCacheHitsDuringSamples': 720,
+          'staticCacheMissesDuringSamples': 0,
+          'cacheEntryCount': 8,
+          'dirtyRegion': <String, Object?>{
+            'policy': 'visibleViewport',
+            'leftCell': 0,
+            'topCell': 0,
+            'rightCell': 16,
+            'bottomCell': 16,
+            'cellCount': 256,
+          },
+        },
+    ],
     'performanceGates': <String, Object?>{
       'combined1024P95BudgetUs': 8000,
       'repaintP95BudgetUs': 16670,
       'combined1024To128P95RatioBudget': 1.5,
       'standard1024P95ObservationCeilingUs': 4000,
+      'cachedRepaint1024P95BudgetUs': 8000,
       'combined1024P95Pass': true,
       'repaintP95Pass': true,
       'combinedScaleRatioPass': true,
       'standardControlPass': true,
+      'cachedRepaint1024P95Pass': true,
     },
   };
 }

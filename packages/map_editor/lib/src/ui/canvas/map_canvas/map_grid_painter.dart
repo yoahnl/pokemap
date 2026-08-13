@@ -404,11 +404,38 @@ class MapGridPainter extends CustomPainter {
   final ProjectManifest? project;
   final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final EditorCanvasRepaintClock? _animationClock;
+  final EditorCanvasPictureCacheOwner? pictureCacheOwner;
   final MapCellStrokeBuffer? cellStrokePreview;
   final Listenable? cellStrokeRepaint;
   final int _staticAnimationMs;
+  late final Set<String> _animatedTileLayerIds = {
+    for (final layer in map.layers.whereType<TileLayer>())
+      if (editorTileLayerNeedsAnimation(layer, project)) layer.id,
+  };
+  late final Set<String> _animatedObjectLayerIds = {
+    for (final layer in map.layers.whereType<ObjectLayer>())
+      if (editorObjectLayerNeedsAnimation(layer, project)) layer.id,
+  };
+  late final Set<String> _animatedSmartTileLayerIds = {
+    for (final layer in map.layers.whereType<SmartTileLayer>())
+      if (editorSmartTileLayerNeedsAnimation(layer, project)) layer.id,
+  };
+  late final Set<String> _animatedPlacedElementLayerIds = {
+    for (final layer in map.layers.whereType<TileLayer>())
+      if (editorPlacedElementLayerNeedsAnimation(map, layer, project)) layer.id,
+  };
+  late final bool _entitiesNeedAnimation = mapEntitiesNeedEditorFrameAnimation(
+    map,
+    project,
+  );
+  late final bool _borderNeedsAnimation = editorCanvasBorderNeedsAnimation(
+    map: map,
+    project: project,
+    borderPreview: borderPreview,
+  );
   final MapGridPaintObserver? debugOnPaint;
   final MapGridCullingDebugObserver? debugOnCulling;
+  final EditorCanvasPictureCacheObserver? debugOnPictureCache;
   final bool showGrid;
   final bool showEntityEditorChrome;
   final bool showEditorOverlays;
@@ -455,11 +482,13 @@ class MapGridPainter extends CustomPainter {
     this.project,
     this.shadowLightPreviewPreset,
     EditorCanvasRepaintClock? animationClock,
+    this.pictureCacheOwner,
     this.cellStrokePreview,
     this.cellStrokeRepaint,
     int editorEntityAnimationMs = 0,
     this.debugOnPaint,
     this.debugOnCulling,
+    this.debugOnPictureCache,
     this.showGrid = true,
     this.showEntityEditorChrome = true,
     this.showEditorOverlays = true,
@@ -517,6 +546,44 @@ class MapGridPainter extends CustomPainter {
       offset: offset,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
+    );
+    final revisions = pictureCacheOwner?.resolveRevisions(
+      map: map,
+      project: project,
+      imagesById: tilesetImagesById,
+      overlayToken: (
+        hoveredTile,
+        activeLayerId,
+        toolPreview == null ? 0 : identityHashCode(toolPreview),
+        selectedEntityId,
+        selectedMapEventId,
+        selectedWarpId,
+        selectedTriggerId,
+        selectedGameplayZoneId,
+        selectedPlacedElementInstanceId,
+        placedElementRotationPreview == null
+            ? 0
+            : identityHashCode(placedElementRotationPreview),
+        narrativeEventFocusTarget == null
+            ? 0
+            : identityHashCode(narrativeEventFocusTarget),
+        narrativeEventSourceProposal == null
+            ? 0
+            : identityHashCode(narrativeEventSourceProposal),
+        gameplayZoneDraftArea,
+        cellStrokePreview?.revision,
+        environmentMaskOverlay == null
+            ? 0
+            : identityHashCode(environmentMaskOverlay),
+        environmentBrushCursorOverlay == null
+            ? 0
+            : identityHashCode(environmentBrushCursorOverlay),
+        environmentGeneratedAddPreview == null
+            ? 0
+            : identityHashCode(environmentGeneratedAddPreview),
+        environmentGeneratedDeletePreviewId,
+        borderPreview == null ? 0 : identityHashCode(borderPreview),
+      ),
     );
     final cullingObserver = debugOnCulling;
     final cullingCounter = cullingObserver == null
@@ -585,123 +652,324 @@ class MapGridPainter extends CustomPainter {
     for (final step in compositionPlan.steps) {
       switch (step.kind) {
         case MapVisualCompositionStepKind.smartTileLayer:
-          _paintSmartTileLayer(
+          final smartBackgroundLayer = step.layer! as SmartTileLayer;
+          _paintCachedPicture(
             canvas,
-            step.layer! as SmartTileLayer,
-            pass: SmartTileVisualPass.background,
+            cacheId: 'smart:${smartBackgroundLayer.id}:background',
             visibleBounds: visibleBounds,
-            cullingCounter: cullingCounter,
-          );
-        case MapVisualCompositionStepKind.tileBackgroundLayer:
-          _paintTileLayer(
-            canvas,
-            step.layer! as TileLayer,
-            renderPass: _EditorMapTileRenderPass.background,
-            foregroundTileCellIndicesByLayerId:
-                foregroundTileCellIndicesByLayerId,
-            visibleBounds: visibleBounds,
-            visiblePlacedElements: visiblePlacedElements,
-            cullingCounter: cullingCounter,
-          );
-        case MapVisualCompositionStepKind.borderLayer:
-          if (borderCatalog != null) {
-            const BorderPreviewPainter().paintLayer(
-              canvas,
-              map: map,
-              layer: step.layer! as BorderLayer,
-              catalog: borderCatalog,
-              frameImagesByKey: tilesetImagesById,
-              sourceTileWidth: sourceTileWidth,
-              sourceTileHeight: sourceTileHeight,
-              displayScale: sourceTileWidth <= 0
-                  ? 1
-                  : tileWidth / sourceTileWidth,
-              elapsedMs: effectiveAnimationMs,
-              preview: borderPreview,
-            );
-          }
-        case MapVisualCompositionStepKind.shadows:
-          paintEditorStaticShadowPreviewInstructions(
-            canvas,
-            projectedBuildingShadowPreviewInstructions,
-          );
-          paintEditorStaticShadowPreviewInstructions(
-            canvas,
-            staticShadowPreviewInstructions,
-          );
-        case MapVisualCompositionStepKind.placedElements:
-          _paintPlacedElementsForLayer(
-            canvas,
-            step.layer! as TileLayer,
-            renderPass: _EditorMapTileRenderPass.background,
-            visiblePlacedElements: visiblePlacedElements,
-            cullingCounter: cullingCounter,
-          );
-        case MapVisualCompositionStepKind.backgroundEntities:
-          _paintEntities(canvas, foregroundPass: false);
-          for (final smartLayer
-              in map.layers
-                  .where((layer) => layer.isVisible)
-                  .whereType<SmartTileLayer>()) {
-            _paintSmartTileLayer(
-              canvas,
-              smartLayer,
-              pass: SmartTileVisualPass.actorOcclusion,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.layerRevision(smartBackgroundLayer.id) ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+              cellStrokePreview?.layerId == smartBackgroundLayer.id
+                  ? cellStrokePreview?.revision ?? 0
+                  : 0,
+            ),
+            animated: _animatedSmartTileLayerIds.contains(
+              smartBackgroundLayer.id,
+            ),
+            paint: (target) => _paintSmartTileLayer(
+              target,
+              smartBackgroundLayer,
+              pass: SmartTileVisualPass.background,
               visibleBounds: visibleBounds,
               cullingCounter: cullingCounter,
-            );
-          }
-        case MapVisualCompositionStepKind.foregroundTilesAndPlacedElements:
-          for (final layer in tileLayersInPaintOrder) {
-            _paintTileLayer(
-              canvas,
-              layer,
-              renderPass: _EditorMapTileRenderPass.foreground,
+            ),
+          );
+        case MapVisualCompositionStepKind.tileBackgroundLayer:
+          final tileBackgroundLayer = step.layer! as TileLayer;
+          _paintCachedPicture(
+            canvas,
+            cacheId: 'tile:${tileBackgroundLayer.id}:background',
+            visibleBounds: visibleBounds,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.layerRevision(tileBackgroundLayer.id) ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+              revisions?.placedElementsRevision ?? 0,
+              revisions?.geometryRevision ?? 0,
+              cellStrokePreview?.layerId == tileBackgroundLayer.id
+                  ? cellStrokePreview?.revision ?? 0
+                  : 0,
+            ),
+            animated: _animatedTileLayerIds.contains(tileBackgroundLayer.id),
+            paint: (target) => _paintTileLayer(
+              target,
+              tileBackgroundLayer,
+              renderPass: _EditorMapTileRenderPass.background,
               foregroundTileCellIndicesByLayerId:
                   foregroundTileCellIndicesByLayerId,
               visibleBounds: visibleBounds,
               visiblePlacedElements: visiblePlacedElements,
               cullingCounter: cullingCounter,
-            );
-            _paintPlacedElementsForLayer(
+            ),
+          );
+        case MapVisualCompositionStepKind.borderLayer:
+          if (borderCatalog != null) {
+            final borderLayer = step.layer! as BorderLayer;
+            _paintCachedPicture(
               canvas,
-              layer,
-              renderPass: _EditorMapTileRenderPass.foreground,
+              cacheId: 'border:${borderLayer.id}',
+              visibleBounds: visibleBounds,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.layerRevision(borderLayer.id) ?? 0,
+                revisions?.projectRevision ?? 0,
+                revisions?.assetsRevision ?? 0,
+                identityHashCode(borderPreview),
+              ),
+              animated: _borderNeedsAnimation,
+              paint: (target) => const BorderPreviewPainter().paintLayer(
+                target,
+                map: map,
+                layer: borderLayer,
+                catalog: borderCatalog,
+                frameImagesByKey: tilesetImagesById,
+                sourceTileWidth: sourceTileWidth,
+                sourceTileHeight: sourceTileHeight,
+                displayScale: sourceTileWidth <= 0
+                    ? 1
+                    : tileWidth / sourceTileWidth,
+                elapsedMs: effectiveAnimationMs,
+                preview: borderPreview,
+              ),
+            );
+          }
+        case MapVisualCompositionStepKind.shadows:
+          _paintCachedPicture(
+            canvas,
+            cacheId: 'shadows',
+            visibleBounds: visibleBounds,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.mapRevision ?? 0,
+              revisions?.projectRevision ?? 0,
+              shadowLightPreviewPreset,
+            ),
+            animated: false,
+            paint: (target) {
+              paintEditorStaticShadowPreviewInstructions(
+                target,
+                projectedBuildingShadowPreviewInstructions,
+              );
+              paintEditorStaticShadowPreviewInstructions(
+                target,
+                staticShadowPreviewInstructions,
+              );
+            },
+          );
+        case MapVisualCompositionStepKind.placedElements:
+          final placedBackgroundLayer = step.layer! as TileLayer;
+          _paintCachedPicture(
+            canvas,
+            cacheId: 'placed:${placedBackgroundLayer.id}:background',
+            visibleBounds: visibleBounds,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.placedElementsRevision ?? 0,
+              revisions?.layerRevision(placedBackgroundLayer.id) ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+              revisions?.geometryRevision ?? 0,
+              environmentGeneratedDeletePreviewId,
+            ),
+            animated: _animatedPlacedElementLayerIds.contains(
+              placedBackgroundLayer.id,
+            ),
+            paint: (target) => _paintPlacedElementsForLayer(
+              target,
+              placedBackgroundLayer,
+              renderPass: _EditorMapTileRenderPass.background,
               visiblePlacedElements: visiblePlacedElements,
               cullingCounter: cullingCounter,
+            ),
+          );
+        case MapVisualCompositionStepKind.backgroundEntities:
+          _paintCachedPicture(
+            canvas,
+            cacheId: 'entities:background',
+            visibleBounds: visibleBounds,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.entitiesRevision ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+              revisions?.geometryRevision ?? 0,
+              selectedEntityId,
+              showEntityEditorChrome,
+            ),
+            animated: _entitiesNeedAnimation,
+            paint: (target) => _paintEntities(target, foregroundPass: false),
+          );
+          for (final smartLayer
+              in map.layers
+                  .where((layer) => layer.isVisible)
+                  .whereType<SmartTileLayer>()) {
+            _paintCachedPicture(
+              canvas,
+              cacheId: 'smart:${smartLayer.id}:actor-occlusion',
+              visibleBounds: visibleBounds,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.layerRevision(smartLayer.id) ?? 0,
+                revisions?.projectRevision ?? 0,
+                revisions?.assetsRevision ?? 0,
+                cellStrokePreview?.layerId == smartLayer.id
+                    ? cellStrokePreview?.revision ?? 0
+                    : 0,
+              ),
+              animated: _animatedSmartTileLayerIds.contains(smartLayer.id),
+              paint: (target) => _paintSmartTileLayer(
+                target,
+                smartLayer,
+                pass: SmartTileVisualPass.actorOcclusion,
+                visibleBounds: visibleBounds,
+                cullingCounter: cullingCounter,
+              ),
+            );
+          }
+        case MapVisualCompositionStepKind.foregroundTilesAndPlacedElements:
+          for (final layer in tileLayersInPaintOrder) {
+            _paintCachedPicture(
+              canvas,
+              cacheId: 'tile:${layer.id}:foreground',
+              visibleBounds: visibleBounds,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.layerRevision(layer.id) ?? 0,
+                revisions?.projectRevision ?? 0,
+                revisions?.assetsRevision ?? 0,
+                revisions?.placedElementsRevision ?? 0,
+                revisions?.geometryRevision ?? 0,
+                cellStrokePreview?.layerId == layer.id
+                    ? cellStrokePreview?.revision ?? 0
+                    : 0,
+              ),
+              animated: _animatedTileLayerIds.contains(layer.id),
+              paint: (target) => _paintTileLayer(
+                target,
+                layer,
+                renderPass: _EditorMapTileRenderPass.foreground,
+                foregroundTileCellIndicesByLayerId:
+                    foregroundTileCellIndicesByLayerId,
+                visibleBounds: visibleBounds,
+                visiblePlacedElements: visiblePlacedElements,
+                cullingCounter: cullingCounter,
+              ),
+            );
+            _paintCachedPicture(
+              canvas,
+              cacheId: 'placed:${layer.id}:foreground',
+              visibleBounds: visibleBounds,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.placedElementsRevision ?? 0,
+                revisions?.layerRevision(layer.id) ?? 0,
+                revisions?.projectRevision ?? 0,
+                revisions?.assetsRevision ?? 0,
+                revisions?.geometryRevision ?? 0,
+                environmentGeneratedDeletePreviewId,
+              ),
+              animated: _animatedPlacedElementLayerIds.contains(layer.id),
+              paint: (target) => _paintPlacedElementsForLayer(
+                target,
+                layer,
+                renderPass: _EditorMapTileRenderPass.foreground,
+                visiblePlacedElements: visiblePlacedElements,
+                cullingCounter: cullingCounter,
+              ),
             );
           }
           for (final smartLayer
               in map.layers
                   .where((layer) => layer.isVisible)
                   .whereType<SmartTileLayer>()) {
-            _paintSmartTileLayer(
+            _paintCachedPicture(
               canvas,
-              smartLayer,
-              pass: SmartTileVisualPass.foreground,
+              cacheId: 'smart:${smartLayer.id}:foreground',
               visibleBounds: visibleBounds,
-              cullingCounter: cullingCounter,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.layerRevision(smartLayer.id) ?? 0,
+                revisions?.projectRevision ?? 0,
+                revisions?.assetsRevision ?? 0,
+                cellStrokePreview?.layerId == smartLayer.id
+                    ? cellStrokePreview?.revision ?? 0
+                    : 0,
+              ),
+              animated: _animatedSmartTileLayerIds.contains(smartLayer.id),
+              paint: (target) => _paintSmartTileLayer(
+                target,
+                smartLayer,
+                pass: SmartTileVisualPass.foreground,
+                visibleBounds: visibleBounds,
+                cullingCounter: cullingCounter,
+              ),
             );
           }
         case MapVisualCompositionStepKind.foregroundEntities:
-          _paintEntities(canvas, foregroundPass: true);
+          _paintCachedPicture(
+            canvas,
+            cacheId: 'entities:foreground',
+            visibleBounds: visibleBounds,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.entitiesRevision ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+              revisions?.geometryRevision ?? 0,
+              selectedEntityId,
+              showEntityEditorChrome,
+            ),
+            animated: _entitiesNeedAnimation,
+            paint: (target) => _paintEntities(target, foregroundPass: true),
+          );
         case MapVisualCompositionStepKind.collisionOverlay:
           for (final layer
               in compositionPlan.visibleCollisionLayersInPaintOrder) {
-            _paintCollisionLayer(
+            _paintCachedPicture(
               canvas,
-              layer,
-              isActive: layer.id == activeLayerId,
+              cacheId: 'collision:${layer.id}',
               visibleBounds: visibleBounds,
-              cullingCounter: cullingCounter,
+              revisions: revisions,
+              revisionToken: (
+                revisions?.layerRevision(layer.id) ?? 0,
+                layer.id == activeLayerId,
+                cellStrokePreview?.layerId == layer.id
+                    ? cellStrokePreview?.revision ?? 0
+                    : 0,
+              ),
+              animated: false,
+              paint: (target) => _paintCollisionLayer(
+                target,
+                layer,
+                isActive: layer.id == activeLayerId,
+                visibleBounds: visibleBounds,
+                cullingCounter: cullingCounter,
+              ),
             );
           }
         case MapVisualCompositionStepKind.objectLayer:
-          _paintObjectLayer(
+          final objectLayer = step.layer! as ObjectLayer;
+          _paintCachedPicture(
             canvas,
-            step.layer! as ObjectLayer,
+            cacheId: 'object:${objectLayer.id}',
             visibleBounds: visibleBounds,
-            cullingCounter: cullingCounter,
+            revisions: revisions,
+            revisionToken: (
+              revisions?.layerRevision(objectLayer.id) ?? 0,
+              revisions?.projectRevision ?? 0,
+              revisions?.assetsRevision ?? 0,
+            ),
+            animated: _animatedObjectLayerIds.contains(objectLayer.id),
+            paint: (target) => _paintObjectLayer(
+              target,
+              objectLayer,
+              visibleBounds: visibleBounds,
+              cullingCounter: cullingCounter,
+            ),
           );
         case MapVisualCompositionStepKind.environmentNoop:
           break;
@@ -709,27 +977,19 @@ class MapGridPainter extends CustomPainter {
     }
 
     if (showGrid) {
-      final gridPaint = Paint()
-        ..color = PokeMapLegacyColors.white10
-        ..strokeWidth = 1.0 / zoom
-        ..style = PaintingStyle.stroke;
-
-      for (var x = visibleBounds.left; x <= visibleBounds.right; x++) {
-        cullingCounter?.gridLineVisits += 1;
-        canvas.drawLine(
-          Offset(x * tileWidth, visibleBounds.top * tileHeight),
-          Offset(x * tileWidth, visibleBounds.bottom * tileHeight),
-          gridPaint,
-        );
-      }
-      for (var y = visibleBounds.top; y <= visibleBounds.bottom; y++) {
-        cullingCounter?.gridLineVisits += 1;
-        canvas.drawLine(
-          Offset(visibleBounds.left * tileWidth, y * tileHeight),
-          Offset(visibleBounds.right * tileWidth, y * tileHeight),
-          gridPaint,
-        );
-      }
+      _paintCachedPicture(
+        canvas,
+        cacheId: 'grid',
+        visibleBounds: visibleBounds,
+        revisions: revisions,
+        revisionToken: revisions?.geometryRevision ?? 0,
+        animated: false,
+        paint: (target) => _paintGrid(
+          target,
+          visibleBounds: visibleBounds,
+          cullingCounter: cullingCounter,
+        ),
+      );
     }
 
     if (showEditorOverlays) {
@@ -828,6 +1088,95 @@ class MapGridPainter extends CustomPainter {
         ),
       );
     }
+  }
+
+  void _paintGrid(
+    Canvas canvas, {
+    required EditorMapVisibleCellBounds visibleBounds,
+    required _MapGridCullingDebugCounter? cullingCounter,
+  }) {
+    final gridPaint = Paint()
+      ..color = PokeMapLegacyColors.white10
+      ..strokeWidth = 1.0 / zoom
+      ..style = PaintingStyle.stroke;
+    for (var x = visibleBounds.left; x <= visibleBounds.right; x++) {
+      cullingCounter?.gridLineVisits += 1;
+      canvas.drawLine(
+        Offset(x * tileWidth, visibleBounds.top * tileHeight),
+        Offset(x * tileWidth, visibleBounds.bottom * tileHeight),
+        gridPaint,
+      );
+    }
+    for (var y = visibleBounds.top; y <= visibleBounds.bottom; y++) {
+      cullingCounter?.gridLineVisits += 1;
+      canvas.drawLine(
+        Offset(visibleBounds.left * tileWidth, y * tileHeight),
+        Offset(visibleBounds.right * tileWidth, y * tileHeight),
+        gridPaint,
+      );
+    }
+  }
+
+  void _paintCachedPicture(
+    Canvas canvas, {
+    required String cacheId,
+    required EditorMapVisibleCellBounds visibleBounds,
+    required EditorCanvasPaintRevisionSnapshot? revisions,
+    required Object revisionToken,
+    required bool animated,
+    required void Function(Canvas canvas) paint,
+  }) {
+    final owner = pictureCacheOwner;
+    if (owner == null || revisions == null || debugOnCulling != null) {
+      paint(canvas);
+      return;
+    }
+    if (animated) {
+      _reportPictureCache(
+        cacheId,
+        EditorCanvasPictureCacheDisposition.animated,
+      );
+      paint(canvas);
+      return;
+    }
+    final key = _EditorCanvasPictureCacheKey(
+      slot: _EditorCanvasPictureCacheSlot(
+        mapId: map.id,
+        cacheId: cacheId,
+        visibleBounds: visibleBounds,
+        zoom: zoom,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+      ),
+      revisionToken: revisionToken,
+    );
+    final cached = owner._pictureFor(key);
+    if (cached != null) {
+      _reportPictureCache(cacheId, EditorCanvasPictureCacheDisposition.hit);
+      canvas.drawPicture(cached);
+      return;
+    }
+    _reportPictureCache(cacheId, EditorCanvasPictureCacheDisposition.miss);
+    final recorder = ui.PictureRecorder();
+    paint(Canvas(recorder));
+    final picture = recorder.endRecording();
+    owner._store(key, picture);
+    canvas.drawPicture(picture);
+  }
+
+  void _reportPictureCache(
+    String cacheId,
+    EditorCanvasPictureCacheDisposition disposition,
+  ) {
+    assert(() {
+      debugOnPictureCache?.call(
+        EditorCanvasPictureCacheEvent(
+          cacheId: cacheId,
+          disposition: disposition,
+        ),
+      );
+      return true;
+    }());
   }
 
   void _paintNarrativeEventBridgeHighlight(
@@ -3085,6 +3434,7 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.sourceTileHeight != sourceTileHeight ||
         !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById) ||
         oldDelegate._animationClock != _animationClock ||
+        oldDelegate.pictureCacheOwner != pictureCacheOwner ||
         oldDelegate.cellStrokePreview != cellStrokePreview ||
         oldDelegate.cellStrokeRepaint != cellStrokeRepaint ||
         (_animationClock == null &&
