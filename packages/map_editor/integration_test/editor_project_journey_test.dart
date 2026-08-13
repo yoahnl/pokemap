@@ -138,6 +138,8 @@ void main() {
           },
         ),
       );
+      final canonicalPlacementPhase = phases.last;
+      _expectNoPersistenceWork(canonicalPlacementPhase);
       expect(
         notifier.state.activeMap?.placedElements.any(
           (element) =>
@@ -147,6 +149,18 @@ void main() {
         ),
         isTrue,
       );
+
+      phases.add(
+        await _measure(
+          'canonical-element-publication',
+          performanceRecorder,
+          () async {
+            expect(await notifier.drainPlacedElementPublications(), isTrue);
+            await tester.pump(const Duration(milliseconds: 16));
+          },
+        ),
+      );
+      expect(notifier.state.errorMessage, isNull);
 
       notifier.setActiveLayer('collision');
       notifier.selectTool(EditorToolType.collisionPaint);
@@ -251,7 +265,7 @@ void main() {
           expect(
             (collisionSpans[EditorPerformanceSpanName.mutationLocal]!
                 as Map<String, Object?>)['count'],
-            strokeCount,
+            strokeCount + 1,
           );
           _expectNoPersistenceWork(collisionPhase);
         }
@@ -313,6 +327,7 @@ void main() {
         'mapOpen': 1,
         'tilePlacement': 90,
         'canonicalElementPlacement': 1,
+        'canonicalElementPublication': 1,
         'collisionPaintExtents': <int>[128, 256, 512, 1024],
         'collisionPaintCounts': <int>[1, 10, 100, 1000],
         'pointerCollisionDrag': 90,
