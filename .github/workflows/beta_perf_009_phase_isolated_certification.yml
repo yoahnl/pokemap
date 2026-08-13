@@ -1,0 +1,129 @@
+name: BETA-PERF-009 phase-isolated certification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: 3.46.0-0.3.pre
+  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+
+jobs:
+  perf-009-certification:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Verify exact PERF-009 production base
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "39050457f479504ec78cd4381896a1c49fdc1168" || \
+            test "$(git rev-parse HEAD)" = "39050457f479504ec78cd4381896a1c49fdc1168"
+          test -z "$(git status --porcelain)"
+      - name: Verify receipt contracts
+        working-directory: packages/map_editor
+        run: |
+          flutter pub get
+          flutter test --no-pub \
+            test/performance_driver_contract_test.dart \
+            test/fine_mask_performance_contract_test.dart
+      - name: Prepare phase-isolated canonical project journey
+        working-directory: packages/map_editor
+        run: |
+          set -euo pipefail
+          mkdir -p build/performance
+          cp integration_test/editor_project_journey_test.dart \
+            build/performance/editor_project_journey_phase_isolated.dart
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('build/performance/editor_project_journey_phase_isolated.dart')
+          source = path.read_text()
+          source = source.replace(
+              "import 'support/vm_memory_probe.dart';",
+              "import '../../integration_test/support/vm_memory_probe.dart';",
+              1,
+          )
+          needle = "      notifier.setActiveLayer('collision');"
+          replacement = """      expect(await notifier.drainPlacedElementPublications(), isTrue);
+          await tester.pump(const Duration(milliseconds: 16));
+
+          notifier.setActiveLayer('collision');"""
+          if needle not in source:
+              raise SystemExit('canonical collision phase anchor not found')
+          source = source.replace(needle, replacement, 1)
+          path.write_text(source)
+          PY
+          grep -n "drainPlacedElementPublications" \
+            build/performance/editor_project_journey_phase_isolated.dart
+          test -z "$(git status --porcelain)"
+      - name: Run canonical project gate with isolated phases
+        working-directory: packages/map_editor
+        run: |
+          set -euo pipefail
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=build/performance/editor_project_journey_phase_isolated.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_project_journey.json \
+            2>&1 | tee build/performance/editor_project_journey.log
+      - name: Run canvas gate
+        working-directory: packages/map_editor
+        run: |
+          set -euo pipefail
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/editor_canvas_projection_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_canvas_projection_journey.json \
+            2>&1 | tee build/performance/editor_canvas_projection_journey.log
+      - name: Run 30 minute soak A/C gate
+        working-directory: packages/map_editor
+        run: |
+          set -euo pipefail
+          flutter drive --profile -d macos \
+            --driver=test_driver/performance_driver.dart \
+            --target=integration_test/editor_performance_soak_journey_test.dart \
+            --dart-define=POKEMAP_PERF_SOAK_MINUTES=30 \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_performance_soak_journey.json \
+            2>&1 | tee build/performance/editor_performance_soak_journey.log
+      - name: Run fine-mask B gate
+        working-directory: packages/map_editor
+        run: |
+          set -euo pipefail
+          flutter drive --profile -d macos \
+            --driver=test_driver/fine_mask_performance_driver.dart \
+            --target=integration_test/editor_fine_mask_journey_test.dart \
+            --dart-define=POKEMAP_PERF_OUTPUT=build/performance/editor_fine_mask_journey.json \
+            2>&1 | tee build/performance/editor_fine_mask_journey.log
+      - name: Verify production tree remained clean
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+      - name: Preserve BETA-PERF-009 receipts and harness evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: beta-perf-009-phase-isolated-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            packages/map_editor/build/performance/editor_project_journey.json
+            packages/map_editor/build/performance/editor_canvas_projection_journey.json
+            packages/map_editor/build/performance/editor_performance_soak_journey.json
+            packages/map_editor/build/performance/editor_fine_mask_journey.json
+            packages/map_editor/build/performance/editor_project_journey.log
+            packages/map_editor/build/performance/editor_canvas_projection_journey.log
+            packages/map_editor/build/performance/editor_performance_soak_journey.log
+            packages/map_editor/build/performance/editor_fine_mask_journey.log
+            packages/map_editor/build/performance/editor_project_journey_phase_isolated.dart
