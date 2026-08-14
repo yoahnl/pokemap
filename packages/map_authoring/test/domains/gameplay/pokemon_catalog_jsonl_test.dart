@@ -26,7 +26,16 @@ void main() {
         (await direct.speciesJson())['schemaVersion'],
         currentPokemonDataSchemaVersion,
       );
-      expect((await direct.speciesJson())['vendorExtension'], isTrue);
+      expect(
+        await direct.speciesJson(),
+        PokemonSpeciesFile.fromJson(_speciesDocument()).toJson(),
+      );
+      expect(
+        (await direct.speciesJson()).containsKey('vendorExtension'),
+        isFalse,
+      );
+      expect(_receiptAfter(directReceipt), await direct.speciesJson());
+      expect(_receiptAfter(jsonlReceipt), await jsonl.speciesJson());
     });
 
     test('rejects future species schemas through direct API and JSONL',
@@ -48,7 +57,33 @@ void main() {
       expect(await direct.speciesExists(), isFalse);
       expect(await jsonl.speciesExists(), isFalse);
     });
+
+    test('rejects missing species schemas before direct API and JSONL writes',
+        () async {
+      final direct = await _PokemonTransportHarness.create('missing-direct');
+      final jsonl = await _PokemonTransportHarness.create('missing-jsonl');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      final missingDocument = _speciesDocument()..remove('schemaVersion');
+
+      await expectLater(
+        () => direct.writeDirect(missingDocument),
+        throwsFormatException,
+      );
+      final jsonlResult = await jsonl.writeJsonlResult(missingDocument);
+
+      expect(jsonlResult.status, AuthoringResultStatus.failure);
+      expect(await direct.speciesExists(), isFalse);
+      expect(await jsonl.speciesExists(), isFalse);
+    });
   });
+}
+
+Map<String, Object?> _receiptAfter(Map<String, Object?> receipt) {
+  final diff = Map<String, Object?>.from(receipt['diff']! as Map);
+  final entries = List<Object?>.from(diff['entries']! as List);
+  final entry = Map<String, Object?>.from(entries.single! as Map);
+  return Map<String, Object?>.from(entry['after']! as Map);
 }
 
 Map<String, dynamic> _speciesDocument() => <String, dynamic>{

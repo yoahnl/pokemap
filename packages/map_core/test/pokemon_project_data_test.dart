@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('PokemonSpeciesFile', () {
-    test('migrates a legacy document to the canonical schema', () {
+    test('round-trips the canonical schema', () {
       final species = PokemonSpeciesFile.fromJson(_speciesJson());
 
       expect(species.schemaVersion, currentPokemonDataSchemaVersion);
@@ -32,7 +32,7 @@ void main() {
       );
     });
 
-    test('preserves tolerant legacy localized-name parsing', () {
+    test('normalizes localized names in the canonical schema', () {
       final json = _speciesJson()
         ..['names'] = <Object?, Object?>{
           ' fr ': ' Bulbizarre ',
@@ -46,7 +46,83 @@ void main() {
     });
   });
 
-  test('all Pokemon project documents use the shared schema policy', () {
+  test('all Pokemon project documents require an explicit schema version', () {
+    final documents =
+        <(String, Map<String, dynamic>, Object Function(Map<String, dynamic>))>[
+          (
+            'manifest',
+            <String, dynamic>{
+              'kind': 'pokemon_data_manifest',
+              'meta': <String, dynamic>{},
+              'catalogFiles': <String, String>{},
+              'futureDataFolders': <String, String>{},
+            },
+            PokemonDataManifest.fromJson,
+          ),
+          (
+            'catalog',
+            <String, dynamic>{
+              'kind': 'pokemon_catalog',
+              'catalog': 'types',
+              'meta': <String, dynamic>{},
+              'entries': <Map<String, String>>[],
+            },
+            PokemonCatalogFile.fromJson,
+          ),
+          (
+            'species',
+            _speciesJson()..remove('schemaVersion'),
+            PokemonSpeciesFile.fromJson,
+          ),
+          (
+            'learnset',
+            <String, dynamic>{'speciesId': 'bulbasaur'},
+            PokemonLearnsetFile.fromJson,
+          ),
+          (
+            'evolution',
+            <String, dynamic>{'speciesId': 'bulbasaur'},
+            PokemonEvolutionFile.fromJson,
+          ),
+          (
+            'media',
+            <String, dynamic>{
+              'speciesId': 'bulbasaur',
+              'defaultFormId': 'base',
+            },
+            PokemonMediaFile.fromJson,
+          ),
+        ];
+
+    for (final (name, json, decode) in documents) {
+      for (final (hasVersion, invalidVersion) in <(bool, Object?)>[
+        (false, null),
+        (true, null),
+        (true, '1'),
+        (true, 0),
+        (true, 2),
+      ]) {
+        final document = <String, dynamic>{...json};
+        if (hasVersion) {
+          document['schemaVersion'] = invalidVersion;
+        }
+        expect(
+          () => decode(document),
+          throwsA(
+            isA<UnsupportedPokemonDataSchema>().having(
+              (error) => error.path,
+              '$name path',
+              r'$.schemaVersion',
+            ),
+          ),
+          reason:
+              '$name must reject ${hasVersion ? 'schemaVersion $invalidVersion' : 'a missing schemaVersion'}',
+        );
+      }
+    }
+  });
+
+  test('all Pokemon project documents round-trip the current schema', () {
     final documents = <Map<String, Object?>>[
       PokemonDataManifest.fromJson(<String, dynamic>{
         'schemaVersion': currentPokemonDataSchemaVersion,
@@ -65,14 +141,17 @@ void main() {
         ],
       }).toJson(),
       PokemonLearnsetFile.fromJson(<String, dynamic>{
+        'schemaVersion': currentPokemonDataSchemaVersion,
         'speciesId': 'bulbasaur',
         'startingMoves': <String>['tackle'],
       }).toJson(),
       PokemonEvolutionFile.fromJson(<String, dynamic>{
+        'schemaVersion': currentPokemonDataSchemaVersion,
         'speciesId': 'bulbasaur',
         'evolutions': <Map<String, dynamic>>[],
       }).toJson(),
       PokemonMediaFile.fromJson(<String, dynamic>{
+        'schemaVersion': currentPokemonDataSchemaVersion,
         'speciesId': 'bulbasaur',
         'defaultFormId': 'base',
         'variants': <String, dynamic>{},
@@ -120,6 +199,7 @@ void main() {
 }
 
 Map<String, dynamic> _speciesJson() => <String, dynamic>{
+  'schemaVersion': currentPokemonDataSchemaVersion,
   'id': 'bulbasaur',
   'slug': 'bulbasaur',
   'nationalDex': 1,

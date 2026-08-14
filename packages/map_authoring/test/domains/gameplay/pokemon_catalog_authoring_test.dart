@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('Pokemon catalog authoring', () {
-    test('generic catalog edits preserve unknown JSON fields losslessly', () {
+    test('generic catalog edits canonicalize the document envelope', () {
       final catalog = PokemonJsonDocument.fromJson(
         PokemonDocumentKind.catalog,
         {
@@ -33,7 +33,7 @@ void main() {
         },
       );
 
-      expect(updated.toJson()['vendorExtension'], {'kept': true});
+      expect(updated.toJson().containsKey('vendorExtension'), isFalse);
       expect(
         (updated.toJson()['entries'] as List).first,
         {
@@ -83,6 +83,7 @@ void main() {
       final species = PokemonJsonDocument.fromJson(
         PokemonDocumentKind.species,
         {
+          'schemaVersion': currentPokemonDataSchemaVersion,
           'id': 'sproutle',
           'forms': {'entries': []}
         },
@@ -90,6 +91,7 @@ void main() {
       final evolution = PokemonJsonDocument.fromJson(
         PokemonDocumentKind.evolution,
         {
+          'schemaVersion': currentPokemonDataSchemaVersion,
           'speciesId': 'sproutle',
           'evolutions': [
             {'targetSpeciesId': 'missing', 'method': 'level'},
@@ -99,6 +101,7 @@ void main() {
       final media = PokemonJsonDocument.fromJson(
         PokemonDocumentKind.media,
         {
+          'schemaVersion': currentPokemonDataSchemaVersion,
           'speciesId': 'sproutle',
           'defaultFormId': 'base',
           'variants': <String, Object?>{},

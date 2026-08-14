@@ -24,8 +24,10 @@ final class PokemonJsonDocument {
     PokemonDocumentKind kind,
     Map<String, dynamic> json,
   ) {
-    _validateSharedPokemonDocument(kind, json);
-    return PokemonJsonDocument._(kind, Map<String, Object?>.from(json));
+    return PokemonJsonDocument._(
+      kind,
+      _canonicalSharedPokemonDocument(kind, json),
+    );
   }
 
   final PokemonDocumentKind kind;
@@ -430,23 +432,19 @@ String _entryId(Map<Object?, Object?> entry) {
   return value;
 }
 
-void _validateSharedPokemonDocument(
+Map<String, Object?> _canonicalSharedPokemonDocument(
   PokemonDocumentKind kind,
   Map<String, dynamic> json,
-) {
-  switch (kind) {
-    case PokemonDocumentKind.catalog:
-      PokemonCatalogFile.fromJson(json);
-    case PokemonDocumentKind.species:
-      PokemonSpeciesFile.fromJson(json);
-    case PokemonDocumentKind.learnset:
-      PokemonLearnsetFile.fromJson(json);
-    case PokemonDocumentKind.evolution:
-      PokemonEvolutionFile.fromJson(json);
-    case PokemonDocumentKind.media:
-      PokemonMediaFile.fromJson(json);
-  }
-}
+) =>
+    switch (kind) {
+      PokemonDocumentKind.catalog => PokemonCatalogFile.fromJson(json).toJson(),
+      PokemonDocumentKind.species => PokemonSpeciesFile.fromJson(json).toJson(),
+      PokemonDocumentKind.learnset =>
+        PokemonLearnsetFile.fromJson(json).toJson(),
+      PokemonDocumentKind.evolution =>
+        PokemonEvolutionFile.fromJson(json).toJson(),
+      PokemonDocumentKind.media => PokemonMediaFile.fromJson(json).toJson(),
+    };
 
 List<PokemonCatalogDocument<T>> _decodeDocuments<T>(
   Iterable<PokemonJsonDocument> documents,

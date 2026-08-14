@@ -144,7 +144,9 @@ void main() {
         'execute leaves project data untouched when a detected companion is invalid',
         () async {
       final sourcePaths = await _writeValidBundle(tempImportRoot);
-      await sourcePaths.learnset.writeAsString('{"speciesId": ""}');
+      await sourcePaths.learnset.writeAsString(
+        '{"schemaVersion": 1, "speciesId": ""}',
+      );
       final beforeProjectJson = await projectFile.readAsString();
 
       await expectLater(

@@ -41,7 +41,7 @@ async function toolFailure(
   assert.equal(record(result.structuredContent).ok, false);
 }
 
-test("MCP writes the shared Pokemon species schema and rejects future versions", async () => {
+test("MCP writes canonical Pokemon species and rejects invalid schemas", async () => {
   const root = await mkdtemp(join(tmpdir(), "pokemap-mcp-pokemon-"));
   await writeFile(
     join(root, "project.json"),
@@ -108,6 +108,18 @@ test("MCP writes the shared Pokemon species schema and rejects future versions",
     });
     const snapshotRevision = String(refreshed.snapshotRevision);
     const document = speciesDocument(1);
+    const missingSchemaDocument = speciesDocument(1);
+    delete missingSchemaDocument.schemaVersion;
+
+    await toolFailure(client, "pokemap_plan", {
+      projectHandle,
+      request: mutationRequest(
+        workspaceHandle,
+        snapshotRevision,
+        missingSchemaDocument,
+        "missing",
+      ),
+    });
 
     await toolFailure(client, "pokemap_plan", {
       projectHandle,
@@ -145,7 +157,8 @@ test("MCP writes the shared Pokemon species schema and rejects future versions",
       ),
     ) as JsonRecord;
     assert.equal(persisted.schemaVersion, 1);
-    assert.equal(persisted.vendorExtension, true);
+    assert.equal(persisted.slug, "");
+    assert.equal(persisted.vendorExtension, undefined);
 
     const gated = await toolData(client, "pokemap_validate", {
       projectHandle,

@@ -85,6 +85,7 @@ void main() {
       await File(p.join(speciesDir.path, 'noncanonical-name.json'))
           .writeAsString(
         jsonEncode(<String, dynamic>{
+          'schemaVersion': currentPokemonDataSchemaVersion,
           'id': 'targetmon',
           'forms': <String, dynamic>{'formId': 'summer'},
           'typing': <String, dynamic>{
@@ -568,6 +569,43 @@ void main() {
         ),
       );
     });
+
+    test('rejects a missing shared species schema explicitly', () async {
+      final file = File(
+        p.join(
+          tempRoot.path,
+          'data',
+          'pokemon',
+          'species',
+          'targetmon.json',
+        ),
+      );
+      await _writeValidSpeciesFile(
+        file,
+        declaredId: 'targetmon',
+      );
+      final rawJson = jsonDecode(await file.readAsString())
+          as Map<String, dynamic>
+        ..remove('schemaVersion');
+      await file.writeAsString(jsonEncode(rawJson));
+
+      await expectLater(
+        () => RuntimePokemonSpeciesLoader().loadById(
+          projectRootDirectory: tempRoot.path,
+          pokemonConfig: const ProjectPokemonConfig(
+            speciesDir: 'data/pokemon/species',
+          ),
+          speciesId: 'targetmon',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(contains('schemaVersion=null'), contains('expected=1')),
+          ),
+        ),
+      );
+    });
   });
 }
 
@@ -582,6 +620,7 @@ Future<void> _writeSpecies(
   final file = File(p.join(speciesDir.path, 'targetmon.json'));
   await file.writeAsString(
     jsonEncode(<String, dynamic>{
+      'schemaVersion': currentPokemonDataSchemaVersion,
       'id': 'targetmon',
       'typing': <String, dynamic>{
         'types': <String>['grass']
@@ -605,13 +644,13 @@ Future<void> _writeValidSpeciesFile(
   File file, {
   required String declaredId,
   Object abilities = const <String, dynamic>{'primary': 'overgrow'},
-  int? schemaVersion,
+  int schemaVersion = currentPokemonDataSchemaVersion,
   int baseHp = 45,
 }) async {
   await file.parent.create(recursive: true);
   await file.writeAsString(
     jsonEncode(<String, dynamic>{
-      if (schemaVersion != null) 'schemaVersion': schemaVersion,
+      'schemaVersion': schemaVersion,
       'id': declaredId,
       'typing': <String, dynamic>{
         'types': <String>['grass'],

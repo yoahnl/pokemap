@@ -960,7 +960,10 @@ class PokemonEvolutionFile {
 int _readPokemonDataSchemaVersion(Map<String, dynamic> json) {
   final rawVersion = json['schemaVersion'];
   if (rawVersion == null) {
-    return currentPokemonDataSchemaVersion;
+    throw UnsupportedPokemonDataSchema(
+      actualVersion: rawVersion,
+      path: r'$.schemaVersion',
+    );
   }
   if (rawVersion is! num || rawVersion.toInt() != rawVersion) {
     throw UnsupportedPokemonDataSchema(

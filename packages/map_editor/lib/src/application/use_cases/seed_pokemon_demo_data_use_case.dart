@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
+
 import '../ports/pokemon_read_repository.dart';
 import '../ports/project_workspace.dart';
 import 'initialize_pokemon_project_storage_use_case.dart';
@@ -274,6 +276,7 @@ const Map<String, Map<String, Object?>> _catalogSeeds =
 const Map<String, Map<String, Object?>> _speciesSeeds =
     <String, Map<String, Object?>>{
   '0001-bulbasaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'id': 'bulbasaur',
     'slug': 'bulbasaur',
     'nationalDex': 1,
@@ -340,6 +343,7 @@ const Map<String, Map<String, Object?>> _speciesSeeds =
     },
   },
   '0002-ivysaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'id': 'ivysaur',
     'slug': 'ivysaur',
     'nationalDex': 2,
@@ -410,6 +414,7 @@ const Map<String, Map<String, Object?>> _speciesSeeds =
 const Map<String, Map<String, Object?>> _learnsetSeeds =
     <String, Map<String, Object?>>{
   'bulbasaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'bulbasaur',
     'startingMoves': <String>['tackle', 'growl'],
     'relearnMoves': <String>['tackle', 'growl', 'vine_whip', 'razor_leaf'],
@@ -451,6 +456,7 @@ const Map<String, Map<String, Object?>> _learnsetSeeds =
     'transfer': <Object?>[],
   },
   'ivysaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'ivysaur',
     'startingMoves': <String>['tackle', 'growl', 'vine_whip'],
     'relearnMoves': <String>['tackle', 'growl', 'vine_whip', 'razor_leaf'],
@@ -491,6 +497,7 @@ const Map<String, Map<String, Object?>> _learnsetSeeds =
 const Map<String, Map<String, Object?>> _evolutionSeeds =
     <String, Map<String, Object?>>{
   'bulbasaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'bulbasaur',
     'preEvolution': null,
     'evolutions': <Object?>[
@@ -508,6 +515,7 @@ const Map<String, Map<String, Object?>> _evolutionSeeds =
     ],
   },
   'ivysaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'ivysaur',
     'preEvolution': 'bulbasaur',
     'evolutions': <Object?>[],
@@ -517,6 +525,7 @@ const Map<String, Map<String, Object?>> _evolutionSeeds =
 const Map<String, Map<String, Object?>> _mediaSeeds =
     <String, Map<String, Object?>>{
   'bulbasaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'bulbasaur',
     'defaultFormId': 'base',
     'variants': <String, Object?>{
@@ -544,6 +553,7 @@ const Map<String, Map<String, Object?>> _mediaSeeds =
     },
   },
   'ivysaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'ivysaur',
     'defaultFormId': 'base',
     'variants': <String, Object?>{
