@@ -714,6 +714,7 @@ final Set<String> _approvedResourceKinds = {
   'pokemonItem',
   'pokemonType',
   'pokemonCatalog',
+  'pokemonRuleset',
   'itemCatalog',
   'itemDefinition',
   'itemUsage',

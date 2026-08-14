@@ -66,6 +66,7 @@ final class BattleProgressionPartySlotMetadata {
 final class BattleProgressionContext {
   BattleProgressionContext({
     required this.outcome,
+    this.ruleset = PokemonRulesetProfile.pokeMapBetaV1,
     required Iterable<int> playerParticipantPartySlots,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
@@ -92,12 +93,14 @@ final class BattleProgressionContext {
             Map<int, List<PokemonEvolutionCandidate>>.unmodifiable(
           _evolutionCandidatesBySlot(evolutionCandidatesByPartySlot),
         ) {
+    ruleset.requireSupported();
     for (final slot in this.playerParticipantPartySlots) {
       RangeError.checkNotNegative(slot, 'playerParticipantPartySlots');
     }
   }
 
   final BattleProgressionOutcomeKind outcome;
+  final PokemonRulesetProfile ruleset;
   final Set<int> playerParticipantPartySlots;
   final List<BattleProgressionDefeatedOpponent> defeatedOpponents;
   final Map<int, BattleProgressionPartySlotMetadata> partySlotMetadata;
@@ -133,11 +136,13 @@ final class BattleProgressionService {
     bool applyAuthoredRewards = true,
     ItemCatalogSnapshot? itemCatalog,
   }) {
+    context.ruleset.requireSupported();
     if (context.outcome != BattleProgressionOutcomeKind.victory) {
       return BattleProgressionResult(
         state: state,
         appliedReward: _emptyRewardLike(reward),
         changes: const <BattlePokemonProgressionChange>[],
+        rulesetReference: context.ruleset.reference,
       );
     }
 
@@ -157,6 +162,7 @@ final class BattleProgressionService {
     final totalExperience = _totalExperience(
       opponents: context.defeatedOpponents,
       sourceKind: reward.sourceKind,
+      ruleset: context.ruleset,
     );
     final experiencePerParticipant = totalExperience ~/ participantSlots.length;
     final plannedGrants = <BattleExperienceGrant>[
@@ -200,7 +206,9 @@ final class BattleProgressionService {
           'Party slot $slot experience is below its persisted level floor.',
         );
       }
-      final capExperience = curve.totalExperienceForLevel(100);
+      final capExperience = curve.totalExperienceForLevel(
+        context.ruleset.maxLevel,
+      );
       if (oldExperience > capExperience) {
         throw StateError(
           'Party slot $slot experience exceeds its level-100 cap.',
@@ -212,7 +220,10 @@ final class BattleProgressionService {
               ? capExperience
               : oldExperience + grant.experience;
       final effectiveExperience = newExperience - oldExperience;
-      final newLevel = curve.levelForExperience(newExperience);
+      final newLevel = curve.levelForExperience(
+        newExperience,
+        maxLevel: context.ruleset.maxLevel,
+      );
       final calculatedStats = statCalculator.calculate(
         baseStats: metadata.baseStats,
         ivs: member.ivs,
@@ -321,6 +332,7 @@ final class BattleProgressionService {
       changes: changes,
       moveLearningOpportunities: moveLearningOpportunities,
       evolutionOpportunities: evolutionOpportunities,
+      rulesetReference: context.ruleset.reference,
     );
   }
 }
@@ -405,7 +417,14 @@ Map<int, List<PokemonEvolutionCandidate>> _evolutionCandidatesBySlot(
 int _totalExperience({
   required Iterable<BattleProgressionDefeatedOpponent> opponents,
   required BattleRewardSourceKind sourceKind,
+  required PokemonRulesetProfile ruleset,
 }) {
+  if (ruleset.experiencePolicyId !=
+      PokemonRulesetProfile.canonicalExperiencePolicyId) {
+    throw StateError(
+      'Unsupported Pokemon XP policy: ${ruleset.experiencePolicyId}.',
+    );
+  }
   // Dart VM integers are arbitrary precision, while web targets use a bounded
   // safe integer range. Saturating here keeps the split deterministic across
   // both targets without allowing an authored opponent list to overflow.

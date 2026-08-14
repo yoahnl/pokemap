@@ -355,6 +355,8 @@ final class BattleProgressionResult {
     Iterable<BattleEvolutionChange> evolutionChanges =
         const <BattleEvolutionChange>[],
     PokemonEvolutionService evolutionService = const PokemonEvolutionService(),
+    PokemonRulesetReference rulesetReference =
+        PokemonRulesetProfile.pokeMapBetaV1Reference,
   }) {
     final evolutionQueue = _validatedEvolutionQueue(evolutionOpportunities);
     final moveAdvanced = _advanceMoveLearning(
@@ -364,6 +366,7 @@ final class BattleProgressionResult {
     );
     if (moveAdvanced.pending != null) {
       return BattleProgressionResult._(
+        rulesetReference: rulesetReference,
         state: moveAdvanced.state,
         appliedReward: appliedReward,
         changes: List<BattlePokemonProgressionChange>.unmodifiable(changes),
@@ -383,6 +386,7 @@ final class BattleProgressionResult {
       changes: evolutionChanges,
     );
     return BattleProgressionResult._(
+      rulesetReference: rulesetReference,
       state: evolutionAdvanced.state,
       appliedReward: appliedReward,
       changes: List<BattlePokemonProgressionChange>.unmodifiable(changes),
@@ -397,6 +401,7 @@ final class BattleProgressionResult {
   }
 
   const BattleProgressionResult._({
+    required this.rulesetReference,
     required this.state,
     required this.appliedReward,
     required this.changes,
@@ -414,6 +419,7 @@ final class BattleProgressionResult {
         _evolutionService = evolutionService;
 
   final GameState state;
+  final PokemonRulesetReference rulesetReference;
   final BattleReward appliedReward;
   final List<BattlePokemonProgressionChange> changes;
   final PendingBattleMoveLearning? pendingMoveLearning;
@@ -459,6 +465,7 @@ final class BattleProgressionResult {
           kind: BattleMoveLearningChangeKind.replacementRequested,
         );
         return BattleProgressionResult._(
+          rulesetReference: rulesetReference,
           state: state,
           appliedReward: appliedReward,
           changes: changes,
@@ -523,6 +530,7 @@ final class BattleProgressionResult {
     );
     if (advanced.pending != null) {
       return BattleProgressionResult._(
+        rulesetReference: rulesetReference,
         state: advanced.state,
         appliedReward: appliedReward,
         changes: changes,
@@ -541,6 +549,7 @@ final class BattleProgressionResult {
       changes: evolutionChanges,
     );
     return BattleProgressionResult._(
+      rulesetReference: rulesetReference,
       state: evolutionAdvanced.state,
       appliedReward: appliedReward,
       changes: changes,
@@ -631,6 +640,7 @@ final class BattleProgressionResult {
       ],
     );
     return BattleProgressionResult._(
+      rulesetReference: rulesetReference,
       state: advanced.state,
       appliedReward: appliedReward,
       changes: changes,

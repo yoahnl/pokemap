@@ -73,6 +73,7 @@ test("MCP writes the shared Pokemon species schema and rejects future versions",
       (descriptor) => String(descriptor.id),
     );
     assert.ok(actionIds.includes("pokemon.species.write"));
+    assert.ok(actionIds.includes("pokemon.ruleset.set"));
 
     const opened = await toolData(client, "pokemap_workspace", {
       operation: "open",
@@ -83,7 +84,29 @@ test("MCP writes the shared Pokemon species schema and rejects future versions",
     const validation = await toolData(client, "pokemap_validate", {
       projectHandle,
     });
-    const snapshotRevision = String(validation.snapshotRevision);
+    const initialRevision = String(validation.snapshotRevision);
+    const rulesetPlan = await toolData(client, "pokemap_plan", {
+      projectHandle,
+      request: rulesetMutationRequest(workspaceHandle, initialRevision),
+    });
+    const rulesetApplied = await toolData(client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: String(rulesetPlan.planId),
+      operationId: "pokemon-ruleset-mcp",
+    });
+    const rulesetReceipt = record(rulesetApplied.receipt);
+    assert.equal(rulesetReceipt.actionId, "pokemon.ruleset.set");
+    assert.deepEqual(rulesetFromReceipt(rulesetReceipt), rulesetProfile());
+    const project = JSON.parse(
+      await readFile(join(root, "project.json"), "utf8"),
+    ) as JsonRecord;
+    assert.deepEqual(record(record(project.pokemon).ruleset), rulesetProfile());
+
+    const refreshed = await toolData(client, "pokemap_validate", {
+      projectHandle,
+    });
+    const snapshotRevision = String(refreshed.snapshotRevision);
     const document = speciesDocument(1);
 
     await toolFailure(client, "pokemap_plan", {
@@ -150,6 +173,54 @@ function mutationRequest(
     idempotencyKey: `pokemon-species-${suffix}`,
     dryRun: false,
   };
+}
+
+function rulesetMutationRequest(
+  workspaceHandle: string,
+  expectedRevision: string,
+): JsonRecord {
+  return {
+    requestId: "pokemon-ruleset-current",
+    actionId: "pokemon.ruleset.set",
+    actionVersion: 1,
+    workspaceHandle,
+    parameters: { profile: rulesetProfile() },
+    expectedRevision,
+    idempotencyKey: "pokemon-ruleset-current",
+    dryRun: false,
+  };
+}
+
+function rulesetProfile(): JsonRecord {
+  return {
+    schemaVersion: 1,
+    profileId: "pokemap-beta-v1",
+    typeChartId: "mainline-modern-v1",
+    maxLevel: 100,
+    experiencePolicyId: "pokemap-simple-exp-v1",
+    capturePolicyId: "pokemap-capture-mvp-v1",
+    moveMachinePolicyId: "authored-consumability-v1",
+    criticalHitPolicyId: "mainline-gen9-critical",
+    speedTiePolicyId: "mainline-gen9-seeded-random",
+    friendshipPolicyId: "mainline-0-255-v1",
+    evolutionPolicyId: "pokemap-beta-evolution-v1",
+    disabledFeatures: [
+      "breeding",
+      "double-battles",
+      "modern-gimmicks",
+      "online",
+    ],
+  };
+}
+
+function rulesetFromReceipt(receipt: JsonRecord): JsonRecord {
+  const entries = record(receipt.diff).entries;
+  assert.ok(Array.isArray(entries));
+  const rulesetEntry = entries
+    .map((entry) => record(entry))
+    .find((entry) => entry.path === "/pokemon/ruleset");
+  assert.ok(rulesetEntry);
+  return record(rulesetEntry.after);
 }
 
 function speciesDocument(schemaVersion: number): JsonRecord {

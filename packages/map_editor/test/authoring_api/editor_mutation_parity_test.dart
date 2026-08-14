@@ -239,6 +239,43 @@ void main() {
       expect(durable.presentation?.typography?.combat?.family, 'Battle Mono');
     });
 
+    test('materializes the project Pokemon ruleset through the editor adapter',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final projectFile = File(p.join(fixture.root.path, 'project.json'));
+      final json = jsonDecode(await projectFile.readAsString())
+          as Map<String, dynamic>;
+      (json['pokemon']! as Map<String, dynamic>).remove('ruleset');
+      await projectFile.writeAsString(jsonEncode(json), flush: true);
+
+      final plan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'pokemon.ruleset.set',
+        parameters: <String, Object?>{
+          'profile': PokemonRulesetProfile.pokeMapBetaV1.toJson(),
+        },
+        idempotencyKey: 'editor-pokemon-ruleset-v1',
+      );
+      final result = await fixture.mutations.apply(
+        plan,
+        operationId: 'editor-pokemon-ruleset-v1',
+      );
+      final persisted = jsonDecode(await projectFile.readAsString())
+          as Map<String, dynamic>;
+
+      expect(result.receipt.actionId, 'pokemon.ruleset.set');
+      expect(result.receipt.status, AuthoringReceiptStatus.applied);
+      expect(
+        result.receipt.diff.entries.single.after,
+        PokemonRulesetProfile.pokeMapBetaV1.toJson(),
+      );
+      expect(
+        (persisted['pokemon']! as Map<String, dynamic>)['ruleset'],
+        PokemonRulesetProfile.pokeMapBetaV1.toJson(),
+      );
+    });
+
     test('exports, deletes, and reimports a shareable presentation preset',
         () async {
       final fixture = await _MutationFixture.create();

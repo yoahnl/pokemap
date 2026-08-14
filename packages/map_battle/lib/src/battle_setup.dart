@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import 'battle_field.dart';
 import 'battle_move.dart';
 import 'battle_status.dart';
@@ -28,6 +30,7 @@ class BattleSetup {
   /// [fieldState] - État de champ initial si le setup battle veut démarrer
   ///   sous une météo ou un pseudoWeather déjà actifs.
   const BattleSetup({
+    this.ruleset = PokemonRulesetProfile.pokeMapBetaV1,
     required this.playerPokemon,
     this.playerReservePokemon = const <BattleCombatantData>[],
     required this.enemyPokemon,
@@ -38,6 +41,8 @@ class BattleSetup {
     this.allowFlee = true,
     this.fieldState = const BattleFieldState(),
   });
+
+  final PokemonRulesetProfile ruleset;
 
   /// Le Pokémon du joueur qui combat.
   final BattleCombatantData playerPokemon;

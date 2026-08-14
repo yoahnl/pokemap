@@ -104,6 +104,7 @@ void main() {
           'map',
           'mapConnection',
           'pokemonDocument',
+          'pokemonRuleset',
           'presentationPreviewContext',
           'preset',
           'project',

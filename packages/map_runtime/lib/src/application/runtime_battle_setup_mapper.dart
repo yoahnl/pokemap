@@ -186,6 +186,7 @@ class RuntimeBattleSetupMapper {
     };
 
     return BattleSetup(
+      ruleset: bundle.manifest.pokemon.ruleset,
       playerPokemon: playerSeed.toBattleCombatantData(lineupIndex: 0),
       playerReservePokemon: List<BattleCombatantData>.unmodifiable(
         playerReserveSeeds.asMap().entries.map(

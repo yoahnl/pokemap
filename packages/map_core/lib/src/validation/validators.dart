@@ -130,6 +130,18 @@ class ProjectValidator {
     _validateTrainers(manifest);
     _validateCharacters(manifest);
     _validateSettings(manifest.settings);
+    _validatePokemonRuleset(manifest.pokemon);
+  }
+
+  static void _validatePokemonRuleset(ProjectPokemonConfig pokemon) {
+    try {
+      pokemon.ruleset.requireSupported();
+    } on FormatException catch (error) {
+      throw ValidationException(
+        error.message,
+        code: 'pokemon_ruleset_unsupported',
+      );
+    }
   }
 
   static void _validateNewGameConfig(ProjectManifest manifest) {
