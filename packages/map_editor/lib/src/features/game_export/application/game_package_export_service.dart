@@ -76,16 +76,14 @@ final class GamePackageExportService {
   const GamePackageExportService({
     this.projectionBuilder = const RuntimeProjectProjectionBuilder(),
     this.gameplayReadinessGate = const GamePackageGameplayReadinessGate(),
-    this.pokemonProjectValidator = const PokemonProjectValidator(
-      FilePokemonReadRepository(),
-    ),
+    this.pokemonProjectValidator,
     this.packageBuilder = const GamePackageBuilder(),
     this.atomicFileWriter,
   });
 
   final RuntimeProjectProjectionBuilder projectionBuilder;
   final GamePackageGameplayReadinessGate gameplayReadinessGate;
-  final PokemonProjectValidator pokemonProjectValidator;
+  final PokemonProjectValidator? pokemonProjectValidator;
   final GamePackageBuilder packageBuilder;
   final GamePackageAtomicFileWriter? atomicFileWriter;
 
@@ -102,7 +100,10 @@ final class GamePackageExportService {
       Object? pokemonValidationFailure;
       if (projection.project.pokemon.enabled) {
         try {
-          pokemonValidationReport = await pokemonProjectValidator.validate(
+          final validator =
+              pokemonProjectValidator ??
+              PokemonProjectValidator(FilePokemonReadRepository());
+          pokemonValidationReport = await validator.validate(
             ProjectFileSystem(projectRoot.path),
           );
         } on Object catch (error) {
