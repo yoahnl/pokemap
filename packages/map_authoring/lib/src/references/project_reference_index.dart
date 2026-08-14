@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
 import '../contracts/resource_ref.dart';
+import '../domains/assets/asset_store.dart';
+import '../domains/assets/project_media_store.dart';
 import '../workspace/project_snapshot.dart';
 
 enum ProjectReferenceSeverity { info, warning, error }
@@ -251,10 +255,11 @@ final class ProjectReferenceIndex {
   factory ProjectReferenceIndex.fromSnapshot(
     ProjectSnapshot snapshot, {
     Iterable<PresentationCinematicAsset> presentationCinematics = const [],
-    Iterable<PresentationMediaReferenceDefinition> presentationMedia = const [],
-    Iterable<PresentationMediaFallbackReference> presentationFallbacks =
-        const [],
   }) {
+    final projectMediaCatalog = _projectMediaCatalog(snapshot);
+    final sourceAssets = projectMediaCatalog == null
+        ? const <ProjectMediaSourceAssetDefinition>[]
+        : _projectMediaSourceAssets(snapshot);
     final narrative = ProjectReferenceIndex.fromNarrativeIndex(
       buildNarrativeDependencyIndex(
         project: snapshot.manifest,
@@ -264,8 +269,8 @@ final class ProjectReferenceIndex {
     final presentation = PresentationReferenceGraph.build(
       cinematics: presentationCinematics,
       scenes: snapshot.manifest.scenes,
-      media: presentationMedia,
-      fallbacks: presentationFallbacks,
+      mediaCatalog: projectMediaCatalog,
+      sourceAssets: sourceAssets,
     );
     return narrative._withPresentationGraph(presentation);
   }
@@ -346,7 +351,7 @@ final class ProjectReferenceIndex {
       final existing = nodesByKey[key];
       final metadata = <String, String>{
         ...?existing?.metadata,
-        if (node.mediaType != null) 'mediaType': node.mediaType!.name,
+        if (node.mediaType != null) 'mediaType': node.mediaType!.id,
       };
       nodesByKey[key] = ProjectReferenceNode(
         key: key,
@@ -419,6 +424,30 @@ final class ProjectReferenceIndex {
             .map((diagnostic) => diagnostic.toJson())
             .toList(growable: false),
       };
+}
+
+ProjectMediaCatalog? _projectMediaCatalog(ProjectSnapshot snapshot) {
+  final bytes = snapshot.findResourceBytes(projectMediaCatalogResourceIdentity);
+  return bytes == null ? null : decodeProjectMediaCatalogBytes(bytes);
+}
+
+List<ProjectMediaSourceAssetDefinition> _projectMediaSourceAssets(
+  ProjectSnapshot snapshot,
+) {
+  final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
+  if (bytes == null) return const [];
+  final decoded = jsonDecode(utf8.decode(bytes));
+  if (decoded is! Map || decoded.keys.any((key) => key is! String)) {
+    throw const FormatException('Asset catalog must be an object');
+  }
+  final catalog = AssetCatalog.fromJson(Map<String, dynamic>.from(decoded));
+  return List.unmodifiable([
+    for (final asset in catalog.records)
+      ProjectMediaSourceAssetDefinition(
+        id: asset.id,
+        label: asset.logicalPath,
+      ),
+  ]);
 }
 
 ProjectReferenceKey _presentationKey(PresentationReferenceKey key) {

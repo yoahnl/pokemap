@@ -71,6 +71,7 @@ export 'src/domains/assets/palette_actions.dart';
 export 'src/domains/assets/presentation_actions.dart';
 export 'src/domains/assets/presentation_preview_context_resources.dart';
 export 'src/domains/assets/presentation_preset_actions.dart';
+export 'src/domains/assets/project_media_store.dart';
 export 'src/domains/assets/tiled_image_collection_packer.dart';
 export 'src/domains/assets/tileset_actions.dart';
 export 'src/domains/assets/visual_organization_actions.dart';

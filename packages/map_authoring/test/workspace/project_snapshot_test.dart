@@ -211,6 +211,49 @@ void main() {
       );
     });
 
+    test('loads the canonical project media catalog into the snapshot',
+        () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_snapshot_project_media_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final mediaCatalog = ProjectMediaCatalog(
+        entries: [
+          ProjectMediaAsset(
+            id: 'opening-image',
+            label: 'Opening image',
+            kind: ProjectMediaKind.image,
+            sourceAssetId: 'asset.opening.image',
+          ),
+        ],
+      );
+      final project = await _writeProject(
+        sandbox,
+        mapEntries: const [],
+        maps: const [],
+        projectMediaCatalog: mediaCatalog.toJson(),
+      );
+      final harness = await _SnapshotHarness.create(allowedRoot: sandbox);
+      final opened = await harness.openService.openProject(project.path);
+
+      final snapshot = await harness.loader.load(opened.projectHandle);
+
+      expect(
+        snapshot.resourceFingerprints,
+        contains(projectMediaCatalogResourceIdentity),
+      );
+      expect(
+        snapshot.resourceStorageKeys[projectMediaCatalogResourceIdentity],
+        projectMediaCatalogStorageKey,
+      );
+      expect(
+        decodeProjectMediaCatalogBytes(
+          snapshot.resourceBytes(projectMediaCatalogResourceIdentity),
+        ).entries.single.id,
+        'opening-image',
+      );
+    });
+
     test('rejects duplicate manifest map IDs', () async {
       final sandbox = await Directory.systemTemp.createTemp(
         'pokemap_snapshot_duplicate_',
@@ -490,6 +533,7 @@ Future<Directory> _writeProject(
   Map<String, String> dialogueSources = const {},
   List<Map<String, Object?>> initialBag = const [],
   Map<String, Object?>? itemCatalog,
+  Map<String, Object?>? projectMediaCatalog,
 }) async {
   final project = await Directory(_join(sandbox.path, 'project')).create();
   final mapsDirectory =
@@ -521,6 +565,11 @@ Future<Directory> _writeProject(
     );
     await file.parent.create(recursive: true);
     await file.writeAsString(jsonEncode(itemCatalog));
+  }
+  if (projectMediaCatalog != null) {
+    final file = File(_join(project.path, projectMediaCatalogStorageKey));
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(projectMediaCatalog));
   }
   return project;
 }

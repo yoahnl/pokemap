@@ -7,6 +7,7 @@ import '../contracts/query_page.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_store.dart';
 import '../domains/assets/presentation_preview_context_resources.dart';
+import '../domains/assets/project_media_store.dart';
 import '../domains/gameplay/character_studio/character_studio_resources.dart';
 import '../domains/maps/map_region_query.dart';
 import '../domains/maps/warp_connection_actions.dart';
@@ -825,6 +826,19 @@ List<_QueryRecord> _records(
             detail: _assetDetail(asset),
           ),
       ];
+    case 'presentationMedia':
+      final bytes = snapshot.findResourceBytes(
+        projectMediaCatalogResourceIdentity,
+      );
+      if (bytes == null) return const [];
+      final catalog = decodeProjectMediaCatalogBytes(bytes);
+      return [
+        for (final media in catalog.entries)
+          _QueryRecord(
+            summary: _projectMediaSummary(media),
+            detail: _projectMediaDetail(media),
+          ),
+      ];
     case 'tilesetFolder':
       return [
         for (final folder in snapshot.manifest.tilesetFolders)
@@ -1395,6 +1409,20 @@ Map<String, Object?> _assetDetail(AssetRecord asset) => {
         'artifactHandle': asset.artifact.handle,
         'mediaType': asset.artifact.mediaType,
       },
+    };
+
+Map<String, Object?> _projectMediaSummary(ProjectMediaAsset media) => {
+      'id': media.id,
+      'name': media.label,
+      'resourceKind': 'presentationMedia',
+      'kind': media.kind.id,
+      'sourceAssetId': media.sourceAssetId,
+    };
+
+Map<String, Object?> _projectMediaDetail(ProjectMediaAsset media) => {
+      ...media.toJson(),
+      'name': media.label,
+      'resourceKind': 'presentationMedia',
     };
 
 Map<String, Object?> _tilesetFolderRecord(ProjectTilesetFolder folder) => {

@@ -9,23 +9,31 @@ void main() {
       () {
     final cinematic = _cinematic('media.shared');
     final scene = _scene('cinematic.opening');
-    const media = [
-      PresentationMediaReferenceDefinition(
-        id: 'media.shared',
-        label: 'Shared',
-        type: PresentationMediaReferenceType.image,
-      ),
-    ];
+    final mediaCatalog = ProjectMediaCatalog(
+      entries: [
+        ProjectMediaAsset(
+          id: 'media.shared',
+          label: 'Shared',
+          kind: ProjectMediaKind.image,
+          sourceAssetId: 'asset.shared',
+        ),
+      ],
+    );
+    final assetCatalog = _physicalAssets(mediaCatalog);
     final coreGraph = PresentationReferenceGraph.build(
       cinematics: [cinematic],
       scenes: [scene],
-      media: media,
+      mediaCatalog: mediaCatalog,
+      sourceAssets: _sourceDefinitions(assetCatalog),
     );
 
     final index = ProjectReferenceIndex.fromSnapshot(
-      _snapshot(scene),
+      _snapshot(
+        scene: scene,
+        mediaCatalog: mediaCatalog,
+        assetCatalog: assetCatalog,
+      ),
       presentationCinematics: [cinematic],
-      presentationMedia: media,
     );
 
     final mediaKey = ProjectReferenceKey(kind: 'media', id: 'media.shared');
@@ -51,22 +59,29 @@ void main() {
 
   test('keeps canonical missing and wrong-type diagnostics in authoring', () {
     final cinematic = _cinematic('media.missing', audioId: 'media.wrong');
-    const media = [
-      PresentationMediaReferenceDefinition(
-        id: 'media.wrong',
-        label: 'Wrong',
-        type: PresentationMediaReferenceType.image,
-      ),
-    ];
+    final mediaCatalog = ProjectMediaCatalog(
+      entries: [
+        ProjectMediaAsset(
+          id: 'media.wrong',
+          label: 'Wrong',
+          kind: ProjectMediaKind.image,
+          sourceAssetId: 'asset.wrong',
+        ),
+      ],
+    );
+    final assetCatalog = _physicalAssets(mediaCatalog);
     final graph = PresentationReferenceGraph.build(
       cinematics: [cinematic],
-      media: media,
+      mediaCatalog: mediaCatalog,
+      sourceAssets: _sourceDefinitions(assetCatalog),
     );
 
     final index = ProjectReferenceIndex.fromSnapshot(
-      _snapshot(),
+      _snapshot(
+        mediaCatalog: mediaCatalog,
+        assetCatalog: assetCatalog,
+      ),
       presentationCinematics: [cinematic],
-      presentationMedia: media,
     );
 
     expect(
@@ -93,6 +108,56 @@ void main() {
           },
         },
       ),
+    );
+  });
+
+  test('loads media and physical source definitions from the snapshot', () {
+    final mediaCatalog = ProjectMediaCatalog(
+      entries: [
+        ProjectMediaAsset(
+          id: 'media.shared',
+          label: 'Shared',
+          kind: ProjectMediaKind.image,
+          sourceAssetId: 'asset.shared',
+        ),
+      ],
+    );
+    final assetCatalog = AssetCatalog(
+      records: [
+        AssetRecord(
+          id: 'asset.shared',
+          logicalPath:
+              'assets/presentation/cinematics/media.shared/shared.webp',
+          artifact: ContentArtifactRef.fromBytes(
+            const [1, 2, 3],
+            mediaType: 'image/webp',
+          ),
+        ),
+      ],
+    );
+
+    final index = ProjectReferenceIndex.fromSnapshot(
+      _snapshot(
+        mediaCatalog: mediaCatalog,
+        assetCatalog: assetCatalog,
+      ),
+    );
+
+    final mediaKey = ProjectReferenceKey(kind: 'media', id: 'media.shared');
+    final sourceKey = ProjectReferenceKey(kind: 'asset', id: 'asset.shared');
+    expect(index.nodeFor(mediaKey)?.metadata, {'mediaType': 'image'});
+    expect(index.nodeFor(sourceKey)?.defined, isTrue);
+    expect(
+      ProjectReferenceQueries(index)
+          .dependencies(mediaKey)
+          .map((edge) => edge.target),
+      [sourceKey],
+    );
+    expect(
+      ProjectReferenceImpactAnalyzer(index)
+          .deletionImpact(sourceKey)
+          .runtimeBlocking,
+      isTrue,
     );
   });
 }
@@ -174,7 +239,11 @@ SceneAsset _scene(String cinematicId) {
   );
 }
 
-ProjectSnapshot _snapshot([SceneAsset? scene]) {
+ProjectSnapshot _snapshot({
+  SceneAsset? scene,
+  ProjectMediaCatalog? mediaCatalog,
+  AssetCatalog? assetCatalog,
+}) {
   final manifest = ProjectManifest(
     name: 'Presentation reference fixture',
     maps: const [],
@@ -182,17 +251,79 @@ ProjectSnapshot _snapshot([SceneAsset? scene]) {
     scenes: scene == null ? const [] : [scene],
   );
   final bytes = utf8.encode(jsonEncode(manifest.toJson()));
-  final revision =
-      computeNarrativeProjectFingerprint(<NarrativeProjectFingerprintEntry>[
+  final mediaBytes = mediaCatalog == null
+      ? null
+      : utf8.encode(jsonEncode(mediaCatalog.toJson()));
+  final assetBytes = assetCatalog == null
+      ? null
+      : utf8.encode(jsonEncode(assetCatalog.toJson()));
+  final entries = <NarrativeProjectFingerprintEntry>[
     NarrativeProjectFingerprintEntry(
-        relativePath: 'project.json', bytes: bytes),
-  ]);
+      relativePath: 'project.json',
+      bytes: bytes,
+    ),
+    if (mediaBytes != null)
+      NarrativeProjectFingerprintEntry(
+        relativePath: projectMediaCatalogStorageKey,
+        bytes: mediaBytes,
+      ),
+    if (assetBytes != null)
+      NarrativeProjectFingerprintEntry(
+        relativePath: assetCatalogStorageKey,
+        bytes: assetBytes,
+      ),
+  ];
+  final revision = computeNarrativeProjectFingerprint(entries);
+  final resourceFingerprints = <String, String>{
+    'project': computeNarrativeProjectFingerprint([entries.first]),
+    if (mediaBytes != null)
+      projectMediaCatalogResourceIdentity:
+          computeNarrativeProjectFingerprint([entries[1]]),
+    if (assetBytes != null)
+      assetCatalogResourceIdentity: computeNarrativeProjectFingerprint([
+        entries.last,
+      ]),
+  };
+  final resourceBytes = <String, List<int>>{
+    'project': bytes,
+    if (mediaBytes != null) projectMediaCatalogResourceIdentity: mediaBytes,
+    if (assetBytes != null) assetCatalogResourceIdentity: assetBytes,
+  };
   return ProjectSnapshot(
     projectHandle: const ProjectHandle('prj_presentation_reference'),
     revision: revision,
     manifest: manifest,
     maps: const [],
-    resourceFingerprints: {'project': revision},
-    resourceBytes: {'project': bytes},
+    resourceFingerprints: resourceFingerprints,
+    resourceBytes: resourceBytes,
   );
+}
+
+AssetCatalog _physicalAssets(ProjectMediaCatalog mediaCatalog) {
+  return AssetCatalog(
+    records: [
+      for (final media in mediaCatalog.entries)
+        AssetRecord(
+          id: media.sourceAssetId,
+          logicalPath:
+              'assets/presentation/cinematics/${media.id}/${media.id}.bin',
+          artifact: ContentArtifactRef.fromBytes(
+            utf8.encode(media.id),
+            mediaType: 'application/octet-stream',
+          ),
+        ),
+    ],
+  );
+}
+
+List<ProjectMediaSourceAssetDefinition> _sourceDefinitions(
+  AssetCatalog catalog,
+) {
+  return [
+    for (final asset in catalog.records)
+      ProjectMediaSourceAssetDefinition(
+        id: asset.id,
+        label: asset.logicalPath,
+      ),
+  ];
 }

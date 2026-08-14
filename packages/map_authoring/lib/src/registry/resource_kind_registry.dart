@@ -209,6 +209,13 @@ final class AuthoringResourceKindRegistry {
         summary: 'Content-addressed immutable asset bytes',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'presentationMedia',
+        version: 1,
+        displayName: 'Presentation media',
+        summary:
+            'Stable logical media identity linked to project-owned source assets',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'smartTileAtlas',
         version: 1,
         displayName: 'Smart Tile atlas',
@@ -482,6 +489,7 @@ final class AuthoringResourceKindRegistry {
       'projectPresentationProfile',
       'projectPresentationPreset',
       'presentationPreviewContext',
+      'presentationMedia',
       'scenario',
       'scene',
       'script',

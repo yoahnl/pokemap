@@ -1,16 +1,23 @@
 import '../models/presentation_cinematic_asset.dart';
+import '../models/project_media_catalog.dart';
 import '../models/scene_asset.dart';
 
 enum PresentationReferenceKind {
   presentationCinematic,
   scene,
+  asset,
   media,
   interactionCue,
 }
 
-enum PresentationMediaReferenceType { image, video, audio, captions }
-
-enum PresentationReferenceRelation { sceneCinematic, clipMedia, mediaFallback }
+enum PresentationReferenceRelation {
+  sceneCinematic,
+  clipMedia,
+  mediaSource,
+  mediaPoster,
+  mediaCaptions,
+  mediaFallback,
+}
 
 enum PresentationReferenceResolution { resolved, missing, incompatible }
 
@@ -22,6 +29,8 @@ abstract final class PresentationReferenceDiagnosticCodes {
       'cinematic.presentation.reference_ambiguous';
   static const referenceCycle = 'cinematic.presentation.reference_cycle';
   static const mediaMissing = 'cinematic.presentation.media_missing';
+  static const mediaSourceMissing =
+      'cinematic.presentation.media_source_missing';
   static const mediaUnsupported = 'cinematic.presentation.media_unsupported';
   static const resourceInUse = 'cinematic.presentation.resource_in_use';
 }
@@ -34,6 +43,9 @@ final class PresentationReferenceKey {
 
   const PresentationReferenceKey.scene(String id)
     : this._(PresentationReferenceKind.scene, id, null);
+
+  const PresentationReferenceKey.asset(String id)
+    : this._(PresentationReferenceKind.asset, id, null);
 
   const PresentationReferenceKey.media(String id)
     : this._(PresentationReferenceKind.media, id, null);
@@ -90,28 +102,14 @@ final class PresentationReferenceKey {
   int get hashCode => Object.hash(kind, id, parentId);
 }
 
-final class PresentationMediaReferenceDefinition {
-  const PresentationMediaReferenceDefinition({
+final class ProjectMediaSourceAssetDefinition {
+  const ProjectMediaSourceAssetDefinition({
     required this.id,
     required this.label,
-    required this.type,
   });
 
   final String id;
   final String label;
-  final PresentationMediaReferenceType type;
-}
-
-final class PresentationMediaFallbackReference {
-  const PresentationMediaFallbackReference({
-    required this.sourceMediaId,
-    required this.fallbackMediaId,
-    this.path,
-  });
-
-  final String sourceMediaId;
-  final String fallbackMediaId;
-  final String? path;
 }
 
 final class PresentationReferenceNode {
@@ -139,24 +137,20 @@ final class PresentationReferenceNode {
       defined: _readBool(json['defined'], 'node.defined'),
       mediaType: json['mediaType'] == null
           ? null
-          : _readEnum(
-              PresentationMediaReferenceType.values,
-              json['mediaType'],
-              'node.mediaType',
-            ),
+          : ProjectMediaKind.fromJson(json['mediaType']),
     );
   }
 
   final PresentationReferenceKey key;
   final String label;
   final bool defined;
-  final PresentationMediaReferenceType? mediaType;
+  final ProjectMediaKind? mediaType;
 
   Map<String, Object?> toJson() => {
     'key': key.toJson(),
     'label': label,
     'defined': defined,
-    if (mediaType != null) 'mediaType': mediaType!.name,
+    if (mediaType != null) 'mediaType': mediaType!.id,
   };
 }
 
@@ -167,11 +161,11 @@ final class PresentationReferenceEdge {
     required String path,
     required this.relation,
     required this.resolution,
-    Iterable<PresentationMediaReferenceType> acceptedMediaTypes = const [],
+    Iterable<ProjectMediaKind> acceptedMediaTypes = const [],
   }) : path = _requiredString(path, 'edge.path'),
        acceptedMediaTypes = List.unmodifiable(
          acceptedMediaTypes.toSet().toList()
-           ..sort((left, right) => left.name.compareTo(right.name)),
+           ..sort((left, right) => left.id.compareTo(right.id)),
        );
 
   factory PresentationReferenceEdge.fromJson(Map<String, Object?> json) {
@@ -200,13 +194,7 @@ final class PresentationReferenceEdge {
                       json['acceptedMediaTypes'],
                       'edge.acceptedMediaTypes',
                     ))
-              .map(
-                (value) => _readEnum(
-                  PresentationMediaReferenceType.values,
-                  value,
-                  'edge.acceptedMediaTypes',
-                ),
-              ),
+              .map(ProjectMediaKind.fromJson),
     );
   }
 
@@ -215,7 +203,7 @@ final class PresentationReferenceEdge {
   final String path;
   final PresentationReferenceRelation relation;
   final PresentationReferenceResolution resolution;
-  final List<PresentationMediaReferenceType> acceptedMediaTypes;
+  final List<ProjectMediaKind> acceptedMediaTypes;
 
   Map<String, Object?> toJson() => {
     'owner': owner.toJson(),
@@ -225,7 +213,7 @@ final class PresentationReferenceEdge {
     'resolution': resolution.name,
     if (acceptedMediaTypes.isNotEmpty)
       'acceptedMediaTypes': acceptedMediaTypes
-          .map((type) => type.name)
+          .map((type) => type.id)
           .toList(growable: false),
   };
 }
@@ -343,14 +331,14 @@ final class PresentationReferenceGraph {
   factory PresentationReferenceGraph.build({
     Iterable<PresentationCinematicAsset> cinematics = const [],
     Iterable<SceneAsset> scenes = const [],
-    Iterable<PresentationMediaReferenceDefinition> media = const [],
-    Iterable<PresentationMediaFallbackReference> fallbacks = const [],
+    ProjectMediaCatalog? mediaCatalog,
+    Iterable<ProjectMediaSourceAssetDefinition> sourceAssets = const [],
   }) {
     final builder = _PresentationReferenceGraphBuilder();
     builder.addCinematics(cinematics);
     builder.addScenes(scenes);
-    builder.addMedia(media);
-    builder.addFallbacks(fallbacks);
+    builder.addSourceAssets(sourceAssets);
+    if (mediaCatalog != null) builder.addMediaCatalog(mediaCatalog);
     return builder.build();
   }
 
@@ -445,7 +433,7 @@ final class _PendingReferenceEdge {
   final PresentationReferenceKey target;
   final String path;
   final PresentationReferenceRelation relation;
-  final Set<PresentationMediaReferenceType> acceptedMediaTypes;
+  final Set<ProjectMediaKind> acceptedMediaTypes;
 }
 
 final class _PresentationReferenceGraphBuilder {
@@ -473,9 +461,9 @@ final class _PresentationReferenceGraphBuilder {
                 target: PresentationReferenceKey.media(clip.resourceId),
                 path: '$path.resourceId',
                 relation: PresentationReferenceRelation.clipMedia,
-                acceptedMediaTypes: const {
-                  PresentationMediaReferenceType.image,
-                  PresentationMediaReferenceType.video,
+                acceptedMediaTypes: {
+                  ProjectMediaKind.image,
+                  ProjectMediaKind.video,
                 },
               );
             case PresentationAudioClip():
@@ -484,9 +472,7 @@ final class _PresentationReferenceGraphBuilder {
                 target: PresentationReferenceKey.media(clip.resourceId),
                 path: '$path.resourceId',
                 relation: PresentationReferenceRelation.clipMedia,
-                acceptedMediaTypes: const {
-                  PresentationMediaReferenceType.audio,
-                },
+                acceptedMediaTypes: {ProjectMediaKind.audio},
               );
             case PresentationCaptionClip():
               _reference(
@@ -494,9 +480,7 @@ final class _PresentationReferenceGraphBuilder {
                 target: PresentationReferenceKey.media(clip.captionId),
                 path: '$path.captionId',
                 relation: PresentationReferenceRelation.clipMedia,
-                acceptedMediaTypes: const {
-                  PresentationMediaReferenceType.captions,
-                },
+                acceptedMediaTypes: {ProjectMediaKind.captions},
               );
             case PresentationMarkerClip(
               markerKind: PresentationMarkerKind.interactionCue,
@@ -539,41 +523,58 @@ final class _PresentationReferenceGraphBuilder {
     }
   }
 
-  void addMedia(Iterable<PresentationMediaReferenceDefinition> source) {
+  void addSourceAssets(Iterable<ProjectMediaSourceAssetDefinition> source) {
     final definitions = source.toList()
       ..sort((left, right) => left.id.compareTo(right.id));
     for (final definition in definitions) {
-      _define(
-        PresentationReferenceKey.media(definition.id),
-        definition.label,
-        mediaType: definition.type,
-      );
+      _define(PresentationReferenceKey.asset(definition.id), definition.label);
     }
   }
 
-  void addFallbacks(Iterable<PresentationMediaFallbackReference> source) {
-    final references = source.toList()
-      ..sort((left, right) {
-        final sourceComparison = left.sourceMediaId.compareTo(
-          right.sourceMediaId,
-        );
-        return sourceComparison != 0
-            ? sourceComparison
-            : left.fallbackMediaId.compareTo(right.fallbackMediaId);
-      });
-    for (final reference in references) {
-      final owner = PresentationReferenceKey.media(reference.sourceMediaId);
-      _ensureNode(owner);
-      final sourceType = _nodes[owner]?.mediaType;
+  void addMediaCatalog(ProjectMediaCatalog catalog) {
+    for (final media in catalog.entries) {
+      _define(
+        PresentationReferenceKey.media(media.id),
+        media.label,
+        mediaType: media.kind,
+      );
+    }
+    for (final media in catalog.entries) {
+      final owner = PresentationReferenceKey.media(media.id);
+      final path = 'projectMedia[${media.id}]';
       _reference(
         owner: owner,
-        target: PresentationReferenceKey.media(reference.fallbackMediaId),
-        path:
-            reference.path ??
-            'presentationMedia[${reference.sourceMediaId}].fallbackMediaId',
-        relation: PresentationReferenceRelation.mediaFallback,
-        acceptedMediaTypes: sourceType == null ? const {} : {sourceType},
+        target: PresentationReferenceKey.asset(media.sourceAssetId),
+        path: '$path.sourceAssetId',
+        relation: PresentationReferenceRelation.mediaSource,
       );
+      if (media.posterMediaId case final posterMediaId?) {
+        _reference(
+          owner: owner,
+          target: PresentationReferenceKey.media(posterMediaId),
+          path: '$path.posterMediaId',
+          relation: PresentationReferenceRelation.mediaPoster,
+          acceptedMediaTypes: {ProjectMediaKind.image, ProjectMediaKind.poster},
+        );
+      }
+      for (var index = 0; index < media.captionMediaIds.length; index++) {
+        _reference(
+          owner: owner,
+          target: PresentationReferenceKey.media(media.captionMediaIds[index]),
+          path: '$path.captionMediaIds[$index]',
+          relation: PresentationReferenceRelation.mediaCaptions,
+          acceptedMediaTypes: {ProjectMediaKind.captions},
+        );
+      }
+      if (media.fallbackMediaId case final fallbackMediaId?) {
+        _reference(
+          owner: owner,
+          target: PresentationReferenceKey.media(fallbackMediaId),
+          path: '$path.fallbackMediaId',
+          relation: PresentationReferenceRelation.mediaFallback,
+          acceptedMediaTypes: _fallbackMediaKinds(media.kind),
+        );
+      }
     }
   }
 
@@ -626,7 +627,7 @@ final class _PresentationReferenceGraphBuilder {
                   'The referenced media type is incompatible with this usage.',
               action:
                   'Select a media with one of the accepted types: '
-                  '${edge.acceptedMediaTypes.map((type) => type.name).join(', ')}.',
+                  '${edge.acceptedMediaTypes.map((type) => type.id).join(', ')}.',
               target: edge.target,
               owner: edge.owner,
               path: edge.path,
@@ -645,7 +646,7 @@ final class _PresentationReferenceGraphBuilder {
   void _define(
     PresentationReferenceKey key,
     String label, {
-    PresentationMediaReferenceType? mediaType,
+    ProjectMediaKind? mediaType,
   }) {
     _validateKey(key);
     final normalizedLabel = _requiredString(label, 'definition.label');
@@ -676,7 +677,7 @@ final class _PresentationReferenceGraphBuilder {
     required PresentationReferenceKey target,
     required String path,
     required PresentationReferenceRelation relation,
-    Set<PresentationMediaReferenceType> acceptedMediaTypes = const {},
+    Set<ProjectMediaKind> acceptedMediaTypes = const {},
   }) {
     _ensureNode(owner);
     _ensureNode(target);
@@ -713,21 +714,42 @@ PresentationReferenceDiagnostic _missingDiagnostic({
   required String path,
 }) {
   final media = target.kind == PresentationReferenceKind.media;
+  final sourceAsset = target.kind == PresentationReferenceKind.asset;
   return PresentationReferenceDiagnostic(
-    code: media
+    code: sourceAsset
+        ? PresentationReferenceDiagnosticCodes.mediaSourceMissing
+        : media
         ? PresentationReferenceDiagnosticCodes.mediaMissing
         : PresentationReferenceDiagnosticCodes.referenceMissing,
     severity: PresentationReferenceSeverity.error,
-    message: media
+    message: sourceAsset
+        ? 'The physical source asset for this media does not exist.'
+        : media
         ? 'The referenced presentation media does not exist.'
         : 'The referenced presentation resource does not exist.',
-    action: media
+    action: sourceAsset
+        ? 'Import a source asset or replace the media source before publication.'
+        : media
         ? 'Select an existing media or import it before publication.'
         : 'Select an existing presentation resource before publication.',
     target: target,
     owner: owner,
     path: path,
   );
+}
+
+Set<ProjectMediaKind> _fallbackMediaKinds(ProjectMediaKind source) {
+  if (source == ProjectMediaKind.video) {
+    return {
+      ProjectMediaKind.video,
+      ProjectMediaKind.image,
+      ProjectMediaKind.poster,
+    };
+  }
+  if (source == ProjectMediaKind.image || source == ProjectMediaKind.poster) {
+    return {ProjectMediaKind.image, ProjectMediaKind.poster};
+  }
+  return {source};
 }
 
 List<PresentationReferenceDiagnostic> _fallbackCycleDiagnostics(
