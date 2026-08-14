@@ -447,6 +447,19 @@ export 'src/application/scene_runtime/scene_cinematic_runtime_awaitable_result.d
         SceneCinematicRuntimeAwaitableErrorCode,
         SceneCinematicRuntimeAwaitableResult,
         SceneCinematicRuntimeAwaitableStatus;
+export 'src/application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart'
+    show
+        RuntimePresentationSceneLaunch,
+        RuntimePresentationScenePlayer,
+        ScenePresentationCinematicRuntimeAwaitableAdapter,
+        ScenePresentationCinematicRuntimeDiagnosticCodes,
+        ScenePresentationCinematicRuntimePlayer,
+        ScenePresentationCinematicRuntimeRequest;
+export 'src/application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_result.dart'
+    show
+        ScenePresentationCinematicRuntimeAwaitableErrorCode,
+        ScenePresentationCinematicRuntimeAwaitableResult,
+        ScenePresentationCinematicRuntimeAwaitableStatus;
 export 'src/application/scene_runtime/scene_consequence_runtime_writer.dart'
     show SceneConsequenceRuntimeWriter;
 export 'src/application/scene_runtime/narrative_game_completion_runtime_coordinator.dart'

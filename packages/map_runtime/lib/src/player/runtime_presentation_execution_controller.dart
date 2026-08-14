@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'runtime_presentation_media_playback_controller.dart';
 
 enum RuntimePresentationExecutionPhase {
@@ -77,6 +79,7 @@ final class RuntimePresentationExecutionController {
   Future<void> _pending = Future<void>.value();
   RuntimePresentationExecutionSnapshot _snapshot =
       RuntimePresentationExecutionSnapshot.idle;
+  Completer<RuntimePresentationExecutionTerminal>? _terminalCompleter;
   var _nextRunToken = 1;
   var _disposed = false;
 
@@ -91,11 +94,27 @@ final class RuntimePresentationExecutionController {
       throw StateError('A Presentation execution is already active.');
     }
     final token = RuntimePresentationRunToken(_nextRunToken++);
+    _terminalCompleter = Completer<RuntimePresentationExecutionTerminal>();
     _snapshot = RuntimePresentationExecutionSnapshot(
       phase: RuntimePresentationExecutionPhase.running,
       runToken: token,
     );
     return token;
+  }
+
+  Future<RuntimePresentationExecutionTerminal> waitForTerminal(
+    RuntimePresentationRunToken token,
+  ) {
+    final terminal = _snapshot.terminal;
+    if (_snapshot.runToken == token && terminal != null) {
+      return Future.value(terminal);
+    }
+    if (_snapshot.runToken != token || _terminalCompleter == null) {
+      return Future.error(
+        StateError('Presentation execution token is stale.'),
+      );
+    }
+    return _terminalCompleter!.future;
   }
 
   Future<RuntimePresentationExecutionSnapshot> pause(
@@ -313,6 +332,10 @@ final class RuntimePresentationExecutionController {
       runToken: token,
       terminal: terminal,
     );
+    final terminalCompleter = _terminalCompleter;
+    if (terminalCompleter != null && !terminalCompleter.isCompleted) {
+      terminalCompleter.complete(terminal);
+    }
     onTerminal?.call(terminal);
     return terminal;
   }
