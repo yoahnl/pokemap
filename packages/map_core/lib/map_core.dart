@@ -64,6 +64,8 @@ export 'src/models/map_event_definition.dart';
 export 'src/models/cinematic_asset.dart';
 export 'src/models/presentation_cinematic_asset.dart';
 export 'src/models/project_media_catalog.dart';
+export 'src/read_models/presentation_frame.dart';
+export 'src/operations/presentation_cinematic_evaluator.dart';
 export 'src/serialization/presentation_cinematic_codec.dart';
 export 'src/compatibility/cinematic_legacy_migration_plan.dart';
 export 'src/compatibility/environment_single_area_migration.dart';
