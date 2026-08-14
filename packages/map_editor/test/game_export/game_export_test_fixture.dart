@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/game_export.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
+import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:path/path.dart' as p;
 
 Future<Directory> createAuthorProject({
@@ -164,7 +165,9 @@ Guide: Bienvenue.
     flush: true,
   );
   if (withCanonicalPokemon) {
-    await const SeedPokemonDemoDataUseCase().execute(
+    await SeedPokemonDemoDataUseCase(
+      snapshotController: FilePokemonReadRepository(),
+    ).execute(
       ProjectFileSystem(root.path),
     );
   }

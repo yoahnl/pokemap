@@ -35,7 +35,9 @@ void main() {
       projectRepository,
       const FileProjectWorkspaceFactory(),
     );
-    seedUseCase = const SeedPokemonDemoDataUseCase();
+    seedUseCase = SeedPokemonDemoDataUseCase(
+      snapshotController: pokemonReadRepository,
+    );
   });
 
   tearDown(() async {

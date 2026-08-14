@@ -1810,6 +1810,7 @@ void main() {
           level: 10,
         ),
       );
+      final speciesReadsAfterFirst = speciesLoader.debugActualReadCount;
       final secondSetup = await mapper.map(
         bundle: bundle,
         gameState: _playerStateForTests(),
@@ -1822,7 +1823,8 @@ void main() {
       expect(firstSetup.playerPokemon.speciesId, equals('sproutle'));
       expect(secondSetup.enemyPokemon.speciesId, equals('sparkitten'));
       expect(moveCatalogLoader.debugActualReadCount, equals(1));
-      expect(speciesLoader.debugActualReadCount, equals(2));
+      expect(speciesReadsAfterFirst, equals(3));
+      expect(speciesLoader.debugActualReadCount, speciesReadsAfterFirst);
       expect(learnsetLoader.debugActualReadCount, equals(1));
     });
   });

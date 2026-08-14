@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import '../application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import '../infrastructure/filesystem/project_filesystem.dart';
+import '../infrastructure/repositories/file_repositories.dart';
 
 typedef MarionetteQaAssetLoader = Future<List<int>> Function(String assetPath);
 
@@ -63,7 +64,9 @@ abstract final class MarionettePersonalizationQaSeed {
           ],
         ).toJson(),
       );
-      await const SeedPokemonDemoDataUseCase().execute(
+      await SeedPokemonDemoDataUseCase(
+        snapshotController: FilePokemonReadRepository(),
+      ).execute(
         ProjectFileSystem(root.path),
       );
       return Directory(root.resolveSymbolicLinksSync());

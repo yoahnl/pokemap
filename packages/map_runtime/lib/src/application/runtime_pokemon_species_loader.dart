@@ -21,6 +21,16 @@ final class RuntimePokemonSpeciesProgression {
   final int catchRate;
 }
 
+class RuntimePokemonSpeciesSnapshotMetrics {
+  const RuntimePokemonSpeciesSnapshotMetrics();
+
+  void onSnapshotBuildStarted(String projectRoot, String speciesDirectory) {}
+
+  void onSpeciesDirectoryListed(String projectRoot, String speciesDirectory) {}
+
+  void onSpeciesJsonRead(String projectRoot, String speciesPath) {}
+}
+
 /// Valide et projette les champs de progression consommés par le runtime.
 ///
 /// Ce seam pur est partagé avec l'audit du catalogue Selbrume : le test de
@@ -90,13 +100,21 @@ RuntimePokemonSpeciesProgression parseRuntimePokemonSpeciesProgression(
 /// - il ne devient pas un repository Pokémon générique ;
 /// - il lit uniquement les champs dont le runtime battle actuel a besoin.
 class RuntimePokemonSpeciesLoader {
-  RuntimePokemonSpeciesLoader();
+  RuntimePokemonSpeciesLoader({
+    this.snapshotMetrics = const RuntimePokemonSpeciesSnapshotMetrics(),
+  });
 
-  final Map<String, Future<RuntimePokemonSpecies>> _cache =
-      <String, Future<RuntimePokemonSpecies>>{};
+  final RuntimePokemonSpeciesSnapshotMetrics snapshotMetrics;
+  final Map<String, Future<_RuntimePokemonSpeciesSnapshot>> _cache =
+      <String, Future<_RuntimePokemonSpeciesSnapshot>>{};
   int _actualReadCount = 0;
 
   int get debugActualReadCount => _actualReadCount;
+
+  void invalidateProject(String projectRootDirectory) {
+    final normalizedRoot = _normalizedProjectRoot(projectRootDirectory);
+    _cache.removeWhere((key, _) => key.startsWith('$normalizedRoot|'));
+  }
 
   Future<RuntimePokemonSpecies> loadById({
     required String projectRootDirectory,
@@ -118,106 +136,156 @@ class RuntimePokemonSpeciesLoader {
         fallback: 'data/pokemon/species',
       ),
     );
-    final cacheKey =
-        '${p.normalize(projectRootDirectory)}|${p.normalize(speciesDirectoryPath)}|$normalizedSpeciesId';
-    final cached = _cache[cacheKey];
-    if (cached != null) {
-      return cached;
-    }
-
-    Future<RuntimePokemonSpecies> loadSpecies() async {
-      _actualReadCount += 1;
-      final speciesDirectory = Directory(speciesDirectoryPath);
-      if (!await speciesDirectory.exists()) {
-        throw RuntimeBattleSetupException(
-          'Impossible de charger les espèces Pokémon locales pour démarrer le combat.',
-          debugDetails: 'Missing species directory: ${speciesDirectory.path}',
-        );
-      }
-
-      final canonicalSpeciesFile = File(
-        p.join(speciesDirectoryPath, '$normalizedSpeciesId.json'),
+    final projectRoot = _normalizedProjectRoot(projectRootDirectory);
+    final cacheKey = '$projectRoot|${p.normalize(speciesDirectoryPath)}';
+    final snapshot = await _snapshot(
+      cacheKey: cacheKey,
+      projectRoot: projectRoot,
+      speciesDirectoryPath: speciesDirectoryPath,
+    );
+    final indexed = snapshot.index.byId(normalizedSpeciesId);
+    if (indexed == null) {
+      throw RuntimeBattleSetupException(
+        'Espèce Pokémon introuvable pour démarrer le combat.',
+        debugDetails: 'speciesId=$speciesId',
       );
-      if (await canonicalSpeciesFile.exists()) {
-        final rawJson = await _readJsonFile(
-          canonicalSpeciesFile,
-          label: 'Pokemon species file',
-        );
-        final rawDeclaredId = rawJson['id'];
-        final declaredId = rawDeclaredId is String ? rawDeclaredId : '';
-        if (declaredId != normalizedSpeciesId) {
-          throw RuntimeBattleSetupException(
-            'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
-            debugDetails:
-                'speciesId=$normalizedSpeciesId, canonicalFile=${canonicalSpeciesFile.path}, declaredId=$declaredId',
-          );
-        }
-        return _parseRuntimeSpecies(
-          rawJson,
-          expectedSpeciesId: normalizedSpeciesId,
-          filePath: canonicalSpeciesFile.path,
-        );
-      }
-
-      RuntimePokemonSpecies? matchedSpecies;
-      String? matchedFilePath;
-
-      await for (final entity in speciesDirectory.list(recursive: false)) {
-        if (entity is! File ||
-            p.extension(entity.path).toLowerCase() != '.json') {
-          continue;
-        }
-
-        final rawJson = await _readJsonFile(
-          entity,
-          label: 'Pokemon species file',
-        );
-        final rawDeclaredId = rawJson['id'];
-        final declaredId = rawDeclaredId is String ? rawDeclaredId : '';
-        if (declaredId != normalizedSpeciesId) {
-          continue;
-        }
-
-        if (matchedSpecies != null) {
-          throw RuntimeBattleSetupException(
-            'Plusieurs espèces Pokémon locales déclarent le même id; combat impossible.',
-            debugDetails:
-                'speciesId=$normalizedSpeciesId, firstFile=$matchedFilePath, duplicateFile=${entity.path}',
-          );
-        }
-
-        matchedSpecies = _parseRuntimeSpecies(
-          rawJson,
-          expectedSpeciesId: normalizedSpeciesId,
-          filePath: entity.path,
-        );
-        matchedFilePath = entity.path;
-      }
-
-      if (matchedSpecies == null) {
-        throw RuntimeBattleSetupException(
-          'Espèce Pokémon introuvable pour démarrer le combat.',
-          debugDetails: 'speciesId=$speciesId',
-        );
-      }
-
-      return matchedSpecies;
     }
+    final species = snapshot.speciesById[indexed.id];
+    final relativePath = snapshot.relativePathById[indexed.id];
+    if (species == null || relativePath != indexed.relativePath) {
+      throw RuntimeBattleSetupException(
+        'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+        debugDetails: 'Inconsistent species snapshot for id=${indexed.id}',
+      );
+    }
+    return species;
+  }
 
-    final future = loadSpecies();
-    _cache[cacheKey] = future;
+  Future<_RuntimePokemonSpeciesSnapshot> _snapshot({
+    required String cacheKey,
+    required String projectRoot,
+    required String speciesDirectoryPath,
+  }) async {
+    final existing = _cache[cacheKey];
+    if (existing != null) return existing;
+    final pending = _buildSnapshot(
+      projectRoot: projectRoot,
+      speciesDirectoryPath: speciesDirectoryPath,
+    );
+    _cache[cacheKey] = pending;
     try {
-      return await future;
+      return await pending;
     } catch (_) {
-      final current = _cache[cacheKey];
-      if (identical(current, future)) {
+      if (identical(_cache[cacheKey], pending)) {
         _cache.remove(cacheKey);
       }
       rethrow;
     }
   }
 
-  RuntimePokemonSpecies _parseRuntimeSpecies(
+  Future<_RuntimePokemonSpeciesSnapshot> _buildSnapshot({
+    required String projectRoot,
+    required String speciesDirectoryPath,
+  }) async {
+    snapshotMetrics.onSnapshotBuildStarted(projectRoot, speciesDirectoryPath);
+    final speciesDirectory = Directory(speciesDirectoryPath);
+    if (!await speciesDirectory.exists()) {
+      throw RuntimeBattleSetupException(
+        'Impossible de charger les espèces Pokémon locales pour démarrer le combat.',
+        debugDetails: 'Missing species directory: ${speciesDirectory.path}',
+      );
+    }
+    snapshotMetrics.onSpeciesDirectoryListed(projectRoot, speciesDirectoryPath);
+    final files = <File>[];
+    await for (final entity in speciesDirectory.list(recursive: false)) {
+      if (entity is File && p.extension(entity.path).toLowerCase() == '.json') {
+        files.add(entity);
+      }
+    }
+    files.sort((left, right) => left.path.compareTo(right.path));
+
+    final entries = <PokemonSpeciesIndexEntry>[];
+    final speciesById = <String, RuntimePokemonSpecies>{};
+    final relativePathById = <String, String>{};
+    for (final file in files) {
+      snapshotMetrics.onSpeciesJsonRead(projectRoot, file.path);
+      _actualReadCount += 1;
+      final rawJson = await _readJsonFile(
+        file,
+        label: 'Pokemon species file',
+      );
+      final rawSpeciesId = rawJson['id'];
+      final speciesId = rawSpeciesId is String ? rawSpeciesId.trim() : '';
+      if (!_isSafeSpeciesId(speciesId)) {
+        throw RuntimeBattleSetupException(
+          'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+          debugDetails:
+              'Unsafe declared speciesId=$speciesId, file=${file.path}',
+        );
+      }
+      final relativePath =
+          p.normalize(p.relative(file.path, from: projectRoot));
+      final previousPath = relativePathById[speciesId];
+      if (previousPath != null) {
+        throw RuntimeBattleSetupException(
+          'Plusieurs espèces Pokémon locales déclarent le même id; combat impossible.',
+          debugDetails:
+              'speciesId=$speciesId, firstFile=$previousPath, duplicateFile=$relativePath',
+        );
+      }
+      final parsed = _parseRuntimeSpecies(
+        rawJson,
+        expectedSpeciesId: speciesId,
+        filePath: file.path,
+      );
+      entries.add(
+        PokemonSpeciesIndexEntry.fromSpeciesFile(
+          parsed.speciesFile,
+          relativePath: relativePath,
+        ),
+      );
+      speciesById[speciesId] = parsed.runtimeSpecies;
+      relativePathById[speciesId] = relativePath;
+    }
+
+    try {
+      return _RuntimePokemonSpeciesSnapshot(
+        index: PokemonSpeciesIndex(entries),
+        speciesById: speciesById,
+        relativePathById: relativePathById,
+      );
+    } on StateError catch (error) {
+      throw RuntimeBattleSetupException(
+        'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+        debugDetails: 'Invalid species index: $error',
+      );
+    }
+  }
+
+  PokemonSpeciesFile _parseSharedSpeciesFile(
+    Map<String, dynamic> rawJson, {
+    required String filePath,
+  }) {
+    try {
+      return PokemonSpeciesFile.fromJson(rawJson);
+    } on UnsupportedPokemonDataSchema catch (error) {
+      throw RuntimeBattleSetupException(
+        'Les données d’espèce Pokémon locales sont incompatibles; combat impossible.',
+        debugDetails:
+            'file=$filePath, schemaVersion=${error.actualVersion}, expected=$currentPokemonDataSchemaVersion',
+      );
+    } catch (error) {
+      throw RuntimeBattleSetupException(
+        'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+        debugDetails: 'file=$filePath, shared species codec failed: $error',
+      );
+    }
+  }
+
+  ({
+    PokemonSpeciesFile speciesFile,
+    RuntimePokemonSpecies runtimeSpecies,
+  }) _parseRuntimeSpecies(
     Map<String, dynamic> rawJson, {
     required String expectedSpeciesId,
     required String filePath,
@@ -275,24 +343,8 @@ class RuntimePokemonSpeciesLoader {
       expectedSpeciesId: expectedSpeciesId,
       filePath: filePath,
     );
-    final PokemonSpeciesFile speciesFile;
-    try {
-      speciesFile = PokemonSpeciesFile.fromJson(rawJson);
-    } on UnsupportedPokemonDataSchema catch (error) {
-      throw RuntimeBattleSetupException(
-        'Les données d’espèce Pokémon locales sont incompatibles; combat impossible.',
-        debugDetails:
-            'speciesId=$expectedSpeciesId, file=$filePath, schemaVersion=${error.actualVersion}, expected=$currentPokemonDataSchemaVersion',
-      );
-    } catch (error) {
-      throw RuntimeBattleSetupException(
-        'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
-        debugDetails:
-            'speciesId=$expectedSpeciesId, file=$filePath, shared species codec failed: $error',
-      );
-    }
-
-    return RuntimePokemonSpecies(
+    final speciesFile = _parseSharedSpeciesFile(rawJson, filePath: filePath);
+    final runtimeSpecies = RuntimePokemonSpecies(
       id: expectedSpeciesId,
       formId: speciesFile.forms.formId,
       typing: typing,
@@ -327,6 +379,7 @@ class RuntimePokemonSpeciesLoader {
       catchRate: progression.catchRate,
       baseFriendship: speciesFile.progression.baseFriendship,
     );
+    return (speciesFile: speciesFile, runtimeSpecies: runtimeSpecies);
   }
 
   List<String> _readRequiredTyping(
@@ -524,6 +577,15 @@ class RuntimePokemonSpeciesLoader {
     return directory;
   }
 
+  String _normalizedProjectRoot(String projectRootDirectory) {
+    final normalized = p.normalize(p.absolute(projectRootDirectory));
+    try {
+      return p.normalize(Directory(normalized).resolveSymbolicLinksSync());
+    } on FileSystemException {
+      return normalized;
+    }
+  }
+
   bool _isSafeSpeciesId(String speciesId) {
     return speciesId.isNotEmpty &&
         speciesId == speciesId.trim() &&
@@ -534,6 +596,21 @@ class RuntimePokemonSpeciesLoader {
         !speciesId.contains('/') &&
         !speciesId.contains(r'\');
   }
+}
+
+final class _RuntimePokemonSpeciesSnapshot {
+  _RuntimePokemonSpeciesSnapshot({
+    required this.index,
+    required Map<String, RuntimePokemonSpecies> speciesById,
+    required Map<String, String> relativePathById,
+  })  : speciesById = Map<String, RuntimePokemonSpecies>.unmodifiable(
+          speciesById,
+        ),
+        relativePathById = Map<String, String>.unmodifiable(relativePathById);
+
+  final PokemonSpeciesIndex index;
+  final Map<String, RuntimePokemonSpecies> speciesById;
+  final Map<String, String> relativePathById;
 }
 
 /// Vue runtime minimale d'une espèce réellement consommée par le mapper.

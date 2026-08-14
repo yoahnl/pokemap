@@ -18,8 +18,10 @@ void main() {
   setUp(() async {
     tempProjectRoot = await Directory.systemTemp.createTemp('pokemon_readers_');
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    seedUseCase = const SeedPokemonDemoDataUseCase();
     reader = PokemonProjectDataReader();
+    seedUseCase = SeedPokemonDemoDataUseCase(
+      snapshotController: FilePokemonReadRepository(reader: reader),
+    );
   });
 
   tearDown(() async {

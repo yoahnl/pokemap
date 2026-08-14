@@ -24,8 +24,10 @@ void main() {
     tempProjectRoot = await Directory.systemTemp.createTemp('pokemon_repo_');
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    seedUseCase = const SeedPokemonDemoDataUseCase();
     repository = FilePokemonReadRepository();
+    seedUseCase = SeedPokemonDemoDataUseCase(
+      snapshotController: repository,
+    );
   });
 
   tearDown(() async {

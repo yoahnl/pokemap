@@ -276,6 +276,53 @@ void main() {
       );
     });
 
+    test('invalidates species snapshots only for touched species resources',
+        () async {
+      final invalidatedRoots = <String>[];
+      final fixture = await _MutationFixture.create(
+        invalidatePokemonSpeciesSnapshot: invalidatedRoots.add,
+      );
+      addTearDown(fixture.dispose);
+      final speciesPlan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'pokemon.species.write',
+        parameters: <String, Object?>{
+          'relativePath': 'data/pokemon/species/sproutle.json',
+          'document': _pokemonSpeciesDocument('sproutle'),
+        },
+        idempotencyKey: 'editor-species-snapshot-apply',
+      );
+
+      final applied = await fixture.mutations.apply(
+        speciesPlan,
+        operationId: 'editor-species-snapshot-apply',
+      );
+      await fixture.mutations.undo(
+        fixture.root.path,
+        entryId: applied.receipt.receiptId,
+        idempotencyKey: 'editor-species-snapshot-undo',
+      );
+      final mapPlan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'map.save',
+        parameters: <String, Object?>{
+          'map': fixture.map
+              .copyWith(name: 'No species invalidation')
+              .toJson(),
+        },
+        idempotencyKey: 'editor-map-no-species-invalidation',
+      );
+      await fixture.mutations.apply(
+        mapPlan,
+        operationId: 'editor-map-no-species-invalidation',
+      );
+
+      expect(invalidatedRoots, <String>[
+        fixture.root.resolveSymbolicLinksSync(),
+        fixture.root.resolveSymbolicLinksSync(),
+      ]);
+    });
+
     test('exports, deletes, and reimports a shareable presentation preset',
         () async {
       final fixture = await _MutationFixture.create();
@@ -1533,6 +1580,7 @@ final class _MutationFixture {
   static Future<_MutationFixture> create({
     WorkspaceHandleStore Function()? workspaceHandles,
     bool enableSnapshotCache = false,
+    void Function(String projectRoot)? invalidatePokemonSpeciesSnapshot,
   }) async {
     final root = await Directory.systemTemp.createTemp('pmcp081_editor_');
     const project = ProjectManifest(
@@ -1596,6 +1644,7 @@ final class _MutationFixture {
       workspaceHandles: workspaceHandles,
       fingerprintCache: fingerprintCache,
       snapshotCache: snapshotCache,
+      invalidatePokemonSpeciesSnapshot: invalidatePokemonSpeciesSnapshot,
     );
     return _MutationFixture(
       root: root,
@@ -1790,6 +1839,31 @@ final class _MutationFixture {
     if (await root.exists()) await root.delete(recursive: true);
   }
 }
+
+Map<String, Object?> _pokemonSpeciesDocument(String id) => <String, Object?>{
+  'schemaVersion': currentPokemonDataSchemaVersion,
+  'id': id,
+  'slug': id,
+  'nationalDex': 999,
+  'names': <String, String>{'en': id},
+  'typing': <String, Object?>{
+    'types': <String>['grass'],
+  },
+  'baseStats': <String, int>{
+    'hp': 45,
+    'atk': 49,
+    'def': 49,
+    'spa': 65,
+    'spd': 65,
+    'spe': 45,
+  },
+  'abilities': <String, Object?>{'primary': 'overgrow'},
+  'progression': <String, Object?>{
+    'growthRateId': 'medium_slow',
+    'baseExp': 64,
+    'catchRate': 45,
+  },
+};
 
 final class _MutableClock {
   _MutableClock(this.value);

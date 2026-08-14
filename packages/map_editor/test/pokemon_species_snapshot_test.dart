@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/services/pokemon_project_data_reader.dart';
 import 'package:map_editor/src/application/use_cases/delete_pokedex_species_use_case.dart';
+import 'package:map_editor/src/application/use_cases/initialize_pokemon_project_storage_use_case.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
@@ -15,6 +16,7 @@ void main() {
   late ProjectFileSystem workspace;
   late _CountingPokemonSpeciesSnapshotMetrics metrics;
   late PokemonProjectDataReader reader;
+  late SeedPokemonDemoDataUseCase seedUseCase;
 
   setUp(() async {
     projectRoot = await Directory.systemTemp.createTemp(
@@ -23,6 +25,9 @@ void main() {
     workspace = ProjectFileSystem(projectRoot.path);
     metrics = _CountingPokemonSpeciesSnapshotMetrics();
     reader = PokemonProjectDataReader(snapshotMetrics: metrics);
+    seedUseCase = SeedPokemonDemoDataUseCase(
+      snapshotController: FilePokemonReadRepository(reader: reader),
+    );
   });
 
   tearDown(() async {
@@ -34,7 +39,7 @@ void main() {
   test(
     'reuses one snapshot for concurrent and repeated species lookups',
     () async {
-      await const SeedPokemonDemoDataUseCase().execute(workspace);
+      await seedUseCase.execute(workspace);
 
       final species = await Future.wait(<Future<PokemonSpeciesFile>>[
         reader.readSpeciesById(workspace, 'bulbasaur'),
@@ -56,9 +61,26 @@ void main() {
   );
 
   test(
+    'reuses one snapshot across workspace objects for the same root',
+    () async {
+      await seedUseCase.execute(workspace);
+      final otherWorkspace = ProjectFileSystem(projectRoot.path);
+
+      final first = await reader.readSpeciesById(workspace, 'bulbasaur');
+      final second = await reader.readSpeciesById(otherWorkspace, 'ivysaur');
+
+      expect(first.id, 'bulbasaur');
+      expect(second.id, 'ivysaur');
+      expect(metrics.snapshotBuilds, 1);
+      expect(metrics.directoryListings, 1);
+      expect(metrics.speciesJsonReads, 2);
+    },
+  );
+
+  test(
     'rejects duplicate ids deterministically from the shared snapshot',
     () async {
-      await const SeedPokemonDemoDataUseCase().execute(workspace);
+      await seedUseCase.execute(workspace);
       final source = File(
         workspace.resolveProjectRelativePath(
           'data/pokemon/species/0001-bulbasaur.json',
@@ -89,16 +111,17 @@ void main() {
   test(
     'invalidates the shared workspace snapshot after a successful write',
     () async {
-      await const SeedPokemonDemoDataUseCase().execute(workspace);
-      final repository = FilePokemonWriteRepository(
-        reader: PokemonProjectDataReader(),
-      );
+      await seedUseCase.execute(workspace);
+      final mutationWorkspace = ProjectFileSystem(projectRoot.path);
+      final repository = FilePokemonWriteRepository(reader: reader);
       final original = await reader.readSpeciesById(workspace, 'bulbasaur');
       final json = original.toJson().cast<String, dynamic>();
       json['names'] = <String, String>{'en': 'Bulbasaur Updated'};
 
       await repository.saveSpecies(
-          workspace, PokemonSpeciesFile.fromJson(json));
+        mutationWorkspace,
+        PokemonSpeciesFile.fromJson(json),
+      );
       final updated = await reader.readSpeciesById(workspace, 'bulbasaur');
 
       expect(updated.names['en'], 'Bulbasaur Updated');
@@ -111,7 +134,7 @@ void main() {
   test(
     'retries a failed snapshot construction after the source is repaired',
     () async {
-      await const SeedPokemonDemoDataUseCase().execute(workspace);
+      await seedUseCase.execute(workspace);
       final ivysaurFile = File(
         workspace.resolveProjectRelativePath(
           'data/pokemon/species/0002-ivysaur.json',
@@ -135,8 +158,30 @@ void main() {
     },
   );
 
+  test(
+    'invalidates the shared root snapshot after demo species are seeded',
+    () async {
+      await const InitializePokemonProjectStorageUseCase().execute(workspace);
+      expect(await reader.listSpeciesIndexEntries(workspace), isEmpty);
+      final mutationWorkspace = ProjectFileSystem(projectRoot.path);
+
+      await SeedPokemonDemoDataUseCase(
+        snapshotController: FilePokemonReadRepository(reader: reader),
+      ).execute(mutationWorkspace);
+      final entries = await reader.listSpeciesIndexEntries(workspace);
+
+      expect(entries.map((entry) => entry.id), <String>[
+        'bulbasaur',
+        'ivysaur',
+      ]);
+      expect(metrics.snapshotBuilds, 2);
+      expect(metrics.directoryListings, 2);
+      expect(metrics.speciesJsonReads, 2);
+    },
+  );
+
   test('invalidates the shared workspace snapshot after deletion', () async {
-    await const SeedPokemonDemoDataUseCase().execute(workspace);
+    await seedUseCase.execute(workspace);
     final repository = FilePokemonReadRepository(reader: reader);
     await reader.readSpeciesById(workspace, 'bulbasaur');
 
@@ -159,15 +204,16 @@ void main() {
     );
     try {
       final otherWorkspace = ProjectFileSystem(otherRoot.path);
-      await const SeedPokemonDemoDataUseCase().execute(workspace);
-      await const SeedPokemonDemoDataUseCase().execute(otherWorkspace);
+      await seedUseCase.execute(workspace);
+      await seedUseCase.execute(otherWorkspace);
       final otherSpeciesFile = File(
         otherWorkspace.resolveProjectRelativePath(
           'data/pokemon/species/0001-bulbasaur.json',
         ),
       );
-      final otherJson = jsonDecode(await otherSpeciesFile.readAsString())
-          as Map<String, dynamic>;
+      final otherJson =
+          jsonDecode(await otherSpeciesFile.readAsString())
+              as Map<String, dynamic>;
       otherJson['names'] = <String, String>{'en': 'Other Bulbasaur'};
       await otherSpeciesFile.writeAsString(jsonEncode(otherJson));
 

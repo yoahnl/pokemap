@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../ports/pokemon_read_repository.dart';
 import '../ports/project_workspace.dart';
 import 'initialize_pokemon_project_storage_use_case.dart';
 import '../seeds/pokemon_moves_bootstrap_seed.dart';
@@ -16,9 +17,11 @@ import '../seeds/pokemon_moves_bootstrap_seed.dart';
 class SeedPokemonDemoDataUseCase {
   const SeedPokemonDemoDataUseCase({
     this.initializeStorage = const InitializePokemonProjectStorageUseCase(),
+    required this.snapshotController,
   });
 
   final InitializePokemonProjectStorageUseCase initializeStorage;
+  final PokemonSpeciesSnapshotController snapshotController;
 
   Future<void> execute(ProjectWorkspace workspace) async {
     await initializeStorage.execute(workspace);
@@ -47,12 +50,14 @@ class SeedPokemonDemoDataUseCase {
       );
     }
 
+    var speciesChanged = false;
     for (final entry in _speciesSeeds.entries) {
-      await _writeJsonIfAbsent(
-        workspace,
-        'data/pokemon/species/${entry.key}',
-        entry.value,
-      );
+      speciesChanged = await _writeJsonIfAbsent(
+            workspace,
+            'data/pokemon/species/${entry.key}',
+            entry.value,
+          ) ||
+          speciesChanged;
     }
 
     for (final entry in _learnsetSeeds.entries) {
@@ -77,6 +82,9 @@ class SeedPokemonDemoDataUseCase {
         'data/pokemon/media/${entry.key}',
         entry.value,
       );
+    }
+    if (speciesChanged) {
+      snapshotController.invalidateSpeciesSnapshot(workspace);
     }
   }
 
@@ -134,19 +142,20 @@ class SeedPokemonDemoDataUseCase {
     return true;
   }
 
-  Future<void> _writeJsonIfAbsent(
+  Future<bool> _writeJsonIfAbsent(
     ProjectWorkspace workspace,
     String relativePath,
     Map<String, Object?> payload,
   ) async {
     final absolutePath = workspace.resolveProjectRelativePath(relativePath);
     if (await workspace.fileExists(absolutePath)) {
-      return;
+      return false;
     }
     await workspace.writeTextFile(
       absolutePath,
       const JsonEncoder.withIndent('  ').convert(payload),
     );
+    return true;
   }
 }
 

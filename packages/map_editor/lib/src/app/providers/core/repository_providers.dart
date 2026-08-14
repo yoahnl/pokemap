@@ -17,6 +17,7 @@ import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/narrative_document_session.dart';
 import '../../../application/services/narrative_activity_journal.dart';
 import '../../../application/services/map_lifecycle_transaction_service.dart';
+import '../../../application/services/pokemon_project_data_reader.dart';
 import '../../../application/use_cases/execute_narrative_authoring_transaction.dart';
 import '../../../domain/repositories/repositories.dart';
 import '../../../features/personalization/application/personalization_studio_session_controller.dart';
@@ -55,6 +56,10 @@ final mapLifecycleTransactionCoordinatorProvider =
 
 final editorProjectFileReaderProvider = Provider<EditorProjectFileReader>(
   (ref) => const EditorProjectFileReader(),
+);
+
+final pokemonProjectDataReaderProvider = Provider<PokemonProjectDataReader>(
+  (ref) => PokemonProjectDataReader(),
 );
 
 final authoringFingerprintCacheProvider =
@@ -128,6 +133,9 @@ final authoringMutationAdapterProvider = Provider<AuthoringMutationAdapter>((
     projectRoots: projectFiles,
     fingerprintCache: ref.watch(authoringFingerprintCacheProvider),
     snapshotCache: ref.watch(authoringSnapshotCacheProvider),
+    invalidatePokemonSpeciesSnapshot: ref
+        .watch(pokemonProjectDataReaderProvider)
+        .invalidateSpeciesSnapshotForProjectRoot,
   );
   ref.watch(editorAuthoringSessionLifecycleProvider).attach(adapter);
   ref.onDispose(adapter.closeAll);

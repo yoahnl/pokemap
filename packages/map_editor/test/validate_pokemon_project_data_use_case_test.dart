@@ -23,10 +23,13 @@ void main() {
         await Directory.systemTemp.createTemp('pokemon_validate_');
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    seedUseCase = const SeedPokemonDemoDataUseCase();
+    final pokemonRepository = FilePokemonReadRepository();
+    seedUseCase = SeedPokemonDemoDataUseCase(
+      snapshotController: pokemonRepository,
+    );
     validateUseCase = ValidatePokemonProjectDataUseCase(
       PokemonProjectValidator(
-        FilePokemonReadRepository(),
+        pokemonRepository,
       ),
     );
   });

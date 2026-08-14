@@ -27,25 +27,21 @@ class PokemonSpeciesSnapshotMetrics {
 /// - les erreurs doivent etre explicites pour que les prochains lots UI
 ///   puissent les afficher proprement
 class PokemonProjectDataReader {
-  static const _speciesSnapshotCacheKey = 'pokemon.species.snapshot.v1';
-
   PokemonProjectDataReader({
     this.snapshotMetrics = const PokemonSpeciesSnapshotMetrics(),
   });
 
   final PokemonSpeciesSnapshotMetrics snapshotMetrics;
-  final Expando<Map<String, Future<_PokemonSpeciesSnapshot>>>
-      _speciesSnapshots =
-      Expando<Map<String, Future<_PokemonSpeciesSnapshot>>>();
+  final Map<String, Map<String, Future<_PokemonSpeciesSnapshot>>>
+  _speciesSnapshotsByProjectRoot =
+      <String, Map<String, Future<_PokemonSpeciesSnapshot>>>{};
 
   void invalidateSpeciesSnapshot(ProjectWorkspace workspace) {
-    if (workspace is ProjectWorkspaceCache) {
-      (workspace as ProjectWorkspaceCache).writeCachedValue(
-        _speciesSnapshotCacheKey,
-        null,
-      );
-    }
-    _speciesSnapshots[workspace] = null;
+    invalidateSpeciesSnapshotForProjectRoot(workspace.projectRoot);
+  }
+
+  void invalidateSpeciesSnapshotForProjectRoot(String projectRoot) {
+    _speciesSnapshotsByProjectRoot.remove(_normalizeProjectRoot(projectRoot));
   }
 
   Future<PokemonDataManifest> readManifest(ProjectWorkspace workspace) async {
@@ -443,20 +439,10 @@ class PokemonProjectDataReader {
   Map<String, Future<_PokemonSpeciesSnapshot>> _snapshotCacheFor(
     ProjectWorkspace workspace,
   ) {
-    if (workspace is ProjectWorkspaceCache) {
-      final cacheWorkspace = workspace as ProjectWorkspaceCache;
-      final existing = cacheWorkspace
-          .readCachedValue<Map<String, Future<_PokemonSpeciesSnapshot>>>(
-              _speciesSnapshotCacheKey);
-      if (existing != null) {
-        return existing;
-      }
-      final created = <String, Future<_PokemonSpeciesSnapshot>>{};
-      cacheWorkspace.writeCachedValue(_speciesSnapshotCacheKey, created);
-      return created;
-    }
-    return _speciesSnapshots[workspace] ??=
-        <String, Future<_PokemonSpeciesSnapshot>>{};
+    return _speciesSnapshotsByProjectRoot.putIfAbsent(
+      _normalizeProjectRoot(workspace.projectRoot),
+      () => <String, Future<_PokemonSpeciesSnapshot>>{},
+    );
   }
 
   Future<_PokemonSpeciesSnapshot> _buildSpeciesSnapshot(
@@ -690,6 +676,15 @@ class PokemonProjectDataReader {
   }) {
     final trimmed = rawRelativePath.trim();
     return p.normalize(trimmed.isEmpty ? fallback : trimmed);
+  }
+
+  String _normalizeProjectRoot(String projectRoot) {
+    final normalized = p.normalize(p.absolute(projectRoot));
+    try {
+      return p.normalize(Directory(normalized).resolveSymbolicLinksSync());
+    } on FileSystemException {
+      return normalized;
+    }
   }
 
   String _resolvePathWithinPokemonDataRoot({

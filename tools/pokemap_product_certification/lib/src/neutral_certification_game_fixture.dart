@@ -6,6 +6,7 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:map_editor/game_export.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
+import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
 
@@ -117,7 +118,9 @@ final class NeutralCertificationGameFixture {
       File(p.join(root.path, 'maps', 'clockwork_harbor.json')),
       map.toJson(),
     );
-    await const SeedPokemonDemoDataUseCase().execute(
+    await SeedPokemonDemoDataUseCase(
+      snapshotController: FilePokemonReadRepository(),
+    ).execute(
       ProjectFileSystem(root.path),
     );
     await File(

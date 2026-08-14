@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
+import 'package:map_editor/src/application/services/pokemon_project_data_reader.dart';
 import 'package:map_editor/src/application/use_cases/import_pokemon_species_json_use_case.dart';
 import 'package:map_editor/src/application/use_cases/initialize_pokemon_project_storage_use_case.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
@@ -26,10 +27,11 @@ void main() {
       'pokemon_species_import_source_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
+    final reader = PokemonProjectDataReader();
     useCase = ImportPokemonSpeciesJsonUseCase(
-      FilePokemonWriteRepository(),
+      FilePokemonWriteRepository(reader: reader),
     );
-    readRepository = FilePokemonReadRepository();
+    readRepository = FilePokemonReadRepository(reader: reader);
 
     final createProjectUseCase = CreateProjectUseCase(
       FileProjectRepository(),
@@ -99,6 +101,24 @@ void main() {
       expect(readBack.typing.types, <String>['grass', 'poison']);
       expect(readBack.refs.learnset, 'bulbasaur');
       expect(await projectFile.readAsString(), beforeProjectJson);
+    });
+
+    test('invalidates a warm species snapshot after import', () async {
+      expect(await readRepository.listSpeciesIndexEntries(workspace), isEmpty);
+      final sourceFile = await _writeSourceJson(
+        tempImportRoot,
+        'bulbasaur.json',
+        _bulbasaurSpecies.toJson(),
+      );
+
+      await useCase.execute(
+        ProjectFileSystem(tempProjectRoot.path),
+        absoluteSourcePath: sourceFile.path,
+      );
+
+      final imported =
+          await readRepository.readSpeciesById(workspace, 'bulbasaur');
+      expect(imported.id, 'bulbasaur');
     });
 
     test('fails clearly when the source file does not exist', () async {
