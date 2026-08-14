@@ -4,6 +4,7 @@ library;
 export 'package:map_runtime/map_runtime.dart'
     show PlayerInputAction, PlayerInputSource;
 export 'player_surfaces.dart';
+export 'presentation_renderer.dart';
 export 'src/foundation/player_action_availability.dart';
 export 'src/foundation/player_asset_preloader.dart';
 export 'src/foundation/player_components.dart';
