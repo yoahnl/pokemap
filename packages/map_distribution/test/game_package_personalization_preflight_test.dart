@@ -161,6 +161,7 @@ void main() {
         payloadBytes: valid.receipt.payloadBytes,
         fileCount: valid.receipt.fileCount,
         signatureStatus: valid.receipt.signatureStatus,
+        pokemonRuleset: valid.receipt.pokemonRuleset,
       );
 
       expect(

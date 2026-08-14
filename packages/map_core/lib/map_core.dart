@@ -58,6 +58,7 @@ export 'src/models/pokemon_move.dart';
 export 'src/models/pokemon_move_accuracy.dart';
 export 'src/models/pokemon_move_effect.dart';
 export 'src/models/pokemon_project_data.dart';
+export 'src/models/pokemon_ruleset_profile.dart';
 export 'src/models/script_asset.dart';
 export 'src/models/script_conditions.dart';
 export 'src/models/map_event_definition.dart';

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import 'game_package_compatibility.dart';
@@ -109,6 +110,7 @@ final class GamePackageInspector {
     }
 
     final contentValidator = GamePackageContentValidator(policy);
+    PokemonRulesetReference? pokemonRuleset;
     for (final inventoryEntry in manifest.content.files) {
       final raw = rawByPath[inventoryEntry.path]!;
       if (raw.size != inventoryEntry.size) {
@@ -145,12 +147,20 @@ final class GamePackageInspector {
         streamedTextValidated: _isStreamValidatedText(raw.name),
       );
       if (raw.name == 'project/project.json') {
-        GamePackageProjectValidator(policy).validate(
+        final project = GamePackageProjectValidator(policy).validate(
           manifest,
           streamed.validationBytes,
           payloadPaths: rawByPath.keys.toSet(),
         );
+        pokemonRuleset = project.pokemon.ruleset.reference;
       }
+    }
+    if (pokemonRuleset == null) {
+      _fail(
+        'missingFile',
+        'project/project.json',
+        'The package must contain its project manifest.',
+      );
     }
     if (source.length != fileLength) {
       _fail(
@@ -179,6 +189,7 @@ final class GamePackageInspector {
       payloadBytes: payloadTotal,
       fileCount: payloadEntries.length,
       signatureStatus: signatureStatus,
+      pokemonRuleset: pokemonRuleset,
     );
     return GamePackageInspectionResult(
       manifest: manifest,
@@ -249,6 +260,7 @@ final class GamePackageInspector {
     }
 
     final contentValidator = GamePackageContentValidator(policy);
+    PokemonRulesetReference? pokemonRuleset;
     for (final inventoryEntry in manifest.content.files) {
       final raw = rawByPath[inventoryEntry.path]!;
       _verifyCrc(raw);
@@ -269,12 +281,20 @@ final class GamePackageInspector {
       }
       contentValidator.validate(inventoryEntry, raw.data);
       if (raw.name == 'project/project.json') {
-        GamePackageProjectValidator(policy).validate(
+        final project = GamePackageProjectValidator(policy).validate(
           manifest,
           raw.data,
           payloadPaths: rawByPath.keys.toSet(),
         );
+        pokemonRuleset = project.pokemon.ruleset.reference;
       }
+    }
+    if (pokemonRuleset == null) {
+      _fail(
+        'missingFile',
+        'project/project.json',
+        'The package must contain its project manifest.',
+      );
     }
 
     final receipt = GamePackageInspectionReceipt(
@@ -289,6 +309,7 @@ final class GamePackageInspector {
       payloadBytes: payloadTotal,
       fileCount: payloadEntries.length,
       signatureStatus: signatureStatus,
+      pokemonRuleset: pokemonRuleset,
     );
     return GamePackageInspectionResult(
       manifest: manifest,

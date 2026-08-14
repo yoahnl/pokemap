@@ -614,7 +614,7 @@ $ProjectPresentationProfileCopyWith<$Res>? get presentation {
 /// @nodoc
 mixin _$ProjectPokemonConfig {
 
- bool get enabled; String get dataRoot; String get speciesDir; String get learnsetsDir; String get evolutionsDir; String get mediaDir; Map<String, String> get catalogFiles;
+ bool get enabled; PokemonRulesetProfile get ruleset; String get dataRoot; String get speciesDir; String get learnsetsDir; String get evolutionsDir; String get mediaDir; Map<String, String> get catalogFiles;
 /// Create a copy of ProjectPokemonConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -627,16 +627,16 @@ $ProjectPokemonConfigCopyWith<ProjectPokemonConfig> get copyWith => _$ProjectPok
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPokemonConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.dataRoot, dataRoot) || other.dataRoot == dataRoot)&&(identical(other.speciesDir, speciesDir) || other.speciesDir == speciesDir)&&(identical(other.learnsetsDir, learnsetsDir) || other.learnsetsDir == learnsetsDir)&&(identical(other.evolutionsDir, evolutionsDir) || other.evolutionsDir == evolutionsDir)&&(identical(other.mediaDir, mediaDir) || other.mediaDir == mediaDir)&&const DeepCollectionEquality().equals(other.catalogFiles, catalogFiles));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPokemonConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.ruleset, ruleset) || other.ruleset == ruleset)&&(identical(other.dataRoot, dataRoot) || other.dataRoot == dataRoot)&&(identical(other.speciesDir, speciesDir) || other.speciesDir == speciesDir)&&(identical(other.learnsetsDir, learnsetsDir) || other.learnsetsDir == learnsetsDir)&&(identical(other.evolutionsDir, evolutionsDir) || other.evolutionsDir == evolutionsDir)&&(identical(other.mediaDir, mediaDir) || other.mediaDir == mediaDir)&&const DeepCollectionEquality().equals(other.catalogFiles, catalogFiles));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,enabled,dataRoot,speciesDir,learnsetsDir,evolutionsDir,mediaDir,const DeepCollectionEquality().hash(catalogFiles));
+int get hashCode => Object.hash(runtimeType,enabled,ruleset,dataRoot,speciesDir,learnsetsDir,evolutionsDir,mediaDir,const DeepCollectionEquality().hash(catalogFiles));
 
 @override
 String toString() {
-  return 'ProjectPokemonConfig(enabled: $enabled, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
+  return 'ProjectPokemonConfig(enabled: $enabled, ruleset: $ruleset, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
 }
 
 
@@ -647,7 +647,7 @@ abstract mixin class $ProjectPokemonConfigCopyWith<$Res>  {
   factory $ProjectPokemonConfigCopyWith(ProjectPokemonConfig value, $Res Function(ProjectPokemonConfig) _then) = _$ProjectPokemonConfigCopyWithImpl;
 @useResult
 $Res call({
- bool enabled, String dataRoot, String speciesDir, String learnsetsDir, String evolutionsDir, String mediaDir, Map<String, String> catalogFiles
+ bool enabled, PokemonRulesetProfile ruleset, String dataRoot, String speciesDir, String learnsetsDir, String evolutionsDir, String mediaDir, Map<String, String> catalogFiles
 });
 
 
@@ -664,10 +664,11 @@ class _$ProjectPokemonConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPokemonConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? enabled = null,Object? dataRoot = null,Object? speciesDir = null,Object? learnsetsDir = null,Object? evolutionsDir = null,Object? mediaDir = null,Object? catalogFiles = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? enabled = null,Object? ruleset = null,Object? dataRoot = null,Object? speciesDir = null,Object? learnsetsDir = null,Object? evolutionsDir = null,Object? mediaDir = null,Object? catalogFiles = null,}) {
   return _then(_self.copyWith(
 enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
-as bool,dataRoot: null == dataRoot ? _self.dataRoot : dataRoot // ignore: cast_nullable_to_non_nullable
+as bool,ruleset: null == ruleset ? _self.ruleset : ruleset // ignore: cast_nullable_to_non_nullable
+as PokemonRulesetProfile,dataRoot: null == dataRoot ? _self.dataRoot : dataRoot // ignore: cast_nullable_to_non_nullable
 as String,speciesDir: null == speciesDir ? _self.speciesDir : speciesDir // ignore: cast_nullable_to_non_nullable
 as String,learnsetsDir: null == learnsetsDir ? _self.learnsetsDir : learnsetsDir // ignore: cast_nullable_to_non_nullable
 as String,evolutionsDir: null == evolutionsDir ? _self.evolutionsDir : evolutionsDir // ignore: cast_nullable_to_non_nullable
@@ -758,10 +759,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enabled,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enabled,  PokemonRulesetProfile ruleset,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectPokemonConfig() when $default != null:
-return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
+return $default(_that.enabled,_that.ruleset,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
   return orElse();
 
 }
@@ -779,10 +780,10 @@ return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enabled,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enabled,  PokemonRulesetProfile ruleset,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPokemonConfig():
-return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
+return $default(_that.enabled,_that.ruleset,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -799,10 +800,10 @@ return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enabled,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enabled,  PokemonRulesetProfile ruleset,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPokemonConfig() when $default != null:
-return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
+return $default(_that.enabled,_that.ruleset,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
   return null;
 
 }
@@ -814,10 +815,11 @@ return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectPokemonConfig implements ProjectPokemonConfig {
-  const _ProjectPokemonConfig({this.enabled = true, this.dataRoot = 'data/pokemon', this.speciesDir = 'data/pokemon/species', this.learnsetsDir = 'data/pokemon/learnsets', this.evolutionsDir = 'data/pokemon/evolutions', this.mediaDir = 'data/pokemon/media', final  Map<String, String> catalogFiles = _defaultPokemonCatalogFiles}): _catalogFiles = catalogFiles;
+  const _ProjectPokemonConfig({this.enabled = true, this.ruleset = PokemonRulesetProfile.pokeMapBetaV1, this.dataRoot = 'data/pokemon', this.speciesDir = 'data/pokemon/species', this.learnsetsDir = 'data/pokemon/learnsets', this.evolutionsDir = 'data/pokemon/evolutions', this.mediaDir = 'data/pokemon/media', final  Map<String, String> catalogFiles = _defaultPokemonCatalogFiles}): _catalogFiles = catalogFiles;
   factory _ProjectPokemonConfig.fromJson(Map<String, dynamic> json) => _$ProjectPokemonConfigFromJson(json);
 
 @override@JsonKey() final  bool enabled;
+@override@JsonKey() final  PokemonRulesetProfile ruleset;
 @override@JsonKey() final  String dataRoot;
 @override@JsonKey() final  String speciesDir;
 @override@JsonKey() final  String learnsetsDir;
@@ -844,16 +846,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPokemonConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.dataRoot, dataRoot) || other.dataRoot == dataRoot)&&(identical(other.speciesDir, speciesDir) || other.speciesDir == speciesDir)&&(identical(other.learnsetsDir, learnsetsDir) || other.learnsetsDir == learnsetsDir)&&(identical(other.evolutionsDir, evolutionsDir) || other.evolutionsDir == evolutionsDir)&&(identical(other.mediaDir, mediaDir) || other.mediaDir == mediaDir)&&const DeepCollectionEquality().equals(other._catalogFiles, _catalogFiles));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPokemonConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.ruleset, ruleset) || other.ruleset == ruleset)&&(identical(other.dataRoot, dataRoot) || other.dataRoot == dataRoot)&&(identical(other.speciesDir, speciesDir) || other.speciesDir == speciesDir)&&(identical(other.learnsetsDir, learnsetsDir) || other.learnsetsDir == learnsetsDir)&&(identical(other.evolutionsDir, evolutionsDir) || other.evolutionsDir == evolutionsDir)&&(identical(other.mediaDir, mediaDir) || other.mediaDir == mediaDir)&&const DeepCollectionEquality().equals(other._catalogFiles, _catalogFiles));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,enabled,dataRoot,speciesDir,learnsetsDir,evolutionsDir,mediaDir,const DeepCollectionEquality().hash(_catalogFiles));
+int get hashCode => Object.hash(runtimeType,enabled,ruleset,dataRoot,speciesDir,learnsetsDir,evolutionsDir,mediaDir,const DeepCollectionEquality().hash(_catalogFiles));
 
 @override
 String toString() {
-  return 'ProjectPokemonConfig(enabled: $enabled, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
+  return 'ProjectPokemonConfig(enabled: $enabled, ruleset: $ruleset, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
 }
 
 
@@ -864,7 +866,7 @@ abstract mixin class _$ProjectPokemonConfigCopyWith<$Res> implements $ProjectPok
   factory _$ProjectPokemonConfigCopyWith(_ProjectPokemonConfig value, $Res Function(_ProjectPokemonConfig) _then) = __$ProjectPokemonConfigCopyWithImpl;
 @override @useResult
 $Res call({
- bool enabled, String dataRoot, String speciesDir, String learnsetsDir, String evolutionsDir, String mediaDir, Map<String, String> catalogFiles
+ bool enabled, PokemonRulesetProfile ruleset, String dataRoot, String speciesDir, String learnsetsDir, String evolutionsDir, String mediaDir, Map<String, String> catalogFiles
 });
 
 
@@ -881,10 +883,11 @@ class __$ProjectPokemonConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPokemonConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? enabled = null,Object? dataRoot = null,Object? speciesDir = null,Object? learnsetsDir = null,Object? evolutionsDir = null,Object? mediaDir = null,Object? catalogFiles = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? enabled = null,Object? ruleset = null,Object? dataRoot = null,Object? speciesDir = null,Object? learnsetsDir = null,Object? evolutionsDir = null,Object? mediaDir = null,Object? catalogFiles = null,}) {
   return _then(_ProjectPokemonConfig(
 enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
-as bool,dataRoot: null == dataRoot ? _self.dataRoot : dataRoot // ignore: cast_nullable_to_non_nullable
+as bool,ruleset: null == ruleset ? _self.ruleset : ruleset // ignore: cast_nullable_to_non_nullable
+as PokemonRulesetProfile,dataRoot: null == dataRoot ? _self.dataRoot : dataRoot // ignore: cast_nullable_to_non_nullable
 as String,speciesDir: null == speciesDir ? _self.speciesDir : speciesDir // ignore: cast_nullable_to_non_nullable
 as String,learnsetsDir: null == learnsetsDir ? _self.learnsetsDir : learnsetsDir // ignore: cast_nullable_to_non_nullable
 as String,evolutionsDir: null == evolutionsDir ? _self.evolutionsDir : evolutionsDir // ignore: cast_nullable_to_non_nullable

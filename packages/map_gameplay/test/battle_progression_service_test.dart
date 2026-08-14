@@ -44,6 +44,10 @@ void main() {
       expect(result.state.party.members[0].currentHp, 17);
       expect(result.state.party.members[1], state.party.members[1]);
       expect(result.changes.single.calculatedStats.attack, 10);
+      expect(
+        result.rulesetReference,
+        PokemonRulesetProfile.pokeMapBetaV1Reference,
+      );
     });
 
     test('uses a 1.5 trainer multiplier and equal participant split', () {

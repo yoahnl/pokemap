@@ -78,6 +78,10 @@ void main() {
       expect(resolution.progression.changes.single.oldLevel, 5);
       expect(resolution.progression.changes.single.newLevel, 11);
       expect(
+        resolution.progression.rulesetReference,
+        PokemonRulesetProfile.pokeMapBetaV1Reference,
+      );
+      expect(
           resolution.progression.state.party.members.single.experience, 1553);
       expect(resolution.progression.state.trainerProfile.money, 0);
       expect(

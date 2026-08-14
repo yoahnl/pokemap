@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'runtime_battle_outcome_apply.dart';
@@ -19,8 +20,10 @@ final class RuntimeBattleProgressionContextMapper {
     required int partyLength,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
+    PokemonRulesetProfile ruleset = PokemonRulesetProfile.pokeMapBetaV1,
   }) {
     return BattleProgressionContext(
+      ruleset: ruleset,
       outcome: switch (outcome.type) {
         BattleOutcomeType.victory => BattleProgressionOutcomeKind.victory,
         BattleOutcomeType.defeat => BattleProgressionOutcomeKind.defeat,
@@ -43,8 +46,10 @@ final class RuntimeBattleProgressionContextMapper {
     required int partyLength,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
+    PokemonRulesetProfile ruleset = PokemonRulesetProfile.pokeMapBetaV1,
   }) {
     return BattleProgressionContext(
+      ruleset: ruleset,
       outcome: switch (outcome.kind) {
         PsdkBattleOutcomeKind.victory => BattleProgressionOutcomeKind.victory,
         PsdkBattleOutcomeKind.defeat => BattleProgressionOutcomeKind.defeat,

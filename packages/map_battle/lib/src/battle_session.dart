@@ -36,6 +36,7 @@ BattleSession createBattleSession(
   BattleRng rng = const BattleSeededRng(),
   BattleOpponentPolicy opponentPolicy = const BattleFirstLegalOpponentPolicy(),
 }) {
+  setup.ruleset.requireSupported();
   _validateCaptureSetup(setup);
   final player = _buildBattleCombatantFromData(setup.playerPokemon);
   final enemy = _buildBattleCombatantFromData(setup.enemyPokemon);
