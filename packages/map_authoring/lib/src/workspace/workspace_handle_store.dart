@@ -79,6 +79,9 @@ final class ProjectResourceBytes {
 /// The canonical filesystem root remains captured privately by [readBytes].
 typedef ProjectResourceIdentityLookup = Future<ProjectResourceIdentity?>
     Function(String relativePath);
+typedef ProjectDirectoryLister = Future<List<String>> Function(
+  String relativeDirectory,
+);
 
 final class ProjectWorkspaceAccess {
   ProjectWorkspaceAccess._({
@@ -88,9 +91,11 @@ final class ProjectWorkspaceAccess {
     required this.expiresAt,
     required ProjectResourceReader readBytes,
     ProjectResourceIdentityLookup? readIdentity,
+    ProjectDirectoryLister? listFiles,
     required this.canReuseSnapshots,
   })  : _readBytes = readBytes,
-        _readIdentity = readIdentity;
+        _readIdentity = readIdentity,
+        _listFiles = listFiles;
 
   final ProjectHandle projectHandle;
   final String projectName;
@@ -99,6 +104,10 @@ final class ProjectWorkspaceAccess {
   final bool canReuseSnapshots;
   final ProjectResourceReader _readBytes;
   final ProjectResourceIdentityLookup? _readIdentity;
+  final ProjectDirectoryLister? _listFiles;
+
+  Future<List<String>?> listFiles(String relativeDirectory) async =>
+      await _listFiles?.call(relativeDirectory);
 
   /// Identity of a stored resource when the reader can report it cheaply.
   ///
@@ -167,6 +176,7 @@ final class WorkspaceHandleStore {
     required String initialFingerprint,
     required ProjectResourceReader readBytes,
     ProjectResourceIdentityLookup? readIdentity,
+    ProjectDirectoryLister? listFiles,
     bool canReuseSnapshots = false,
   }) {
     if (canReuseSnapshots && readIdentity == null) {
@@ -185,6 +195,7 @@ final class WorkspaceHandleStore {
       expiresAt: expiresAt,
       readBytes: readBytes,
       readIdentity: readIdentity,
+      listFiles: listFiles,
       canReuseSnapshots: canReuseSnapshots,
     );
     return RegisteredProjectHandles(
@@ -205,6 +216,10 @@ final class WorkspaceHandleStore {
       readIdentity: stored.readIdentity == null
           ? null
           : (relativePath) => _readIdentityForHandle(handle, relativePath),
+      listFiles: stored.listFiles == null
+          ? null
+          : (relativeDirectory) =>
+              _listFilesForHandle(handle, relativeDirectory),
       canReuseSnapshots: stored.canReuseSnapshots,
     );
   }
@@ -275,6 +290,16 @@ final class WorkspaceHandleStore {
     return identity;
   }
 
+  Future<List<String>> _listFilesForHandle(
+    ProjectHandle handle,
+    String relativeDirectory,
+  ) async {
+    final stored = _requireActive(handle);
+    final paths = await stored.listFiles!(relativeDirectory);
+    _requireActive(handle);
+    return List.unmodifiable(paths);
+  }
+
   void _remove(ProjectHandle handle, _StoredProjectAccess stored) {
     _projects.remove(handle);
     _projectsByWorkspace.remove(stored.workspaceHandle);
@@ -307,6 +332,7 @@ final class _StoredProjectAccess {
     required this.expiresAt,
     required this.readBytes,
     this.readIdentity,
+    this.listFiles,
     required this.canReuseSnapshots,
   });
 
@@ -316,6 +342,7 @@ final class _StoredProjectAccess {
   final DateTime expiresAt;
   final ProjectResourceReader readBytes;
   final ProjectResourceIdentityLookup? readIdentity;
+  final ProjectDirectoryLister? listFiles;
   final bool canReuseSnapshots;
 }
 

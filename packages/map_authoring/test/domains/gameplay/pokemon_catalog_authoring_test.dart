@@ -114,7 +114,10 @@ void main() {
       expect(report.canPublish, isFalse);
       expect(
         report.issues.map((issue) => issue.code),
-        containsAll({'evolution.target_missing', 'media.default_form_missing'}),
+        containsAll({
+          'evolution.target_species_missing',
+          'media.default_form_missing',
+        }),
       );
     });
 

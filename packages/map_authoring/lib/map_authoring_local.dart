@@ -10,6 +10,7 @@ export 'src/ports/artifact_store.dart' show LocalArtifactStore;
 export 'src/ports/project_file_reader.dart'
     show
         LocalProjectFileReader,
+        ProjectDirectoryReader,
         ProjectFileReader,
         ProjectResourceIdentity,
         ProjectResourceIdentityReader,

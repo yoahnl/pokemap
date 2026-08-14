@@ -24,7 +24,7 @@ void main() {
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
     seedUseCase = const SeedPokemonDemoDataUseCase();
-    validateUseCase = const ValidatePokemonProjectDataUseCase(
+    validateUseCase = ValidatePokemonProjectDataUseCase(
       PokemonProjectValidator(
         FilePokemonReadRepository(),
       ),

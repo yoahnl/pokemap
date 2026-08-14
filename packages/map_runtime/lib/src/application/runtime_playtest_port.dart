@@ -1,10 +1,25 @@
 import 'dart:async';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 
 typedef RuntimePlaytestDriverFactory = Future<RuntimePlaytestDriver> Function(
   PlaytestStartRequest request,
 );
+typedef RuntimePokemonCatalogPreflight =
+    Future<PokemonCatalogCoherenceReport> Function(
+  PlaytestStartRequest request,
+);
+
+final class RuntimePlaytestReadinessException implements Exception {
+  const RuntimePlaytestReadinessException(this.report);
+
+  final PokemonCatalogCoherenceReport report;
+
+  @override
+  String toString() => 'RuntimePlaytestReadinessException('
+      '${report.errorCount} Pokemon catalog errors)';
+}
 
 /// Small protocol implemented by runtime hosts such as PokeMap Eval.
 ///
@@ -26,14 +41,20 @@ abstract interface class RuntimePlaytestDriver {
 final class RuntimePlaytestPort implements PlaytestPort {
   RuntimePlaytestPort({
     required this.driverFactory,
+    required this.pokemonCatalogPreflight,
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
 
   final RuntimePlaytestDriverFactory driverFactory;
+  final RuntimePokemonCatalogPreflight pokemonCatalogPreflight;
   final DateTime Function() _clock;
 
   @override
   Future<PlaytestSession> start(PlaytestStartRequest request) async {
+    final readiness = await pokemonCatalogPreflight(request);
+    if (!readiness.canPlaytest) {
+      throw RuntimePlaytestReadinessException(readiness);
+    }
     final driver = await driverFactory(request);
     try {
       final actualRevision = await driver.readProjectRevision();

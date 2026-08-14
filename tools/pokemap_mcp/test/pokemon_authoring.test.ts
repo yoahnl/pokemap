@@ -146,6 +146,21 @@ test("MCP writes the shared Pokemon species schema and rejects future versions",
     ) as JsonRecord;
     assert.equal(persisted.schemaVersion, 1);
     assert.equal(persisted.vendorExtension, true);
+
+    const gated = await toolData(client, "pokemap_validate", {
+      projectHandle,
+    });
+    assert.equal(gated.valid, false);
+    const pokemonCatalog = record(gated.pokemonCatalog);
+    assert.equal(pokemonCatalog.canPlaytest, false);
+    const diagnostics = pokemonCatalog.diagnostics as JsonRecord[];
+    const statTotal = diagnostics.find(
+      (diagnostic) => diagnostic.code === "species.stat_total_mismatch",
+    );
+    assert.ok(statTotal);
+    assert.equal(statTotal.severity, "error");
+    assert.equal(typeof statTotal.path, "string");
+    assert.equal(typeof statTotal.recommendedAction, "string");
   } finally {
     await client.close();
     await server.close();

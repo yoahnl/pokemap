@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import '../contracts/artifact_ref.dart';
 import '../ports/project_file_reader.dart';
 import '../domains/assets/asset_store.dart';
+import '../domains/gameplay/pokemon_catalog_coherence_loader.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../transactions/change_set.dart';
 import 'project_snapshot.dart';
@@ -145,22 +146,35 @@ final class ProjectSnapshotLoader {
     ProjectSnapshotDecodeExecutor? decodeExecutor,
     ProjectSnapshotFingerprintCache? fingerprintCache,
     ProjectSnapshotCache? snapshotCache,
+    PokemonCatalogCoherenceLoader pokemonCatalogLoader =
+        const PokemonCatalogCoherenceLoader(),
   })  : assert(maxConcurrentSecondObservations > 0),
         _decodeExecutor = decodeExecutor ?? ProjectSnapshotDecodeExecutor(),
         _fingerprintCache = fingerprintCache,
         _snapshotCache = snapshotCache,
+        _pokemonCatalogLoader = pokemonCatalogLoader,
         _handles = handles;
 
   final WorkspaceHandleStore _handles;
   final ProjectSnapshotFingerprintCache? _fingerprintCache;
   final ProjectSnapshotCache? _snapshotCache;
   final ProjectSnapshotDecodeExecutor _decodeExecutor;
+  final PokemonCatalogCoherenceLoader _pokemonCatalogLoader;
   final ProjectSnapshotLoadProfileSink? profileSink;
   final int maxConcurrentSecondObservations;
 
   void requireActiveProject(ProjectHandle projectHandle) {
     _handles.requireActiveProject(projectHandle);
   }
+
+  Future<PokemonCatalogCoherenceReport> validatePokemonCatalog(
+    ProjectHandle projectHandle,
+    ProjectManifest manifest,
+  ) =>
+      _pokemonCatalogLoader.validate(
+        _handles.resolveProject(projectHandle),
+        manifest,
+      );
 
   Future<ProjectSnapshot?> adoptAppliedChanges(
     ProjectHandle projectHandle, {

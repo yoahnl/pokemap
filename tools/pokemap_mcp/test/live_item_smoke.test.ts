@@ -220,6 +220,10 @@ test(
       );
       assert.equal(queriedRevisions.size, 1);
       let revision = [...queriedRevisions][0];
+      const baselineValidation = await toolData(client, "pokemap_validate", {
+        projectHandle,
+      });
+      const baselinePokemonCatalog = record(baselineValidation.pokemonCatalog);
       const receipts = new Set<string>();
       const boundReceipts: JsonRecord[] = [];
 
@@ -276,9 +280,15 @@ test(
         const validation = await toolData(client, "pokemap_validate", {
           projectHandle,
         });
+        const structure = record(validation.structure);
+        const references = record(validation.references);
+        const pokemonCatalog = record(validation.pokemonCatalog);
+        assert.deepEqual(pokemonCatalog, baselinePokemonCatalog);
         assert.equal(
           validation.valid,
-          true,
+          Boolean(structure.valid) &&
+            Boolean(references.valid) &&
+            Boolean(pokemonCatalog.canPlaytest),
           `${scenario.actionId}: ${JSON.stringify(validation)}`,
         );
         assert.equal(validation.snapshotRevision, revision);

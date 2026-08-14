@@ -85,6 +85,12 @@ final class ProjectOpenService {
                 relativePath: relativePath,
               )
           : null,
+      listFiles: reader is ProjectDirectoryReader
+          ? (relativeDirectory) => (reader as ProjectDirectoryReader).listFiles(
+                projectRoot: canonicalRoot,
+                relativeDirectory: relativeDirectory,
+              )
+          : null,
       canReuseSnapshots: reader is ProjectSnapshotCacheIdentityReader,
     );
     return OpenedProject(
