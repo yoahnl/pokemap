@@ -7,26 +7,22 @@ EnvironmentPaletteItem _item(String id) =>
 EnvironmentGenerationParams _params() => EnvironmentGenerationParams.standard();
 
 EnvironmentPreset _ep(String id, {int sortOrder = 0}) => EnvironmentPreset(
-      id: id,
-      name: 'n_$id',
-      templateId: 'tpl',
-      palette: [_item('el_$id')],
-      defaultParams: _params(),
-      sortOrder: sortOrder,
-    );
+  id: id,
+  name: 'n_$id',
+  templateId: 'tpl',
+  palette: [_item('el_$id')],
+  defaultParams: _params(),
+  sortOrder: sortOrder,
+);
 
 ProjectManifest _minimalManifest() {
-  return ProjectManifest(
-    name: 'Env5',
-    maps: const [],
-    tilesets: const [],
-  );
+  return ProjectManifest(name: 'Env5', maps: const [], tilesets: const []);
 }
 
 void main() {
   group('ProjectManifest environmentPresets JSON', () {
     test('fromJson sans environmentPresets => []', () {
-      final m = ProjectManifest.fromJson(<String, dynamic>{
+      final m = ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
         'name': 'x',
         'version': 'v6',
         'maps': <dynamic>[],
@@ -36,7 +32,7 @@ void main() {
     });
 
     test('fromJson avec environmentPresets null => []', () {
-      final m = ProjectManifest.fromJson(<String, dynamic>{
+      final m = ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
         'name': 'x',
         'version': 'v6',
         'maps': <dynamic>[],
@@ -51,7 +47,9 @@ void main() {
       final manifest = _minimalManifest().copyWith(
         environmentPresets: [preset],
       );
-      final decoded = ProjectManifest.fromJson(manifest.toJson());
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        manifest.toJson(),
+      );
       expect(decoded.environmentPresets.length, 1);
       expect(decoded.environmentPresets.single.id, 'p1');
       expect(decoded.environmentPresets.single.sortOrder, 3);
@@ -59,8 +57,9 @@ void main() {
 
     test('toJson inclut environmentPresets', () {
       final preset = _ep('x');
-      final j =
-          _minimalManifest().copyWith(environmentPresets: [preset]).toJson();
+      final j = _minimalManifest()
+          .copyWith(environmentPresets: [preset])
+          .toJson();
       expect(j.containsKey('environmentPresets'), isTrue);
       expect(j['environmentPresets'], isA<List>());
     });
@@ -88,13 +87,13 @@ void main() {
         sortOrder: 7,
       );
       final m = _minimalManifest().copyWith(environmentPresets: [preset]);
-      final back = ProjectManifest.fromJson(m.toJson());
+      final back = ProjectManifest.fromJsonPokeMapBetaV1ForTest(m.toJson());
       expect(back.environmentPresets.single, preset);
     });
 
     test('environmentPresets non-list => FormatException', () {
       expect(
-        () => ProjectManifest.fromJson(<String, dynamic>{
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
           'name': 'x',
           'version': 'v6',
           'maps': <dynamic>[],
@@ -107,7 +106,7 @@ void main() {
 
     test('environmentPresets avec item invalide => FormatException', () {
       expect(
-        () => ProjectManifest.fromJson(<String, dynamic>{
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
           'name': 'x',
           'version': 'v6',
           'maps': <dynamic>[],
@@ -149,19 +148,19 @@ void main() {
       final base = _minimalManifest().copyWith(
         environmentPresets: [_ep('a'), _ep('b')],
       );
-      final next = replaceProjectEnvironmentPresets(
-        base,
-        [_ep('z', sortOrder: 9), _ep('y')],
-      );
+      final next = replaceProjectEnvironmentPresets(base, [
+        _ep('z', sortOrder: 9),
+        _ep('y'),
+      ]);
       expect(next.environmentPresets.map((e) => e.id).toList(), ['z', 'y']);
     });
 
     test('replaceProjectEnvironmentPresets refuse doublons', () {
       expect(
-        () => replaceProjectEnvironmentPresets(
-          _minimalManifest(),
-          [_ep('x'), _ep('x')],
-        ),
+        () => replaceProjectEnvironmentPresets(_minimalManifest(), [
+          _ep('x'),
+          _ep('x'),
+        ]),
         throwsA(isA<ValidationException>()),
       );
     });
@@ -180,8 +179,10 @@ void main() {
         sortOrder: 99,
       );
       final m1 = upsertProjectEnvironmentPreset(m0, a2);
-      expect(m1.environmentPresets.map((e) => e.name).toList(),
-          ['updated', 'n_b']);
+      expect(m1.environmentPresets.map((e) => e.name).toList(), [
+        'updated',
+        'n_b',
+      ]);
 
       final c = _ep('c');
       final m2 = upsertProjectEnvironmentPreset(m1, c);

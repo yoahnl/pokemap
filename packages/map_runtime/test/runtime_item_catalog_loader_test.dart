@@ -34,7 +34,9 @@ void main() {
     expect(
       await const RuntimeItemCatalogLoader().load(
         projectRootDirectory: root.path,
-        pokemonConfig: const ProjectPokemonConfig(),
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
       ),
       isNull,
     );
@@ -70,6 +72,7 @@ void main() {
       () => const RuntimeItemCatalogLoader().load(
         projectRootDirectory: root.path,
         pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           catalogFiles: {'items': '../items.json'},
         ),
       ),
@@ -79,6 +82,7 @@ void main() {
 }
 
 const _config = ProjectPokemonConfig(
+  ruleset: PokemonRulesetProfile.pokeMapBetaV1,
   catalogFiles: {'items': 'custom/catalogs/items.json'},
 );
 

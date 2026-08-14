@@ -177,6 +177,7 @@ BattleProgressionContext _context({
       const <PokemonEvolutionCandidate>[],
 }) {
   return BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: outcome,
     playerParticipantPartySlots: participants,
     defeatedOpponents: opponents,

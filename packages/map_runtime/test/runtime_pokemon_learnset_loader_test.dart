@@ -424,6 +424,7 @@ void main() {
 
 ProjectPokemonConfig _pokemonConfig() {
   return const ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     dataRoot: 'custom/pokemon',
     speciesDir: 'custom/pokemon/species',
     learnsetsDir: 'custom/pokemon/learnsets',

@@ -223,7 +223,7 @@ BattleEngineSetup _setup({
   PsdkBattleEffectStack? playerEffects,
   List<PsdkBattleMoveData>? opponentMoves,
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     canFlee: canFlee,
     isTrainerBattle: isTrainerBattle,
     player: _combatant(

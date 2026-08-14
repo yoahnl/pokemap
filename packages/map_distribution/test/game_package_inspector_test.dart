@@ -325,6 +325,9 @@ void main() {
                   'version': 'v6',
                   'maps': <Object?>[],
                   'tilesets': <Object?>[],
+                  'pokemon': const ProjectPokemonConfig(
+                    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+                  ).toJson(),
                   'collisionProfile': <String, Object?>{
                     'visualMask': <String, Object?>{
                       'dataBase64': '/P////////////8=',
@@ -1361,6 +1364,9 @@ List<int> _validProjectBytes({String name = 'Inspector Test'}) => utf8.encode(
     'version': 'v6',
     'maps': <Object?>[],
     'tilesets': <Object?>[],
+    'pokemon': const ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    ).toJson(),
   }),
 );
 

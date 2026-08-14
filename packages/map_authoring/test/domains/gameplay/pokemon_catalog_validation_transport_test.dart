@@ -68,6 +68,7 @@ void main() {
 
 Future<void> _writeFixture(Directory root) async {
   final pokemon = const ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     catalogFiles: <String, String>{
       'types': 'data/pokemon/catalogs/types.json',
       'abilities': 'data/pokemon/catalogs/abilities.json',

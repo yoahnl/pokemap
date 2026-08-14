@@ -135,7 +135,7 @@ void main() {
 
     test('No Retreat prevents switching for its holder', () {
       final state = PsdkBattleState.fromSetup(
-        PsdkBattleSetup.singles(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             effects: const PsdkBattleEffectStack.empty().addEffect(
               NoRetreatEffect(scope: BattlerBattleEffectScope(psdkPlayerSlot)),

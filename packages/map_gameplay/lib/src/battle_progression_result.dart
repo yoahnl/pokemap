@@ -355,8 +355,7 @@ final class BattleProgressionResult {
     Iterable<BattleEvolutionChange> evolutionChanges =
         const <BattleEvolutionChange>[],
     PokemonEvolutionService evolutionService = const PokemonEvolutionService(),
-    PokemonRulesetReference rulesetReference =
-        PokemonRulesetProfile.pokeMapBetaV1Reference,
+    required PokemonRulesetReference rulesetReference,
   }) {
     final evolutionQueue = _validatedEvolutionQueue(evolutionOpportunities);
     final moveAdvanced = _advanceMoveLearning(

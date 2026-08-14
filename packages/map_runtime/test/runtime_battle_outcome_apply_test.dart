@@ -838,7 +838,7 @@ void main() {
     test('captures the original wild identity and moves after a real Transform',
         () {
       var battle = createBattleSession(
-        const BattleSetup(
+        const BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'player-sproutle',
             level: 12,
@@ -1759,7 +1759,7 @@ RuntimeBattleCaptureAttemptSubmission<BattleSession> _acceptedCaptureAttempt({
 BattleSession _legacyCaptureResult({required bool caught}) {
   final enemyHp = caught ? 1 : 100;
   return createBattleSession(
-    BattleSetup(
+    BattleSetup.pokeMapBetaV1ForTest(
       playerPokemon: const BattleCombatantData(
         speciesId: 'receipt-player',
         level: 10,
@@ -1788,7 +1788,7 @@ BattleSession _legacyCaptureResult({required bool caught}) {
 }
 
 PsdkBattleSetup _psdkCaptureSetup({required bool caught}) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _psdkCaptureCombatant(
       id: 'player_0',
       speciesId: 'receipt-player',

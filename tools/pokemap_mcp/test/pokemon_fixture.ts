@@ -1,0 +1,27 @@
+import type { JsonRecord } from "../src/authoring_client.js";
+
+export function canonicalPokemonRulesetProfile(): JsonRecord {
+  return {
+    schemaVersion: 1,
+    profileId: "pokemap-beta-v1",
+    typeChartId: "mainline-modern-v1",
+    maxLevel: 100,
+    experiencePolicyId: "pokemap-simple-exp-v1",
+    capturePolicyId: "pokemap-capture-mvp-v1",
+    moveMachinePolicyId: "authored-consumability-v1",
+    criticalHitPolicyId: "mainline-gen9-critical",
+    speedTiePolicyId: "mainline-gen9-seeded-random",
+    friendshipPolicyId: "mainline-0-255-v1",
+    evolutionPolicyId: "pokemap-beta-evolution-v1",
+    disabledFeatures: [
+      "breeding",
+      "double-battles",
+      "modern-gimmicks",
+      "online",
+    ],
+  };
+}
+
+export function canonicalPokemonConfig(): JsonRecord {
+  return { ruleset: canonicalPokemonRulesetProfile() };
+}

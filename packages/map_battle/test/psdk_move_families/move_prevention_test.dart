@@ -771,7 +771,7 @@ BattleEngineSetup _requestSetup({
   required List<PsdkBattleMoveData> playerMoves,
   PsdkBattleEffectStack? playerEffects,
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speed: 100,
@@ -814,7 +814,7 @@ PsdkBattleTurnResult _runMove({
   String? opponentAbilityId,
 }) {
   final engine = PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speed: 100,

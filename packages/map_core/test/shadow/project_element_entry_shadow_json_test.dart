@@ -12,18 +12,14 @@ void main() {
     });
 
     test('decodes element JSON with null shadow as null', () {
-      final element = ProjectElementEntry.fromJson(
-        _elementJson(shadow: null),
-      );
+      final element = ProjectElementEntry.fromJson(_elementJson(shadow: null));
 
       expect(element.shadow, isNull);
     });
 
     test('decodes castsShadow false config', () {
       final element = ProjectElementEntry.fromJson(
-        _elementJson(
-          shadow: <String, Object?>{'castsShadow': false},
-        ),
+        _elementJson(shadow: <String, Object?>{'castsShadow': false}),
       );
 
       expect(element.shadow, ProjectElementShadowConfig());
@@ -86,13 +82,15 @@ void main() {
     });
 
     test('legacy ProjectManifest JSON decodes element shadow as null', () {
-      final manifest = ProjectManifest.fromJson(<String, Object?>{
-        'name': 'Project',
-        'version': 'v6',
-        'maps': <Object?>[],
-        'tilesets': <Object?>[],
-        'elements': <Object?>[_elementJson()],
-      });
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        <String, Object?>{
+          'name': 'Project',
+          'version': 'v6',
+          'maps': <Object?>[],
+          'tilesets': <Object?>[],
+          'elements': <Object?>[_elementJson()],
+        },
+      );
 
       expect(manifest.elements.single.shadow, isNull);
     });
@@ -165,11 +163,7 @@ ProjectElementEntry _element({
     name: 'Tree',
     tilesetId: 'tileset',
     categoryId: 'nature',
-    frames: const [
-      TilesetVisualFrame(
-        source: TilesetSourceRect(x: 0, y: 0),
-      ),
-    ],
+    frames: const [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
     collisionProfile: collisionProfile,
     shadow: shadow,
   );

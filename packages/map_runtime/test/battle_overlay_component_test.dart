@@ -164,7 +164,7 @@ BattleSession _session({
   BattleFieldState fieldState = const BattleFieldState(),
 }) {
   return createBattleSession(
-    BattleSetup(
+    BattleSetup.pokeMapBetaV1ForTest(
       playerPokemon: player,
       playerReservePokemon: playerReserve,
       enemyPokemon: enemy,

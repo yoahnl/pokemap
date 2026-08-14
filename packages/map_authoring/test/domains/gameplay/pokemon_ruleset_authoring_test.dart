@@ -6,29 +6,33 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('materializes the canonical project ruleset through direct and JSONL',
-      () async {
+  test('rejects the active project ruleset through direct and JSONL', () async {
     final direct = await _RulesetHarness.create('direct');
     final jsonl = await _RulesetHarness.create('jsonl');
     addTearDown(direct.dispose);
     addTearDown(jsonl.dispose);
+    final directBefore = await direct.projectJson();
+    final jsonlBefore = await jsonl.projectJson();
 
-    final directReceipt = await direct.setDirect();
-    final jsonlReceipt = await jsonl.setJsonl();
+    await expectLater(
+      direct.planCurrentProfile(),
+      throwsA(
+        isA<PokemonRulesetAuthoringException>().having(
+          (error) => error.code,
+          'code',
+          'pokemon.ruleset.no_change',
+        ),
+      ),
+    );
+    final jsonlResult = await jsonl.planCurrentProfileJsonl();
 
-    expect(directReceipt['actionId'], 'pokemon.ruleset.set');
-    expect(jsonlReceipt['actionId'], 'pokemon.ruleset.set');
+    expect(jsonlResult.status, AuthoringResultStatus.failure);
     expect(
-      _rulesetFromReceipt(directReceipt),
-      PokemonRulesetProfile.pokeMapBetaV1.toJson(),
+      jsonlResult.error?.details['domainCode'],
+      'pokemon.ruleset.no_change',
     );
-    expect(
-        _rulesetFromReceipt(jsonlReceipt), _rulesetFromReceipt(directReceipt));
-    expect(await direct.rulesetJson(), await jsonl.rulesetJson());
-    expect(
-      await direct.rulesetJson(),
-      PokemonRulesetProfile.pokeMapBetaV1.toJson(),
-    );
+    expect(await direct.projectJson(), directBefore);
+    expect(await jsonl.projectJson(), jsonlBefore);
   });
 
   test('canonical dispatcher exposes the versioned Pokemon ruleset action', () {
@@ -91,7 +95,6 @@ final class _RulesetHarness {
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     ).toJson();
-    (json['pokemon']! as Map<String, dynamic>).remove('ruleset');
     await File('${root.path}/project.json').writeAsString(jsonEncode(json));
 
     const reader = LocalProjectFileReader();
@@ -122,34 +125,31 @@ final class _RulesetHarness {
     );
   }
 
-  Future<Map<String, Object?>> setDirect() async {
-    final opened = await readApi.openProject(root.path);
-    await mutations.attachProject(
-      projectRootPath: root.path,
-      workspaceHandle: opened.workspaceHandle,
-      projectHandle: opened.projectHandle,
+  Future<void> planCurrentProfile() async {
+    await _planDirect();
+  }
+
+  Future<AuthoringResult> planCurrentProfileJsonl() async {
+    final opened = await _wireRequest(
+      worker,
+      'open',
+      args: <String, Object?>{'projectRoot': root.path},
     );
-    final snapshot = await snapshots.load(opened.projectHandle);
-    final plan = await mutations.plan(
-      opened.projectHandle,
-      _request(
-        workspaceHandle: opened.workspaceHandle.value,
-        revision: snapshot.revision,
-        suffix: 'direct',
-      ),
+    final projectHandle = opened.data['projectHandle']! as String;
+    final workspaceHandle = opened.data['workspaceHandle']! as String;
+    final snapshot = await snapshots.load(ProjectHandle(projectHandle));
+    return _wireRequest(
+      worker,
+      'plan',
+      args: <String, Object?>{
+        'projectHandle': projectHandle,
+        'request': _request(
+          workspaceHandle: workspaceHandle,
+          revision: snapshot.revision,
+          suffix: 'jsonl',
+        ).toJson(),
+      },
     );
-    final applied = await mutations.apply(
-      opened.projectHandle,
-      planId: plan['planId']! as String,
-      operationId: 'pokemon-ruleset-direct',
-    );
-    final replayed = await mutations.apply(
-      opened.projectHandle,
-      planId: plan['planId']! as String,
-      operationId: 'pokemon-ruleset-direct',
-    );
-    expect(replayed['receipt'], applied['receipt']);
-    return Map<String, Object?>.from(applied['receipt']! as Map);
   }
 
   Future<void> planInvalidProfile() async {
@@ -188,41 +188,6 @@ final class _RulesetHarness {
     );
   }
 
-  Future<Map<String, Object?>> setJsonl() async {
-    final opened = await _wireRequest(
-      worker,
-      'open',
-      args: <String, Object?>{'projectRoot': root.path},
-    );
-    final projectHandle = opened.data['projectHandle']! as String;
-    final workspaceHandle = opened.data['workspaceHandle']! as String;
-    final snapshot = await snapshots.load(ProjectHandle(projectHandle));
-    final planned = await _wireRequest(
-      worker,
-      'plan',
-      args: <String, Object?>{
-        'projectHandle': projectHandle,
-        'request': _request(
-          workspaceHandle: workspaceHandle,
-          revision: snapshot.revision,
-          suffix: 'jsonl',
-        ).toJson(),
-      },
-    );
-    expect(planned.status, AuthoringResultStatus.success);
-    final applied = await _wireRequest(
-      worker,
-      'apply',
-      args: <String, Object?>{
-        'projectHandle': projectHandle,
-        'planId': planned.data['planId'],
-        'operationId': 'pokemon-ruleset-jsonl',
-      },
-    );
-    expect(applied.status, AuthoringResultStatus.success);
-    return Map<String, Object?>.from(applied.data['receipt']! as Map);
-  }
-
   AuthoringRequest _request({
     required String workspaceHandle,
     required String revision,
@@ -243,15 +208,6 @@ final class _RulesetHarness {
     );
   }
 
-  Future<Map<String, dynamic>> rulesetJson() async {
-    final json = jsonDecode(
-      await File('${root.path}/project.json').readAsString(),
-    ) as Map<String, dynamic>;
-    return Map<String, dynamic>.from(
-      (json['pokemon']! as Map<String, dynamic>)['ruleset']! as Map,
-    );
-  }
-
   Future<Map<String, dynamic>> projectJson() async {
     return jsonDecode(await File('${root.path}/project.json').readAsString())
         as Map<String, dynamic>;
@@ -260,14 +216,6 @@ final class _RulesetHarness {
   Future<void> dispose() async {
     if (await root.exists()) await root.delete(recursive: true);
   }
-}
-
-Map<String, dynamic> _rulesetFromReceipt(Map<String, Object?> receipt) {
-  final diff = Map<String, dynamic>.from(receipt['diff']! as Map);
-  final entries = (diff['entries']! as List).cast<Map>();
-  final entry =
-      entries.singleWhere((value) => value['path'] == '/pokemon/ruleset');
-  return Map<String, dynamic>.from(entry['after']! as Map);
 }
 
 Future<AuthoringResult> _wireRequest(

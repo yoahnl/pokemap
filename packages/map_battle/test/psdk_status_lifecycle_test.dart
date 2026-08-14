@@ -290,7 +290,7 @@ PsdkBattleSetup _setup({
   int genericSeed = 5,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speed: 100,

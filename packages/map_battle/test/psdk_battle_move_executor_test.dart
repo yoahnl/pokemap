@@ -115,7 +115,7 @@ PsdkBattleMoveRequest _request({
 }
 
 PsdkBattleSetup _setup({String? playerHeldItemId}) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(id: 'player', heldItemId: playerHeldItemId),
     opponent: _combatant(id: 'opponent'),
     rngSeeds: const PsdkBattleRngSeeds(

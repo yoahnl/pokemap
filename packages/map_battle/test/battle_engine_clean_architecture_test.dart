@@ -157,7 +157,7 @@ BattleEngineSetup _cleanSetup({
   int playerHp = 40,
   int opponentHp = 40,
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: PsdkBattleCombatantSetup(
       id: 'player-bulbasaur',
       speciesId: 'bulbasaur',
@@ -244,7 +244,7 @@ PsdkBattleMoveData _thunderWave() {
 }
 
 BattleSetup _legacySetup() {
-  return BattleSetup(
+  return BattleSetup.pokeMapBetaV1ForTest(
     playerPokemon: BattleCombatantData(
       speciesId: 'pikachu',
       level: 5,

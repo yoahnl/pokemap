@@ -79,6 +79,7 @@ void main() {
         learnsets: [_document('learnsets/bulbasaur.json', unknownMove)],
       );
       final reverse = PokemonCatalogCoherenceSnapshot(
+        ruleset: forward.ruleset,
         catalogs: forward.catalogs.reversed,
         species: forward.species.reversed,
         learnsets: forward.learnsets.reversed,

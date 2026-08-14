@@ -69,7 +69,7 @@ void main() {
         currentHp: 40,
       );
       final session = BattleSessionFacade.fromPsdkSetup(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: playerSeed.toPsdkBattleCombatantSetup(
             lineupIndex: 0,
             idPrefix: 'player',
@@ -97,7 +97,7 @@ void main() {
     test('writes unchanged, consumed, removed and received items explicitly',
         () {
       final psdkState = PsdkBattleState.fromSetup(
-        PsdkBattleSetup.singles(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player_0',
             heldItemId: 'oran_berry',

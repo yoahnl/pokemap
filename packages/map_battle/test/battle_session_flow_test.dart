@@ -22,7 +22,7 @@ void main() {
       bool isTrainerBattle = false,
       bool allowCapture = false,
     }) {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -160,7 +160,7 @@ void main() {
     });
 
     test('trainer battle setup creates correct session', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -190,7 +190,7 @@ void main() {
     });
 
     test('forced runaway choice is rejected in trainer battles', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -254,7 +254,7 @@ void main() {
 
   group('BattleOutcome types', () {
     test('victory outcome has correct properties', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -283,7 +283,7 @@ void main() {
     });
 
     test('defeat outcome has correct properties', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -312,7 +312,7 @@ void main() {
     });
 
     test('runaway outcome exposes a real runaway result', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -344,7 +344,7 @@ void main() {
     });
 
     test('captured outcome exposes a real capture result', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,

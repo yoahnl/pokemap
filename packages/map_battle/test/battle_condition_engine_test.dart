@@ -283,7 +283,7 @@ void main() {
         const BattleMajorStatusState.slp(),
         const BattleMajorStatusState.frz(),
       ]) {
-        final setup = BattleSetup(
+        final setup = BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'status-carrier',
             level: 12,
@@ -508,7 +508,8 @@ void main() {
       expect(result.spikesEvents.single.layers, equals(1));
     });
 
-    test('runEntryHazards applies Stealth Rock before Spikes and stops on KO', () {
+    test('runEntryHazards applies Stealth Rock before Spikes and stops on KO',
+        () {
       final side = BattleSideState.player(
         active: _combatant(
           speciesId: 'fragile_switch',

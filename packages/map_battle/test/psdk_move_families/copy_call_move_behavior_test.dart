@@ -949,7 +949,7 @@ PsdkBattleTurnResult _runMove({
   int selectedMoveSlot = 0,
 }) {
   final engine = PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speed: playerSpeed,

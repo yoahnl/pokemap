@@ -846,13 +846,15 @@ void main() {
         ),
       );
 
-      expect(fightingIntoGrass.damageToOpponent, lessThan(fightingIntoNormal.damageToOpponent));
-      expect(flyingPressIntoGrass.damageToOpponent, fightingIntoNormal.damageToOpponent);
+      expect(fightingIntoGrass.damageToOpponent,
+          lessThan(fightingIntoNormal.damageToOpponent));
+      expect(flyingPressIntoGrass.damageToOpponent,
+          fightingIntoNormal.damageToOpponent);
     });
 
     test('Electrify move rewrites only the target next move then expires', () {
       final engine = BattleEngine(
-        setup: BattleEngineSetup.singles(
+        setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             types: const PsdkBattleTypes(primary: 'ground'),
@@ -899,10 +901,14 @@ void main() {
 
       expect(firstTurn.state.battlerAt(psdkPlayerSlot).currentHp, 100);
       expect(
-        firstTurn.state.battlerAt(psdkOpponentSlot).effects.contains('electrify'),
+        firstTurn.state
+            .battlerAt(psdkOpponentSlot)
+            .effects
+            .contains('electrify'),
         isFalse,
       );
-      expect(secondTurn.state.battlerAt(psdkPlayerSlot).currentHp, lessThan(100));
+      expect(
+          secondTurn.state.battlerAt(psdkPlayerSlot).currentHp, lessThan(100));
     });
 
     test('durable change-type marker does not behave like Electrify', () {
@@ -1138,7 +1144,7 @@ _RunResult _runSinglePlayerMove({
     generic: 4,
   ),
 }) {
-  final setup = BattleEngineSetup.singles(
+  final setup = BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speciesId: playerSpeciesId,

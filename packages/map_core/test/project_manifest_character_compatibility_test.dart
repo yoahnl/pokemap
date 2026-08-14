@@ -6,26 +6,28 @@ import 'package:test/test.dart';
 void main() {
   group('Project character legacy compatibility', () {
     test('decodes a v6 character without studio fields', () {
-      final manifest = ProjectManifest.fromJson(<String, dynamic>{
-        'name': 'Legacy character project',
-        'version': 'v6',
-        'maps': <Object?>[],
-        'tilesets': <Object?>[
-          <String, Object?>{
-            'id': 'characters',
-            'name': 'Characters',
-            'relativePath': 'assets/characters.png',
-          },
-        ],
-        'characters': <Object?>[
-          <String, Object?>{
-            'id': 'hero',
-            'name': 'Hero',
-            'tilesetId': 'characters',
-          },
-        ],
-        'settings': <String, Object?>{'playerCharacterId': 'hero'},
-      });
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        <String, dynamic>{
+          'name': 'Legacy character project',
+          'version': 'v6',
+          'maps': <Object?>[],
+          'tilesets': <Object?>[
+            <String, Object?>{
+              'id': 'characters',
+              'name': 'Characters',
+              'relativePath': 'assets/characters.png',
+            },
+          ],
+          'characters': <Object?>[
+            <String, Object?>{
+              'id': 'hero',
+              'name': 'Hero',
+              'tilesetId': 'characters',
+            },
+          ],
+          'settings': <String, Object?>{'playerCharacterId': 'hero'},
+        },
+      );
 
       expect(manifest.version, ProjectVersion.v6);
       expect(manifest.characters, hasLength(1));

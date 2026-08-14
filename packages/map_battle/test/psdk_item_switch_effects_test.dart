@@ -76,7 +76,7 @@ void main() {
 
     test('Eject Button cancels the holder pending attack for the turn', () {
       final engine = BattleEngine(
-        setup: BattleEngineSetup.singles(
+        setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 120,
@@ -265,7 +265,7 @@ PsdkBattleState _state({
       const <PsdkBattleCombatantSetup>[],
 }) {
   return PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: player,
       opponent: opponent,
       playerReserves: playerReserves,

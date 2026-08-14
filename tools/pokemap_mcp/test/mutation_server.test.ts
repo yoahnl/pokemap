@@ -16,6 +16,7 @@ import {
 } from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { createPokeMapMcpServer } from "../src/server.js";
+import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
 const authoringPackageRoot = resolve(repositoryRoot, "packages/map_authoring");
@@ -131,6 +132,10 @@ async function mutationFixture(
   } else {
     await writeFile(join(root, "project.json"), scaffoldBytes);
   }
+  const projectPath = join(root, "project.json");
+  const project = record(JSON.parse(await readFile(projectPath, "utf8")));
+  project.pokemon = canonicalPokemonConfig();
+  await writeFile(projectPath, JSON.stringify(project));
   const authoring = new LocalAuthoringClient({
     allowedRoots: [root],
     authoringPackageRoot,

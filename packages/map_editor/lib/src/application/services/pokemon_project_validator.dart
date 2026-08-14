@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:map_core/map_core.dart';
 
 import '../errors/application_errors.dart';
@@ -16,6 +18,7 @@ class PokemonProjectValidator {
 
   Future<PokemonValidationReport> validate(ProjectWorkspace workspace) async {
     final adapterDiagnostics = <PokemonCatalogDiagnostic>[];
+    final ruleset = await _loadRuleset(workspace);
     final species = await _loadSpecies(workspace, adapterDiagnostics);
     final learnsets = await _loadLearnsets(workspace, adapterDiagnostics);
     final evolutions = await _loadEvolutions(workspace, adapterDiagnostics);
@@ -23,6 +26,7 @@ class PokemonProjectValidator {
     final catalogs = await _loadCatalogs(workspace, adapterDiagnostics);
     final canonical = validator.validate(
       PokemonCatalogCoherenceSnapshot(
+        ruleset: ruleset,
         catalogs: catalogs,
         species: species,
         learnsets: learnsets,
@@ -34,6 +38,22 @@ class PokemonProjectValidator {
       ...adapterDiagnostics,
       ...canonical.diagnostics,
     ]);
+  }
+
+  Future<PokemonRulesetProfile> _loadRuleset(ProjectWorkspace workspace) async {
+    final manifestPath = workspace.projectManifestPath;
+    if (!await workspace.fileExists(manifestPath)) {
+      throw EditorPersistenceException(
+        'Project manifest is required at $manifestPath.',
+      );
+    }
+    final decoded = jsonDecode(await workspace.readTextFile(manifestPath));
+    if (decoded is! Map<String, dynamic>) {
+      throw EditorPersistenceException(
+        'Project manifest is not a JSON object: $manifestPath',
+      );
+    }
+    return ProjectManifest.fromJson(decoded).pokemon.ruleset;
   }
 
   Future<List<PokemonCatalogDocument<PokemonSpeciesFile>>> _loadSpecies(

@@ -339,7 +339,9 @@ void main() {
       expect(result.state.field.weather?.id, PsdkBattleWeatherId.hail);
       expect(result.state.field.weather?.remainingTurns, 7);
       expect(
-        result.timeline.events.whereType<PsdkBattleWeatherChangedEvent>().single
+        result.timeline.events
+            .whereType<PsdkBattleWeatherChangedEvent>()
+            .single
             .remainingTurns,
         8,
       );
@@ -613,7 +615,7 @@ PsdkBattleSetup _setup({
   bool includePlayerReserve = true,
   bool includeOpponentReserve = true,
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speed: 100,

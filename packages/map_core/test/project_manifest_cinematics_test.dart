@@ -6,7 +6,9 @@ import 'package:test/test.dart';
 void main() {
   group('ProjectManifest cinematics integration', () {
     test('decodes old project JSON without cinematics as empty list', () {
-      final manifest = ProjectManifest.fromJson(_minimalProjectJson());
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _minimalProjectJson(),
+      );
 
       expect(manifest.cinematics, isEmpty);
       expect(manifest.scenarios, isEmpty);
@@ -29,21 +31,23 @@ void main() {
         ],
       );
 
-      final decoded = ProjectManifest.fromJson(manifest.toJson());
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        manifest.toJson(),
+      );
 
       expect(decoded.cinematicMediaAssets, manifest.cinematicMediaAssets);
     });
 
     test('decodes cinematics null and empty cinematics as empty list', () {
       expect(
-        ProjectManifest.fromJson({
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'cinematics': null,
         }).cinematics,
         isEmpty,
       );
       expect(
-        ProjectManifest.fromJson({
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'cinematics': <Object?>[],
         }).cinematics,
@@ -61,7 +65,7 @@ void main() {
 
       final json =
           jsonDecode(jsonEncode(manifest.toJson())) as Map<String, dynamic>;
-      final decoded = ProjectManifest.fromJson(json);
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
       expect(decoded.cinematics, equals(manifest.cinematics));
       expect(decoded.toJson()['cinematics'], isA<List<dynamic>>());
@@ -116,7 +120,7 @@ void main() {
 
       final json =
           jsonDecode(jsonEncode(manifest.toJson())) as Map<String, dynamic>;
-      final decoded = ProjectManifest.fromJson(json);
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
       final cinematicJson =
           (json['cinematics'] as List<dynamic>).single as Map<String, dynamic>;
 
@@ -173,7 +177,7 @@ void main() {
 
       final json =
           jsonDecode(jsonEncode(manifest.toJson())) as Map<String, dynamic>;
-      final decoded = ProjectManifest.fromJson(json);
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
       final cinematicJson =
           (json['cinematics'] as List<dynamic>).single as Map<String, dynamic>;
       final stageJson = cinematicJson['stageContext'] as Map<String, dynamic>;
@@ -188,103 +192,103 @@ void main() {
     });
 
     test(
-        'project manifest old cinematic without appearance bindings still loads',
-        () {
-      final manifest = ProjectManifest.fromJson({
-        ..._minimalProjectJson(),
-        'cinematics': [
-          {
-            'id': 'cinematic_intro',
-            'title': 'Intro cinematic',
-            'stageContext': {
-              'backdropMode': 'none',
-              'actorBindings': [
-                {'actorId': 'actor_rival', 'kind': 'cinematicOnly'},
-              ],
-              'initialPlacements': <Object?>[],
-              'movementTargetBindings': <Object?>[],
+      'project manifest old cinematic without appearance bindings still loads',
+      () {
+        final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest({
+          ..._minimalProjectJson(),
+          'cinematics': [
+            {
+              'id': 'cinematic_intro',
+              'title': 'Intro cinematic',
+              'stageContext': {
+                'backdropMode': 'none',
+                'actorBindings': [
+                  {'actorId': 'actor_rival', 'kind': 'cinematicOnly'},
+                ],
+                'initialPlacements': <Object?>[],
+                'movementTargetBindings': <Object?>[],
+              },
+              'timeline': {'steps': <Object?>[]},
             },
-            'timeline': {'steps': <Object?>[]},
-          },
-        ],
-      });
+          ],
+        });
 
-      expect(
-        manifest.cinematics.single.stageContext?.actorAppearanceBindings,
-        isEmpty,
-      );
-    });
+        expect(
+          manifest.cinematics.single.stageContext?.actorAppearanceBindings,
+          isEmpty,
+        );
+      },
+    );
 
     test(
-        'diagnostics can resolve character ids from ProjectManifest.characters',
-        () {
-      final manifest = ProjectManifest(
-        name: 'Project',
-        maps: const [],
-        tilesets: const [],
-        characters: const [
-          ProjectCharacterEntry(
-            id: 'character_rival',
-            name: 'Rival',
-            tilesetId: 'tileset_characters',
-          ),
-        ],
-        cinematics: [
-          CinematicAsset(
-            id: 'cinematic_intro',
-            title: 'Intro cinematic',
-            requiredActors: [
-              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
-            ],
-            stageContext: CinematicStageContext(
-              actorBindings: [
-                CinematicActorBinding(
-                  actorId: 'actor_rival',
-                  kind: CinematicActorBindingKind.cinematicOnly,
-                ),
-              ],
-              actorAppearanceBindings: [
-                CinematicActorAppearanceBinding(
-                  actorId: 'actor_rival',
-                  characterId: 'character_rival',
-                ),
-              ],
+      'diagnostics can resolve character ids from ProjectManifest.characters',
+      () {
+        final manifest = ProjectManifest(
+          name: 'Project',
+          maps: const [],
+          tilesets: const [],
+          characters: const [
+            ProjectCharacterEntry(
+              id: 'character_rival',
+              name: 'Rival',
+              tilesetId: 'tileset_characters',
             ),
-            timeline: CinematicTimeline(
-              steps: [
-                CinematicTimelineStep(
-                  id: 'step_wait',
-                  kind: CinematicTimelineStepKind.wait,
-                  durationMs: 100,
-                ),
+          ],
+          cinematics: [
+            CinematicAsset(
+              id: 'cinematic_intro',
+              title: 'Intro cinematic',
+              requiredActors: [
+                CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
               ],
+              stageContext: CinematicStageContext(
+                actorBindings: [
+                  CinematicActorBinding(
+                    actorId: 'actor_rival',
+                    kind: CinematicActorBindingKind.cinematicOnly,
+                  ),
+                ],
+                actorAppearanceBindings: [
+                  CinematicActorAppearanceBinding(
+                    actorId: 'actor_rival',
+                    characterId: 'character_rival',
+                  ),
+                ],
+              ),
+              timeline: CinematicTimeline(
+                steps: [
+                  CinematicTimelineStep(
+                    id: 'step_wait',
+                    kind: CinematicTimelineStepKind.wait,
+                    durationMs: 100,
+                  ),
+                ],
+              ),
             ),
+          ],
+        );
+
+        final report = diagnoseCinematicsAgainstProject(manifest);
+
+        expect(
+          report.byCode(
+            CinematicDiagnosticCode.actorAppearanceBindingUnknownCharacter,
           ),
-        ],
-      );
-
-      final report = diagnoseCinematicsAgainstProject(manifest);
-
-      expect(
-        report.byCode(
-          CinematicDiagnosticCode.actorAppearanceBindingUnknownCharacter,
-        ),
-        isEmpty,
-      );
-    });
+          isEmpty,
+        );
+      },
+    );
 
     test('keeps scenarios and scenes independent from cinematics', () {
       final scenario = const ScenarioAsset(
         id: 'legacy_scenario',
         name: 'Legacy Scenario',
         entryNodeId: 'start',
-        nodes: [
-          ScenarioNode(id: 'start', type: ScenarioNodeType.start),
-        ],
+        nodes: [ScenarioNode(id: 'start', type: ScenarioNodeType.start)],
       );
       final scene = _scene();
 
-      final manifest = ProjectManifest.fromJson({
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest({
         ..._minimalProjectJson(),
         'scenarios': [scenario.toJson()],
         'scenes': [scene.toJson()],
@@ -298,21 +302,21 @@ void main() {
 
     test('rejects invalid cinematics JSON shape', () {
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'cinematics': 'not-a-list',
         }),
         _throwsDecode,
       );
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'cinematics': ['not-an-object'],
         }),
         _throwsDecode,
       );
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'cinematics': [
             {
@@ -330,7 +334,10 @@ void main() {
 
 final Matcher _throwsDecode = throwsA(
   anyOf(
-      isA<FormatException>(), isA<ArgumentError>(), isA<ValidationException>()),
+    isA<FormatException>(),
+    isA<ArgumentError>(),
+    isA<ValidationException>(),
+  ),
 );
 
 Map<String, dynamic> _minimalProjectJson() {

@@ -87,7 +87,7 @@ final class PokemonCatalogCoherenceSnapshot {
     Iterable<PokemonCatalogDocument<PokemonMediaFile>> media = const [],
     Iterable<String> availableAssetPaths = const [],
     this.assetInventoryComplete = false,
-    this.ruleset = PokemonRulesetProfile.pokeMapBetaV1,
+    required this.ruleset,
   }) : catalogs = List.unmodifiable(catalogs),
        species = List.unmodifiable(species),
        learnsets = List.unmodifiable(learnsets),

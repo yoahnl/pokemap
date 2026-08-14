@@ -155,9 +155,7 @@ class PokemonMovesCatalogSyncResult {
 /// - il projette des entrées lisibles ;
 /// - il ne tente aucune réparation automatique ni enrichissement externe.
 class LoadPokemonMovesCatalogUseCase {
-  const LoadPokemonMovesCatalogUseCase({
-    required this.readRepository,
-  });
+  const LoadPokemonMovesCatalogUseCase({required this.readRepository});
 
   final PokemonReadRepository readRepository;
 
@@ -232,18 +230,16 @@ class LoadPokemonMovesCatalogUseCase {
 
     final entries = entriesById.values.toList(growable: false)
       ..sort((left, right) {
-        final nameCompare =
-            left.name.toLowerCase().compareTo(right.name.toLowerCase());
+        final nameCompare = left.name.toLowerCase().compareTo(
+          right.name.toLowerCase(),
+        );
         if (nameCompare != 0) {
           return nameCompare;
         }
         return left.id.compareTo(right.id);
       });
 
-    return _ProjectedMovesCatalog(
-      entries: entries,
-      diagnostics: diagnostics,
-    );
+    return _ProjectedMovesCatalog(entries: entries, diagnostics: diagnostics);
   }
 
   PokemonMoveCatalogEntryView _projectEntry(Map<String, dynamic> entry) {
@@ -264,10 +260,12 @@ class LoadPokemonMovesCatalogUseCase {
     if (_looksLikeCanonicalMoveEntry(entry)) {
       try {
         final move = PokemonMove.fromJson(entry);
-        final shortEffectText =
-            move.shortDescription.trim().isEmpty ? null : move.shortDescription;
-        final effectText =
-            move.description.trim().isEmpty ? null : move.description;
+        final shortEffectText = move.shortDescription.trim().isEmpty
+            ? null
+            : move.shortDescription;
+        final effectText = move.description.trim().isEmpty
+            ? null
+            : move.description;
         return PokemonMoveCatalogEntryView(
           id: move.id,
           name: move.name,
@@ -314,23 +312,27 @@ class LoadPokemonMovesCatalogUseCase {
     final explicitName = _readOptionalString(entry, 'name');
     final localizedNames = _readOptionalStringMap(entry, 'names');
     final fallbackName = localizedNames?['en']?.trim();
-    final name =
-        explicitName?.isNotEmpty == true ? explicitName! : fallbackName;
+    final name = explicitName?.isNotEmpty == true
+        ? explicitName!
+        : fallbackName;
     if (name == null || name.isEmpty) {
       throw EditorPersistenceException(
         'Moves catalog entry "$id" has an empty name.',
       );
     }
 
-    final type = _readOptionalString(entry, 'typeId') ??
+    final type =
+        _readOptionalString(entry, 'typeId') ??
         _readOptionalString(entry, 'type');
     final category = _normalizeDamageClass(
       _readOptionalString(entry, 'damageClass') ??
           _readOptionalString(entry, 'category'),
     );
-    final shortEffectText = _readOptionalString(entry, 'shortEffectText') ??
+    final shortEffectText =
+        _readOptionalString(entry, 'shortEffectText') ??
         _readOptionalString(entry, 'shortDesc');
-    final effectText = _readOptionalString(entry, 'effectText') ??
+    final effectText =
+        _readOptionalString(entry, 'effectText') ??
         _readOptionalString(entry, 'description');
     final generationId = _readOptionalString(entry, 'generationId');
 
@@ -487,8 +489,9 @@ class SyncExternalPokemonMovesCatalogUseCase {
     final unchangedIds = <String>[];
     final mergedEntries = <Map<String, dynamic>>[];
 
-    for (final externalEntry in externalById.entries.toList()
-      ..sort((left, right) => left.key.compareTo(right.key))) {
+    for (final externalEntry
+        in externalById.entries.toList()
+          ..sort((left, right) => left.key.compareTo(right.key))) {
       final id = externalEntry.key;
       final localEntry = localById.remove(id);
       if (localEntry == null) {
@@ -553,9 +556,7 @@ class SyncExternalPokemonMovesCatalogUseCase {
     final notes = <String>[
       ...externalMeta.notes,
       if (localMeta != null)
-        ...localMeta.notes.where(
-          (note) => !externalMeta.notes.contains(note),
-        ),
+        ...localMeta.notes.where((note) => !externalMeta.notes.contains(note)),
     ];
 
     return PokemonDataMeta(
@@ -601,7 +602,9 @@ class SyncExternalPokemonMovesCatalogUseCase {
         continue;
       }
       merged.putIfAbsent(
-          localField.key, () => _deepCopyValue(localField.value));
+        localField.key,
+        () => _deepCopyValue(localField.value),
+      );
     }
 
     return merged;
@@ -889,7 +892,8 @@ String? _generationIdFromNumber(int? generation) {
 }
 
 Future<String> _resolveMovesCatalogRelativePath(
-    ProjectWorkspace workspace) async {
+  ProjectWorkspace workspace,
+) async {
   final pokemonConfig = await _readProjectPokemonConfig(workspace);
   final dataRoot = _normalizeConfiguredRelativePath(
     pokemonConfig.dataRoot,
@@ -935,7 +939,9 @@ Future<ProjectPokemonConfig> _readProjectPokemonConfig(
   final manifestPath = workspace.projectManifestPath;
   try {
     if (!await workspace.fileExists(manifestPath)) {
-      return const ProjectPokemonConfig();
+      throw EditorPersistenceException(
+        'Project manifest is required at $manifestPath.',
+      );
     }
 
     final raw = await workspace.readTextFile(manifestPath);

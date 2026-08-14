@@ -10,6 +10,10 @@ import { InMemoryTransport } from "@modelcontextprotocol/server";
 import { LocalAuthoringClient, type JsonRecord } from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { createPokeMapMcpServer } from "../src/server.js";
+import {
+  canonicalPokemonConfig,
+  canonicalPokemonRulesetProfile,
+} from "./pokemon_fixture.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
 const authoringPackageRoot = resolve(repositoryRoot, "packages/map_authoring");
@@ -35,10 +39,12 @@ async function toolFailure(
   client: Client,
   name: string,
   args: JsonRecord,
-): Promise<void> {
+): Promise<JsonRecord> {
   const result = await client.callTool({ name, arguments: args });
   assert.equal(result.isError, true);
-  assert.equal(record(result.structuredContent).ok, false);
+  const envelope = record(result.structuredContent);
+  assert.equal(envelope.ok, false);
+  return record(envelope.error);
 }
 
 test("MCP writes canonical Pokemon species and rejects invalid schemas", async () => {
@@ -50,6 +56,7 @@ test("MCP writes canonical Pokemon species and rejects invalid schemas", async (
       version: "v6",
       maps: [],
       tilesets: [],
+      pokemon: canonicalPokemonConfig(),
     }),
   );
   const authoring = new LocalAuthoringClient({
@@ -85,19 +92,11 @@ test("MCP writes canonical Pokemon species and rejects invalid schemas", async (
       projectHandle,
     });
     const initialRevision = String(validation.snapshotRevision);
-    const rulesetPlan = await toolData(client, "pokemap_plan", {
+    const rulesetFailure = await toolFailure(client, "pokemap_plan", {
       projectHandle,
       request: rulesetMutationRequest(workspaceHandle, initialRevision),
     });
-    const rulesetApplied = await toolData(client, "pokemap_apply", {
-      operation: "apply",
-      projectHandle,
-      planId: String(rulesetPlan.planId),
-      operationId: "pokemon-ruleset-mcp",
-    });
-    const rulesetReceipt = record(rulesetApplied.receipt);
-    assert.equal(rulesetReceipt.actionId, "pokemon.ruleset.set");
-    assert.deepEqual(rulesetFromReceipt(rulesetReceipt), rulesetProfile());
+    assert.equal(rulesetFailure.domainCode, "pokemon.ruleset.no_change");
     const project = JSON.parse(
       await readFile(join(root, "project.json"), "utf8"),
     ) as JsonRecord;
@@ -220,35 +219,7 @@ function rulesetMutationRequest(
 }
 
 function rulesetProfile(): JsonRecord {
-  return {
-    schemaVersion: 1,
-    profileId: "pokemap-beta-v1",
-    typeChartId: "mainline-modern-v1",
-    maxLevel: 100,
-    experiencePolicyId: "pokemap-simple-exp-v1",
-    capturePolicyId: "pokemap-capture-mvp-v1",
-    moveMachinePolicyId: "authored-consumability-v1",
-    criticalHitPolicyId: "mainline-gen9-critical",
-    speedTiePolicyId: "mainline-gen9-seeded-random",
-    friendshipPolicyId: "mainline-0-255-v1",
-    evolutionPolicyId: "pokemap-beta-evolution-v1",
-    disabledFeatures: [
-      "breeding",
-      "double-battles",
-      "modern-gimmicks",
-      "online",
-    ],
-  };
-}
-
-function rulesetFromReceipt(receipt: JsonRecord): JsonRecord {
-  const entries = record(receipt.diff).entries;
-  assert.ok(Array.isArray(entries));
-  const rulesetEntry = entries
-    .map((entry) => record(entry))
-    .find((entry) => entry.path === "/pokemon/ruleset");
-  assert.ok(rulesetEntry);
-  return record(rulesetEntry.after);
+  return canonicalPokemonRulesetProfile();
 }
 
 function speciesDocument(schemaVersion: number): JsonRecord {

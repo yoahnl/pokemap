@@ -5,7 +5,7 @@ void main() {
   group('PSDK Transform move family', () {
     test('s_transform copies target battle form, stats, stages and moves', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speciesId: 'ditto',
@@ -109,7 +109,7 @@ void main() {
 
     test('s_transform fails against a target that is already transformed', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speciesId: 'ditto',

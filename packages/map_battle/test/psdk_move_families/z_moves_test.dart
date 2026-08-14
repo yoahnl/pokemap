@@ -425,7 +425,7 @@ BattleEngineSetup _setup({
   int playerAttack = 80,
   int playerSpecialAttack = 80,
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speciesId: playerSpeciesId,

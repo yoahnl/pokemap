@@ -119,7 +119,7 @@ class SyncExternalPokemonItemsCatalogUseCase {
     final discoveredIds = <String>[];
     final seenIds = <String>{};
 
-    for (var offset = 0;; offset += pageLimit) {
+    for (var offset = 0; ; offset += pageLimit) {
       final page = await externalSourceRepository.fetchPokeApiItemsResourceList(
         limit: pageLimit,
         offset: offset,
@@ -278,17 +278,19 @@ class SyncExternalPokemonItemsCatalogUseCase {
     ProjectItemDefinition local,
     ProjectItemDefinition external,
   ) {
-    return local.copyWith(
-      displayName: external.displayName,
-      aliases: {
-        ...local.aliases,
-        ...external.aliases,
-      }.toList(growable: false),
-      pocketId: external.pocketId,
-      description: external.description ?? local.description,
-      buyPrice: external.buyPrice ?? local.buyPrice,
-      tags: {...local.tags, ...external.tags},
-    ).normalized();
+    return local
+        .copyWith(
+          displayName: external.displayName,
+          aliases: {
+            ...local.aliases,
+            ...external.aliases,
+          }.toList(growable: false),
+          pocketId: external.pocketId,
+          description: external.description ?? local.description,
+          buyPrice: external.buyPrice ?? local.buyPrice,
+          tags: {...local.tags, ...external.tags},
+        )
+        .normalized();
   }
 
   Future<_SpriteSyncResult> _syncSprite(
@@ -456,7 +458,8 @@ _ExternalItemCandidate _convertExternalItemPayload(
   final categoryId = _readNamedResource(payload, 'category', id);
   final pocketId =
       _readNamedResource(payload, 'pocket', id) ?? categoryId ?? 'items';
-  final description = _readLocalizedText(
+  final description =
+      _readLocalizedText(
         payload,
         listKey: 'flavor_text_entries',
         textKey: 'text',
@@ -496,8 +499,9 @@ _ExternalItemCandidate _convertExternalItemPayload(
       tags: {if (categoryId != null) 'category:$categoryId', 'source:pokeapi'},
     ).normalized(),
     spriteUrl: spriteUrl,
-    unconsumedFields:
-        payload.keys.where((field) => !consumedFields.contains(field)).toSet(),
+    unconsumedFields: payload.keys
+        .where((field) => !consumedFields.contains(field))
+        .toSet(),
   );
 }
 
@@ -513,14 +517,16 @@ List<Map<String, dynamic>> _readResourceListResults(
       'PokeAPI item list results must be a list.',
     );
   }
-  return rawResults.map((entry) {
-    if (entry is! Map) {
-      throw const EditorPersistenceException(
-        'PokeAPI item list entries must be objects.',
-      );
-    }
-    return entry.cast<String, dynamic>();
-  }).toList(growable: false);
+  return rawResults
+      .map((entry) {
+        if (entry is! Map) {
+          throw const EditorPersistenceException(
+            'PokeAPI item list entries must be objects.',
+          );
+        }
+        return entry.cast<String, dynamic>();
+      })
+      .toList(growable: false);
 }
 
 String? _readItemResourceId(Map<String, dynamic> resource) {
@@ -687,7 +693,9 @@ Future<ProjectPokemonConfig> _readProjectPokemonConfig(
 ) async {
   final manifestPath = workspace.projectManifestPath;
   if (!await workspace.fileExists(manifestPath)) {
-    return const ProjectPokemonConfig();
+    throw EditorPersistenceException(
+      'Project manifest is required at $manifestPath.',
+    );
   }
   final decoded = jsonDecode(await workspace.readTextFile(manifestPath));
   if (decoded is! Map<String, dynamic>) {

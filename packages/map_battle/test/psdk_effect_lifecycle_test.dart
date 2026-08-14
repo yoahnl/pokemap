@@ -650,7 +650,7 @@ PsdkBattleSetup _setup({
   PsdkBattleCombatantSetup? opponent,
   int genericSeed = 4,
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: player ?? _combatant(id: 'player'),
     opponent: opponent ?? _combatant(id: 'opponent'),
     rngSeeds: PsdkBattleRngSeeds(

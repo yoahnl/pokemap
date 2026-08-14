@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
+
 import 'battle_action.dart';
 import 'battle_decision.dart';
 import 'battle_resolution.dart';
@@ -38,7 +40,12 @@ final class BattleAuthoringSetupValidation {
 
 /// Small setup façade that preserves map_battle as the validation authority.
 final class BattleAuthoringSetupFactory {
-  const BattleAuthoringSetupFactory();
+  const BattleAuthoringSetupFactory({required this.ruleset});
+
+  const BattleAuthoringSetupFactory.pokeMapBetaV1ForTest()
+      : ruleset = PokemonRulesetProfile.pokeMapBetaV1;
+
+  final PokemonRulesetProfile ruleset;
 
   BattleSetup wild({
     required BattleCombatantData playerPokemon,
@@ -51,6 +58,7 @@ final class BattleAuthoringSetupFactory {
     bool allowFlee = true,
   }) {
     return BattleSetup(
+      ruleset: ruleset,
       playerPokemon: playerPokemon,
       playerReservePokemon:
           List<BattleCombatantData>.unmodifiable(playerReservePokemon),
@@ -78,6 +86,7 @@ final class BattleAuthoringSetupFactory {
       throw ArgumentError.value(trainerId, 'trainerId', 'must not be empty');
     }
     return BattleSetup(
+      ruleset: ruleset,
       playerPokemon: playerPokemon,
       playerReservePokemon:
           List<BattleCombatantData>.unmodifiable(playerReservePokemon),
@@ -100,6 +109,7 @@ final class BattleAuthoringSetupFactory {
         const <BattleCombatantData>[],
   }) {
     return BattleSetup(
+      ruleset: ruleset,
       playerPokemon: playerPokemon,
       playerReservePokemon:
           List<BattleCombatantData>.unmodifiable(playerReservePokemon),

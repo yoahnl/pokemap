@@ -36,7 +36,7 @@ void main() {
     });
 
     test('builds and validates wild trainer and static setup identities', () {
-      const factory = BattleAuthoringSetupFactory();
+      const factory = BattleAuthoringSetupFactory.pokeMapBetaV1ForTest();
       final fixture = _oneHitSetup();
       final wild = factory.wild(
         playerPokemon: fixture.playerPokemon,
@@ -70,7 +70,7 @@ void main() {
       expect(
         () => const BattleAuthoringSimulator().simulate(
           BattleAuthoringSimulationRequest(
-            setup: BattleSetup(
+            setup: BattleSetup.pokeMapBetaV1ForTest(
               playerPokemon: BattleCombatantData(
                 speciesId: 'hero',
                 level: 5,
@@ -106,7 +106,7 @@ void main() {
       expect(
         () => const BattleAuthoringSimulator().simulate(
           BattleAuthoringSimulationRequest(
-            setup: BattleSetup(
+            setup: BattleSetup.pokeMapBetaV1ForTest(
               playerPokemon: BattleCombatantData(
                 speciesId: 'hero',
                 level: 5,
@@ -140,7 +140,7 @@ void main() {
         () {
       final result = const BattleAuthoringSimulator().simulate(
         BattleAuthoringSimulationRequest(
-          setup: const BattleSetup(
+          setup: const BattleSetup.pokeMapBetaV1ForTest(
             playerPokemon: BattleCombatantData(
               speciesId: 'hero',
               level: 10,
@@ -183,7 +183,7 @@ void main() {
 }
 
 BattleSetup _oneHitSetup() {
-  return const BattleSetup(
+  return const BattleSetup.pokeMapBetaV1ForTest(
     playerPokemon: BattleCombatantData(
       speciesId: 'hero',
       level: 5,

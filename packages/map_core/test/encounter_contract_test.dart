@@ -11,7 +11,7 @@ void main() {
 
       final projectJson = jsonEncode(project.toJson());
       final mapJson = jsonEncode(map.toJson());
-      final restoredProject = ProjectManifest.fromJson(
+      final restoredProject = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         jsonDecode(projectJson) as Map<String, dynamic>,
       );
       final restoredMap = MapData.fromJson(

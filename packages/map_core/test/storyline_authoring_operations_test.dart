@@ -62,45 +62,44 @@ void main() {
       expect(project.storylines.single.title, 'Main story');
     });
 
-    test('duplicateStoryline creates an independent draft without legacy claim',
-        () {
-      final source = _project().storylines.single.copyWith(
-        status: StorylineStatus.active,
-        legacySource: StorylineLegacySource(
-          kind: 'scenario.globalStory',
-          sourceId: 'legacy_story',
-        ),
-        metadata: const {'legacyImportPreview': 'true', 'theme': 'fog'},
-      );
-      final project = _emptyProject().copyWith(storylines: [source]);
+    test(
+      'duplicateStoryline creates an independent draft without legacy claim',
+      () {
+        final source = _project().storylines.single.copyWith(
+          status: StorylineStatus.active,
+          legacySource: StorylineLegacySource(
+            kind: 'scenario.globalStory',
+            sourceId: 'legacy_story',
+          ),
+          metadata: const {'legacyImportPreview': 'true', 'theme': 'fog'},
+        );
+        final project = _emptyProject().copyWith(storylines: [source]);
 
-      final result = duplicateStoryline(
-        project,
-        storylineId: source.id,
-        duplicateId: 'story_main_copy',
-        title: 'Main story copy',
-      );
+        final result = duplicateStoryline(
+          project,
+          storylineId: source.id,
+          duplicateId: 'story_main_copy',
+          title: 'Main story copy',
+        );
 
-      expect(result.disposition, StorylineMutationDisposition.applied);
-      expect(result.after.storylines, hasLength(2));
-      final duplicate = result.storyline!;
-      expect(duplicate.id, 'story_main_copy');
-      expect(duplicate.title, 'Main story copy');
-      expect(duplicate.status, StorylineStatus.draft);
-      expect(duplicate.legacySource, isNull);
-      expect(duplicate.metadata['legacyImportPreview'], isNull);
-      expect(duplicate.metadata['duplicatedFrom'], source.id);
-      expect(duplicate.chapters, isNot(same(source.chapters)));
-      expect(duplicate.chapters.single.id, isNot(source.chapters.single.id));
-    });
+        expect(result.disposition, StorylineMutationDisposition.applied);
+        expect(result.after.storylines, hasLength(2));
+        final duplicate = result.storyline!;
+        expect(duplicate.id, 'story_main_copy');
+        expect(duplicate.title, 'Main story copy');
+        expect(duplicate.status, StorylineStatus.draft);
+        expect(duplicate.legacySource, isNull);
+        expect(duplicate.metadata['legacyImportPreview'], isNull);
+        expect(duplicate.metadata['duplicatedFrom'], source.id);
+        expect(duplicate.chapters, isNot(same(source.chapters)));
+        expect(duplicate.chapters.single.id, isNot(source.chapters.single.id));
+      },
+    );
 
     test('archiveStoryline is applied once then becomes an explicit no-op', () {
       final project = _project();
 
-      final archived = archiveStoryline(
-        project,
-        storylineId: 'story_main',
-      );
+      final archived = archiveStoryline(project, storylineId: 'story_main');
       final repeated = archiveStoryline(
         archived.after,
         storylineId: 'story_main',
@@ -129,10 +128,7 @@ void main() {
       );
       final project = _emptyProject().copyWith(storylines: [main, side]);
 
-      final result = deleteStoryline(
-        project,
-        storylineId: 'story_main',
-      );
+      final result = deleteStoryline(project, storylineId: 'story_main');
 
       expect(result.disposition, StorylineMutationDisposition.rejected);
       expect(result.code, 'storylineReferenced');
@@ -144,10 +140,7 @@ void main() {
     test('deleteStoryline removes an unreferenced storyline', () {
       final project = _project();
 
-      final result = deleteStoryline(
-        project,
-        storylineId: 'story_main',
-      );
+      final result = deleteStoryline(project, storylineId: 'story_main');
 
       expect(result.disposition, StorylineMutationDisposition.applied);
       expect(result.after.storylines, isEmpty);
@@ -169,13 +162,21 @@ void main() {
 
       expect(result.updatedStep.sceneLinkIds, ['scene_intro']);
       expect(
-        result.updatedProject.storylines.single.chapters.single.steps.single
+        result
+            .updatedProject
+            .storylines
+            .single
+            .chapters
+            .single
+            .steps
+            .single
             .sceneLinkIds,
         ['scene_intro'],
       );
       expect(
-          project.storylines.single.chapters.single.steps.single.sceneLinkIds,
-          isEmpty);
+        project.storylines.single.chapters.single.steps.single.sceneLinkIds,
+        isEmpty,
+      );
       expect(result.updatedProject.scenes, equals(project.scenes));
       expect(result.updatedProject, isNot(same(project)));
     });
@@ -241,8 +242,10 @@ void main() {
     });
 
     test('unlinkSceneFromStorylineStep removes only selected scene id', () {
-      final project =
-          _projectWithStepLinks(['scene_intro', 'scene_resolution']);
+      final project = _projectWithStepLinks([
+        'scene_intro',
+        'scene_resolution',
+      ]);
 
       final result = unlinkSceneFromStorylineStep(
         project,
@@ -254,23 +257,32 @@ void main() {
 
       expect(result.updatedStep.sceneLinkIds, ['scene_resolution']);
       expect(
-          project.storylines.single.chapters.single.steps.single.sceneLinkIds,
-          ['scene_intro', 'scene_resolution']);
-    });
-
-    test('replaceStorylineStepSceneLinks preserves order without duplicates',
-        () {
-      final result = replaceStorylineStepSceneLinks(
-        _project(),
-        storylineId: 'story_main',
-        chapterId: 'chapter_intro',
-        stepId: 'step_intro',
-        sceneIds: const ['scene_resolution', 'scene_intro', 'scene_resolution'],
+        project.storylines.single.chapters.single.steps.single.sceneLinkIds,
+        ['scene_intro', 'scene_resolution'],
       );
-
-      expect(
-          result.updatedStep.sceneLinkIds, ['scene_resolution', 'scene_intro']);
     });
+
+    test(
+      'replaceStorylineStepSceneLinks preserves order without duplicates',
+      () {
+        final result = replaceStorylineStepSceneLinks(
+          _project(),
+          storylineId: 'story_main',
+          chapterId: 'chapter_intro',
+          stepId: 'step_intro',
+          sceneIds: const [
+            'scene_resolution',
+            'scene_intro',
+            'scene_resolution',
+          ],
+        );
+
+        expect(result.updatedStep.sceneLinkIds, [
+          'scene_resolution',
+          'scene_intro',
+        ]);
+      },
+    );
   });
 
   group('Storyline Chapter and Step authoring operations', () {
@@ -298,12 +310,14 @@ void main() {
       expect(updated.chapter!.title, 'Port revised');
       expect(updated.chapter!.status, StorylineStatus.active);
       expect(project.storylines.single.chapters.first.title, 'Intro');
-      expect(
-        reordered.storyline!.chapters.map((chapter) => chapter.id),
-        ['chapter_marsh', 'chapter_intro'],
-      );
-      expect(reordered.storyline!.chapters.map((chapter) => chapter.order),
-          [0, 1]);
+      expect(reordered.storyline!.chapters.map((chapter) => chapter.id), [
+        'chapter_marsh',
+        'chapter_intro',
+      ]);
+      expect(reordered.storyline!.chapters.map((chapter) => chapter.order), [
+        0,
+        1,
+      ]);
     });
 
     test('duplicates a Chapter with independent Step and SceneLink ids', () {
@@ -325,9 +339,18 @@ void main() {
       expect(result.storyline!.sceneLinks, hasLength(2));
       expect(result.storyline!.sceneLinks.last.chapterId, duplicate.id);
       expect(
-          result.storyline!.sceneLinks.last.stepId, duplicate.steps.single.id);
+        result.storyline!.sceneLinks.last.stepId,
+        duplicate.steps.single.id,
+      );
       expect(
-        result.storyline!.sceneLinks.last.outcomeLinks.single.effects.single
+        result
+            .storyline!
+            .sceneLinks
+            .last
+            .outcomeLinks
+            .single
+            .effects
+            .single
             .targetId,
         duplicate.steps.single.id,
       );
@@ -366,8 +389,9 @@ void main() {
       final project = _structureProject();
       final source = project.storylines.single.chapters.first.steps.single;
       final entry = ScriptConditionFactory.flagIsSet('fact_port_open');
-      final completion =
-          ScriptConditionFactory.flagIsSet('fact_intro_complete');
+      final completion = ScriptConditionFactory.flagIsSet(
+        'fact_intro_complete',
+      );
 
       final result = updateStorylineStep(
         project,
@@ -458,7 +482,9 @@ void main() {
         targetIndex: 0,
       );
 
-      final decoded = ProjectManifest.fromJson(moved.after.toJson());
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        moved.after.toJson(),
+      );
 
       expect(decoded, moved.after);
     });
@@ -489,9 +515,7 @@ ProjectManifest _project() {
             id: 'chapter_intro',
             title: 'Intro',
             order: 0,
-            steps: [
-              StorylineStep(id: 'step_intro', title: 'Intro', order: 0),
-            ],
+            steps: [StorylineStep(id: 'step_intro', title: 'Intro', order: 0)],
           ),
         ],
       ),
@@ -541,11 +565,7 @@ ProjectManifest _structureProject({bool withStructuredLink = false}) {
       storyline.copyWith(
         chapters: [
           storyline.chapters.single,
-          StorylineChapter(
-            id: 'chapter_marsh',
-            title: 'Marsh',
-            order: 1,
-          ),
+          StorylineChapter(id: 'chapter_marsh', title: 'Marsh', order: 1),
         ],
         sceneLinks: withStructuredLink
             ? [

@@ -5,34 +5,31 @@ import 'package:test/test.dart';
 
 void main() {
   group('ShadowV2 projected building shadow JSON characterization', () {
-    test(
-      'ProjectManifest JSON without projected building shadow fields '
-      'round-trips unchanged for known Shadow V1 data',
-      () {
-        final manifest = ProjectManifest.fromJson(
-          _manifestJson(
-            shadowCatalog: _shadowCatalogJson(),
-            elements: <Object?>[
-              _elementJson(id: 'house_01', shadow: _buildingShadowJson()),
-              _elementJson(id: 'crate_01'),
-            ],
-          ),
-        );
+    test('ProjectManifest JSON without projected building shadow fields '
+        'round-trips unchanged for known Shadow V1 data', () {
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _manifestJson(
+          shadowCatalog: _shadowCatalogJson(),
+          elements: <Object?>[
+            _elementJson(id: 'house_01', shadow: _buildingShadowJson()),
+            _elementJson(id: 'crate_01'),
+          ],
+        ),
+      );
 
-        final json = _wireJson(manifest.toJson());
-        final house =
-            (json['elements'] as List<Object?>).cast<Map<String, Object?>>()[0];
-        final crate =
-            (json['elements'] as List<Object?>).cast<Map<String, Object?>>()[1];
+      final json = _wireJson(manifest.toJson());
+      final house = (json['elements'] as List<Object?>)
+          .cast<Map<String, Object?>>()[0];
+      final crate = (json['elements'] as List<Object?>)
+          .cast<Map<String, Object?>>()[1];
 
-        expect(json['shadowCatalog'], _shadowCatalogJson());
-        expect(house['shadow'], _buildingShadowJson());
-        expect(crate, containsPair('shadow', null));
-        _expectNoV2Keys(json);
-        _expectNoV2Keys(house);
-        _expectNoV2Keys(crate);
-      },
-    );
+      expect(json['shadowCatalog'], _shadowCatalogJson());
+      expect(house['shadow'], _buildingShadowJson());
+      expect(crate, containsPair('shadow', null));
+      _expectNoV2Keys(json);
+      _expectNoV2Keys(house);
+      _expectNoV2Keys(crate);
+    });
 
     test(
       'ProjectElementEntry JSON without projected building shadow keeps no V2 '
@@ -49,21 +46,18 @@ void main() {
       },
     );
 
-    test(
-      'ProjectShadowCatalog JSON remains V1-only and does not emit V2 '
-      'projected building presets',
-      () {
-        final manifest = ProjectManifest.fromJson(
-          _manifestJson(shadowCatalog: _shadowCatalogJson()),
-        );
+    test('ProjectShadowCatalog JSON remains V1-only and does not emit V2 '
+        'projected building presets', () {
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _manifestJson(shadowCatalog: _shadowCatalogJson()),
+      );
 
-        final catalogJson = _wireJson(manifest.toJson())['shadowCatalog']
-            as Map<String, Object?>;
+      final catalogJson =
+          _wireJson(manifest.toJson())['shadowCatalog'] as Map<String, Object?>;
 
-        expect(catalogJson, _shadowCatalogJson());
-        _expectNoV2Keys(catalogJson);
-      },
-    );
+      expect(catalogJson, _shadowCatalogJson());
+      _expectNoV2Keys(catalogJson);
+    });
 
     test(
       'unknown root future catalog keys are accepted by ProjectManifest.fromJson '
@@ -77,7 +71,7 @@ void main() {
           },
         );
 
-        final manifest = ProjectManifest.fromJson(raw);
+        final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(raw);
         final json = _wireJson(manifest.toJson());
 
         expect(raw, contains('buildingShadowPresets'));
@@ -114,12 +108,14 @@ void main() {
     test(
       'Selbrume-like synthetic V1 shadow sample round-trips without V2 keys',
       () {
-        final manifest = ProjectManifest.fromJson(
+        final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(
             shadowCatalog: _shadowCatalogJson(),
             elements: <Object?>[
               _elementJson(
-                  id: 'selbrum_maison_test', shadow: _buildingShadowJson()),
+                id: 'selbrum_maison_test',
+                shadow: _buildingShadowJson(),
+              ),
               _elementJson(id: 'decor_without_shadow'),
               _elementJson(id: 'decor_shadow_null', shadow: null),
             ],
@@ -127,8 +123,8 @@ void main() {
         );
 
         final json = _wireJson(manifest.toJson());
-        final elements =
-            (json['elements'] as List<Object?>).cast<Map<String, Object?>>();
+        final elements = (json['elements'] as List<Object?>)
+            .cast<Map<String, Object?>>();
 
         expect(elements[0]['shadow'], _buildingShadowJson());
         expect(elements[1], containsPair('shadow', null));

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
@@ -8,7 +6,6 @@ import '../../contracts/resource_ref.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import '../../transactions/change_set.dart';
-import '../../workspace/project_snapshot.dart';
 import '../maps/map_lifecycle_adapter.dart';
 
 final class PokemonRulesetAuthoringException implements Exception {
@@ -88,7 +85,7 @@ final class PokemonRulesetActions {
 
     final snapshot = context.snapshot;
     final before = snapshot.manifest.pokemon.ruleset;
-    if (before == profile && _hasMaterializedRuleset(snapshot)) {
+    if (before == profile) {
       throw PokemonRulesetAuthoringException(
         'pokemon.ruleset.no_change',
         'The Pokemon ruleset profile is already current.',
@@ -137,16 +134,5 @@ final class PokemonRulesetActions {
         'ruleset': profile.toJson(),
       },
     );
-  }
-}
-
-bool _hasMaterializedRuleset(ProjectSnapshot snapshot) {
-  try {
-    final decoded = jsonDecode(utf8.decode(snapshot.resourceBytes('project')));
-    if (decoded is! Map) return false;
-    final pokemon = decoded['pokemon'];
-    return pokemon is Map && pokemon.containsKey('ruleset');
-  } on Object {
-    return false;
   }
 }

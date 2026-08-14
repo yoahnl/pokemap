@@ -21,7 +21,7 @@ final class RuntimeBattleProgressionContextMapper {
     GameState? gameState,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
-    PokemonRulesetProfile ruleset = PokemonRulesetProfile.pokeMapBetaV1,
+    required PokemonRulesetProfile ruleset,
   }) {
     return BattleProgressionContext(
       ruleset: ruleset,
@@ -49,7 +49,7 @@ final class RuntimeBattleProgressionContextMapper {
     GameState? gameState,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
-    PokemonRulesetProfile ruleset = PokemonRulesetProfile.pokeMapBetaV1,
+    required PokemonRulesetProfile ruleset,
   }) {
     return BattleProgressionContext(
       ruleset: ruleset,

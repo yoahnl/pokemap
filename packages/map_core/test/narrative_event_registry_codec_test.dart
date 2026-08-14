@@ -28,36 +28,38 @@ void main() {
       expect(result.diagnostics, isEmpty);
     });
 
-    test('classifies future schema fields and discriminants as unsupported',
-        () {
-      final cases = [
-        {..._registryJson(), 'schemaVersion': 2},
-        {..._registryJson(), 'future': true},
-        {..._registryJson(), 'mode': 'future'},
-        {
-          ..._registryJson(),
-          'records': [
-            {
-              'state': 'draft',
-              'draft': {
-                'id': 'evt_019abcde-0000-7000-8000-000000000001',
-                'name': 'Draft',
-                'conditions': <Object?>[],
-                'priority': 0,
-                'order': 0,
-                'future': true,
+    test(
+      'classifies future schema fields and discriminants as unsupported',
+      () {
+        final cases = [
+          {..._registryJson(), 'schemaVersion': 2},
+          {..._registryJson(), 'future': true},
+          {..._registryJson(), 'mode': 'future'},
+          {
+            ..._registryJson(),
+            'records': [
+              {
+                'state': 'draft',
+                'draft': {
+                  'id': 'evt_019abcde-0000-7000-8000-000000000001',
+                  'name': 'Draft',
+                  'conditions': <Object?>[],
+                  'priority': 0,
+                  'order': 0,
+                  'future': true,
+                },
               },
-            },
-          ],
-        },
-      ];
+            ],
+          },
+        ];
 
-      for (final raw in cases) {
-        final result = decodeNarrativeEventRegistry(raw);
-        expect(_decodeState(result), 'unsupported');
-        _expectFailClosed(result, raw);
-      }
-    });
+        for (final raw in cases) {
+          final result = decodeNarrativeEventRegistry(raw);
+          expect(_decodeState(result), 'unsupported');
+          _expectFailClosed(result, raw);
+        }
+      },
+    );
 
     test('classifies missing null wrong type and invalid IDs as invalid', () {
       final cases = <Object?>[
@@ -92,36 +94,39 @@ void main() {
     });
 
     test(
-        'classifies malformed and canonically inconsistent claim hashes as invalid',
-        () {
-      final claim = _validClaim().toJson();
-      final malformedMember = Map<String, Object?>.from(claim)
-        ..['members'] = [
-          {
-            'provenance':
-                LegacySourceRef.mapEvent('map_port', 'legacy').toJson(),
-            'sourceFingerprint': 'sha256:ABC',
-          },
-        ];
-      final staleCohort = Map<String, Object?>.from(claim)
-        ..['cohortFingerprint'] =
-            'sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
+      'classifies malformed and canonically inconsistent claim hashes as invalid',
+      () {
+        final claim = _validClaim().toJson();
+        final malformedMember = Map<String, Object?>.from(claim)
+          ..['members'] = [
+            {
+              'provenance': LegacySourceRef.mapEvent(
+                'map_port',
+                'legacy',
+              ).toJson(),
+              'sourceFingerprint': 'sha256:ABC',
+            },
+          ];
+        final staleCohort = Map<String, Object?>.from(claim)
+          ..['cohortFingerprint'] =
+              'sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
 
-      for (final invalidClaim in [malformedMember, staleCohort]) {
-        final result = decodeNarrativeEventRegistry({
-          ..._registryJson(),
-          'legacyClaims': [invalidClaim],
-        });
-        expect(_decodeState(result), 'invalid');
-        expect(result.runtimeAllowed, isFalse);
-      }
-    });
+        for (final invalidClaim in [malformedMember, staleCohort]) {
+          final result = decodeNarrativeEventRegistry({
+            ..._registryJson(),
+            'legacyClaims': [invalidClaim],
+          });
+          expect(_decodeState(result), 'invalid');
+          expect(result.runtimeAllowed, isFalse);
+        }
+      },
+    );
   });
 
   group('ProjectManifest Event registry preflight', () {
     test('keeps old manifests registry-free through round-trip', () {
       final oldJson = _minimalManifestJson();
-      final manifest = ProjectManifest.fromJson(oldJson);
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(oldJson);
 
       expect(manifest.eventRegistry, isNull);
       expect(manifest.toJson(), isNot(contains('eventRegistry')));
@@ -151,7 +156,7 @@ void main() {
         ..._minimalManifestJson(),
         'eventRegistry': _registryJson(mode: 'v2Only'),
       };
-      final manifest = ProjectManifest.fromJson(json);
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
       expect(manifest.version, ProjectVersion.v6);
       expect(manifest.eventRegistry?.mode, EventSystemMode.v2Only);
@@ -159,73 +164,77 @@ void main() {
     });
 
     test(
-        'retains raw future subtree and original bytes while decoding the rest',
-        () {
-      final rawRegistry = {
-        ..._registryJson(),
-        'futureField': {'value': 1}
-      };
-      final json = {
-        ..._minimalManifestJson(),
-        'unknownRootField': true,
-        'eventRegistry': rawRegistry,
-      };
-      final bytes = utf8.encode(jsonEncode(json));
-      final preflight = preflightProjectManifestJson(bytes);
+      'retains raw future subtree and original bytes while decoding the rest',
+      () {
+        final rawRegistry = {
+          ..._registryJson(),
+          'futureField': {'value': 1},
+        };
+        final json = {
+          ..._minimalManifestJson(),
+          'unknownRootField': true,
+          'eventRegistry': rawRegistry,
+        };
+        final bytes = utf8.encode(jsonEncode(json));
+        final preflight = preflightProjectManifestJson(bytes);
 
-      expect(preflight.manifest?.name, 'Legacy project');
-      expect(_decodeState(preflight.eventRegistry), 'unsupported');
-      expect(preflight.eventRegistry.rawEventRegistryJson, rawRegistry);
-      expect(preflight.originalJsonBytes, bytes);
-      expect(() => preflight.originalJsonBytes.add(1), throwsUnsupportedError);
-      expect(
-        () => (preflight.eventRegistry.rawEventRegistryJson! as Map)['new'] = 1,
-        throwsUnsupportedError,
-      );
-      expect(preflight.writable, isFalse);
-      expect(preflight.runtimeAllowed, isFalse);
-      expect(preflight.migrationAllowed, isFalse);
-      expect(preflight.playtestAllowed, isFalse);
-      expect(preflight.effectiveMode, isNull);
-    });
-
-    test(
-        'retains invalid subtree and fails closed without losing the old manifest',
-        () {
-      final rawRegistry = {..._registryJson(), 'records': null};
-      final json = {
-        ..._minimalManifestJson(),
-        'eventRegistry': rawRegistry,
-      };
-      final preflight = preflightProjectManifestJson(
-        utf8.encode(jsonEncode(json)),
-      );
-
-      expect(preflight.manifest?.name, 'Legacy project');
-      expect(_decodeState(preflight.eventRegistry), 'invalid');
-      expect(preflight.eventRegistry.rawEventRegistryJson, rawRegistry);
-      expect(preflight.diagnostics, isNotEmpty);
-      expect(preflight.writable, isFalse);
-      expect(preflight.runtimeAllowed, isFalse);
-    });
+        expect(preflight.manifest?.name, 'Legacy project');
+        expect(_decodeState(preflight.eventRegistry), 'unsupported');
+        expect(preflight.eventRegistry.rawEventRegistryJson, rawRegistry);
+        expect(preflight.originalJsonBytes, bytes);
+        expect(
+          () => preflight.originalJsonBytes.add(1),
+          throwsUnsupportedError,
+        );
+        expect(
+          () =>
+              (preflight.eventRegistry.rawEventRegistryJson! as Map)['new'] = 1,
+          throwsUnsupportedError,
+        );
+        expect(preflight.writable, isFalse);
+        expect(preflight.runtimeAllowed, isFalse);
+        expect(preflight.migrationAllowed, isFalse);
+        expect(preflight.playtestAllowed, isFalse);
+        expect(preflight.effectiveMode, isNull);
+      },
+    );
 
     test(
-        'rejects duplicate keys in the raw registry before jsonDecode erases them',
-        () {
-      const json =
-          '{"name":"Legacy project","maps":[],"tilesets":[],"eventRegistry":{"schemaVersion":1,"schemaVersion":1,"mode":"legacyOnly","records":[],"legacyClaims":[]}}';
-      final bytes = utf8.encode(json);
-      final preflight = preflightProjectManifestJson(bytes);
+      'retains invalid subtree and fails closed without losing the old manifest',
+      () {
+        final rawRegistry = {..._registryJson(), 'records': null};
+        final json = {..._minimalManifestJson(), 'eventRegistry': rawRegistry};
+        final preflight = preflightProjectManifestJson(
+          utf8.encode(jsonEncode(json)),
+        );
 
-      expect(preflight.manifest, isNull);
-      expect(_decodeState(preflight.eventRegistry), 'invalid');
-      expect(preflight.writable, isFalse);
-      expect(preflight.originalJsonBytes, bytes);
-      expect(
-        preflight.eventRegistry.diagnostics.single,
-        contains(r'$.eventRegistry.schemaVersion'),
-      );
-    });
+        expect(preflight.manifest?.name, 'Legacy project');
+        expect(_decodeState(preflight.eventRegistry), 'invalid');
+        expect(preflight.eventRegistry.rawEventRegistryJson, rawRegistry);
+        expect(preflight.diagnostics, isNotEmpty);
+        expect(preflight.writable, isFalse);
+        expect(preflight.runtimeAllowed, isFalse);
+      },
+    );
+
+    test(
+      'rejects duplicate keys in the raw registry before jsonDecode erases them',
+      () {
+        const json =
+            '{"name":"Legacy project","maps":[],"tilesets":[],"eventRegistry":{"schemaVersion":1,"schemaVersion":1,"mode":"legacyOnly","records":[],"legacyClaims":[]}}';
+        final bytes = utf8.encode(json);
+        final preflight = preflightProjectManifestJson(bytes);
+
+        expect(preflight.manifest, isNull);
+        expect(_decodeState(preflight.eventRegistry), 'invalid');
+        expect(preflight.writable, isFalse);
+        expect(preflight.originalJsonBytes, bytes);
+        expect(
+          preflight.eventRegistry.diagnostics.single,
+          contains(r'$.eventRegistry.schemaVersion'),
+        );
+      },
+    );
 
     test('rejects duplicate keys anywhere in the raw project JSON', () {
       const json = '{"name":"first","name":"second","maps":[],"tilesets":[]}';
@@ -236,23 +245,21 @@ void main() {
       expect(_decodeState(preflight.eventRegistry), 'invalid');
       expect(preflight.writable, isFalse);
       expect(preflight.originalJsonBytes, bytes);
-      expect(
-        preflight.eventRegistry.diagnostics.single,
-        contains(r'$.name'),
-      );
+      expect(preflight.eventRegistry.diagnostics.single, contains(r'$.name'));
     });
 
     test(
-        'direct ProjectManifest decoding also fails closed for future registry data',
-        () {
-      expect(
-        () => ProjectManifest.fromJson({
-          ..._minimalManifestJson(),
-          'eventRegistry': {..._registryJson(), 'future': true},
-        }),
-        throwsFormatException,
-      );
-    });
+      'direct ProjectManifest decoding also fails closed for future registry data',
+      () {
+        expect(
+          () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
+            ..._minimalManifestJson(),
+            'eventRegistry': {..._registryJson(), 'future': true},
+          }),
+          throwsFormatException,
+        );
+      },
+    );
 
     test('rejects malformed project bytes before exposing capabilities', () {
       final preflight = preflightProjectManifestJson(utf8.encode('{bad json'));
@@ -285,18 +292,21 @@ String _decodeState(EventRegistryDecodeResult result) {
 }
 
 Map<String, Object?> _registryJson({String mode = 'legacyOnly'}) => {
-      'schemaVersion': 1,
-      'mode': mode,
-      'records': <Object?>[],
-      'legacyClaims': <Object?>[],
-    };
+  'schemaVersion': 1,
+  'mode': mode,
+  'records': <Object?>[],
+  'legacyClaims': <Object?>[],
+};
 
 Map<String, Object?> _minimalManifestJson() => {
-      'name': 'Legacy project',
-      'version': 'v6',
-      'maps': <Object?>[],
-      'tilesets': <Object?>[],
-    };
+  'name': 'Legacy project',
+  'version': 'v6',
+  'maps': <Object?>[],
+  'tilesets': <Object?>[],
+  'pokemon': const ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+  ).toJson(),
+};
 
 LegacySourceClaim _validClaim() {
   final source = NarrativeEventSourceRef.mapEnter('map_port');
@@ -310,13 +320,8 @@ LegacySourceClaim _validClaim() {
     cohortId: cohortId,
     source: source,
     members: [member],
-    cohortFingerprint: computeLegacySourceCohortFingerprint(
-      cohortId,
-      [member],
-    ),
-    targetEventIds: const [
-      'evt_019abcde-0000-7000-8000-000000000001',
-    ],
+    cohortFingerprint: computeLegacySourceCohortFingerprint(cohortId, [member]),
+    targetEventIds: const ['evt_019abcde-0000-7000-8000-000000000001'],
     migrationReceiptId: 'receipt_1',
   );
 }

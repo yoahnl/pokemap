@@ -1,3 +1,21 @@
+enum PokemonTypeChartPolicy { mainlineModernV1 }
+
+enum PokemonExperiencePolicy { pokeMapSimpleV1 }
+
+enum PokemonCapturePolicy { pokeMapMvpV1 }
+
+enum PokemonMoveMachinePolicy { authoredConsumabilityV1 }
+
+enum PokemonCriticalHitPolicy { mainlineGen9 }
+
+enum PokemonSpeedTiePolicy { mainlineGen9SeededRandom }
+
+enum PokemonFriendshipPolicy { mainline0255V1 }
+
+enum PokemonEvolutionPolicy { pokeMapBetaV1 }
+
+enum PokemonDisabledFeature { breeding, doubleBattles, modernGimmicks, online }
+
 final class PokemonRulesetReference {
   const PokemonRulesetReference({
     required this.profileId,
@@ -20,6 +38,54 @@ final class PokemonRulesetReference {
 
   @override
   int get hashCode => Object.hash(profileId, schemaVersion);
+}
+
+final class PokemonRulesetMechanics {
+  const PokemonRulesetMechanics._({
+    required this.reference,
+    required this.typeChart,
+    required this.maxLevel,
+    required this.experience,
+    required this.capture,
+    required this.moveMachine,
+    required this.criticalHit,
+    required this.speedTie,
+    required this.friendship,
+    required this.evolution,
+    required this.disabledFeatures,
+  });
+
+  static const PokemonRulesetMechanics pokeMapBetaV1 =
+      PokemonRulesetMechanics._(
+        reference: PokemonRulesetProfile.pokeMapBetaV1Reference,
+        typeChart: PokemonTypeChartPolicy.mainlineModernV1,
+        maxLevel: 100,
+        experience: PokemonExperiencePolicy.pokeMapSimpleV1,
+        capture: PokemonCapturePolicy.pokeMapMvpV1,
+        moveMachine: PokemonMoveMachinePolicy.authoredConsumabilityV1,
+        criticalHit: PokemonCriticalHitPolicy.mainlineGen9,
+        speedTie: PokemonSpeedTiePolicy.mainlineGen9SeededRandom,
+        friendship: PokemonFriendshipPolicy.mainline0255V1,
+        evolution: PokemonEvolutionPolicy.pokeMapBetaV1,
+        disabledFeatures: <PokemonDisabledFeature>{
+          PokemonDisabledFeature.breeding,
+          PokemonDisabledFeature.doubleBattles,
+          PokemonDisabledFeature.modernGimmicks,
+          PokemonDisabledFeature.online,
+        },
+      );
+
+  final PokemonRulesetReference reference;
+  final PokemonTypeChartPolicy typeChart;
+  final int maxLevel;
+  final PokemonExperiencePolicy experience;
+  final PokemonCapturePolicy capture;
+  final PokemonMoveMachinePolicy moveMachine;
+  final PokemonCriticalHitPolicy criticalHit;
+  final PokemonSpeedTiePolicy speedTie;
+  final PokemonFriendshipPolicy friendship;
+  final PokemonEvolutionPolicy evolution;
+  final Set<PokemonDisabledFeature> disabledFeatures;
 }
 
 final class PokemonRulesetProfile {
@@ -147,6 +213,11 @@ final class PokemonRulesetProfile {
     profileId: profileId,
     schemaVersion: schemaVersion,
   );
+
+  PokemonRulesetMechanics get mechanics {
+    requireSupported();
+    return PokemonRulesetMechanics.pokeMapBetaV1;
+  }
 
   void requireSupported() {
     _requirePolicy('profileId', profileId, canonicalProfileId);

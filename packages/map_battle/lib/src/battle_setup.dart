@@ -30,7 +30,7 @@ class BattleSetup {
   /// [fieldState] - État de champ initial si le setup battle veut démarrer
   ///   sous une météo ou un pseudoWeather déjà actifs.
   const BattleSetup({
-    this.ruleset = PokemonRulesetProfile.pokeMapBetaV1,
+    required this.ruleset,
     required this.playerPokemon,
     this.playerReservePokemon = const <BattleCombatantData>[],
     required this.enemyPokemon,
@@ -41,6 +41,18 @@ class BattleSetup {
     this.allowFlee = true,
     this.fieldState = const BattleFieldState(),
   });
+
+  const BattleSetup.pokeMapBetaV1ForTest({
+    required this.playerPokemon,
+    this.playerReservePokemon = const <BattleCombatantData>[],
+    required this.enemyPokemon,
+    this.enemyReservePokemon = const <BattleCombatantData>[],
+    required this.isTrainerBattle,
+    required this.trainerId,
+    this.allowCapture = false,
+    this.allowFlee = true,
+    this.fieldState = const BattleFieldState(),
+  }) : ruleset = PokemonRulesetProfile.pokeMapBetaV1;
 
   final PokemonRulesetProfile ruleset;
 

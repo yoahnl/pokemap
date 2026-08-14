@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('Project new game config', () {
     test('legacy manifests default to a disabled config', () {
-      final manifest = ProjectManifest.fromJson({
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest({
         'name': 'legacy',
         'version': 'v6',
         'maps': <Object?>[],
@@ -26,9 +26,7 @@ void main() {
         playerAvatarCharacterIds: ['hero_a', 'hero_b'],
         playerPronounSet: PlayerPronounSet.feminine,
         startingMoney: 500,
-        initialBag: [
-          BagEntry(itemId: 'potion', quantity: 2),
-        ],
+        initialBag: [BagEntry(itemId: 'potion', quantity: 2)],
         initialParty: [
           PlayerPokemon(
             speciesId: 'eevee',
@@ -59,20 +57,19 @@ void main() {
       );
       final manifest = _manifest(config);
 
-      final decoded = ProjectManifest.fromJson(manifest.toJson());
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        manifest.toJson(),
+      );
 
       expect(decoded.newGame, config);
       expect(decoded.newGame.starterOptions.single.id, 'starter_bulbasaur');
       expect(decoded.newGame.initialParty.single.formId, 'partner');
       expect(decoded.newGame.starterOptions.single.pokemon.formId, 'spring');
-      expect(
-        decoded.newGame.playerAvatarCharacterIds,
-        const ['hero_a', 'hero_b'],
-      );
-      expect(
-        decoded.newGame.playerPronounSet,
-        PlayerPronounSet.feminine,
-      );
+      expect(decoded.newGame.playerAvatarCharacterIds, const [
+        'hero_a',
+        'hero_b',
+      ]);
+      expect(decoded.newGame.playerPronounSet, PlayerPronounSet.feminine);
     });
 
     test('round-trips versioned typed initial Fact values', () {
@@ -102,7 +99,7 @@ void main() {
       );
 
       final json = manifest.toJson();
-      final decoded = ProjectManifest.fromJson(json);
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
       expect((json['newGame'] as Map)['factSchemaVersion'], 2);
       expect(decoded.newGame, config);
@@ -136,10 +133,7 @@ void main() {
     test('validator rejects references and structurally invalid values', () {
       final invalidConfigs = <ProjectNewGameConfig>[
         const ProjectNewGameConfig(enabled: true),
-        const ProjectNewGameConfig(
-          enabled: true,
-          startMapId: 'missing_map',
-        ),
+        const ProjectNewGameConfig(enabled: true, startMapId: 'missing_map'),
         const ProjectNewGameConfig(
           enabled: true,
           startMapId: 'map_start',
@@ -148,9 +142,7 @@ void main() {
         const ProjectNewGameConfig(
           enabled: true,
           startMapId: 'map_start',
-          initialBag: [
-            BagEntry(itemId: 'potion', quantity: 0),
-          ],
+          initialBag: [BagEntry(itemId: 'potion', quantity: 0)],
         ),
         const ProjectNewGameConfig(
           enabled: true,

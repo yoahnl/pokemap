@@ -124,6 +124,7 @@ final class PokemonDataBatchValidator {
   const PokemonDataBatchValidator();
 
   PokemonDataValidationReport validate({
+    required PokemonRulesetProfile ruleset,
     Iterable<PokemonJsonDocument> catalogs = const [],
     Iterable<PokemonJsonDocument> species = const [],
     Iterable<PokemonJsonDocument> learnsets = const [],
@@ -132,6 +133,7 @@ final class PokemonDataBatchValidator {
   }) {
     return const PokemonCatalogCoherenceValidator().validate(
       PokemonCatalogCoherenceSnapshot(
+        ruleset: ruleset,
         catalogs: _decodeDocuments(
           catalogs,
           PokemonCatalogFile.fromJson,

@@ -72,46 +72,49 @@ void main() {
       expect(decodedSource.spacingY, 2);
       expect((decodedSource.pixelOffsetX, decodedSource.pixelOffsetY), (-3, 5));
       expect(
-          () => ProjectValidator.validate(
-                const ProjectManifest(
-                  name: 'Spaced atlas project',
-                  maps: <ProjectMapEntry>[],
-                  tilesets: <ProjectTilesetEntry>[tileset],
-                ),
-              ),
-          returnsNormally);
+        () => ProjectValidator.validate(
+          const ProjectManifest(
+            name: 'Spaced atlas project',
+            maps: <ProjectMapEntry>[],
+            tilesets: <ProjectTilesetEntry>[tileset],
+          ),
+        ),
+        returnsNormally,
+      );
     });
 
     test('migrates legacy atlas metadata into the canonical source', () {
-      final manifest = ProjectManifest.fromJson(<String, Object?>{
-        'name': 'Legacy atlas project',
-        'version': 'v6',
-        'maps': <Object?>[],
-        'tilesets': <Object?>[
-          <String, Object?>{
-            'id': 'world',
-            'name': 'World',
-            'relativePath': 'assets/world.png',
-          },
-        ],
-        'globalProperties': <String, Object?>{
-          'keep': 'value',
-          'pokemapAuthoringVisualLibrary': <String, Object?>{
-            'schemaVersion': 1,
-            'tilesets': <Object?>[
-              <String, Object?>{
-                'tilesetId': 'world',
-                'assetId': 'asset-world',
-                'pixelWidth': 64,
-                'pixelHeight': 48,
-                'tileWidth': 16,
-                'tileHeight': 16,
-                'tileProperties': <Object?>[],
-              },
-            ],
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        <String, Object?>{
+          'name': 'Legacy atlas project',
+          'version': 'v6',
+          'maps': <Object?>[],
+          'tilesets': <Object?>[
+            <String, Object?>{
+              'id': 'world',
+              'name': 'World',
+              'relativePath': 'assets/world.png',
+            },
+          ],
+          'globalProperties': <String, Object?>{
+            'keep': 'value',
+            'pokemapAuthoringVisualLibrary': <String, Object?>{
+              'schemaVersion': 1,
+              'tilesets': <Object?>[
+                <String, Object?>{
+                  'tilesetId': 'world',
+                  'assetId': 'asset-world',
+                  'pixelWidth': 64,
+                  'pixelHeight': 48,
+                  'tileWidth': 16,
+                  'tileHeight': 16,
+                  'tileProperties': <Object?>[],
+                },
+              ],
+            },
           },
         },
-      });
+      );
 
       expect(manifest.tilesets.single.source?.toJson(), <String, Object?>{
         'kind': 'regular_atlas',
@@ -123,15 +126,14 @@ void main() {
         'tileProperties': <Object?>[],
       });
       expect(manifest.globalProperties, <String, Object?>{'keep': 'value'});
-      expect(
-        manifest.toJson()['globalProperties'],
-        <String, Object?>{'keep': 'value'},
-      );
+      expect(manifest.toJson()['globalProperties'], <String, Object?>{
+        'keep': 'value',
+      });
     });
 
     test('rejects simultaneous legacy and canonical source data', () {
       expect(
-        () => ProjectManifest.fromJson(<String, Object?>{
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, Object?>{
           'name': 'Ambiguous project',
           'version': 'v6',
           'maps': <Object?>[],
@@ -210,42 +212,44 @@ void main() {
       );
     });
 
-    test('project validation rejects a spaced atlas without a complete cell',
-        () {
-      const manifest = ProjectManifest(
-        name: 'Invalid spaced atlas project',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[
-          ProjectTilesetEntry(
-            id: 'world',
-            name: 'World',
-            relativePath: 'assets/world.png',
-            source: ProjectTilesetSource.regularAtlas(
-              assetId: 'asset-world',
-              pixelWidth: 32,
-              pixelHeight: 68,
-              tileWidth: 32,
-              tileHeight: 32,
-              marginX: 1,
-              marginY: 1,
-              spacingX: 2,
-              spacingY: 2,
+    test(
+      'project validation rejects a spaced atlas without a complete cell',
+      () {
+        const manifest = ProjectManifest(
+          name: 'Invalid spaced atlas project',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'world',
+              name: 'World',
+              relativePath: 'assets/world.png',
+              source: ProjectTilesetSource.regularAtlas(
+                assetId: 'asset-world',
+                pixelWidth: 32,
+                pixelHeight: 68,
+                tileWidth: 32,
+                tileHeight: 32,
+                marginX: 1,
+                marginY: 1,
+                spacingX: 2,
+                spacingY: 2,
+              ),
+            ),
+          ],
+        );
+
+        expect(
+          () => ProjectValidator.validate(manifest),
+          throwsA(
+            isA<ValidationException>().having(
+              (error) => error.message,
+              'message',
+              contains('invalid regular atlas source'),
             ),
           ),
-        ],
-      );
-
-      expect(
-        () => ProjectValidator.validate(manifest),
-        throwsA(
-          isA<ValidationException>().having(
-            (error) => error.message,
-            'message',
-            contains('invalid regular atlas source'),
-          ),
-        ),
-      );
-    });
+        );
+      },
+    );
 
     test(
       'serializes a sparse image collection with variable visuals and metadata',
@@ -327,10 +331,7 @@ void main() {
                   tileId: 2,
                   durationMs: 120,
                 ),
-                ProjectImageCollectionAnimationFrame(
-                  tileId: 9,
-                  durationMs: 80,
-                ),
+                ProjectImageCollectionAnimationFrame(tileId: 9, durationMs: 80),
               ],
             ),
           ],
@@ -355,14 +356,15 @@ void main() {
           <int>[2, 9],
         );
         expect(
-            () => ProjectValidator.validate(
-                  const ProjectManifest(
-                    name: 'Image collection project',
-                    maps: <ProjectMapEntry>[],
-                    tilesets: <ProjectTilesetEntry>[tileset],
-                  ),
-                ),
-            returnsNormally);
+          () => ProjectValidator.validate(
+            const ProjectManifest(
+              name: 'Image collection project',
+              maps: <ProjectMapEntry>[],
+              tilesets: <ProjectTilesetEntry>[tileset],
+            ),
+          ),
+          returnsNormally,
+        );
       },
     );
 
@@ -387,10 +389,7 @@ void main() {
               height: 32,
             ),
             animation: <ProjectImageCollectionAnimationFrame>[
-              ProjectImageCollectionAnimationFrame(
-                tileId: 99,
-                durationMs: 0,
-              ),
+              ProjectImageCollectionAnimationFrame(tileId: 99, durationMs: 0),
             ],
           ),
         ],
@@ -487,12 +486,7 @@ void main() {
       const tile = ProjectImageCollectionTileDefinition(
         tileId: 0,
         pageId: 'page-main',
-        sourceRect: ProjectTilesetPixelRect(
-          x: 0,
-          y: 0,
-          width: 32,
-          height: 32,
-        ),
+        sourceRect: ProjectTilesetPixelRect(x: 0, y: 0, width: 32, height: 32),
       );
       const invalidSources = <ProjectTilesetSource>[
         ProjectTilesetSource.imageCollection(
@@ -579,14 +573,8 @@ void main() {
           ProjectRegularAtlasTileAnimation(
             tileId: 1,
             frames: <ProjectImageCollectionAnimationFrame>[
-              ProjectImageCollectionAnimationFrame(
-                tileId: 1,
-                durationMs: 100,
-              ),
-              ProjectImageCollectionAnimationFrame(
-                tileId: 2,
-                durationMs: 300,
-              ),
+              ProjectImageCollectionAnimationFrame(tileId: 1, durationMs: 100),
+              ProjectImageCollectionAnimationFrame(tileId: 2, durationMs: 300),
             ],
           ),
         ],
@@ -605,15 +593,17 @@ void main() {
     });
 
     test('keeps legacy regular atlases animation-free by default', () {
-      final source = ProjectTilesetSource.fromJson(<String, Object?>{
-        'kind': 'regular_atlas',
-        'assetId': 'legacy-atlas',
-        'pixelWidth': 32,
-        'pixelHeight': 32,
-        'tileWidth': 16,
-        'tileHeight': 16,
-        'tileProperties': <Object?>[],
-      }) as ProjectRegularAtlasTilesetSource;
+      final source =
+          ProjectTilesetSource.fromJson(<String, Object?>{
+                'kind': 'regular_atlas',
+                'assetId': 'legacy-atlas',
+                'pixelWidth': 32,
+                'pixelHeight': 32,
+                'tileWidth': 16,
+                'tileHeight': 16,
+                'tileProperties': <Object?>[],
+              })
+              as ProjectRegularAtlasTilesetSource;
 
       expect(source.tileAnimations, isEmpty);
     });

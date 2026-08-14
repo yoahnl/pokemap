@@ -141,7 +141,7 @@ void main() {
 
     test('s_reload deals damage then prevents the user next turn', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             types: const PsdkBattleTypes(primary: 'normal'),
@@ -243,7 +243,7 @@ void main() {
 
     test('s_2turns charges first then strikes on the next submission', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             types: const PsdkBattleTypes(primary: 'flying'),
@@ -298,7 +298,7 @@ void main() {
 
     test('s_electro_shot boosts Sp. Atk while charging then strikes', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             types: const PsdkBattleTypes(primary: 'electric'),
@@ -840,7 +840,7 @@ void main() {
 
     test('s_destiny_bond fails while the effect is already active', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             types: const PsdkBattleTypes(primary: 'ghost'),
@@ -880,7 +880,7 @@ void main() {
 
     test('s_destiny_bond clears on the owner next different move attempt', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             types: const PsdkBattleTypes(primary: 'ghost'),
@@ -1785,7 +1785,7 @@ void main() {
     test('s_geomancy uses the two-turn release boosts on its dedicated method',
         () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             types: const PsdkBattleTypes(primary: 'fairy'),
@@ -1840,7 +1840,7 @@ void main() {
     test('s_core_enforcer suppresses abilities after a target already moved',
         () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             types: const PsdkBattleTypes(primary: 'dragon'),
@@ -3082,7 +3082,7 @@ void main() {
 
     test('s_sky_drop charges first then strikes on the next submission', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             types: const PsdkBattleTypes(primary: 'flying'),
@@ -4849,7 +4849,7 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleMoveHistory? opponentMoveHistory,
 }) {
   final engine = PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: playerSpeciesId,

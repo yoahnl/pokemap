@@ -308,6 +308,7 @@ void main() {
       ];
 
       final result = BattleProgressionResult(
+        rulesetReference: PokemonRulesetProfile.pokeMapBetaV1Reference,
         state: applied.state,
         appliedReward: applied.appliedReward,
         changes: sourceChanges,
@@ -353,6 +354,7 @@ BattleProgressionContext _context({
   ],
 }) {
   return BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: outcome,
     playerParticipantPartySlots: participants,
     defeatedOpponents: opponents,

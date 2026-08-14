@@ -5,7 +5,7 @@ void main() {
   group('PSDK item effects', () {
     test('hydrates known held item ids into the battler effect stack', () {
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             heldItemId: 'loaded_dice',
@@ -27,7 +27,7 @@ void main() {
     test('Air Balloon and Iron Ball affect grounding through item effects', () {
       const resolver = BattleGroundingResolver();
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             heldItemId: 'air_balloon',
@@ -51,7 +51,7 @@ void main() {
         () {
       const resolver = BattleGroundingResolver();
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             heldItemId: 'air_balloon',
@@ -91,7 +91,7 @@ void main() {
 
     test('consumeHeldItem clears the held item and its active item effect', () {
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             heldItemId: 'air_balloon',
@@ -250,7 +250,7 @@ PsdkBattleTurnResult _runMove({
   BattleRngSeeds rngSeeds = _seeds,
 }) {
   final engine = PsdkBattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         heldItemId: playerHeldItemId,
@@ -283,7 +283,7 @@ BattleHandlerResult _tickEndTurn({
   PsdkBattleEffectStack? playerEffects,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         heldItemId: playerHeldItemId,

@@ -19,18 +19,21 @@ void main() {
   late ValidatePokemonProjectDataUseCase validateUseCase;
 
   setUp(() async {
-    tempProjectRoot =
-        await Directory.systemTemp.createTemp('pokemon_validate_');
+    tempProjectRoot = await Directory.systemTemp.createTemp(
+      'pokemon_validate_',
+    );
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
+    await CreateProjectUseCase(
+      FileProjectRepository(),
+      const FileProjectWorkspaceFactory(),
+    ).execute('Pokemon Validation Test', tempProjectRoot.path);
     final pokemonRepository = FilePokemonReadRepository();
     seedUseCase = SeedPokemonDemoDataUseCase(
       snapshotController: pokemonRepository,
     );
     validateUseCase = ValidatePokemonProjectDataUseCase(
-      PokemonProjectValidator(
-        pokemonRepository,
-      ),
+      PokemonProjectValidator(pokemonRepository),
     );
   });
 
@@ -57,7 +60,9 @@ void main() {
         const FileProjectWorkspaceFactory(),
       );
       await createProjectUseCase.execute(
-          'Pokemon Validation Project', tempProjectRoot.path);
+        'Pokemon Validation Project',
+        tempProjectRoot.path,
+      );
       await seedUseCase.execute(workspace);
 
       final projectFile = File(workspace.projectManifestPath);
@@ -70,36 +75,46 @@ void main() {
     });
 
     test(
-        'reads from the workspace even when Directory.current points somewhere else',
-        () async {
-      await seedUseCase.execute(workspace);
+      'reads from the workspace even when Directory.current points somewhere else',
+      () async {
+        await seedUseCase.execute(workspace);
 
-      final decoy =
-          await Directory.systemTemp.createTemp('pokemon_validate_decoy_');
-      final originalCurrent = Directory.current;
-      try {
-        await Directory(
-          p.join(decoy.path, 'data', 'pokemon', 'species'),
-        ).create(recursive: true);
-        await File(
-          p.join(
-              decoy.path, 'data', 'pokemon', 'species', '0001-bulbasaur.json'),
-        ).writeAsString('{ invalid json');
+        final decoy = await Directory.systemTemp.createTemp(
+          'pokemon_validate_decoy_',
+        );
+        final originalCurrent = Directory.current;
+        try {
+          await Directory(
+            p.join(decoy.path, 'data', 'pokemon', 'species'),
+          ).create(recursive: true);
+          await File(
+            p.join(
+              decoy.path,
+              'data',
+              'pokemon',
+              'species',
+              '0001-bulbasaur.json',
+            ),
+          ).writeAsString('{ invalid json');
 
-        Directory.current = decoy.path;
+          Directory.current = decoy.path;
 
-        final report = await validateUseCase.execute(workspace);
+          final report = await validateUseCase.execute(workspace);
 
-        expect(report.isValid, isTrue);
-        expect(Directory(p.join(repoRootPath, 'data')).existsSync(), isFalse);
-        expect(Directory(p.join(repoRootPath, 'assets')).existsSync(), isFalse);
-      } finally {
-        Directory.current = originalCurrent.path;
-        if (await decoy.exists()) {
-          await decoy.delete(recursive: true);
+          expect(report.isValid, isTrue);
+          expect(Directory(p.join(repoRootPath, 'data')).existsSync(), isFalse);
+          expect(
+            Directory(p.join(repoRootPath, 'assets')).existsSync(),
+            isFalse,
+          );
+        } finally {
+          Directory.current = originalCurrent.path;
+          if (await decoy.exists()) {
+            await decoy.delete(recursive: true);
+          }
         }
-      }
-    });
+      },
+    );
 
     test('reports an error when a species id is empty', () async {
       await seedUseCase.execute(workspace);
@@ -121,7 +136,7 @@ void main() {
         'data/pokemon/species/0001-bulbasaur.json',
         (json) => (json['typing'] as Map<String, dynamic>)['types'] = <String>[
           'grass',
-          'grass'
+          'grass',
         ],
       );
 
@@ -135,8 +150,10 @@ void main() {
       await _mutateJsonFile(
         workspace,
         'data/pokemon/learnsets/bulbasaur.json',
-        (json) => ((json['levelUp'] as List<Object?>).first
-            as Map<String, dynamic>)['moveId'] = '',
+        (json) =>
+            ((json['levelUp'] as List<Object?>).first
+                    as Map<String, dynamic>)['moveId'] =
+                '',
       );
 
       final report = await validateUseCase.execute(workspace);
@@ -149,8 +166,10 @@ void main() {
       await _mutateJsonFile(
         workspace,
         'data/pokemon/learnsets/bulbasaur.json',
-        (json) => ((json['levelUp'] as List<Object?>).first
-            as Map<String, dynamic>)['level'] = 0,
+        (json) =>
+            ((json['levelUp'] as List<Object?>).first
+                    as Map<String, dynamic>)['level'] =
+                0,
       );
 
       final report = await validateUseCase.execute(workspace);
@@ -163,8 +182,10 @@ void main() {
       await _mutateJsonFile(
         workspace,
         'data/pokemon/evolutions/bulbasaur.json',
-        (json) => ((json['evolutions'] as List<Object?>).first
-            as Map<String, dynamic>)['targetSpeciesId'] = 'bulbasaur',
+        (json) =>
+            ((json['evolutions'] as List<Object?>).first
+                    as Map<String, dynamic>)['targetSpeciesId'] =
+                'bulbasaur',
       );
 
       final report = await validateUseCase.execute(workspace);
@@ -172,163 +193,182 @@ void main() {
       expect(_hasIssue(report, 'evolution.self_target'), isTrue);
     });
 
-    test('reports an error when a species learnsetRef is missing locally',
-        () async {
-      await seedUseCase.execute(workspace);
-      await _mutateJsonFile(
-        workspace,
-        'data/pokemon/species/0001-bulbasaur.json',
-        (json) => (json['refs'] as Map<String, dynamic>)['learnset'] =
-            'missing_learnset',
-      );
+    test(
+      'reports an error when a species learnsetRef is missing locally',
+      () async {
+        await seedUseCase.execute(workspace);
+        await _mutateJsonFile(
+          workspace,
+          'data/pokemon/species/0001-bulbasaur.json',
+          (json) => (json['refs'] as Map<String, dynamic>)['learnset'] =
+              'missing_learnset',
+        );
 
-      final report = await validateUseCase.execute(workspace);
+        final report = await validateUseCase.execute(workspace);
 
-      expect(_hasIssue(report, 'species.learnset_ref_missing'), isTrue);
-    });
-
-    test('reports an error when a species evolutionRef is missing locally',
-        () async {
-      await seedUseCase.execute(workspace);
-      await _mutateJsonFile(
-        workspace,
-        'data/pokemon/species/0001-bulbasaur.json',
-        (json) => (json['refs'] as Map<String, dynamic>)['evolution'] =
-            'missing_evolution',
-      );
-
-      final report = await validateUseCase.execute(workspace);
-
-      expect(_hasIssue(report, 'species.evolution_ref_missing'), isTrue);
-    });
-
-    test('reports an error when a species media ref is missing locally',
-        () async {
-      await seedUseCase.execute(workspace);
-      await _mutateJsonFile(
-        workspace,
-        'data/pokemon/species/0001-bulbasaur.json',
-        (json) =>
-            (json['refs'] as Map<String, dynamic>)['media'] = 'missing_media',
-      );
-
-      final report = await validateUseCase.execute(workspace);
-
-      expect(_hasIssue(report, 'species.media_ref_missing'), isTrue);
-    });
-
-    test('reports an error when an evolution target species is absent',
-        () async {
-      await seedUseCase.execute(workspace);
-      await _mutateJsonFile(
-        workspace,
-        'data/pokemon/evolutions/bulbasaur.json',
-        (json) => ((json['evolutions'] as List<Object?>).first
-            as Map<String, dynamic>)['targetSpeciesId'] = 'venusaur',
-      );
-
-      final report = await validateUseCase.execute(workspace);
-
-      expect(_hasIssue(report, 'evolution.target_species_missing'), isTrue);
-    });
+        expect(_hasIssue(report, 'species.learnset_ref_missing'), isTrue);
+      },
+    );
 
     test(
-        'reports an error when a learnset uses a move absent from moves catalog',
-        () async {
-      await seedUseCase.execute(workspace);
-      await _mutateJsonFile(
-        workspace,
-        'data/pokemon/learnsets/bulbasaur.json',
-        (json) => ((json['levelUp'] as List<Object?>).first
-            as Map<String, dynamic>)['moveId'] = 'mystery_move',
-      );
+      'reports an error when a species evolutionRef is missing locally',
+      () async {
+        await seedUseCase.execute(workspace);
+        await _mutateJsonFile(
+          workspace,
+          'data/pokemon/species/0001-bulbasaur.json',
+          (json) => (json['refs'] as Map<String, dynamic>)['evolution'] =
+              'missing_evolution',
+        );
 
-      final report = await validateUseCase.execute(workspace);
+        final report = await validateUseCase.execute(workspace);
 
-      expect(_hasIssue(report, 'learnset.move_missing_in_catalog'), isTrue);
-    });
-
-    test(
-        'reports an error when a species uses a type absent from types catalog',
-        () async {
-      await seedUseCase.execute(workspace);
-      await _mutateJsonFile(
-        workspace,
-        'data/pokemon/species/0001-bulbasaur.json',
-        (json) => (json['typing'] as Map<String, dynamic>)['types'] = <String>[
-          'shadow'
-        ],
-      );
-
-      final report = await validateUseCase.execute(workspace);
-
-      expect(_hasIssue(report, 'species.type_missing_in_catalog'), isTrue);
-    });
-
-    test('reports invalid JSON as a validation issue instead of mutating data',
-        () async {
-      await seedUseCase.execute(workspace);
-      await _writeRawFile(
-        workspace,
-        'data/pokemon/species/0001-bulbasaur.json',
-        '{ invalid json',
-      );
-
-      final report = await validateUseCase.execute(workspace);
-
-      expect(report.isValid, isFalse);
-      expect(_hasIssue(report, 'species.read_error'), isTrue);
-      expect(
-        report.issues.any((issue) => issue.message.contains('Invalid JSON')),
-        isTrue,
-      );
-    });
+        expect(_hasIssue(report, 'species.evolution_ref_missing'), isTrue);
+      },
+    );
 
     test(
-        'adds a warning when moves catalog is absent and skips that validation',
-        () async {
-      await seedUseCase.execute(workspace);
-      final movesCatalog = File(
-        workspace
-            .resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
-      );
-      await movesCatalog.delete();
+      'reports an error when a species media ref is missing locally',
+      () async {
+        await seedUseCase.execute(workspace);
+        await _mutateJsonFile(
+          workspace,
+          'data/pokemon/species/0001-bulbasaur.json',
+          (json) =>
+              (json['refs'] as Map<String, dynamic>)['media'] = 'missing_media',
+        );
 
-      final report = await validateUseCase.execute(workspace);
+        final report = await validateUseCase.execute(workspace);
 
-      expect(_hasIssue(report, 'catalog.moves_missing'), isTrue);
-      expect(
-        report.issues.any(
-          (issue) => issue.severity == PokemonValidationSeverity.warning,
-        ),
-        isTrue,
-      );
-    });
+        expect(_hasIssue(report, 'species.media_ref_missing'), isTrue);
+      },
+    );
 
     test(
-        'adds a warning when types catalog is absent and skips that validation',
-        () async {
-      await seedUseCase.execute(workspace);
-      final typesCatalog = File(
-        workspace
-            .resolveProjectRelativePath('data/pokemon/catalogs/types.json'),
-      );
-      await typesCatalog.delete();
+      'reports an error when an evolution target species is absent',
+      () async {
+        await seedUseCase.execute(workspace);
+        await _mutateJsonFile(
+          workspace,
+          'data/pokemon/evolutions/bulbasaur.json',
+          (json) =>
+              ((json['evolutions'] as List<Object?>).first
+                      as Map<String, dynamic>)['targetSpeciesId'] =
+                  'venusaur',
+        );
 
-      final report = await validateUseCase.execute(workspace);
+        final report = await validateUseCase.execute(workspace);
 
-      expect(report.isValid, isTrue);
-      expect(_hasIssue(report, 'catalog.types_missing'), isTrue);
-      expect(
-        report.issues.any(
-          (issue) =>
-              issue.code == 'catalog.types_missing' &&
-              issue.severity == PokemonValidationSeverity.warning,
-        ),
-        isTrue,
-      );
-      expect(_hasIssue(report, 'species.type_missing_in_catalog'), isFalse);
-    });
+        expect(_hasIssue(report, 'evolution.target_species_missing'), isTrue);
+      },
+    );
+
+    test(
+      'reports an error when a learnset uses a move absent from moves catalog',
+      () async {
+        await seedUseCase.execute(workspace);
+        await _mutateJsonFile(
+          workspace,
+          'data/pokemon/learnsets/bulbasaur.json',
+          (json) =>
+              ((json['levelUp'] as List<Object?>).first
+                      as Map<String, dynamic>)['moveId'] =
+                  'mystery_move',
+        );
+
+        final report = await validateUseCase.execute(workspace);
+
+        expect(_hasIssue(report, 'learnset.move_missing_in_catalog'), isTrue);
+      },
+    );
+
+    test(
+      'reports an error when a species uses a type absent from types catalog',
+      () async {
+        await seedUseCase.execute(workspace);
+        await _mutateJsonFile(
+          workspace,
+          'data/pokemon/species/0001-bulbasaur.json',
+          (json) => (json['typing'] as Map<String, dynamic>)['types'] =
+              <String>['shadow'],
+        );
+
+        final report = await validateUseCase.execute(workspace);
+
+        expect(_hasIssue(report, 'species.type_missing_in_catalog'), isTrue);
+      },
+    );
+
+    test(
+      'reports invalid JSON as a validation issue instead of mutating data',
+      () async {
+        await seedUseCase.execute(workspace);
+        await _writeRawFile(
+          workspace,
+          'data/pokemon/species/0001-bulbasaur.json',
+          '{ invalid json',
+        );
+
+        final report = await validateUseCase.execute(workspace);
+
+        expect(report.isValid, isFalse);
+        expect(_hasIssue(report, 'species.read_error'), isTrue);
+        expect(
+          report.issues.any((issue) => issue.message.contains('Invalid JSON')),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'adds a warning when moves catalog is absent and skips that validation',
+      () async {
+        await seedUseCase.execute(workspace);
+        final movesCatalog = File(
+          workspace.resolveProjectRelativePath(
+            'data/pokemon/catalogs/moves.json',
+          ),
+        );
+        await movesCatalog.delete();
+
+        final report = await validateUseCase.execute(workspace);
+
+        expect(_hasIssue(report, 'catalog.moves_missing'), isTrue);
+        expect(
+          report.issues.any(
+            (issue) => issue.severity == PokemonValidationSeverity.warning,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'adds a warning when types catalog is absent and skips that validation',
+      () async {
+        await seedUseCase.execute(workspace);
+        final typesCatalog = File(
+          workspace.resolveProjectRelativePath(
+            'data/pokemon/catalogs/types.json',
+          ),
+        );
+        await typesCatalog.delete();
+
+        final report = await validateUseCase.execute(workspace);
+
+        expect(report.isValid, isTrue);
+        expect(_hasIssue(report, 'catalog.types_missing'), isTrue);
+        expect(
+          report.issues.any(
+            (issue) =>
+                issue.code == 'catalog.types_missing' &&
+                issue.severity == PokemonValidationSeverity.warning,
+          ),
+          isTrue,
+        );
+        expect(_hasIssue(report, 'species.type_missing_in_catalog'), isFalse);
+      },
+    );
   });
 }
 
@@ -337,8 +377,9 @@ String _resolveRepositoryRootFromCurrentDirectory() {
 
   while (true) {
     final agentsFile = File(p.join(current.path, 'AGENTS.md'));
-    final mapEditorDir =
-        Directory(p.join(current.path, 'packages', 'map_editor'));
+    final mapEditorDir = Directory(
+      p.join(current.path, 'packages', 'map_editor'),
+    );
     if (agentsFile.existsSync() && mapEditorDir.existsSync()) {
       return current.path;
     }

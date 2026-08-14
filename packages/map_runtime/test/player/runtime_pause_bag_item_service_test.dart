@@ -333,6 +333,7 @@ void main() {
       ),
       projectRootDirectory: root.path,
       pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         evolutionsDir: 'custom/evolutions',
         speciesDir: 'custom/species',
       ),
@@ -396,6 +397,7 @@ void main() {
       ),
       projectRootDirectory: root.path,
       pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         evolutionsDir: 'custom/evolutions',
       ),
       itemCatalog: _catalogWith(
@@ -559,6 +561,7 @@ Future<void> _writeEvolutionFixture(Directory root) async {
 }
 
 const _machineConfig = ProjectPokemonConfig(
+  ruleset: PokemonRulesetProfile.pokeMapBetaV1,
   speciesDir: 'machine/species',
   learnsetsDir: 'machine/learnsets',
   catalogFiles: <String, String>{

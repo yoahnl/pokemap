@@ -144,7 +144,7 @@ PsdkBattleSetup _setup({
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   PsdkBattleMoveData? playerMove,
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speed: 100,

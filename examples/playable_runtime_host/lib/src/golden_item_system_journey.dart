@@ -687,7 +687,7 @@ const _playerBattleMove = BattleMoveData(
 );
 
 BattleSetup _wildBattleSetup(GameState state) {
-  return BattleSetup(
+  return BattleSetup.pokeMapBetaV1ForTest(
     playerPokemon: BattleCombatantData(
       speciesId: state.party.members.first.speciesId,
       level: state.party.members.first.level,
@@ -730,7 +730,7 @@ BattleSetup _wildBattleSetup(GameState state) {
 }
 
 BattleSetup _defeatBattleSetup(PlayerPokemon player) {
-  return BattleSetup(
+  return BattleSetup.pokeMapBetaV1ForTest(
     playerPokemon: BattleCombatantData(
       speciesId: player.speciesId,
       level: player.level,

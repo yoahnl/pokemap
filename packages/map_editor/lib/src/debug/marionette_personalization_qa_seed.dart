@@ -66,9 +66,7 @@ abstract final class MarionettePersonalizationQaSeed {
       );
       await SeedPokemonDemoDataUseCase(
         snapshotController: FilePokemonReadRepository(),
-      ).execute(
-        ProjectFileSystem(root.path),
-      );
+      ).execute(ProjectFileSystem(root.path));
       return Directory(root.resolveSymbolicLinksSync());
     } catch (_) {
       if (root.existsSync()) {
@@ -179,7 +177,10 @@ abstract final class MarionettePersonalizationQaSeed {
       ],
       legacyClaims: const <LegacySourceClaim>[],
     ).toJson(),
-    'pokemon': const ProjectPokemonConfig(enabled: true).toJson(),
+    'pokemon': const ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      enabled: true,
+    ).toJson(),
     'settings': <String, Object?>{
       'tileWidth': 1,
       'tileHeight': 1,

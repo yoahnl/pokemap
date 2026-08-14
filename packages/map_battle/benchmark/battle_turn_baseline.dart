@@ -110,7 +110,7 @@ Future<void> main(List<String> arguments) async {
   );
 }
 
-PsdkBattleSetup _setup() => PsdkBattleSetup.singles(
+PsdkBattleSetup _setup() => PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player-charmander',
         speciesId: 'charmander',

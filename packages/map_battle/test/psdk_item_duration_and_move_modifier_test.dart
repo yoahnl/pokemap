@@ -135,7 +135,7 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
 }) {
   final engine = PsdkBattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         heldItemId: playerHeldItemId,

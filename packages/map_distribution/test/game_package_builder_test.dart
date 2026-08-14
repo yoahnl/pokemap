@@ -33,11 +33,11 @@ void main() {
       expect(first.packageBytes, second.packageBytes);
       expect(
         sha256.convert(first.packageBytes).toString(),
-        'b27e896f2fad2537ae421e4c7656f1ceb4719797d5ae19606365ca8bd0b6867d',
+        'c9697a046c70fe36a276b3454a23622358a0892c2452cd4bbdd1ee5f4c9f7c38',
       );
       expect(
         first.packageSha256,
-        'b27e896f2fad2537ae421e4c7656f1ceb4719797d5ae19606365ca8bd0b6867d',
+        'c9697a046c70fe36a276b3454a23622358a0892c2452cd4bbdd1ee5f4c9f7c38',
       );
       expect(first.archiveBytes, first.packageBytes.length);
       expect(first.manifest.content.fileCount, 2);
@@ -305,6 +305,9 @@ void main() {
             },
           ],
           'tilesets': <Object?>[],
+          'pokemon': const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          ).toJson(),
         }),
       );
       expect(
@@ -359,6 +362,9 @@ List<int> _validProjectBytes({
         'version': version,
         'maps': <Object?>[],
         'tilesets': <Object?>[],
+        'pokemon': const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ).toJson(),
       }),
     );
 

@@ -97,7 +97,9 @@ void main() {
     final details = await const RuntimePlayerPauseDataBuilder().build(
       gameState: state,
       projectRootDirectory: projectRoot.path,
-      pokemonConfig: const ProjectPokemonConfig(),
+      pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
       locale: 'fr',
       mapEnabled: true,
       projectMaps: const <ProjectMapEntry>[
@@ -296,7 +298,9 @@ void main() {
         ),
       ),
       projectRootDirectory: projectRoot.path,
-      pokemonConfig: const ProjectPokemonConfig(),
+      pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
       locale: 'fr',
       itemCatalog: _catalogWith(
         const <ProjectItemDefinition>[
@@ -353,7 +357,9 @@ void main() {
         ),
       ),
       projectRootDirectory: projectRoot.path,
-      pokemonConfig: const ProjectPokemonConfig(),
+      pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
       locale: 'fr',
       itemCatalog: _catalogWith(
         const <ProjectItemDefinition>[
@@ -491,7 +497,9 @@ void main() {
         ),
       ),
       projectRootDirectory: projectRoot.path,
-      pokemonConfig: const ProjectPokemonConfig(),
+      pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
       locale: 'fr',
       itemCatalog: catalog,
     );

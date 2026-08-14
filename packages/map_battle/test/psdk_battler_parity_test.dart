@@ -99,7 +99,7 @@ void main() {
 
     test('a real engine damage event records PSDK target history', () {
       final engine = BattleEngine(
-        setup: BattleEngineSetup.singles(
+        setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 120,

@@ -109,6 +109,7 @@ void main() {
       );
 
       final report = const PokemonDataBatchValidator().validate(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         species: [species],
         evolutions: [evolution],
         media: [media],

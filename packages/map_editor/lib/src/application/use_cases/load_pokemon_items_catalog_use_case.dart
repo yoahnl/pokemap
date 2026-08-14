@@ -281,7 +281,9 @@ Future<ProjectPokemonConfig> _readProjectPokemonConfig(
   final manifestPath = workspace.projectManifestPath;
   try {
     if (!await workspace.fileExists(manifestPath)) {
-      return const ProjectPokemonConfig();
+      throw EditorPersistenceException(
+        'Project manifest is required at $manifestPath.',
+      );
     }
     final decoded = jsonDecode(await workspace.readTextFile(manifestPath));
     if (decoded is! Map<String, dynamic>) {

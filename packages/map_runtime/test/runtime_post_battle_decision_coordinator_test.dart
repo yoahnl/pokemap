@@ -699,6 +699,7 @@ Future<RuntimeBattleRewardResolution>
 }) async {
   final reward = _trainerReward();
   final context = BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: const <BattleProgressionDefeatedOpponent>[
@@ -742,6 +743,7 @@ Future<RuntimeBattleRewardResolution> _multiLevelAutomaticMoveResolution({
 }) async {
   final reward = _trainerReward(itemId: rewardItemId);
   final context = BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: const <BattleProgressionDefeatedOpponent>[
@@ -1002,7 +1004,7 @@ RuntimeBattleCaptureAttemptSubmission<BattleSession>
     itemId: canonicalPokeBallItemId,
     itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     submitToEngine: () => createBattleSession(
-      const BattleSetup(
+      const BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'capture_player',
           level: 10,

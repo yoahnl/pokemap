@@ -220,7 +220,7 @@ PsdkBattleSetup _setup(
   PsdkBattleMoveData move, {
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(id: 'player', moves: <PsdkBattleMoveData>[move]),
     opponent: _combatant(id: 'opponent', types: opponentTypes),
     rngSeeds: const PsdkBattleRngSeeds(

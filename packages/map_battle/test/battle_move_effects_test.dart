@@ -39,7 +39,7 @@ void main() {
   group('BattleSession BE2/BE3/BE4/BE5/BE6 combat contract', () {
     test('createBattleSession preserves the resolved stats snapshot', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'pikachu',
             level: 12,
@@ -86,7 +86,7 @@ void main() {
 
     test('physical damage uses attack versus defense', () {
       final weakAttacker = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -121,7 +121,7 @@ void main() {
       );
 
       final strongAttacker = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -167,7 +167,7 @@ void main() {
 
     test('special damage uses specialAttack versus specialDefense', () {
       final weakSpecialAttacker = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 20,
@@ -202,7 +202,7 @@ void main() {
       );
 
       final strongSpecialAttacker = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 20,
@@ -248,7 +248,7 @@ void main() {
 
     test('physical stages do not affect the special damage path', () {
       var neutralSession = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 20,
@@ -288,7 +288,7 @@ void main() {
         ),
       );
       var boostedPhysicalStageSession = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 20,
@@ -357,7 +357,7 @@ void main() {
 
     test('special stages do not affect the physical damage path', () {
       var neutralSession = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -397,7 +397,7 @@ void main() {
         ),
       );
       var boostedSpecialStageSession = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -469,7 +469,7 @@ void main() {
     test('status moves still inflict zero damage while speed can affect order',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'pikachu',
             level: 20,
@@ -523,7 +523,7 @@ void main() {
 
     test('higher priority acts before a faster opponent', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'pikachu',
             level: 20,
@@ -565,7 +565,7 @@ void main() {
 
     test('enemy higher priority acts before a faster player', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'pikachu',
             level: 20,
@@ -607,7 +607,7 @@ void main() {
 
     test('higher effective speed acts first at equal priority', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'pikachu',
             level: 20,
@@ -650,7 +650,7 @@ void main() {
         'equal priority and equal speed use the deterministic player tie-break',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'pikachu',
             level: 20,
@@ -691,7 +691,7 @@ void main() {
 
     test('a self speed boost changes order only on the following turn', () {
       var session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'pikachu',
             level: 20,
@@ -750,7 +750,7 @@ void main() {
 
     test('a target speed drop changes order only on the following turn', () {
       var session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'pikachu',
             level: 20,
@@ -811,7 +811,7 @@ void main() {
         'a damaging move applies a probabilistic target stat rider when the chance roll succeeds',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'squirtle',
             level: 20,
@@ -865,7 +865,7 @@ void main() {
         'a damaging move skips the probabilistic target stat rider when the chance roll fails',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'squirtle',
             level: 20,
@@ -915,11 +915,10 @@ void main() {
       expect(afterTurn.state.enemy.statStages.speed, equals(0));
     });
 
-    test(
-        'a miss does not consume or apply a probabilistic target stat rider',
+    test('a miss does not consume or apply a probabilistic target stat rider',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'squirtle',
             level: 20,
@@ -974,7 +973,7 @@ void main() {
     test('an alwaysHits move bypasses the hit check and still applies damage',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -1021,7 +1020,7 @@ void main() {
 
     test('a percent accuracy move can miss deterministically', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -1076,7 +1075,7 @@ void main() {
 
     test('a percent accuracy move that hits still consumes one PP', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -1123,7 +1122,7 @@ void main() {
 
     test('STAB increases damage for the same move and target', () {
       final withoutStab = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'caster',
             level: 20,
@@ -1161,7 +1160,7 @@ void main() {
       );
 
       final withStab = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'caster',
             level: 20,
@@ -1212,7 +1211,7 @@ void main() {
 
     test('super-effective damage is greater than neutral damage', () {
       final neutral = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'caster',
             level: 20,
@@ -1244,7 +1243,7 @@ void main() {
       );
 
       final superEffective = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'caster',
             level: 20,
@@ -1295,7 +1294,7 @@ void main() {
 
     test('resisted damage is lower than neutral damage', () {
       final neutral = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'caster',
             level: 20,
@@ -1327,7 +1326,7 @@ void main() {
       );
 
       final resisted = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'caster',
             level: 20,
@@ -1377,7 +1376,7 @@ void main() {
 
     test('type immunity deals zero damage but still records a hit', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'caster',
             level: 20,
@@ -1420,7 +1419,7 @@ void main() {
 
     test('double types combine multiplicatively for effectiveness', () {
       final singleWeakness = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'caster',
             level: 20,
@@ -1452,7 +1451,7 @@ void main() {
       );
 
       final doubleWeakness = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'caster',
             level: 20,
@@ -1503,7 +1502,7 @@ void main() {
 
     test('a non-immune damaging move still deals at least 1 damage', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'caster',
             level: 1,
@@ -1548,7 +1547,7 @@ void main() {
 
     test('neutral crit ratio can still resolve to no crit', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 25,
@@ -1593,7 +1592,7 @@ void main() {
 
     test('high crit ratio can trigger a real critical hit', () {
       final baseline = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 25,
@@ -1626,7 +1625,7 @@ void main() {
       );
 
       final critical = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 25,
@@ -1679,7 +1678,7 @@ void main() {
 
     test('a miss never resolves a critical hit but still spends PP', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -1725,7 +1724,7 @@ void main() {
 
     test('an immune hit never resolves a critical hit', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 25,
@@ -1775,7 +1774,7 @@ void main() {
 
     test('a status move never resolves a critical hit', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -1821,7 +1820,7 @@ void main() {
 
     test('crit ratio >= 4 guarantees a critical hit without consuming RNG', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -1871,7 +1870,7 @@ void main() {
     test('par applies successfully and changes order on the next turn only',
         () {
       var session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -1938,7 +1937,7 @@ void main() {
     test('par can block an action and still consumes PP on the attempted move',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -1993,7 +1992,7 @@ void main() {
         'a target that already has a major status keeps it and blocks a new one',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -2039,7 +2038,7 @@ void main() {
     test('brn applies, leaves a residual trace, and deals end-of-turn damage',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 20,
@@ -2085,7 +2084,7 @@ void main() {
 
     test('burn halves physical damage but leaves special damage unchanged', () {
       final neutralPhysical = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 20,
@@ -2116,7 +2115,7 @@ void main() {
       ).applyChoice(const PlayerBattleChoiceFight(0));
 
       final burnedPhysical = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 20,
@@ -2148,7 +2147,7 @@ void main() {
       ).applyChoice(const PlayerBattleChoiceFight(0));
 
       final neutralSpecial = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 20,
@@ -2179,7 +2178,7 @@ void main() {
       ).applyChoice(const PlayerBattleChoiceFight(0));
 
       final burnedSpecial = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 20,
@@ -2221,7 +2220,7 @@ void main() {
 
     test('psn applies successfully and deals end-of-turn residual damage', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -2260,7 +2259,7 @@ void main() {
 
     test('tox residual grows turn after turn with a local toxic counter', () {
       var session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,
@@ -2328,7 +2327,7 @@ void main() {
     test('probabilistic applyStatus can succeed on a supported damaging move',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sparkitten',
             level: 20,
@@ -2378,7 +2377,7 @@ void main() {
         'terminal residuals stay visible in currentTurn when they end the battle',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'sproutle',
             level: 20,

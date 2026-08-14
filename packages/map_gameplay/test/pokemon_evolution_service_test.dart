@@ -627,6 +627,7 @@ void main() {
           ),
         ]),
         context: BattleProgressionContext(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           outcome: BattleProgressionOutcomeKind.victory,
           playerParticipantPartySlots: const <int>{1, 0},
           defeatedOpponents: const <BattleProgressionDefeatedOpponent>[
@@ -678,6 +679,7 @@ void main() {
 
       expect(
         () => BattleProgressionResult(
+          rulesetReference: PokemonRulesetProfile.pokeMapBetaV1Reference,
           state: state,
           appliedReward: BattleReward(
             sourceKind: BattleRewardSourceKind.wild,
@@ -785,6 +787,7 @@ BattleProgressionContext _context({
       const <int, List<PokemonEvolutionCandidate>>{},
 }) {
   return BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: opponents,

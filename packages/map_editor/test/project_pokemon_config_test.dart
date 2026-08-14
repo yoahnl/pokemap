@@ -33,61 +33,83 @@ void main() {
   });
 
   group('Project pokemon config', () {
-    test('loads an older project without pokemon config and applies defaults',
-        () async {
-      await createProjectUseCase.execute(
-          'Legacy Pokemon Project', tempProjectRoot.path);
+    test(
+      'rejects a project without an explicit pokemon ruleset config',
+      () async {
+        await createProjectUseCase.execute(
+          'Legacy Pokemon Project',
+          tempProjectRoot.path,
+        );
 
-      final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
-      final json =
-          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
-      json.remove('pokemon');
-      await projectFile.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(json),
-      );
+        final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
+        final json =
+            jsonDecode(await projectFile.readAsString())
+                as Map<String, dynamic>;
+        json.remove('pokemon');
+        await projectFile.writeAsString(
+          const JsonEncoder.withIndent('  ').convert(json),
+        );
 
-      final loaded = await loadProjectUseCase.execute(projectFile.path);
+        await expectLater(
+          loadProjectUseCase.execute(projectFile.path),
+          throwsA(
+            isA<ProjectLoadException>().having(
+              (error) => error.message,
+              'message',
+              contains(r'$.pokemon.ruleset'),
+            ),
+          ),
+        );
+      },
+    );
 
-      expect(loaded.pokemon, const ProjectPokemonConfig());
-    });
+    test(
+      'creates a new project with the default lightweight pokemon config',
+      () async {
+        final manifest = await createProjectUseCase.execute(
+          'Pokemon Config Project',
+          tempProjectRoot.path,
+        );
 
-    test('creates a new project with the default lightweight pokemon config',
-        () async {
-      final manifest = await createProjectUseCase.execute(
-        'Pokemon Config Project',
-        tempProjectRoot.path,
-      );
+        expect(
+          manifest.pokemon,
+          const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          ),
+        );
+        expect(manifest.version, ProjectVersion.v6);
 
-      expect(manifest.pokemon, const ProjectPokemonConfig());
-      expect(manifest.version, ProjectVersion.v6);
+        final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
+        final json =
+            jsonDecode(await projectFile.readAsString())
+                as Map<String, dynamic>;
+        expect(json['version'], 'v6');
+        final pokemon = json['pokemon'] as Map<String, dynamic>;
 
-      final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
-      final json =
-          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
-      expect(json['version'], 'v6');
-      final pokemon = json['pokemon'] as Map<String, dynamic>;
-
-      expect(
-        pokemon.keys.toSet(),
-        equals(<String>{
-          'enabled',
-          'dataRoot',
-          'speciesDir',
-          'learnsetsDir',
-          'evolutionsDir',
-          'mediaDir',
-          'catalogFiles',
-        }),
-      );
-      expect(pokemon['enabled'], isTrue);
-      expect(pokemon['dataRoot'], 'data/pokemon');
-      expect(pokemon['speciesDir'], 'data/pokemon/species');
-      expect(pokemon['learnsetsDir'], 'data/pokemon/learnsets');
-      expect(pokemon['evolutionsDir'], 'data/pokemon/evolutions');
-      expect(pokemon['mediaDir'], 'data/pokemon/media');
-      expect(
-        pokemon['catalogFiles'],
-        <String, Object?>{
+        expect(
+          pokemon.keys.toSet(),
+          equals(<String>{
+            'enabled',
+            'ruleset',
+            'dataRoot',
+            'speciesDir',
+            'learnsetsDir',
+            'evolutionsDir',
+            'mediaDir',
+            'catalogFiles',
+          }),
+        );
+        expect(
+          pokemon['ruleset'],
+          PokemonRulesetProfile.pokeMapBetaV1.toJson(),
+        );
+        expect(pokemon['enabled'], isTrue);
+        expect(pokemon['dataRoot'], 'data/pokemon');
+        expect(pokemon['speciesDir'], 'data/pokemon/species');
+        expect(pokemon['learnsetsDir'], 'data/pokemon/learnsets');
+        expect(pokemon['evolutionsDir'], 'data/pokemon/evolutions');
+        expect(pokemon['mediaDir'], 'data/pokemon/media');
+        expect(pokemon['catalogFiles'], <String, Object?>{
           'moves': 'data/pokemon/catalogs/moves.json',
           'abilities': 'data/pokemon/catalogs/abilities.json',
           'items': 'data/pokemon/catalogs/items.json',
@@ -99,53 +121,67 @@ void main() {
           'encounter_rules': 'data/pokemon/catalogs/encounter_rules.json',
           'generations': 'data/pokemon/catalogs/generations.json',
           'version_groups': 'data/pokemon/catalogs/version_groups.json',
-        },
-      );
+        });
 
-      expect(pokemon.containsKey('species'), isFalse);
-      expect(pokemon.containsKey('learnsets'), isFalse);
-      expect(pokemon.containsKey('evolutions'), isFalse);
-      expect(pokemon.containsKey('entries'), isFalse);
-    });
+        expect(pokemon.containsKey('species'), isFalse);
+        expect(pokemon.containsKey('learnsets'), isFalse);
+        expect(pokemon.containsKey('evolutions'), isFalse);
+        expect(pokemon.containsKey('entries'), isFalse);
+      },
+    );
 
-    test('round-trips pokemon config through save and load without corruption',
-        () async {
-      await createProjectUseCase.execute(
-          'Pokemon Roundtrip Project', tempProjectRoot.path);
+    test(
+      'round-trips pokemon config through save and load without corruption',
+      () async {
+        await createProjectUseCase.execute(
+          'Pokemon Roundtrip Project',
+          tempProjectRoot.path,
+        );
 
-      final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
-      final before = await projectFile.readAsString();
+        final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
+        final before = await projectFile.readAsString();
 
-      final loaded = await loadProjectUseCase.execute(projectFile.path);
-      await repository.saveProject(loaded, projectFile.path);
+        final loaded = await loadProjectUseCase.execute(projectFile.path);
+        await repository.saveProject(loaded, projectFile.path);
 
-      final after = await projectFile.readAsString();
+        final after = await projectFile.readAsString();
 
-      expect(after, before);
-    });
+        expect(after, before);
+      },
+    );
 
     test('loads project config without reading pokemon data files', () async {
       await createProjectUseCase.execute(
-          'Pokemon Lazy Config Project', tempProjectRoot.path);
+        'Pokemon Lazy Config Project',
+        tempProjectRoot.path,
+      );
 
       final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
       final loaded = await loadProjectUseCase.execute(projectFile.path);
 
-      expect(loaded.pokemon, const ProjectPokemonConfig());
+      expect(
+        loaded.pokemon,
+        const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
+      );
       expect(
         Directory(p.join(tempProjectRoot.path, 'data', 'pokemon')).existsSync(),
         isFalse,
       );
       expect(
-        Directory(p.join(tempProjectRoot.path, 'assets', 'pokemon'))
-            .existsSync(),
+        Directory(
+          p.join(tempProjectRoot.path, 'assets', 'pokemon'),
+        ).existsSync(),
         isFalse,
       );
     });
 
     test('does not recreate data or assets at the monorepo root', () async {
       await createProjectUseCase.execute(
-          'Pokemon Root Guard Project', tempProjectRoot.path);
+        'Pokemon Root Guard Project',
+        tempProjectRoot.path,
+      );
 
       final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
       await loadProjectUseCase.execute(projectFile.path);
@@ -161,8 +197,9 @@ String _resolveRepositoryRootFromCurrentDirectory() {
 
   while (true) {
     final agentsFile = File(p.join(current.path, 'AGENTS.md'));
-    final mapEditorDir =
-        Directory(p.join(current.path, 'packages', 'map_editor'));
+    final mapEditorDir = Directory(
+      p.join(current.path, 'packages', 'map_editor'),
+    );
     if (agentsFile.existsSync() && mapEditorDir.existsSync()) {
       return current.path;
     }

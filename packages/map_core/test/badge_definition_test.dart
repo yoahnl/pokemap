@@ -18,23 +18,24 @@ void main() {
         ],
       );
 
-      final restored = ProjectManifest.fromJson(manifest.toJson());
+      final restored = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        manifest.toJson(),
+      );
 
       expect(restored.badges.single.id, 'brume');
       expect(restored.badges.single.label, 'Badge Brume');
-      expect(
-        restored.badges.single.fieldAbilityUnlock,
-        FieldAbility.surf,
-      );
+      expect(restored.badges.single.fieldAbilityUnlock, FieldAbility.surf);
     });
 
     test('legacy manifest defaults badges to empty', () {
-      final manifest = ProjectManifest.fromJson(<String, dynamic>{
-        'name': 'Legacy',
-        'version': 'v6',
-        'maps': <Object?>[],
-        'tilesets': <Object?>[],
-      });
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        <String, dynamic>{
+          'name': 'Legacy',
+          'version': 'v6',
+          'maps': <Object?>[],
+          'tilesets': <Object?>[],
+        },
+      );
 
       expect(manifest.badges, isEmpty);
     });
@@ -53,16 +54,22 @@ void main() {
       }
     });
 
-    test('keeps acquisition in existing trainer and progression registries',
-        () {
-      const profile = TrainerProfile(name: 'Leaf', badgeIds: <String>['brume']);
-      const progression = PlayerProgression(
-        unlockedFieldAbilities: <FieldAbility>[FieldAbility.surf],
-      );
+    test(
+      'keeps acquisition in existing trainer and progression registries',
+      () {
+        const profile = TrainerProfile(
+          name: 'Leaf',
+          badgeIds: <String>['brume'],
+        );
+        const progression = PlayerProgression(
+          unlockedFieldAbilities: <FieldAbility>[FieldAbility.surf],
+        );
 
-      expect(profile.badgeIds, <String>['brume']);
-      expect(progression.unlockedFieldAbilities,
-          <FieldAbility>[FieldAbility.surf]);
-    });
+        expect(profile.badgeIds, <String>['brume']);
+        expect(progression.unlockedFieldAbilities, <FieldAbility>[
+          FieldAbility.surf,
+        ]);
+      },
+    );
   });
 }

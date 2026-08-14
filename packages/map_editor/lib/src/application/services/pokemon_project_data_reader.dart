@@ -250,7 +250,7 @@ class PokemonProjectDataReader {
   }
 
   Future<({String? portraitRelativePath, String? thumbnailRelativePath})>
-      _resolveOptionalMediaPreview(
+  _resolveOptionalMediaPreview(
     ProjectWorkspace workspace,
     PokemonSpeciesFile species,
   ) async {
@@ -366,10 +366,7 @@ class PokemonProjectDataReader {
     }
     return (await _speciesSnapshot(
       workspace,
-    ))
-        .index
-        .byId(trimmedId)
-        ?.relativePath;
+    )).index.byId(trimmedId)?.relativePath;
   }
 
   Future<String?> resolveSpeciesWriteRelativePathById(
@@ -635,13 +632,10 @@ class PokemonProjectDataReader {
   ) async {
     final manifestPath = workspace.projectManifestPath;
     try {
-      // Real projects always have `project.json`, but a few lightweight tests
-      // and temporary workspaces still seed only the Pokemon files. Falling
-      // back to the historical default layout keeps those fixtures working
-      // while still honoring project-specific paths whenever the manifest is
-      // present.
       if (!await workspace.fileExists(manifestPath)) {
-        return const ProjectPokemonConfig();
+        throw EditorPersistenceException(
+          'Project manifest is required at $manifestPath.',
+        );
       }
 
       final raw = await workspace.readTextFile(manifestPath);
@@ -795,11 +789,11 @@ class _PokemonSpeciesSnapshot {
     required List<String> relativePaths,
     required Map<String, PokemonSpeciesFile> speciesById,
     required Map<String, PokemonSpeciesFile> speciesByRelativePath,
-  })  : relativePaths = List<String>.unmodifiable(relativePaths),
-        speciesById = Map<String, PokemonSpeciesFile>.unmodifiable(speciesById),
-        speciesByRelativePath = Map<String, PokemonSpeciesFile>.unmodifiable(
-          speciesByRelativePath,
-        );
+  }) : relativePaths = List<String>.unmodifiable(relativePaths),
+       speciesById = Map<String, PokemonSpeciesFile>.unmodifiable(speciesById),
+       speciesByRelativePath = Map<String, PokemonSpeciesFile>.unmodifiable(
+         speciesByRelativePath,
+       );
 
   final PokemonSpeciesIndex index;
   final List<String> relativePaths;

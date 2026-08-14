@@ -543,7 +543,7 @@ BattleBattler _battler(
 }
 
 BattleEngineSetup _engineSetup() {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatantSetup(
       id: 'player-bulbasaur',
       speciesId: 'bulbasaur',

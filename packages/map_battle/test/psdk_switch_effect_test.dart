@@ -5,7 +5,7 @@ void main() {
   group('PSDK generic switch hooks', () {
     test('Shed Shell bypasses opposing switch-prevention abilities', () {
       final state = PsdkBattleState.fromSetup(
-        PsdkBattleSetup.singles(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             heldItemId: 'shed_shell',

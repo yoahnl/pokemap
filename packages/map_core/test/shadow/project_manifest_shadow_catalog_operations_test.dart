@@ -28,7 +28,10 @@ void main() {
         shadowCatalog: ProjectShadowCatalog(),
         elements: [_element(id: 'tree')],
         settings: const ProjectSettings(tileWidth: 99, tileHeight: 11),
-        pokemon: const ProjectPokemonConfig(enabled: false),
+        pokemon: const ProjectPokemonConfig(
+          enabled: false,
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
       );
       final catalog = _catalog('tree_large');
 
@@ -89,7 +92,7 @@ void main() {
         _catalog('tree_large'),
       );
 
-      final decoded = ProjectManifest.fromJson(
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         jsonDecode(jsonEncode(updated.toJson())) as Map<String, dynamic>,
       );
 
@@ -104,10 +107,7 @@ void main() {
         occlusionMask: mask,
         cells: <GridPos>[GridPos(x: 1, y: 2)],
       );
-      final element = _element(
-        id: 'tree',
-        collisionProfile: collisionProfile,
-      );
+      final element = _element(id: 'tree', collisionProfile: collisionProfile);
       final manifest = _manifest(elements: [element]);
 
       final updated = replaceProjectShadowCatalog(
@@ -126,10 +126,9 @@ void main() {
         updated.elements.single.collisionProfile!.occlusionMask,
         same(mask),
       );
-      expect(
-        updated.elements.single.collisionProfile!.cells,
-        const <GridPos>[GridPos(x: 1, y: 2)],
-      );
+      expect(updated.elements.single.collisionProfile!.cells, const <GridPos>[
+        GridPos(x: 1, y: 2),
+      ]);
     });
   });
 }
@@ -139,7 +138,9 @@ ProjectManifest _manifest({
   ProjectShadowCatalog? shadowCatalog,
   List<ProjectElementEntry> elements = const [],
   ProjectSettings settings = const ProjectSettings(),
-  ProjectPokemonConfig pokemon = const ProjectPokemonConfig(),
+  ProjectPokemonConfig pokemon = const ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+  ),
 }) {
   return ProjectManifest(
     name: name,
@@ -174,11 +175,7 @@ ProjectElementEntry _element({
     name: id,
     tilesetId: 'tileset',
     categoryId: 'nature',
-    frames: const [
-      TilesetVisualFrame(
-        source: TilesetSourceRect(x: 0, y: 0),
-      ),
-    ],
+    frames: const [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
     collisionProfile: collisionProfile,
   );
 }

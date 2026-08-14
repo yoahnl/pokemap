@@ -1683,6 +1683,7 @@ Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
       ),
     ],
     pokemon: ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       dataRoot: 'data/pokemon',
       speciesDir: 'data/pokemon/species',
       learnsetsDir: 'data/pokemon/learnsets',

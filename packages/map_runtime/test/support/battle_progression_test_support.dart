@@ -61,6 +61,7 @@ GameState applyTestBattleVictoryProgression({
       .apply(
         state: hydratedState,
         context: BattleProgressionContext(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           outcome: BattleProgressionOutcomeKind.victory,
           playerParticipantPartySlots: <int>{partySlot},
           defeatedOpponents: <BattleProgressionDefeatedOpponent>[opponent],

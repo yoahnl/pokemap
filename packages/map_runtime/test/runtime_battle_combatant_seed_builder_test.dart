@@ -449,7 +449,7 @@ void main() {
       expect(seededMoveIds, <String>['tackle', 'growl', 'vine_whip']);
 
       var firstBattle = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: firstSeed.toBattleCombatantData(),
           enemyPokemon: const BattleCombatantData(
             speciesId: 'pp-target',
@@ -783,7 +783,7 @@ void main() {
         playerPokemon: playerPokemon,
       );
       var battle = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: seed.toBattleCombatantData(),
           enemyPokemon: const BattleCombatantData(
             speciesId: 'transform-target',
@@ -869,7 +869,7 @@ void main() {
       );
       expect(seed.moves.single.id, 'transform');
       var battle = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: seed.toBattleCombatantData(),
           enemyPokemon: const BattleCombatantData(
             speciesId: 'transform-target',
@@ -1256,6 +1256,7 @@ void main() {
 
 ProjectPokemonConfig _pokemonConfig() {
   return const ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     dataRoot: 'custom/pokemon',
     speciesDir: 'custom/pokemon/species',
     learnsetsDir: 'custom/pokemon/learnsets',

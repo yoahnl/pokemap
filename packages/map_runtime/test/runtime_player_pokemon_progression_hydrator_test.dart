@@ -524,7 +524,9 @@ void main() {
         ),
       ),
       projectRootDirectory: root.path,
-      pokemonConfig: const ProjectPokemonConfig(),
+      pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
     );
 
     expect(catalogs.growthRateIdBySpeciesId, {'wartortle': 'medium_slow'});

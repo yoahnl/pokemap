@@ -64,7 +64,7 @@ BattleSession _session({
   required BattleCombatantData enemy,
 }) {
   return createBattleSession(
-    BattleSetup(
+    BattleSetup.pokeMapBetaV1ForTest(
       playerPokemon: player,
       playerReservePokemon: playerReserve,
       enemyPokemon: enemy,
@@ -130,7 +130,7 @@ RuntimePsdkBattleSessionAdapter _psdkSession({
       const <PsdkBattleCombatantSetup>[],
 }) {
   return RuntimePsdkBattleSessionAdapter.fromSetup(
-    PsdkBattleSetup.singles(
+    PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _psdkCombatant(
         id: 'player_0',
         speciesId: 'sproutle',

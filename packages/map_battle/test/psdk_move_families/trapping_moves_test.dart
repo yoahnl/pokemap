@@ -320,7 +320,7 @@ PsdkBattleSetup _setup({
   required List<PsdkBattleMoveData> playerMoves,
   bool includeOpponentReserve = true,
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speed: 100,

@@ -788,7 +788,7 @@ PsdkBattleTurnResult _runPlayerMove({
   BattleRngSeeds rngSeeds = _seeds,
 }) {
   final engine = PsdkBattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         heldItemId: playerHeldItemId,
@@ -935,7 +935,7 @@ PsdkBattleState _state({
   PsdkBattleWeatherId? weather,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         heldItemId: playerHeldItemId,

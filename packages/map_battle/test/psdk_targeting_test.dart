@@ -78,7 +78,7 @@ BattleMoveProcedureExecution _execution({
 }
 
 PsdkBattleSetup _setup(PsdkBattleMoveData move) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(id: 'player', moves: <PsdkBattleMoveData>[move]),
     opponent: _combatant(id: 'opponent'),
     rngSeeds: const PsdkBattleRngSeeds(

@@ -130,7 +130,7 @@ _ProjectManifest _$ProjectManifestFromJson(
       ? const ProjectSettings()
       : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
   pokemon: json['pokemon'] == null
-      ? const ProjectPokemonConfig()
+      ? const ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1)
       : ProjectPokemonConfig.fromJson(json['pokemon'] as Map<String, dynamic>),
   newGame: json['newGame'] == null
       ? const ProjectNewGameConfig()
@@ -242,9 +242,9 @@ _ProjectPokemonConfig _$ProjectPokemonConfigFromJson(
   Map<String, dynamic> json,
 ) => _ProjectPokemonConfig(
   enabled: json['enabled'] as bool? ?? true,
-  ruleset: json['ruleset'] == null
-      ? PokemonRulesetProfile.pokeMapBetaV1
-      : PokemonRulesetProfile.fromJson(json['ruleset'] as Map<String, dynamic>),
+  ruleset: PokemonRulesetProfile.fromJson(
+    json['ruleset'] as Map<String, dynamic>,
+  ),
   dataRoot: json['dataRoot'] as String? ?? 'data/pokemon',
   speciesDir: json['speciesDir'] as String? ?? 'data/pokemon/species',
   learnsetsDir: json['learnsetsDir'] as String? ?? 'data/pokemon/learnsets',

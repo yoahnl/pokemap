@@ -88,7 +88,7 @@ PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData opponentMove,
 }) {
   final engine = PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speed: playerSpeed,

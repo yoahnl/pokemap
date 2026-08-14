@@ -45,6 +45,7 @@ void main() {
         loader.loadById(
           projectRootDirectory: tempRoot.path,
           pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             speciesDir: 'data/pokemon/species',
           ),
           speciesId: 'bulbasaur',
@@ -52,6 +53,7 @@ void main() {
         loader.loadById(
           projectRootDirectory: tempRoot.path,
           pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             speciesDir: 'data/pokemon/species',
           ),
           speciesId: 'ivysaur',
@@ -59,6 +61,7 @@ void main() {
         loader.loadById(
           projectRootDirectory: tempRoot.path,
           pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             speciesDir: 'data/pokemon/species',
           ),
           speciesId: 'bulbasaur',
@@ -119,7 +122,9 @@ void main() {
 
       final species = await RuntimePokemonSpeciesLoader().loadById(
         projectRootDirectory: tempRoot.path,
-        pokemonConfig: const ProjectPokemonConfig(),
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
         speciesId: 'targetmon',
       );
 
@@ -157,6 +162,7 @@ void main() {
         RuntimePokemonSpeciesLoader().loadById(
           projectRootDirectory: tempRoot.path,
           pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             speciesDir: 'data/pokemon/species',
           ),
           speciesId: 'bulbasaur',
@@ -185,6 +191,7 @@ void main() {
         loader.loadById(
           projectRootDirectory: tempRoot.path,
           pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             speciesDir: 'data/pokemon/species',
           ),
           speciesId: 'bulbasaur',
@@ -199,6 +206,7 @@ void main() {
       final species = await loader.loadById(
         projectRootDirectory: tempRoot.path,
         pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           speciesDir: 'data/pokemon/species',
         ),
         speciesId: 'bulbasaur',
@@ -250,12 +258,16 @@ void main() {
 
       final first = await loader.loadById(
         projectRootDirectory: tempRoot.path,
-        pokemonConfig: const ProjectPokemonConfig(),
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
         speciesId: 'bulbasaur',
       );
       final second = await loader.loadById(
         projectRootDirectory: otherRoot.path,
-        pokemonConfig: const ProjectPokemonConfig(),
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
         speciesId: 'bulbasaur',
       );
 
@@ -285,7 +297,9 @@ void main() {
       final loader = RuntimePokemonSpeciesLoader(snapshotMetrics: metrics);
       final original = await loader.loadById(
         projectRootDirectory: tempRoot.path,
-        pokemonConfig: const ProjectPokemonConfig(),
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
         speciesId: 'bulbasaur',
       );
       await _writeValidSpeciesFile(
@@ -296,13 +310,17 @@ void main() {
 
       final cached = await loader.loadById(
         projectRootDirectory: tempRoot.path,
-        pokemonConfig: const ProjectPokemonConfig(),
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
         speciesId: 'bulbasaur',
       );
       loader.invalidateProject(tempRoot.path);
       final refreshed = await loader.loadById(
         projectRootDirectory: tempRoot.path,
-        pokemonConfig: const ProjectPokemonConfig(),
+        pokemonConfig: const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
         speciesId: 'bulbasaur',
       );
 
@@ -321,6 +339,7 @@ void main() {
         () => RuntimePokemonSpeciesLoader().loadById(
           projectRootDirectory: tempRoot.path,
           pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             speciesDir: 'data/pokemon/species',
           ),
           speciesId: 'targetmon',
@@ -342,6 +361,7 @@ void main() {
         () => RuntimePokemonSpeciesLoader().loadById(
           projectRootDirectory: tempRoot.path,
           pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             speciesDir: 'data/pokemon/species',
           ),
           speciesId: 'targetmon',
@@ -395,6 +415,7 @@ void main() {
           () => RuntimePokemonSpeciesLoader().loadById(
             projectRootDirectory: tempRoot.path,
             pokemonConfig: const ProjectPokemonConfig(
+              ruleset: PokemonRulesetProfile.pokeMapBetaV1,
               speciesDir: 'data/pokemon/species',
             ),
             speciesId: 'targetmon',
@@ -432,6 +453,7 @@ void main() {
         final species = await RuntimePokemonSpeciesLoader().loadById(
           projectRootDirectory: tempRoot.path,
           pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             speciesDir: 'data/pokemon/species',
           ),
           speciesId: 'targetmon',
@@ -463,6 +485,7 @@ void main() {
           () => RuntimePokemonSpeciesLoader().loadById(
             projectRootDirectory: tempRoot.path,
             pokemonConfig: const ProjectPokemonConfig(
+              ruleset: PokemonRulesetProfile.pokeMapBetaV1,
               speciesDir: 'data/pokemon/species',
             ),
             speciesId: unsafeSpeciesId,
@@ -482,8 +505,12 @@ void main() {
       );
 
       for (final config in <ProjectPokemonConfig>[
-        const ProjectPokemonConfig(speciesDir: '../outside'),
-        ProjectPokemonConfig(speciesDir: externalSpeciesDir.path),
+        const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+            speciesDir: '../outside'),
+        ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+            speciesDir: externalSpeciesDir.path),
       ]) {
         await expectLater(
           () => RuntimePokemonSpeciesLoader().loadById(
@@ -521,6 +548,7 @@ void main() {
           () => RuntimePokemonSpeciesLoader().loadById(
             projectRootDirectory: tempRoot.path,
             pokemonConfig: const ProjectPokemonConfig(
+              ruleset: PokemonRulesetProfile.pokeMapBetaV1,
               speciesDir: 'data/pokemon/species',
             ),
             speciesId: 'targetmon',
@@ -556,6 +584,7 @@ void main() {
         () => RuntimePokemonSpeciesLoader().loadById(
           projectRootDirectory: tempRoot.path,
           pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             speciesDir: 'data/pokemon/species',
           ),
           speciesId: 'targetmon',
@@ -593,6 +622,7 @@ void main() {
         () => RuntimePokemonSpeciesLoader().loadById(
           projectRootDirectory: tempRoot.path,
           pokemonConfig: const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
             speciesDir: 'data/pokemon/species',
           ),
           speciesId: 'targetmon',

@@ -66,7 +66,7 @@ final class BattleProgressionPartySlotMetadata {
 final class BattleProgressionContext {
   BattleProgressionContext({
     required this.outcome,
-    this.ruleset = PokemonRulesetProfile.pokeMapBetaV1,
+    required this.ruleset,
     required Iterable<int> playerParticipantPartySlots,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,

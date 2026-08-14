@@ -731,7 +731,7 @@ RuntimeBattleCaptureAttemptSubmission<BattleSession>
     itemId: canonicalPokeBallItemId,
     itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     submitToEngine: () => createBattleSession(
-      const BattleSetup(
+      const BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'hero',
           level: 5,
@@ -866,6 +866,7 @@ Future<RuntimeBattleRewardResolution> _pendingMoveResolution({
     money: 100,
   );
   final context = BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: const <BattleProgressionDefeatedOpponent>[
@@ -1174,6 +1175,7 @@ RuntimeMapBundle _bundleWithTrainerLifecycle({
         ),
       ],
       pokemon: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         speciesDir: 'data/pokemon/species',
         learnsetsDir: 'data/pokemon/learnsets',
         catalogFiles: <String, String>{

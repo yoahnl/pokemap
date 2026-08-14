@@ -11,8 +11,35 @@ import 'psdk_battle_slots.dart';
 /// deliberate guardrail: callers cannot accidentally build a half-supported
 /// multi battle and receive misleading events.
 class PsdkBattleSetup {
+  factory PsdkBattleSetup.singlesPokeMapBetaV1ForTest({
+    required PsdkBattleCombatantSetup player,
+    required PsdkBattleCombatantSetup opponent,
+    required PsdkBattleRngSeeds rngSeeds,
+    PsdkBattleFieldState field = const PsdkBattleFieldState(),
+    bool canFlee = false,
+    bool canCapture = false,
+    bool isTrainerBattle = false,
+    List<PsdkBattleCombatantSetup> playerReserves =
+        const <PsdkBattleCombatantSetup>[],
+    List<PsdkBattleCombatantSetup> opponentReserves =
+        const <PsdkBattleCombatantSetup>[],
+  }) {
+    return PsdkBattleSetup.singles(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      player: player,
+      opponent: opponent,
+      rngSeeds: rngSeeds,
+      field: field,
+      canFlee: canFlee,
+      canCapture: canCapture,
+      isTrainerBattle: isTrainerBattle,
+      playerReserves: playerReserves,
+      opponentReserves: opponentReserves,
+    );
+  }
+
   PsdkBattleSetup.singles({
-    this.ruleset = PokemonRulesetProfile.pokeMapBetaV1,
+    required this.ruleset,
     required PsdkBattleCombatantSetup player,
     required PsdkBattleCombatantSetup opponent,
     required this.rngSeeds,

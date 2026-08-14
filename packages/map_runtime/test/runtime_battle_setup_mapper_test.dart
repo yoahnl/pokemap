@@ -1961,6 +1961,7 @@ Future<ProjectManifest> _writeAndLoadProjectManifest(
     tilesets: const <ProjectTilesetEntry>[],
     trainers: trainers,
     pokemon: const ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       dataRoot: 'custom/pokemon',
       speciesDir: 'custom/pokemon/species',
       learnsetsDir: 'custom/pokemon/learnsets',
@@ -1991,6 +1992,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/001-sproutle.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': 'sproutle',
       'slug': 'sproutle',
       'nationalDex': 1,
@@ -2039,6 +2041,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/004-sparkitten.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': 'sparkitten',
       'slug': 'sparkitten',
       'nationalDex': 4,
@@ -2087,6 +2090,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/007-aquafi.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': 'aquafi',
       'slug': 'aquafi',
       'nationalDex': 7,
@@ -2135,6 +2139,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/learnsets/sproutle.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'speciesId': 'sproutle',
       'startingMoves': <String>['tackle'],
       'relearnMoves': <String>['growl'],
@@ -2159,6 +2164,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/learnsets/sparkitten.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'speciesId': 'sparkitten',
       'startingMoves': <String>['scratch'],
       'relearnMoves': <String>['tail_whip'],
@@ -2183,6 +2189,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/learnsets/aquafi.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'speciesId': 'aquafi',
       'startingMoves': <String>['tackle'],
       'relearnMoves': <String>['water_gun'],
@@ -2543,6 +2550,7 @@ Future<void> _writeSquirtleStarterCoverageFixture(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/999-squirtle.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': 'squirtle',
       'slug': 'squirtle',
       'nationalDex': 7,
@@ -2591,6 +2599,7 @@ Future<void> _writeSquirtleStarterCoverageFixture(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/learnsets/squirtle.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'speciesId': 'squirtle',
       'startingMoves': <String>['tail_whip'],
       'relearnMoves': <String>['water_gun'],
@@ -2672,6 +2681,7 @@ Future<void> _rewriteSpeciesWithoutLearnsetRef(
     projectRoot,
     'custom/pokemon/species/$speciesFileName',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': speciesId,
       'typing': <String, Object>{
         'types': <String>['grass'],
