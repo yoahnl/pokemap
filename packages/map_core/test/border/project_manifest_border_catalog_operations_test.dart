@@ -65,6 +65,16 @@ void main() {
       expect(updated.borderCatalog.isNotEmpty, isTrue);
     });
 
+    test('replacement preserves a v7 Presentation project version', () {
+      final updated = replaceProjectBorderCatalog(
+        _manifest(version: ProjectVersion.v7),
+        _catalog('coast'),
+      );
+
+      expect(updated.version, ProjectVersion.v7);
+      expect(updated.borderCatalog.isNotEmpty, isTrue);
+    });
+
     test('update receives the current catalog once and applies promotion', () {
       final current = _catalog('first');
       final next = ProjectBorderCatalog(

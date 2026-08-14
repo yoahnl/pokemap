@@ -60,6 +60,38 @@ void main() {
     );
   });
 
+  test('exports a v7 project with Presentation ownership', () async {
+    final root = await createAuthorProject(
+      withDialogue: false,
+      projectVersion: ProjectVersion.v7,
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final project =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    project['presentationCinematics'] = <Object?>[
+      encodePresentationCinematicAsset(
+        PresentationCinematicAsset(
+          id: 'opening',
+          title: 'Opening',
+          durationUs: 1_000_000,
+        ),
+      ),
+    ];
+    await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+    final artifact = await const GamePackageExportService().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+
+    expect(artifact.manifest.compatibility.projectFormat, 'v7');
+    expect(
+      artifact.inspection.compatibility?.decision,
+      GamePackageCompatibilityDecision.accept,
+    );
+  });
+
   test(
     'builds, reopens and writes a deterministic certified package',
     () async {

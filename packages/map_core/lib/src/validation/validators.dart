@@ -84,10 +84,18 @@ class ProjectValidator {
   }
 
   static void validate(ProjectManifest manifest) {
-    if (manifest.version != ProjectVersion.v6) {
+    if (manifest.version != ProjectVersion.v6 &&
+        manifest.version != ProjectVersion.v7) {
       throw const ValidationException(
-        'Smart Tiles-only projects require ProjectVersion.v6',
+        'Projects require ProjectVersion.v6 or ProjectVersion.v7',
         code: 'smart_tile_v6_project_required',
+      );
+    }
+    if (manifest.version == ProjectVersion.v6 &&
+        manifest.presentationCinematics.isNotEmpty) {
+      throw const ValidationException(
+        'Presentation cinematics require ProjectVersion.v7',
+        code: 'cinematic_v2_project_v7_required',
       );
     }
     final smartTileDiagnostics = validateProjectSmartTileCatalog(
@@ -319,6 +327,11 @@ class ProjectValidator {
       manifest.scenarios,
       (s) => s.id,
       duplicateMessagePrefix: 'Duplicate scenario ID',
+    );
+    _validateUniqueIds(
+      manifest.presentationCinematics,
+      (cinematic) => cinematic.id,
+      duplicateMessagePrefix: 'Duplicate Presentation cinematic ID',
     );
     _validateUniqueIds(
       manifest.trainers,

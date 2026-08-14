@@ -55,7 +55,6 @@ ProjectManifest _nativeManifest(
   ProjectSmartTileCatalog catalog,
 ) =>
     manifest.copyWith(
-      version: ProjectVersion.v6,
       smartTileCatalog: catalog,
     );
 

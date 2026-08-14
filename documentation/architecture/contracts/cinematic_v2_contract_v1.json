@@ -591,6 +591,7 @@
     "presentation": {
       "tickets": [
         "BETA-CIN-002",
+        "BETA-CIN-062",
         "BETA-CIN-013",
         "BETA-CIN-014",
         "BETA-CIN-017",
@@ -638,7 +639,7 @@
       ],
       "consequence": "CIN-V2 project data requires V7 and old runtimes reject it before execution.",
       "verificationTickets": [
-        "BETA-CIN-013",
+        "BETA-CIN-062",
         "BETA-CIN-042"
       ]
     },

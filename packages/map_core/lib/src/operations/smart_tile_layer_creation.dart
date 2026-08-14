@@ -212,7 +212,6 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreation({
     ],
   );
   final projectedManifest = manifest.copyWith(
-    version: ProjectVersion.v6,
     smartTileCatalog: projectedCatalog,
   );
 

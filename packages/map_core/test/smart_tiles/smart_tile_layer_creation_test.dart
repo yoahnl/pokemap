@@ -314,6 +314,38 @@ void main() {
       expect(layer.field, isA<SmartTileCellField>());
     });
 
+    test('preserves a v7 manifest while keeping the projected map at v6', () {
+      const sourceMap = MapData(
+        id: 'target',
+        name: 'Target',
+        version: ProjectVersion.v6,
+        size: GridSize(width: 2, height: 2),
+      );
+      final manifest = _manifestWithMaterials().copyWith(
+        version: ProjectVersion.v7,
+      );
+
+      final result = planNativeSmartTileLayerCreation(
+        projectMaps: const <MapData>[sourceMap],
+        targetMapId: sourceMap.id,
+        manifest: manifest,
+        preset: _preset(topology: SmartTileTopology.uniform),
+        layerId: 'terrain',
+        layerName: 'Terrain',
+      );
+
+      expect(
+        result,
+        isA<SmartTileLayerCreationSuccess>(),
+        reason: result is SmartTileLayerCreationFailure
+            ? '${result.code}: ${result.message}'
+            : null,
+      );
+      final success = result as SmartTileLayerCreationSuccess;
+      expect(success.manifest.version, ProjectVersion.v7);
+      expect(success.map.version, ProjectVersion.v6);
+    });
+
     test('rejects a projected catalog with missing material definitions', () {
       const sourceMap = MapData(
         id: 'target',

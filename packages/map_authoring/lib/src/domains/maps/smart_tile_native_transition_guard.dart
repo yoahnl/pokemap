@@ -32,10 +32,10 @@ void preflightNativeSmartTileMutation({
   final maps = <MapData>[
     for (final map in snapshot.maps) projectedMaps[map.id] ?? map,
   ];
-  if (projectedManifest.version != ProjectVersion.v6) {
+  if (!_isSupportedProjectManifestVersion(projectedManifest.version)) {
     throw semanticFailure(
       'smart_tile_native_project_version_required',
-      'Smart Tile authoring requires ProjectVersion.v6.',
+      'Smart Tile authoring requires ProjectVersion.v6 or v7.',
       details: <String, Object?>{
         'projectVersion': projectedManifest.version.name,
       },
@@ -89,10 +89,11 @@ void requireExistingNativeSmartTileProject(
   String? layerId,
 }) {
   _requireCompleteMapSnapshot(snapshot);
-  if (snapshot.manifest.version != ProjectVersion.v6) {
+  if (!_isSupportedProjectManifestVersion(snapshot.manifest.version)) {
     throw semanticFailure(
       'smart_tile_native_project_version_required',
-      'Native Smart Tile maintenance requires a ProjectVersion.v6 manifest.',
+      'Native Smart Tile maintenance requires a ProjectVersion.v6 or v7 '
+          'manifest.',
       details: <String, Object?>{
         'projectVersion': snapshot.manifest.version.name,
         'operation': operation,
@@ -115,6 +116,9 @@ void requireExistingNativeSmartTileProject(
     }
   }
 }
+
+bool _isSupportedProjectManifestVersion(ProjectVersion version) =>
+    version == ProjectVersion.v6 || version == ProjectVersion.v7;
 
 void _requireCompleteMapSnapshot(ProjectSnapshot snapshot) {
   final manifestIds = <String>{};
