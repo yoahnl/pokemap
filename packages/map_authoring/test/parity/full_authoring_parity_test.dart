@@ -1331,6 +1331,10 @@ const ProjectEncounterTable _encounterTable = ProjectEncounterTable(
       minLevel: 2,
       maxLevel: 4,
       weight: 3,
+      pokemonOverrides: ProjectEncounterPokemonOverrides(
+        natureId: 'jolly',
+        shinyPolicy: ProjectEncounterShinyPolicy.never,
+      ),
     ),
     ProjectEncounterEntry(
       speciesId: 'pidgey',

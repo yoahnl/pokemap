@@ -49,6 +49,8 @@ class GameplayEncounter {
     required this.maxLevel,
     required this.weight,
     required this.playerPos,
+    this.generationSeed = 0,
+    this.pokemonOverrides,
   });
 
   final String mapId;
@@ -61,6 +63,8 @@ class GameplayEncounter {
   final int maxLevel;
   final int weight;
   final GridPos playerPos;
+  final int generationSeed;
+  final ProjectEncounterPokemonOverrides? pokemonOverrides;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -74,6 +78,8 @@ class GameplayEncounter {
       'maxLevel': maxLevel,
       'weight': weight,
       'playerPos': playerPos.toJson(),
+      'generationSeed': generationSeed,
+      'pokemonOverrides': pokemonOverrides?.toJson(),
     };
   }
 
@@ -94,6 +100,12 @@ class GameplayEncounter {
       playerPos: json['playerPos'] is Map<String, dynamic>
           ? GridPos.fromJson(json['playerPos'] as Map<String, dynamic>)
           : const GridPos(x: 0, y: 0),
+      generationSeed: (json['generationSeed'] as num?)?.toInt() ?? 0,
+      pokemonOverrides: json['pokemonOverrides'] is Map
+          ? ProjectEncounterPokemonOverrides.fromJson(
+              (json['pokemonOverrides'] as Map).cast<String, dynamic>(),
+            )
+          : null,
     );
   }
 }
@@ -260,6 +272,17 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
     maxLevel: selected.maxLevel,
     weight: selected.weight,
     playerPos: GridPos(x: position.x, y: position.y),
+    generationSeed: _stableWildGenerationSeed(
+      mapId: world.map.id,
+      zoneId: zone.id,
+      tableId: table.id,
+      encounterKind: encounterKind,
+      speciesId: selected.speciesId,
+      level: level,
+      playerPos: position,
+      encounterRoll: roll,
+    ),
+    pokemonOverrides: selected.pokemonOverrides,
   );
   return GameplayEncounterCheckResult(
     status: GameplayEncounterCheckStatus.triggered,
@@ -269,6 +292,35 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
     roll: roll,
     encounter: encounter,
   );
+}
+
+int _stableWildGenerationSeed({
+  required String mapId,
+  required String zoneId,
+  required String tableId,
+  required EncounterKind encounterKind,
+  required String speciesId,
+  required int level,
+  required GridPos playerPos,
+  required double encounterRoll,
+}) {
+  final value = <Object>[
+    mapId,
+    zoneId,
+    tableId,
+    encounterKind.name,
+    speciesId,
+    level,
+    playerPos.x,
+    playerPos.y,
+    encounterRoll,
+  ].join('|');
+  var hash = 0x811c9dc5;
+  for (final codeUnit in value.codeUnits) {
+    hash ^= codeUnit;
+    hash = (hash * 0x01000193) & 0xffffffff;
+  }
+  return hash;
 }
 
 ProjectEncounterTable? _findEncounterTable(

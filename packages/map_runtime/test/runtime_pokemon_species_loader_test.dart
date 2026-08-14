@@ -49,6 +49,11 @@ void main() {
           },
           'abilities': <String, dynamic>{
             'primary': 'overgrow',
+            'secondary': 'chlorophyll',
+            'hidden': 'leaf_guard',
+          },
+          'breeding': <String, dynamic>{
+            'genderRatio': <String, double>{'male': 0.875, 'female': 0.125},
           },
           'refs': <String, dynamic>{
             'learnset': 'targetmon',
@@ -57,6 +62,7 @@ void main() {
             'growthRateId': 'medium_slow',
             'baseExp': 64,
             'catchRate': 45,
+            'baseFriendship': 70,
           },
         }),
       );
@@ -75,9 +81,19 @@ void main() {
 
       expect(species.id, 'targetmon');
       expect(species.primaryAbilityId, 'overgrow');
+      expect(species.standardAbilityIds, <String>['overgrow', 'chlorophyll']);
+      expect(
+        species.abilityIds,
+        <String>['overgrow', 'chlorophyll', 'leaf_guard'],
+      );
+      expect(species.genderRatio, <String, double>{
+        'male': 0.875,
+        'female': 0.125,
+      });
       expect(species.growthRateId, 'medium_slow');
       expect(species.baseExp, 64);
       expect(species.catchRate, 45);
+      expect(species.baseFriendship, 70);
     });
 
     test('fails closed when progression data is absent', () async {

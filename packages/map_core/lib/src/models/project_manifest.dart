@@ -10,6 +10,7 @@ import 'project_trainer.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
 import 'pokemon_ruleset_profile.dart';
+import 'save_data.dart';
 import 'project_presentation_profile.dart';
 import 'project_presentation_preset.dart';
 import 'project_tileset_source.dart';
@@ -927,9 +928,31 @@ abstract class ProjectElementEntry with _$ProjectElementEntry {
 /// default when older project files omit `chancePerStep`.
 const double defaultEncounterChancePerStep = 0.12;
 
+enum ProjectEncounterShinyPolicy { random, never, always }
+
+@freezed
+abstract class ProjectEncounterPokemonOverrides
+    with _$ProjectEncounterPokemonOverrides {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectEncounterPokemonOverrides({
+    String? natureId,
+    String? abilityId,
+    String? gender,
+    PokemonStatSpread? ivs,
+    @Default(ProjectEncounterShinyPolicy.random)
+    ProjectEncounterShinyPolicy shinyPolicy,
+    @Default(<String>[]) List<String> knownMoveIds,
+  }) = _ProjectEncounterPokemonOverrides;
+
+  factory ProjectEncounterPokemonOverrides.fromJson(
+    Map<String, dynamic> json,
+  ) => _$ProjectEncounterPokemonOverridesFromJson(json);
+}
+
 /// Entrée pondérée dans une table de rencontres.
 @freezed
 abstract class ProjectEncounterEntry with _$ProjectEncounterEntry {
+  @JsonSerializable(explicitToJson: true)
   const factory ProjectEncounterEntry({
     /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
     required String speciesId,
@@ -938,6 +961,8 @@ abstract class ProjectEncounterEntry with _$ProjectEncounterEntry {
 
     /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
     @Default(1) int weight,
+    @JsonKey(includeIfNull: false)
+    ProjectEncounterPokemonOverrides? pokemonOverrides,
   }) = _ProjectEncounterEntry;
 
   factory ProjectEncounterEntry.fromJson(Map<String, dynamic> json) =>

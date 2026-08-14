@@ -1158,6 +1158,53 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
             _entryValidationMessage = null;
           }),
         ),
+        const SizedBox(height: 14),
+        const PokeMapSectionHeader(
+          title: 'Génération du Pokémon',
+          description: 'Laissez Aléatoire pour suivre le profil du projet.',
+        ),
+        const SizedBox(height: 8),
+        PokeMapDropdownField<String>(
+          key: const Key('encounter-entry-nature-control'),
+          label: 'Nature',
+          value: _entryNatureId,
+          items: <PokeMapDropdownItem<String>>[
+            const PokeMapDropdownItem<String>(value: '', label: 'Aléatoire'),
+            for (final natureId in canonicalPokemonNatureIds)
+              PokeMapDropdownItem<String>(
+                value: natureId,
+                label: '${natureId[0].toUpperCase()}${natureId.substring(1)}',
+              ),
+          ],
+          onChanged: (natureId) => _runLocalStateMutation(() {
+            _entryNatureId = natureId;
+            _entryValidationMessage = null;
+          }),
+        ),
+        const SizedBox(height: 8),
+        PokeMapDropdownField<ProjectEncounterShinyPolicy>(
+          key: const Key('encounter-entry-shiny-policy-control'),
+          label: 'Pokémon chromatique',
+          value: _entryShinyPolicy,
+          items: const <PokeMapDropdownItem<ProjectEncounterShinyPolicy>>[
+            PokeMapDropdownItem<ProjectEncounterShinyPolicy>(
+              value: ProjectEncounterShinyPolicy.random,
+              label: 'Aléatoire',
+            ),
+            PokeMapDropdownItem<ProjectEncounterShinyPolicy>(
+              value: ProjectEncounterShinyPolicy.never,
+              label: 'Jamais',
+            ),
+            PokeMapDropdownItem<ProjectEncounterShinyPolicy>(
+              value: ProjectEncounterShinyPolicy.always,
+              label: 'Toujours',
+            ),
+          ],
+          onChanged: (policy) => _runLocalStateMutation(() {
+            _entryShinyPolicy = policy;
+            _entryValidationMessage = null;
+          }),
+        ),
         if (draftProbability != null) ...[
           const SizedBox(height: 10),
           PokeMapCard(
@@ -1591,6 +1638,9 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
       _entryMinLevelController.text = '1';
       _entryMaxLevelController.text = '5';
       _entryWeightController.text = '1';
+      _entryNatureId = '';
+      _entryShinyPolicy = ProjectEncounterShinyPolicy.random;
+      _entryPokemonOverridesDraft = null;
       _compactWorkspacePane = _EncounterWorkspacePane.inspector;
     });
   }
@@ -1611,6 +1661,11 @@ extension _EncounterTablesPanelWorkspace on _EncounterTablesPanelState {
       _entryMinLevelController.text = entry.minLevel.toString();
       _entryMaxLevelController.text = entry.maxLevel.toString();
       _entryWeightController.text = entry.weight.toString();
+      _entryPokemonOverridesDraft = entry.pokemonOverrides;
+      _entryNatureId = entry.pokemonOverrides?.natureId ?? '';
+      _entryShinyPolicy =
+          entry.pokemonOverrides?.shinyPolicy ??
+          ProjectEncounterShinyPolicy.random;
       _compactWorkspacePane = _EncounterWorkspacePane.inspector;
     });
   }

@@ -28,5 +28,7 @@ WildBattleStartRequest buildBattleStartRequestFromEncounter({
     maxLevel: encounter.maxLevel,
     weight: encounter.weight,
     playerPos: encounter.playerPos,
+    generationSeed: encounter.generationSeed,
+    pokemonOverrides: encounter.pokemonOverrides,
   );
 }

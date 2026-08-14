@@ -53,6 +53,23 @@ List<String> deriveBattleCandidateMoveIdsFromLearnset({
   return List<String>.unmodifiable(unique.sublist(unique.length - 4));
 }
 
+int _fallbackWildGenerationSeed(WildBattleStartRequest request) {
+  final value = <Object>[
+    request.requestId,
+    request.mapId,
+    request.zoneId,
+    request.tableId,
+    request.speciesId,
+    request.level,
+  ].join('|');
+  var hash = 0x811c9dc5;
+  for (final codeUnit in value.codeUnits) {
+    hash ^= codeUnit;
+    hash = (hash * 0x01000193) & 0xffffffff;
+  }
+  return hash;
+}
+
 /// Politique partagée de résolution runtime des moves candidats vers battle.
 ///
 /// Cette helper donne à la fois :
@@ -597,40 +614,114 @@ class RuntimeBattleCombatantSeedBuilder {
       pokemonConfig: pokemonConfig,
       speciesId: request.speciesId,
     );
-    final moveIds = await _deriveLearnsetMoveIds(
-      projectRootDirectory: projectRootDirectory,
-      pokemonConfig: pokemonConfig,
-      species: species,
-      level: request.level,
-    );
+    final generatedPokemon = request.generatedPokemon ??
+        (await generateWildPlayerPokemon(
+          projectRootDirectory: projectRootDirectory,
+          pokemonConfig: pokemonConfig,
+          movesCatalog: movesCatalog,
+          request: request,
+        ))
+            .pokemon;
     final moveProjection = _resolveBattleMoves(
       movesCatalog: movesCatalog,
-      moveIds: moveIds,
+      moveIds: generatedPokemon.knownMoveIds,
       combatantLabel: 'Le Pokémon sauvage "${request.speciesId}"',
+      currentPpByMoveId: generatedPokemon.currentPpByMoveId,
     );
-    const opponentProfile = PokemonOpponentStatProfile.wildV0;
     final calculatedStats = _calculateResolvedStats(
       species: species,
-      level: request.level,
-      ivs: opponentProfile.ivs,
-      evs: opponentProfile.evs,
-      natureId: opponentProfile.natureId,
-      profileLabel: opponentProfile.profileId,
+      level: generatedPokemon.level,
+      ivs: generatedPokemon.ivs,
+      evs: generatedPokemon.evs,
+      natureId: generatedPokemon.natureId,
+      profileLabel: request.generationProfileId.isEmpty
+          ? WildPokemonGenerationProfile.pokeMapBetaV1.profileId
+          : request.generationProfileId,
     );
 
     return RuntimeBattleCombatantSeed(
-      speciesId: request.speciesId.trim(),
-      level: request.level,
+      speciesId: generatedPokemon.speciesId.trim(),
+      level: generatedPokemon.level,
       maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
       stats: _toBattleStatsSnapshot(calculatedStats),
       typing: _buildBattleTypingSnapshot(species),
-      abilityId: species.primaryAbilityId.isEmpty
-          ? 'unknown'
-          : species.primaryAbilityId,
+      currentHp: generatedPokemon.currentHp,
+      abilityId: generatedPokemon.abilityId,
       moves: moveProjection.moves,
       moveDiagnostics: moveProjection.diagnostics,
     );
+  }
+
+  Future<WildPlayerPokemonGenerationResult> generateWildPlayerPokemon({
+    required String projectRootDirectory,
+    required ProjectPokemonConfig pokemonConfig,
+    required RuntimeMoveCatalog movesCatalog,
+    required WildBattleStartRequest request,
+  }) async {
+    final species = await speciesLoader.loadById(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      speciesId: request.speciesId,
+    );
+    final learnset = await learnsetLoader.loadByRef(
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      speciesRef: species.learnsetRef,
+      fallbackSpeciesId: species.id,
+    );
+    try {
+      return const WildPlayerPokemonGenerator().generate(
+        seed: request.generationSeed == 0
+            ? _fallbackWildGenerationSeed(request)
+            : request.generationSeed,
+        species: WildPokemonGenerationSpecies(
+          id: species.id,
+          baseStats: PokemonBaseStats(
+            hp: species.baseHp,
+            attack: species.baseAttack,
+            defense: species.baseDefense,
+            specialAttack: species.baseSpecialAttack,
+            specialDefense: species.baseSpecialDefense,
+            speed: species.baseSpeed,
+          ),
+          primaryAbilityId: species.primaryAbilityId,
+          standardAbilityIds: species.standardAbilityIds,
+          allowedAbilityIds: species.abilityIds,
+          genderRatio: species.genderRatio,
+          growthRateId: species.growthRateId,
+          baseFriendship: species.baseFriendship,
+        ),
+        learnset: WildPokemonGenerationLearnset(
+          startingMoves: learnset.startingMoves,
+          relearnMoves: learnset.relearnMoves,
+          levelUp: <WildPokemonLevelUpMove>[
+            for (final entry in learnset.levelUp)
+              WildPokemonLevelUpMove(
+                moveId: entry.moveId,
+                level: entry.level,
+              ),
+          ],
+        ),
+        maxPpByMoveId: <String, int>{
+          for (final entry in movesCatalog.entriesById.entries)
+            entry.key: entry.value.pp,
+        },
+        level: request.level,
+        ruleset: pokemonConfig.ruleset,
+        context: WildPokemonGenerationContext(
+          mapId: request.mapId,
+          sourceId: request.tableId,
+        ),
+        overrides: request.pokemonOverrides,
+      );
+    } on FormatException catch (error) {
+      throw RuntimeBattleSetupException(
+        'Impossible de générer un Pokémon sauvage valide.',
+        debugDetails:
+            'speciesId=${request.speciesId}, seed=${request.generationSeed}, error=${error.message}',
+      );
+    }
   }
 
   Future<RuntimePsdkBattleCombatantSeed> buildWildPsdkCombatantSeed({
@@ -644,37 +735,40 @@ class RuntimeBattleCombatantSeedBuilder {
       pokemonConfig: pokemonConfig,
       speciesId: request.speciesId,
     );
-    final moveIds = await _deriveLearnsetMoveIds(
-      projectRootDirectory: projectRootDirectory,
-      pokemonConfig: pokemonConfig,
-      species: species,
-      level: request.level,
-    );
+    final generatedPokemon = request.generatedPokemon ??
+        (await generateWildPlayerPokemon(
+          projectRootDirectory: projectRootDirectory,
+          pokemonConfig: pokemonConfig,
+          movesCatalog: movesCatalog,
+          request: request,
+        ))
+            .pokemon;
     final moveProjection = _resolvePsdkBattleMoves(
       movesCatalog: movesCatalog,
-      moveIds: moveIds,
+      moveIds: generatedPokemon.knownMoveIds,
       combatantLabel: 'Le Pokémon sauvage "${request.speciesId}"',
+      currentPpByMoveId: generatedPokemon.currentPpByMoveId,
     );
-    const opponentProfile = PokemonOpponentStatProfile.wildV0;
     final calculatedStats = _calculateResolvedStats(
       species: species,
-      level: request.level,
-      ivs: opponentProfile.ivs,
-      evs: opponentProfile.evs,
-      natureId: opponentProfile.natureId,
-      profileLabel: opponentProfile.profileId,
+      level: generatedPokemon.level,
+      ivs: generatedPokemon.ivs,
+      evs: generatedPokemon.evs,
+      natureId: generatedPokemon.natureId,
+      profileLabel: request.generationProfileId.isEmpty
+          ? WildPokemonGenerationProfile.pokeMapBetaV1.profileId
+          : request.generationProfileId,
     );
 
     return RuntimePsdkBattleCombatantSeed(
-      speciesId: request.speciesId.trim(),
-      level: request.level,
+      speciesId: generatedPokemon.speciesId.trim(),
+      level: generatedPokemon.level,
       maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
       stats: _toBattleStatsSnapshot(calculatedStats),
       typing: _buildBattleTypingSnapshot(species),
-      abilityId: species.primaryAbilityId.isEmpty
-          ? 'unknown'
-          : species.primaryAbilityId,
+      currentHp: generatedPokemon.currentHp,
+      abilityId: generatedPokemon.abilityId,
       moves: moveProjection.moves,
       moveDiagnostics: moveProjection.diagnostics,
     );

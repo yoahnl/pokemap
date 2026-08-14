@@ -498,28 +498,14 @@ RuntimeBattleCaptureAttemptReceipt _validatedCaptureReceipt({
 const _capturedPokemonDefaultNatureId = 'hardy';
 const _capturedPokemonFallbackAbilityId = 'unknown';
 
-/// Construit le Pokémon réellement ajouté à la party après une capture sauvage.
-///
-/// Le lot 13 reste volontairement minimal :
-/// - espèce, ability, moves et PP viennent du snapshot persistable original du
-///   combattant, jamais d'une forme temporaire comme `Transform` ;
-/// - niveau et PV restent ceux du combattant sauvage réellement engagé ;
-/// - la nature reste un fallback MVP déterministe (`hardy`) faute de véritable
-///   génération runtime existante ;
-/// - le statut majeur est conservé ; ivs/evs/shiny/held item restent aux
-///   defaults du modèle `PlayerPokemon` faute de données runtime dédiées.
-///
-/// Invariant important :
-/// - une capture réussie ne doit jamais produire un Pokémon owned déjà K.O. ;
-/// - si un call site forge un outcome capturé incohérent avec `enemyHp <= 0`,
-///   on clamp donc les PV du Pokémon capturé à 1 minimum.
 PlayerPokemon _buildCapturedWildPlayerPokemon({
   required BattleCombatant enemy,
   required WildBattleStartRequest request,
   required String ballItemId,
 }) {
+  final generatedPokemon = request.generatedPokemon;
   final normalizedAbilityId = enemy.writeBackAbilityId.trim().isEmpty
-      ? _capturedPokemonFallbackAbilityId
+      ? generatedPokemon?.abilityId ?? _capturedPokemonFallbackAbilityId
       : enemy.writeBackAbilityId.trim();
   final normalizedMoveIds = enemy.writeBackMoves
       .map((move) => move.id.trim())
@@ -527,12 +513,17 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
       .toSet()
       .toList(growable: false);
 
+  final provenance = generatedPokemon?.provenance;
   return PlayerPokemon(
     speciesId: enemy.writeBackSpeciesId.trim(),
-    natureId: _capturedPokemonDefaultNatureId,
+    natureId: generatedPokemon?.natureId ?? _capturedPokemonDefaultNatureId,
     abilityId: normalizedAbilityId,
+    gender: generatedPokemon?.gender,
     level: enemy.level,
+    ivs: generatedPokemon?.ivs ?? const PokemonStatSpread(),
+    evs: generatedPokemon?.evs ?? const PokemonStatSpread(),
     knownMoveIds: normalizedMoveIds,
+    experience: generatedPokemon?.experience,
     currentPpByMoveId: Map<String, int>.unmodifiable(
       <String, int>{
         for (final move in enemy.writeBackMoves) move.id.trim(): move.currentPp,
@@ -548,10 +539,14 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
       BattleMajorStatusId.frz => 'frz',
       null => '',
     },
+    isShiny: generatedPokemon?.isShiny ?? false,
+    heldItemId: generatedPokemon?.heldItemId ?? '',
+    nickname: generatedPokemon?.nickname ?? '',
+    friendship: generatedPokemon?.friendship ?? 0,
     provenance: PlayerPokemonProvenance(
       kind: PlayerPokemonOriginKind.captured,
-      mapId: request.mapId,
-      sourceId: request.tableId,
+      mapId: provenance?.mapId ?? request.mapId,
+      sourceId: provenance?.sourceId ?? request.tableId,
       ballItemId: ballItemId,
       metLevel: enemy.level,
     ),

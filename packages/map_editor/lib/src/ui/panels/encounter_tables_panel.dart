@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import '../../app/providers/core/repository_providers.dart';
@@ -86,6 +87,10 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   final _entryMinLevelController = TextEditingController(text: '1');
   final _entryMaxLevelController = TextEditingController(text: '5');
   final _entryWeightController = TextEditingController(text: '1');
+  String _entryNatureId = '';
+  ProjectEncounterShinyPolicy _entryShinyPolicy =
+      ProjectEncounterShinyPolicy.random;
+  ProjectEncounterPokemonOverrides? _entryPokemonOverridesDraft;
   String? _entryValidationMessage;
   bool _entryDeleteFailed = false;
 
@@ -415,6 +420,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
     final minLevel = int.parse(_entryMinLevelController.text.trim());
     final maxLevel = int.parse(_entryMaxLevelController.text.trim());
     final weight = int.parse(_entryWeightController.text.trim());
+    final pokemonOverrides = _resolvedEntryPokemonOverrides();
 
     final beforeState = ref.read(editorNotifierProvider);
     final index = _editingEntryIndex;
@@ -425,6 +431,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
         minLevel: minLevel,
         maxLevel: maxLevel,
         weight: weight,
+        pokemonOverrides: pokemonOverrides,
       );
     } else {
       await notifier.updateEncounterEntry(
@@ -434,6 +441,8 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
         minLevel: minLevel,
         maxLevel: maxLevel,
         weight: weight,
+        pokemonOverrides: pokemonOverrides,
+        clearPokemonOverrides: pokemonOverrides == null,
       );
     }
     if (!mounted) {
@@ -551,5 +560,26 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
     _entryMinLevelController.text = '1';
     _entryMaxLevelController.text = '5';
     _entryWeightController.text = '1';
+    _entryNatureId = '';
+    _entryShinyPolicy = ProjectEncounterShinyPolicy.random;
+    _entryPokemonOverridesDraft = null;
+  }
+
+  ProjectEncounterPokemonOverrides? _resolvedEntryPokemonOverrides() {
+    final existing =
+        _entryPokemonOverridesDraft ?? const ProjectEncounterPokemonOverrides();
+    final resolved = existing.copyWith(
+      natureId: _entryNatureId.isEmpty ? null : _entryNatureId,
+      shinyPolicy: _entryShinyPolicy,
+    );
+    if (resolved.natureId == null &&
+        resolved.abilityId == null &&
+        resolved.gender == null &&
+        resolved.ivs == null &&
+        resolved.shinyPolicy == ProjectEncounterShinyPolicy.random &&
+        resolved.knownMoveIds.isEmpty) {
+      return null;
+    }
+    return resolved;
   }
 }

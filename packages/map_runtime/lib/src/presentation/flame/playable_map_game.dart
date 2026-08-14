@@ -7497,6 +7497,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (_flowPhase != _RuntimeFlowPhase.battleTransition) {
         return;
       }
+      if (request case WildBattleStartRequest wildRequest) {
+        request = await _traceAsync(
+          'battle',
+          'generateWildPokemon',
+          () => _battleSetupMapper.hydrateWildRequest(
+            bundle: _bundle,
+            request: wildRequest,
+          ),
+        );
+      }
       // BE10 recadré élargit légèrement cet invariant runtime :
       // - on mémorise toujours le slot actif exact utilisé au handoff ;
       // - mais on mémorise aussi l'ordre actif + réserves réellement injecté

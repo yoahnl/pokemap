@@ -28,6 +28,15 @@ export 'src/player_pokemon_hydrator.dart'
         PlayerPokemonHydrationCatalogs,
         PlayerPokemonHydrationResult,
         PlayerPokemonHydrator;
+export 'src/wild_player_pokemon_generator.dart'
+    show
+        WildPokemonGenerationProfile,
+        WildPokemonGenerationSpecies,
+        WildPokemonLevelUpMove,
+        WildPokemonGenerationLearnset,
+        WildPokemonGenerationContext,
+        WildPlayerPokemonGenerationResult,
+        WildPlayerPokemonGenerator;
 export 'src/pokemon_evolution_service.dart'
     show
         PokemonEvolutionTriggerKind,

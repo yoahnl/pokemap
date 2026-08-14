@@ -74,6 +74,43 @@ void main() {
       }
     });
 
+    test('hydrates one wild request with a versioned generated individual',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final request = _wildRequest(
+        speciesId: 'sparkitten',
+        level: 10,
+        generationSeed: 0x12345678,
+        pokemonOverrides: const ProjectEncounterPokemonOverrides(
+          natureId: 'modest',
+          shinyPolicy: ProjectEncounterShinyPolicy.always,
+        ),
+      );
+
+      final first = await mapper.hydrateWildRequest(
+        bundle: bundle,
+        request: request,
+      );
+      final repeated = await mapper.hydrateWildRequest(
+        bundle: bundle,
+        request: request,
+      );
+
+      expect(first.generatedPokemon, repeated.generatedPokemon);
+      expect(first.generatedPokemon?.natureId, 'modest');
+      expect(first.generatedPokemon?.isShiny, isTrue);
+      expect(first.generatedPokemon?.gender, 'male');
+      expect(first.generatedPokemon?.friendship, 50);
+      expect(first.generatedPokemon?.provenance?.mapId, 'field_map');
+      expect(first.generatedPokemon?.provenance?.sourceId, 'field_grass');
+      expect(first.generationProfileId, 'pokemap-wild-v1');
+      expect(first.generationSchemaVersion, 1);
+    });
+
     test('maps a PSDK setup and executes a legacy-filtered PSDK move',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
@@ -110,6 +147,7 @@ void main() {
         request: _wildRequest(
           speciesId: 'sparkitten',
           level: 10,
+          generationSeed: 0x12345678,
         ),
         itemCatalog: _heldItemCatalog,
       );
@@ -510,6 +548,7 @@ void main() {
         request: _wildRequest(
           speciesId: 'sparkitten',
           level: 10,
+          generationSeed: 0x12345678,
         ),
       );
 
@@ -521,8 +560,8 @@ void main() {
       expect(setup.enemyPokemon.typing, isNotNull);
       expect(setup.enemyPokemon.typing!.primaryType, equals('fire'));
       expect(setup.enemyPokemon.typing!.secondaryType, isNull);
-      expect(setup.enemyPokemon.stats.attack, equals(15));
-      expect(setup.enemyPokemon.stats.specialAttack, equals(17));
+      expect(setup.enemyPokemon.stats.attack, equals(16));
+      expect(setup.enemyPokemon.stats.specialAttack, equals(19));
       expect(setup.enemyPokemon.stats.speed, equals(18));
       expect(
         setup.enemyPokemon.moves.map((move) => move.id).toList(),
@@ -1845,6 +1884,8 @@ RuntimeMapBundle _buildRuntimeBundle(
 WildBattleStartRequest _wildRequest({
   required String speciesId,
   required int level,
+  int generationSeed = 0,
+  ProjectEncounterPokemonOverrides? pokemonOverrides,
 }) {
   return WildBattleStartRequest(
     requestId: 'wild-request',
@@ -1864,6 +1905,8 @@ WildBattleStartRequest _wildRequest({
     maxLevel: level,
     weight: 30,
     playerPos: const GridPos(x: 1, y: 1),
+    generationSeed: generationSeed,
+    pokemonOverrides: pokemonOverrides,
   );
 }
 

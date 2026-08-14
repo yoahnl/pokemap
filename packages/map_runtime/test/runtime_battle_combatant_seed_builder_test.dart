@@ -570,19 +570,20 @@ void main() {
         request: _wildRequest(
           speciesId: 'sparkitten',
           level: 10,
+          generationSeed: 0x12345678,
         ),
       );
 
       expect(seed.speciesId, equals('sparkitten'));
       expect(seed.level, equals(10));
-      expect(seed.currentHp, isNull);
+      expect(seed.currentHp, equals(30));
       expect(seed.abilityId, equals('blaze'));
       expect(seed.typing.primaryType, equals('fire'));
       expect(seed.typing.secondaryType, isNull);
-      expect(seed.maxHp, equals(27));
-      expect(seed.stats.attack, equals(15));
-      expect(seed.stats.defense, equals(13));
-      expect(seed.stats.specialAttack, equals(17));
+      expect(seed.maxHp, equals(30));
+      expect(seed.stats.attack, equals(16));
+      expect(seed.stats.defense, equals(14));
+      expect(seed.stats.specialAttack, equals(19));
       expect(seed.stats.specialDefense, equals(15));
       expect(seed.stats.speed, equals(18));
       expect(
@@ -1265,6 +1266,7 @@ ProjectPokemonConfig _pokemonConfig() {
 WildBattleStartRequest _wildRequest({
   required String speciesId,
   required int level,
+  int generationSeed = 0,
 }) {
   return WildBattleStartRequest(
     requestId: 'wild-request',
@@ -1284,6 +1286,7 @@ WildBattleStartRequest _wildRequest({
     maxLevel: level,
     weight: 30,
     playerPos: const GridPos(x: 1, y: 1),
+    generationSeed: generationSeed,
   );
 }
 

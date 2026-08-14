@@ -432,12 +432,22 @@ void main() {
       expect(game.debugFlowPhaseName, equals('overworld'));
       expect(game.debugPsdkBattleSessionActive, isFalse);
       expect(snapshot.party.members, hasLength(2));
-      expect(snapshot.party.members.last.speciesId, equals('sparkitten'));
+      final capturedPokemon = snapshot.party.members.last;
+      expect(capturedPokemon.speciesId, equals('sparkitten'));
+      expect(canonicalPokemonNatureIds, contains(capturedPokemon.natureId));
+      expect(capturedPokemon.gender, anyOf('male', 'female'));
+      expect(capturedPokemon.ivs, isNot(const PokemonStatSpread()));
+      expect(capturedPokemon.friendship, 50);
+      expect(capturedPokemon.provenance?.mapId, 'field_map');
+      expect(capturedPokemon.provenance?.sourceId, 'field_grass');
+      expect(capturedPokemon.provenance?.ballItemId, 'poke-ball');
+      expect(capturedPokemon.provenance?.metLevel, capturedPokemon.level);
       expect(snapshot.progression.caughtSpeciesIds, contains('sparkitten'));
 
       final reloaded = gameStateFromSaveData(saveDataFromGameState(snapshot));
       expect(reloaded.bag.entries, isEmpty);
       expect(reloaded.party.members.last.speciesId, equals('sparkitten'));
+      expect(reloaded.party.members.last, capturedPokemon);
       expect(reloaded.progression.caughtSpeciesIds, contains('sparkitten'));
     });
 

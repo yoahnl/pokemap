@@ -309,7 +309,14 @@ class RuntimePokemonSpeciesLoader {
         rawJson['breeding'],
         ratioKey: 'female',
       ),
+      genderRatio: Map<String, double>.unmodifiable(
+        speciesFile.breeding.genderRatio,
+      ),
       primaryAbilityId: abilities.primary,
+      standardAbilityIds: List<String>.unmodifiable(<String>[
+        speciesFile.abilities.primary,
+        if (speciesFile.abilities.secondary case final secondary?) secondary,
+      ]),
       abilityIds: abilities.all,
       // `learnsetRef` peut rester vide : le loader learnset conservera le
       // fallback historique vers l'id de l'espèce.
@@ -317,6 +324,7 @@ class RuntimePokemonSpeciesLoader {
       growthRateId: progression.growthRateId,
       baseExp: progression.baseExp,
       catchRate: progression.catchRate,
+      baseFriendship: speciesFile.progression.baseFriendship,
     );
   }
 
@@ -545,12 +553,15 @@ class RuntimePokemonSpecies {
     required this.baseSpeed,
     this.maleGenderRatio,
     this.femaleGenderRatio,
+    this.genderRatio = const <String, double>{},
     required this.primaryAbilityId,
+    this.standardAbilityIds = const <String>[],
     required this.abilityIds,
     required this.learnsetRef,
     required this.growthRateId,
     required this.baseExp,
     required this.catchRate,
+    this.baseFriendship = 0,
   });
 
   final String id;
@@ -570,10 +581,13 @@ class RuntimePokemonSpecies {
   final int baseSpeed;
   final double? maleGenderRatio;
   final double? femaleGenderRatio;
+  final Map<String, double> genderRatio;
   final String primaryAbilityId;
+  final List<String> standardAbilityIds;
   final List<String> abilityIds;
   final String learnsetRef;
   final String growthRateId;
   final int baseExp;
   final int catchRate;
+  final int baseFriendship;
 }

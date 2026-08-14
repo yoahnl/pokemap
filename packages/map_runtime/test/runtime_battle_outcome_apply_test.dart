@@ -634,7 +634,35 @@ void main() {
 
     test('captured wild battle appends the pokemon and syncs caught/seen', () {
       final context = RuntimeActiveBattleContext(
-        request: _wildRequest(),
+        request: _wildRequest().withGeneratedPokemon(
+          pokemon: const PlayerPokemon(
+            speciesId: 'wildmon',
+            natureId: 'modest',
+            abilityId: 'intimidate',
+            gender: 'female',
+            level: 12,
+            ivs: PokemonStatSpread(
+              hp: 31,
+              attack: 3,
+              defense: 17,
+              specialAttack: 30,
+              specialDefense: 21,
+              speed: 24,
+            ),
+            knownMoveIds: <String>['scratch', 'leer'],
+            currentPpByMoveId: <String, int>{'scratch': 35, 'leer': 35},
+            currentHp: 30,
+            isShiny: true,
+            friendship: 70,
+            provenance: PlayerPokemonProvenance(
+              mapId: 'field_map',
+              sourceId: 'field_grass',
+              metLevel: 12,
+            ),
+          ),
+          profileId: 'pokemap-wild-v1',
+          schemaVersion: 1,
+        ),
         playerPartyIndex: 0,
       );
       final attempt = _acceptedCaptureAttempt(
@@ -664,7 +692,11 @@ void main() {
       expect(captured.speciesId, equals('wildmon'));
       expect(captured.level, equals(12));
       expect(captured.abilityId, equals('intimidate'));
-      expect(captured.natureId, equals('hardy'));
+      expect(captured.natureId, equals('modest'));
+      expect(captured.gender, equals('female'));
+      expect(captured.ivs.hp, equals(31));
+      expect(captured.ivs.specialAttack, equals(30));
+      expect(captured.isShiny, isTrue);
       expect(captured.knownMoveIds, equals(<String>['scratch', 'leer']));
       expect(
         captured.currentPpByMoveId,
@@ -673,7 +705,7 @@ void main() {
       expect(captured.currentHp, equals(7));
       expect(captured.statusId, equals('slp'));
       expect(captured.nickname, isEmpty);
-      expect(captured.friendship, 0);
+      expect(captured.friendship, 70);
       expect(captured.provenance?.kind, PlayerPokemonOriginKind.captured);
       expect(captured.provenance?.mapId, 'field_map');
       expect(captured.provenance?.sourceId, 'field_grass');

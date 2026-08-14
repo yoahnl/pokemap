@@ -1678,6 +1678,11 @@ test("MCP authors, rereads, and safely deletes an encounter table", async () => 
               minLevel: 2,
               maxLevel: 4,
               weight: 3,
+              pokemonOverrides: {
+                natureId: "jolly",
+                shinyPolicy: "never",
+                knownMoveIds: [],
+              },
             },
             {
               speciesId: "pidgey",
@@ -1705,6 +1710,14 @@ test("MCP authors, rereads, and safely deletes an encounter table", async () => 
     assert.ok(table);
     assert.equal(table.encounterKind, "walk");
     assert.equal((table.entries as unknown[]).length, 2);
+    assert.deepEqual(record((table.entries as JsonRecord[])[0]).pokemonOverrides, {
+      natureId: "jolly",
+      abilityId: null,
+      gender: null,
+      ivs: null,
+      shinyPolicy: "never",
+      knownMoveIds: [],
+    });
     assert.deepEqual(table.tags, ["route", "early-game"]);
 
     const plannedDelete = await toolData(fixture.client, "pokemap_plan", {
