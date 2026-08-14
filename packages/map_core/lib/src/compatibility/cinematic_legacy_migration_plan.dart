@@ -468,6 +468,7 @@ SceneAsset _rewriteSceneCinematicReference(
   return SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,

@@ -81,6 +81,7 @@ export 'src/catalogs/narrative_event_project_catalog.dart';
 export 'src/models/project_trainer.dart';
 export 'src/models/scenario_asset.dart';
 export 'src/models/scene_asset.dart';
+export 'src/models/scene_execution_capabilities.dart';
 export 'src/models/scene_interactive_command.dart';
 export 'src/models/narrative_command_descriptor.dart';
 export 'src/models/scene_consequence.dart';

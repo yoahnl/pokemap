@@ -1,5 +1,6 @@
 import '../diagnostics/scene_diagnostics.dart';
 import '../models/scene_asset.dart';
+import '../models/scene_execution_capabilities.dart';
 import 'scene_runtime_plan.dart';
 
 SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
@@ -22,6 +23,7 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
         nodeId: diagnostic.nodeId,
         edgeId: diagnostic.edgeId,
         sourceSceneDiagnosticCode: diagnostic.code,
+        capabilityIssueCode: diagnostic.capabilityIssueCode,
       ),
     );
   }
@@ -95,6 +97,8 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
             nodeId: node.id,
           ),
         );
+      case SceneNodeKind.presentationCinematic:
+        break;
       case SceneNodeKind.start:
       case SceneNodeKind.end:
       case SceneNodeKind.yarnDialogue:
@@ -119,6 +123,7 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
   return SceneRuntimePlanBuildResult(
     plan: SceneRuntimePlan(
       sceneId: scene.id,
+      executionProfile: scene.executionProfile,
       startNodeId: scene.graph.startNodeId,
       nodes: [
         for (final node in scene.graph.nodes)
@@ -127,6 +132,10 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
             kind: node.kind,
             title: node.title,
             description: node.description,
+            capabilityId: sceneExecutionCapabilityForNode(
+              scene.executionProfile,
+              node,
+            ),
             intent: _runtimeIntentForNode(node, nodeById),
           ),
       ],
@@ -170,6 +179,12 @@ SceneRuntimePlanIntent _runtimeIntentForNode(
     SceneNodeKind.cinematic => SceneRuntimePlanIntent.playCinematic(
         cinematicId: (node.payload as SceneCinematicPayload).cinematicId,
       ),
+    SceneNodeKind.presentationCinematic =>
+      SceneRuntimePlanIntent.playPresentationCinematic(
+        presentationCinematicId:
+            (node.payload as ScenePresentationCinematicPayload)
+                .presentationCinematicId,
+      ),
     SceneNodeKind.action => _actionIntent(
         node.payload as SceneActionPayload,
       ),
@@ -212,6 +227,7 @@ List<String> _declaredOutcomePortsForNode(SceneNode node) {
     SceneStartPayload() ||
     SceneActionPayload() ||
     SceneCinematicPayload() ||
+    ScenePresentationCinematicPayload() ||
     SceneMergePayload() ||
     SceneEndPayload() ||
     SceneBranchByOutcomePayload() =>

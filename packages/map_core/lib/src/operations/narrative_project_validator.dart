@@ -1795,6 +1795,9 @@ bool _sceneEdgeIsStaticallyTraversable(
     case SceneNodeKind.cinematic:
       return edge.fromPortId == 'completed' &&
           edge.kind == SceneEdgeKind.cinematicCompleted;
+    case SceneNodeKind.presentationCinematic:
+      return edge.fromPortId == 'completed' &&
+          edge.kind == SceneEdgeKind.presentationCompleted;
     case SceneNodeKind.battle:
       return edge.fromPortId == 'victory' &&
               edge.kind == SceneEdgeKind.battleVictory ||

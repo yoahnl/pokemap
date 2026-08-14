@@ -1462,6 +1462,12 @@ List<SceneEdge> _traversableEdges(
               edge.fromPortId == 'completed' &&
               edge.kind == SceneEdgeKind.cinematicCompleted)
           .toList(growable: false);
+    case SceneNodeKind.presentationCinematic:
+      return edges
+          .where((edge) =>
+              edge.fromPortId == 'completed' &&
+              edge.kind == SceneEdgeKind.presentationCompleted)
+          .toList(growable: false);
     case SceneNodeKind.battle:
       return edges
           .where((edge) =>

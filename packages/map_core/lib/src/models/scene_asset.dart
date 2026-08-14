@@ -5,6 +5,11 @@ import 'narrative_value.dart';
 import 'scene_consequence.dart';
 import 'scene_interactive_command.dart';
 
+enum SceneExecutionProfile {
+  world,
+  preSession,
+}
+
 enum SceneNodeKind {
   start,
   end,
@@ -13,6 +18,7 @@ enum SceneNodeKind {
   action,
   battle,
   cinematic,
+  presentationCinematic,
   branchByOutcome,
   merge,
 }
@@ -25,6 +31,7 @@ enum SceneEdgeKind {
   battleVictory,
   battleDefeat,
   cinematicCompleted,
+  presentationCompleted,
   actionCompleted,
   branchOutcome,
   error,
@@ -244,6 +251,7 @@ final class SceneAsset {
   SceneAsset({
     required this.id,
     required this.name,
+    this.executionProfile = SceneExecutionProfile.world,
     this.description,
     this.storylineId,
     this.chapterId,
@@ -271,6 +279,12 @@ final class SceneAsset {
     return SceneAsset(
       id: _readRequiredString(json, 'id'),
       name: _readRequiredString(json, 'name'),
+      executionProfile: _readEnum(
+        SceneExecutionProfile.values,
+        json['executionProfile'],
+        'SceneAsset.executionProfile',
+        defaultValue: SceneExecutionProfile.world,
+      ),
       description: _readOptionalString(json, 'description'),
       storylineId: _readOptionalString(json, 'storylineId'),
       chapterId: _readOptionalString(json, 'chapterId'),
@@ -290,6 +304,8 @@ final class SceneAsset {
     return _withoutNulls({
       'id': id,
       'name': name,
+      if (executionProfile != SceneExecutionProfile.world)
+        'executionProfile': _enumToJson(executionProfile),
       'description': description,
       'storylineId': storylineId,
       'chapterId': chapterId,
@@ -304,6 +320,7 @@ final class SceneAsset {
 
   final String id;
   final String name;
+  final SceneExecutionProfile executionProfile;
   final String? description;
   final String? storylineId;
   final String? chapterId;
@@ -319,6 +336,7 @@ final class SceneAsset {
       other is SceneAsset &&
           other.id == id &&
           other.name == name &&
+          other.executionProfile == executionProfile &&
           other.description == description &&
           other.storylineId == storylineId &&
           other.chapterId == chapterId &&
@@ -332,6 +350,7 @@ final class SceneAsset {
   int get hashCode => Object.hash(
         id,
         name,
+        executionProfile,
         description,
         storylineId,
         chapterId,
@@ -704,6 +723,8 @@ abstract base class SceneNodePayload {
       SceneNodeKind.action => SceneActionPayload.fromJson(json),
       SceneNodeKind.battle => SceneBattlePayload.fromJson(json),
       SceneNodeKind.cinematic => SceneCinematicPayload.fromJson(json),
+      SceneNodeKind.presentationCinematic =>
+        ScenePresentationCinematicPayload.fromJson(json),
       SceneNodeKind.branchByOutcome =>
         SceneBranchByOutcomePayload.fromJson(json),
       SceneNodeKind.merge => SceneMergePayload.fromJson(json),
@@ -726,6 +747,9 @@ abstract base class SceneNodePayload {
         ),
       SceneNodeKind.cinematic => throw const ValidationException(
           'SceneNode.kind cinematic requires an explicit payload',
+        ),
+      SceneNodeKind.presentationCinematic => throw const ValidationException(
+          'SceneNode.kind presentationCinematic requires an explicit payload',
         ),
       SceneNodeKind.branchByOutcome => SceneBranchByOutcomePayload(),
       SceneNodeKind.merge => SceneMergePayload(),
@@ -1153,6 +1177,47 @@ final class SceneCinematicPayload extends SceneNodePayload {
 
   @override
   int get hashCode => cinematicId.hashCode;
+}
+
+@immutable
+final class ScenePresentationCinematicPayload extends SceneNodePayload {
+  ScenePresentationCinematicPayload({
+    required this.presentationCinematicId,
+  }) {
+    _requireNotBlank(
+      presentationCinematicId,
+      'ScenePresentationCinematicPayload.presentationCinematicId',
+    );
+  }
+
+  factory ScenePresentationCinematicPayload.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return ScenePresentationCinematicPayload(
+      presentationCinematicId:
+          _readRequiredString(json, 'presentationCinematicId'),
+    );
+  }
+
+  @override
+  SceneNodeKind get kind => SceneNodeKind.presentationCinematic;
+
+  final String presentationCinematicId;
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'kind': _enumToJson(kind),
+        'presentationCinematicId': presentationCinematicId,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ScenePresentationCinematicPayload &&
+          other.presentationCinematicId == presentationCinematicId;
+
+  @override
+  int get hashCode => presentationCinematicId.hashCode;
 }
 
 @immutable

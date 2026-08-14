@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_execution_capabilities.dart';
 import 'scene_execution_context.dart';
 import 'scene_runtime_plan.dart';
 
@@ -28,6 +29,7 @@ enum SceneRuntimeExecutionErrorCode {
   missingBranchSourceOutcome,
   unroutedOutcome,
   callbackFailed,
+  capabilityViolation,
   stepLimitExceeded,
 }
 
@@ -38,6 +40,7 @@ final class SceneRuntimeExecutionCallbacks {
     required this.startBattle,
     required this.playCinematic,
     required this.applyConsequence,
+    this.playPresentationCinematic,
     this.executeInteractiveCommand,
   });
 
@@ -45,6 +48,7 @@ final class SceneRuntimeExecutionCallbacks {
   final SceneRuntimeIntentCallback showDialogue;
   final SceneRuntimeIntentCallback startBattle;
   final SceneRuntimeIntentCallback playCinematic;
+  final SceneRuntimeIntentCallback? playPresentationCinematic;
   final SceneRuntimeConsequenceCallback applyConsequence;
   final SceneRuntimeIntentCallback? executeInteractiveCommand;
 }
@@ -71,6 +75,7 @@ final class SceneRuntimeExecutionResult {
     required this.message,
     required List<SceneRuntimeExecutionTraceEntry> trace,
     SceneExecutionContext? context,
+    this.capabilityIssueCode,
   })  : trace = List<SceneRuntimeExecutionTraceEntry>.unmodifiable(trace),
         context = context ?? SceneExecutionContext.empty;
 
@@ -82,6 +87,7 @@ final class SceneRuntimeExecutionResult {
   final String? message;
   final List<SceneRuntimeExecutionTraceEntry> trace;
   final SceneExecutionContext context;
+  final SceneExecutionCapabilityIssueCode? capabilityIssueCode;
 }
 
 final class SceneRuntimeExecutor {
@@ -111,6 +117,41 @@ final class SceneRuntimeExecutor {
     final startNode = nodesById[plan.startNodeId];
     final trace = <SceneRuntimeExecutionTraceEntry>[];
     var executionContext = context ?? SceneExecutionContext.empty;
+
+    for (final node in plan.nodes) {
+      final expectedCapabilityId = sceneExecutionCapabilityForRuntimeIntent(
+        plan.executionProfile,
+        node.intent,
+      );
+      final capabilityId = node.capabilityId ?? expectedCapabilityId;
+      final decision = sceneExecutionCapabilityMatrix.evaluate(
+        profile: plan.executionProfile,
+        capabilityId: capabilityId,
+      );
+      if (!decision.isAllowed) {
+        return _failed(
+          plan,
+          SceneRuntimeExecutionErrorCode.capabilityViolation,
+          'Scene runtime rejected capability $capabilityId for profile '
+          '${plan.executionProfile.name}.',
+          trace,
+          context: executionContext,
+          capabilityIssueCode: decision.issueCode,
+        );
+      }
+      if (capabilityId != expectedCapabilityId) {
+        return _failed(
+          plan,
+          SceneRuntimeExecutionErrorCode.capabilityViolation,
+          'Scene runtime capability $capabilityId does not match intent '
+          '${node.intent.kind.name}.',
+          trace,
+          context: executionContext,
+          capabilityIssueCode:
+              SceneExecutionCapabilityIssueCode.capabilityMismatch,
+        );
+      }
+    }
 
     if (startNode == null) {
       return _failed(
@@ -257,6 +298,24 @@ final class SceneRuntimeExecutor {
           await _callbackOutput(
             intent,
             callbacks.playCinematic,
+            const {'completed'},
+          ),
+        );
+      case SceneRuntimePlanIntentKind.playPresentationCinematic:
+        final callback = callbacks.playPresentationCinematic;
+        if (callback == null) {
+          return const _OutputPortResult(
+            errorCode: SceneRuntimeExecutionErrorCode.unsupportedIntent,
+            message:
+                'No Presentation Cinematic Scene executor is installed.',
+          );
+        }
+        return _recordCallbackOutcome(
+          node.id,
+          context,
+          await _callbackOutput(
+            intent,
+            callback,
             const {'completed'},
           ),
         );
@@ -485,6 +544,7 @@ SceneRuntimeExecutionResult _failed(
   String message,
   List<SceneRuntimeExecutionTraceEntry> trace, {
   required SceneExecutionContext context,
+  SceneExecutionCapabilityIssueCode? capabilityIssueCode,
 }) {
   return SceneRuntimeExecutionResult(
     status: SceneRuntimeExecutionStatus.failed,
@@ -495,6 +555,7 @@ SceneRuntimeExecutionResult _failed(
     message: message,
     trace: trace,
     context: context,
+    capabilityIssueCode: capabilityIssueCode,
   );
 }
 

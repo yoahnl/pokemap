@@ -1,6 +1,7 @@
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_execution_capabilities.dart';
 import '../models/scene_interactive_command.dart';
 import '../models/map_data.dart';
 import '../models/enums.dart';
@@ -67,6 +68,8 @@ enum SceneDiagnosticCode {
   battleTrainerRefUnknown,
   battleTemplateRefMissing,
   cinematicRefUnknown,
+  capabilityForbiddenForProfile,
+  capabilityUnknown,
   emptyGraph,
   legacyScenarioLeak,
 }
@@ -91,6 +94,7 @@ final class SceneDiagnostic {
     this.edgeId,
     this.outcomeId,
     this.suggestedFixLabel,
+    this.capabilityIssueCode,
   });
 
   final SceneDiagnosticCode code;
@@ -102,6 +106,7 @@ final class SceneDiagnostic {
   final String? edgeId;
   final String? outcomeId;
   final String? suggestedFixLabel;
+  final SceneExecutionCapabilityIssueCode? capabilityIssueCode;
 
   @override
   bool operator ==(Object other) =>
@@ -115,7 +120,8 @@ final class SceneDiagnostic {
           other.nodeId == nodeId &&
           other.edgeId == edgeId &&
           other.outcomeId == outcomeId &&
-          other.suggestedFixLabel == suggestedFixLabel;
+          other.suggestedFixLabel == suggestedFixLabel &&
+          other.capabilityIssueCode == capabilityIssueCode;
 
   @override
   int get hashCode => Object.hash(
@@ -128,6 +134,7 @@ final class SceneDiagnostic {
         edgeId,
         outcomeId,
         suggestedFixLabel,
+        capabilityIssueCode,
       );
 }
 
@@ -292,6 +299,36 @@ SceneDiagnosticsReport diagnoseScene(SceneAsset scene) {
   _diagnoseCycles(scene, nodeById, diagnostics);
 
   for (final node in scene.graph.nodes) {
+    final capabilityId = sceneExecutionCapabilityForNode(
+      scene.executionProfile,
+      node,
+    );
+    final capabilityDecision = sceneExecutionCapabilityMatrix.evaluate(
+      profile: scene.executionProfile,
+      capabilityId: capabilityId,
+    );
+    if (!capabilityDecision.isAllowed) {
+      diagnostics.add(
+        SceneDiagnostic(
+          code: switch (capabilityDecision.issueCode!) {
+            SceneExecutionCapabilityIssueCode.unknownCapability =>
+              SceneDiagnosticCode.capabilityUnknown,
+            SceneExecutionCapabilityIssueCode.forbiddenForProfile ||
+            SceneExecutionCapabilityIssueCode.capabilityMismatch =>
+              SceneDiagnosticCode.capabilityForbiddenForProfile,
+          },
+          severity: SceneDiagnosticSeverity.error,
+          message: 'Le profil ${scene.executionProfile.name} refuse la '
+              'capability $capabilityId.',
+          sceneId: scene.id,
+          nodeId: node.id,
+          target: SceneDiagnosticTarget.node,
+          capabilityIssueCode: capabilityDecision.issueCode,
+          suggestedFixLabel:
+              'Utiliser un nœud autorisé pour ce profil de scène.',
+        ),
+      );
+    }
     if (node.kind == SceneNodeKind.condition) {
       _diagnoseConditionNode(scene, node, diagnostics);
     } else if (node.kind == SceneNodeKind.action) {
@@ -1568,6 +1605,13 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(
         _SceneOutputPortSpec(
           id: 'completed',
           edgeKinds: {SceneEdgeKind.cinematicCompleted},
+          required: true,
+        ),
+      ],
+    SceneNodeKind.presentationCinematic => const [
+        _SceneOutputPortSpec(
+          id: 'completed',
+          edgeKinds: {SceneEdgeKind.presentationCompleted},
           required: true,
         ),
       ],

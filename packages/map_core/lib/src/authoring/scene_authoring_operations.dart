@@ -5,6 +5,7 @@ import '../models/narrative_event_registry.dart';
 import '../models/project_new_game_config.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_execution_capabilities.dart';
 import '../read_models/narrative_dependency_index.dart';
 
 const sceneLibraryArchivedMetadataKey = 'pokemap.scene.archived';
@@ -564,6 +565,7 @@ bool isSceneNodeDraftKindRemovable(SceneNodeKind kind) {
     SceneNodeKind.action ||
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
+    SceneNodeKind.presentationCinematic ||
     SceneNodeKind.branchByOutcome ||
     SceneNodeKind.merge =>
       true,
@@ -651,6 +653,13 @@ List<SceneAuthorableOutputPort> authorableSceneOutputPortsForKind(
           edgeKind: SceneEdgeKind.cinematicCompleted,
         ),
       ],
+    SceneNodeKind.presentationCinematic => const [
+        SceneAuthorableOutputPort(
+          id: 'completed',
+          label: 'completed',
+          edgeKind: SceneEdgeKind.presentationCompleted,
+        ),
+      ],
     SceneNodeKind.end ||
     SceneNodeKind.branchByOutcome =>
       const <SceneAuthorableOutputPort>[],
@@ -691,6 +700,7 @@ SceneConditionSourceUpdateResult updateSceneConditionSource(
   final updatedScene = SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,
@@ -763,6 +773,7 @@ SceneYarnDialoguePayloadUpdateResult updateSceneYarnDialoguePayload(
   final updatedScene = SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,
@@ -1017,6 +1028,7 @@ SceneActionNodeDraftCreationResult _addSceneActionPayloadNodeDraft(
     title: title,
     payload: payload,
   );
+  _validateNodeCapabilityForAuthoring(scene, createdNode);
   final createdLayout = _layoutForNewNode(
     scene,
     nodeId: nodeId,
@@ -1026,6 +1038,7 @@ SceneActionNodeDraftCreationResult _addSceneActionPayloadNodeDraft(
   final updatedScene = SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,
@@ -1120,6 +1133,7 @@ SceneNodeLayoutUpdateResult updateSceneNodeLayout(
   final updatedScene = SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,
@@ -1163,6 +1177,7 @@ SceneNodeDraftCreationResult addSceneNodeDraft(
     title: _trimOptional(title) ?? _defaultTitleForKind(kind),
     payload: SceneNodePayload.emptyForKind(kind),
   );
+  _validateNodeCapabilityForAuthoring(scene, createdNode);
   final createdLayout = _layoutForNewNode(
     scene,
     nodeId: nodeId,
@@ -1172,6 +1187,7 @@ SceneNodeDraftCreationResult addSceneNodeDraft(
   final updatedScene = SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,
@@ -1219,6 +1235,7 @@ SceneNodeDraftCreationResult duplicateSceneNodeDraft(
     SceneNodeKind.yarnDialogue ||
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
+    SceneNodeKind.presentationCinematic ||
     SceneNodeKind.branchByOutcome =>
       _linkedAssetNodeIdBaseForKind(source.kind),
     SceneNodeKind.action => 'node_action',
@@ -1258,6 +1275,7 @@ SceneNodeDraftCreationResult duplicateSceneNodeDraft(
     updatedScene: SceneAsset(
       id: scene.id,
       name: scene.name,
+      executionProfile: scene.executionProfile,
       description: scene.description,
       storylineId: scene.storylineId,
       chapterId: scene.chapterId,
@@ -1304,6 +1322,7 @@ SceneNodeDraftCreationResult addSceneLinkedAssetNodeDraft(
         _trimOptional(title) ?? _defaultLinkedAssetTitleForKind(payload.kind),
     payload: payload,
   );
+  _validateNodeCapabilityForAuthoring(scene, createdNode);
   final createdLayout = _layoutForNewNode(
     scene,
     nodeId: nodeId,
@@ -1313,6 +1332,7 @@ SceneNodeDraftCreationResult addSceneLinkedAssetNodeDraft(
   final updatedScene = SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,
@@ -1388,6 +1408,7 @@ SceneEdgeDraftCreationResult addSceneEdgeDraft(
   final updatedScene = SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,
@@ -1433,6 +1454,7 @@ SceneEdgeDraftRemovalResult removeSceneEdgeDraft(
   final updatedScene = SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,
@@ -1496,6 +1518,7 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
   final updatedScene = SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,
@@ -1847,6 +1870,7 @@ SceneAsset _copySceneAsset(
   return SceneAsset(
     id: id ?? source.id,
     name: name ?? source.name,
+    executionProfile: source.executionProfile,
     description: identical(description, _sceneLibraryUnset)
         ? source.description
         : description as String?,
@@ -2233,6 +2257,7 @@ SceneAsset _sceneWithUpdatedNode(SceneAsset scene, SceneNode updatedNode) {
   return SceneAsset(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     description: scene.description,
     storylineId: scene.storylineId,
     chapterId: scene.chapterId,
@@ -2263,6 +2288,28 @@ String _sanitizeEdgeIdPart(String value) {
   return slug.isEmpty ? 'id' : slug;
 }
 
+void _validateNodeCapabilityForAuthoring(
+  SceneAsset scene,
+  SceneNode node,
+) {
+  final capabilityId = sceneExecutionCapabilityForNode(
+    scene.executionProfile,
+    node,
+  );
+  final decision = sceneExecutionCapabilityMatrix.evaluate(
+    profile: scene.executionProfile,
+    capabilityId: capabilityId,
+  );
+  if (!decision.isAllowed) {
+    throw ArgumentError.value(
+      node.kind,
+      'kind',
+      '${decision.issueCode!.wireName}: profile '
+          '${scene.executionProfile.name} refuses $capabilityId.',
+    );
+  }
+}
+
 bool _isSupportedDraftNodeKind(SceneNodeKind kind) {
   return switch (kind) {
     SceneNodeKind.condition || SceneNodeKind.merge || SceneNodeKind.end => true,
@@ -2271,6 +2318,7 @@ bool _isSupportedDraftNodeKind(SceneNodeKind kind) {
     SceneNodeKind.action ||
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
+    SceneNodeKind.presentationCinematic ||
     SceneNodeKind.branchByOutcome =>
       false,
   };
@@ -2281,6 +2329,7 @@ bool _isSupportedLinkedAssetPayloadKind(SceneNodeKind kind) {
     SceneNodeKind.yarnDialogue ||
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
+    SceneNodeKind.presentationCinematic ||
     SceneNodeKind.branchByOutcome =>
       true,
     SceneNodeKind.start ||
@@ -2302,6 +2351,7 @@ String _nodeIdBaseForKind(SceneNodeKind kind) {
     SceneNodeKind.action ||
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
+    SceneNodeKind.presentationCinematic ||
     SceneNodeKind.branchByOutcome =>
       throw ArgumentError.value(kind, 'kind', 'Unsupported draft node kind.'),
   };
@@ -2312,6 +2362,7 @@ String _linkedAssetNodeIdBaseForKind(SceneNodeKind kind) {
     SceneNodeKind.yarnDialogue => 'node_yarn_dialogue',
     SceneNodeKind.battle => 'node_battle',
     SceneNodeKind.cinematic => 'node_cinematic',
+    SceneNodeKind.presentationCinematic => 'node_presentation_cinematic',
     SceneNodeKind.branchByOutcome => 'node_branch',
     SceneNodeKind.start ||
     SceneNodeKind.end ||
@@ -2336,6 +2387,7 @@ String _defaultTitleForKind(SceneNodeKind kind) {
     SceneNodeKind.action ||
     SceneNodeKind.battle ||
     SceneNodeKind.cinematic ||
+    SceneNodeKind.presentationCinematic ||
     SceneNodeKind.branchByOutcome =>
       throw ArgumentError.value(kind, 'kind', 'Unsupported draft node kind.'),
   };
@@ -2346,6 +2398,7 @@ String _defaultLinkedAssetTitleForKind(SceneNodeKind kind) {
     SceneNodeKind.yarnDialogue => 'Dialogue',
     SceneNodeKind.battle => 'Combat',
     SceneNodeKind.cinematic => 'Cinématique',
+    SceneNodeKind.presentationCinematic => 'Cinématique de présentation',
     SceneNodeKind.branchByOutcome => 'Branche par résultat',
     SceneNodeKind.start ||
     SceneNodeKind.end ||

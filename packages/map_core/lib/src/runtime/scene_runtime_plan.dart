@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../diagnostics/scene_diagnostics.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_execution_capabilities.dart';
 import '../models/scene_interactive_command.dart';
 
 enum SceneRuntimePlanIntentKind {
@@ -14,6 +15,7 @@ enum SceneRuntimePlanIntentKind {
   showDialogue,
   startBattle,
   playCinematic,
+  playPresentationCinematic,
   applyConsequence,
   executeInteractiveCommand,
 }
@@ -38,6 +40,7 @@ enum SceneRuntimePlanDiagnosticCode {
 final class SceneRuntimePlan {
   SceneRuntimePlan({
     required this.sceneId,
+    this.executionProfile = SceneExecutionProfile.world,
     required this.startNodeId,
     required List<SceneRuntimePlanNode> nodes,
     required List<SceneRuntimePlanEdge> edges,
@@ -47,6 +50,7 @@ final class SceneRuntimePlan {
         declaredOutcomes = List<SceneOutcome>.unmodifiable(declaredOutcomes);
 
   final String sceneId;
+  final SceneExecutionProfile executionProfile;
   final String startNodeId;
   final List<SceneRuntimePlanNode> nodes;
   final List<SceneRuntimePlanEdge> edges;
@@ -57,6 +61,7 @@ final class SceneRuntimePlan {
       identical(this, other) ||
       other is SceneRuntimePlan &&
           other.sceneId == sceneId &&
+          other.executionProfile == executionProfile &&
           other.startNodeId == startNodeId &&
           _listEquals(other.nodes, nodes) &&
           _listEquals(other.edges, edges) &&
@@ -65,6 +70,7 @@ final class SceneRuntimePlan {
   @override
   int get hashCode => Object.hash(
         sceneId,
+        executionProfile,
         startNodeId,
         Object.hashAll(nodes),
         Object.hashAll(edges),
@@ -78,6 +84,7 @@ final class SceneRuntimePlanNode {
     required this.id,
     required this.kind,
     required this.intent,
+    this.capabilityId,
     this.title,
     this.description,
   });
@@ -85,6 +92,7 @@ final class SceneRuntimePlanNode {
   final String id;
   final SceneNodeKind kind;
   final SceneRuntimePlanIntent intent;
+  final String? capabilityId;
   final String? title;
   final String? description;
 
@@ -95,11 +103,13 @@ final class SceneRuntimePlanNode {
           other.id == id &&
           other.kind == kind &&
           other.intent == intent &&
+          other.capabilityId == capabilityId &&
           other.title == title &&
           other.description == description;
 
   @override
-  int get hashCode => Object.hash(id, kind, intent, title, description);
+  int get hashCode =>
+      Object.hash(id, kind, intent, capabilityId, title, description);
 }
 
 @immutable
@@ -121,6 +131,7 @@ final class SceneRuntimePlanIntent {
     this.npcEntityId,
     List<String> battleDeclaredOutcomes = const <String>[],
     this.cinematicId,
+    this.presentationCinematicId,
     this.consequence,
     this.interactiveCommand,
   })  : branchSourceOutcomes = List<String>.unmodifiable(branchSourceOutcomes),
@@ -208,6 +219,15 @@ final class SceneRuntimePlanIntent {
     );
   }
 
+  factory SceneRuntimePlanIntent.playPresentationCinematic({
+    required String presentationCinematicId,
+  }) {
+    return SceneRuntimePlanIntent._(
+      kind: SceneRuntimePlanIntentKind.playPresentationCinematic,
+      presentationCinematicId: presentationCinematicId,
+    );
+  }
+
   factory SceneRuntimePlanIntent.applyConsequence({
     required SceneConsequence consequence,
   }) {
@@ -242,6 +262,7 @@ final class SceneRuntimePlanIntent {
   final String? npcEntityId;
   final List<String> battleDeclaredOutcomes;
   final String? cinematicId;
+  final String? presentationCinematicId;
   final SceneConsequence? consequence;
   final SceneInteractiveCommand? interactiveCommand;
 
@@ -249,6 +270,7 @@ final class SceneRuntimePlanIntent {
         SceneRuntimePlanIntentKind.start ||
         SceneRuntimePlanIntentKind.merge ||
         SceneRuntimePlanIntentKind.playCinematic ||
+        SceneRuntimePlanIntentKind.playPresentationCinematic ||
         SceneRuntimePlanIntentKind.applyConsequence =>
           const ['completed'],
         SceneRuntimePlanIntentKind.executeInteractiveCommand =>
@@ -299,6 +321,7 @@ final class SceneRuntimePlanIntent {
             battleDeclaredOutcomes,
           ) &&
           other.cinematicId == cinematicId &&
+          other.presentationCinematicId == presentationCinematicId &&
           other.consequence == consequence &&
           other.interactiveCommand == interactiveCommand;
 
@@ -320,6 +343,7 @@ final class SceneRuntimePlanIntent {
         npcEntityId,
         Object.hashAll(battleDeclaredOutcomes),
         cinematicId,
+        presentationCinematicId,
         consequence,
         interactiveCommand,
       );
@@ -369,6 +393,7 @@ final class SceneRuntimePlanDiagnostic {
     this.nodeId,
     this.edgeId,
     this.sourceSceneDiagnosticCode,
+    this.capabilityIssueCode,
   });
 
   final SceneRuntimePlanDiagnosticCode code;
@@ -378,6 +403,7 @@ final class SceneRuntimePlanDiagnostic {
   final String? nodeId;
   final String? edgeId;
   final SceneDiagnosticCode? sourceSceneDiagnosticCode;
+  final SceneExecutionCapabilityIssueCode? capabilityIssueCode;
 
   @override
   bool operator ==(Object other) =>
@@ -389,7 +415,8 @@ final class SceneRuntimePlanDiagnostic {
           other.sceneId == sceneId &&
           other.nodeId == nodeId &&
           other.edgeId == edgeId &&
-          other.sourceSceneDiagnosticCode == sourceSceneDiagnosticCode;
+          other.sourceSceneDiagnosticCode == sourceSceneDiagnosticCode &&
+          other.capabilityIssueCode == capabilityIssueCode;
 
   @override
   int get hashCode => Object.hash(
@@ -400,7 +427,42 @@ final class SceneRuntimePlanDiagnostic {
         nodeId,
         edgeId,
         sourceSceneDiagnosticCode,
+        capabilityIssueCode,
       );
+}
+
+String sceneExecutionCapabilityForRuntimeIntent(
+  SceneExecutionProfile profile,
+  SceneRuntimePlanIntent intent,
+) {
+  return switch (intent.kind) {
+    SceneRuntimePlanIntentKind.start => SceneExecutionCapabilityIds.flowStart,
+    SceneRuntimePlanIntentKind.end => SceneExecutionCapabilityIds.flowEnd,
+    SceneRuntimePlanIntentKind.evaluateCondition =>
+      SceneExecutionCapabilityIds.worldCondition,
+    SceneRuntimePlanIntentKind.showDialogue =>
+      SceneExecutionCapabilityIds.worldDialogue,
+    SceneRuntimePlanIntentKind.startBattle =>
+      SceneExecutionCapabilityIds.worldBattle,
+    SceneRuntimePlanIntentKind.playCinematic =>
+      SceneExecutionCapabilityIds.worldCinematic,
+    SceneRuntimePlanIntentKind.playPresentationCinematic =>
+      SceneExecutionCapabilityIds.presentationCinematic,
+    SceneRuntimePlanIntentKind.applyConsequence ||
+    SceneRuntimePlanIntentKind.executeInteractiveCommand =>
+      SceneExecutionCapabilityIds.worldAction,
+    SceneRuntimePlanIntentKind.branchByOutcome => switch (profile) {
+        SceneExecutionProfile.world =>
+          SceneExecutionCapabilityIds.worldBranch,
+        SceneExecutionProfile.preSession =>
+          SceneExecutionCapabilityIds.flowBranch,
+      },
+    SceneRuntimePlanIntentKind.merge => switch (profile) {
+        SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldMerge,
+        SceneExecutionProfile.preSession =>
+          SceneExecutionCapabilityIds.flowMerge,
+      },
+  };
 }
 
 @immutable
