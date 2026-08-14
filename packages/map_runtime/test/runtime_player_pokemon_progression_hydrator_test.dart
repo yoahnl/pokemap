@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:path/path.dart' as p;
@@ -13,6 +14,36 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('hydrateRuntimePlayerPokemonProgression', () {
+    test('delegates full individual hydration to the shared gameplay service',
+        () {
+      const individual = PlayerPokemon(
+        speciesId: 'wartortle',
+        natureId: 'bold',
+        abilityId: 'torrent',
+        level: 16,
+        knownMoveIds: <String>['water_gun'],
+        currentPpByMoveId: <String, int>{'water_gun': 99},
+        currentHp: 999,
+      );
+
+      final hydrated = hydrateRuntimePlayerPokemonProgression(
+        gameState: const GameState(
+          saveId: 'shared_hydrator',
+          party: PlayerParty(members: <PlayerPokemon>[individual]),
+        ),
+        catalogs: _catalogs(),
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        defaultOrigin: PlayerPokemonHydrationOrigin.newGame,
+      );
+
+      expect(hydrated.party.members.single.experience, 2535);
+      expect(
+        hydrated.party.members.single.currentPpByMoveId,
+        <String, int>{'water_gun': 25},
+      );
+      expect(hydrated.party.members.single.currentHp, 44);
+    });
+
     test('hydrates a level 16 legacy Pokemon without regressing its level', () {
       const legacy = PlayerPokemon(
         speciesId: 'wartortle',
@@ -28,6 +59,7 @@ void main() {
           party: PlayerParty(members: [legacy]),
         ),
         catalogs: _catalogs(),
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       );
       final pokemon = hydrated.party.members.single;
 
@@ -53,6 +85,7 @@ void main() {
           party: PlayerParty(members: [legacy]),
         ),
         catalogs: _catalogs(),
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       );
 
       expect(hydrated.party.members.single.currentPpByMoveId, isEmpty);
@@ -75,6 +108,7 @@ void main() {
           party: PlayerParty(members: [persisted]),
         ),
         catalogs: _catalogs(),
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       );
       final pokemon = hydrated.party.members.single;
 
@@ -97,6 +131,7 @@ void main() {
           pokemonStorage: PokemonStorage(storedPokemon: [stored]),
         ),
         catalogs: _catalogs(),
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       );
       final pokemon = hydrated.pokemonStorage.storedPokemon.single;
 
@@ -119,13 +154,13 @@ void main() {
             party: PlayerParty(members: [invalid]),
           ),
           catalogs: _catalogs(),
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         ),
         throwsA(
           isA<RuntimePlayerPokemonProgressionHydrationException>().having(
             (error) => error.code,
             'code',
-            RuntimePlayerPokemonProgressionHydrationErrorCode
-                .negativeExperience,
+            PlayerPokemonHydrationDiagnosticCode.negativeExperience,
           ),
         ),
       );
@@ -148,12 +183,13 @@ void main() {
             party: PlayerParty(members: [invalid]),
           ),
           catalogs: _catalogs(),
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         ),
         throwsA(
           isA<RuntimePlayerPokemonProgressionHydrationException>().having(
             (error) => error.code,
             'code',
-            RuntimePlayerPokemonProgressionHydrationErrorCode.negativeCurrentPp,
+            PlayerPokemonHydrationDiagnosticCode.negativeCurrentPp,
           ),
         ),
       );
@@ -176,12 +212,13 @@ void main() {
             party: PlayerParty(members: [invalid]),
           ),
           catalogs: _catalogs(),
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         ),
         throwsA(
           isA<RuntimePlayerPokemonProgressionHydrationException>().having(
             (error) => error.code,
             'code',
-            RuntimePlayerPokemonProgressionHydrationErrorCode.emptyMoveId,
+            PlayerPokemonHydrationDiagnosticCode.emptyMoveId,
           ),
         ),
       );
@@ -204,12 +241,13 @@ void main() {
             party: PlayerParty(members: [invalid]),
           ),
           catalogs: _catalogs(),
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         ),
         throwsA(
           isA<RuntimePlayerPokemonProgressionHydrationException>().having(
             (error) => error.code,
             'code',
-            RuntimePlayerPokemonProgressionHydrationErrorCode.unknownMove,
+            PlayerPokemonHydrationDiagnosticCode.unknownMove,
           ),
         ),
       );
@@ -232,13 +270,13 @@ void main() {
             party: PlayerParty(members: [invalid]),
           ),
           catalogs: _catalogs(),
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         ),
         throwsA(
           isA<RuntimePlayerPokemonProgressionHydrationException>().having(
             (error) => error.code,
             'code',
-            RuntimePlayerPokemonProgressionHydrationErrorCode
-                .ppForUnlearnedMove,
+            PlayerPokemonHydrationDiagnosticCode.ppForUnlearnedMove,
           ),
         ),
       );
@@ -343,6 +381,79 @@ void main() {
       expect(pokemon.experience, 2535);
       expect(pokemon.currentPpByMoveId, {'water_gun': 25});
     });
+
+    test('hydrates a Scene gift before returning the completed transaction',
+        () async {
+      final scene = SceneAsset(
+        id: 'gift_scene',
+        name: 'Gift',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: <SceneNode>[
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'gift',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(
+                SceneConsequence.givePokemon(
+                  speciesId: 'wartortle',
+                  level: 5,
+                  currentHp: 999,
+                ),
+              ),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: <SceneEdge>[
+            SceneEdge(
+              id: 'start_to_gift',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'gift',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'gift_to_end',
+              fromNodeId: 'gift',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+          ],
+        ),
+      );
+      final game = PlayableMapGame(
+        bundle: _runtimeBundle(
+          newGameEnabled: false,
+          scenes: <SceneAsset>[scene],
+        ),
+        projectFilePath: '/tmp/progression_hydration/project.json',
+        runtimePlayerPokemonProgressionCatalogLoader: _loadCatalogs,
+      );
+      game.onGameResize(Vector2(320, 240));
+      await game.onLoad();
+
+      final result = await game.debugExecuteNarrativeSceneForTest(
+        NarrativeSceneExecutionRequest(
+          eventId: 'gift_event',
+          sceneId: scene.id,
+          executionId: 'gift_execution',
+          gameState: game.gameStateSnapshot,
+        ),
+      );
+
+      expect(result, isA<NarrativeSceneExecutionCompleted>());
+      final pokemon = (result as NarrativeSceneExecutionCompleted)
+          .updatedGameState
+          .party
+          .members
+          .single;
+      expect(pokemon.abilityId, 'torrent');
+      expect(pokemon.experience, 135);
+      expect(pokemon.currentPpByMoveId, isEmpty);
+      expect(pokemon.currentHp, 20);
+      expect(pokemon.provenance?.kind, PlayerPokemonOriginKind.gift);
+    });
   });
 
   test('default loader projects growth rate and max PP from project data',
@@ -359,7 +470,26 @@ void main() {
         .writeAsString(
       jsonEncode({
         'id': 'wartortle',
-        'progression': {'growthRateId': 'medium_slow'},
+        'typing': <String, Object?>{
+          'types': <String>['water'],
+        },
+        'baseStats': <String, int>{
+          'hp': 59,
+          'atk': 63,
+          'def': 80,
+          'spa': 65,
+          'spd': 80,
+          'spe': 58,
+        },
+        'abilities': <String, Object?>{
+          'primary': 'torrent',
+          'hidden': 'rain_dish',
+        },
+        'progression': <String, Object?>{
+          'growthRateId': 'medium_slow',
+          'baseExp': 142,
+          'catchRate': 45,
+        },
       }),
     );
     await File(p.join(catalogDirectory.path, 'moves.json')).writeAsString(
@@ -398,13 +528,30 @@ void main() {
     );
 
     expect(catalogs.growthRateIdBySpeciesId, {'wartortle': 'medium_slow'});
+    expect(catalogs.speciesById['wartortle']?.primaryAbilityId, 'torrent');
+    expect(catalogs.speciesById['wartortle']?.baseStats.hp, 59);
     expect(catalogs.maxPpByMoveId, {'water_gun': 25});
   });
 }
 
 RuntimePlayerPokemonProgressionCatalogs _catalogs() {
   return const RuntimePlayerPokemonProgressionCatalogs(
-    growthRateIdBySpeciesId: {'wartortle': 'medium_slow'},
+    speciesById: <String, PlayerPokemonHydrationSpecies>{
+      'wartortle': PlayerPokemonHydrationSpecies(
+        id: 'wartortle',
+        baseStats: PokemonBaseStats(
+          hp: 59,
+          attack: 63,
+          defense: 80,
+          specialAttack: 65,
+          specialDefense: 80,
+          speed: 58,
+        ),
+        primaryAbilityId: 'torrent',
+        abilityIds: <String>['torrent', 'rain_dish'],
+        growthRateId: 'medium_slow',
+      ),
+    },
     maxPpByMoveId: {'water_gun': 25, 'bite': 25},
   );
 }
@@ -437,6 +584,7 @@ Future<void> _waitUntil(bool Function() predicate) async {
 RuntimeMapBundle _runtimeBundle({
   required bool newGameEnabled,
   Map<String, String> tilesetAbsolutePathsById = const {},
+  List<SceneAsset> scenes = const <SceneAsset>[],
 }) {
   const pokemon = PlayerPokemon(
     speciesId: 'wartortle',
@@ -456,6 +604,7 @@ RuntimeMapBundle _runtimeBundle({
         ),
       ],
       tilesets: const [],
+      scenes: scenes,
       newGame: ProjectNewGameConfig(
         enabled: newGameEnabled,
         startMapId: 'hydration_map',

@@ -18,6 +18,16 @@ export 'src/pokemon_stat_calculator.dart'
         PokemonBaseStats,
         PokemonCalculatedStats,
         PokemonStatCalculator;
+export 'src/player_pokemon_hydrator.dart'
+    show
+        PlayerPokemonHydrationOrigin,
+        PlayerPokemonHydrationDiagnosticSeverity,
+        PlayerPokemonHydrationDiagnosticCode,
+        PlayerPokemonHydrationDiagnostic,
+        PlayerPokemonHydrationSpecies,
+        PlayerPokemonHydrationCatalogs,
+        PlayerPokemonHydrationResult,
+        PlayerPokemonHydrator;
 export 'src/pokemon_evolution_service.dart'
     show
         PokemonEvolutionTriggerKind,

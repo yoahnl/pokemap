@@ -14,6 +14,7 @@ Future<GameState> hydrateTestBattlePokemonProgression({
   return hydrateRuntimePlayerPokemonProgression(
     gameState: state,
     catalogs: catalogs,
+    ruleset: bundle.manifest.pokemon.ruleset,
   );
 }
 

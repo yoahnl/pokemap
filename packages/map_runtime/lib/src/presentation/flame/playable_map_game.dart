@@ -261,8 +261,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _runtimeTilesetImageLoader =
             runtimeTilesetImageLoader ?? loadTilesetImagesById,
         _runtimePlayerPokemonProgressionCatalogLoader =
-            runtimePlayerPokemonProgressionCatalogLoader ??
-                loadRuntimePlayerPokemonProgressionCatalogs,
+            runtimePlayerPokemonProgressionCatalogLoader,
         _encounterRandom = encounterRandom ?? math.Random() {
     if (bundleTransformer != null) {
       _bundle = bundleTransformer!(_bundle);
@@ -360,6 +359,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             loadMoveLearningCandidates:
                 _battleLearnsetLoader.loadLevelUpCandidates,
             loadEvolutionCandidates: evolutionLoader.loadLevelUpCandidates,
+          ),
+          hydrateOwnedPlayerPokemon: ({
+            required gameState,
+            required bundle,
+          }) =>
+              _hydrateOwnedPlayerPokemonProgression(
+            gameState,
+            bundle: bundle,
           ),
         );
     _cinematicRuntimeHost = _PlayableMapCinematicRuntimeHost(this);
@@ -510,7 +517,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late final RuntimeTilesetImageSingleFlightCache _tilesetImageCache;
   bool _isRemoved = false;
   bool _onLoadInProgress = false;
-  final RuntimePlayerPokemonProgressionCatalogLoader
+  final RuntimePlayerPokemonProgressionCatalogLoader?
       _runtimePlayerPokemonProgressionCatalogLoader;
   final Map<String, RuntimeMapBundle> _runtimeBundleByMapId =
       <String, RuntimeMapBundle>{};
@@ -879,14 +886,34 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeMapBundle? bundle,
   }) async {
     final catalogueBundle = bundle ?? _bundle;
-    final catalogs = await _runtimePlayerPokemonProgressionCatalogLoader(
-      gameState: gameState,
-      projectRootDirectory: catalogueBundle.projectRootDirectory,
-      pokemonConfig: catalogueBundle.manifest.pokemon,
-    );
+    final injectedLoader = _runtimePlayerPokemonProgressionCatalogLoader;
+    final catalogs = injectedLoader == null
+        ? await loadRuntimePlayerPokemonProgressionCatalogs(
+            gameState: gameState,
+            projectRootDirectory: catalogueBundle.projectRootDirectory,
+            pokemonConfig: catalogueBundle.manifest.pokemon,
+            moveCatalogLoader: _battleMoveCatalogLoader,
+            speciesLoader: _battleSpeciesLoader,
+          )
+        : await injectedLoader(
+            gameState: gameState,
+            projectRootDirectory: catalogueBundle.projectRootDirectory,
+            pokemonConfig: catalogueBundle.manifest.pokemon,
+          );
     return hydrateRuntimePlayerPokemonProgression(
       gameState: gameState,
       catalogs: catalogs,
+      ruleset: catalogueBundle.manifest.pokemon.ruleset,
+      defaultOrigin: _isProjectNewGameBoot
+          ? PlayerPokemonHydrationOrigin.newGame
+          : PlayerPokemonHydrationOrigin.legacySave,
+      onDiagnostic: (diagnostic) {
+        debugPrint(
+          '[pokemon_hydration] severity=${diagnostic.severity.name} '
+          'code=${diagnostic.code.name} species=${diagnostic.speciesId} '
+          'message=${diagnostic.message}',
+        );
+      },
     );
   }
 

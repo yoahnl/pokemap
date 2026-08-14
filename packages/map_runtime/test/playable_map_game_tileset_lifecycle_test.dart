@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_player_pokemon_progression_hydrator.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
@@ -26,7 +27,7 @@ void main() {
         required pokemonConfig,
       }) async {
         return const RuntimePlayerPokemonProgressionCatalogs(
-          growthRateIdBySpeciesId: <String, String>{},
+          speciesById: <String, PlayerPokemonHydrationSpecies>{},
           maxPpByMoveId: <String, int>{},
         );
       },
@@ -85,7 +86,7 @@ void main() {
         required pokemonConfig,
       }) async {
         return const RuntimePlayerPokemonProgressionCatalogs(
-          growthRateIdBySpeciesId: <String, String>{},
+          speciesById: <String, PlayerPokemonHydrationSpecies>{},
           maxPpByMoveId: <String, int>{},
         );
       },

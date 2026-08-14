@@ -1998,6 +1998,7 @@ Future<RuntimePlayerServiceRecoveryCaps> loadRuntimePlayerServiceRecoveryCaps({
     projectRootDirectory: projectRootDirectory,
     pokemonConfig: pokemonConfig,
     moveCatalogLoader: moveCatalogLoader,
+    speciesLoader: speciesLoader,
   );
   final maxPpByPartyIndex = <int, Map<String, int>>{};
   for (var index = 0; index < gameState.party.members.length; index++) {

@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_battle_setup_exception.dart';
-import 'runtime_player_pokemon_progression_hydrator.dart';
 
 /// Projection progression validée d'une fiche espèce projet.
 final class RuntimePokemonSpeciesProgression {
@@ -58,7 +58,7 @@ RuntimePokemonSpeciesProgression parseRuntimePokemonSpeciesProgression(
   final rawCatchRate = progression['catchRate'];
   final baseExp = rawBaseExp is int ? rawBaseExp : null;
   final catchRate = rawCatchRate is int ? rawCatchRate : null;
-  if (!runtimeSupportedPokemonGrowthRateIds.contains(growthRateId) ||
+  if (!PokemonExperienceCurve.supportedIds.contains(growthRateId) ||
       baseExp == null ||
       baseExp <= 0 ||
       catchRate == null ||
