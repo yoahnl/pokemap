@@ -236,11 +236,15 @@ final class LocalMapAuthoringMutationApi
     required String planId,
     required String operationId,
     String? confirmationToken,
-  }) => _session(projectHandle).applyMutation(
-    planId: planId,
-    operationId: operationId,
-    confirmationToken: confirmationToken,
-  );
+  }) async {
+    final result = await _session(projectHandle).applyMutation(
+      planId: planId,
+      operationId: operationId,
+      confirmationToken: confirmationToken,
+    );
+    await _releasePresentationMediaStaging(result);
+    return result;
+  }
 
   @override
   Future<Map<String, Object?>> apply(
@@ -298,7 +302,11 @@ final class LocalMapAuthoringMutationApi
   Future<AuthoringMutationResult> recoverMutation(
     ProjectHandle projectHandle, {
     required String operationId,
-  }) => _session(projectHandle).recoverMutation(operationId);
+  }) async {
+    final result = await _session(projectHandle).recoverMutation(operationId);
+    await _releasePresentationMediaStaging(result);
+    return result;
+  }
 
   @override
   Future<Map<String, Object?>> recover(
@@ -317,6 +325,15 @@ final class LocalMapAuthoringMutationApi
     }
     _snapshotLoader.requireActiveProject(projectHandle);
     return session;
+  }
+
+  Future<void> _releasePresentationMediaStaging(
+    AuthoringMutationResult result,
+  ) async {
+    if (result.receipt.actionId != 'presentationMedia.import') return;
+    for (final artifact in result.receipt.artifacts) {
+      await artifacts.release(artifact.uri);
+    }
   }
 
   Future<void> _requireRootMatchesSnapshot(

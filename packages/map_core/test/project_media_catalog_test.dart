@@ -122,6 +122,66 @@ void main() {
       ]);
     });
 
+    test('roundtrips observed technical metadata without trusting paths', () {
+      final catalog = ProjectMediaCatalog(
+        entries: [
+          ProjectMediaAsset(
+            id: 'opening-video',
+            label: 'Opening video',
+            kind: ProjectMediaKind.video,
+            sourceAssetId: 'asset.opening.video',
+            technicalMetadata: ProjectMediaTechnicalMetadata(
+              mediaType: 'video/mp4',
+              container: 'mp4',
+              codec: 'h264',
+              audioCodec: 'aac',
+              sizeBytes: 42000,
+              width: 1920,
+              height: 1080,
+              durationMilliseconds: 12000,
+            ),
+          ),
+        ],
+      );
+
+      final decoded = ProjectMediaCatalog.fromJson(catalog.toJson());
+
+      expect(decoded.toJson(), catalog.toJson());
+      expect(decoded.entries.single.technicalMetadata!.toJson(), {
+        'mediaType': 'video/mp4',
+        'container': 'mp4',
+        'codec': 'h264',
+        'audioCodec': 'aac',
+        'sizeBytes': 42000,
+        'width': 1920,
+        'height': 1080,
+        'durationMilliseconds': 12000,
+      });
+    });
+
+    test('rejects partial or non-positive observed metadata', () {
+      expect(
+        () => ProjectMediaTechnicalMetadata(
+          mediaType: 'image/png',
+          container: 'png',
+          codec: 'png',
+          sizeBytes: 24,
+          width: 640,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => ProjectMediaTechnicalMetadata(
+          mediaType: 'audio/ogg',
+          container: 'ogg',
+          codec: 'vorbis',
+          sizeBytes: 24,
+          durationMilliseconds: 0,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('rejects duplicate identities and raw paths as source identities', () {
       expect(
         () => ProjectMediaCatalog(

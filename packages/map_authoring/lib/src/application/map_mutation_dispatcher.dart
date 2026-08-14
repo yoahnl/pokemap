@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:map_distribution/map_distribution.dart';
+
 import '../contracts/action_descriptor.dart';
 import '../domains/assets/asset_actions.dart';
 import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/element_actions.dart';
 import '../domains/assets/palette_actions.dart';
 import '../domains/assets/presentation_actions.dart';
+import '../domains/assets/presentation_media_import_actions.dart';
 import '../domains/assets/presentation_preset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
 import '../domains/assets/tiled_tileset_import_actions.dart';
@@ -71,6 +74,9 @@ final class MapMutationDispatcher {
   factory MapMutationDispatcher.canonical({
     ArtifactStore? artifactStore,
     TiledImageCollectionRasterCodec? tiledImageCollectionRasterCodec,
+    PresentationMediaProbePort presentationMediaProbe =
+        const PresentationMediaHeaderProbe(),
+    PresentationMediaImportFaultInjector? presentationMediaFaultInjector,
     AuthoringPerformanceObserver? performanceObserver,
   }) {
     final lifecycle = MapLifecycleActions(
@@ -97,6 +103,11 @@ final class MapMutationDispatcher {
     final artifacts =
         artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20);
     final assets = AssetActions(artifactStore: artifacts);
+    final presentationMedia = PresentationMediaImportActions(
+      artifactStore: artifacts,
+      probe: presentationMediaProbe,
+      faultInjector: presentationMediaFaultInjector,
+    );
     final characterStudioAssets = CharacterStudioAssetActions(
       artifactStore: artifacts,
     );
@@ -202,6 +213,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: assets.build,
+        ),
+      for (final descriptor in PresentationMediaImportActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: presentationMedia.build,
         ),
       for (final descriptor in CharacterStudioAssetActions.descriptors)
         MapMutationActionRegistration(

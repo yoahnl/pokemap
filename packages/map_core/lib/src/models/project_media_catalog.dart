@@ -38,6 +38,115 @@ final class ProjectMediaKind {
   int get hashCode => id.hashCode;
 }
 
+final class ProjectMediaTechnicalMetadata {
+  ProjectMediaTechnicalMetadata({
+    required String mediaType,
+    required String container,
+    required String codec,
+    required this.sizeBytes,
+    String? audioCodec,
+    this.width,
+    this.height,
+    this.durationMilliseconds,
+  }) : mediaType = _mediaType(mediaType),
+       container = _technicalToken(container, 'container'),
+       codec = _technicalToken(codec, 'codec'),
+       audioCodec = audioCodec == null
+           ? null
+           : _technicalToken(audioCodec, 'audioCodec') {
+    if (sizeBytes < 1) {
+      throw ArgumentError.value(sizeBytes, 'sizeBytes', 'must be positive');
+    }
+    if ((width == null) != (height == null)) {
+      throw ArgumentError.value(
+        '$width x $height',
+        'width/height',
+        'must both be present or absent',
+      );
+    }
+    if ((width != null && width! < 1) || (height != null && height! < 1)) {
+      throw ArgumentError.value(
+        '$width x $height',
+        'width/height',
+        'must be positive',
+      );
+    }
+    if (durationMilliseconds != null && durationMilliseconds! < 1) {
+      throw ArgumentError.value(
+        durationMilliseconds,
+        'durationMilliseconds',
+        'must be positive',
+      );
+    }
+  }
+
+  factory ProjectMediaTechnicalMetadata.fromJson(Map<String, Object?> json) {
+    _rejectUnknownKeys(json, const {
+      'mediaType',
+      'container',
+      'codec',
+      'audioCodec',
+      'sizeBytes',
+      'width',
+      'height',
+      'durationMilliseconds',
+    }, 'media.technicalMetadata');
+    try {
+      return ProjectMediaTechnicalMetadata(
+        mediaType: _readString(
+          json['mediaType'],
+          'media.technicalMetadata.mediaType',
+        ),
+        container: _readString(
+          json['container'],
+          'media.technicalMetadata.container',
+        ),
+        codec: _readString(json['codec'], 'media.technicalMetadata.codec'),
+        audioCodec: _readOptionalString(
+          json['audioCodec'],
+          'media.technicalMetadata.audioCodec',
+        ),
+        sizeBytes: _readInt(
+          json['sizeBytes'],
+          'media.technicalMetadata.sizeBytes',
+        ),
+        width: _readOptionalInt(json['width'], 'media.technicalMetadata.width'),
+        height: _readOptionalInt(
+          json['height'],
+          'media.technicalMetadata.height',
+        ),
+        durationMilliseconds: _readOptionalInt(
+          json['durationMilliseconds'],
+          'media.technicalMetadata.durationMilliseconds',
+        ),
+      );
+    } on ArgumentError catch (error) {
+      throw FormatException(error.message.toString());
+    }
+  }
+
+  final String mediaType;
+  final String container;
+  final String codec;
+  final String? audioCodec;
+  final int sizeBytes;
+  final int? width;
+  final int? height;
+  final int? durationMilliseconds;
+
+  Map<String, Object?> toJson() => {
+    'mediaType': mediaType,
+    'container': container,
+    'codec': codec,
+    if (audioCodec != null) 'audioCodec': audioCodec,
+    'sizeBytes': sizeBytes,
+    if (width != null) 'width': width,
+    if (height != null) 'height': height,
+    if (durationMilliseconds != null)
+      'durationMilliseconds': durationMilliseconds,
+  };
+}
+
 final class ProjectMediaAsset {
   ProjectMediaAsset({
     required String id,
@@ -47,6 +156,7 @@ final class ProjectMediaAsset {
     String? posterMediaId,
     Iterable<String> captionMediaIds = const [],
     String? fallbackMediaId,
+    this.technicalMetadata,
   }) : id = _stableIdentifier(id, 'id'),
        label = _requiredString(label, 'label'),
        sourceAssetId = _stableIdentifier(sourceAssetId, 'sourceAssetId'),
@@ -82,6 +192,7 @@ final class ProjectMediaAsset {
       'posterMediaId',
       'captionMediaIds',
       'fallbackMediaId',
+      'technicalMetadata',
     }, 'media');
     try {
       return ProjectMediaAsset(
@@ -104,6 +215,7 @@ final class ProjectMediaAsset {
           json['fallbackMediaId'],
           'media.fallbackMediaId',
         ),
+        technicalMetadata: _readTechnicalMetadata(json['technicalMetadata']),
       );
     } on ArgumentError catch (error) {
       throw FormatException(error.message.toString());
@@ -117,6 +229,7 @@ final class ProjectMediaAsset {
   final String? posterMediaId;
   final List<String> captionMediaIds;
   final String? fallbackMediaId;
+  final ProjectMediaTechnicalMetadata? technicalMetadata;
 
   ProjectMediaAsset replaceSource(String value) => ProjectMediaAsset(
     id: id,
@@ -126,6 +239,7 @@ final class ProjectMediaAsset {
     posterMediaId: posterMediaId,
     captionMediaIds: captionMediaIds,
     fallbackMediaId: fallbackMediaId,
+    technicalMetadata: technicalMetadata,
   );
 
   Map<String, Object?> toJson() => {
@@ -136,6 +250,8 @@ final class ProjectMediaAsset {
     if (posterMediaId != null) 'posterMediaId': posterMediaId,
     if (captionMediaIds.isNotEmpty) 'captionMediaIds': captionMediaIds,
     if (fallbackMediaId != null) 'fallbackMediaId': fallbackMediaId,
+    if (technicalMetadata != null)
+      'technicalMetadata': technicalMetadata!.toJson(),
   };
 }
 
@@ -253,6 +369,46 @@ String _readString(Object? value, String field) {
 String? _readOptionalString(Object? value, String field) {
   if (value == null) return null;
   return _readString(value, field);
+}
+
+int _readInt(Object? value, String field) {
+  if (value is! int) throw FormatException('$field must be an integer');
+  return value;
+}
+
+int? _readOptionalInt(Object? value, String field) {
+  if (value == null) return null;
+  return _readInt(value, field);
+}
+
+ProjectMediaTechnicalMetadata? _readTechnicalMetadata(Object? value) {
+  if (value == null) return null;
+  if (value is! Map || value.keys.any((key) => key is! String)) {
+    throw const FormatException('media.technicalMetadata must be an object');
+  }
+  return ProjectMediaTechnicalMetadata.fromJson(
+    Map<String, Object?>.from(value),
+  );
+}
+
+String _mediaType(String value) {
+  final normalized = value.trim().toLowerCase();
+  if (normalized != value ||
+      !RegExp(
+        r'^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$',
+      ).hasMatch(normalized)) {
+    throw ArgumentError.value(value, 'mediaType', 'must be a MIME type');
+  }
+  return normalized;
+}
+
+String _technicalToken(String value, String field) {
+  final normalized = value.trim().toLowerCase();
+  if (normalized != value ||
+      !RegExp(r'^[a-z0-9][a-z0-9_.+-]*$').hasMatch(normalized)) {
+    throw ArgumentError.value(value, field, 'must be a technical token');
+  }
+  return normalized;
 }
 
 List<String> _readStringList(Object? value, String field) {

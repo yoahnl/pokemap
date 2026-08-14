@@ -508,11 +508,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.directApi:
           'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/personalization/'
+      AuthoringTransport.editor: '../map_editor/test/personalization/'
           'phase_6_personalization_studio_export_e2e_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
+  if (actionId == 'presentationMedia.import') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/assets/presentation_media_import_transaction_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/assets/presentation_media_import_transaction_test.dart',
     };
   }
   if (actionId == 'campaign.encounter_table.upsert' ||
@@ -932,6 +939,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
       'preset.',
     ],
     'test/domains/assets/visual_library_contract_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['presentationMedia.import'],
+    'test/domains/assets/presentation_media_import_transaction_test.dart',
   ),
   _ContractEvidenceRule(
     ['presentation.'],

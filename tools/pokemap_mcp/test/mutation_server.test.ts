@@ -858,6 +858,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       (action) => String(action.id),
     );
     assert.ok(actionIds.includes("presentation.update"));
+    assert.ok(actionIds.includes("presentationMedia.import"));
     for (const actionId of [
       "presentation.preset.import_plan",
       "presentation.preset.import_apply",
@@ -883,6 +884,13 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       "directApi",
       "editor",
       "mcp",
+    ]);
+    const mediaImportAction = (
+      record(described.fullParity).mutationActions as JsonRecord[]
+    ).find((action) => String(action.actionId) === "presentationMedia.import");
+    assert.deepEqual(record(mediaImportAction).endToEndVerifiedTransports, [
+      "cli",
+      "directApi",
     ]);
 
     const validated = await toolData(fixture.client, "pokemap_validate", {

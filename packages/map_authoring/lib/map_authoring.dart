@@ -69,6 +69,7 @@ export 'src/domains/assets/element_actions.dart';
 export 'src/domains/assets/image_collection_prop_preview.dart';
 export 'src/domains/assets/palette_actions.dart';
 export 'src/domains/assets/presentation_actions.dart';
+export 'src/domains/assets/presentation_media_import_actions.dart';
 export 'src/domains/assets/presentation_preview_context_resources.dart';
 export 'src/domains/assets/presentation_preset_actions.dart';
 export 'src/domains/assets/project_media_store.dart';
