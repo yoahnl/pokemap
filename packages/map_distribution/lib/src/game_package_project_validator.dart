@@ -13,7 +13,7 @@ final class GamePackageProjectValidator {
 
   final GamePackageSecurityPolicy policy;
 
-  ProjectManifest validate(
+  void validate(
     GamePackageManifest packageManifest,
     Uint8List projectBytes, {
     required Set<String> payloadPaths,
@@ -51,7 +51,6 @@ final class GamePackageProjectValidator {
           );
         }
       }
-      return project;
     } on GamePackageFormatException {
       rethrow;
     } on Object {

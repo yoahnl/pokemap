@@ -121,7 +121,6 @@ final class RuntimeBattleRewardResolver {
           partyLength: postWriteBackState.party.members.length,
           defeatedOpponents: const <BattleProgressionDefeatedOpponent>[],
           partySlotMetadata: const <BattleProgressionPartySlotMetadata>[],
-          ruleset: bundle.manifest.pokemon.ruleset,
         );
         return RuntimeBattleRewardResolution(
           baseState: postWriteBackState,
@@ -164,7 +163,6 @@ final class RuntimeBattleRewardResolver {
         partyLength: postWriteBackState.party.members.length,
         defeatedOpponents: defeatedOpponents,
         partySlotMetadata: const <BattleProgressionPartySlotMetadata>[],
-        ruleset: bundle.manifest.pokemon.ruleset,
       );
 
       final metadata = <BattleProgressionPartySlotMetadata>[];
@@ -200,7 +198,6 @@ final class RuntimeBattleRewardResolver {
 
       final previewContext = BattleProgressionContext(
         outcome: mapped.outcome,
-        ruleset: bundle.manifest.pokemon.ruleset,
         playerParticipantPartySlots: mapped.playerParticipantPartySlots,
         defeatedOpponents: defeatedOpponents,
         partySlotMetadata: metadata,
@@ -235,7 +232,6 @@ final class RuntimeBattleRewardResolver {
 
       final context = BattleProgressionContext(
         outcome: mapped.outcome,
-        ruleset: bundle.manifest.pokemon.ruleset,
         playerParticipantPartySlots: mapped.playerParticipantPartySlots,
         defeatedOpponents: defeatedOpponents,
         partySlotMetadata: metadata,

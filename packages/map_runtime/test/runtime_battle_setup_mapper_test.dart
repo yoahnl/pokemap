@@ -118,10 +118,6 @@ void main() {
         setup.player.moves.map((move) => move.battleEngineMethod).toList(),
         equals(<String>['s_bind', 's_haze', 's_self_stat', 's_gastro_acid']),
       );
-      expect(
-        setup.ruleset.reference,
-        PokemonRulesetProfile.pokeMapBetaV1Reference,
-      );
       expect(setup.player.heldItemId, equals('leftovers'));
 
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(setup);
@@ -265,10 +261,6 @@ void main() {
       );
 
       expect(setup.playerPokemon.speciesId, equals('sproutle'));
-      expect(
-        setup.ruleset.reference,
-        PokemonRulesetProfile.pokeMapBetaV1Reference,
-      );
       expect(setup.playerPokemon.level, equals(12));
       expect(setup.playerPokemon.currentHp, equals(23));
       expect(setup.playerPokemon.typing, isNotNull);

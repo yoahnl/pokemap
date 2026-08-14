@@ -242,9 +242,6 @@ _ProjectPokemonConfig _$ProjectPokemonConfigFromJson(
   Map<String, dynamic> json,
 ) => _ProjectPokemonConfig(
   enabled: json['enabled'] as bool? ?? true,
-  ruleset: json['ruleset'] == null
-      ? PokemonRulesetProfile.pokeMapBetaV1
-      : PokemonRulesetProfile.fromJson(json['ruleset'] as Map<String, dynamic>),
   dataRoot: json['dataRoot'] as String? ?? 'data/pokemon',
   speciesDir: json['speciesDir'] as String? ?? 'data/pokemon/species',
   learnsetsDir: json['learnsetsDir'] as String? ?? 'data/pokemon/learnsets',
@@ -261,7 +258,6 @@ Map<String, dynamic> _$ProjectPokemonConfigToJson(
   _ProjectPokemonConfig instance,
 ) => <String, dynamic>{
   'enabled': instance.enabled,
-  'ruleset': instance.ruleset.toJson(),
   'dataRoot': instance.dataRoot,
   'speciesDir': instance.speciesDir,
   'learnsetsDir': instance.learnsetsDir,

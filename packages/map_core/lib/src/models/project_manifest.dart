@@ -9,7 +9,6 @@ import 'enums.dart';
 import 'project_trainer.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
-import 'pokemon_ruleset_profile.dart';
 import 'project_presentation_profile.dart';
 import 'project_presentation_preset.dart';
 import 'project_tileset_source.dart';
@@ -651,7 +650,6 @@ abstract class ProjectPokemonConfig with _$ProjectPokemonConfig {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectPokemonConfig({
     @Default(true) bool enabled,
-    @Default(PokemonRulesetProfile.pokeMapBetaV1) PokemonRulesetProfile ruleset,
     @Default('data/pokemon') String dataRoot,
     @Default('data/pokemon/species') String speciesDir,
     @Default('data/pokemon/learnsets') String learnsetsDir,

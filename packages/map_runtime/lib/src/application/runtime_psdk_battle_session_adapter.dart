@@ -1,5 +1,4 @@
 import 'package:map_battle/map_battle.dart';
-import 'package:map_core/map_core.dart';
 
 import 'runtime_battle_status_bridge.dart';
 
@@ -9,11 +8,7 @@ import 'runtime_battle_status_bridge.dart';
 /// vocabulary. This adapter keeps that UI contract stable while routing the
 /// actual turn execution through `BattleSessionFacade.fromPsdkSetup`.
 final class RuntimePsdkBattleSessionAdapter {
-  RuntimePsdkBattleSessionAdapter._(
-    this._facade,
-    this.opponentAi,
-    this.ruleset,
-  );
+  RuntimePsdkBattleSessionAdapter._(this._facade, this.opponentAi);
 
   factory RuntimePsdkBattleSessionAdapter.fromSetup(
     PsdkBattleSetup setup, {
@@ -25,7 +20,6 @@ final class RuntimePsdkBattleSessionAdapter {
         opponentAi: opponentAi,
       ),
       opponentAi,
-      setup.ruleset,
     );
   }
 
@@ -36,7 +30,6 @@ final class RuntimePsdkBattleSessionAdapter {
   /// Keeping this observable avoids test-only access to the facade internals
   /// and proves that authored difficulty reached the PSDK path.
   final PsdkBattleAi opponentAi;
-  final PokemonRulesetProfile ruleset;
   static const _statusBridge = RuntimeBattleStatusBridge();
   BattleDecision? _lastDecision;
   BattleEngineTurnResult? _lastTurnResult;
@@ -466,7 +459,6 @@ final class RuntimePsdkBattleSessionAdapter {
   }) {
     final psdkState = state.psdkState;
     return BattleSetup(
-      ruleset: ruleset,
       playerPokemon: _toLegacyCombatantData(
         psdkState.battlerAt(psdkPlayerSlot),
         includeStruggle: decisionRequest.canStruggle,

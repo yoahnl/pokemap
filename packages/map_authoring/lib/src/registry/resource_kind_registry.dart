@@ -366,12 +366,6 @@ final class AuthoringResourceKindRegistry {
         summary: 'Catalog, species, learnset, evolution or media document',
       ),
       AuthoringResourceKindDescriptor(
-        id: 'pokemonRuleset',
-        version: 1,
-        displayName: 'Pokemon ruleset',
-        summary: 'Versioned project-wide Pokemon mechanic policy profile',
-      ),
-      AuthoringResourceKindDescriptor(
         id: 'preset',
         version: 1,
         displayName: 'Preset',

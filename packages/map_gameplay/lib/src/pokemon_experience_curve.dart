@@ -49,13 +49,12 @@ final class PokemonExperienceCurve {
   }
 
   /// Resolves the greatest level whose cumulative threshold is reached.
-  int levelForExperience(int experience, {int maxLevel = 100}) {
+  int levelForExperience(int experience) {
     RangeError.checkNotNegative(experience, 'experience');
-    RangeError.checkValueInInterval(maxLevel, 1, 100, 'maxLevel');
-    if (experience >= totalExperienceForLevel(maxLevel)) return maxLevel;
+    if (experience >= totalExperienceForLevel(100)) return 100;
 
     var low = 1;
-    var high = maxLevel - 1;
+    var high = 99;
     while (low < high) {
       final middle = (low + high + 1) ~/ 2;
       if (totalExperienceForLevel(middle) <= experience) {

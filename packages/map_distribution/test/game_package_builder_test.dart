@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:map_distribution/map_distribution.dart';
-import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -89,36 +88,6 @@ void main() {
             .content
             .fileCount,
         12000,
-      );
-    });
-
-    test('exports the versioned Pokemon ruleset in the project payload', () {
-      final projectBytes = utf8.encode(
-        jsonEncode(
-          const ProjectManifest(
-            name: 'Ruleset package',
-            maps: <ProjectMapEntry>[],
-            tilesets: <ProjectTilesetEntry>[],
-          ).toJson(),
-        ),
-      );
-
-      final built = builder.build(
-        manifest: _draftManifest(),
-        payloadFiles: <String, List<int>>{
-          'project/project.json': projectBytes,
-        },
-      );
-      final archive = ZipDecoder().decodeBytes(built.packageBytes);
-      final packagedProject = jsonDecode(
-        utf8.decode(
-          archive.findFile('project/project.json')!.content as List<int>,
-        ),
-      ) as Map<String, dynamic>;
-
-      expect(
-        (packagedProject['pokemon']! as Map<String, dynamic>)['ruleset'],
-        PokemonRulesetProfile.pokeMapBetaV1.toJson(),
       );
     });
 

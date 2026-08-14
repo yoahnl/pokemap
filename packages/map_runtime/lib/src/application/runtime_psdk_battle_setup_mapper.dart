@@ -169,7 +169,6 @@ final class RuntimePsdkBattleSetupMapper {
     };
 
     return PsdkBattleSetup.singles(
-      ruleset: bundle.manifest.pokemon.ruleset,
       player: playerSeed.toPsdkBattleCombatantSetup(
         lineupIndex: 0,
         idPrefix: 'player',

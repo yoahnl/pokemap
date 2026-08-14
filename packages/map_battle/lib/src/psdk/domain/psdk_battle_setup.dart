@@ -1,5 +1,3 @@
-import 'package:map_core/map_core.dart';
-
 import 'psdk_battle_combatant.dart';
 import 'psdk_battle_field.dart';
 import 'psdk_battle_rng.dart';
@@ -12,7 +10,6 @@ import 'psdk_battle_slots.dart';
 /// multi battle and receive misleading events.
 class PsdkBattleSetup {
   PsdkBattleSetup.singles({
-    this.ruleset = PokemonRulesetProfile.pokeMapBetaV1,
     required PsdkBattleCombatantSetup player,
     required PsdkBattleCombatantSetup opponent,
     required this.rngSeeds,
@@ -42,7 +39,6 @@ class PsdkBattleSetup {
           },
         ),
         isSingles = true {
-    ruleset.requireSupported();
     if (isTrainerBattle && canCapture) {
       throw ArgumentError(
         'A trainer battle cannot expose a capture decision.',
@@ -61,7 +57,6 @@ class PsdkBattleSetup {
   }
 
   final Map<PsdkBattleSlotRef, PsdkBattleCombatantSetup> combatants;
-  final PokemonRulesetProfile ruleset;
   final Map<int, List<PsdkBattleCombatantSetup>> parties;
   final PsdkBattleRngSeeds rngSeeds;
   final PsdkBattleFieldState field;

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:test/test.dart';
@@ -25,10 +24,6 @@ void main() {
       expect(result.receipt.receiptVersion, 1);
       expect(result.receipt.treeSha256, result.manifest.content.treeSha256);
       expect(result.receipt.packageSha256, hasLength(64));
-      expect(
-        result.receipt.pokemonRuleset,
-        PokemonRulesetProfile.pokeMapBetaV1Reference,
-      );
       expect(
         result.receipt.toJson()['gameVersion'],
         result.manifest.gameVersion.toString(),
