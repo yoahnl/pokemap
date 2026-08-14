@@ -21,8 +21,8 @@ void main() {
       'pokedex_species_learnset_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    readRepository = const FilePokemonReadRepository();
-    writeRepository = const FilePokemonWriteRepository();
+    readRepository = FilePokemonReadRepository();
+    writeRepository = FilePokemonWriteRepository();
     useCase = UpdatePokedexSpeciesLearnsetUseCase(
       readRepository: readRepository,
       writeRepository: writeRepository,

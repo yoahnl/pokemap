@@ -21,8 +21,8 @@ void main() {
       'pokedex_species_media_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    readRepository = const FilePokemonReadRepository();
-    writeRepository = const FilePokemonWriteRepository();
+    readRepository = FilePokemonReadRepository();
+    writeRepository = FilePokemonWriteRepository();
     useCase = UpdatePokedexSpeciesMediaUseCase(
       readRepository: readRepository,
       writeRepository: writeRepository,

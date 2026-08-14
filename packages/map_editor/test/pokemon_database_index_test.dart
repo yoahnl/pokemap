@@ -26,7 +26,7 @@ void main() {
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
     projectRepository = FileProjectRepository();
-    pokemonReadRepository = const FilePokemonReadRepository();
+    pokemonReadRepository = FilePokemonReadRepository();
     indexService = PokemonDatabaseIndex(
       projectRepository: projectRepository,
       pokemonReadRepository: pokemonReadRepository,

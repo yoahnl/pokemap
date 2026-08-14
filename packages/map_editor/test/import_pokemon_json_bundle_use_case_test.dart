@@ -31,10 +31,10 @@ void main() {
       'pokemon_bundle_import_source_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    readRepository = const FilePokemonReadRepository();
+    readRepository = FilePokemonReadRepository();
 
-    const writeRepository = FilePokemonWriteRepository();
-    useCase = const ImportPokemonJsonBundleUseCase(
+    final writeRepository = FilePokemonWriteRepository();
+    useCase = ImportPokemonJsonBundleUseCase(
       writeRepository: writeRepository,
       speciesImportUseCase: ImportPokemonSpeciesJsonUseCase(writeRepository),
       learnsetImportUseCase: ImportPokemonLearnsetJsonUseCase(writeRepository),

@@ -62,3 +62,12 @@ abstract class PokemonReadRepository {
     String speciesId,
   );
 }
+
+abstract interface class PokemonSpeciesSnapshotController {
+  Future<String?> resolveSpeciesRelativePathById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  );
+
+  void invalidateSpeciesSnapshot(ProjectWorkspace workspace);
+}

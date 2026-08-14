@@ -25,7 +25,7 @@ void main() {
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
     seedUseCase = const SeedPokemonDemoDataUseCase();
-    repository = const FilePokemonReadRepository();
+    repository = FilePokemonReadRepository();
   });
 
   tearDown(() async {

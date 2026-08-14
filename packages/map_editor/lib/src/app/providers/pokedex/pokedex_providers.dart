@@ -6,6 +6,7 @@ import '../../../application/ports/pokemon_external_source_repository.dart';
 import '../../../application/ports/pokemon_write_repository.dart';
 import '../../../application/services/pokemon_database_index.dart';
 import '../../../application/services/pokemon_external_query_resolver.dart';
+import '../../../application/services/pokemon_project_data_reader.dart';
 import '../../../application/use_cases/import_external_pokemon_use_cases.dart';
 import '../../../application/use_cases/import_pokemon_evolution_json_use_case.dart';
 import '../../../application/use_cases/import_pokemon_json_bundle_use_case.dart';
@@ -37,12 +38,20 @@ import '../core/repository_providers.dart';
 /// - le workspace Pokédex n'instancie plus l'infrastructure directement ;
 /// - on réutilise les repositories/services existants ;
 /// - on ne crée pas un nouveau notifier ni une couche "future-proof" inutile.
+final pokemonProjectDataReaderProvider = Provider<PokemonProjectDataReader>((ref) {
+  return PokemonProjectDataReader();
+});
+
 final pokemonReadRepositoryProvider = Provider<PokemonReadRepository>((ref) {
-  return const FilePokemonReadRepository();
+  return FilePokemonReadRepository(
+    reader: ref.watch(pokemonProjectDataReaderProvider),
+  );
 });
 
 final pokemonWriteRepositoryProvider = Provider<PokemonWriteRepository>((ref) {
-  return const FilePokemonWriteRepository();
+  return FilePokemonWriteRepository(
+    reader: ref.watch(pokemonProjectDataReaderProvider),
+  );
 });
 
 final pokemonExternalHttpClientProvider = Provider<http.Client>((ref) {
@@ -230,6 +239,7 @@ final importExternalPokemonSpeciesUseCaseProvider =
     externalSourceRepository:
         ref.watch(pokemonExternalSourceRepositoryProvider),
     writeRepository: ref.watch(pokemonWriteRepositoryProvider),
+    dataReader: ref.watch(pokemonProjectDataReaderProvider),
   );
 });
 

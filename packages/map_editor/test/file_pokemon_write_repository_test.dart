@@ -24,8 +24,8 @@ void main() {
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
     initializeStorage = const InitializePokemonProjectStorageUseCase();
-    writeRepository = const FilePokemonWriteRepository();
-    readRepository = const FilePokemonReadRepository();
+    writeRepository = FilePokemonWriteRepository();
+    readRepository = FilePokemonReadRepository();
   });
 
   tearDown(() async {

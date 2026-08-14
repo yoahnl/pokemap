@@ -24,6 +24,12 @@ abstract class ProjectWorkspace {
   Future<void> deleteRelativeFile(String relativePath);
 }
 
+abstract interface class ProjectWorkspaceCache {
+  T? readCachedValue<T extends Object>(String key);
+
+  void writeCachedValue(String key, Object? value);
+}
+
 abstract class ProjectWorkspaceFactory {
   ProjectWorkspace create(String projectRoot);
 }

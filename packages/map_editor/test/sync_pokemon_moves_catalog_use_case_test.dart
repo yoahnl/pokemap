@@ -25,8 +25,8 @@ void main() {
     tempProjectRoot =
         await Directory.systemTemp.createTemp('moves_catalog_sync_');
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    readRepository = const FilePokemonReadRepository();
-    writeRepository = const FilePokemonWriteRepository();
+    readRepository = FilePokemonReadRepository();
+    writeRepository = FilePokemonWriteRepository();
     externalRepository = _FakePokemonExternalSourceRepository();
     syncUseCase = SyncExternalPokemonMovesCatalogUseCase(
       externalSourceRepository: externalRepository,

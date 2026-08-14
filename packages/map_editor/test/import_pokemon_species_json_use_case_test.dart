@@ -26,10 +26,10 @@ void main() {
       'pokemon_species_import_source_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    useCase = const ImportPokemonSpeciesJsonUseCase(
+    useCase = ImportPokemonSpeciesJsonUseCase(
       FilePokemonWriteRepository(),
     );
-    readRepository = const FilePokemonReadRepository();
+    readRepository = FilePokemonReadRepository();
 
     final createProjectUseCase = CreateProjectUseCase(
       FileProjectRepository(),

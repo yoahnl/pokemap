@@ -155,10 +155,7 @@ class FileProjectRepository
     if (!await file.exists()) {
       return (exists: false, bytes: null);
     }
-    return (
-      exists: true,
-      bytes: await file.readAsBytes(),
-    );
+    return (exists: true, bytes: await file.readAsBytes());
   }
 
   Future<_ProjectFileState> _requireProjectFileState(
@@ -468,10 +465,7 @@ class FileMapRepository
     String path, {
     required String expectedRevision,
   }) async {
-    await _mapPersistence.delete(
-      path,
-      expectedRevision: expectedRevision,
-    );
+    await _mapPersistence.delete(path, expectedRevision: expectedRevision);
     await _invalidateAuthoringSnapshotForResource(path);
   }
 
@@ -558,10 +552,10 @@ class FileTilesetRepository implements TilesetRepository {
 ///
 /// Cette classe sert de frontière infrastructurelle pour les use cases :
 /// la mécanique JSON concrète reste déléguée au lecteur local existant.
-class FilePokemonReadRepository implements PokemonReadRepository {
-  const FilePokemonReadRepository({
-    this.reader = const PokemonProjectDataReader(),
-  });
+class FilePokemonReadRepository
+    implements PokemonReadRepository, PokemonSpeciesSnapshotController {
+  FilePokemonReadRepository({PokemonProjectDataReader? reader})
+      : reader = reader ?? PokemonProjectDataReader();
 
   final PokemonProjectDataReader reader;
 
@@ -618,6 +612,19 @@ class FilePokemonReadRepository implements PokemonReadRepository {
   }
 
   @override
+  Future<String?> resolveSpeciesRelativePathById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) {
+    return reader.resolveSpeciesRelativePathById(workspace, speciesId);
+  }
+
+  @override
+  void invalidateSpeciesSnapshot(ProjectWorkspace workspace) {
+    reader.invalidateSpeciesSnapshot(workspace);
+  }
+
+  @override
   Future<PokemonLearnsetFile> readLearnsetById(
     ProjectWorkspace workspace,
     String speciesId,
@@ -667,9 +674,8 @@ class FilePokemonReadRepository implements PokemonReadRepository {
 ///
 /// Elle ne touche jamais à `project.json` et n'écrit jamais hors du workspace.
 class FilePokemonWriteRepository implements PokemonWriteRepository {
-  const FilePokemonWriteRepository({
-    this.reader = const PokemonProjectDataReader(),
-  });
+  FilePokemonWriteRepository({PokemonProjectDataReader? reader})
+      : reader = reader ?? PokemonProjectDataReader();
 
   /// Le repository d'écriture réutilise le lecteur local existant uniquement
   /// pour résoudre le chemin réel d'une espèce déjà présente.
@@ -722,6 +728,7 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
   ) async {
     final relativePath = await _resolveSpeciesWritePath(workspace, species);
     await _writeJsonObject(workspace, relativePath, species.toJson());
+    reader.invalidateSpeciesSnapshot(workspace);
   }
 
   @override
@@ -796,8 +803,9 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
       );
     }
 
-    final absolutePath =
-        workspace.resolveProjectRelativePath(normalizedRelativePath);
+    final absolutePath = workspace.resolveProjectRelativePath(
+      normalizedRelativePath,
+    );
     await workspace.ensureDirectoryExists(absolutePath);
     await File(absolutePath).writeAsBytes(bytes, flush: true);
   }
@@ -822,7 +830,8 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
     final trimmedId = species.id.trim();
     if (trimmedId.isEmpty) {
       throw const EditorValidationException(
-          'Pokemon species id cannot be empty');
+        'Pokemon species id cannot be empty',
+      );
     }
 
     final speciesDirectory = Directory(
@@ -832,7 +841,7 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
       return 'data/pokemon/species/${_speciesFileName(species)}';
     }
 
-    final existingPath = await reader.resolveSpeciesRelativePathById(
+    final existingPath = await reader.resolveSpeciesWriteRelativePathById(
       workspace,
       trimmedId,
     );
@@ -846,7 +855,8 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
   String _speciesFileName(PokemonSpeciesFile species) {
     final dex = species.nationalDex.toString().padLeft(4, '0');
     final slug = _sanitizeFileSegment(
-        species.slug.isNotEmpty ? species.slug : species.id);
+      species.slug.isNotEmpty ? species.slug : species.id,
+    );
     return '$dex-$slug.json';
   }
 

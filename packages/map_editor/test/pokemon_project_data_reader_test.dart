@@ -19,7 +19,7 @@ void main() {
     tempProjectRoot = await Directory.systemTemp.createTemp('pokemon_readers_');
     workspace = ProjectFileSystem(tempProjectRoot.path);
     seedUseCase = const SeedPokemonDemoDataUseCase();
-    reader = const PokemonProjectDataReader();
+    reader = PokemonProjectDataReader();
   });
 
   tearDown(() async {

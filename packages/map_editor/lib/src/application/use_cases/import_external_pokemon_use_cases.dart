@@ -368,8 +368,8 @@ class ImportExternalPokemonSpeciesUseCase {
     this.learnsetConverter = const PokeApiPokemonLearnsetConverter(),
     this.evolutionConverter = const PokeApiPokemonEvolutionConverter(),
     this.mediaStubGenerator = const PokemonMediaStubGenerator(),
-    this.dataReader = const PokemonProjectDataReader(),
-  });
+    PokemonProjectDataReader? dataReader,
+  }) : dataReader = dataReader ?? PokemonProjectDataReader();
 
   final PokemonExternalSourceRepository externalSourceRepository;
   final PokemonWriteRepository writeRepository;
