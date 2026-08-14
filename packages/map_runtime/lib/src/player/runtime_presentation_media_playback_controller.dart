@@ -7,6 +7,7 @@ enum RuntimePresentationVideoAudioMode { muted, mixerManaged }
 enum RuntimePresentationMediaPlaybackStatus {
   idle,
   playingVideo,
+  pausedVideo,
   showingPoster,
   failed,
 }
@@ -49,6 +50,8 @@ abstract interface class RuntimePresentationVideoPlaybackDriver {
 
   Future<void> play(Object handle);
 
+  Future<void> pause(Object handle);
+
   Future<void> setVolume(Object handle, double volume);
 
   Future<void> dispose(Object handle);
@@ -73,11 +76,15 @@ final class RuntimePresentationMediaPlaybackController {
   final RuntimePresentationVideoPlaybackDriver videoDriver;
   final RuntimeAudioMixer _audioMixer;
 
+  static const maximumActiveDecoderCount = 1;
+  static const maximumCachedDecoderCount = 0;
+
   Future<void> _pending = Future<void>.value();
   RuntimePresentationMediaPlaybackSnapshot _snapshot =
       RuntimePresentationMediaPlaybackSnapshot.idle;
   _RuntimePresentationActiveVideo? _activeVideo;
   bool _disposed = false;
+  int _generation = 0;
 
   RuntimePresentationMediaPlaybackSnapshot get snapshot => _snapshot;
 
@@ -96,9 +103,19 @@ final class RuntimePresentationMediaPlaybackController {
         ),
       );
     }
+    if (_disposed) {
+      return Future.value(
+        _fail(
+          mediaId,
+          RuntimePresentationMediaPlaybackDiagnosticCodes.playbackFailed,
+        ),
+      );
+    }
+    final generation = ++_generation;
     final result = _pending.then(
       (_) => _playVideo(
         mediaId,
+        generation: generation,
         audioMode: audioMode,
         sourceVolume: sourceVolume,
       ),
@@ -107,24 +124,48 @@ final class RuntimePresentationMediaPlaybackController {
     return result;
   }
 
+  Future<RuntimePresentationMediaPlaybackSnapshot> pauseForLifecycle() {
+    final result = _pending.then((_) => _pauseForLifecycle());
+    _pending = result.then<void>((_) {}, onError: (_, __) {});
+    return result;
+  }
+
+  Future<RuntimePresentationMediaPlaybackSnapshot> resumeAfterLifecycle() {
+    final result = _pending.then((_) => _resumeAfterLifecycle());
+    _pending = result.then<void>((_) {}, onError: (_, __) {});
+    return result;
+  }
+
+  Future<void> release() {
+    ++_generation;
+    final result = _pending.then((_) async {
+      await _releaseActiveVideo();
+      _snapshot = RuntimePresentationMediaPlaybackSnapshot.idle;
+    });
+    _pending = result.onError((_, __) {});
+    return result;
+  }
+
   Future<void> dispose() {
     if (_disposed) return _pending;
     _disposed = true;
-    final result = _pending.then((_) => _releaseActiveVideo());
+    ++_generation;
+    final result = _pending.then((_) async {
+      await _releaseActiveVideo();
+      _snapshot = RuntimePresentationMediaPlaybackSnapshot.idle;
+    });
     _pending = result.onError((_, __) {});
     return result;
   }
 
   Future<RuntimePresentationMediaPlaybackSnapshot> _playVideo(
     String mediaId, {
+    required int generation,
     required RuntimePresentationVideoAudioMode audioMode,
     required double sourceVolume,
   }) async {
-    if (_disposed) {
-      return _fail(
-        mediaId,
-        RuntimePresentationMediaPlaybackDiagnosticCodes.playbackFailed,
-      );
+    if (!_isCurrent(generation)) {
+      return _snapshot;
     }
     try {
       await _releaseActiveVideo();
@@ -185,6 +226,13 @@ final class RuntimePresentationMediaPlaybackController {
           resolveUri(media),
           initialVolume: initialVolume,
         );
+        if (!_isCurrent(generation)) {
+          final staleHandle = handle;
+          handle = null;
+          await videoDriver.dispose(staleHandle);
+          _snapshot = RuntimePresentationMediaPlaybackSnapshot.idle;
+          return _snapshot;
+        }
         if (audioMode == RuntimePresentationVideoAudioMode.mixerManaged) {
           await _audioMixer.register(
             channel: handle,
@@ -195,7 +243,23 @@ final class RuntimePresentationMediaPlaybackController {
           );
           registered = true;
         }
+        if (!_isCurrent(generation)) {
+          if (registered) _audioMixer.unregister(handle);
+          final staleHandle = handle;
+          handle = null;
+          await videoDriver.dispose(staleHandle);
+          _snapshot = RuntimePresentationMediaPlaybackSnapshot.idle;
+          return _snapshot;
+        }
         await videoDriver.play(handle);
+        if (!_isCurrent(generation)) {
+          if (registered) _audioMixer.unregister(handle);
+          final staleHandle = handle;
+          handle = null;
+          await videoDriver.dispose(staleHandle);
+          _snapshot = RuntimePresentationMediaPlaybackSnapshot.idle;
+          return _snapshot;
+        }
         _activeVideo = _RuntimePresentationActiveVideo(
           handle: handle,
           mixerManaged: registered,
@@ -211,8 +275,10 @@ final class RuntimePresentationMediaPlaybackController {
       } on Object {
         if (handle != null) {
           if (registered) _audioMixer.unregister(handle);
+          final failedHandle = handle;
+          handle = null;
           try {
-            await videoDriver.dispose(handle);
+            await videoDriver.dispose(failedHandle);
           } on Object {
             return _fail(
               mediaId,
@@ -237,6 +303,55 @@ final class RuntimePresentationMediaPlaybackController {
     );
   }
 
+  bool _isCurrent(int generation) => !_disposed && generation == _generation;
+
+  Future<RuntimePresentationMediaPlaybackSnapshot> _pauseForLifecycle() async {
+    final active = _activeVideo;
+    if (_disposed || active == null || active.paused) return _snapshot;
+    try {
+      await videoDriver.pause(active.handle);
+      active.paused = true;
+      _snapshot = RuntimePresentationMediaPlaybackSnapshot(
+        status: RuntimePresentationMediaPlaybackStatus.pausedVideo,
+        requestedMediaId: _snapshot.requestedMediaId,
+        resolvedMediaId: _snapshot.resolvedMediaId,
+        videoHandle: active.handle,
+        usedFallback: _snapshot.usedFallback,
+      );
+      return _snapshot;
+    } on Object {
+      await _releaseActiveVideo();
+      return _fail(
+        _snapshot.requestedMediaId ?? '',
+        RuntimePresentationMediaPlaybackDiagnosticCodes.playbackFailed,
+      );
+    }
+  }
+
+  Future<RuntimePresentationMediaPlaybackSnapshot>
+      _resumeAfterLifecycle() async {
+    final active = _activeVideo;
+    if (_disposed || active == null || !active.paused) return _snapshot;
+    try {
+      await videoDriver.play(active.handle);
+      active.paused = false;
+      _snapshot = RuntimePresentationMediaPlaybackSnapshot(
+        status: RuntimePresentationMediaPlaybackStatus.playingVideo,
+        requestedMediaId: _snapshot.requestedMediaId,
+        resolvedMediaId: _snapshot.resolvedMediaId,
+        videoHandle: active.handle,
+        usedFallback: _snapshot.usedFallback,
+      );
+      return _snapshot;
+    } on Object {
+      await _releaseActiveVideo();
+      return _fail(
+        _snapshot.requestedMediaId ?? '',
+        RuntimePresentationMediaPlaybackDiagnosticCodes.playbackFailed,
+      );
+    }
+  }
+
   RuntimePresentationMediaPlaybackSnapshot _fail(String mediaId, String code) {
     _snapshot = RuntimePresentationMediaPlaybackSnapshot(
       status: RuntimePresentationMediaPlaybackStatus.failed,
@@ -250,18 +365,19 @@ final class RuntimePresentationMediaPlaybackController {
   Future<void> _releaseActiveVideo() async {
     final active = _activeVideo;
     if (active == null) return;
+    _activeVideo = null;
     if (active.mixerManaged) _audioMixer.unregister(active.handle);
     await videoDriver.dispose(active.handle);
-    _activeVideo = null;
   }
 }
 
 final class _RuntimePresentationActiveVideo {
-  const _RuntimePresentationActiveVideo({
+  _RuntimePresentationActiveVideo({
     required this.handle,
     required this.mixerManaged,
   });
 
   final Object handle;
   final bool mixerManaged;
+  bool paused = false;
 }

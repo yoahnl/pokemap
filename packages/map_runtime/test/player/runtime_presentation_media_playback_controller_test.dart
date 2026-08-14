@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -152,6 +154,226 @@ void main() {
     expect(snapshot.diagnosticMessage, 'Presentation media is unavailable.');
     expect(snapshot.diagnosticMessage, isNot(contains('/')));
   });
+
+  test('lifecycle pause and resume control the active decoder', () async {
+    final driver = _RecordingVideoDriver();
+    final mixer = RuntimeAudioMixer();
+    final controller = RuntimePresentationMediaPlaybackController(
+      catalog: _catalog(),
+      targetPlatform: PresentationMediaTargetPlatform.android,
+      resolveUri: (media) => Uri.parse('file:///${media.sourceAssetId}'),
+      videoDriver: driver,
+      audioMixer: mixer,
+    );
+
+    await controller.playVideo(
+      'opening-video',
+      audioMode: RuntimePresentationVideoAudioMode.mixerManaged,
+    );
+    await controller.pauseForLifecycle();
+    await controller.resumeAfterLifecycle();
+    await controller.release();
+    await mixer.transitionTo(
+      const RuntimeAudioMix(masterVolume: 0.5, musicVolume: 0.5),
+    );
+
+    expect(driver.events, [
+      'prepare:opening.mp4:1.0',
+      'play:video-1',
+      'pause:video-1',
+      'play:video-1',
+      'dispose:video-1',
+    ]);
+    expect(
+      controller.snapshot,
+      RuntimePresentationMediaPlaybackSnapshot.idle,
+    );
+    expect(driver.active, isEmpty);
+    expect(RuntimePresentationMediaPlaybackController.maximumActiveDecoderCount,
+        1);
+    expect(RuntimePresentationMediaPlaybackController.maximumCachedDecoderCount,
+        0);
+  });
+
+  test('dispose invalidates a decoder prepared by a late callback', () async {
+    final driver = _DeferredVideoDriver();
+    final controller = RuntimePresentationMediaPlaybackController(
+      catalog: _catalog(),
+      targetPlatform: PresentationMediaTargetPlatform.android,
+      resolveUri: (media) => Uri.parse('file:///${media.sourceAssetId}'),
+      videoDriver: driver,
+    );
+
+    final playback = controller.playVideo('opening-video');
+    await driver.prepareStarted.future;
+    final disposal = controller.dispose();
+    driver.completePreparation();
+    await playback;
+    await disposal;
+
+    expect(driver.events, ['prepare:opening.mp4', 'dispose:video-late']);
+    expect(driver.active, isEmpty);
+    expect(
+      controller.snapshot,
+      RuntimePresentationMediaPlaybackSnapshot.idle,
+    );
+
+    final afterDispose = await controller.playVideo('chapter-video');
+    expect(afterDispose.status, RuntimePresentationMediaPlaybackStatus.failed);
+    expect(
+      afterDispose.diagnosticCode,
+      RuntimePresentationMediaPlaybackDiagnosticCodes.playbackFailed,
+    );
+  });
+
+  test('double skip and late completion publish one terminal result', () async {
+    final driver = _RecordingVideoDriver();
+    final media = RuntimePresentationMediaPlaybackController(
+      catalog: _catalog(),
+      targetPlatform: PresentationMediaTargetPlatform.android,
+      resolveUri: (asset) => Uri.parse('file:///${asset.sourceAssetId}'),
+      videoDriver: driver,
+    );
+    await media.playVideo('opening-video');
+    final terminals = <RuntimePresentationExecutionTerminal>[];
+    final execution = RuntimePresentationExecutionController(
+      mediaController: media,
+      onTerminal: terminals.add,
+    );
+    final token = execution.start();
+
+    final firstSkip = execution.skip(token);
+    final secondSkip = execution.skip(token);
+    await firstSkip;
+    await secondSkip;
+    await execution.complete(token);
+
+    expect(terminals, hasLength(1));
+    expect(terminals.single.result, RuntimePresentationExecutionResult.skipped);
+    expect(execution.snapshot.terminal, same(terminals.single));
+    expect(
+      driver.events.where((event) => event.startsWith('dispose:')),
+      ['dispose:video-1'],
+    );
+    expect(driver.active, isEmpty);
+  });
+
+  test('stale run callbacks cannot terminate a newer execution', () async {
+    final media = RuntimePresentationMediaPlaybackController(
+      catalog: _catalog(),
+      targetPlatform: PresentationMediaTargetPlatform.android,
+      resolveUri: (asset) => Uri.parse('file:///${asset.sourceAssetId}'),
+      videoDriver: _RecordingVideoDriver(),
+    );
+    final terminals = <RuntimePresentationExecutionTerminal>[];
+    final execution = RuntimePresentationExecutionController(
+      mediaController: media,
+      onTerminal: terminals.add,
+    );
+    final first = execution.start();
+    await execution.cancel(first);
+    final second = execution.start();
+
+    await execution.fail(first, diagnosticCode: 'late.decoder.callback');
+
+    expect(execution.snapshot.phase, RuntimePresentationExecutionPhase.running);
+    expect(execution.snapshot.runToken, second);
+    expect(terminals, hasLength(1));
+
+    await execution.complete(second);
+    expect(terminals.map((terminal) => terminal.result), [
+      RuntimePresentationExecutionResult.cancelled,
+      RuntimePresentationExecutionResult.completed,
+    ]);
+  });
+
+  test('execution lifecycle pauses and resumes before terminal cleanup',
+      () async {
+    final driver = _RecordingVideoDriver();
+    final media = RuntimePresentationMediaPlaybackController(
+      catalog: _catalog(),
+      targetPlatform: PresentationMediaTargetPlatform.android,
+      resolveUri: (asset) => Uri.parse('file:///${asset.sourceAssetId}'),
+      videoDriver: driver,
+    );
+    await media.playVideo('opening-video');
+    final execution = RuntimePresentationExecutionController(
+      mediaController: media,
+    );
+    final token = execution.start();
+
+    await execution.pauseForLifecycle(token);
+    expect(execution.snapshot.phase, RuntimePresentationExecutionPhase.paused);
+    await execution.resumeAfterLifecycle(token);
+    expect(execution.snapshot.phase, RuntimePresentationExecutionPhase.running);
+    await execution.complete(token);
+
+    expect(driver.events, [
+      'prepare:opening.mp4:0.0',
+      'play:video-1',
+      'pause:video-1',
+      'play:video-1',
+      'dispose:video-1',
+    ]);
+  });
+
+  test('dispose cancels an active execution once and forbids restart',
+      () async {
+    final media = RuntimePresentationMediaPlaybackController(
+      catalog: _catalog(),
+      targetPlatform: PresentationMediaTargetPlatform.android,
+      resolveUri: (asset) => Uri.parse('file:///${asset.sourceAssetId}'),
+      videoDriver: _RecordingVideoDriver(),
+    );
+    final terminals = <RuntimePresentationExecutionTerminal>[];
+    final execution = RuntimePresentationExecutionController(
+      mediaController: media,
+      onTerminal: terminals.add,
+    );
+    execution.start();
+
+    await execution.dispose();
+    await execution.dispose();
+
+    expect(terminals, hasLength(1));
+    expect(
+      terminals.single.result,
+      RuntimePresentationExecutionResult.cancelled,
+    );
+    expect(
+      terminals.single.cancellationReason,
+      RuntimePresentationCancellationReason.disposed,
+    );
+    expect(execution.start, throwsStateError);
+  });
+
+  test('lifecycle media failure terminates the run once', () async {
+    final driver = _RecordingVideoDriver()..failPauses = true;
+    final media = RuntimePresentationMediaPlaybackController(
+      catalog: _catalog(),
+      targetPlatform: PresentationMediaTargetPlatform.android,
+      resolveUri: (asset) => Uri.parse('file:///${asset.sourceAssetId}'),
+      videoDriver: driver,
+    );
+    await media.playVideo('opening-video');
+    final terminals = <RuntimePresentationExecutionTerminal>[];
+    final execution = RuntimePresentationExecutionController(
+      mediaController: media,
+      onTerminal: terminals.add,
+    );
+    final token = execution.start();
+
+    await execution.pauseForLifecycle(token);
+    await execution.skip(token);
+
+    expect(terminals, hasLength(1));
+    expect(terminals.single.result, RuntimePresentationExecutionResult.failed);
+    expect(
+      terminals.single.diagnosticCode,
+      RuntimePresentationMediaPlaybackDiagnosticCodes.playbackFailed,
+    );
+    expect(driver.active, isEmpty);
+  });
 }
 
 ProjectMediaCatalog _catalog() => ProjectMediaCatalog(
@@ -215,6 +437,7 @@ final class _RecordingVideoDriver
   final active = <Object>{};
   var maximumActiveDecoders = 0;
   var failDisposals = false;
+  var failPauses = false;
   var _nextHandle = 1;
 
   @override
@@ -238,6 +461,12 @@ final class _RecordingVideoDriver
   Future<void> play(Object handle) async => events.add('play:$handle');
 
   @override
+  Future<void> pause(Object handle) async {
+    events.add('pause:$handle');
+    if (failPauses) throw StateError('pause failed');
+  }
+
+  @override
   Future<void> setVolume(Object handle, double volume) async =>
       events.add('volume:$handle:$volume');
 
@@ -245,6 +474,44 @@ final class _RecordingVideoDriver
   Future<void> dispose(Object handle) async {
     events.add('dispose:$handle');
     if (failDisposals) throw StateError('decoder disposal failed');
+    active.remove(handle);
+  }
+}
+
+final class _DeferredVideoDriver
+    implements RuntimePresentationVideoPlaybackDriver {
+  final prepareStarted = Completer<void>();
+  final _preparation = Completer<Object>();
+  final events = <String>[];
+  final active = <Object>{};
+
+  void completePreparation() {
+    active.add('video-late');
+    _preparation.complete('video-late');
+  }
+
+  @override
+  Future<Object> prepare(
+    Uri source, {
+    required double initialVolume,
+  }) {
+    events.add('prepare:${source.pathSegments.last}');
+    prepareStarted.complete();
+    return _preparation.future;
+  }
+
+  @override
+  Future<void> play(Object handle) async => events.add('play:$handle');
+
+  @override
+  Future<void> pause(Object handle) async => events.add('pause:$handle');
+
+  @override
+  Future<void> setVolume(Object handle, double volume) async {}
+
+  @override
+  Future<void> dispose(Object handle) async {
+    events.add('dispose:$handle');
     active.remove(handle);
   }
 }

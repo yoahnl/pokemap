@@ -139,6 +139,7 @@ void main() {
           entering.reducedMotionComposition.opacity,
           closeTo(0.208, 0.000001),
         );
+        expect(entering.reducedFlashOpacity, 1);
         expect(leaving.composition.translateX, closeTo(0.648, 0.000001));
         expect(leaving.composition.opacity, closeTo(0.212, 0.000001));
       },

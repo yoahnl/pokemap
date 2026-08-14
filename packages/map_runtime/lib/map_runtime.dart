@@ -59,6 +59,16 @@ export 'src/player/runtime_presentation_media_playback_controller.dart'
         RuntimePresentationMediaUriResolver,
         RuntimePresentationVideoAudioMode,
         RuntimePresentationVideoPlaybackDriver;
+export 'src/player/runtime_presentation_execution_controller.dart'
+    show
+        RuntimePresentationCancellationReason,
+        RuntimePresentationExecutionController,
+        RuntimePresentationExecutionPhase,
+        RuntimePresentationExecutionResult,
+        RuntimePresentationExecutionSnapshot,
+        RuntimePresentationExecutionTerminal,
+        RuntimePresentationExecutionTerminalSink,
+        RuntimePresentationRunToken;
 export 'src/player/runtime_intro_sequence_controller.dart'
     show
         RuntimeIntroPhase,

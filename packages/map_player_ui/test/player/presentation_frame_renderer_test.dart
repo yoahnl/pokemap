@@ -257,6 +257,48 @@ void main() {
     expect(translation.translation, Offset.zero);
   });
 
+  testWidgets('reduced flashes overrides authored opacity transitions', (
+    tester,
+  ) async {
+    final frame = _frameWithComposition(
+      PresentationVisualComposition(opacity: 0.1),
+      reducedFlashOpacity: 0.9,
+    );
+
+    await tester.pumpWidget(
+      _app(
+        PresentationFrameRenderer(
+          frame: frame,
+          orientation: PresentationFrameOrientation.landscape,
+          contentPort: _ContentPort(),
+          reduceFlashes: true,
+        ),
+      ),
+    );
+
+    final opacity = tester.widget<Opacity>(
+      find.byKey(
+        const ValueKey<String>('presentation-visual-opacity-composed'),
+      ),
+    );
+    expect(opacity.opacity, 0.9);
+  });
+
+  testWidgets('caption preference can hide authored captions', (tester) async {
+    await tester.pumpWidget(
+      _app(
+        PresentationFrameRenderer(
+          frame: _frame(),
+          orientation: PresentationFrameOrientation.landscape,
+          contentPort: _ContentPort(),
+          showCaptions: false,
+        ),
+      ),
+    );
+
+    expect(find.text('Une aventure vous attend'), findsNothing);
+  });
+
   testWidgets('disposes interrupted visual resources exactly once', (
     tester,
   ) async {
@@ -469,6 +511,7 @@ PresentationCinematicAsset _animatedAsset() => PresentationCinematicAsset(
 PresentationFrame _frameWithComposition(
   PresentationVisualComposition composition, {
   PresentationVisualComposition? reducedMotionComposition,
+  double? reducedFlashOpacity,
   int timeUs = 500000,
 }) =>
     PresentationFrame(
@@ -490,6 +533,7 @@ PresentationFrame _frameWithComposition(
           easing: PresentationEasing.linear,
           composition: composition,
           reducedMotionComposition: reducedMotionComposition ?? composition,
+          reducedFlashOpacity: reducedFlashOpacity ?? composition.opacity,
         ),
       ],
     );

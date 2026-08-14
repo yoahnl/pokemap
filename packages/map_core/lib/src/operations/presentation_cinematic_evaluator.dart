@@ -50,6 +50,7 @@ final class PresentationCinematicEvaluator {
                   easedProgress: easedProgress,
                   reduceMotion: true,
                 ),
+                reducedFlashOpacity: visualClip.to.opacity,
               ),
             );
           case final PresentationAudioClip audioClip

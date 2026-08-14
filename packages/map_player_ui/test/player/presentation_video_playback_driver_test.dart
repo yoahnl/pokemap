@@ -14,10 +14,11 @@ void main() {
       initialVolume: 0.2,
     );
     await driver.play(handle);
+    await driver.pause(handle);
     await driver.setVolume(handle, 0.1);
 
-    expect(
-        controller.events, ['initialize', 'volume:0.2', 'play', 'volume:0.1']);
+    expect(controller.events,
+        ['initialize', 'volume:0.2', 'play', 'pause', 'volume:0.1']);
     expect(driver.buildVideo(handle), isA<ColoredBox>());
 
     await driver.dispose(handle);
@@ -55,6 +56,9 @@ final class _RecordingController implements PresentationVideoController {
 
   @override
   Future<void> play() async => events.add('play');
+
+  @override
+  Future<void> pause() async => events.add('pause');
 
   @override
   Future<void> setVolume(double volume) async {

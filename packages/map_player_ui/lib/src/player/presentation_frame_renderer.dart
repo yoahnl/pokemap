@@ -76,12 +76,16 @@ class PresentationFrameRenderer extends StatelessWidget {
     required this.orientation,
     required this.contentPort,
     this.reduceMotion,
+    this.reduceFlashes = false,
+    this.showCaptions = true,
   });
 
   final PresentationFrame frame;
   final PresentationFrameOrientation orientation;
   final PresentationFrameContentPort contentPort;
   final bool? reduceMotion;
+  final bool reduceFlashes;
+  final bool showCaptions;
 
   @override
   Widget build(BuildContext context) {
@@ -110,12 +114,13 @@ class PresentationFrameRenderer extends StatelessWidget {
                       composition: resolvedReduceMotion
                           ? visual.reducedMotionComposition
                           : visual.composition,
+                      reduceFlashes: reduceFlashes,
                       resolution: contentPort.resolveVisual(
                         clip: visual,
                         orientation: orientation,
                       ),
                     ),
-                  if (frame.captions.isNotEmpty)
+                  if (showCaptions && frame.captions.isNotEmpty)
                     SafeArea(
                       child: Align(
                         alignment: Alignment.bottomCenter,
@@ -152,12 +157,14 @@ class _PresentationVisualLayer extends StatelessWidget {
     required this.clip,
     required this.orientation,
     required this.composition,
+    required this.reduceFlashes,
     required this.resolution,
   });
 
   final PresentationVisualFrameClip clip;
   final PresentationFrameOrientation orientation;
   final PresentationVisualComposition composition;
+  final bool reduceFlashes;
   final PresentationVisualResolution resolution;
 
   @override
@@ -181,7 +188,7 @@ class _PresentationVisualLayer extends StatelessWidget {
     };
     return Opacity(
       key: ValueKey<String>('presentation-visual-opacity-${clip.clipId}'),
-      opacity: composition.opacity,
+      opacity: reduceFlashes ? clip.reducedFlashOpacity : composition.opacity,
       child: FractionalTranslation(
         key: ValueKey<String>(
           'presentation-visual-translation-${clip.clipId}',

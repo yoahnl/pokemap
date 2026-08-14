@@ -13,6 +13,8 @@ abstract interface class PresentationVideoController {
 
   Future<void> play();
 
+  Future<void> pause();
+
   Future<void> dispose();
 }
 
@@ -54,6 +56,9 @@ final class VideoPlayerPresentationPlaybackDriver
   Future<void> play(Object handle) => _require(handle).play();
 
   @override
+  Future<void> pause(Object handle) => _require(handle).pause();
+
+  @override
   Future<void> setVolume(Object handle, double volume) =>
       _require(handle).setVolume(volume);
 
@@ -92,6 +97,9 @@ final class _VideoPlayerPresentationController
 
   @override
   Future<void> play() => _controller.play();
+
+  @override
+  Future<void> pause() => _controller.pause();
 
   @override
   Future<void> dispose() => _controller.dispose();
