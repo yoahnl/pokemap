@@ -260,10 +260,6 @@ class RuntimePokemonSpeciesLoader {
       filePath: filePath,
     );
 
-    final refs = (rawJson['refs'] as Map?)?.cast<String, dynamic>() ??
-        <String, dynamic>{
-          'learnset': (rawJson['learnsetRef'] as String?)?.trim() ?? '',
-        };
     final abilities = _readRequiredAbilities(
       rawJson['abilities'],
       expectedSpeciesId: expectedSpeciesId,
@@ -279,6 +275,22 @@ class RuntimePokemonSpeciesLoader {
       expectedSpeciesId: expectedSpeciesId,
       filePath: filePath,
     );
+    final PokemonSpeciesFile speciesFile;
+    try {
+      speciesFile = PokemonSpeciesFile.fromJson(rawJson);
+    } on UnsupportedPokemonDataSchema catch (error) {
+      throw RuntimeBattleSetupException(
+        'Les données d’espèce Pokémon locales sont incompatibles; combat impossible.',
+        debugDetails:
+            'speciesId=$expectedSpeciesId, file=$filePath, schemaVersion=${error.actualVersion}, expected=$currentPokemonDataSchemaVersion',
+      );
+    } catch (error) {
+      throw RuntimeBattleSetupException(
+        'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+        debugDetails:
+            'speciesId=$expectedSpeciesId, file=$filePath, shared species codec failed: $error',
+      );
+    }
 
     return RuntimePokemonSpecies(
       id: expectedSpeciesId,
@@ -301,7 +313,7 @@ class RuntimePokemonSpeciesLoader {
       abilityIds: abilities.all,
       // `learnsetRef` peut rester vide : le loader learnset conservera le
       // fallback historique vers l'id de l'espèce.
-      learnsetRef: (refs['learnset'] as String?)?.trim() ?? '',
+      learnsetRef: speciesFile.learnsetRef,
       growthRateId: progression.growthRateId,
       baseExp: progression.baseExp,
       catchRate: progression.catchRate,

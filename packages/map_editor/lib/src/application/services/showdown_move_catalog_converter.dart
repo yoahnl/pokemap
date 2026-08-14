@@ -1,7 +1,6 @@
 import 'package:map_core/map_core.dart';
 
 import '../errors/application_errors.dart';
-import '../models/pokemon_project_data_models.dart';
 
 /// Convertit un snapshot Showdown `moves.json` vers le catalogue local `moves`.
 ///

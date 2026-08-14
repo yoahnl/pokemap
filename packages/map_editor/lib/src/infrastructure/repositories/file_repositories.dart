@@ -10,7 +10,6 @@ import '../../application/authoring_api/authoring_query_adapter.dart';
 import '../../application/models/narrative_event_authoring_session.dart';
 import '../../application/models/narrative_event_registry_persistence_models.dart';
 import '../../application/models/pokemon_database_index.dart';
-import '../../application/models/pokemon_project_data_models.dart';
 import '../../application/ports/narrative_event_registry_persistence_gateway.dart';
 import '../../application/ports/pokemon_read_repository.dart';
 import '../../application/ports/pokemon_write_repository.dart';

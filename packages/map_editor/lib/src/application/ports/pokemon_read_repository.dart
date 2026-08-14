@@ -1,5 +1,5 @@
 import '../models/pokemon_database_index.dart';
-import '../models/pokemon_project_data_models.dart';
+import 'package:map_core/map_core.dart';
 import 'project_workspace.dart';
 
 /// Contrat de lecture des données Pokémon locales d'un projet utilisateur.

@@ -23,8 +23,10 @@ final class PokemonJsonDocument {
   factory PokemonJsonDocument.fromJson(
     PokemonDocumentKind kind,
     Map<String, dynamic> json,
-  ) =>
-      PokemonJsonDocument._(kind, Map<String, Object?>.from(json));
+  ) {
+    _validateSharedPokemonDocument(kind, json);
+    return PokemonJsonDocument._(kind, Map<String, Object?>.from(json));
+  }
 
   final PokemonDocumentKind kind;
   final Map<String, Object?> _json;
@@ -485,6 +487,24 @@ String _entryId(Map<Object?, Object?> entry) {
     throw const FormatException('Catalog entry requires a stable id or slug.');
   }
   return value;
+}
+
+void _validateSharedPokemonDocument(
+  PokemonDocumentKind kind,
+  Map<String, dynamic> json,
+) {
+  switch (kind) {
+    case PokemonDocumentKind.catalog:
+      PokemonCatalogFile.fromJson(json);
+    case PokemonDocumentKind.species:
+      PokemonSpeciesFile.fromJson(json);
+    case PokemonDocumentKind.learnset:
+      PokemonLearnsetFile.fromJson(json);
+    case PokemonDocumentKind.evolution:
+      PokemonEvolutionFile.fromJson(json);
+    case PokemonDocumentKind.media:
+      PokemonMediaFile.fromJson(json);
+  }
 }
 
 Set<String> _uniqueIdentities(

@@ -1,6 +1,6 @@
 import 'package:path/path.dart' as p;
 
-import '../models/pokemon_project_data_models.dart';
+import 'package:map_core/map_core.dart';
 import '../ports/pokemon_write_repository.dart';
 import '../ports/project_workspace.dart';
 import 'import_pokemon_evolution_json_use_case.dart';

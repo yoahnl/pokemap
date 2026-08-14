@@ -1,7 +1,7 @@
 import 'package:path/path.dart' as p;
 
 import '../errors/application_errors.dart';
-import '../models/pokemon_project_data_models.dart';
+import 'package:map_core/map_core.dart';
 import '../ports/pokemon_read_repository.dart';
 import '../ports/project_workspace.dart';
 import '../services/pokemon_project_data_reader.dart';

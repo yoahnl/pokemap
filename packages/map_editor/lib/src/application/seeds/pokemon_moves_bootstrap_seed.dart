@@ -1,6 +1,5 @@
 import 'package:map_core/map_core.dart';
 
-import '../models/pokemon_project_data_models.dart';
 
 /// Version logique du seed embarqué des moves bootstrap.
 ///

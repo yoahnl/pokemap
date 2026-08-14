@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import '../errors/application_errors.dart';
-import '../models/pokemon_project_data_models.dart';
+import 'package:map_core/map_core.dart';
 import '../ports/pokemon_external_source_repository.dart';
 import '../ports/pokemon_write_repository.dart';
 import '../ports/project_workspace.dart';

@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -42,6 +43,40 @@ void main() {
         },
       );
       expect(jsonDecode(jsonEncode(updated.toJson())), updated.toJson());
+    });
+
+    test('shared codecs reject future schemas for every document family', () {
+      final futureSchema = currentPokemonDataSchemaVersion + 1;
+      final documents = <PokemonDocumentKind, Map<String, dynamic>>{
+        PokemonDocumentKind.catalog: <String, dynamic>{
+          'schemaVersion': futureSchema,
+          'catalog': 'moves',
+          'entries': <Object?>[],
+        },
+        PokemonDocumentKind.species: <String, dynamic>{
+          'schemaVersion': futureSchema,
+          'id': 'sproutle',
+        },
+        PokemonDocumentKind.learnset: <String, dynamic>{
+          'schemaVersion': futureSchema,
+          'speciesId': 'sproutle',
+        },
+        PokemonDocumentKind.evolution: <String, dynamic>{
+          'schemaVersion': futureSchema,
+          'speciesId': 'sproutle',
+        },
+        PokemonDocumentKind.media: <String, dynamic>{
+          'schemaVersion': futureSchema,
+          'speciesId': 'sproutle',
+        },
+      };
+
+      for (final entry in documents.entries) {
+        expect(
+          () => PokemonJsonDocument.fromJson(entry.key, entry.value),
+          throwsFormatException,
+        );
+      }
     });
 
     test('batch validation reports broken evolution and media references', () {

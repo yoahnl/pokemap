@@ -23,7 +23,7 @@ import '../../../application/models/pokedex_species_detail.dart';
 import '../../../application/models/pokemon_database_index.dart';
 import '../../../application/models/pokemon_external_batch_selection.dart';
 import '../../../application/models/pokemon_external_species_search_result.dart';
-import '../../../application/models/pokemon_project_data_models.dart';
+import 'package:map_core/map_core.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/use_cases/delete_pokedex_species_use_case.dart';
 import '../../../application/use_cases/import_external_pokemon_use_cases.dart';

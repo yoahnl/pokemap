@@ -1,4 +1,4 @@
-import '../models/pokemon_project_data_models.dart';
+import 'package:map_core/map_core.dart';
 import 'project_workspace.dart';
 
 /// Contrat d'écriture des données Pokémon locales d'un projet utilisateur.

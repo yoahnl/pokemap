@@ -1,4 +1,4 @@
-import 'pokemon_project_data_models.dart';
+import 'package:map_core/map_core.dart';
 
 /// References legeres exposees par l'index local Pokemon.
 ///

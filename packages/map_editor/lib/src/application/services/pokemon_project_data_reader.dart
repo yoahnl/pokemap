@@ -6,7 +6,6 @@ import 'package:path/path.dart' as p;
 
 import '../errors/application_errors.dart';
 import '../models/pokemon_database_index.dart';
-import '../models/pokemon_project_data_models.dart';
 import '../ports/project_workspace.dart';
 
 /// Lecteur local des donnees Pokemon stockees dans le workspace projet.

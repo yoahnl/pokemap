@@ -301,6 +301,40 @@ void main() {
         );
       }
     });
+
+    test('rejects a future shared species schema explicitly', () async {
+      final file = File(
+        p.join(
+          tempRoot.path,
+          'data',
+          'pokemon',
+          'species',
+          'targetmon.json',
+        ),
+      );
+      await _writeValidSpeciesFile(
+        file,
+        declaredId: 'targetmon',
+        schemaVersion: currentPokemonDataSchemaVersion + 1,
+      );
+
+      await expectLater(
+        () => RuntimePokemonSpeciesLoader().loadById(
+          projectRootDirectory: tempRoot.path,
+          pokemonConfig: const ProjectPokemonConfig(
+            speciesDir: 'data/pokemon/species',
+          ),
+          speciesId: 'targetmon',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            contains('schemaVersion'),
+          ),
+        ),
+      );
+    });
   });
 }
 
@@ -338,10 +372,12 @@ Future<void> _writeValidSpeciesFile(
   File file, {
   required String declaredId,
   Object abilities = const <String, dynamic>{'primary': 'overgrow'},
+  int? schemaVersion,
 }) async {
   await file.parent.create(recursive: true);
   await file.writeAsString(
     jsonEncode(<String, dynamic>{
+      if (schemaVersion != null) 'schemaVersion': schemaVersion,
       'id': declaredId,
       'typing': <String, dynamic>{
         'types': <String>['grass'],
