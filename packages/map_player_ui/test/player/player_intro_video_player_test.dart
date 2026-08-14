@@ -168,6 +168,41 @@ void main() {
     expect(driver.playCalls, 2);
   });
 
+  testWidgets('routes intro audio through the shared runtime mixer',
+      (tester) async {
+    final driver = _FakeDriver();
+    final mixer = RuntimeAudioMixer(
+      mix: const RuntimeAudioMix(masterVolume: 0.5, musicVolume: 0.4),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        PlayerIntroVideoPlayer(
+          source: PlayerIntroVideoSource(
+            videoUri: Uri.parse('file:///intro.mp4'),
+            volume: 0.5,
+          ),
+          phase: RuntimeIntroPhase.playing,
+          audioMixer: mixer,
+          driverFactory: (_) => driver,
+          onPlaybackCompleted: () {},
+          onPlaybackFailed: (_) {},
+          onSkip: () {},
+          onContinue: () {},
+          onReplay: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+    await mixer.setDucking(
+      owner: 'voice',
+      bus: RuntimeAudioBus.music,
+      gain: 0.25,
+    );
+
+    expect(driver.volumes, [0.1, 0.025]);
+  });
+
   testWidgets('replay after a decoder failure allocates a fresh driver',
       (tester) async {
     final failed = _FakeDriver()..initializeError = StateError('decoder');
@@ -209,6 +244,7 @@ class _FakeDriver implements PlayerIntroPlaybackDriver {
   int playCalls = 0;
   int pauseCalls = 0;
   int disposeCalls = 0;
+  final volumes = <double>[];
 
   @override
   ValueListenable<PlayerIntroPlaybackSnapshot> get snapshots => snapshot;
@@ -231,6 +267,9 @@ class _FakeDriver implements PlayerIntroPlaybackDriver {
 
   @override
   Future<void> play() async => playCalls++;
+
+  @override
+  Future<void> setVolume(double volume) async => volumes.add(volume);
 
   @override
   Future<void> dispose() async {

@@ -67,6 +67,7 @@ abstract interface class PlayerIntroPlaybackDriver {
 
   Widget buildVideo();
   Future<void> initialize();
+  Future<void> setVolume(double volume);
   Future<void> play();
   Future<void> pause();
   Future<void> dispose();

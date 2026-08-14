@@ -178,6 +178,9 @@ final class _PlaybackDriver implements PlayerIntroPlaybackDriver {
   }
 
   @override
+  Future<void> setVolume(double volume) async {}
+
+  @override
   Future<void> play() async => playCalls += 1;
 
   @override

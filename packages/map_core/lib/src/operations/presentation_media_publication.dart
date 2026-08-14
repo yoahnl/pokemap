@@ -371,7 +371,11 @@ final class PresentationMediaPublicationPreflight {
       final resolutions = <PresentationMediaPlatformResolution>[];
       final platformDiagnostics = <PresentationMediaPublicationDiagnostic>[];
       for (final mediaId in allMediaIds.toList()..sort()) {
-        final resolution = _resolveForPlatform(catalog, mediaId, platform);
+        final resolution = resolvePresentationMediaForPlatform(
+          catalog,
+          mediaId,
+          platform,
+        );
         resolutions.add(resolution);
         if (!resolution.compatible) {
           platformDiagnostics.add(
@@ -630,7 +634,7 @@ int _maxConcurrentVideoDecoders(
   return maximum;
 }
 
-PresentationMediaPlatformResolution _resolveForPlatform(
+PresentationMediaPlatformResolution resolvePresentationMediaForPlatform(
   ProjectMediaCatalog catalog,
   String mediaId,
   PresentationMediaTargetPlatform platform,
@@ -640,7 +644,7 @@ PresentationMediaPlatformResolution _resolveForPlatform(
   while (visited.add(currentId)) {
     final media = catalog.find(currentId);
     if (media == null) break;
-    if (_isPlatformCompatible(media, platform)) {
+    if (isPresentationMediaCompatible(media, platform)) {
       return PresentationMediaPlatformResolution(
         mediaId: mediaId,
         resolvedMediaId: currentId,
@@ -648,7 +652,7 @@ PresentationMediaPlatformResolution _resolveForPlatform(
         compatible: true,
       );
     }
-    final fallback = media.fallbackMediaId ?? media.posterMediaId;
+    final fallback = nextPresentationMediaFallbackId(media);
     if (fallback == null) break;
     currentId = fallback;
   }
@@ -659,7 +663,7 @@ PresentationMediaPlatformResolution _resolveForPlatform(
   );
 }
 
-bool _isPlatformCompatible(
+bool isPresentationMediaCompatible(
   ProjectMediaAsset media,
   PresentationMediaTargetPlatform platform,
 ) {
@@ -687,3 +691,6 @@ bool _isPlatformCompatible(
   }
   return false;
 }
+
+String? nextPresentationMediaFallbackId(ProjectMediaAsset media) =>
+    media.fallbackMediaId ?? media.posterMediaId;

@@ -1222,7 +1222,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       snapshot.presentation?.introVideo,
       introVariant,
       looping: false,
-      volume: host.audioMixer.mix.volumeFor(RuntimeAudioRoute.cinematicMusic),
+      volume: 1,
     );
     final playerPresentation = snapshot.presentation == null
         ? const player_ui.RuntimePlayerPresentation(
@@ -1247,6 +1247,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         titlePresentation: playerPresentation.title,
         introSource: introSource,
         introPoster: _startupImage(host, snapshot.presentation?.introPoster),
+        audioMixer: host.audioMixer,
         titlePromptSource: _startupVideo(
           host,
           snapshot.presentation?.titlePromptVideo,

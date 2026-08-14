@@ -26,6 +26,7 @@ class PlayerIntroVideoPlayer extends StatefulWidget {
     this.controller,
     this.poster,
     this.driverFactory,
+    this.audioMixer,
     this.allowReplay = false,
   });
 
@@ -34,6 +35,7 @@ class PlayerIntroVideoPlayer extends StatefulWidget {
   final PlayerIntroVideoPlayerController? controller;
   final ImageProvider? poster;
   final PlayerIntroPlaybackFactory? driverFactory;
+  final RuntimeAudioMixer? audioMixer;
   final VoidCallback onPlaybackCompleted;
   final ValueChanged<String> onPlaybackFailed;
   final VoidCallback onSkip;
@@ -54,8 +56,13 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
   bool _completionReported = false;
   bool _failureReported = false;
   bool _stoppedByHost = false;
+  final RuntimeAudioMixer _localAudioMixer = RuntimeAudioMixer();
+  RuntimeAudioMixer? _registeredMixer;
+  PlayerIntroPlaybackDriver? _registeredDriver;
 
   bool get _shouldPlay => widget.phase == RuntimeIntroPhase.playing;
+
+  RuntimeAudioMixer get _audioMixer => widget.audioMixer ?? _localAudioMixer;
 
   @override
   void initState() {
@@ -72,9 +79,16 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
       oldWidget.controller?.detach(_stopPlaybackForHost);
       widget.controller?.attach(_stopPlaybackForHost);
     }
-    if (oldWidget.source.videoUri != widget.source.videoUri) {
+    if (oldWidget.source.videoUri != widget.source.videoUri ||
+        !identical(oldWidget.audioMixer, widget.audioMixer)) {
       _replaceDriver();
       return;
+    }
+    if (oldWidget.source.volume != widget.source.volume &&
+        identical(_registeredDriver, _driver)) {
+      unawaited(
+        _audioMixer.updateSourceVolume(_driver!, widget.source.volume),
+      );
     }
     if (oldWidget.phase != widget.phase) {
       if (_shouldPlay) {
@@ -86,9 +100,10 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
         } else if (_driver == null) {
           _startPlayback();
         } else {
-          unawaited(_driver!.play());
+          unawaited(_activate(_driver!, _generation));
         }
       } else {
+        _unregister(_driver);
         unawaited(_driver?.pause());
       }
     }
@@ -97,6 +112,7 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
   void _replaceDriver() {
     final previous = _driver;
     if (previous != null) {
+      _unregister(previous);
       previous.snapshots.removeListener(_handleSnapshot);
       unawaited(previous.dispose());
     }
@@ -131,6 +147,31 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
     try {
       await driver.initialize();
       if (!mounted || generation != _generation || !_shouldPlay) return;
+      await _activate(driver, generation);
+    } on Object catch (error) {
+      if (!mounted || generation != _generation) return;
+      _reportFailure(error.toString());
+    }
+  }
+
+  Future<void> _activate(
+    PlayerIntroPlaybackDriver driver,
+    int generation,
+  ) async {
+    try {
+      final mixer = _audioMixer;
+      await mixer.register(
+        channel: driver,
+        route: RuntimeAudioRoute.cinematicMusic,
+        sourceVolume: widget.source.volume,
+        setVolume: driver.setVolume,
+      );
+      if (!mounted || generation != _generation || !_shouldPlay) {
+        mixer.unregister(driver);
+        return;
+      }
+      _registeredMixer = mixer;
+      _registeredDriver = driver;
       await driver.play();
     } on Object catch (error) {
       if (!mounted || generation != _generation) return;
@@ -157,6 +198,7 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
     if (_failureReported || !mounted) return;
     const safeReason = 'Intro video playback failed.';
     _failureReported = true;
+    _unregister(_driver);
     unawaited(_driver?.pause());
     setState(() => _failureMessage = safeReason);
     widget.onPlaybackFailed(safeReason);
@@ -168,6 +210,7 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
   Future<void> _stopPlaybackForHost() async {
     _stoppedByHost = true;
     _generation++;
+    _unregister(_driver);
     await _driver?.pause();
   }
 
@@ -248,10 +291,18 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
     final driver = _driver;
     _driver = null;
     if (driver != null) {
+      _unregister(driver);
       driver.snapshots.removeListener(_handleSnapshot);
       unawaited(driver.dispose());
     }
     super.dispose();
+  }
+
+  void _unregister(PlayerIntroPlaybackDriver? driver) {
+    if (driver == null || !identical(_registeredDriver, driver)) return;
+    _registeredMixer?.unregister(driver);
+    _registeredMixer = null;
+    _registeredDriver = null;
   }
 }
 
@@ -259,8 +310,7 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
 final class VideoPlayerIntroPlaybackDriver
     implements PlayerIntroPlaybackDriver {
   VideoPlayerIntroPlaybackDriver(PlayerIntroVideoSource source)
-      : _volume = source.volume,
-        _looping = source.looping,
+      : _looping = source.looping,
         _controller = createPlayerIntroVideoController(
           source.videoUri,
           captions: source.captionsLoader == null
@@ -270,7 +320,6 @@ final class VideoPlayerIntroPlaybackDriver
         );
 
   final VideoPlayerController _controller;
-  final double _volume;
   final bool _looping;
   final ValueNotifier<PlayerIntroPlaybackSnapshot> _snapshots =
       ValueNotifier<PlayerIntroPlaybackSnapshot>(
@@ -288,9 +337,12 @@ final class VideoPlayerIntroPlaybackDriver
     _controller.addListener(_synchronize);
     await _controller.initialize();
     await _controller.setLooping(_looping);
-    await _controller.setVolume(_volume);
+    await _controller.setVolume(0);
     _synchronize();
   }
+
+  @override
+  Future<void> setVolume(double volume) => _controller.setVolume(volume);
 
   void _synchronize() {
     final value = _controller.value;
