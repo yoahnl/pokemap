@@ -294,6 +294,7 @@ class RuntimePokemonSpeciesLoader {
 
     return RuntimePokemonSpecies(
       id: expectedSpeciesId,
+      formId: speciesFile.forms.formId,
       typing: typing,
       baseHp: baseHp,
       baseAttack: baseAttack,
@@ -544,6 +545,7 @@ class RuntimePokemonSpeciesLoader {
 class RuntimePokemonSpecies {
   const RuntimePokemonSpecies({
     required this.id,
+    this.formId = '',
     required this.typing,
     required this.baseHp,
     required this.baseAttack,
@@ -565,6 +567,7 @@ class RuntimePokemonSpecies {
   });
 
   final String id;
+  final String formId;
 
   /// Typing défensif minimal réellement nécessaire à partir de BE5.
   ///

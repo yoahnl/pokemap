@@ -32,6 +32,7 @@ void main() {
         initialParty: [
           PlayerPokemon(
             speciesId: 'eevee',
+            formId: 'partner',
             natureId: 'hardy',
             abilityId: 'run-away',
             level: 5,
@@ -47,6 +48,7 @@ void main() {
             label: 'Bulbizarre',
             pokemon: PlayerPokemon(
               speciesId: 'bulbasaur',
+              formId: 'spring',
               natureId: 'hardy',
               abilityId: 'overgrow',
               level: 5,
@@ -61,6 +63,8 @@ void main() {
 
       expect(decoded.newGame, config);
       expect(decoded.newGame.starterOptions.single.id, 'starter_bulbasaur');
+      expect(decoded.newGame.initialParty.single.formId, 'partner');
+      expect(decoded.newGame.starterOptions.single.pokemon.formId, 'spring');
       expect(
         decoded.newGame.playerAvatarCharacterIds,
         const ['hero_a', 'hero_b'],

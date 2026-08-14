@@ -43,7 +43,11 @@ void main() {
             type: ScenarioNodeType.action,
             payload: ScenarioNodePayload(
               actionKind: kScenarioActionGivePokemon,
-              params: {'speciesId': 'test_species', 'level': '7'},
+              params: {
+                'speciesId': 'test_species',
+                'formId': 'festival',
+                'level': '7',
+              },
             ),
           ),
           ScenarioNode(
@@ -73,6 +77,8 @@ void main() {
       expect(result.success, isTrue);
       expect(state.party.members, hasLength(1));
       expect(state.party.members.first.speciesId, 'test_species');
+      expect(state.party.members.first.individualId, startsWith('pkm_'));
+      expect(state.party.members.first.formId, 'festival');
       expect(state.party.members.first.level, 7);
       // currentHp defaults to level when not provided.
       expect(state.party.members.first.currentHp, 7);

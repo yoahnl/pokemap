@@ -7,6 +7,7 @@ void main() {
   const ruleset = PokemonRulesetProfile.pokeMapBetaV1;
   const species = WildPokemonGenerationSpecies(
     id: 'sproutle',
+    formId: 'spring',
     baseStats: PokemonBaseStats(
       hp: 45,
       attack: 49,
@@ -72,6 +73,8 @@ void main() {
     expect(first.profileId, 'pokemap-wild-v1');
     expect(first.schemaVersion, 1);
     expect(first.pokemon.speciesId, 'sproutle');
+    expect(first.pokemon.individualId, startsWith('pkm_'));
+    expect(first.pokemon.formId, 'spring');
     expect(first.pokemon.level, 7);
     expect(first.pokemon.natureId, 'serious');
     expect(first.pokemon.abilityId, 'chlorophyll');

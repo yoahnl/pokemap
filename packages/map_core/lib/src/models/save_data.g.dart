@@ -59,7 +59,9 @@ const _$PlayerPokemonOriginKindEnumMap = {
 
 _PlayerPokemon _$PlayerPokemonFromJson(Map<String, dynamic> json) =>
     _PlayerPokemon(
+      individualId: json['individualId'] as String? ?? '',
       speciesId: json['speciesId'] as String,
+      formId: json['formId'] as String? ?? '',
       natureId: json['natureId'] as String,
       abilityId: json['abilityId'] as String,
       gender: json['gender'] as String?,
@@ -93,7 +95,9 @@ _PlayerPokemon _$PlayerPokemonFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$PlayerPokemonToJson(_PlayerPokemon instance) =>
     <String, dynamic>{
+      'individualId': instance.individualId,
       'speciesId': instance.speciesId,
+      'formId': instance.formId,
       'natureId': instance.natureId,
       'abilityId': instance.abilityId,
       'gender': instance.gender,

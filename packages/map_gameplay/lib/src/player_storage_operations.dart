@@ -119,6 +119,24 @@ final class PlayerStorageOperations {
     );
   }
 
+  PlayerStorageOperationResult depositByIndividualId({
+    required GameState state,
+    required String individualId,
+    String? boxId,
+    bool requireUsablePartyMember = true,
+  }) {
+    final partyIndex = _partyIndexByIndividualId(state, individualId);
+    if (partyIndex == null) {
+      return _failure(state, PlayerStorageFailure.invalidRequest);
+    }
+    return deposit(
+      state: state,
+      partyIndex: partyIndex,
+      boxId: boxId,
+      requireUsablePartyMember: requireUsablePartyMember,
+    );
+  }
+
   PlayerStorageOperationResult withdraw({
     required GameState state,
     required String boxId,
@@ -148,6 +166,21 @@ final class PlayerStorageOperations {
         boxes: nextBoxes,
       ),
       partyIndex: partyIndex,
+    );
+  }
+
+  PlayerStorageOperationResult withdrawByIndividualId({
+    required GameState state,
+    required String individualId,
+  }) {
+    final location = _boxLocationByIndividualId(state, individualId);
+    if (location == null) {
+      return _failure(state, PlayerStorageFailure.invalidRequest);
+    }
+    return withdraw(
+      state: state,
+      boxId: location.boxId,
+      boxIndex: location.boxIndex,
     );
   }
 
@@ -183,6 +216,24 @@ final class PlayerStorageOperations {
       state: _withRoster(state, party: nextParty, boxes: nextBoxes),
       partyIndex: partyIndex,
       storageSlot: PlayerStorageSlot(boxId: box.id, boxIndex: boxIndex),
+    );
+  }
+
+  PlayerStorageOperationResult swapPartyWithBoxByIndividualId({
+    required GameState state,
+    required String partyIndividualId,
+    required String boxIndividualId,
+  }) {
+    final partyIndex = _partyIndexByIndividualId(state, partyIndividualId);
+    final boxLocation = _boxLocationByIndividualId(state, boxIndividualId);
+    if (partyIndex == null || boxLocation == null) {
+      return _failure(state, PlayerStorageFailure.invalidRequest);
+    }
+    return swapPartyWithBox(
+      state: state,
+      partyIndex: partyIndex,
+      boxId: boxLocation.boxId,
+      boxIndex: boxLocation.boxIndex,
     );
   }
 
@@ -300,6 +351,23 @@ final class PlayerStorageOperations {
     );
   }
 
+  PlayerStorageOperationResult swapPartyMembersByIndividualId({
+    required GameState state,
+    required String firstIndividualId,
+    required String secondIndividualId,
+  }) {
+    final firstIndex = _partyIndexByIndividualId(state, firstIndividualId);
+    final secondIndex = _partyIndexByIndividualId(state, secondIndividualId);
+    if (firstIndex == null || secondIndex == null) {
+      return _failure(state, PlayerStorageFailure.invalidRequest);
+    }
+    return swapPartyMembers(
+      state: state,
+      firstIndex: firstIndex,
+      secondIndex: secondIndex,
+    );
+  }
+
   PlayerStorageOperationResult setLead({
     required GameState state,
     required int partyIndex,
@@ -325,6 +393,17 @@ final class PlayerStorageOperations {
       partyIndex: 0,
     );
   }
+
+  PlayerStorageOperationResult setLeadByIndividualId({
+    required GameState state,
+    required String individualId,
+  }) {
+    final partyIndex = _partyIndexByIndividualId(state, individualId);
+    if (partyIndex == null) {
+      return _failure(state, PlayerStorageFailure.invalidRequest);
+    }
+    return setLead(state: state, partyIndex: partyIndex);
+  }
 }
 
 PlayerStorageOperationResult _failure(
@@ -335,6 +414,34 @@ PlayerStorageOperationResult _failure(
 
 bool _isPartyIndex(GameState state, int index) =>
     index >= 0 && index < state.party.members.length;
+
+int? _partyIndexByIndividualId(GameState state, String individualId) {
+  final normalizedId = individualId.trim();
+  if (normalizedId.isEmpty) return null;
+  final matches = state.party.members
+      .asMap()
+      .entries
+      .where((entry) => entry.value.individualId == normalizedId)
+      .toList(growable: false);
+  return matches.length == 1 ? matches.single.key : null;
+}
+
+({String boxId, int boxIndex})? _boxLocationByIndividualId(
+  GameState state,
+  String individualId,
+) {
+  final normalizedId = individualId.trim();
+  if (normalizedId.isEmpty) return null;
+  final matches = <({String boxId, int boxIndex})>[];
+  for (final box in state.pokemonStorage.normalized().boxes) {
+    for (var index = 0; index < box.pokemon.length; index += 1) {
+      if (box.pokemon[index].individualId == normalizedId) {
+        matches.add((boxId: box.id, boxIndex: index));
+      }
+    }
+  }
+  return matches.length == 1 ? matches.single : null;
+}
 
 int _firstAvailableBoxIndex(List<PokemonBox> boxes) =>
     boxes.indexWhere((box) => box.pokemon.length < box.capacity);

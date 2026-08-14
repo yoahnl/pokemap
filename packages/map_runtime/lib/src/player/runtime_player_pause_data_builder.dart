@@ -210,7 +210,7 @@ final class RuntimePlayerPauseDataBuilder {
             ].join(' · ');
       entries.add(
         RuntimePlayerDetailEntrySnapshot(
-          id: 'party.$index',
+          id: _partyTargetId(pokemon, index),
           title: nickname.isEmpty ? speciesLabel : nickname,
           subtitle: subtitle,
           trailingLabel:
@@ -220,7 +220,7 @@ final class RuntimePlayerPauseDataBuilder {
               currentHeldItemLabel == null && availableHeldItems.isEmpty
                   ? null
                   : RuntimePlayerHeldItemActionSnapshot(
-                      partyTargetId: 'party.$index',
+                      partyTargetId: _partyTargetId(pokemon, index),
                       currentItemLabel: currentHeldItemLabel,
                       options: availableHeldItems,
                     ),
@@ -483,7 +483,7 @@ final class RuntimePlayerPauseDataBuilder {
               : calculatedMaxHp;
       final currentHp = pokemon.currentHp.clamp(0, maxHp);
       return RuntimePlayerBagPartyTargetSnapshot(
-        targetId: 'party.$index',
+        targetId: _partyTargetId(pokemon, index),
         label: species?.nameFor(locale) ?? _humanize(pokemon.speciesId),
         subtitle: isFrench
             ? 'Niv. ${pokemon.level} · PV $currentHp/$maxHp'
@@ -793,6 +793,11 @@ String? _readNestedString(
   final rawValue = rawObject[valueKey];
   if (rawValue is! String || rawValue.trim().isEmpty) return null;
   return rawValue.trim();
+}
+
+String _partyTargetId(PlayerPokemon pokemon, int index) {
+  final individualId = pokemon.individualId.trim();
+  return individualId.isEmpty ? 'party.$index' : 'pokemon.$individualId';
 }
 
 Directory? _resolveProjectDirectory(String projectRoot, String relativePath) {

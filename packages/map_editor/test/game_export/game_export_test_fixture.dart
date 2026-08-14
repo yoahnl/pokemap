@@ -63,6 +63,7 @@ Future<Directory> createAuthorProject({
       initialParty: [
         PlayerPokemon(
           speciesId: withCanonicalPokemon ? 'bulbasaur' : 'fixture.partner',
+          formId: 'partner',
           natureId: 'hardy',
           abilityId: withCanonicalPokemon ? 'overgrow' : 'steadfast',
           level: 5,

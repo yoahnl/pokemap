@@ -337,7 +337,7 @@ final class SceneConsequenceRuntimeWriter {
       );
     }
 
-    final pokemon = PlayerPokemon(
+    final unresolvedPokemon = PlayerPokemon(
       speciesId: consequence.speciesId,
       natureId: consequence.natureId,
       abilityId: consequence.abilityId,
@@ -350,6 +350,19 @@ final class SceneConsequenceRuntimeWriter {
         mapId: gameState.currentMapId,
         sourceId: consequence.label ?? '',
         metLevel: consequence.level,
+      ),
+    );
+    final pokemon = unresolvedPokemon.copyWith(
+      individualId: nextPlayerPokemonIndividualId(
+        saveId: gameState.saveId,
+        location: <String>[
+          'gift',
+          gameState.currentMapId,
+          consequence.label ?? '',
+          consequence.speciesId,
+        ].join('|'),
+        pokemon: unresolvedPokemon,
+        occupiedIndividualIds: _ownedIndividualIds(gameState),
       ),
     );
     return _SceneConsequenceRuntimeWriteStep.applied(
@@ -390,8 +403,8 @@ final class SceneConsequenceRuntimeWriter {
       );
     }
 
-    final authoredPokemon = matches.single.pokemon;
-    final starter = authoredPokemon.provenance == null
+    final authoredPokemon = matches.single.pokemon.copyWith(individualId: '');
+    final starterWithProvenance = authoredPokemon.provenance == null
         ? authoredPokemon.copyWith(
             provenance: PlayerPokemonProvenance(
               kind: PlayerPokemonOriginKind.starter,
@@ -401,6 +414,14 @@ final class SceneConsequenceRuntimeWriter {
             ),
           )
         : authoredPokemon;
+    final starter = starterWithProvenance.copyWith(
+      individualId: nextPlayerPokemonIndividualId(
+        saveId: gameState.saveId,
+        location: 'starter|$optionId',
+        pokemon: starterWithProvenance,
+        occupiedIndividualIds: _ownedIndividualIds(gameState),
+      ),
+    );
     return _SceneConsequenceRuntimeWriteStep.applied(
       mutations.givePokemon(gameState, pokemon: starter),
     );
@@ -546,6 +567,15 @@ final class SceneConsequenceRuntimeWriter {
         },
       ),
     );
+  }
+}
+
+Iterable<String> _ownedIndividualIds(GameState gameState) sync* {
+  for (final pokemon in gameState.party.members) {
+    yield pokemon.individualId;
+  }
+  for (final pokemon in gameState.pokemonStorage.storedPokemon) {
+    yield pokemon.individualId;
   }
 }
 

@@ -7622,6 +7622,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         request: request,
         playerPartyIndex: playerLineup.activeIndex,
         playerPartySlotIndicesByLineupIndex: playerLineup.lineupPartyIndices,
+        playerIndividualId: _battleRuntimeGameState
+            .party.members[playerLineup.activeIndex].individualId,
+        playerIndividualIdsByLineupIndex: playerLineup.lineupPartyIndices.map(
+          (partyIndex) =>
+              _battleRuntimeGameState.party.members[partyIndex].individualId,
+        ),
       );
       _captureAttemptReceipt = null;
 
@@ -8344,6 +8350,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
               playerPartySlotIndicesByLineupIndex:
                   activeBattleContext.playerPartySlotIndicesByLineupIndex,
+              playerIndividualId: activeBattleContext.playerIndividualId,
+              playerIndividualIdsByLineupIndex:
+                  activeBattleContext.playerIndividualIdsByLineupIndex,
             ),
           );
         }
@@ -8716,6 +8725,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         activePlayerLineupIndex: activePlayerLineupIndex,
         playerPartySlotIndicesByLineupIndex:
             battleContext.playerPartySlotIndicesByLineupIndex,
+        playerIndividualId: battleContext.playerIndividualId,
+        playerIndividualIdsByLineupIndex:
+            battleContext.playerIndividualIdsByLineupIndex,
       );
       final respawn = _resolveWhiteoutLiteRespawn(battleContext);
       _world = _buildSafeWorldState(

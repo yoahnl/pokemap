@@ -63,6 +63,11 @@ void main() {
       (projectedProject['dialogues'] as List).single['relativePath'],
       'dialogues/dialogue.intro.json',
     );
+    final projectedParty =
+        ((projectedProject['newGame'] as Map<String, dynamic>)['initialParty']
+                as List<Object?>)
+            .cast<Map<String, dynamic>>();
+    expect(projectedParty.single['formId'], 'partner');
 
     final projectedMap = jsonDecode(
       utf8.decode(result.payloadFiles['project/maps/start.json']!),

@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
@@ -150,7 +153,9 @@ abstract class PlayerPokemon with _$PlayerPokemon {
 
   @JsonSerializable(explicitToJson: true)
   const factory PlayerPokemon({
+    @Default('') String individualId,
     required String speciesId,
+    @Default('') String formId,
     required String natureId,
     required String abilityId,
     String? gender,
@@ -187,7 +192,9 @@ abstract class PlayerPokemon with _$PlayerPokemon {
   bool get isFainted => currentHp <= 0;
 
   PlayerPokemon normalized() {
+    final normalizedIndividualId = individualId.trim();
     final normalizedSpeciesId = speciesId.trim();
+    final normalizedFormId = formId.trim();
     final normalizedNatureId = natureId.trim();
     final normalizedAbilityId = abilityId.trim();
     final normalizedGender = gender?.trim().toLowerCase();
@@ -261,7 +268,9 @@ abstract class PlayerPokemon with _$PlayerPokemon {
     final normalizedProvenance = provenance?.normalized();
 
     return copyWith(
+      individualId: normalizedIndividualId,
       speciesId: normalizedSpeciesId,
+      formId: normalizedFormId,
       natureId: normalizedNatureId,
       abilityId: normalizedAbilityId,
       gender: normalizedGender == null || normalizedGender.isEmpty
@@ -276,6 +285,111 @@ abstract class PlayerPokemon with _$PlayerPokemon {
       nickname: normalizedNickname,
       provenance: normalizedProvenance,
     );
+  }
+}
+
+({PlayerParty party, PokemonStorage pokemonStorage})
+normalizePlayerPokemonRosterIdentities({
+  required String saveId,
+  required PlayerParty party,
+  required PokemonStorage pokemonStorage,
+}) {
+  final normalizedPartyMembers = party.members
+      .map((pokemon) => pokemon.normalized())
+      .toList(growable: false);
+  final normalizedBoxes = pokemonStorage
+      .normalized()
+      .boxes
+      .map((box) => box.normalized())
+      .toList(growable: false);
+  final explicitIds = <String>{};
+
+  for (final pokemon in <PlayerPokemon>[
+    ...normalizedPartyMembers,
+    for (final box in normalizedBoxes) ...box.pokemon,
+  ]) {
+    final individualId = pokemon.individualId;
+    if (individualId.isNotEmpty && !explicitIds.add(individualId)) {
+      throw StateError(
+        'PlayerPokemon individualId values must be unique across party and storage',
+      );
+    }
+  }
+
+  final assignedIds = <String>{...explicitIds};
+  PlayerPokemon assign(PlayerPokemon pokemon, String location) {
+    if (pokemon.individualId.isNotEmpty) return pokemon;
+    final individualId = nextPlayerPokemonIndividualId(
+      saveId: saveId,
+      location: location,
+      pokemon: pokemon,
+      occupiedIndividualIds: assignedIds,
+    );
+    assignedIds.add(individualId);
+    return pokemon.copyWith(individualId: individualId);
+  }
+
+  final migratedParty = <PlayerPokemon>[
+    for (var index = 0; index < normalizedPartyMembers.length; index += 1)
+      assign(normalizedPartyMembers[index], 'party:$index'),
+  ];
+  final migratedBoxes = <PokemonBox>[
+    for (final box in normalizedBoxes)
+      box.copyWith(
+        pokemon: <PlayerPokemon>[
+          for (var index = 0; index < box.pokemon.length; index += 1)
+            assign(box.pokemon[index], 'box:${box.id}:$index'),
+        ],
+      ),
+  ];
+
+  return (
+    party: PlayerParty(members: migratedParty),
+    pokemonStorage: PokemonStorage(boxes: migratedBoxes),
+  );
+}
+
+String deterministicPlayerPokemonIndividualId({
+  required String saveId,
+  required String location,
+  required PlayerPokemon pokemon,
+  int collision = 0,
+}) {
+  final pokemonJson = Map<String, dynamic>.from(pokemon.toJson())
+    ..remove('individualId');
+  final digest = sha256.convert(
+    utf8.encode(
+      jsonEncode(<String, Object?>{
+        'saveId': saveId.trim(),
+        'location': location,
+        'pokemon': pokemonJson,
+        'collision': collision,
+      }),
+    ),
+  );
+  return 'pkm_${digest.toString().substring(0, 24)}';
+}
+
+String nextPlayerPokemonIndividualId({
+  required String saveId,
+  required String location,
+  required PlayerPokemon pokemon,
+  Iterable<String> occupiedIndividualIds = const <String>[],
+}) {
+  final occupied = occupiedIndividualIds
+      .map((individualId) => individualId.trim())
+      .where((individualId) => individualId.isNotEmpty)
+      .toSet();
+  var collision = 0;
+  while (true) {
+    final candidate = deterministicPlayerPokemonIndividualId(
+      saveId: saveId,
+      location: location,
+      pokemon: pokemon,
+      collision: collision,
+    );
+    if (!occupied.contains(candidate)) return candidate;
+    collision += 1;
   }
 }
 
@@ -730,12 +844,17 @@ abstract class SaveData with _$SaveData {
         path: r'$.itemSystemSchemaVersion',
       );
     }
+    final roster = normalizePlayerPokemonRosterIdentities(
+      saveId: normalizedSaveId,
+      party: party,
+      pokemonStorage: pokemonStorage,
+    );
 
     return copyWith(
       saveId: normalizedSaveId,
       currentMapId: normalizedCurrentMapId,
-      party: party.normalized(),
-      pokemonStorage: pokemonStorage.normalized(),
+      party: roster.party,
+      pokemonStorage: roster.pokemonStorage,
       trainerProfile: trainerProfile.normalized(),
       bag: bag.normalized(),
       progression: progression.normalized(),

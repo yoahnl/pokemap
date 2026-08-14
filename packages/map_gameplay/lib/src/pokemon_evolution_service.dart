@@ -476,6 +476,36 @@ final class PokemonEvolutionItemOperations {
       consumption.consumptionReceipt!,
     );
   }
+
+  PokemonEvolutionItemUseResult useItemByIndividualId(
+    GameState state, {
+    required String itemId,
+    required String individualId,
+    required PokemonEvolutionCandidate candidate,
+    required int sourceMaxHp,
+    required ItemCatalogSnapshot itemCatalog,
+  }) {
+    final normalizedId = individualId.trim();
+    final matches = state.party.members
+        .asMap()
+        .entries
+        .where((entry) => entry.value.individualId == normalizedId)
+        .toList(growable: false);
+    if (normalizedId.isEmpty || matches.length != 1) {
+      return PokemonEvolutionItemUseResult.failed(
+        state,
+        PokemonEvolutionItemUseFailure.invalidTarget,
+      );
+    }
+    return useItem(
+      state,
+      itemId: itemId,
+      partyIndex: matches.single.key,
+      candidate: candidate,
+      sourceMaxHp: sourceMaxHp,
+      itemCatalog: itemCatalog,
+    );
+  }
 }
 
 /// Preserves the exact HP ratio using nearest-integer, half-up rounding.

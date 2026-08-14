@@ -537,7 +537,11 @@ void main() {
         persistedPokemon.currentPpByMoveId,
         <String, int>{'tackle': 34, 'growl': 35, 'vine_whip': 35},
       );
-      expect(reloaded.party.members[1], unusedPartyMember);
+      expect(reloaded.party.members[1].individualId, startsWith('pkm_'));
+      expect(
+        reloaded.party.members[1].copyWith(individualId: ''),
+        unusedPartyMember,
+      );
 
       final secondSeed = await builder.buildPlayerCombatantSeed(
         projectRootDirectory: tempProjectRoot.path,

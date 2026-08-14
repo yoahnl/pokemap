@@ -386,20 +386,26 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         safeMessage: 'Le sac est occupé pour le moment.',
       );
     }
-    final partyIndex = _partyIndexFromTarget(command.partyTargetId);
+    final state = _currentGameState();
+    final partyIndex = _partyIndexFromTarget(state, command.partyTargetId);
     if (partyIndex == null) {
       return const RuntimePlayerPauseCommandResult(
         status: RuntimePlayerPauseCommandStatus.unavailable,
         safeMessage: 'Cette cible n’est plus disponible.',
       );
     }
-    final state = _currentGameState();
     if (command.kind == RuntimePlayerPauseCommandKind.unequipHeldItem) {
+      final individualId = state.party.members[partyIndex].individualId;
       return _applyHeldItemTransfer(
-        const HeldItemOperations().unequip(
-          state,
-          partyIndex: partyIndex,
-        ),
+        individualId.isEmpty
+            ? const HeldItemOperations().unequip(
+                state,
+                partyIndex: partyIndex,
+              )
+            : const HeldItemOperations().unequipByIndividualId(
+                state,
+                individualId: individualId,
+              ),
       );
     }
     final itemCatalog = await _resolveItemCatalog();
@@ -435,12 +441,19 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         case RuntimeHeldItemSupportStatus.supported:
           break;
       }
+      final individualId = state.party.members[partyIndex].individualId;
       return _applyHeldItemTransfer(
-        const HeldItemOperations().equip(
-          state,
-          partyIndex: partyIndex,
-          itemId: definition.id,
-        ),
+        individualId.isEmpty
+            ? const HeldItemOperations().equip(
+                state,
+                partyIndex: partyIndex,
+                itemId: definition.id,
+              )
+            : const HeldItemOperations().equipByIndividualId(
+                state,
+                individualId: individualId,
+                itemId: definition.id,
+              ),
       );
     }
     if (definition.machine != null) {
@@ -719,14 +732,23 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
           safeMessage: 'Les données de la cible sont incomplètes.',
         );
       }
-      final result = const PokemonEvolutionItemOperations().useItem(
-        state,
-        itemId: itemId,
-        partyIndex: partyIndex,
-        candidate: eligible.single,
-        sourceMaxHp: maxHp,
-        itemCatalog: itemCatalog,
-      );
+      final result = pokemon.individualId.isEmpty
+          ? const PokemonEvolutionItemOperations().useItem(
+              state,
+              itemId: itemId,
+              partyIndex: partyIndex,
+              candidate: eligible.single,
+              sourceMaxHp: maxHp,
+              itemCatalog: itemCatalog,
+            )
+          : const PokemonEvolutionItemOperations().useItemByIndividualId(
+              state,
+              itemId: itemId,
+              individualId: pokemon.individualId,
+              candidate: eligible.single,
+              sourceMaxHp: maxHp,
+              itemCatalog: itemCatalog,
+            );
       if (!result.isSuccess) {
         return const RuntimePlayerPauseCommandResult(
           status: RuntimePlayerPauseCommandStatus.unavailable,
@@ -1006,22 +1028,40 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   }) async {
     const operations = PlayerStorageOperations();
     final result = switch (action) {
-      RuntimeWorldServiceAction.deposit => operations.deposit(
-          state: session.gameState,
-          partyIndex: target.index,
-          boxId: session.selectedBoxId,
-        ),
-      RuntimeWorldServiceAction.withdraw => operations.withdraw(
-          state: session.gameState,
-          boxId: target.boxId!,
-          boxIndex: target.index,
-        ),
-      RuntimeWorldServiceAction.swap => operations.swapPartyWithBox(
-          state: session.gameState,
-          partyIndex: secondaryTarget!.index,
-          boxId: target.boxId!,
-          boxIndex: target.index,
-        ),
+      RuntimeWorldServiceAction.deposit => target.individualId.isEmpty
+          ? operations.deposit(
+              state: session.gameState,
+              partyIndex: target.index,
+              boxId: session.selectedBoxId,
+            )
+          : operations.depositByIndividualId(
+              state: session.gameState,
+              individualId: target.individualId,
+              boxId: session.selectedBoxId,
+            ),
+      RuntimeWorldServiceAction.withdraw => target.individualId.isEmpty
+          ? operations.withdraw(
+              state: session.gameState,
+              boxId: target.boxId!,
+              boxIndex: target.index,
+            )
+          : operations.withdrawByIndividualId(
+              state: session.gameState,
+              individualId: target.individualId,
+            ),
+      RuntimeWorldServiceAction.swap =>
+        target.individualId.isEmpty || secondaryTarget!.individualId.isEmpty
+            ? operations.swapPartyWithBox(
+                state: session.gameState,
+                partyIndex: secondaryTarget!.index,
+                boxId: target.boxId!,
+                boxIndex: target.index,
+              )
+            : operations.swapPartyWithBoxByIndividualId(
+                state: session.gameState,
+                partyIndividualId: secondaryTarget.individualId,
+                boxIndividualId: target.individualId,
+              ),
       _ => throw StateError('Unsupported PC transfer action.'),
     };
     if (!result.isSuccess) {
@@ -1096,16 +1136,20 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         partyIndex: index,
         boxId: selectedBox.id,
       );
-      final targetId = 'party-slot-$index';
+      final targetId = pokemon.individualId.isEmpty
+          ? 'party-slot-$index'
+          : 'pokemon.${pokemon.individualId}';
       targets[targetId] = _PcTransferTarget(
         action: RuntimeWorldServiceAction.deposit,
         index: index,
+        individualId: pokemon.individualId,
       );
       party.add(
         RuntimePcPokemonSnapshot(
           targetId: targetId,
           label: _pokemonDisplayLabel(pokemon),
           speciesId: pokemon.speciesId,
+          formId: pokemon.formId,
           level: pokemon.level,
           natureId: pokemon.natureId,
           abilityId: pokemon.abilityId,
@@ -1137,17 +1181,21 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         boxId: selectedBox.id,
         boxIndex: index,
       );
-      final targetId = 'box-slot-${selectedBox.id}-$index';
+      final targetId = pokemon.individualId.isEmpty
+          ? 'box-slot-${selectedBox.id}-$index'
+          : 'pokemon.${pokemon.individualId}';
       targets[targetId] = _PcTransferTarget(
         action: RuntimeWorldServiceAction.withdraw,
         index: index,
         boxId: selectedBox.id,
+        individualId: pokemon.individualId,
       );
       stored.add(
         RuntimePcPokemonSnapshot(
           targetId: targetId,
           label: _pokemonDisplayLabel(pokemon),
           speciesId: pokemon.speciesId,
+          formId: pokemon.formId,
           level: pokemon.level,
           natureId: pokemon.natureId,
           abilityId: pokemon.abilityId,
@@ -1854,11 +1902,13 @@ final class _PcTransferTarget {
   const _PcTransferTarget({
     required this.action,
     required this.index,
+    this.individualId = '',
     this.boxId,
   });
 
   final RuntimeWorldServiceAction action;
   final int index;
+  final String individualId;
   final String? boxId;
 }
 
@@ -1924,7 +1974,17 @@ String _pcFailureMessage(PlayerStorageFailure failure) => switch (failure) {
         'Impossible de déposer le dernier Pokémon utilisable.',
     };
 
-int? _partyIndexFromTarget(String targetId) {
+int? _partyIndexFromTarget(GameState state, String targetId) {
+  const individualPrefix = 'pokemon.';
+  if (targetId.startsWith(individualPrefix)) {
+    final individualId = targetId.substring(individualPrefix.length);
+    final matches = state.party.members
+        .asMap()
+        .entries
+        .where((entry) => entry.value.individualId == individualId)
+        .toList(growable: false);
+    return matches.length == 1 ? matches.single.key : null;
+  }
   const prefix = 'party.';
   if (!targetId.startsWith(prefix)) return null;
   return int.tryParse(targetId.substring(prefix.length));

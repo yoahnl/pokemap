@@ -32,6 +32,7 @@ final class WildPokemonGenerationProfile {
 final class WildPokemonGenerationSpecies {
   const WildPokemonGenerationSpecies({
     required this.id,
+    this.formId = '',
     required this.baseStats,
     required this.primaryAbilityId,
     required this.standardAbilityIds,
@@ -42,6 +43,7 @@ final class WildPokemonGenerationSpecies {
   });
 
   final String id;
+  final String formId;
   final PokemonBaseStats baseStats;
   final String primaryAbilityId;
   final List<String> standardAbilityIds;
@@ -77,10 +79,12 @@ final class WildPokemonGenerationContext {
   const WildPokemonGenerationContext({
     required this.mapId,
     required this.sourceId,
+    this.individualKey = '',
   });
 
   final String mapId;
   final String sourceId;
+  final String individualKey;
 }
 
 final class WildPlayerPokemonGenerationResult {
@@ -210,8 +214,9 @@ final class WildPlayerPokemonGenerator {
           natureId: natureId,
         )
         .maxHp;
-    final candidate = PlayerPokemon(
+    final unresolvedCandidate = PlayerPokemon(
       speciesId: normalizedSpeciesId,
+      formId: species.formId.trim(),
       natureId: natureId,
       abilityId: abilityId,
       gender: gender,
@@ -228,6 +233,19 @@ final class WildPlayerPokemonGenerator {
         mapId: context.mapId,
         sourceId: context.sourceId,
         metLevel: level,
+      ),
+    );
+    final candidate = unresolvedCandidate.copyWith(
+      individualId: deterministicPlayerPokemonIndividualId(
+        saveId: 'wild',
+        location: <Object>[
+          context.mapId.trim(),
+          context.sourceId.trim(),
+          context.individualKey.trim(),
+          normalizedSpeciesId,
+          seed,
+        ].join('|'),
+        pokemon: unresolvedCandidate,
       ),
     );
     final hydration = hydrator.hydrate(

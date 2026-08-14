@@ -991,7 +991,28 @@ class GameStateMutations {
       );
     }
 
+    final occupiedIndividualIds = <String>{
+      for (final member in state.party.members) member.individualId.trim(),
+      for (final box in state.pokemonStorage.boxes)
+        for (final member in box.pokemon) member.individualId.trim(),
+    }..remove('');
+    final requestedIndividualId = pokemon.individualId.trim();
+    if (requestedIndividualId.isNotEmpty &&
+        occupiedIndividualIds.contains(requestedIndividualId)) {
+      throw StateError(
+        'PlayerPokemon individualId values must be unique across party and storage',
+      );
+    }
+    final individualId = requestedIndividualId.isNotEmpty
+        ? requestedIndividualId
+        : nextPlayerPokemonIndividualId(
+            saveId: state.saveId,
+            location: 'give:party:${state.party.members.length}',
+            pokemon: pokemon,
+            occupiedIndividualIds: occupiedIndividualIds,
+          );
     final normalizedPokemon = pokemon.copyWith(
+      individualId: individualId,
       speciesId: normalizedSpeciesId,
     );
 

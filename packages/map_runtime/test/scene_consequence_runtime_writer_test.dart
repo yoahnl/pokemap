@@ -635,6 +635,10 @@ void main() {
       );
       expect(
           result.gameState.party.members.single.speciesId, 'species_sproutle');
+      expect(
+        result.gameState.party.members.single.individualId,
+        startsWith('pkm_'),
+      );
       expect(result.gameState.party.members.single.level, 7);
       expect(result.gameState.party.members.single.currentHp, 23);
       expect(result.gameState.party.members.single.nickname, 'Mousse');
@@ -886,14 +890,21 @@ void main() {
       );
 
       expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
+      final expectedWithProvenance = authored.copyWith(
+        provenance: const PlayerPokemonProvenance(
+          kind: PlayerPokemonOriginKind.starter,
+          mapId: 'lab',
+          sourceId: 'starter_bulbasaur',
+          metLevel: 16,
+        ),
+      );
       expect(
         result.gameState.party.members.single,
-        authored.copyWith(
-          provenance: const PlayerPokemonProvenance(
-            kind: PlayerPokemonOriginKind.starter,
-            mapId: 'lab',
-            sourceId: 'starter_bulbasaur',
-            metLevel: 16,
+        expectedWithProvenance.copyWith(
+          individualId: deterministicPlayerPokemonIndividualId(
+            saveId: 'save_configured_starter',
+            location: 'starter|starter_bulbasaur',
+            pokemon: expectedWithProvenance,
           ),
         ),
       );

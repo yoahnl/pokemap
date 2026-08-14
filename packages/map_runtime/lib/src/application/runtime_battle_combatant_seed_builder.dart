@@ -677,6 +677,7 @@ class RuntimeBattleCombatantSeedBuilder {
             : request.generationSeed,
         species: WildPokemonGenerationSpecies(
           id: species.id,
+          formId: species.formId,
           baseStats: PokemonBaseStats(
             hp: species.baseHp,
             attack: species.baseAttack,
@@ -712,6 +713,7 @@ class RuntimeBattleCombatantSeedBuilder {
         context: WildPokemonGenerationContext(
           mapId: request.mapId,
           sourceId: request.tableId,
+          individualKey: request.requestId,
         ),
         overrides: request.pokemonOverrides,
       );

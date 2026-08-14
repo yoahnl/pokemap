@@ -1100,8 +1100,9 @@ class ScenarioRuntimeExecutor {
                       0)
                   .clamp(0, 255);
 
-              final pokemon = PlayerPokemon(
+              final unresolvedPokemon = PlayerPokemon(
                 speciesId: speciesId,
+                formId: node.payload.params['formId']?.trim() ?? '',
                 level: clampedLevel,
                 natureId: natureId,
                 abilityId: abilityId,
@@ -1114,6 +1115,21 @@ class ScenarioRuntimeExecutor {
                   mapId: context.gameState.currentMapId,
                   sourceId: node.id,
                   metLevel: clampedLevel,
+                ),
+              );
+              final pokemon = unresolvedPokemon.copyWith(
+                individualId: nextPlayerPokemonIndividualId(
+                  saveId: context.gameState.saveId,
+                  location: 'scenario|${scenario.id}|${node.id}',
+                  pokemon: unresolvedPokemon,
+                  occupiedIndividualIds: <String>[
+                    ...context.gameState.party.members.map(
+                      (pokemon) => pokemon.individualId,
+                    ),
+                    ...context.gameState.pokemonStorage.storedPokemon.map(
+                      (pokemon) => pokemon.individualId,
+                    ),
+                  ],
                 ),
               );
               const mutations = GameStateMutations();

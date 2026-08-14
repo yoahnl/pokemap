@@ -568,7 +568,7 @@ as int?,
 /// @nodoc
 mixin _$PlayerPokemon {
 
- String get speciesId; String get natureId; String get abilityId; String? get gender; int get level; PokemonStatSpread get ivs; PokemonStatSpread get evs; List<String> get knownMoveIds;/// Total cumulative experience.
+ String get individualId; String get speciesId; String get formId; String get natureId; String get abilityId; String? get gender; int get level; PokemonStatSpread get ivs; PokemonStatSpread get evs; List<String> get knownMoveIds;/// Total cumulative experience.
 ///
 /// `null` is deliberately preserved for saves created before FG-021. It
 /// must not be interpreted as zero because that would silently regress a
@@ -591,16 +591,16 @@ $PlayerPokemonCopyWith<PlayerPokemon> get copyWith => _$PlayerPokemonCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerPokemon&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.natureId, natureId) || other.natureId == natureId)&&(identical(other.abilityId, abilityId) || other.abilityId == abilityId)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.level, level) || other.level == level)&&(identical(other.ivs, ivs) || other.ivs == ivs)&&(identical(other.evs, evs) || other.evs == evs)&&const DeepCollectionEquality().equals(other.knownMoveIds, knownMoveIds)&&(identical(other.experience, experience) || other.experience == experience)&&const DeepCollectionEquality().equals(other.currentPpByMoveId, currentPpByMoveId)&&(identical(other.currentHp, currentHp) || other.currentHp == currentHp)&&(identical(other.statusId, statusId) || other.statusId == statusId)&&(identical(other.isShiny, isShiny) || other.isShiny == isShiny)&&(identical(other.heldItemId, heldItemId) || other.heldItemId == heldItemId)&&(identical(other.nickname, nickname) || other.nickname == nickname)&&(identical(other.friendship, friendship) || other.friendship == friendship)&&(identical(other.provenance, provenance) || other.provenance == provenance));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlayerPokemon&&(identical(other.individualId, individualId) || other.individualId == individualId)&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.formId, formId) || other.formId == formId)&&(identical(other.natureId, natureId) || other.natureId == natureId)&&(identical(other.abilityId, abilityId) || other.abilityId == abilityId)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.level, level) || other.level == level)&&(identical(other.ivs, ivs) || other.ivs == ivs)&&(identical(other.evs, evs) || other.evs == evs)&&const DeepCollectionEquality().equals(other.knownMoveIds, knownMoveIds)&&(identical(other.experience, experience) || other.experience == experience)&&const DeepCollectionEquality().equals(other.currentPpByMoveId, currentPpByMoveId)&&(identical(other.currentHp, currentHp) || other.currentHp == currentHp)&&(identical(other.statusId, statusId) || other.statusId == statusId)&&(identical(other.isShiny, isShiny) || other.isShiny == isShiny)&&(identical(other.heldItemId, heldItemId) || other.heldItemId == heldItemId)&&(identical(other.nickname, nickname) || other.nickname == nickname)&&(identical(other.friendship, friendship) || other.friendship == friendship)&&(identical(other.provenance, provenance) || other.provenance == provenance));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,speciesId,natureId,abilityId,gender,level,ivs,evs,const DeepCollectionEquality().hash(knownMoveIds),experience,const DeepCollectionEquality().hash(currentPpByMoveId),currentHp,statusId,isShiny,heldItemId,nickname,friendship,provenance);
+int get hashCode => Object.hashAll([runtimeType,individualId,speciesId,formId,natureId,abilityId,gender,level,ivs,evs,const DeepCollectionEquality().hash(knownMoveIds),experience,const DeepCollectionEquality().hash(currentPpByMoveId),currentHp,statusId,isShiny,heldItemId,nickname,friendship,provenance]);
 
 @override
 String toString() {
-  return 'PlayerPokemon(speciesId: $speciesId, natureId: $natureId, abilityId: $abilityId, gender: $gender, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, experience: $experience, currentPpByMoveId: $currentPpByMoveId, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId, nickname: $nickname, friendship: $friendship, provenance: $provenance)';
+  return 'PlayerPokemon(individualId: $individualId, speciesId: $speciesId, formId: $formId, natureId: $natureId, abilityId: $abilityId, gender: $gender, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, experience: $experience, currentPpByMoveId: $currentPpByMoveId, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId, nickname: $nickname, friendship: $friendship, provenance: $provenance)';
 }
 
 
@@ -611,7 +611,7 @@ abstract mixin class $PlayerPokemonCopyWith<$Res>  {
   factory $PlayerPokemonCopyWith(PlayerPokemon value, $Res Function(PlayerPokemon) _then) = _$PlayerPokemonCopyWithImpl;
 @useResult
 $Res call({
- String speciesId, String natureId, String abilityId, String? gender, int level, PokemonStatSpread ivs, PokemonStatSpread evs, List<String> knownMoveIds, int? experience, Map<String, int>? currentPpByMoveId, int currentHp, String statusId, bool isShiny, String heldItemId, String nickname, int friendship, PlayerPokemonProvenance? provenance
+ String individualId, String speciesId, String formId, String natureId, String abilityId, String? gender, int level, PokemonStatSpread ivs, PokemonStatSpread evs, List<String> knownMoveIds, int? experience, Map<String, int>? currentPpByMoveId, int currentHp, String statusId, bool isShiny, String heldItemId, String nickname, int friendship, PlayerPokemonProvenance? provenance
 });
 
 
@@ -628,9 +628,11 @@ class _$PlayerPokemonCopyWithImpl<$Res>
 
 /// Create a copy of PlayerPokemon
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? speciesId = null,Object? natureId = null,Object? abilityId = null,Object? gender = freezed,Object? level = null,Object? ivs = null,Object? evs = null,Object? knownMoveIds = null,Object? experience = freezed,Object? currentPpByMoveId = freezed,Object? currentHp = null,Object? statusId = null,Object? isShiny = null,Object? heldItemId = null,Object? nickname = null,Object? friendship = null,Object? provenance = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? individualId = null,Object? speciesId = null,Object? formId = null,Object? natureId = null,Object? abilityId = null,Object? gender = freezed,Object? level = null,Object? ivs = null,Object? evs = null,Object? knownMoveIds = null,Object? experience = freezed,Object? currentPpByMoveId = freezed,Object? currentHp = null,Object? statusId = null,Object? isShiny = null,Object? heldItemId = null,Object? nickname = null,Object? friendship = null,Object? provenance = freezed,}) {
   return _then(_self.copyWith(
-speciesId: null == speciesId ? _self.speciesId : speciesId // ignore: cast_nullable_to_non_nullable
+individualId: null == individualId ? _self.individualId : individualId // ignore: cast_nullable_to_non_nullable
+as String,speciesId: null == speciesId ? _self.speciesId : speciesId // ignore: cast_nullable_to_non_nullable
+as String,formId: null == formId ? _self.formId : formId // ignore: cast_nullable_to_non_nullable
 as String,natureId: null == natureId ? _self.natureId : natureId // ignore: cast_nullable_to_non_nullable
 as String,abilityId: null == abilityId ? _self.abilityId : abilityId // ignore: cast_nullable_to_non_nullable
 as String,gender: freezed == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
@@ -762,10 +764,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String speciesId,  String natureId,  String abilityId,  String? gender,  int level,  PokemonStatSpread ivs,  PokemonStatSpread evs,  List<String> knownMoveIds,  int? experience,  Map<String, int>? currentPpByMoveId,  int currentHp,  String statusId,  bool isShiny,  String heldItemId,  String nickname,  int friendship,  PlayerPokemonProvenance? provenance)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String individualId,  String speciesId,  String formId,  String natureId,  String abilityId,  String? gender,  int level,  PokemonStatSpread ivs,  PokemonStatSpread evs,  List<String> knownMoveIds,  int? experience,  Map<String, int>? currentPpByMoveId,  int currentHp,  String statusId,  bool isShiny,  String heldItemId,  String nickname,  int friendship,  PlayerPokemonProvenance? provenance)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlayerPokemon() when $default != null:
-return $default(_that.speciesId,_that.natureId,_that.abilityId,_that.gender,_that.level,_that.ivs,_that.evs,_that.knownMoveIds,_that.experience,_that.currentPpByMoveId,_that.currentHp,_that.statusId,_that.isShiny,_that.heldItemId,_that.nickname,_that.friendship,_that.provenance);case _:
+return $default(_that.individualId,_that.speciesId,_that.formId,_that.natureId,_that.abilityId,_that.gender,_that.level,_that.ivs,_that.evs,_that.knownMoveIds,_that.experience,_that.currentPpByMoveId,_that.currentHp,_that.statusId,_that.isShiny,_that.heldItemId,_that.nickname,_that.friendship,_that.provenance);case _:
   return orElse();
 
 }
@@ -783,10 +785,10 @@ return $default(_that.speciesId,_that.natureId,_that.abilityId,_that.gender,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String speciesId,  String natureId,  String abilityId,  String? gender,  int level,  PokemonStatSpread ivs,  PokemonStatSpread evs,  List<String> knownMoveIds,  int? experience,  Map<String, int>? currentPpByMoveId,  int currentHp,  String statusId,  bool isShiny,  String heldItemId,  String nickname,  int friendship,  PlayerPokemonProvenance? provenance)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String individualId,  String speciesId,  String formId,  String natureId,  String abilityId,  String? gender,  int level,  PokemonStatSpread ivs,  PokemonStatSpread evs,  List<String> knownMoveIds,  int? experience,  Map<String, int>? currentPpByMoveId,  int currentHp,  String statusId,  bool isShiny,  String heldItemId,  String nickname,  int friendship,  PlayerPokemonProvenance? provenance)  $default,) {final _that = this;
 switch (_that) {
 case _PlayerPokemon():
-return $default(_that.speciesId,_that.natureId,_that.abilityId,_that.gender,_that.level,_that.ivs,_that.evs,_that.knownMoveIds,_that.experience,_that.currentPpByMoveId,_that.currentHp,_that.statusId,_that.isShiny,_that.heldItemId,_that.nickname,_that.friendship,_that.provenance);case _:
+return $default(_that.individualId,_that.speciesId,_that.formId,_that.natureId,_that.abilityId,_that.gender,_that.level,_that.ivs,_that.evs,_that.knownMoveIds,_that.experience,_that.currentPpByMoveId,_that.currentHp,_that.statusId,_that.isShiny,_that.heldItemId,_that.nickname,_that.friendship,_that.provenance);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -803,10 +805,10 @@ return $default(_that.speciesId,_that.natureId,_that.abilityId,_that.gender,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String speciesId,  String natureId,  String abilityId,  String? gender,  int level,  PokemonStatSpread ivs,  PokemonStatSpread evs,  List<String> knownMoveIds,  int? experience,  Map<String, int>? currentPpByMoveId,  int currentHp,  String statusId,  bool isShiny,  String heldItemId,  String nickname,  int friendship,  PlayerPokemonProvenance? provenance)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String individualId,  String speciesId,  String formId,  String natureId,  String abilityId,  String? gender,  int level,  PokemonStatSpread ivs,  PokemonStatSpread evs,  List<String> knownMoveIds,  int? experience,  Map<String, int>? currentPpByMoveId,  int currentHp,  String statusId,  bool isShiny,  String heldItemId,  String nickname,  int friendship,  PlayerPokemonProvenance? provenance)?  $default,) {final _that = this;
 switch (_that) {
 case _PlayerPokemon() when $default != null:
-return $default(_that.speciesId,_that.natureId,_that.abilityId,_that.gender,_that.level,_that.ivs,_that.evs,_that.knownMoveIds,_that.experience,_that.currentPpByMoveId,_that.currentHp,_that.statusId,_that.isShiny,_that.heldItemId,_that.nickname,_that.friendship,_that.provenance);case _:
+return $default(_that.individualId,_that.speciesId,_that.formId,_that.natureId,_that.abilityId,_that.gender,_that.level,_that.ivs,_that.evs,_that.knownMoveIds,_that.experience,_that.currentPpByMoveId,_that.currentHp,_that.statusId,_that.isShiny,_that.heldItemId,_that.nickname,_that.friendship,_that.provenance);case _:
   return null;
 
 }
@@ -818,10 +820,12 @@ return $default(_that.speciesId,_that.natureId,_that.abilityId,_that.gender,_tha
 
 @JsonSerializable(explicitToJson: true)
 class _PlayerPokemon extends PlayerPokemon {
-  const _PlayerPokemon({required this.speciesId, required this.natureId, required this.abilityId, this.gender, this.level = 1, this.ivs = const PokemonStatSpread(), this.evs = const PokemonStatSpread(), final  List<String> knownMoveIds = const [], this.experience, final  Map<String, int>? currentPpByMoveId, this.currentHp = 1, this.statusId = '', this.isShiny = false, this.heldItemId = '', this.nickname = '', this.friendship = 0, this.provenance}): _knownMoveIds = knownMoveIds,_currentPpByMoveId = currentPpByMoveId,super._();
+  const _PlayerPokemon({this.individualId = '', required this.speciesId, this.formId = '', required this.natureId, required this.abilityId, this.gender, this.level = 1, this.ivs = const PokemonStatSpread(), this.evs = const PokemonStatSpread(), final  List<String> knownMoveIds = const [], this.experience, final  Map<String, int>? currentPpByMoveId, this.currentHp = 1, this.statusId = '', this.isShiny = false, this.heldItemId = '', this.nickname = '', this.friendship = 0, this.provenance}): _knownMoveIds = knownMoveIds,_currentPpByMoveId = currentPpByMoveId,super._();
   factory _PlayerPokemon.fromJson(Map<String, dynamic> json) => _$PlayerPokemonFromJson(json);
 
+@override@JsonKey() final  String individualId;
 @override final  String speciesId;
+@override@JsonKey() final  String formId;
 @override final  String natureId;
 @override final  String abilityId;
 @override final  String? gender;
@@ -881,16 +885,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerPokemon&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.natureId, natureId) || other.natureId == natureId)&&(identical(other.abilityId, abilityId) || other.abilityId == abilityId)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.level, level) || other.level == level)&&(identical(other.ivs, ivs) || other.ivs == ivs)&&(identical(other.evs, evs) || other.evs == evs)&&const DeepCollectionEquality().equals(other._knownMoveIds, _knownMoveIds)&&(identical(other.experience, experience) || other.experience == experience)&&const DeepCollectionEquality().equals(other._currentPpByMoveId, _currentPpByMoveId)&&(identical(other.currentHp, currentHp) || other.currentHp == currentHp)&&(identical(other.statusId, statusId) || other.statusId == statusId)&&(identical(other.isShiny, isShiny) || other.isShiny == isShiny)&&(identical(other.heldItemId, heldItemId) || other.heldItemId == heldItemId)&&(identical(other.nickname, nickname) || other.nickname == nickname)&&(identical(other.friendship, friendship) || other.friendship == friendship)&&(identical(other.provenance, provenance) || other.provenance == provenance));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlayerPokemon&&(identical(other.individualId, individualId) || other.individualId == individualId)&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.formId, formId) || other.formId == formId)&&(identical(other.natureId, natureId) || other.natureId == natureId)&&(identical(other.abilityId, abilityId) || other.abilityId == abilityId)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.level, level) || other.level == level)&&(identical(other.ivs, ivs) || other.ivs == ivs)&&(identical(other.evs, evs) || other.evs == evs)&&const DeepCollectionEquality().equals(other._knownMoveIds, _knownMoveIds)&&(identical(other.experience, experience) || other.experience == experience)&&const DeepCollectionEquality().equals(other._currentPpByMoveId, _currentPpByMoveId)&&(identical(other.currentHp, currentHp) || other.currentHp == currentHp)&&(identical(other.statusId, statusId) || other.statusId == statusId)&&(identical(other.isShiny, isShiny) || other.isShiny == isShiny)&&(identical(other.heldItemId, heldItemId) || other.heldItemId == heldItemId)&&(identical(other.nickname, nickname) || other.nickname == nickname)&&(identical(other.friendship, friendship) || other.friendship == friendship)&&(identical(other.provenance, provenance) || other.provenance == provenance));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,speciesId,natureId,abilityId,gender,level,ivs,evs,const DeepCollectionEquality().hash(_knownMoveIds),experience,const DeepCollectionEquality().hash(_currentPpByMoveId),currentHp,statusId,isShiny,heldItemId,nickname,friendship,provenance);
+int get hashCode => Object.hashAll([runtimeType,individualId,speciesId,formId,natureId,abilityId,gender,level,ivs,evs,const DeepCollectionEquality().hash(_knownMoveIds),experience,const DeepCollectionEquality().hash(_currentPpByMoveId),currentHp,statusId,isShiny,heldItemId,nickname,friendship,provenance]);
 
 @override
 String toString() {
-  return 'PlayerPokemon(speciesId: $speciesId, natureId: $natureId, abilityId: $abilityId, gender: $gender, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, experience: $experience, currentPpByMoveId: $currentPpByMoveId, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId, nickname: $nickname, friendship: $friendship, provenance: $provenance)';
+  return 'PlayerPokemon(individualId: $individualId, speciesId: $speciesId, formId: $formId, natureId: $natureId, abilityId: $abilityId, gender: $gender, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, experience: $experience, currentPpByMoveId: $currentPpByMoveId, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId, nickname: $nickname, friendship: $friendship, provenance: $provenance)';
 }
 
 
@@ -901,7 +905,7 @@ abstract mixin class _$PlayerPokemonCopyWith<$Res> implements $PlayerPokemonCopy
   factory _$PlayerPokemonCopyWith(_PlayerPokemon value, $Res Function(_PlayerPokemon) _then) = __$PlayerPokemonCopyWithImpl;
 @override @useResult
 $Res call({
- String speciesId, String natureId, String abilityId, String? gender, int level, PokemonStatSpread ivs, PokemonStatSpread evs, List<String> knownMoveIds, int? experience, Map<String, int>? currentPpByMoveId, int currentHp, String statusId, bool isShiny, String heldItemId, String nickname, int friendship, PlayerPokemonProvenance? provenance
+ String individualId, String speciesId, String formId, String natureId, String abilityId, String? gender, int level, PokemonStatSpread ivs, PokemonStatSpread evs, List<String> knownMoveIds, int? experience, Map<String, int>? currentPpByMoveId, int currentHp, String statusId, bool isShiny, String heldItemId, String nickname, int friendship, PlayerPokemonProvenance? provenance
 });
 
 
@@ -918,9 +922,11 @@ class __$PlayerPokemonCopyWithImpl<$Res>
 
 /// Create a copy of PlayerPokemon
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? speciesId = null,Object? natureId = null,Object? abilityId = null,Object? gender = freezed,Object? level = null,Object? ivs = null,Object? evs = null,Object? knownMoveIds = null,Object? experience = freezed,Object? currentPpByMoveId = freezed,Object? currentHp = null,Object? statusId = null,Object? isShiny = null,Object? heldItemId = null,Object? nickname = null,Object? friendship = null,Object? provenance = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? individualId = null,Object? speciesId = null,Object? formId = null,Object? natureId = null,Object? abilityId = null,Object? gender = freezed,Object? level = null,Object? ivs = null,Object? evs = null,Object? knownMoveIds = null,Object? experience = freezed,Object? currentPpByMoveId = freezed,Object? currentHp = null,Object? statusId = null,Object? isShiny = null,Object? heldItemId = null,Object? nickname = null,Object? friendship = null,Object? provenance = freezed,}) {
   return _then(_PlayerPokemon(
-speciesId: null == speciesId ? _self.speciesId : speciesId // ignore: cast_nullable_to_non_nullable
+individualId: null == individualId ? _self.individualId : individualId // ignore: cast_nullable_to_non_nullable
+as String,speciesId: null == speciesId ? _self.speciesId : speciesId // ignore: cast_nullable_to_non_nullable
+as String,formId: null == formId ? _self.formId : formId // ignore: cast_nullable_to_non_nullable
 as String,natureId: null == natureId ? _self.natureId : natureId // ignore: cast_nullable_to_non_nullable
 as String,abilityId: null == abilityId ? _self.abilityId : abilityId // ignore: cast_nullable_to_non_nullable
 as String,gender: freezed == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable

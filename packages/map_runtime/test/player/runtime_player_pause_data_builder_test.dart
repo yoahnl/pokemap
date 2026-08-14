@@ -336,6 +336,7 @@ void main() {
         party: PlayerParty(
           members: <PlayerPokemon>[
             PlayerPokemon(
+              individualId: 'pkm_sproutle',
               speciesId: 'sproutle',
               natureId: 'hardy',
               abilityId: 'overgrow',
@@ -387,7 +388,7 @@ void main() {
         .entries
         .single
         .heldItemAction!;
-    expect(action.partyTargetId, 'party.0');
+    expect(action.partyTargetId, 'pokemon.pkm_sproutle');
     expect(action.currentItemLabel, 'Baie Oran');
     expect(
       action.options.map((option) => (option.itemTargetId, option.label)),

@@ -154,8 +154,12 @@ GameState createNewGameStateFromProject({
     tileWidthPx: tileWidthPx,
     tileHeightPx: tileHeightPx,
   );
-  final normalizedParty =
-      PlayerParty(members: config.initialParty).normalized();
+  final normalizedParty = PlayerParty(
+    members: <PlayerPokemon>[
+      for (final pokemon in config.initialParty)
+        pokemon.copyWith(individualId: ''),
+    ],
+  ).normalized();
   final initialFacts = <String, NarrativeValue>{
     ...config.resolvedInitialFactValues,
   };

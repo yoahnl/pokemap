@@ -36,6 +36,7 @@ void main() {
       await File(p.join(speciesDir.path, 'targetmon.json')).writeAsString(
         jsonEncode(<String, dynamic>{
           'id': 'targetmon',
+          'forms': <String, dynamic>{'formId': 'summer'},
           'typing': <String, dynamic>{
             'types': <String>['grass'],
           },
@@ -80,6 +81,7 @@ void main() {
       );
 
       expect(species.id, 'targetmon');
+      expect(species.formId, 'summer');
       expect(species.primaryAbilityId, 'overgrow');
       expect(species.standardAbilityIds, <String>['overgrow', 'chlorophyll']);
       expect(

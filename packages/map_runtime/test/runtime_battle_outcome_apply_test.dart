@@ -19,19 +19,33 @@ void main() {
       'RuntimeActiveBattleContext defensively copies lineup mapping and exposes it read-only',
       () {
     final sourceMapping = <int>[2, 0];
+    final sourceIdentities = <String>['pkm_active', 'pkm_reserve'];
     final context = RuntimeActiveBattleContext.withLineupMapping(
       request: _wildRequest(),
       playerPartyIndex: 2,
       playerPartySlotIndicesByLineupIndex: sourceMapping,
+      playerIndividualId: 'pkm_active',
+      playerIndividualIdsByLineupIndex: sourceIdentities,
     );
 
     sourceMapping
       ..[0] = 1
       ..add(3);
+    sourceIdentities
+      ..[0] = 'pkm_replaced'
+      ..add('pkm_added');
 
     expect(context.playerPartySlotIndicesByLineupIndex, <int>[2, 0]);
     expect(
+      context.playerIndividualIdsByLineupIndex,
+      <String>['pkm_active', 'pkm_reserve'],
+    );
+    expect(
       context.playerPartySlotIndicesByLineupIndex.clear,
+      throwsUnsupportedError,
+    );
+    expect(
+      context.playerIndividualIdsByLineupIndex.clear,
       throwsUnsupportedError,
     );
   });
@@ -192,6 +206,99 @@ void main() {
       expect(updatedState.party.members[0].currentHp, equals(9));
       expect(updatedState.party.members[1].currentHp, equals(3));
       expect(updatedState.party.members[2].currentHp, equals(18));
+    });
+
+    test('resolves lineup identities after the persisted party was reordered',
+        () {
+      const reorderedState = GameState(
+        saveId: 'save-reordered-lineup',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              individualId: 'pkm_reserve',
+              speciesId: 'same_species',
+              formId: 'reserve_form',
+              natureId: 'calm',
+              abilityId: 'pressure',
+              knownMoveIds: <String>['b'],
+              currentHp: 40,
+            ),
+            PlayerPokemon(
+              individualId: 'pkm_active',
+              speciesId: 'same_species',
+              formId: 'active_form',
+              natureId: 'bold',
+              abilityId: 'pressure',
+              knownMoveIds: <String>['a'],
+              currentHp: 30,
+            ),
+          ],
+        ),
+      );
+      final outcome = BattleOutcome(
+        type: BattleOutcomeType.victory,
+        finalState: BattleState(
+          phase: BattlePhase.finished,
+          player: BattleCombatant(
+            speciesId: 'same_species',
+            lineupIndex: 0,
+            level: 10,
+            currentHp: 3,
+            maxHp: 30,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(id: 'a', name: 'a', power: 10),
+            ],
+          ),
+          playerReserve: <BattleCombatant>[
+            BattleCombatant(
+              speciesId: 'same_species',
+              lineupIndex: 1,
+              level: 10,
+              currentHp: 9,
+              maxHp: 40,
+              stats: _outcomeTestStats,
+              moves: <BattleMove>[
+                BattleMove(id: 'b', name: 'b', power: 10),
+              ],
+            ),
+          ],
+          enemy: BattleCombatant(
+            speciesId: 'enemy',
+            level: 10,
+            currentHp: 0,
+            maxHp: 20,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(id: 'x', name: 'x', power: 10),
+            ],
+          ),
+          currentTurn: null,
+          outcome: null,
+        ),
+      );
+
+      final updated = applyRuntimeBattleOutcomeToGameState(
+        gameState: reorderedState,
+        context: RuntimeActiveBattleContext.withLineupMapping(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+          playerPartySlotIndicesByLineupIndex: const <int>[0, 1],
+          playerIndividualId: 'pkm_active',
+          playerIndividualIdsByLineupIndex: const <String>[
+            'pkm_active',
+            'pkm_reserve',
+          ],
+        ),
+        outcome: outcome,
+      );
+
+      expect(updated.party.members[0].individualId, 'pkm_reserve');
+      expect(updated.party.members[0].currentHp, 9);
+      expect(updated.party.members[0].formId, 'reserve_form');
+      expect(updated.party.members[1].individualId, 'pkm_active');
+      expect(updated.party.members[1].currentHp, 3);
+      expect(updated.party.members[1].formId, 'active_form');
     });
 
     for (final outcomeType in <BattleOutcomeType>[
@@ -636,7 +743,9 @@ void main() {
       final context = RuntimeActiveBattleContext(
         request: _wildRequest().withGeneratedPokemon(
           pokemon: const PlayerPokemon(
+            individualId: 'pkm_wildmon_capture',
             speciesId: 'wildmon',
+            formId: 'midnight',
             natureId: 'modest',
             abilityId: 'intimidate',
             gender: 'female',
@@ -689,7 +798,9 @@ void main() {
       expect(updatedState.party.members, hasLength(3));
 
       final captured = updatedState.party.members.last;
+      expect(captured.individualId, 'pkm_wildmon_capture');
       expect(captured.speciesId, equals('wildmon'));
+      expect(captured.formId, 'midnight');
       expect(captured.level, equals(12));
       expect(captured.abilityId, equals('intimidate'));
       expect(captured.natureId, equals('modest'));
