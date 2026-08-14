@@ -204,6 +204,7 @@ final class ProjectReferenceDiagnostic {
     required this.code,
     required this.severity,
     required this.message,
+    this.action,
     required this.target,
     this.owner,
     this.fieldPath,
@@ -213,6 +214,7 @@ final class ProjectReferenceDiagnostic {
   final String code;
   final ProjectReferenceSeverity severity;
   final String message;
+  final String? action;
   final ProjectReferenceKey target;
   final ProjectReferenceKey? owner;
   final String? fieldPath;
@@ -222,6 +224,7 @@ final class ProjectReferenceDiagnostic {
         'code': code,
         'severity': severity.name,
         'message': message,
+        if (action != null) 'action': action,
         'target': target.toJson(),
         if (owner != null) 'owner': owner!.toJson(),
         if (fieldPath != null) 'fieldPath': fieldPath,
@@ -245,13 +248,26 @@ final class ProjectReferenceIndex {
           for (final node in nodes) node.key: node,
         });
 
-  factory ProjectReferenceIndex.fromSnapshot(ProjectSnapshot snapshot) {
-    return ProjectReferenceIndex.fromNarrativeIndex(
+  factory ProjectReferenceIndex.fromSnapshot(
+    ProjectSnapshot snapshot, {
+    Iterable<PresentationCinematicAsset> presentationCinematics = const [],
+    Iterable<PresentationMediaReferenceDefinition> presentationMedia = const [],
+    Iterable<PresentationMediaFallbackReference> presentationFallbacks =
+        const [],
+  }) {
+    final narrative = ProjectReferenceIndex.fromNarrativeIndex(
       buildNarrativeDependencyIndex(
         project: snapshot.manifest,
         maps: snapshot.maps,
       ),
     );
+    final presentation = PresentationReferenceGraph.build(
+      cinematics: presentationCinematics,
+      scenes: snapshot.manifest.scenes,
+      media: presentationMedia,
+      fallbacks: presentationFallbacks,
+    );
+    return narrative._withPresentationGraph(presentation);
   }
 
   factory ProjectReferenceIndex.fromNarrativeIndex(
@@ -319,6 +335,83 @@ final class ProjectReferenceIndex {
 
   ProjectReferenceNode? nodeFor(ProjectReferenceKey key) => _nodesByKey[key];
 
+  ProjectReferenceIndex _withPresentationGraph(
+    PresentationReferenceGraph presentation,
+  ) {
+    final nodesByKey = <ProjectReferenceKey, ProjectReferenceNode>{
+      for (final node in nodes) node.key: node,
+    };
+    for (final node in presentation.nodes) {
+      final key = _presentationKey(node.key);
+      final existing = nodesByKey[key];
+      final metadata = <String, String>{
+        ...?existing?.metadata,
+        if (node.mediaType != null) 'mediaType': node.mediaType!.name,
+      };
+      nodesByKey[key] = ProjectReferenceNode(
+        key: key,
+        label: existing?.label ?? node.label,
+        defined: (existing?.defined ?? false) || node.defined,
+        metadata: metadata,
+        navigation: existing?.navigation ?? _presentationNavigation(key),
+      );
+    }
+
+    final mergedEdges = <ProjectReferenceEdge>[
+      ...edges,
+      for (final edge in presentation.edges)
+        ProjectReferenceEdge(
+          owner: _presentationKey(edge.owner),
+          target: _presentationKey(edge.target),
+          path: edge.path,
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+          resolution: switch (edge.resolution) {
+            PresentationReferenceResolution.resolved =>
+              NarrativeDependencyResolution.resolved,
+            PresentationReferenceResolution.missing =>
+              NarrativeDependencyResolution.missing,
+            PresentationReferenceResolution.incompatible =>
+              NarrativeDependencyResolution.unavailable,
+          },
+          navigation: _presentationNavigation(
+            _presentationKey(edge.owner),
+            context: edge.path,
+          ),
+        ),
+    ]..sort(compareProjectReferenceEdges);
+
+    final mergedDiagnostics = <ProjectReferenceDiagnostic>[
+      ...diagnostics,
+      for (final diagnostic in presentation.diagnostics)
+        ProjectReferenceDiagnostic(
+          code: diagnostic.code,
+          severity: ProjectReferenceSeverity.error,
+          message: diagnostic.message,
+          action: diagnostic.action,
+          target: _presentationKey(diagnostic.target),
+          owner: diagnostic.owner == null
+              ? null
+              : _presentationKey(diagnostic.owner!),
+          fieldPath: diagnostic.path,
+          navigation: diagnostic.owner == null
+              ? null
+              : _presentationNavigation(
+                  _presentationKey(diagnostic.owner!),
+                  context: diagnostic.path,
+                ),
+        ),
+    ]..sort(compareProjectReferenceDiagnostics);
+
+    return ProjectReferenceIndex._(
+      narrativeIndex: _narrativeIndex,
+      nodes: nodesByKey.values.toList()
+        ..sort(
+            (left, right) => compareProjectReferenceKeys(left.key, right.key)),
+      edges: _deduplicateEdges(mergedEdges),
+      diagnostics: _deduplicateProjectDiagnostics(mergedDiagnostics),
+    );
+  }
+
   Map<String, Object?> toJson() => {
         'nodes': nodes.map((node) => node.toJson()).toList(growable: false),
         'edges': edges.map((edge) => edge.toJson()).toList(growable: false),
@@ -326,6 +419,54 @@ final class ProjectReferenceIndex {
             .map((diagnostic) => diagnostic.toJson())
             .toList(growable: false),
       };
+}
+
+ProjectReferenceKey _presentationKey(PresentationReferenceKey key) {
+  return ProjectReferenceKey(
+    kind: key.kind.name,
+    id: key.id,
+    parentId: key.parentId,
+  );
+}
+
+ProjectReferenceNavigation _presentationNavigation(
+  ProjectReferenceKey key, {
+  String? context,
+}) {
+  return ProjectReferenceNavigation(
+    kind: key.kind,
+    assetId: key.id,
+    parentId: key.parentId,
+    context: context,
+  );
+}
+
+List<ProjectReferenceEdge> _deduplicateEdges(
+  Iterable<ProjectReferenceEdge> source,
+) {
+  final identities = <String>{};
+  return [
+    for (final edge in source)
+      if (identities.add(
+        '${edge.owner.toJson()}|${edge.target.toJson()}|${edge.path}|'
+        '${edge.criticality.name}|${edge.resolution.name}',
+      ))
+        edge,
+  ];
+}
+
+List<ProjectReferenceDiagnostic> _deduplicateProjectDiagnostics(
+  Iterable<ProjectReferenceDiagnostic> source,
+) {
+  final identities = <String>{};
+  return [
+    for (final diagnostic in source)
+      if (identities.add(
+        '${diagnostic.code}|${diagnostic.target.toJson()}|'
+        '${diagnostic.owner?.toJson()}|${diagnostic.fieldPath}',
+      ))
+        diagnostic,
+  ];
 }
 
 int compareProjectReferenceKeys(
