@@ -9,6 +9,7 @@ import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_legacy_migra
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
 import 'package:map_editor/src/ui/canvas/scenes/scene_graph_read_only_view.dart';
+import 'package:map_editor/src/ui/canvas/scenes/scene_node_read_only_inspector.dart';
 
 void main() {
   testWidgets('full shell and migration state expose named semantic routes',
@@ -88,6 +89,54 @@ void main() {
     );
     semantics.dispose();
   });
+
+  testWidgets(
+    'Presentation cinematic nodes stay distinct in read-only Scene UI',
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 1800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final semantics = tester.ensureSemantics();
+      final scene = _presentationSceneSummary();
+
+      await tester.pumpWidget(
+        _host(
+          Row(
+            children: [
+              Expanded(
+                child: SceneGraphReadOnlyView(
+                  scene: scene,
+                  expandToFill: true,
+                ),
+              ),
+              SizedBox(
+                width: 380,
+                child: SceneNodeReadOnlyInspector(
+                  scene: scene,
+                  selectedNodeId: 'presentation',
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Cinématique de présentation'),
+        findsAtLeastNWidgets(2),
+      );
+      expect(find.text('presentationCinematicId'), findsOneWidget);
+      expect(find.text('opening'), findsOneWidget);
+      expect(find.text('presentation'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Input port for node presentation'),
+        findsOneWidget,
+      );
+      semantics.dispose();
+    },
+  );
 }
 
 NarrativeLegacyMigrationScan _scan() => NarrativeLegacyMigrationScan(
@@ -155,6 +204,64 @@ NarrativeSceneSummary _sceneSummary() {
     scenes: [scene],
   );
   return buildNarrativeWorkspaceProjection(project).scenes.single;
+}
+
+NarrativeSceneSummary _presentationSceneSummary() {
+  final scene = SceneAsset(
+    id: 'scene_presentation',
+    name: 'Presentation',
+    executionProfile: SceneExecutionProfile.preSession,
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'presentation',
+          kind: SceneNodeKind.presentationCinematic,
+          payload: ScenePresentationCinematicPayload(
+            presentationCinematicId: 'opening',
+          ),
+        ),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_presentation',
+          fromNodeId: 'start',
+          fromPortId: 'completed',
+          toNodeId: 'presentation',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'edge_presentation_end',
+          fromNodeId: 'presentation',
+          fromPortId: 'completed',
+          toNodeId: 'end',
+          kind: SceneEdgeKind.presentationCompleted,
+        ),
+      ],
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [
+        SceneNodeLayout(nodeId: 'start', x: 40, y: 120),
+        SceneNodeLayout(nodeId: 'presentation', x: 340, y: 120),
+        SceneNodeLayout(nodeId: 'end', x: 640, y: 120),
+      ],
+    ),
+  );
+  return NarrativeSceneSummary(
+    id: scene.id,
+    name: scene.name,
+    nodeCount: scene.graph.nodes.length,
+    edgeCount: scene.graph.edges.length,
+    declaredOutcomeCount: 0,
+    declaredOutcomes: const [],
+    tags: const [],
+    graph: scene.graph,
+    layout: scene.layout,
+    diagnostics: diagnoseScene(scene),
+    outcomeDefinitions: const [],
+  );
 }
 
 Widget _host(Widget child) => MaterialApp(

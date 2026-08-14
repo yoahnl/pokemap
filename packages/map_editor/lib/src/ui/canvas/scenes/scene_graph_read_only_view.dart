@@ -469,6 +469,7 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
           SceneNodeKind.yarnDialogue ||
           SceneNodeKind.battle ||
           SceneNodeKind.cinematic ||
+          SceneNodeKind.presentationCinematic ||
           SceneNodeKind.merge ||
           SceneNodeKind.end =>
             true,
@@ -1219,6 +1220,7 @@ final class _SceneGraphEdgeColors {
     required this.battleVictory,
     required this.battleDefeat,
     required this.cinematicCompleted,
+    required this.presentationCompleted,
     required this.actionCompleted,
     required this.branchOutcome,
     required this.error,
@@ -1234,6 +1236,7 @@ final class _SceneGraphEdgeColors {
       battleVictory: colors.success,
       battleDefeat: colors.error,
       cinematicCompleted: colors.warning,
+      presentationCompleted: colors.focusRing,
       actionCompleted: colors.warning,
       branchOutcome: colors.focusRing,
       error: colors.error,
@@ -1248,6 +1251,7 @@ final class _SceneGraphEdgeColors {
   final Color battleVictory;
   final Color battleDefeat;
   final Color cinematicCompleted;
+  final Color presentationCompleted;
   final Color actionCompleted;
   final Color branchOutcome;
   final Color error;
@@ -1262,6 +1266,7 @@ final class _SceneGraphEdgeColors {
       SceneEdgeKind.battleVictory => battleVictory,
       SceneEdgeKind.battleDefeat => battleDefeat,
       SceneEdgeKind.cinematicCompleted => cinematicCompleted,
+      SceneEdgeKind.presentationCompleted => presentationCompleted,
       SceneEdgeKind.actionCompleted => actionCompleted,
       SceneEdgeKind.branchOutcome => branchOutcome,
       SceneEdgeKind.error => error,
@@ -1549,6 +1554,7 @@ PokeMapTone _toneForNode(SceneNodeKind kind) {
     SceneNodeKind.action => PokeMapTone.warning,
     SceneNodeKind.battle => PokeMapTone.danger,
     SceneNodeKind.cinematic => PokeMapTone.narrative,
+    SceneNodeKind.presentationCinematic => PokeMapTone.narrative,
     SceneNodeKind.branchByOutcome => PokeMapTone.narrative,
     SceneNodeKind.merge => PokeMapTone.neutral,
   };
@@ -1563,6 +1569,7 @@ IconData _iconForNode(SceneNodeKind kind) {
     SceneNodeKind.action => CupertinoIcons.bolt,
     SceneNodeKind.battle => CupertinoIcons.asterisk_circle,
     SceneNodeKind.cinematic => CupertinoIcons.film,
+    SceneNodeKind.presentationCinematic => CupertinoIcons.play_rectangle,
     SceneNodeKind.branchByOutcome => CupertinoIcons.arrow_branch,
     SceneNodeKind.merge => CupertinoIcons.arrow_merge,
   };
@@ -1577,6 +1584,7 @@ String _nodeKindLabel(SceneNodeKind kind) {
     SceneNodeKind.action => 'Action',
     SceneNodeKind.battle => 'Combat',
     SceneNodeKind.cinematic => 'Cinématique',
+    SceneNodeKind.presentationCinematic => 'Cinématique de présentation',
     SceneNodeKind.branchByOutcome => 'Branche',
     SceneNodeKind.merge => 'Merge',
   };
@@ -1591,6 +1599,7 @@ String _edgeKindLabel(SceneEdgeKind kind) {
     SceneEdgeKind.battleVictory => 'victory',
     SceneEdgeKind.battleDefeat => 'defeat',
     SceneEdgeKind.cinematicCompleted => 'cinematic',
+    SceneEdgeKind.presentationCompleted => 'presentation',
     SceneEdgeKind.actionCompleted => 'action',
     SceneEdgeKind.branchOutcome => 'branch',
     SceneEdgeKind.error => 'error',
