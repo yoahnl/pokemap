@@ -259,15 +259,15 @@ Les statuts de cette version correspondent à l'audit préparatoire. Ils ne cons
 
 ## 11. Phase 6 — Évolution du Cinematic Studio
 
-**Objectif :** réunir deux familles explicites — cinématique de monde et cinématique de présentation — dans une expérience d'authoring cohérente. Panorama, composition multicouche et vidéo sont des capacités du mode présentation.
+**Objectif bêta :** ajouter une famille explicite de cinématiques de présentation et une nouvelle bibliothèque soignée pour chacune des deux familles. Le Builder et le fonctionnement in-game actuels restent inchangés jusqu'à un chantier post-bêta dédié : depuis sa nouvelle bibliothèque, créer ou ouvrir une cinématique in-game mène au Studio monde existant. Panorama, composition multicouche et vidéo sont des capacités du seul mode présentation.
 
 ### 11.1 Fondations observées
 
 | ID | Capacité | Statut | Décision |
 |---|---|---:|---|
-| CIN-ST-01 | Modèle `CinematicAsset` monde | ✅ | Le conserver pour les cinématiques in-engine ; ne pas l'étendre par des champs nullable de présentation. |
-| CIN-ST-02 | Actions linéaires in-game | ✅ | Conserver caméra, acteur, dialogue, audio, fondus, secousses, effets et marqueurs. |
-| CIN-ST-03 | Prévisualisation runtime | 🟡 | Revalider la parité après stabilisation de la ligne de base. |
+| CIN-ST-01 | Modèle `CinematicAsset` monde | ✅ | Le conserver tel quel pendant la bêta ; ne pas l'étendre par des champs nullable de présentation. Sa refonte globale est post-bêta. |
+| CIN-ST-02 | Actions linéaires in-game | ✅ | Ne modifier ni leur fonctionnement ni leur interface dans CIN-V2. Leur refonte est post-bêta. |
+| CIN-ST-03 | Prévisualisation runtime monde | 🟡 | Protéger uniquement l'absence de régression pendant CIN-V2 ; la modernisation du parcours est post-bêta. |
 | CIN-ST-04 | Ancien Cutscene Studio | 🔧 | Le retirer intégralement après canary du remplacement : zéro reader, bridge, fallback, conversion automatique, route ou surface legacy. |
 | CIN-ST-05 | V1 linéaire | 🟡 | Elle peut être clôturée fonctionnellement après preuve fraîche, mais ne couvre pas la vision cinématique complète. |
 
@@ -275,21 +275,21 @@ Les statuts de cette version correspondent à l'audit préparatoire. Ils ne cons
 
 | ID | Capacité | Statut | Critère de sortie |
 |---|---|---:|---|
-| CIN-ST-06 | Familles de cinématique | ⬜ | Le Studio distingue clairement monde et présentation ; panorama et vidéo restent des capacités de présentation. |
-| CIN-ST-07 | Timeline temporelle | ⬜ | Chaque élément possède une position et une durée explicites. |
-| CIN-ST-08 | Pistes simultanées | ⬜ | Caméra, image, acteur, dialogue, audio et effets peuvent se chevaucher. |
-| CIN-ST-09 | Réorganisation visuelle | ⬜ | Les éléments sont déplaçables et redimensionnables avec annulation. |
+| CIN-ST-06 | Familles de cinématique | ⬜ | Une nouvelle bibliothèque distingue clairement monde et présentation ; toute entrée in-game ouvre le Builder monde existant sans le modifier. |
+| CIN-ST-07 | Timeline Presentation | ⬜ | Chaque élément Presentation possède une position et une durée explicites. |
+| CIN-ST-08 | Pistes Presentation simultanées | ⬜ | Visuels, textes, audio, vidéo, captions et repères peuvent se chevaucher ; un repère d'interaction ne porte que le timing, tandis que Scene possède requête et résultat. |
+| CIN-ST-09 | Réorganisation visuelle Presentation | ⬜ | Les éléments Presentation sont déplaçables et redimensionnables avec annulation. |
 | CIN-ST-10 | Marqueurs nommés | 🟡 | Les marqueurs servent à la navigation, la synchronisation et les déclenchements. |
 | CIN-ST-11 | Modèles de scène | ⬜ | Des modèles génériques accélèrent les parcours courants sans enfermer le créateur. |
-| CIN-ST-12 | Preview dans le vrai runtime | ⬜ | Le Studio injecte un snapshot dans le même moteur que le playtest. |
+| CIN-ST-12 | Preview Presentation dans le vrai runtime | ⬜ | Le Studio injecte un snapshot Presentation dans le même renderer que le Player. |
 | CIN-ST-13 | Préflight complet | 🟡 | Références, durées, médias, transitions et politiques de sortie sont vérifiés avant lecture. |
 | CIN-ST-14 | Historique et annulation | 🟡 | Les opérations structurantes sont réversibles et testées. |
-| CIN-ST-15 | Modularisation de l'espace de travail | 🔧 | Le grand workspace actuel est séparé par responsabilités sans régression de parcours. |
-| CIN-ST-16 | Diagnostic de parité | ⬜ | Toute divergence entre preview et runtime est visible et couverte par une fixture partagée. |
+| CIN-ST-15 | Modularisation des nouvelles surfaces | 🔧 | La bibliothèque à deux familles et le workspace Presentation sont séparés par responsabilités sans refactor opportuniste du Builder monde. |
+| CIN-ST-16 | Diagnostic de parité Presentation | ⬜ | Toute divergence entre preview Presentation et Player est visible et couverte par une fixture partagée. |
 
 **Dépendances :** contrats CIN-V2, Phase 2 pour les médias, Phase 4 pour la présentation composée et Phase 5 pour la capacité vidéo. La pré-session sans présentation reste livrable sans dépendre des Phases 4 et 5.
 
-**Sortie de phase :** une personne non développeuse peut construire, prévisualiser, diagnostiquer et publier les deux familles de cinématiques depuis un seul Studio cohérent, et Narrative Studio peut les orchestrer sans devenir un second moteur de timeline.
+**Sortie de phase bêta :** une personne non développeuse peut organiser les deux familles dans leurs nouvelles bibliothèques, puis construire, prévisualiser, diagnostiquer et publier une cinématique de présentation depuis le nouveau Studio. Créer ou ouvrir une cinématique in-game mène au Builder existant, fonctionnellement inchangé. Narrative Studio orchestre Presentation sans devenir un second moteur de timeline.
 
 ### 11.3 CIN-V2 — Roadmap exécutable cinématiques de présentation et pré-session
 
@@ -349,22 +349,47 @@ Règles de découpage :
 | 0.462 | `BETA-CIN-006` | Actions et validations headless Scene/preSession. | `CIN-003`, `CIN-004`, `CIN-005` | Template, capabilities, draft bindings et diagnostics passent en API directe/JSONL. |
 | 0.464 | `BETA-CIN-019` | Resources, queries et actions sémantiques Presentation en API directe/JSONL. | `CIN-013`, `CIN-014` | Tracks/clips/layers/media queryables ; dry-run, CAS, receipts, undo et pagination prouvés. |
 | 0.466 | `BETA-CIN-033` | Adaptateur MCP et certification des quatre transports. | `CIN-006`, `CIN-019` | API directe, JSONL/CLI, Editor et MCP = 4/4 E2E avec catalogue live. |
+| 0.468 | `BETA-CIN-049` | Catalogue canonique de dossiers pour les deux familles cinématiques. | `CIN-001` | Modèle séparé de `CinematicAsset`, hiérarchie récursive sans cycle, ordre/déplacement/suppression gardée et parité API/JSONL/Editor/MCP 4/4. |
 
 #### E. UI atomique
 
 | Ordre | Ticket | Livrable atomique | Bloqué par | Preuve de sortie |
 |---:|---|---|---|---|
-| 0.470 | `BETA-CIN-020` | Routes typées et adoption de la session documentaire Narrative existante. | `CIN-011`, `CIN-012` | Dirty guard, undo/redo, autosave, conflit et restauration communs. |
-| 0.472 | `BETA-CIN-021` | Library et création mode-aware. | `CIN-002`, `CIN-019`, `CIN-020` | Mode → template → titre, badges, filtres, duplication et réouverture. |
-| 0.474 | `BETA-CIN-022` | Extraire/stabiliser le Builder monde. | `CIN-011`, `CIN-012`, `CIN-020` | Aucune régression map/acteurs/caméra et responsabilités sorties du workspace géant. |
-| 0.476 | `BETA-CIN-023` | Canvas Presentation et layer stack. | `CIN-017`, `CIN-019`, `CIN-020` | Ratio, safe areas, fonds, calques, médias et z-order sans contrôles monde parasites. |
-| 0.478 | `BETA-CIN-024` | Timeline et transports partagés. | `CIN-002`, `CIN-022`, `CIN-023` | Move/resize/scrub/zoom, raccourcis et commit unique après drag. |
-| 0.480 | `BETA-CIN-025` | Palette/picker preSession dans Scene Builder. | `CIN-006`, `CIN-021`, `WLD-008` | Capabilities visibles et incompatibilités expliquées, sans IDs manuels. |
-| 0.482 | `BETA-CIN-039` | Transaction atomique create-and-link. | `CIN-020`, `CIN-021`, `CIN-025` | Créer/lier/revenir forme un seul undo et ne produit aucun asset orphelin. |
-| 0.484 | `BETA-CIN-026` | Diagnostics et récupération UI. | `CIN-013`, `CIN-021` à `CIN-025`, `CIN-032` | Missing/corrupt/unsupported media, retry/fix/open-source et live feedback sans catch silencieux. |
-| 0.486 | `BETA-CIN-040` | Design system, a11y, l10n et responsive. | `CIN-026` | Aucun contrôle ad hoc ; clavier/focus/semantics ; FR/EN ; 1280–1920 et text scale 100–150 %. |
-| 0.488 | `BETA-CIN-041` | Certification visuelle et parité preview/runtime. | `CIN-024`, `CIN-039`, `CIN-040` | Goldens frais et même asset/même timestamp dans Editor et vrai runtime. |
-| 0.490 | `BETA-WLD-009` | Gate d'intégration du nouveau Cinematic Studio. | `CIN-021` à `CIN-026`, `CIN-039` à `CIN-041` | Les deux modes et le flow preSession passent le contrat validé de `CIN-011`. |
+| 0.4685 | `BETA-CIN-050` | Primitives design system du Cinematic Studio. | `CIN-011`, `CIN-012` | Library, workspace, canvas, layer tree, timeline, médias et statuts disposent de composants testés avant les écrans. |
+| 0.469 | `BETA-CIN-056` | Catalogue versionné et instanciation des six gabarits Presentation. | `CIN-002`, `CIN-019` | Les six recettes validées produisent un document responsive déterministe, sans média imposé ni calque verrouillé. |
+| 0.470 | `BETA-CIN-020` | Routes typées et adoption de la session documentaire Narrative existante. | `CIN-011`, `CIN-012` | Sauvegarde explicite, brouillon récupérable, garde universelle, conflit sans overwrite et restauration de contexte. |
+| 0.472 | `BETA-CIN-021` | Navigation des deux Libraries mode-aware. | `CIN-002`, `CIN-019`, `CIN-020`, `CIN-049`, `CIN-050` | Deux onglets, dossiers récursifs, recherche/tri, états complets et retour restauré, sans embarquer les commandes métier. |
+| 0.473 | `BETA-CIN-061` | Formulaires et commandes mode-aware des Libraries. | `CIN-021`, `CIN-050`, `CIN-056` | Création exacte par famille, duplicate/move/archive/delete, idempotence et ouverture du bon Builder. |
+| 0.474 | `BETA-CIN-051` | Shell plein espace du Studio Presentation. | `CIN-020`, `CIN-050` | Toolbar, back guard, statut documentaire, panneaux redimensionnables et slots modulaires, sans grossir le Builder in-game. |
+| 0.476 | `BETA-CIN-023` | Viewport canvas Presentation de base. | `CIN-017`, `CIN-019`, `CIN-020`, `CIN-051` | Renderer partagé, zoom/pan/fit, safe areas et états de rendu sans contrôles monde. |
+| 0.477 | `BETA-CIN-052` | Canvas responsive et mode Compare. | `CIN-023`, `CIN-051` | Document unique 16:9/9:16, transforms par orientation, fallback média et même playhead dans Compare. |
+| 0.4775 | `BETA-CIN-053` | Arbre de calques et sélection synchronisée. | `CIN-019`, `CIN-023`, `CIN-051` | Groupes/dossiers visuels, z-order, lock/visibility et sélection unique canvas–calques–timeline. |
+| 0.4777 | `BETA-CIN-057` | Fondation scalable de la timeline. | `CIN-002`, `CIN-050`, `CIN-051` | Règle, playhead, zoom, scroll et virtualisation supportent les fixtures limites sans I/O dans les hot paths. |
+| 0.478 | `BETA-CIN-024` | Édition de clips dans la timeline. | `CIN-002`, `CIN-023`, `CIN-053`, `CIN-057` | Multi-select, move/trim/snap/clipboard, cancel et un seul commit canonique après drag. |
+| 0.479 | `BETA-CIN-054` | Inspecteurs typés du Studio. | `CIN-019`, `CIN-030`, `CIN-052`, `CIN-053` | Visuel, texte, image/vidéo, audio, captions, repères et transitions s'éditent sans JSON ni formulaire géant. |
+| 0.480 | `BETA-CIN-055` | Palette Ajouter et explorateur média. | `CIN-014`, `CIN-029`, `CIN-030`, `CIN-050`, `CIN-051` | Réutilisation/import, staging, états complets et insertion explicite sans mutation avant validation. |
+| 0.4805 | `BETA-CIN-058` | Transports et preview temporelle du Studio. | `CIN-015`, `CIN-024`, `CIN-031`, `CIN-032`, `CIN-052`, `CIN-057` | Play/pause/stop/seek/scrub/loop utilisent l'horloge et le renderer partagés, y compris interaction hold. |
+| 0.481 | `BETA-CIN-059` | Pistes audio, vidéo, captions et repères spécialisées. | `CIN-018`, `CIN-024`, `CIN-030`, `CIN-055`, `CIN-057` | Waveforms/thumbnails/captions/cues restent performants, référentiels et sans I/O dans paint/pointerMove. |
+| 0.482 | `BETA-CIN-025` | Explorateur Presentation dans Scene Builder. | `CIN-006`, `CIN-021`, `WLD-008` | Panneau latéral, recherche/dossiers/aperçu/diagnostics, repères reliés aux requêtes structurées et reprise automatique, sans ID brut. |
+| 0.483 | `BETA-CIN-039` | Transaction atomique create-and-link. | `CIN-020`, `CIN-021`, `CIN-025`, `CIN-051`, `CIN-056`, `CIN-061` | Brouillon non publié puis commit cinématique+nœud+référence en un undo ; retour exact au graphe et zéro orphelin. |
+| 0.484 | `BETA-CIN-026` | Diagnostics et récupération UI Presentation. | `CIN-013`, `CIN-021`, `CIN-023`, `CIN-024`, `CIN-025`, `CIN-032`, `CIN-054`, `CIN-055`, `CIN-058`, `CIN-059`, `CIN-061` | Toutes les surfaces exposent cause, impact, correction et retry idempotent sans perdre le draft. |
+| 0.486 | `BETA-CIN-040` | Durcissement a11y, l10n et responsive. | `CIN-026`, `CIN-050` | Clavier/souris, focus/semantics, IME, FR/EN, 1280–1920, text scale et préférences d'accessibilité sont certifiés. |
+| 0.487 | `BETA-CIN-060` | Performance interactive du Studio. | `CIN-021`, `CIN-023`, `CIN-024`, `CIN-040`, `CIN-052`–`CIN-055`, `CIN-057`–`CIN-059`, `CIN-061` | Library 1 000 assets, canvas 100 calques et timeline 1 000+ clips passent des budgets exact-SHA reproductibles. |
+| 0.488 | `BETA-CIN-041` | Certification visuelle et parité preview/runtime. | `CIN-024`, `CIN-039`, `CIN-040`, `CIN-052`–`CIN-055`, `CIN-058`–`CIN-061` | Goldens conformes aux maquettes CIN-011 et même asset/même timestamp dans Editor et vrai runtime. |
+| 0.490 | `BETA-WLD-009` | Gate d'intégration de la nouvelle Library et du Studio Presentation. | `CIN-021`, `CIN-023`–`CIN-026`, `CIN-039`–`CIN-041`, `CIN-050`–`CIN-061` | Toute la projection CIN-011 est verte ; les deux Libraries fonctionnent et le Builder in-game ne régresse pas. |
+
+##### Contrat UX canonique issu de `BETA-CIN-011`
+
+- `Narrative Studio > Cinématiques` ouvre une Library avec deux onglets, `Cinématiques in-game` actif par défaut et `Cinématiques de présentation`. Chaque famille possède recherche, dossiers récursifs, états vides/erreur et création dans le dossier courant.
+- Créer une cinématique in-game demande uniquement le titre, le dossier et un point de départ `Vide`, `Plan d’établissement` ou `Temps de dialogue`, puis ouvre le Builder monde actuel sans modifier son comportement canonique. La seule exception est le retrait obligatoire par `BETA-CIN-044` de ses routes et contrôles legacy non canoniques.
+- Une Presentation est un document responsive unique avec compositions 16:9 et 9:16, timeline/textes/repères partagés, variantes paysage/portrait par occurrence d'image, vidéo, voix ou effet sonore, fallback vers l'unique source disponible et musique unique partagée. Les variantes partagent le timing et le trim ; une paire trop courte pour la plage commune bloque la validation jusqu'à correction.
+- Le Studio Presentation occupe sa route de travail sans Library ni onglets de famille. Il conserve le canvas synchronisé, `Calques / Propriétés`, la palette latérale `+ Ajouter`, la timeline progressive et les six gabarits validés dans le ticket Notion.
+- Dans Scene Builder, `Cinématique de présentation` ouvre un explorateur latéral pleine hauteur sans quitter ni masquer le graphe. Il permet de choisir une Presentation existante ou `Créer et lier`, sans ID brut.
+- Un repère Presentation indique uniquement l'instant d'une interaction. Scene possède la requête structurée et la destination typée du résultat ; après réponse terminale, la même exécution Presentation reprend automatiquement sans nœud manuel de reprise.
+- `Créer et lier` édite un brouillon récupérable mais non publié ; les imports restent en staging transactionnel. `Enregistrer` ou `⌘S` publie atomiquement la cinématique, le nœud, leur référence et les médias staged puis reste dans le Studio. `Enregistrer et revenir` applique la même transaction puis restaure le contexte exact du graphe. Le commit produit une seule entrée undo ; annulation, échec ou Scene stale laissent zéro mutation projet et zéro orphelin, tout en conservant le brouillon récupérable en cas de conflit.
+- Une Presentation référencée ne peut pas être supprimée. Les usages sont résolus un par un ; une référence manquante garde son nœud visible, bloque playtest/publication et propose remplacement ou suppression explicite du nœud.
+- La sauvegarde projet reste explicite. Un brouillon local protège des crashes ; tous les chemins de sortie partagent le même dirty guard et un conflit de révision n'écrase ni ne fusionne automatiquement les timelines.
+- Les surfaces d'authoring sont desktop souris/clavier. La maquette Scene → Presentation retenue est la direction 2 jointe à `BETA-CIN-011` dans Notion ; elle est contractuelle pour la hiérarchie, le vocabulaire et le parcours, pas pour une reproduction pixel-perfect.
 
 #### F. Distribution, canary, cutover et certification
 
@@ -384,10 +409,11 @@ Règles de découpage :
 | 0.514 | `BETA-CIN-028` | Gate builds et plateformes. | `CIN-045`, `CIN-046`, `CIN-047` | Chaque plateforme a son verdict et son receipt ; aucune moyenne ne masque un rouge. |
 | 0.516 | `BETA-CIN-008` | Certification finale neutre de bout en bout. | `CIN-010`, `CIN-028`, `CIN-033`, `CIN-036`, `CIN-038`, `CIN-041`, `LCH-001` | Matrice complète avec/sans preSession/Presentation, input, lifecycle, crash, package, save/reload et legacy rejeté. |
 | 0.700 | `BETA-CIN-009` | Généraliser aux interludes, endings et transitions. | `CIN-008` | Deux fixtures hors New Game prouvent l'absence de spécialisation identité. |
+| 0.705 | `BETA-CIN-022` | Reconcevoir le système et l'interface des cinématiques in-game. | `CIN-008` | Chantier post-bêta cadré en lots atomiques ; aucun élargissement rétroactif du scope CIN-V2. |
 
 Dans Notion, les relations `Bloqué par` de `BETA-CIN-008` doivent contenir uniquement `CIN-010`, `CIN-028`, `CIN-033`, `CIN-036`, `CIN-038`, `CIN-041` et `BETA-LCH-001`.
 
-Projection contrôlée le 13 août 2026 : **51 tickets, 122 dépendances, 2 racines, 0 cycle et 0 violation d'ordre**. Les 51 pages Notion ont été relues individuellement après écriture ; parents, relations inverses, ordre et readiness correspondent tous à ce graphe.
+Projection révisée le 14 août 2026 : **64 tickets**, **201 dépendances**, **2 racines**, **0 cycle**, **0 parent manquant**, **0 violation d'ordre** et **0 relation inverse manquante** dans CIN-V2. Douze lots `BETA-CIN-050` à `BETA-CIN-061` rendent atomiques la fondation design system, les gabarits, le shell Studio, le responsive/Compare, les calques, inspecteurs, médias, timeline et performances Editor. `BETA-CIN-022` reste reporté après `BETA-CIN-008` et la refonte du Builder in-game demeure hors scope bêta.
 
 ### 11.4 Chemin critique et parallélisation
 
@@ -600,7 +626,7 @@ Un lot ne peut être proposé comme terminé que si les preuves fraîches compre
 
 **Sortie obligatoire :** schéma/version, timebase, capabilities, packages, audio/vidéo, preload, draft/crash, entrypoint, migration, plateformes, cutover legacy et gates de preuve sont tous tranchés. Ce ticket ne crée encore ni modèle Dart, ni runtime, ni UI.
 
-**Contrats proposés à la review :** [`cinematic_v2_architecture_contract.md`](../architecture/cinematic_v2_architecture_contract.md) et [`cinematic_v2_contract_v1.json`](../architecture/contracts/cinematic_v2_contract_v1.json). Ils restent `review-candidate` jusqu'à la validation explicite de Yoahn ; les lots dépendants ne doivent pas les traiter comme figés avant cette validation.
+**Contrats acceptés le 14 août 2026 :** [`cinematic_v2_architecture_contract.md`](../architecture/cinematic_v2_architecture_contract.md) et [`cinematic_v2_contract_v1.json`](../architecture/contracts/cinematic_v2_contract_v1.json). Yoahn a validé les six arbitrages P0 et le contrat UX de `BETA-CIN-011` ; les lots dépendants peuvent désormais les traiter comme figés, tout en conservant leurs propres gates de dépendances et de preuve.
 
 ### BETA-CIN-012 — Caractériser la baseline UI en parallèle
 

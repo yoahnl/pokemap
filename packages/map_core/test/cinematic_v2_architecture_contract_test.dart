@@ -107,6 +107,28 @@ void main() {
       expect(issues, contains('media.authority_invalid'));
     });
 
+    test(
+      'fails closed when Scene interaction ownership or input scope drifts',
+      () {
+        final contract = _readContract(contractFile);
+        final timeline = _object(contract['timeline']);
+        contract['timeline'] = {
+          ...timeline,
+          'trackKinds': [..._strings(timeline['trackKinds']), 'interaction'],
+        };
+        final accessibility = _object(contract['accessibilityAndInput']);
+        contract['accessibilityAndInput'] = {
+          ...accessibility,
+          'editorForbidden': <String>[],
+        };
+
+        final issues = _validateContract(contract);
+
+        expect(issues, contains('timeline.interaction_ownership_invalid'));
+        expect(issues, contains('accessibility.input_scope_invalid'));
+      },
+    );
+
     test('repository boundaries and documentation match the contract', () {
       final contract = _readContract(contractFile);
       final runtimePubspec = File(
@@ -141,7 +163,7 @@ List<String> _validateContract(Map<String, dynamic> contract) {
   if (contract['contractId'] != 'pokemap.cinematic-v2' ||
       contract['formatVersion'] != 1 ||
       contract['ticketId'] != 'BETA-CIN-001' ||
-      contract['status'] != 'review-candidate') {
+      contract['status'] != 'accepted') {
     issues.add('contract.identity_invalid');
   }
   if (projectSchema['requiredVersion'] != 'v7' ||
@@ -169,6 +191,22 @@ List<String> _validateContract(Map<String, dynamic> contract) {
       families.map((family) => family['idNamespace']).toSet().length != 2 ||
       families.any((family) => family['polymorphicFallback'] != false)) {
     issues.add('assets.families_not_disjoint');
+  }
+
+  final library = _object(contract['cinematicLibraryCatalog']);
+  if (library['model'] != 'CinematicLibraryCatalog' ||
+      library['folderIdentity'] != 'stableCinematicFolderId' ||
+      !_sameStrings(_strings(library['familyScopes']), {
+        'world',
+        'presentation',
+      }) ||
+      library['worldAssetModelMutationRequired'] != false ||
+      library['recursiveFolders'] != true ||
+      library['cyclePolicy'] != 'reject' ||
+      library['nonEmptyDeletionPolicy'] != 'rejectUntilMovedOrDeleted' ||
+      library['authoringAuthority'] != 'map_authoring' ||
+      library['semanticTransportParity'] != '4/4Required') {
+    issues.add('library.catalog_invalid');
   }
 
   final profiles = _objects(contract['sceneProfiles']);
@@ -207,6 +245,34 @@ List<String> _validateContract(Map<String, dynamic> contract) {
       timeline['runtimeClock'] != 'monotonic' ||
       timeline['editorSeek'] != 'explicitDeterministic') {
     issues.add('timeline.timebase_invalid');
+  }
+  final interactionCuePolicy = _object(timeline['interactionCuePolicy']);
+  if (!_sameStrings(_strings(timeline['trackKinds']), {
+        'visual',
+        'audio',
+        'caption',
+        'marker',
+      }) ||
+      interactionCuePolicy['representation'] != 'zeroDurationNamedMarker' ||
+      interactionCuePolicy['timelineOwnsTimingOnly'] != true ||
+      interactionCuePolicy['sceneOwnsRequestAndResult'] != true ||
+      interactionCuePolicy['requiredUnboundPolicy'] != 'validationError' ||
+      interactionCuePolicy['resumePolicy'] !=
+          'automaticSameRunAtHeldNarrativeTime') {
+    issues.add('timeline.interaction_ownership_invalid');
+  }
+  final pausePolicy = _object(timeline['pausePolicy']);
+  if (pausePolicy['userPause'] != 'freezeNarrativeAndMediaClocks' ||
+      pausePolicy['lifecyclePause'] != 'freezeNarrativeAndMediaClocks' ||
+      pausePolicy['interactionHold'] !=
+          'freezeNarrativeClockAndAuthoredAnimations' ||
+      pausePolicy['interactionHoldMusic'] != 'continueCurrentPlaybackOrLoop' ||
+      pausePolicy['interactionHoldBackgroundVideo'] !=
+          'continueCurrentPlaybackOrLoop' ||
+      pausePolicy['interactionHoldOneShotAudio'] != 'neverRestart' ||
+      pausePolicy['interactionResume'] !=
+          'continueNarrativeAtHeldTimeWithoutSeekingContinuedAmbience') {
+    issues.add('timeline.pause_policy_invalid');
   }
 
   final outcomes = _object(contract['executionOutcomes']);
@@ -250,6 +316,35 @@ List<String> _validateContract(Map<String, dynamic> contract) {
       media['offlinePackageRequired'] != true ||
       !_sameStrings(_strings(media['audioModes']), {'muted', 'mixerManaged'})) {
     issues.add('media.authority_invalid');
+  }
+  final variants = _object(media['responsiveVariants']);
+  if (!_sameStrings(_strings(variants['slots']), {'landscape', 'portrait'}) ||
+      !_sameStrings(_strings(variants['variantCapableKinds']), {
+        'image',
+        'video',
+        'voice',
+        'soundEffect',
+      }) ||
+      !_sameStrings(_strings(variants['sharedOnlyKinds']), {'music'}) ||
+      variants['singleSourceFallback'] != 'useAvailableSource' ||
+      variants['sharedClipTiming'] != true ||
+      variants['durationMismatchPolicy'] !=
+          'blockUntilBothVariantsCoverSharedTrim') {
+    issues.add('media.responsive_variants_invalid');
+  }
+
+  final createAndLink = _object(contract['createAndLinkTransaction']);
+  if (createAndLink['draftVisibility'] != 'localRecoveryOnly' ||
+      createAndLink['projectSave'] != 'publishAtomicallyAndStay' ||
+      createAndLink['saveAndReturn'] != 'publishAtomicallyAndReturn' ||
+      createAndLink['publishedUnits'] !=
+          'presentationCinematic+sceneNode+reference+stagedMedia' ||
+      createAndLink['undoEntries'] != 1 ||
+      createAndLink['cancelOrFailure'] != 'zeroProjectMutationAndZeroOrphan' ||
+      createAndLink['staleScenePolicy'] !=
+          'rejectPublishKeepRecoverableDraft' ||
+      createAndLink['mediaImportBeforePublish'] != 'transactionStagingOnly') {
+    issues.add('authoring.create_and_link_invalid');
   }
 
   final budgets = _object(contract['securityAndBudgets']);
@@ -347,7 +442,18 @@ List<String> _validateContract(Map<String, dynamic> contract) {
   }
 
   final accessibility = _object(contract['accessibilityAndInput']);
-  if (!_strings(accessibility['required']).toSet().containsAll({
+  if (!_sameStrings(_strings(accessibility['editorRequired']), {
+        'keyboard',
+        'mouse',
+        'ime',
+        'screenReader',
+        'focusOrder',
+      }) ||
+      !_sameStrings(_strings(accessibility['editorForbidden']), {
+        'touch',
+        'gamepad',
+      }) ||
+      !_sameStrings(_strings(accessibility['playerRequired']), {
         'keyboard',
         'touch',
         'gamepad',
@@ -361,7 +467,7 @@ List<String> _validateContract(Map<String, dynamic> contract) {
       }) ||
       accessibility['reducedMotionPolicy'] != 'userPreferenceWins' ||
       accessibility['reducedFlashesPolicy'] != 'userPreferenceWins') {
-    issues.add('accessibility.contract_invalid');
+    issues.add('accessibility.input_scope_invalid');
   }
 
   final observability = _object(contract['observability']);

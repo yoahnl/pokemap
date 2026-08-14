@@ -2,7 +2,7 @@
   "contractId": "pokemap.cinematic-v2",
   "formatVersion": 1,
   "ticketId": "BETA-CIN-001",
-  "status": "review-candidate",
+  "status": "accepted",
   "projectSchema": {
     "requiredVersion": "v7",
     "requiredCapabilities": [
@@ -37,6 +37,23 @@
       "polymorphicFallback": false
     }
   ],
+  "cinematicLibraryCatalog": {
+    "model": "CinematicLibraryCatalog",
+    "folderIdentity": "stableCinematicFolderId",
+    "familyScopes": [
+      "world",
+      "presentation"
+    ],
+    "worldAssetModelMutationRequired": false,
+    "recursiveFolders": true,
+    "stableSiblingOrder": true,
+    "cyclePolicy": "reject",
+    "nameCollisionPolicy": "rejectWithinParentAndFamily",
+    "nonEmptyDeletionPolicy": "rejectUntilMovedOrDeleted",
+    "archivePolicy": "preserveReferencesAndFolderIdentity",
+    "authoringAuthority": "map_authoring",
+    "semanticTransportParity": "4/4Required"
+  },
   "sceneProfiles": [
     {
       "id": "world",
@@ -109,14 +126,36 @@
     "intervalSemantics": "[startUs,endUs)",
     "runtimeClock": "monotonic",
     "editorSeek": "explicitDeterministic",
-    "pausePolicy": "freezeClock",
+    "pausePolicy": {
+      "userPause": "freezeNarrativeAndMediaClocks",
+      "lifecyclePause": "freezeNarrativeAndMediaClocks",
+      "interactionHold": "freezeNarrativeClockAndAuthoredAnimations",
+      "interactionHoldMusic": "continueCurrentPlaybackOrLoop",
+      "interactionHoldBackgroundVideo": "continueCurrentPlaybackOrLoop",
+      "interactionHoldOneShotAudio": "neverRestart",
+      "interactionResume": "continueNarrativeAtHeldTimeWithoutSeekingContinuedAmbience"
+    },
     "trackKinds": [
       "visual",
       "audio",
       "caption",
-      "interaction",
       "marker"
     ],
+    "interactionCuePolicy": {
+      "representation": "zeroDurationNamedMarker",
+      "identity": "stableInteractionCueIdDistinctFromLabel",
+      "sceneReference": "presentationCinematicId+interactionCueId",
+      "timelineOwnsTimingOnly": true,
+      "sceneOwnsRequestAndResult": true,
+      "ordinaryMarkersAreNonBlocking": true,
+      "linkedCueRenamePolicy": "safeBecauseIdStable",
+      "linkedCueDeletionPolicy": "rejectUntilReferencesResolved",
+      "duplicationPolicy": "newInteractionCueId",
+      "cancelledResultPolicy": "terminalThenResume",
+      "requiredUnboundPolicy": "validationError",
+      "resumePolicy": "automaticSameRunAtHeldNarrativeTime",
+      "maximumResumesPerCueAndRun": 1
+    },
     "simultaneousClips": true,
     "zeroDurationPolicy": "markersOnly",
     "nonLinearLogicAllowed": false,
@@ -203,7 +242,35 @@
     "audioAuthority": "RuntimeAudioMixer",
     "videoAudioDirectPlayback": false,
     "cachePolicy": "boundedLruDisposeOnEvictionAndLifecycle",
-    "offlinePackageRequired": true
+    "offlinePackageRequired": true,
+    "responsiveVariants": {
+      "slots": [
+        "landscape",
+        "portrait"
+      ],
+      "variantCapableKinds": [
+        "image",
+        "video",
+        "voice",
+        "soundEffect"
+      ],
+      "sharedOnlyKinds": [
+        "music"
+      ],
+      "singleSourceFallback": "useAvailableSource",
+      "sharedClipTiming": true,
+      "durationMismatchPolicy": "blockUntilBothVariantsCoverSharedTrim"
+    }
+  },
+  "createAndLinkTransaction": {
+    "draftVisibility": "localRecoveryOnly",
+    "projectSave": "publishAtomicallyAndStay",
+    "saveAndReturn": "publishAtomicallyAndReturn",
+    "publishedUnits": "presentationCinematic+sceneNode+reference+stagedMedia",
+    "undoEntries": 1,
+    "cancelOrFailure": "zeroProjectMutationAndZeroOrphan",
+    "staleScenePolicy": "rejectPublishKeepRecoverableDraft",
+    "mediaImportBeforePublish": "transactionStagingOnly"
   },
   "securityAndBudgets": {
     "maxArchiveBytes": 1073741824,
@@ -420,7 +487,18 @@
     }
   ],
   "accessibilityAndInput": {
-    "required": [
+    "editorRequired": [
+      "keyboard",
+      "mouse",
+      "ime",
+      "screenReader",
+      "focusOrder"
+    ],
+    "editorForbidden": [
+      "touch",
+      "gamepad"
+    ],
+    "playerRequired": [
       "keyboard",
       "touch",
       "gamepad",
@@ -723,16 +801,16 @@
     },
     {
       "id": "CIN-ADR-014",
-      "title": "Accessibility and input are contract requirements",
+      "title": "Accessibility and input are surface-specific contract requirements",
       "ownerPackages": [
         "map_core",
         "map_player_ui",
         "map_editor"
       ],
-      "consequence": "Reduced motion and flashes, captions, focus and all supported input families are certifiable behavior.",
+      "consequence": "Editor is mouse and keyboard authoring; Player certifies keyboard, touch and gamepad while both surfaces preserve accessibility and localization.",
       "verificationTickets": [
-        "BETA-CIN-011",
-        "BETA-CIN-039",
+        "BETA-CIN-034",
+        "BETA-CIN-040",
         "BETA-CIN-041"
       ]
     },

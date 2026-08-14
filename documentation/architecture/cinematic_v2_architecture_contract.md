@@ -3,7 +3,7 @@
 | Champ | Valeur |
 |---|---|
 | Ticket | `BETA-CIN-001` |
-| Statut | Candidat figé, à valider par Yoahn avant `CIN-002+` |
+| Statut | Accepté par Yoahn le 14 août 2026 |
 | Contrat exécutable | `documentation/architecture/contracts/cinematic_v2_contract_v1.json` |
 | SHA audité | `bc16af2aa790c1e0fd24347331866879413edaf7` |
 | Portée | ADR, matrices et gates uniquement |
@@ -56,6 +56,8 @@ Il est interdit :
 
 La première promotion Presentation cible `preSession` et la preview. Son usage dans les scènes monde/interludes reste différé à `BETA-CIN-009` après certification.
 
+Les deux familles sont organisées par un `CinematicLibraryCatalog` séparé des assets. Il porte des identifiants de dossiers stables, une hiérarchie récursive et un ordre persistant par famille. Il référence les `CinematicAsset` monde sans les modifier. `map_authoring` possède les opérations de création, déplacement, renommage, archivage et suppression gardée, avec rejet des cycles, collisions dans un même parent et suppression d'un dossier non vide. La parité API directe, CLI/JSONL, Editor et MCP est obligatoire avant la Library.
+
 ## CIN-ADR-003 — Profils Scene et capabilities
 
 `Scene` reste l'unique graphe. Chaque scène déclare un profil d'exécution explicite : `world` ou `preSession`. La même matrice de capabilities est consommée par le codec, la validation, l'authoring et le runtime.
@@ -81,9 +83,9 @@ Les widgets structurés appartiennent à `map_player_ui`; les modèles et valida
 
 La timeline utilise des microsecondes entières avec `1 000 000` ticks par seconde. Les clips occupent des intervalles semi-ouverts `[startUs,endUs)`. Les pistes partagent la même timebase et peuvent s'exécuter simultanément.
 
-Les pistes V1 sont visuelles, audio, captions, interaction et markers. Une durée nulle est réservée aux markers. La logique non linéaire reste dans `Scene`, jamais dans la timeline.
+Les pistes V1 sont visuelles, audio, captions et markers. Une interaction n'est jamais une piste exécutable : un `interactionCue` de durée nulle porte un identifiant stable distinct de son libellé et indique uniquement l'instant. `Scene` référence le couple `presentationCinematicId + interactionCueId`, possède la requête et son résultat, puis reprend la même exécution au temps narratif retenu. Les markers ordinaires restent non bloquants ; renommage, duplication et suppression d'un cue respectent son identité et ses références.
 
-Le runtime utilise une horloge monotone. Pause fige cette horloge. La preview et le scrub emploient une horloge éditeur explicite et un seek déterministe. Les easings sont évalués par le même évaluateur pur.
+Le runtime utilise une horloge monotone. Une pause demandée par l'utilisateur ou le lifecycle fige narration et médias. Un hold d'interaction fige seulement l'horloge narrative et les animations authored : la musique et une vidéo de fond déjà actives continuent ou bouclent, tandis qu'un son one-shot ne redémarre jamais. La reprise continue au temps narratif retenu sans seeker l'ambiance qui a continué. La preview et le scrub emploient une horloge éditeur explicite et un seek déterministe. Les easings sont évalués par le même évaluateur pur.
 
 ## CIN-ADR-006 — Résultats d'exécution exact-once
 
@@ -132,6 +134,8 @@ Après la décision de slot, le preload peut lire des octets immuables du projet
 
 `RuntimeAudioMixer` est l'unique autorité audio runtime. Une vidéo est soit muette, soit `mixerManaged`; son audio ne contourne jamais le mixer. Ducking, mute, volume et pause lifecycle restent cohérents avec les bus existants.
 
+Chaque occurrence de média Presentation peut fournir une source paysage et une source portrait pour les images, vidéos, voix et effets sonores. La musique reste une source partagée unique. Si une seule variante existe, elle est utilisée dans les deux compositions. Les deux variantes partagent le timing et le trim du clip ; une paire dont une source ne couvre pas la plage commune est refusée jusqu'à correction explicite.
+
 Un seul décodeur vidéo peut être actif en V1. Préparation, remplacement, eviction cache, backgrounding, skip, erreur et dispose libèrent les handles. Le cache est un LRU borné ; sa taille exacte est promue par `BETA-CIN-032` après profilage, pas choisie au doigt mouillé dans cet ADR.
 
 ## CIN-ADR-011 — Catalogue média transactionnel et sécurisé
@@ -163,9 +167,11 @@ Les transports requis sont : API directe, CLI/JSONL, Editor et MCP. La sauvegard
 
 `map_authoring` porte la sémantique, les queries et le graphe de références. Aucun transport ne réimplémente les règles dans sa couche d'adaptation.
 
+`Créer et lier` ouvre un brouillon local récupérable absent du manifeste et du graphe. Les médias importés restent en staging transactionnel. `Enregistrer` ou `⌘S` publie atomiquement la Presentation, le nœud Scene, la référence et les médias staged, puis reste dans l'éditeur ; `Enregistrer et revenir` applique la même transaction puis restaure le contexte exact du graphe. Le commit produit une seule entrée undo. Annulation ou échec laisse zéro mutation projet et zéro orphelin. Une Scene devenue stale refuse la publication tout en conservant le brouillon récupérable.
+
 ## CIN-ADR-014 — Accessibilité, localisation et input
 
-Clavier, tactile, gamepad, IME, screen reader et ordre de focus sont des exigences de contrat. Les préférences reduced motion et reduced flashes gagnent toujours sur l'intention authored. Captions localisées, skip, pause et replay sont certifiables.
+Les surfaces Editor sont conçues pour souris et clavier uniquement, avec IME, screen reader et ordre de focus. Le Player certifie séparément clavier, tactile et gamepad, ainsi que l'IME, le screen reader et l'ordre de focus. Les préférences reduced motion et reduced flashes gagnent toujours sur l'intention authored. Captions localisées, skip, pause et replay sont certifiables.
 
 Le fallback captions suit locale demandée, locale projet par défaut, puis état explicite indisponible. Il ne masque jamais silencieusement l'absence d'une ressource obligatoire.
 
@@ -240,9 +246,9 @@ Le rail Presentation couvre modèle, catalogue, évaluateur, renderer, média, a
 - Pas de deuxième renderer, évaluateur ou autorité audio.
 - Pas de conversion legacy automatique au runtime.
 
-## Gate de validation humaine
+## Validation humaine
 
-Avant que les tickets `CIN-002`, `CIN-003`, `CIN-004` ou `CIN-011` utilisent ce contrat comme dépendance satisfaite, Yoahn valide explicitement :
+Yoahn a validé explicitement le 14 août 2026 :
 
 - `ProjectVersion.v7` et les deux capability IDs ;
 - `preSessionSceneId` comme entrypoint unique ;
@@ -251,4 +257,4 @@ Avant que les tickets `CIN-002`, `CIN-003`, `CIN-004` ou `CIN-011` utilisent ce 
 - Windows/Linux vidéo non supportés par défaut ;
 - le cutover strict sans compatibilité runtime legacy.
 
-Jusqu'à cette validation, le contrat reste `review-candidate` et le ticket reste `TO REVIEW`, jamais `DONE`.
+Le contrat est donc `accepted` et `BETA-CIN-001` peut être clôturé `DONE`. Cette acceptation ne promeut aucun ticket d'implémentation : chaque lot conserve ses propres dépendances et preuves de sortie.
