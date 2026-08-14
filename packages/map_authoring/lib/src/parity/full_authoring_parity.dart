@@ -522,6 +522,16 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/assets/presentation_media_import_transaction_test.dart',
     };
   }
+  if (actionId == 'presentationMedia.configure') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/assets/presentation_media_configuration_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/assets/presentation_media_configuration_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (actionId == 'campaign.encounter_table.upsert' ||
       actionId == 'campaign.encounter_table.delete') {
     return const <AuthoringTransport, String>{
@@ -943,6 +953,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['presentationMedia.import'],
     'test/domains/assets/presentation_media_import_transaction_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['presentationMedia.configure'],
+    'test/domains/assets/presentation_media_configuration_test.dart',
   ),
   _ContractEvidenceRule(
     ['presentation.'],

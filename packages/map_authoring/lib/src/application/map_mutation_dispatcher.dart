@@ -8,6 +8,7 @@ import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/element_actions.dart';
 import '../domains/assets/palette_actions.dart';
 import '../domains/assets/presentation_actions.dart';
+import '../domains/assets/presentation_media_configuration_actions.dart';
 import '../domains/assets/presentation_media_import_actions.dart';
 import '../domains/assets/presentation_preset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
@@ -218,6 +219,12 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: presentationMedia.build,
+        ),
+      for (final descriptor
+          in PresentationMediaConfigurationActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: const PresentationMediaConfigurationActions().build,
         ),
       for (final descriptor in CharacterStudioAssetActions.descriptors)
         MapMutationActionRegistration(

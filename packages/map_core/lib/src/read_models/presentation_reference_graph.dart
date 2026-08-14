@@ -566,6 +566,15 @@ final class _PresentationReferenceGraphBuilder {
           acceptedMediaTypes: {ProjectMediaKind.captions},
         );
       }
+      for (var index = 0; index < media.captions.length; index++) {
+        _reference(
+          owner: owner,
+          target: PresentationReferenceKey.media(media.captions[index].mediaId),
+          path: '$path.captions[$index].mediaId',
+          relation: PresentationReferenceRelation.mediaCaptions,
+          acceptedMediaTypes: {ProjectMediaKind.captions},
+        );
+      }
       if (media.fallbackMediaId case final fallbackMediaId?) {
         _reference(
           owner: owner,

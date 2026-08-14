@@ -847,6 +847,56 @@ async function applyMutation(
 test("MCP applies and rereads the authored presentation profile", async () => {
   const fixture = await mutationFixture();
   try {
+    await mkdir(join(fixture.root, "assets"), { recursive: true });
+    await writeFile(
+      join(fixture.root, "assets/.pokemap-media.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        entries: [
+          {
+            id: "opening-captions-fr",
+            label: "Sous-titres FR",
+            kind: "captions",
+            sourceAssetId: "asset.opening-captions-fr",
+            technicalMetadata: {
+              mediaType: "text/vtt",
+              container: "webvtt",
+              codec: "webvtt",
+              sizeBytes: 20,
+            },
+          },
+          {
+            id: "opening-poster",
+            label: "Poster ouverture",
+            kind: "poster",
+            sourceAssetId: "asset.opening-poster",
+            technicalMetadata: {
+              mediaType: "image/png",
+              container: "png",
+              codec: "png",
+              sizeBytes: 20,
+              width: 1920,
+              height: 1080,
+            },
+          },
+          {
+            id: "opening-video",
+            label: "Video ouverture",
+            kind: "video",
+            sourceAssetId: "asset.opening-video",
+            technicalMetadata: {
+              mediaType: "video/mp4",
+              container: "mp4",
+              codec: "h264",
+              sizeBytes: 100,
+              width: 1920,
+              height: 1080,
+              durationMilliseconds: 1000,
+            },
+          },
+        ],
+      }),
+    );
     const opened = await toolData(fixture.client, "pokemap_workspace", {
       operation: "open",
       projectRoot: fixture.root,
@@ -859,6 +909,7 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     );
     assert.ok(actionIds.includes("presentation.update"));
     assert.ok(actionIds.includes("presentationMedia.import"));
+    assert.ok(actionIds.includes("presentationMedia.configure"));
     for (const actionId of [
       "presentation.preset.import_plan",
       "presentation.preset.import_apply",
@@ -891,6 +942,58 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.deepEqual(record(mediaImportAction).endToEndVerifiedTransports, [
       "cli",
       "directApi",
+    ]);
+    const mediaConfigurationAction = (
+      record(described.fullParity).mutationActions as JsonRecord[]
+    ).find(
+      (action) => String(action.actionId) === "presentationMedia.configure",
+    );
+    assert.deepEqual(
+      record(mediaConfigurationAction).endToEndVerifiedTransports,
+      ["cli", "directApi", "mcp"],
+    );
+
+    const mediaValidated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: String(mediaValidated.snapshotRevision),
+      actionId: "presentationMedia.configure",
+      parameters: {
+        mediaId: "opening-video",
+        posterMediaId: "opening-poster",
+        fallbackMediaId: "opening-poster",
+        captions: [
+          { locale: "fr-FR", mediaId: "opening-captions-fr" },
+        ],
+        provenance: {
+          source: "Avelune Studio original",
+          creator: "Yoahn",
+        },
+        license: {
+          identifier: "LicenseRef-Avelune-Proprietary",
+          name: "Avelune proprietary media license",
+        },
+      },
+      sequence: "opening-media-metadata",
+    });
+    const queriedMedia = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationMedia",
+      operation: "get",
+      view: "detail",
+      ids: ["opening-video"],
+    });
+    const openingVideo = record((queriedMedia.items as unknown[])[0]);
+    assert.equal(record(openingVideo.provenance).creator, "Yoahn");
+    assert.equal(
+      record(openingVideo.license).identifier,
+      "LicenseRef-Avelune-Proprietary",
+    );
+    assert.deepEqual(openingVideo.captions, [
+      { locale: "fr-FR", mediaId: "opening-captions-fr" },
     ]);
 
     const validated = await toolData(fixture.client, "pokemap_validate", {
