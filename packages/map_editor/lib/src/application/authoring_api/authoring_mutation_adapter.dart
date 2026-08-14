@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_distribution/map_distribution.dart';
 
 import '../errors/application_errors.dart';
 import '../services/editor_performance_telemetry.dart';
@@ -595,7 +594,7 @@ final class _EditorMutationSession {
     final projectHandle = opened.projectHandle;
     final artifactStore = LocalArtifactStore(
       allowedSourceRoots: [canonicalRoot],
-      maximumArtifactBytes: presentationPresetMaxArchiveBytes,
+      maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
     );
     final mutations = LocalMapAuthoringMutationApi(
       policy: policy,

@@ -20,6 +20,36 @@ void main() {
       }
     });
 
+    test('never raises the artifact limit above the v1 security maximum', () {
+      final store = MemoryArtifactStore(
+        maximumArtifactBytes: maximumAuthoringArtifactBytesV1 + 1,
+      );
+
+      expect(
+        store.maximumArtifactBytes,
+        maximumAuthoringArtifactBytesV1,
+      );
+    });
+
+    test('canonical direct authoring uses the v1 artifact limit', () async {
+      const reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [allowed.path],
+        fileReader: reader,
+      );
+      final api = LocalMapAuthoringMutationApi(
+        policy: policy,
+        snapshotLoader: ProjectSnapshotLoader(
+          handles: WorkspaceHandleStore(),
+        ),
+      );
+
+      expect(
+        (api.artifacts as MemoryArtifactStore).maximumArtifactBytes,
+        maximumAuthoringArtifactBytesV1,
+      );
+    });
+
     test('rejects a source symlink that resolves outside the allowed roots',
         () async {
       final outside = File('${sandbox.path}/outside.png');
@@ -34,11 +64,17 @@ void main() {
       await expectLater(
         store.importFile(link.path),
         throwsA(
-          isA<ArtifactStoreException>().having(
-            (error) => error.code,
-            'code',
-            'artifact.source_outside_allowed_roots',
-          ),
+          isA<ArtifactStoreException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'artifact.source_outside_allowed_roots',
+              )
+              .having(
+                (error) => error.toString(),
+                'redacted error',
+                isNot(contains(sandbox.path)),
+              ),
         ),
       );
     });
@@ -109,6 +145,29 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('rejects a selected source replaced after authorization', () async {
+      final selected = File('${sandbox.path}/selected.png');
+      await selected.writeAsBytes(_pngBytes);
+      final store = LocalArtifactStore(
+        allowedSourceRoots: [allowed.path],
+        maximumArtifactBytes: 1024,
+      );
+      await store.authorizeSourceFile(selected.path);
+      await selected.writeAsBytes(<int>[..._pngBytes]..last = 0x01);
+
+      await expectLater(
+        store.importFile(selected.path),
+        throwsA(
+          isA<ArtifactStoreException>().having(
+            (error) => error.code,
+            'code',
+            'artifact.source_changed_after_authorization',
+          ),
+        ),
+      );
+      expect(store.list(), isEmpty);
     });
   });
 }

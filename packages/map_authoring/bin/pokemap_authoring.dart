@@ -52,7 +52,7 @@ Future<void> main(List<String> arguments) async {
   );
   final artifacts = LocalArtifactStore(
     allowedSourceRoots: options.allowedRoots,
-    maximumArtifactBytes: 64 << 20,
+    maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
   );
   final mutations = LocalMapAuthoringMutationApi(
     policy: policy,

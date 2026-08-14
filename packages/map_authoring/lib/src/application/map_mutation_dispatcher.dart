@@ -101,8 +101,10 @@ final class MapMutationDispatcher {
     const placedElement = PlacedElementActions();
     const triggerZone = TriggerZoneActions();
     const warpConnection = WarpConnectionActions();
-    final artifacts =
-        artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20);
+    final artifacts = artifactStore ??
+        MemoryArtifactStore(
+          maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
+        );
     final assets = AssetActions(artifactStore: artifacts);
     final presentationMedia = PresentationMediaImportActions(
       artifactStore: artifacts,

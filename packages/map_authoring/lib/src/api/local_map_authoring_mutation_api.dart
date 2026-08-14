@@ -67,8 +67,10 @@ final class LocalMapAuthoringMutationApi
        _authorizationLimits = authorizationLimits,
        _clock = clock ?? _systemClock,
        _faultInjector = faultInjector {
-    artifacts =
-        artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20);
+    artifacts = artifactStore ??
+        MemoryArtifactStore(
+          maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
+        );
     _dispatcher =
         dispatcher ??
         MapMutationDispatcher.canonical(
