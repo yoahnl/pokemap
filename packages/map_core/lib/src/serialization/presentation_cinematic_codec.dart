@@ -237,6 +237,10 @@ PresentationVisualClip _decodeVisualClip(
     'layerId',
     'resourceId',
     'easing',
+    'from',
+    'to',
+    'transitionIn',
+    'transitionOut',
   }, path: path);
   try {
     return PresentationVisualClip(
@@ -250,10 +254,84 @@ PresentationVisualClip _decodeVisualClip(
         clip['easing'] ?? PresentationEasing.linear.name,
         path: '$path.easing',
       ),
+      from: clip['from'] == null
+          ? null
+          : _decodeVisualComposition(clip['from'], '$path.from'),
+      to: clip['to'] == null
+          ? null
+          : _decodeVisualComposition(clip['to'], '$path.to'),
+      transitionIn: clip['transitionIn'] == null
+          ? null
+          : _decodeVisualTransition(clip['transitionIn'], '$path.transitionIn'),
+      transitionOut: clip['transitionOut'] == null
+          ? null
+          : _decodeVisualTransition(
+              clip['transitionOut'],
+              '$path.transitionOut',
+            ),
     );
   } on PresentationCinematicValidationException catch (error) {
     throw _validationError(error, fallbackPath: path);
   }
+}
+
+PresentationVisualComposition _decodeVisualComposition(
+  Object? value,
+  String path,
+) {
+  final composition = _object(value, path: path);
+  _allowedFields(composition, const {
+    'translateX',
+    'translateY',
+    'scaleX',
+    'scaleY',
+    'rotationTurns',
+    'opacity',
+    'cropLeft',
+    'cropTop',
+    'cropRight',
+    'cropBottom',
+  }, path: path);
+  return PresentationVisualComposition(
+    translateX: _number(
+      composition['translateX'] ?? 0,
+      path: '$path.translateX',
+    ),
+    translateY: _number(
+      composition['translateY'] ?? 0,
+      path: '$path.translateY',
+    ),
+    scaleX: _number(composition['scaleX'] ?? 1, path: '$path.scaleX'),
+    scaleY: _number(composition['scaleY'] ?? 1, path: '$path.scaleY'),
+    rotationTurns: _number(
+      composition['rotationTurns'] ?? 0,
+      path: '$path.rotationTurns',
+    ),
+    opacity: _number(composition['opacity'] ?? 1, path: '$path.opacity'),
+    cropLeft: _number(composition['cropLeft'] ?? 0, path: '$path.cropLeft'),
+    cropTop: _number(composition['cropTop'] ?? 0, path: '$path.cropTop'),
+    cropRight: _number(composition['cropRight'] ?? 0, path: '$path.cropRight'),
+    cropBottom: _number(
+      composition['cropBottom'] ?? 0,
+      path: '$path.cropBottom',
+    ),
+  );
+}
+
+PresentationVisualTransition _decodeVisualTransition(
+  Object? value,
+  String path,
+) {
+  final transition = _object(value, path: path);
+  _allowedFields(transition, const {'kind', 'durationUs'}, path: path);
+  return PresentationVisualTransition(
+    kind: _enumValue(
+      PresentationVisualTransitionKind.values,
+      transition['kind'],
+      path: '$path.kind',
+    ),
+    durationUs: _integer(transition['durationUs'], path: '$path.durationUs'),
+  );
 }
 
 PresentationAudioClip _decodeAudioClip(Map<String, Object?> clip, String path) {
@@ -358,6 +436,14 @@ Map<String, Object?> _encodeClip(PresentationClip clip) {
       'layerId': clip.layerId,
       'resourceId': clip.resourceId,
       'easing': clip.easing.name,
+      if (clip.from != PresentationVisualComposition.identity)
+        'from': _encodeVisualComposition(clip.from),
+      if (clip.to != PresentationVisualComposition.identity)
+        'to': _encodeVisualComposition(clip.to),
+      if (clip.transitionIn != PresentationVisualTransition.none)
+        'transitionIn': _encodeVisualTransition(clip.transitionIn),
+      if (clip.transitionOut != PresentationVisualTransition.none)
+        'transitionOut': _encodeVisualTransition(clip.transitionOut),
     },
     PresentationAudioClip() => {
       'id': clip.id,
@@ -383,6 +469,25 @@ Map<String, Object?> _encodeClip(PresentationClip clip) {
     },
   };
 }
+
+Map<String, Object?> _encodeVisualComposition(
+  PresentationVisualComposition composition,
+) => {
+  'translateX': composition.translateX,
+  'translateY': composition.translateY,
+  'scaleX': composition.scaleX,
+  'scaleY': composition.scaleY,
+  'rotationTurns': composition.rotationTurns,
+  'opacity': composition.opacity,
+  'cropLeft': composition.cropLeft,
+  'cropTop': composition.cropTop,
+  'cropRight': composition.cropRight,
+  'cropBottom': composition.cropBottom,
+};
+
+Map<String, Object?> _encodeVisualTransition(
+  PresentationVisualTransition transition,
+) => {'kind': transition.kind.name, 'durationUs': transition.durationUs};
 
 PresentationCinematicCodecException _validationError(
   PresentationCinematicValidationException error, {
@@ -481,6 +586,17 @@ int _integer(Object? value, {required String path}) {
     );
   }
   return value;
+}
+
+double _number(Object? value, {required String path}) {
+  if (value is! num) {
+    throw PresentationCinematicCodecException(
+      code: PresentationCinematicCodecErrorCode.invalidValue,
+      message: 'Expected a number',
+      path: path,
+    );
+  }
+  return value.toDouble();
 }
 
 T _enumValue<T extends Enum>(

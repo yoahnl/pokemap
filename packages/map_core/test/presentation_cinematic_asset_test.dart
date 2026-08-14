@@ -165,6 +165,113 @@ void main() {
       },
     );
 
+    test('round-trips canonical visual composition and transitions', () {
+      final asset = PresentationCinematicAsset(
+        id: 'presentation_composition',
+        title: 'Composition',
+        durationUs: 1_000_000,
+        layers: [PresentationLayer(id: 'hero', label: 'Hero', zIndex: 7)],
+        tracks: [
+          PresentationTrack(
+            id: 'visuals',
+            label: 'Visuels',
+            kind: PresentationTrackKind.visual,
+            clips: [
+              PresentationVisualClip(
+                id: 'hero_clip',
+                startUs: 0,
+                durationUs: 1_000_000,
+                layerId: 'hero',
+                resourceId: 'media.hero',
+                easing: PresentationEasing.easeInOut,
+                from: PresentationVisualComposition(
+                  translateX: -0.25,
+                  translateY: 0.1,
+                  scaleX: 0.8,
+                  scaleY: 0.9,
+                  rotationTurns: -0.05,
+                  opacity: 0.2,
+                  cropLeft: 0.1,
+                  cropTop: 0.05,
+                ),
+                to: PresentationVisualComposition(
+                  translateX: 0.25,
+                  translateY: -0.1,
+                  scaleX: 1.2,
+                  scaleY: 1.1,
+                  rotationTurns: 0.05,
+                  opacity: 0.9,
+                  cropRight: 0.1,
+                  cropBottom: 0.05,
+                ),
+                transitionIn: PresentationVisualTransition(
+                  kind: PresentationVisualTransitionKind.slideLeft,
+                  durationUs: 200_000,
+                ),
+                transitionOut: PresentationVisualTransition(
+                  kind: PresentationVisualTransitionKind.fade,
+                  durationUs: 300_000,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final encoded = encodePresentationCinematicAsset(asset);
+      final decoded = decodePresentationCinematicAsset(
+        jsonDecode(jsonEncode(encoded)),
+      );
+      final clip =
+          (encoded['tracks']! as List<Object?>).single as Map<String, Object?>;
+      final visual =
+          (clip['clips']! as List<Object?>).single as Map<String, Object?>;
+
+      expect(decoded, asset);
+      expect(visual['from'], {
+        'translateX': -0.25,
+        'translateY': 0.1,
+        'scaleX': 0.8,
+        'scaleY': 0.9,
+        'rotationTurns': -0.05,
+        'opacity': 0.2,
+        'cropLeft': 0.1,
+        'cropTop': 0.05,
+        'cropRight': 0.0,
+        'cropBottom': 0.0,
+      });
+      expect(visual['transitionIn'], {
+        'kind': 'slideLeft',
+        'durationUs': 200000,
+      });
+      expect(visual['transitionOut'], {'kind': 'fade', 'durationUs': 300000});
+    });
+
+    test('rejects invalid crop, opacity and transition durations', () {
+      expect(
+        () => PresentationVisualComposition(opacity: 1.1),
+        throwsA(isA<PresentationCinematicValidationException>()),
+      );
+      expect(
+        () => PresentationVisualComposition(cropLeft: 0.6, cropRight: 0.4),
+        throwsA(isA<PresentationCinematicValidationException>()),
+      );
+      expect(
+        () => PresentationVisualClip(
+          id: 'visual',
+          startUs: 0,
+          durationUs: 10,
+          layerId: 'layer',
+          resourceId: 'media',
+          transitionIn: PresentationVisualTransition(
+            kind: PresentationVisualTransitionKind.fade,
+            durationUs: 11,
+          ),
+        ),
+        throwsA(isA<PresentationCinematicValidationException>()),
+      );
+    });
+
     test('rejects incompatible tracks, duplicate ids and dangling layers', () {
       expect(
         () => PresentationTrack(

@@ -81,6 +81,69 @@ void main() {
       expect(threeQuartersById['ease_in_out']!.easedProgress, 0.875);
     });
 
+    test(
+      'projects composition, transitions and reduced motion without a clock',
+      () {
+        const evaluator = PresentationCinematicEvaluator();
+        final asset = PresentationCinematicAsset(
+          id: 'composition',
+          title: 'Composition',
+          durationUs: 100,
+          layers: [PresentationLayer(id: 'main', label: 'Main', zIndex: 0)],
+          tracks: [
+            PresentationTrack(
+              id: 'visuals',
+              label: 'Visuals',
+              kind: PresentationTrackKind.visual,
+              clips: [
+                PresentationVisualClip(
+                  id: 'visual',
+                  startUs: 0,
+                  durationUs: 100,
+                  layerId: 'main',
+                  resourceId: 'media.visual',
+                  easing: PresentationEasing.easeIn,
+                  from: PresentationVisualComposition(opacity: 0.2),
+                  to: PresentationVisualComposition(
+                    translateX: 0.8,
+                    scaleX: 1.5,
+                    opacity: 1,
+                    cropRight: 0.2,
+                  ),
+                  transitionIn: PresentationVisualTransition(
+                    kind: PresentationVisualTransitionKind.slideLeft,
+                    durationUs: 20,
+                  ),
+                  transitionOut: PresentationVisualTransition(
+                    kind: PresentationVisualTransitionKind.fade,
+                    durationUs: 20,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+
+        final entering = evaluator.evaluate(asset, timeUs: 10).visuals.single;
+        final leaving = evaluator.evaluate(asset, timeUs: 90).visuals.single;
+
+        expect(entering.composition.translateX, closeTo(-0.742, 0.000001));
+        expect(entering.composition.scaleX, closeTo(1.005, 0.000001));
+        expect(entering.composition.opacity, closeTo(0.208, 0.000001));
+        expect(entering.composition.cropRight, closeTo(0.002, 0.000001));
+        expect(
+          entering.reducedMotionComposition.translateX,
+          closeTo(0.8, 0.000001),
+        );
+        expect(
+          entering.reducedMotionComposition.opacity,
+          closeTo(0.208, 0.000001),
+        );
+        expect(leaving.composition.translateX, closeTo(0.648, 0.000001));
+        expect(leaving.composition.opacity, closeTo(0.212, 0.000001));
+      },
+    );
+
     test('returns equal frames for repeated random seeks', () {
       const evaluator = PresentationCinematicEvaluator();
       final asset = _simultaneousAsset(reverseDeclarations: false);

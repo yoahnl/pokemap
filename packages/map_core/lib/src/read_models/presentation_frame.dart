@@ -66,6 +66,8 @@ final class PresentationVisualFrameClip {
     required this.progress,
     required this.easedProgress,
     required this.easing,
+    required this.composition,
+    required this.reducedMotionComposition,
   });
 
   final String clipId;
@@ -79,6 +81,8 @@ final class PresentationVisualFrameClip {
   final double progress;
   final double easedProgress;
   final PresentationEasing easing;
+  final PresentationVisualComposition composition;
+  final PresentationVisualComposition reducedMotionComposition;
 
   @override
   bool operator ==(Object other) =>
@@ -94,7 +98,9 @@ final class PresentationVisualFrameClip {
           other.elapsedUs == elapsedUs &&
           other.progress == progress &&
           other.easedProgress == easedProgress &&
-          other.easing == easing;
+          other.easing == easing &&
+          other.composition == composition &&
+          other.reducedMotionComposition == reducedMotionComposition;
 
   @override
   int get hashCode => Object.hash(
@@ -109,6 +115,8 @@ final class PresentationVisualFrameClip {
     progress,
     easedProgress,
     easing,
+    composition,
+    reducedMotionComposition,
   );
 }
 

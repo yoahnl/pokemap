@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -73,16 +75,20 @@ class PresentationFrameRenderer extends StatelessWidget {
     required this.frame,
     required this.orientation,
     required this.contentPort,
+    this.reduceMotion,
   });
 
   final PresentationFrame frame;
   final PresentationFrameOrientation orientation;
   final PresentationFrameContentPort contentPort;
+  final bool? reduceMotion;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.playerColors;
     final locale = Localizations.maybeLocaleOf(context) ?? const Locale('en');
+    final resolvedReduceMotion =
+        reduceMotion ?? MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     return ColoredBox(
       color: colors.background,
       child: Center(
@@ -100,6 +106,10 @@ class PresentationFrameRenderer extends StatelessWidget {
                   for (final visual in frame.visuals)
                     _PresentationVisualLayer(
                       clip: visual,
+                      orientation: orientation,
+                      composition: resolvedReduceMotion
+                          ? visual.reducedMotionComposition
+                          : visual.composition,
                       resolution: contentPort.resolveVisual(
                         clip: visual,
                         orientation: orientation,
@@ -140,27 +150,83 @@ class PresentationFrameRenderer extends StatelessWidget {
 class _PresentationVisualLayer extends StatelessWidget {
   const _PresentationVisualLayer({
     required this.clip,
+    required this.orientation,
+    required this.composition,
     required this.resolution,
   });
 
   final PresentationVisualFrameClip clip;
+  final PresentationFrameOrientation orientation;
+  final PresentationVisualComposition composition;
   final PresentationVisualResolution resolution;
 
   @override
-  Widget build(BuildContext context) => switch (resolution) {
-        PresentationVisualReady(:final child) => KeyedSubtree(
-            key: ValueKey<String>('presentation-visual-${clip.clipId}'),
-            child: SizedBox.expand(child: child),
+  Widget build(BuildContext context) {
+    final child = switch (resolution) {
+      PresentationVisualReady(:final child) => KeyedSubtree(
+          key: ValueKey<String>(
+            'presentation-visual-resource-${clip.clipId}-${clip.resourceId}-'
+            '${orientation.name}',
           ),
-        PresentationVisualUnavailable(:final reason, :final message) =>
-          _PresentationUnavailableContent(
-            key: ValueKey<String>(
-              'presentation-visual-unavailable-${clip.clipId}',
+          child: SizedBox.expand(child: child),
+        ),
+      PresentationVisualUnavailable(:final reason, :final message) =>
+        _PresentationUnavailableContent(
+          key: ValueKey<String>(
+            'presentation-visual-unavailable-${clip.clipId}',
+          ),
+          reason: reason,
+          message: message,
+        ),
+    };
+    return Opacity(
+      key: ValueKey<String>('presentation-visual-opacity-${clip.clipId}'),
+      opacity: composition.opacity,
+      child: FractionalTranslation(
+        key: ValueKey<String>(
+          'presentation-visual-translation-${clip.clipId}',
+        ),
+        translation: Offset(composition.translateX, composition.translateY),
+        child: Transform.rotate(
+          key: ValueKey<String>('presentation-visual-rotation-${clip.clipId}'),
+          angle: composition.rotationTurns * math.pi * 2,
+          alignment: Alignment.center,
+          child: Transform(
+            key: ValueKey<String>('presentation-visual-scale-${clip.clipId}'),
+            alignment: Alignment.center,
+            transform: Matrix4.diagonal3Values(
+              composition.scaleX,
+              composition.scaleY,
+              1,
             ),
-            reason: reason,
-            message: message,
+            child: ClipRect(
+              key: ValueKey<String>('presentation-visual-crop-${clip.clipId}'),
+              clipper: _PresentationCropClipper(composition),
+              child: child,
+            ),
           ),
-      };
+        ),
+      ),
+    );
+  }
+}
+
+final class _PresentationCropClipper extends CustomClipper<Rect> {
+  const _PresentationCropClipper(this.composition);
+
+  final PresentationVisualComposition composition;
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(
+        size.width * composition.cropLeft,
+        size.height * composition.cropTop,
+        size.width * (1 - composition.cropRight),
+        size.height * (1 - composition.cropBottom),
+      );
+
+  @override
+  bool shouldReclip(_PresentationCropClipper oldClipper) =>
+      oldClipper.composition != composition;
 }
 
 class _PresentationCaption extends StatelessWidget {

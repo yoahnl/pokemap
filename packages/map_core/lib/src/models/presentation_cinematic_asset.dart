@@ -4,6 +4,15 @@ enum PresentationTrackKind { visual, audio, caption, marker }
 
 enum PresentationEasing { linear, easeIn, easeOut, easeInOut }
 
+enum PresentationVisualTransitionKind {
+  none,
+  fade,
+  slideLeft,
+  slideRight,
+  slideUp,
+  slideDown,
+}
+
 enum PresentationMarkerKind { ordinary, interactionCue }
 
 enum PresentationCinematicValidationErrorCode {
@@ -176,6 +185,122 @@ final class PresentationLayer {
 }
 
 @immutable
+final class PresentationVisualComposition {
+  PresentationVisualComposition({
+    this.translateX = 0,
+    this.translateY = 0,
+    this.scaleX = 1,
+    this.scaleY = 1,
+    this.rotationTurns = 0,
+    this.opacity = 1,
+    this.cropLeft = 0,
+    this.cropTop = 0,
+    this.cropRight = 0,
+    this.cropBottom = 0,
+  }) {
+    _finite(translateX, 'PresentationVisualComposition.translateX');
+    _finite(translateY, 'PresentationVisualComposition.translateY');
+    _positiveFinite(scaleX, 'PresentationVisualComposition.scaleX');
+    _positiveFinite(scaleY, 'PresentationVisualComposition.scaleY');
+    _finite(rotationTurns, 'PresentationVisualComposition.rotationTurns');
+    _unitInterval(opacity, 'PresentationVisualComposition.opacity');
+    _cropValue(cropLeft, 'PresentationVisualComposition.cropLeft');
+    _cropValue(cropTop, 'PresentationVisualComposition.cropTop');
+    _cropValue(cropRight, 'PresentationVisualComposition.cropRight');
+    _cropValue(cropBottom, 'PresentationVisualComposition.cropBottom');
+    if (cropLeft + cropRight >= 1) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'Horizontal crop must leave visible content',
+        path: 'PresentationVisualComposition.cropLeft',
+      );
+    }
+    if (cropTop + cropBottom >= 1) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'Vertical crop must leave visible content',
+        path: 'PresentationVisualComposition.cropTop',
+      );
+    }
+  }
+
+  static final identity = PresentationVisualComposition();
+
+  final double translateX;
+  final double translateY;
+  final double scaleX;
+  final double scaleY;
+  final double rotationTurns;
+  final double opacity;
+  final double cropLeft;
+  final double cropTop;
+  final double cropRight;
+  final double cropBottom;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PresentationVisualComposition &&
+          other.translateX == translateX &&
+          other.translateY == translateY &&
+          other.scaleX == scaleX &&
+          other.scaleY == scaleY &&
+          other.rotationTurns == rotationTurns &&
+          other.opacity == opacity &&
+          other.cropLeft == cropLeft &&
+          other.cropTop == cropTop &&
+          other.cropRight == cropRight &&
+          other.cropBottom == cropBottom;
+
+  @override
+  int get hashCode => Object.hash(
+    translateX,
+    translateY,
+    scaleX,
+    scaleY,
+    rotationTurns,
+    opacity,
+    cropLeft,
+    cropTop,
+    cropRight,
+    cropBottom,
+  );
+}
+
+@immutable
+final class PresentationVisualTransition {
+  PresentationVisualTransition({
+    this.kind = PresentationVisualTransitionKind.none,
+    this.durationUs = 0,
+  }) {
+    if (durationUs < 0 ||
+        (kind == PresentationVisualTransitionKind.none && durationUs != 0) ||
+        (kind != PresentationVisualTransitionKind.none && durationUs == 0)) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'Transition duration does not match its kind',
+        path: 'PresentationVisualTransition.durationUs',
+      );
+    }
+  }
+
+  static final none = PresentationVisualTransition();
+
+  final PresentationVisualTransitionKind kind;
+  final int durationUs;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PresentationVisualTransition &&
+          other.kind == kind &&
+          other.durationUs == durationUs;
+
+  @override
+  int get hashCode => Object.hash(kind, durationUs);
+}
+
+@immutable
 final class PresentationTrack {
   PresentationTrack({
     required String id,
@@ -256,16 +381,43 @@ final class PresentationVisualClip extends PresentationClip {
     required String layerId,
     required String resourceId,
     this.easing = PresentationEasing.linear,
+    PresentationVisualComposition? from,
+    PresentationVisualComposition? to,
+    PresentationVisualTransition? transitionIn,
+    PresentationVisualTransition? transitionOut,
   }) : layerId = _requiredString(layerId, 'PresentationVisualClip.layerId'),
        resourceId = _requiredString(
          resourceId,
          'PresentationVisualClip.resourceId',
        ),
-       super(allowZeroDuration: false);
+       from = from ?? PresentationVisualComposition.identity,
+       to = to ?? PresentationVisualComposition.identity,
+       transitionIn = transitionIn ?? PresentationVisualTransition.none,
+       transitionOut = transitionOut ?? PresentationVisualTransition.none,
+       super(allowZeroDuration: false) {
+    if (this.transitionIn.durationUs > durationUs) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'Entry transition exceeds clip duration',
+        path: 'PresentationVisualClip.transitionIn',
+      );
+    }
+    if (this.transitionOut.durationUs > durationUs) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'Exit transition exceeds clip duration',
+        path: 'PresentationVisualClip.transitionOut',
+      );
+    }
+  }
 
   final String layerId;
   final String resourceId;
   final PresentationEasing easing;
+  final PresentationVisualComposition from;
+  final PresentationVisualComposition to;
+  final PresentationVisualTransition transitionIn;
+  final PresentationVisualTransition transitionOut;
 
   @override
   PresentationTrackKind get trackKind => PresentationTrackKind.visual;
@@ -279,11 +431,25 @@ final class PresentationVisualClip extends PresentationClip {
           other.durationUs == durationUs &&
           other.layerId == layerId &&
           other.resourceId == resourceId &&
-          other.easing == easing;
+          other.easing == easing &&
+          other.from == from &&
+          other.to == to &&
+          other.transitionIn == transitionIn &&
+          other.transitionOut == transitionOut;
 
   @override
-  int get hashCode =>
-      Object.hash(id, startUs, durationUs, layerId, resourceId, easing);
+  int get hashCode => Object.hash(
+    id,
+    startUs,
+    durationUs,
+    layerId,
+    resourceId,
+    easing,
+    from,
+    to,
+    transitionIn,
+    transitionOut,
+  );
 }
 
 @immutable
@@ -392,6 +558,46 @@ String _requiredString(String value, String path) {
 String? _optionalString(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}
+
+void _finite(double value, String path) {
+  if (!value.isFinite) {
+    throw PresentationCinematicValidationException(
+      code: PresentationCinematicValidationErrorCode.invalidValue,
+      message: 'Value must be finite',
+      path: path,
+    );
+  }
+}
+
+void _positiveFinite(double value, String path) {
+  if (!value.isFinite || value <= 0) {
+    throw PresentationCinematicValidationException(
+      code: PresentationCinematicValidationErrorCode.invalidValue,
+      message: 'Value must be finite and greater than zero',
+      path: path,
+    );
+  }
+}
+
+void _unitInterval(double value, String path) {
+  if (!value.isFinite || value < 0 || value > 1) {
+    throw PresentationCinematicValidationException(
+      code: PresentationCinematicValidationErrorCode.invalidValue,
+      message: 'Value must be between zero and one',
+      path: path,
+    );
+  }
+}
+
+void _cropValue(double value, String path) {
+  if (!value.isFinite || value < 0 || value >= 1) {
+    throw PresentationCinematicValidationException(
+      code: PresentationCinematicValidationErrorCode.invalidValue,
+      message: 'Crop must be at least zero and less than one',
+      path: path,
+    );
+  }
 }
 
 bool _listEquals<T>(List<T> left, List<T> right) {

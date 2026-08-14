@@ -23,6 +23,8 @@ final class PresentationCinematicEvaluator {
           case final PresentationVisualClip visualClip
               when _isActive(visualClip, resolvedTimeUs):
             final progress = _progress(visualClip, resolvedTimeUs);
+            final easedProgress = _ease(progress, visualClip.easing);
+            final elapsedUs = resolvedTimeUs - visualClip.startUs;
             visuals.add(
               PresentationVisualFrameClip(
                 clipId: visualClip.id,
@@ -32,10 +34,22 @@ final class PresentationCinematicEvaluator {
                 resourceId: visualClip.resourceId,
                 startUs: visualClip.startUs,
                 durationUs: visualClip.durationUs,
-                elapsedUs: resolvedTimeUs - visualClip.startUs,
+                elapsedUs: elapsedUs,
                 progress: progress,
-                easedProgress: _ease(progress, visualClip.easing),
+                easedProgress: easedProgress,
                 easing: visualClip.easing,
+                composition: _evaluateVisualComposition(
+                  visualClip,
+                  elapsedUs: elapsedUs,
+                  easedProgress: easedProgress,
+                  reduceMotion: false,
+                ),
+                reducedMotionComposition: _evaluateVisualComposition(
+                  visualClip,
+                  elapsedUs: elapsedUs,
+                  easedProgress: easedProgress,
+                  reduceMotion: true,
+                ),
               ),
             );
           case final PresentationAudioClip audioClip
@@ -112,6 +126,110 @@ double _ease(double progress, PresentationEasing easing) => switch (easing) {
         ? 2 * progress * progress
         : 1 - ((-2 * progress + 2) * (-2 * progress + 2)) / 2,
 };
+
+PresentationVisualComposition _evaluateVisualComposition(
+  PresentationVisualClip clip, {
+  required int elapsedUs,
+  required double easedProgress,
+  required bool reduceMotion,
+}) {
+  final from = clip.from;
+  final to = clip.to;
+  var translateX = reduceMotion
+      ? to.translateX
+      : _lerp(from.translateX, to.translateX, easedProgress);
+  var translateY = reduceMotion
+      ? to.translateY
+      : _lerp(from.translateY, to.translateY, easedProgress);
+  final scaleX = reduceMotion
+      ? to.scaleX
+      : _lerp(from.scaleX, to.scaleX, easedProgress);
+  final scaleY = reduceMotion
+      ? to.scaleY
+      : _lerp(from.scaleY, to.scaleY, easedProgress);
+  final rotationTurns = reduceMotion
+      ? to.rotationTurns
+      : _lerp(from.rotationTurns, to.rotationTurns, easedProgress);
+  var opacity = _lerp(from.opacity, to.opacity, easedProgress);
+  final cropLeft = reduceMotion
+      ? to.cropLeft
+      : _lerp(from.cropLeft, to.cropLeft, easedProgress);
+  final cropTop = reduceMotion
+      ? to.cropTop
+      : _lerp(from.cropTop, to.cropTop, easedProgress);
+  final cropRight = reduceMotion
+      ? to.cropRight
+      : _lerp(from.cropRight, to.cropRight, easedProgress);
+  final cropBottom = reduceMotion
+      ? to.cropBottom
+      : _lerp(from.cropBottom, to.cropBottom, easedProgress);
+
+  final entryProgress = _entryTransitionProgress(clip, elapsedUs);
+  final exitProgress = _exitTransitionProgress(clip, elapsedUs);
+  opacity *= _transitionOpacity(clip.transitionIn, entryProgress);
+  opacity *= _transitionOpacity(clip.transitionOut, exitProgress);
+  if (!reduceMotion) {
+    final entryOffset = _transitionOffset(clip.transitionIn, entryProgress);
+    final exitOffset = _transitionOffset(clip.transitionOut, exitProgress);
+    translateX += entryOffset.$1 + exitOffset.$1;
+    translateY += entryOffset.$2 + exitOffset.$2;
+  }
+
+  return PresentationVisualComposition(
+    translateX: translateX,
+    translateY: translateY,
+    scaleX: scaleX,
+    scaleY: scaleY,
+    rotationTurns: rotationTurns,
+    opacity: opacity.clamp(0, 1),
+    cropLeft: cropLeft,
+    cropTop: cropTop,
+    cropRight: cropRight,
+    cropBottom: cropBottom,
+  );
+}
+
+double _entryTransitionProgress(PresentationVisualClip clip, int elapsedUs) {
+  final transition = clip.transitionIn;
+  if (transition.kind == PresentationVisualTransitionKind.none) {
+    return 1;
+  }
+  return _ease((elapsedUs / transition.durationUs).clamp(0, 1), clip.easing);
+}
+
+double _exitTransitionProgress(PresentationVisualClip clip, int elapsedUs) {
+  final transition = clip.transitionOut;
+  if (transition.kind == PresentationVisualTransitionKind.none) {
+    return 1;
+  }
+  return _ease(
+    ((clip.durationUs - elapsedUs) / transition.durationUs).clamp(0, 1),
+    clip.easing,
+  );
+}
+
+double _transitionOpacity(
+  PresentationVisualTransition transition,
+  double progress,
+) => transition.kind == PresentationVisualTransitionKind.fade ? progress : 1;
+
+(double, double) _transitionOffset(
+  PresentationVisualTransition transition,
+  double progress,
+) {
+  final remaining = 1 - progress;
+  return switch (transition.kind) {
+    PresentationVisualTransitionKind.slideLeft => (-remaining, 0),
+    PresentationVisualTransitionKind.slideRight => (remaining, 0),
+    PresentationVisualTransitionKind.slideUp => (0, -remaining),
+    PresentationVisualTransitionKind.slideDown => (0, remaining),
+    PresentationVisualTransitionKind.none ||
+    PresentationVisualTransitionKind.fade => (0, 0),
+  };
+}
+
+double _lerp(double from, double to, double progress) =>
+    from + (to - from) * progress;
 
 int _compareVisuals(
   PresentationVisualFrameClip left,
