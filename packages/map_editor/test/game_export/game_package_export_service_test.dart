@@ -313,21 +313,22 @@ void main() {
   });
 
   group('gameplay publication readiness gate', () {
-    test('rejects a Finish Game reachable only through the non-runtime '
-        'starterSelectionSceneId hint', () async {
+    test('rejects a preSession entrypoint that references a world Scene',
+        () async {
       final root = await createAuthorProject(withDialogue: false);
       addTearDown(() => root.delete(recursive: true));
       final projectFile = File(p.join(root.path, 'project.json'));
       final project =
           jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
       project.remove('eventRegistry');
-      (project['newGame'] as Map<String, dynamic>)['starterSelectionSceneId'] =
+      project['version'] = 'v7';
+      (project['newGame'] as Map<String, dynamic>)['preSessionSceneId'] =
           'scene.main';
       await projectFile.writeAsString(jsonEncode(project), flush: true);
 
       await _expectReadinessFailure(
         root,
-        diagnosticCode: 'exportStoryEndUnreachable',
+        diagnosticCode: 'exportPreSessionSceneUnavailable',
       );
     });
 
@@ -343,7 +344,7 @@ void main() {
         final newGame = project['newGame'] as Map<String, dynamic>;
         newGame['initialParty'] = <Object?>[];
         newGame['starterOptions'] = <Object?>[];
-        newGame.remove('starterSelectionSceneId');
+        newGame.remove('preSessionSceneId');
         await projectFile.writeAsString(jsonEncode(project), flush: true);
 
         await _expectReadinessFailure(

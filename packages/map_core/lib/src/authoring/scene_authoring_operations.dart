@@ -1971,7 +1971,7 @@ SceneAsset _duplicateSceneAsset(
 }
 
 bool _isManifestSceneConsumerPath(String path) {
-  if (path == 'newGame.starterSelectionSceneId') return true;
+  if (path == 'newGame.preSessionSceneId') return true;
   if (path.startsWith('eventRegistry.records[') && path.endsWith('.sceneId')) {
     return true;
   }
@@ -2040,9 +2040,9 @@ ProjectManifest _replaceSceneConsumers(
     initialFacts: newGame.initialFacts,
     initialFactValues: newGame.initialFactValues,
     existingPartyFactId: newGame.existingPartyFactId,
-    starterSelectionSceneId: newGame.starterSelectionSceneId == sourceSceneId
+    preSessionSceneId: newGame.preSessionSceneId == sourceSceneId
         ? replacementSceneId
-        : newGame.starterSelectionSceneId,
+        : newGame.preSessionSceneId,
     starterOptions: newGame.starterOptions,
   );
   return project.copyWith(

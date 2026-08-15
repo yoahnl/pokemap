@@ -40,7 +40,7 @@ void main() {
         ],
         initialFacts: {'fact_intro_active': true},
         existingPartyFactId: 'fact_existing_party',
-        starterSelectionSceneId: 'scene_starter_choice',
+        preSessionSceneId: 'scene_starter_choice',
         starterOptions: [
           ProjectStarterOption(
             id: 'starter_bulbasaur',
@@ -156,7 +156,7 @@ void main() {
         const ProjectNewGameConfig(
           enabled: true,
           startMapId: 'map_start',
-          starterSelectionSceneId: 'missing_scene',
+          preSessionSceneId: 'missing_scene',
         ),
         const ProjectNewGameConfig(
           enabled: true,
@@ -198,7 +198,7 @@ void main() {
             startMapId: 'map_start',
             existingPartyFactId: 'fact_existing_party',
             initialParty: initialParty,
-            starterSelectionSceneId: 'scene_starter_choice',
+            preSessionSceneId: 'scene_starter_choice',
             starterOptions: const [
               ProjectStarterOption(
                 id: 'starter_bulbasaur',
@@ -218,6 +218,87 @@ void main() {
         expect(() => ProjectValidator.validate(manifest), returnsNormally);
       }
     });
+
+    test('rejects the legacy entrypoint field instead of dual-reading it', () {
+      expect(
+        () => ProjectNewGameConfig.fromJson(const <String, dynamic>{
+          'starterSelectionSceneId': 'scene_starter_choice',
+        }),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            allOf(
+              contains('new_game_legacy_entrypoint_unsupported'),
+              contains('starterSelectionSceneId'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('requires project v7 when a pre-session entrypoint is present', () {
+      final json = _manifest(
+        const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          preSessionSceneId: 'scene_starter_choice',
+        ),
+      ).toJson()
+        ..['version'] = 'v6';
+
+      expect(
+        () => ProjectManifest.fromJson(json),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            allOf(
+              contains('cinematic_v2_project_v7_required'),
+              contains(r'$.newGame.preSessionSceneId'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('requires the entrypoint to reference a pre-session Scene', () {
+      final manifest = _manifest(
+        const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          preSessionSceneId: 'scene_starter_choice',
+        ),
+        sceneProfile: SceneExecutionProfile.world,
+      );
+
+      expect(
+        () => ProjectValidator.validate(manifest),
+        throwsA(
+          isA<ValidationException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'new_game_pre_session_profile_required',
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('scene_starter_choice'),
+              ),
+        ),
+      );
+    });
+
+    test('keeps a v7 project without an entrypoint valid', () {
+      final manifest = _manifest(
+        const ProjectNewGameConfig(enabled: true, startMapId: 'map_start'),
+      );
+
+      expect(manifest.newGame.preSessionSceneId, isNull);
+      expect(() => ProjectValidator.validate(manifest), returnsNormally);
+      expect(ProjectManifest.fromJson(manifest.toJson()), manifest);
+    });
   });
 }
 
@@ -225,9 +306,11 @@ ProjectManifest _manifest(
   ProjectNewGameConfig newGame, {
   List<NarrativeFactDefinition> additionalFacts = const [],
   NarrativeFactDefinition? existingPartyFact,
+  SceneExecutionProfile sceneProfile = SceneExecutionProfile.preSession,
 }) {
   return ProjectManifest(
     name: 'new game config test',
+    version: ProjectVersion.v7,
     maps: const [
       ProjectMapEntry(
         id: 'map_start',
@@ -270,6 +353,7 @@ ProjectManifest _manifest(
       SceneAsset(
         id: 'scene_starter_choice',
         name: 'Starter choice',
+        executionProfile: sceneProfile,
         graph: SceneGraph(
           startNodeId: 'start',
           nodes: [

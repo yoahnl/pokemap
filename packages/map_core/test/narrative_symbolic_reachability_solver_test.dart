@@ -433,7 +433,7 @@ void main() {
         ),
         newGame: const ProjectNewGameConfig(
           enabled: true,
-          starterSelectionSceneId: 'scene_start',
+          preSessionSceneId: 'scene_start',
         ),
       );
 
@@ -535,7 +535,7 @@ void main() {
         ),
         newGame: const ProjectNewGameConfig(
           enabled: true,
-          starterSelectionSceneId: 'scene_starter',
+          preSessionSceneId: 'scene_starter',
         ),
       );
 
@@ -648,7 +648,7 @@ void main() {
         ),
         newGame: const ProjectNewGameConfig(
           enabled: true,
-          starterSelectionSceneId: 'scene_choice',
+          preSessionSceneId: 'scene_choice',
         ),
       );
 
@@ -772,7 +772,7 @@ void main() {
         ),
         newGame: const ProjectNewGameConfig(
           enabled: true,
-          starterSelectionSceneId: 'scene_start',
+          preSessionSceneId: 'scene_start',
         ),
       );
 
@@ -871,7 +871,7 @@ void main() {
         ),
         newGame: const ProjectNewGameConfig(
           enabled: true,
-          starterSelectionSceneId: 'scene_main',
+          preSessionSceneId: 'scene_main',
         ),
       );
       const map = MapData(

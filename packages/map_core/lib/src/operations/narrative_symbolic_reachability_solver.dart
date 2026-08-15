@@ -494,20 +494,20 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
   var remainingBudget = explorationBudget;
 
   List<NarrativeSymbolicState> frontier = [initial];
-  final starterSceneId = project.newGame.starterSelectionSceneId;
-  if (starterSceneId != null && scenesById.containsKey(starterSceneId)) {
+  final preSessionSceneId = project.newGame.preSessionSceneId;
+  if (preSessionSceneId != null && scenesById.containsKey(preSessionSceneId)) {
     final result = solveNarrativeSceneSymbolically(
-      scenesById[starterSceneId]!,
+      scenesById[preSessionSceneId]!,
       initialState: initial,
       explorationBudget: remainingBudget,
       commandCatalog: catalog,
-      eventId: 'newGame.starterSelectionSceneId',
+      eventId: 'newGame.preSessionSceneId',
     );
     exploredCount += result.exploredStateCount;
     remainingBudget -= result.exploredStateCount;
     explored.addAll(result.exploredStates);
     issues.addAll(result.issues);
-    reachableSceneIds.add(starterSceneId);
+    reachableSceneIds.add(preSessionSceneId);
     frontier = result.terminalStates;
   }
 

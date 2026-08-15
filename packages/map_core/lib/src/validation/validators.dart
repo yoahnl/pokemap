@@ -1,5 +1,6 @@
-import '../exceptions/map_exceptions.dart';
+import '../diagnostics/scene_diagnostics.dart';
 import '../encounters/encounter_contract.dart';
+import '../exceptions/map_exceptions.dart';
 import '../models/badge_definition.dart';
 import '../models/cinematic_library_catalog.dart';
 import '../models/enums.dart';
@@ -13,6 +14,7 @@ import '../models/project_presentation_profile.dart';
 import '../models/project_tileset_source.dart';
 import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
+import '../models/scene_asset.dart';
 import '../models/script_conditions.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
@@ -103,6 +105,13 @@ class ProjectValidator {
         !manifest.cinematicLibraryCatalog.isEmpty) {
       throw const ValidationException(
         'Cinematic library catalog requires ProjectVersion.v7',
+        code: 'cinematic_v2_project_v7_required',
+      );
+    }
+    if (manifest.version == ProjectVersion.v6 &&
+        (manifest.newGame.preSessionSceneId?.trim().isNotEmpty ?? false)) {
+      throw const ValidationException(
+        'New Game preSession entrypoint requires ProjectVersion.v7',
         code: 'cinematic_v2_project_v7_required',
       );
     }
@@ -247,14 +256,43 @@ class ProjectValidator {
         );
       }
     }
-    final starterSceneId = config.starterSelectionSceneId?.trim();
-    if (starterSceneId != null &&
-        starterSceneId.isNotEmpty &&
-        !manifest.scenes.any((scene) => scene.id == starterSceneId)) {
-      throw ValidationException(
-        'newGame starterSelectionSceneId references an unknown Scene: '
-        '$starterSceneId',
-      );
+    final preSessionSceneId = config.preSessionSceneId?.trim();
+    if (preSessionSceneId != null && preSessionSceneId.isNotEmpty) {
+      final scene = manifest.scenes
+          .where((candidate) => candidate.id == preSessionSceneId)
+          .firstOrNull;
+      if (scene == null) {
+        throw ValidationException(
+          'newGame preSessionSceneId references an unknown Scene: '
+          '$preSessionSceneId',
+          code: 'new_game_pre_session_scene_unknown',
+        );
+      }
+      if (scene.executionProfile != SceneExecutionProfile.preSession) {
+        throw ValidationException(
+          'newGame preSessionSceneId must reference a preSession Scene: '
+          '$preSessionSceneId',
+          code: 'new_game_pre_session_profile_required',
+        );
+      }
+      final diagnostics = diagnoseSceneAgainstProject(scene, manifest);
+      if (diagnostics.hasErrors) {
+        throw ValidationException(
+          'newGame preSessionSceneId references an invalid Scene: '
+          '$preSessionSceneId',
+          code: 'new_game_pre_session_scene_invalid',
+          details: <String, Object?>{
+            'sceneId': preSessionSceneId,
+            'diagnosticCodes': diagnostics.diagnostics
+                .where(
+                  (diagnostic) =>
+                      diagnostic.severity == SceneDiagnosticSeverity.error,
+                )
+                .map((diagnostic) => diagnostic.code.name)
+                .toList(growable: false),
+          },
+        );
+      }
     }
 
     final starterIds = <String>{};

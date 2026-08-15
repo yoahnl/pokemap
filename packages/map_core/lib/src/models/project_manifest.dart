@@ -611,6 +611,22 @@ void _preflightProjectManifestJson(Map<String, dynamic> json) {
       '(expected=v7, actual=v6)',
     );
   }
+  final newGame = json['newGame'];
+  if (newGame is Map && newGame.containsKey('starterSelectionSceneId')) {
+    throw const FormatException(
+      r'$.newGame.starterSelectionSceneId: '
+      'new_game_legacy_entrypoint_unsupported '
+      '(expected=preSessionSceneId)',
+    );
+  }
+  if (version == 'v6' &&
+      newGame is Map &&
+      newGame.containsKey('preSessionSceneId')) {
+    throw const FormatException(
+      r'$.newGame.preSessionSceneId: cinematic_v2_project_v7_required '
+      '(expected=v7, actual=v6)',
+    );
+  }
   for (final key in const <String>[
     'terrainCategories',
     'pathCategories',

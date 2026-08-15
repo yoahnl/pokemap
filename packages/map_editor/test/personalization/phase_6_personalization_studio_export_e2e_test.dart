@@ -45,7 +45,6 @@ void main() {
           ).toJson(),
         ],
         'initialFacts': <String, Object?>{},
-        'starterSelectionSceneId': 'scene.main',
         'starterOptions': <Object?>[],
       };
       await projectFile.writeAsString(jsonEncode(projectJson), flush: true);

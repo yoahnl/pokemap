@@ -43,9 +43,6 @@ final class ProjectStarterOption {
 
 /// Project-owned contract used to create a real new game without host fixtures.
 ///
-/// The config deliberately describes state only. Narrative presentation and
-/// starter selection remain authored as Yarn/Scene/Event assets referenced by
-/// [starterSelectionSceneId].
 @immutable
 final class ProjectNewGameConfig {
   const ProjectNewGameConfig({
@@ -61,11 +58,18 @@ final class ProjectNewGameConfig {
     this.initialFacts = const <String, bool>{},
     this.initialFactValues = const <String, NarrativeValue>{},
     this.existingPartyFactId,
-    this.starterSelectionSceneId,
+    this.preSessionSceneId,
     this.starterOptions = const <ProjectStarterOption>[],
   });
 
   factory ProjectNewGameConfig.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('starterSelectionSceneId')) {
+      throw const FormatException(
+        r'$.newGame.starterSelectionSceneId: '
+        'new_game_legacy_entrypoint_unsupported '
+        '(expected=preSessionSceneId)',
+      );
+    }
     return ProjectNewGameConfig(
       enabled: _readBool(json, 'enabled', fallback: false),
       startMapId: _readString(json, 'startMapId') ?? '',
@@ -88,7 +92,7 @@ final class ProjectNewGameConfig {
           ? _readNarrativeValueMap(json, 'initialFactValues')
           : const <String, NarrativeValue>{},
       existingPartyFactId: _readString(json, 'existingPartyFactId'),
-      starterSelectionSceneId: _readString(json, 'starterSelectionSceneId'),
+      preSessionSceneId: _readString(json, 'preSessionSceneId'),
       starterOptions: _readObjectList(json, 'starterOptions')
           .map(ProjectStarterOption.fromJson)
           .toList(growable: false),
@@ -114,7 +118,7 @@ final class ProjectNewGameConfig {
         ...initialFactValues,
       });
   final String? existingPartyFactId;
-  final String? starterSelectionSceneId;
+  final String? preSessionSceneId;
   final List<ProjectStarterOption> starterOptions;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -138,8 +142,7 @@ final class ProjectNewGameConfig {
         },
         if (existingPartyFactId != null)
           'existingPartyFactId': existingPartyFactId,
-        if (starterSelectionSceneId != null)
-          'starterSelectionSceneId': starterSelectionSceneId,
+        if (preSessionSceneId != null) 'preSessionSceneId': preSessionSceneId,
         'starterOptions':
             starterOptions.map((option) => option.toJson()).toList(),
       };
@@ -163,7 +166,7 @@ final class ProjectNewGameConfig {
           _mapEquals(other.initialFacts, initialFacts) &&
           _mapEquals(other.initialFactValues, initialFactValues) &&
           other.existingPartyFactId == existingPartyFactId &&
-          other.starterSelectionSceneId == starterSelectionSceneId &&
+          other.preSessionSceneId == preSessionSceneId &&
           _listEquals(other.starterOptions, starterOptions);
 
   @override
@@ -180,7 +183,7 @@ final class ProjectNewGameConfig {
         Object.hashAllUnordered(initialFacts.entries),
         Object.hashAllUnordered(initialFactValues.entries),
         existingPartyFactId,
-        starterSelectionSceneId,
+        preSessionSceneId,
         Object.hashAll(starterOptions),
       );
 }

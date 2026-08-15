@@ -457,7 +457,7 @@ void main() {
             'intro.seen': true,
           },
           existingPartyFactId: 'party.exists',
-          starterSelectionSceneId: 'scene.missing',
+          preSessionSceneId: 'scene.missing',
         ),
       );
 
@@ -484,7 +484,7 @@ void main() {
             NarrativeDependencyResolution.resolved,
           ),
           (
-            'newGame.starterSelectionSceneId',
+            'newGame.preSessionSceneId',
             NarrativeDependencyResolution.missing,
           ),
         ]),
@@ -598,7 +598,7 @@ void main() {
           startSpawnId: 'spawn.player',
           initialFacts: <String, bool>{'fact.ready': true},
           existingPartyFactId: 'fact.ready',
-          starterSelectionSceneId: 'scene.starter',
+          preSessionSceneId: 'scene.starter',
         ),
       );
       final map = MapData(
@@ -627,7 +627,7 @@ void main() {
           'newGame.startSpawnId',
           'newGame.initialFacts[fact.ready]',
           'newGame.existingPartyFactId',
-          'newGame.starterSelectionSceneId',
+          'newGame.preSessionSceneId',
         ]),
       );
       expect(

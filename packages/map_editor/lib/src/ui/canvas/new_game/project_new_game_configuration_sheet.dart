@@ -112,7 +112,7 @@ class _ProjectNewGameConfigurationFormState
   late String _startMapId;
   late String _startSpawnId;
   late String _existingPartyFactId;
-  late String _starterSelectionSceneId;
+  late String _preSessionSceneId;
   late Set<String> _playerAvatarCharacterIds;
   late PlayerPronounSet _playerPronounSet;
   late List<BagEntry> _initialBag;
@@ -135,7 +135,7 @@ class _ProjectNewGameConfigurationFormState
     _startMapId = config.startMapId;
     _startSpawnId = config.startSpawnId ?? '';
     _existingPartyFactId = config.existingPartyFactId ?? '';
-    _starterSelectionSceneId = config.starterSelectionSceneId ?? '';
+    _preSessionSceneId = config.preSessionSceneId ?? '';
     _playerAvatarCharacterIds = config.playerAvatarCharacterIds.toSet();
     _playerPronounSet = config.playerPronounSet;
     _initialBag = config.initialBag.toList(growable: true);
@@ -395,19 +395,21 @@ class _ProjectNewGameConfigurationFormState
               const SizedBox(height: 10),
               PokeMapDropdownField<String>(
                 key: const ValueKey('new-game-starter-scene-picker'),
-                label: 'Scène de choix du partenaire',
-                value: _starterSelectionSceneId,
+                label: 'Scène avant session',
+                value: _preSessionSceneId,
                 enabled: _enabled,
                 items: <PokeMapDropdownItem<String>>[
                   const PokeMapDropdownItem(
                     value: '',
-                    label: 'Aucune Scène dédiée',
+                    label: 'Aucune Scène avant session',
                   ),
                   for (final scene in widget.project.scenes)
-                    PokeMapDropdownItem(value: scene.id, label: scene.name),
+                    if (scene.executionProfile ==
+                        SceneExecutionProfile.preSession)
+                      PokeMapDropdownItem(value: scene.id, label: scene.name),
                 ],
                 onChanged: (value) => setState(() {
-                  _starterSelectionSceneId = value;
+                  _preSessionSceneId = value;
                   _clearSaveStatus();
                 }),
               ),
@@ -426,8 +428,7 @@ class _ProjectNewGameConfigurationFormState
                 children: [
                   Expanded(
                     child: ItemCapabilityPicker(
-                      fieldKey:
-                          const ValueKey('new-game-bag-item-picker'),
+                      fieldKey: const ValueKey('new-game-bag-item-picker'),
                       label: 'Objet du catalogue',
                       definitions: <ProjectItemDefinition>[
                         for (final option
@@ -703,10 +704,13 @@ class _ProjectNewGameConfigurationFormState
             .any((fact) => fact.valueKind != NarrativeValueKind.boolean)) {
       errors.add('Le Fact « équipe déjà présente » doit être booléen.');
     }
-    if (_starterSelectionSceneId.isNotEmpty &&
-        !widget.project.scenes
-            .any((scene) => scene.id == _starterSelectionSceneId)) {
-      errors.add('La Scène de choix du partenaire n’existe plus.');
+    if (_preSessionSceneId.isNotEmpty &&
+        !widget.project.scenes.any(
+          (scene) =>
+              scene.id == _preSessionSceneId &&
+              scene.executionProfile == SceneExecutionProfile.preSession,
+        )) {
+      errors.add('La Scène avant session est absente ou incompatible.');
     }
     return errors;
   }
@@ -766,9 +770,8 @@ class _ProjectNewGameConfigurationFormState
           : const {},
       existingPartyFactId:
           _existingPartyFactId.isEmpty ? null : _existingPartyFactId.trim(),
-      starterSelectionSceneId: _starterSelectionSceneId.isEmpty
-          ? null
-          : _starterSelectionSceneId.trim(),
+      preSessionSceneId:
+          _preSessionSceneId.isEmpty ? null : _preSessionSceneId.trim(),
       starterOptions: List<ProjectStarterOption>.unmodifiable(_starterOptions),
     );
   }

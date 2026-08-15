@@ -247,23 +247,34 @@ void _appendPublicationInvariants({
       ),
     );
   }
-  final starterSceneId = newGame.starterSelectionSceneId?.trim();
+  final preSessionSceneId = newGame.preSessionSceneId?.trim();
+  final preSessionScene = preSessionSceneId == null
+      ? null
+      : project.scenes
+          .where((scene) => scene.id == preSessionSceneId)
+          .firstOrNull;
+  final preSessionSceneValid = preSessionScene != null &&
+      preSessionScene.executionProfile == SceneExecutionProfile.preSession &&
+      !diagnoseSceneAgainstProject(preSessionScene, project).hasErrors;
   if (newGame.enabled &&
-      !hasInitialParty &&
-      hasStarterOptions &&
-      (starterSceneId == null ||
-          starterSceneId.isEmpty ||
-          !project.scenes.any((scene) => scene.id == starterSceneId))) {
+      ((preSessionSceneId != null &&
+              preSessionSceneId.isNotEmpty &&
+              !preSessionSceneValid) ||
+          (!hasInitialParty &&
+              hasStarterOptions &&
+              (preSessionSceneId == null ||
+                  preSessionSceneId.isEmpty ||
+                  !preSessionSceneValid)))) {
     target.add(
       _diagnostic(
-        code: 'exportStarterSelectionSceneUnavailable',
-        message: 'Les starters sont configurés mais aucune Scene de sélection '
-            'valide n’est disponible.',
-        path: 'newGame.starterSelectionSceneId',
+        code: 'exportPreSessionSceneUnavailable',
+        message: 'L’entrypoint New Game doit référencer une Scene preSession '
+            'valide.',
+        path: 'newGame.preSessionSceneId',
         domain: NarrativeProjectDiagnosticDomain.scene,
         destination: NarrativeProjectDiagnosticDestination.scene,
-        sceneId: starterSceneId,
-        suggestedFixLabel: 'Choisir une Scene de sélection de starter.',
+        sceneId: preSessionSceneId,
+        suggestedFixLabel: 'Choisir ou corriger une Scene preSession.',
       ),
     );
   }
@@ -344,19 +355,15 @@ NarrativeSymbolicReachabilityReport? _runtimeEntryReachability({
   required NarrativeProjectValidationReport? narrativeReport,
   required List<NarrativeProjectDiagnostic> target,
 }) {
-  final starterSceneId = project.newGame.starterSelectionSceneId?.trim();
-  if (starterSceneId == null || starterSceneId.isEmpty) {
+  final preSessionSceneId = project.newGame.preSessionSceneId?.trim();
+  if (preSessionSceneId == null || preSessionSceneId.isEmpty) {
     return narrativeReport?.symbolicReachability;
   }
 
   try {
-    // The runtime dispatches Event V2 sources, but it does not launch a Scene
-    // merely because its id is stored in starterSelectionSceneId. Re-run the
-    // symbolic proof without that authoring hint so certification requires an
-    // actual runtime-consumable Event source.
     return solveNarrativeSymbolicReachability(
       project.copyWith(
-        newGame: _withoutImplicitStarterSceneEntry(project.newGame),
+        newGame: _withoutImplicitPreSessionEntry(project.newGame),
       ),
       maps: maps,
     );
@@ -376,7 +383,7 @@ NarrativeSymbolicReachabilityReport? _runtimeEntryReachability({
   }
 }
 
-ProjectNewGameConfig _withoutImplicitStarterSceneEntry(
+ProjectNewGameConfig _withoutImplicitPreSessionEntry(
   ProjectNewGameConfig source,
 ) =>
     ProjectNewGameConfig(
@@ -392,7 +399,7 @@ ProjectNewGameConfig _withoutImplicitStarterSceneEntry(
       initialFacts: source.initialFacts,
       initialFactValues: source.initialFactValues,
       existingPartyFactId: source.existingPartyFactId,
-      starterSelectionSceneId: null,
+      preSessionSceneId: null,
       starterOptions: source.starterOptions,
     );
 

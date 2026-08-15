@@ -667,15 +667,15 @@ final class _NarrativeDependencyIndexBuilder {
         criticality: criticality,
       );
     }
-    final starterSceneId = config.starterSelectionSceneId?.trim();
-    if (starterSceneId != null && starterSceneId.isNotEmpty) {
+    final preSessionSceneId = config.preSessionSceneId?.trim();
+    if (preSessionSceneId != null && preSessionSceneId.isNotEmpty) {
       _usage(
         target: NarrativeDependencyKey(
           NarrativeDependencyTargetKind.scene,
-          starterSceneId,
+          preSessionSceneId,
         ),
         owner: _newGameOwner,
-        path: 'newGame.starterSelectionSceneId',
+        path: 'newGame.preSessionSceneId',
         criticality: criticality,
       );
     }
