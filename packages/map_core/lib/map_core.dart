@@ -53,6 +53,7 @@ export 'src/models/items/project_item_effect_definition.dart';
 export 'src/validation/shop_state_validator.dart';
 export 'src/validation/player_roster_validation.dart';
 export 'src/models/project_new_game_config.dart';
+export 'src/models/new_game_draft.dart';
 export 'src/models/save_data.dart';
 export 'src/models/game_state.dart';
 export 'src/models/pokemon_move.dart';
