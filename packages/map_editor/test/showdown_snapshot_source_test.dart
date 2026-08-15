@@ -20,9 +20,7 @@ void main() {
               },
             }),
             200,
-            headers: const <String, String>{
-              'content-type': 'application/json',
-            },
+            headers: const <String, String>{'content-type': 'application/json'},
           );
         }
         if (request.url.path.endsWith('/learnsets.json')) {
@@ -30,14 +28,12 @@ void main() {
             jsonEncode(<String, Object?>{
               'bulbasaur': <String, Object?>{
                 'learnset': <String, Object?>{
-                  'tackle': <String>['9L1']
+                  'tackle': <String>['9L1'],
                 },
               },
             }),
             200,
-            headers: const <String, String>{
-              'content-type': 'application/json',
-            },
+            headers: const <String, String>{'content-type': 'application/json'},
           );
         }
         if (request.url.path.endsWith('/moves.json')) {
@@ -46,9 +42,7 @@ void main() {
               'tackle': <String, Object?>{'name': 'Tackle'},
             }),
             200,
-            headers: const <String, String>{
-              'content-type': 'application/json',
-            },
+            headers: const <String, String>{'content-type': 'application/json'},
           );
         }
         return http.Response('not found', 404);
@@ -75,9 +69,7 @@ void main() {
           return http.Response(
             jsonEncode(<String, Object?>{}),
             200,
-            headers: const <String, String>{
-              'content-type': 'application/json',
-            },
+            headers: const <String, String>{'content-type': 'application/json'},
           );
         }),
         baseUri: 'https://showdown.test/data',
@@ -93,6 +85,36 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('resolves PokeAPI punctuation to Showdown species ids', () async {
+      final source = ShowdownSnapshotSource(
+        client: MockClient((request) async {
+          return http.Response(
+            jsonEncode(<String, Object?>{
+              'nidoranf': <String, Object?>{
+                'name': 'Nidoran-F',
+                'num': 29,
+                'types': <String>['Poison'],
+              },
+              'mrmime': <String, Object?>{
+                'name': 'Mr. Mime',
+                'num': 122,
+                'types': <String>['Psychic', 'Fairy'],
+              },
+            }),
+            200,
+            headers: const <String, String>{'content-type': 'application/json'},
+          );
+        }),
+        baseUri: 'https://showdown.test/data',
+      );
+
+      final nidoran = await source.fetchSpecies('nidoran-f');
+      final mrMime = await source.fetchSpecies('mr-mime');
+
+      expect(nidoran['id'], 'nidoranf');
+      expect(mrMime['id'], 'mrmime');
     });
   });
 }

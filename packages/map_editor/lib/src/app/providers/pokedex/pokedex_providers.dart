@@ -248,9 +248,10 @@ final batchImportExternalPokemonSpeciesUseCaseProvider =
 final pokedexExternalBatchPreviewerProvider =
     Provider<PokedexExternalBatchPreviewer>((ref) {
   final useCase = ref.watch(batchImportExternalPokemonSpeciesUseCaseProvider);
-  return (workspace, speciesIds) => useCase.execute(
+  return (workspace, speciesIds, {required mergePolicy}) => useCase.execute(
         workspace,
         speciesIds: speciesIds,
+        mergePolicy: mergePolicy,
         dryRun: true,
       );
 });
@@ -258,9 +259,11 @@ final pokedexExternalBatchPreviewerProvider =
 final pokedexExternalBatchImporterProvider =
     Provider<PokedexExternalBatchImporter>((ref) {
   final useCase = ref.watch(batchImportExternalPokemonSpeciesUseCaseProvider);
-  return (workspace, speciesIds, {onProgress}) => useCase.execute(
+  return (workspace, speciesIds, {required mergePolicy, onProgress}) =>
+      useCase.execute(
         workspace,
         speciesIds: speciesIds,
+        mergePolicy: mergePolicy,
         onProgress: onProgress,
       );
 });
@@ -268,9 +271,10 @@ final pokedexExternalBatchImporterProvider =
 final pokedexExternalImportPreviewerProvider =
     Provider<PokedexExternalImportPreviewer>((ref) {
   final useCase = ref.watch(importExternalPokemonSpeciesUseCaseProvider);
-  return (workspace, speciesQuery) => useCase.execute(
+  return (workspace, speciesQuery, {required mergePolicy}) => useCase.execute(
         workspace,
         speciesId: speciesQuery,
+        mergePolicy: mergePolicy,
         dryRun: true,
       );
 });
@@ -278,9 +282,10 @@ final pokedexExternalImportPreviewerProvider =
 final pokedexExternalImporterProvider =
     Provider<PokedexExternalImporter>((ref) {
   final useCase = ref.watch(importExternalPokemonSpeciesUseCaseProvider);
-  return (workspace, speciesQuery) => useCase.execute(
+  return (workspace, speciesQuery, {required mergePolicy}) => useCase.execute(
         workspace,
         speciesId: speciesQuery,
+        mergePolicy: mergePolicy,
       );
 });
 

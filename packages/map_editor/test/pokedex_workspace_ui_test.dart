@@ -13,7 +13,6 @@ import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/models/pokemon_external_query_resolution.dart';
 import 'package:map_editor/src/application/models/pokemon_external_species_search_result.dart';
 import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
-import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/services/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/delete_pokedex_species_use_case.dart';
@@ -2113,7 +2112,8 @@ void main() {
             ],
           );
         },
-        externalImportPreviewer: (_, speciesQuery) async {
+        externalImportPreviewer: (_, speciesQuery,
+            {required mergePolicy}) async {
           previewCallCount += 1;
           querySeenByPreview = speciesQuery;
           return const PokemonExternalImportResult(
@@ -2171,7 +2171,7 @@ void main() {
             ],
           );
         },
-        externalImporter: (_, speciesQuery) async {
+        externalImporter: (_, speciesQuery, {required mergePolicy}) async {
           importCallCount += 1;
           querySeenByImport = speciesQuery;
           final detail = buildDetail(

@@ -33,12 +33,16 @@ typedef PokedexImporter = Future<PokemonJsonImportResult> Function(
 typedef PokedexExternalImportPreviewer = Future<PokemonExternalImportResult>
     Function(
   ProjectWorkspace workspace,
-  String speciesQuery,
+  String speciesQuery, {
+  required PokemonExternalImportMergePolicy mergePolicy,
+}
 );
 
 typedef PokedexExternalImporter = Future<PokemonExternalImportResult> Function(
   ProjectWorkspace workspace,
-  String speciesQuery,
+  String speciesQuery, {
+  required PokemonExternalImportMergePolicy mergePolicy,
+}
 );
 
 typedef PokedexExternalSpeciesSearcher
@@ -54,13 +58,16 @@ typedef PokedexExternalBatchSelectionResolver
 typedef PokedexExternalBatchPreviewer = Future<PokemonExternalBatchImportResult>
     Function(
   ProjectWorkspace workspace,
-  List<String> speciesIds,
+  List<String> speciesIds, {
+  required PokemonExternalImportMergePolicy mergePolicy,
+}
 );
 
 typedef PokedexExternalBatchImporter = Future<PokemonExternalBatchImportResult>
     Function(
   ProjectWorkspace workspace,
   List<String> speciesIds, {
+  required PokemonExternalImportMergePolicy mergePolicy,
   void Function(PokemonExternalBatchImportProgress progress)? onProgress,
 });
 

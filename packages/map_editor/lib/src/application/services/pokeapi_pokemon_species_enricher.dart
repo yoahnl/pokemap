@@ -38,7 +38,7 @@ class PokeApiPokemonSpeciesEnricher {
       );
     }
 
-    final normalizedCanonicalId = _normalizeCatalogId(canonicalId);
+    final normalizedCanonicalId = _normalizeSpeciesId(canonicalId);
     if (normalizedCanonicalId != species.id) {
       throw EditorValidationException(
         'PokeAPI pokemon-species payload resolved to "$normalizedCanonicalId" '
@@ -289,6 +289,13 @@ class PokeApiPokemonSpeciesEnricher {
 
   String _normalizeCatalogId(String raw) {
     return raw.trim().toLowerCase().replaceAll(' ', '_').replaceAll('-', '_');
+  }
+
+  String _normalizeSpeciesId(String raw) {
+    return raw
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '');
   }
 
   String? _readOptionalTrimmedString(Object? raw) {

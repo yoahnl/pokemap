@@ -291,6 +291,10 @@ class PokeApiPokemonLearnsetConverter {
     final trimmed = raw.trim().toLowerCase();
     if (trimmed.isEmpty) return '';
     final separated = trimmed.replaceAll(RegExp(r'[\s-]+'), '_');
-    return separated.replaceAll(RegExp(r'[^a-z0-9_]+'), '');
+    final normalized = separated.replaceAll(RegExp(r'[^a-z0-9_]+'), '');
+    return switch (normalized) {
+      'vice_grip' => 'vise_grip',
+      _ => normalized,
+    };
   }
 }

@@ -169,6 +169,7 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
   bool _isBusy = false;
   bool _isSearchingExternalSpecies = false;
   bool _isResolvingExternalBatch = false;
+  bool _overwriteExistingExternalPokemon = false;
   String? _errorMessage;
   late final TextEditingController _externalQueryController;
   late final FocusNode _externalQueryFocusNode;
@@ -185,6 +186,11 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
     normalizedQuery: '',
   );
   PokemonExternalSpeciesSuggestion? _selectedExternalSuggestion;
+
+  PokemonExternalImportMergePolicy get _externalMergePolicy =>
+      _overwriteExistingExternalPokemon
+          ? PokemonExternalImportMergePolicy.overwriteExisting
+          : PokemonExternalImportMergePolicy.failOnConflict;
 
   @override
   void initState() {
@@ -387,6 +393,7 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
               final preview = await widget.previewExternalImport(
                 widget.workspace,
                 selectedSuggestion.speciesId,
+                mergePolicy: _externalMergePolicy,
               );
               if (!mounted) {
                 return;
@@ -411,6 +418,7 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
               final preview = await widget.previewExternalBatchImport(
                 widget.workspace,
                 selection.resolvedSpeciesIds,
+                mergePolicy: _externalMergePolicy,
               );
               if (!mounted) {
                 return;
@@ -487,6 +495,7 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
               final result = await widget.importExternalPokemon(
                 widget.workspace,
                 selectedSuggestion.speciesId,
+                mergePolicy: _externalMergePolicy,
               );
               if (!mounted) {
                 return;
@@ -559,6 +568,7 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
       final result = await widget.importExternalBatch(
         widget.workspace,
         selection.resolvedSpeciesIds,
+        mergePolicy: _externalMergePolicy,
         onProgress: (progress) {
           if (!mounted) {
             return;
@@ -748,9 +758,20 @@ class _PokedexImportFlowSheetState extends State<_PokedexImportFlowSheet> {
             searchResult: _externalSpeciesSearchResult,
             batchSelectionResult: _externalBatchSelectionResult,
             selectedSuggestion: _selectedExternalSuggestion,
+            overwriteExisting: _overwriteExistingExternalPokemon,
             onModeChanged: _handleExternalModeChanged,
             onQueryChanged: _handleExternalQueryChanged,
             onSuggestionSelected: _handleExternalSuggestionSelected,
+            onOverwriteExistingChanged: (value) {
+              setState(() {
+                _overwriteExistingExternalPokemon = value;
+                _externalPreview = null;
+                _externalBatchPreview = null;
+                _externalBatchImportResult = null;
+                _externalBatchImportProgress = null;
+                _errorMessage = null;
+              });
+            },
             onContinue: _loadPreview,
             onCancel: () => Navigator.of(context).pop(),
           ),

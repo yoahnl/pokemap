@@ -135,6 +135,7 @@ void main() {
       );
       await speciesFile.writeAsString('''
 {
+  "schemaVersion": 1,
   "id": "bulbasaur",
   "slug": "bulbasaur",
   "nationalDex": 1,
@@ -301,6 +302,7 @@ void main() {
         p.join(speciesDir.path, '0001-invalid.json'),
       ).writeAsString('''
 {
+  "schemaVersion": 1,
   "id": "",
   "nationalDex": 0,
   "names": {},

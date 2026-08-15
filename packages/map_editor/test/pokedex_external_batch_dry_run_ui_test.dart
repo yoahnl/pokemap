@@ -8,7 +8,6 @@ import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
 import 'package:map_editor/src/application/models/pokemon_external_batch_selection.dart';
 import 'package:map_editor/src/application/models/pokemon_external_query_resolution.dart';
 import 'package:map_editor/src/application/models/pokemon_external_species_search_result.dart';
-import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/use_cases/import_external_pokemon_use_cases.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -83,7 +82,9 @@ void main() {
         externalBatchSelectionResolver,
     required Future<PokemonExternalBatchImportResult> Function(
       ProjectWorkspace workspace,
-      List<String> speciesIds,
+      List<String> speciesIds, {
+      required PokemonExternalImportMergePolicy mergePolicy,
+    }
     ) externalBatchPreviewer,
   }) {
     return PokedexWorkspace(
@@ -98,8 +99,10 @@ void main() {
       ),
       externalBatchSelectionResolver: externalBatchSelectionResolver,
       externalBatchPreviewer: externalBatchPreviewer,
-      externalImportPreviewer: (_, _) async => throw UnimplementedError(),
-      externalImporter: (_, _) async => throw UnimplementedError(),
+      externalImportPreviewer: (_, _, {required mergePolicy}) async =>
+          throw UnimplementedError(),
+      externalImporter: (_, _, {required mergePolicy}) async =>
+          throw UnimplementedError(),
     );
   }
 
@@ -127,7 +130,8 @@ void main() {
             normalizedQuery: rawQuery.trim(),
           );
         },
-        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
+        externalBatchPreviewer: (_, _, {required mergePolicy}) async =>
+            _sampleBatchDryRunPreview(),
       ),
     );
     await tester.pump();
@@ -205,7 +209,8 @@ void main() {
               'Le mode batch attend une liste explicite, une plage Pokédex '
               'ou une génération.',
         ),
-        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
+        externalBatchPreviewer: (_, _, {required mergePolicy}) async =>
+            _sampleBatchDryRunPreview(),
       ),
     );
     await tester.pump();
@@ -255,7 +260,8 @@ void main() {
       child: buildWorkspace(
         externalBatchSelectionResolver: (rawQuery) async =>
             _resolvedBatchSelection(),
-        externalBatchPreviewer: (_, speciesIds) async {
+        externalBatchPreviewer: (_, speciesIds,
+            {required mergePolicy}) async {
           previewedSpeciesIds.add(List<String>.from(speciesIds));
           return _sampleBatchDryRunPreview();
         },

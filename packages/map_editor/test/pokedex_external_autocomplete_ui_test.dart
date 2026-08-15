@@ -10,7 +10,6 @@ import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/models/pokedex_species_detail.dart';
 import 'package:map_editor/src/application/models/pokemon_external_query_resolution.dart';
 import 'package:map_editor/src/application/models/pokemon_external_species_search_result.dart';
-import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/pokedex_workspace.dart';
@@ -81,8 +80,10 @@ void main() {
       importPreviewer: (_, _) async => throw UnimplementedError(),
       importer: (_, _) async => throw UnimplementedError(),
       externalSpeciesSearcher: externalSpeciesSearcher,
-      externalImportPreviewer: (_, _) async => throw UnimplementedError(),
-      externalImporter: (_, _) async => throw UnimplementedError(),
+      externalImportPreviewer: (_, _, {required mergePolicy}) async =>
+          throw UnimplementedError(),
+      externalImporter: (_, _, {required mergePolicy}) async =>
+          throw UnimplementedError(),
     );
   }
 

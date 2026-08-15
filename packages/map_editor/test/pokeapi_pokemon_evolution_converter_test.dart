@@ -60,6 +60,50 @@ void main() {
       );
     });
 
+    test('normalizes PokeAPI species punctuation to catalog ids', () {
+      final evolution = converter.convert(
+        speciesId: 'nidoranf',
+        payload: const <String, dynamic>{
+          'chain': <String, dynamic>{
+            'species': <String, dynamic>{'name': 'nidoran-f'},
+            'evolution_details': <dynamic>[],
+            'evolves_to': <dynamic>[
+              <String, dynamic>{
+                'species': <String, dynamic>{'name': 'nidorina'},
+                'evolution_details': <dynamic>[
+                  <String, dynamic>{
+                    'trigger': <String, dynamic>{'name': 'level-up'},
+                    'min_level': 16,
+                  },
+                ],
+                'evolves_to': <dynamic>[],
+              },
+            ],
+          },
+        },
+      );
+
+      expect(evolution.speciesId, 'nidoranf');
+      expect(evolution.evolutions.single.targetSpeciesId, 'nidorina');
+    });
+
+    test('creates an empty evolution document for a standalone species', () {
+      final evolution = converter.convert(
+        speciesId: 'tauros',
+        payload: const <String, dynamic>{
+          'chain': <String, dynamic>{
+            'species': <String, dynamic>{'name': 'tauros'},
+            'evolution_details': <dynamic>[],
+            'evolves_to': <dynamic>[],
+          },
+        },
+      );
+
+      expect(evolution.speciesId, 'tauros');
+      expect(evolution.preEvolution, isNull);
+      expect(evolution.evolutions, isEmpty);
+    });
+
     test('fails clearly when the chain object is missing', () {
       expect(
         () => converter.convert(

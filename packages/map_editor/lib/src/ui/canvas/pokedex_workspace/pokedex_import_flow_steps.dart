@@ -232,9 +232,11 @@ class _PokedexImportExternalQueryStep extends StatelessWidget {
     required this.searchResult,
     required this.batchSelectionResult,
     required this.selectedSuggestion,
+    required this.overwriteExisting,
     required this.onModeChanged,
     required this.onQueryChanged,
     required this.onSuggestionSelected,
+    required this.onOverwriteExistingChanged,
     required this.onContinue,
     required this.onCancel,
   });
@@ -249,9 +251,11 @@ class _PokedexImportExternalQueryStep extends StatelessWidget {
   final PokemonExternalSpeciesSearchResult searchResult;
   final PokemonExternalBatchSelectionResult batchSelectionResult;
   final PokemonExternalSpeciesSuggestion? selectedSuggestion;
+  final bool overwriteExisting;
   final ValueChanged<_PokedexExternalImportMode> onModeChanged;
   final ValueChanged<String> onQueryChanged;
   final ValueChanged<PokemonExternalSpeciesSuggestion> onSuggestionSelected;
+  final ValueChanged<bool> onOverwriteExistingChanged;
   final Future<void> Function() onContinue;
   final VoidCallback onCancel;
 
@@ -321,8 +325,20 @@ class _PokedexImportExternalQueryStep extends StatelessWidget {
         Text(
           externalImportMode == _PokedexExternalImportMode.singleSpecies
               ? 'Les détails techniques PokeAPI / Showdown restent internes au pipeline. La prévisualisation reste bloquée tant qu’une suggestion n’a pas été sélectionnée explicitement.'
-              : 'Le dry-run batch reste strictement non destructif dans ce lot. La liste finale résolue doit être lisible avant toute prévisualisation, et aucun import batch réel n’est encore proposé.',
+              : 'Le dry-run batch reste strictement non destructif. La liste finale résolue doit être lisible avant la prévisualisation, puis l’import réel reste soumis à une confirmation explicite.',
           style: helperStyle,
+        ),
+        const SizedBox(height: 16),
+        PokeMapToggleTile(
+          key: const Key(
+            'pokedex-import-external-overwrite-existing-toggle',
+          ),
+          label: 'Remplacer les Pokémon déjà présents',
+          description: overwriteExisting
+              ? 'La prévisualisation signalera les fichiers existants comme remplacés.'
+              : 'Par défaut, aucun fichier Pokémon existant ne sera modifié.',
+          value: overwriteExisting,
+          onChanged: isBusy ? (_) {} : onOverwriteExistingChanged,
         ),
         if (errorMessage != null) ...[
           const SizedBox(height: 12),

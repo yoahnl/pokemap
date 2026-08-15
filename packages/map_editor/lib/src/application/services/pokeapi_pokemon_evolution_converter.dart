@@ -20,7 +20,7 @@ class PokeApiPokemonEvolutionConverter {
     required String speciesId,
     required Map<String, dynamic> payload,
   }) {
-    final normalizedSpeciesId = speciesId.trim();
+    final normalizedSpeciesId = _normalizeSpeciesId(speciesId);
     if (normalizedSpeciesId.isEmpty) {
       throw const EditorValidationException(
         'PokeAPI evolution speciesId cannot be empty',
@@ -62,9 +62,11 @@ class PokeApiPokemonEvolutionConverter {
         );
       }
       final child = rawChild.cast<String, dynamic>();
-      final targetSpeciesId = _readNamedResourceId(
-        child['species'],
-        field: 'chain.evolves_to[$childIndex].species',
+      final targetSpeciesId = _normalizeSpeciesId(
+        _readNamedResourceId(
+          child['species'],
+          field: 'chain.evolves_to[$childIndex].species',
+        ),
       );
 
       final rawDetails = child['evolution_details'];
@@ -121,7 +123,6 @@ class PokeApiPokemonEvolutionConverter {
       preEvolution: located.parentSpeciesId,
       evolutions: _sortEvolutions(evolutions),
     );
-    _validateEvolution(file);
     return file;
   }
 
@@ -130,9 +131,11 @@ class PokeApiPokemonEvolutionConverter {
     required String targetSpeciesId,
     required String? parentSpeciesId,
   }) {
-    final currentSpeciesId = _readNamedResourceId(
-      node['species'],
-      field: 'chain.species',
+    final currentSpeciesId = _normalizeSpeciesId(
+      _readNamedResourceId(
+        node['species'],
+        field: 'chain.species',
+      ),
     );
 
     if (currentSpeciesId == targetSpeciesId) {
@@ -277,16 +280,6 @@ class PokeApiPokemonEvolutionConverter {
     return <String, String>{'en': parts.join('. ')};
   }
 
-  void _validateEvolution(PokemonEvolutionFile evolution) {
-    final hasPreEvolution = evolution.preEvolution != null &&
-        evolution.preEvolution!.trim().isNotEmpty;
-    if (!hasPreEvolution && evolution.evolutions.isEmpty) {
-      throw const EditorValidationException(
-        'PokeAPI evolution payload produced no usable chain data',
-      );
-    }
-  }
-
   List<PokemonEvolutionEntry> _sortEvolutions(
     List<PokemonEvolutionEntry> entries,
   ) {
@@ -334,6 +327,13 @@ class PokeApiPokemonEvolutionConverter {
       );
     }
     return name;
+  }
+
+  String _normalizeSpeciesId(String raw) {
+    return raw
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '');
   }
 
   String? _readOptionalNamedResourceId(Object? raw) {

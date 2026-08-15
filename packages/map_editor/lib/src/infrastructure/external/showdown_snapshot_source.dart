@@ -53,10 +53,7 @@ class ShowdownSnapshotSource {
     }
 
     final entry = rawEntry.cast<String, dynamic>();
-    return <String, dynamic>{
-      'id': normalizedId,
-      ..._deepCopy(entry),
-    };
+    return <String, dynamic>{'id': normalizedId, ..._deepCopy(entry)};
   }
 
   /// Charge le snapshot Pokédex structuré utilisé par le converter species.
@@ -146,14 +143,15 @@ class ShowdownSnapshotSource {
     } on EditorApplicationException {
       rethrow;
     } catch (error) {
-      throw EditorPersistenceException(
-        '$contextLabel request failed: $error',
-      );
+      throw EditorPersistenceException('$contextLabel request failed: $error');
     }
   }
 
   String _normalizeIdentifier(String value) {
-    final normalized = value.trim().toLowerCase();
+    final normalized = value.trim().toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9]+'),
+      '',
+    );
     if (normalized.isEmpty) {
       throw const EditorValidationException(
         'Showdown species identifier cannot be empty',

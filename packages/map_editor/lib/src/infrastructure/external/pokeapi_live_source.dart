@@ -29,6 +29,15 @@ class PokeApiLiveSource {
 
   static const String _defaultUserAgent =
       'PokeMapEditor/0.1 (+https://pokemap.local)';
+  static const Map<String, String> _canonicalSpeciesIdentifiers =
+      <String, String>{
+        'nidoranf': 'nidoran-f',
+        'nidoranm': 'nidoran-m',
+        'mrmime': 'mr-mime',
+        'hooh': 'ho-oh',
+        'mimejr': 'mime-jr',
+        'porygonz': 'porygon-z',
+      };
 
   final http.Client _client;
   final String baseUri;
@@ -39,6 +48,7 @@ class PokeApiLiveSource {
       <String, Map<String, dynamic>>{};
   final Map<String, Map<String, dynamic>> _pokemonSpeciesCache =
       <String, Map<String, dynamic>>{};
+  final Map<String, String> _defaultPokemonBySpecies = <String, String>{};
   final Map<String, Map<String, dynamic>> _evolutionChainCache =
       <String, Map<String, dynamic>>{};
   final Map<String, Map<String, dynamic>> _itemCache =
@@ -55,14 +65,22 @@ class PokeApiLiveSource {
     if (cached != null) {
       return _deepCopy(cached);
     }
+    final apiKey =
+        _defaultPokemonBySpecies[cacheKey] ??
+        _canonicalSpeciesIdentifiers[cacheKey] ??
+        cacheKey;
 
     final payload = await _getJsonObject(
-      _resolveApiUri('pokemon/$cacheKey'),
+      _resolveApiUri('pokemon/$apiKey'),
       notFoundMessage:
           'External PokeAPI pokemon payload not found for species "$speciesId"',
       contextLabel: 'PokeAPI pokemon payload',
     );
     _pokemonCache[cacheKey] = payload;
+    final canonicalName = _readNamedResourceName(payload['name']);
+    if (canonicalName.isNotEmpty) {
+      _pokemonCache.putIfAbsent(canonicalName, () => payload);
+    }
     return _deepCopy(payload);
   }
 
@@ -73,9 +91,10 @@ class PokeApiLiveSource {
     if (cached != null) {
       return _deepCopy(cached);
     }
+    final apiKey = _canonicalSpeciesIdentifiers[cacheKey] ?? cacheKey;
 
     final payload = await _getJsonObject(
-      _resolveApiUri('pokemon-species/$cacheKey'),
+      _resolveApiUri('pokemon-species/$apiKey'),
       notFoundMessage:
           'External PokeAPI pokemon-species payload not found for species "$speciesId"',
       contextLabel: 'PokeAPI pokemon-species payload',
@@ -85,6 +104,11 @@ class PokeApiLiveSource {
     final canonicalName = _readNamedResourceName(payload['name']);
     if (canonicalName.isNotEmpty) {
       _pokemonSpeciesCache.putIfAbsent(canonicalName, () => payload);
+      final defaultPokemon = _readDefaultPokemonName(payload);
+      if (defaultPokemon.isNotEmpty) {
+        _defaultPokemonBySpecies[cacheKey] = defaultPokemon;
+        _defaultPokemonBySpecies[canonicalName] = defaultPokemon;
+      }
     }
 
     return _deepCopy(payload);
@@ -276,9 +300,7 @@ class PokeApiLiveSource {
     } on EditorApplicationException {
       rethrow;
     } catch (error) {
-      throw EditorPersistenceException(
-        '$contextLabel request failed: $error',
-      );
+      throw EditorPersistenceException('$contextLabel request failed: $error');
     }
   }
 
@@ -300,6 +322,20 @@ class PokeApiLiveSource {
       return '';
     }
     return (raw['name'] as String?)?.trim().toLowerCase() ?? '';
+  }
+
+  String _readDefaultPokemonName(Map<String, dynamic> payload) {
+    final varieties = payload['varieties'];
+    if (varieties is! List) {
+      return '';
+    }
+    for (final rawVariety in varieties) {
+      if (rawVariety is! Map || rawVariety['is_default'] != true) {
+        continue;
+      }
+      return _readNamedResourceName(rawVariety['pokemon']);
+    }
+    return '';
   }
 
   Map<String, dynamic> _deepCopy(Map<String, dynamic> source) {

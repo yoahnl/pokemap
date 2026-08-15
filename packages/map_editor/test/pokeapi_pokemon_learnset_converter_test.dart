@@ -37,10 +37,7 @@ void main() {
           jsonDecode(_bulbasaurLearnsetPayload) as Map<String, dynamic>;
 
       expect(
-        () => converter.convert(
-          speciesId: '   ',
-          payload: payload,
-        ),
+        () => converter.convert(speciesId: '   ', payload: payload),
         throwsA(
           isA<EditorValidationException>().having(
             (error) => error.message,
@@ -49,6 +46,28 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('maps the PokeAPI vice-grip alias to the Showdown move id', () {
+      final learnset = converter.convert(
+        speciesId: 'krabby',
+        payload: const <String, dynamic>{
+          'moves': <dynamic>[
+            <String, dynamic>{
+              'move': <String, dynamic>{'name': 'vice-grip'},
+              'version_group_details': <dynamic>[
+                <String, dynamic>{
+                  'level_learned_at': 1,
+                  'move_learn_method': <String, dynamic>{'name': 'level-up'},
+                  'version_group': <String, dynamic>{'name': 'scarlet-violet'},
+                },
+              ],
+            },
+          ],
+        },
+      );
+
+      expect(learnset.levelUp.single.moveId, 'vise_grip');
     });
 
     test('fails clearly when moves are missing', () {

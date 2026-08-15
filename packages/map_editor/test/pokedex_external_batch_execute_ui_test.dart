@@ -8,7 +8,6 @@ import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/models/pokemon_external_batch_selection.dart';
 import 'package:map_editor/src/application/models/pokemon_external_query_resolution.dart';
 import 'package:map_editor/src/application/models/pokemon_external_species_search_result.dart';
-import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/use_cases/import_external_pokemon_use_cases.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -55,6 +54,7 @@ void main() {
   Future<void> openBatchPreview(
     WidgetTester tester, {
     required String query,
+    bool overwriteExisting = false,
   }) async {
     await tester
         .tap(find.byKey(const Key('pokedex-empty-state-import-button')));
@@ -71,6 +71,14 @@ void main() {
       find.byKey(const Key('pokedex-import-external-mode-batch-option')),
     );
     await tester.pumpAndSettle();
+    if (overwriteExisting) {
+      await tester.tap(
+        find.byKey(
+          const Key('pokedex-import-external-overwrite-existing-toggle'),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
     await tester.enterText(
       find.byKey(const Key('pokedex-import-external-batch-query-field')),
       query,
@@ -89,11 +97,14 @@ void main() {
     ) externalBatchSelectionResolver,
     required Future<PokemonExternalBatchImportResult> Function(
       ProjectWorkspace workspace,
-      List<String> speciesIds,
+      List<String> speciesIds, {
+      required PokemonExternalImportMergePolicy mergePolicy,
+    }
     ) externalBatchPreviewer,
     required Future<PokemonExternalBatchImportResult> Function(
       ProjectWorkspace workspace,
       List<String> speciesIds, {
+      required PokemonExternalImportMergePolicy mergePolicy,
       void Function(PokemonExternalBatchImportProgress progress)? onProgress,
     }) externalBatchImporter,
     required Future<List<PokemonDatabaseIndexEntry>> Function(
@@ -117,8 +128,10 @@ void main() {
       externalBatchSelectionResolver: externalBatchSelectionResolver,
       externalBatchPreviewer: externalBatchPreviewer,
       externalBatchImporter: externalBatchImporter,
-      externalImportPreviewer: (_, _) async => throw UnimplementedError(),
-      externalImporter: (_, _) async => throw UnimplementedError(),
+      externalImportPreviewer: (_, _, {required mergePolicy}) async =>
+          throw UnimplementedError(),
+      externalImporter: (_, _, {required mergePolicy}) async =>
+          throw UnimplementedError(),
     );
   }
 
@@ -150,13 +163,23 @@ void main() {
         ),
         externalBatchSelectionResolver: (rawQuery) async =>
             _resolvedBatchSelection(),
-        externalBatchPreviewer: (_, speciesIds) async {
+        externalBatchPreviewer: (_, speciesIds,
+            {required mergePolicy}) async {
           previewCallCount += 1;
           expect(speciesIds, <String>['pikachu', 'bulbasaur']);
+          expect(
+            mergePolicy,
+            PokemonExternalImportMergePolicy.overwriteExisting,
+          );
           return _sampleBatchDryRunPreview();
         },
-        externalBatchImporter: (_, speciesIds, {onProgress}) async {
+        externalBatchImporter: (_, speciesIds,
+            {required mergePolicy, onProgress}) async {
           importCallCount += 1;
+          expect(
+            mergePolicy,
+            PokemonExternalImportMergePolicy.overwriteExisting,
+          );
           executedSpeciesIds.add(List<String>.from(speciesIds));
           onProgress?.call(
             const PokemonExternalBatchImportProgress(
@@ -191,6 +214,7 @@ void main() {
     await openBatchPreview(
       tester,
       query: 'pikachu, 25, bulbasaur',
+      overwriteExisting: true,
     );
 
     expect(previewCallCount, 1);
@@ -271,8 +295,9 @@ void main() {
         },
         externalBatchSelectionResolver: (rawQuery) async =>
             _resolvedBatchSelection(),
-        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
-        externalBatchImporter: (_, _, {onProgress}) async {
+        externalBatchPreviewer: (_, _, {required mergePolicy}) async =>
+            _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, _, {required mergePolicy, onProgress}) async {
           importedDetailsById['pikachu'] = _buildDetail(
             id: 'pikachu',
             nationalDex: 25,
@@ -398,8 +423,9 @@ void main() {
         },
         externalBatchSelectionResolver: (rawQuery) async =>
             _resolvedBatchSelection(),
-        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
-        externalBatchImporter: (_, _, {onProgress}) async {
+        externalBatchPreviewer: (_, _, {required mergePolicy}) async =>
+            _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, _, {required mergePolicy, onProgress}) async {
           onProgress?.call(
             const PokemonExternalBatchImportProgress(
               totalCount: 2,
@@ -474,8 +500,9 @@ void main() {
         },
         externalBatchSelectionResolver: (rawQuery) async =>
             _resolvedBatchSelection(),
-        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
-        externalBatchImporter: (_, _, {onProgress}) async {
+        externalBatchPreviewer: (_, _, {required mergePolicy}) async =>
+            _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, _, {required mergePolicy, onProgress}) async {
           onProgress?.call(
             const PokemonExternalBatchImportProgress(
               totalCount: 2,
@@ -550,8 +577,9 @@ void main() {
         },
         externalBatchSelectionResolver: (rawQuery) async =>
             _resolvedBatchSelection(),
-        externalBatchPreviewer: (_, _) async => _sampleBatchDryRunPreview(),
-        externalBatchImporter: (_, _, {onProgress}) async {
+        externalBatchPreviewer: (_, _, {required mergePolicy}) async =>
+            _sampleBatchDryRunPreview(),
+        externalBatchImporter: (_, _, {required mergePolicy, onProgress}) async {
           onProgress?.call(
             const PokemonExternalBatchImportProgress(
               totalCount: 2,
