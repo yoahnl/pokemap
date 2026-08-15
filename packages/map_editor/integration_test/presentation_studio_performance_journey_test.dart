@@ -161,10 +161,18 @@ Future<_MeasuredScenario> _measureScenario(
     final search = find.byKey(
       const ValueKey<String>('cinematic-family-search'),
     );
+    final searchEditable = find.descendant(
+      of: search,
+      matching: find.byType(EditableText),
+    );
+    expect(searchEditable, findsOneWidget);
     final searchSamples = <int>[];
     for (var index = 0; index < 31; index++) {
       final watch = Stopwatch()..start();
-      await tester.enterText(search, index.isEven ? 'Needle' : 'needle');
+      await tester.enterText(
+        searchEditable,
+        index.isEven ? 'Needle' : 'needle',
+      );
       await tester.pump();
       watch.stop();
       searchSamples.add(watch.elapsedMicroseconds);
