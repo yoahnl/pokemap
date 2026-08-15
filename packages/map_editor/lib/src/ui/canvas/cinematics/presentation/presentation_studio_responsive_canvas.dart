@@ -607,11 +607,9 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
             icon: const Icon(Icons.warning_amber_rounded),
           );
         }
-        final responsivePort = _PresentationStudioResponsiveContentPort(
+        final responsivePort = PresentationResponsiveFrameContentPort(
           delegate: contentPort,
-          bindings: {
-            for (final binding in mediaBindings) binding.clipId: binding,
-          },
+          bindings: mediaBindings.map(_frameMediaBinding),
         );
         return switch (controller.mode) {
           PresentationStudioCanvasMode.landscape => _viewport(
@@ -719,55 +717,27 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
   }
 }
 
-final class _PresentationStudioResponsiveContentPort
-    implements PresentationFrameContentPort {
-  const _PresentationStudioResponsiveContentPort({
-    required this.delegate,
-    required this.bindings,
-  });
-
-  final PresentationFrameContentPort delegate;
-  final Map<String, PresentationStudioResponsiveMediaBinding> bindings;
-
-  @override
-  PresentationVisualResolution resolveVisual({
-    required PresentationVisualFrameClip clip,
-    required PresentationFrameOrientation orientation,
-  }) {
-    final resourceId = bindings[clip.clipId]?.resourceIdFor(orientation);
-    return delegate.resolveVisual(
-      clip: resourceId == null || resourceId == clip.resourceId
-          ? clip
-          : _withResourceId(clip, resourceId),
-      orientation: orientation,
-    );
-  }
-
-  @override
-  PresentationCaptionResolution resolveCaption({
-    required PresentationCaptionFrameClip clip,
-    required Locale locale,
-  }) => delegate.resolveCaption(clip: clip, locale: locale);
-}
-
-PresentationVisualFrameClip _withResourceId(
-  PresentationVisualFrameClip clip,
-  String resourceId,
-) => PresentationVisualFrameClip(
-  clipId: clip.clipId,
-  trackId: clip.trackId,
-  layerId: clip.layerId,
-  zIndex: clip.zIndex,
-  resourceId: resourceId,
-  startUs: clip.startUs,
-  durationUs: clip.durationUs,
-  elapsedUs: clip.elapsedUs,
-  progress: clip.progress,
-  easedProgress: clip.easedProgress,
-  easing: clip.easing,
-  composition: clip.composition,
-  reducedMotionComposition: clip.reducedMotionComposition,
-  reducedFlashOpacity: clip.reducedFlashOpacity,
+PresentationFrameMediaBinding _frameMediaBinding(
+  PresentationStudioResponsiveMediaBinding binding,
+) => PresentationFrameMediaBinding(
+  clipId: binding.clipId,
+  kind: switch (binding.kind) {
+    PresentationStudioResponsiveMediaKind.image =>
+      PresentationFrameMediaKind.image,
+    PresentationStudioResponsiveMediaKind.video =>
+      PresentationFrameMediaKind.video,
+    PresentationStudioResponsiveMediaKind.poster =>
+      PresentationFrameMediaKind.poster,
+    PresentationStudioResponsiveMediaKind.voice =>
+      PresentationFrameMediaKind.voice,
+    PresentationStudioResponsiveMediaKind.soundEffect =>
+      PresentationFrameMediaKind.soundEffect,
+    PresentationStudioResponsiveMediaKind.music =>
+      PresentationFrameMediaKind.music,
+  },
+  landscapeResourceId: binding.landscapeResourceId,
+  portraitResourceId: binding.portraitResourceId,
+  sharedResourceId: binding.sharedResourceId,
 );
 
 List<String> _validateBindings(

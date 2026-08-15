@@ -19,6 +19,8 @@ import 'player_heal_confirmation.dart';
 import 'player_pause_menu.dart';
 import 'player_pc_overlay.dart';
 import 'player_shop_overlay.dart';
+import 'presentation_frame_renderer.dart';
+import 'runtime_presentation_frame_surface.dart';
 import 'runtime_player_actions.dart';
 import 'runtime_player_gamepad_bridge.dart';
 import 'runtime_player_surface_router.dart';
@@ -106,7 +108,11 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.onControlProfileChanged,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
     this.pausePresentation,
-  });
+    this.presentationFrame,
+    this.presentationContentPort,
+  }) : assert(
+          presentationFrame == null || presentationContentPort != null,
+        );
 
   final RuntimePlayerViewController controller;
   final RuntimePlayerTitlePresentation titlePresentation;
@@ -144,6 +150,8 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
   final PlayerPauseMenuLabels pauseMenuLabels;
   final PlayerPausePresentation? pausePresentation;
+  final ValueListenable<RuntimePresentationFrameSnapshot?>? presentationFrame;
+  final PresentationFrameContentPort? presentationContentPort;
 
   @override
   State<PokeMapPlayerSessionView> createState() =>
@@ -168,6 +176,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   void initState() {
     super.initState();
     _latestSnapshot = widget.controller.snapshot;
+    widget.presentationFrame?.addListener(_handlePresentationFrameChanged);
     _bindControllerInputs();
   }
 
@@ -177,11 +186,21 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     if (oldWidget.controller != widget.controller) {
       _latestSnapshot = widget.controller.snapshot;
     }
+    if (oldWidget.presentationFrame != widget.presentationFrame) {
+      oldWidget.presentationFrame?.removeListener(
+        _handlePresentationFrameChanged,
+      );
+      widget.presentationFrame?.addListener(_handlePresentationFrameChanged);
+    }
     if (oldWidget.controllerInputEnabled != widget.controllerInputEnabled ||
         oldWidget.controllerInputEvents != widget.controllerInputEvents ||
         oldWidget.controlProfile != widget.controlProfile) {
       _bindControllerInputs();
     }
+  }
+
+  void _handlePresentationFrameChanged() {
+    if (mounted) setState(() {});
   }
 
   void _bindControllerInputs() {
@@ -217,6 +236,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
     // its typed pause lock. Treat that hand-off as blocked immediately so a
     // second key/controller event cannot leak into the world meanwhile.
     if (_menuTransitionPending) return PlayerInputSurface.blocked;
+    if (widget.presentationFrame?.value != null) {
+      return PlayerInputSurface.blocked;
+    }
     final snapshot = _latestSnapshot;
     if (snapshot.worldService != null) return PlayerInputSurface.title;
     return switch (snapshot.phase) {
@@ -445,6 +467,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
         widget.gameplayInputRoute != null &&
         snapshot.phase == RuntimePlayerPhase.playing &&
         snapshot.worldService == null &&
+        widget.presentationFrame?.value == null &&
         acceptsOverworldTouch;
     final touchControlsOpacity =
         snapshot.preferences?.touchControlsOpacity ?? 0.82;
@@ -486,6 +509,16 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
           ),
           onAction: (action) => _dispatchSurfaceAction(action, snapshot),
         ),
+        if (widget.presentationFrame case final presentation?)
+          ValueListenableBuilder<RuntimePresentationFrameSnapshot?>(
+            valueListenable: presentation,
+            builder: (context, frame, _) => frame == null
+                ? const SizedBox.shrink()
+                : RuntimePresentationFrameSurface(
+                    snapshot: frame,
+                    contentPort: widget.presentationContentPort!,
+                  ),
+          ),
         if (showTouchControls)
           Positioned.fill(
             child: RuntimePlayerTouchControls(
@@ -581,6 +614,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   @override
   void dispose() {
     unawaited(_controllerSubscription?.cancel());
+    widget.presentationFrame?.removeListener(_handlePresentationFrameChanged);
     _releaseGameplayDirections();
     super.dispose();
   }

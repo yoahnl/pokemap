@@ -16,6 +16,41 @@ enum PresentationFrameOrientation {
 
 enum PresentationContentUnavailableReason { missing, unsupported }
 
+enum PresentationFrameMediaKind {
+  image,
+  video,
+  poster,
+  voice,
+  soundEffect,
+  music,
+}
+
+final class PresentationFrameMediaBinding {
+  const PresentationFrameMediaBinding({
+    required this.clipId,
+    required this.kind,
+    this.landscapeResourceId,
+    this.portraitResourceId,
+    this.sharedResourceId,
+  });
+
+  final String clipId;
+  final PresentationFrameMediaKind kind;
+  final String? landscapeResourceId;
+  final String? portraitResourceId;
+  final String? sharedResourceId;
+
+  String? resourceIdFor(PresentationFrameOrientation orientation) {
+    if (kind == PresentationFrameMediaKind.music) return sharedResourceId;
+    return switch (orientation) {
+      PresentationFrameOrientation.landscape =>
+        landscapeResourceId ?? sharedResourceId ?? portraitResourceId,
+      PresentationFrameOrientation.portrait =>
+        portraitResourceId ?? sharedResourceId ?? landscapeResourceId,
+    };
+  }
+}
+
 final class PresentationVisualOrientationOverride {
   const PresentationVisualOrientationOverride({
     this.landscape,
@@ -137,6 +172,42 @@ abstract interface class PresentationFrameContentPort {
   });
 }
 
+final class PresentationResponsiveFrameContentPort
+    implements PresentationFrameContentPort {
+  PresentationResponsiveFrameContentPort({
+    required this.delegate,
+    required Iterable<PresentationFrameMediaBinding> bindings,
+  }) : bindings = Map<String, PresentationFrameMediaBinding>.unmodifiable(
+          <String, PresentationFrameMediaBinding>{
+            for (final binding in bindings) binding.clipId: binding,
+          },
+        );
+
+  final PresentationFrameContentPort delegate;
+  final Map<String, PresentationFrameMediaBinding> bindings;
+
+  @override
+  PresentationVisualResolution resolveVisual({
+    required PresentationVisualFrameClip clip,
+    required PresentationFrameOrientation orientation,
+  }) {
+    final resourceId = bindings[clip.clipId]?.resourceIdFor(orientation);
+    return delegate.resolveVisual(
+      clip: resourceId == null || resourceId == clip.resourceId
+          ? clip
+          : _visualWithResourceId(clip, resourceId),
+      orientation: orientation,
+    );
+  }
+
+  @override
+  PresentationCaptionResolution resolveCaption({
+    required PresentationCaptionFrameClip clip,
+    required Locale locale,
+  }) =>
+      delegate.resolveCaption(clip: clip, locale: locale);
+}
+
 class PresentationFrameRenderer extends StatelessWidget {
   const PresentationFrameRenderer({
     super.key,
@@ -253,6 +324,27 @@ class PresentationFrameRenderer extends StatelessWidget {
     return <Widget>[for (final layer in layers) layer.child];
   }
 }
+
+PresentationVisualFrameClip _visualWithResourceId(
+  PresentationVisualFrameClip clip,
+  String resourceId,
+) =>
+    PresentationVisualFrameClip(
+      clipId: clip.clipId,
+      trackId: clip.trackId,
+      layerId: clip.layerId,
+      zIndex: clip.zIndex,
+      resourceId: resourceId,
+      startUs: clip.startUs,
+      durationUs: clip.durationUs,
+      elapsedUs: clip.elapsedUs,
+      progress: clip.progress,
+      easedProgress: clip.easedProgress,
+      easing: clip.easing,
+      composition: clip.composition,
+      reducedMotionComposition: clip.reducedMotionComposition,
+      reducedFlashOpacity: clip.reducedFlashOpacity,
+    );
 
 class _PresentationVisualLayer extends StatelessWidget {
   const _PresentationVisualLayer({

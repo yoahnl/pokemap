@@ -54,6 +54,83 @@ void main() {
     }
   });
 
+  testWidgets(
+    'renders the active Presentation frame through the shared Player renderer',
+    (tester) async {
+      final controller = _FakeRuntimePlayerCoordinator(
+        _snapshot(revision: 15, phase: RuntimePlayerPhase.playing),
+      );
+      final frame = _presentationFrame();
+      final presentation = ValueNotifier<RuntimePresentationFrameSnapshot?>(
+        RuntimePresentationFrameSnapshot(
+          assetRevision: 'opening-revision-7',
+          frame: frame,
+          orientation: PresentationFrameOrientation.portrait,
+          mediaBindings: const <PresentationFrameMediaBinding>[
+            PresentationFrameMediaBinding(
+              clipId: 'opening-visual',
+              kind: PresentationFrameMediaKind.image,
+              landscapeResourceId: 'opening-landscape',
+              portraitResourceId: 'opening-portrait',
+            ),
+          ],
+        ),
+      );
+      final contentPort = _PresentationContentPort();
+      addTearDown(controller.dispose);
+      addTearDown(presentation.dispose);
+
+      await tester.pumpWidget(
+        _app(
+          _view(
+            controller,
+            presentationFrame: presentation,
+            presentationContentPort: contentPort,
+            touchControlsAvailable: true,
+            gameplayInputRoute: (_) => true,
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('runtime-presentation-frame-surface'),
+        ),
+        findsOneWidget,
+      );
+      final renderer = tester.widget<PresentationFrameRenderer>(
+        find.byType(PresentationFrameRenderer),
+      );
+      expect(identical(renderer.frame, frame), isTrue);
+      expect(
+        identical(
+          (renderer.contentPort as PresentationResponsiveFrameContentPort)
+              .delegate,
+          contentPort,
+        ),
+        isTrue,
+      );
+      expect(renderer.orientation, PresentationFrameOrientation.portrait);
+      expect(contentPort.visualRequests, <String>['opening-portrait']);
+      expect(find.byKey(const ValueKey<String>('test-game-scene')),
+          findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+        findsNothing,
+      );
+
+      presentation.value = null;
+      await tester.pump();
+
+      expect(find.byType(PresentationFrameRenderer), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('runtime-player-touch-joystick')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('dispatches title actions with the current snapshot revision',
       (tester) async {
     final controller = _FakeRuntimePlayerCoordinator(_snapshot(
@@ -1445,6 +1522,8 @@ PokeMapPlayerSessionView _view(
   RuntimePlayerActionPayloadBuilder? payloadForAction,
   Future<void> Function()? hapticFeedback,
   PlayerControlProfile? controlProfile,
+  ValueListenable<RuntimePresentationFrameSnapshot?>? presentationFrame,
+  PresentationFrameContentPort? presentationContentPort,
 }) {
   return PokeMapPlayerSessionView(
     controller: controller,
@@ -1470,6 +1549,8 @@ PokeMapPlayerSessionView _view(
     onShowDiagnostics: onShowDiagnostics,
     hapticFeedback: hapticFeedback,
     controlProfile: controlProfile,
+    presentationFrame: presentationFrame,
+    presentationContentPort: presentationContentPort,
   );
 }
 
@@ -1624,3 +1705,46 @@ class _SceneProbeState extends State<_SceneProbe> {
   @override
   Widget build(BuildContext context) => const ColoredBox(color: Colors.black);
 }
+
+final class _PresentationContentPort implements PresentationFrameContentPort {
+  final visualRequests = <String>[];
+
+  @override
+  PresentationVisualResolution resolveVisual({
+    required PresentationVisualFrameClip clip,
+    required PresentationFrameOrientation orientation,
+  }) {
+    visualRequests.add(clip.resourceId);
+    return const PresentationVisualReady(child: SizedBox.expand());
+  }
+
+  @override
+  PresentationCaptionResolution resolveCaption({
+    required PresentationCaptionFrameClip clip,
+    required Locale locale,
+  }) =>
+      const PresentationCaptionReady(text: 'Sous-titre');
+}
+
+PresentationFrame _presentationFrame() => PresentationFrame(
+      cinematicId: 'opening',
+      timeUs: 750000,
+      durationUs: 2000000,
+      visuals: <PresentationVisualFrameClip>[
+        PresentationVisualFrameClip(
+          clipId: 'opening-visual',
+          trackId: 'visuals',
+          layerId: 'background',
+          zIndex: 0,
+          resourceId: 'opening-shared',
+          startUs: 0,
+          durationUs: 2000000,
+          elapsedUs: 750000,
+          progress: .375,
+          easedProgress: .375,
+          easing: PresentationEasing.linear,
+          composition: PresentationVisualComposition(),
+          reducedMotionComposition: PresentationVisualComposition(),
+        ),
+      ],
+    );
