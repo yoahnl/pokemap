@@ -40,10 +40,17 @@ final class _Harness {
 
   static Future<_Harness> create(String suffix) async {
     final root = await Directory.systemTemp.createTemp('pre_session_$suffix');
+    await Directory('${root.path}/maps').create(recursive: true);
     final manifest = ProjectManifest(
       name: 'Pre-session transport fixture',
       version: ProjectVersion.v7,
-      maps: const <ProjectMapEntry>[],
+      maps: const <ProjectMapEntry>[
+        ProjectMapEntry(
+          id: 'map_start',
+          name: 'Départ',
+          relativePath: 'maps/map_start.json',
+        ),
+      ],
       tilesets: const <ProjectTilesetEntry>[],
       presentationCinematics: [
         PresentationCinematicAsset(
@@ -59,6 +66,24 @@ final class _Harness {
     );
     await File('${root.path}/project.json').writeAsString(
       const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
+      flush: true,
+    );
+    await File('${root.path}/maps/map_start.json').writeAsString(
+      jsonEncode(
+        const MapData(
+          id: 'map_start',
+          name: 'Départ',
+          version: ProjectVersion.v6,
+          size: GridSize(width: 2, height: 2),
+          layers: <MapLayer>[
+            MapLayer.tile(
+              id: 'ground',
+              name: 'Sol',
+              cells: <int>[0, 0, 0, 0],
+            ),
+          ],
+        ).toJson(),
+      ),
       flush: true,
     );
     const reader = LocalProjectFileReader();
@@ -162,7 +187,7 @@ final class _Harness {
             );
       final receipt = _stableReceipt(response);
       actionIds.add(receipt['actionId']! as String);
-      if (sequence == 1) {
+      if (sequence == 4) {
         final replay = useJsonl
             ? await _success('apply', <String, Object?>{
                 'projectHandle': project.value,
@@ -200,7 +225,18 @@ final class _Harness {
       'targetNodeId': 'end',
       'presentationCinematicId': 'presentation_opening',
     });
-    await apply(4, 'scene.preSession.condition.insert', const {
+    await apply(4, 'scene.preSession.presentation.createAndLink', const {
+      'sceneId': 'new_game_intro',
+      'nodeId': 'studio_logo',
+      'targetNodeId': 'end',
+      'cinematicId': 'presentation_studio_logo',
+      'title': 'Logo du studio',
+      'templateId': 'blank',
+      'templateVersion': 1,
+      'targetFolderId': null,
+      'targetIndex': 0,
+    });
+    await apply(5, 'scene.preSession.condition.insert', const {
       'sceneId': 'new_game_intro',
       'nodeId': 'has_name',
       'targetNodeId': 'end',
@@ -208,7 +244,7 @@ final class _Harness {
       'draftField': 'playerName',
       'operator': 'isTrue',
     });
-    await apply(5, 'scene.preSession.end.configure', const {
+    await apply(6, 'scene.preSession.end.configure', const {
       'sceneId': 'new_game_intro',
       'nodeId': 'end',
       'outcomeId': 'ready',
@@ -362,6 +398,7 @@ const _actionIds = <String>{
   'scene.preSession.create',
   'scene.preSession.interaction.insert',
   'scene.preSession.presentation.insert',
+  'scene.preSession.presentation.createAndLink',
   'scene.preSession.condition.insert',
   'scene.preSession.end.configure',
 };

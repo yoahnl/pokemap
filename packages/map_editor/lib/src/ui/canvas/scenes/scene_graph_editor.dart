@@ -20,6 +20,8 @@ class SceneGraphEditor extends StatefulWidget {
     this.onCreateEdgeDraft,
     this.onDuplicateNode,
     this.focusNodeForNodeId,
+    this.viewport = const SceneGraphViewport(),
+    this.onViewportChanged,
     this.canDragNodes = true,
   });
 
@@ -32,6 +34,8 @@ class SceneGraphEditor extends StatefulWidget {
   final SceneVisualEdgeDraftCreator? onCreateEdgeDraft;
   final SceneGraphNodeDuplicator? onDuplicateNode;
   final FocusNode Function(String nodeId)? focusNodeForNodeId;
+  final SceneGraphViewport viewport;
+  final ValueChanged<SceneGraphViewport>? onViewportChanged;
   final bool canDragNodes;
 
   @override
@@ -71,6 +75,8 @@ class _SceneGraphEditorState extends State<SceneGraphEditor> {
             selectedNodeId: widget.selectedNodeId,
             selectedEdgeId: widget.selectedEdgeId,
             focusNodeForNodeId: widget.focusNodeForNodeId,
+            viewport: widget.viewport,
+            onViewportChanged: widget.onViewportChanged,
             onSelectNode: widget.onSelectNode,
             onSelectEdge: widget.onSelectEdge,
             canDragNodes: widget.canDragNodes,

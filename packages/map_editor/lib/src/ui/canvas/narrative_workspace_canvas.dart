@@ -8,6 +8,7 @@ import 'package:map_player_ui/presentation_renderer.dart';
 import '../../app/providers/core_providers.dart';
 import '../../application/services/narrative_activity_journal.dart';
 import '../../application/services/narrative_diagnostic_suppression_service.dart';
+import '../../application/services/narrative_document_session.dart';
 import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/services/narrative_template_catalog.dart';
 import '../../application/authoring_api/cinematic_library_authoring_gateway.dart';
@@ -18,6 +19,7 @@ import '../../application/authoring_api/presentation_studio_property_command.dar
 import '../../application/authoring_api/presentation_studio_timeline_authoring_gateway.dart';
 import '../../application/authoring_api/presentation_studio_timeline_command.dart';
 import '../../application/authoring_api/presentation_timeline_projection_gateway.dart';
+import '../../application/authoring_api/scene_presentation_create_and_link_gateway.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../application/models/narrative_document_route.dart';
 import '../../domain/repositories/repositories.dart';
@@ -60,6 +62,7 @@ import 'narrative_studio/narrative_studio_navigation.dart';
 import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
 import 'scenes/scene_action_builder.dart';
+import 'scenes/scene_graph_read_only_view.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
 import 'scenes_workspace.dart';
 import 'step_studio_workspace.dart';
@@ -1081,6 +1084,13 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           strictRequestedSceneFocus: selectedSceneRoute != null,
           requestedFocusAnchorId:
               requestedSceneRestoration?.expectation.focusAnchorId,
+          requestedViewportX:
+              requestedSceneRestoration?.expectation.viewportX,
+          requestedViewportY:
+              requestedSceneRestoration?.expectation.viewportY,
+          requestedZoom: requestedSceneRestoration?.expectation.zoom,
+          requestedInspector:
+              requestedSceneRestoration?.expectation.sceneInspector,
           requestedRestorationRevision: requestedSceneRestoration?.revision,
           onRestorationApplied: (revision) => ref
               .read(narrativeStudioNavigationControllerProvider.notifier)
@@ -1093,6 +1103,83 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               : buildCinematicsLibraryReadModel(editor.project!),
           presentationCinematics:
               editor.project?.presentationCinematics ?? const [],
+          presentationFolders: editor.project?.cinematicLibraryCatalog.folders
+                  .where(
+                    (folder) =>
+                        folder.family == CinematicLibraryFamily.presentation &&
+                        !folder.isArchived,
+                  )
+                  .toList(growable: false) ??
+              const [],
+          onCreateAndLinkPresentation: ({
+            required String sceneId,
+            required String targetNodeId,
+            required String title,
+            required String templateId,
+            required int templateVersion,
+            required String? folderId,
+          }) async {
+            final project = editor.project;
+            final projectRootPath = editor.projectRootPath;
+            if (project == null || projectRootPath == null) return null;
+            try {
+              final gateway = CanonicalScenePresentationCreateAndLinkGateway(
+                mutations: ref.read(authoringMutationAdapterProvider),
+                queries: ref.read(authoringQueryAdapterProvider),
+              );
+              final draft = gateway.prepareDraft(
+                expectedProject: project,
+                sceneId: sceneId,
+                targetNodeId: targetNodeId,
+                title: title,
+                templateId: templateId,
+                templateVersion: templateVersion,
+                folderId: folderId,
+              );
+              final applied = await editorNotifier.applyNarrativeDocumentEdit(
+                draft.manifest,
+                operationId:
+                    'scene-presentation-create-link-${DateTime.now().microsecondsSinceEpoch}',
+                label: 'Créer et lier une cinématique de présentation',
+                statusMessage:
+                    'Brouillon de cinématique créé et lié localement.',
+              );
+              if (!applied) return null;
+              return ScenePresentationCreateAndLinkOutcome(
+                cinematicId: draft.cinematicId,
+                nodeId: draft.nodeId,
+              );
+            } on Object catch (error) {
+              editorNotifier.reportNarrativeNavigationFailure(
+                'Impossible de créer et lier la cinématique : $error',
+              );
+              return null;
+            }
+          },
+          onOpenCreatedPresentation: ({
+            required String sceneId,
+            required String returnNodeId,
+            required String cinematicId,
+            required SceneGraphViewport viewport,
+            required NarrativeSceneInspector inspector,
+          }) {
+            ref
+                .read(narrativeStudioNavigationControllerProvider.notifier)
+                .openDocument(
+                  NarrativeDocumentRoute.presentation(
+                    cinematicId: cinematicId,
+                    source: NarrativeSceneSourceContext(
+                      sceneId: sceneId,
+                      viewportX: viewport.pan.dx,
+                      viewportY: viewport.pan.dy,
+                      zoom: viewport.zoom,
+                      selectedNodeId: returnNodeId,
+                      inspector: inspector,
+                    ),
+                  ),
+                );
+            editorNotifier.selectCutsceneWorkspace();
+          },
           conditionSourceOptions: editor.project == null
               ? const []
               : _buildSceneConditionSourceOptions(
@@ -1833,9 +1920,15 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           onOpenPresentationDocument: ref
               .read(narrativeStudioNavigationControllerProvider.notifier)
               .openDocument,
-          onCloseDocument: ref
-              .read(narrativeStudioNavigationControllerProvider.notifier)
-              .closeDocument,
+          onCloseDocument: () {
+            final source = ref
+                .read(narrativeStudioNavigationControllerProvider.notifier)
+                .closeDocument();
+            if (source is NarrativeSceneSourceContext) {
+              editorNotifier.selectScenesWorkspace();
+            }
+            return source;
+          },
           onSelectCutscene: (scenarioId) {
             narrativeController.selectCutscene(scenarioId);
             narrativeController.openCutscene(
@@ -1953,7 +2046,6 @@ EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(
     },
   );
 }
-
 EventBuilderDraftCreationGate _buildEventBuilderDraftCreationGate(
   EditorState editor,
   EditorNotifier editorNotifier,
@@ -2590,6 +2682,33 @@ class _StepWorkspaceBody extends StatelessWidget {
   }
 }
 
+PokeMapCinematicDocumentState _presentationDocumentState(
+  NarrativeDocumentSessionStatus? status,
+) => switch (status) {
+  NarrativeDocumentSessionStatus.dirty => PokeMapCinematicDocumentState.dirty,
+  NarrativeDocumentSessionStatus.saving =>
+    PokeMapCinematicDocumentState.saving,
+  NarrativeDocumentSessionStatus.saved => PokeMapCinematicDocumentState.saved,
+  NarrativeDocumentSessionStatus.failed => PokeMapCinematicDocumentState.error,
+  NarrativeDocumentSessionStatus.conflicted =>
+    PokeMapCinematicDocumentState.conflict,
+  NarrativeDocumentSessionStatus.recovered =>
+    PokeMapCinematicDocumentState.recovered,
+  null => PokeMapCinematicDocumentState.clean,
+};
+
+String _presentationDocumentStatusLabel(
+  NarrativeDocumentSessionStatus? status,
+) => switch (status) {
+  NarrativeDocumentSessionStatus.dirty => 'Brouillon non publié',
+  NarrativeDocumentSessionStatus.saving => 'Publication en cours',
+  NarrativeDocumentSessionStatus.saved => 'Enregistré',
+  NarrativeDocumentSessionStatus.failed => 'Brouillon conservé après échec',
+  NarrativeDocumentSessionStatus.conflicted => 'Conflit de révision',
+  NarrativeDocumentSessionStatus.recovered => 'Brouillon récupéré',
+  null => 'Brouillon local',
+};
+
 class _CinematicsWorkspaceBody extends StatefulWidget {
   const _CinematicsWorkspaceBody({
     required this.editorNotifier,
@@ -2832,20 +2951,41 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       final documentIsEmpty = resolvedAsset.tracks.every(
         (track) => track.clips.isEmpty,
       );
+      final narrativeStatus = widget.editorNotifier.narrativeDocumentStatus;
+      final isCreateAndLinkDraft =
+          presentationRoute!.source is NarrativeSceneSourceContext &&
+              narrativeStatus != null &&
+              narrativeStatus != NarrativeDocumentSessionStatus.saved;
+      final documentState = isCreateAndLinkDraft
+          ? _presentationDocumentState(narrativeStatus)
+          : PokeMapCinematicDocumentState.saved;
       final evaluator = const PresentationCinematicEvaluator();
       return KeyedSubtree(
         key: const ValueKey('cinematics-presentation-document-route'),
         child: PresentationStudioShell(
           title: resolvedAsset.title,
-          documentState: PokeMapCinematicDocumentState.saved,
-          statusLabel: 'Enregistré',
+          documentState: documentState,
+          statusLabel: isCreateAndLinkDraft
+              ? _presentationDocumentStatusLabel(narrativeStatus)
+              : 'Enregistré',
           layoutStore: _presentationLayoutStore,
           backButtonKey: const ValueKey(
             'cinematics-presentation-route-back',
           ),
           onExit: _closePresentationDocument,
-          onDiscard: () async {},
-          onSave: () async => true,
+          onDiscard: isCreateAndLinkDraft
+              ? () async {
+                  await widget.editorNotifier.discardNarrativeDocument();
+                }
+              : () async {},
+          onSave: isCreateAndLinkDraft
+              ? () async {
+                  final saved =
+                      await widget.editorNotifier.saveNarrativeDocument();
+                  if (saved) _closePresentationDocument();
+                  return saved;
+                }
+              : () async => true,
           previewToolbar: PresentationStudioResponsiveToolbar(
             controller: _presentationResponsiveCanvasController,
           ),

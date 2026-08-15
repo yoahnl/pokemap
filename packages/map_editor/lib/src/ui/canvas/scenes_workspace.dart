@@ -2,10 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/models/editor_workspace_mode.dart';
+import '../../application/models/narrative_document_route.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../features/narrative/state/scene_consequence_catalog_providers.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
+import 'cinematics/cinematic_library_dialogs.dart';
 import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
 import 'scenes/scene_action_builder.dart';
@@ -124,6 +126,33 @@ typedef SceneLinkedAssetOpener = void Function({
   required String assetId,
 });
 
+final class ScenePresentationCreateAndLinkOutcome {
+  const ScenePresentationCreateAndLinkOutcome({
+    required this.cinematicId,
+    required this.nodeId,
+  });
+
+  final String cinematicId;
+  final String nodeId;
+}
+typedef ScenePresentationCreateAndLinkCreator =
+    Future<ScenePresentationCreateAndLinkOutcome?> Function({
+  required String sceneId,
+  required String targetNodeId,
+  required String title,
+  required String templateId,
+  required int templateVersion,
+  required String? folderId,
+});
+
+typedef ScenePresentationCreateAndLinkOpener = void Function({
+  required String sceneId,
+  required String returnNodeId,
+  required String cinematicId,
+  required SceneGraphViewport viewport,
+  required NarrativeSceneInspector inspector,
+});
+
 typedef SceneLibraryEditor = Future<SceneLibraryMutationResult?> Function({
   required String sceneId,
   required String name,
@@ -156,6 +185,7 @@ class ScenesWorkspace extends StatefulWidget {
     this.linkedAssetContracts,
     this.cinematicsLibrary,
     this.presentationCinematics = const [],
+    this.presentationFolders = const [],
     this.conditionSourceOptions = const [],
     this.consequenceFactOptions = const [],
     this.consequenceEventOptions = const [],
@@ -166,6 +196,10 @@ class ScenesWorkspace extends StatefulWidget {
     this.requestedSceneFocusNonce,
     this.strictRequestedSceneFocus = false,
     this.requestedFocusAnchorId,
+    this.requestedViewportX,
+    this.requestedViewportY,
+    this.requestedZoom,
+    this.requestedInspector,
     this.requestedRestorationRevision,
     this.onRestorationApplied,
     required this.onCreateSceneDraft,
@@ -185,6 +219,8 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onUpdateActionConsequence,
     this.onOpenDialogue,
     this.onOpenCinematic,
+    this.onCreateAndLinkPresentation,
+    this.onOpenCreatedPresentation,
     this.sceneConsumerPaths = const <String, List<String>>{},
     this.onEditScene,
     this.onDuplicateScene,
@@ -196,6 +232,7 @@ class ScenesWorkspace extends StatefulWidget {
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<PresentationCinematicAsset> presentationCinematics;
+  final List<CinematicLibraryFolder> presentationFolders;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
@@ -207,6 +244,10 @@ class ScenesWorkspace extends StatefulWidget {
   final int? requestedSceneFocusNonce;
   final bool strictRequestedSceneFocus;
   final String? requestedFocusAnchorId;
+  final double? requestedViewportX;
+  final double? requestedViewportY;
+  final double? requestedZoom;
+  final NarrativeSceneInspector? requestedInspector;
   final int? requestedRestorationRevision;
   final ValueChanged<int>? onRestorationApplied;
   final SceneDraftCreator onCreateSceneDraft;
@@ -226,6 +267,8 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneActionConsequenceUpdater onUpdateActionConsequence;
   final SceneLinkedAssetOpener? onOpenDialogue;
   final SceneLinkedAssetOpener? onOpenCinematic;
+  final ScenePresentationCreateAndLinkCreator? onCreateAndLinkPresentation;
+  final ScenePresentationCreateAndLinkOpener? onOpenCreatedPresentation;
   final Map<String, List<String>> sceneConsumerPaths;
   final SceneLibraryEditor? onEditScene;
   final SceneLibraryDuplicator? onDuplicateScene;
@@ -250,12 +293,15 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   _PendingSceneConnection? _pendingConnection;
   String? _requestedRouteFailure;
   int? _restorationRevisionInFlight;
+  SceneGraphViewport _graphViewport = const SceneGraphViewport();
+  NarrativeSceneInspector _sceneInspector = NarrativeSceneInspector.node;
 
   @override
   void initState() {
     super.initState();
     _syncSelection();
     _applyRequestedSceneFocus();
+    _applyRequestedViewport();
   }
 
   @override
@@ -266,6 +312,9 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
       _applyRequestedSceneFocus();
     } else {
       _revalidateRequestedSceneFocus();
+    }
+    if (_requestedViewportChanged(oldWidget)) {
+      _applyRequestedViewport();
     }
   }
 
@@ -288,6 +337,27 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
       oldWidget.requestedNodeId != widget.requestedNodeId ||
       oldWidget.requestedSceneFocusNonce != widget.requestedSceneFocusNonce ||
       oldWidget.strictRequestedSceneFocus != widget.strictRequestedSceneFocus;
+
+  bool _requestedViewportChanged(ScenesWorkspace oldWidget) =>
+      oldWidget.requestedViewportX != widget.requestedViewportX ||
+      oldWidget.requestedViewportY != widget.requestedViewportY ||
+      oldWidget.requestedZoom != widget.requestedZoom ||
+      oldWidget.requestedInspector != widget.requestedInspector ||
+      oldWidget.requestedRestorationRevision !=
+          widget.requestedRestorationRevision;
+
+  void _applyRequestedViewport() {
+    final x = widget.requestedViewportX;
+    final y = widget.requestedViewportY;
+    final zoom = widget.requestedZoom;
+    if (x != null && y != null && zoom != null) {
+      _graphViewport = SceneGraphViewport(
+        pan: Offset(x, y),
+        zoom: zoom,
+      );
+    }
+    _sceneInspector = widget.requestedInspector ?? NarrativeSceneInspector.node;
+  }
 
   void _revalidateRequestedSceneFocus() {
     final requested = requestedSceneId;
@@ -726,6 +796,8 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                 _selectedEdgeId = null;
                 _pendingConnection = null;
                 _requestedRouteFailure = null;
+                _graphViewport = const SceneGraphViewport();
+                _sceneInspector = NarrativeSceneInspector.node;
               });
             },
           ),
@@ -753,6 +825,15 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
               linkedAssetContracts: widget.linkedAssetContracts,
               cinematicsLibrary: widget.cinematicsLibrary,
               presentationCinematics: widget.presentationCinematics,
+              presentationFolders: widget.presentationFolders,
+              viewport: _graphViewport,
+              inspector: _sceneInspector,
+              onViewportChanged: (viewport) {
+                if (_graphViewport == viewport) return;
+                setState(() => _graphViewport = viewport);
+              },
+              onCreateAndLinkPresentation: widget.onCreateAndLinkPresentation,
+              onOpenCreatedPresentation: widget.onOpenCreatedPresentation,
               consequenceFactOptions: widget.consequenceFactOptions,
               consequenceEventOptions: widget.consequenceEventOptions,
               consequenceCatalogs: widget.consequenceCatalogs,
@@ -1747,6 +1828,12 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
     required this.presentationCinematics,
+    required this.presentationFolders,
+    required this.viewport,
+    required this.inspector,
+    required this.onViewportChanged,
+    required this.onCreateAndLinkPresentation,
+    required this.onOpenCreatedPresentation,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.consequenceCatalogs,
@@ -1772,6 +1859,12 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<PresentationCinematicAsset> presentationCinematics;
+  final List<CinematicLibraryFolder> presentationFolders;
+  final SceneGraphViewport viewport;
+  final NarrativeSceneInspector inspector;
+  final ValueChanged<SceneGraphViewport> onViewportChanged;
+  final ScenePresentationCreateAndLinkCreator? onCreateAndLinkPresentation;
+  final ScenePresentationCreateAndLinkOpener? onOpenCreatedPresentation;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
@@ -1805,6 +1898,12 @@ class _SceneReadOnlySummary extends StatelessWidget {
               linkedAssetContracts: linkedAssetContracts,
               cinematicsLibrary: cinematicsLibrary,
               presentationCinematics: presentationCinematics,
+              presentationFolders: presentationFolders,
+              viewport: viewport,
+              inspector: inspector,
+              onViewportChanged: onViewportChanged,
+              onCreateAndLinkPresentation: onCreateAndLinkPresentation,
+              onOpenCreatedPresentation: onOpenCreatedPresentation,
               consequenceFactOptions: consequenceFactOptions,
               consequenceEventOptions: consequenceEventOptions,
               consequenceCatalogs: consequenceCatalogs,
@@ -1849,6 +1948,12 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
     required this.presentationCinematics,
+    required this.presentationFolders,
+    required this.viewport,
+    required this.inspector,
+    required this.onViewportChanged,
+    required this.onCreateAndLinkPresentation,
+    required this.onOpenCreatedPresentation,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.consequenceCatalogs,
@@ -1874,6 +1979,12 @@ class _SelectedSceneSummary extends StatelessWidget {
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<PresentationCinematicAsset> presentationCinematics;
+  final List<CinematicLibraryFolder> presentationFolders;
+  final SceneGraphViewport viewport;
+  final NarrativeSceneInspector inspector;
+  final ValueChanged<SceneGraphViewport> onViewportChanged;
+  final ScenePresentationCreateAndLinkCreator? onCreateAndLinkPresentation;
+  final ScenePresentationCreateAndLinkOpener? onOpenCreatedPresentation;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
@@ -1922,6 +2033,12 @@ class _SelectedSceneSummary extends StatelessWidget {
             linkedAssetContracts: linkedAssetContracts,
             cinematicsLibrary: cinematicsLibrary,
             presentationCinematics: presentationCinematics,
+            presentationFolders: presentationFolders,
+            viewport: viewport,
+            inspector: inspector,
+            selectedNodeId: selectedNodeId,
+            onCreateAndLinkPresentation: onCreateAndLinkPresentation,
+            onOpenCreatedPresentation: onOpenCreatedPresentation,
             consequenceFactOptions: consequenceFactOptions,
             consequenceEventOptions: consequenceEventOptions,
             consequenceCatalogs: consequenceCatalogs,
@@ -1945,6 +2062,8 @@ class _SelectedSceneSummary extends StatelessWidget {
               selectedNodeId: selectedNodeId,
               selectedEdgeId: selectedEdgeId,
               focusNodeForNodeId: focusNodeForNodeId,
+              viewport: viewport,
+              onViewportChanged: onViewportChanged,
               onSelectNode: onSelectNode,
               onSelectEdge: onSelectEdge,
               canDragNodes: pendingConnection == null,
@@ -1984,6 +2103,12 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
     required this.presentationCinematics,
+    required this.presentationFolders,
+    required this.viewport,
+    required this.inspector,
+    required this.selectedNodeId,
+    required this.onCreateAndLinkPresentation,
+    required this.onOpenCreatedPresentation,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.consequenceCatalogs,
@@ -1997,6 +2122,12 @@ class _SceneNodeDraftPalette extends StatelessWidget {
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<PresentationCinematicAsset> presentationCinematics;
+  final List<CinematicLibraryFolder> presentationFolders;
+  final SceneGraphViewport viewport;
+  final NarrativeSceneInspector inspector;
+  final String? selectedNodeId;
+  final ScenePresentationCreateAndLinkCreator? onCreateAndLinkPresentation;
+  final ScenePresentationCreateAndLinkOpener? onOpenCreatedPresentation;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
@@ -2021,7 +2152,6 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     final hasCanonicalCinematics = canonicalCinematics.isNotEmpty;
     final compatiblePresentations = presentationCinematics.toList()
       ..sort((left, right) => left.title.compareTo(right.title));
-    final hasCompatiblePresentations = compatiblePresentations.isNotEmpty;
     final branchSources = scene.graph.nodes
         .where(
           (node) =>
@@ -2041,9 +2171,6 @@ class _SceneNodeDraftPalette extends StatelessWidget {
             ? 'Des bridges legacy existent, mais aucun CinematicAsset canonique n’est disponible.'
             : 'Créez d’abord une cinématique dans la Cinematics Library.';
     const worldOnlyReason = 'réservé aux scènes in-game';
-    final presentationReason = hasCompatiblePresentations
-        ? null
-        : 'aucune cinématique de présentation compatible';
     return SizedBox(
       key: const ValueKey('scenes-add-node-palette'),
       height: 34,
@@ -2177,22 +2304,15 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                   ),
                   if (isPreSession)
                     _NodeDraftButton(
-                      buttonKey: hasCompatiblePresentations
-                          ? const ValueKey(
-                              'scenes-add-node-presentation-cinematic',
-                            )
-                          : const ValueKey(
-                              'scenes-add-node-presentation-cinematic-disabled',
-                            ),
+                      buttonKey: const ValueKey(
+                        'scenes-add-node-presentation-cinematic',
+                      ),
                       label: 'Présentation',
                       icon: CupertinoIcons.play_rectangle,
-                      disabledReason: presentationReason,
-                      onPressed: hasCompatiblePresentations
-                          ? () => _pickPresentationAndAddNode(
-                                context,
-                                compatiblePresentations,
-                              )
-                          : null,
+                      onPressed: () => _pickPresentationAndAddNode(
+                        context,
+                        compatiblePresentations,
+                      ),
                     ),
                   _NodeDraftButton(
                     buttonKey: branchSources.isEmpty
@@ -2292,8 +2412,8 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     BuildContext context,
     List<PresentationCinematicAsset> cinematics,
   ) async {
-    final cinematic =
-        await showPokeMapDesktopSideSheet<PresentationCinematicAsset>(
+    final choice =
+        await showPokeMapDesktopSideSheet<ScenePresentationPickerResult>(
       context: context,
       title: 'Cinématique de présentation',
       semanticLabel:
@@ -2304,13 +2424,72 @@ class _SceneNodeDraftPalette extends StatelessWidget {
         cinematics: cinematics,
       ),
     );
-    if (cinematic == null) return;
-    await onAddLinkedAssetNodeDraft(
-      payload: ScenePresentationCinematicPayload(
-        presentationCinematicId: cinematic.id,
-      ),
-      title: cinematic.title,
+    switch (choice) {
+      case ScenePresentationPickerExisting(:final cinematic):
+        await onAddLinkedAssetNodeDraft(
+          payload: ScenePresentationCinematicPayload(
+            presentationCinematicId: cinematic.id,
+          ),
+          title: cinematic.title,
+        );
+      case ScenePresentationPickerCreate():
+        if (!context.mounted) return;
+        await _createAndLinkPresentation(context);
+      case null:
+        return;
+    }
+  }
+
+  Future<void> _createAndLinkPresentation(BuildContext context) async {
+    final create = onCreateAndLinkPresentation;
+    final targetNodeId = _presentationInsertionTarget();
+    if (create == null || targetNodeId == null) return;
+    ScenePresentationCreateAndLinkOutcome? outcome;
+    final createdId = await showCinematicLibraryCreateDialog(
+      context: context,
+      family: CinematicLibraryFamily.presentation,
+      initialFolderId: null,
+      folders: presentationFolders,
+      onCreate: (request) async {
+        final created = await create(
+          sceneId: scene.id,
+          targetNodeId: targetNodeId,
+          title: request.title,
+          templateId: request.presentationTemplateId!,
+          templateVersion: request.presentationTemplateVersion!,
+          folderId: request.folderId,
+        );
+        outcome = created;
+        return created?.cinematicId;
+      },
     );
+    final created = outcome;
+    if (createdId == null || created == null || !context.mounted) return;
+    onOpenCreatedPresentation?.call(
+      sceneId: scene.id,
+      returnNodeId: selectedNodeId ?? targetNodeId,
+      cinematicId: created.cinematicId,
+      viewport: viewport,
+      inspector: inspector,
+    );
+  }
+
+  String? _presentationInsertionTarget() {
+    final selectedId = selectedNodeId;
+    if (selectedId != null && selectedId != scene.graph.startNodeId) {
+      final incoming = scene.graph.edges
+          .where((edge) => edge.toNodeId == selectedId)
+          .length;
+      if (incoming == 1) return selectedId;
+    }
+    for (final node in scene.graph.nodes) {
+      if (node.kind != SceneNodeKind.end) continue;
+      final incoming = scene.graph.edges
+          .where((edge) => edge.toNodeId == node.id)
+          .length;
+      if (incoming == 1) return node.id;
+    }
+    return null;
   }
 
   Future<void> _pickConsequenceAndAddNode(BuildContext context) async {

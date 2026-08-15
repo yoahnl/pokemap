@@ -6,6 +6,7 @@ import '../../transactions/authoring_plan.dart';
 import 'modern_narrative_inspection.dart';
 import 'narrative_action_support.dart';
 import 'narrative_authoring_exception.dart';
+import 'presentation_cinematic_template_actions.dart';
 
 final class SceneActions {
   const SceneActions();
@@ -41,6 +42,16 @@ final class SceneActions {
       'scene.preSession.presentation.insert',
       'Insert a canonical Presentation Cinematic before a Scene node',
       resourceKinds: const ['project', 'scene', 'presentationCinematic'],
+    ),
+    narrativeActionDescriptor(
+      'scene.preSession.presentation.createAndLink',
+      'Create, catalog and link one Presentation Cinematic atomically',
+      resourceKinds: const [
+        'project',
+        'scene',
+        'presentationCinematic',
+        'cinematicLibraryEntry',
+      ],
     ),
     narrativeActionDescriptor(
       'scene.preSession.condition.insert',
@@ -228,6 +239,76 @@ final class SceneActions {
           context,
           projected,
           sceneId: sceneId,
+        );
+      case 'scene.preSession.presentation.createAndLink':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {
+            'sceneId',
+            'nodeId',
+            'targetNodeId',
+            'cinematic',
+            'cinematicId',
+            'title',
+            'templateId',
+            'templateVersion',
+            'targetFolderId',
+            'targetIndex',
+          },
+        );
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final nodeId = narrativeStringParameter(parameters, 'nodeId');
+        final cinematic = _createAndLinkCinematic(parameters);
+        final cinematicId = cinematic.id;
+        final projected = createAndLinkPreSessionPresentation(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          nodeId: nodeId,
+          targetNodeId: narrativeStringParameter(
+            parameters,
+            'targetNodeId',
+          ),
+          cinematic: cinematic,
+          targetFolderId: _nullableStringParameter(
+            parameters,
+            'targetFolderId',
+          ),
+          targetIndex: _integerParameter(parameters, 'targetIndex'),
+        );
+        final publishedCinematic = projected.presentationCinematics.singleWhere(
+          (candidate) => candidate.id == cinematicId,
+        );
+        final scene = projected.scenes.singleWhere(
+          (candidate) => candidate.id == sceneId,
+        );
+        final node = scene.graph.nodes.singleWhere(
+          (candidate) => candidate.id == nodeId,
+        );
+        return narrativeProjectDraft(
+          context.snapshot,
+          projected,
+          operation: context.request.actionId,
+          path: '/scenes/$sceneId/presentationCinematics/$cinematicId',
+          after: <String, Object?>{
+            'cinematic': encodePresentationCinematicAsset(
+              publishedCinematic,
+            ),
+            'libraryEntry': projected.cinematicLibraryCatalog
+                .entryFor(CinematicLibraryFamily.presentation, cinematicId)!
+                .toJson(),
+            'node': node.toJson(),
+          },
+          preview: <String, Object?>{
+            'resourceKind': 'presentationCinematic',
+            'sceneId': sceneId,
+            'nodeId': nodeId,
+            'cinematicId': cinematicId,
+            if (parameters['templateId'] case final String templateId)
+              'templateId': templateId,
+            if (parameters['templateVersion'] case final int templateVersion)
+              'templateVersion': templateVersion,
+          },
         );
       case 'scene.preSession.condition.insert':
         rejectUnknownNarrativeParameters(
@@ -488,6 +569,80 @@ final class SceneActions {
       outgoingEdgeKind: SceneEdgeKind.presentationCompleted,
     );
     return upsert(project, maps: maps, scene: updated);
+  }
+
+  ProjectManifest createAndLinkPreSessionPresentation(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String nodeId,
+    required String targetNodeId,
+    required PresentationCinematicAsset cinematic,
+    required String? targetFolderId,
+    required int targetIndex,
+  }) {
+    if (project.version != ProjectVersion.v7) {
+      throw NarrativeAuthoringException(
+        'scene.preSession.presentation.project_version_unsupported',
+        'Presentation create-and-link requires ProjectVersion.v7.',
+      );
+    }
+    final cinematicId = cinematic.id;
+    final catalogCollision = project.cinematicLibraryCatalog.entryFor(
+      CinematicLibraryFamily.presentation,
+      cinematicId,
+    );
+    if (project.presentationCinematics.any(
+          (candidate) => candidate.id == cinematicId,
+        ) ||
+        catalogCollision != null) {
+      throw NarrativeAuthoringException(
+        'scene.preSession.presentation.cinematic_id_unavailable',
+        'The requested Presentation Cinematic identity already exists.',
+        details: <String, Object?>{'cinematicId': cinematicId},
+      );
+    }
+    final withAsset = project.copyWith(
+      presentationCinematics: <PresentationCinematicAsset>[
+        ...project.presentationCinematics,
+        cinematic,
+      ],
+    );
+    final catalog = const CinematicLibraryCatalogOperations().placeCinematic(
+      withAsset.cinematicLibraryCatalog,
+      family: CinematicLibraryFamily.presentation,
+      cinematicId: cinematicId,
+      targetFolderId: targetFolderId,
+      targetIndex: targetIndex,
+    );
+    final withCatalog = withAsset.copyWith(cinematicLibraryCatalog: catalog);
+    final projected = insertPreSessionPresentation(
+      withCatalog,
+      maps: maps,
+      sceneId: sceneId,
+      nodeId: nodeId,
+      targetNodeId: targetNodeId,
+      presentationCinematicId: cinematicId,
+      title: cinematic.title,
+    );
+    ProjectValidator.validate(projected);
+    final referenceDiagnostics = PresentationReferenceGraph.build(
+      cinematics: projected.presentationCinematics,
+      scenes: projected.scenes,
+    ).diagnostics;
+    if (referenceDiagnostics.isNotEmpty) {
+      throw NarrativeAuthoringException(
+        'scene.preSession.presentation.reference_validation_failed',
+        'The Presentation create-and-link projection contains invalid references.',
+        details: <String, Object?>{
+          'diagnostics': <Object?>[
+            for (final diagnostic in referenceDiagnostics)
+              diagnostic.toJson(),
+          ],
+        },
+      );
+    }
+    return projected;
   }
 
   ProjectManifest insertPreSessionCondition(
@@ -1144,6 +1299,95 @@ String? _optionalStringParameter(
     throw ArgumentError.value(value, key, 'must be a nonblank trimmed string');
   }
   return value;
+}
+
+String? _nullableStringParameter(
+  Map<String, Object?> parameters,
+  String key,
+) {
+  final value = parameters[key];
+  if (value == null) return null;
+  if (value is! String || value.trim().isEmpty || value != value.trim()) {
+    throw ArgumentError.value(value, key, 'must be null or a trimmed string');
+  }
+  return value;
+}
+
+int _integerParameter(Map<String, Object?> parameters, String key) {
+  final value = parameters[key];
+  if (value is! int) {
+    throw ArgumentError.value(value, key, 'must be an integer');
+  }
+  return value;
+}
+
+PresentationCinematicAsset _createAndLinkCinematic(
+  Map<String, Object?> parameters,
+) {
+  final encoded = parameters['cinematic'];
+  if (encoded != null) {
+    final templateFields = const <String>[
+      'cinematicId',
+      'title',
+      'templateId',
+      'templateVersion',
+    ].where(parameters.containsKey).toList(growable: false);
+    if (templateFields.isNotEmpty) {
+      throw ArgumentError.value(
+        templateFields,
+        'parameters',
+        'cinematic cannot be combined with template fields',
+      );
+    }
+    try {
+      return decodePresentationCinematicAsset(encoded);
+    } on PresentationCinematicCodecException catch (error) {
+      throw NarrativeAuthoringException(
+        'scene.preSession.presentation.draft_invalid',
+        'The Presentation draft cannot be decoded.',
+        details: <String, Object?>{
+          'codecCode': error.code.name,
+          'path': error.path,
+        },
+      );
+    }
+  }
+  final cinematicId = narrativeStringParameter(parameters, 'cinematicId');
+  final title = narrativeStringParameter(parameters, 'title');
+  final templateId = narrativeStringParameter(parameters, 'templateId');
+  final templateVersion = _integerParameter(parameters, 'templateVersion');
+  return instantiatePresentationCinematicTemplate(
+    _presentationTemplate(templateId, templateVersion),
+    cinematicId: cinematicId,
+    title: title,
+    description: null,
+  );
+}
+
+PresentationCinematicTemplate _presentationTemplate(
+  String templateId,
+  int templateVersion,
+) {
+  try {
+    return PresentationCinematicTemplateCatalog.canonical().require(
+      templateId,
+      version: templateVersion,
+    );
+  } on PresentationCinematicTemplateException catch (error) {
+    throw NarrativeAuthoringException(
+      switch (error.code) {
+        PresentationCinematicTemplateErrorCode.unknownTemplate =>
+          'scene.preSession.presentation.template_unknown',
+        PresentationCinematicTemplateErrorCode.unsupportedVersion =>
+          'scene.preSession.presentation.template_version_unsupported',
+      },
+      error.message,
+      details: <String, Object?>{
+        'templateId': templateId,
+        'templateVersion': templateVersion,
+      },
+    );
+  }
 }
 
 T _enumParameter<T extends Enum>(

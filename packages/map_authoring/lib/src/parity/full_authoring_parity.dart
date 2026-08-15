@@ -468,8 +468,13 @@ const Set<String> _cin006CertifiedActionIds = <String>{
   'scene.preSession.create',
   'scene.preSession.interaction.insert',
   'scene.preSession.presentation.insert',
+  'scene.preSession.presentation.createAndLink',
   'scene.preSession.condition.insert',
   'scene.preSession.end.configure',
+};
+
+const Set<String> _cin039CertifiedActionIds = <String>{
+  'scene.preSession.presentation.createAndLink',
 };
 
 const Set<String> _cin019CertifiedActionIds = <String>{
@@ -496,6 +501,18 @@ const Set<String> _cin019CertifiedActionIds = <String>{
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (_cin039CertifiedActionIds.contains(actionId)) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_scene_pre_session_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_scene_pre_session_flow_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/application/scene_presentation_create_and_link_gateway_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (_cin006CertifiedActionIds.contains(actionId)) {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:

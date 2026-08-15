@@ -4,6 +4,21 @@ import 'package:map_core/map_core.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 
+sealed class ScenePresentationPickerResult {
+  const ScenePresentationPickerResult();
+}
+
+final class ScenePresentationPickerExisting
+    extends ScenePresentationPickerResult {
+  const ScenePresentationPickerExisting(this.cinematic);
+
+  final PresentationCinematicAsset cinematic;
+}
+
+final class ScenePresentationPickerCreate extends ScenePresentationPickerResult {
+  const ScenePresentationPickerCreate();
+}
+
 class ScenePresentationCinematicPicker extends StatefulWidget {
   const ScenePresentationCinematicPicker({super.key, required this.cinematics});
 
@@ -49,10 +64,11 @@ class _ScenePresentationCinematicPickerState
                 ),
                 PokeMapButton(
                   key: const ValueKey(
-                    'scene-presentation-picker-create-and-link-disabled',
+                    'scene-presentation-picker-create-and-link',
                   ),
-                  onPressed: null,
-                  disabledReason: 'Disponible dans le lot CIN-039',
+                  onPressed: () => Navigator.of(context).pop(
+                    const ScenePresentationPickerCreate(),
+                  ),
                   variant: PokeMapButtonVariant.ghost,
                   size: PokeMapButtonSize.small,
                   leading: const Icon(Icons.add_rounded),
@@ -138,7 +154,9 @@ class _PresentationCinematicOption extends StatelessWidget {
       key: ValueKey(
         'scene-presentation-picker-option-${_pickerKeyPart(cinematic.id)}',
       ),
-      onTap: () => Navigator.of(context).pop(cinematic),
+      onTap: () => Navigator.of(context).pop(
+        ScenePresentationPickerExisting(cinematic),
+      ),
       keyboardInteractive: true,
       semanticLabel: 'Utiliser ${cinematic.title}',
       padding: const EdgeInsets.all(12),

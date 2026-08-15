@@ -10,8 +10,11 @@ final class NarrativeStudioReturnExpectation {
   NarrativeStudioReturnExpectation({
     required this.location,
     this.scrollOffset,
+    this.viewportX,
+    this.viewportY,
     this.zoom,
     this.focusAnchorId,
+    this.sceneInspector,
   }) {
     if (scrollOffset != null &&
         (!scrollOffset!.isFinite || scrollOffset! < 0)) {
@@ -28,6 +31,12 @@ final class NarrativeStudioReturnExpectation {
         'Must be finite and strictly positive',
       );
     }
+    if (viewportX != null && !viewportX!.isFinite) {
+      throw ArgumentError.value(viewportX, 'viewportX', 'Must be finite');
+    }
+    if (viewportY != null && !viewportY!.isFinite) {
+      throw ArgumentError.value(viewportY, 'viewportY', 'Must be finite');
+    }
     if (focusAnchorId != null && focusAnchorId!.trim().isEmpty) {
       throw ArgumentError.value(
         focusAnchorId,
@@ -39,8 +48,11 @@ final class NarrativeStudioReturnExpectation {
 
   final NarrativeStudioRouteLocation location;
   final double? scrollOffset;
+  final double? viewportX;
+  final double? viewportY;
   final double? zoom;
   final String? focusAnchorId;
+  final NarrativeSceneInspector? sceneInspector;
 
   @override
   bool operator ==(Object other) =>
@@ -48,11 +60,22 @@ final class NarrativeStudioReturnExpectation {
       other is NarrativeStudioReturnExpectation &&
           other.location == location &&
           other.scrollOffset == scrollOffset &&
+          other.viewportX == viewportX &&
+          other.viewportY == viewportY &&
           other.zoom == zoom &&
-          other.focusAnchorId == focusAnchorId;
+          other.focusAnchorId == focusAnchorId &&
+          other.sceneInspector == sceneInspector;
 
   @override
-  int get hashCode => Object.hash(location, scrollOffset, zoom, focusAnchorId);
+  int get hashCode => Object.hash(
+    location,
+    scrollOffset,
+    viewportX,
+    viewportY,
+    zoom,
+    focusAnchorId,
+    sceneInspector,
+  );
 }
 
 @immutable
@@ -172,12 +195,30 @@ class NarrativeStudioNavigationController
     final route = state.documentRoute;
     if (route == null) return null;
     final source = route.source;
+    final revision = state.revision + 1;
+    final returnExpectation = switch (source) {
+      NarrativeSceneSourceContext source => NarrativeStudioReturnExpectation(
+        location: _locationForDocumentSource(source),
+        viewportX: source.viewportX,
+        viewportY: source.viewportY,
+        zoom: source.zoom,
+        focusAnchorId: source.selectedNodeId,
+        sceneInspector: source.inspector,
+      ),
+      NarrativeLibrarySourceContext() => null,
+    };
     state = state.copyWith(
       location: _locationForDocumentSource(source),
       clearDocumentRoute: true,
       clearPendingReturn: true,
-      clearRestorationRequest: true,
-      revision: state.revision + 1,
+      restorationRequest: returnExpectation == null
+          ? null
+          : NarrativeStudioRestorationRequest(
+              expectation: returnExpectation,
+              revision: revision,
+            ),
+      clearRestorationRequest: returnExpectation == null,
+      revision: revision,
     );
     return source;
   }
@@ -220,8 +261,11 @@ class NarrativeStudioNavigationController
     final revision = state.revision + 1;
     final requiresViewportRestoration =
         expectation.scrollOffset != null ||
+        expectation.viewportX != null ||
+        expectation.viewportY != null ||
         expectation.zoom != null ||
-        expectation.focusAnchorId != null;
+        expectation.focusAnchorId != null ||
+        expectation.sceneInspector != null;
     state = state.copyWith(
       location: expectation.location,
       clearPendingReturn: true,

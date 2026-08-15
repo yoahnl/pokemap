@@ -1072,12 +1072,36 @@ test("MCP scene.upsert preserves a non-base Pokemon form", async () => {
 test("CIN-033 certifies preSession and Presentation through live MCP", async () => {
   const fixture = await mutationFixture();
   try {
+    await mkdir(join(fixture.root, "maps"), { recursive: true });
+    await writeFile(
+      join(fixture.root, "maps/map_start.json"),
+      JSON.stringify({
+        id: "map_start",
+        name: "Départ",
+        version: "v6",
+        size: { width: 2, height: 2 },
+        layers: [
+          {
+            id: "ground",
+            name: "Sol",
+            tiles: [0, 0, 0, 0],
+            runtimeType: "tile",
+          },
+        ],
+      }),
+    );
     await writeFile(
       join(fixture.root, "project.json"),
       JSON.stringify({
         name: "CIN-033 MCP fixture",
         version: "v7",
-        maps: [],
+        maps: [
+          {
+            id: "map_start",
+            name: "Départ",
+            relativePath: "maps/map_start.json",
+          },
+        ],
         tilesets: [],
         pokemon: canonicalPokemonConfig(),
         presentationCinematics: [
@@ -1472,6 +1496,20 @@ test("CIN-033 certifies preSession and Presentation through live MCP", async () 
           nodeId: "opening",
           targetNodeId: "end",
           presentationCinematicId: "opening",
+        },
+      },
+      {
+        actionId: "scene.preSession.presentation.createAndLink",
+        parameters: {
+          sceneId: "new_game_intro",
+          nodeId: "studio_logo",
+          targetNodeId: "end",
+          cinematicId: "presentation_studio_logo",
+          title: "Logo du studio",
+          templateId: "blank",
+          templateVersion: 1,
+          targetFolderId: null,
+          targetIndex: 0,
         },
       },
       {

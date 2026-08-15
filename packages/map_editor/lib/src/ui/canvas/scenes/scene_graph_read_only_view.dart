@@ -22,6 +22,25 @@ typedef SceneVisualEdgeDraftCreator = Future<void> Function({
   required String toNodeId,
 });
 
+@immutable
+final class SceneGraphViewport {
+  const SceneGraphViewport({
+    this.pan = Offset.zero,
+    this.zoom = 1,
+  });
+
+  final Offset pan;
+  final double zoom;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneGraphViewport && other.pan == pan && other.zoom == zoom;
+
+  @override
+  int get hashCode => Object.hash(pan, zoom);
+}
+
 class SceneGraphReadOnlyView extends StatefulWidget {
   const SceneGraphReadOnlyView({
     super.key,
@@ -33,6 +52,8 @@ class SceneGraphReadOnlyView extends StatefulWidget {
     this.onUpdateNodeLayout,
     this.onCreateEdgeDraft,
     this.focusNodeForNodeId,
+    this.viewport = const SceneGraphViewport(),
+    this.onViewportChanged,
     this.canDragNodes = true,
     this.expandToFill = false,
   });
@@ -45,6 +66,8 @@ class SceneGraphReadOnlyView extends StatefulWidget {
   final SceneNodeLayoutChanged? onUpdateNodeLayout;
   final SceneVisualEdgeDraftCreator? onCreateEdgeDraft;
   final FocusNode Function(String nodeId)? focusNodeForNodeId;
+  final SceneGraphViewport viewport;
+  final ValueChanged<SceneGraphViewport>? onViewportChanged;
   final bool canDragNodes;
   final bool expandToFill;
 
@@ -57,22 +80,31 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
   static const double _maxZoom = 2;
   static const double _zoomStep = 0.25;
 
-  double _zoom = 1;
-  Offset _pan = Offset.zero;
+  late double _zoom;
+  late Offset _pan;
   double _trackpadGestureStartZoom = 1;
   final Map<String, Offset> _nodePositionOverrides = {};
   final GlobalKey _canvasKey = GlobalKey();
   _SceneGraphVisualConnection? _visualConnection;
 
   @override
+  void initState() {
+    super.initState();
+    _applyViewport(widget.viewport);
+  }
+
+  @override
   void didUpdateWidget(covariant SceneGraphReadOnlyView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.scene.id != widget.scene.id) {
-      _zoom = 1;
-      _pan = Offset.zero;
+      _applyViewport(widget.viewport);
       _nodePositionOverrides.clear();
       _visualConnection = null;
       return;
+    }
+
+    if (oldWidget.viewport != widget.viewport) {
+      _applyViewport(widget.viewport);
     }
 
     final nodeIds = widget.scene.graph.nodes.map((node) => node.id).toSet();
@@ -292,6 +324,13 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
 
   void _setZoom(double value) {
     setState(() => _applyZoom(value));
+    _notifyViewportChanged();
+  }
+
+  void _applyViewport(SceneGraphViewport viewport) {
+    _zoom = viewport.zoom.clamp(_minZoom, _maxZoom).toDouble();
+    _pan = viewport.pan;
+    _trackpadGestureStartZoom = _zoom;
   }
 
   void _applyZoom(double value, {Offset? focalPoint}) {
@@ -308,6 +347,7 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
       _zoom = 1;
       _pan = Offset.zero;
     });
+    _notifyViewportChanged();
   }
 
   void _handleCanvasPanUpdate(DragUpdateDetails details) {
@@ -315,6 +355,7 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
       return;
     }
     setState(() => _pan += details.delta);
+    _notifyViewportChanged();
   }
 
   void _handleTrackpadPanZoomStart(PointerPanZoomStartEvent event) {
@@ -335,6 +376,7 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
       );
       _pan += event.panDelta;
     });
+    _notifyViewportChanged();
   }
 
   void _handleTrackpadPanZoomEnd(PointerPanZoomEndEvent event) {
@@ -342,6 +384,12 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
       return;
     }
     _trackpadGestureStartZoom = _zoom;
+  }
+
+  void _notifyViewportChanged() {
+    widget.onViewportChanged?.call(
+      SceneGraphViewport(pan: _pan, zoom: _zoom),
+    );
   }
 
   void _moveNodeLocally(String nodeId, Offset screenDelta) {

@@ -174,6 +174,13 @@ void main() {
       expect(restored.documentRoute, isNull);
       expect(restored.location.selection?.assetId, 'scene_new_game');
       expect(restored.location.selection?.focusId, 'node_presentation');
+      expect(restored.restorationRequest?.expectation.viewportX, 12);
+      expect(restored.restorationRequest?.expectation.viewportY, 24);
+      expect(restored.restorationRequest?.expectation.zoom, 1.5);
+      expect(
+        restored.restorationRequest?.expectation.sceneInspector,
+        NarrativeSceneInspector.properties,
+      );
     },
   );
 }
