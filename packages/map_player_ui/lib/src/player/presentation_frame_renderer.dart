@@ -16,6 +16,59 @@ enum PresentationFrameOrientation {
 
 enum PresentationContentUnavailableReason { missing, unsupported }
 
+final class PresentationVisualOrientationOverride {
+  const PresentationVisualOrientationOverride({
+    this.landscape,
+    this.portrait,
+    this.reducedMotionLandscape,
+    this.reducedMotionPortrait,
+  });
+
+  final PresentationVisualComposition? landscape;
+  final PresentationVisualComposition? portrait;
+  final PresentationVisualComposition? reducedMotionLandscape;
+  final PresentationVisualComposition? reducedMotionPortrait;
+
+  PresentationVisualComposition resolve({
+    required PresentationFrameOrientation orientation,
+    required PresentationVisualComposition fallback,
+    required bool reduceMotion,
+  }) {
+    return switch ((orientation, reduceMotion)) {
+      (PresentationFrameOrientation.landscape, true) =>
+        reducedMotionLandscape ?? landscape ?? fallback,
+      (PresentationFrameOrientation.portrait, true) =>
+        reducedMotionPortrait ?? portrait ?? fallback,
+      (PresentationFrameOrientation.landscape, false) => landscape ?? fallback,
+      (PresentationFrameOrientation.portrait, false) => portrait ?? fallback,
+    };
+  }
+}
+
+final class PresentationFrameOrientationOverrides {
+  const PresentationFrameOrientationOverrides({
+    this.visualsByClipId =
+        const <String, PresentationVisualOrientationOverride>{},
+  });
+
+  final Map<String, PresentationVisualOrientationOverride> visualsByClipId;
+
+  PresentationVisualComposition resolveVisual({
+    required PresentationVisualFrameClip clip,
+    required PresentationFrameOrientation orientation,
+    required bool reduceMotion,
+  }) {
+    final fallback =
+        reduceMotion ? clip.reducedMotionComposition : clip.composition;
+    return visualsByClipId[clip.clipId]?.resolve(
+          orientation: orientation,
+          fallback: fallback,
+          reduceMotion: reduceMotion,
+        ) ??
+        fallback;
+  }
+}
+
 sealed class PresentationVisualResolution {
   const PresentationVisualResolution();
 }
@@ -78,6 +131,7 @@ class PresentationFrameRenderer extends StatelessWidget {
     this.reduceMotion,
     this.reduceFlashes = false,
     this.showCaptions = true,
+    this.orientationOverrides = const PresentationFrameOrientationOverrides(),
   });
 
   final PresentationFrame frame;
@@ -86,6 +140,7 @@ class PresentationFrameRenderer extends StatelessWidget {
   final bool? reduceMotion;
   final bool reduceFlashes;
   final bool showCaptions;
+  final PresentationFrameOrientationOverrides orientationOverrides;
 
   @override
   Widget build(BuildContext context) {
@@ -111,9 +166,11 @@ class PresentationFrameRenderer extends StatelessWidget {
                     _PresentationVisualLayer(
                       clip: visual,
                       orientation: orientation,
-                      composition: resolvedReduceMotion
-                          ? visual.reducedMotionComposition
-                          : visual.composition,
+                      composition: orientationOverrides.resolveVisual(
+                        clip: visual,
+                        orientation: orientation,
+                        reduceMotion: resolvedReduceMotion,
+                      ),
                       reduceFlashes: reduceFlashes,
                       resolution: contentPort.resolveVisual(
                         clip: visual,

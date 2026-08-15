@@ -9,12 +9,14 @@ class PresentationFramePreview extends StatelessWidget {
     required this.orientation,
     required this.contentPort,
     required this.playerTheme,
+    this.orientationOverrides = const PresentationFrameOrientationOverrides(),
   });
 
   final PresentationFrame frame;
   final PresentationFrameOrientation orientation;
   final PresentationFrameContentPort contentPort;
   final ThemeData playerTheme;
+  final PresentationFrameOrientationOverrides orientationOverrides;
 
   @override
   Widget build(BuildContext context) => Theme(
@@ -23,6 +25,7 @@ class PresentationFramePreview extends StatelessWidget {
       frame: frame,
       orientation: orientation,
       contentPort: contentPort,
+      orientationOverrides: orientationOverrides,
     ),
   );
 }

@@ -32,7 +32,7 @@ import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
 import 'cinematics/presentation/presentation_studio_shell.dart';
-import 'cinematics/presentation/presentation_studio_viewport.dart';
+import 'cinematics/presentation/presentation_studio_responsive_canvas.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'events/event_builder_workspace.dart';
@@ -2597,21 +2597,22 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   bool _showLegacyCutsceneStudio = false;
   NarrativeLibrarySourceContext? _restoredPresentationSource;
   late final PresentationStudioLayoutStore _presentationLayoutStore;
-  late final PresentationStudioViewportController
-      _presentationViewportController;
+  late final PresentationStudioResponsiveCanvasController
+      _presentationResponsiveCanvasController;
 
   @override
   void initState() {
     super.initState();
     _presentationLayoutStore = FilePresentationStudioLayoutStore();
-    _presentationViewportController = PresentationStudioViewportController();
+    _presentationResponsiveCanvasController =
+        PresentationStudioResponsiveCanvasController();
     _syncRequestedChildRoute();
     _capturePresentationSource();
   }
 
   @override
   void dispose() {
-    _presentationViewportController.dispose();
+    _presentationResponsiveCanvasController.dispose();
     super.dispose();
   }
 
@@ -2726,17 +2727,15 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           ),
         );
       }
-      final frame = const PresentationCinematicEvaluator().evaluate(
-        asset,
-        timeUs: 0,
-      );
-      final documentIsEmpty = asset.tracks.every(
+      final resolvedAsset = asset;
+      final documentIsEmpty = resolvedAsset.tracks.every(
         (track) => track.clips.isEmpty,
       );
+      final evaluator = const PresentationCinematicEvaluator();
       return KeyedSubtree(
         key: const ValueKey('cinematics-presentation-document-route'),
         child: PresentationStudioShell(
-          title: asset.title,
+          title: resolvedAsset.title,
           documentState: PokeMapCinematicDocumentState.saved,
           statusLabel: 'Enregistré',
           layoutStore: _presentationLayoutStore,
@@ -2746,13 +2745,19 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           onExit: _closePresentationDocument,
           onDiscard: () async {},
           onSave: () async => true,
-          previewToolbar: _PresentationStudioPreviewToolbar(
-            viewportController: _presentationViewportController,
+          previewToolbar: PresentationStudioResponsiveToolbar(
+            controller: _presentationResponsiveCanvasController,
           ),
-          canvas: PresentationStudioViewport(
-            controller: _presentationViewportController,
-            frame: documentIsEmpty ? null : frame,
-            orientation: PresentationFrameOrientation.landscape,
+          canvas: PresentationStudioResponsiveCanvas(
+            controller: _presentationResponsiveCanvasController,
+            frameBuilder: (playheadUs) => documentIsEmpty
+                ? null
+                : evaluator.evaluate(
+                    resolvedAsset,
+                    timeUs: playheadUs
+                        .clamp(0, resolvedAsset.durationUs)
+                        .toInt(),
+                  ),
             contentPort: const _PresentationStudioContentPort(),
             playerTheme: PokeMapPlayerTheme.dark(),
           ),
@@ -3820,60 +3825,6 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
 
 String _cinematicAuthoringOperationId(String action) =>
     'cinematic_${action}_${DateTime.now().microsecondsSinceEpoch}';
-
-class _PresentationStudioPreviewToolbar extends StatelessWidget {
-  const _PresentationStudioPreviewToolbar({required this.viewportController});
-
-  final PresentationStudioViewportController viewportController;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          const PokeMapBadge(
-            label: 'Aperçu',
-            variant: PokeMapBadgeVariant.info,
-          ),
-          const SizedBox(width: 8),
-          PokeMapButton(
-            onPressed: null,
-            disabledReason: 'Disponible avec le viewport Presentation.',
-            size: PokeMapButtonSize.small,
-            variant: PokeMapButtonVariant.secondary,
-            child: const Text('16:9'),
-          ),
-          const SizedBox(width: 6),
-          PokeMapButton(
-            onPressed: null,
-            disabledReason: 'Disponible avec le viewport Presentation.',
-            size: PokeMapButtonSize.small,
-            variant: PokeMapButtonVariant.secondary,
-            child: const Text('9:16'),
-          ),
-          const SizedBox(width: 6),
-          PokeMapButton(
-            onPressed: null,
-            disabledReason: 'Disponible avec le mode Compare.',
-            size: PokeMapButtonSize.small,
-            variant: PokeMapButtonVariant.ghost,
-            leading: const Icon(CupertinoIcons.square_split_2x1),
-            child: const Text('Comparer'),
-          ),
-          const SizedBox(width: 6),
-          PokeMapButton(
-            onPressed: viewportController.fit,
-            size: PokeMapButtonSize.small,
-            variant: PokeMapButtonVariant.ghost,
-            leading: const Icon(CupertinoIcons.arrow_up_left_arrow_down_right),
-            child: const Text('Ajuster'),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 final class _PresentationStudioContentPort
     implements PresentationFrameContentPort {

@@ -13,6 +13,7 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_shell.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_responsive_canvas.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_viewport.dart';
 import 'package:map_editor/src/ui/canvas/cutscene_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_navigation.dart';
@@ -307,12 +308,28 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(PresentationStudioShell), findsOneWidget);
+      expect(find.byType(PresentationStudioResponsiveCanvas), findsOneWidget);
       expect(find.byType(PresentationStudioViewport), findsOneWidget);
       expect(find.text('Aucun contenu à afficher'), findsOneWidget);
       expect(find.byType(CinematicsLibraryWorkspace), findsNothing);
       expect(find.text('Cinématiques in-game'), findsNothing);
       expect(find.text('Cinématiques de présentation'), findsNothing);
       expect(find.text('Ouverture Avelune'), findsWidgets);
+
+      await tester.tap(find.byKey(presentationStudioPortraitModeKey));
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey('presentation-studio-portrait-viewport'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(presentationStudioCompareModeKey));
+      await tester.pump();
+      expect(find.byType(PresentationStudioViewport), findsNWidgets(2));
+      expect(find.text('Paysage 16:9'), findsOneWidget);
+      expect(find.text('Portrait 9:16'), findsOneWidget);
 
       await tester.tap(
         find.byKey(const ValueKey('cinematics-presentation-route-back')),

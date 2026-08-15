@@ -83,6 +83,8 @@ class PresentationStudioViewport extends StatefulWidget {
     this.errorMessage,
     this.onRetry,
     this.showSafeArea = true,
+    this.orientationOverrides = const PresentationFrameOrientationOverrides(),
+    this.onFocused,
   });
 
   final PresentationStudioViewportController? controller;
@@ -94,6 +96,8 @@ class PresentationStudioViewport extends StatefulWidget {
   final String? errorMessage;
   final VoidCallback? onRetry;
   final bool showSafeArea;
+  final PresentationFrameOrientationOverrides orientationOverrides;
+  final VoidCallback? onFocused;
 
   @override
   State<PresentationStudioViewport> createState() =>
@@ -198,8 +202,8 @@ class _PresentationStudioViewportState
                     child: GestureDetector(
                       key: presentationStudioViewportGestureKey,
                       behavior: HitTestBehavior.opaque,
-                      onTap: _focusNode.requestFocus,
-                      onPanStart: (_) => _focusNode.requestFocus(),
+                      onTap: _requestFocus,
+                      onPanStart: (_) => _requestFocus(),
                       onPanUpdate: (details) =>
                           _controller.panBy(details.delta),
                       child: LayoutBuilder(
@@ -277,12 +281,18 @@ class _PresentationStudioViewportState
       orientation: widget.orientation,
       contentPort: widget.contentPort,
       playerTheme: widget.playerTheme,
+      orientationOverrides: widget.orientationOverrides,
     );
+  }
+
+  void _requestFocus() {
+    _focusNode.requestFocus();
+    widget.onFocused?.call();
   }
 
   void _handlePointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent || event.scrollDelta.dy == 0) return;
-    _focusNode.requestFocus();
+    _requestFocus();
     if (event.scrollDelta.dy < 0) {
       _controller.zoomIn();
     } else {

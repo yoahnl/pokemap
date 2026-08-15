@@ -220,6 +220,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('applies portrait overrides without mutating the shared frame', (
+    tester,
+  ) async {
+    final authored = PresentationVisualComposition(translateX: 0.1);
+    final frame = _frameWithComposition(authored);
+
+    await tester.pumpWidget(
+      _app(
+        PresentationFrameRenderer(
+          frame: frame,
+          orientation: PresentationFrameOrientation.portrait,
+          contentPort: _ContentPort(),
+          orientationOverrides: PresentationFrameOrientationOverrides(
+            visualsByClipId: {
+              'composed': PresentationVisualOrientationOverride(
+                portrait: PresentationVisualComposition(translateX: -0.4),
+              ),
+            },
+          ),
+        ),
+      ),
+    );
+
+    final translation = tester.widget<FractionalTranslation>(
+      find.byKey(
+        const ValueKey<String>('presentation-visual-translation-composed'),
+      ),
+    );
+    expect(translation.translation, const Offset(-0.4, 0));
+    expect(identical(frame.visuals.single.composition, authored), isTrue);
+  });
+
   testWidgets('uses the evaluator-projected reduced motion composition', (
     tester,
   ) async {
