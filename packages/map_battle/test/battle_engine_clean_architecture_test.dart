@@ -148,6 +148,33 @@ void main() {
       expect(next.state.currentTurn, isNotNull);
       expect(next.state.enemy.currentHp, lessThan(20));
     });
+
+    test('clean engine replays seeded speed ties and advances generic RNG', () {
+      BattleEngineTurnResult run(int seed) {
+        return BattleEngine(
+          setup: _cleanSetup(
+            playerSpeed: 50,
+            opponentSpeed: 50,
+            genericSeed: seed,
+          ),
+        ).submit(const BattleDecision.fight(moveSlot: 0));
+      }
+
+      final seedZero = run(0);
+      final replay = run(0);
+      final seedOne = run(1);
+      BattlePositionRef firstUser(BattleEngineTurnResult result) {
+        return result.timeline.events
+            .whereType<BattleMoveDeclaredTimelineEvent>()
+            .first
+            .user;
+      }
+
+      expect(firstUser(seedZero), firstUser(replay));
+      expect(firstUser(seedZero), isNot(firstUser(seedOne)));
+      expect(seedZero.state.rngSeeds.generic, 1013904223);
+      expect(seedOne.state.rngSeeds.generic, 1015568748);
+    });
   });
 }
 
@@ -156,6 +183,9 @@ BattleEngineSetup _cleanSetup({
   List<PsdkBattleMoveData>? opponentMoves,
   int playerHp = 40,
   int opponentHp = 40,
+  int playerSpeed = 45,
+  int opponentSpeed = 43,
+  int genericSeed = 4,
 }) {
   return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: PsdkBattleCombatantSetup(
@@ -166,12 +196,12 @@ BattleEngineSetup _cleanSetup({
       maxHp: playerHp,
       currentHp: playerHp,
       types: const PsdkBattleTypes(primary: 'grass', secondary: 'poison'),
-      stats: const PsdkBattleStats(
+      stats: PsdkBattleStats(
         attack: 49,
         defense: 49,
         specialAttack: 65,
         specialDefense: 65,
-        speed: 45,
+        speed: playerSpeed,
       ),
       moves: playerMoves ??
           <PsdkBattleMoveData>[
@@ -187,20 +217,20 @@ BattleEngineSetup _cleanSetup({
       maxHp: opponentHp,
       currentHp: opponentHp,
       types: const PsdkBattleTypes(primary: 'water'),
-      stats: const PsdkBattleStats(
+      stats: PsdkBattleStats(
         attack: 48,
         defense: 65,
         specialAttack: 50,
         specialDefense: 64,
-        speed: 43,
+        speed: opponentSpeed,
       ),
       moves: opponentMoves ?? <PsdkBattleMoveData>[_tackle(power: 40)],
     ),
-    rngSeeds: const PsdkBattleRngSeeds(
+    rngSeeds: PsdkBattleRngSeeds(
       moveDamage: 1,
       moveCritical: 2,
       moveAccuracy: 3,
-      generic: 4,
+      generic: genericSeed,
     ),
   );
 }

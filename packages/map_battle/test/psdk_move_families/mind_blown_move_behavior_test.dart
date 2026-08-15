@@ -246,7 +246,7 @@ void main() {
       );
       final result = const PsdkBattleMoveExecutor().execute(
         PsdkBattleMoveRequest(
-          state: PsdkBattleState(
+          state: PsdkBattleState.pokeMapBetaV1ForTest(
             combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
               psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
                 _combatant(

@@ -605,7 +605,7 @@ void main() {
 
       expect(
         () => BattleProgressionResult(
-          rulesetReference: PokemonRulesetProfile.pokeMapBetaV1Reference,
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           state: state,
           appliedReward: BattleReward(
             sourceKind: BattleRewardSourceKind.wild,

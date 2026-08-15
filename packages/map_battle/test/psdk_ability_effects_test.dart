@@ -3565,7 +3565,7 @@ void main() {
       const userSlot = PsdkBattleSlotRef(bank: 0, position: 0);
       const allySlot = PsdkBattleSlotRef(bank: 0, position: 1);
       const foeSlot = PsdkBattleSlotRef(bank: 1, position: 0);
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           userSlot: PsdkBattleCombatant.fromSetup(
             _combatant(id: 'user', move: _move(id: 'surf', power: 60)),
@@ -6802,7 +6802,7 @@ BattleHandlerResult _switchOutPrimalWeather({
       _combatant(id: 'opponent', move: _move(id: 'opponent_wait', power: 0)),
     ),
   };
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: combatants,
     parties: <int, List<PsdkBattleCombatant>>{
       psdkPlayerSlot.bank: <PsdkBattleCombatant>[active, bench],
@@ -6853,7 +6853,7 @@ BattleHandlerResult _faintPrimalWeatherHolder({
       _combatant(id: 'opponent', move: _move(id: 'opponent_wait', power: 0)),
     ),
   };
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: combatants,
     field: PsdkBattleFieldState(
       weather: PsdkBattleWeatherState(id: weather, remainingTurns: null),
@@ -7082,7 +7082,7 @@ BattleHandlerResult _switchOutFormAbilityHolder({
       move: _move(id: 'opponent_wait', power: 0),
     ),
   );
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: active,
       psdkOpponentSlot: opponent,
@@ -7109,7 +7109,7 @@ const _psdkPlayerAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
 const _psdkOpponentAllySlot = PsdkBattleSlotRef(bank: 1, position: 1);
 
 BattleHandlerResult _resolveHealerEndTurn({required int genericSeed}) {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7147,7 +7147,7 @@ BattleHandlerResult _resolveHealerEndTurn({required int genericSeed}) {
 }
 
 BattleHandlerResult _dispatchHospitalitySwitchIn() {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7182,7 +7182,7 @@ BattleHandlerResult _dispatchHospitalitySwitchIn() {
 }
 
 BattleHandlerResult _dispatchCostarSwitchIn() {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7223,7 +7223,7 @@ BattleHandlerResult _dispatchCostarSwitchIn() {
 }
 
 BattleHandlerResult _dispatchCuriousMedicineSwitchIn() {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7520,6 +7520,7 @@ int _calculatedDamage({
           ),
           rng: _rng(),
           field: field,
+          state: state,
           isLastActionOfTurn: isLastActionOfTurn,
         ),
       )
@@ -7592,7 +7593,7 @@ int _calculatedDoublesDamage({
   const userAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
   const targetSlot = PsdkBattleSlotRef(bank: 1, position: 0);
   const targetAllySlot = PsdkBattleSlotRef(bank: 1, position: 1);
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       userSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7751,7 +7752,7 @@ BattleHandlerResult _applyAllyKoAbilityDamage({
   int targetCurrentHp = 100,
   int rawDamage = 30,
 }) {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7885,7 +7886,7 @@ BattleHandlerResult _applyPlayerStatDrop({
     ),
   );
   final state = originalTargets.contains(_psdkOpponentAllySlot)
-      ? PsdkBattleState(
+      ? PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: player,
             psdkOpponentSlot: opponent,

@@ -162,7 +162,7 @@ void main() {
     test('dragon cheer uses the PSDK dragon-type critical bonus', () {
       const critWindowSeeds = BattleRngSeeds(
         moveDamage: 1,
-        moveCritical: 20000,
+        moveCritical: 2,
         moveAccuracy: 3,
         generic: 4,
       );

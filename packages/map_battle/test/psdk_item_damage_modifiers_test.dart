@@ -237,9 +237,10 @@ void main() {
       final ordered = ordering.order(
         actions: <PsdkBattleAction>[opponentAction, playerAction],
         rng: BattleRngStreams.fromSeedSnapshot(_seeds),
+        rules: state.battleRules,
       );
 
-      expect(ordered.first.user.toJson(), psdkPlayerSlot.toJson());
+      expect(ordered.actions.first.user.toJson(), psdkPlayerSlot.toJson());
       expect((playerAction as PsdkBattleFightAction).speed, 120);
     });
 

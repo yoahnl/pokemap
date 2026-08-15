@@ -445,6 +445,7 @@ void main() {
 
     test('s_roost neutralizes Flying type until the end of the turn', () {
       final noRoost = _runMove(
+        genericSeed: 1,
         playerTypes: const PsdkBattleTypes(primary: 'flying'),
         playerMove: _move(
           id: 'splash',
@@ -461,6 +462,7 @@ void main() {
         ),
       );
       final roost = _runMove(
+        genericSeed: 1,
         playerCurrentHp: 50,
         playerTypes: const PsdkBattleTypes(primary: 'flying'),
         playerMove: _move(
@@ -591,6 +593,7 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleMajorStatus? opponentMajorStatus,
   PsdkBattleEffectStack? opponentEffects,
   String? opponentAbilityId,
+  int genericSeed = 4,
 }) {
   final engine = PsdkBattleEngine(
     setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
@@ -619,11 +622,11 @@ PsdkBattleTurnResult _runMove({
         effects: opponentEffects,
         abilityId: opponentAbilityId,
       ),
-      rngSeeds: const PsdkBattleRngSeeds(
+      rngSeeds: PsdkBattleRngSeeds(
         moveDamage: 1,
         moveCritical: 99999,
         moveAccuracy: 3,
-        generic: 4,
+        generic: genericSeed,
       ),
       field: field,
     ),
@@ -769,7 +772,7 @@ const _psdkOpponentRightSlot = PsdkBattleSlotRef(bank: 1, position: 1);
 PsdkBattleState _doublesState({
   required int userCurrentHp,
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(

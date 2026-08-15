@@ -86,6 +86,7 @@ void main() {
 
     final result = evolutions.useItemByIndividualId(
       reordered.state,
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       itemId: 'item_leaf_stone',
       individualId: 'pkm_evolve',
       candidate: _evolutionCandidate,

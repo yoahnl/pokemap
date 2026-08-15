@@ -1,5 +1,6 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_battle/src/battle_condition_engine.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 BattleStatsSnapshot _stats({
@@ -524,7 +525,12 @@ void main() {
         reserve: const <BattleCombatant>[],
       ).withStealthRock(true).withSpikesLayers(3);
 
-      final result = engine.runEntryHazards(side: side);
+      final result = engine.runEntryHazards(
+        side: side,
+        rules: PokemonBattleRules.fromProfile(
+          PokemonRulesetProfile.pokeMapBetaV1,
+        ),
+      );
 
       expect(result.side.active.isFainted, isTrue);
       expect(

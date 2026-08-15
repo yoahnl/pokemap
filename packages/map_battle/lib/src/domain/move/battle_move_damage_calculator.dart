@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
@@ -8,6 +10,7 @@ import '../effect/ability/ability_effect.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/item/item_effect.dart';
 import '../rng/battle_rng_streams.dart';
+import '../../pokemon_battle_rules.dart';
 import 'battle_move_critical_resolver.dart';
 import 'battle_move_data.dart';
 import 'battle_move_type_processor.dart';
@@ -27,6 +30,7 @@ final class BattleMoveDamageCalculator {
   final BattleGroundingResolver _groundingResolver;
 
   BattleMoveDamageResult calculate(BattleMoveDamageContext context) {
+    final rules = PokemonBattleRules.fromProfile(context.rulesetProfile);
     final move = context.move;
     final moveType = _effectiveMoveType(context);
     final resolvedPower = _effectivePower(context);
@@ -46,11 +50,13 @@ final class BattleMoveDamageCalculator {
     }
 
     final stabMultiplier = _typeProcessor.resolveStabMultiplier(
+      rules: rules,
       moveType: moveType,
       userTypes: _effectiveVisibleTypes(context.user),
       extraUserTypes: _extraTypes(context.user),
     );
     final effectiveness = _typeProcessor.resolveEffectiveness(
+      rules: rules,
       moveType: moveType,
       targetTypes: _effectiveVisibleTypes(context.target),
       extraTargetTypes: _extraTypes(context.target),
@@ -75,6 +81,7 @@ final class BattleMoveDamageCalculator {
     }
 
     final critical = _criticalResolver.resolve(
+      rules: rules,
       move: move,
       rng: context.rng,
       criticalRate: _effectiveCriticalRate(context),
@@ -511,6 +518,7 @@ double _applyLocalEffectivenessModifiers(
   if (context.move.battleEngineMethod == 's_flying_press') {
     final flyingEffectiveness = const BattleMoveTypeProcessor()
         .resolveEffectiveness(
+          rules: PokemonBattleRules.fromProfile(context.rulesetProfile),
           moveType: 'flying',
           targetTypes: context.target.types,
           extraTargetTypes: _extraTypes(context.target),
@@ -682,6 +690,7 @@ final class BattleMoveDamageContext {
     required this.rng,
     this.field = const PsdkBattleFieldState(),
     this.state,
+    this.ruleset,
     this.userSlot,
     this.targetSlot,
     this.supportingAbilityEffects = const <BattleAbilityEffect>[],
@@ -695,11 +704,22 @@ final class BattleMoveDamageContext {
   final BattleRngStreams rng;
   final PsdkBattleFieldState field;
   final PsdkBattleState? state;
+  final PokemonRulesetProfile? ruleset;
   final PsdkBattleSlotRef? userSlot;
   final PsdkBattleSlotRef? targetSlot;
   final Iterable<BattleAbilityEffect> supportingAbilityEffects;
   final BattleMoveDamageOverrides? overrides;
   final bool isLastActionOfTurn;
+
+  PokemonRulesetProfile get rulesetProfile {
+    final resolved = state?.ruleset ?? ruleset;
+    if (resolved == null) {
+      throw StateError(
+        'Battle move damage requires the project Pokemon ruleset.',
+      );
+    }
+    return resolved;
+  }
 }
 
 typedef BattleMoveStatResolver = int Function(bool isCritical);

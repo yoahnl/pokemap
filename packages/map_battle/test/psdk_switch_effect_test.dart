@@ -44,7 +44,7 @@ void main() {
     test('CantSwitch clears when its origin switches out without Baton Pass',
         () {
       const benchSlot = PsdkBattleSlotRef(bank: 0, position: -1);
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(id: 'origin'),
@@ -89,7 +89,7 @@ void main() {
 
     test('CantSwitch survives when its origin switches through Baton Pass', () {
       const benchSlot = PsdkBattleSlotRef(bank: 0, position: -1);
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(

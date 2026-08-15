@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -17,7 +18,7 @@ void main() {
             partyIndex: 1,
           ),
         ],
-      ).ordered(rng: _rng());
+      ).ordered(rng: _rng(), rules: _rules).actions;
 
       expect(ordered.first.kind, PsdkBattleActionKind.switchPokemon);
       expect(ordered.last.kind, PsdkBattleActionKind.fight);
@@ -39,7 +40,7 @@ void main() {
             speed: 1,
           ),
         ],
-      ).ordered(rng: _rng());
+      ).ordered(rng: _rng(), rules: _rules).actions;
 
       expect((ordered.first as PsdkBattleFightAction).move.id, 'quick_attack');
       expect((ordered.last as PsdkBattleFightAction).move.id, 'tackle');
@@ -51,22 +52,38 @@ void main() {
           _fight(user: psdkPlayerSlot, moveId: 'fast', speed: 100),
           _fight(user: psdkOpponentSlot, moveId: 'slow', speed: 1),
         ],
-      ).ordered(rng: _rng(), trickRoom: true);
+      ).ordered(rng: _rng(), rules: _rules, trickRoom: true).actions;
 
       expect((ordered.first as PsdkBattleFightAction).move.id, 'slow');
       expect((ordered.last as PsdkBattleFightAction).move.id, 'fast');
     });
 
-    test('keeps bank order for exact fight ties', () {
-      final ordered = PsdkBattleActionQueue(
+    test('uses the ruleset RNG for exact fight ties', () {
+      final result = PsdkBattleActionQueue(
         actions: <PsdkBattleAction>[
-          _fight(user: psdkOpponentSlot, moveId: 'opponent_tackle', speed: 50),
           _fight(user: psdkPlayerSlot, moveId: 'player_tackle', speed: 50),
+          _fight(user: psdkOpponentSlot, moveId: 'opponent_tackle', speed: 50),
         ],
-      ).ordered(rng: _rng());
+      ).ordered(
+        rng: _rng(genericSeed: 0),
+        rules: _rules,
+      );
 
-      expect(ordered.first.user, psdkPlayerSlot);
-      expect(ordered.last.user, psdkOpponentSlot);
+      expect(result.actions.first.user, psdkOpponentSlot);
+      expect(result.actions.last.user, psdkPlayerSlot);
+      expect(result.rng.generic.seed, 1013904223);
+
+      final opposite = PsdkBattleActionQueue(
+        actions: <PsdkBattleAction>[
+          _fight(user: psdkPlayerSlot, moveId: 'player_tackle', speed: 50),
+          _fight(user: psdkOpponentSlot, moveId: 'opponent_tackle', speed: 50),
+        ],
+      ).ordered(
+        rng: _rng(genericSeed: 1),
+        rules: _rules,
+      );
+      expect(opposite.actions.first.user, psdkPlayerSlot);
+      expect(opposite.rng.generic.seed, 1015568748);
     });
 
     test('inserts slower allied Round immediately after the first allied Round',
@@ -78,7 +95,7 @@ void main() {
           _fight(user: playerAllySlot, moveId: 'round_slow', speed: 20),
           _fight(user: psdkOpponentSlot, moveId: 'opponent_fast', speed: 90),
         ],
-      ).ordered(rng: _rng());
+      ).ordered(rng: _rng(), rules: _rules).actions;
 
       expect(
         ordered.map((action) => (action as PsdkBattleFightAction).move.id),
@@ -179,12 +196,16 @@ PsdkBattleFightAction _fight({
   );
 }
 
-BattleRngStreams _rng() {
+final _rules = PokemonBattleRules.fromProfile(
+  PokemonRulesetProfile.pokeMapBetaV1,
+);
+
+BattleRngStreams _rng({int genericSeed = 1}) {
   return BattleRngStreams.fromSeeds(
     moveDamageSeed: 1,
     moveCriticalSeed: 1,
     moveAccuracySeed: 1,
-    genericSeed: 1,
+    genericSeed: genericSeed,
   );
 }
 

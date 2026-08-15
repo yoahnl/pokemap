@@ -6,6 +6,7 @@ import 'game_state_mutations.dart';
 import 'items/item_catalog_snapshot.dart';
 import 'pokemon_evolution_service.dart';
 import 'pokemon_experience_curve.dart';
+import 'pokemon_gameplay_rules.dart';
 import 'pokemon_stat_calculator.dart';
 
 export 'battle_progression_result.dart'
@@ -136,13 +137,13 @@ final class BattleProgressionService {
     bool applyAuthoredRewards = true,
     ItemCatalogSnapshot? itemCatalog,
   }) {
-    context.ruleset.requireSupported();
+    final rules = PokemonGameplayRules.fromProfile(context.ruleset);
     if (context.outcome != BattleProgressionOutcomeKind.victory) {
       return BattleProgressionResult(
         state: state,
         appliedReward: _emptyRewardLike(reward),
         changes: const <BattlePokemonProgressionChange>[],
-        rulesetReference: context.ruleset.reference,
+        ruleset: context.ruleset,
       );
     }
 
@@ -162,7 +163,7 @@ final class BattleProgressionService {
     final totalExperience = _totalExperience(
       opponents: context.defeatedOpponents,
       sourceKind: reward.sourceKind,
-      ruleset: context.ruleset,
+      rules: rules,
     );
     final experiencePerParticipant = totalExperience ~/ participantSlots.length;
     final plannedGrants = <BattleExperienceGrant>[
@@ -207,7 +208,7 @@ final class BattleProgressionService {
         );
       }
       final capExperience = curve.totalExperienceForLevel(
-        context.ruleset.maxLevel,
+        rules.maxLevel,
       );
       if (oldExperience > capExperience) {
         throw StateError(
@@ -222,7 +223,7 @@ final class BattleProgressionService {
       final effectiveExperience = newExperience - oldExperience;
       final newLevel = curve.levelForExperience(
         newExperience,
-        maxLevel: context.ruleset.maxLevel,
+        maxLevel: rules.maxLevel,
       );
       final calculatedStats = statCalculator.calculate(
         baseStats: metadata.baseStats,
@@ -332,7 +333,7 @@ final class BattleProgressionService {
       changes: changes,
       moveLearningOpportunities: moveLearningOpportunities,
       evolutionOpportunities: evolutionOpportunities,
-      rulesetReference: context.ruleset.reference,
+      ruleset: context.ruleset,
     );
   }
 }
@@ -417,14 +418,8 @@ Map<int, List<PokemonEvolutionCandidate>> _evolutionCandidatesBySlot(
 int _totalExperience({
   required Iterable<BattleProgressionDefeatedOpponent> opponents,
   required BattleRewardSourceKind sourceKind,
-  required PokemonRulesetProfile ruleset,
+  required PokemonGameplayRules rules,
 }) {
-  if (ruleset.experiencePolicyId !=
-      PokemonRulesetProfile.canonicalExperiencePolicyId) {
-    throw StateError(
-      'Unsupported Pokemon XP policy: ${ruleset.experiencePolicyId}.',
-    );
-  }
   // Dart VM integers are arbitrary precision, while web targets use a bounded
   // safe integer range. Saturating here keeps the split deterministic across
   // both targets without allowing an authored opponent list to overflow.
@@ -432,12 +427,11 @@ int _totalExperience({
   var total = 0;
   for (final opponent in opponents) {
     final validated = opponent.validated();
-    final earned = switch (sourceKind) {
-      BattleRewardSourceKind.wild =>
-        (validated.level * validated.baseExperience) ~/ 7,
-      BattleRewardSourceKind.trainer =>
-        (validated.level * validated.baseExperience * 3) ~/ 14,
-    };
+    final earned = rules.experienceForDefeatedPokemon(
+      level: validated.level,
+      baseExperience: validated.baseExperience,
+      trainerBattle: sourceKind == BattleRewardSourceKind.trainer,
+    );
     if (earned >= maxSafeExperience - total) return maxSafeExperience;
     total += earned;
   }

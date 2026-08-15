@@ -646,9 +646,7 @@ void main() {
       expect(afterTurn.state.currentTurn!.executions.first.attacker, 'player');
     });
 
-    test(
-        'equal priority and equal speed use the deterministic player tie-break',
-        () {
+    test('equal priority and equal speed use the seeded ruleset tie-break', () {
       final session = createBattleSession(
         BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
@@ -682,11 +680,56 @@ void main() {
           isTrainerBattle: false,
           trainerId: null,
         ),
+        orderingRng: const BattleSeededRng(state: 1),
       );
 
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
 
       expect(afterTurn.state.currentTurn!.executions.first.attacker, 'player');
+      expect((afterTurn.orderingRng as BattleSeededRng).state, 1015568748);
+    });
+
+    test('another seed can give the opponent the exact speed tie', () {
+      final session = createBattleSession(
+        BattleSetup.pokeMapBetaV1ForTest(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'pikachu',
+            level: 20,
+            maxHp: 50,
+            stats: _stats(speed: 70),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'eevee',
+            level: 20,
+            maxHp: 50,
+            stats: _stats(speed: 70),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        orderingRng: const BattleSeededRng(state: 0),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.currentTurn!.executions.first.attacker, 'enemy');
+      expect((afterTurn.orderingRng as BattleSeededRng).state, 1013904223);
     });
 
     test('a self speed boost changes order only on the following turn', () {

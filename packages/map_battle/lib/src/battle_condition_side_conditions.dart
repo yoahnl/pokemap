@@ -73,13 +73,17 @@ final class _BattleSideConditionRules {
 
   BattleSideConditionResolution runEntryHazards({
     required BattleSideState side,
+    required PokemonBattleRules rules,
   }) {
     // R3 garde ici la plus petite composition honnête :
     // - l'ordre local reste figé et documenté, pas dynamique ;
     // - `Stealth Rock` puis `Spikes` ;
     // - si `Stealth Rock` met K.O. l'entrant, `Spikes` ne se déclenche pas ;
     // - le scheduler reste propriétaire du "quand une entrée a lieu".
-    final stealthRockResolution = _resolveStealthRockEntry(side: side);
+    final stealthRockResolution = _resolveStealthRockEntry(
+      side: side,
+      rules: rules,
+    );
     final sideAfterStealthRock = stealthRockResolution.side;
     if (sideAfterStealthRock.active.isFainted) {
       return BattleSideConditionResolution(
@@ -134,6 +138,7 @@ final class _BattleSideConditionRules {
 
   _ResolvedStealthRockLifecycle _resolveStealthRockEntry({
     required BattleSideState side,
+    required PokemonBattleRules rules,
   }) {
     if (!side.hasStealthRock) {
       return _ResolvedStealthRockLifecycle(
@@ -142,7 +147,10 @@ final class _BattleSideConditionRules {
       );
     }
 
-    final intendedDamage = resolveStealthRockEntryDamage(side.active);
+    final intendedDamage = resolveStealthRockEntryDamage(
+      side.active,
+      rules: rules,
+    );
     if (intendedDamage <= 0) {
       return _ResolvedStealthRockLifecycle(
         side: side,

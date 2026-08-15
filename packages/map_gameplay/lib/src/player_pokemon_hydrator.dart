@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import 'pokemon_experience_curve.dart';
 import 'pokemon_stat_calculator.dart';
+import 'pokemon_gameplay_rules.dart';
 
 enum PlayerPokemonHydrationOrigin {
   newGame,
@@ -18,6 +19,7 @@ enum PlayerPokemonHydrationDiagnosticCode {
   unsupportedRuleset,
   unknownSpecies,
   invalidLevel,
+  invalidFriendship,
   invalidNature,
   invalidAbility,
   tooManyMoves,
@@ -143,8 +145,9 @@ final class PlayerPokemonHydrator {
       );
     }
 
+    PokemonGameplayRules? rules;
     try {
-      ruleset.requireSupported();
+      rules = PokemonGameplayRules.fromProfile(ruleset);
     } on FormatException catch (exception) {
       error(
         PlayerPokemonHydrationDiagnosticCode.unsupportedRuleset,
@@ -164,11 +167,22 @@ final class PlayerPokemonHydrator {
       );
     }
 
-    if (pokemon.level < 1 || pokemon.level > ruleset.maxLevel) {
+    if (rules != null &&
+        (pokemon.level < 1 || pokemon.level > rules.maxLevel)) {
       error(
         PlayerPokemonHydrationDiagnosticCode.invalidLevel,
-        'Pokemon level must be between 1 and ${ruleset.maxLevel}.',
+        'Pokemon level must be between 1 and ${rules.maxLevel}.',
       );
+    }
+    if (rules != null) {
+      try {
+        rules.validatedFriendship(pokemon.friendship);
+      } on RangeError {
+        error(
+          PlayerPokemonHydrationDiagnosticCode.invalidFriendship,
+          'Pokemon friendship must be between 0 and 255.',
+        );
+      }
     }
 
     var natureId = pokemon.natureId.trim().toLowerCase();
@@ -330,12 +344,13 @@ final class PlayerPokemonHydrator {
     }
     if (experienceCurve != null &&
         pokemon.level >= 1 &&
-        pokemon.level <= ruleset.maxLevel) {
+        rules != null &&
+        pokemon.level <= rules.maxLevel) {
       experience ??= experienceCurve.totalExperienceForLevel(pokemon.level);
       if (experience >= 0 &&
           experienceCurve.levelForExperience(
                 experience,
-                maxLevel: ruleset.maxLevel,
+                maxLevel: rules.maxLevel,
               ) !=
               pokemon.level) {
         error(
@@ -352,7 +367,8 @@ final class PlayerPokemonHydrator {
         'Pokemon current HP must be non-negative.',
       );
     } else if (pokemon.level >= 1 &&
-        pokemon.level <= ruleset.maxLevel &&
+        rules != null &&
+        pokemon.level <= rules.maxLevel &&
         canonicalPokemonNatureIds.contains(natureId)) {
       try {
         final maxHp = statCalculator

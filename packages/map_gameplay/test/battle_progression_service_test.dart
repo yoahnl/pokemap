@@ -308,7 +308,7 @@ void main() {
       ];
 
       final result = BattleProgressionResult(
-        rulesetReference: PokemonRulesetProfile.pokeMapBetaV1Reference,
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         state: applied.state,
         appliedReward: applied.appliedReward,
         changes: sourceChanges,

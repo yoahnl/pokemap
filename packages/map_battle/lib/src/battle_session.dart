@@ -16,12 +16,11 @@ import 'battle_switch.dart';
 import 'battle_topology.dart';
 import 'battle_volatile.dart';
 import 'battle_stats.dart';
-import 'battle_type_chart.dart';
 import 'capture_formula.dart';
+import 'pokemon_battle_rules.dart';
 
 part 'battle_session_scheduler.dart';
 
-const double _criticalHitMultiplier = 1.5;
 const BattleConditionEngine _conditionEngine = BattleConditionEngine();
 
 /// Crée une nouvelle session de combat.
@@ -34,6 +33,7 @@ const BattleConditionEngine _conditionEngine = BattleConditionEngine();
 BattleSession createBattleSession(
   BattleSetup setup, {
   BattleRng rng = const BattleSeededRng(),
+  BattleRng orderingRng = const BattleSeededRng(state: 1),
   BattleOpponentPolicy opponentPolicy = const BattleFirstLegalOpponentPolicy(),
 }) {
   setup.ruleset.requireSupported();
@@ -67,6 +67,7 @@ BattleSession createBattleSession(
     state: initialState,
     setup: setup,
     rng: rng,
+    orderingRng: orderingRng,
     opponentPolicy: opponentPolicy,
     pendingTurn: null,
     captureAttemptSequence: 0,
@@ -196,6 +197,7 @@ class BattleSession {
     required this.state,
     required this.setup,
     required this.rng,
+    required this.orderingRng,
     required this.opponentPolicy,
     required this.pendingTurn,
     required this.captureAttemptSequence,
@@ -216,6 +218,7 @@ class BattleSession {
   /// - le RNG reste un détail de résolution, pas une donnée UI/runtime ;
   /// - mais il reste explicitement injectable et immutable.
   final BattleRng rng;
+  final BattleRng orderingRng;
 
   /// Policy battle-locale de choix d'action adverse.
   ///
@@ -301,6 +304,7 @@ class BattleSession {
       ),
       setup: setup,
       rng: rng,
+      orderingRng: orderingRng,
       opponentPolicy: opponentPolicy,
       pendingTurn: pendingTurn,
       captureAttemptSequence: captureAttemptSequence,
@@ -350,6 +354,7 @@ class BattleSession {
       ),
       setup: setup,
       rng: rng,
+      orderingRng: orderingRng,
       opponentPolicy: opponentPolicy,
       pendingTurn: pendingTurn,
       captureAttemptSequence: captureAttemptSequence,
@@ -712,6 +717,7 @@ class BattleSession {
         ),
         setup: setup,
         rng: rng,
+        orderingRng: orderingRng,
         opponentPolicy: opponentPolicy,
         pendingTurn: null,
         captureAttemptSequence: captureAttemptSequence,
@@ -727,7 +733,8 @@ class BattleSession {
       final nextCaptureAttemptSequence = captureAttemptSequence + 1;
       final captureAttemptId =
           battleCaptureAttemptId(nextCaptureAttemptSequence);
-      final capture = const BattleCaptureFormula().attempt(
+      final capture =
+          PokemonBattleRules.fromProfile(setup.ruleset).attemptCapture(
         targetCurrentHp: state.enemy.currentHp,
         targetMaxHp: state.enemy.maxHp,
         catchRate: state.enemy.catchRate!,
@@ -753,6 +760,7 @@ class BattleSession {
           state: state,
           setup: setup,
           rng: capture.nextRng,
+          orderingRng: orderingRng,
           opponentPolicy: opponentPolicy,
           pendingTurn: pendingTurn,
           captureAttemptSequence: nextCaptureAttemptSequence,
@@ -792,6 +800,7 @@ class BattleSession {
         ),
         setup: setup,
         rng: capture.nextRng,
+        orderingRng: orderingRng,
         opponentPolicy: opponentPolicy,
         pendingTurn: null,
         captureAttemptSequence: nextCaptureAttemptSequence,
@@ -882,6 +891,7 @@ class BattleSession {
       state: newState,
       setup: setup,
       rng: turn.rng,
+      orderingRng: turnPlan.initialRng ?? orderingRng,
       opponentPolicy: opponentPolicy,
       pendingTurn: turn.pendingTurn,
       captureAttemptSequence: captureAttemptSequence,
@@ -1676,12 +1686,13 @@ class BattleSession {
     // - toujours aucune abilities, aucun item, aucune Tera ;
     // - BE9 n'ajoute ensuite qu'un unique modificateur météo local :
     //   la pluie pour Eau/Feu.
-    final stabMultiplier = BattleTypeChart.resolveStabMultiplier(
+    final battleRules = PokemonBattleRules.fromProfile(setup.ruleset);
+    final stabMultiplier = battleRules.resolveStabMultiplier(
       moveType: move.type,
       attackerTyping: attacker.typing,
     );
     final typeEffectivenessMultiplier =
-        BattleTypeChart.resolveEffectivenessMultiplier(
+        battleRules.resolveEffectivenessMultiplier(
       moveType: move.type,
       defenderTyping: defender.typing,
     );
@@ -1753,11 +1764,17 @@ class BattleSession {
     required BattleMove move,
     required BattleRng rng,
   }) {
-    final chance = _critChanceForRatio(move.critRatio);
-    if (chance.didOccurWithoutRng) {
+    if (move.critRatio < 1) {
+      throw StateError(
+        'Battle critical ratio must be >= 1; got ${move.critRatio}.',
+      );
+    }
+    final chance = PokemonBattleRules.fromProfile(setup.ruleset)
+        .criticalHitRule(move.critRatio);
+    if (chance.denominator == 1) {
       return _ResolvedCriticalHit(
-        didCrit: true,
-        multiplier: _criticalHitMultiplier,
+        didCrit: chance.numerator == 1,
+        multiplier: chance.numerator == 1 ? chance.damageMultiplier : 1.0,
         nextRng: rng,
       );
     }
@@ -1768,7 +1785,7 @@ class BattleSession {
     );
     return _ResolvedCriticalHit(
       didCrit: roll.didOccur,
-      multiplier: roll.didOccur ? _criticalHitMultiplier : 1.0,
+      multiplier: roll.didOccur ? chance.damageMultiplier : 1.0,
       nextRng: roll.next,
     );
   }
@@ -1802,35 +1819,6 @@ class BattleSession {
           : combatant,
       nextRng: roll.next,
     );
-  }
-
-  _CritChance _critChanceForRatio(int critRatio) {
-    // Table BE6 volontairement explicite :
-    // - on suit une lecture moderne Pokémon-like des stages de crit ;
-    // - `1` reste le ratio neutre du canonique projet ;
-    // - on ne prétend pas ouvrir Focus Energy, Lucky Chant ou d'autres
-    //   modificateurs indirects.
-    //
-    // Mini-fix BE6 puis BE6-mini-fix-2 :
-    // - la première version neutralisait silencieusement `critRatio <= 0`
-    //   dans la branche "ratio neutre" ;
-    // - cela laissait une donnée battle invalide devenir "à peu près valide" ;
-    // - le contrat public est désormais mieux verrouillé en amont, donc cette
-    //   garde sert surtout de défense en profondeur pour un état incohérent
-    //   qui réapparaîtrait à l'intérieur même de `map_battle` ;
-    // - on préfère maintenant un `StateError` explicite, parce qu'à ce stade
-    //   il s'agit d'un état battle incohérent, pas d'une simple option métier.
-    if (critRatio < 1) {
-      throw StateError(
-        'Battle critical ratio must be >= 1; got $critRatio.',
-      );
-    }
-    return switch (critRatio) {
-      1 => const _CritChance(numerator: 1, denominator: 24),
-      2 => const _CritChance(numerator: 1, denominator: 8),
-      3 => const _CritChance(numerator: 1, denominator: 2),
-      _ => const _CritChance.always(),
-    };
   }
 
   int _statValueFor(BattleStatsSnapshot snapshot, BattleStatId stat) {
@@ -2088,22 +2076,6 @@ class _ResolvedStatStageRiderApplication {
 
   final BattleCombatant combatant;
   final BattleRng nextRng;
-}
-
-class _CritChance {
-  const _CritChance({
-    required this.numerator,
-    required this.denominator,
-  }) : didOccurWithoutRng = false;
-
-  const _CritChance.always()
-      : numerator = 1,
-        denominator = 1,
-        didOccurWithoutRng = true;
-
-  final int numerator;
-  final int denominator;
-  final bool didOccurWithoutRng;
 }
 
 BattleSideState _replacePlayerCombatantByLineupIndex({

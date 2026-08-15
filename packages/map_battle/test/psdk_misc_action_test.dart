@@ -161,7 +161,7 @@ void main() {
         speciesId: 'rightmon',
         hp: 80,
       );
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           const PsdkBattleSlotRef(bank: 0, position: 0):
               PsdkBattleCombatant.fromSetup(left),

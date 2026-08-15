@@ -1,4 +1,6 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_battle/src/application/battle_turn_runner.dart';
+import 'package:map_battle/src/domain/battle/battle_context.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -72,8 +74,8 @@ void main() {
     });
 
     test('a bank can use only one offensive signature Z-Move', () {
-      final engine = BattleEngine(
-        setup: _setup(
+      final context = BattleContext.fromSetup(
+        _setup(
           playerSpeciesId: 'pikachu',
           playerHeldItemId: 'pikanium_z',
           playerMoves: <PsdkBattleMoveData>[
@@ -88,9 +90,14 @@ void main() {
           ],
         ),
       );
+      final runner = BattleTurnRunner(
+        context,
+        moveBehaviorRegistry: PsdkBattleMoveBehaviorRegistry.defaults(),
+        enforceRulesetFeatures: false,
+      );
 
-      final first = engine.submit(const BattleDecision.fight(moveSlot: 0));
-      final second = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      final first = runner.run(const BattleDecision.fight(moveSlot: 0));
+      final second = runner.run(const BattleDecision.fight(moveSlot: 0));
 
       expect(_damageEvents(first, moveId: 'catastropika'), hasLength(1));
       expect(
@@ -397,8 +404,8 @@ BattleEngineTurnResult _runZMove({
   int playerAttack = 80,
   int playerSpecialAttack = 80,
 }) {
-  final engine = BattleEngine(
-    setup: _setup(
+  final context = BattleContext.fromSetup(
+    _setup(
       playerSpeciesId: playerSpeciesId,
       playerHeldItemId: playerHeldItemId,
       playerForm: playerForm,
@@ -412,7 +419,12 @@ BattleEngineTurnResult _runZMove({
       field: field,
     ),
   );
-  return engine.submit(const BattleDecision.fight(moveSlot: 0));
+  final runner = BattleTurnRunner(
+    context,
+    moveBehaviorRegistry: PsdkBattleMoveBehaviorRegistry.defaults(),
+    enforceRulesetFeatures: false,
+  );
+  return runner.run(const BattleDecision.fight(moveSlot: 0));
 }
 
 BattleEngineSetup _setup({

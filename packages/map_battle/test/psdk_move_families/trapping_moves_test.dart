@@ -98,7 +98,7 @@ void main() {
     });
 
     test('CantSwitch no longer prevents switching when its origin fainted', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -152,7 +152,7 @@ void main() {
     });
 
     test('CantSwitch clears during end turn when its origin fainted', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(

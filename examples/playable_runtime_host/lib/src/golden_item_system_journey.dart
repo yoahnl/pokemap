@@ -277,6 +277,7 @@ final class GoldenItemSystemJourney {
     _require(machine != null, 'TM compatibility was not resolved.');
     final learned = const PokemonMoveMachineService().apply(
       state,
+      ruleset: project.pokemon.ruleset,
       partyIndex: 0,
       candidate: machine!,
       decision: const PokemonMoveMachineDecision.learn(),
@@ -298,6 +299,7 @@ final class GoldenItemSystemJourney {
     final hmQuantityBefore = _bagQuantities(state)['hm-surf'];
     final learnedHm = const PokemonMoveMachineService().apply(
       state,
+      ruleset: project.pokemon.ruleset,
       partyIndex: 0,
       candidate: hm!,
       decision: const PokemonMoveMachineDecision.replace(

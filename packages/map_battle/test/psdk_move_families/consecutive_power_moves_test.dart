@@ -355,7 +355,7 @@ void main() {
     });
 
     test('s_echo chain advances even when its field-effect owner faints', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -647,7 +647,7 @@ BattleMoveBehaviorResolution _resolveRound({
   const userSlot = psdkPlayerSlot;
   const allySlot = PsdkBattleSlotRef(bank: 0, position: 1);
   const targetSlot = psdkOpponentSlot;
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       userSlot: PsdkBattleCombatant.fromSetup(
         _combatant(id: 'player', speed: 100, move: move),
@@ -700,7 +700,7 @@ BattleMoveBehaviorResolution _resolvePledge({
   const userSlot = psdkPlayerSlot;
   const allySlot = PsdkBattleSlotRef(bank: 0, position: 1);
   const targetSlot = psdkOpponentSlot;
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       userSlot: PsdkBattleCombatant.fromSetup(
         _combatant(id: 'player', speed: 100, move: playerMove),

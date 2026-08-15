@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('PSDK Mega and form gimmick actions', () {
-    test('eligible battler mega evolves before a regular move', () {
+    test('canonical beta ruleset refuses an eligible mega action', () {
       final engine = BattleEngine(
         setup: _setup(
           player: _combatant(
@@ -17,36 +17,14 @@ void main() {
         ),
       );
 
-      final result = engine.submit(
-        BattleDecision.mega(form: _megaForm()),
-      );
-
-      final active = result.state.battlerAt(psdkPlayerSlot);
-      expect(active.speciesId, 'charizard_mega_x');
-      expect(active.displayName, 'Charizard Mega X');
-      expect(active.types.primary, 'fire');
-      expect(active.types.secondary, 'dragon');
-      expect(active.stats.attack, 130);
-      expect(active.abilityId, 'tough_claws');
-      expect(active.currentHp, 80);
-      expect(active.maxHp, 120);
-      expect(result.state.psdkState.hasMegaEvolvedBank(0), isTrue);
       expect(
-        result.timeline.events
-            .whereType<BattleEffectTimelineEvent>()
-            .map((event) => event.effectId),
-        contains('mega:charizard_mega_x'),
+        () => engine.submit(BattleDecision.mega(form: _megaForm())),
+        throwsA(isA<PokemonRulesetFeatureDisabledError>()),
       );
-
-      final megaIndex = result.timeline.events.indexWhere(
-        (event) =>
-            event is BattleEffectTimelineEvent &&
-            event.effectId == 'mega:charizard_mega_x',
-      );
-      final moveIndex = result.timeline.events.indexWhere(
-        (event) => event is BattleMovePpSpentTimelineEvent,
-      );
-      expect(megaIndex, lessThan(moveIndex));
+      expect(engine.snapshot().turnNumber, 0);
+      expect(
+          engine.snapshot().battlerAt(psdkPlayerSlot).speciesId, 'charizard');
+      expect(engine.snapshot().psdkState.hasMegaEvolvedBank(0), isFalse);
     });
 
     test('ineligible battler fails without mutating the turn', () {
@@ -63,14 +41,14 @@ void main() {
 
       expect(
         () => engine.submit(BattleDecision.mega(form: _megaForm())),
-        throwsStateError,
+        throwsA(isA<PokemonRulesetFeatureDisabledError>()),
       );
       expect(engine.snapshot().turnNumber, 0);
       expect(engine.snapshot().battlerAt(psdkPlayerSlot).speciesId, 'venusaur');
       expect(engine.snapshot().psdkState.hasMegaEvolvedBank(0), isFalse);
     });
 
-    test('once-per-battle rule rejects a second mega action for the bank', () {
+    test('repeated disabled mega commands stay side-effect free', () {
       final engine = BattleEngine(
         setup: _setup(
           player: _combatant(
@@ -83,22 +61,69 @@ void main() {
         ),
       );
 
-      engine.submit(BattleDecision.mega(form: _megaForm()));
+      for (var attempt = 0; attempt < 2; attempt += 1) {
+        expect(
+          () => engine.submit(BattleDecision.mega(form: _megaForm())),
+          throwsA(isA<PokemonRulesetFeatureDisabledError>()),
+        );
+      }
 
+      expect(engine.snapshot().turnNumber, 0);
       expect(
-        () => engine.submit(
-          BattleDecision.mega(
-            form: _megaForm(
-              speciesId: 'charizard_mega_y',
-              displayName: 'Charizard Mega Y',
-            ),
+          engine.snapshot().battlerAt(psdkPlayerSlot).speciesId, 'charizard');
+      expect(engine.snapshot().psdkState.hasMegaEvolvedBank(0), isFalse);
+    });
+
+    test('canonical beta ruleset refuses a direct Z-move command', () {
+      final engine = BattleEngine(
+        setup: _setup(
+          player: _combatant(
+            id: 'player-pikachu',
+            speciesId: 'pikachu',
+            hp: 80,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'catastropika',
+                power: 210,
+                battleEngineMethod: 's_z_move',
+              ),
+            ],
           ),
         ),
-        throwsStateError,
       );
-      expect(engine.snapshot().battlerAt(psdkPlayerSlot).speciesId,
-          'charizard_mega_x');
-      expect(engine.snapshot().psdkState.hasMegaEvolvedBank(0), isTrue);
+
+      expect(
+        () => engine.submit(const BattleDecision.fight(moveSlot: 0)),
+        throwsA(isA<PokemonRulesetFeatureDisabledError>()),
+      );
+      expect(engine.snapshot().turnNumber, 0);
+      expect(engine.snapshot().psdkState.hasZMoveUsedBank(0), isFalse);
+    });
+
+    test('canonical beta ruleset refuses an opponent Z-move command', () {
+      final engine = BattleEngine(
+        setup: _setup(
+          player: _combatant(
+            id: 'player-pikachu',
+            speciesId: 'pikachu',
+            hp: 80,
+          ),
+          opponentMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'catastropika',
+              power: 210,
+              battleEngineMethod: 's_z_move',
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        () => engine.submit(const BattleDecision.fight(moveSlot: 0)),
+        throwsA(isA<PokemonRulesetFeatureDisabledError>()),
+      );
+      expect(engine.snapshot().turnNumber, 0);
+      expect(engine.snapshot().psdkState.hasZMoveUsedBank(1), isFalse);
     });
   });
 }
@@ -177,6 +202,7 @@ PsdkBattleCombatantSetup _combatant({
 PsdkBattleMoveData _move({
   required String id,
   required int power,
+  String battleEngineMethod = 's_basic',
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -188,7 +214,7 @@ PsdkBattleMoveData _move({
     accuracy: 100,
     pp: 35,
     priority: 0,
-    battleEngineMethod: 's_basic',
+    battleEngineMethod: battleEngineMethod,
     target: PsdkBattleMoveTarget.adjacentFoe,
   );
 }

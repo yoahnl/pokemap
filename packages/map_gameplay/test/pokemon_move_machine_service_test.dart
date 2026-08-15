@@ -38,6 +38,7 @@ void main() {
 
   test('learns into a free slot, initializes PP, and consumes one TM', () {
     final result = service.apply(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       _state(moves: const <String>['tackle', 'growl'], quantity: 2),
       partyIndex: 0,
       candidate: machine,
@@ -79,6 +80,7 @@ void main() {
     );
 
     final pending = service.apply(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       state,
       partyIndex: 0,
       candidate: machine,
@@ -86,6 +88,7 @@ void main() {
       itemCatalog: itemCatalog,
     );
     final replaced = service.apply(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       state,
       partyIndex: 0,
       candidate: machine,
@@ -122,6 +125,7 @@ void main() {
     );
 
     final declined = service.apply(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       state,
       partyIndex: 0,
       candidate: machine,
@@ -129,6 +133,7 @@ void main() {
       itemCatalog: itemCatalog,
     );
     final stale = service.apply(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       state,
       partyIndex: 0,
       candidate: machine,
@@ -153,6 +158,7 @@ void main() {
       consumable: false,
     );
     final first = service.apply(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       _state(moves: const <String>['tackle'], itemId: 'hm-surf'),
       partyIndex: 0,
       candidate: hm,
@@ -160,6 +166,7 @@ void main() {
       itemCatalog: itemCatalog,
     );
     final duplicate = service.apply(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       first.state,
       partyIndex: 0,
       candidate: hm,
@@ -188,6 +195,7 @@ void main() {
     );
 
     final result = service.apply(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       state,
       partyIndex: 0,
       candidate: keyMachine,

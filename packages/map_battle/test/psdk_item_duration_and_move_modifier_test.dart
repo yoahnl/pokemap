@@ -181,7 +181,7 @@ BattleHandlerResult _tickLeechSeed({
   required String? sourceHeldItemId,
   PsdkBattleEffectStack sourceEffects = const PsdkBattleEffectStack.empty(),
 }) {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(

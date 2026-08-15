@@ -350,7 +350,7 @@ PsdkBattleState _doublesState({
   String? opponentAbilityId,
   String? opponentRightAbilityId,
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(

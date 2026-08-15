@@ -91,7 +91,7 @@ BattleMoveBehaviorResolution _execute(
 }
 
 PsdkBattleState _doublesState() {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(id: 'player', move: _move(id: 'wait', power: 0)),

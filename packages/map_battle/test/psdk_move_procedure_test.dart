@@ -41,7 +41,7 @@ void main() {
 
     test('no target emits a clean failure event and PSDK failure event', () {
       final execution = _execution(
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(id: 'player'),

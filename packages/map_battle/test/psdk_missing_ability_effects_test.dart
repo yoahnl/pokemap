@@ -1135,7 +1135,7 @@ PsdkBattleState _doublesState({
   int opponentSpeed = 80,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -1170,7 +1170,7 @@ PsdkBattleState _commanderState({
   bool tatsugiriSwitching = false,
   bool dondozoSwitching = false,
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(

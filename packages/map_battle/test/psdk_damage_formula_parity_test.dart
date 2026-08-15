@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -113,6 +114,7 @@ BattleMoveDamageResult _calculate({
       target: target,
       move: move,
       field: field,
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       rng: BattleRngStreams.fromSeeds(
         moveDamageSeed: 14,
         moveCriticalSeed: 99999,

@@ -86,7 +86,7 @@ void main() {
     test('pre accuracy hook runs before a no-target failure', () {
       final calls = <String>[];
       final execution = _execution(
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(

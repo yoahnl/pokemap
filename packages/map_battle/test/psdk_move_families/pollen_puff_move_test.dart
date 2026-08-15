@@ -13,7 +13,7 @@ void main() {
         battleEngineMethod: 's_pollen_puff',
         target: PsdkBattleMoveTarget.adjacentAlly,
       );
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: _combatant(
             id: 'player',
@@ -58,7 +58,7 @@ void main() {
         power: 90,
         battleEngineMethod: 's_pollen_puff',
       );
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: _combatant(id: 'player', move: move),
           psdkOpponentSlot: _combatant(
@@ -96,7 +96,7 @@ void main() {
         battleEngineMethod: 's_pollen_puff',
         target: PsdkBattleMoveTarget.adjacentAlly,
       );
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: _combatant(
             id: 'player',
@@ -140,7 +140,7 @@ void main() {
         battleEngineMethod: 's_pollen_puff',
         target: PsdkBattleMoveTarget.adjacentAlly,
       );
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: _combatant(
             id: 'player',

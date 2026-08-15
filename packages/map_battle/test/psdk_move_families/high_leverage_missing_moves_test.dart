@@ -458,34 +458,31 @@ void main() {
       );
     });
 
-    test('s_z_move executes its offensive Studio Z-Move hit', () {
-      final result = _runMove(
-        playerSpeciesId: 'pikachu',
-        playerHeldItemId: 'pikanium_z',
-        playerMove: _move(
-          id: 'catastropika',
-          type: 'electric',
-          category: PsdkBattleMoveCategory.physical,
-          power: 210,
-          accuracy: 0,
-          battleEngineMethod: 's_z_move',
-        ),
-        playerExtraMoves: <PsdkBattleMoveData>[
-          _move(
-            id: 'volt_tackle',
+    test('s_z_move is refused by the beta ruleset', () {
+      expect(
+        () => _runMove(
+          playerSpeciesId: 'pikachu',
+          playerHeldItemId: 'pikanium_z',
+          playerMove: _move(
+            id: 'catastropika',
             type: 'electric',
             category: PsdkBattleMoveCategory.physical,
-            power: 120,
-            battleEngineMethod: 's_basic',
+            power: 210,
+            accuracy: 0,
+            battleEngineMethod: 's_z_move',
           ),
-        ],
-        opponentTypes: const PsdkBattleTypes(primary: 'water'),
-      );
-
-      expect(_damageEvents(result, moveId: 'catastropika'), hasLength(1));
-      expect(
-        result.state.battlerAt(psdkOpponentSlot).currentHp,
-        lessThan(100),
+          playerExtraMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'volt_tackle',
+              type: 'electric',
+              category: PsdkBattleMoveCategory.physical,
+              power: 120,
+              battleEngineMethod: 's_basic',
+            ),
+          ],
+          opponentTypes: const PsdkBattleTypes(primary: 'water'),
+        ),
+        throwsA(isA<PokemonRulesetFeatureDisabledError>()),
       );
     });
 
@@ -992,7 +989,7 @@ void main() {
       final result = _resolveMoveOnState(
         move: move,
         target: psdkPlayerSlot,
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -2224,7 +2221,7 @@ void main() {
         power: 80,
         battleEngineMethod: 's_order_up',
       );
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -2816,7 +2813,7 @@ void main() {
           accuracy: 100,
           battleEngineMethod: 's_doodle',
         ),
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -2872,7 +2869,7 @@ void main() {
           accuracy: 100,
           battleEngineMethod: 's_doodle',
         ),
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -3362,7 +3359,7 @@ void main() {
       );
       final result = _resolveMoveOnState(
         move: move,
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -3415,7 +3412,7 @@ void main() {
       );
       final result = _resolveMoveOnState(
         move: move,
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -4025,7 +4022,7 @@ void main() {
       final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
       final result = _resolveMoveOnState(
         move: move,
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -4075,7 +4072,7 @@ void main() {
       final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
       final result = _resolveMoveOnState(
         move: move,
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -4279,7 +4276,7 @@ void main() {
       );
       final result = _resolveMoveOnState(
         move: move,
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -4354,7 +4351,7 @@ void main() {
       final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
       final result = _resolveMoveOnState(
         move: move,
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -4416,7 +4413,7 @@ void main() {
       );
       final result = _resolveMoveOnState(
         move: move,
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -4458,7 +4455,7 @@ void main() {
       final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
       final result = _resolveMoveOnState(
         move: move,
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -4525,7 +4522,7 @@ void main() {
       final allySlot = const PsdkBattleSlotRef(bank: 0, position: 1);
       final result = _resolveMoveOnState(
         move: move,
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(
@@ -5048,7 +5045,7 @@ PsdkBattleState _dragonDartsState({
       const <PsdkBattleSlotRef, PsdkBattleEffectStack>{},
   List<PsdkBattleSlotRef> opponentAllySlots = const <PsdkBattleSlotRef>[],
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(

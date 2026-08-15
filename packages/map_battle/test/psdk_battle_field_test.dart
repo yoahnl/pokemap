@@ -74,7 +74,7 @@ void main() {
 
     test('Air Lock and Cloud Nine suppress weather effects without clearing it',
         () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         field: const PsdkBattleFieldState(
           weather: PsdkBattleWeatherState(
             id: PsdkBattleWeatherId.rain,

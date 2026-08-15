@@ -1,5 +1,8 @@
 library map_gameplay;
 
+export 'src/pokemon_gameplay_rules.dart'
+    show PokemonGameplayFeatureDisabledError, PokemonGameplayRules;
+
 export 'src/battle_reward.dart'
     show
         BattleRewardSourceKind,

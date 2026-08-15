@@ -249,7 +249,7 @@ PsdkBattleState _state({
   required PsdkBattleCombatantSetup user,
   required PsdkBattleCombatantSetup target,
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkOpponentSlot: PsdkBattleCombatant.fromSetup(user),
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(target),

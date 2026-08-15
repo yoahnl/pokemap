@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import 'player_pokemon_hydrator.dart';
 import 'pokemon_stat_calculator.dart';
+import 'pokemon_gameplay_rules.dart';
 
 final class WildPokemonGenerationProfile {
   const WildPokemonGenerationProfile._({
@@ -121,16 +122,19 @@ final class WildPlayerPokemonGenerator {
     ProjectEncounterPokemonOverrides? overrides,
   }) {
     final profile = WildPokemonGenerationProfile.forRuleset(ruleset);
+    final rules = PokemonGameplayRules.fromProfile(ruleset);
     final normalizedSpeciesId = species.id.trim();
     if (normalizedSpeciesId.isEmpty) {
       throw const FormatException('Wild Pokemon species id must not be empty.');
     }
-    if (level < 1 || level > ruleset.maxLevel) {
+    if (level < 1 || level > rules.maxLevel) {
       throw FormatException(
-        'Wild Pokemon level must be between 1 and ${ruleset.maxLevel}.',
+        'Wild Pokemon level must be between 1 and ${rules.maxLevel}.',
       );
     }
-    if (species.baseFriendship < 0 || species.baseFriendship > 255) {
+    try {
+      rules.validatedFriendship(species.baseFriendship);
+    } on RangeError {
       throw const FormatException(
         'Wild Pokemon base friendship must be between 0 and 255.',
       );

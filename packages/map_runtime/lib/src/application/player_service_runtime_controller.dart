@@ -640,6 +640,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             );
       final result = const PokemonMoveMachineService().apply(
         state,
+        ruleset: pokemonConfig.ruleset,
         partyIndex: partyIndex,
         candidate: candidate,
         decision: decision,
@@ -735,6 +736,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       final result = pokemon.individualId.isEmpty
           ? const PokemonEvolutionItemOperations().useItem(
               state,
+              ruleset: pokemonConfig.ruleset,
               itemId: itemId,
               partyIndex: partyIndex,
               candidate: eligible.single,
@@ -743,6 +745,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
             )
           : const PokemonEvolutionItemOperations().useItemByIndividualId(
               state,
+              ruleset: pokemonConfig.ruleset,
               itemId: itemId,
               individualId: pokemon.individualId,
               candidate: eligible.single,
