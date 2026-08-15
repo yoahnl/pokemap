@@ -17,6 +17,47 @@ export function registerMutationTools(
   authoring: AuthoringGateway,
 ): void {
   server.registerTool(
+    "pokemap_project_bootstrap",
+    {
+      title: "Inspect or repair a PokeMap project bootstrap",
+      description:
+        "Inspects a project before opening it and can transactionally add the canonical Pokemon ruleset after exact confirmation.",
+      inputSchema: z.discriminatedUnion("operation", [
+        z
+          .object({
+            operation: z.literal("inspect"),
+            projectRoot: z.string().min(1),
+          })
+          .strict(),
+        z
+          .object({
+            operation: z.literal("repair_ruleset"),
+            projectRoot: z.string().min(1),
+            expectedRevision: revisionSchema,
+            confirmation: z.literal("REPAIR POKEMON RULESET"),
+          })
+          .strict(),
+      ]),
+      outputSchema: toolEnvelopeSchema,
+      annotations: mutationAnnotations,
+    },
+    async (input) =>
+      input.operation === "inspect"
+        ? authoringResult(() =>
+            authoring.request("project_bootstrap_inspect", {
+              projectRoot: input.projectRoot,
+            }),
+          )
+        : authoringResult(() =>
+            authoring.request("project_bootstrap_repair", {
+              projectRoot: input.projectRoot,
+              expectedRevision: input.expectedRevision,
+              confirmation: input.confirmation,
+            }),
+          ),
+  );
+
+  server.registerTool(
     "pokemap_artifact_stage",
     {
       title: "Stage a local PokeMap artifact",

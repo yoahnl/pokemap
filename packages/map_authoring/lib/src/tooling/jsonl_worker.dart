@@ -33,6 +33,7 @@ import '../transactions/plan_store.dart';
 import '../transactions/recovery_service.dart';
 import '../transactions/revision_set.dart';
 import '../workspace/project_open_service.dart';
+import '../workspace/project_pokemon_ruleset_bootstrap_service.dart';
 import '../workspace/project_query_service.dart';
 import '../workspace/project_snapshot.dart';
 import '../workspace/workspace_handle_store.dart';
@@ -47,10 +48,12 @@ final class JsonlWorker {
   JsonlWorker({
     required AuthoringReadApiPort api,
     AuthoringMutationApiPort? mutations,
+    ProjectPokemonRulesetBootstrapApiPort? projectBootstrap,
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
     this.commandTimeout = const Duration(seconds: 10),
   })  : _api = api,
-        _mutations = mutations {
+        _mutations = mutations,
+        _projectBootstrap = projectBootstrap {
     if (maxInputBytes <= 0) {
       throw ArgumentError.value(
         maxInputBytes,
@@ -69,6 +72,7 @@ final class JsonlWorker {
 
   final AuthoringReadApiPort _api;
   final AuthoringMutationApiPort? _mutations;
+  final ProjectPokemonRulesetBootstrapApiPort? _projectBootstrap;
   final int maxInputBytes;
   final Duration commandTimeout;
 
@@ -142,6 +146,15 @@ final class JsonlWorker {
       result = _failure(
         requestId,
         code: AuthoringErrorCode.validationFailed,
+        domainCode: error.code,
+        message: error.message,
+      );
+    } on ProjectPokemonRulesetBootstrapException catch (error) {
+      result = _failure(
+        requestId,
+        code: error.code == 'project.ruleset_repair_revision_conflict'
+            ? AuthoringErrorCode.revisionConflict
+            : AuthoringErrorCode.validationFailed,
         domainCode: error.code,
         message: error.message,
       );
@@ -364,6 +377,34 @@ final class JsonlWorker {
           rethrow;
         }
         return Map.unmodifiable({...opened, 'readOnly': false});
+      case 'project_bootstrap_inspect':
+        rejectUnknownContractKeys(args, const {'projectRoot'});
+        return _bootstrapApi().inspect(
+          requireContractString(args['projectRoot'], 'args.projectRoot'),
+        );
+      case 'project_bootstrap_repair':
+        rejectUnknownContractKeys(
+          args,
+          const {
+            'projectRoot',
+            'expectedRevision',
+            'confirmation',
+          },
+        );
+        return _bootstrapApi().repair(
+          projectRootPath: requireContractString(
+            args['projectRoot'],
+            'args.projectRoot',
+          ),
+          expectedRevision: requireContractString(
+            args['expectedRevision'],
+            'args.expectedRevision',
+          ),
+          confirmation: requireContractString(
+            args['confirmation'],
+            'args.confirmation',
+          ),
+        );
       case 'query':
         rejectUnknownContractKeys(
           args,
@@ -501,6 +542,9 @@ final class JsonlWorker {
   AuthoringMutationApiPort _mutationApi() =>
       _mutations ?? (throw const _UnsupportedWorkerCommand());
 
+  ProjectPokemonRulesetBootstrapApiPort _bootstrapApi() =>
+      _projectBootstrap ?? (throw const _UnsupportedWorkerCommand());
+
   AuthoringArtifactStagingPort _artifactStagingApi() {
     final mutations = _mutations;
     if (mutations is! AuthoringArtifactStagingPort) {
@@ -516,13 +560,25 @@ final class JsonlWorker {
   Map<String, Object?> _combinedDescription() {
     final read = _api.describe();
     final mutations = _mutations;
-    if (mutations == null) return read;
-    final mutation = mutations.describeMutations();
+    final bootstrap = _projectBootstrap;
+    if (mutations == null && bootstrap == null) return read;
+    final mutation = mutations?.describeMutations();
     final commands = <Map<String, Object?>>[
       for (final command in read['commands']! as List)
         Map<String, Object?>.from(command as Map),
-      for (final command in mutation['commands']! as List)
-        Map<String, Object?>.from(command as Map),
+      if (mutation != null)
+        for (final command in mutation['commands']! as List)
+          Map<String, Object?>.from(command as Map),
+      if (bootstrap != null)
+        const {
+          'id': 'project_bootstrap_inspect',
+          'summary': 'Inspect a project before opening it.',
+        },
+      if (bootstrap != null)
+        const {
+          'id': 'project_bootstrap_repair',
+          'summary': 'Repair a missing explicit Pokemon ruleset.',
+        },
     ]..sort(
         (left, right) =>
             (left['id']! as String).compareTo(right['id']! as String),
@@ -533,9 +589,10 @@ final class JsonlWorker {
         'protocol': 'pokemap.authoring.v1',
         'readOnly': false,
         'commands': commands,
-        'mutationActions': mutation['actions'],
-        'multiFileGuarantee': mutation['multiFileGuarantee'],
-        'fullParity': mutation['fullParity'],
+        if (mutation != null) 'mutationActions': mutation['actions'],
+        if (mutation != null)
+          'multiFileGuarantee': mutation['multiFileGuarantee'],
+        if (mutation != null) 'fullParity': mutation['fullParity'],
       },
       field: 'describe',
     );

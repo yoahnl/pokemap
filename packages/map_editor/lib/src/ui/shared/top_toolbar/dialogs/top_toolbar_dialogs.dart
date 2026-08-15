@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../../features/editor/presentation/map_activation_guard.dart';
 import '../../../../features/editor/state/editor_notifier.dart';
+import '../../../../theme/theme.dart';
 import '../../../design_system/pokemap_resize_impact_dialog.dart';
 import '../../cupertino_editor_widgets.dart';
 
@@ -283,6 +284,21 @@ void showTopToolbarProjectSettingsDialog(
                           defaultPlayerCharacterId = picked?.id;
                         });
                       },
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Profil Pokémon',
+                      style: editorMacosSheetTitleStyle(
+                        ctx,
+                      ).copyWith(fontSize: 15),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'PokeMap Beta v1 · niveau maximum '
+                      '${project.pokemon.ruleset.maxLevel}',
+                      style: MacosTheme.of(ctx).typography.caption1.copyWith(
+                        color: ctx.pokeMapColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     Text(

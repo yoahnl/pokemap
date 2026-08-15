@@ -121,9 +121,35 @@ ProjectManifest _decodeManifest(List<int> bytes) {
     }
     return ProjectManifest.fromJson(Map<String, dynamic>.from(decoded));
   } on Object {
+    if (_isOtherwiseValidManifestMissingPokemonRuleset(bytes)) {
+      throw const ProjectOpenException(
+        'project.pokemon_ruleset_required',
+        'The project manifest requires an explicit Pokemon ruleset.',
+      );
+    }
     throw const ProjectOpenException(
       'project.manifest_invalid',
       'The project manifest is not valid PokeMap JSON.',
     );
+  }
+}
+
+bool _isOtherwiseValidManifestMissingPokemonRuleset(List<int> bytes) {
+  try {
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is! Map) return false;
+    final json = Map<String, dynamic>.from(decoded);
+    final pokemonValue = json['pokemon'];
+    if (pokemonValue is! Map) return false;
+    final pokemon = Map<String, dynamic>.from(pokemonValue);
+    if (pokemon.containsKey('ruleset') && pokemon['ruleset'] != null) {
+      return false;
+    }
+    pokemon['ruleset'] = PokemonRulesetProfile.pokeMapBetaV1.toJson();
+    json['pokemon'] = pokemon;
+    ProjectManifest.fromJson(json);
+    return true;
+  } on Object {
+    return false;
   }
 }

@@ -64,6 +64,11 @@ Future<void> main(List<String> arguments) async {
   final worker = JsonlWorker(
     api: api,
     mutations: mutations,
+    projectBootstrap: ProjectPokemonRulesetBootstrapService(
+      policy: policy,
+      fileReader: fileReader,
+      writer: const LocalProjectManifestBootstrapWriter(),
+    ),
     commandTimeout: options.commandTimeout,
     maxInputBytes: options.maxInputBytes,
   );

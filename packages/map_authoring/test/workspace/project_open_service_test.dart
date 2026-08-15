@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
@@ -77,6 +78,40 @@ void main() {
                 (error) => error.toString(),
                 'safe message',
                 isNot(contains(project.path)),
+              ),
+        ),
+      );
+    });
+
+    test('identifies a missing explicit Pokemon ruleset', () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_open_missing_ruleset_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await Directory(_join(sandbox.path, 'project')).create();
+      final fixtureJson = jsonDecode(
+        await File(_join(_realFixtureDirectory().path, 'project.json'))
+            .readAsString(),
+      ) as Map<String, dynamic>;
+      (fixtureJson['pokemon'] as Map<String, dynamic>).remove('ruleset');
+      await File(_join(project.path, 'project.json')).writeAsString(
+        jsonEncode(fixtureJson),
+      );
+      final harness = await _Harness.create(sandbox);
+
+      await expectLater(
+        () => harness.service.openProject(project.path),
+        throwsA(
+          isA<ProjectOpenException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'project.pokemon_ruleset_required',
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Pokemon ruleset'),
               ),
         ),
       );

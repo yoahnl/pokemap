@@ -47,7 +47,7 @@ async function connect(
   return { client, server };
 }
 
-test("all ten tools publish strict schemas, outputs and annotations", async () => {
+test("all eleven tools publish strict schemas, outputs and annotations", async () => {
   const gateway: AuthoringGateway = {
     async request() {
       return { requestId: "conformance", data: {}, artifacts: [] };
@@ -65,6 +65,7 @@ test("all ten tools publish strict schemas, outputs and annotations", async () =
         "pokemap_query",
         "pokemap_validate",
         "pokemap_workspace",
+        "pokemap_project_bootstrap",
         "pokemap_artifact_stage",
         "pokemap_plan",
         "pokemap_apply",
@@ -78,6 +79,64 @@ test("all ten tools publish strict schemas, outputs and annotations", async () =
       assertStrictSchema(tool.inputSchema, tool.name);
       assert.equal(typeof tool.annotations?.readOnlyHint, "boolean", tool.name);
     }
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+  }
+});
+
+test("project bootstrap maps inspect and confirmed repair to canonical commands", async () => {
+  const calls: Array<{ command: string; args: JsonRecord | undefined }> = [];
+  const gateway: AuthoringGateway = {
+    async request(command, args) {
+      calls.push({ command, args });
+      return {
+        requestId: command,
+        data: command === "project_bootstrap_inspect"
+          ? {
+              repairRequired: true,
+              currentRevision: `sha256:${"a".repeat(64)}`,
+            }
+          : { changed: true },
+        artifacts: [],
+      };
+    },
+    async close() {},
+  };
+  const fixture = await connect(gateway);
+  try {
+    const inspected = await fixture.client.callTool({
+      name: "pokemap_project_bootstrap",
+      arguments: {
+        operation: "inspect",
+        projectRoot: "/allowed/project",
+      },
+    });
+    assert.equal(record(record(inspected.structuredContent).data).repairRequired, true);
+    const repaired = await fixture.client.callTool({
+      name: "pokemap_project_bootstrap",
+      arguments: {
+        operation: "repair_ruleset",
+        projectRoot: "/allowed/project",
+        expectedRevision: `sha256:${"a".repeat(64)}`,
+        confirmation: "REPAIR POKEMON RULESET",
+      },
+    });
+    assert.equal(record(record(repaired.structuredContent).data).changed, true);
+    assert.deepEqual(calls, [
+      {
+        command: "project_bootstrap_inspect",
+        args: { projectRoot: "/allowed/project" },
+      },
+      {
+        command: "project_bootstrap_repair",
+        args: {
+          projectRoot: "/allowed/project",
+          expectedRevision: `sha256:${"a".repeat(64)}`,
+          confirmation: "REPAIR POKEMON RULESET",
+        },
+      },
+    ]);
   } finally {
     await fixture.client.close();
     await fixture.server.close();

@@ -21,6 +21,8 @@ export 'src/ports/project_file_reader.dart'
         ProjectResourceProbeReader,
         ProjectResourceProbeStatus,
         ProjectSnapshotCacheIdentityReader;
+export 'src/ports/project_manifest_bootstrap_writer.dart'
+    show LocalProjectManifestBootstrapWriter;
 export 'src/references/project_reference_index.dart' show ProjectReferenceIndex;
 export 'src/security/authorization_policy.dart' show AuthoringSecurityLimits;
 export 'src/support/authoring_performance_observer.dart';
