@@ -17,6 +17,7 @@ import '../../application/authoring_api/presentation_studio_property_authoring_g
 import '../../application/authoring_api/presentation_studio_property_command.dart';
 import '../../application/authoring_api/presentation_studio_timeline_authoring_gateway.dart';
 import '../../application/authoring_api/presentation_studio_timeline_command.dart';
+import '../../application/authoring_api/presentation_timeline_projection_gateway.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../application/models/narrative_document_route.dart';
 import '../../domain/repositories/repositories.dart';
@@ -1801,6 +1802,12 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             mutations: ref.read(authoringMutationAdapterProvider),
             queries: ref.read(authoringQueryAdapterProvider),
           ),
+          presentationTimelineProjectionGateway:
+              CanonicalPresentationTimelineProjectionGateway(
+            reader: AuthoringPresentationTimelineProjectionMediaReader(
+              queries: ref.read(authoringQueryAdapterProvider),
+            ),
+          ),
           projectRootPath: editor.projectRootPath,
           project: editor.project,
           activeMap: editor.activeMap,
@@ -2589,6 +2596,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
     required this.presentationTimelineGateway,
     required this.presentationPropertyGateway,
     required this.presentationAddGateway,
+    required this.presentationTimelineProjectionGateway,
     required this.projectRootPath,
     required this.project,
     required this.activeMap,
@@ -2613,6 +2621,8 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
       presentationTimelineGateway;
   final PresentationStudioPropertyAuthoringGateway presentationPropertyGateway;
   final PresentationStudioAddAuthoringGateway presentationAddGateway;
+  final PresentationTimelineProjectionGateway
+      presentationTimelineProjectionGateway;
   final String? projectRootPath;
   final ProjectManifest? project;
   final MapData? activeMap;
@@ -2643,6 +2653,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   bool _presentationLayerMutationPending = false;
   PresentationTimelineEditingController?
       _presentationTimelineEditingController;
+  PresentationTimelineProjectionController?
+      _presentationTimelineProjectionController;
   final List<PresentationTimelineAuthoringTransaction>
       _presentationTimelineUndo = <PresentationTimelineAuthoringTransaction>[];
   final List<PresentationTimelineAuthoringTransaction>
@@ -2660,6 +2672,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     _presentationLayoutStore = FilePresentationStudioLayoutStore();
     _presentationResponsiveCanvasController =
         PresentationStudioResponsiveCanvasController(durationUs: 0);
+    _syncPresentationTimelineProjectionController();
     _syncRequestedChildRoute();
     _capturePresentationSource();
   }
@@ -2667,6 +2680,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   @override
   void dispose() {
     _presentationTimelineEditingController?.dispose();
+    _presentationTimelineProjectionController?.dispose();
     _presentationResponsiveCanvasController.dispose();
     super.dispose();
   }
@@ -2687,6 +2701,22 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       _presentationPropertyRedo.clear();
       _capturePresentationSource();
     }
+    if (oldWidget.projectRootPath != widget.projectRootPath ||
+        oldWidget.project != widget.project) {
+      _syncPresentationTimelineProjectionController();
+    }
+  }
+
+  void _syncPresentationTimelineProjectionController() {
+    _presentationTimelineProjectionController?.dispose();
+    final projectRootPath = widget.projectRootPath?.trim();
+    _presentationTimelineProjectionController =
+        projectRootPath == null || projectRootPath.isEmpty
+        ? null
+        : PresentationTimelineProjectionController(
+            projectRootPath: projectRootPath,
+            gateway: widget.presentationTimelineProjectionGateway,
+          );
   }
 
   void _syncRequestedChildRoute() {
@@ -2914,6 +2944,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               selectionController:
                   _presentationResponsiveCanvasController.selection,
               editingController: timelineEditingController,
+              projectionController:
+                  _presentationTimelineProjectionController,
               onPlayheadChanged:
                   _presentationResponsiveCanvasController.seekTo,
               onCommand: (command) => unawaited(

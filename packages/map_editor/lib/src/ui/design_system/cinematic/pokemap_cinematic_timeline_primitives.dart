@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../../../theme/theme.dart';
@@ -204,6 +206,7 @@ class PokeMapCinematicTimelineClip extends StatelessWidget {
     this.tone = PokeMapTone.cinematic,
     this.state = PokeMapCinematicTimelineClipState.normal,
     this.stateLabel,
+    this.preview,
     this.selected = false,
     this.onPressed,
     this.startTrimLabel,
@@ -224,6 +227,7 @@ class PokeMapCinematicTimelineClip extends StatelessWidget {
   final PokeMapTone tone;
   final PokeMapCinematicTimelineClipState state;
   final String? stateLabel;
+  final Widget? preview;
   final bool selected;
   final VoidCallback? onPressed;
   final String? startTrimLabel;
@@ -282,6 +286,15 @@ class PokeMapCinematicTimelineClip extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
+                if (preview != null)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: preview,
+                      ),
+                    ),
+                  ),
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: selected ? 12 : 8,
@@ -373,6 +386,275 @@ class PokeMapCinematicTimelineClip extends StatelessWidget {
       ),
     );
   }
+}
+
+class PokeMapCinematicAudioTimelinePreview extends StatelessWidget {
+  const PokeMapCinematicAudioTimelinePreview({
+    super.key,
+    required this.amplitudes,
+    required this.volume,
+    required this.fadeInFraction,
+    required this.fadeOutFraction,
+    required this.loop,
+  });
+
+  final List<double> amplitudes;
+  final double volume;
+  final double fadeInFraction;
+  final double fadeOutFraction;
+  final bool loop;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CustomPaint(
+          painter: _PokeMapCinematicWaveformPainter(
+            amplitudes: amplitudes,
+            color: colors.success.withValues(alpha: 0.42),
+            fadeColor: colors.surfaceSubtle.withValues(alpha: 0.72),
+            volume: volume,
+            fadeInFraction: fadeInFraction,
+            fadeOutFraction: fadeOutFraction,
+          ),
+        ),
+        if (loop)
+          Align(
+            alignment: Alignment.topRight,
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                Icons.repeat_rounded,
+                size: 12,
+                color: colors.success,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class PokeMapCinematicVideoTimelinePreview extends StatelessWidget {
+  const PokeMapCinematicVideoTimelinePreview({
+    super.key,
+    required this.thumbnailBytes,
+    required this.spacing,
+    required this.fallbackUsed,
+  });
+
+  final Uint8List thumbnailBytes;
+  final double spacing;
+  final bool fallbackUsed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final count = (constraints.maxWidth / spacing).ceil().clamp(1, 24);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            Row(
+              children: [
+                for (var index = 0; index < count; index += 1)
+                  Expanded(
+                    child: Image.memory(
+                      thumbnailBytes,
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.low,
+                      gaplessPlayback: true,
+                      excludeFromSemantics: true,
+                    ),
+                  ),
+              ],
+            ),
+            ColoredBox(color: colors.surfaceBase.withValues(alpha: 0.38)),
+            if (fallbackUsed)
+              Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.swap_horiz_rounded,
+                    size: 12,
+                    color: colors.warning,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class PokeMapCinematicCaptionTimelinePreview extends StatelessWidget {
+  const PokeMapCinematicCaptionTimelinePreview({
+    super.key,
+    required this.locale,
+    required this.segments,
+    required this.hasOverlap,
+  });
+
+  final String locale;
+  final List<String> segments;
+  final bool hasOverlap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 18, 6, 3),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: colors.surfaceSubtle,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Text(
+              locale.toUpperCase(),
+              style: TextStyle(color: colors.textSecondary, fontSize: 8),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              segments.join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: colors.textSecondary, fontSize: 8),
+            ),
+          ),
+          if (hasOverlap)
+            Icon(Icons.warning_amber_rounded, size: 11, color: colors.warning),
+        ],
+      ),
+    );
+  }
+}
+
+class PokeMapCinematicMarkerTimelinePreview extends StatelessWidget {
+  const PokeMapCinematicMarkerTimelinePreview({
+    super.key,
+    required this.interactionCue,
+    required this.required,
+    required this.sceneUsageCount,
+  });
+
+  final bool interactionCue;
+  final bool required;
+  final int sceneUsageCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final linked = sceneUsageCount > 0;
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (interactionCue)
+              Icon(
+                linked ? Icons.link_rounded : Icons.link_off_rounded,
+                size: 12,
+                color: linked
+                    ? colors.success
+                    : required
+                    ? colors.error
+                    : colors.textMuted,
+              ),
+            const SizedBox(width: 3),
+            Transform.rotate(
+              angle: math.pi / 4,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: interactionCue ? colors.warning : colors.brandPrimary,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PokeMapCinematicWaveformPainter extends CustomPainter {
+  const _PokeMapCinematicWaveformPainter({
+    required this.amplitudes,
+    required this.color,
+    required this.fadeColor,
+    required this.volume,
+    required this.fadeInFraction,
+    required this.fadeOutFraction,
+  });
+
+  final List<double> amplitudes;
+  final Color color;
+  final Color fadeColor;
+  final double volume;
+  final double fadeInFraction;
+  final double fadeOutFraction;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (amplitudes.isEmpty || size.isEmpty) return;
+    final center = size.height / 2;
+    final step = size.width / amplitudes.length;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = math.max(1, step * 0.55)
+      ..strokeCap = StrokeCap.round;
+    for (var index = 0; index < amplitudes.length; index += 1) {
+      final x = (index + 0.5) * step;
+      final height =
+          amplitudes[index].clamp(0, 1) * volume * size.height * 0.42;
+      canvas.drawLine(
+        Offset(x, center - height),
+        Offset(x, center + height),
+        paint,
+      );
+    }
+    final fadePaint = Paint()..color = fadeColor;
+    if (fadeInFraction > 0) {
+      final path = Path()
+        ..moveTo(0, 0)
+        ..lineTo(size.width * fadeInFraction, 0)
+        ..lineTo(0, size.height)
+        ..close();
+      canvas.drawPath(path, fadePaint);
+    }
+    if (fadeOutFraction > 0) {
+      final start = size.width * (1 - fadeOutFraction);
+      final path = Path()
+        ..moveTo(start, 0)
+        ..lineTo(size.width, 0)
+        ..lineTo(size.width, size.height)
+        ..close();
+      canvas.drawPath(path, fadePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PokeMapCinematicWaveformPainter oldDelegate) =>
+      !listEquals(amplitudes, oldDelegate.amplitudes) ||
+      color != oldDelegate.color ||
+      fadeColor != oldDelegate.fadeColor ||
+      volume != oldDelegate.volume ||
+      fadeInFraction != oldDelegate.fadeInFraction ||
+      fadeOutFraction != oldDelegate.fadeOutFraction;
 }
 
 class PokeMapCinematicStripHost extends StatelessWidget {

@@ -115,6 +115,50 @@ void main() {
     expect(command.parameters['clipIds'], <String>['visual-a', 'visual-b']);
   });
 
+  test(
+    'marker duplication gets a new identity and deletion targets only its id',
+    () {
+      final asset = PresentationCinematicAsset(
+        id: 'markers',
+        title: 'Markers',
+        durationUs: 5000000,
+        tracks: <PresentationTrack>[
+          PresentationTrack(
+            id: 'marker-track',
+            label: 'Repères',
+            kind: PresentationTrackKind.marker,
+            clips: <PresentationClip>[
+              PresentationMarkerClip(
+                id: 'starter-cue',
+                startUs: 1000000,
+                label: 'Choisir le starter',
+                markerKind: PresentationMarkerKind.interactionCue,
+                required: true,
+              ),
+            ],
+          ),
+        ],
+      );
+      final controller = PresentationTimelineEditingController(
+        asset: asset,
+        duplicateIdFactory: (_) => 'starter-cue-copy',
+      )..selectClip('starter-cue');
+
+      final duplicate = controller.duplicateSelection();
+      final deletion = controller.deleteSelection();
+
+      expect(duplicate.operations.single, <String, Object?>{
+        'kind': 'duplicate',
+        'clipId': 'starter-cue',
+        'duplicateId': 'starter-cue-copy',
+        'targetTrackId': 'marker-track',
+        'startUs': 1100000,
+      });
+      expect(deletion.actionId, 'presentationClip.deleteBatch');
+      expect(deletion.parameters['clipIds'], <String>['starter-cue']);
+    },
+  );
+
   test('switching cinematic clears selection and the local clipboard', () {
     final controller = PresentationTimelineEditingController(asset: _asset())
       ..selectClip('visual-a')

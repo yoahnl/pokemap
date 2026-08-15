@@ -375,6 +375,7 @@ void main() {
       (commands.single.parameters['clip']! as Map)['label'],
       'Choisir le starter',
     );
+    expect((commands.single.parameters['clip']! as Map)['id'], 'cue');
   });
 
   testWidgets('transition kind emits a bounded canonical transition', (

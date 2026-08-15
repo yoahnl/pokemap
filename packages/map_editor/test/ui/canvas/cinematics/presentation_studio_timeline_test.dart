@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/authoring_api/presentation_studio_timeline_command.dart';
+import 'package:map_editor/src/application/authoring_api/presentation_timeline_projection_gateway.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_timeline.dart';
@@ -590,6 +592,131 @@ void main() {
     expect(editing.selectedClipIds, <String>{'opening'});
   });
 
+  testWidgets('specialized tracks render cached media and marker semantics', (
+    tester,
+  ) async {
+    final asset = _specializedAsset();
+    final gateway = _SpecializedProjectionGateway();
+    final projections = PresentationTimelineProjectionController(
+      projectRootPath: '/project',
+      gateway: gateway,
+    );
+    final selection = PresentationStudioSelectionController();
+    addTearDown(projections.dispose);
+    addTearDown(selection.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 360,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: selection,
+              projectionController: projections,
+              markerUsageCountById: const <String, int>{'cue': 2},
+              onPlayheadChanged: (_) {},
+              onCommand: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PokeMapCinematicAudioTimelinePreview), findsOneWidget);
+    expect(find.byType(PokeMapCinematicVideoTimelinePreview), findsOneWidget);
+    expect(find.byType(PokeMapCinematicCaptionTimelinePreview), findsOneWidget);
+    expect(find.byType(PokeMapCinematicMarkerTimelinePreview), findsOneWidget);
+    final audio = tester.widget<PokeMapCinematicAudioTimelinePreview>(
+      find.byType(PokeMapCinematicAudioTimelinePreview),
+    );
+    final captions = tester.widget<PokeMapCinematicCaptionTimelinePreview>(
+      find.byType(PokeMapCinematicCaptionTimelinePreview),
+    );
+    final marker = tester.widget<PokeMapCinematicMarkerTimelinePreview>(
+      find.byType(PokeMapCinematicMarkerTimelinePreview),
+    );
+    expect(audio.loop, isTrue);
+    expect(audio.fadeInFraction, 0.25);
+    expect(captions.hasOverlap, isTrue);
+    expect(marker.sceneUsageCount, 2);
+    expect(gateway.requests, hasLength(3));
+
+    await tester.drag(
+      find.byKey(const ValueKey<String>('presentation-timeline-clip-audio')),
+      const Offset(20, 0),
+    );
+    await tester.pump();
+
+    expect(gateway.requests, hasLength(3));
+  });
+
+  testWidgets('missing media keeps clip geometry and exposes a diagnostic', (
+    tester,
+  ) async {
+    final asset = PresentationCinematicAsset(
+      id: 'missing-media',
+      title: 'Missing media',
+      durationUs: 5000000,
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: 'audio',
+          label: 'Audio',
+          kind: PresentationTrackKind.audio,
+          clips: <PresentationClip>[
+            PresentationAudioClip(
+              id: 'missing',
+              startUs: 0,
+              durationUs: 2000000,
+              resourceId: 'missing-media',
+            ),
+          ],
+        ),
+      ],
+    );
+    final projections = PresentationTimelineProjectionController(
+      projectRootPath: '/project',
+      gateway: _MissingProjectionGateway(),
+    );
+    final selection = PresentationStudioSelectionController();
+    addTearDown(projections.dispose);
+    addTearDown(selection.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 160,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: selection,
+              projectionController: projections,
+              onPlayheadChanged: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final clip = tester.widget<PokeMapCinematicTimelineClip>(
+      find.byType(PokeMapCinematicTimelineClip),
+    );
+    expect(clip.state, PokeMapCinematicTimelineClipState.error);
+    expect(clip.stateLabel, 'Média introuvable');
+    expect(
+      tester.getSize(find.byType(PokeMapCinematicTimelineClip)).width,
+      160,
+    );
+  });
+
   test('hot path source has no I/O, codec or in-game timeline dependency', () {
     final source = File(
       'lib/src/ui/canvas/cinematics/presentation/presentation_studio_timeline.dart',
@@ -648,5 +775,129 @@ PresentationCinematicAsset _largeAsset() {
     title: 'Long métrage',
     durationUs: durationUs,
     tracks: tracks,
+  );
+}
+
+PresentationCinematicAsset _specializedAsset() => PresentationCinematicAsset(
+  id: 'specialized',
+  title: 'Specialized',
+  durationUs: 8000000,
+  layers: <PresentationLayer>[
+    PresentationLayer(id: 'video-layer', label: 'Vidéo', zIndex: 0),
+  ],
+  tracks: <PresentationTrack>[
+    PresentationTrack(
+      id: 'audio-track',
+      label: 'Audio',
+      kind: PresentationTrackKind.audio,
+      clips: <PresentationClip>[
+        PresentationAudioClip(
+          id: 'audio',
+          startUs: 0,
+          durationUs: 4000000,
+          resourceId: 'audio-media',
+          loop: true,
+          fadeInUs: 1000000,
+          fadeOutUs: 500000,
+        ),
+      ],
+    ),
+    PresentationTrack(
+      id: 'video-track',
+      label: 'Vidéo',
+      kind: PresentationTrackKind.visual,
+      clips: <PresentationClip>[
+        PresentationVisualClip(
+          id: 'video',
+          startUs: 0,
+          durationUs: 4000000,
+          layerId: 'video-layer',
+          resourceId: 'video-media',
+          mediaKind: PresentationVisualMediaKind.video,
+        ),
+      ],
+    ),
+    PresentationTrack(
+      id: 'captions-track',
+      label: 'Captions',
+      kind: PresentationTrackKind.caption,
+      clips: <PresentationClip>[
+        PresentationCaptionClip(
+          id: 'captions',
+          startUs: 0,
+          durationUs: 4000000,
+          captionId: 'caption-media',
+          locale: 'fr-FR',
+        ),
+      ],
+    ),
+    PresentationTrack(
+      id: 'marker-track',
+      label: 'Repères',
+      kind: PresentationTrackKind.marker,
+      clips: <PresentationClip>[
+        PresentationMarkerClip(
+          id: 'cue',
+          startUs: 1000000,
+          label: 'Choix starter',
+          markerKind: PresentationMarkerKind.interactionCue,
+          required: true,
+        ),
+      ],
+    ),
+  ],
+);
+
+final class _SpecializedProjectionGateway
+    implements PresentationTimelineProjectionGateway {
+  final List<PresentationTimelineProjectionRequest> requests = [];
+
+  @override
+  Future<PresentationTimelineMediaProjection> load(
+    String projectRootPath,
+    PresentationTimelineProjectionRequest request,
+  ) async {
+    requests.add(request);
+    return switch (request.kind) {
+      PresentationTimelineProjectionKind.audio =>
+        PresentationTimelineMediaProjection.ready(
+          mediaId: request.mediaId,
+          waveform: const <double>[0.2, 0.7, 1, 0.4],
+        ),
+      PresentationTimelineProjectionKind.video =>
+        PresentationTimelineMediaProjection.ready(
+          mediaId: request.mediaId,
+          thumbnailBytes: image.encodePng(image.Image(width: 4, height: 2)),
+        ),
+      PresentationTimelineProjectionKind.captions =>
+        PresentationTimelineMediaProjection.ready(
+          mediaId: request.mediaId,
+          captions: const <PresentationTimelineCaptionSegment>[
+            PresentationTimelineCaptionSegment(
+              startUs: 0,
+              endUs: 2000000,
+              text: 'Bonjour',
+            ),
+            PresentationTimelineCaptionSegment(
+              startUs: 1500000,
+              endUs: 3000000,
+              text: 'Bienvenue',
+            ),
+          ],
+        ),
+    };
+  }
+}
+
+final class _MissingProjectionGateway
+    implements PresentationTimelineProjectionGateway {
+  @override
+  Future<PresentationTimelineMediaProjection> load(
+    String projectRootPath,
+    PresentationTimelineProjectionRequest request,
+  ) async => PresentationTimelineMediaProjection.unavailable(
+    mediaId: request.mediaId,
+    status: PresentationTimelineProjectionStatus.missing,
+    diagnostic: 'Média introuvable',
   );
 }

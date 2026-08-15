@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../theme/theme.dart';
 import '../../../../application/authoring_api/presentation_studio_timeline_command.dart';
+import '../../../../application/authoring_api/presentation_timeline_projection_gateway.dart';
 import '../../../design_system/design_system.dart';
 import 'presentation_studio_layer_tree.dart';
 import 'presentation_timeline_editing_controller.dart';
@@ -209,6 +210,8 @@ class PresentationStudioTimeline extends StatefulWidget {
     this.onUndo,
     this.onRedo,
     this.viewportController,
+    this.projectionController,
+    this.markerUsageCountById = const <String, int>{},
     this.state = PresentationStudioTimelineState.ready,
     this.diagnostic,
   });
@@ -225,6 +228,8 @@ class PresentationStudioTimeline extends StatefulWidget {
   final VoidCallback? onUndo;
   final VoidCallback? onRedo;
   final PresentationTimelineViewportController? viewportController;
+  final PresentationTimelineProjectionController? projectionController;
+  final Map<String, int> markerUsageCountById;
   final PresentationStudioTimelineState state;
   final String? diagnostic;
 
@@ -251,6 +256,7 @@ class _PresentationStudioTimelineState
   Offset _dragDelta = Offset.zero;
   int _dragSourceTrackIndex = 0;
   double _trimDeltaX = 0;
+  String? _projectionViewportSignature;
 
   @override
   void initState() {
@@ -260,6 +266,8 @@ class _PresentationStudioTimelineState
     _rebuildIndexes();
     widget.selectionController.addListener(_selectionChanged);
     _horizontalProxyController.addListener(_proxyScrolled);
+    _verticalController.addListener(_verticalScrolled);
+    widget.projectionController?.addListener(_projectionChanged);
   }
 
   @override
@@ -282,6 +290,11 @@ class _PresentationStudioTimelineState
     if (oldWidget.selectionController != widget.selectionController) {
       oldWidget.selectionController.removeListener(_selectionChanged);
       widget.selectionController.addListener(_selectionChanged);
+    }
+    if (oldWidget.projectionController != widget.projectionController) {
+      oldWidget.projectionController?.removeListener(_projectionChanged);
+      widget.projectionController?.addListener(_projectionChanged);
+      _projectionViewportSignature = null;
     }
   }
 
@@ -311,6 +324,7 @@ class _PresentationStudioTimelineState
       for (final track in widget.asset.tracks)
         PresentationTimelineClipIndex(track.clips),
     ];
+    _projectionViewportSignature = null;
   }
 
   void _selectionChanged() {
@@ -355,6 +369,14 @@ class _PresentationStudioTimelineState
       return;
     }
     _viewportController.scrollTo(_horizontalProxyController.offset);
+  }
+
+  void _verticalScrolled() {
+    if (mounted) setState(() {});
+  }
+
+  void _projectionChanged() {
+    if (mounted) setState(() {});
   }
 
   void _seekTo(int timeUs) {
@@ -471,7 +493,10 @@ class _PresentationStudioTimelineState
     _horizontalProxyController
       ..removeListener(_proxyScrolled)
       ..dispose();
-    _verticalController.dispose();
+    _verticalController
+      ..removeListener(_verticalScrolled)
+      ..dispose();
+    widget.projectionController?.removeListener(_projectionChanged);
     _focusNode.dispose();
     super.dispose();
   }
@@ -656,18 +681,69 @@ class _PresentationStudioTimelineState
         icon: Icon(Icons.view_timeline_outlined),
       );
     }
-    return ListView.builder(
-      key: presentationStudioTimelineTrackListKey,
-      controller: _verticalController,
-      itemExtent: 52,
-      itemCount: widget.asset.tracks.length,
-      itemBuilder: (context, index) => _trackRow(
-        widget.asset.tracks[index],
-        _clipIndexes[index],
-        viewportWidth,
-        index,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _scheduleProjectionSync(constraints.maxHeight);
+        return ListView.builder(
+          key: presentationStudioTimelineTrackListKey,
+          controller: _verticalController,
+          itemExtent: 52,
+          itemCount: widget.asset.tracks.length,
+          itemBuilder: (context, index) => _trackRow(
+            widget.asset.tracks[index],
+            _clipIndexes[index],
+            viewportWidth,
+            index,
+          ),
+        );
+      },
     );
+  }
+
+  void _scheduleProjectionSync(double viewportHeight) {
+    final controller = widget.projectionController;
+    if (controller == null || !viewportHeight.isFinite || viewportHeight <= 0) {
+      return;
+    }
+    final firstTrack = math.max(
+      0,
+      (_verticalController.hasClients ? _verticalController.offset / 52 : 0)
+              .floor() -
+          1,
+    );
+    final lastTrack = math.min(
+      widget.asset.tracks.length - 1,
+      firstTrack + (viewportHeight / 52).ceil() + 2,
+    );
+    final startUs = math.max(
+      0,
+      _viewportController.visibleStartUs - _queryOverscanUs,
+    );
+    final endUs = math.min(
+      widget.asset.durationUs,
+      _viewportController.visibleEndUs + _queryOverscanUs,
+    );
+    final signature = Object.hash(
+      identityHashCode(widget.asset),
+      firstTrack,
+      lastTrack,
+      startUs,
+      endUs,
+      _projectionDensity(_viewportController.pixelsPerSecond),
+    ).toString();
+    if (_projectionViewportSignature == signature) return;
+    _projectionViewportSignature = signature;
+    final clips = <PresentationClip>[
+      for (var index = firstTrack; index <= lastTrack; index += 1)
+        ..._clipIndexes[index].visibleBetween(startUs: startUs, endUs: endUs),
+    ];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.projectionController != controller) return;
+      controller.sync(
+        clips: clips,
+        pixelsPerSecond: _viewportController.pixelsPerSecond,
+      );
+    });
   }
 
   Widget _trackRow(
@@ -749,6 +825,10 @@ class _PresentationStudioTimelineState
     final selected =
         _editingController.selectedClipIds.contains(clip.id) ||
         widget.selectionController.value?.clipId == clip.id;
+    final projection = widget.projectionController?.projectionFor(
+      clip,
+      pixelsPerSecond: _viewportController.pixelsPerSecond,
+    );
     return Positioned(
       key: ValueKey<String>('presentation-timeline-clip-${clip.id}'),
       left: left,
@@ -791,6 +871,13 @@ class _PresentationStudioTimelineState
           label: _clipLabel(clip),
           duration: duration,
           pixelsPerSecond: _viewportController.pixelsPerSecond,
+          state: _projectionClipState(projection),
+          stateLabel: _clipStateLabel(
+            clip,
+            projection,
+            markerUsageCount: widget.markerUsageCountById[clip.id] ?? 0,
+          ),
+          preview: _clipPreview(clip, projection),
           selected: selected,
           onPressed: () => _selectClip(clip),
           startTrimLabel: selected && clip is! PresentationMarkerClip
@@ -821,6 +908,45 @@ class _PresentationStudioTimelineState
       ),
     );
   }
+
+  Widget? _clipPreview(
+    PresentationClip clip,
+    PresentationTimelineMediaProjection? projection,
+  ) => switch (clip) {
+    PresentationAudioClip() when projection?.available ?? false =>
+      PokeMapCinematicAudioTimelinePreview(
+        key: ValueKey<String>('presentation-audio-preview-${clip.id}'),
+        amplitudes: projection!.waveform,
+        volume: clip.volume,
+        fadeInFraction: clip.fadeInUs / clip.durationUs,
+        fadeOutFraction: clip.fadeOutUs / clip.durationUs,
+        loop: clip.loop,
+      ),
+    PresentationVisualClip(mediaKind: PresentationVisualMediaKind.video)
+        when projection?.thumbnailBytes != null =>
+      PokeMapCinematicVideoTimelinePreview(
+        key: ValueKey<String>('presentation-video-preview-${clip.id}'),
+        thumbnailBytes: projection!.thumbnailBytes!,
+        spacing: math.max(48, _viewportController.pixelsPerSecond * 1.5),
+        fallbackUsed: projection.fallbackUsed,
+      ),
+    PresentationCaptionClip() when projection?.available ?? false =>
+      PokeMapCinematicCaptionTimelinePreview(
+        key: ValueKey<String>('presentation-caption-preview-${clip.id}'),
+        locale: clip.locale,
+        segments: <String>[
+          for (final segment in projection!.captions) segment.text,
+        ],
+        hasOverlap: _captionSegmentsOverlap(projection.captions),
+      ),
+    PresentationMarkerClip() => PokeMapCinematicMarkerTimelinePreview(
+      key: ValueKey<String>('presentation-marker-preview-${clip.id}'),
+      interactionCue: clip.markerKind == PresentationMarkerKind.interactionCue,
+      required: clip.required,
+      sceneUsageCount: widget.markerUsageCountById[clip.id] ?? 0,
+    ),
+    _ => null,
+  };
 
   void _selectClip(
     PresentationClip clip, {
@@ -929,3 +1055,83 @@ String _clipLabel(PresentationClip clip) => switch (clip) {
   PresentationCaptionClip() => clip.captionId,
   PresentationMarkerClip() => clip.label,
 };
+
+PokeMapCinematicTimelineClipState _projectionClipState(
+  PresentationTimelineMediaProjection? projection,
+) => switch (projection?.status) {
+  PresentationTimelineProjectionStatus.loading =>
+    PokeMapCinematicTimelineClipState.pending,
+  PresentationTimelineProjectionStatus.missing ||
+  PresentationTimelineProjectionStatus.error =>
+    PokeMapCinematicTimelineClipState.error,
+  _ => PokeMapCinematicTimelineClipState.normal,
+};
+
+String? _clipStateLabel(
+  PresentationClip clip,
+  PresentationTimelineMediaProjection? projection, {
+  required int markerUsageCount,
+}) {
+  if (projection?.loading ?? false) return 'Préparation de l’aperçu…';
+  final diagnostic = projection?.diagnostic?.trim();
+  if (diagnostic != null && diagnostic.isNotEmpty) return diagnostic;
+  return switch (clip) {
+    PresentationAudioClip() => <String>[
+      '${(clip.volume * 100).round()} %',
+      if (clip.loop) 'boucle',
+      if (clip.fadeInUs > 0 || clip.fadeOutUs > 0) 'fondus',
+      if (_hasResponsiveVariants(clip)) 'variantes L/P',
+      if (projection?.fallbackUsed ?? false) 'fallback',
+    ].join(' · '),
+    PresentationVisualClip(mediaKind: PresentationVisualMediaKind.video) =>
+      <String>[
+        'Vidéo',
+        if (_hasResponsiveVariants(clip)) 'variantes L/P',
+        if (projection?.fallbackUsed ?? false) 'fallback',
+      ].join(' · '),
+    PresentationCaptionClip() => <String>[
+      clip.locale.toUpperCase(),
+      if (projection != null) '${projection.captions.length} segments',
+      if (clip.fallbackToProjectDefault) 'fallback locale',
+    ].join(' · '),
+    PresentationMarkerClip() => <String>[
+      clip.markerKind == PresentationMarkerKind.interactionCue
+          ? 'Cue Scene'
+          : 'Repère',
+      if (clip.required) 'requis',
+      if (clip.markerKind == PresentationMarkerKind.interactionCue)
+        markerUsageCount == 0
+            ? 'non relié'
+            : '$markerUsageCount ${markerUsageCount == 1 ? 'usage' : 'usages'} Scene',
+    ].join(' · '),
+    _ => null,
+  };
+}
+
+bool _hasResponsiveVariants(PresentationClip clip) => switch (clip) {
+  PresentationVisualClip() =>
+    clip.landscapeResourceId != null || clip.portraitResourceId != null,
+  PresentationAudioClip() =>
+    clip.landscapeResourceId != null || clip.portraitResourceId != null,
+  _ => false,
+};
+
+bool _captionSegmentsOverlap(
+  List<PresentationTimelineCaptionSegment> segments,
+) {
+  if (segments.length < 2) return false;
+  final ordered = segments.toList()
+    ..sort((left, right) => left.startUs.compareTo(right.startUs));
+  var maximumEndUs = ordered.first.endUs;
+  for (final segment in ordered.skip(1)) {
+    if (segment.startUs < maximumEndUs) return true;
+    maximumEndUs = math.max(maximumEndUs, segment.endUs);
+  }
+  return false;
+}
+
+int _projectionDensity(double pixelsPerSecond) => pixelsPerSecond < 160
+    ? 64
+    : pixelsPerSecond < 320
+    ? 128
+    : 256;
