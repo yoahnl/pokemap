@@ -1091,6 +1091,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           cinematicsLibrary: editor.project == null
               ? null
               : buildCinematicsLibraryReadModel(editor.project!),
+          presentationCinematics:
+              editor.project?.presentationCinematics ?? const [],
           conditionSourceOptions: editor.project == null
               ? const []
               : _buildSceneConditionSourceOptions(

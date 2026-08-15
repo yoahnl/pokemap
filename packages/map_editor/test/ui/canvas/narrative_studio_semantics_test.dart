@@ -252,6 +252,7 @@ NarrativeSceneSummary _presentationSceneSummary() {
   return NarrativeSceneSummary(
     id: scene.id,
     name: scene.name,
+    executionProfile: scene.executionProfile,
     nodeCount: scene.graph.nodes.length,
     edgeCount: scene.graph.edges.length,
     declaredOutcomeCount: 0,

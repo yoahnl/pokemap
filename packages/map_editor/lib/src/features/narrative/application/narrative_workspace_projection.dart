@@ -127,6 +127,7 @@ class NarrativeSceneSummary {
   const NarrativeSceneSummary({
     required this.id,
     required this.name,
+    this.executionProfile = SceneExecutionProfile.world,
     this.description,
     this.storylineId,
     this.chapterId,
@@ -144,6 +145,7 @@ class NarrativeSceneSummary {
 
   final String id;
   final String name;
+  final SceneExecutionProfile executionProfile;
   final String? description;
   final String? storylineId;
   final String? chapterId;
@@ -327,6 +329,7 @@ List<NarrativeSceneSummary> _buildSceneSummaries(List<SceneAsset> scenes) {
       NarrativeSceneSummary(
         id: scene.id,
         name: scene.name.trim().isEmpty ? scene.id : scene.name,
+        executionProfile: scene.executionProfile,
         description: scene.description,
         storylineId: scene.storylineId,
         chapterId: scene.chapterId,

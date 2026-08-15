@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/misc.dart' show Override;
@@ -353,6 +354,141 @@ void main() {
         );
         expect(find.text('Selbrume Demo'), findsNothing);
         expect(find.text('Annonce au port'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'preSession palette exposes Presentation and rejects world-only nodes',
+      (tester) async {
+        await _pumpNarrativeShell(
+          tester,
+          project: _projectWithPreSessionPresentations(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
+
+        final presentationButton = tester.widget<PokeMapButton>(
+          find.byKey(
+            const ValueKey('scenes-add-node-presentation-cinematic'),
+          ),
+        );
+        expect(presentationButton.onPressed, isNotNull);
+
+        for (final key in [
+          'scenes-add-node-condition-disabled-profile',
+          'scenes-add-node-yarn-disabled-profile',
+          'scenes-add-node-battle-disabled-profile',
+          'scenes-add-node-action-disabled-profile',
+          'scenes-add-node-cinematic-disabled-profile',
+        ]) {
+          final button = tester.widget<PokeMapButton>(
+            find.byKey(ValueKey(key)),
+          );
+          expect(button.onPressed, isNull, reason: key);
+        }
+
+        expect(find.textContaining('réservé aux scènes in-game'), findsWidgets);
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(const ValueKey('scenes-add-node-end')),
+              )
+              .onPressed,
+          isNotNull,
+        );
+      },
+    );
+
+    testWidgets(
+      'Presentation picker searches without raw ids and creates a typed node',
+      (tester) async {
+        final project = _projectWithPreSessionPresentations();
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
+
+        final presentationButton = find.byKey(
+          const ValueKey('scenes-add-node-presentation-cinematic'),
+        );
+        await tester.ensureVisible(presentationButton);
+        await tester.tap(presentationButton);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('scene-presentation-picker-sheet')),
+          findsOneWidget,
+        );
+        expect(find.text('Ouverture d’Avelune'), findsOneWidget);
+        expect(find.text('Logo du studio'), findsOneWidget);
+        expect(find.text('presentation_opening'), findsNothing);
+        expect(find.textContaining('Paysage'), findsWidgets);
+        expect(find.textContaining('Portrait'), findsWidgets);
+        expect(
+          find.text('1 interaction obligatoire à relier dans cette scène.'),
+          findsOneWidget,
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('scene-presentation-picker-search')),
+          'logo',
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Ouverture d’Avelune'), findsNothing);
+        expect(find.text('Logo du studio'), findsOneWidget);
+
+        await tester.tap(
+          find.byKey(
+            const ValueKey(
+              'scene-presentation-picker-option-presentation_logo',
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final updated = container.read(editorNotifierProvider).project!;
+        final scene = updated.scenes.single;
+        final created = scene.graph.nodes.last;
+        expect(created.kind, SceneNodeKind.presentationCinematic);
+        expect(created.title, 'Logo du studio');
+        expect(
+          created.payload,
+          isA<ScenePresentationCinematicPayload>().having(
+            (payload) => payload.presentationCinematicId,
+            'presentationCinematicId',
+            'presentation_logo',
+          ),
+        );
+        expect(updated.cinematics, project.cinematics);
+      },
+    );
+
+    testWidgets(
+      'cancelling Presentation picker keeps a text-only preSession flow intact',
+      (tester) async {
+        final project = _projectWithPreSessionPresentations();
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
+
+        final presentationButton = find.byKey(
+          const ValueKey('scenes-add-node-presentation-cinematic'),
+        );
+        await tester.ensureVisible(presentationButton);
+        await tester.tap(presentationButton);
+        await tester.pumpAndSettle();
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('scene-presentation-picker-sheet')),
+          findsNothing,
+        );
+        expect(container.read(editorNotifierProvider).project, project);
+        expect(project.scenes.single.graph.nodes, hasLength(2));
       },
     );
 
@@ -4892,6 +5028,89 @@ ProjectManifest _projectWithScene() {
     maps: const [],
     tilesets: const [],
     scenes: [_testIntroScene()],
+  );
+}
+
+ProjectManifest _projectWithPreSessionPresentations() {
+  final opening = PresentationCinematicAsset(
+    id: 'presentation_opening',
+    title: 'Ouverture d’Avelune',
+    description: 'Introduction principale.',
+    durationUs: 12000000,
+    layers: [
+      PresentationLayer(id: 'background', label: 'Fond', zIndex: 0),
+    ],
+    tracks: [
+      PresentationTrack(
+        id: 'visuals',
+        label: 'Visuels',
+        kind: PresentationTrackKind.visual,
+        clips: [
+          PresentationVisualClip(
+            id: 'opening_background',
+            startUs: 0,
+            durationUs: 12000000,
+            layerId: 'background',
+            resourceId: 'media_opening',
+            landscapeResourceId: 'media_opening_landscape',
+          ),
+        ],
+      ),
+      PresentationTrack(
+        id: 'markers',
+        label: 'Repères',
+        kind: PresentationTrackKind.marker,
+        clips: [
+          PresentationMarkerClip(
+            id: 'player_name',
+            startUs: 6000000,
+            label: 'Demander le nom',
+            markerKind: PresentationMarkerKind.interactionCue,
+            required: true,
+          ),
+        ],
+      ),
+    ],
+  );
+  final logo = PresentationCinematicAsset(
+    id: 'presentation_logo',
+    title: 'Logo du studio',
+    durationUs: 3000000,
+  );
+  final scene = SceneAsset(
+    id: 'scene_pre_session',
+    name: 'Avant la partie',
+    executionProfile: SceneExecutionProfile.preSession,
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_end',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: [
+        SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+        SceneNodeLayout(nodeId: 'node_end', x: 280, y: 80),
+      ],
+    ),
+  );
+  return ProjectManifest(
+    name: 'Scenes preSession test',
+    version: ProjectVersion.v7,
+    maps: const [],
+    tilesets: const [],
+    scenes: [scene],
+    presentationCinematics: [opening, logo],
   );
 }
 

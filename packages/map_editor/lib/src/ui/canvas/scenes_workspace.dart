@@ -14,6 +14,7 @@ import 'scenes/scene_graph_editor.dart';
 import 'scenes/scene_graph_read_only_view.dart';
 import 'scenes/scene_library_panel.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
+import 'scenes/scene_presentation_cinematic_picker.dart';
 
 typedef SceneDraftCreator = Future<String?> Function({
   required String name,
@@ -154,6 +155,7 @@ class ScenesWorkspace extends StatefulWidget {
     required this.scenes,
     this.linkedAssetContracts,
     this.cinematicsLibrary,
+    this.presentationCinematics = const [],
     this.conditionSourceOptions = const [],
     this.consequenceFactOptions = const [],
     this.consequenceEventOptions = const [],
@@ -193,6 +195,7 @@ class ScenesWorkspace extends StatefulWidget {
   final List<NarrativeSceneSummary> scenes;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
+  final List<PresentationCinematicAsset> presentationCinematics;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
@@ -749,6 +752,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
               onAddConsequenceActionNodeDraft: _addConsequenceActionNodeDraft,
               linkedAssetContracts: widget.linkedAssetContracts,
               cinematicsLibrary: widget.cinematicsLibrary,
+              presentationCinematics: widget.presentationCinematics,
               consequenceFactOptions: widget.consequenceFactOptions,
               consequenceEventOptions: widget.consequenceEventOptions,
               consequenceCatalogs: widget.consequenceCatalogs,
@@ -1742,6 +1746,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.onAddConsequenceActionNodeDraft,
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
+    required this.presentationCinematics,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.consequenceCatalogs,
@@ -1766,6 +1771,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
       onAddConsequenceActionNodeDraft;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
+  final List<PresentationCinematicAsset> presentationCinematics;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
@@ -1798,6 +1804,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
               onAddConsequenceActionNodeDraft: onAddConsequenceActionNodeDraft,
               linkedAssetContracts: linkedAssetContracts,
               cinematicsLibrary: cinematicsLibrary,
+              presentationCinematics: presentationCinematics,
               consequenceFactOptions: consequenceFactOptions,
               consequenceEventOptions: consequenceEventOptions,
               consequenceCatalogs: consequenceCatalogs,
@@ -1841,6 +1848,7 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.onAddConsequenceActionNodeDraft,
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
+    required this.presentationCinematics,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.consequenceCatalogs,
@@ -1865,6 +1873,7 @@ class _SelectedSceneSummary extends StatelessWidget {
       onAddConsequenceActionNodeDraft;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
+  final List<PresentationCinematicAsset> presentationCinematics;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
@@ -1912,6 +1921,7 @@ class _SelectedSceneSummary extends StatelessWidget {
             scene: scene,
             linkedAssetContracts: linkedAssetContracts,
             cinematicsLibrary: cinematicsLibrary,
+            presentationCinematics: presentationCinematics,
             consequenceFactOptions: consequenceFactOptions,
             consequenceEventOptions: consequenceEventOptions,
             consequenceCatalogs: consequenceCatalogs,
@@ -1973,6 +1983,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     required this.scene,
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
+    required this.presentationCinematics,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.consequenceCatalogs,
@@ -1985,6 +1996,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
   final NarrativeSceneSummary scene;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
+  final List<PresentationCinematicAsset> presentationCinematics;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
@@ -2000,17 +2012,27 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     final colors = context.pokeMapColors;
     final contracts = linkedAssetContracts;
     final library = cinematicsLibrary;
+    final isPreSession =
+        scene.executionProfile == SceneExecutionProfile.preSession;
     final hasDialogues = contracts?.dialogues.isNotEmpty ?? false;
     final hasBattles = contracts?.battles.isNotEmpty ?? false;
     final canonicalCinematics = library?.canonicalEntries ?? const [];
     final bridgeCinematics = library?.bridgeEntries ?? const [];
     final hasCanonicalCinematics = canonicalCinematics.isNotEmpty;
+    final compatiblePresentations = presentationCinematics.toList()
+      ..sort((left, right) => left.title.compareTo(right.title));
+    final hasCompatiblePresentations = compatiblePresentations.isNotEmpty;
     final branchSources = scene.graph.nodes
         .where(
           (node) =>
               node.kind == SceneNodeKind.yarnDialogue ||
               node.kind == SceneNodeKind.battle ||
-              node.kind == SceneNodeKind.condition,
+              node.kind == SceneNodeKind.condition ||
+              (isPreSession &&
+                  node.payload is SceneActionPayload &&
+                  (node.payload as SceneActionPayload)
+                          .preSessionInteraction !=
+                      null),
         )
         .toList(growable: false);
     final cinematicReason = hasCanonicalCinematics
@@ -2018,6 +2040,10 @@ class _SceneNodeDraftPalette extends StatelessWidget {
         : bridgeCinematics.isNotEmpty
             ? 'Des bridges legacy existent, mais aucun CinematicAsset canonique n’est disponible.'
             : 'Créez d’abord une cinématique dans la Cinematics Library.';
+    const worldOnlyReason = 'réservé aux scènes in-game';
+    final presentationReason = hasCompatiblePresentations
+        ? null
+        : 'aucune cinématique de présentation compatible';
     return SizedBox(
       key: const ValueKey('scenes-add-node-palette'),
       height: 34,
@@ -2038,10 +2064,17 @@ class _SceneNodeDraftPalette extends StatelessWidget {
               child: Row(
                 children: [
                   _NodeDraftButton(
-                    buttonKey: const ValueKey('scenes-add-node-condition'),
+                    buttonKey: isPreSession
+                        ? const ValueKey(
+                            'scenes-add-node-condition-disabled-profile',
+                          )
+                        : const ValueKey('scenes-add-node-condition'),
                     label: 'Condition',
                     icon: CupertinoIcons.check_mark_circled,
-                    onPressed: () => onAddNodeDraft(SceneNodeKind.condition),
+                    disabledReason: isPreSession ? worldOnlyReason : null,
+                    onPressed: isPreSession
+                        ? null
+                        : () => onAddNodeDraft(SceneNodeKind.condition),
                   ),
                   _NodeDraftButton(
                     buttonKey: const ValueKey('scenes-add-node-merge'),
@@ -2056,13 +2089,23 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                     onPressed: () => onAddNodeDraft(SceneNodeKind.end),
                   ),
                   _NodeDraftButton(
-                    buttonKey: hasDialogues
-                        ? const ValueKey('scenes-add-node-yarn')
-                        : const ValueKey('scenes-add-node-yarn-disabled'),
+                    buttonKey: isPreSession
+                        ? const ValueKey(
+                            'scenes-add-node-yarn-disabled-profile',
+                          )
+                        : hasDialogues
+                            ? const ValueKey('scenes-add-node-yarn')
+                            : const ValueKey(
+                                'scenes-add-node-yarn-disabled',
+                              ),
                     label: 'Dialogue',
                     icon: CupertinoIcons.text_bubble,
-                    disabledReason: hasDialogues ? null : 'contrat absent',
-                    onPressed: hasDialogues
+                    disabledReason: isPreSession
+                        ? worldOnlyReason
+                        : hasDialogues
+                            ? null
+                            : 'contrat absent',
+                    onPressed: !isPreSession && hasDialogues
                         ? () => _pickDialogueAndAddNode(
                               context,
                               contracts!.dialogues,
@@ -2070,13 +2113,23 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                         : null,
                   ),
                   _NodeDraftButton(
-                    buttonKey: hasBattles
-                        ? const ValueKey('scenes-add-node-battle')
-                        : const ValueKey('scenes-add-node-battle-disabled'),
+                    buttonKey: isPreSession
+                        ? const ValueKey(
+                            'scenes-add-node-battle-disabled-profile',
+                          )
+                        : hasBattles
+                            ? const ValueKey('scenes-add-node-battle')
+                            : const ValueKey(
+                                'scenes-add-node-battle-disabled',
+                              ),
                     label: 'Combat',
                     icon: CupertinoIcons.asterisk_circle,
-                    disabledReason: hasBattles ? null : 'contrat absent',
-                    onPressed: hasBattles
+                    disabledReason: isPreSession
+                        ? worldOnlyReason
+                        : hasBattles
+                            ? null
+                            : 'contrat absent',
+                    onPressed: !isPreSession && hasBattles
                         ? () => _pickBattleAndAddNode(
                               context,
                               contracts!.battles,
@@ -2090,24 +2143,57 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                     disabledReason: 'déjà unique',
                   ),
                   _NodeDraftButton(
-                    buttonKey: const ValueKey(
-                      'scenes-add-node-action-consequence',
-                    ),
+                    buttonKey: isPreSession
+                        ? const ValueKey(
+                            'scenes-add-node-action-disabled-profile',
+                          )
+                        : const ValueKey(
+                            'scenes-add-node-action-consequence',
+                          ),
                     label: 'Action',
                     icon: CupertinoIcons.bolt,
-                    onPressed: () => _pickConsequenceAndAddNode(context),
+                    disabledReason: isPreSession ? worldOnlyReason : null,
+                    onPressed: isPreSession
+                        ? null
+                        : () => _pickConsequenceAndAddNode(context),
                   ),
                   _NodeDraftButton(
-                    buttonKey: hasCanonicalCinematics
-                        ? const ValueKey('scenes-add-node-cinematic')
-                        : const ValueKey('scenes-add-node-cinematic-disabled'),
+                    buttonKey: isPreSession
+                        ? const ValueKey(
+                            'scenes-add-node-cinematic-disabled-profile',
+                          )
+                        : hasCanonicalCinematics
+                            ? const ValueKey('scenes-add-node-cinematic')
+                            : const ValueKey(
+                                'scenes-add-node-cinematic-disabled',
+                              ),
                     label: 'Cinématique',
                     icon: CupertinoIcons.film,
-                    disabledReason: cinematicReason,
-                    onPressed: hasCanonicalCinematics
+                    disabledReason:
+                        isPreSession ? worldOnlyReason : cinematicReason,
+                    onPressed: !isPreSession && hasCanonicalCinematics
                         ? () => _pickCinematicAndAddNode(context, library!)
                         : null,
                   ),
+                  if (isPreSession)
+                    _NodeDraftButton(
+                      buttonKey: hasCompatiblePresentations
+                          ? const ValueKey(
+                              'scenes-add-node-presentation-cinematic',
+                            )
+                          : const ValueKey(
+                              'scenes-add-node-presentation-cinematic-disabled',
+                            ),
+                      label: 'Présentation',
+                      icon: CupertinoIcons.play_rectangle,
+                      disabledReason: presentationReason,
+                      onPressed: hasCompatiblePresentations
+                          ? () => _pickPresentationAndAddNode(
+                                context,
+                                compatiblePresentations,
+                              )
+                          : null,
+                    ),
                   _NodeDraftButton(
                     buttonKey: branchSources.isEmpty
                         ? const ValueKey('scenes-add-node-branch-disabled')
@@ -2199,6 +2285,31 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     await onAddLinkedAssetNodeDraft(
       payload: SceneCinematicPayload(cinematicId: entry.id),
       title: entry.title,
+    );
+  }
+
+  Future<void> _pickPresentationAndAddNode(
+    BuildContext context,
+    List<PresentationCinematicAsset> cinematics,
+  ) async {
+    final cinematic =
+        await showPokeMapDesktopSideSheet<PresentationCinematicAsset>(
+      context: context,
+      title: 'Cinématique de présentation',
+      semanticLabel:
+          'Choisir une cinématique de présentation compatible avec la scène',
+      barrierLabel: 'Fermer le sélecteur de cinématique de présentation',
+      width: 520,
+      builder: (context) => ScenePresentationCinematicPicker(
+        cinematics: cinematics,
+      ),
+    );
+    if (cinematic == null) return;
+    await onAddLinkedAssetNodeDraft(
+      payload: ScenePresentationCinematicPayload(
+        presentationCinematicId: cinematic.id,
+      ),
+      title: cinematic.title,
     );
   }
 
