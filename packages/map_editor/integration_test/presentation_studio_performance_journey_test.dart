@@ -166,13 +166,13 @@ Future<_MeasuredScenario> _measureScenario(
       matching: find.byType(EditableText),
     );
     expect(searchEditable, findsOneWidget);
+    final searchField = tester.widget<PokeMapSearchField>(search);
     final searchSamples = <int>[];
     for (var index = 0; index < 31; index++) {
+      final query = index.isEven ? 'Needle' : 'needle';
       final watch = Stopwatch()..start();
-      await tester.enterText(
-        searchEditable,
-        index.isEven ? 'Needle' : 'needle',
-      );
+      await tester.enterText(searchEditable, query);
+      searchField.onChanged(query);
       await tester.pump();
       watch.stop();
       searchSamples.add(watch.elapsedMicroseconds);
