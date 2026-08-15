@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../application/models/narrative_document_route.dart';
 import 'narrative_studio_destination.dart';
 
 @immutable
@@ -82,6 +83,7 @@ final class NarrativeStudioNavigationState {
     this.projectIdentity,
     this.pendingReturn,
     this.restorationRequest,
+    this.documentRoute,
     this.revision = 0,
   });
 
@@ -94,6 +96,7 @@ final class NarrativeStudioNavigationState {
   final String? projectIdentity;
   final NarrativeStudioReturnExpectation? pendingReturn;
   final NarrativeStudioRestorationRequest? restorationRequest;
+  final NarrativeDocumentRoute? documentRoute;
   final int revision;
 
   NarrativeStudioNavigationState copyWith({
@@ -104,20 +107,25 @@ final class NarrativeStudioNavigationState {
     bool clearPendingReturn = false,
     NarrativeStudioRestorationRequest? restorationRequest,
     bool clearRestorationRequest = false,
+    NarrativeDocumentRoute? documentRoute,
+    bool clearDocumentRoute = false,
     int? revision,
-  }) =>
-      NarrativeStudioNavigationState(
-        location: location ?? this.location,
-        projectIdentity: clearProjectIdentity
-            ? null
-            : projectIdentity ?? this.projectIdentity,
-        pendingReturn:
-            clearPendingReturn ? null : pendingReturn ?? this.pendingReturn,
-        restorationRequest: clearRestorationRequest
-            ? null
-            : restorationRequest ?? this.restorationRequest,
-        revision: revision ?? this.revision,
-      );
+  }) => NarrativeStudioNavigationState(
+    location: location ?? this.location,
+    projectIdentity: clearProjectIdentity
+        ? null
+        : projectIdentity ?? this.projectIdentity,
+    pendingReturn: clearPendingReturn
+        ? null
+        : pendingReturn ?? this.pendingReturn,
+    restorationRequest: clearRestorationRequest
+        ? null
+        : restorationRequest ?? this.restorationRequest,
+    documentRoute: clearDocumentRoute
+        ? null
+        : documentRoute ?? this.documentRoute,
+    revision: revision ?? this.revision,
+  );
 }
 
 class NarrativeStudioNavigationController
@@ -131,6 +139,7 @@ class NarrativeStudioNavigationController
       location: location,
       clearPendingReturn: true,
       clearRestorationRequest: true,
+      clearDocumentRoute: true,
       revision: state.revision + 1,
     );
   }
@@ -144,8 +153,39 @@ class NarrativeStudioNavigationController
       pendingReturn: returnExpectation,
       clearPendingReturn: returnExpectation == null,
       clearRestorationRequest: true,
+      clearDocumentRoute: true,
       revision: state.revision + 1,
     );
+  }
+
+  void openDocument(NarrativeDocumentRoute route) {
+    state = state.copyWith(
+      location: _locationForDocumentRoute(route),
+      documentRoute: route,
+      clearPendingReturn: true,
+      clearRestorationRequest: true,
+      revision: state.revision + 1,
+    );
+  }
+
+  NarrativeDocumentSourceContext? closeDocument() {
+    final route = state.documentRoute;
+    if (route == null) return null;
+    final source = route.source;
+    state = state.copyWith(
+      location: _locationForDocumentSource(source),
+      clearDocumentRoute: true,
+      clearPendingReturn: true,
+      clearRestorationRequest: true,
+      revision: state.revision + 1,
+    );
+    return source;
+  }
+
+  NarrativeDocumentRoute restoreDocumentDeepLink(Uri uri) {
+    final route = const NarrativeDocumentRouteCodec().decode(uri);
+    openDocument(route);
+    return route;
   }
 
   void rememberExternalReturn(NarrativeStudioReturnExpectation expectation) {
@@ -178,7 +218,8 @@ class NarrativeStudioNavigationController
     final expectation = state.pendingReturn;
     if (expectation == null) return null;
     final revision = state.revision + 1;
-    final requiresViewportRestoration = expectation.scrollOffset != null ||
+    final requiresViewportRestoration =
+        expectation.scrollOffset != null ||
         expectation.zoom != null ||
         expectation.focusAnchorId != null;
     state = state.copyWith(
@@ -216,9 +257,47 @@ class NarrativeStudioNavigationController
   }
 }
 
-final narrativeStudioNavigationControllerProvider = NotifierProvider<
-    NarrativeStudioNavigationController,
-    NarrativeStudioNavigationState>(NarrativeStudioNavigationController.new);
+NarrativeStudioRouteLocation _locationForDocumentRoute(
+  NarrativeDocumentRoute route,
+) => switch (route.kind) {
+  NarrativeDocumentKind.scene => NarrativeStudioRouteLocation.scenes(
+    selection: NarrativeStudioAssetSelection(
+      kind: NarrativeStudioAssetKind.scene,
+      assetId: route.documentId,
+    ),
+  ),
+  NarrativeDocumentKind.presentationCinematic =>
+    NarrativeStudioRouteLocation.cinematics(),
+};
+
+NarrativeStudioRouteLocation _locationForDocumentSource(
+  NarrativeDocumentSourceContext source,
+) => switch (source) {
+  NarrativeLibrarySourceContext(library: NarrativeLibraryKind.scenes) =>
+    NarrativeStudioRouteLocation.scenes(
+      selection: source.selectedAssetId == null
+          ? null
+          : NarrativeStudioAssetSelection(
+              kind: NarrativeStudioAssetKind.scene,
+              assetId: source.selectedAssetId!,
+            ),
+    ),
+  NarrativeLibrarySourceContext(library: NarrativeLibraryKind.cinematics) =>
+    NarrativeStudioRouteLocation.cinematics(),
+  NarrativeSceneSourceContext() => NarrativeStudioRouteLocation.scenes(
+    selection: NarrativeStudioAssetSelection(
+      kind: NarrativeStudioAssetKind.scene,
+      assetId: source.sceneId,
+      focusId: source.selectedNodeId,
+    ),
+  ),
+};
+
+final narrativeStudioNavigationControllerProvider =
+    NotifierProvider<
+      NarrativeStudioNavigationController,
+      NarrativeStudioNavigationState
+    >(NarrativeStudioNavigationController.new);
 
 enum NarrativeStudioNavigationResolutionKind {
   internal,
@@ -253,20 +332,19 @@ final class NarrativeStudioExternalMapTarget {
 @immutable
 final class NarrativeStudioNavigationResolution {
   const NarrativeStudioNavigationResolution.internal(this.location)
-      : kind = NarrativeStudioNavigationResolutionKind.internal,
-        externalMapTarget = null,
-        reason = null;
+    : kind = NarrativeStudioNavigationResolutionKind.internal,
+      externalMapTarget = null,
+      reason = null;
 
-  const NarrativeStudioNavigationResolution.externalMap(
-    this.externalMapTarget,
-  )   : kind = NarrativeStudioNavigationResolutionKind.externalMap,
-        location = null,
-        reason = null;
+  const NarrativeStudioNavigationResolution.externalMap(this.externalMapTarget)
+    : kind = NarrativeStudioNavigationResolutionKind.externalMap,
+      location = null,
+      reason = null;
 
   const NarrativeStudioNavigationResolution.unavailable(this.reason)
-      : kind = NarrativeStudioNavigationResolutionKind.unavailable,
-        location = null,
-        externalMapTarget = null;
+    : kind = NarrativeStudioNavigationResolutionKind.unavailable,
+      location = null,
+      externalMapTarget = null;
 
   final NarrativeStudioNavigationResolutionKind kind;
   final NarrativeStudioRouteLocation? location;
@@ -440,15 +518,15 @@ NarrativeStudioNavigationResolution resolveNarrativeProjectDiagnostic(
               rootId: diagnostic.storylineId,
             )
           : diagnostic.chapterId != null
-              ? selected(
-                  NarrativeStudioAssetKind.chapter,
-                  diagnostic.chapterId,
-                  parentId: diagnostic.storylineId,
-                )
-              : selected(
-                  NarrativeStudioAssetKind.storyline,
-                  diagnostic.storylineId,
-                );
+          ? selected(
+              NarrativeStudioAssetKind.chapter,
+              diagnostic.chapterId,
+              parentId: diagnostic.storylineId,
+            )
+          : selected(
+              NarrativeStudioAssetKind.storyline,
+              diagnostic.storylineId,
+            );
       return selection == null
           ? missing('storyline')
           : NarrativeStudioNavigationResolution.internal(
