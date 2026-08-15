@@ -16,6 +16,9 @@ export 'src/ports/project_file_reader.dart'
         ProjectFileReader,
         ProjectResourceIdentity,
         ProjectResourceIdentityReader,
+        ProjectResourceProbe,
+        ProjectResourceProbeReader,
+        ProjectResourceProbeStatus,
         ProjectSnapshotCacheIdentityReader;
 export 'src/references/project_reference_index.dart' show ProjectReferenceIndex;
 export 'src/security/authorization_policy.dart' show AuthoringSecurityLimits;

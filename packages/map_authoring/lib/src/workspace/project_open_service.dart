@@ -91,6 +91,13 @@ final class ProjectOpenService {
                 relativeDirectory: relativeDirectory,
               )
           : null,
+      probeResource: reader is ProjectResourceProbeReader
+          ? (relativePath) =>
+              (reader as ProjectResourceProbeReader).probeResource(
+                projectRoot: canonicalRoot,
+                relativePath: relativePath,
+              )
+          : null,
       canReuseSnapshots: reader is ProjectSnapshotCacheIdentityReader,
     );
     return OpenedProject(

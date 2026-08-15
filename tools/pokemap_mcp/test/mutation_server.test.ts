@@ -136,6 +136,9 @@ async function mutationFixture(
   const project = record(JSON.parse(await readFile(projectPath, "utf8")));
   project.pokemon = canonicalPokemonConfig();
   await writeFile(projectPath, JSON.stringify(project));
+  for (const directory of ["species", "learnsets", "evolutions", "media"]) {
+    await mkdir(join(root, "data/pokemon", directory), { recursive: true });
+  }
   const authoring = new LocalAuthoringClient({
     allowedRoots: [root],
     authoringPackageRoot,

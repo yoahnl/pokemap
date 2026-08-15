@@ -85,7 +85,9 @@ void main() {
         learnsets: forward.learnsets.reversed,
         evolutions: forward.evolutions.reversed,
         media: forward.media.reversed,
-        availableAssetPaths: forward.availableAssetPaths.toList().reversed,
+        assetProbeStatuses: Map<String, PokemonAssetProbeStatus>.fromEntries(
+          forward.assetProbeStatuses.entries.toList().reversed,
+        ),
       );
 
       final first = validator.validate(forward);
@@ -203,6 +205,9 @@ void main() {
       _validSnapshot(
         species: [_document('species/bulbasaur-mega.json', form)],
         media: [_document('media/bulbasaur.json', media)],
+        assetProbeStatuses: const <String, PokemonAssetProbeStatus>{
+          'assets/pokemon/missing-front.png': PokemonAssetProbeStatus.missing,
+        },
       ),
     );
 
@@ -421,6 +426,89 @@ void main() {
     expect(report.canPlaytest, isFalse);
   });
 
+  test('blocks every typed asset probe failure with a distinct diagnostic', () {
+    final media = _media(
+      variant: const PokemonMediaVariant(
+        frontStatic: 'assets/pokemon/front.png',
+        backStatic: 'assets/pokemon/back.png',
+        frontShinyStatic: 'assets/pokemon/front-shiny.png',
+        icon: '../unsafe-icon.png',
+        cry: 'assets/pokemon/cry.ogg',
+        animations: <String, PokemonMediaAnimationRef>{
+          'idle': PokemonMediaAnimationRef(
+            sheet: 'assets/pokemon/idle.png',
+            animationId: 'idle',
+          ),
+        },
+      ),
+    );
+
+    final report = validator.validate(
+      _validSnapshot(
+        media: [_document('media/bulbasaur.json', media)],
+        assetProbeStatuses: const <String, PokemonAssetProbeStatus>{
+          'assets/pokemon/front.png': PokemonAssetProbeStatus.exists,
+          'assets/pokemon/back.png': PokemonAssetProbeStatus.missing,
+          'assets/pokemon/front-shiny.png':
+              PokemonAssetProbeStatus.inventoryUnavailable,
+          '../unsafe-icon.png': PokemonAssetProbeStatus.unsafePath,
+          'assets/pokemon/cry.ogg': PokemonAssetProbeStatus.accessDenied,
+          'assets/pokemon/idle.png': PokemonAssetProbeStatus.missing,
+        },
+      ),
+    );
+
+    expect(
+      report.diagnostics.map((diagnostic) => diagnostic.code),
+      containsAll(<String>{
+        'media.asset_missing',
+        'media.asset_inventory_unavailable',
+        'media.asset_path_unsafe',
+        'media.asset_access_denied',
+      }),
+    );
+    expect(
+      report.diagnostics
+          .where((diagnostic) => diagnostic.code == 'media.asset_missing')
+          .map((diagnostic) => diagnostic.path),
+      containsAll(<String>{
+        'media/bulbasaur.json.variants.base.backStatic',
+        'media/bulbasaur.json.variants.base.animations.idle.sheet',
+      }),
+    );
+    expect(report.canExport, isFalse);
+    expect(report.canPlaytest, isFalse);
+  });
+
+  test('rejects an authored animation without a sheet asset path', () {
+    final report = validator.validate(
+      _validSnapshot(
+        media: [
+          _document(
+            'media/bulbasaur.json',
+            _media(
+              variant: const PokemonMediaVariant(
+                frontStatic: 'assets/pokemon/bulbasaur-front.png',
+                backStatic: 'assets/pokemon/bulbasaur-back.png',
+                animations: <String, PokemonMediaAnimationRef>{
+                  'idle': PokemonMediaAnimationRef(
+                    sheet: '',
+                    animationId: 'idle',
+                  ),
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    expect(
+      report.diagnostics.map((diagnostic) => diagnostic.code),
+      contains('media.animation_sheet_missing'),
+    );
+  });
+
   test('warnings remain non-blocking and the full report JSON is stable', () {
     final snapshot = _validSnapshot(
       catalogs: _validCatalogs()
@@ -458,6 +546,7 @@ PokemonCatalogCoherenceSnapshot _validSnapshot({
   Iterable<PokemonCatalogDocument<PokemonLearnsetFile>>? learnsets,
   Iterable<PokemonCatalogDocument<PokemonEvolutionFile>>? evolutions,
   Iterable<PokemonCatalogDocument<PokemonMediaFile>>? media,
+  Map<String, PokemonAssetProbeStatus>? assetProbeStatuses,
 }) => PokemonCatalogCoherenceSnapshot(
   catalogs: catalogs ?? _validCatalogs(),
   species: species ?? [_document('species/bulbasaur.json', _species())],
@@ -465,11 +554,12 @@ PokemonCatalogCoherenceSnapshot _validSnapshot({
   evolutions:
       evolutions ?? [_document('evolutions/bulbasaur.json', _evolution())],
   media: media ?? [_document('media/bulbasaur.json', _media())],
-  availableAssetPaths: const <String>{
-    'assets/pokemon/bulbasaur-front.png',
-    'assets/pokemon/bulbasaur-back.png',
-  },
-  assetInventoryComplete: true,
+  assetProbeStatuses:
+      assetProbeStatuses ??
+      const <String, PokemonAssetProbeStatus>{
+        'assets/pokemon/bulbasaur-front.png': PokemonAssetProbeStatus.exists,
+        'assets/pokemon/bulbasaur-back.png': PokemonAssetProbeStatus.exists,
+      },
   ruleset: PokemonRulesetProfile.pokeMapBetaV1,
 );
 

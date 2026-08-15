@@ -8,6 +8,7 @@ import 'package:map_editor/src/application/services/pokemon_project_validator.da
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/application/use_cases/validate_pokemon_project_data_use_case.dart';
+import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:path/path.dart' as p;
@@ -16,7 +17,7 @@ void main() {
   late Directory tempProjectRoot;
   late String repoRootPath;
   late ProjectFileSystem workspace;
-  late SeedPokemonDemoDataUseCase seedUseCase;
+  late _PokemonValidationFixtureSeeder seedUseCase;
   late ValidatePokemonProjectDataUseCase validateUseCase;
 
   setUp(() async {
@@ -30,11 +31,11 @@ void main() {
       const FileProjectWorkspaceFactory(),
     ).execute('Pokemon Validation Test', tempProjectRoot.path);
     final pokemonRepository = FilePokemonReadRepository();
-    seedUseCase = SeedPokemonDemoDataUseCase(
-      snapshotController: pokemonRepository,
+    seedUseCase = _PokemonValidationFixtureSeeder(
+      SeedPokemonDemoDataUseCase(snapshotController: pokemonRepository),
     );
     validateUseCase = ValidatePokemonProjectDataUseCase(
-      const PokemonProjectValidator(),
+      const PokemonProjectValidator(reader: EditorProjectFileReader()),
     );
   });
 
@@ -53,6 +54,15 @@ void main() {
       expect(report.isValid, isTrue);
       expect(report.errorCount, 0);
       expect(report.issues, isEmpty);
+    });
+
+    test('blocks seeded media references until their assets exist', () async {
+      await seedUseCase.executeWithoutAssets(workspace);
+
+      final report = await validateUseCase.execute(workspace);
+
+      expect(report.isValid, isFalse);
+      expect(_hasIssue(report, 'media.asset_missing'), isTrue);
     });
 
     test('leaves project.json strictly unchanged', () async {
@@ -521,4 +531,58 @@ Future<void> _writeRawFile(
 
 bool _hasIssue(PokemonValidationReport report, String code) {
   return report.issues.any((issue) => issue.code == code);
+}
+
+final class _PokemonValidationFixtureSeeder {
+  const _PokemonValidationFixtureSeeder(this.delegate);
+
+  final SeedPokemonDemoDataUseCase delegate;
+
+  Future<void> execute(ProjectFileSystem workspace) async {
+    await executeWithoutAssets(workspace);
+    await _writeReferencedPokemonAssets(workspace);
+  }
+
+  Future<void> executeWithoutAssets(ProjectFileSystem workspace) =>
+      delegate.execute(workspace);
+}
+
+Future<void> _writeReferencedPokemonAssets(ProjectFileSystem workspace) async {
+  final mediaDirectory = Directory(
+    workspace.resolveProjectRelativePath('data/pokemon/media'),
+  );
+  await for (final entity in mediaDirectory.list()) {
+    if (entity is! File || !entity.path.endsWith('.json')) continue;
+    final media =
+        jsonDecode(await entity.readAsString()) as Map<String, dynamic>;
+    final variants = (media['variants'] as Map<String, dynamic>).values;
+    for (final rawVariant in variants) {
+      final variant = rawVariant as Map<String, dynamic>;
+      final paths = <String>[
+        for (final key in const <String>[
+          'frontStatic',
+          'backStatic',
+          'frontShinyStatic',
+          'backShinyStatic',
+          'icon',
+          'party',
+          'overworld',
+          'portrait',
+          'cry',
+        ])
+          if (variant[key] case final String path) path,
+        for (final animation
+            in (variant['animations'] as Map<String, dynamic>? ?? const {})
+                .values)
+          if ((animation as Map<String, dynamic>)['sheet']
+              case final String path)
+            path,
+      ];
+      for (final relativePath in paths) {
+        final file = File(workspace.resolveProjectRelativePath(relativePath));
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(<int>[1]);
+      }
+    }
+  }
 }

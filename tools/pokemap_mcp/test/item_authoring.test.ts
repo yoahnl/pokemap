@@ -459,6 +459,9 @@ async function writeFixture(root: string): Promise<void> {
   );
   const catalogDirectory = join(root, "data/pokemon/catalogs");
   await mkdir(catalogDirectory, { recursive: true });
+  for (const directory of ["species", "learnsets", "evolutions", "media"]) {
+    await mkdir(join(root, "data/pokemon", directory), { recursive: true });
+  }
   await writeFile(
     join(catalogDirectory, "items.json"),
     JSON.stringify({

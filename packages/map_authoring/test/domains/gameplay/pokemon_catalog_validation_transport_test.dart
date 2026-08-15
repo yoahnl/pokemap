@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -71,6 +72,59 @@ void main() {
       (diagnostic) => diagnostic['code'] == 'learnset.level_up_level_invalid',
     );
     expect(invalidLevel['path'], contains('custom/learnsets'));
+    expect(
+      diagnostics.where(
+        (diagnostic) => diagnostic['code'] == 'media.asset_missing',
+      ),
+      hasLength(5),
+    );
+  });
+
+  test('probes unique media paths once and preserves typed failures', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemon-catalog-probes-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    await _writeFixture(root);
+    final manifest = ProjectManifest.fromJson(
+      Map<String, dynamic>.from(
+        jsonDecode(await File('${root.path}/project.json').readAsString())
+            as Map,
+      ),
+    );
+    final reader = _ProbeReader(
+      const LocalProjectFileReader(),
+      <String, ProjectResourceProbeStatus>{
+        'assets/pokemon/sproutle-front.png': ProjectResourceProbeStatus.exists,
+        'assets/pokemon/sproutle-back.png': ProjectResourceProbeStatus.missing,
+        'assets/pokemon/sproutle-shiny.png':
+            ProjectResourceProbeStatus.inventoryUnavailable,
+        '../unsafe-icon.png': ProjectResourceProbeStatus.unsafePath,
+        'assets/pokemon/sproutle.ogg': ProjectResourceProbeStatus.accessDenied,
+      },
+    );
+    final projectRoot = await root.resolveSymbolicLinks();
+
+    final report =
+        await const PokemonCatalogCoherenceLoader().validateProjectFiles(
+      reader: reader,
+      projectRoot: projectRoot,
+      manifest: manifest,
+    );
+
+    expect(reader.probeCounts.values, everyElement(1));
+    expect(reader.probeCounts, hasLength(5));
+    expect(
+      report.diagnostics.map((diagnostic) => diagnostic.code),
+      containsAll(<String>{
+        'media.asset_missing',
+        'media.asset_inventory_unavailable',
+        'media.asset_path_unsafe',
+        'media.asset_access_denied',
+      }),
+    );
+    expect(report.canExport, isFalse);
+    expect(report.canPlaytest, isFalse);
   });
 }
 
@@ -199,9 +253,81 @@ Future<void> _writeFixture(Directory root) async {
       'base': <String, Object?>{
         'frontStatic': 'assets/pokemon/sproutle-front.png',
         'backStatic': 'assets/pokemon/sproutle-back.png',
+        'frontShinyStatic': 'assets/pokemon/sproutle-shiny.png',
+        'icon': '../unsafe-icon.png',
+        'cry': 'assets/pokemon/sproutle.ogg',
+        'animations': <String, Object?>{
+          'idle': <String, Object?>{
+            'sheet': 'assets/pokemon/sproutle-front.png',
+            'animationId': 'idle',
+          },
+        },
       },
     },
   });
+}
+
+final class _ProbeReader
+    implements
+        ProjectFileReader,
+        ProjectDirectoryReader,
+        ProjectResourceProbeReader {
+  _ProbeReader(this.delegate, this.statuses);
+
+  final LocalProjectFileReader delegate;
+  final Map<String, ProjectResourceProbeStatus> statuses;
+  final Map<String, int> probeCounts = <String, int>{};
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      delegate.canonicalizeDirectory(path);
+
+  @override
+  Future<List<String>> listFiles({
+    required String projectRoot,
+    required String relativeDirectory,
+  }) =>
+      delegate.listFiles(
+        projectRoot: projectRoot,
+        relativeDirectory: relativeDirectory,
+      );
+
+  @override
+  Future<ProjectResourceProbe> probeResource({
+    required String projectRoot,
+    required String relativePath,
+  }) async {
+    probeCounts.update(relativePath, (count) => count + 1, ifAbsent: () => 1);
+    return switch (statuses[relativePath]) {
+      ProjectResourceProbeStatus.exists => ProjectResourceProbe.exists(
+          ProjectResourceIdentity(
+            scope: projectRoot,
+            relativePath: relativePath,
+            byteLength: 1,
+            modifiedAtMicros: 1,
+          ),
+        ),
+      ProjectResourceProbeStatus.missing =>
+        const ProjectResourceProbe.missing(),
+      ProjectResourceProbeStatus.inventoryUnavailable =>
+        const ProjectResourceProbe.inventoryUnavailable(),
+      ProjectResourceProbeStatus.unsafePath =>
+        const ProjectResourceProbe.unsafePath(),
+      ProjectResourceProbeStatus.accessDenied =>
+        const ProjectResourceProbe.accessDenied(),
+      null => const ProjectResourceProbe.inventoryUnavailable(),
+    };
+  }
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) =>
+      delegate.readBytes(
+        projectRoot: projectRoot,
+        relativePath: relativePath,
+      );
 }
 
 Future<void> _writeJson(

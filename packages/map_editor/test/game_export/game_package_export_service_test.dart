@@ -398,6 +398,26 @@ void main() {
       },
     );
 
+    test('rejects a missing referenced Pokemon media asset', () async {
+      final root = await createAuthorProject(withDialogue: false);
+      addTearDown(() => root.delete(recursive: true));
+      await File(
+        p.join(
+          root.path,
+          'assets',
+          'pokemon',
+          'sprites',
+          'bulbasaur',
+          'front.png',
+        ),
+      ).delete();
+
+      await _expectReadinessFailure(
+        root,
+        diagnosticCode: 'pokemon.media.asset_missing',
+      );
+    });
+
     test('rejects a missing authored reference before packaging', () async {
       final root = await createAuthorProject(withDialogue: false);
       addTearDown(() => root.delete(recursive: true));

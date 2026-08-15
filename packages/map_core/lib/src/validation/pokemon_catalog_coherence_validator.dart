@@ -3,6 +3,14 @@ import '../models/pokemon_ruleset_profile.dart';
 
 enum PokemonCatalogDiagnosticSeverity { error, warning }
 
+enum PokemonAssetProbeStatus {
+  exists,
+  missing,
+  inventoryUnavailable,
+  unsafePath,
+  accessDenied,
+}
+
 final class PokemonCatalogDiagnostic {
   const PokemonCatalogDiagnostic({
     required this.code,
@@ -85,18 +93,19 @@ final class PokemonCatalogCoherenceSnapshot {
     Iterable<PokemonCatalogDocument<PokemonEvolutionFile>> evolutions =
         const [],
     Iterable<PokemonCatalogDocument<PokemonMediaFile>> media = const [],
-    Iterable<String> availableAssetPaths = const [],
-    this.assetInventoryComplete = false,
+    Map<String, PokemonAssetProbeStatus> assetProbeStatuses = const {},
     required this.ruleset,
   }) : catalogs = List.unmodifiable(catalogs),
        species = List.unmodifiable(species),
        learnsets = List.unmodifiable(learnsets),
        evolutions = List.unmodifiable(evolutions),
        media = List.unmodifiable(media),
-       availableAssetPaths = Set.unmodifiable(
-         availableAssetPaths
-             .map((path) => path.trim())
-             .where((path) => path.isNotEmpty),
+       assetProbeStatuses = Map.unmodifiable(
+         Map<String, PokemonAssetProbeStatus>.fromEntries(
+           assetProbeStatuses.entries
+               .map((entry) => MapEntry(entry.key.trim(), entry.value))
+               .where((entry) => entry.key.isNotEmpty),
+         ),
        );
 
   final List<PokemonCatalogDocument<PokemonCatalogFile>> catalogs;
@@ -104,8 +113,7 @@ final class PokemonCatalogCoherenceSnapshot {
   final List<PokemonCatalogDocument<PokemonLearnsetFile>> learnsets;
   final List<PokemonCatalogDocument<PokemonEvolutionFile>> evolutions;
   final List<PokemonCatalogDocument<PokemonMediaFile>> media;
-  final Set<String> availableAssetPaths;
-  final bool assetInventoryComplete;
+  final Map<String, PokemonAssetProbeStatus> assetProbeStatuses;
   final PokemonRulesetProfile ruleset;
 }
 
@@ -186,8 +194,7 @@ final class PokemonCatalogCoherenceValidator {
         document,
         speciesIds: speciesIds,
         formIds: formIdsBySpecies[document.value.speciesId],
-        assetPaths: snapshot.availableAssetPaths,
-        assetInventoryComplete: snapshot.assetInventoryComplete,
+        assetProbeStatuses: snapshot.assetProbeStatuses,
         collector: collector,
       );
     }
@@ -817,8 +824,7 @@ final class PokemonCatalogCoherenceValidator {
     PokemonCatalogDocument<PokemonMediaFile> document, {
     required Set<String> speciesIds,
     required Set<String>? formIds,
-    required Set<String> assetPaths,
-    required bool assetInventoryComplete,
+    required Map<String, PokemonAssetProbeStatus> assetProbeStatuses,
     required _DiagnosticCollector collector,
   }) {
     final media = document.value;
@@ -876,52 +882,116 @@ final class PokemonCatalogCoherenceValidator {
       );
       return;
     }
-    _validateRequiredMediaPath(
-      value: variant.frontStatic,
-      code: 'media.front_static_missing',
-      path: '$path.variants.$defaultFormId.frontStatic',
-      label: 'front battle sprite',
-      assetPaths: assetPaths,
-      assetInventoryComplete: assetInventoryComplete,
-      collector: collector,
-    );
-    _validateRequiredMediaPath(
-      value: variant.backStatic,
-      code: 'media.back_static_missing',
-      path: '$path.variants.$defaultFormId.backStatic',
-      label: 'back battle sprite',
-      assetPaths: assetPaths,
-      assetInventoryComplete: assetInventoryComplete,
-      collector: collector,
-    );
+    final variants = media.variants.entries.toList(growable: false)
+      ..sort((left, right) => left.key.compareTo(right.key));
+    for (final entry in variants) {
+      final formId = entry.key;
+      final value = entry.value;
+      final basePath = '$path.variants.$formId';
+      _validateMediaPath(
+        value: value.frontStatic,
+        requiredCode: formId == defaultFormId
+            ? 'media.front_static_missing'
+            : null,
+        path: '$basePath.frontStatic',
+        label: 'front battle sprite',
+        assetProbeStatuses: assetProbeStatuses,
+        collector: collector,
+      );
+      _validateMediaPath(
+        value: value.backStatic,
+        requiredCode: formId == defaultFormId
+            ? 'media.back_static_missing'
+            : null,
+        path: '$basePath.backStatic',
+        label: 'back battle sprite',
+        assetProbeStatuses: assetProbeStatuses,
+        collector: collector,
+      );
+      for (final optional in <(String, String?)>[
+        ('frontShinyStatic', value.frontShinyStatic),
+        ('backShinyStatic', value.backShinyStatic),
+        ('icon', value.icon),
+        ('party', value.party),
+        ('overworld', value.overworld),
+        ('portrait', value.portrait),
+        ('cry', value.cry),
+      ]) {
+        _validateMediaPath(
+          value: optional.$2,
+          path: '$basePath.${optional.$1}',
+          label: optional.$1,
+          assetProbeStatuses: assetProbeStatuses,
+          collector: collector,
+        );
+      }
+      final animations = value.animations.entries.toList(growable: false)
+        ..sort((left, right) => left.key.compareTo(right.key));
+      for (final animation in animations) {
+        _validateMediaPath(
+          value: animation.value.sheet,
+          requiredCode: 'media.animation_sheet_missing',
+          path: '$basePath.animations.${animation.key}.sheet',
+          label: 'animation sheet',
+          assetProbeStatuses: assetProbeStatuses,
+          collector: collector,
+        );
+      }
+    }
   }
 
-  void _validateRequiredMediaPath({
+  void _validateMediaPath({
     required String? value,
-    required String code,
+    String? requiredCode,
     required String path,
     required String label,
-    required Set<String> assetPaths,
-    required bool assetInventoryComplete,
+    required Map<String, PokemonAssetProbeStatus> assetProbeStatuses,
     required _DiagnosticCollector collector,
   }) {
     final assetPath = value?.trim() ?? '';
     if (assetPath.isEmpty) {
-      collector.error(
-        code: code,
-        path: path,
-        message: 'The default Pokemon form is missing its $label.',
-        action: 'Select a project-local asset for the $label.',
-      );
+      if (requiredCode != null) {
+        collector.error(
+          code: requiredCode,
+          path: path,
+          message: 'The Pokemon media is missing its $label.',
+          action: 'Select a project-local asset for the $label.',
+        );
+      }
       return;
     }
-    if (assetInventoryComplete && !assetPaths.contains(assetPath)) {
-      collector.error(
-        code: 'media.asset_missing',
-        path: path,
-        message: 'Required Pokemon media asset "$assetPath" does not exist.',
-        action: 'Import the asset or update the media reference.',
-      );
+    switch (assetProbeStatuses[assetPath] ??
+        PokemonAssetProbeStatus.inventoryUnavailable) {
+      case PokemonAssetProbeStatus.exists:
+        return;
+      case PokemonAssetProbeStatus.missing:
+        collector.error(
+          code: 'media.asset_missing',
+          path: path,
+          message: 'Pokemon media asset "$assetPath" does not exist.',
+          action: 'Import the asset or update the media reference.',
+        );
+      case PokemonAssetProbeStatus.inventoryUnavailable:
+        collector.error(
+          code: 'media.asset_inventory_unavailable',
+          path: path,
+          message: 'Pokemon media asset "$assetPath" could not be verified.',
+          action: 'Restore project asset access and validate again.',
+        );
+      case PokemonAssetProbeStatus.unsafePath:
+        collector.error(
+          code: 'media.asset_path_unsafe',
+          path: path,
+          message: 'Pokemon media asset "$assetPath" is outside the project.',
+          action: 'Select an asset stored safely inside the project.',
+        );
+      case PokemonAssetProbeStatus.accessDenied:
+        collector.error(
+          code: 'media.asset_access_denied',
+          path: path,
+          message: 'Access to Pokemon media asset "$assetPath" was denied.',
+          action: 'Restore project permissions and validate again.',
+        );
     }
   }
 

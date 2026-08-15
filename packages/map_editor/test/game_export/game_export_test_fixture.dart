@@ -159,8 +159,54 @@ Guide: Bienvenue.
     await SeedPokemonDemoDataUseCase(
       snapshotController: FilePokemonReadRepository(),
     ).execute(ProjectFileSystem(root.path));
+    await _writeReferencedPokemonAssets(root);
   }
   return root;
+}
+
+Future<void> _writeReferencedPokemonAssets(Directory root) async {
+  final mediaDirectory = Directory(
+    p.join(root.path, 'data', 'pokemon', 'media'),
+  );
+  await for (final entity in mediaDirectory.list()) {
+    if (entity is! File || !entity.path.endsWith('.json')) continue;
+    final media =
+        jsonDecode(await entity.readAsString()) as Map<String, dynamic>;
+    final variants = (media['variants'] as Map<String, dynamic>).values;
+    for (final rawVariant in variants) {
+      final variant = rawVariant as Map<String, dynamic>;
+      final paths = <String>[
+        for (final key in const <String>[
+          'frontStatic',
+          'backStatic',
+          'frontShinyStatic',
+          'backShinyStatic',
+          'icon',
+          'party',
+          'overworld',
+          'portrait',
+          'cry',
+        ])
+          if (variant[key] case final String path) path,
+        for (final animation
+            in (variant['animations'] as Map<String, dynamic>? ?? const {})
+                .values)
+          if ((animation as Map<String, dynamic>)['sheet']
+              case final String path)
+            path,
+      ];
+      for (final relativePath in paths) {
+        final file = File(p.join(root.path, relativePath));
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(
+          relativePath.endsWith('.ogg')
+              ? utf8.encode('OggS pokemon-fixture')
+              : onePixelPng,
+          flush: true,
+        );
+      }
+    }
+  }
 }
 
 SceneAsset _playableCompletionScene() => SceneAsset(

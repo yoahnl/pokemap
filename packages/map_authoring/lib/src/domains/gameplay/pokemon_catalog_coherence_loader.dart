@@ -20,6 +20,7 @@ final class PokemonCatalogCoherenceLoader {
         manifest,
         readBytes: access.readBytes,
         listFiles: access.listFiles,
+        probeAsset: access.probeResource,
       );
 
   Future<PokemonCatalogCoherenceReport> validateProjectFiles({
@@ -29,6 +30,9 @@ final class PokemonCatalogCoherenceLoader {
   }) {
     final directoryReader = reader is ProjectDirectoryReader
         ? reader as ProjectDirectoryReader
+        : null;
+    final probeReader = reader is ProjectResourceProbeReader
+        ? reader as ProjectResourceProbeReader
         : null;
     return _validate(
       manifest,
@@ -42,6 +46,12 @@ final class PokemonCatalogCoherenceLoader {
               projectRoot: projectRoot,
               relativeDirectory: directory,
             ),
+      probeAsset: (path) async => probeReader == null
+          ? const ProjectResourceProbe.inventoryUnavailable()
+          : await probeReader.probeResource(
+              projectRoot: projectRoot,
+              relativePath: path,
+            ),
     );
   }
 
@@ -49,6 +59,7 @@ final class PokemonCatalogCoherenceLoader {
     ProjectManifest manifest, {
     required _PokemonDocumentReader readBytes,
     required _PokemonDirectoryLister listFiles,
+    required _PokemonAssetProbe probeAsset,
   }) async {
     if (!manifest.pokemon.enabled) {
       return PokemonCatalogCoherenceReport(const []);
@@ -87,6 +98,7 @@ final class PokemonCatalogCoherenceLoader {
       decode: PokemonMediaFile.fromJson,
       diagnostics: diagnostics,
     );
+    final assetProbeStatuses = await _probeMediaAssets(media, probeAsset);
     final report = validator.validate(
       PokemonCatalogCoherenceSnapshot(
         catalogs: catalogs,
@@ -94,6 +106,7 @@ final class PokemonCatalogCoherenceLoader {
         learnsets: learnsets,
         evolutions: evolutions,
         media: media,
+        assetProbeStatuses: assetProbeStatuses,
         ruleset: manifest.pokemon.ruleset,
       ),
     );
@@ -101,6 +114,67 @@ final class PokemonCatalogCoherenceLoader {
       ...diagnostics,
       ...report.diagnostics,
     ]);
+  }
+
+  Future<Map<String, PokemonAssetProbeStatus>> _probeMediaAssets(
+    Iterable<PokemonCatalogDocument<PokemonMediaFile>> media,
+    _PokemonAssetProbe probeAsset,
+  ) async {
+    final rawPathsByProbePath = <String, Set<String>>{};
+    for (final document in media) {
+      for (final variant in document.value.variants.values) {
+        for (final value in <String?>[
+          variant.frontStatic,
+          variant.backStatic,
+          variant.frontShinyStatic,
+          variant.backShinyStatic,
+          variant.icon,
+          variant.party,
+          variant.overworld,
+          variant.portrait,
+          variant.cry,
+          ...variant.animations.values.map((animation) => animation.sheet),
+        ]) {
+          final rawPath = value?.trim() ?? '';
+          if (rawPath.isEmpty) continue;
+          final probePath = _normalizeAssetProbePath(rawPath);
+          rawPathsByProbePath
+              .putIfAbsent(probePath, () => <String>{})
+              .add(rawPath);
+        }
+      }
+    }
+    final probePaths = rawPathsByProbePath.keys.toList(growable: false)..sort();
+    final statuses = <String, PokemonAssetProbeStatus>{};
+    for (final probePath in probePaths) {
+      final result = await _safeProbeAsset(probeAsset, probePath);
+      final status = _pokemonAssetProbeStatus(result.status);
+      for (final rawPath in rawPathsByProbePath[probePath]!) {
+        statuses[rawPath] = status;
+      }
+    }
+    return Map.unmodifiable(statuses);
+  }
+
+  Future<ProjectResourceProbe> _safeProbeAsset(
+    _PokemonAssetProbe probeAsset,
+    String path,
+  ) async {
+    try {
+      return await probeAsset(path);
+    } on WorkspaceAccessException catch (error) {
+      return switch (error.code) {
+        'workspace.path_invalid' ||
+        'workspace.path_absolute' ||
+        'workspace.path_traversal' ||
+        'workspace.path_outside_project' =>
+          const ProjectResourceProbe.unsafePath(),
+        'workspace.access_denied' => const ProjectResourceProbe.accessDenied(),
+        _ => const ProjectResourceProbe.inventoryUnavailable(),
+      };
+    } on Object {
+      return const ProjectResourceProbe.inventoryUnavailable();
+    }
   }
 
   Future<List<PokemonCatalogDocument<PokemonCatalogFile>>> _loadCatalogs(
@@ -180,7 +254,7 @@ final class PokemonCatalogCoherenceLoader {
         diagnostics.add(
           PokemonCatalogDiagnostic(
             code: 'catalog.inventory_unavailable',
-            severity: PokemonCatalogDiagnosticSeverity.warning,
+            severity: PokemonCatalogDiagnosticSeverity.error,
             path: directory,
             message: 'The authoring reader cannot inventory Pokemon files.',
             recommendedAction:
@@ -199,7 +273,7 @@ final class PokemonCatalogCoherenceLoader {
       diagnostics.add(
         PokemonCatalogDiagnostic(
           code: '$family.directory_unreadable',
-          severity: PokemonCatalogDiagnosticSeverity.warning,
+          severity: PokemonCatalogDiagnosticSeverity.error,
           path: directory,
           message: error.message,
           recommendedAction:
@@ -268,6 +342,21 @@ typedef _PokemonDocumentReader = Future<List<int>> Function(String path);
 typedef _PokemonDirectoryLister = Future<List<String>?> Function(
   String directory,
 );
+typedef _PokemonAssetProbe = Future<ProjectResourceProbe> Function(String path);
+
+PokemonAssetProbeStatus _pokemonAssetProbeStatus(
+  ProjectResourceProbeStatus status,
+) =>
+    switch (status) {
+      ProjectResourceProbeStatus.exists => PokemonAssetProbeStatus.exists,
+      ProjectResourceProbeStatus.missing => PokemonAssetProbeStatus.missing,
+      ProjectResourceProbeStatus.inventoryUnavailable =>
+        PokemonAssetProbeStatus.inventoryUnavailable,
+      ProjectResourceProbeStatus.unsafePath =>
+        PokemonAssetProbeStatus.unsafePath,
+      ProjectResourceProbeStatus.accessDenied =>
+        PokemonAssetProbeStatus.accessDenied,
+    };
 
 PokemonCatalogFile _decodeItemCatalog(Map<String, dynamic> json) {
   if (json['schemaVersion'] != currentPokemonDataSchemaVersion) {
@@ -290,3 +379,11 @@ PokemonCatalogFile _decodeItemCatalog(Map<String, dynamic> json) {
 
 String _normalizePath(String value) =>
     validateProjectRelativePath(value).join('/');
+
+String _normalizeAssetProbePath(String value) {
+  try {
+    return validateProjectRelativePath(value).join('/');
+  } on WorkspaceAccessException {
+    return value;
+  }
+}

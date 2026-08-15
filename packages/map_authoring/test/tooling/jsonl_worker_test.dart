@@ -541,6 +541,15 @@ final class _TestSetup {
         const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
         flush: true,
       );
+      for (final directory in [
+        'species',
+        'learnsets',
+        'evolutions',
+        'media',
+      ]) {
+        await Directory('${fixture.path}/data/pokemon/$directory')
+            .create(recursive: true);
+      }
     }
     var token = 0;
     const reader = LocalProjectFileReader();
