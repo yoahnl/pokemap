@@ -143,28 +143,14 @@ GameState hydrateRuntimePlayerPokemonProgression({
       PlayerPokemonHydrationOrigin.legacySave,
   void Function(PlayerPokemonHydrationDiagnostic diagnostic)? onDiagnostic,
 }) {
-  const hydrator = PlayerPokemonHydrator();
-
   PlayerPokemon hydrate(PlayerPokemon pokemon) {
-    final result = hydrator.hydrate(
+    return hydrateRuntimePlayerPokemon(
       pokemon: pokemon,
       catalogs: catalogs.shared,
       ruleset: ruleset,
       origin: _hydrationOriginFor(pokemon, defaultOrigin),
+      onDiagnostic: onDiagnostic,
     );
-    for (final diagnostic in result.diagnostics) {
-      onDiagnostic?.call(diagnostic);
-    }
-    if (result.hasErrors) {
-      throw RuntimePlayerPokemonProgressionHydrationException(
-        diagnostic: result.diagnostics.firstWhere(
-          (diagnostic) =>
-              diagnostic.severity ==
-              PlayerPokemonHydrationDiagnosticSeverity.error,
-        ),
-      );
-    }
-    return result.pokemon!;
   }
 
   return gameState.copyWith(
@@ -177,6 +163,34 @@ GameState hydrateRuntimePlayerPokemonProgression({
           .toList(growable: false),
     ),
   );
+}
+
+PlayerPokemon hydrateRuntimePlayerPokemon({
+  required PlayerPokemon pokemon,
+  required PlayerPokemonHydrationCatalogs catalogs,
+  required PokemonRulesetProfile ruleset,
+  required PlayerPokemonHydrationOrigin origin,
+  void Function(PlayerPokemonHydrationDiagnostic diagnostic)? onDiagnostic,
+}) {
+  final result = const PlayerPokemonHydrator().hydrate(
+    pokemon: pokemon,
+    catalogs: catalogs,
+    ruleset: ruleset,
+    origin: origin,
+  );
+  for (final diagnostic in result.diagnostics) {
+    onDiagnostic?.call(diagnostic);
+  }
+  if (result.hasErrors) {
+    throw RuntimePlayerPokemonProgressionHydrationException(
+      diagnostic: result.diagnostics.firstWhere(
+        (diagnostic) =>
+            diagnostic.severity ==
+            PlayerPokemonHydrationDiagnosticSeverity.error,
+      ),
+    );
+  }
+  return result.pokemon!;
 }
 
 PlayerPokemonHydrationOrigin _hydrationOriginFor(

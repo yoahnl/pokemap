@@ -509,6 +509,36 @@ void main() {
       expect(restored.storyFlags.activeFlags, {'legacy_flag'});
     });
   });
+
+  group('Pokemon grant operation persistence', () {
+    test('round-trips the normalized operation ledger through both save wires',
+        () {
+      const state = GameState(
+        saveId: 'pokemon-grants',
+        appliedPokemonGrantOperationIds: <String>{
+          ' scenario:run-b:gift ',
+          'scenario:run-a:gift',
+          '',
+        },
+      );
+
+      final strictRestored = gameStateFromStrictSaveJson(
+        strictGameStateSaveJson(state),
+      );
+      final saveRestored = gameStateFromSaveData(
+        SaveData.fromJson(saveDataFromGameState(state).toJson()),
+      );
+
+      expect(
+        strictRestored.appliedPokemonGrantOperationIds,
+        <String>{'scenario:run-a:gift', 'scenario:run-b:gift'},
+      );
+      expect(
+        saveRestored.appliedPokemonGrantOperationIds,
+        strictRestored.appliedPokemonGrantOperationIds,
+      );
+    });
+  });
 }
 
 PlayerPokemon _storedPokemon(String speciesId) => PlayerPokemon(

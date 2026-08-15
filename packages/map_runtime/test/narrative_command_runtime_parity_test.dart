@@ -110,7 +110,16 @@ void main() {
     // Adding a supported descriptor without a real writer sample must fail.
     expect(samples.keys, unorderedEquals(declaredIds));
     for (final entry in samples.entries) {
-      final result = writer.applyOne(_gameState(), entry.value());
+      final consequence = entry.value();
+      final result = writer.applyOne(
+        _gameState(),
+        consequence,
+        pokemonGrantOperationId: consequence.kind ==
+                    SceneConsequenceKind.givePokemon ||
+                consequence.kind == SceneConsequenceKind.giveConfiguredStarter
+            ? 'scene:parity:execution:${entry.key}'
+            : null,
+      );
       expect(result.success, isTrue, reason: entry.key);
       expect(result.appliedConsequences, hasLength(1), reason: entry.key);
     }

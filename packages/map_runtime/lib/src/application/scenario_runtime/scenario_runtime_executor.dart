@@ -49,7 +49,6 @@ const String kScenarioActionStartTrainerBattle = 'startTrainerBattle';
 /// - `abilityId` (optionnel, défaut 'unknown') : talent.
 /// - `preventDuplicate` (optionnel, défaut 'false') : empêche le doublon.
 ///
-/// La mutation est appliquée via [GameStateMutations.givePokemon].
 /// Aucun speciesId n'est hardcodé : l'authoring fournit tout.
 const String kScenarioActionGivePokemon = 'givePokemon';
 
@@ -430,6 +429,7 @@ class ScenarioRuntimeExecutor {
                 scenarioId: scenario.id,
                 sourceNodeId: sourceId,
                 nodeId: node.id,
+                executionId: context.executionId,
               ),
             );
             return ScenarioRuntimeExecutionResult(
@@ -439,6 +439,7 @@ class ScenarioRuntimeExecutor {
               effect: ScenarioRuntimeEffect(
                 type: ScenarioRuntimeEffectType.dialogue,
                 dialogueId: dialogueId,
+                executionId: context.executionId,
               ),
               scenarioId: scenario.id,
               sourceNodeId: sourceId,
@@ -458,6 +459,7 @@ class ScenarioRuntimeExecutor {
                 scenarioId: scenario.id,
                 sourceNodeId: sourceId,
                 nodeId: node.id,
+                executionId: context.executionId,
               ),
             );
             return ScenarioRuntimeExecutionResult(
@@ -467,6 +469,7 @@ class ScenarioRuntimeExecutor {
               effect: ScenarioRuntimeEffect(
                 type: ScenarioRuntimeEffectType.script,
                 scriptId: scriptId,
+                executionId: context.executionId,
               ),
               scenarioId: scenario.id,
               sourceNodeId: sourceId,
@@ -536,6 +539,7 @@ class ScenarioRuntimeExecutor {
                   scenarioId: scenario.id,
                   sourceNodeId: sourceId,
                   nodeId: node.id,
+                  executionId: context.executionId,
                 ),
               );
               return ScenarioRuntimeExecutionResult(
@@ -545,6 +549,7 @@ class ScenarioRuntimeExecutor {
                 effect: ScenarioRuntimeEffect(
                   type: ScenarioRuntimeEffectType.script,
                   scriptId: scriptId,
+                  executionId: context.executionId,
                 ),
                 scenarioId: scenario.id,
                 sourceNodeId: sourceId,
@@ -574,6 +579,7 @@ class ScenarioRuntimeExecutor {
                   scenarioId: scenario.id,
                   sourceNodeId: sourceId,
                   nodeId: node.id,
+                  executionId: context.executionId,
                 ),
               );
               return ScenarioRuntimeExecutionResult(
@@ -583,6 +589,7 @@ class ScenarioRuntimeExecutor {
                 effect: ScenarioRuntimeEffect(
                   type: ScenarioRuntimeEffectType.dialogue,
                   dialogueId: dialogueId,
+                  executionId: context.executionId,
                 ),
                 scenarioId: scenario.id,
                 sourceNodeId: sourceId,
@@ -796,6 +803,7 @@ class ScenarioRuntimeExecutor {
                   scenarioId: scenario.id,
                   sourceNodeId: sourceId,
                   nodeId: node.id,
+                  executionId: context.executionId,
                 ),
               );
               if (!started) {
@@ -812,7 +820,10 @@ class ScenarioRuntimeExecutor {
               if (waitForCompletion) {
                 return ScenarioRuntimeExecutionResult(
                   status: ScenarioRuntimeExecutionStatus.executedEffect,
-                  effect: const ScenarioRuntimeEffect.none(),
+                  effect: ScenarioRuntimeEffect(
+                    type: ScenarioRuntimeEffectType.none,
+                    executionId: context.executionId,
+                  ),
                   scenarioId: scenario.id,
                   sourceNodeId: sourceId,
                   stopNodeId: node.id,
@@ -1039,6 +1050,7 @@ class ScenarioRuntimeExecutor {
                   battleId: battleId,
                   trainerId: trainerId,
                   npcEntityId: npcEntityId,
+                  executionId: context.executionId,
                 ),
                 scenarioId: scenario.id,
                 sourceNodeId: sourceId,
@@ -1057,6 +1069,18 @@ class ScenarioRuntimeExecutor {
                   stopNodeId: node.id,
                   message:
                       'Action givePokemon sans speciesId dans "${node.id}".',
+                );
+              }
+              final executionId = context.executionId.trim();
+              if (executionId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action givePokemon sans executionId dans "${node.id}".',
                 );
               }
               final level = int.tryParse(
@@ -1117,45 +1141,21 @@ class ScenarioRuntimeExecutor {
                   metLevel: clampedLevel,
                 ),
               );
-              final pokemon = unresolvedPokemon.copyWith(
-                individualId: nextPlayerPokemonIndividualId(
-                  saveId: context.gameState.saveId,
-                  location: 'scenario|${scenario.id}|${node.id}',
+              return ScenarioRuntimeExecutionResult(
+                status: ScenarioRuntimeExecutionStatus.executedEffect,
+                effect: ScenarioRuntimeEffect(
+                  type: ScenarioRuntimeEffectType.givePokemon,
+                  executionId: executionId,
                   pokemon: unresolvedPokemon,
-                  occupiedIndividualIds: <String>[
-                    ...context.gameState.party.members.map(
-                      (pokemon) => pokemon.individualId,
-                    ),
-                    ...context.gameState.pokemonStorage.storedPokemon.map(
-                      (pokemon) => pokemon.individualId,
-                    ),
-                  ],
+                  grantOperationId:
+                      'scenario:${scenario.id}:$executionId:${node.id}',
+                  preventDuplicateSpecies: preventDuplicate,
                 ),
+                scenarioId: scenario.id,
+                sourceNodeId: sourceId,
+                stopNodeId: node.id,
+                message: 'Pokémon "$speciesId" prêt à être hydraté.',
               );
-              const mutations = GameStateMutations();
-              final nextGiveState = mutations.givePokemon(
-                context.gameState,
-                pokemon: pokemon,
-                preventDuplicateSpecies: preventDuplicate,
-              );
-              context.gameState = nextGiveState;
-              context.onGameStateUpdated(nextGiveState);
-              final nextAfterGive = _pickLinearNextNodeId(
-                nodeId: node.id,
-                edges: scenario.edges,
-              );
-              if (nextAfterGive == null) {
-                return ScenarioRuntimeExecutionResult(
-                  status: ScenarioRuntimeExecutionStatus.reachedEnd,
-                  effect: const ScenarioRuntimeEffect.none(),
-                  scenarioId: scenario.id,
-                  sourceNodeId: sourceId,
-                  stopNodeId: node.id,
-                  message:
-                      'Pokémon "$speciesId" (lv$level) donné. Fin du flow.',
-                );
-              }
-              currentNodeId = nextAfterGive;
 
             case kScenarioActionGiveItem:
               final itemId = node.payload.params['itemId']?.trim() ?? '';
@@ -1482,8 +1482,9 @@ class ScenarioRuntimeExecutor {
     required String scenarioId,
     required String sourceNodeId,
     required String nodeId,
+    required String executionId,
   }) {
-    return 'scenario:$scenarioId:$sourceNodeId:$nodeId';
+    return 'scenario:$scenarioId:$sourceNodeId:$nodeId:$executionId';
   }
 
   bool _rectContains(MapRect rect, GridPos pos) {

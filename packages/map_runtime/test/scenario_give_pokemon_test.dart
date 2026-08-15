@@ -11,8 +11,10 @@ void main() {
     ScenarioRuntimeExecutionContext makeContext({
       required GameState state,
       required void Function(GameState) onUpdate,
+      String executionId = 'scenario_execution',
     }) {
       return ScenarioRuntimeExecutionContext(
+        executionId: executionId,
         gameState: state,
         onGameStateUpdated: onUpdate,
         openDialogue: (_, {startNode, runtimeSourceId}) => false,
@@ -21,7 +23,7 @@ void main() {
       );
     }
 
-    test('givePokemon action adds Pokemon to party', () {
+    test('givePokemon action emits a grant effect without mutating state', () {
       final scenario = ScenarioAsset(
         id: 'test_scenario',
         name: 'Test',
@@ -75,13 +77,17 @@ void main() {
       );
 
       expect(result.success, isTrue);
-      expect(state.party.members, hasLength(1));
-      expect(state.party.members.first.speciesId, 'test_species');
-      expect(state.party.members.first.individualId, startsWith('pkm_'));
-      expect(state.party.members.first.formId, 'festival');
-      expect(state.party.members.first.level, 7);
-      // currentHp defaults to level when not provided.
-      expect(state.party.members.first.currentHp, 7);
+      expect(result.effect.type, ScenarioRuntimeEffectType.givePokemon);
+      expect(result.effect.pokemon?.speciesId, 'test_species');
+      expect(result.effect.pokemon?.formId, 'festival');
+      expect(result.effect.pokemon?.level, 7);
+      expect(result.effect.pokemon?.currentHp, 7);
+      expect(
+        result.effect.grantOperationId,
+        'scenario:test_scenario:scenario_execution:give',
+      );
+      expect(state.party.members, isEmpty);
+      expect(state.appliedPokemonGrantOperationIds, isEmpty);
     });
 
     test('givePokemon uses defaults for optional params', () {
@@ -121,7 +127,7 @@ void main() {
       );
 
       var state = const GameState(saveId: 'test');
-      executor.dispatch(
+      final result = executor.dispatch(
         scenarios: [scenario],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_map',
@@ -133,8 +139,8 @@ void main() {
         ),
       );
 
-      expect(state.party.members, hasLength(1));
-      final pokemon = state.party.members.first;
+      expect(state.party.members, isEmpty);
+      final pokemon = result.effect.pokemon!;
       expect(pokemon.speciesId, 'default_species');
       expect(pokemon.level, 5); // default level
       expect(pokemon.natureId, 'hardy'); // default nature
@@ -196,7 +202,7 @@ void main() {
       expect(state.party.members, isEmpty);
     });
 
-    test('givePokemon with preventDuplicate prevents double give', () {
+    test('givePokemon transports the duplicate-species policy', () {
       final scenario = ScenarioAsset(
         id: 'test_prevent_dup',
         name: 'Prevent duplicate',
@@ -235,9 +241,8 @@ void main() {
         ],
       );
 
-      // First dispatch: adds the pokemon.
       var state = const GameState(saveId: 'test');
-      executor.dispatch(
+      final result = executor.dispatch(
         scenarios: [scenario],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_map',
@@ -248,21 +253,8 @@ void main() {
           onUpdate: (next) => state = next,
         ),
       );
-      expect(state.party.members, hasLength(1));
-
-      // Second dispatch: duplicate prevention, still only 1.
-      executor.dispatch(
-        scenarios: [scenario],
-        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
-          mapId: 'test_map',
-          entityId: 'test_npc',
-        ),
-        context: makeContext(
-          state: state,
-          onUpdate: (next) => state = next,
-        ),
-      );
-      expect(state.party.members, hasLength(1));
+      expect(result.effect.preventDuplicateSpecies, isTrue);
+      expect(state.party.members, isEmpty);
     });
 
     test('givePokemon accepts knownMoveIds from payload', () {
@@ -306,7 +298,7 @@ void main() {
       );
 
       var state = const GameState(saveId: 'test');
-      executor.dispatch(
+      final result = executor.dispatch(
         scenarios: [scenario],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_map',
@@ -318,8 +310,8 @@ void main() {
         ),
       );
 
-      expect(state.party.members, hasLength(1));
-      final pokemon = state.party.members.first;
+      expect(state.party.members, isEmpty);
+      final pokemon = result.effect.pokemon!;
       expect(pokemon.knownMoveIds, ['tackle', 'growl']);
     });
 
@@ -363,7 +355,7 @@ void main() {
       );
 
       var state = const GameState(saveId: 'test');
-      executor.dispatch(
+      final result = executor.dispatch(
         scenarios: [scenario],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_map',
@@ -375,7 +367,8 @@ void main() {
         ),
       );
 
-      final pokemon = state.party.members.first;
+      final pokemon = result.effect.pokemon!;
+      expect(state.party.members, isEmpty);
       expect(pokemon.knownMoveIds, ['tackle', 'growl']);
     });
 
@@ -420,7 +413,7 @@ void main() {
       );
 
       var state = const GameState(saveId: 'test');
-      executor.dispatch(
+      final result = executor.dispatch(
         scenarios: [scenario],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_map',
@@ -432,7 +425,8 @@ void main() {
         ),
       );
 
-      final pokemon = state.party.members.first;
+      final pokemon = result.effect.pokemon!;
+      expect(state.party.members, isEmpty);
       expect(pokemon.currentHp, 25);
       expect(pokemon.level, 10);
     });
@@ -477,7 +471,7 @@ void main() {
       );
 
       var state = const GameState(saveId: 'test');
-      executor.dispatch(
+      final result = executor.dispatch(
         scenarios: [scenario],
         sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
           mapId: 'test_map',
@@ -489,7 +483,8 @@ void main() {
         ),
       );
 
-      final pokemon = state.party.members.first;
+      final pokemon = result.effect.pokemon!;
+      expect(state.party.members, isEmpty);
       expect(pokemon.level, 15);
       expect(pokemon.currentHp, 15); // fallback = level
     });
@@ -548,7 +543,8 @@ void main() {
       );
 
       expect(result.success, isTrue);
-      final pokemon = state.party.members.first;
+      final pokemon = result.effect.pokemon!;
+      expect(state.party.members, isEmpty);
       expect(pokemon.level, 8);
       expect(pokemon.currentHp, 8); // fallback = level when invalid
     });

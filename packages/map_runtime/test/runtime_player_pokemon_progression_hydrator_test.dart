@@ -454,6 +454,74 @@ void main() {
       expect(pokemon.currentHp, 20);
       expect(pokemon.provenance?.kind, PlayerPokemonOriginKind.gift);
     });
+
+    test('Scenario gift is hydrated, committed, and resumed by the host',
+        () async {
+      final scenario = ScenarioAsset(
+        id: 'scenario_gift',
+        name: 'Scenario gift',
+        entryNodeId: 'source',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(actionKind: kScenarioSourceMapEnter),
+            binding: ScenarioNodeBinding(mapId: 'hydration_map'),
+          ),
+          ScenarioNode(
+            id: 'gift',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionGivePokemon,
+              params: <String, String>{
+                'speciesId': 'wartortle',
+                'natureId': 'bold',
+                'abilityId': 'torrent',
+                'level': '5',
+                'currentHp': '999',
+              },
+            ),
+          ),
+          ScenarioNode(
+            id: 'resumed',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(actionKind: kScenarioActionSetFlag),
+            binding: ScenarioNodeBinding(flagName: 'gift_resumed'),
+          ),
+          ScenarioNode(id: 'end', type: ScenarioNodeType.end),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(
+              id: 'source-gift', fromNodeId: 'source', toNodeId: 'gift'),
+          ScenarioEdge(
+              id: 'gift-resumed', fromNodeId: 'gift', toNodeId: 'resumed'),
+          ScenarioEdge(
+              id: 'resumed-end', fromNodeId: 'resumed', toNodeId: 'end'),
+        ],
+      );
+      final game = PlayableMapGame(
+        bundle: _runtimeBundle(
+          newGameEnabled: false,
+          scenarios: <ScenarioAsset>[scenario],
+        ),
+        projectFilePath: '/tmp/progression_hydration/project.json',
+        runtimePlayerPokemonProgressionCatalogLoader: _loadCatalogs,
+      );
+      game.onGameResize(Vector2(320, 240));
+      await game.onLoad();
+      await _waitForActivationDispatch(game);
+      await _waitUntil(
+        () => game.gameStateSnapshot.storyFlags.activeFlags
+            .contains('gift_resumed'),
+      );
+
+      final state = game.gameStateSnapshot;
+      expect(state.party.members, hasLength(1));
+      expect(state.party.members.single.speciesId, 'wartortle');
+      expect(state.party.members.single.experience, 135);
+      expect(state.party.members.single.currentHp, 20);
+      expect(state.appliedPokemonGrantOperationIds, hasLength(1));
+    });
   });
 
   test('default loader projects growth rate and max PP from project data',
@@ -587,6 +655,7 @@ RuntimeMapBundle _runtimeBundle({
   required bool newGameEnabled,
   Map<String, String> tilesetAbsolutePathsById = const {},
   List<SceneAsset> scenes = const <SceneAsset>[],
+  List<ScenarioAsset> scenarios = const <ScenarioAsset>[],
 }) {
   const pokemon = PlayerPokemon(
     speciesId: 'wartortle',
@@ -607,6 +676,7 @@ RuntimeMapBundle _runtimeBundle({
       ],
       tilesets: const [],
       scenes: scenes,
+      scenarios: scenarios,
       newGame: ProjectNewGameConfig(
         enabled: newGameEnabled,
         startMapId: 'hydration_map',

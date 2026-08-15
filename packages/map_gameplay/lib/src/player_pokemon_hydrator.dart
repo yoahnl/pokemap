@@ -28,12 +28,14 @@ enum PlayerPokemonHydrationDiagnosticCode {
   unknownMove,
   invalidMovePp,
   negativeCurrentPp,
+  currentPpClampedToMaximum,
   ppForUnlearnedMove,
   missingGrowthRate,
   unsupportedGrowthRate,
   negativeExperience,
   inconsistentExperience,
   negativeCurrentHp,
+  currentHpClampedToMaximum,
   invalidIndividual,
   natureResolved,
   abilityResolved,
@@ -314,6 +316,12 @@ final class PlayerPokemonHydrator {
       final maxPp = catalogs.maxPpByMoveId[moveId];
       if (maxPp == null || maxPp <= 0) continue;
       final currentPp = persistedPp[moveId] ?? maxPp;
+      if (currentPp > maxPp) {
+        warning(
+          PlayerPokemonHydrationDiagnosticCode.currentPpClampedToMaximum,
+          'Current PP for "$moveId" was clamped to its maximum $maxPp.',
+        );
+      }
       currentPpByMoveId[moveId] = currentPp.clamp(0, maxPp);
     }
 
@@ -381,6 +389,12 @@ final class PlayerPokemonHydrator {
               natureId: natureId,
             )
             .maxHp;
+        if (currentHp > maxHp) {
+          warning(
+            PlayerPokemonHydrationDiagnosticCode.currentHpClampedToMaximum,
+            'Pokemon current HP was clamped to its maximum $maxHp.',
+          );
+        }
         currentHp = currentHp.clamp(0, maxHp);
       } on Object catch (exception) {
         error(

@@ -616,6 +616,12 @@ void main() {
             label: 'Capitaine',
           ),
         ],
+        pokemonGrantOperationIds: const <String?>[
+          null,
+          null,
+          null,
+          'scene:rewards:execution:gift',
+        ],
       );
 
       expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
@@ -730,6 +736,9 @@ void main() {
             currentHp: 20,
           ),
         ],
+        pokemonGrantOperationIds: const <String?>[
+          'scene:full-party:execution:gift',
+        ],
       );
 
       expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
@@ -843,7 +852,15 @@ void main() {
       final writer = SceneConsequenceRuntimeWriter(project: _project());
 
       for (final (consequence, expectedError) in cases) {
-        final result = writer.applyAll(state, [consequence]);
+        final result = writer.applyAll(
+          state,
+          [consequence],
+          pokemonGrantOperationIds: <String?>[
+            consequence.kind == SceneConsequenceKind.givePokemon
+                ? 'scene:invalid:execution:gift'
+                : null,
+          ],
+        );
         expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
         expect(result.errorCode, expectedError);
         expect(identical(result.gameState, state), isTrue);
@@ -887,6 +904,9 @@ void main() {
             starterOptionId: 'starter_bulbasaur',
           ),
         ],
+        pokemonGrantOperationIds: const <String?>[
+          'scene:starter:execution:gift',
+        ],
       );
 
       expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
@@ -903,7 +923,7 @@ void main() {
         expectedWithProvenance.copyWith(
           individualId: deterministicPlayerPokemonIndividualId(
             saveId: 'save_configured_starter',
-            location: 'starter|starter_bulbasaur',
+            location: 'give:party:0',
             pokemon: expectedWithProvenance,
           ),
         ),
@@ -919,6 +939,9 @@ void main() {
           SceneConsequence.giveConfiguredStarter(
             starterOptionId: 'starter_missing',
           ),
+        ],
+        pokemonGrantOperationIds: const <String?>[
+          'scene:starter:execution:missing',
         ],
       );
 

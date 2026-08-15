@@ -8,6 +8,17 @@ import 'package:path/path.dart' as p;
 
 import 'runtime_battle_setup_exception.dart';
 
+final class RuntimePokemonSpeciesNotFoundException
+    extends RuntimeBattleSetupException {
+  const RuntimePokemonSpeciesNotFoundException(this.speciesId)
+      : super(
+          'Espèce Pokémon introuvable pour démarrer le combat.',
+          debugDetails: 'speciesId=$speciesId',
+        );
+
+  final String speciesId;
+}
+
 /// Projection progression validée d'une fiche espèce projet.
 final class RuntimePokemonSpeciesProgression {
   const RuntimePokemonSpeciesProgression({
@@ -145,10 +156,7 @@ class RuntimePokemonSpeciesLoader {
     );
     final indexed = snapshot.index.byId(normalizedSpeciesId);
     if (indexed == null) {
-      throw RuntimeBattleSetupException(
-        'Espèce Pokémon introuvable pour démarrer le combat.',
-        debugDetails: 'speciesId=$speciesId',
-      );
+      throw RuntimePokemonSpeciesNotFoundException(speciesId);
     }
     final species = snapshot.speciesById[indexed.id];
     final relativePath = snapshot.relativePathById[indexed.id];

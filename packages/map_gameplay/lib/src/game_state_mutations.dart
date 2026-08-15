@@ -1090,6 +1090,39 @@ class GameStateMutations {
     );
   }
 
+  GameState givePokemonOnce(
+    GameState state, {
+    required String grantOperationId,
+    required PlayerPokemon pokemon,
+    bool preventDuplicateSpecies = false,
+  }) {
+    final normalizedOperationId = grantOperationId.trim();
+    if (normalizedOperationId.isEmpty) {
+      throw ArgumentError.value(
+        grantOperationId,
+        'grantOperationId',
+        'must not be empty',
+      );
+    }
+    if (state.appliedPokemonGrantOperationIds.contains(normalizedOperationId)) {
+      return state;
+    }
+    final nextState = givePokemon(
+      state,
+      pokemon: pokemon,
+      preventDuplicateSpecies: preventDuplicateSpecies,
+    );
+    if (pokemon.speciesId.trim().isEmpty) {
+      return state;
+    }
+    return nextState.copyWith(
+      appliedPokemonGrantOperationIds: <String>{
+        ...nextState.appliedPokemonGrantOperationIds,
+        normalizedOperationId,
+      },
+    );
+  }
+
   PlayerPokemon _preparePokemonForOwnership(
     GameState state, {
     required PlayerPokemon pokemon,

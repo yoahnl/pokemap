@@ -43,6 +43,8 @@ GameState gameStateFromSaveData(SaveData saveData) {
     narrativeEventProgress: normalizedSaveData.narrativeEventProgress,
     completedBattleRequestIds:
         normalizedSaveData.completedBattleRequestIds,
+    appliedPokemonGrantOperationIds:
+        normalizedSaveData.appliedPokemonGrantOperationIds,
     scriptVariables: const ScriptVariables(),
     consumedEventIds: const {},
     metadata: normalizedSaveData.properties,
@@ -76,6 +78,8 @@ SaveData saveDataFromGameState(GameState gameState) {
     narrativeFactRuntimeState: normalizedGameState.narrativeFactRuntimeState,
     narrativeEventProgress: normalizedGameState.narrativeEventProgress,
     completedBattleRequestIds: normalizedGameState.completedBattleRequestIds,
+    appliedPokemonGrantOperationIds:
+        normalizedGameState.appliedPokemonGrantOperationIds,
     properties: normalizedGameState.metadata,
   ).normalized();
 }
@@ -98,11 +102,17 @@ GameState normalizeLoadedGameState(GameState state) {
       .map((requestId) => requestId.trim())
       .where((requestId) => requestId.isNotEmpty)
       .toSet();
+  final appliedPokemonGrantOperationIds = stateWithRoster
+      .appliedPokemonGrantOperationIds
+      .map((operationId) => operationId.trim())
+      .where((operationId) => operationId.isNotEmpty)
+      .toSet();
   if (stateWithRoster.storyFlags.activeFlags.isNotEmpty ||
       normalizedProgression.storyFlags.isEmpty) {
     return stateWithRoster.copyWith(
       progression: normalizedProgression,
       completedBattleRequestIds: completedBattleRequestIds,
+      appliedPokemonGrantOperationIds: appliedPokemonGrantOperationIds,
     );
   }
   final migratedFlags = normalizedProgression.storyFlags
@@ -113,6 +123,7 @@ GameState normalizeLoadedGameState(GameState state) {
     progression: normalizedProgression,
     storyFlags: stateWithRoster.storyFlags.copyWith(activeFlags: migratedFlags),
     completedBattleRequestIds: completedBattleRequestIds,
+    appliedPokemonGrantOperationIds: appliedPokemonGrantOperationIds,
   );
 }
 

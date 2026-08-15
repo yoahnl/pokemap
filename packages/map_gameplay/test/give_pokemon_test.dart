@@ -369,4 +369,61 @@ void main() {
       expect(reloaded.bag.entries, isEmpty);
     });
   });
+
+  group('GameStateMutations.givePokemonOnce', () {
+    test('records one grant and makes an identical retry a no-op', () {
+      final first = mutations.givePokemonOnce(
+        emptyState(),
+        grantOperationId: 'scenario:gift-run:node-gift',
+        pokemon: testPokemon(),
+      );
+      final replay = mutations.givePokemonOnce(
+        first,
+        grantOperationId: 'scenario:gift-run:node-gift',
+        pokemon: testPokemon(),
+      );
+
+      expect(first.party.members, hasLength(1));
+      expect(replay, first);
+      expect(
+        replay.appliedPokemonGrantOperationIds,
+        <String>{'scenario:gift-run:node-gift'},
+      );
+    });
+
+    test('allows two intentional occurrences of the same template', () {
+      final first = mutations.givePokemonOnce(
+        emptyState(),
+        grantOperationId: 'scene:first:gift-node',
+        pokemon: testPokemon(),
+      );
+      final second = mutations.givePokemonOnce(
+        first,
+        grantOperationId: 'scene:second:gift-node',
+        pokemon: testPokemon(),
+      );
+
+      expect(second.party.members, hasLength(2));
+      expect(
+        second.party.members.map((pokemon) => pokemon.individualId).toSet(),
+        hasLength(2),
+      );
+      expect(second.appliedPokemonGrantOperationIds, hasLength(2));
+    });
+
+    test('rejects an empty operation id before changing state', () {
+      final state = emptyState();
+
+      expect(
+        () => mutations.givePokemonOnce(
+          state,
+          grantOperationId: '   ',
+          pokemon: testPokemon(),
+        ),
+        throwsArgumentError,
+      );
+      expect(state.party.members, isEmpty);
+      expect(state.appliedPokemonGrantOperationIds, isEmpty);
+    });
+  });
 }

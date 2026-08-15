@@ -310,6 +310,11 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
           ?.map((e) => e as String)
           .toSet() ??
       const {},
+  appliedPokemonGrantOperationIds:
+      (json['appliedPokemonGrantOperationIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toSet() ??
+      const {},
   properties:
       (json['properties'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(k, e as String),
@@ -333,6 +338,8 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
     instance.narrativeEventProgress,
   ),
   'completedBattleRequestIds': instance.completedBattleRequestIds.toList(),
+  'appliedPokemonGrantOperationIds': instance.appliedPokemonGrantOperationIds
+      .toList(),
   'properties': instance.properties,
 };
 

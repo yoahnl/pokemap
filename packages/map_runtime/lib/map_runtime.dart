@@ -235,8 +235,13 @@ export 'src/application/runtime_player_pokemon_progression_hydrator.dart'
         RuntimePlayerPokemonProgressionCatalogs,
         RuntimePlayerPokemonProgressionCatalogLoader,
         runtimeSupportedPokemonGrowthRateIds,
+        hydrateRuntimePlayerPokemon,
         hydrateRuntimePlayerPokemonProgression,
         loadRuntimePlayerPokemonProgressionCatalogs;
+export 'src/application/runtime_player_pokemon_grant.dart'
+    show applyRuntimePlayerPokemonGrant;
+export 'src/application/runtime_pokemon_species_loader.dart'
+    show RuntimePokemonSpeciesNotFoundException;
 export 'src/application/load_runtime_map_bundle.dart'
     show
         RuntimeMapBundleLoadProfile,

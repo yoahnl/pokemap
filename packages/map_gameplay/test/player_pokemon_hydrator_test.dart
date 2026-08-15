@@ -39,6 +39,34 @@ void main() {
       }
     });
 
+    test('reports PP and HP clamps before returning canonical values', () {
+      final result = hydrator.hydrate(
+        pokemon: const PlayerPokemon(
+          speciesId: 'bulbasaur',
+          natureId: 'hardy',
+          abilityId: 'overgrow',
+          level: 5,
+          knownMoveIds: <String>['tackle'],
+          currentPpByMoveId: <String, int>{'tackle': 999},
+          currentHp: 999,
+        ),
+        catalogs: _catalogs,
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        origin: PlayerPokemonHydrationOrigin.gift,
+      );
+
+      expect(result.hasErrors, isFalse);
+      expect(result.pokemon?.currentPpByMoveId, <String, int>{'tackle': 35});
+      expect(result.pokemon?.currentHp, 19);
+      expect(
+        result.diagnostics.map((diagnostic) => diagnostic.code),
+        containsAll(<PlayerPokemonHydrationDiagnosticCode>[
+          PlayerPokemonHydrationDiagnosticCode.currentPpClampedToMaximum,
+          PlayerPokemonHydrationDiagnosticCode.currentHpClampedToMaximum,
+        ]),
+      );
+    });
+
     test('hydrates explicit legacy sentinels with typed diagnostics', () {
       final legacy = PlayerPokemon.fromJson(<String, dynamic>{
         'speciesId': 'bulbasaur',
