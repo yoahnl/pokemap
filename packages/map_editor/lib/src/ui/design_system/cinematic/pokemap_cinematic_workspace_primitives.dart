@@ -282,12 +282,14 @@ class PokeMapCinematicPanelTabs extends StatelessWidget {
     required this.layersLabel,
     required this.propertiesLabel,
     required this.onChanged,
+    this.trailing,
   });
 
   final PokeMapCinematicPanelTab selected;
   final String layersLabel;
   final String propertiesLabel;
   final ValueChanged<PokeMapCinematicPanelTab>? onChanged;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -326,6 +328,7 @@ class PokeMapCinematicPanelTabs extends StatelessWidget {
                 child: Text(propertiesLabel),
               ),
             ),
+            if (trailing != null) ...[const SizedBox(width: 6), trailing!],
           ],
         ),
       ),

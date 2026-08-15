@@ -338,6 +338,22 @@ void main() {
       expect(find.text('Paysage 16:9'), findsOneWidget);
       expect(find.text('Portrait 9:16'), findsOneWidget);
 
+      final beforeAddPanel = container
+          .read(editorNotifierProvider)
+          .project!
+          .toJson();
+      await tester.tap(find.text('Ajouter'));
+      await tester.pump();
+      expect(find.text('Projet indisponible'), findsOneWidget);
+      expect(find.text('Calques'), findsNothing);
+      await tester.tap(find.bySemanticsLabel('Fermer la palette Ajouter'));
+      await tester.pump();
+      expect(find.text('Projet indisponible'), findsNothing);
+      expect(
+        container.read(editorNotifierProvider).project!.toJson(),
+        beforeAddPanel,
+      );
+
       await tester.tap(
         find.byKey(const ValueKey('cinematics-presentation-route-back')),
       );

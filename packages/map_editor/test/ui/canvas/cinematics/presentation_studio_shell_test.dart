@@ -135,6 +135,32 @@ void main() {
     expect(find.text('PROPRIÉTÉS SLOT'), findsOneWidget);
   });
 
+  testWidgets(
+    'Ajouter temporarily owns the inspector and Escape restores its exact tab',
+    (tester) async {
+      await _pumpShell(
+        tester,
+        store: _MemoryLayoutStore(),
+        addPanel: const Text('ADD PANEL'),
+      );
+
+      await tester.tap(find.text('Propriétés'));
+      await tester.pump();
+      await tester.tap(find.text('Ajouter'));
+      await tester.pump();
+
+      expect(find.text('ADD PANEL'), findsOneWidget);
+      expect(find.text('Calques'), findsNothing);
+      expect(find.text('Propriétés'), findsNothing);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+
+      expect(find.text('ADD PANEL'), findsNothing);
+      expect(find.text('PROPRIÉTÉS SLOT'), findsOneWidget);
+    },
+  );
+
   for (final size in <Size>[
     const Size(1280, 800),
     const Size(1672, 941),
@@ -171,6 +197,7 @@ Future<void> _pumpShell(
   VoidCallback? onExit,
   Future<void> Function()? onDiscard,
   Future<bool> Function()? onSave,
+  Widget? addPanel,
   Size surfaceSize = const Size(1280, 800),
 }) async {
   tester.view.physicalSize = surfaceSize;
@@ -196,6 +223,7 @@ Future<void> _pumpShell(
           canvas: const Text('CANVAS SLOT'),
           layersPanel: const Text('CALQUES SLOT'),
           propertiesPanel: const Text('PROPRIÉTÉS SLOT'),
+          addPanel: addPanel,
           timeline: const Text('TIMELINE SLOT'),
         ),
       ),

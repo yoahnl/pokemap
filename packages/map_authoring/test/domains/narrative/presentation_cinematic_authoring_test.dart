@@ -170,6 +170,7 @@ void main() {
         'presentationClip.delete',
         'presentationClip.batch',
         'presentationClip.deleteBatch',
+        'presentationTimeline.insert',
         'presentationLayer.create',
         'presentationLayer.update',
         'presentationLayer.move',
@@ -199,6 +200,67 @@ void main() {
           reason: actionId,
         );
       }
+    });
+
+    test('inserts one visual timeline item atomically at the frozen target',
+        () {
+      final insertion = encodePresentationCinematicAsset(
+        PresentationCinematicAsset(
+          id: 'insertion',
+          title: 'Insertion',
+          durationUs: 4000000,
+          layers: <PresentationLayer>[
+            PresentationLayer(
+              id: 'mountains-layer',
+              label: 'Montagnes',
+              zIndex: 3,
+            ),
+          ],
+          tracks: <PresentationTrack>[
+            PresentationTrack(
+              id: 'mountains-track',
+              label: 'Montagnes',
+              kind: PresentationTrackKind.visual,
+              clips: <PresentationClip>[
+                PresentationVisualClip(
+                  id: 'mountains-clip',
+                  startUs: 2750000,
+                  durationUs: 1000000,
+                  layerId: 'mountains-layer',
+                  resourceId: 'hero-landscape',
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      final updated = _apply(
+        _snapshot(),
+        'presentationTimeline.insert',
+        <String, Object?>{
+          'cinematicId': 'opening',
+          'targetVisualFolderId': 'characters',
+          'layer': (insertion['layers']! as List<Object?>).single,
+          'track': (insertion['tracks']! as List<Object?>).single,
+        },
+      );
+
+      final cinematic = updated.presentationCinematics.first;
+      final layer = cinematic.layers.singleWhere(
+        (candidate) => candidate.id == 'mountains-layer',
+      );
+      final folder = cinematic.visualFolders.singleWhere(
+        (candidate) => candidate.id == 'characters',
+      );
+      final track = cinematic.tracks.singleWhere(
+        (candidate) => candidate.id == 'mountains-track',
+      );
+
+      expect(layer.label, 'Montagnes');
+      expect(folder.layerIds, contains('mountains-layer'));
+      expect(track.clips, hasLength(1));
+      expect(track.clips.single.id, 'mountains-clip');
+      expect(track.clips.single.startUs, 2750000);
     });
 
     test('applies one atomic batch across selected Presentation clips', () {

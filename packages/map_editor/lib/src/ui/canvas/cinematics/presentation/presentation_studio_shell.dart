@@ -96,6 +96,7 @@ class PresentationStudioShell extends StatefulWidget {
     required this.layersPanel,
     required this.propertiesPanel,
     required this.timeline,
+    this.addPanel,
     this.statusDetail,
     this.backButtonKey,
   });
@@ -114,6 +115,7 @@ class PresentationStudioShell extends StatefulWidget {
   final Widget layersPanel;
   final Widget propertiesPanel;
   final Widget timeline;
+  final Widget? addPanel;
 
   @override
   State<PresentationStudioShell> createState() =>
@@ -125,6 +127,7 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
   PokeMapCinematicPanelTab _selectedPanel = PokeMapCinematicPanelTab.layers;
   bool _exitGuardOpen = false;
   bool _savingFromGuard = false;
+  bool _addPanelOpen = false;
 
   @override
   void initState() {
@@ -232,6 +235,10 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
         const SingleActivator(LogicalKeyboardKey.keyS, control: true): () {
           unawaited(widget.onSave());
         },
+        if (_addPanelOpen)
+          const SingleActivator(LogicalKeyboardKey.escape): () {
+            setState(() => _addPanelOpen = false);
+          },
       },
       child: Focus(
         autofocus: true,
@@ -311,19 +318,43 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
                                   padding: EdgeInsets.zero,
                                   borderRadius: 0,
                                   expandChild: true,
-                                  header: PokeMapCinematicPanelTabs(
-                                    selected: _selectedPanel,
-                                    layersLabel: 'Calques',
-                                    propertiesLabel: 'Propriétés',
-                                    onChanged: (panel) =>
-                                        setState(() => _selectedPanel = panel),
-                                  ),
-                                  child: switch (_selectedPanel) {
-                                    PokeMapCinematicPanelTab.layers =>
-                                      widget.layersPanel,
-                                    PokeMapCinematicPanelTab.properties =>
-                                      widget.propertiesPanel,
-                                  },
+                                  header: _addPanelOpen
+                                      ? _AddPanelHeader(
+                                          onBack: () => setState(
+                                            () => _addPanelOpen = false,
+                                          ),
+                                        )
+                                      : PokeMapCinematicPanelTabs(
+                                          selected: _selectedPanel,
+                                          layersLabel: 'Calques',
+                                          propertiesLabel: 'Propriétés',
+                                          onChanged: (panel) => setState(
+                                            () => _selectedPanel = panel,
+                                          ),
+                                          trailing: widget.addPanel == null
+                                              ? null
+                                              : PokeMapButton(
+                                                  key: const ValueKey<String>(
+                                                    'presentation-studio-open-add-panel',
+                                                  ),
+                                                  onPressed: () => setState(
+                                                    () => _addPanelOpen = true,
+                                                  ),
+                                                  size: PokeMapButtonSize.small,
+                                                  leading: const Icon(
+                                                    Icons.add_rounded,
+                                                  ),
+                                                  child: const Text('Ajouter'),
+                                                ),
+                                        ),
+                                  child: _addPanelOpen
+                                      ? widget.addPanel!
+                                      : switch (_selectedPanel) {
+                                          PokeMapCinematicPanelTab.layers =>
+                                            widget.layersPanel,
+                                          PokeMapCinematicPanelTab.properties =>
+                                            widget.propertiesPanel,
+                                        },
                                 ),
                               ),
                             ],
@@ -380,4 +411,30 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
       timelineHeight: _layout.timelineHeight.clamp(180, timelineMax).toDouble(),
     );
   }
+}
+
+class _AddPanelHeader extends StatelessWidget {
+  const _AddPanelHeader({required this.onBack});
+
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) => PokeMapToolbarSurface(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+    child: Row(
+      children: <Widget>[
+        PokeMapIconButton(
+          onPressed: onBack,
+          tooltip: 'Fermer la palette Ajouter',
+          semanticLabel: 'Fermer la palette Ajouter',
+          icon: const Icon(Icons.arrow_back_rounded),
+          variant: PokeMapIconButtonVariant.soft,
+        ),
+        const SizedBox(width: 8),
+        const Expanded(
+          child: Text('Ajouter', style: TextStyle(fontWeight: FontWeight.w700)),
+        ),
+      ],
+    ),
+  );
 }

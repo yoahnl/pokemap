@@ -11,6 +11,7 @@ import '../../application/services/narrative_diagnostic_suppression_service.dart
 import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/services/narrative_template_catalog.dart';
 import '../../application/authoring_api/cinematic_library_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_add_authoring_gateway.dart';
 import '../../application/authoring_api/presentation_studio_layer_authoring_gateway.dart';
 import '../../application/authoring_api/presentation_studio_property_authoring_gateway.dart';
 import '../../application/authoring_api/presentation_studio_property_command.dart';
@@ -38,6 +39,7 @@ import '../../infrastructure/repositories/file_presentation_studio_layout_store.
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
+import 'cinematics/presentation/presentation_studio_add_panel.dart';
 import 'cinematics/presentation/presentation_studio_shell.dart';
 import 'cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'cinematics/presentation/presentation_studio_properties_panel.dart';
@@ -1794,6 +1796,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             mutations: ref.read(authoringMutationAdapterProvider),
             queries: ref.read(authoringQueryAdapterProvider),
           ),
+          presentationAddGateway:
+              CanonicalPresentationStudioAddAuthoringGateway(
+            mutations: ref.read(authoringMutationAdapterProvider),
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
           projectRootPath: editor.projectRootPath,
           project: editor.project,
           activeMap: editor.activeMap,
@@ -2582,6 +2589,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
     required this.presentationLayerGateway,
     required this.presentationTimelineGateway,
     required this.presentationPropertyGateway,
+    required this.presentationAddGateway,
     required this.projectRootPath,
     required this.project,
     required this.activeMap,
@@ -2605,6 +2613,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   final PresentationStudioTimelineAuthoringGateway
       presentationTimelineGateway;
   final PresentationStudioPropertyAuthoringGateway presentationPropertyGateway;
+  final PresentationStudioAddAuthoringGateway presentationAddGateway;
   final String? projectRootPath;
   final ProjectManifest? project;
   final MapData? activeMap;
@@ -2855,6 +2864,44 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               onRedo: () => unawaited(_redoPresentationPropertyCommand()),
             ),
           ),
+          addPanel: widget.projectRootPath == null
+              ? const PokeMapEmptyState(
+                  compact: true,
+                  icon: Icon(CupertinoIcons.folder),
+                  title: 'Projet indisponible',
+                  description:
+                      'Ouvrez un projet enregistré pour accéder au catalogue média.',
+                )
+              : PresentationStudioAddPanel(
+                  gateway: widget.presentationAddGateway,
+                  mediaPicker:
+                      const FilePickerPresentationStudioMediaPicker(),
+                  projectRootPath: widget.projectRootPath!,
+                  expectedProject: project,
+                  asset: resolvedAsset,
+                  playheadUs:
+                      _presentationResponsiveCanvasController.playheadUs,
+                  targetVisualFolderId: _selectedPresentationFolderId(
+                    resolvedAsset,
+                    _presentationResponsiveCanvasController
+                        .selection.value?.layerId,
+                  ),
+                  onProjectChanged: (manifest) {
+                    widget.editorNotifier.acceptCanonicalProjectManifest(
+                      manifest,
+                      statusMessage: 'Cinématique Presentation mise à jour.',
+                    );
+                  },
+                  onInserted: (result) {
+                    final updated = result.manifest.presentationCinematics
+                        .singleWhere((item) => item.id == resolvedAsset.id);
+                    _presentationResponsiveCanvasController.selection
+                        .selectClip(
+                          asset: updated,
+                          clipId: result.clipId,
+                        );
+                  },
+                ),
           timeline: AnimatedBuilder(
             animation: _presentationResponsiveCanvasController,
             builder: (context, _) => PresentationStudioTimeline(
@@ -4182,6 +4229,17 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       statusMessage: statusMessage,
     );
   }
+}
+
+String? _selectedPresentationFolderId(
+  PresentationCinematicAsset asset,
+  String? layerId,
+) {
+  if (layerId == null) return null;
+  for (final folder in asset.visualFolders) {
+    if (folder.layerIds.contains(layerId)) return folder.id;
+  }
+  return null;
 }
 
 String _cinematicAuthoringOperationId(String action) =>

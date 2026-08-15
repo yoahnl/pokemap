@@ -40,6 +40,23 @@ void main() {
       );
     },
   );
+
+  test('Presentation timeline insertion matches direct and JSONL transports',
+      () async {
+    final direct = await _Harness.create('insert-direct');
+    final jsonl = await _Harness.create('insert-jsonl');
+    addTearDown(direct.dispose);
+    addTearDown(jsonl.dispose);
+
+    final directResult = await direct.runTimelineInsertDirect();
+    final jsonlResult = await jsonl.runTimelineInsertJsonl();
+
+    expect(directResult, jsonlResult);
+    expect(directResult['totalAvailable'], 1);
+    final clip = (directResult['items']! as List<Object?>).single as Map;
+    expect(clip['id'], 'opening:inserted-markers:inserted-marker');
+    expect(clip['startUs'], 2500000);
+  });
 }
 
 final class _Harness {
@@ -113,6 +130,55 @@ final class _Harness {
   final LocalMapAuthoringMutationApi mutations;
   final ProjectSnapshotLoader snapshots;
   final JsonlWorker worker;
+
+  Future<Map<String, Object?>> runTimelineInsertDirect() async {
+    final opened = await readApi.open(root.path);
+    final project = ProjectHandle(opened['projectHandle']! as String);
+    final workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: workspace,
+      projectHandle: project,
+    );
+    final snapshot = await snapshots.load(project);
+    final plan = await mutations.plan(
+      project,
+      _timelineInsertRequest(workspace.value, snapshot.revision),
+    );
+    await mutations.apply(
+      project,
+      planId: plan['planId']! as String,
+      operationId: 'operation-presentation-timeline-insert',
+    );
+    return readApi.query(project, _timelineInsertQuery());
+  }
+
+  Future<Map<String, Object?>> runTimelineInsertJsonl() async {
+    final opened = await _jsonl('open', <String, Object?>{
+      'projectRoot': root.path,
+    });
+    final project = opened['projectHandle']! as String;
+    final workspace = opened['workspaceHandle']! as String;
+    final validated = await _jsonl('validate', <String, Object?>{
+      'projectHandle': project,
+    });
+    final plan = await _jsonl('plan', <String, Object?>{
+      'projectHandle': project,
+      'request': _timelineInsertRequest(
+        workspace,
+        validated['snapshotRevision']! as String,
+      ).toJson(),
+    });
+    await _jsonl('apply', <String, Object?>{
+      'projectHandle': project,
+      'planId': plan['planId'],
+      'operationId': 'operation-presentation-timeline-insert',
+    });
+    return _jsonl('query', <String, Object?>{
+      'projectHandle': project,
+      'request': _timelineInsertQuery().toJson(),
+    });
+  }
 
   Future<_FlowResult> runDirect() async {
     final opened = await readApi.open(root.path);
@@ -402,6 +468,57 @@ AuthoringQueryRequest _clipQuery() => AuthoringQueryRequest(
       pageSize: 1,
       view: AuthoringQueryView.detail,
       fieldMask: const <String>['cinematicId', 'trackId', 'startUs'],
+    );
+
+AuthoringRequest _timelineInsertRequest(
+  String workspaceHandle,
+  String revision,
+) {
+  final encoded = encodePresentationCinematicAsset(
+    PresentationCinematicAsset(
+      id: 'insertion',
+      title: 'Insertion',
+      durationUs: 4000000,
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: 'inserted-markers',
+          label: 'Inserted markers',
+          kind: PresentationTrackKind.marker,
+          clips: <PresentationClip>[
+            PresentationMarkerClip(
+              id: 'inserted-marker',
+              startUs: 2500000,
+              label: 'Inserted marker',
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+  return AuthoringRequest(
+    requestId: 'request-presentation-timeline-insert',
+    actionId: 'presentationTimeline.insert',
+    actionVersion: 1,
+    workspaceHandle: workspaceHandle,
+    parameters: <String, Object?>{
+      'cinematicId': 'opening',
+      'targetVisualFolderId': null,
+      'layer': null,
+      'track': (encoded['tracks']! as List<Object?>).single,
+    },
+    expectedRevision: revision,
+    idempotencyKey: 'idempotency-presentation-timeline-insert',
+  );
+}
+
+AuthoringQueryRequest _timelineInsertQuery() => AuthoringQueryRequest(
+      resourceKind: 'presentationClip',
+      operation: AuthoringQueryOperation.list,
+      filters: const <String, Object?>{
+        'cinematicId': 'opening',
+        'trackId': 'inserted-markers',
+      },
+      view: AuthoringQueryView.detail,
     );
 
 Map<String, Object?> _stablePlan(Map<String, Object?> response) {

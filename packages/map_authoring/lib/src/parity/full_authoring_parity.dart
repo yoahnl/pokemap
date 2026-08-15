@@ -532,6 +532,10 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/assets/presentation_media_import_transaction_test.dart',
       AuthoringTransport.cli:
           'test/domains/assets/presentation_media_import_transaction_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/'
+          'presentation_studio_add_authoring_gateway_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
   if (actionId == 'presentationMedia.configure') {
@@ -561,6 +565,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/tooling/jsonl_presentation_clip_batch_flow_test.dart',
       AuthoringTransport.editor: '../map_editor/test/authoring_api/'
           'presentation_studio_timeline_authoring_gateway_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
+  if (actionId == 'presentationTimeline.insert') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/'
+          'presentation_studio_add_authoring_gateway_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
@@ -909,6 +925,7 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
       'presentationCinematic.',
       'presentationTrack.',
       'presentationClip.',
+      'presentationTimeline.',
       'presentationLayer.',
       'presentationVisualFolder.',
     ],

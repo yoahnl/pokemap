@@ -131,6 +131,12 @@ final class PresentationCinematicActions {
           AuthoringRiskLevel.high,
         ),
         (
+          'presentationTimeline.insert',
+          'Insert one Presentation timeline item atomically',
+          'presentationClip',
+          AuthoringRiskLevel.low,
+        ),
+        (
           'presentationLayer.create',
           'Create one Presentation visual layer',
           'presentationLayer',
@@ -234,6 +240,7 @@ final class PresentationCinematicActions {
         'presentationClip.delete' => _deleteClip(context),
         'presentationClip.batch' => _batchClips(context),
         'presentationClip.deleteBatch' => _deleteClipBatch(context),
+        'presentationTimeline.insert' => _insertTimelineItem(context),
         'presentationLayer.create' => _createLayer(context),
         'presentationLayer.update' => _updateLayer(context),
         'presentationLayer.move' => _moveLayer(context),
@@ -909,6 +916,127 @@ _PresentationMutation _batchClips(AuthoringPlanningContext context) {
     updated: updated,
     resourceKind: 'presentationClip',
     path: '/presentationCinematics/${cinematic.id}/clips',
+  );
+}
+
+_PresentationMutation _insertTimelineItem(
+  AuthoringPlanningContext context,
+) {
+  final parameters = context.request.parameters;
+  _requireExactParameters(
+    parameters,
+    const <String>{
+      'cinematicId',
+      'targetVisualFolderId',
+      'layer',
+      'track',
+    },
+  );
+  final project = context.snapshot.manifest;
+  final cinematic = _requireCinematic(
+    project,
+    _string(parameters, 'cinematicId'),
+  );
+  final rawLayer = parameters['layer'];
+  if (rawLayer != null && rawLayer is! Map) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_timeline.layer_invalid',
+      'The Presentation timeline insertion layer must be an object or null.',
+    );
+  }
+  final layer = rawLayer == null
+      ? null
+      : _decodeLayer(Map<String, Object?>.from(rawLayer as Map));
+  if (layer != null && cinematic.layers.any((item) => item.id == layer.id)) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_layer.id_conflict',
+      'The Presentation layer identity already exists.',
+      details: <String, Object?>{'layerId': layer.id},
+    );
+  }
+  final provisional = _copyCinematic(
+    cinematic,
+    layers: <PresentationLayer>[
+      ...cinematic.layers,
+      if (layer != null) layer,
+    ],
+  );
+  final track = _decodeTrack(provisional, _object(parameters, 'track'));
+  if (track.clips.length != 1) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_timeline.clip_count_invalid',
+      'A Presentation timeline insertion must contain exactly one clip.',
+    );
+  }
+  if (cinematic.tracks.any((item) => item.id == track.id)) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_track.id_conflict',
+      'The Presentation track identity already exists.',
+      details: <String, Object?>{'trackId': track.id},
+    );
+  }
+  final clip = track.clips.single;
+  final createsVisualLayer =
+      clip is PresentationVisualClip || clip is PresentationTextClip;
+  if (createsVisualLayer != (layer != null)) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_timeline.layer_mismatch',
+      'Visual and text insertions require one new layer; other insertions do not.',
+    );
+  }
+  final targetVisualFolderId = _optionalString(
+    parameters,
+    'targetVisualFolderId',
+  );
+  if (targetVisualFolderId != null && layer == null) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_timeline.folder_without_layer',
+      'Only visual timeline insertions can target a visual folder.',
+    );
+  }
+  final orderedLayerIds = provisional.layers.toList()
+    ..sort((left, right) {
+      final zOrder = right.zIndex.compareTo(left.zIndex);
+      return zOrder != 0 ? zOrder : left.id.compareTo(right.id);
+    });
+  final folders = <PresentationVisualFolder>[
+    for (final folder in cinematic.visualFolders)
+      PresentationVisualFolder(
+        id: folder.id,
+        label: folder.label,
+        layerIds: folder.id == targetVisualFolderId
+            ? <String>[
+                for (final candidate in orderedLayerIds)
+                  if (<String>{...folder.layerIds, layer!.id}
+                      .contains(candidate.id))
+                    candidate.id,
+              ]
+            : folder.layerIds,
+        hidden: folder.hidden,
+        locked: folder.locked,
+      ),
+  ];
+  if (targetVisualFolderId != null &&
+      folders.every((folder) => folder.id != targetVisualFolderId)) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_visual_folder.not_found',
+      'The requested Presentation visual folder does not exist.',
+      details: <String, Object?>{'folderId': targetVisualFolderId},
+    );
+  }
+  final updated = _copyCinematic(
+    provisional,
+    visualFolders: folders,
+    tracks: <PresentationTrack>[...cinematic.tracks, track],
+  );
+  return _assetMutation(
+    project,
+    current: cinematic,
+    updated: updated,
+    resourceKind: 'presentationClip',
+    path: '/presentationCinematics/${cinematic.id}/clips/${clip.id}',
+    before: null,
+    after: _encodedClip(updated, updated.tracks.length - 1, 0),
   );
 }
 

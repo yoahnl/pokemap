@@ -169,6 +169,18 @@ final class AuthoringMutationAdapter
     }
   }
 
+  Future<void> releaseArtifact(
+    String projectRootPath, {
+    required String handle,
+  }) async {
+    try {
+      final session = await _open(projectRootPath);
+      await session.use(() => session.artifactStore.release(handle));
+    } on Object catch (error) {
+      throw EditorAuthoringMutationFailure.capture(error);
+    }
+  }
+
   Future<String> confirm(EditorAuthoringMutationPlan plan) async {
     try {
       final session = await _open(plan.projectRootPath);

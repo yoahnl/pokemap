@@ -856,6 +856,7 @@ test("MCP commits and undoes one atomic Presentation clip batch", async () => {
     for (const actionId of [
       "presentationClip.batch",
       "presentationClip.deleteBatch",
+      "presentationTimeline.insert",
     ]) {
       const action = actions.get(actionId);
       assert.ok(action);
@@ -1045,6 +1046,66 @@ test("MCP commits and undoes one atomic Presentation clip batch", async () => {
       filters: { cinematicId: "opening", trackId: "markers" },
     });
     assert.equal((deleteRestored.items as unknown[]).length, 1);
+
+    const insertValidation = await toolData(
+      fixture.client,
+      "pokemap_validate",
+      { projectHandle },
+    );
+    const insertPlan = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "cin055-mcp-timeline-insert",
+        actionId: "presentationTimeline.insert",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: {
+          cinematicId: "opening",
+          targetVisualFolderId: null,
+          layer: null,
+          track: {
+            id: "inserted-markers",
+            label: "Inserted markers",
+            kind: "marker",
+            clips: [
+              {
+                id: "inserted-marker",
+                kind: "marker",
+                startUs: 3_000_000,
+                durationUs: 0,
+                label: "Inserted marker",
+                markerKind: "ordinary",
+              },
+            ],
+          },
+        },
+        expectedRevision: insertValidation.snapshotRevision,
+        idempotencyKey: "cin055-mcp-timeline-insert",
+        dryRun: false,
+      },
+    });
+    const inserted = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: insertPlan.planId,
+      operationId: "cin055-mcp-timeline-insert-apply",
+    });
+    assert.equal(
+      record(inserted.receipt).actionId,
+      "presentationTimeline.insert",
+    );
+    const insertedClips = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationClip",
+      operation: "list",
+      view: "detail",
+      filters: { cinematicId: "opening", trackId: "inserted-markers" },
+    });
+    assert.equal((insertedClips.items as unknown[]).length, 1);
+    assert.equal(
+      record((insertedClips.items as unknown[])[0]).startUs,
+      3_000_000,
+    );
   } finally {
     await fixture.client.close();
     await fixture.server.close();
@@ -1310,6 +1371,16 @@ test("MCP applies and rereads the authored presentation profile", async () => {
   const fixture = await mutationFixture();
   try {
     await mkdir(join(fixture.root, "assets"), { recursive: true });
+    const importedSourcePath = join(fixture.root, "imported-opening.png");
+    await writeFile(importedSourcePath, pngHeader(1920, 1080));
+    const stagedImport = await toolData(
+      fixture.client,
+      "pokemap_artifact_stage",
+      {
+        sourcePath: importedSourcePath,
+        declaredMediaType: "image/png",
+      },
+    );
     await writeFile(
       join(fixture.root, "assets/.pokemap-media.json"),
       JSON.stringify({
@@ -1404,6 +1475,8 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     assert.deepEqual(record(mediaImportAction).endToEndVerifiedTransports, [
       "cli",
       "directApi",
+      "editor",
+      "mcp",
     ]);
     const mediaConfigurationAction = (
       record(described.fullParity).mutationActions as JsonRecord[]
@@ -1418,10 +1491,37 @@ test("MCP applies and rereads the authored presentation profile", async () => {
     const mediaValidated = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
     });
+    let mediaRevision = String(mediaValidated.snapshotRevision);
+    mediaRevision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: mediaRevision,
+      actionId: "presentationMedia.import",
+      parameters: {
+        artifactHandle: stagedImport.artifactHandle,
+        mediaId: "imported-opening",
+        label: "Imported opening",
+        kind: "image",
+        assetId: "asset.imported-opening",
+        logicalPath: "assets/presentation/imported-opening.png",
+      },
+      sequence: "opening-media-import",
+    });
+    const importedMedia = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationMedia",
+      operation: "get",
+      view: "detail",
+      ids: ["imported-opening"],
+    });
+    assert.equal(
+      record((importedMedia.items as unknown[])[0]).sourceAssetId,
+      "asset.imported-opening",
+    );
     await applyMutation(fixture.client, {
       projectHandle,
       workspaceHandle,
-      expectedRevision: String(mediaValidated.snapshotRevision),
+      expectedRevision: mediaRevision,
       actionId: "presentationMedia.configure",
       parameters: {
         mediaId: "opening-video",
