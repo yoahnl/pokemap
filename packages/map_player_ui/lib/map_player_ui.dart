@@ -25,6 +25,7 @@ export 'src/player/player_intro_video_preview.dart';
 export 'src/player/player_startup_media.dart';
 export 'src/player/player_runtime_splash_surface.dart';
 export 'src/player/player_runtime_startup_shell.dart';
+export 'src/player/player_scene_interaction_surface.dart';
 export 'src/player/runtime_player_presentation.dart';
 export 'src/player/player_startup_strings.dart';
 export 'src/player/player_title_prompt_surface.dart';
