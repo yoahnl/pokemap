@@ -34,7 +34,8 @@ final class UnsupportedPresentationCinematicSchema
     : super(
         code: PresentationCinematicCodecErrorCode.unsupportedSchema,
         message: schemaVersion == null
-            ? 'Presentation cinematic schemaVersion 1 is required'
+            ? 'Presentation cinematic schemaVersion '
+                  '${PresentationCinematicAsset.schemaVersion} is required'
             : 'Unsupported Presentation cinematic schemaVersion: '
                   '$schemaVersion',
         path: r'$.schemaVersion',
@@ -54,6 +55,7 @@ PresentationCinematicAsset decodePresentationCinematicAsset(Object? json) {
     'description',
     'durationUs',
     'layers',
+    'visualFolders',
     'tracks',
   }, path: r'$');
 
@@ -71,6 +73,7 @@ PresentationCinematicAsset decodePresentationCinematicAsset(Object? json) {
       description: _optionalString(root['description'], path: r'$.description'),
       durationUs: _integer(root['durationUs'], path: r'$.durationUs'),
       layers: _decodeLayers(root['layers']),
+      visualFolders: _decodeVisualFolders(root['visualFolders']),
       tracks: _decodeTracks(root['tracks']),
     );
   } on PresentationCinematicValidationException catch (error) {
@@ -93,6 +96,9 @@ Map<String, Object?> encodePresentationCinematicAsset(
     if (asset.description != null) 'description': asset.description,
     'durationUs': asset.durationUs,
     'layers': [for (final layer in asset.layers) _encodeLayer(layer)],
+    'visualFolders': [
+      for (final folder in asset.visualFolders) _encodeVisualFolder(folder),
+    ],
     'tracks': [for (final track in asset.tracks) _encodeTrack(track)],
   };
 }
@@ -149,12 +155,61 @@ PresentationLayer _decodeLayer(Object? value, int index) {
       r'$.layers'
       '[$index]';
   final layer = _object(value, path: path);
-  _allowedFields(layer, const {'id', 'label', 'zIndex'}, path: path);
+  _allowedFields(layer, const {
+    'id',
+    'label',
+    'zIndex',
+    'visible',
+    'locked',
+  }, path: path);
   try {
     return PresentationLayer(
       id: _string(layer['id'], path: '$path.id'),
       label: _string(layer['label'], path: '$path.label'),
       zIndex: _integer(layer['zIndex'], path: '$path.zIndex'),
+      visible: _boolean(layer['visible'], path: '$path.visible'),
+      locked: _boolean(layer['locked'], path: '$path.locked'),
+    );
+  } on PresentationCinematicValidationException catch (error) {
+    throw _validationError(error, fallbackPath: path);
+  }
+}
+
+List<PresentationVisualFolder> _decodeVisualFolders(Object? value) {
+  final folders = _list(value, path: r'$.visualFolders');
+  return List<PresentationVisualFolder>.unmodifiable([
+    for (var index = 0; index < folders.length; index += 1)
+      _decodeVisualFolder(folders[index], index),
+  ]);
+}
+
+PresentationVisualFolder _decodeVisualFolder(Object? value, int index) {
+  final path =
+      r'$.visualFolders'
+      '[$index]';
+  final folder = _object(value, path: path);
+  _allowedFields(folder, const {
+    'id',
+    'label',
+    'layerIds',
+    'hidden',
+    'locked',
+  }, path: path);
+  final rawLayerIds = _list(folder['layerIds'], path: '$path.layerIds');
+  try {
+    return PresentationVisualFolder(
+      id: _string(folder['id'], path: '$path.id'),
+      label: _string(folder['label'], path: '$path.label'),
+      layerIds: <String>[
+        for (
+          var layerIndex = 0;
+          layerIndex < rawLayerIds.length;
+          layerIndex += 1
+        )
+          _string(rawLayerIds[layerIndex], path: '$path.layerIds[$layerIndex]'),
+      ],
+      hidden: _boolean(folder['hidden'], path: '$path.hidden'),
+      locked: _boolean(folder['locked'], path: '$path.locked'),
     );
   } on PresentationCinematicValidationException catch (error) {
     throw _validationError(error, fallbackPath: path);
@@ -417,6 +472,16 @@ Map<String, Object?> _encodeLayer(PresentationLayer layer) => {
   'id': layer.id,
   'label': layer.label,
   'zIndex': layer.zIndex,
+  'visible': layer.visible,
+  'locked': layer.locked,
+};
+
+Map<String, Object?> _encodeVisualFolder(PresentationVisualFolder folder) => {
+  'id': folder.id,
+  'label': folder.label,
+  'layerIds': List<String>.of(folder.layerIds),
+  'hidden': folder.hidden,
+  'locked': folder.locked,
 };
 
 Map<String, Object?> _encodeTrack(PresentationTrack track) => {
@@ -582,6 +647,17 @@ int _integer(Object? value, {required String path}) {
     throw PresentationCinematicCodecException(
       code: PresentationCinematicCodecErrorCode.invalidValue,
       message: 'Expected an integer',
+      path: path,
+    );
+  }
+  return value;
+}
+
+bool _boolean(Object? value, {required String path}) {
+  if (value is! bool) {
+    throw PresentationCinematicCodecException(
+      code: PresentationCinematicCodecErrorCode.invalidValue,
+      message: 'Expected a boolean',
       path: path,
     );
   }

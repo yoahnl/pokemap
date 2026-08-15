@@ -137,6 +137,18 @@ final class PresentationCinematicActions {
           AuthoringRiskLevel.low,
         ),
         (
+          'presentationLayer.setVisibility',
+          'Set one Presentation visual layer visibility',
+          'presentationLayer',
+          AuthoringRiskLevel.low,
+        ),
+        (
+          'presentationLayer.setLocked',
+          'Set one Presentation visual layer lock',
+          'presentationLayer',
+          AuthoringRiskLevel.low,
+        ),
+        (
           'presentationLayer.duplicate',
           'Duplicate one Presentation visual layer',
           'presentationLayer',
@@ -146,6 +158,42 @@ final class PresentationCinematicActions {
           'presentationLayer.delete',
           'Delete one unused Presentation visual layer',
           'presentationLayer',
+          AuthoringRiskLevel.high,
+        ),
+        (
+          'presentationVisualFolder.create',
+          'Create one Presentation visual folder',
+          'presentationVisualFolder',
+          AuthoringRiskLevel.low,
+        ),
+        (
+          'presentationVisualFolder.update',
+          'Rename one Presentation visual folder',
+          'presentationVisualFolder',
+          AuthoringRiskLevel.low,
+        ),
+        (
+          'presentationVisualFolder.move',
+          'Move one Presentation visual folder as a contiguous z-order block',
+          'presentationVisualFolder',
+          AuthoringRiskLevel.low,
+        ),
+        (
+          'presentationVisualFolder.setVisibility',
+          'Set one Presentation visual folder visibility',
+          'presentationVisualFolder',
+          AuthoringRiskLevel.low,
+        ),
+        (
+          'presentationVisualFolder.setLocked',
+          'Set one Presentation visual folder lock',
+          'presentationVisualFolder',
+          AuthoringRiskLevel.low,
+        ),
+        (
+          'presentationVisualFolder.delete',
+          'Delete one Presentation visual folder without deleting its layers',
+          'presentationVisualFolder',
           AuthoringRiskLevel.high,
         ),
       ])
@@ -175,8 +223,17 @@ final class PresentationCinematicActions {
         'presentationLayer.create' => _createLayer(context),
         'presentationLayer.update' => _updateLayer(context),
         'presentationLayer.move' => _moveLayer(context),
+        'presentationLayer.setVisibility' => _setLayerVisibility(context),
+        'presentationLayer.setLocked' => _setLayerLocked(context),
         'presentationLayer.duplicate' => _duplicateLayer(context),
         'presentationLayer.delete' => _deleteLayer(context),
+        'presentationVisualFolder.create' => _createVisualFolder(context),
+        'presentationVisualFolder.update' => _updateVisualFolder(context),
+        'presentationVisualFolder.move' => _moveVisualFolder(context),
+        'presentationVisualFolder.setVisibility' =>
+          _setVisualFolderVisibility(context),
+        'presentationVisualFolder.setLocked' => _setVisualFolderLocked(context),
+        'presentationVisualFolder.delete' => _deleteVisualFolder(context),
         _ => throw PresentationCinematicAuthoringException(
             'presentation_cinematic.action_unsupported',
             'The requested Presentation cinematic action is unsupported.',
@@ -280,6 +337,7 @@ _PresentationMutation _updateCinematic(AuthoringPlanningContext context) {
     description: _optionalString(parameters, 'description'),
     durationUs: _integer(parameters, 'durationUs'),
     layers: current.layers,
+    visualFolders: current.visualFolders,
     tracks: current.tracks,
   );
   return _assetMutation(
@@ -310,6 +368,7 @@ _PresentationMutation _duplicateCinematic(AuthoringPlanningContext context) {
     description: source.description,
     durationUs: source.durationUs,
     layers: source.layers,
+    visualFolders: source.visualFolders,
     tracks: <PresentationTrack>[
       for (final track in source.tracks)
         PresentationTrack(
@@ -851,7 +910,94 @@ _PresentationMutation _moveLayer(AuthoringPlanningContext context) {
   final parameters = context.request.parameters;
   _requireExactParameters(
     parameters,
-    const <String>{'cinematicId', 'layerId', 'zIndex'},
+    const <String>{
+      'cinematicId',
+      'layerId',
+      'insertionIndex',
+      'targetFolderId',
+    },
+  );
+  final project = context.snapshot.manifest;
+  final cinematic = _requireCinematic(
+    project,
+    _string(parameters, 'cinematicId'),
+  );
+  final layerId = _string(parameters, 'layerId');
+  final index = _layerIndex(cinematic, layerId);
+  final insertionIndex = _integer(parameters, 'insertionIndex');
+  final targetFolderId = _optionalString(parameters, 'targetFolderId');
+  if (targetFolderId != null) {
+    _visualFolderIndex(cinematic, targetFolderId);
+  }
+  final orderedIds = _orderedLayerIds(cinematic)..remove(layerId);
+  if (insertionIndex < 0 || insertionIndex > orderedIds.length) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_layer.insertion_index_invalid',
+      'The Presentation layer insertion index is outside the visual stack.',
+    );
+  }
+  orderedIds.insert(insertionIndex, layerId);
+  final folders = <PresentationVisualFolder>[
+    for (final folder in cinematic.visualFolders)
+      PresentationVisualFolder(
+        id: folder.id,
+        label: folder.label,
+        layerIds: <String>[
+          for (final candidate in folder.layerIds)
+            if (candidate != layerId) candidate,
+        ],
+        hidden: folder.hidden,
+        locked: folder.locked,
+      ),
+  ];
+  if (targetFolderId != null) {
+    final folderIndex = folders.indexWhere(
+      (folder) => folder.id == targetFolderId,
+    );
+    final members = folders[folderIndex].layerIds.toSet()..add(layerId);
+    final folder = folders[folderIndex];
+    folders[folderIndex] = PresentationVisualFolder(
+      id: folder.id,
+      label: folder.label,
+      layerIds: <String>[
+        for (final candidate in orderedIds)
+          if (members.contains(candidate)) candidate,
+      ],
+      hidden: folder.hidden,
+      locked: folder.locked,
+    );
+  }
+  final updated = _copyCinematic(
+    cinematic,
+    layers: _restackLayers(cinematic.layers, orderedIds),
+    visualFolders: folders,
+  );
+  return _assetMutation(
+    project,
+    current: cinematic,
+    updated: updated,
+    resourceKind: 'presentationLayer',
+    path: '/presentationCinematics/${cinematic.id}/layers/$layerId',
+    before: _encodedLayer(cinematic, index),
+    after: _encodedLayer(updated, _layerIndex(updated, layerId)),
+  );
+}
+
+_PresentationMutation _setLayerVisibility(AuthoringPlanningContext context) =>
+    _setLayerState(context, visibility: true);
+
+_PresentationMutation _setLayerLocked(AuthoringPlanningContext context) =>
+    _setLayerState(context, visibility: false);
+
+_PresentationMutation _setLayerState(
+  AuthoringPlanningContext context, {
+  required bool visibility,
+}) {
+  final parameters = context.request.parameters;
+  final field = visibility ? 'visible' : 'locked';
+  _requireExactParameters(
+    parameters,
+    <String>{'cinematicId', 'layerId', field},
   );
   final project = context.snapshot.manifest;
   final cinematic = _requireCinematic(
@@ -861,19 +1007,21 @@ _PresentationMutation _moveLayer(AuthoringPlanningContext context) {
   final layerId = _string(parameters, 'layerId');
   final index = _layerIndex(cinematic, layerId);
   final current = cinematic.layers[index];
-  final moved = PresentationLayer(
+  final updatedLayer = PresentationLayer(
     id: current.id,
     label: current.label,
-    zIndex: _integer(parameters, 'zIndex'),
+    zIndex: current.zIndex,
+    visible: visibility ? _boolean(parameters, field) : current.visible,
+    locked: visibility ? current.locked : _boolean(parameters, field),
   );
-  final layers = cinematic.layers.toList()..[index] = moved;
+  final layers = cinematic.layers.toList()..[index] = updatedLayer;
   final updated = _copyCinematic(cinematic, layers: layers);
   return _assetMutation(
     project,
     current: cinematic,
     updated: updated,
     resourceKind: 'presentationLayer',
-    path: '/presentationCinematics/${cinematic.id}/layers/$layerId',
+    path: '/presentationCinematics/${cinematic.id}/layers/$layerId/$field',
     before: _encodedLayer(cinematic, index),
     after: _encodedLayer(updated, index),
   );
@@ -896,11 +1044,14 @@ _PresentationMutation _duplicateLayer(AuthoringPlanningContext context) {
     project,
     _string(parameters, 'cinematicId'),
   );
-  _layerIndex(cinematic, _string(parameters, 'layerId'));
+  final source =
+      cinematic.layers[_layerIndex(cinematic, _string(parameters, 'layerId'))];
   final duplicate = PresentationLayer(
     id: _string(parameters, 'duplicateId'),
     label: _string(parameters, 'label'),
     zIndex: _integer(parameters, 'zIndex'),
+    visible: source.visible,
+    locked: source.locked,
   );
   final updated = _copyCinematic(
     cinematic,
@@ -943,12 +1094,26 @@ _PresentationMutation _deleteLayer(AuthoringPlanningContext context) {
     );
   }
   final before = _encodedLayer(cinematic, index);
+  final visualFolders = <PresentationVisualFolder>[
+    for (final folder in cinematic.visualFolders)
+      PresentationVisualFolder(
+        id: folder.id,
+        label: folder.label,
+        layerIds: <String>[
+          for (final candidate in folder.layerIds)
+            if (candidate != layerId) candidate,
+        ],
+        hidden: folder.hidden,
+        locked: folder.locked,
+      ),
+  ];
   final updated = _copyCinematic(
     cinematic,
     layers: <PresentationLayer>[
       for (final layer in cinematic.layers)
         if (layer.id != layerId) layer,
     ],
+    visualFolders: visualFolders,
   );
   return _assetMutation(
     project,
@@ -956,6 +1121,185 @@ _PresentationMutation _deleteLayer(AuthoringPlanningContext context) {
     updated: updated,
     resourceKind: 'presentationLayer',
     path: '/presentationCinematics/${cinematic.id}/layers/$layerId',
+    before: before,
+    after: null,
+  );
+}
+
+_PresentationMutation _createVisualFolder(AuthoringPlanningContext context) {
+  final parameters = context.request.parameters;
+  _requireExactParameters(
+    parameters,
+    const <String>{'cinematicId', 'folderId', 'label'},
+  );
+  final project = context.snapshot.manifest;
+  final cinematic = _requireCinematic(
+    project,
+    _string(parameters, 'cinematicId'),
+  );
+  final folderId = _string(parameters, 'folderId');
+  if (cinematic.visualFolders.any((folder) => folder.id == folderId)) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_visual_folder.id_conflict',
+      'The Presentation visual folder identity already exists.',
+    );
+  }
+  final folder = PresentationVisualFolder(
+    id: folderId,
+    label: _string(parameters, 'label'),
+  );
+  final updated = _copyCinematic(
+    cinematic,
+    visualFolders: <PresentationVisualFolder>[
+      ...cinematic.visualFolders,
+      folder,
+    ],
+  );
+  return _assetMutation(
+    project,
+    current: cinematic,
+    updated: updated,
+    resourceKind: 'presentationVisualFolder',
+    path: '/presentationCinematics/${cinematic.id}/visualFolders/$folderId',
+    before: null,
+    after: _encodedVisualFolder(
+      updated,
+      updated.visualFolders.length - 1,
+    ),
+  );
+}
+
+_PresentationMutation _updateVisualFolder(AuthoringPlanningContext context) {
+  final parameters = context.request.parameters;
+  _requireExactParameters(
+    parameters,
+    const <String>{'cinematicId', 'folderId', 'label'},
+  );
+  final project = context.snapshot.manifest;
+  final cinematic = _requireCinematic(
+    project,
+    _string(parameters, 'cinematicId'),
+  );
+  final folderId = _string(parameters, 'folderId');
+  final index = _visualFolderIndex(cinematic, folderId);
+  final current = cinematic.visualFolders[index];
+  final folders = cinematic.visualFolders.toList()
+    ..[index] = PresentationVisualFolder(
+      id: current.id,
+      label: _string(parameters, 'label'),
+      layerIds: current.layerIds,
+      hidden: current.hidden,
+      locked: current.locked,
+    );
+  final updated = _copyCinematic(cinematic, visualFolders: folders);
+  return _folderMutation(project, cinematic, updated, folderId, index);
+}
+
+_PresentationMutation _moveVisualFolder(AuthoringPlanningContext context) {
+  final parameters = context.request.parameters;
+  _requireExactParameters(
+    parameters,
+    const <String>{'cinematicId', 'folderId', 'insertionIndex'},
+  );
+  final project = context.snapshot.manifest;
+  final cinematic = _requireCinematic(
+    project,
+    _string(parameters, 'cinematicId'),
+  );
+  final folderId = _string(parameters, 'folderId');
+  final folderIndex = _visualFolderIndex(cinematic, folderId);
+  final folder = cinematic.visualFolders[folderIndex];
+  final memberIds = folder.layerIds.toSet();
+  final orderedIds = _orderedLayerIds(cinematic)
+    ..removeWhere(memberIds.contains);
+  final insertionIndex = _integer(parameters, 'insertionIndex');
+  if (insertionIndex < 0 || insertionIndex > orderedIds.length) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_visual_folder.insertion_index_invalid',
+      'The Presentation folder insertion index is outside the visual stack.',
+    );
+  }
+  orderedIds.insertAll(insertionIndex, folder.layerIds);
+  final updated = _copyCinematic(
+    cinematic,
+    layers: _restackLayers(cinematic.layers, orderedIds),
+  );
+  return _folderMutation(
+    project,
+    cinematic,
+    updated,
+    folderId,
+    folderIndex,
+  );
+}
+
+_PresentationMutation _setVisualFolderVisibility(
+  AuthoringPlanningContext context,
+) =>
+    _setVisualFolderState(context, visibility: true);
+
+_PresentationMutation _setVisualFolderLocked(
+  AuthoringPlanningContext context,
+) =>
+    _setVisualFolderState(context, visibility: false);
+
+_PresentationMutation _setVisualFolderState(
+  AuthoringPlanningContext context, {
+  required bool visibility,
+}) {
+  final parameters = context.request.parameters;
+  final field = visibility ? 'visible' : 'locked';
+  _requireExactParameters(
+    parameters,
+    <String>{'cinematicId', 'folderId', field},
+  );
+  final project = context.snapshot.manifest;
+  final cinematic = _requireCinematic(
+    project,
+    _string(parameters, 'cinematicId'),
+  );
+  final folderId = _string(parameters, 'folderId');
+  final index = _visualFolderIndex(cinematic, folderId);
+  final current = cinematic.visualFolders[index];
+  final folders = cinematic.visualFolders.toList()
+    ..[index] = PresentationVisualFolder(
+      id: current.id,
+      label: current.label,
+      layerIds: current.layerIds,
+      hidden: visibility ? !_boolean(parameters, field) : current.hidden,
+      locked: visibility ? current.locked : _boolean(parameters, field),
+    );
+  final updated = _copyCinematic(cinematic, visualFolders: folders);
+  return _folderMutation(project, cinematic, updated, folderId, index);
+}
+
+_PresentationMutation _deleteVisualFolder(AuthoringPlanningContext context) {
+  final parameters = context.request.parameters;
+  _requireExactParameters(
+    parameters,
+    const <String>{'cinematicId', 'folderId'},
+  );
+  final project = context.snapshot.manifest;
+  final cinematic = _requireCinematic(
+    project,
+    _string(parameters, 'cinematicId'),
+  );
+  final folderId = _string(parameters, 'folderId');
+  final index = _visualFolderIndex(cinematic, folderId);
+  final before = _encodedVisualFolder(cinematic, index);
+  final updated = _copyCinematic(
+    cinematic,
+    visualFolders: <PresentationVisualFolder>[
+      for (final folder in cinematic.visualFolders)
+        if (folder.id != folderId) folder,
+    ],
+  );
+  return _assetMutation(
+    project,
+    current: cinematic,
+    updated: updated,
+    resourceKind: 'presentationVisualFolder',
+    path: '/presentationCinematics/${cinematic.id}/visualFolders/$folderId',
     before: before,
     after: null,
   );
@@ -1033,6 +1377,7 @@ void _requireAvailableCinematicId(ProjectManifest project, String id) {
 PresentationCinematicAsset _copyCinematic(
   PresentationCinematicAsset cinematic, {
   List<PresentationLayer>? layers,
+  List<PresentationVisualFolder>? visualFolders,
   List<PresentationTrack>? tracks,
 }) =>
     PresentationCinematicAsset(
@@ -1041,6 +1386,7 @@ PresentationCinematicAsset _copyCinematic(
       description: cinematic.description,
       durationUs: cinematic.durationUs,
       layers: layers ?? cinematic.layers,
+      visualFolders: visualFolders ?? cinematic.visualFolders,
       tracks: tracks ?? cinematic.tracks,
     );
 
@@ -1121,11 +1467,16 @@ PresentationClip _decodeClip(
 }
 
 PresentationLayer _decodeLayer(Map<String, Object?> rawLayer) {
-  _requireExactParameters(rawLayer, const <String>{'id', 'label', 'zIndex'});
+  _requireExactParameters(
+    rawLayer,
+    const <String>{'id', 'label', 'zIndex', 'visible', 'locked'},
+  );
   return PresentationLayer(
     id: _string(rawLayer, 'id'),
     label: _string(rawLayer, 'label'),
     zIndex: _integer(rawLayer, 'zIndex'),
+    visible: _boolean(rawLayer, 'visible'),
+    locked: _boolean(rawLayer, 'locked'),
   );
 }
 
@@ -1189,6 +1540,51 @@ int _layerIndex(PresentationCinematicAsset cinematic, String layerId) {
   return index;
 }
 
+int _visualFolderIndex(
+  PresentationCinematicAsset cinematic,
+  String folderId,
+) {
+  final index = cinematic.visualFolders.indexWhere(
+    (folder) => folder.id == folderId,
+  );
+  if (index < 0) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_visual_folder.not_found',
+      'The requested Presentation visual folder does not exist.',
+      details: <String, Object?>{'folderId': folderId},
+    );
+  }
+  return index;
+}
+
+List<String> _orderedLayerIds(PresentationCinematicAsset cinematic) {
+  final ordered = cinematic.layers.toList()
+    ..sort((left, right) {
+      final zOrder = right.zIndex.compareTo(left.zIndex);
+      return zOrder != 0 ? zOrder : left.id.compareTo(right.id);
+    });
+  return ordered.map((layer) => layer.id).toList();
+}
+
+List<PresentationLayer> _restackLayers(
+  List<PresentationLayer> layers,
+  List<String> orderedIds,
+) {
+  final byId = <String, PresentationLayer>{
+    for (final layer in layers) layer.id: layer,
+  };
+  return <PresentationLayer>[
+    for (var index = 0; index < orderedIds.length; index += 1)
+      PresentationLayer(
+        id: byId[orderedIds[index]]!.id,
+        label: byId[orderedIds[index]]!.label,
+        zIndex: orderedIds.length - index - 1,
+        visible: byId[orderedIds[index]]!.visible,
+        locked: byId[orderedIds[index]]!.locked,
+      ),
+  ];
+}
+
 Map<String, Object?> _encodedTrack(
   PresentationCinematicAsset cinematic,
   int index,
@@ -1217,6 +1613,34 @@ Map<String, Object?> _encodedLayer(
       (encodePresentationCinematicAsset(cinematic)['layers']!
           as List<Object?>)[index]! as Map,
     );
+
+Map<String, Object?> _encodedVisualFolder(
+  PresentationCinematicAsset cinematic,
+  int index,
+) =>
+    Map<String, Object?>.from(
+      (encodePresentationCinematicAsset(cinematic)['visualFolders']!
+          as List<Object?>)[index]! as Map,
+    );
+
+_PresentationMutation _folderMutation(
+  ProjectManifest project,
+  PresentationCinematicAsset current,
+  PresentationCinematicAsset updated,
+  String folderId,
+  int beforeIndex,
+) {
+  final afterIndex = _visualFolderIndex(updated, folderId);
+  return _assetMutation(
+    project,
+    current: current,
+    updated: updated,
+    resourceKind: 'presentationVisualFolder',
+    path: '/presentationCinematics/${current.id}/visualFolders/$folderId',
+    before: _encodedVisualFolder(current, beforeIndex),
+    after: _encodedVisualFolder(updated, afterIndex),
+  );
+}
 
 _PresentationMutation _assetMutation(
   ProjectManifest project, {
@@ -1285,6 +1709,17 @@ int _integer(Map<String, Object?> parameters, String key) {
     throw PresentationCinematicAuthoringException(
       'presentation_cinematic.parameter_invalid',
       'Parameter $key must be an integer.',
+    );
+  }
+  return value;
+}
+
+bool _boolean(Map<String, Object?> parameters, String key) {
+  final value = parameters[key];
+  if (value is! bool) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_cinematic.parameter_invalid',
+      'Parameter $key must be a boolean.',
     );
   }
   return value;

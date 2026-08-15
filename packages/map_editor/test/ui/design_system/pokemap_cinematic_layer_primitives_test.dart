@@ -1,6 +1,7 @@
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
@@ -75,6 +76,37 @@ void main() {
     );
 
     await tester.tap(find.text('Logo verrouillé'));
+    expect(selections, 1);
+  });
+
+  testWidgets('focused layer row activates from the keyboard', (tester) async {
+    var selections = 0;
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: PokeMapCinematicLayerRow(
+            kind: PokeMapCinematicLayerKind.visual,
+            label: 'Décor clavier',
+            visible: true,
+            locked: false,
+            visibilityLabel: 'Masquer le décor',
+            lockLabel: 'Verrouiller le décor',
+            dragLabel: 'Réordonner le décor',
+            focusNode: focusNode,
+            onSelect: () => selections += 1,
+          ),
+        ),
+      ),
+    );
+
+    focusNode.requestFocus();
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+
     expect(selections, 1);
   });
 

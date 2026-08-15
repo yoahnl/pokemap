@@ -16,6 +16,7 @@ void main() {
           'presentationTrack',
           'presentationClip',
           'presentationLayer',
+          'presentationVisualFolder',
           'presentationMedia',
         }),
       );
@@ -61,6 +62,15 @@ void main() {
           fieldMask: const <String>['cinematicId', 'zIndex'],
         ),
       );
+      final folder = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'presentationVisualFolder',
+          operation: AuthoringQueryOperation.get,
+          ids: const <String>['opening:characters'],
+          view: AuthoringQueryView.detail,
+        ),
+      );
 
       expect(cinematics.totalAvailable, 2);
       expect(cinematics.items.single['id'], 'credits');
@@ -79,6 +89,11 @@ void main() {
           'zIndex': 2,
         },
       );
+      expect(
+          folder.items.single,
+          containsPair('layerIds', <String>[
+            'foreground',
+          ]));
     });
 
     test('escapes scoped resource id segments without collisions', () {
@@ -156,8 +171,16 @@ void main() {
         'presentationLayer.create',
         'presentationLayer.update',
         'presentationLayer.move',
+        'presentationLayer.setVisibility',
+        'presentationLayer.setLocked',
         'presentationLayer.duplicate',
         'presentationLayer.delete',
+        'presentationVisualFolder.create',
+        'presentationVisualFolder.update',
+        'presentationVisualFolder.move',
+        'presentationVisualFolder.setVisibility',
+        'presentationVisualFolder.setLocked',
+        'presentationVisualFolder.delete',
       };
 
       expect(descriptors.keys, containsAll(expected));
@@ -425,6 +448,8 @@ void main() {
             'id': 'titles',
             'label': 'Titles',
             'zIndex': 1,
+            'visible': true,
+            'locked': false,
           },
         },
       );
@@ -437,6 +462,8 @@ void main() {
             'id': 'foreground',
             'label': 'Hero',
             'zIndex': 3,
+            'visible': true,
+            'locked': false,
           },
         },
       );
@@ -446,7 +473,8 @@ void main() {
         const <String, Object?>{
           'cinematicId': 'opening',
           'layerId': 'foreground',
-          'zIndex': 8,
+          'insertionIndex': 1,
+          'targetFolderId': null,
         },
       );
       final duplicated = _apply(
@@ -471,13 +499,130 @@ void main() {
 
       expect(created.presentationCinematics.last.layers.single.id, 'titles');
       expect(updated.presentationCinematics.first.layers.first.label, 'Hero');
-      expect(moved.presentationCinematics.first.layers.first.zIndex, 8);
+      expect(
+        moved.presentationCinematics.first.layers
+            .firstWhere((layer) => layer.id == 'foreground')
+            .zIndex,
+        0,
+      );
+      expect(moved.presentationCinematics.first.visualFolders.single.layerIds,
+          isEmpty);
+      expect(
+        moved.presentationCinematics.first.tracks.first.clips.single.startUs,
+        snapshot.manifest.presentationCinematics.first.tracks.first.clips.single
+            .startUs,
+      );
+      expect(
+        moved.presentationCinematics.first.tracks.first.clips.single.durationUs,
+        snapshot.manifest.presentationCinematics.first.tracks.first.clips.single
+            .durationUs,
+      );
       expect(
           duplicated.presentationCinematics.first.layers.last.id, 'hero-copy');
       expect(
         deleted.presentationCinematics.first.layers.map((layer) => layer.id),
         <String>['foreground'],
       );
+    });
+
+    test('authors folder blocks, visibility and locks through semantic actions',
+        () {
+      final snapshot = _snapshot();
+
+      final hiddenLayer = _apply(
+        snapshot,
+        'presentationLayer.setVisibility',
+        const <String, Object?>{
+          'cinematicId': 'opening',
+          'layerId': 'foreground',
+          'visible': false,
+        },
+      );
+      final lockedLayer = _apply(
+        snapshot,
+        'presentationLayer.setLocked',
+        const <String, Object?>{
+          'cinematicId': 'opening',
+          'layerId': 'foreground',
+          'locked': true,
+        },
+      );
+      final createdFolder = _apply(
+        snapshot,
+        'presentationVisualFolder.create',
+        const <String, Object?>{
+          'cinematicId': 'opening',
+          'folderId': 'decor',
+          'label': 'Decor',
+        },
+      );
+      final renamedFolder = _apply(
+        snapshot,
+        'presentationVisualFolder.update',
+        const <String, Object?>{
+          'cinematicId': 'opening',
+          'folderId': 'characters',
+          'label': 'Characters',
+        },
+      );
+      final hiddenFolder = _apply(
+        snapshot,
+        'presentationVisualFolder.setVisibility',
+        const <String, Object?>{
+          'cinematicId': 'opening',
+          'folderId': 'characters',
+          'visible': false,
+        },
+      );
+      final lockedFolder = _apply(
+        snapshot,
+        'presentationVisualFolder.setLocked',
+        const <String, Object?>{
+          'cinematicId': 'opening',
+          'folderId': 'characters',
+          'locked': true,
+        },
+      );
+      final movedFolder = _apply(
+        snapshot,
+        'presentationVisualFolder.move',
+        const <String, Object?>{
+          'cinematicId': 'opening',
+          'folderId': 'characters',
+          'insertionIndex': 1,
+        },
+      );
+      final deletedFolder = _apply(
+        snapshot,
+        'presentationVisualFolder.delete',
+        const <String, Object?>{
+          'cinematicId': 'opening',
+          'folderId': 'characters',
+        },
+      );
+
+      expect(hiddenLayer.presentationCinematics.first.layers.first.visible,
+          isFalse);
+      expect(
+          lockedLayer.presentationCinematics.first.layers.first.locked, isTrue);
+      expect(createdFolder.presentationCinematics.first.visualFolders.last.id,
+          'decor');
+      expect(
+          renamedFolder.presentationCinematics.first.visualFolders.first.label,
+          'Characters');
+      expect(
+          hiddenFolder.presentationCinematics.first.visualFolders.first.hidden,
+          isTrue);
+      expect(
+          lockedFolder.presentationCinematics.first.visualFolders.first.locked,
+          isTrue);
+      expect(
+        movedFolder.presentationCinematics.first.layers
+            .firstWhere((layer) => layer.id == 'foreground')
+            .zIndex,
+        0,
+      );
+      expect(deletedFolder.presentationCinematics.first.visualFolders, isEmpty);
     });
 
     test('fails closed on v6, used layers and Scene-owned cinematics', () {
@@ -560,6 +705,13 @@ ProjectSnapshot _snapshot({
     layers: <PresentationLayer>[
       PresentationLayer(id: 'foreground', label: 'Foreground', zIndex: 2),
       PresentationLayer(id: 'background', label: 'Background', zIndex: 0),
+    ],
+    visualFolders: <PresentationVisualFolder>[
+      PresentationVisualFolder(
+        id: 'characters',
+        label: 'Characters',
+        layerIds: const <String>['foreground'],
+      ),
     ],
     tracks: <PresentationTrack>[
       PresentationTrack(

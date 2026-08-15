@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_responsive_canvas.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_viewport.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
 
@@ -16,7 +17,11 @@ void main() {
     () {
       final controller = PresentationStudioResponsiveCanvasController(
         playheadUs: 2_000_000,
-        selectedClipId: 'hero-clip',
+        initialSelection: const PresentationStudioSelection(
+          layerId: 'hero-layer',
+          trackId: 'visuals',
+          clipId: 'hero-clip',
+        ),
       );
       addTearDown(controller.dispose);
 
@@ -85,6 +90,50 @@ void main() {
       2_000_000,
     });
     expect(find.textContaining('00:02.000'), findsOneWidget);
+  });
+
+  testWidgets('canvas tap updates the shared Presentation selection', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController();
+    addTearDown(controller.dispose);
+    final asset = PresentationCinematicAsset(
+      id: 'opening',
+      title: 'Opening',
+      durationUs: 4_000_000,
+      layers: <PresentationLayer>[
+        PresentationLayer(id: 'hero-layer', label: 'Hero', zIndex: 0),
+      ],
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: 'visuals',
+          label: 'Visuals',
+          kind: PresentationTrackKind.visual,
+          clips: <PresentationClip>[
+            PresentationVisualClip(
+              id: 'hero-clip',
+              startUs: 0,
+              durationUs: 1_000_000,
+              layerId: 'hero-layer',
+              resourceId: 'hero-default',
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await _pumpResponsiveCanvas(
+      tester,
+      controller: controller,
+      frameBuilder: (_) => _frame(),
+      asset: asset,
+    );
+
+    await tester.tap(find.byKey(presentationStudioViewportFrameKey));
+    await tester.pump();
+
+    expect(controller.selection.value?.layerId, 'hero-layer');
+    expect(controller.selection.value?.clipId, 'hero-clip');
   });
 
   testWidgets('Compare applies distinct transforms to the same frame', (
@@ -196,7 +245,11 @@ void main() {
     final controller = PresentationStudioResponsiveCanvasController(
       mode: PresentationStudioCanvasMode.compare,
       playheadUs: 750_000,
-      selectedClipId: 'hero-clip',
+      initialSelection: const PresentationStudioSelection(
+        layerId: 'hero-layer',
+        trackId: 'visuals',
+        clipId: 'hero-clip',
+      ),
     );
     addTearDown(controller.dispose);
 
@@ -290,6 +343,7 @@ Future<void> _pumpResponsiveCanvas(
   PresentationFrameOrientationOverrides orientationOverrides =
       const PresentationFrameOrientationOverrides(),
   List<PresentationStudioResponsiveMediaBinding> mediaBindings = const [],
+  PresentationCinematicAsset? asset,
   Size surfaceSize = const Size(1280, 800),
   String? fontFamily,
 }) async {
@@ -321,6 +375,7 @@ Future<void> _pumpResponsiveCanvas(
           playerTheme: PokeMapPlayerTheme.dark(),
           orientationOverrides: orientationOverrides,
           mediaBindings: mediaBindings,
+          asset: asset,
         ),
       ),
     ),

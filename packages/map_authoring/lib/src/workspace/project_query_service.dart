@@ -893,6 +893,12 @@ List<_QueryRecord> _records(
           for (final layer in cinematic.layers)
             _presentationLayerRecord(cinematic, layer),
       ];
+    case 'presentationVisualFolder':
+      return <_QueryRecord>[
+        for (final cinematic in snapshot.manifest.presentationCinematics)
+          for (final folder in cinematic.visualFolders)
+            _presentationVisualFolderRecord(cinematic, folder),
+      ];
     case 'tilesetFolder':
       return [
         for (final folder in snapshot.manifest.tilesetFolders)
@@ -1493,8 +1499,29 @@ _QueryRecord _presentationLayerRecord(
     'cinematicId': cinematic.id,
     'layerId': layer.id,
     'zIndex': layer.zIndex,
+    'visible': layer.visible,
+    'locked': layer.locked,
+    'folderId': cinematic.folderForLayer(layer.id)?.id,
   };
   return _QueryRecord(summary: summary, detail: summary);
+}
+
+_QueryRecord _presentationVisualFolderRecord(
+  PresentationCinematicAsset cinematic,
+  PresentationVisualFolder folder,
+) {
+  final id = _presentationResourceId(<String>[cinematic.id, folder.id]);
+  final record = <String, Object?>{
+    'id': id,
+    'name': folder.label,
+    'resourceKind': 'presentationVisualFolder',
+    'cinematicId': cinematic.id,
+    'folderId': folder.id,
+    'layerIds': List<String>.of(folder.layerIds),
+    'hidden': folder.hidden,
+    'locked': folder.locked,
+  };
+  return _QueryRecord(summary: record, detail: record);
 }
 
 String _presentationResourceId(Iterable<String> segments) =>

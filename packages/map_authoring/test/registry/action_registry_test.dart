@@ -114,6 +114,7 @@ void main() {
           'presentationMedia',
           'presentationPreviewContext',
           'presentationTrack',
+          'presentationVisualFolder',
           'preset',
           'project',
           'projectPresentationPreset',

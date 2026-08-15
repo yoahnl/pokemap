@@ -47,11 +47,16 @@ final class PresentationCinematicAsset {
     String? description,
     required this.durationUs,
     List<PresentationLayer> layers = const <PresentationLayer>[],
+    List<PresentationVisualFolder> visualFolders =
+        const <PresentationVisualFolder>[],
     List<PresentationTrack> tracks = const <PresentationTrack>[],
   }) : id = _requiredString(id, r'$.id'),
        title = _requiredString(title, r'$.title'),
        description = _optionalString(description),
        layers = List<PresentationLayer>.unmodifiable(layers),
+       visualFolders = List<PresentationVisualFolder>.unmodifiable(
+         visualFolders,
+       ),
        tracks = List<PresentationTrack>.unmodifiable(tracks) {
     if (durationUs <= 0) {
       throw const PresentationCinematicValidationException(
@@ -63,7 +68,7 @@ final class PresentationCinematicAsset {
     _validateIdsAndReferences();
   }
 
-  static const int schemaVersion = 1;
+  static const int schemaVersion = 2;
   static const int ticksPerSecond = 1000000;
   static const String timeUnit = 'microsecond';
   static const List<String> capabilities = <String>['cinematic.presentation'];
@@ -73,6 +78,7 @@ final class PresentationCinematicAsset {
   final String? description;
   final int durationUs;
   final List<PresentationLayer> layers;
+  final List<PresentationVisualFolder> visualFolders;
   final List<PresentationTrack> tracks;
 
   void _validateIdsAndReferences() {
@@ -86,6 +92,70 @@ final class PresentationCinematicAsset {
               r'$.layers'
               '[$index].id',
         );
+      }
+    }
+
+    final orderedLayerIds = layers.toList()
+      ..sort((left, right) {
+        final zOrder = right.zIndex.compareTo(left.zIndex);
+        return zOrder != 0 ? zOrder : left.id.compareTo(right.id);
+      });
+    final orderedIds = orderedLayerIds.map((layer) => layer.id).toList();
+    final folderIds = <String>{};
+    final assignedLayerIds = <String>{};
+    for (
+      var folderIndex = 0;
+      folderIndex < visualFolders.length;
+      folderIndex += 1
+    ) {
+      final folder = visualFolders[folderIndex];
+      if (!folderIds.add(folder.id)) {
+        throw PresentationCinematicValidationException(
+          code: PresentationCinematicValidationErrorCode.duplicateId,
+          message: 'Duplicate visual folder id ${folder.id}',
+          path:
+              r'$.visualFolders'
+              '[$folderIndex].id',
+        );
+      }
+      final positions = <int>[];
+      for (
+        var layerIndex = 0;
+        layerIndex < folder.layerIds.length;
+        layerIndex += 1
+      ) {
+        final layerId = folder.layerIds[layerIndex];
+        final position = orderedIds.indexOf(layerId);
+        if (position < 0) {
+          throw PresentationCinematicValidationException(
+            code: PresentationCinematicValidationErrorCode.danglingLayer,
+            message: 'Unknown visual folder layer id $layerId',
+            path:
+                r'$.visualFolders'
+                '[$folderIndex].layerIds[$layerIndex]',
+          );
+        }
+        if (!assignedLayerIds.add(layerId)) {
+          throw PresentationCinematicValidationException(
+            code: PresentationCinematicValidationErrorCode.invalidValue,
+            message: 'A visual layer can belong to only one folder',
+            path:
+                r'$.visualFolders'
+                '[$folderIndex].layerIds[$layerIndex]',
+          );
+        }
+        positions.add(position);
+      }
+      for (var index = 0; index < positions.length; index += 1) {
+        if (positions[index] != positions.first + index) {
+          throw PresentationCinematicValidationException(
+            code: PresentationCinematicValidationErrorCode.invalidValue,
+            message: 'A visual folder must form one contiguous z-order block',
+            path:
+                r'$.visualFolders'
+                '[$folderIndex].layerIds',
+          );
+        }
       }
     }
 
@@ -137,6 +207,30 @@ final class PresentationCinematicAsset {
     }
   }
 
+  PresentationVisualFolder? folderForLayer(String layerId) {
+    for (final folder in visualFolders) {
+      if (folder.layerIds.contains(layerId)) return folder;
+    }
+    return null;
+  }
+
+  bool isLayerEffectivelyVisible(String layerId) {
+    final layer = _layer(layerId);
+    return layer.visible && !(folderForLayer(layerId)?.hidden ?? false);
+  }
+
+  bool isLayerEffectivelyLocked(String layerId) {
+    final layer = _layer(layerId);
+    return layer.locked || (folderForLayer(layerId)?.locked ?? false);
+  }
+
+  PresentationLayer _layer(String layerId) {
+    for (final layer in layers) {
+      if (layer.id == layerId) return layer;
+    }
+    throw ArgumentError.value(layerId, 'layerId', 'unknown layer');
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -146,6 +240,7 @@ final class PresentationCinematicAsset {
           other.description == description &&
           other.durationUs == durationUs &&
           _listEquals(other.layers, layers) &&
+          _listEquals(other.visualFolders, visualFolders) &&
           _listEquals(other.tracks, tracks);
 
   @override
@@ -155,6 +250,7 @@ final class PresentationCinematicAsset {
     description,
     durationUs,
     Object.hashAll(layers),
+    Object.hashAll(visualFolders),
     Object.hashAll(tracks),
   );
 }
@@ -165,12 +261,16 @@ final class PresentationLayer {
     required String id,
     required String label,
     required this.zIndex,
+    this.visible = true,
+    this.locked = false,
   }) : id = _requiredString(id, 'PresentationLayer.id'),
        label = _requiredString(label, 'PresentationLayer.label');
 
   final String id;
   final String label;
   final int zIndex;
+  final bool visible;
+  final bool locked;
 
   @override
   bool operator ==(Object other) =>
@@ -178,10 +278,58 @@ final class PresentationLayer {
       other is PresentationLayer &&
           other.id == id &&
           other.label == label &&
-          other.zIndex == zIndex;
+          other.zIndex == zIndex &&
+          other.visible == visible &&
+          other.locked == locked;
 
   @override
-  int get hashCode => Object.hash(id, label, zIndex);
+  int get hashCode => Object.hash(id, label, zIndex, visible, locked);
+}
+
+@immutable
+final class PresentationVisualFolder {
+  PresentationVisualFolder({
+    required String id,
+    required String label,
+    List<String> layerIds = const <String>[],
+    this.hidden = false,
+    this.locked = false,
+  }) : id = _requiredString(id, 'PresentationVisualFolder.id'),
+       label = _requiredString(label, 'PresentationVisualFolder.label'),
+       layerIds = List<String>.unmodifiable(
+         layerIds.map(
+           (layerId) =>
+               _requiredString(layerId, 'PresentationVisualFolder.layerIds'),
+         ),
+       ) {
+    if (layerIds.toSet().length != layerIds.length) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.duplicateId,
+        message: 'A visual folder cannot contain a layer twice',
+        path: 'PresentationVisualFolder.layerIds',
+      );
+    }
+  }
+
+  final String id;
+  final String label;
+  final List<String> layerIds;
+  final bool hidden;
+  final bool locked;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PresentationVisualFolder &&
+          other.id == id &&
+          other.label == label &&
+          _listEquals(other.layerIds, layerIds) &&
+          other.hidden == hidden &&
+          other.locked == locked;
+
+  @override
+  int get hashCode =>
+      Object.hash(id, label, Object.hashAll(layerIds), hidden, locked);
 }
 
 @immutable

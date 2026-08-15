@@ -60,6 +60,58 @@ void main() {
       },
     );
 
+    test('omits individually and folder-hidden visual layers', () {
+      const evaluator = PresentationCinematicEvaluator();
+      final asset = PresentationCinematicAsset(
+        id: 'visibility',
+        title: 'Visibility',
+        durationUs: 10,
+        layers: <PresentationLayer>[
+          PresentationLayer(id: 'visible', label: 'Visible', zIndex: 2),
+          PresentationLayer(
+            id: 'hidden',
+            label: 'Hidden',
+            zIndex: 1,
+            visible: false,
+          ),
+          PresentationLayer(id: 'folder-hidden', label: 'Folder', zIndex: 0),
+        ],
+        visualFolders: <PresentationVisualFolder>[
+          PresentationVisualFolder(
+            id: 'hidden-folder',
+            label: 'Hidden folder',
+            layerIds: const <String>['folder-hidden'],
+            hidden: true,
+          ),
+        ],
+        tracks: <PresentationTrack>[
+          PresentationTrack(
+            id: 'visuals',
+            label: 'Visuals',
+            kind: PresentationTrackKind.visual,
+            clips: <PresentationClip>[
+              for (final layerId in <String>[
+                'visible',
+                'hidden',
+                'folder-hidden',
+              ])
+                PresentationVisualClip(
+                  id: 'clip-$layerId',
+                  startUs: 0,
+                  durationUs: 10,
+                  layerId: layerId,
+                  resourceId: 'media-$layerId',
+                ),
+            ],
+          ),
+        ],
+      );
+
+      final frame = evaluator.evaluate(asset, timeUs: 0);
+
+      expect(frame.visuals.map((clip) => clip.layerId), <String>['visible']);
+    });
+
     test('evaluates every easing with canonical quadratic curves', () {
       const evaluator = PresentationCinematicEvaluator();
       final asset = _easingAsset();

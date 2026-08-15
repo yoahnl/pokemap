@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -9,6 +11,7 @@ import '../../application/services/narrative_diagnostic_suppression_service.dart
 import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/services/narrative_template_catalog.dart';
 import '../../application/authoring_api/cinematic_library_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_layer_authoring_gateway.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../application/models/narrative_document_route.dart';
 import '../../domain/repositories/repositories.dart';
@@ -32,6 +35,7 @@ import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
 import 'cinematics/presentation/presentation_studio_shell.dart';
+import 'cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'cinematics/presentation/presentation_studio_responsive_canvas.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
@@ -1768,6 +1772,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             mutations: ref.read(authoringMutationAdapterProvider),
             queries: ref.read(authoringQueryAdapterProvider),
           ),
+          presentationLayerGateway:
+              CanonicalPresentationStudioLayerAuthoringGateway(
+            mutations: ref.read(authoringMutationAdapterProvider),
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
           projectRootPath: editor.projectRootPath,
           project: editor.project,
           activeMap: editor.activeMap,
@@ -2553,6 +2562,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   const _CinematicsWorkspaceBody({
     required this.editorNotifier,
     required this.cinematicLibraryGateway,
+    required this.presentationLayerGateway,
     required this.projectRootPath,
     required this.project,
     required this.activeMap,
@@ -2572,6 +2582,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
 
   final EditorNotifier editorNotifier;
   final CinematicLibraryAuthoringGateway cinematicLibraryGateway;
+  final PresentationStudioLayerAuthoringGateway presentationLayerGateway;
   final String? projectRootPath;
   final ProjectManifest? project;
   final MapData? activeMap;
@@ -2599,6 +2610,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   late final PresentationStudioLayoutStore _presentationLayoutStore;
   late final PresentationStudioResponsiveCanvasController
       _presentationResponsiveCanvasController;
+  bool _presentationLayerMutationPending = false;
 
   @override
   void initState() {
@@ -2760,11 +2772,16 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
                   ),
             contentPort: const _PresentationStudioContentPort(),
             playerTheme: PokeMapPlayerTheme.dark(),
+            asset: resolvedAsset,
           ),
-          layersPanel: const PokeMapEmptyState(
-            title: 'Calques',
-            description: 'L’arbre de calques sera branché dans ce slot.',
-            icon: Icon(CupertinoIcons.square_stack_3d_up),
+          layersPanel: PresentationStudioLayerTree(
+            asset: resolvedAsset,
+            playheadUs: _presentationResponsiveCanvasController.playheadUs,
+            selectionController:
+                _presentationResponsiveCanvasController.selection,
+            onCommand: (command) => unawaited(
+              _applyPresentationLayerCommand(command),
+            ),
           ),
           propertiesPanel: const PokeMapEmptyState(
             title: 'Propriétés',
@@ -2870,6 +2887,40 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     final source = widget.onCloseDocument();
     if (source is NarrativeLibrarySourceContext) {
       setState(() => _restoredPresentationSource = source);
+    }
+  }
+
+  Future<void> _applyPresentationLayerCommand(
+    PresentationStudioLayerCommand command,
+  ) async {
+    if (_presentationLayerMutationPending) return;
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    if (project == null || projectRootPath == null) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Le projet doit être enregistré avant de modifier ses calques.',
+      );
+      return;
+    }
+    _presentationLayerMutationPending = true;
+    try {
+      final manifest = await widget.presentationLayerGateway.apply(
+        projectRootPath,
+        expectedProject: project,
+        actionId: command.actionId,
+        parameters: command.parameters,
+      );
+      _presentationResponsiveCanvasController.selection.resetCanvasCycle();
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        manifest,
+        statusMessage: 'Calques de présentation enregistrés.',
+      );
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible de modifier les calques : $error',
+      );
+    } finally {
+      _presentationLayerMutationPending = false;
     }
   }
 

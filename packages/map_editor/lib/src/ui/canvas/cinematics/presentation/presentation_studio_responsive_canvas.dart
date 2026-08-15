@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
 
 import '../../../design_system/design_system.dart';
+import 'presentation_studio_layer_tree.dart';
 import 'presentation_studio_viewport.dart';
 
 const presentationStudioResponsiveCanvasKey = ValueKey<String>(
@@ -71,10 +72,12 @@ final class PresentationStudioResponsiveCanvasController
   PresentationStudioResponsiveCanvasController({
     PresentationStudioCanvasMode mode = PresentationStudioCanvasMode.landscape,
     int playheadUs = 0,
-    String? selectedClipId,
+    PresentationStudioSelection? initialSelection,
   }) : _mode = mode,
        _playheadUs = playheadUs,
-       _selectedClipId = selectedClipId,
+       selection = PresentationStudioSelectionController(
+         initialSelection: initialSelection,
+       ),
        _activeOrientation = mode == PresentationStudioCanvasMode.portrait
            ? PresentationFrameOrientation.portrait
            : PresentationFrameOrientation.landscape {
@@ -89,14 +92,14 @@ final class PresentationStudioResponsiveCanvasController
 
   final landscapeViewport = PresentationStudioViewportController();
   final portraitViewport = PresentationStudioViewportController();
+  final PresentationStudioSelectionController selection;
   PresentationStudioCanvasMode _mode;
   int _playheadUs;
-  String? _selectedClipId;
   PresentationFrameOrientation _activeOrientation;
 
   PresentationStudioCanvasMode get mode => _mode;
   int get playheadUs => _playheadUs;
-  String? get selectedClipId => _selectedClipId;
+  String? get selectedClipId => selection.value?.clipId;
   PresentationFrameOrientation get activeOrientation => _activeOrientation;
 
   void setMode(PresentationStudioCanvasMode value) {
@@ -116,12 +119,7 @@ final class PresentationStudioResponsiveCanvasController
     }
     if (_playheadUs == timeUs) return;
     _playheadUs = timeUs;
-    notifyListeners();
-  }
-
-  void selectClip(String? clipId) {
-    if (_selectedClipId == clipId) return;
-    _selectedClipId = clipId;
+    selection.resetCanvasCycle();
     notifyListeners();
   }
 
@@ -147,6 +145,7 @@ final class PresentationStudioResponsiveCanvasController
   void dispose() {
     landscapeViewport.dispose();
     portraitViewport.dispose();
+    selection.dispose();
     super.dispose();
   }
 }
@@ -231,6 +230,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
     required this.playerTheme,
     this.orientationOverrides = const PresentationFrameOrientationOverrides(),
     this.mediaBindings = const <PresentationStudioResponsiveMediaBinding>[],
+    this.asset,
   });
 
   final PresentationStudioResponsiveCanvasController controller;
@@ -239,6 +239,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
   final ThemeData playerTheme;
   final PresentationFrameOrientationOverrides orientationOverrides;
   final List<PresentationStudioResponsiveMediaBinding> mediaBindings;
+  final PresentationCinematicAsset? asset;
 
   @override
   Widget build(BuildContext context) {
@@ -319,6 +320,13 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
       playerTheme: playerTheme,
       orientationOverrides: orientationOverrides,
       onFocused: () => controller.focus(orientation),
+      onCompositionTap: frame == null || asset == null
+          ? null
+          : (position) => controller.selection.selectCanvas(
+              asset: asset!,
+              frame: frame,
+              normalizedPosition: position,
+            ),
     );
     if (!showLabel) return viewport;
     return Column(

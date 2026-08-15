@@ -897,6 +897,7 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
       'presentationTrack.',
       'presentationClip.',
       'presentationLayer.',
+      'presentationVisualFolder.',
     ],
     'test/domains/narrative/presentation_cinematic_authoring_test.dart',
   ),
@@ -1122,6 +1123,7 @@ const _semanticOwners = <String, String>{
   'presentationTrack': 'presentationCinematic',
   'presentationClip': 'presentationCinematic',
   'presentationLayer': 'presentationCinematic',
+  'presentationVisualFolder': 'presentationCinematic',
   'shop': 'campaignContent',
   'badge': 'campaignContent',
   'trainer': 'campaignContent',
@@ -1166,6 +1168,7 @@ const _requiredDirectReadResourceKinds = <String>{
   'presentationTrack',
   'presentationClip',
   'presentationLayer',
+  'presentationVisualFolder',
   'presentationPreviewContext',
 };
 

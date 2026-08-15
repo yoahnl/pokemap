@@ -85,6 +85,7 @@ class PresentationStudioViewport extends StatefulWidget {
     this.showSafeArea = true,
     this.orientationOverrides = const PresentationFrameOrientationOverrides(),
     this.onFocused,
+    this.onCompositionTap,
   });
 
   final PresentationStudioViewportController? controller;
@@ -98,6 +99,7 @@ class PresentationStudioViewport extends StatefulWidget {
   final bool showSafeArea;
   final PresentationFrameOrientationOverrides orientationOverrides;
   final VoidCallback? onFocused;
+  final ValueChanged<Offset>? onCompositionTap;
 
   @override
   State<PresentationStudioViewport> createState() =>
@@ -222,21 +224,34 @@ class _PresentationStudioViewportState
                                   key: presentationStudioViewportFrameKey,
                                   width: size.width,
                                   height: size.height,
-                                  child: PokeMapCinematicViewport(
-                                    composition: _composition,
-                                    semanticLabel:
-                                        'Aperçu de la frame Presentation',
-                                    showSafeArea: widget.showSafeArea,
-                                    state: _designSystemState,
-                                    statusLabel: widget.errorMessage,
-                                    retryLabel:
-                                        widget.state ==
-                                            PresentationStudioViewportState
-                                                .error
-                                        ? 'Réessayer le rendu'
-                                        : null,
-                                    onRetry: widget.onRetry,
-                                    child: _content(),
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTapUp: widget.onCompositionTap == null
+                                        ? null
+                                        : (details) => widget.onCompositionTap!(
+                                            Offset(
+                                              details.localPosition.dx /
+                                                  size.width,
+                                              details.localPosition.dy /
+                                                  size.height,
+                                            ),
+                                          ),
+                                    child: PokeMapCinematicViewport(
+                                      composition: _composition,
+                                      semanticLabel:
+                                          'Aperçu de la frame Presentation',
+                                      showSafeArea: widget.showSafeArea,
+                                      state: _designSystemState,
+                                      statusLabel: widget.errorMessage,
+                                      retryLabel:
+                                          widget.state ==
+                                              PresentationStudioViewportState
+                                                  .error
+                                          ? 'Réessayer le rendu'
+                                          : null,
+                                      onRetry: widget.onRetry,
+                                      child: _content(),
+                                    ),
                                   ),
                                 ),
                               ),

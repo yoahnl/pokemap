@@ -12,6 +12,10 @@ final class PresentationCinematicEvaluator {
     final layerZIndexes = {
       for (final layer in asset.layers) layer.id: layer.zIndex,
     };
+    final visibleLayerIds = <String>{
+      for (final layer in asset.layers)
+        if (asset.isLayerEffectivelyVisible(layer.id)) layer.id,
+    };
     final visuals = <PresentationVisualFrameClip>[];
     final audio = <PresentationAudioFrameClip>[];
     final captions = <PresentationCaptionFrameClip>[];
@@ -21,7 +25,8 @@ final class PresentationCinematicEvaluator {
       for (final clip in track.clips) {
         switch (clip) {
           case final PresentationVisualClip visualClip
-              when _isActive(visualClip, resolvedTimeUs):
+              when visibleLayerIds.contains(visualClip.layerId) &&
+                  _isActive(visualClip, resolvedTimeUs):
             final progress = _progress(visualClip, resolvedTimeUs);
             final easedProgress = _ease(progress, visualClip.easing);
             final elapsedUs = resolvedTimeUs - visualClip.startUs;

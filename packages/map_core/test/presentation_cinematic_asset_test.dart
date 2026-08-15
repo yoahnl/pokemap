@@ -89,7 +89,7 @@ void main() {
 
       expect(decoded, asset);
       expect(jsonEncode(encodedAgain), jsonEncode(encoded));
-      expect(encoded['schemaVersion'], 1);
+      expect(encoded['schemaVersion'], 2);
       expect(encoded['capabilities'], ['cinematic.presentation']);
       expect(encoded['timebase'], {
         'unit': 'microsecond',
@@ -105,17 +105,123 @@ void main() {
       );
 
       expect(encodePresentationCinematicAsset(asset), {
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'capabilities': ['cinematic.presentation'],
         'timebase': {'unit': 'microsecond', 'ticksPerSecond': 1000000},
         'id': 'presentation_minimal',
         'title': 'Minimal',
         'durationUs': 1,
         'layers': <Object?>[],
+        'visualFolders': <Object?>[],
         'tracks': <Object?>[],
       });
       expect(asset.layers, isEmpty);
       expect(asset.tracks, isEmpty);
+    });
+
+    test('persists one-level visual folders and effective layer states', () {
+      final asset = PresentationCinematicAsset(
+        id: 'presentation_layers',
+        title: 'Layers',
+        durationUs: 1_000_000,
+        layers: <PresentationLayer>[
+          PresentationLayer(
+            id: 'title',
+            label: 'Title',
+            zIndex: 2,
+            visible: false,
+          ),
+          PresentationLayer(
+            id: 'subtitle',
+            label: 'Subtitle',
+            zIndex: 1,
+            locked: true,
+          ),
+          PresentationLayer(id: 'background', label: 'Background', zIndex: 0),
+        ],
+        visualFolders: <PresentationVisualFolder>[
+          PresentationVisualFolder(
+            id: 'titles',
+            label: 'Titles',
+            layerIds: const <String>['title', 'subtitle'],
+            hidden: true,
+            locked: true,
+          ),
+        ],
+      );
+
+      final decoded = decodePresentationCinematicAsset(
+        encodePresentationCinematicAsset(asset),
+      );
+
+      expect(decoded, asset);
+      expect(decoded.visualFolders.single.layerIds, <String>[
+        'title',
+        'subtitle',
+      ]);
+      expect(decoded.layers.first.visible, isFalse);
+      expect(decoded.layers[1].locked, isTrue);
+      expect(decoded.isLayerEffectivelyVisible('title'), isFalse);
+      expect(decoded.isLayerEffectivelyLocked('subtitle'), isTrue);
+    });
+
+    test('rejects nested membership and split visual folder blocks', () {
+      expect(
+        () => PresentationCinematicAsset(
+          id: 'presentation_duplicate_membership',
+          title: 'Duplicate membership',
+          durationUs: 1,
+          layers: <PresentationLayer>[
+            PresentationLayer(id: 'a', label: 'A', zIndex: 2),
+            PresentationLayer(id: 'b', label: 'B', zIndex: 1),
+          ],
+          visualFolders: <PresentationVisualFolder>[
+            PresentationVisualFolder(
+              id: 'first',
+              label: 'First',
+              layerIds: const <String>['a'],
+            ),
+            PresentationVisualFolder(
+              id: 'second',
+              label: 'Second',
+              layerIds: const <String>['a'],
+            ),
+          ],
+        ),
+        throwsA(
+          isA<PresentationCinematicValidationException>().having(
+            (error) => error.path,
+            'path',
+            r'$.visualFolders[1].layerIds[0]',
+          ),
+        ),
+      );
+      expect(
+        () => PresentationCinematicAsset(
+          id: 'presentation_split_folder',
+          title: 'Split folder',
+          durationUs: 1,
+          layers: <PresentationLayer>[
+            PresentationLayer(id: 'a', label: 'A', zIndex: 2),
+            PresentationLayer(id: 'root', label: 'Root', zIndex: 1),
+            PresentationLayer(id: 'b', label: 'B', zIndex: 0),
+          ],
+          visualFolders: <PresentationVisualFolder>[
+            PresentationVisualFolder(
+              id: 'split',
+              label: 'Split',
+              layerIds: const <String>['a', 'b'],
+            ),
+          ],
+        ),
+        throwsA(
+          isA<PresentationCinematicValidationException>().having(
+            (error) => error.path,
+            'path',
+            r'$.visualFolders[0].layerIds',
+          ),
+        ),
+      );
     });
 
     test(
@@ -433,13 +539,13 @@ void main() {
       expect(
         () => decodePresentationCinematicAsset({
           ..._minimalJson(),
-          'schemaVersion': 2,
+          'schemaVersion': 3,
         }),
         throwsA(
           isA<UnsupportedPresentationCinematicSchema>().having(
             (error) => error.schemaVersion,
             'schemaVersion',
-            2,
+            3,
           ),
         ),
       );
@@ -556,12 +662,13 @@ void main() {
 }
 
 Map<String, Object?> _minimalJson() => {
-  'schemaVersion': 1,
+  'schemaVersion': 2,
   'capabilities': ['cinematic.presentation'],
   'timebase': {'unit': 'microsecond', 'ticksPerSecond': 1000000},
   'id': 'presentation_minimal',
   'title': 'Minimal',
   'durationUs': 1,
   'layers': <Object?>[],
+  'visualFolders': <Object?>[],
   'tracks': <Object?>[],
 };

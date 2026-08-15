@@ -260,6 +260,7 @@ final class AuthoringResourceKindRegistry {
             'presentationTrack',
             'presentationClip',
             'presentationLayer',
+            'presentationVisualFolder',
           ],
         },
       ),
@@ -289,6 +290,16 @@ final class AuthoringResourceKindRegistry {
         summary: 'Visual stacking layer inside a Presentation cinematic',
         extensions: const <String, Object?>{
           'idFormat': 'uriComponent(cinematicId):uriComponent(layerId)',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationVisualFolder',
+        version: 1,
+        displayName: 'Presentation visual folder',
+        summary:
+            'One-level visual organization folder inside a Presentation cinematic',
+        extensions: const <String, Object?>{
+          'idFormat': 'uriComponent(cinematicId):uriComponent(folderId)',
         },
       ),
       AuthoringResourceKindDescriptor(
@@ -573,6 +584,7 @@ final class AuthoringResourceKindRegistry {
       'presentationTrack',
       'presentationClip',
       'presentationLayer',
+      'presentationVisualFolder',
       'presentationMedia',
       'scenario',
       'scene',

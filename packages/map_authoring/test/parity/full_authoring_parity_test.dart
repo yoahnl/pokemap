@@ -704,6 +704,7 @@ final Set<String> _approvedResourceKinds = {
   'presentationTrack',
   'presentationClip',
   'presentationLayer',
+  'presentationVisualFolder',
   'shop',
   'badge',
   'trainer',
