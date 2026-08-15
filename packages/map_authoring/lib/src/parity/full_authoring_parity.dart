@@ -552,6 +552,19 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
     };
   }
+  if (actionId == 'presentationClip.batch' ||
+      actionId == 'presentationClip.deleteBatch') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_presentation_clip_batch_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_presentation_clip_batch_flow_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/'
+          'presentation_studio_timeline_authoring_gateway_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (actionId == 'campaign.encounter_table.upsert' ||
       actionId == 'campaign.encounter_table.delete') {
     return const <AuthoringTransport, String>{

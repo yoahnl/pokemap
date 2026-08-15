@@ -6,8 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../../theme/theme.dart';
+import '../../../../application/authoring_api/presentation_studio_timeline_command.dart';
 import '../../../design_system/design_system.dart';
 import 'presentation_studio_layer_tree.dart';
+import 'presentation_timeline_editing_controller.dart';
 
 const presentationStudioTimelineKey = ValueKey<String>(
   'presentation-studio-timeline',
@@ -199,6 +201,13 @@ class PresentationStudioTimeline extends StatefulWidget {
     required this.playheadUs,
     required this.selectionController,
     required this.onPlayheadChanged,
+    this.editingController,
+    this.onCommand,
+    this.mutationPending = false,
+    this.canUndo = false,
+    this.canRedo = false,
+    this.onUndo,
+    this.onRedo,
     this.viewportController,
     this.state = PresentationStudioTimelineState.ready,
     this.diagnostic,
@@ -208,6 +217,13 @@ class PresentationStudioTimeline extends StatefulWidget {
   final int playheadUs;
   final PresentationStudioSelectionController selectionController;
   final ValueChanged<int> onPlayheadChanged;
+  final PresentationTimelineEditingController? editingController;
+  final ValueChanged<PresentationTimelineClipCommand>? onCommand;
+  final bool mutationPending;
+  final bool canUndo;
+  final bool canRedo;
+  final VoidCallback? onUndo;
+  final VoidCallback? onRedo;
   final PresentationTimelineViewportController? viewportController;
   final PresentationStudioTimelineState state;
   final String? diagnostic;
@@ -228,13 +244,19 @@ class _PresentationStudioTimelineState
   final ScrollController _horizontalProxyController = ScrollController();
   late PresentationTimelineViewportController _viewportController;
   late bool _ownsViewportController;
+  late PresentationTimelineEditingController _editingController;
+  late bool _ownsEditingController;
   late List<PresentationTimelineClipIndex> _clipIndexes;
   bool _syncingHorizontalProxy = false;
+  Offset _dragDelta = Offset.zero;
+  int _dragSourceTrackIndex = 0;
+  double _trimDeltaX = 0;
 
   @override
   void initState() {
     super.initState();
     _attachViewportController();
+    _attachEditingController();
     _rebuildIndexes();
     widget.selectionController.addListener(_selectionChanged);
     _horizontalProxyController.addListener(_proxyScrolled);
@@ -248,6 +270,12 @@ class _PresentationStudioTimelineState
       if (_ownsViewportController) _viewportController.dispose();
       _attachViewportController();
     }
+    if (oldWidget.editingController != widget.editingController) {
+      _editingController.removeListener(_editingChanged);
+      if (_ownsEditingController) _editingController.dispose();
+      _attachEditingController();
+    }
+    _editingController.configureAsset(widget.asset);
     _viewportController.configureDuration(widget.asset.durationUs);
     _viewportController.seekTo(widget.playheadUs);
     if (oldWidget.asset != widget.asset) _rebuildIndexes();
@@ -270,6 +298,14 @@ class _PresentationStudioTimelineState
     _viewportController.addListener(_viewportChanged);
   }
 
+  void _attachEditingController() {
+    _ownsEditingController = widget.editingController == null;
+    _editingController =
+        widget.editingController ??
+        PresentationTimelineEditingController(asset: widget.asset);
+    _editingController.addListener(_editingChanged);
+  }
+
   void _rebuildIndexes() {
     _clipIndexes = <PresentationTimelineClipIndex>[
       for (final track in widget.asset.tracks)
@@ -278,6 +314,19 @@ class _PresentationStudioTimelineState
   }
 
   void _selectionChanged() {
+    if (widget.selectionController.origin !=
+        PresentationStudioSelectionOrigin.timeline) {
+      final clipId = widget.selectionController.value?.clipId;
+      if (clipId == null) {
+        _editingController.clearSelection();
+      } else {
+        _editingController.selectClip(clipId);
+      }
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _editingChanged() {
     if (mounted) setState(() {});
   }
 
@@ -322,6 +371,35 @@ class _PresentationStudioTimelineState
     if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
       return KeyEventResult.ignored;
     }
+    final keys = HardwareKeyboard.instance.logicalKeysPressed;
+    final commandModifier =
+        keys.contains(LogicalKeyboardKey.controlLeft) ||
+        keys.contains(LogicalKeyboardKey.controlRight) ||
+        keys.contains(LogicalKeyboardKey.metaLeft) ||
+        keys.contains(LogicalKeyboardKey.metaRight);
+    final shift =
+        keys.contains(LogicalKeyboardKey.shiftLeft) ||
+        keys.contains(LogicalKeyboardKey.shiftRight);
+    if (commandModifier) {
+      switch (event.logicalKey) {
+        case LogicalKeyboardKey.keyC:
+          _editingController.copySelection();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyV:
+          _pasteSelection();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyD:
+          _duplicateSelection();
+          return KeyEventResult.handled;
+        case LogicalKeyboardKey.keyZ:
+          if (shift) {
+            if (widget.canRedo) widget.onRedo?.call();
+          } else if (widget.canUndo) {
+            widget.onUndo?.call();
+          }
+          return KeyEventResult.handled;
+      }
+    }
     switch (event.logicalKey) {
       case LogicalKeyboardKey.arrowLeft:
         _seekTo(_viewportController.playheadUs - _keyboardSeekUs);
@@ -331,6 +409,14 @@ class _PresentationStudioTimelineState
         _seekTo(0);
       case LogicalKeyboardKey.end:
         _seekTo(widget.asset.durationUs);
+      case LogicalKeyboardKey.escape:
+        if (!_editingController.hasActiveDrag) {
+          return KeyEventResult.ignored;
+        }
+        _editingController.cancelDrag();
+      case LogicalKeyboardKey.delete:
+      case LogicalKeyboardKey.backspace:
+        _deleteSelection();
       case LogicalKeyboardKey.equal:
       case LogicalKeyboardKey.add:
       case LogicalKeyboardKey.numpadAdd:
@@ -378,6 +464,8 @@ class _PresentationStudioTimelineState
   @override
   void dispose() {
     widget.selectionController.removeListener(_selectionChanged);
+    _editingController.removeListener(_editingChanged);
+    if (_ownsEditingController) _editingController.dispose();
     _viewportController.removeListener(_viewportChanged);
     if (_ownsViewportController) _viewportController.dispose();
     _horizontalProxyController
@@ -400,6 +488,10 @@ class _PresentationStudioTimelineState
       child: Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: (_) => _focusNode.requestFocus(),
+        onPointerUp: (_) {
+          if (_editingController.hasActiveDrag) _finishDrag();
+        },
+        onPointerCancel: (_) => _editingController.cancelDrag(),
         onPointerSignal: _handlePointerSignal,
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -460,28 +552,85 @@ class _PresentationStudioTimelineState
             width: _headerWidth,
             child: PokeMapToolbarSurface(
               padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  PokeMapIconButton(
-                    semanticLabel: 'Dézoomer la timeline',
-                    tooltip: 'Dézoomer',
-                    onPressed: () => _viewportController.zoomAt(
-                      factor: 0.8,
-                      anchorViewportX: _viewportController.viewportWidth / 2,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                child: Row(
+                  children: [
+                    PokeMapIconButton(
+                      semanticLabel: 'Annuler la dernière édition de clips',
+                      tooltip: 'Annuler',
+                      onPressed: widget.canUndo && !widget.mutationPending
+                          ? widget.onUndo
+                          : null,
+                      icon: const Icon(Icons.undo_rounded),
                     ),
-                    icon: const Icon(Icons.remove_rounded),
-                  ),
-                  PokeMapIconButton(
-                    semanticLabel: 'Zoomer la timeline',
-                    tooltip: 'Zoomer',
-                    onPressed: () => _viewportController.zoomAt(
-                      factor: 1.25,
-                      anchorViewportX: _viewportController.viewportWidth / 2,
+                    PokeMapIconButton(
+                      semanticLabel: 'Rétablir la dernière édition de clips',
+                      tooltip: 'Rétablir',
+                      onPressed: widget.canRedo && !widget.mutationPending
+                          ? widget.onRedo
+                          : null,
+                      icon: const Icon(Icons.redo_rounded),
                     ),
-                    icon: const Icon(Icons.add_rounded),
-                  ),
-                ],
+                    PokeMapIconButton(
+                      semanticLabel: 'Copier les clips sélectionnés',
+                      tooltip: 'Copier',
+                      onPressed: _editingController.selectedClipIds.isEmpty
+                          ? null
+                          : _editingController.copySelection,
+                      icon: const Icon(Icons.copy_rounded),
+                    ),
+                    PokeMapIconButton(
+                      semanticLabel: 'Coller les clips au playhead',
+                      tooltip: 'Coller',
+                      onPressed:
+                          _editingController.hasClipboard &&
+                              !widget.mutationPending
+                          ? _pasteSelection
+                          : null,
+                      icon: const Icon(Icons.content_paste_rounded),
+                    ),
+                    PokeMapIconButton(
+                      semanticLabel: 'Dupliquer les clips sélectionnés',
+                      tooltip: 'Dupliquer',
+                      onPressed:
+                          !_editingController.canEditSelection ||
+                              widget.mutationPending
+                          ? null
+                          : _duplicateSelection,
+                      icon: const Icon(Icons.control_point_duplicate_rounded),
+                    ),
+                    PokeMapIconButton(
+                      semanticLabel: 'Supprimer les clips sélectionnés',
+                      tooltip: 'Supprimer',
+                      onPressed:
+                          !_editingController.canEditSelection ||
+                              widget.mutationPending
+                          ? null
+                          : _deleteSelection,
+                      icon: const Icon(Icons.delete_outline_rounded),
+                    ),
+                    PokeMapIconButton(
+                      semanticLabel: 'Dézoomer la timeline',
+                      tooltip: 'Dézoomer',
+                      onPressed: () => _viewportController.zoomAt(
+                        factor: 0.8,
+                        anchorViewportX: _viewportController.viewportWidth / 2,
+                      ),
+                      icon: const Icon(Icons.remove_rounded),
+                    ),
+                    PokeMapIconButton(
+                      semanticLabel: 'Zoomer la timeline',
+                      tooltip: 'Zoomer',
+                      onPressed: () => _viewportController.zoomAt(
+                        factor: 1.25,
+                        anchorViewportX: _viewportController.viewportWidth / 2,
+                      ),
+                      icon: const Icon(Icons.add_rounded),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -516,6 +665,7 @@ class _PresentationStudioTimelineState
         widget.asset.tracks[index],
         _clipIndexes[index],
         viewportWidth,
+        index,
       ),
     );
   }
@@ -524,6 +674,7 @@ class _PresentationStudioTimelineState
     PresentationTrack track,
     PresentationTimelineClipIndex index,
     double viewportWidth,
+    int trackIndex,
   ) {
     final colors = context.pokeMapColors;
     final startUs = math.max(
@@ -534,7 +685,26 @@ class _PresentationStudioTimelineState
       widget.asset.durationUs,
       _viewportController.visibleEndUs + _queryOverscanUs,
     );
-    final clips = index.visibleBetween(startUs: startUs, endUs: endUs);
+    final previewClipIds = _editingController.activePreviewClipIds;
+    final clips =
+        <PresentationClip>[
+          for (final clip in index.visibleBetween(
+            startUs: startUs,
+            endUs: endUs,
+          ))
+            if (!previewClipIds.contains(clip.id)) clip,
+          for (final clipId in previewClipIds)
+            if (_editingController.previewTrackId(clipId) == track.id)
+              if (_editingController.previewClip(clipId) case final preview
+                  when preview.endUs >= startUs && preview.startUs <= endUs)
+                _editingController.sourceClip(clipId),
+        ]..sort((left, right) {
+          final start = _editingController
+              .previewClip(left.id)
+              .startUs
+              .compareTo(_editingController.previewClip(right.id).startUs);
+          return start != 0 ? start : left.id.compareTo(right.id);
+        });
     final playheadX = _viewportController.playheadViewportX;
     return PokeMapCinematicTrackRow(
       label: track.label,
@@ -549,7 +719,7 @@ class _PresentationStudioTimelineState
             child: Stack(
               clipBehavior: Clip.hardEdge,
               children: [
-                for (final clip in clips) _clip(clip),
+                for (final clip in clips) _clip(clip, trackIndex),
                 if (playheadX >= 0 && playheadX <= viewportWidth)
                   Positioned(
                     left: playheadX,
@@ -568,31 +738,156 @@ class _PresentationStudioTimelineState
     );
   }
 
-  Widget _clip(PresentationClip clip) {
+  Widget _clip(PresentationClip clip, int trackIndex) {
+    final renderedClip = _editingController.previewClip(clip.id);
     final left =
-        clip.startUs / 1000000 * _viewportController.pixelsPerSecond -
+        renderedClip.startUs / 1000000 * _viewportController.pixelsPerSecond -
         _viewportController.scrollOffset;
-    final duration = clip.durationUs == 0
+    final duration = renderedClip.durationUs == 0
         ? const Duration(microseconds: 1)
-        : Duration(microseconds: clip.durationUs);
-    final selected = widget.selectionController.value?.clipId == clip.id;
+        : Duration(microseconds: renderedClip.durationUs);
+    final selected =
+        _editingController.selectedClipIds.contains(clip.id) ||
+        widget.selectionController.value?.clipId == clip.id;
     return Positioned(
       key: ValueKey<String>('presentation-timeline-clip-${clip.id}'),
       left: left,
       top: 4,
-      child: PokeMapCinematicTimelineClip(
-        label: _clipLabel(clip),
-        duration: duration,
-        pixelsPerSecond: _viewportController.pixelsPerSecond,
-        selected: selected,
-        onPressed: clip is PresentationVisualClip
-            ? () => widget.selectionController.selectClip(
-                asset: widget.asset,
-                clipId: clip.id,
-              )
-            : null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanStart: !_editingEnabled
+            ? null
+            : (_) {
+                _dragDelta = Offset.zero;
+                _dragSourceTrackIndex = trackIndex;
+                _selectClip(clip, preserveExistingSelection: true);
+                if (!_editingController.canEditSelection) return;
+                _editingController.beginDrag(
+                  clipId: clip.id,
+                  kind: PresentationTimelineDragKind.move,
+                );
+              },
+        onPanUpdate: !_editingEnabled
+            ? null
+            : (details) {
+                if (!_editingController.hasActiveDrag) return;
+                _dragDelta += details.delta;
+                final targetTrackIndex =
+                    (_dragSourceTrackIndex + (_dragDelta.dy / 52).round())
+                        .clamp(0, widget.asset.tracks.length - 1)
+                        .toInt();
+                _editingController.updateDrag(
+                  deltaUs:
+                      (_dragDelta.dx /
+                              _viewportController.pixelsPerSecond *
+                              1000000)
+                          .round(),
+                  targetTrackId: widget.asset.tracks[targetTrackIndex].id,
+                );
+              },
+        onPanEnd: !_editingEnabled ? null : (_) => _finishDrag(),
+        onPanCancel: !_editingEnabled ? null : _editingController.cancelDrag,
+        child: PokeMapCinematicTimelineClip(
+          label: _clipLabel(clip),
+          duration: duration,
+          pixelsPerSecond: _viewportController.pixelsPerSecond,
+          selected: selected,
+          onPressed: () => _selectClip(clip),
+          startTrimLabel: selected && clip is! PresentationMarkerClip
+              ? 'Rogner le début de ${_clipLabel(clip)}'
+              : null,
+          endTrimLabel: selected && clip is! PresentationMarkerClip
+              ? 'Rogner la fin de ${_clipLabel(clip)}'
+              : null,
+          onStartTrimBegin:
+              !_editingEnabled || !_editingController.isClipEditable(clip.id)
+              ? null
+              : () => _beginTrim(clip, PresentationTimelineDragKind.trimStart),
+          onStartTrim: !_editingEnabled ? null : (delta) => _updateTrim(delta),
+          onStartTrimEnd: !_editingEnabled ? null : _finishDrag,
+          onStartTrimCancel: !_editingEnabled
+              ? null
+              : _editingController.cancelDrag,
+          onEndTrimBegin:
+              !_editingEnabled || !_editingController.isClipEditable(clip.id)
+              ? null
+              : () => _beginTrim(clip, PresentationTimelineDragKind.trimEnd),
+          onEndTrim: !_editingEnabled ? null : (delta) => _updateTrim(delta),
+          onEndTrimEnd: !_editingEnabled ? null : _finishDrag,
+          onEndTrimCancel: !_editingEnabled
+              ? null
+              : _editingController.cancelDrag,
+        ),
       ),
     );
+  }
+
+  void _selectClip(
+    PresentationClip clip, {
+    bool preserveExistingSelection = false,
+  }) {
+    final keys = HardwareKeyboard.instance.logicalKeysPressed;
+    final additive =
+        keys.contains(LogicalKeyboardKey.shiftLeft) ||
+        keys.contains(LogicalKeyboardKey.shiftRight) ||
+        keys.contains(LogicalKeyboardKey.controlLeft) ||
+        keys.contains(LogicalKeyboardKey.controlRight) ||
+        keys.contains(LogicalKeyboardKey.metaLeft) ||
+        keys.contains(LogicalKeyboardKey.metaRight);
+    if (!preserveExistingSelection ||
+        !_editingController.selectedClipIds.contains(clip.id)) {
+      _editingController.selectClip(clip.id, additive: additive);
+    }
+    if (clip is PresentationVisualClip) {
+      widget.selectionController.selectClip(
+        asset: widget.asset,
+        clipId: clip.id,
+      );
+    }
+  }
+
+  void _finishDrag() {
+    if (!_editingController.hasActiveDrag) return;
+    try {
+      widget.onCommand?.call(_editingController.finishDrag());
+    } on StateError {
+      _editingController.cancelDrag();
+    }
+  }
+
+  bool get _editingEnabled =>
+      widget.onCommand != null && !widget.mutationPending;
+
+  void _beginTrim(PresentationClip clip, PresentationTimelineDragKind kind) {
+    _trimDeltaX = 0;
+    _selectClip(clip);
+    if (!_editingController.canEditSelection) return;
+    _editingController.beginDrag(clipId: clip.id, kind: kind);
+  }
+
+  void _updateTrim(double deltaX) {
+    _trimDeltaX += deltaX;
+    _editingController.updateDrag(
+      deltaUs: (_trimDeltaX / _viewportController.pixelsPerSecond * 1000000)
+          .round(),
+    );
+  }
+
+  void _pasteSelection() {
+    if (!_editingEnabled || !_editingController.hasClipboard) return;
+    widget.onCommand?.call(
+      _editingController.paste(atUs: _viewportController.playheadUs),
+    );
+  }
+
+  void _duplicateSelection() {
+    if (!_editingEnabled || !_editingController.canEditSelection) return;
+    widget.onCommand?.call(_editingController.duplicateSelection());
+  }
+
+  void _deleteSelection() {
+    if (!_editingEnabled || !_editingController.canEditSelection) return;
+    widget.onCommand?.call(_editingController.deleteSelection());
   }
 
   Widget _horizontalScrollbar(double viewportWidth) {

@@ -844,6 +844,215 @@ async function applyMutation(
   return String(validation.snapshotRevision);
 }
 
+test("MCP commits and undoes one atomic Presentation clip batch", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actions = new Map(
+      (record(described.fullParity).mutationActions as JsonRecord[]).map(
+        (action) => [String(action.actionId), action],
+      ),
+    );
+    for (const actionId of [
+      "presentationClip.batch",
+      "presentationClip.deleteBatch",
+    ]) {
+      const action = actions.get(actionId);
+      assert.ok(action);
+      assert.deepEqual(action.endToEndVerifiedTransports, [
+        "cli",
+        "directApi",
+        "editor",
+        "mcp",
+      ]);
+      assert.deepEqual(Object.keys(record(action.endToEndEvidence)).sort(), [
+        "cli",
+        "directApi",
+        "editor",
+        "mcp",
+      ]);
+    }
+    await writeFile(
+      join(fixture.root, "project.json"),
+      JSON.stringify({
+        name: "Presentation clip batch MCP fixture",
+        version: "v7",
+        maps: [],
+        tilesets: [],
+        presentationCinematics: [
+          {
+            schemaVersion: 2,
+            capabilities: ["cinematic.presentation"],
+            timebase: { unit: "microsecond", ticksPerSecond: 1_000_000 },
+            id: "opening",
+            title: "Opening",
+            description: "",
+            durationUs: 5_000_000,
+            layers: [],
+            visualFolders: [],
+            tracks: [
+              {
+                id: "markers",
+                label: "Markers",
+                kind: "marker",
+                clips: [
+                  {
+                    id: "anchor",
+                    kind: "marker",
+                    startUs: 1_000_000,
+                    durationUs: 0,
+                    label: "Anchor",
+                    markerKind: "ordinary",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const validation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "cin024-mcp-batch",
+        actionId: "presentationClip.batch",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: {
+          cinematicId: "opening",
+          operations: [
+            {
+              kind: "edit",
+              clipId: "anchor",
+              targetTrackId: "markers",
+              startUs: 2_000_000,
+              durationUs: 0,
+            },
+          ],
+        },
+        expectedRevision: validation.snapshotRevision,
+        idempotencyKey: "cin024-mcp-batch",
+        dryRun: false,
+      },
+    });
+    const applied = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "cin024-mcp-batch-apply",
+    });
+    assert.equal(record(applied.receipt).actionId, "presentationClip.batch");
+    const queried = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationClip",
+      operation: "list",
+      view: "detail",
+      filters: { cinematicId: "opening", trackId: "markers" },
+    });
+    assert.equal(record((queried.items as unknown[])[0]).startUs, 2_000_000);
+    const history = await toolData(fixture.client, "pokemap_history", {
+      operation: "list",
+      projectHandle,
+      limit: 1,
+    });
+    const entry = record((history.entries as unknown[])[0]);
+    await toolData(fixture.client, "pokemap_history", {
+      operation: "undo",
+      projectHandle,
+      entryId: String(entry.entryId),
+      idempotencyKey: "cin024-mcp-batch-undo",
+    });
+    const restored = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationClip",
+      operation: "list",
+      view: "detail",
+      filters: { cinematicId: "opening", trackId: "markers" },
+    });
+    assert.equal(record((restored.items as unknown[])[0]).startUs, 1_000_000);
+    const deleteValidation = await toolData(
+      fixture.client,
+      "pokemap_validate",
+      { projectHandle },
+    );
+    const deletePlan = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "cin024-mcp-delete-batch",
+        actionId: "presentationClip.deleteBatch",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: { cinematicId: "opening", clipIds: ["anchor"] },
+        expectedRevision: deleteValidation.snapshotRevision,
+        idempotencyKey: "cin024-mcp-delete-batch",
+        dryRun: false,
+      },
+    });
+    const deleteConfirmation = await toolData(
+      fixture.client,
+      "pokemap_apply",
+      {
+        operation: "confirm",
+        projectHandle,
+        planId: deletePlan.planId,
+      },
+    );
+    const deleted = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: deletePlan.planId,
+      operationId: "cin024-mcp-delete-batch-apply",
+      confirmationToken: deleteConfirmation.confirmationToken,
+    });
+    assert.equal(
+      record(deleted.receipt).actionId,
+      "presentationClip.deleteBatch",
+    );
+    const afterDelete = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationClip",
+      operation: "list",
+      view: "detail",
+      filters: { cinematicId: "opening", trackId: "markers" },
+    });
+    assert.equal((afterDelete.items as unknown[]).length, 0);
+    const deleteHistory = await toolData(
+      fixture.client,
+      "pokemap_history",
+      { operation: "list", projectHandle, limit: 1 },
+    );
+    const deleteEntry = record((deleteHistory.entries as unknown[])[0]);
+    await toolData(fixture.client, "pokemap_history", {
+      operation: "undo",
+      projectHandle,
+      entryId: String(deleteEntry.entryId),
+      idempotencyKey: "cin024-mcp-delete-batch-undo",
+    });
+    const deleteRestored = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationClip",
+      operation: "list",
+      view: "detail",
+      filters: { cinematicId: "opening", trackId: "markers" },
+    });
+    assert.equal((deleteRestored.items as unknown[]).length, 1);
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP executes and rereads every cinematic library catalog action", async () => {
   const fixture = await mutationFixture();
   try {

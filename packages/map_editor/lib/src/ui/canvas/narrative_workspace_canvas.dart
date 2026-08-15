@@ -12,6 +12,8 @@ import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/services/narrative_template_catalog.dart';
 import '../../application/authoring_api/cinematic_library_authoring_gateway.dart';
 import '../../application/authoring_api/presentation_studio_layer_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_timeline_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_timeline_command.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../application/models/narrative_document_route.dart';
 import '../../domain/repositories/repositories.dart';
@@ -38,6 +40,7 @@ import 'cinematics/presentation/presentation_studio_shell.dart';
 import 'cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'cinematics/presentation/presentation_studio_responsive_canvas.dart';
 import 'cinematics/presentation/presentation_studio_timeline.dart';
+import 'cinematics/presentation/presentation_timeline_editing_controller.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'events/event_builder_workspace.dart';
@@ -1778,6 +1781,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             mutations: ref.read(authoringMutationAdapterProvider),
             queries: ref.read(authoringQueryAdapterProvider),
           ),
+          presentationTimelineGateway:
+              CanonicalPresentationStudioTimelineAuthoringGateway(
+            mutations: ref.read(authoringMutationAdapterProvider),
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
           projectRootPath: editor.projectRootPath,
           project: editor.project,
           activeMap: editor.activeMap,
@@ -2564,6 +2572,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
     required this.editorNotifier,
     required this.cinematicLibraryGateway,
     required this.presentationLayerGateway,
+    required this.presentationTimelineGateway,
     required this.projectRootPath,
     required this.project,
     required this.activeMap,
@@ -2584,6 +2593,8 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   final EditorNotifier editorNotifier;
   final CinematicLibraryAuthoringGateway cinematicLibraryGateway;
   final PresentationStudioLayerAuthoringGateway presentationLayerGateway;
+  final PresentationStudioTimelineAuthoringGateway
+      presentationTimelineGateway;
   final String? projectRootPath;
   final ProjectManifest? project;
   final MapData? activeMap;
@@ -2612,6 +2623,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   late final PresentationStudioResponsiveCanvasController
       _presentationResponsiveCanvasController;
   bool _presentationLayerMutationPending = false;
+  PresentationTimelineEditingController?
+      _presentationTimelineEditingController;
+  final List<PresentationTimelineAuthoringTransaction>
+      _presentationTimelineUndo = <PresentationTimelineAuthoringTransaction>[];
+  final List<PresentationTimelineAuthoringTransaction>
+      _presentationTimelineRedo = <PresentationTimelineAuthoringTransaction>[];
+  bool _presentationTimelineMutationPending = false;
 
   @override
   void initState() {
@@ -2625,6 +2643,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
 
   @override
   void dispose() {
+    _presentationTimelineEditingController?.dispose();
     _presentationResponsiveCanvasController.dispose();
     super.dispose();
   }
@@ -2637,6 +2656,9 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       _syncRequestedChildRoute();
     }
     if (oldWidget.documentRoute != widget.documentRoute) {
+      _presentationTimelineEditingController?.cancelDrag();
+      _presentationTimelineUndo.clear();
+      _presentationTimelineRedo.clear();
       _capturePresentationSource();
     }
   }
@@ -2741,6 +2763,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         );
       }
       final resolvedAsset = asset;
+      final timelineEditingController =
+          _presentationTimelineEditingController ??=
+              PresentationTimelineEditingController(asset: resolvedAsset);
+      timelineEditingController.configureAsset(resolvedAsset);
       final documentIsEmpty = resolvedAsset.tracks.every(
         (track) => track.clips.isEmpty,
       );
@@ -2796,8 +2822,17 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               playheadUs: _presentationResponsiveCanvasController.playheadUs,
               selectionController:
                   _presentationResponsiveCanvasController.selection,
+              editingController: timelineEditingController,
               onPlayheadChanged:
                   _presentationResponsiveCanvasController.seekTo,
+              onCommand: (command) => unawaited(
+                _applyPresentationTimelineCommand(command),
+              ),
+              mutationPending: _presentationTimelineMutationPending,
+              canUndo: _presentationTimelineUndo.isNotEmpty,
+              canRedo: _presentationTimelineRedo.isNotEmpty,
+              onUndo: () => unawaited(_undoPresentationTimelineCommand()),
+              onRedo: () => unawaited(_redoPresentationTimelineCommand()),
             ),
           ),
         ),
@@ -2928,6 +2963,120 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       );
     } finally {
       _presentationLayerMutationPending = false;
+    }
+  }
+
+  Future<void> _applyPresentationTimelineCommand(
+    PresentationTimelineClipCommand command,
+  ) async {
+    if (_presentationTimelineMutationPending) return;
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null || documentId == null) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Le projet doit être enregistré avant de modifier sa timeline.',
+      );
+      return;
+    }
+    setState(() => _presentationTimelineMutationPending = true);
+    try {
+      final transaction = await widget.presentationTimelineGateway.apply(
+        projectRootPath,
+        expectedProject: project,
+        command: command,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        transaction.manifest,
+        statusMessage: 'Timeline de présentation enregistrée.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationTimelineUndo.add(transaction);
+        _presentationTimelineRedo.clear();
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible de modifier la timeline : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationTimelineMutationPending = false);
+      }
+    }
+  }
+
+  Future<void> _undoPresentationTimelineCommand() async {
+    if (_presentationTimelineMutationPending ||
+        _presentationTimelineUndo.isEmpty) {
+      return;
+    }
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null) return;
+    final transaction = _presentationTimelineUndo.last;
+    setState(() => _presentationTimelineMutationPending = true);
+    try {
+      final manifest = await widget.presentationTimelineGateway.undo(
+        projectRootPath,
+        expectedProject: project,
+        transaction: transaction,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        manifest,
+        statusMessage: 'Édition de timeline annulée.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationTimelineUndo.removeLast();
+        _presentationTimelineRedo.add(transaction);
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible d’annuler la timeline : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationTimelineMutationPending = false);
+      }
+    }
+  }
+
+  Future<void> _redoPresentationTimelineCommand() async {
+    if (_presentationTimelineMutationPending ||
+        _presentationTimelineRedo.isEmpty) {
+      return;
+    }
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null) return;
+    final transaction = _presentationTimelineRedo.last;
+    setState(() => _presentationTimelineMutationPending = true);
+    try {
+      final redone = await widget.presentationTimelineGateway.redo(
+        projectRootPath,
+        expectedProject: project,
+        transaction: transaction,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        redone.manifest,
+        statusMessage: 'Édition de timeline rétablie.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationTimelineRedo.removeLast();
+        _presentationTimelineUndo.add(redone);
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible de rétablir la timeline : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationTimelineMutationPending = false);
+      }
     }
   }
 

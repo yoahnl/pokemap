@@ -208,8 +208,14 @@ class PokeMapCinematicTimelineClip extends StatelessWidget {
     this.onPressed,
     this.startTrimLabel,
     this.endTrimLabel,
+    this.onStartTrimBegin,
     this.onStartTrim,
+    this.onStartTrimEnd,
+    this.onStartTrimCancel,
+    this.onEndTrimBegin,
     this.onEndTrim,
+    this.onEndTrimEnd,
+    this.onEndTrimCancel,
   }) : assert(pixelsPerSecond > 0);
 
   final String label;
@@ -222,8 +228,14 @@ class PokeMapCinematicTimelineClip extends StatelessWidget {
   final VoidCallback? onPressed;
   final String? startTrimLabel;
   final String? endTrimLabel;
+  final VoidCallback? onStartTrimBegin;
   final ValueChanged<double>? onStartTrim;
+  final VoidCallback? onStartTrimEnd;
+  final VoidCallback? onStartTrimCancel;
+  final VoidCallback? onEndTrimBegin;
   final ValueChanged<double>? onEndTrim;
+  final VoidCallback? onEndTrimEnd;
+  final VoidCallback? onEndTrimCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -337,7 +349,10 @@ class PokeMapCinematicTimelineClip extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: _PokeMapCinematicTrimHandle(
                       semanticLabel: startTrimLabel!,
+                      onDragBegin: onStartTrimBegin,
                       onDrag: onStartTrim,
+                      onDragEnd: onStartTrimEnd,
+                      onDragCancel: onStartTrimCancel,
                     ),
                   ),
                 if (selected && endTrimLabel != null)
@@ -345,7 +360,10 @@ class PokeMapCinematicTimelineClip extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     child: _PokeMapCinematicTrimHandle(
                       semanticLabel: endTrimLabel!,
+                      onDragBegin: onEndTrimBegin,
                       onDrag: onEndTrim,
+                      onDragEnd: onEndTrimEnd,
+                      onDragCancel: onEndTrimCancel,
                     ),
                   ),
               ],
@@ -392,11 +410,17 @@ class PokeMapCinematicStripHost extends StatelessWidget {
 class _PokeMapCinematicTrimHandle extends StatelessWidget {
   const _PokeMapCinematicTrimHandle({
     required this.semanticLabel,
+    required this.onDragBegin,
     required this.onDrag,
+    required this.onDragEnd,
+    required this.onDragCancel,
   });
 
   final String semanticLabel;
+  final VoidCallback? onDragBegin;
   final ValueChanged<double>? onDrag;
+  final VoidCallback? onDragEnd;
+  final VoidCallback? onDragCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -415,6 +439,11 @@ class _PokeMapCinematicTrimHandle extends StatelessWidget {
           onHorizontalDragUpdate: onDrag == null
               ? null
               : (details) => onDrag!(details.delta.dx),
+          onHorizontalDragStart: onDrag == null
+              ? null
+              : (_) => onDragBegin?.call(),
+          onHorizontalDragEnd: onDrag == null ? null : (_) => onDragEnd?.call(),
+          onHorizontalDragCancel: onDrag == null ? null : onDragCancel,
           child: SizedBox(
             width: 12,
             child: Center(

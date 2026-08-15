@@ -119,6 +119,18 @@ final class PresentationCinematicActions {
           AuthoringRiskLevel.high,
         ),
         (
+          'presentationClip.batch',
+          'Apply one atomic edit across Presentation clips',
+          'presentationClip',
+          AuthoringRiskLevel.low,
+        ),
+        (
+          'presentationClip.deleteBatch',
+          'Delete selected Presentation clips atomically',
+          'presentationClip',
+          AuthoringRiskLevel.high,
+        ),
+        (
           'presentationLayer.create',
           'Create one Presentation visual layer',
           'presentationLayer',
@@ -220,6 +232,8 @@ final class PresentationCinematicActions {
         'presentationClip.resize' => _resizeClip(context),
         'presentationClip.duplicate' => _duplicateClip(context),
         'presentationClip.delete' => _deleteClip(context),
+        'presentationClip.batch' => _batchClips(context),
+        'presentationClip.deleteBatch' => _deleteClipBatch(context),
         'presentationLayer.create' => _createLayer(context),
         'presentationLayer.update' => _updateLayer(context),
         'presentationLayer.move' => _moveLayer(context),
@@ -856,6 +870,165 @@ _PresentationMutation _deleteClip(AuthoringPlanningContext context) {
     path: '/presentationCinematics/${cinematic.id}/clips/${location.clip.id}',
     before: before,
     after: null,
+  );
+}
+
+_PresentationMutation _batchClips(AuthoringPlanningContext context) {
+  final parameters = context.request.parameters;
+  _requireExactParameters(
+    parameters,
+    const <String>{'cinematicId', 'operations'},
+  );
+  final project = context.snapshot.manifest;
+  final cinematic = _requireCinematic(
+    project,
+    _string(parameters, 'cinematicId'),
+  );
+  final operations = _objectList(parameters, 'operations');
+  if (operations.isEmpty || operations.length > 512) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_clip.batch_size_invalid',
+      'A Presentation clip batch must contain between 1 and 512 operations.',
+    );
+  }
+  var updated = cinematic;
+  for (final operation in operations) {
+    updated = switch (_string(operation, 'kind')) {
+      'edit' => _applyClipBatchEdit(updated, operation),
+      'duplicate' => _applyClipBatchDuplicate(updated, operation),
+      final kind => throw PresentationCinematicAuthoringException(
+          'presentation_clip.batch_operation_unsupported',
+          'The Presentation clip batch operation is unsupported.',
+          details: <String, Object?>{'kind': kind},
+        ),
+    };
+  }
+  return _assetMutation(
+    project,
+    current: cinematic,
+    updated: updated,
+    resourceKind: 'presentationClip',
+    path: '/presentationCinematics/${cinematic.id}/clips',
+  );
+}
+
+PresentationCinematicAsset _applyClipBatchEdit(
+  PresentationCinematicAsset cinematic,
+  Map<String, Object?> operation,
+) {
+  _requireExactParameters(
+    operation,
+    const <String>{
+      'kind',
+      'clipId',
+      'targetTrackId',
+      'startUs',
+      'durationUs',
+    },
+  );
+  final source = _clipLocation(cinematic, _string(operation, 'clipId'));
+  final targetTrackIndex = _trackIndex(
+    cinematic,
+    _string(operation, 'targetTrackId'),
+  );
+  final durationUs = _integer(operation, 'durationUs');
+  if (source.clip is PresentationMarkerClip && durationUs != 0) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_clip.marker_resize_unsupported',
+      'Presentation marker clips always have zero duration.',
+    );
+  }
+  final edited = _copyClip(
+    source.clip,
+    startUs: _integer(operation, 'startUs'),
+    durationUs: durationUs,
+  );
+  final tracks = cinematic.tracks.toList();
+  final sourceClips = tracks[source.trackIndex].clips.toList()
+    ..removeAt(source.clipIndex);
+  tracks[source.trackIndex] = _copyTrack(
+    tracks[source.trackIndex],
+    clips: sourceClips,
+  );
+  final targetClips = tracks[targetTrackIndex].clips.toList()..add(edited);
+  tracks[targetTrackIndex] = _copyTrack(
+    tracks[targetTrackIndex],
+    clips: targetClips,
+  );
+  return _copyCinematic(cinematic, tracks: tracks);
+}
+
+PresentationCinematicAsset _applyClipBatchDuplicate(
+  PresentationCinematicAsset cinematic,
+  Map<String, Object?> operation,
+) {
+  _requireExactParameters(
+    operation,
+    const <String>{
+      'kind',
+      'clipId',
+      'duplicateId',
+      'targetTrackId',
+      'startUs',
+    },
+  );
+  final source = _clipLocation(cinematic, _string(operation, 'clipId'));
+  final targetTrackIndex = _trackIndex(
+    cinematic,
+    _string(operation, 'targetTrackId'),
+  );
+  final duplicate = _copyClip(
+    source.clip,
+    id: _string(operation, 'duplicateId'),
+    startUs: _integer(operation, 'startUs'),
+  );
+  final tracks = cinematic.tracks.toList();
+  final targetClips = tracks[targetTrackIndex].clips.toList()..add(duplicate);
+  tracks[targetTrackIndex] = _copyTrack(
+    tracks[targetTrackIndex],
+    clips: targetClips,
+  );
+  return _copyCinematic(cinematic, tracks: tracks);
+}
+
+_PresentationMutation _deleteClipBatch(AuthoringPlanningContext context) {
+  final parameters = context.request.parameters;
+  _requireExactParameters(
+    parameters,
+    const <String>{'cinematicId', 'clipIds'},
+  );
+  final project = context.snapshot.manifest;
+  final cinematic = _requireCinematic(
+    project,
+    _string(parameters, 'cinematicId'),
+  );
+  final clipIds = _stringList(parameters, 'clipIds');
+  if (clipIds.isEmpty ||
+      clipIds.length > 512 ||
+      clipIds.toSet().length != clipIds.length) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_clip.batch_size_invalid',
+      'A Presentation clip delete batch must contain 1 to 512 unique ids.',
+    );
+  }
+  var updated = cinematic;
+  for (final clipId in clipIds) {
+    final source = _clipLocation(updated, clipId);
+    final tracks = updated.tracks.toList();
+    final clips = tracks[source.trackIndex].clips.toList()
+      ..removeAt(source.clipIndex);
+    tracks[source.trackIndex] = _copyTrack(
+      tracks[source.trackIndex],
+      clips: clips,
+    );
+    updated = _copyCinematic(updated, tracks: tracks);
+  }
+  return _assetMutation(
+    project,
+    current: cinematic,
+    updated: updated,
+    resourceKind: 'presentationClip',
+    path: '/presentationCinematics/${cinematic.id}/clips',
   );
 }
 
@@ -1737,6 +1910,48 @@ Map<String, Object?> _object(
     );
   }
   return Map<String, Object?>.from(value);
+}
+
+List<Map<String, Object?>> _objectList(
+  Map<String, Object?> parameters,
+  String key,
+) {
+  final value = parameters[key];
+  if (value is! List) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_cinematic.parameter_invalid',
+      'Parameter $key must be a list of objects.',
+    );
+  }
+  return <Map<String, Object?>>[
+    for (final item in value)
+      if (item is Map && item.keys.every((key) => key is String))
+        Map<String, Object?>.from(item)
+      else
+        throw PresentationCinematicAuthoringException(
+          'presentation_cinematic.parameter_invalid',
+          'Parameter $key must be a list of objects.',
+        ),
+  ];
+}
+
+List<String> _stringList(Map<String, Object?> parameters, String key) {
+  final value = parameters[key];
+  if (value is! List || value.any((item) => item is! String)) {
+    throw PresentationCinematicAuthoringException(
+      'presentation_cinematic.parameter_invalid',
+      'Parameter $key must be a list of strings.',
+    );
+  }
+  return value.cast<String>().map((item) {
+    if (item.trim().isEmpty || item != item.trim()) {
+      throw PresentationCinematicAuthoringException(
+        'presentation_cinematic.parameter_invalid',
+        'Parameter $key must contain nonblank trimmed strings.',
+      );
+    }
+    return item;
+  }).toList(growable: false);
 }
 
 final class _PresentationMutation {

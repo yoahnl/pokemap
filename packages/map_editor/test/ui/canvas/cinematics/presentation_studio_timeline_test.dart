@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/authoring_api/presentation_studio_timeline_command.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_timeline.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_timeline_editing_controller.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
@@ -173,6 +175,363 @@ void main() {
     expect(find.text('Timeline indisponible'), findsOneWidget);
     await pump(PresentationStudioTimelineState.error);
     expect(find.text('Référence de piste invalide'), findsOneWidget);
+  });
+
+  testWidgets('drag previews locally and commits once only on release', (
+    tester,
+  ) async {
+    final asset = _asset();
+    final editing = PresentationTimelineEditingController(asset: asset);
+    final commands = <PresentationTimelineClipCommand>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 260,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: PresentationStudioSelectionController(),
+              editingController: editing,
+              onPlayheadChanged: (_) {},
+              onCommand: commands.add,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final clip = find.byKey(
+      const ValueKey<String>('presentation-timeline-clip-opening'),
+    );
+    final gesture = await tester.startGesture(tester.getCenter(clip));
+    await gesture.moveBy(const Offset(20, 0));
+    await gesture.moveBy(const Offset(16, 0));
+    await tester.pump();
+
+    expect(commands, isEmpty);
+    expect(editing.previewClip('opening').startUs, 1200000);
+
+    await gesture.up();
+    await tester.pump();
+
+    expect(commands, hasLength(1));
+    expect(commands.single.actionId, 'presentationClip.batch');
+    expect(commands.single.operations.single['startUs'], 1200000);
+  });
+
+  testWidgets('dragging one selected clip preserves the whole selection', (
+    tester,
+  ) async {
+    final source = _asset();
+    final sourceTrack = source.tracks.single;
+    final asset = PresentationCinematicAsset(
+      id: source.id,
+      title: source.title,
+      durationUs: source.durationUs,
+      layers: source.layers,
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: sourceTrack.id,
+          label: sourceTrack.label,
+          kind: sourceTrack.kind,
+          clips: <PresentationClip>[
+            ...sourceTrack.clips,
+            PresentationVisualClip(
+              id: 'closing',
+              startUs: 7000000,
+              durationUs: 2000000,
+              layerId: 'hero',
+              resourceId: 'closing.png',
+            ),
+          ],
+        ),
+      ],
+    );
+    final editing = PresentationTimelineEditingController(asset: asset)
+      ..selectClip('opening')
+      ..selectClip('closing', additive: true);
+    final commands = <PresentationTimelineClipCommand>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 260,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: PresentationStudioSelectionController(),
+              editingController: editing,
+              onPlayheadChanged: (_) {},
+              onCommand: commands.add,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final clip = find.byKey(
+      const ValueKey<String>('presentation-timeline-clip-opening'),
+    );
+    final gesture = await tester.startGesture(tester.getCenter(clip));
+    await gesture.moveBy(const Offset(20, 0));
+    await gesture.moveBy(const Offset(16, 0));
+    await gesture.up();
+    await tester.pump();
+
+    expect(commands, hasLength(1));
+    expect(commands.single.operations, hasLength(2));
+    expect(
+      commands.single.operations.map((operation) => operation['clipId']),
+      <Object?>['opening', 'closing'],
+    );
+  });
+
+  testWidgets('Escape cancels an active drag before pointer release', (
+    tester,
+  ) async {
+    final asset = _asset();
+    final editing = PresentationTimelineEditingController(asset: asset);
+    final commands = <PresentationTimelineClipCommand>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 260,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: PresentationStudioSelectionController(),
+              editingController: editing,
+              onPlayheadChanged: (_) {},
+              onCommand: commands.add,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final clip = find.byKey(
+      const ValueKey<String>('presentation-timeline-clip-opening'),
+    );
+    final gesture = await tester.startGesture(tester.getCenter(clip));
+    await gesture.moveBy(const Offset(24, 0));
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await gesture.up();
+    await tester.pump();
+
+    expect(commands, isEmpty);
+    expect(editing.hasActiveDrag, isFalse);
+    expect(editing.previewClip('opening').startUs, 1000000);
+  });
+
+  testWidgets('trim handle previews then emits one start trim batch', (
+    tester,
+  ) async {
+    final asset = _asset();
+    final editing = PresentationTimelineEditingController(asset: asset);
+    final commands = <PresentationTimelineClipCommand>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 260,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: PresentationStudioSelectionController(),
+              editingController: editing,
+              onPlayheadChanged: (_) {},
+              onCommand: commands.add,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.text('opening.png'));
+    await tester.pump();
+
+    final handle = find.bySemanticsLabel('Rogner le début de opening.png');
+    final gesture = await tester.startGesture(tester.getCenter(handle));
+    await gesture.moveBy(const Offset(20, 0));
+    await gesture.moveBy(const Offset(16, 0));
+    await tester.pump();
+
+    expect(commands, isEmpty);
+    expect(editing.previewClip('opening').startUs, 1200000);
+    expect(editing.previewClip('opening').durationUs, 3800000);
+
+    await gesture.up();
+    await tester.pump();
+
+    expect(commands, hasLength(1));
+    expect(commands.single.operations.single['startUs'], 1200000);
+    expect(commands.single.operations.single['durationUs'], 3800000);
+  });
+
+  testWidgets('vertical drag previews on a compatible target track', (
+    tester,
+  ) async {
+    final source = _asset();
+    final asset = PresentationCinematicAsset(
+      id: source.id,
+      title: source.title,
+      durationUs: source.durationUs,
+      layers: source.layers,
+      tracks: <PresentationTrack>[
+        ...source.tracks,
+        PresentationTrack(
+          id: 'visual-secondary',
+          label: 'Image secondaire',
+          kind: PresentationTrackKind.visual,
+        ),
+      ],
+    );
+    final editing = PresentationTimelineEditingController(asset: asset);
+    final commands = <PresentationTimelineClipCommand>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 280,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: PresentationStudioSelectionController(),
+              editingController: editing,
+              onPlayheadChanged: (_) {},
+              onCommand: commands.add,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final clip = find.byKey(
+      const ValueKey<String>('presentation-timeline-clip-opening'),
+    );
+    final sourceTop = tester.getTopLeft(clip).dy;
+    final gesture = await tester.startGesture(tester.getCenter(clip));
+    await gesture.moveBy(const Offset(0, 20));
+    await gesture.moveBy(const Offset(0, 40));
+    await tester.pump();
+
+    expect(tester.getTopLeft(clip).dy, greaterThan(sourceTop + 40));
+
+    await gesture.up();
+    await tester.pump();
+
+    expect(
+      commands.single.operations.single['targetTrackId'],
+      'visual-secondary',
+    );
+  });
+
+  testWidgets('desktop clipboard shortcut emits one explicit paste batch', (
+    tester,
+  ) async {
+    final asset = _asset();
+    final editing = PresentationTimelineEditingController(
+      asset: asset,
+      duplicateIdFactory: (_) => 'opening-copy',
+    );
+    final commands = <PresentationTimelineClipCommand>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 260,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 6000000,
+              selectionController: PresentationStudioSelectionController(),
+              editingController: editing,
+              onPlayheadChanged: (_) {},
+              onCommand: commands.add,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.text('opening.png'));
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyC);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyV);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+
+    expect(commands, hasLength(1));
+    expect(commands.single.operations.single, <String, Object?>{
+      'kind': 'duplicate',
+      'clipId': 'opening',
+      'duplicateId': 'opening-copy',
+      'targetTrackId': 'visual',
+      'startUs': 6000000,
+    });
+  });
+
+  testWidgets('canvas or layer selection becomes the timeline primary clip', (
+    tester,
+  ) async {
+    final asset = _asset();
+    final editing = PresentationTimelineEditingController(asset: asset);
+    final selection = PresentationStudioSelectionController();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 260,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: selection,
+              editingController: editing,
+              onPlayheadChanged: (_) {},
+              onCommand: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    selection.selectClip(
+      asset: asset,
+      clipId: 'opening',
+      origin: PresentationStudioSelectionOrigin.canvas,
+    );
+    await tester.pump();
+
+    expect(editing.selectedClipIds, <String>{'opening'});
   });
 
   test('hot path source has no I/O, codec or in-game timeline dependency', () {

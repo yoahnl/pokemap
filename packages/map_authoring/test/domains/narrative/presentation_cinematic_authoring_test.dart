@@ -168,6 +168,8 @@ void main() {
         'presentationClip.resize',
         'presentationClip.duplicate',
         'presentationClip.delete',
+        'presentationClip.batch',
+        'presentationClip.deleteBatch',
         'presentationLayer.create',
         'presentationLayer.update',
         'presentationLayer.move',
@@ -197,6 +199,41 @@ void main() {
           reason: actionId,
         );
       }
+    });
+
+    test('applies one atomic batch across selected Presentation clips', () {
+      final snapshot = _snapshot();
+
+      final updated = _apply(
+        snapshot,
+        'presentationClip.batch',
+        const <String, Object?>{
+          'cinematicId': 'opening',
+          'operations': <Object?>[
+            <String, Object?>{
+              'kind': 'edit',
+              'clipId': 'hero',
+              'targetTrackId': 'visuals',
+              'startUs': 750000,
+              'durationUs': 1250000,
+            },
+            <String, Object?>{
+              'kind': 'duplicate',
+              'clipId': 'hero',
+              'duplicateId': 'hero-copy',
+              'targetTrackId': 'visuals',
+              'startUs': 2500000,
+            },
+          ],
+        },
+      );
+
+      final clips = updated.presentationCinematics.first.tracks.first.clips;
+      expect(clips, hasLength(2));
+      expect(clips.first.startUs, 750000);
+      expect(clips.first.durationUs, 1250000);
+      expect(clips.last.id, 'hero-copy');
+      expect(clips.last.startUs, 2500000);
     });
 
     test('creates, updates, duplicates and deletes cinematic resources', () {
