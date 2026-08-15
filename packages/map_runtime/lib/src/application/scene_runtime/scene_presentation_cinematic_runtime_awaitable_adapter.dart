@@ -19,12 +19,16 @@ final class ScenePresentationCinematicRuntimeRequest {
   const ScenePresentationCinematicRuntimeRequest({
     required this.requestId,
     required this.createdAtEpochMs,
+    required this.projectRevision,
+    required this.contentHash,
     required this.presentationCinematicId,
     required this.asset,
   });
 
   final String requestId;
   final int createdAtEpochMs;
+  final String projectRevision;
+  final String contentHash;
   final String presentationCinematicId;
   final PresentationCinematicAsset asset;
 }
@@ -48,7 +52,22 @@ final class RuntimePresentationScenePlayer
   Future<RuntimePresentationExecutionTerminal> playPresentationCinematic(
     ScenePresentationCinematicRuntimeRequest request,
   ) {
-    final runToken = executionController.start();
+    PresentationExecutionCorrelation? observability;
+    try {
+      observability = PresentationExecutionCorrelation(
+        runId: request.requestId,
+        projectRevision: request.projectRevision,
+        assetId: buildPresentationExecutionAssetCorrelationId(
+          request.presentationCinematicId,
+        ),
+        contentHash: request.contentHash,
+      );
+    } on Object {
+      observability = null;
+    }
+    final runToken = executionController.start(
+      observability: observability,
+    );
     final terminal = executionController.waitForTerminal(runToken);
     unawaited(
       Future<void>.sync(() => launch(request, runToken)).then<void>(
@@ -69,15 +88,18 @@ final class RuntimePresentationScenePlayer
 final class ScenePresentationCinematicRuntimeAwaitableAdapter {
   ScenePresentationCinematicRuntimeAwaitableAdapter({
     required this.runtimeSourceId,
+    required this.projectRevision,
     required Iterable<PresentationCinematicAsset> assets,
     required this.player,
     this.createdAtEpochMs = _systemNowMs,
   }) : _assetsById = _indexAssets(assets);
 
   final String runtimeSourceId;
+  final String projectRevision;
   final Map<String, PresentationCinematicAsset> _assetsById;
   final ScenePresentationCinematicRuntimePlayer player;
   final int Function() createdAtEpochMs;
+  var _nextRunSequence = 1;
 
   Future<ScenePresentationCinematicRuntimeAwaitableResult>
       playPresentationCinematic(SceneRuntimePlanIntent intent) async {
@@ -101,19 +123,26 @@ final class ScenePresentationCinematicRuntimeAwaitableAdapter {
 
     final now = createdAtEpochMs();
     final request = ScenePresentationCinematicRuntimeRequest(
-      requestId: '$runtimeSourceId:$presentationCinematicId:$now',
+      requestId: buildPresentationExecutionRunId(
+        runtimeSourceId: runtimeSourceId,
+        assetId: presentationCinematicId,
+        nonce: now,
+        sequence: _nextRunSequence++,
+      ),
       createdAtEpochMs: now,
+      projectRevision: projectRevision,
+      contentHash: computePresentationCinematicContentHash(asset),
       presentationCinematicId: presentationCinematicId,
       asset: asset,
     );
     RuntimePresentationExecutionTerminal terminal;
     try {
       terminal = await player.playPresentationCinematic(request);
-    } catch (error) {
-      return ScenePresentationCinematicRuntimeAwaitableResult.failed(
+    } on Object {
+      return const ScenePresentationCinematicRuntimeAwaitableResult.failed(
         errorCode:
             ScenePresentationCinematicRuntimeAwaitableErrorCode.playerFailed,
-        message: 'Presentation cinematic player failed: $error',
+        message: 'Presentation cinematic player failed.',
       );
     }
 

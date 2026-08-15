@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:map_core/map_core.dart';
+
 import 'runtime_presentation_media_playback_controller.dart';
 
 enum RuntimePresentationExecutionPhase {
@@ -67,25 +69,37 @@ typedef RuntimePresentationExecutionTerminalSink = void Function(
   RuntimePresentationExecutionTerminal terminal,
 );
 
+typedef RuntimePresentationExecutionReceiptSink = void Function(
+  PresentationExecutionReceipt receipt,
+);
+
 final class RuntimePresentationExecutionController {
   RuntimePresentationExecutionController({
     required this.mediaController,
     this.onTerminal,
+    this.onReceipt,
   });
 
   final RuntimePresentationMediaPlaybackController mediaController;
   final RuntimePresentationExecutionTerminalSink? onTerminal;
+  final RuntimePresentationExecutionReceiptSink? onReceipt;
 
   Future<void> _pending = Future<void>.value();
   RuntimePresentationExecutionSnapshot _snapshot =
       RuntimePresentationExecutionSnapshot.idle;
   Completer<RuntimePresentationExecutionTerminal>? _terminalCompleter;
+  PresentationExecutionRecorder? _observabilityRecorder;
+  PresentationExecutionReceipt? _lastReceipt;
   var _nextRunToken = 1;
   var _disposed = false;
 
   RuntimePresentationExecutionSnapshot get snapshot => _snapshot;
 
-  RuntimePresentationRunToken start() {
+  PresentationExecutionReceipt? get lastReceipt => _lastReceipt;
+
+  RuntimePresentationRunToken start({
+    PresentationExecutionCorrelation? observability,
+  }) {
     if (_disposed) {
       throw StateError('Presentation execution controller is disposed.');
     }
@@ -95,11 +109,42 @@ final class RuntimePresentationExecutionController {
     }
     final token = RuntimePresentationRunToken(_nextRunToken++);
     _terminalCompleter = Completer<RuntimePresentationExecutionTerminal>();
+    _observabilityRecorder = observability == null
+        ? null
+        : PresentationExecutionRecorder(
+            correlation: observability,
+            platform: mediaController.targetPlatform,
+          );
+    _lastReceipt = null;
     _snapshot = RuntimePresentationExecutionSnapshot(
       phase: RuntimePresentationExecutionPhase.running,
       runToken: token,
     );
+    _record(
+      token,
+      PresentationExecutionEventKind.prepare,
+    );
+    _record(
+      token,
+      PresentationExecutionEventKind.start,
+    );
     return token;
+  }
+
+  void observeMediaPlaybackSnapshot(
+    RuntimePresentationRunToken token,
+    RuntimePresentationMediaPlaybackSnapshot mediaSnapshot,
+  ) {
+    if (mediaSnapshot.usedFallback) {
+      _record(token, PresentationExecutionEventKind.fallback);
+    }
+    if (mediaSnapshot.status == RuntimePresentationMediaPlaybackStatus.failed) {
+      _recordFailure(
+        token,
+        mediaSnapshot.diagnosticCode ??
+            RuntimePresentationMediaPlaybackDiagnosticCodes.playbackFailed,
+      );
+    }
   }
 
   Future<RuntimePresentationExecutionTerminal> waitForTerminal(
@@ -224,34 +269,42 @@ final class RuntimePresentationExecutionController {
 
   Future<RuntimePresentationExecutionTerminal?> skip(
     RuntimePresentationRunToken token,
-  ) =>
-      _finish(token, RuntimePresentationExecutionResult.skipped);
+  ) {
+    _record(token, PresentationExecutionEventKind.skip);
+    return _finish(token, RuntimePresentationExecutionResult.skipped);
+  }
 
   Future<RuntimePresentationExecutionTerminal?> cancel(
     RuntimePresentationRunToken token, {
     RuntimePresentationCancellationReason reason =
         RuntimePresentationCancellationReason.requested,
-  }) =>
-      _finish(
-        token,
-        RuntimePresentationExecutionResult.cancelled,
-        cancellationReason: reason,
-      );
+  }) {
+    return _finish(
+      token,
+      RuntimePresentationExecutionResult.cancelled,
+      cancellationReason: reason,
+    );
+  }
 
   Future<RuntimePresentationExecutionTerminal?> fail(
     RuntimePresentationRunToken token, {
     required String diagnosticCode,
-  }) =>
-      _finish(
-        token,
-        RuntimePresentationExecutionResult.failed,
-        diagnosticCode: diagnosticCode,
-      );
+  }) {
+    _recordFailure(token, diagnosticCode);
+    return _finish(
+      token,
+      RuntimePresentationExecutionResult.failed,
+      diagnosticCode: diagnosticCode,
+    );
+  }
 
   Future<void> dispose() {
     if (_disposed) return _pending;
-    _disposed = true;
     final token = _snapshot.runToken;
+    if (token != null) {
+      _record(token, PresentationExecutionEventKind.dispose);
+    }
+    _disposed = true;
     final termination = token != null &&
             (_snapshot.phase == RuntimePresentationExecutionPhase.running ||
                 _snapshot.phase == RuntimePresentationExecutionPhase.paused ||
@@ -318,6 +371,11 @@ final class RuntimePresentationExecutionController {
       resolvedDiagnosticCode =
           RuntimePresentationMediaPlaybackDiagnosticCodes.playbackFailed;
     }
+    if (resolvedResult == RuntimePresentationExecutionResult.failed) {
+      resolvedDiagnosticCode ??=
+          RuntimePresentationMediaPlaybackDiagnosticCodes.playbackFailed;
+      _recordFailure(token, resolvedDiagnosticCode);
+    }
     final terminal = RuntimePresentationExecutionTerminal(
       runToken: token,
       result: resolvedResult,
@@ -336,9 +394,89 @@ final class RuntimePresentationExecutionController {
     if (terminalCompleter != null && !terminalCompleter.isCompleted) {
       terminalCompleter.complete(terminal);
     }
+    _finishObservability(
+      resolvedResult,
+      diagnosticCode: resolvedDiagnosticCode,
+    );
     onTerminal?.call(terminal);
     return terminal;
   }
+
+  void _finishObservability(
+    RuntimePresentationExecutionResult result, {
+    String? diagnosticCode,
+  }) {
+    final recorder = _observabilityRecorder;
+    if (recorder == null) return;
+    try {
+      recorder.finish(
+        switch (result) {
+          RuntimePresentationExecutionResult.completed =>
+            PresentationExecutionOutcome.completed,
+          RuntimePresentationExecutionResult.skipped =>
+            PresentationExecutionOutcome.skipped,
+          RuntimePresentationExecutionResult.cancelled =>
+            PresentationExecutionOutcome.cancelled,
+          RuntimePresentationExecutionResult.failed =>
+            PresentationExecutionOutcome.failed,
+        },
+        source: PresentationExecutionSource.player,
+        stableErrorCode: result == RuntimePresentationExecutionResult.failed
+            ? diagnosticCode
+            : null,
+      );
+      final receipt = recorder.receipt;
+      if (receipt == null) return;
+      _lastReceipt = receipt;
+      onReceipt?.call(receipt);
+    } on Object {
+      return;
+    }
+  }
+
+  void _record(
+    RuntimePresentationRunToken token,
+    PresentationExecutionEventKind kind,
+  ) {
+    if (!_canObserve(token)) return;
+    try {
+      _observabilityRecorder?.record(
+        kind,
+        source: PresentationExecutionSource.player,
+      );
+    } on Object {
+      return;
+    }
+  }
+
+  void _recordFailure(
+    RuntimePresentationRunToken token,
+    String diagnosticCode,
+  ) {
+    if (!_canObserve(token)) return;
+    final recorder = _observabilityRecorder;
+    if (recorder == null) return;
+    final last = recorder.lastEvent;
+    if (last?.kind == PresentationExecutionEventKind.failure &&
+        last?.stableErrorCode == diagnosticCode) {
+      return;
+    }
+    try {
+      recorder.record(
+        PresentationExecutionEventKind.failure,
+        source: PresentationExecutionSource.player,
+        stableErrorCode: diagnosticCode,
+      );
+    } on Object {
+      return;
+    }
+  }
+
+  bool _canObserve(RuntimePresentationRunToken token) =>
+      _snapshot.runToken == token &&
+      (_snapshot.phase == RuntimePresentationExecutionPhase.running ||
+          _snapshot.phase == RuntimePresentationExecutionPhase.paused ||
+          _snapshot.phase == RuntimePresentationExecutionPhase.terminating);
 
   bool _isCurrent(
     RuntimePresentationRunToken token,

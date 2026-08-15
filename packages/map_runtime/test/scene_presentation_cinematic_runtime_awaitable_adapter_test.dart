@@ -8,8 +8,10 @@ void main() {
   group('ScenePresentationCinematicRuntimeAwaitableAdapter', () {
     test('awaits one terminal before Scene resumes', () async {
       final mediaController = _mediaController();
+      PresentationExecutionReceipt? receipt;
       final executionController = RuntimePresentationExecutionController(
         mediaController: mediaController,
+        onReceipt: (nextReceipt) => receipt = nextReceipt,
       );
       late ScenePresentationCinematicRuntimeRequest request;
       late RuntimePresentationRunToken runToken;
@@ -22,6 +24,7 @@ void main() {
       );
       final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
         runtimeSourceId: 'scene:pre-session:opening',
+        projectRevision: _projectRevision,
         assets: [_presentation()],
         createdAtEpochMs: () => 1234,
         player: player,
@@ -47,7 +50,20 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(completed, isFalse);
-      expect(request.requestId, 'scene:pre-session:opening:opening:1234');
+      expect(
+        request.requestId,
+        buildPresentationExecutionRunId(
+          runtimeSourceId: 'scene:pre-session:opening',
+          assetId: 'opening',
+          nonce: 1234,
+          sequence: 1,
+        ),
+      );
+      expect(request.projectRevision, _projectRevision);
+      expect(
+        request.contentHash,
+        computePresentationCinematicContentHash(_presentation()),
+      );
       expect(request.presentationCinematicId, 'opening');
       expect(request.asset, _presentation());
 
@@ -59,6 +75,14 @@ void main() {
       final result = await execution;
 
       expect(terminal?.result, RuntimePresentationExecutionResult.completed);
+      expect(
+        receipt!.events.map((event) => event.kind),
+        [
+          PresentationExecutionEventKind.prepare,
+          PresentationExecutionEventKind.start,
+        ],
+      );
+      expect(receipt!.terminal.outcome, PresentationExecutionOutcome.completed);
       expect(result.status, SceneRuntimeExecutionStatus.completed);
       expect(
         result.trace
@@ -71,11 +95,78 @@ void main() {
       );
     });
 
+    test('records fallback and skip once for the active run', () async {
+      PresentationExecutionReceipt? receipt;
+      final executionController = RuntimePresentationExecutionController(
+        mediaController: _mediaController(),
+        onReceipt: (nextReceipt) => receipt = nextReceipt,
+      );
+      final token = executionController.start(
+        observability: _observabilityCorrelation(),
+      );
+
+      executionController.observeMediaPlaybackSnapshot(
+        token,
+        const RuntimePresentationMediaPlaybackSnapshot(
+          status: RuntimePresentationMediaPlaybackStatus.showingPoster,
+          requestedMediaId: 'opening-video',
+          resolvedMediaId: 'opening-poster',
+          usedFallback: true,
+        ),
+      );
+      final first = await executionController.skip(token);
+      final second = await executionController.complete(token);
+
+      expect(second, same(first));
+      expect(
+        receipt!.events.map((event) => event.kind),
+        [
+          PresentationExecutionEventKind.prepare,
+          PresentationExecutionEventKind.start,
+          PresentationExecutionEventKind.fallback,
+          PresentationExecutionEventKind.skip,
+        ],
+      );
+      expect(receipt!.terminal.outcome, PresentationExecutionOutcome.skipped);
+    });
+
+    test('keeps run ids unique when the clock does not advance', () async {
+      final requests = <ScenePresentationCinematicRuntimeRequest>[];
+      final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
+        runtimeSourceId: 'scene:pre-session:opening',
+        projectRevision: _projectRevision,
+        assets: [_presentation()],
+        createdAtEpochMs: () => 1234,
+        player: _CallbackPlayer((request) {
+          requests.add(request);
+          return const RuntimePresentationExecutionTerminal(
+            runToken: RuntimePresentationRunToken(1),
+            result: RuntimePresentationExecutionResult.completed,
+          );
+        }),
+      );
+
+      await adapter.playPresentationCinematic(
+        SceneRuntimePlanIntent.playPresentationCinematic(
+          presentationCinematicId: 'opening',
+        ),
+      );
+      await adapter.playPresentationCinematic(
+        SceneRuntimePlanIntent.playPresentationCinematic(
+          presentationCinematicId: 'opening',
+        ),
+      );
+
+      expect(
+          requests.map((request) => request.requestId).toSet(), hasLength(2));
+    });
+
     test('maps skip to completed without falling back to world cinematic',
         () async {
       var worldCalls = 0;
       final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
         runtimeSourceId: 'scene:pre-session:opening',
+        projectRevision: _projectRevision,
         assets: [_presentation()],
         player: _TerminalPlayer(
           const RuntimePresentationExecutionTerminal(
@@ -110,6 +201,7 @@ void main() {
     test('returns stable cancellation and playback failure results', () async {
       final cancelled = ScenePresentationCinematicRuntimeAwaitableAdapter(
         runtimeSourceId: 'scene:pre-session:opening',
+        projectRevision: _projectRevision,
         assets: [_presentation()],
         player: _TerminalPlayer(
           const RuntimePresentationExecutionTerminal(
@@ -121,6 +213,7 @@ void main() {
       );
       final failed = ScenePresentationCinematicRuntimeAwaitableAdapter(
         runtimeSourceId: 'scene:pre-session:opening',
+        projectRevision: _projectRevision,
         assets: [_presentation()],
         player: _TerminalPlayer(
           const RuntimePresentationExecutionTerminal(
@@ -164,6 +257,7 @@ void main() {
       var launchCount = 0;
       final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
         runtimeSourceId: 'scene:pre-session:opening',
+        projectRevision: _projectRevision,
         assets: [_presentation()],
         player: _CallbackPlayer((_) {
           launchCount++;
@@ -193,6 +287,7 @@ void main() {
       expect(
         () => ScenePresentationCinematicRuntimeAwaitableAdapter(
           runtimeSourceId: 'scene:pre-session:opening',
+          projectRevision: _projectRevision,
           assets: [_presentation(), _presentation()],
           player: _TerminalPlayer(
             const RuntimePresentationExecutionTerminal(
@@ -208,6 +303,7 @@ void main() {
     test('converts a player exception into a stable failure', () async {
       final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
         runtimeSourceId: 'scene:pre-session:opening',
+        projectRevision: _projectRevision,
         assets: [_presentation()],
         player: _CallbackPlayer(
           (_) => throw StateError('renderer exploded'),
@@ -226,15 +322,19 @@ void main() {
       );
       expect(result.scenePortId, isNull);
       expect(result.message, contains('player failed'));
+      expect(result.message, isNot(contains('renderer exploded')));
     });
 
     test('maps a launch failure to the stable Presentation diagnostic',
         () async {
+      PresentationExecutionReceipt? receipt;
       final executionController = RuntimePresentationExecutionController(
         mediaController: _mediaController(),
+        onReceipt: (nextReceipt) => receipt = nextReceipt,
       );
       final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
         runtimeSourceId: 'scene:pre-session:opening',
+        projectRevision: _projectRevision,
         assets: [_presentation()],
         player: RuntimePresentationScenePlayer(
           executionController: executionController,
@@ -256,14 +356,26 @@ void main() {
         result.diagnosticCode,
         PresentationDiagnosticCodes.launchFailed,
       );
+      expect(
+        receipt!.events.last.kind,
+        PresentationExecutionEventKind.failure,
+      );
+      expect(receipt!.terminal.outcome, PresentationExecutionOutcome.failed);
+      expect(
+        receipt!.terminal.stableErrorCode,
+        PresentationDiagnosticCodes.launchFailed,
+      );
     });
 
     test('maps controller disposal to one terminal cancellation', () async {
+      PresentationExecutionReceipt? receipt;
       final executionController = RuntimePresentationExecutionController(
         mediaController: _mediaController(),
+        onReceipt: (nextReceipt) => receipt = nextReceipt,
       );
       final adapter = ScenePresentationCinematicRuntimeAwaitableAdapter(
         runtimeSourceId: 'scene:pre-session:opening',
+        projectRevision: _projectRevision,
         assets: [_presentation()],
         player: RuntimePresentationScenePlayer(
           executionController: executionController,
@@ -288,6 +400,51 @@ void main() {
         result.cancellationReason,
         RuntimePresentationCancellationReason.disposed,
       );
+      expect(
+        receipt!.events.last.kind,
+        PresentationExecutionEventKind.dispose,
+      );
+      expect(
+        receipt!.terminal.outcome,
+        PresentationExecutionOutcome.cancelled,
+      );
+    });
+
+    test('ignores observability sink failures', () async {
+      final executionController = RuntimePresentationExecutionController(
+        mediaController: _mediaController(),
+        onReceipt: (_) => throw StateError('diagnostic exporter unavailable'),
+      );
+      final token = executionController.start(
+        observability: _observabilityCorrelation(),
+      );
+
+      final terminal = await executionController.complete(token);
+
+      expect(terminal!.result, RuntimePresentationExecutionResult.completed);
+      expect(
+        executionController.snapshot.phase,
+        RuntimePresentationExecutionPhase.terminated,
+      );
+    });
+
+    test('keeps execution behavior when a diagnostic cannot be observed',
+        () async {
+      final executionController = RuntimePresentationExecutionController(
+        mediaController: _mediaController(),
+      );
+      final token = executionController.start(
+        observability: _observabilityCorrelation(),
+      );
+
+      final terminal = await executionController.fail(
+        token,
+        diagnosticCode: '/Users/yoahn/private/decoder.log',
+      );
+
+      expect(terminal!.result, RuntimePresentationExecutionResult.failed);
+      expect(terminal.diagnosticCode, '/Users/yoahn/private/decoder.log');
+      expect(executionController.lastReceipt, isNull);
     });
 
     test('rejects an unknown capability before launching Presentation',
@@ -403,6 +560,20 @@ PresentationCinematicAsset _presentation() => PresentationCinematicAsset(
       id: 'opening',
       title: 'Opening',
       durationUs: 1000000,
+    );
+
+final _projectRevision = 'sha256:${List<String>.filled(64, 'a').join()}';
+
+PresentationExecutionCorrelation _observabilityCorrelation() =>
+    PresentationExecutionCorrelation(
+      runId: buildPresentationExecutionRunId(
+        runtimeSourceId: 'scene:pre-session:opening',
+        assetId: 'opening',
+        nonce: 1234,
+      ),
+      projectRevision: _projectRevision,
+      assetId: 'opening',
+      contentHash: computePresentationCinematicContentHash(_presentation()),
     );
 
 RuntimePresentationMediaPlaybackController _mediaController() =>
