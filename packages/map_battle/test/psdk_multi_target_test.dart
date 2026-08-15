@@ -152,7 +152,7 @@ PsdkBattleState _state({
     const PsdkBattleSlotRef(bank: 1, position: 0),
     const PsdkBattleSlotRef(bank: 1, position: 1),
   ];
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       for (final slot in slots)
         slot: PsdkBattleCombatant.fromSetup(

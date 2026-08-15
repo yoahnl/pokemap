@@ -1,18 +1,41 @@
+import '../../pokemon_battle_rules.dart';
+import '../../psdk/domain/psdk_battle_slots.dart';
 import '../rng/battle_rng_streams.dart';
 import 'battle_action.dart';
+
+final class PsdkBattleActionOrderingResult {
+  const PsdkBattleActionOrderingResult({
+    required this.actions,
+    required this.rng,
+  });
+
+  final List<PsdkBattleAction> actions;
+  final BattleRngStreams rng;
+}
 
 final class PsdkBattleActionOrdering {
   const PsdkBattleActionOrdering();
 
-  List<PsdkBattleAction> order({
+  PsdkBattleActionOrderingResult order({
     required List<PsdkBattleAction> actions,
     required BattleRngStreams rng,
+    required PokemonBattleRules rules,
     bool trickRoom = false,
   }) {
     final indexed = <({int index, PsdkBattleAction action})>[
       for (var index = 0; index < actions.length; index += 1)
         (index: index, action: actions[index]),
     ];
+
+    var nextRng = rng;
+    final tieOrder = <PsdkBattleSlotRef, int>{};
+    if (indexed.length == 2 &&
+        _isExactFightTie(indexed[0].action, indexed[1].action)) {
+      final tie = rules.resolvePsdkSpeedTie(rng);
+      nextRng = tie.nextRng;
+      tieOrder[indexed[0].action.user] = tie.firstActsFirst ? 0 : 1;
+      tieOrder[indexed[1].action.user] = tie.firstActsFirst ? 1 : 0;
+    }
 
     indexed.sort((left, right) {
       final bucket = _bucket(right.action).compareTo(_bucket(left.action));
@@ -33,6 +56,12 @@ final class PsdkBattleActionOrdering {
         return speed;
       }
 
+      final leftTieOrder = tieOrder[left.action.user];
+      final rightTieOrder = tieOrder[right.action.user];
+      if (leftTieOrder != null && rightTieOrder != null) {
+        return leftTieOrder.compareTo(rightTieOrder);
+      }
+
       final bank = left.action.user.bank.compareTo(right.action.user.bank);
       if (bank != 0) {
         return bank;
@@ -40,9 +69,20 @@ final class PsdkBattleActionOrdering {
       return left.index.compareTo(right.index);
     });
 
-    return _withAlliedRoundChains(
-      indexed.map((entry) => entry.action).toList(growable: false),
+    return PsdkBattleActionOrderingResult(
+      actions: _withAlliedRoundChains(
+        indexed.map((entry) => entry.action).toList(growable: false),
+      ),
+      rng: nextRng,
     );
+  }
+
+  bool _isExactFightTie(PsdkBattleAction left, PsdkBattleAction right) {
+    return left is PsdkBattleFightAction &&
+        right is PsdkBattleFightAction &&
+        _bucket(left) == _bucket(right) &&
+        _movePriority(left) == _movePriority(right) &&
+        _speed(left) == _speed(right);
   }
 
   List<PsdkBattleAction> _withAlliedRoundChains(

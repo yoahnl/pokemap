@@ -9,6 +9,7 @@ import 'package:map_editor/src/application/services/narrative_validator_isolate_
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_validator_providers.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
+import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -280,7 +281,9 @@ void main() {
       ],
     );
     await _writeProject(projectRoot, project, map);
-    await const SeedPokemonDemoDataUseCase().execute(
+    await SeedPokemonDemoDataUseCase(
+      snapshotController: FilePokemonReadRepository(),
+    ).execute(
       ProjectFileSystem(projectRoot.path),
     );
     final request = NarrativeValidatorSnapshotRequest.fromProject(
@@ -341,7 +344,9 @@ void main() {
       ),
     );
     await _writeProject(projectRoot, project, map);
-    await const SeedPokemonDemoDataUseCase().execute(
+    await SeedPokemonDemoDataUseCase(
+      snapshotController: FilePokemonReadRepository(),
+    ).execute(
       ProjectFileSystem(projectRoot.path),
     );
     final request = NarrativeValidatorSnapshotRequest.fromProject(

@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import 'psdk_battle_combatant.dart';
 import 'psdk_battle_field.dart';
 import 'psdk_battle_rng.dart';
@@ -9,7 +11,35 @@ import 'psdk_battle_slots.dart';
 /// deliberate guardrail: callers cannot accidentally build a half-supported
 /// multi battle and receive misleading events.
 class PsdkBattleSetup {
+  factory PsdkBattleSetup.singlesPokeMapBetaV1ForTest({
+    required PsdkBattleCombatantSetup player,
+    required PsdkBattleCombatantSetup opponent,
+    required PsdkBattleRngSeeds rngSeeds,
+    PsdkBattleFieldState field = const PsdkBattleFieldState(),
+    bool canFlee = false,
+    bool canCapture = false,
+    bool isTrainerBattle = false,
+    List<PsdkBattleCombatantSetup> playerReserves =
+        const <PsdkBattleCombatantSetup>[],
+    List<PsdkBattleCombatantSetup> opponentReserves =
+        const <PsdkBattleCombatantSetup>[],
+  }) {
+    return PsdkBattleSetup.singles(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      player: player,
+      opponent: opponent,
+      rngSeeds: rngSeeds,
+      field: field,
+      canFlee: canFlee,
+      canCapture: canCapture,
+      isTrainerBattle: isTrainerBattle,
+      playerReserves: playerReserves,
+      opponentReserves: opponentReserves,
+    );
+  }
+
   PsdkBattleSetup.singles({
+    required this.ruleset,
     required PsdkBattleCombatantSetup player,
     required PsdkBattleCombatantSetup opponent,
     required this.rngSeeds,
@@ -39,6 +69,7 @@ class PsdkBattleSetup {
           },
         ),
         isSingles = true {
+    ruleset.requireSupported();
     if (isTrainerBattle && canCapture) {
       throw ArgumentError(
         'A trainer battle cannot expose a capture decision.',
@@ -57,6 +88,7 @@ class PsdkBattleSetup {
   }
 
   final Map<PsdkBattleSlotRef, PsdkBattleCombatantSetup> combatants;
+  final PokemonRulesetProfile ruleset;
   final Map<int, List<PsdkBattleCombatantSetup>> parties;
   final PsdkBattleRngSeeds rngSeeds;
   final PsdkBattleFieldState field;

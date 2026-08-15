@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('PSDK effect lifecycle and Baton Pass transfer', () {
     test('timed generic effect ticks and emits a lifecycle event', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -48,7 +48,7 @@ void main() {
     });
 
     test('timed generic effect expires and emits a lifecycle event', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -90,7 +90,7 @@ void main() {
     });
 
     test('item_stolen marker clears when the holder receives an item', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -206,7 +206,7 @@ void main() {
 
     test('BattleSwitchHandler Baton Pass copies stages and effects to incoming',
         () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -270,7 +270,7 @@ void main() {
     });
 
     test('BattleSwitchHandler Baton Pass copies Confusion to incoming', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -315,7 +315,7 @@ void main() {
     });
 
     test('Ingrain prevents regular switch-out attempts', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -348,7 +348,7 @@ void main() {
     });
 
     test('Leech Seed drains the seeded target and heals the source', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(id: 'source', currentHp: 40),
@@ -384,7 +384,7 @@ void main() {
     });
 
     test('Leech Seed healing is boosted when the source holds Big Root', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -425,7 +425,7 @@ void main() {
 
     test('Leech Seed damages the source when the seeded target has Liquid Ooze',
         () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(id: 'source', currentHp: 40),
@@ -466,7 +466,7 @@ void main() {
     });
 
     test('Leech Seed Liquid Ooze damage skips a Magic Guard source', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -594,6 +594,7 @@ PsdkBattleCombatantSetup _combatant({
   String? heldItemId,
   String? abilityId,
   PsdkBattleStatStages? statStages,
+  int speed = 50,
   PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
 }) {
   return PsdkBattleCombatantSetup(
@@ -606,12 +607,12 @@ PsdkBattleCombatantSetup _combatant({
     heldItemId: heldItemId,
     abilityId: abilityId,
     types: const PsdkBattleTypes(primary: 'normal'),
-    stats: const PsdkBattleStats(
+    stats: PsdkBattleStats(
       attack: 50,
       defense: 50,
       specialAttack: 50,
       specialDefense: 50,
-      speed: 50,
+      speed: speed,
     ),
     moves: <PsdkBattleMoveData>[_move(id: 'splash')],
     statStages: statStages,
@@ -650,9 +651,9 @@ PsdkBattleSetup _setup({
   PsdkBattleCombatantSetup? opponent,
   int genericSeed = 4,
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: player ?? _combatant(id: 'player'),
-    opponent: opponent ?? _combatant(id: 'opponent'),
+    opponent: opponent ?? _combatant(id: 'opponent', speed: 49),
     rngSeeds: PsdkBattleRngSeeds(
       moveDamage: 1,
       moveCritical: 2,

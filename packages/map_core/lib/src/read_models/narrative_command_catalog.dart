@@ -22,6 +22,8 @@ abstract final class NarrativeCommandIds {
   static const unlockFieldAbility = 'unlockFieldAbility';
   static const finishGame = 'finishGame';
   static const setNpcPresence = 'setNpcPresence';
+  static const setPauseMenuEntryVisibility =
+      'setPauseMenuEntryVisibility';
   static const moveNpc = 'moveNpc';
   static const playCharacterAnimation = 'playCharacterAnimation';
 }
@@ -147,6 +149,11 @@ final class NarrativeCommandCatalog {
             'speciesId',
             'Espèce',
             NarrativeCommandParameterKind.species,
+          ),
+          _parameter(
+            'formId',
+            'Forme',
+            NarrativeCommandParameterKind.speciesForm,
           ),
           _parameter('level', 'Niveau', NarrativeCommandParameterKind.integer),
         ],
@@ -284,6 +291,23 @@ final class NarrativeCommandCatalog {
           _parameter(
             'present',
             'Présent sur la map',
+            NarrativeCommandParameterKind.boolean,
+          ),
+        ],
+      ),
+      consequence(
+        NarrativeCommandIds.setPauseMenuEntryVisibility,
+        'Afficher ou masquer une entrée du menu pause',
+        'FG-160',
+        [
+          _parameter(
+            'actionId',
+            'Entrée du menu',
+            NarrativeCommandParameterKind.pauseMenuAction,
+          ),
+          _parameter(
+            'visible',
+            'Visibilité',
             NarrativeCommandParameterKind.boolean,
           ),
         ],

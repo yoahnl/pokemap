@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:map_distribution/map_distribution.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -32,11 +33,11 @@ void main() {
       expect(first.packageBytes, second.packageBytes);
       expect(
         sha256.convert(first.packageBytes).toString(),
-        'b27e896f2fad2537ae421e4c7656f1ceb4719797d5ae19606365ca8bd0b6867d',
+        'c9697a046c70fe36a276b3454a23622358a0892c2452cd4bbdd1ee5f4c9f7c38',
       );
       expect(
         first.packageSha256,
-        'b27e896f2fad2537ae421e4c7656f1ceb4719797d5ae19606365ca8bd0b6867d',
+        'c9697a046c70fe36a276b3454a23622358a0892c2452cd4bbdd1ee5f4c9f7c38',
       );
       expect(first.archiveBytes, first.packageBytes.length);
       expect(first.manifest.content.fileCount, 2);
@@ -88,6 +89,36 @@ void main() {
             .content
             .fileCount,
         12000,
+      );
+    });
+
+    test('exports the versioned Pokemon ruleset in the project payload', () {
+      final projectBytes = utf8.encode(
+        jsonEncode(
+          const ProjectManifest(
+            name: 'Ruleset package',
+            maps: <ProjectMapEntry>[],
+            tilesets: <ProjectTilesetEntry>[],
+          ).toJson(),
+        ),
+      );
+
+      final built = builder.build(
+        manifest: _draftManifest(),
+        payloadFiles: <String, List<int>>{
+          'project/project.json': projectBytes,
+        },
+      );
+      final archive = ZipDecoder().decodeBytes(built.packageBytes);
+      final packagedProject = jsonDecode(
+        utf8.decode(
+          archive.findFile('project/project.json')!.content as List<int>,
+        ),
+      ) as Map<String, dynamic>;
+
+      expect(
+        (packagedProject['pokemon']! as Map<String, dynamic>)['ruleset'],
+        PokemonRulesetProfile.pokeMapBetaV1.toJson(),
       );
     });
 
@@ -274,6 +305,9 @@ void main() {
             },
           ],
           'tilesets': <Object?>[],
+          'pokemon': const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          ).toJson(),
         }),
       );
       expect(
@@ -328,6 +362,9 @@ List<int> _validProjectBytes({
         'version': version,
         'maps': <Object?>[],
         'tilesets': <Object?>[],
+        'pokemon': const ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ).toJson(),
       }),
     );
 

@@ -156,6 +156,7 @@ class AddEncounterEntryUseCase {
     required int minLevel,
     required int maxLevel,
     int weight = 1,
+    ProjectEncounterPokemonOverrides? pokemonOverrides,
   }) async {
     final index = project.encounterTables.indexWhere((t) => t.id == tableId);
     if (index < 0) {
@@ -181,6 +182,7 @@ class AddEncounterEntryUseCase {
       minLevel: minLevel,
       maxLevel: maxLevel,
       weight: weight,
+      pokemonOverrides: pokemonOverrides,
     );
     final table = project.encounterTables[index];
     final updatedTable = table.copyWith(entries: [...table.entries, entry]);
@@ -209,6 +211,8 @@ class UpdateEncounterEntryUseCase {
     int? minLevel,
     int? maxLevel,
     int? weight,
+    ProjectEncounterPokemonOverrides? pokemonOverrides,
+    bool clearPokemonOverrides = false,
   }) async {
     final tableIndex =
         project.encounterTables.indexWhere((t) => t.id == tableId);
@@ -244,6 +248,9 @@ class UpdateEncounterEntryUseCase {
       minLevel: newMin,
       maxLevel: newMax,
       weight: newWeight,
+      pokemonOverrides: clearPokemonOverrides
+          ? null
+          : pokemonOverrides ?? current.pokemonOverrides,
     );
     final entries = List<ProjectEncounterEntry>.from(table.entries);
     entries[entryIndex] = updatedEntry;

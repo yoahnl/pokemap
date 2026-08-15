@@ -110,7 +110,16 @@ void main() {
     // Adding a supported descriptor without a real writer sample must fail.
     expect(samples.keys, unorderedEquals(declaredIds));
     for (final entry in samples.entries) {
-      final result = writer.applyOne(_gameState(), entry.value());
+      final consequence = entry.value();
+      final result = writer.applyOne(
+        _gameState(),
+        consequence,
+        pokemonGrantOperationId: consequence.kind ==
+                    SceneConsequenceKind.givePokemon ||
+                consequence.kind == SceneConsequenceKind.giveConfiguredStarter
+            ? 'scene:parity:execution:${entry.key}'
+            : null,
+      );
       expect(result.success, isTrue, reason: entry.key);
       expect(result.appliedConsequences, hasLength(1), reason: entry.key);
     }
@@ -298,6 +307,7 @@ Map<String, SceneConsequence Function()> _consequenceSamples() => {
           SceneConsequence.giveMoney(amount: 200),
       NarrativeCommandIds.givePokemon: () => SceneConsequence.givePokemon(
             speciesId: 'sproutle',
+            formId: 'base',
             level: 5,
             currentHp: 18,
           ),
@@ -323,6 +333,11 @@ Map<String, SceneConsequence Function()> _consequenceSamples() => {
             mapId: 'map_test',
             entityId: 'npc_guide',
             present: false,
+          ),
+      NarrativeCommandIds.setPauseMenuEntryVisibility: () =>
+          SceneConsequence.setPauseMenuEntryVisibility(
+            actionId: ProjectPauseActionId.pokedex,
+            visible: false,
           ),
     };
 

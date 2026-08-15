@@ -7,16 +7,20 @@ void main() {
   group('ProjectManifest worldRules integration', () {
     test('decodes absent null and empty worldRules as empty list', () {
       expect(
-          ProjectManifest.fromJson(_minimalProjectJson()).worldRules, isEmpty);
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+          _minimalProjectJson(),
+        ).worldRules,
+        isEmpty,
+      );
       expect(
-        ProjectManifest.fromJson({
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'worldRules': null,
         }).worldRules,
         isEmpty,
       );
       expect(
-        ProjectManifest.fromJson({
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'worldRules': <Object?>[],
         }).worldRules,
@@ -52,24 +56,26 @@ void main() {
 
       final json =
           jsonDecode(jsonEncode(manifest.toJson())) as Map<String, dynamic>;
-      final decoded = ProjectManifest.fromJson(json);
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
       expect(decoded.worldRules, equals(manifest.worldRules));
       expect(decoded.toJson()['worldRules'], isA<List<dynamic>>());
-      expect((decoded.toJson()['worldRules'] as List).single['label'],
-          'Masquer un acteur');
+      expect(
+        (decoded.toJson()['worldRules'] as List).single['label'],
+        'Masquer un acteur',
+      );
     });
 
     test('rejects invalid worldRules JSON shape', () {
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'worldRules': 'not-a-list',
         }),
         throwsA(isA<Object>()),
       );
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'worldRules': ['not-an-object'],
         }),

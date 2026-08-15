@@ -146,6 +146,7 @@ void main() {
         SceneConsequence.giveMoney(amount: 250),
         SceneConsequence.givePokemon(
           speciesId: 'sproutle',
+          formId: 'base',
           level: 5,
           currentHp: 20,
         ),
@@ -159,6 +160,10 @@ void main() {
           mapId: 'map_port',
           entityId: 'npc_sailor',
           present: false,
+        ),
+        SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: ProjectPauseActionId.pokedex,
+          visible: false,
         ),
         SceneConsequence.finishGame(
           endingId: 'ending_selbrume',
@@ -206,6 +211,11 @@ void main() {
       );
       expect(
         result.consequenceState.npcPresenceByRef['map_port::npc_sailor'],
+        isFalse,
+      );
+      expect(
+        result.consequenceState
+            .pauseMenuVisibilityByActionId[ProjectPauseActionId.pokedex],
         isFalse,
       );
       expect(result.consequenceChanges[3].beforeSummary, contains('2'));

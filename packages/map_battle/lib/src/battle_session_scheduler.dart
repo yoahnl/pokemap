@@ -74,6 +74,7 @@ BattleSession _applyForcedPlayerReplacement({
     ),
     setup: session.setup,
     rng: turn.rng,
+    orderingRng: session.orderingRng,
     opponentPolicy: session.opponentPolicy,
     pendingTurn: null,
     captureAttemptSequence: session.captureAttemptSequence,
@@ -137,6 +138,7 @@ BattleSession _resumePendingTurnWithReplacement({
     ),
     setup: session.setup,
     rng: turn.rng,
+    orderingRng: session.orderingRng,
     opponentPolicy: session.opponentPolicy,
     pendingTurn: turn.pendingTurn,
     captureAttemptSequence: session.captureAttemptSequence,
@@ -158,11 +160,13 @@ final class _BattleTurnPlan {
     required this.reportedEnemyAction,
     required this.initialSteps,
     required this.allowTurnTailInsertion,
+    this.initialRng,
   });
 
   final BattleAction reportedPlayerAction;
   final BattleAction reportedEnemyAction;
   final List<BattleQueueStep> initialSteps;
+  final BattleRng? initialRng;
 
   /// Indique si l'exécution de ce plan doit insérer la fin de tour canonique
   /// quand la phase d'actions se vide.
@@ -182,20 +186,23 @@ _BattleTurnPlan _planInitialTurn({
   required BattleCombatant enemy,
   required BattleFieldState field,
 }) {
+  final ordered = _resolveTurnOrder(
+    session: session,
+    playerAction: playerAction,
+    enemyAction: enemyAction,
+    player: player,
+    enemy: enemy,
+    field: field,
+    rng: session.orderingRng,
+  );
   return _BattleTurnPlan(
     reportedPlayerAction: playerAction,
     reportedEnemyAction: enemyAction,
     initialSteps: List<BattleQueueStep>.unmodifiable(
-      _buildInitialTurnQueue(
-        session: session,
-        playerAction: playerAction,
-        enemyAction: enemyAction,
-        player: player,
-        enemy: enemy,
-        field: field,
-      ),
+      _buildInitialTurnQueue(ordered.actions),
     ),
     allowTurnTailInsertion: true,
+    initialRng: ordered.nextRng,
   );
 }
 
@@ -292,23 +299,9 @@ BattleTurnResult _buildTurnResultFromContext({
   );
 }
 
-List<BattleQueueStep> _buildInitialTurnQueue({
-  required BattleSession session,
-  required BattleAction playerAction,
-  required BattleAction enemyAction,
-  required BattleCombatant player,
-  required BattleCombatant enemy,
-  required BattleFieldState field,
-}) {
-  final orderedActions = _resolveTurnOrder(
-    session: session,
-    playerAction: playerAction,
-    enemyAction: enemyAction,
-    player: player,
-    enemy: enemy,
-    field: field,
-  );
-
+List<BattleQueueStep> _buildInitialTurnQueue(
+  List<_OrderedBattleAction> orderedActions,
+) {
   return <BattleQueueStep>[
     for (final orderedAction in orderedActions)
       if (isBattleQueueManagedAction(orderedAction.action))
@@ -464,6 +457,7 @@ void _executeActionQueueStep({
 
     final entryHazards = _conditionEngine.runEntryHazards(
       side: turn.side(step.side),
+      rules: PokemonBattleRules.fromProfile(session.setup.ruleset),
     );
     _recordSideConditionResolution(
       turn: turn,
@@ -601,6 +595,7 @@ void _executeAutoSwitchQueueStep({
 
   final entryHazards = _conditionEngine.runEntryHazards(
     side: turn.side(step.side),
+    rules: PokemonBattleRules.fromProfile(session.setup.ruleset),
   );
   _recordSideConditionResolution(
     turn: turn,
@@ -752,19 +747,20 @@ void _suspendTurnForImmediatePlayerReplacement({
   );
 }
 
-List<_OrderedBattleAction> _resolveTurnOrder({
+_TurnOrderResolution _resolveTurnOrder({
   required BattleSession session,
   required BattleAction playerAction,
   required BattleAction enemyAction,
   required BattleCombatant player,
   required BattleCombatant enemy,
   required BattleFieldState field,
+  required BattleRng rng,
 }) {
   // Le scheduler local n'a toujours besoin que d'un ordre honnête pour deux
   // actions supportées.
   if (!isBattleQueueManagedAction(playerAction) ||
       !isBattleQueueManagedAction(enemyAction)) {
-    return <_OrderedBattleAction>[
+    return _TurnOrderResolution(<_OrderedBattleAction>[
       _OrderedBattleAction(
         side: BattleSideId.player,
         action: playerAction,
@@ -773,13 +769,13 @@ List<_OrderedBattleAction> _resolveTurnOrder({
         side: BattleSideId.enemy,
         action: enemyAction,
       ),
-    ];
+    ], rng);
   }
 
   final playerPriority = _priorityForResolvedAction(playerAction);
   final enemyPriority = _priorityForResolvedAction(enemyAction);
   if (playerPriority != enemyPriority) {
-    return playerPriority > enemyPriority
+    final actions = playerPriority > enemyPriority
         ? <_OrderedBattleAction>[
             _OrderedBattleAction(
               side: BattleSideId.player,
@@ -800,6 +796,7 @@ List<_OrderedBattleAction> _resolveTurnOrder({
               action: playerAction,
             ),
           ];
+    return _TurnOrderResolution(actions, rng);
   }
 
   final playerSpeed = session._resolveEffectiveSpeed(player);
@@ -808,7 +805,7 @@ List<_OrderedBattleAction> _resolveTurnOrder({
   if (playerSpeed != enemySpeed) {
     final playerActsFirst =
         trickRoomActive ? playerSpeed < enemySpeed : playerSpeed > enemySpeed;
-    return playerActsFirst
+    final actions = playerActsFirst
         ? <_OrderedBattleAction>[
             _OrderedBattleAction(
               side: BattleSideId.player,
@@ -829,23 +826,33 @@ List<_OrderedBattleAction> _resolveTurnOrder({
               action: playerAction,
             ),
           ];
+    return _TurnOrderResolution(actions, rng);
   }
 
-  // Tie-break toujours volontairement déterministe :
-  // - R2 n'ajoute pas de PRNG d'ordre ;
-  // - il garde seulement cette politique locale explicite ;
-  // - cela reste une dette canoniquement documentée, pas une pseudo-parité
-  //   Showdown.
-  return <_OrderedBattleAction>[
-    _OrderedBattleAction(
-      side: BattleSideId.player,
-      action: playerAction,
-    ),
-    _OrderedBattleAction(
-      side: BattleSideId.enemy,
-      action: enemyAction,
-    ),
-  ];
+  final tie = PokemonBattleRules.fromProfile(session.setup.ruleset)
+      .resolveLegacySpeedTie(rng);
+  final actions = tie.firstActsFirst
+      ? <_OrderedBattleAction>[
+          _OrderedBattleAction(
+            side: BattleSideId.player,
+            action: playerAction,
+          ),
+          _OrderedBattleAction(
+            side: BattleSideId.enemy,
+            action: enemyAction,
+          ),
+        ]
+      : <_OrderedBattleAction>[
+          _OrderedBattleAction(
+            side: BattleSideId.enemy,
+            action: enemyAction,
+          ),
+          _OrderedBattleAction(
+            side: BattleSideId.player,
+            action: playerAction,
+          ),
+        ];
+  return _TurnOrderResolution(actions, tie.nextRng);
 }
 
 int _priorityForResolvedAction(BattleAction action) {
@@ -877,6 +884,13 @@ final class _OrderedBattleAction {
 
   final BattleSideId side;
   final BattleAction action;
+}
+
+final class _TurnOrderResolution {
+  const _TurnOrderResolution(this.actions, this.nextRng);
+
+  final List<_OrderedBattleAction> actions;
+  final BattleRng nextRng;
 }
 
 final class _PendingTurnContinuation {

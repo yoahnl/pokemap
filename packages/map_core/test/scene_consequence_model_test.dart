@@ -174,6 +174,7 @@ void main() {
     test('givePokemon JSON round-trips species and construction defaults', () {
       final consequence = SceneConsequence.givePokemon(
         speciesId: 'species_sproutle',
+        formId: 'sunny',
         level: 7,
         currentHp: 24,
         nickname: 'Mousse',
@@ -187,6 +188,7 @@ void main() {
       expect(json, {
         'kind': 'givePokemon',
         'speciesId': 'species_sproutle',
+        'formId': 'sunny',
         'level': 7,
         'currentHp': 24,
         'natureId': 'hardy',
@@ -203,6 +205,7 @@ void main() {
       final decoded = SceneConsequence.fromJson(<String, dynamic>{
         'kind': 'givePokemon',
         'speciesId': 'species_legacy',
+        'formId': 'base',
         'level': 9,
         'natureId': 'hardy',
         'abilityId': 'legacy-ability',
@@ -213,6 +216,18 @@ void main() {
       expect(decoded.nickname, isEmpty);
       expect(decoded.friendship, 0);
       expect(decoded.toJson(), isNot(contains('currentHp')));
+    });
+
+    test('givePokemon JSON refuses a missing formId', () {
+      expect(
+        () => SceneConsequence.fromJson(<String, dynamic>{
+          'kind': 'givePokemon',
+          'speciesId': 'species_sproutle',
+          'level': 7,
+          'currentHp': 24,
+        }),
+        throwsFormatException,
+      );
     });
 
     test('giveConfiguredStarter JSON round-trips only the authored option ref',
@@ -256,6 +271,27 @@ void main() {
           consequence,
         );
       }
+    });
+
+    test('pause menu visibility round-trips and rejects Resume', () {
+      final consequence = SceneConsequence.setPauseMenuEntryVisibility(
+        actionId: ProjectPauseActionId.pokedex,
+        visible: false,
+      );
+
+      expect(consequence.toJson(), <String, dynamic>{
+        'kind': 'setPauseMenuEntryVisibility',
+        'actionId': 'pokedex',
+        'visible': false,
+      });
+      expect(SceneConsequence.fromJson(consequence.toJson()), consequence);
+      expect(
+        () => SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: ProjectPauseActionId.resume,
+          visible: false,
+        ),
+        throwsArgumentError,
+      );
     });
 
     test('rejects unknown consequence kind', () {

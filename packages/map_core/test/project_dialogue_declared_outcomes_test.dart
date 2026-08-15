@@ -4,10 +4,12 @@ import 'package:test/test.dart';
 void main() {
   group('Project dialogue declared outcomes', () {
     test('round-trips declared outcomes and defaults legacy JSON to empty', () {
-      final legacy = ProjectManifest.fromJson(_projectJson());
+      final legacy = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _projectJson(),
+      );
       expect(legacy.dialogues.single.declaredOutcomes, isEmpty);
 
-      final manifest = ProjectManifest.fromJson(
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         _projectJson(
           declaredOutcomes: [
             {'id': 'accepted', 'label': 'Accepter'},
@@ -17,87 +19,90 @@ void main() {
       );
 
       expect(
-        manifest.dialogues.single.declaredOutcomes
-            .map((outcome) => (outcome.id, outcome.label)),
+        manifest.dialogues.single.declaredOutcomes.map(
+          (outcome) => (outcome.id, outcome.label),
+        ),
         [('accepted', 'Accepter'), ('refused', 'Refuser')],
       );
       expect(
-        ProjectManifest.fromJson(manifest.toJson())
-            .dialogues
-            .single
-            .declaredOutcomes,
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+          manifest.toJson(),
+        ).dialogues.single.declaredOutcomes,
         manifest.dialogues.single.declaredOutcomes,
       );
     });
 
-    test('rejects blank or duplicate declared outcome ids and blank labels',
-        () {
-      for (final outcomes in <List<Map<String, Object?>>>[
-        [
-          {'id': '   ', 'label': 'Accepter'},
-        ],
-        [
-          {'id': 'accepted', 'label': 'Accepter'},
-          {'id': ' accepted ', 'label': 'Encore'},
-        ],
-        [
-          {'id': 'accepted', 'label': '   '},
-        ],
-        [
-          {'id': 'completed', 'label': 'Terminé'},
-        ],
-      ]) {
-        final manifest = ProjectManifest.fromJson(
-          _projectJson(declaredOutcomes: outcomes),
-        );
+    test(
+      'rejects blank or duplicate declared outcome ids and blank labels',
+      () {
+        for (final outcomes in <List<Map<String, Object?>>>[
+          [
+            {'id': '   ', 'label': 'Accepter'},
+          ],
+          [
+            {'id': 'accepted', 'label': 'Accepter'},
+            {'id': ' accepted ', 'label': 'Encore'},
+          ],
+          [
+            {'id': 'accepted', 'label': '   '},
+          ],
+          [
+            {'id': 'completed', 'label': 'Terminé'},
+          ],
+        ]) {
+          final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+            _projectJson(declaredOutcomes: outcomes),
+          );
 
-        expect(
-          () => ProjectValidator.validate(manifest),
-          throwsA(isA<ValidationException>()),
-          reason: '$outcomes',
-        );
-      }
-    });
+          expect(
+            () => ProjectValidator.validate(manifest),
+            throwsA(isA<ValidationException>()),
+            reason: '$outcomes',
+          );
+        }
+      },
+    );
 
     test('collects outcome consumers by stable dialogue id, not label', () {
-      final project = ProjectManifest.fromJson(
-        _projectJson(
-          declaredOutcomes: [
-            {'id': 'accepted', 'label': 'Accepter'},
-          ],
-        ),
-      ).copyWith(
-        dialogues: [
-          const ProjectDialogueEntry(
-            id: 'dialogue_intro',
-            name: 'Même nom',
-            relativePath: 'dialogues/intro.yarn',
-            declaredOutcomes: [
-              DialogueDeclaredOutcome(id: 'accepted', label: 'Accepter'),
+      final project =
+          ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+            _projectJson(
+              declaredOutcomes: [
+                {'id': 'accepted', 'label': 'Accepter'},
+              ],
+            ),
+          ).copyWith(
+            dialogues: [
+              const ProjectDialogueEntry(
+                id: 'dialogue_intro',
+                name: 'Même nom',
+                relativePath: 'dialogues/intro.yarn',
+                declaredOutcomes: [
+                  DialogueDeclaredOutcome(id: 'accepted', label: 'Accepter'),
+                ],
+              ),
+              const ProjectDialogueEntry(
+                id: 'dialogue_other',
+                name: 'Même nom',
+                relativePath: 'dialogues/other.yarn',
+                declaredOutcomes: [
+                  DialogueDeclaredOutcome(id: 'accepted', label: 'Accepter'),
+                ],
+              ),
             ],
-          ),
-          const ProjectDialogueEntry(
-            id: 'dialogue_other',
-            name: 'Même nom',
-            relativePath: 'dialogues/other.yarn',
-            declaredOutcomes: [
-              DialogueDeclaredOutcome(id: 'accepted', label: 'Accepter'),
+            scenes: [
+              _dialogueScene(
+                id: 'scene_intro',
+                dialogueId: 'dialogue_intro',
+                outcomeId: 'accepted',
+              ),
+              _dialogueScene(
+                id: 'scene_other',
+                dialogueId: 'dialogue_other',
+                outcomeId: 'accepted',
+              ),
             ],
-          ),
-        ],
-        scenes: [
-          _dialogueScene(
-            id: 'scene_intro',
-            dialogueId: 'dialogue_intro',
-            outcomeId: 'accepted',
-          ),
-          _dialogueScene(
-            id: 'scene_other',
-            dialogueId: 'dialogue_other',
-            outcomeId: 'accepted',
-          ),
-        ],
-      );
+          );
 
       final usages = collectDialogueOutcomeSceneUsages(
         project,
@@ -106,57 +111,65 @@ void main() {
       );
 
       expect(usages.map((usage) => usage.sceneId).toSet(), {'scene_intro'});
-      expect(usages.any((usage) => usage.path.contains('expectedOutcomes')),
-          isTrue);
+      expect(
+        usages.any((usage) => usage.path.contains('expectedOutcomes')),
+        isTrue,
+      );
       expect(usages.any((usage) => usage.path.contains('edges')), isTrue);
     });
 
-    test('replaces direct and deferred branch outcome ports without legacy',
-        () {
-      final direct = _dialogueScene(
-        id: 'scene_intro',
-        dialogueId: 'dialogue_intro',
-        outcomeId: 'accepted',
-        includeDeferredBranch: true,
-      );
-      final project = ProjectManifest.fromJson(
-        _projectJson(
-          declaredOutcomes: [
-            {'id': 'accepted', 'label': 'Accepter'},
-          ],
-        ),
-      ).copyWith(scenes: [direct]);
-
-      final updated = replaceDialogueOutcomeSceneReferences(
-        project,
-        dialogueId: 'dialogue_intro',
-        fromOutcomeId: 'accepted',
-        toOutcomeId: 'approved',
-      );
-      final scene = updated.scenes.single;
-      final dialoguePayload = scene.graph.nodes
-          .where((node) => node.id == 'dialogue')
-          .single
-          .payload as SceneYarnDialoguePayload;
-
-      expect(dialoguePayload.expectedOutcomes, ['approved']);
-      expect(
-        scene.graph.edges.where((edge) => edge.fromPortId == 'approved').length,
-        2,
-      );
-      expect(
-        collectDialogueOutcomeSceneUsages(
-          updated,
+    test(
+      'replaces direct and deferred branch outcome ports without legacy',
+      () {
+        final direct = _dialogueScene(
+          id: 'scene_intro',
           dialogueId: 'dialogue_intro',
           outcomeId: 'accepted',
-        ),
-        isEmpty,
-      );
-      expect(
-        scene.graph.edges.any((edge) => edge.fromPortId == 'completed'),
-        isTrue,
-      );
-    });
+          includeDeferredBranch: true,
+        );
+        final project = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+          _projectJson(
+            declaredOutcomes: [
+              {'id': 'accepted', 'label': 'Accepter'},
+            ],
+          ),
+        ).copyWith(scenes: [direct]);
+
+        final updated = replaceDialogueOutcomeSceneReferences(
+          project,
+          dialogueId: 'dialogue_intro',
+          fromOutcomeId: 'accepted',
+          toOutcomeId: 'approved',
+        );
+        final scene = updated.scenes.single;
+        final dialoguePayload =
+            scene.graph.nodes
+                    .where((node) => node.id == 'dialogue')
+                    .single
+                    .payload
+                as SceneYarnDialoguePayload;
+
+        expect(dialoguePayload.expectedOutcomes, ['approved']);
+        expect(
+          scene.graph.edges
+              .where((edge) => edge.fromPortId == 'approved')
+              .length,
+          2,
+        );
+        expect(
+          collectDialogueOutcomeSceneUsages(
+            updated,
+            dialogueId: 'dialogue_intro',
+            outcomeId: 'accepted',
+          ),
+          isEmpty,
+        );
+        expect(
+          scene.graph.edges.any((edge) => edge.fromPortId == 'completed'),
+          isTrue,
+        );
+      },
+    );
   });
 }
 
@@ -185,9 +198,7 @@ SceneAsset _dialogueScene({
           SceneNode(
             id: 'branch',
             kind: SceneNodeKind.branchByOutcome,
-            payload: SceneBranchByOutcomePayload(
-              sourceNodeId: 'dialogue',
-            ),
+            payload: SceneBranchByOutcomePayload(sourceNodeId: 'dialogue'),
           ),
         SceneNode(id: 'end', kind: SceneNodeKind.end),
       ],

@@ -924,7 +924,7 @@ PsdkBattleState _state({
   PsdkBattleStatStages? opponentStatStages,
 }) {
   return PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         heldItemId: playerHeldItemId,

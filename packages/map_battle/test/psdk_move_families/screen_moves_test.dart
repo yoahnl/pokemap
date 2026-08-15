@@ -299,7 +299,7 @@ void main() {
 
     test('Mist protects its whole bank from opposing stat drops', () {
       const allySlot = PsdkBattleSlotRef(bank: 0, position: 1);
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -479,7 +479,7 @@ PsdkBattleTurnResult _runTurn({
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
 }) {
   final engine = PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speed: 100,

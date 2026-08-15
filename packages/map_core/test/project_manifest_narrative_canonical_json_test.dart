@@ -20,7 +20,9 @@ void main() {
       ],
     );
 
-    final decoded = ProjectManifest.fromJson(manifest.toJson());
+    final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+      manifest.toJson(),
+    );
 
     expect(decoded.narrativeDiagnosticSuppressions, hasLength(1));
     expect(
@@ -29,20 +31,22 @@ void main() {
     );
   });
 
-  test('ProjectManifest Smart Tile output is deep JSON for Event V2 hashes',
-      () {
-    final manifest = ProjectManifest(
-      name: 'Narrative snapshot regression',
-      maps: const [],
-      tilesets: const [],
-      smartTileCatalog: ProjectSmartTileCatalog.empty(),
-    );
+  test(
+    'ProjectManifest Smart Tile output is deep JSON for Event V2 hashes',
+    () {
+      final manifest = ProjectManifest(
+        name: 'Narrative snapshot regression',
+        maps: const [],
+        tilesets: const [],
+        smartTileCatalog: ProjectSmartTileCatalog.empty(),
+      );
 
-    expect(
-      () => canonicalizeNarrativeEventJson(manifest.toJson()),
-      returnsNormally,
-    );
-  });
+      expect(
+        () => canonicalizeNarrativeEventJson(manifest.toJson()),
+        returnsNormally,
+      );
+    },
+  );
 
   test('ProjectManifest canonical JSON preserves explicit false Facts', () {
     final manifest = ProjectManifest(
@@ -59,7 +63,7 @@ void main() {
     );
 
     final canonical = canonicalizeNarrativeEventJson(manifest.toJson());
-    final decoded = ProjectManifest.fromJson(
+    final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
       jsonDecode(canonical) as Map<String, dynamic>,
     );
 
@@ -68,31 +72,33 @@ void main() {
     expect(decoded.facts.single.id, 'fact_explicit_false');
   });
 
-  test('legacy absent false defaults safely and a broken Fact id is refused',
-      () {
-    final base = ProjectManifest(
-      name: 'Fact legacy regression',
-      maps: const [],
-      tilesets: const [],
-    ).toJson();
-    final legacy = ProjectManifest.fromJson({
-      ...base,
-      'facts': [
-        {'id': 'fact_legacy', 'label': 'Legacy Fact'},
-      ],
-    });
-
-    expect(legacy.facts.single.defaultValue, isFalse);
-    expect(
-      () => ProjectManifest.fromJson({
+  test(
+    'legacy absent false defaults safely and a broken Fact id is refused',
+    () {
+      final base = ProjectManifest(
+        name: 'Fact legacy regression',
+        maps: const [],
+        tilesets: const [],
+      ).toJson();
+      final legacy = ProjectManifest.fromJsonPokeMapBetaV1ForTest({
         ...base,
         'facts': [
-          {'id': '', 'label': 'Broken Fact'},
+          {'id': 'fact_legacy', 'label': 'Legacy Fact'},
         ],
-      }),
-      throwsArgumentError,
-    );
-  });
+      });
+
+      expect(legacy.facts.single.defaultValue, isFalse);
+      expect(
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
+          ...base,
+          'facts': [
+            {'id': '', 'label': 'Broken Fact'},
+          ],
+        }),
+        throwsArgumentError,
+      );
+    },
+  );
 
   test('typed Facts round-trip canonically across narrative consumers', () {
     const eventId = 'evt_019abcde-9000-7000-8000-000000000001';
@@ -186,9 +192,7 @@ void main() {
             mapId: 'map_typed',
             eventId: 'legacy_event',
           ),
-          effect: const WorldRuleEffect(
-            kind: WorldRuleEffectKind.eventEnabled,
-          ),
+          effect: const WorldRuleEffect(kind: WorldRuleEffectKind.eventEnabled),
         ),
       ],
       eventRegistry: NarrativeEventRegistry(
@@ -218,14 +222,12 @@ void main() {
         legacyClaims: const [],
       ),
       newGame: ProjectNewGameConfig(
-        initialFactValues: {
-          'fact_reputation': NarrativeValue.integer(2),
-        },
+        initialFactValues: {'fact_reputation': NarrativeValue.integer(2)},
       ),
     );
 
     final canonical = canonicalizeNarrativeEventJson(manifest.toJson());
-    final decoded = ProjectManifest.fromJson(
+    final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
       jsonDecode(canonical) as Map<String, dynamic>,
     );
 

@@ -362,6 +362,9 @@ final class _CanonicalSnapshotFixture {
       jsonEncode({
         'name': 'Snapshot Concurrency Characterization',
         'version': 'v6',
+        'pokemon': ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ).toJson(),
         'maps': [
           _mapEntry('zeta', 'maps/zeta.json'),
           _mapEntry('alpha', 'maps/alpha.json'),
@@ -418,6 +421,9 @@ final class _CanonicalSnapshotFixture {
       jsonEncode({
         'name': 'Bounded Snapshot Concurrency',
         'version': 'v6',
+        'pokemon': ProjectPokemonConfig(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ).toJson(),
         'maps': mapEntries,
         'tilesets': <Object?>[],
       }),

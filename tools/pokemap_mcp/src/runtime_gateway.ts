@@ -10,6 +10,10 @@ import { dirname, extname, relative, resolve } from "node:path";
 
 import type { JsonRecord, ProjectRootResolver } from "./authoring_client.js";
 import type { MemoryArtifactReader } from "./artifacts.js";
+import type {
+  CertifiedPlaytestProjection,
+  PlaytestProjectionFactory,
+} from "./playtest_projection.js";
 import { PokeMapToolError } from "./tool_error.js";
 
 export interface RenderToolRequest {
@@ -46,6 +50,10 @@ export interface RuntimeGateway {
 export interface PlaytestExecutionContext {
   jobId: string;
   projectRoot: string;
+  sourceProjectRoot: string;
+  projectRelativeRoot: string;
+  projectTreeHash: string;
+  authoringRevision: string;
   request: PlaytestToolRequest;
   signal: AbortSignal;
   emit(type: string, payload?: JsonRecord): void;
@@ -68,6 +76,7 @@ export interface LocalRuntimeGatewayOptions {
   dartExecutable?: string;
   renderExecutor?: RenderExecutor;
   playtestExecutor?: PlaytestExecutor;
+  playtestProjectionFactory?: PlaytestProjectionFactory;
   jobIdFactory?: () => string;
 }
 
@@ -107,6 +116,7 @@ export class LocalRuntimeGateway implements RuntimeGateway {
   readonly #roots: ProjectRootResolver;
   readonly #renderExecutor: RenderExecutor;
   readonly #playtestExecutor: PlaytestExecutor;
+  readonly #playtestProjectionFactory: PlaytestProjectionFactory;
   readonly #jobIdFactory: () => string;
   readonly #jobs = new Map<string, JobRecord>();
   #closed = false;
@@ -128,6 +138,8 @@ export class LocalRuntimeGateway implements RuntimeGateway {
         repositoryRoot: options.repositoryRoot,
         runtimeHostRoot: options.runtimeHostRoot,
       });
+    this.#playtestProjectionFactory =
+      options.playtestProjectionFactory ?? unavailableProjectionFactory;
     this.#jobIdFactory = options.jobIdFactory ?? (() => `job-${randomUUID()}`);
   }
 
@@ -258,20 +270,49 @@ export class LocalRuntimeGateway implements RuntimeGateway {
       return;
     }
     this.#emit(record, "job.running", "running");
+    let projection: CertifiedPlaytestProjection | undefined;
     try {
-      record.result = await this.#playtestExecutor({
+      projection = await this.#playtestProjectionFactory({
         jobId: record.jobId,
-        projectRoot: record.projectRoot,
+        projectHandle: record.request.projectHandle,
+        sourceProjectRoot: record.projectRoot,
         request: record.request,
         signal: record.controller.signal,
         emit: (type, payload = {}) => this.#emit(record, type, record.state, payload),
       });
+      if (record.controller.signal.aborted) {
+        await projection.dispose();
+        projection = undefined;
+        this.#emit(record, "job.cancelled", "cancelled");
+        return;
+      }
+      record.result = await this.#playtestExecutor({
+        jobId: record.jobId,
+        projectRoot: projection.projectRoot,
+        sourceProjectRoot: record.projectRoot,
+        projectRelativeRoot: projection.projectRelativeRoot,
+        projectTreeHash: projection.projectTreeHash,
+        authoringRevision: projection.authoringRevision,
+        request: record.request,
+        signal: record.controller.signal,
+        emit: (type, payload = {}) => this.#emit(record, type, record.state, payload),
+      });
+      await projection.dispose();
+      projection = undefined;
       if (record.controller.signal.aborted) {
         this.#emit(record, "job.cancelled", "cancelled");
       } else {
         this.#emit(record, "job.succeeded", "succeeded");
       }
     } catch (error) {
+      if (projection) {
+        try {
+          await projection.dispose();
+        } catch (cleanupError) {
+          if (!(error instanceof PokeMapToolError)) error = cleanupError;
+        }
+        projection = undefined;
+      }
       if (record.controller.signal.aborted) {
         this.#emit(record, "job.cancelled", "cancelled");
         return;
@@ -416,8 +457,19 @@ interface PlaytestExecutorOptions {
 function createLocalPlaytestExecutor(
   options: PlaytestExecutorOptions,
 ): PlaytestExecutor {
-  return async ({ projectRoot, request, signal, emit }) => {
-    const scenario = await resolveScenario(options, projectRoot, request.scenarioId);
+  return async ({
+    sourceProjectRoot,
+    projectRelativeRoot,
+    projectTreeHash,
+    request,
+    signal,
+    emit,
+  }) => {
+    const scenario = await resolveScenario(
+      options,
+      sourceProjectRoot,
+      request.scenarioId,
+    );
     emit("playtest.scenario_resolved", { scenarioId: request.scenarioId });
     const args = [
       "run",
@@ -425,6 +477,10 @@ function createLocalPlaytestExecutor(
       "run",
       request.scenarioId,
       "--json",
+      "--project-root",
+      projectRelativeRoot,
+      "--expected-project-tree-hash",
+      projectTreeHash,
       "--target",
       request.target,
       ...(request.policy ? ["--policy", request.policy] : []),
@@ -472,6 +528,13 @@ function createLocalPlaytestExecutor(
     };
   };
 }
+
+const unavailableProjectionFactory: PlaytestProjectionFactory = async () => {
+  throw new PokeMapToolError(
+    "pokemon.catalog_not_ready",
+    "The certified Pokemon playtest projection is unavailable.",
+  );
+};
 
 async function resolveScenario(
   options: PlaytestExecutorOptions,

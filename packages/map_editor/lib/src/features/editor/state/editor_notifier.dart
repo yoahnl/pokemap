@@ -13022,6 +13022,7 @@ class EditorNotifier extends _$EditorNotifier
     required int minLevel,
     required int maxLevel,
     int weight = 1,
+    ProjectEncounterPokemonOverrides? pokemonOverrides,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -13036,6 +13037,7 @@ class EditorNotifier extends _$EditorNotifier
         minLevel: minLevel,
         maxLevel: maxLevel,
         weight: weight,
+        pokemonOverrides: pokemonOverrides,
       );
       state = state.copyWith(
         project: updated,
@@ -13054,6 +13056,8 @@ class EditorNotifier extends _$EditorNotifier
     int? minLevel,
     int? maxLevel,
     int? weight,
+    ProjectEncounterPokemonOverrides? pokemonOverrides,
+    bool clearPokemonOverrides = false,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -13069,6 +13073,8 @@ class EditorNotifier extends _$EditorNotifier
         minLevel: minLevel,
         maxLevel: maxLevel,
         weight: weight,
+        pokemonOverrides: pokemonOverrides,
+        clearPokemonOverrides: clearPokemonOverrides,
       );
       state = state.copyWith(
         project: updated,

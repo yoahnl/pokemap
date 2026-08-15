@@ -6,15 +6,19 @@ import 'package:test/test.dart';
 void main() {
   group('ProjectManifest Smart Tile catalog', () {
     test('missing catalog defaults to empty without v6 JSON churn', () {
-      final manifest = ProjectManifest.fromJson(_minimalManifestJson());
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _minimalManifestJson(),
+      );
 
       expect(manifest.smartTileCatalog, const ProjectSmartTileCatalog.empty());
       expect(manifest.toJson(), isNot(contains('smartTileCatalog')));
     });
 
     test('empty catalog round-trips in v6', () {
-      final decoded = ProjectManifest.fromJson(_minimalManifestJson());
-      final roundTripped = ProjectManifest.fromJson(
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _minimalManifestJson(),
+      );
+      final roundTripped = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         jsonDecode(jsonEncode(decoded.toJson())) as Map<String, dynamic>,
       );
 
@@ -26,7 +30,7 @@ void main() {
       final json = _minimalManifestJson()
         ..['smartTileCatalog'] = _nonEmptyCatalog.toJson();
 
-      final manifest = ProjectManifest.fromJson(json);
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
       final encoded = manifest.toJson();
 
       expect(manifest.smartTileCatalog, _nonEmptyCatalog);

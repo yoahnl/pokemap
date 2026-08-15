@@ -73,7 +73,12 @@ void main() {
 
       expect(state.trainerProfile.name, 'Ari');
       expect(state.trainerProfile.avatarCharacterId, 'hero_a');
-      expect(state.party.members, const <PlayerPokemon>[authoredPokemon]);
+      expect(state.party.members, hasLength(1));
+      expect(state.party.members.single.individualId, isNotEmpty);
+      expect(
+        state.party.members.single.copyWith(individualId: ''),
+        authoredPokemon,
+      );
       expect(
         state.narrativeFactRuntimeState.valueFor('fact_difficulty'),
         const NarrativeValue.string('normal'),

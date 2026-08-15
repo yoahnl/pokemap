@@ -41,8 +41,11 @@ GameState gameStateFromSaveData(SaveData saveData) {
     storyFlags: StoryFlags(activeFlags: migratedFlags),
     narrativeFactRuntimeState: normalizedSaveData.narrativeFactRuntimeState,
     narrativeEventProgress: normalizedSaveData.narrativeEventProgress,
+    pauseMenuState: normalizedSaveData.pauseMenuState,
     completedBattleRequestIds:
         normalizedSaveData.completedBattleRequestIds,
+    appliedPokemonGrantOperationIds:
+        normalizedSaveData.appliedPokemonGrantOperationIds,
     scriptVariables: const ScriptVariables(),
     consumedEventIds: const {},
     metadata: normalizedSaveData.properties,
@@ -50,59 +53,79 @@ GameState gameStateFromSaveData(SaveData saveData) {
 }
 
 SaveData saveDataFromGameState(GameState gameState) {
+  final normalizedGameState = normalizeLoadedGameState(gameState);
   final mergedProgressionFlags = <String>{
-    ...gameState.progression.storyFlags,
-    ...gameState.storyFlags.activeFlags,
+    ...normalizedGameState.progression.storyFlags,
+    ...normalizedGameState.storyFlags.activeFlags,
   };
   final normalizedProgression = _normalizePokedexProgression(
-    progression: gameState.progression.copyWith(
+    progression: normalizedGameState.progression.copyWith(
       storyFlags: mergedProgressionFlags.toList(growable: false),
     ),
-    party: gameState.party,
-    pokemonStorage: gameState.pokemonStorage,
+    party: normalizedGameState.party,
+    pokemonStorage: normalizedGameState.pokemonStorage,
   );
 
   return SaveData(
-    saveId: gameState.saveId,
-    currentMapId: gameState.currentMapId,
-    playerPosition: gameState.playerPosition,
-    playerFacing: gameState.playerFacing,
-    party: gameState.party,
-    pokemonStorage: gameState.pokemonStorage,
-    trainerProfile: gameState.trainerProfile,
-    bag: gameState.bag,
+    saveId: normalizedGameState.saveId,
+    currentMapId: normalizedGameState.currentMapId,
+    playerPosition: normalizedGameState.playerPosition,
+    playerFacing: normalizedGameState.playerFacing,
+    party: normalizedGameState.party,
+    pokemonStorage: normalizedGameState.pokemonStorage,
+    trainerProfile: normalizedGameState.trainerProfile,
+    bag: normalizedGameState.bag,
     progression: normalizedProgression,
-    narrativeFactRuntimeState: gameState.narrativeFactRuntimeState,
-    narrativeEventProgress: gameState.narrativeEventProgress,
-    completedBattleRequestIds: gameState.completedBattleRequestIds,
-    properties: gameState.metadata,
+    narrativeFactRuntimeState: normalizedGameState.narrativeFactRuntimeState,
+    narrativeEventProgress: normalizedGameState.narrativeEventProgress,
+    pauseMenuState: normalizedGameState.pauseMenuState,
+    completedBattleRequestIds: normalizedGameState.completedBattleRequestIds,
+    appliedPokemonGrantOperationIds:
+        normalizedGameState.appliedPokemonGrantOperationIds,
+    properties: normalizedGameState.metadata,
   ).normalized();
 }
 GameState normalizeLoadedGameState(GameState state) {
-  final normalizedProgression = _normalizePokedexProgression(
-    progression: state.progression,
+  final roster = normalizePlayerPokemonRosterIdentities(
+    saveId: state.saveId,
     party: state.party,
     pokemonStorage: state.pokemonStorage,
   );
-  final completedBattleRequestIds = state.completedBattleRequestIds
+  final stateWithRoster = state.copyWith(
+    party: roster.party,
+    pokemonStorage: roster.pokemonStorage,
+  );
+  final normalizedProgression = _normalizePokedexProgression(
+    progression: stateWithRoster.progression,
+    party: stateWithRoster.party,
+    pokemonStorage: stateWithRoster.pokemonStorage,
+  );
+  final completedBattleRequestIds = stateWithRoster.completedBattleRequestIds
       .map((requestId) => requestId.trim())
       .where((requestId) => requestId.isNotEmpty)
       .toSet();
-  if (state.storyFlags.activeFlags.isNotEmpty ||
+  final appliedPokemonGrantOperationIds = stateWithRoster
+      .appliedPokemonGrantOperationIds
+      .map((operationId) => operationId.trim())
+      .where((operationId) => operationId.isNotEmpty)
+      .toSet();
+  if (stateWithRoster.storyFlags.activeFlags.isNotEmpty ||
       normalizedProgression.storyFlags.isEmpty) {
-    return state.copyWith(
+    return stateWithRoster.copyWith(
       progression: normalizedProgression,
       completedBattleRequestIds: completedBattleRequestIds,
+      appliedPokemonGrantOperationIds: appliedPokemonGrantOperationIds,
     );
   }
   final migratedFlags = normalizedProgression.storyFlags
       .map((flag) => flag.trim())
       .where((flag) => flag.isNotEmpty)
       .toSet();
-  return state.copyWith(
+  return stateWithRoster.copyWith(
     progression: normalizedProgression,
-    storyFlags: state.storyFlags.copyWith(activeFlags: migratedFlags),
+    storyFlags: stateWithRoster.storyFlags.copyWith(activeFlags: migratedFlags),
     completedBattleRequestIds: completedBattleRequestIds,
+    appliedPokemonGrantOperationIds: appliedPokemonGrantOperationIds,
   );
 }
 

@@ -142,6 +142,14 @@ final class StandaloneRuntimeStartupHost {
       displayTitle: manifest.name,
       projectFilePath: projectFilePath,
       preferences: preferences,
+      defaultVisiblePauseActions: <ProjectPauseActionId>{
+        ProjectPauseActionId.resume,
+        for (final action
+            in manifest.effectivePresentation.effectivePause
+                    ?.effectiveActions ??
+                defaultProjectPauseActions)
+          if (action.visible) action.id,
+      },
     );
     final sessions = GameSessionController(
       adapterFactory: (_) => InProcessGameSessionAdapter(
@@ -426,9 +434,12 @@ final class _StandaloneRuntimeGameSource implements RuntimeGameSource {
     required this.displayTitle,
     required this.projectFilePath,
     required this.preferences,
+    required Set<ProjectPauseActionId> defaultVisiblePauseActions,
   }) : _projectDigest = sha256
            .convert(utf8.encode(p.normalize(p.absolute(projectFilePath))))
-           .toString();
+           .toString(),
+       defaultVisiblePauseActions =
+           Set<ProjectPauseActionId>.unmodifiable(defaultVisiblePauseActions);
 
   @override
   final GameIdentity identity;
@@ -438,6 +449,8 @@ final class _StandaloneRuntimeGameSource implements RuntimeGameSource {
 
   final String projectFilePath;
   final PlayerPreferencesGateway preferences;
+  @override
+  final Set<ProjectPauseActionId> defaultVisiblePauseActions;
   final String _projectDigest;
   int _sessionSerial = 0;
 

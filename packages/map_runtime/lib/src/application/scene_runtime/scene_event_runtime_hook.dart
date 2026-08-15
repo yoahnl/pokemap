@@ -31,6 +31,7 @@ final class SceneEventRuntimeHook {
     required MapEventPage page,
     GameState? gameState,
     GameState Function()? currentGameState,
+    String executionId = '',
   }) async {
     final sceneTarget = page.sceneTarget;
     if (sceneTarget == null) {
@@ -73,6 +74,7 @@ final class SceneEventRuntimeHook {
     }
 
     final pendingConsequences = <SceneConsequence>[];
+    final pendingPokemonGrantOperationIds = <String?>[];
     final writer = consequenceWriter ??
         SceneConsequenceRuntimeWriter(
           project: project,
@@ -83,11 +85,21 @@ final class SceneEventRuntimeHook {
     final executionResult = await SceneRuntimeExecutor(
       callbacks: callbacks.toExecutionCallbacks(
         applyConsequence: (consequence) {
+          throw UnsupportedError('Scene node id is required for consequences.');
+        },
+        applyConsequenceWithNodeId: (nodeId, consequence) {
+          final grantOperationId = scenePokemonGrantOperationId(
+            sceneId: sceneId,
+            executionId: executionId,
+            nodeId: nodeId,
+            consequence: consequence,
+          );
           final currentValidationState = validationState;
           if (currentValidationState != null) {
             final validation = writer.applyOne(
               currentValidationState,
               consequence,
+              pokemonGrantOperationId: grantOperationId,
             );
             if (!validation.success) {
               rejectedConsequenceWrite = validation;
@@ -99,6 +111,7 @@ final class SceneEventRuntimeHook {
             validationState = validation.gameState;
           }
           pendingConsequences.add(consequence);
+          pendingPokemonGrantOperationIds.add(grantOperationId);
           return 'completed';
         },
       ),
@@ -124,7 +137,11 @@ final class SceneEventRuntimeHook {
         );
       }
 
-      final writeResult = writer.applyAll(commitBaseState, pendingConsequences);
+      final writeResult = writer.applyAll(
+        commitBaseState,
+        pendingConsequences,
+        pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+      );
       if (!writeResult.success) {
         return SceneEventRuntimeHookResult.failed(
           errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,

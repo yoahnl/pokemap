@@ -86,6 +86,7 @@ void main() {
 }
 
 const _config = ProjectPokemonConfig(
+  ruleset: PokemonRulesetProfile.pokeMapBetaV1,
   learnsetsDir: 'custom/learnsets',
   catalogFiles: <String, String>{
     'items': 'custom/catalogs/items.json',

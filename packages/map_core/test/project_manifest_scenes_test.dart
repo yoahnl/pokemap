@@ -6,7 +6,9 @@ import 'package:test/test.dart';
 void main() {
   group('ProjectManifest scenes integration', () {
     test('decodes old project JSON without scenes as empty list', () {
-      final manifest = ProjectManifest.fromJson(_minimalProjectJson());
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _minimalProjectJson(),
+      );
 
       expect(manifest.scenes, isEmpty);
       expect(manifest.scenarios, isEmpty);
@@ -15,14 +17,14 @@ void main() {
 
     test('decodes scenes null and empty scenes as empty list', () {
       expect(
-        ProjectManifest.fromJson({
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'scenes': null,
         }).scenes,
         isEmpty,
       );
       expect(
-        ProjectManifest.fromJson({
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'scenes': <Object?>[],
         }).scenes,
@@ -31,7 +33,7 @@ void main() {
     });
 
     test('decodes project JSON with a SceneAsset', () {
-      final manifest = ProjectManifest.fromJson({
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest({
         ..._minimalProjectJson(),
         'scenes': [_scene().toJson()],
       });
@@ -51,50 +53,54 @@ void main() {
 
       final json =
           jsonDecode(jsonEncode(manifest.toJson())) as Map<String, dynamic>;
-      final decoded = ProjectManifest.fromJson(json);
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
       expect(decoded.scenes, equals(manifest.scenes));
       expect(decoded.toJson()['scenes'], isA<List<dynamic>>());
     });
 
-    test('round-trips explicit End policy and preserves absent legacy policy',
-        () {
-      final annotated = _scene(
-        endPayload: SceneEndPayload(
-          sceneOutcomeId: 'defeat',
-          outcomePolicy: SceneOutcomePolicy.retryable,
-        ),
-      );
-      final annotatedJson = jsonDecode(
-        jsonEncode(annotated.toJson()),
-      ) as Map<String, dynamic>;
-      final decodedAnnotated = SceneAsset.fromJson(annotatedJson);
-      final decodedPayload =
-          decodedAnnotated.graph.nodes.last.payload as SceneEndPayload;
+    test(
+      'round-trips explicit End policy and preserves absent legacy policy',
+      () {
+        final annotated = _scene(
+          endPayload: SceneEndPayload(
+            sceneOutcomeId: 'defeat',
+            outcomePolicy: SceneOutcomePolicy.retryable,
+          ),
+        );
+        final annotatedJson =
+            jsonDecode(jsonEncode(annotated.toJson())) as Map<String, dynamic>;
+        final decodedAnnotated = SceneAsset.fromJson(annotatedJson);
+        final decodedPayload =
+            decodedAnnotated.graph.nodes.last.payload as SceneEndPayload;
 
-      expect(decodedPayload.sceneOutcomeId, 'defeat');
-      expect(decodedPayload.outcomePolicy, SceneOutcomePolicy.retryable);
-      final encodedEndNode = ((annotatedJson['graph']
-              as Map<String, dynamic>)['nodes'] as List<dynamic>)
-          .last as Map<String, dynamic>;
-      expect(
-        encodedEndNode['payload'],
-        containsPair('outcomePolicy', 'retryable'),
-      );
+        expect(decodedPayload.sceneOutcomeId, 'defeat');
+        expect(decodedPayload.outcomePolicy, SceneOutcomePolicy.retryable);
+        final encodedEndNode =
+            ((annotatedJson['graph'] as Map<String, dynamic>)['nodes']
+                        as List<dynamic>)
+                    .last
+                as Map<String, dynamic>;
+        expect(
+          encodedEndNode['payload'],
+          containsPair('outcomePolicy', 'retryable'),
+        );
 
-      final legacyJson = _scene().toJson();
-      final legacyPayload = SceneAsset.fromJson(legacyJson)
-          .graph
-          .nodes
-          .last
-          .payload as SceneEndPayload;
-      expect(legacyPayload.outcomePolicy, isNull);
-      final legacyEndNode = ((legacyJson['graph']
-              as Map<String, dynamic>)['nodes'] as List<dynamic>)
-          .last as Map<String, dynamic>;
-      final legacyEndPayload = legacyEndNode['payload'] as Map<String, dynamic>;
-      expect(legacyEndPayload.containsKey('outcomePolicy'), isFalse);
-    });
+        final legacyJson = _scene().toJson();
+        final legacyPayload =
+            SceneAsset.fromJson(legacyJson).graph.nodes.last.payload
+                as SceneEndPayload;
+        expect(legacyPayload.outcomePolicy, isNull);
+        final legacyEndNode =
+            ((legacyJson['graph'] as Map<String, dynamic>)['nodes']
+                        as List<dynamic>)
+                    .last
+                as Map<String, dynamic>;
+        final legacyEndPayload =
+            legacyEndNode['payload'] as Map<String, dynamic>;
+        expect(legacyEndPayload.containsKey('outcomePolicy'), isFalse);
+      },
+    );
 
     test('keeps scenarios and storylines independent from scenes', () {
       final scenario = const ScenarioAsset(
@@ -102,9 +108,7 @@ void main() {
         name: 'Legacy Scenario',
         scope: ScenarioScope.localEventFlow,
         entryNodeId: 'start',
-        nodes: [
-          ScenarioNode(id: 'start', type: ScenarioNodeType.start),
-        ],
+        nodes: [ScenarioNode(id: 'start', type: ScenarioNodeType.start)],
       );
       final storyline = StorylineAsset(
         id: 'story_main',
@@ -112,7 +116,7 @@ void main() {
         title: 'Main Story',
       );
 
-      final manifest = ProjectManifest.fromJson({
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest({
         ..._minimalProjectJson(),
         'scenarios': [scenario.toJson()],
         'storylines': [storyline.toJson()],
@@ -128,28 +132,24 @@ void main() {
 
     test('rejects invalid scenes JSON shape', () {
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'scenes': 'not-a-list',
         }),
         _throwsDecode,
       );
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'scenes': ['not-an-object'],
         }),
         _throwsDecode,
       );
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'scenes': [
-            {
-              'id': '',
-              'name': 'Broken',
-              'graph': _graphJson(),
-            },
+            {'id': '', 'name': 'Broken', 'graph': _graphJson()},
           ],
         }),
         _throwsDecode,
@@ -179,11 +179,7 @@ SceneAsset _scene({SceneEndPayload? endPayload}) {
       startNodeId: 'node_start',
       nodes: [
         SceneNode(id: 'node_start', kind: SceneNodeKind.start),
-        SceneNode(
-          id: 'node_end',
-          kind: SceneNodeKind.end,
-          payload: endPayload,
-        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end, payload: endPayload),
       ],
       edges: [
         SceneEdge(

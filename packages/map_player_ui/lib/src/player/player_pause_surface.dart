@@ -127,6 +127,26 @@ final class PlayerPausePresentation {
   final Set<PlayerPauseAction> hiddenActions;
   final ProjectResponsivePauseCompositionProfile? composition;
 
+  PlayerPausePresentation resolveVisibility(PlayerPauseMenuState state) {
+    return PlayerPausePresentation(
+      title: title,
+      hint: hint,
+      actionOrder: actionOrder,
+      actionLabels: actionLabels,
+      actionIcons: actionIcons,
+      hiddenActions: <PlayerPauseAction>{
+        for (final action in PlayerPauseAction.values)
+          if (!state.isActionVisible(
+            _projectPauseAction(action),
+            projectDefaultVisibility: !hiddenActions.contains(action) &&
+                (actionOrder == null || actionOrder!.contains(action)),
+          ))
+            action,
+      },
+      composition: composition,
+    );
+  }
+
   List<PlayerPauseAction> get visibleActions =>
       List<PlayerPauseAction>.unmodifiable(
         (actionOrder ?? PlayerPauseAction.values).where(
@@ -162,6 +182,18 @@ PlayerPauseAction _pauseAction(ProjectPauseActionId id) => switch (id) {
       ProjectPauseActionId.save => PlayerPauseAction.save,
       ProjectPauseActionId.options => PlayerPauseAction.options,
       ProjectPauseActionId.returnToTitle => PlayerPauseAction.returnToTitle,
+    };
+
+ProjectPauseActionId _projectPauseAction(PlayerPauseAction action) =>
+    switch (action) {
+      PlayerPauseAction.resume => ProjectPauseActionId.resume,
+      PlayerPauseAction.party => ProjectPauseActionId.party,
+      PlayerPauseAction.bag => ProjectPauseActionId.bag,
+      PlayerPauseAction.pokedex => ProjectPauseActionId.pokedex,
+      PlayerPauseAction.map => ProjectPauseActionId.map,
+      PlayerPauseAction.save => ProjectPauseActionId.save,
+      PlayerPauseAction.options => ProjectPauseActionId.options,
+      PlayerPauseAction.returnToTitle => ProjectPauseActionId.returnToTitle,
     };
 
 ProjectPauseActionIcon _defaultPauseActionIcon(PlayerPauseAction action) =>

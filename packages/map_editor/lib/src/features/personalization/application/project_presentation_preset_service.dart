@@ -190,7 +190,7 @@ final class ProjectPresentationPresetService {
         'Choose a non-empty UTF-8 text redistribution license.',
       );
     } on EditorAuthoringMutationFailure catch (error) {
-      if (error.message.contains('artifact.mime_mismatch')) {
+      if (error.code == 'artifact.mime_mismatch') {
         throw const ProjectPresentationPresetExportException(
           'presentation.preset.license_invalid',
           'Choose a non-empty UTF-8 text redistribution license.',

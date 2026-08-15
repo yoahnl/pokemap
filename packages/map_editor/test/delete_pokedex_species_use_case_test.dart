@@ -21,8 +21,8 @@ void main() {
       'delete_pokedex_species_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    readRepository = const FilePokemonReadRepository();
-    writeRepository = const FilePokemonWriteRepository();
+    readRepository = FilePokemonReadRepository();
+    writeRepository = FilePokemonWriteRepository();
     useCase = DeletePokedexSpeciesUseCase(
       readRepository: readRepository,
     );

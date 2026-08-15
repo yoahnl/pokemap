@@ -189,8 +189,11 @@ void main() {
     late ListPokedexEntriesUseCase useCase;
 
     setUp(() {
-      seedUseCase = const SeedPokemonDemoDataUseCase();
-      useCase = const ListPokedexEntriesUseCase(FilePokemonReadRepository());
+      final repository = FilePokemonReadRepository();
+      seedUseCase = SeedPokemonDemoDataUseCase(
+        snapshotController: repository,
+      );
+      useCase = ListPokedexEntriesUseCase(repository);
     });
 
     test('uses the workspace project data and not the monorepo root', () async {

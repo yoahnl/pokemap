@@ -74,6 +74,12 @@ Future<Map<int, String>> _buildWildEnemyGenderIdsByIndex({
   required RuntimePokemonSpeciesLoader speciesLoader,
   required WildBattleStartRequest request,
 }) async {
+  final generatedGenderId = normalizeBattleGenderId(
+    request.generatedPokemon?.gender,
+  );
+  if (generatedGenderId != null) {
+    return <int, String>{0: generatedGenderId};
+  }
   final resolvedGenderId = await _resolveSpeciesGenderId(
     bundle: bundle,
     speciesLoader: speciesLoader,

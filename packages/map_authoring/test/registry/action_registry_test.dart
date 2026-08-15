@@ -107,6 +107,7 @@ void main() {
           'map',
           'mapConnection',
           'pokemonDocument',
+          'pokemonRuleset',
           'presentationCinematic',
           'presentationCinematicTemplate',
           'presentationClip',

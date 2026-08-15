@@ -289,7 +289,7 @@ void main() {
 
     test('legacy BattleSession still resolves a basic turn during coexistence',
         () {
-      final legacySetup = BattleSetup(
+      final legacySetup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -340,7 +340,7 @@ PsdkBattleSetup _setup({
   int opponentHp = 40,
   int? opponentCurrentHp,
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: PsdkBattleCombatantSetup(
       id: 'player-bulbasaur',
       speciesId: 'bulbasaur',

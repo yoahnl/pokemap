@@ -5,6 +5,27 @@ import 'scene_consequence_runtime_write_result.dart';
 import 'scene_game_completion_metadata.dart';
 import 'scene_npc_state_metadata.dart';
 
+String? scenePokemonGrantOperationId({
+  required String sceneId,
+  required String executionId,
+  required String nodeId,
+  required SceneConsequence consequence,
+}) {
+  if (consequence.kind != SceneConsequenceKind.givePokemon &&
+      consequence.kind != SceneConsequenceKind.giveConfiguredStarter) {
+    return null;
+  }
+  final normalizedSceneId = sceneId.trim();
+  final normalizedExecutionId = executionId.trim();
+  final normalizedNodeId = nodeId.trim();
+  if (normalizedSceneId.isEmpty ||
+      normalizedExecutionId.isEmpty ||
+      normalizedNodeId.isEmpty) {
+    return null;
+  }
+  return 'scene:$normalizedSceneId:$normalizedExecutionId:$normalizedNodeId';
+}
+
 final class SceneConsequenceRuntimeWriter {
   const SceneConsequenceRuntimeWriter({
     required this.project,
@@ -28,23 +49,38 @@ final class SceneConsequenceRuntimeWriter {
   /// returns the original [gameState] and never exposes a partial mutation.
   SceneConsequenceRuntimeWriteResult applyOne(
     GameState gameState,
-    SceneConsequence consequence,
-  ) {
-    return applyAll(gameState, <SceneConsequence>[consequence]);
+    SceneConsequence consequence, {
+    String? pokemonGrantOperationId,
+  }) {
+    return applyAll(
+      gameState,
+      <SceneConsequence>[consequence],
+      pokemonGrantOperationIds: <String?>[pokemonGrantOperationId],
+    );
   }
 
   SceneConsequenceRuntimeWriteResult applyAll(
     GameState gameState,
-    List<SceneConsequence> consequences,
-  ) {
+    List<SceneConsequence> consequences, {
+    List<String?> pokemonGrantOperationIds = const <String?>[],
+  }) {
     var nextState = gameState;
     final applied = <SceneConsequence>[];
     SceneFinishGameConsequence? gameCompletion;
     final factWriter = NarrativeFactRuntimeWriter(
       NarrativeFactRuntimeResolver.fromFacts(project.facts),
     );
-    for (final consequence in consequences) {
-      final step = _apply(nextState, consequence, factWriter);
+    for (var index = 0; index < consequences.length; index += 1) {
+      final consequence = consequences[index];
+      final grantOperationId = index < pokemonGrantOperationIds.length
+          ? pokemonGrantOperationIds[index]
+          : null;
+      final step = _apply(
+        nextState,
+        consequence,
+        factWriter,
+        grantOperationId,
+      );
       if (step.errorCode != null) {
         return SceneConsequenceRuntimeWriteResult.failed(
           gameState: gameState,
@@ -69,6 +105,7 @@ final class SceneConsequenceRuntimeWriter {
     GameState gameState,
     SceneConsequence consequence,
     NarrativeFactRuntimeWriter factWriter,
+    String? pokemonGrantOperationId,
   ) {
     return switch (consequence.kind) {
       SceneConsequenceKind.setFact => _applySetFact(
@@ -99,10 +136,12 @@ final class SceneConsequenceRuntimeWriter {
       SceneConsequenceKind.givePokemon => _applyGivePokemon(
           gameState,
           consequence as SceneGivePokemonConsequence,
+          pokemonGrantOperationId,
         ),
       SceneConsequenceKind.giveConfiguredStarter => _applyConfiguredStarter(
           gameState,
           consequence as SceneGiveConfiguredStarterConsequence,
+          pokemonGrantOperationId,
         ),
       SceneConsequenceKind.healParty => _applyHealParty(gameState),
       SceneConsequenceKind.awardBadge => _applyAwardBadge(
@@ -116,6 +155,11 @@ final class SceneConsequenceRuntimeWriter {
       SceneConsequenceKind.setNpcPresence => _applySetNpcPresence(
           gameState,
           consequence as SceneSetNpcPresenceConsequence,
+        ),
+      SceneConsequenceKind.setPauseMenuEntryVisibility =>
+        _applySetPauseMenuEntryVisibility(
+          gameState,
+          consequence as SceneSetPauseMenuEntryVisibilityConsequence,
         ),
       SceneConsequenceKind.finishGame => _applyFinishGame(
           gameState,
@@ -296,11 +340,28 @@ final class SceneConsequenceRuntimeWriter {
   _SceneConsequenceRuntimeWriteStep _applyGivePokemon(
     GameState gameState,
     SceneGivePokemonConsequence consequence,
+    String? grantOperationId,
   ) {
+    final operationId = grantOperationId?.trim() ?? '';
+    if (operationId.isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingPokemonGrantOperationId,
+        'Scene consequence givePokemon requires a grant operation id.',
+      );
+    }
+    if (gameState.appliedPokemonGrantOperationIds.contains(operationId)) {
+      return _SceneConsequenceRuntimeWriteStep.applied(gameState);
+    }
     if (consequence.speciesId.trim().isEmpty) {
       return const _SceneConsequenceRuntimeWriteStep.failed(
         SceneConsequenceRuntimeWriteErrorCode.missingPokemonSpeciesReference,
         'Scene consequence givePokemon requires a non-empty species reference.',
+      );
+    }
+    if (consequence.formId.trim().isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingPokemonFormReference,
+        'Scene consequence givePokemon requires a non-empty form reference.',
       );
     }
     if (consequence.level < 1 || consequence.level > 100) {
@@ -337,8 +398,9 @@ final class SceneConsequenceRuntimeWriter {
       );
     }
 
-    final pokemon = PlayerPokemon(
+    final unresolvedPokemon = PlayerPokemon(
       speciesId: consequence.speciesId,
+      formId: consequence.formId,
       natureId: consequence.natureId,
       abilityId: consequence.abilityId,
       level: consequence.level,
@@ -353,14 +415,29 @@ final class SceneConsequenceRuntimeWriter {
       ),
     );
     return _SceneConsequenceRuntimeWriteStep.applied(
-      mutations.givePokemon(gameState, pokemon: pokemon),
+      mutations.givePokemonOnce(
+        gameState,
+        grantOperationId: operationId,
+        pokemon: unresolvedPokemon,
+      ),
     );
   }
 
   _SceneConsequenceRuntimeWriteStep _applyConfiguredStarter(
     GameState gameState,
     SceneGiveConfiguredStarterConsequence consequence,
+    String? grantOperationId,
   ) {
+    final operationId = grantOperationId?.trim() ?? '';
+    if (operationId.isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingPokemonGrantOperationId,
+        'Scene consequence giveConfiguredStarter requires a grant operation id.',
+      );
+    }
+    if (gameState.appliedPokemonGrantOperationIds.contains(operationId)) {
+      return _SceneConsequenceRuntimeWriteStep.applied(gameState);
+    }
     final optionId = consequence.starterOptionId.trim();
     if (optionId.isEmpty) {
       return const _SceneConsequenceRuntimeWriteStep.failed(
@@ -390,8 +467,8 @@ final class SceneConsequenceRuntimeWriter {
       );
     }
 
-    final authoredPokemon = matches.single.pokemon;
-    final starter = authoredPokemon.provenance == null
+    final authoredPokemon = matches.single.pokemon.copyWith(individualId: '');
+    final starterWithProvenance = authoredPokemon.provenance == null
         ? authoredPokemon.copyWith(
             provenance: PlayerPokemonProvenance(
               kind: PlayerPokemonOriginKind.starter,
@@ -402,7 +479,11 @@ final class SceneConsequenceRuntimeWriter {
           )
         : authoredPokemon;
     return _SceneConsequenceRuntimeWriteStep.applied(
-      mutations.givePokemon(gameState, pokemon: starter),
+      mutations.givePokemonOnce(
+        gameState,
+        grantOperationId: operationId,
+        pokemon: starterWithProvenance,
+      ),
     );
   }
 
@@ -481,6 +562,20 @@ final class SceneConsequenceRuntimeWriter {
   ) {
     return _SceneConsequenceRuntimeWriteStep.applied(
       mutations.unlockFieldAbility(gameState, consequence.ability),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applySetPauseMenuEntryVisibility(
+    GameState gameState,
+    SceneSetPauseMenuEntryVisibilityConsequence consequence,
+  ) {
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      gameState.copyWith(
+        pauseMenuState: gameState.pauseMenuState.setActionVisibility(
+          consequence.actionId,
+          visible: consequence.visible,
+        ),
+      ),
     );
   }
 

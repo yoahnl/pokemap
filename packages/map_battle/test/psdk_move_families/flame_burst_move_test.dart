@@ -12,7 +12,7 @@ void main() {
         power: 70,
         battleEngineMethod: 's_flame_burst',
       );
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: _combatant(id: 'player', move: move),
           psdkOpponentSlot: _combatant(
@@ -55,7 +55,7 @@ void main() {
         power: 70,
         battleEngineMethod: 's_flame_burst',
       );
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: _combatant(id: 'player', move: move),
           psdkOpponentSlot: _combatant(
@@ -97,7 +97,7 @@ void main() {
         power: 70,
         battleEngineMethod: 's_flame_burst',
       );
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: _combatant(id: 'player', move: move),
           psdkOpponentSlot: _combatant(

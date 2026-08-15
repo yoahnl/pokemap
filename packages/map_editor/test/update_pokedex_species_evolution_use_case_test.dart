@@ -21,8 +21,8 @@ void main() {
       'pokedex_species_evolution_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    readRepository = const FilePokemonReadRepository();
-    writeRepository = const FilePokemonWriteRepository();
+    readRepository = FilePokemonReadRepository();
+    writeRepository = FilePokemonWriteRepository();
     useCase = UpdatePokedexSpeciesEvolutionUseCase(
       readRepository: readRepository,
       writeRepository: writeRepository,

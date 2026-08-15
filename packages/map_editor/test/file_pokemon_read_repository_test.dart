@@ -24,8 +24,12 @@ void main() {
     tempProjectRoot = await Directory.systemTemp.createTemp('pokemon_repo_');
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    seedUseCase = const SeedPokemonDemoDataUseCase();
-    repository = const FilePokemonReadRepository();
+    repository = FilePokemonReadRepository();
+    seedUseCase = SeedPokemonDemoDataUseCase(snapshotController: repository);
+    await CreateProjectUseCase(
+      FileProjectRepository(),
+      const FileProjectWorkspaceFactory(),
+    ).execute('Pokemon Repo Project', tempProjectRoot.path);
   });
 
   tearDown(() async {
@@ -35,21 +39,28 @@ void main() {
   });
 
   group('FilePokemonReadRepository', () {
-    test('reads from the workspace project and not the monorepo root',
-        () async {
-      await seedUseCase.execute(workspace);
+    test(
+      'reads from the workspace project and not the monorepo root',
+      () async {
+        await seedUseCase.execute(workspace);
 
-      final decoy =
-          await Directory.systemTemp.createTemp('pokemon_repo_decoy_');
-      final originalCurrent = Directory.current;
-      try {
-        await Directory(
-          p.join(decoy.path, 'data', 'pokemon', 'species'),
-        ).create(recursive: true);
-        await File(
-          p.join(
-              decoy.path, 'data', 'pokemon', 'species', '0003-venusaur.json'),
-        ).writeAsString('''
+        final decoy = await Directory.systemTemp.createTemp(
+          'pokemon_repo_decoy_',
+        );
+        final originalCurrent = Directory.current;
+        try {
+          await Directory(
+            p.join(decoy.path, 'data', 'pokemon', 'species'),
+          ).create(recursive: true);
+          await File(
+            p.join(
+              decoy.path,
+              'data',
+              'pokemon',
+              'species',
+              '0003-venusaur.json',
+            ),
+          ).writeAsString('''
 {
   "id": "venusaur",
   "nationalDex": 3,
@@ -58,57 +69,73 @@ void main() {
 }
 ''');
 
-        Directory.current = decoy.path;
+          Directory.current = decoy.path;
 
-        final entries = await repository.listSpeciesIndexEntries(workspace);
-        final species =
-            await repository.readSpeciesById(workspace, 'bulbasaur');
+          final entries = await repository.listSpeciesIndexEntries(workspace);
+          final species = await repository.readSpeciesById(
+            workspace,
+            'bulbasaur',
+          );
 
-        expect(entries.map((entry) => entry.id), isNot(contains('venusaur')));
-        expect(species.id, 'bulbasaur');
-      } finally {
-        Directory.current = originalCurrent.path;
-        if (await decoy.exists()) {
-          await decoy.delete(recursive: true);
+          expect(entries.map((entry) => entry.id), isNot(contains('venusaur')));
+          expect(species.id, 'bulbasaur');
+        } finally {
+          Directory.current = originalCurrent.path;
+          if (await decoy.exists()) {
+            await decoy.delete(recursive: true);
+          }
         }
-      }
-    });
-
-    test('reads the seeded pokemon files through the repository abstraction',
-        () async {
-      await seedUseCase.execute(workspace);
-
-      final manifest = await repository.readManifest(workspace);
-      final species = await repository.readSpeciesById(workspace, 'bulbasaur');
-      final learnset =
-          await repository.readLearnsetById(workspace, 'bulbasaur');
-      final evolution =
-          await repository.readEvolutionById(workspace, 'bulbasaur');
-      final media = await repository.readMediaById(workspace, 'bulbasaur');
-      final moves = await repository.readCatalogByKey(workspace, 'moves');
-
-      expect(manifest.kind, 'pokemon_data_manifest');
-      expect(species.id, 'bulbasaur');
-      expect(learnset.speciesId, 'bulbasaur');
-      expect(evolution.evolutions.single.targetSpeciesId, 'ivysaur');
-      expect(media.speciesId, 'bulbasaur');
-      expect(media.variants['base']?.cry, 'assets/pokemon/cries/bulbasaur.ogg');
-      expect(
-        moves.entries.map((entry) => entry['id']),
-        containsAll(<String>['tackle', 'growl', 'vine_whip', 'razor_leaf']),
-      );
-    });
+      },
+    );
 
     test(
-        'loads species detail and move catalog from project.json-configured paths without pokemon_data_manifest.json',
-        () async {
-      final customProject = _buildConfiguredPokemonProject();
-      await _writeProjectJson(workspace, customProject.toJson());
-      await _writeProjectRelativeTextFile(
-        workspace,
-        'custom/pokemon/species/0001-bulbasaur.json',
-        '''
+      'reads the seeded pokemon files through the repository abstraction',
+      () async {
+        await seedUseCase.execute(workspace);
+
+        final manifest = await repository.readManifest(workspace);
+        final species = await repository.readSpeciesById(
+          workspace,
+          'bulbasaur',
+        );
+        final learnset = await repository.readLearnsetById(
+          workspace,
+          'bulbasaur',
+        );
+        final evolution = await repository.readEvolutionById(
+          workspace,
+          'bulbasaur',
+        );
+        final media = await repository.readMediaById(workspace, 'bulbasaur');
+        final moves = await repository.readCatalogByKey(workspace, 'moves');
+
+        expect(manifest.kind, 'pokemon_data_manifest');
+        expect(species.id, 'bulbasaur');
+        expect(learnset.speciesId, 'bulbasaur');
+        expect(evolution.evolutions.single.targetSpeciesId, 'ivysaur');
+        expect(media.speciesId, 'bulbasaur');
+        expect(
+          media.variants['base']?.cry,
+          'assets/pokemon/cries/bulbasaur.ogg',
+        );
+        expect(
+          moves.entries.map((entry) => entry['id']),
+          containsAll(<String>['tackle', 'growl', 'vine_whip', 'razor_leaf']),
+        );
+      },
+    );
+
+    test(
+      'loads species detail and move catalog from project.json-configured paths without pokemon_data_manifest.json',
+      () async {
+        final customProject = _buildConfiguredPokemonProject();
+        await _writeProjectJson(workspace, customProject.toJson());
+        await _writeProjectRelativeTextFile(
+          workspace,
+          'custom/pokemon/species/0001-bulbasaur.json',
+          '''
 {
+  "schemaVersion": 1,
   "id": "bulbasaur",
   "slug": "bulbasaur",
   "nationalDex": 1,
@@ -164,12 +191,13 @@ void main() {
   "sourceMeta": {"seededBy": "test", "seedVersion": 1}
 }
 ''',
-      );
-      await _writeProjectRelativeTextFile(
-        workspace,
-        'custom/pokemon/learnsets/bulbasaur.json',
-        '''
+        );
+        await _writeProjectRelativeTextFile(
+          workspace,
+          'custom/pokemon/learnsets/bulbasaur.json',
+          '''
 {
+  "schemaVersion": 1,
   "speciesId": "bulbasaur",
   "startingMoves": ["tackle"],
   "relearnMoves": ["growl"],
@@ -189,32 +217,34 @@ void main() {
   ]
 }
 ''',
-      );
-      await _writeProjectRelativeTextFile(
-        workspace,
-        'custom/pokemon/evolutions/bulbasaur.json',
-        '''
+        );
+        await _writeProjectRelativeTextFile(
+          workspace,
+          'custom/pokemon/evolutions/bulbasaur.json',
+          '''
 {
+  "schemaVersion": 1,
   "speciesId": "bulbasaur",
   "evolutions": []
 }
 ''',
-      );
-      await _writeProjectRelativeTextFile(
-        workspace,
-        'custom/pokemon/media/bulbasaur.json',
-        '''
+        );
+        await _writeProjectRelativeTextFile(
+          workspace,
+          'custom/pokemon/media/bulbasaur.json',
+          '''
 {
+  "schemaVersion": 1,
   "speciesId": "bulbasaur",
   "defaultFormId": "base",
   "variants": {}
 }
 ''',
-      );
-      await _writeProjectRelativeTextFile(
-        workspace,
-        'custom/pokemon/catalogs/moves.json',
-        '''
+        );
+        await _writeProjectRelativeTextFile(
+          workspace,
+          'custom/pokemon/catalogs/moves.json',
+          '''
 {
   "schemaVersion": 1,
   "kind": "pokemon_catalog",
@@ -249,11 +279,11 @@ void main() {
   ]
 }
 ''',
-      );
-      await _writeProjectRelativeTextFile(
-        workspace,
-        'custom/pokemon/catalogs/items.json',
-        '''
+        );
+        await _writeProjectRelativeTextFile(
+          workspace,
+          'custom/pokemon/catalogs/items.json',
+          '''
 {
   "schemaVersion": 1,
   "entries": [
@@ -266,35 +296,36 @@ void main() {
   ]
 }
 ''',
-      );
+        );
 
-      final detailLoader = LoadPokedexSpeciesDetailUseCase(repository);
-      final movesLoader = LoadPokemonMovesCatalogUseCase(
-        readRepository: repository,
-      );
-      const itemsLoader = LoadPokemonItemsCatalogUseCase();
+        final detailLoader = LoadPokedexSpeciesDetailUseCase(repository);
+        final movesLoader = LoadPokemonMovesCatalogUseCase(
+          readRepository: repository,
+        );
+        const itemsLoader = LoadPokemonItemsCatalogUseCase();
 
-      final detail = await detailLoader.execute(workspace, 'bulbasaur');
-      final movesCatalog = await movesLoader.execute(workspace);
-      final itemsCatalog = await itemsLoader.execute(workspace);
+        final detail = await detailLoader.execute(workspace, 'bulbasaur');
+        final movesCatalog = await movesLoader.execute(workspace);
+        final itemsCatalog = await itemsLoader.execute(workspace);
 
-      expect(detail.species.id, 'bulbasaur');
-      expect(detail.learnset, isNotNull);
-      expect(
-        detail.learnset!.levelUp.map((entry) => entry.moveId),
-        containsAll(<String>['vine_whip', 'razor_leaf']),
-      );
-      expect(movesCatalog.isAvailable, isTrue);
-      expect(
-        movesCatalog.entries.map((entry) => entry.id),
-        containsAll(<String>['tackle', 'growl', 'vine_whip']),
-      );
-      expect(itemsCatalog.isAvailable, isTrue);
-      expect(
-        itemsCatalog.entries.map((entry) => entry.id),
-        contains('oran_berry'),
-      );
-    });
+        expect(detail.species.id, 'bulbasaur');
+        expect(detail.learnset, isNotNull);
+        expect(
+          detail.learnset!.levelUp.map((entry) => entry.moveId),
+          containsAll(<String>['vine_whip', 'razor_leaf']),
+        );
+        expect(movesCatalog.isAvailable, isTrue);
+        expect(
+          movesCatalog.entries.map((entry) => entry.id),
+          containsAll(<String>['tackle', 'growl', 'vine_whip']),
+        );
+        expect(itemsCatalog.isAvailable, isTrue);
+        expect(
+          itemsCatalog.entries.map((entry) => entry.id),
+          contains('oran_berry'),
+        );
+      },
+    );
 
     test('throws explicit error when a species file is missing', () async {
       await seedUseCase.execute(workspace);
@@ -334,12 +365,6 @@ void main() {
     });
 
     test('leaves project.json strictly unchanged', () async {
-      final createProjectUseCase = CreateProjectUseCase(
-        FileProjectRepository(),
-        const FileProjectWorkspaceFactory(),
-      );
-      await createProjectUseCase.execute(
-          'Pokemon Repo Project', tempProjectRoot.path);
       await seedUseCase.execute(workspace);
 
       final projectFile = File(workspace.projectManifestPath);
@@ -368,8 +393,9 @@ String _resolveRepositoryRootFromCurrentDirectory() {
 
   while (true) {
     final agentsFile = File(p.join(current.path, 'AGENTS.md'));
-    final mapEditorDir =
-        Directory(p.join(current.path, 'packages', 'map_editor'));
+    final mapEditorDir = Directory(
+      p.join(current.path, 'packages', 'map_editor'),
+    );
     if (agentsFile.existsSync() && mapEditorDir.existsSync()) {
       return current.path;
     }
@@ -390,6 +416,7 @@ const ProjectManifest _configuredPokemonProject = ProjectManifest(
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
   pokemon: ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     dataRoot: 'custom/pokemon',
     speciesDir: 'custom/pokemon/species',
     learnsetsDir: 'custom/pokemon/learnsets',

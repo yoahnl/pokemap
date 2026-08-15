@@ -906,6 +906,15 @@ final class _M01TransportHarness {
       const JsonEncoder.withIndent('  ').convert(persistedMap.toJson()),
       flush: true,
     );
+    for (final directory in [
+      'species',
+      'learnsets',
+      'evolutions',
+      'media',
+    ]) {
+      await Directory('${root.path}/data/pokemon/$directory')
+          .create(recursive: true);
+    }
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: [root.path],

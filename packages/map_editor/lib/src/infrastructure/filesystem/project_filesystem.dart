@@ -6,10 +6,11 @@ import '../../application/errors/application_errors.dart';
 import '../../application/ports/project_workspace.dart';
 import '../../application/services/project_map_id_policy.dart';
 
-class ProjectFileSystem implements ProjectWorkspace {
+class ProjectFileSystem implements ProjectWorkspace, ProjectWorkspaceCache {
   static const ProjectMapIdPolicy _mapIdPolicy = ProjectMapIdPolicy();
 
   final String _projectRoot;
+  final Map<String, Object> _cachedValues = <String, Object>{};
 
   ProjectFileSystem(this._projectRoot);
 
@@ -20,6 +21,20 @@ class ProjectFileSystem implements ProjectWorkspace {
   String get projectManifestPath => p.join(_projectRoot, 'project.json');
   String get tilesetsDirectoryPath =>
       p.normalize(p.join(_projectRoot, 'assets', 'tilesets'));
+
+  @override
+  T? readCachedValue<T extends Object>(String key) {
+    return _cachedValues[key] as T?;
+  }
+
+  @override
+  void writeCachedValue(String key, Object? value) {
+    if (value == null) {
+      _cachedValues.remove(key);
+      return;
+    }
+    _cachedValues[key] = value;
+  }
 
   @override
   String resolveMapPath(String relativePath) {

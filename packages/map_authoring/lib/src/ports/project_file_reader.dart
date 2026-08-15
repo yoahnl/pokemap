@@ -49,6 +49,36 @@ final class ProjectResourceIdentity {
       );
 }
 
+enum ProjectResourceProbeStatus {
+  exists,
+  missing,
+  inventoryUnavailable,
+  unsafePath,
+  accessDenied,
+}
+
+final class ProjectResourceProbe {
+  const ProjectResourceProbe._(this.status, this.identity);
+
+  const ProjectResourceProbe.exists(ProjectResourceIdentity identity)
+      : this._(ProjectResourceProbeStatus.exists, identity);
+
+  const ProjectResourceProbe.missing()
+      : this._(ProjectResourceProbeStatus.missing, null);
+
+  const ProjectResourceProbe.inventoryUnavailable()
+      : this._(ProjectResourceProbeStatus.inventoryUnavailable, null);
+
+  const ProjectResourceProbe.unsafePath()
+      : this._(ProjectResourceProbeStatus.unsafePath, null);
+
+  const ProjectResourceProbe.accessDenied()
+      : this._(ProjectResourceProbeStatus.accessDenied, null);
+
+  final ProjectResourceProbeStatus status;
+  final ProjectResourceIdentity? identity;
+}
+
 /// Optional capability: a reader that can report a resource's identity without
 /// reading it. Readers that cannot simply do not implement it and lose the
 /// caching, never the correctness.
@@ -69,6 +99,20 @@ abstract interface class ProjectResourceIdentityReader {
 abstract interface class ProjectSnapshotCacheIdentityReader
     implements ProjectResourceIdentityReader {}
 
+abstract interface class ProjectDirectoryReader {
+  Future<List<String>> listFiles({
+    required String projectRoot,
+    required String relativeDirectory,
+  });
+}
+
+abstract interface class ProjectResourceProbeReader {
+  Future<ProjectResourceProbe> probeResource({
+    required String projectRoot,
+    required String relativePath,
+  });
+}
+
 /// The complete filesystem capability available to the Authoring Read API.
 ///
 /// Deliberately no mutation method is exposed by this port.
@@ -86,8 +130,58 @@ final class LocalProjectFileReader
     implements
         ProjectFileReader,
         ProjectResourceIdentityReader,
-        ProjectSnapshotCacheIdentityReader {
+        ProjectSnapshotCacheIdentityReader,
+        ProjectDirectoryReader,
+        ProjectResourceProbeReader {
   const LocalProjectFileReader();
+
+  @override
+  Future<List<String>> listFiles({
+    required String projectRoot,
+    required String relativeDirectory,
+  }) async {
+    final root = _requirePath(projectRoot, field: 'projectRoot');
+    final segments = _projectRelativeSegments(relativeDirectory);
+    final lexicalTarget = [root, ...segments].join(Platform.pathSeparator);
+    try {
+      final resolvedDirectory = await Directory(
+        lexicalTarget,
+      ).resolveSymbolicLinks();
+      if (!workspacePathIsWithin(root: root, candidate: resolvedDirectory)) {
+        throw const WorkspaceAccessException(
+          'workspace.path_outside_project',
+          'The requested project directory resolves outside the project.',
+        );
+      }
+      final files = <String>[];
+      await for (final entity in Directory(resolvedDirectory).list()) {
+        if (entity is! File) continue;
+        final resolvedFile = await entity.resolveSymbolicLinks();
+        if (!workspacePathIsWithin(root: root, candidate: resolvedFile)) {
+          throw const WorkspaceAccessException(
+            'workspace.path_outside_project',
+            'A project directory entry resolves outside the project.',
+          );
+        }
+        final relative = resolvedFile
+            .substring(root.length + 1)
+            .split(
+              Platform.pathSeparator,
+            )
+            .join('/');
+        files.add(relative);
+      }
+      files.sort();
+      return List.unmodifiable(files);
+    } on WorkspaceAccessException {
+      rethrow;
+    } on FileSystemException {
+      throw const WorkspaceAccessException(
+        'workspace.directory_unavailable',
+        'The requested project directory is unavailable.',
+      );
+    }
+  }
 
   @override
   Future<ProjectResourceIdentity?> readIdentity({
@@ -111,6 +205,53 @@ final class LocalProjectFileReader
       );
     } on FileSystemException {
       return null;
+    }
+  }
+
+  @override
+  Future<ProjectResourceProbe> probeResource({
+    required String projectRoot,
+    required String relativePath,
+  }) async {
+    try {
+      final root = _requirePath(projectRoot, field: 'projectRoot');
+      final segments = _projectRelativeSegments(relativePath);
+      final canonicalRelativePath = segments.join('/');
+      final lexicalTarget = [root, ...segments].join(Platform.pathSeparator);
+      final type = await FileSystemEntity.type(
+        lexicalTarget,
+        followLinks: false,
+      );
+      if (type == FileSystemEntityType.notFound) {
+        return const ProjectResourceProbe.missing();
+      }
+      final resolved = await File(lexicalTarget).resolveSymbolicLinks();
+      if (!workspacePathIsWithin(root: root, candidate: resolved)) {
+        return const ProjectResourceProbe.unsafePath();
+      }
+      final stat = await File(resolved).stat();
+      if (stat.type != FileSystemEntityType.file) {
+        return const ProjectResourceProbe.missing();
+      }
+      return ProjectResourceProbe.exists(
+        ProjectResourceIdentity(
+          scope: root,
+          relativePath: canonicalRelativePath,
+          byteLength: stat.size,
+          modifiedAtMicros: stat.modified.microsecondsSinceEpoch,
+          changedAtMicros: stat.changed.microsecondsSinceEpoch,
+        ),
+      );
+    } on WorkspaceAccessException {
+      return const ProjectResourceProbe.unsafePath();
+    } on FileSystemException catch (error) {
+      if (_isAccessDenied(error)) {
+        return const ProjectResourceProbe.accessDenied();
+      }
+      if (_isMissing(error)) {
+        return const ProjectResourceProbe.missing();
+      }
+      return const ProjectResourceProbe.inventoryUnavailable();
     }
   }
 
@@ -238,3 +379,9 @@ List<String> _projectRelativeSegments(String value) {
   }
   return meaningful;
 }
+
+bool _isAccessDenied(FileSystemException error) =>
+    const <int>{1, 5, 13}.contains(error.osError?.errorCode);
+
+bool _isMissing(FileSystemException error) =>
+    const <int>{2, 3}.contains(error.osError?.errorCode);

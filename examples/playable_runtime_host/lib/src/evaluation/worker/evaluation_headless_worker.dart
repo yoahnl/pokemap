@@ -13,6 +13,7 @@ import '../runner/evaluation_checkpoint_cache.dart';
 import '../runner/evaluation_run_control.dart';
 import '../runner/evaluation_scenario_runner.dart';
 import '../scenario/evaluation_scenario_parser.dart';
+import '../../project_tree_digest.dart';
 import 'evaluation_worker_protocol.dart';
 import 'headless_worker_process.dart';
 
@@ -70,7 +71,13 @@ Future<EvaluationWorkerResult> _executeRequest(
   final scenarioSource = await scenarioFile.readAsString();
   final scenario = const EvaluationScenarioParser().parseString(scenarioSource);
   final projectRoot = Directory(p.join(hostRoot.path, request.projectRoot));
-  final projectTreeHash = await _treeDigest(projectRoot);
+  final projectTreeHash = await const ProjectTreeDigest().compute(projectRoot);
+  if (projectTreeHash != request.expectedProjectTreeHash) {
+    throw StateError(
+      'Evaluation project digest mismatch: expected '
+      '${request.expectedProjectTreeHash}, got $projectTreeHash.',
+    );
+  }
   final commit = await _gitHead(hostRoot);
   final evaluationCodeDigest = await _treeDigest(
     Directory(p.join(

@@ -390,7 +390,7 @@ BattleEngineSetup _setup({
   PsdkBattleMoveData? opponentMove,
   int protectPriority = 4,
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speed: playerSpeed,

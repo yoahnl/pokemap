@@ -38,11 +38,15 @@ import '../core/repository_providers.dart';
 /// - on réutilise les repositories/services existants ;
 /// - on ne crée pas un nouveau notifier ni une couche "future-proof" inutile.
 final pokemonReadRepositoryProvider = Provider<PokemonReadRepository>((ref) {
-  return const FilePokemonReadRepository();
+  return FilePokemonReadRepository(
+    reader: ref.watch(pokemonProjectDataReaderProvider),
+  );
 });
 
 final pokemonWriteRepositoryProvider = Provider<PokemonWriteRepository>((ref) {
-  return const FilePokemonWriteRepository();
+  return FilePokemonWriteRepository(
+    reader: ref.watch(pokemonProjectDataReaderProvider),
+  );
 });
 
 final pokemonExternalHttpClientProvider = Provider<http.Client>((ref) {
@@ -230,6 +234,7 @@ final importExternalPokemonSpeciesUseCaseProvider =
     externalSourceRepository:
         ref.watch(pokemonExternalSourceRepositoryProvider),
     writeRepository: ref.watch(pokemonWriteRepositoryProvider),
+    dataReader: ref.watch(pokemonProjectDataReaderProvider),
   );
 });
 

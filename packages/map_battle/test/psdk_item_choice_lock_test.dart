@@ -171,7 +171,7 @@ BattleEngineSetup _setup({
   PsdkBattleMoveHistory? playerMoveHistory,
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       heldItemId: playerHeldItemId,

@@ -237,9 +237,10 @@ void main() {
       final ordered = ordering.order(
         actions: <PsdkBattleAction>[opponentAction, playerAction],
         rng: BattleRngStreams.fromSeedSnapshot(_seeds),
+        rules: state.battleRules,
       );
 
-      expect(ordered.first.user.toJson(), psdkPlayerSlot.toJson());
+      expect(ordered.actions.first.user.toJson(), psdkPlayerSlot.toJson());
       expect((playerAction as PsdkBattleFightAction).speed, 120);
     });
 
@@ -644,7 +645,7 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
 }) {
   final engine = PsdkBattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: playerSpeciesId,
@@ -682,7 +683,7 @@ PsdkBattleState _state({
   int opponentSpeed = 50,
 }) {
   return PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: playerSpeciesId,
@@ -753,7 +754,7 @@ List<String> _currentChoices({
   required List<PsdkBattleMoveData> playerMoves,
 }) {
   final engine = BattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: PsdkBattleCombatantSetup(
         id: 'player',
         speciesId: 'player',

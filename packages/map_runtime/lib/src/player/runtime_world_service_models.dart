@@ -208,6 +208,7 @@ final class RuntimePcPokemonSnapshot {
     required this.targetId,
     required this.label,
     required this.speciesId,
+    this.formId = '',
     required this.level,
     required this.natureId,
     required this.abilityId,
@@ -244,6 +245,7 @@ final class RuntimePcPokemonSnapshot {
   final String targetId;
   final String label;
   final String speciesId;
+  final String formId;
   final int level;
   final String natureId;
   final String abilityId;

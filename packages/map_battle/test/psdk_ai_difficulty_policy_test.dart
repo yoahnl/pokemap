@@ -43,29 +43,25 @@ void main() {
 
       expect(advanced.createAi().canUseItem, isFalse);
       expect(
-        advanced
-            .createAi(
-              itemOptions: const <PsdkBattleAiItemOption>[
-                PsdkBattleAiItemOption.hpHeal(
-                  itemId: 'potion',
-                  amount: 20,
-                ),
-              ],
-            )
-            .canUseItem,
+        advanced.createAi(
+          itemOptions: const <PsdkBattleAiItemOption>[
+            PsdkBattleAiItemOption.hpHeal(
+              itemId: 'potion',
+              amount: 20,
+            ),
+          ],
+        ).canUseItem,
         isTrue,
       );
       expect(
-        psdkBattleAiPolicyForDifficulty(2)
-            .createAi(
-              itemOptions: const <PsdkBattleAiItemOption>[
-                PsdkBattleAiItemOption.hpHeal(
-                  itemId: 'potion',
-                  amount: 20,
-                ),
-              ],
-            )
-            .canUseItem,
+        psdkBattleAiPolicyForDifficulty(2).createAi(
+          itemOptions: const <PsdkBattleAiItemOption>[
+            PsdkBattleAiItemOption.hpHeal(
+              itemId: 'potion',
+              amount: 20,
+            ),
+          ],
+        ).canUseItem,
         isFalse,
       );
     });
@@ -127,7 +123,7 @@ PsdkBattleState _switchPressureState() {
   final player = PsdkBattleCombatant.fromSetup(
     _combatant(id: 'player', type: 'ghost'),
   );
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkOpponentSlot: active,
       psdkPlayerSlot: player,

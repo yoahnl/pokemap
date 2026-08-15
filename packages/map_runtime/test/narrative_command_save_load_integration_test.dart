@@ -95,6 +95,10 @@ void main() {
       SceneConsequence.healParty(),
       SceneConsequence.awardBadge(badgeId: 'badge_tide'),
       SceneConsequence.unlockFieldAbility(ability: FieldAbility.surf),
+      SceneConsequence.setPauseMenuEntryVisibility(
+        actionId: ProjectPauseActionId.pokedex,
+        visible: false,
+      ),
     ];
 
     final applied = writer.applyAll(state, consequences);
@@ -112,6 +116,13 @@ void main() {
     expect(
       restored.progression.unlockedFieldAbilities,
       <FieldAbility>[FieldAbility.surf],
+    );
+    expect(
+      restored.pauseMenuState.isActionVisible(
+        ProjectPauseActionId.pokedex,
+        projectDefaultVisibility: true,
+      ),
+      isFalse,
     );
     expect(replayed.gameState, restored);
   });

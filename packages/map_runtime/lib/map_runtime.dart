@@ -240,6 +240,7 @@ export 'src/application/runtime_battle_reward_resolver.dart'
 export 'src/application/runtime_post_battle_decision_coordinator.dart'
     show
         RuntimePostBattleRewardResolutionLoader,
+        RuntimePostBattlePlayerPokemonHydrator,
         RuntimePostBattleMessageKind,
         RuntimePostBattleMessage,
         RuntimePostBattleCoordinatorFailureCode,
@@ -249,13 +250,17 @@ export 'src/application/runtime_post_battle_decision_coordinator.dart'
         RuntimePostBattleDecisionCoordinator;
 export 'src/application/runtime_player_pokemon_progression_hydrator.dart'
     show
-        RuntimePlayerPokemonProgressionHydrationErrorCode,
         RuntimePlayerPokemonProgressionHydrationException,
         RuntimePlayerPokemonProgressionCatalogs,
         RuntimePlayerPokemonProgressionCatalogLoader,
         runtimeSupportedPokemonGrowthRateIds,
+        hydrateRuntimePlayerPokemon,
         hydrateRuntimePlayerPokemonProgression,
         loadRuntimePlayerPokemonProgressionCatalogs;
+export 'src/application/runtime_player_pokemon_grant.dart'
+    show applyRuntimePlayerPokemonGrant, transactRuntimePlayerPokemonGrant;
+export 'src/application/runtime_pokemon_species_loader.dart'
+    show RuntimePokemonSpeciesNotFoundException;
 export 'src/application/load_runtime_map_bundle.dart'
     show
         RuntimeMapBundleLoadProfile,

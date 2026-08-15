@@ -825,6 +825,7 @@ void _diagnoseConsequenceShape(
       }
     case SceneGivePokemonConsequence():
       if (consequence.speciesId.trim().isEmpty ||
+          consequence.formId.trim().isEmpty ||
           consequence.natureId.trim().isEmpty ||
           consequence.abilityId.trim().isEmpty) {
         diagnostics.add(
@@ -929,6 +930,8 @@ void _diagnoseConsequenceShape(
           ),
         );
       }
+    case SceneSetPauseMenuEntryVisibilityConsequence():
+      break;
     case SceneFinishGameConsequence():
       if (consequence.endingId.trim().isEmpty) {
         diagnostics.add(
@@ -1221,6 +1224,8 @@ void _diagnoseActionConsequenceAgainstProject(
           ),
         );
       }
+    case SceneSetPauseMenuEntryVisibilityConsequence():
+      break;
     case SceneFinishGameConsequence():
       break;
   }

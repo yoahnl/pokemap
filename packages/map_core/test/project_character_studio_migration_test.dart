@@ -6,7 +6,9 @@ import 'package:test/test.dart';
 void main() {
   group('Project character studio v6 migration', () {
     test('does not add studio keys when a legacy project is serialized', () {
-      final manifest = ProjectManifest.fromJson(_legacyProjectJson());
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _legacyProjectJson(),
+      );
 
       final json = manifest.toJson();
       final character = (json['characters'] as List<Object?>).single as Map;
@@ -26,7 +28,7 @@ void main() {
       character['portraits'] = null;
       character['customAnimations'] = null;
 
-      final manifest = ProjectManifest.fromJson(json);
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
       expect(
         manifest.characterStudioCatalog,
@@ -79,7 +81,7 @@ void main() {
       );
 
       final encoded = jsonDecode(jsonEncode(manifest.toJson()));
-      final decoded = ProjectManifest.fromJson(
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         Map<String, dynamic>.from(encoded as Map),
       );
 
@@ -114,7 +116,7 @@ void main() {
       final character = (json['characters'] as List<Object?>).single as Map;
       character['futureCharacterField'] = 'ignored';
 
-      final manifest = ProjectManifest.fromJson(json);
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
       expect(manifest.characterStudioCatalog.portraitStates, isEmpty);
       expect(manifest.characters.single.id, 'hero');

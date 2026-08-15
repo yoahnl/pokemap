@@ -164,7 +164,7 @@ void main() {
     });
 
     test('active Uproar prevents sleep from being applied', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -440,7 +440,7 @@ void main() {
     test('s_2turns release can damage every adjacent foe target', () {
       final result = const PsdkBattleMoveExecutor().execute(
         PsdkBattleMoveRequest(
-          state: PsdkBattleState(
+          state: PsdkBattleState.pokeMapBetaV1ForTest(
             combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
               psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
                 _combatant(
@@ -541,7 +541,7 @@ void main() {
 
     test('s_sky_drop prevents the carried target same-turn action', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -587,7 +587,7 @@ void main() {
     test('s_sky_drop keeps a faster carried target from acting before release',
         () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 1,
@@ -694,7 +694,7 @@ PsdkBattleEngine _engine({
   int genericSeed = 4,
 }) {
   return PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speed: 100,

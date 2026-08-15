@@ -577,7 +577,6 @@ void main() {
       bundle: _bundle(),
       projectFilePath: '/tmp/post-battle/project.json',
       saveData: saveDataFromGameState(capture.updatedGameState),
-      postBattleDecisionCoordinator: RuntimePostBattleDecisionCoordinator(),
       runtimePlayerPokemonProgressionCatalogLoader: _loadCatalogs,
       beforePostBattleStateCommit: () {
         if (failCommit) throw StateError('capture commit failed');
@@ -608,6 +607,7 @@ void main() {
 
     expect(game.gameStateSnapshot.party.members, hasLength(2));
     expect(game.gameStateSnapshot.party.members.last.speciesId, 'foe');
+    expect(game.gameStateSnapshot.party.members.last.experience, 1000);
     expect(game.debugFlowPhaseName, 'overworld');
     expect(game.debugIsBattleResolving, isFalse);
   });
@@ -618,7 +618,7 @@ final class _TestPlayableMapGame extends PlayableMapGame {
     required super.bundle,
     required super.projectFilePath,
     required super.saveData,
-    required super.postBattleDecisionCoordinator,
+    super.postBattleDecisionCoordinator,
     required super.runtimePlayerPokemonProgressionCatalogLoader,
     super.saveRepository,
     super.dialogueSessionLoader,
@@ -731,7 +731,7 @@ RuntimeBattleCaptureAttemptSubmission<BattleSession>
     itemId: canonicalPokeBallItemId,
     itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     submitToEngine: () => createBattleSession(
-      const BattleSetup(
+      const BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'hero',
           level: 5,
@@ -781,13 +781,43 @@ Future<RuntimePlayerPokemonProgressionCatalogs> _loadCatalogs({
   required ProjectPokemonConfig pokemonConfig,
 }) async {
   return const RuntimePlayerPokemonProgressionCatalogs(
-    growthRateIdBySpeciesId: <String, String>{'hero': 'medium'},
+    speciesById: <String, PlayerPokemonHydrationSpecies>{
+      'hero': PlayerPokemonHydrationSpecies(
+        id: 'hero',
+        baseStats: PokemonBaseStats(
+          hp: 45,
+          attack: 49,
+          defense: 49,
+          specialAttack: 65,
+          specialDefense: 65,
+          speed: 45,
+        ),
+        primaryAbilityId: 'hero_power',
+        abilityIds: <String>['hero_power'],
+        growthRateId: 'medium',
+      ),
+      'foe': PlayerPokemonHydrationSpecies(
+        id: 'foe',
+        baseStats: PokemonBaseStats(
+          hp: 45,
+          attack: 49,
+          defense: 49,
+          specialAttack: 65,
+          specialDefense: 65,
+          speed: 45,
+        ),
+        primaryAbilityId: 'foe_power',
+        abilityIds: <String>['foe_power'],
+        growthRateId: 'medium',
+      ),
+    },
     maxPpByMoveId: <String, int>{
       'tackle': 35,
       'growl': 40,
       'tail_whip': 30,
       'focus_energy': 30,
       'quick_attack': 30,
+      'wait': 35,
     },
   );
 }
@@ -836,6 +866,7 @@ Future<RuntimeBattleRewardResolution> _pendingMoveResolution({
     money: 100,
   );
   final context = BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: const <BattleProgressionDefeatedOpponent>[
@@ -1144,6 +1175,7 @@ RuntimeMapBundle _bundleWithTrainerLifecycle({
         ),
       ],
       pokemon: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         speciesDir: 'data/pokemon/species',
         learnsetsDir: 'data/pokemon/learnsets',
         catalogFiles: <String, String>{

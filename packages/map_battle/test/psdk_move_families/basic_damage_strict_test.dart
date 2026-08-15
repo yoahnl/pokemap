@@ -171,7 +171,7 @@ PsdkBattleSetup _setup({
     generic: 4,
   ),
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       hp: playerHp,

@@ -13,6 +13,8 @@ abstract interface class RuntimeGameSource {
 
   String get displayTitle;
 
+  Set<ProjectPauseActionId> get defaultVisiblePauseActions;
+
   Future<GameSessionDescriptor> createSessionDescriptor({
     required GameSessionLaunchMode launchMode,
     required String profileId,

@@ -10,6 +10,7 @@ final class EvaluationWorkerRequest extends EvaluationWorkerMessage {
   EvaluationWorkerRequest._({
     required this.runId,
     required this.projectRoot,
+    required this.expectedProjectTreeHash,
     required this.scenarioPath,
     required this.outputDirectory,
   });
@@ -17,12 +18,17 @@ final class EvaluationWorkerRequest extends EvaluationWorkerMessage {
   factory EvaluationWorkerRequest.run({
     required String runId,
     required String projectRoot,
+    required String expectedProjectTreeHash,
     required String scenarioPath,
     required String outputDirectory,
   }) {
     return EvaluationWorkerRequest._(
       runId: _nonBlank(runId, 'runId'),
       projectRoot: _portablePath(projectRoot, 'projectRoot'),
+      expectedProjectTreeHash: _sha256(
+        expectedProjectTreeHash,
+        'expectedProjectTreeHash',
+      ),
       scenarioPath: _portablePath(scenarioPath, 'scenarioPath'),
       outputDirectory: _portablePath(outputDirectory, 'outputDirectory'),
     );
@@ -36,6 +42,7 @@ final class EvaluationWorkerRequest extends EvaluationWorkerMessage {
         'messageType',
         'runId',
         'projectRoot',
+        'expectedProjectTreeHash',
         'scenarioPath',
         'outputDirectory',
       },
@@ -47,15 +54,20 @@ final class EvaluationWorkerRequest extends EvaluationWorkerMessage {
     return EvaluationWorkerRequest.run(
       runId: _string(json['runId'], 'runId'),
       projectRoot: _string(json['projectRoot'], 'projectRoot'),
+      expectedProjectTreeHash: _string(
+        json['expectedProjectTreeHash'],
+        'expectedProjectTreeHash',
+      ),
       scenarioPath: _string(json['scenarioPath'], 'scenarioPath'),
       outputDirectory: _string(json['outputDirectory'], 'outputDirectory'),
     );
   }
 
-  static const schemaVersion = 1;
+  static const schemaVersion = 2;
 
   final String runId;
   final String projectRoot;
+  final String expectedProjectTreeHash;
   final String scenarioPath;
   final String outputDirectory;
 
@@ -66,6 +78,7 @@ final class EvaluationWorkerRequest extends EvaluationWorkerMessage {
       'messageType': 'run',
       'runId': runId,
       'projectRoot': projectRoot,
+      'expectedProjectTreeHash': expectedProjectTreeHash,
       'scenarioPath': scenarioPath,
       'outputDirectory': outputDirectory,
     };
@@ -76,6 +89,7 @@ final class EvaluationWorkerRequest extends EvaluationWorkerMessage {
     return other is EvaluationWorkerRequest &&
         other.runId == runId &&
         other.projectRoot == projectRoot &&
+        other.expectedProjectTreeHash == expectedProjectTreeHash &&
         other.scenarioPath == scenarioPath &&
         other.outputDirectory == outputDirectory;
   }
@@ -84,6 +98,7 @@ final class EvaluationWorkerRequest extends EvaluationWorkerMessage {
   int get hashCode => Object.hash(
         runId,
         projectRoot,
+        expectedProjectTreeHash,
         scenarioPath,
         outputDirectory,
       );
@@ -252,6 +267,13 @@ String _string(Object? value, String name) {
 String _nonBlank(String value, String name) {
   if (value.trim().isEmpty) {
     throw ArgumentError.value(value, name, 'Value must not be blank.');
+  }
+  return value;
+}
+
+String _sha256(String value, String name) {
+  if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(value)) {
+    throw ArgumentError.value(value, name, 'Expected a lowercase SHA-256.');
   }
   return value;
 }

@@ -11,6 +11,7 @@ import '../interactive/interactive_worker_client.dart';
 import '../runner/evaluation_run_control.dart';
 import '../scenario/evaluation_scenario_parser.dart';
 import '../worker/evaluation_worker_protocol.dart';
+import '../../project_tree_digest.dart';
 import 'evaluation_run_store.dart';
 import 'evaluation_web_server.dart';
 import 'evaluation_worker_pool.dart';
@@ -348,6 +349,9 @@ final class LocalEvaluationWebOrchestrator extends EvaluationWebOrchestrator {
       final request = EvaluationWorkerRequest.run(
         runId: runId,
         projectRoot: entry.scenario.projectId,
+        expectedProjectTreeHash: await const ProjectTreeDigest().compute(
+          Directory(p.join(repositoryRoot.path, entry.scenario.projectId)),
+        ),
         scenarioPath: _portableRelativePath(entry.file),
         outputDirectory: outputDirectory,
       );

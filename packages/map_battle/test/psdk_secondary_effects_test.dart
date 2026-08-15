@@ -339,7 +339,7 @@ BattleEngineTurnResult _runPlayerMove(
   ),
 }) {
   final engine = BattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speed: 100,

@@ -102,7 +102,7 @@ PsdkBattleSetup _setup({
   List<PsdkBattleCombatantSetup> opponentReserves =
       const <PsdkBattleCombatantSetup>[],
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       level: 40,

@@ -48,6 +48,7 @@ void main() {
     await _write(root, 'build/output.bin', 'ignored');
     await _write(root, 'saves/save.json', 'ignored');
     await _write(root, '.dart_tool/cache.bin', 'ignored');
+    await _write(root, '.pokemap/workspace.json', 'ignored');
     await _write(root, '.pokemap-project-local.lock', 'ignored');
 
     expect(await const ProjectTreeDigest().compute(root), before);

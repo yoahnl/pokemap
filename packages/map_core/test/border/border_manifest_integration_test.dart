@@ -8,7 +8,9 @@ void main() {
     test('v6 manifest defaults to an empty catalog without JSON churn', () {
       final projectJson = _minimalManifestJson();
 
-      final manifest = ProjectManifest.fromJson(projectJson);
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        projectJson,
+      );
       final encoded = manifest.toJson();
 
       expect(manifest.version, ProjectVersion.v6);
@@ -25,7 +27,7 @@ void main() {
           'visualSnapshots': <Object?>[],
         };
 
-      final manifest = ProjectManifest.fromJson(json);
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
       expect(manifest.borderCatalog.isEmpty, isTrue);
       expect(manifest.toJson().containsKey('borderCatalog'), isFalse);
@@ -39,7 +41,7 @@ void main() {
           'visualSnapshots': <Object?>[],
         };
 
-      final manifest = ProjectManifest.fromJson(json);
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
       final encoded = manifest.toJson();
 
       expect(
@@ -48,7 +50,9 @@ void main() {
       );
       expect(encoded['borderCatalog'], json['borderCatalog']);
       expect(
-        ProjectManifest.fromJson(encoded).borderCatalog.formatVersion,
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+          encoded,
+        ).borderCatalog.formatVersion,
         ProjectBorderCatalog.formatVersionV2,
       );
     });
@@ -69,7 +73,7 @@ void main() {
       ]) {
         final json = _minimalManifestJson()..['borderCatalog'] = invalid;
         expect(
-          () => ProjectManifest.fromJson(json),
+          () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(json),
           _formatAt(expectedPath),
           reason: '$invalid',
         );
@@ -90,7 +94,7 @@ void main() {
 
       final encoded = manifest.toJson();
       final wire = jsonDecode(jsonEncode(encoded)) as Map<String, dynamic>;
-      final decoded = ProjectManifest.fromJson(wire);
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(wire);
 
       expect(encoded['version'], 'v6');
       expect(encoded['borderCatalog'], encodeProjectBorderCatalogJson(catalog));
@@ -118,26 +122,26 @@ void main() {
 }
 
 Map<String, dynamic> _minimalManifestJson() => <String, dynamic>{
-      'name': 'Project',
-      'version': 'v6',
-      'maps': <Object?>[],
-      'tilesets': <Object?>[],
-    };
+  'name': 'Project',
+  'version': 'v6',
+  'maps': <Object?>[],
+  'tilesets': <Object?>[],
+};
 
 Matcher _formatAt(String path) => throwsA(
-      isA<FormatException>().having(
-        (error) => error.message,
-        'message',
-        startsWith('$path:'),
-      ),
-    );
+  isA<FormatException>().having(
+    (error) => error.message,
+    'message',
+    startsWith('$path:'),
+  ),
+);
 
 BorderBlueprintRecord _record(String id) => BorderBlueprintRecord(
-      id: id,
-      draft: BorderBlueprintDraft(
-        baseRevision: 0,
-        definition:
-            BorderBlueprintDefinition<BorderPrimitiveDraft, BorderGroundDraft>(
+  id: id,
+  draft: BorderBlueprintDraft(
+    baseRevision: 0,
+    definition:
+        BorderBlueprintDefinition<BorderPrimitiveDraft, BorderGroundDraft>(
           name: 'Border $id',
           previewSeed: BorderSignedInt64.zero,
           template: BorderBlueprintTemplate.organicEdge,
@@ -152,5 +156,5 @@ BorderBlueprintRecord _record(String id) => BorderBlueprintRecord(
           ),
           sortOrder: 0,
         ),
-      ),
-    );
+  ),
+);

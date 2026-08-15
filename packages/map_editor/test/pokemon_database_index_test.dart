@@ -26,7 +26,7 @@ void main() {
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
     projectRepository = FileProjectRepository();
-    pokemonReadRepository = const FilePokemonReadRepository();
+    pokemonReadRepository = FilePokemonReadRepository();
     indexService = PokemonDatabaseIndex(
       projectRepository: projectRepository,
       pokemonReadRepository: pokemonReadRepository,
@@ -35,7 +35,9 @@ void main() {
       projectRepository,
       const FileProjectWorkspaceFactory(),
     );
-    seedUseCase = const SeedPokemonDemoDataUseCase();
+    seedUseCase = SeedPokemonDemoDataUseCase(
+      snapshotController: pokemonReadRepository,
+    );
   });
 
   tearDown(() async {

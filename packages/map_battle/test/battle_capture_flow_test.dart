@@ -181,7 +181,7 @@ BattleSetup _legacySetup({
   BattleMajorStatusState? enemyStatus,
   bool isTrainerBattle = false,
 }) {
-  return BattleSetup(
+  return BattleSetup.pokeMapBetaV1ForTest(
     playerPokemon: BattleCombatantData(
       speciesId: 'player',
       level: 10,
@@ -217,7 +217,7 @@ BattleEngineSetup _psdkSetup({
   bool isTrainerBattle = false,
   bool canCapture = true,
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _psdkCombatant(id: 'player_0', speciesId: 'player'),
     opponent: _psdkCombatant(
       id: 'opponent_0',

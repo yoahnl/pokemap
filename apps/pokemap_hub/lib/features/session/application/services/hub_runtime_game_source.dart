@@ -37,6 +37,24 @@ final class HubRuntimeGameSource implements RuntimeGameSource {
   String get displayTitle => _launch.manifest.title;
 
   @override
+  Set<ProjectPauseActionId> get defaultVisiblePauseActions {
+    final actions = _launch.manifest.presentation?.pause?.actions;
+    if (actions == null) {
+      return Set<ProjectPauseActionId>.unmodifiable(
+        ProjectPauseActionId.values,
+      );
+    }
+    return Set<ProjectPauseActionId>.unmodifiable(<ProjectPauseActionId>{
+      ProjectPauseActionId.resume,
+      for (final action in actions)
+        if (action.visible)
+          ProjectPauseActionId.values.firstWhere(
+            (candidate) => candidate.name == action.id,
+          ),
+    });
+  }
+
+  @override
   Future<GameSessionDescriptor> createSessionDescriptor({
     required GameSessionLaunchMode launchMode,
     required String profileId,

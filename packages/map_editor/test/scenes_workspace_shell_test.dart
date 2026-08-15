@@ -975,6 +975,7 @@ void main() {
                   primaryName: 'Sproutle',
                   genIntroduced: 1,
                   types: ['grass'],
+                  formIds: ['base', 'sunny'],
                   isEnabledInProject: true,
                   refs: PokemonDatabaseIndexRefs(
                     learnset: 'learnsets/sproutle.json',
@@ -1021,6 +1022,13 @@ void main() {
             const ValueKey('scene-consequence-species-option-species_sproutle'),
           ),
         );
+        final formPicker = tester.widget<PokeMapDropdownField<String>>(
+          find.byKey(
+            const ValueKey('scene-consequence-pokemon-form-picker'),
+          ),
+        );
+        formPicker.onChanged('sunny');
+        await tester.pump();
         await tester.enterText(
           find.descendant(
             of: find.byKey(
@@ -1104,6 +1112,7 @@ void main() {
             (node.payload as SceneActionPayload).consequence
                 as SceneGivePokemonConsequence;
         expect(consequence.speciesId, 'species_sproutle');
+        expect(consequence.formId, 'sunny');
         expect(consequence.level, 7);
         expect(consequence.currentHp, 23);
         expect(consequence.nickname, 'Mousse');
@@ -1480,6 +1489,7 @@ void main() {
           project: _projectWithGameplayConsequenceActionScene(
             SceneConsequence.givePokemon(
               speciesId: 'species_sproutle',
+              formId: 'sunny',
               level: 5,
               currentHp: 20,
             ),
@@ -1501,6 +1511,7 @@ void main() {
                   primaryName: 'Sproutle',
                   genIntroduced: 1,
                   types: ['grass'],
+                  formIds: ['base', 'sunny'],
                   isEnabledInProject: true,
                   refs: PokemonDatabaseIndexRefs(
                     learnset: 'learnsets/sproutle.json',
@@ -1518,6 +1529,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.text('Sproutle'), findsOneWidget);
+        expect(find.text('Sunny'), findsOneWidget);
         expect(find.text('species_sproutle'), findsNothing);
 
         await tester.tap(
@@ -1570,6 +1582,7 @@ void main() {
                     .consequence
                 as SceneGivePokemonConsequence;
         expect(consequence.speciesId, 'species_sproutle');
+        expect(consequence.formId, 'sunny');
         expect(consequence.level, 8);
         expect(consequence.currentHp, 27);
       },

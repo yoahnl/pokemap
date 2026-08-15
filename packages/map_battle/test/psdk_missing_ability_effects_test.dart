@@ -276,7 +276,7 @@ void main() {
 
     test('Emergency Exit wild flee propagates through the battle engine', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           canFlee: true,
           player: _combatant(
             id: 'player',
@@ -449,7 +449,7 @@ void main() {
 
     test('Dancer immediately replays dance moves without PP or history', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             move: _move(id: 'fiery_dance', power: 40).psdk.copyWith(
@@ -504,7 +504,7 @@ void main() {
 
     test('Color Change waits until the final successful multi-hit damage', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             move: _move(
@@ -546,7 +546,7 @@ void main() {
 
     test('Dancer replay does not lock Thrash-style dance moves', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             move: _move(
@@ -953,7 +953,7 @@ void main() {
     test('Parental Bond adds a weaker second hit for simple damaging moves',
         () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'parental_bond',
@@ -985,7 +985,7 @@ void main() {
 
     test('Parental Bond skips excluded one-attack methods', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'parental_bond',
@@ -1099,7 +1099,7 @@ PsdkBattleState _singlesState({
       const <PsdkBattleCombatantSetup>[],
 }) {
   return PsdkBattleState.fromSetup(
-    PsdkBattleSetup.singles(
+    PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         abilityId: playerAbilityId,
@@ -1135,7 +1135,7 @@ PsdkBattleState _doublesState({
   int opponentSpeed = 80,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -1170,7 +1170,7 @@ PsdkBattleState _commanderState({
   bool tatsugiriSwitching = false,
   bool dondozoSwitching = false,
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(

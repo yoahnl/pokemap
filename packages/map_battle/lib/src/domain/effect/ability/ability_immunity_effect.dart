@@ -258,6 +258,7 @@ final class WonderGuardEffect extends BattleAbilityEffect {
     }
     final target = context.state.battlerAt(context.target);
     final effectiveness = _typeProcessor.resolveEffectiveness(
+      rules: context.state.battleRules,
       moveType: context.move.type.toLowerCase(),
       targetTypes: target.types,
       extraTargetTypes: _extraTypes(target),

@@ -108,7 +108,7 @@ BattleSession _session({
   bool isTrainerBattle = false,
 }) {
   return createBattleSession(
-    BattleSetup(
+    BattleSetup.pokeMapBetaV1ForTest(
       playerPokemon: player,
       playerReservePokemon: playerReserve,
       enemyPokemon: enemy,
@@ -148,7 +148,8 @@ void main() {
           afterTurn.state.currentTurn!.spikesEvents.single.layers, equals(1));
     });
 
-    test('records Spikes layer growth after the move execution in timeline order',
+    test(
+        'records Spikes layer growth after the move execution in timeline order',
         () {
       final session = _session(
         player: _combatantData(

@@ -94,7 +94,7 @@ class PsdkGoldenFixture {
   final List<String> notes;
 
   PsdkBattleSetup toPsdkSetup() {
-    return PsdkBattleSetup.singles(
+    return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: initialBattle.player.toSetup(),
       opponent: initialBattle.opponent.toSetup(),
       rngSeeds: initialBattle.rngSeeds,

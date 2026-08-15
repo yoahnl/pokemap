@@ -58,7 +58,7 @@ void main() {
     });
 
     test('end-turn move effects damage cursed battlers and heal Aqua Ring', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(

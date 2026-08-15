@@ -148,7 +148,7 @@ void main() {
 
     test('BattleEngine can use PSDK AI for the opponent move choice', () {
       final engine = BattleEngine(
-        setup: BattleEngineSetup.singles(
+        setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _setupCombatant(
             id: 'player',
             hp: 120,
@@ -187,7 +187,7 @@ void main() {
 
     test('BattleSessionFacade can use PSDK AI for the opponent move choice',
         () {
-      final setup = PsdkBattleSetup.singles(
+      final setup = PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
         player: _setupCombatant(
           id: 'player',
           hp: 120,
@@ -249,7 +249,7 @@ PsdkBattleState _state({
   required PsdkBattleCombatantSetup user,
   required PsdkBattleCombatantSetup target,
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkOpponentSlot: PsdkBattleCombatant.fromSetup(user),
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(target),

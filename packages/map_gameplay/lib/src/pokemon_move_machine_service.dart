@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'items/bag_operation_result.dart';
 import 'items/bag_operations.dart';
 import 'items/item_catalog_snapshot.dart';
+import 'pokemon_gameplay_rules.dart';
 
 const _maximumKnownMoveCount = 4;
 
@@ -113,11 +114,13 @@ final class PokemonMoveMachineService {
 
   PokemonMoveMachineUseResult apply(
     GameState state, {
+    required PokemonRulesetProfile ruleset,
     required int partyIndex,
     required PokemonMoveMachineCandidate candidate,
     required PokemonMoveMachineDecision decision,
     required ItemCatalogSnapshot itemCatalog,
   }) {
+    PokemonGameplayRules.fromProfile(ruleset).requireMoveMachineSupported();
     if (decision is DeclinePokemonMoveMachineDecision) {
       return PokemonMoveMachineUseResult(
         state: state,

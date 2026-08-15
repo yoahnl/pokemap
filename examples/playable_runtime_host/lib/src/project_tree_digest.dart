@@ -62,6 +62,7 @@ bool _isExcluded(String relativePath) {
     (part) =>
         part == '.git' ||
         part == '.dart_tool' ||
+        part == '.pokemap' ||
         part == 'build' ||
         part == 'saves',
   )) {

@@ -507,9 +507,35 @@ Future<RuntimePlayerPokemonProgressionCatalogs>
   required ProjectPokemonConfig pokemonConfig,
 }) async {
   return const RuntimePlayerPokemonProgressionCatalogs(
-    growthRateIdBySpeciesId: <String, String>{
-      'aquafi': 'medium_slow',
-      'sproutle': 'medium_slow',
+    speciesById: <String, PlayerPokemonHydrationSpecies>{
+      'aquafi': PlayerPokemonHydrationSpecies(
+        id: 'aquafi',
+        baseStats: PokemonBaseStats(
+          hp: 44,
+          attack: 48,
+          defense: 65,
+          specialAttack: 50,
+          specialDefense: 64,
+          speed: 43,
+        ),
+        primaryAbilityId: 'torrent',
+        abilityIds: <String>['torrent'],
+        growthRateId: 'medium_slow',
+      ),
+      'sproutle': PlayerPokemonHydrationSpecies(
+        id: 'sproutle',
+        baseStats: PokemonBaseStats(
+          hp: 45,
+          attack: 49,
+          defense: 49,
+          specialAttack: 65,
+          specialDefense: 65,
+          speed: 45,
+        ),
+        primaryAbilityId: 'overgrow',
+        abilityIds: <String>['overgrow'],
+        growthRateId: 'medium_slow',
+      ),
     },
     maxPpByMoveId: <String, int>{
       'surf': 15,

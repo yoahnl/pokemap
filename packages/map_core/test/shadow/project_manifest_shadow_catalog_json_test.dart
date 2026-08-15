@@ -6,7 +6,9 @@ import 'package:test/test.dart';
 void main() {
   group('ProjectManifest.shadowCatalog JSON', () {
     test('decodes legacy manifest JSON without shadowCatalog as empty', () {
-      final manifest = ProjectManifest.fromJson(_manifestJson());
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _manifestJson(),
+      );
 
       expect(manifest.shadowCatalog, ProjectShadowCatalog());
       expect(manifest.shadowCatalog.isEmpty, isTrue);
@@ -18,7 +20,7 @@ void main() {
         <String, Object?>{},
         <String, Object?>{'profiles': <Object?>[]},
       ]) {
-        final manifest = ProjectManifest.fromJson(
+        final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(shadowCatalog: shadowCatalog),
         );
 
@@ -28,7 +30,7 @@ void main() {
     });
 
     test('decodes a complete shadow catalog', () {
-      final manifest = ProjectManifest.fromJson(
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         _manifestJson(shadowCatalog: _catalogJson()),
       );
 
@@ -54,9 +56,7 @@ void main() {
     test('toJson encodes an empty shadow catalog canonically', () {
       final json = _manifest().toJson();
 
-      expect(json['shadowCatalog'], <String, Object?>{
-        'profiles': <Object?>[],
-      });
+      expect(json['shadowCatalog'], <String, Object?>{'profiles': <Object?>[]});
     });
 
     test('copyWith replaces shadowCatalog', () {
@@ -69,13 +69,13 @@ void main() {
 
     test('rejects invalid shadow catalogs', () {
       expect(
-        () => ProjectManifest.fromJson(
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(shadowCatalog: 'invalid'),
         ),
         throwsA(isA<ValidationException>()),
       );
       expect(
-        () => ProjectManifest.fromJson(
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(
             shadowCatalog: <String, Object?>{'profiles': 'invalid'},
           ),
@@ -83,7 +83,7 @@ void main() {
         throwsA(isA<ValidationException>()),
       );
       expect(
-        () => ProjectManifest.fromJson(
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(
             shadowCatalog: <String, Object?>{
               'profiles': <Object?>['invalid'],
@@ -96,7 +96,7 @@ void main() {
 
     test('rejects duplicate and invalid profiles', () {
       expect(
-        () => ProjectManifest.fromJson(
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(
             shadowCatalog: <String, Object?>{
               'profiles': <Object?>[
@@ -109,7 +109,7 @@ void main() {
         throwsA(isA<ValidationException>()),
       );
       expect(
-        () => ProjectManifest.fromJson(
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(
             shadowCatalog: <String, Object?>{
               'profiles': <Object?>[
@@ -128,24 +128,20 @@ void main() {
 
     test('rejects unknown enums and runtimeBlur softnessMode', () {
       expect(
-        () => ProjectManifest.fromJson(
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(
             shadowCatalog: <String, Object?>{
-              'profiles': <Object?>[
-                _profileJson(mode: 'projectedQuad'),
-              ],
+              'profiles': <Object?>[_profileJson(mode: 'projectedQuad')],
             },
           ),
         ),
         throwsA(isA<ValidationException>()),
       );
       expect(
-        () => ProjectManifest.fromJson(
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(
             shadowCatalog: <String, Object?>{
-              'profiles': <Object?>[
-                _profileJson(softnessMode: 'runtimeBlur'),
-              ],
+              'profiles': <Object?>[_profileJson(softnessMode: 'runtimeBlur')],
             },
           ),
         ),
@@ -154,7 +150,7 @@ void main() {
     });
 
     test('preserves ProjectElementEntry.shadow alongside shadowCatalog', () {
-      final manifest = ProjectManifest.fromJson(
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         _manifestJson(
           shadowCatalog: _catalogJson(),
           elements: <Object?>[
@@ -185,7 +181,7 @@ void main() {
         ],
       );
 
-      final decoded = ProjectManifest.fromJson(
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         jsonDecode(jsonEncode(manifest.toJson())) as Map<String, dynamic>,
       );
 
@@ -277,11 +273,7 @@ ProjectElementEntry _element({ProjectElementShadowConfig? shadow}) {
     name: 'Tree',
     tilesetId: 'tileset',
     categoryId: 'nature',
-    frames: const [
-      TilesetVisualFrame(
-        source: TilesetSourceRect(x: 0, y: 0),
-      ),
-    ],
+    frames: const [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
     shadow: shadow,
   );
 }

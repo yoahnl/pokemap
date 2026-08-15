@@ -788,7 +788,7 @@ PsdkBattleTurnResult _runPlayerMove({
   BattleRngSeeds rngSeeds = _seeds,
 }) {
   final engine = PsdkBattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         heldItemId: playerHeldItemId,
@@ -803,6 +803,7 @@ PsdkBattleTurnResult _runPlayerMove({
         types: opponentTypes,
         currentHp: opponentCurrentHp,
         maxHp: opponentMaxHp,
+        speed: 49,
         move: _move(id: 'opponent_wait', type: 'normal', power: 0),
       ),
       rngSeeds: rngSeeds.psdkSeeds,
@@ -935,7 +936,7 @@ PsdkBattleState _state({
   PsdkBattleWeatherId? weather,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         heldItemId: playerHeldItemId,
@@ -981,6 +982,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   int maxHp = 100,
   int currentHp = 100,
+  int speed = 50,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -990,12 +992,12 @@ PsdkBattleCombatantSetup _combatant({
     maxHp: maxHp,
     currentHp: currentHp,
     types: types,
-    stats: const PsdkBattleStats(
+    stats: PsdkBattleStats(
       attack: 50,
       defense: 50,
       specialAttack: 50,
       specialDefense: 50,
-      speed: 50,
+      speed: speed,
     ),
     heldItemId: heldItemId,
     consumedItemId: consumedItemId,

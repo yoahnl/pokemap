@@ -179,6 +179,72 @@ void main() {
     );
   });
 
+  test('a narrative visibility override removes and guards the pause action',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.pauseMenuState =
+        const PlayerPauseMenuState.empty().setActionVisibility(
+      ProjectPauseActionId.pokedex,
+      visible: false,
+    );
+    harness.adapter.pauseDetails =
+        <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{
+      RuntimePlayerPauseSection.pokedex: RuntimePlayerPauseDetailSnapshot(
+        section: RuntimePlayerPauseSection.pokedex,
+        title: 'Pokédex',
+      ),
+    };
+
+    await _openMenu(harness);
+    final revision = harness.coordinator.snapshot.revision;
+
+    expect(
+      harness.coordinator.snapshot.actions.map((entry) => entry.action),
+      isNot(contains(RuntimePlayerAction.openPokedex)),
+    );
+    expect(
+      harness.coordinator.snapshot.pauseMenuState,
+      harness.adapter.pauseMenuState,
+    );
+    final direct = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.openPokedex,
+        snapshotRevision: revision,
+      ),
+    );
+    expect(direct.status, RuntimePlayerCommandStatus.unavailable);
+    expect(harness.coordinator.snapshot.revision, revision);
+  });
+
+  test('a save override can reveal an entry hidden by the project default',
+      () async {
+    final harness = RuntimePlayerTestHarness(
+      defaultVisiblePauseActions: ProjectPauseActionId.values
+          .where((actionId) => actionId != ProjectPauseActionId.pokedex)
+          .toSet(),
+    );
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    harness.adapter.pauseMenuState =
+        const PlayerPauseMenuState.empty().setActionVisibility(
+      ProjectPauseActionId.pokedex,
+      visible: true,
+    );
+
+    await _openMenu(harness);
+
+    expect(
+      harness.coordinator.snapshot.actions.map((entry) => entry.action),
+      contains(RuntimePlayerAction.openPokedex),
+    );
+    expect(
+      harness.coordinator.snapshot.actions.map((entry) => entry.action),
+      contains(RuntimePlayerAction.resume),
+    );
+  });
+
   test('navigates to a detail section and returns to the pause root', () async {
     final harness = RuntimePlayerTestHarness();
     addTearDown(harness.dispose);

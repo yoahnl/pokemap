@@ -44,6 +44,10 @@ void main() {
       expect(result.state.party.members[0].currentHp, 17);
       expect(result.state.party.members[1], state.party.members[1]);
       expect(result.changes.single.calculatedStats.attack, 10);
+      expect(
+        result.rulesetReference,
+        PokemonRulesetProfile.pokeMapBetaV1Reference,
+      );
     });
 
     test('uses a 1.5 trainer multiplier and equal participant split', () {
@@ -304,6 +308,7 @@ void main() {
       ];
 
       final result = BattleProgressionResult(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         state: applied.state,
         appliedReward: applied.appliedReward,
         changes: sourceChanges,
@@ -349,6 +354,7 @@ BattleProgressionContext _context({
   ],
 }) {
   return BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: outcome,
     playerParticipantPartySlots: participants,
     defeatedOpponents: opponents,

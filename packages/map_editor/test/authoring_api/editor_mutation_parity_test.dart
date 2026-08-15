@@ -94,6 +94,50 @@ void main() {
       }
     });
 
+    test('editor persists a typed pause menu visibility consequence',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final projectPath = p.join(fixture.root.path, 'project.json');
+      await FileProjectRepository().saveProject(
+        fixture.project.copyWith(
+          scenes: <SceneAsset>[_pauseMenuVisibilityScene()],
+        ),
+        projectPath,
+      );
+
+      final plan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'scene.pause_menu_visibility.set',
+        parameters: const <String, Object?>{
+          'sceneId': 'intro_scene',
+          'nodeId': 'action',
+          'actionId': 'pokedex',
+          'visible': false,
+        },
+        idempotencyKey: 'editor-pause-menu-visibility',
+      );
+      final applied = await fixture.mutations.apply(
+        plan,
+        operationId: 'editor-pause-menu-visibility',
+      );
+      final durable = await FileProjectRepository().loadProject(projectPath);
+      final consequence = (durable.scenes.single.graph.nodes
+              .singleWhere((node) => node.id == 'action')
+              .payload as SceneActionPayload)
+          .consequence;
+
+      expect(applied.receipt.actionId, 'scene.pause_menu_visibility.set');
+      expect(applied.receipt.status, AuthoringReceiptStatus.applied);
+      expect(
+        consequence,
+        SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: ProjectPauseActionId.pokedex,
+          visible: false,
+        ),
+      );
+    });
+
     test('editor executes every cinematic library catalog action', () async {
       final fixture = await _MutationFixture.create();
       addTearDown(fixture.dispose);
@@ -134,8 +178,9 @@ void main() {
         final confirmationToken = switch (actionId) {
           'cinematicLibraryAsset.delete' ||
           'cinematicLibraryFolder.delete' ||
-          'cinematicLibraryEntry.remove' =>
-            await fixture.mutations.confirm(plan),
+          'cinematicLibraryEntry.remove' => await fixture.mutations.confirm(
+            plan,
+          ),
           _ => null,
         };
         final applied = await fixture.mutations.apply(
@@ -261,218 +306,315 @@ void main() {
       );
     });
 
-    test('warm canonical map save rereads only the touched map payload',
-        () async {
-      final fixture = await _MutationFixture.create(enableSnapshotCache: true);
-      addTearDown(fixture.dispose);
-      await fixture.mutations.plan(
-        fixture.root.path,
-        actionId: 'map.save',
-        parameters: {
-          'map': fixture.map.copyWith(name: 'Warmup only').toJson(),
-        },
-        idempotencyKey: 'editor_fast_save_warmup',
-      );
-      final baseline =
-          await FileMapRepository().loadMapDocument(fixture.mapPath);
-      fixture.countingReader!.resetCounts();
+    test(
+      'warm canonical map save rereads only the touched map payload',
+      () async {
+        final fixture = await _MutationFixture.create(
+          enableSnapshotCache: true,
+        );
+        addTearDown(fixture.dispose);
+        await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'map.save',
+          parameters: {
+            'map': fixture.map.copyWith(name: 'Warmup only').toJson(),
+          },
+          idempotencyKey: 'editor_fast_save_warmup',
+        );
+        final baseline = await FileMapRepository().loadMapDocument(
+          fixture.mapPath,
+        );
+        fixture.countingReader!.resetCounts();
 
-      final result = await fixture.mutations.saveMap(
-        fixture.map.copyWith(name: 'Fast save'),
-        fixture.mapPath,
-        expectedMapRevision: baseline.revision,
-      );
+        final result = await fixture.mutations.saveMap(
+          fixture.map.copyWith(name: 'Fast save'),
+          fixture.mapPath,
+          expectedMapRevision: baseline.revision,
+        );
 
-      expect(result.receipt.status, AuthoringReceiptStatus.applied);
-      expect(fixture.countingReader!.byteReads, 1);
-    });
+        expect(result.receipt.status, AuthoringReceiptStatus.applied);
+        expect(fixture.countingReader!.byteReads, 1);
+      },
+    );
 
-    test('warm planning trusts the session without filesystem observations',
-        () async {
-      final fixture = await _MutationFixture.create(enableSnapshotCache: true);
-      addTearDown(fixture.dispose);
-      await fixture.mutations.plan(
-        fixture.root.path,
-        actionId: 'map.save',
-        parameters: {
-          'map': fixture.map.copyWith(name: 'Warmup').toJson(),
-        },
-        idempotencyKey: 'editor_session_plan_warmup',
-      );
-      fixture.countingReader!.resetCounts();
+    test(
+      'warm planning trusts the session without filesystem observations',
+      () async {
+        final fixture = await _MutationFixture.create(
+          enableSnapshotCache: true,
+        );
+        addTearDown(fixture.dispose);
+        await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'map.save',
+          parameters: {'map': fixture.map.copyWith(name: 'Warmup').toJson()},
+          idempotencyKey: 'editor_session_plan_warmup',
+        );
+        fixture.countingReader!.resetCounts();
 
-      await fixture.mutations.plan(
-        fixture.root.path,
-        actionId: 'map.save',
-        parameters: {
-          'map': fixture.map.copyWith(name: 'Session plan').toJson(),
-        },
-        idempotencyKey: 'editor_session_plan_measured',
-      );
+        await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'map.save',
+          parameters: {
+            'map': fixture.map.copyWith(name: 'Session plan').toJson(),
+          },
+          idempotencyKey: 'editor_session_plan_measured',
+        );
 
-      expect(fixture.countingReader!.byteReads, 0);
-      expect(fixture.countingReader!.identityReads, 0);
-    });
+        expect(fixture.countingReader!.byteReads, 0);
+        expect(fixture.countingReader!.identityReads, 0);
+      },
+    );
 
-    test('apply detects an external change after a session-trusted plan',
-        () async {
-      final fixture = await _MutationFixture.create(enableSnapshotCache: true);
-      addTearDown(fixture.dispose);
-      final plan = await fixture.mutations.plan(
-        fixture.root.path,
-        actionId: 'map.save',
-        parameters: {
-          'map': fixture.map.copyWith(name: 'Planned').toJson(),
-        },
-        idempotencyKey: 'editor_external_change_plan',
-      );
-      await File(fixture.mapPath).writeAsString(
-        jsonEncode(fixture.map.copyWith(name: 'External').toJson()),
-      );
-      await File(fixture.mapPath).setLastModified(
-        DateTime.now().add(const Duration(seconds: 2)),
-      );
+    test(
+      'apply detects an external change after a session-trusted plan',
+      () async {
+        final fixture = await _MutationFixture.create(
+          enableSnapshotCache: true,
+        );
+        addTearDown(fixture.dispose);
+        final plan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'map.save',
+          parameters: {'map': fixture.map.copyWith(name: 'Planned').toJson()},
+          idempotencyKey: 'editor_external_change_plan',
+        );
+        await File(fixture.mapPath).writeAsString(
+          jsonEncode(fixture.map.copyWith(name: 'External').toJson()),
+        );
+        await File(
+          fixture.mapPath,
+        ).setLastModified(DateTime.now().add(const Duration(seconds: 2)));
 
-      await expectLater(
-        fixture.mutations.apply(
-          plan,
-          operationId: 'editor_external_change_apply',
-        ),
-        throwsA(isA<EditorAuthoringMutationFailure>()),
-      );
-      final durable = await FileMapRepository().loadMapDocument(
-        fixture.mapPath,
-      );
-      expect(durable.map.name, 'External');
-    });
+        await expectLater(
+          fixture.mutations.apply(
+            plan,
+            operationId: 'editor_external_change_apply',
+          ),
+          throwsA(isA<EditorAuthoringMutationFailure>()),
+        );
+        final durable = await FileMapRepository().loadMapDocument(
+          fixture.mapPath,
+        );
+        expect(durable.map.name, 'External');
+      },
+    );
 
-    test('saves presentation pause labels through the canonical action',
-        () async {
-      final fixture = await _MutationFixture.create();
-      addTearDown(fixture.dispose);
-      final projectFile = File(p.join(fixture.root.path, 'project.json'));
-      final expectedProjectRevision = narrativeEventBytesFingerprint(
-        await projectFile.readAsBytes(),
-      );
-      final profile = ProjectPresentationProfile(
-        pause: ProjectPausePresentationProfile(
-          actions: <ProjectPauseActionProfile>[
-            for (final action in defaultProjectPauseActions)
-              action.id == ProjectPauseActionId.pokedex
-                  ? action.copyWith(label: 'Carnet')
-                  : action,
-          ],
-        ),
-        typography: const ProjectTypographyProfile(
-          combat: ProjectTypographyRoleProfile(family: 'Battle Mono'),
-        ),
-        windows: legacyProjectPresentationWindows.copyWith(
-          battleStyleId: 'default',
-        ),
-        layouts: suggestedProjectPresentationLayouts('standard'),
-      );
+    test(
+      'saves presentation pause labels through the canonical action',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final projectFile = File(p.join(fixture.root.path, 'project.json'));
+        final expectedProjectRevision = narrativeEventBytesFingerprint(
+          await projectFile.readAsBytes(),
+        );
+        final profile = ProjectPresentationProfile(
+          pause: ProjectPausePresentationProfile(
+            actions: <ProjectPauseActionProfile>[
+              for (final action in defaultProjectPauseActions)
+                action.id == ProjectPauseActionId.pokedex
+                    ? action.copyWith(label: 'Carnet')
+                    : action,
+            ],
+          ),
+          typography: const ProjectTypographyProfile(
+            combat: ProjectTypographyRoleProfile(family: 'Battle Mono'),
+          ),
+          windows: legacyProjectPresentationWindows.copyWith(
+            battleStyleId: 'default',
+          ),
+          layouts: suggestedProjectPresentationLayouts('standard'),
+        );
 
-      final result = await fixture.mutations.savePresentation(
-        profile,
-        fixture.root.path,
-        expectedProjectRevision: expectedProjectRevision,
-        operationId: 'editor_presentation_labels_01',
-      );
+        final result = await fixture.mutations.savePresentation(
+          profile,
+          fixture.root.path,
+          expectedProjectRevision: expectedProjectRevision,
+          operationId: 'editor_presentation_labels_01',
+        );
 
-      final durable = ProjectManifest.fromJson(
-        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
-      );
-      expect(result.receipt.actionId, 'presentation.update');
-      expect(result.receipt.status, AuthoringReceiptStatus.applied);
-      expect(
-        durable.presentation?.pause?.actions
-            ?.firstWhere((action) => action.id == ProjectPauseActionId.pokedex)
-            .label,
-        'Carnet',
-      );
-      expect(
-        durable.presentation?.windows?.pauseMenuStyleId,
-        'pause-menu',
-      );
-      expect(
-        durable.presentation?.windows?.dialogueStyleId,
-        'dialogue',
-      );
-      expect(durable.presentation?.windows?.battleStyleId, 'default');
-      expect(
-        durable.presentation?.layouts?.battle?.regular.slot,
-        ProjectPresentationLayoutSlot.bottomCenter,
-      );
-      expect(durable.presentation?.typography?.combat?.family, 'Battle Mono');
-    });
+        final durable = ProjectManifest.fromJson(
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+        );
+        expect(result.receipt.actionId, 'presentation.update');
+        expect(result.receipt.status, AuthoringReceiptStatus.applied);
+        expect(
+          durable.presentation?.pause?.actions
+              ?.firstWhere(
+                (action) => action.id == ProjectPauseActionId.pokedex,
+              )
+              .label,
+          'Carnet',
+        );
+        expect(durable.presentation?.windows?.pauseMenuStyleId, 'pause-menu');
+        expect(durable.presentation?.windows?.dialogueStyleId, 'dialogue');
+        expect(durable.presentation?.windows?.battleStyleId, 'default');
+        expect(
+          durable.presentation?.layouts?.battle?.regular.slot,
+          ProjectPresentationLayoutSlot.bottomCenter,
+        );
+        expect(durable.presentation?.typography?.combat?.family, 'Battle Mono');
+      },
+    );
 
-    test('exports, deletes, and reimports a shareable presentation preset',
-        () async {
-      final fixture = await _MutationFixture.create();
-      addTearDown(fixture.dispose);
-      final projectFile = File(p.join(fixture.root.path, 'project.json'));
-      final revision = narrativeEventBytesFingerprint(
-        await projectFile.readAsBytes(),
-      );
-      const profile = ProjectPresentationProfile(
-        branding: ProjectBrandingProfile(accentColor: '#126E78'),
-      );
-      await fixture.mutations.savePresentation(
-        profile,
-        fixture.root.path,
-        expectedProjectRevision: revision,
-        operationId: 'editor_preset_profile_save',
-      );
-      final service = ProjectPresentationPresetService(
-        mutations: fixture.mutations,
-        queries: fixture.queries,
-      );
-      final pack = p.join(fixture.root.path, 'avelune.pokemapstyle');
-      await File(pack).writeAsString('stale preset');
+    test(
+      'rejects the active Pokemon ruleset through the editor adapter',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final projectFile = File(p.join(fixture.root.path, 'project.json'));
+        final before = await projectFile.readAsString();
 
-      await service.exportCurrent(
-        projectRootPath: fixture.root.path,
-        presetId: 'avelune',
-        label: 'Avelune',
-        description: 'Profil partageable de test.',
-        destinationPath: pack,
-      );
-      var durable = ProjectManifest.fromJson(
-        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
-      );
-      expect(File(pack).lengthSync(), greaterThan(0));
-      expect(durable.presentationPresets.single.id, 'avelune');
+        await expectLater(
+          fixture.mutations.plan(
+            fixture.root.path,
+            actionId: 'pokemon.ruleset.set',
+            parameters: <String, Object?>{
+              'profile': PokemonRulesetProfile.pokeMapBetaV1.toJson(),
+            },
+            idempotencyKey: 'editor-pokemon-ruleset-v1',
+          ),
+          throwsA(
+            isA<EditorAuthoringMutationFailure>().having(
+              (error) => error.code,
+              'code',
+              'pokemon.ruleset.no_change',
+            ),
+          ),
+        );
+        final persisted =
+            jsonDecode(await projectFile.readAsString())
+                as Map<String, dynamic>;
 
-      await service.delete(
-        projectRootPath: fixture.root.path,
-        presetId: 'avelune',
-      );
-      durable = ProjectManifest.fromJson(
-        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
-      );
-      expect(durable.presentationPresets, isEmpty);
+        expect(
+          (persisted['pokemon']! as Map<String, dynamic>)['ruleset'],
+          PokemonRulesetProfile.pokeMapBetaV1.toJson(),
+        );
+        expect(await projectFile.readAsString(), before);
+      },
+    );
 
-      await service.importAndApply(
-        projectRootPath: fixture.root.path,
-        sourcePath: pack,
-      );
-      durable = ProjectManifest.fromJson(
-        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
-      );
-      expect(durable.presentationPresets.single.id, 'avelune');
-      expect(durable.presentation?.branding.accentColor, '#126E78');
-    });
+    test(
+      'invalidates species snapshots only for touched species resources',
+      () async {
+        final invalidatedRoots = <String>[];
+        final fixture = await _MutationFixture.create(
+          invalidatePokemonSpeciesSnapshot: invalidatedRoots.add,
+        );
+        addTearDown(fixture.dispose);
+        final speciesPlan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'pokemon.species.write',
+          parameters: <String, Object?>{
+            'relativePath': 'data/pokemon/species/sproutle.json',
+            'document': _pokemonSpeciesDocument('sproutle'),
+          },
+          idempotencyKey: 'editor-species-snapshot-apply',
+        );
 
-    test('catalogs project-owned presentation media before preset export',
-        () async {
-      final fixture = await _MutationFixture.create();
-      addTearDown(fixture.dispose);
-      final projectFile = File(p.join(fixture.root.path, 'project.json'));
-      const iconPath = 'assets/presentation/icon.png';
-      const licensePath = 'assets/presentation/LICENSE.txt';
-      await File(p.join(fixture.root.path, iconPath))
-          .create(recursive: true)
-          .then((file) => file.writeAsBytes(<int>[
+        final applied = await fixture.mutations.apply(
+          speciesPlan,
+          operationId: 'editor-species-snapshot-apply',
+        );
+        await fixture.mutations.undo(
+          fixture.root.path,
+          entryId: applied.receipt.receiptId,
+          idempotencyKey: 'editor-species-snapshot-undo',
+        );
+        final mapPlan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'map.save',
+          parameters: <String, Object?>{
+            'map': fixture.map
+                .copyWith(name: 'No species invalidation')
+                .toJson(),
+          },
+          idempotencyKey: 'editor-map-no-species-invalidation',
+        );
+        await fixture.mutations.apply(
+          mapPlan,
+          operationId: 'editor-map-no-species-invalidation',
+        );
+
+        expect(invalidatedRoots, <String>[
+          fixture.root.resolveSymbolicLinksSync(),
+          fixture.root.resolveSymbolicLinksSync(),
+        ]);
+      },
+    );
+
+    test(
+      'exports, deletes, and reimports a shareable presentation preset',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final projectFile = File(p.join(fixture.root.path, 'project.json'));
+        final revision = narrativeEventBytesFingerprint(
+          await projectFile.readAsBytes(),
+        );
+        const profile = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: '#126E78'),
+        );
+        await fixture.mutations.savePresentation(
+          profile,
+          fixture.root.path,
+          expectedProjectRevision: revision,
+          operationId: 'editor_preset_profile_save',
+        );
+        final service = ProjectPresentationPresetService(
+          mutations: fixture.mutations,
+          queries: fixture.queries,
+        );
+        final pack = p.join(fixture.root.path, 'avelune.pokemapstyle');
+        await File(pack).writeAsString('stale preset');
+
+        await service.exportCurrent(
+          projectRootPath: fixture.root.path,
+          presetId: 'avelune',
+          label: 'Avelune',
+          description: 'Profil partageable de test.',
+          destinationPath: pack,
+        );
+        var durable = ProjectManifest.fromJson(
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+        );
+        expect(File(pack).lengthSync(), greaterThan(0));
+        expect(durable.presentationPresets.single.id, 'avelune');
+
+        await service.delete(
+          projectRootPath: fixture.root.path,
+          presetId: 'avelune',
+        );
+        durable = ProjectManifest.fromJson(
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+        );
+        expect(durable.presentationPresets, isEmpty);
+
+        await service.importAndApply(
+          projectRootPath: fixture.root.path,
+          sourcePath: pack,
+        );
+        durable = ProjectManifest.fromJson(
+          jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+        );
+        expect(durable.presentationPresets.single.id, 'avelune');
+        expect(durable.presentation?.branding.accentColor, '#126E78');
+      },
+    );
+
+    test(
+      'catalogs project-owned presentation media before preset export',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final projectFile = File(p.join(fixture.root.path, 'project.json'));
+        const iconPath = 'assets/presentation/icon.png';
+        const licensePath = 'assets/presentation/LICENSE.txt';
+        await File(p.join(fixture.root.path, iconPath))
+            .create(recursive: true)
+            .then(
+              (file) => file.writeAsBytes(<int>[
                 0x89,
                 0x50,
                 0x4e,
@@ -481,56 +623,62 @@ void main() {
                 0x0a,
                 0x1a,
                 0x0a,
-              ]));
-      await File(p.join(fixture.root.path, licensePath))
-          .writeAsString('Redistribution allowed for this fixture.');
-      await FileProjectRepository().saveProject(
-        fixture.project.copyWith(
-          presentation: const ProjectPresentationProfile(
-            branding: ProjectBrandingProfile(iconPath: iconPath),
+              ]),
+            );
+        await File(
+          p.join(fixture.root.path, licensePath),
+        ).writeAsString('Redistribution allowed for this fixture.');
+        await FileProjectRepository().saveProject(
+          fixture.project.copyWith(
+            presentation: const ProjectPresentationProfile(
+              branding: ProjectBrandingProfile(iconPath: iconPath),
+            ),
           ),
-        ),
-        projectFile.path,
-      );
-      final service = ProjectPresentationPresetService(
-        mutations: fixture.mutations,
-        queries: fixture.queries,
-      );
-      final pack = p.join(fixture.root.path, 'media.pokemapstyle');
+          projectFile.path,
+        );
+        final service = ProjectPresentationPresetService(
+          mutations: fixture.mutations,
+          queries: fixture.queries,
+        );
+        final pack = p.join(fixture.root.path, 'media.pokemapstyle');
 
-      await service.exportCurrent(
-        projectRootPath: fixture.root.path,
-        presetId: 'media',
-        label: 'Media',
-        description: 'Profil avec media.',
-        destinationPath: pack,
-        licenses: const <String, String>{iconPath: licensePath},
-      );
+        await service.exportCurrent(
+          projectRootPath: fixture.root.path,
+          presetId: 'media',
+          label: 'Media',
+          description: 'Profil avec media.',
+          destinationPath: pack,
+          licenses: const <String, String>{iconPath: licensePath},
+        );
 
-      final catalog = AssetCatalog.fromJson(
-        jsonDecode(
-          await File(
-            p.join(fixture.root.path, 'assets/.pokemap-assets.json'),
-          ).readAsString(),
-        ) as Map<String, dynamic>,
-      );
-      expect(catalog.findByLogicalPath(iconPath), isNotNull);
-      expect(catalog.findByLogicalPath(licensePath), isNotNull);
-      expect(File(pack).lengthSync(), greaterThan(0));
-    });
+        final catalog = AssetCatalog.fromJson(
+          jsonDecode(
+                await File(
+                  p.join(fixture.root.path, 'assets/.pokemap-assets.json'),
+                ).readAsString(),
+              )
+              as Map<String, dynamic>,
+        );
+        expect(catalog.findByLogicalPath(iconPath), isNotNull);
+        expect(catalog.findByLogicalPath(licensePath), isNotNull);
+        expect(File(pack).lengthSync(), greaterThan(0));
+      },
+    );
 
-    test('applies one selected redistribution license to preset media',
-        () async {
-      final fixture = await _MutationFixture.create();
-      addTearDown(fixture.dispose);
-      final licenseRoot = await Directory.systemTemp.createTemp(
-        'pokemap_preset_license_',
-      );
-      addTearDown(() => licenseRoot.delete(recursive: true));
-      const iconPath = 'assets/presentation/icon.png';
-      await File(p.join(fixture.root.path, iconPath))
-          .create(recursive: true)
-          .then((file) => file.writeAsBytes(<int>[
+    test(
+      'applies one selected redistribution license to preset media',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final licenseRoot = await Directory.systemTemp.createTemp(
+          'pokemap_preset_license_',
+        );
+        addTearDown(() => licenseRoot.delete(recursive: true));
+        const iconPath = 'assets/presentation/icon.png';
+        await File(p.join(fixture.root.path, iconPath))
+            .create(recursive: true)
+            .then(
+              (file) => file.writeAsBytes(<int>[
                 0x89,
                 0x50,
                 0x4e,
@@ -539,47 +687,52 @@ void main() {
                 0x0a,
                 0x1a,
                 0x0a,
-              ]));
-      final externalLicense = File(p.join(licenseRoot.path, 'LICENSE.txt'));
-      await externalLicense.writeAsString(
-        'Redistribution allowed for every media in this preset.',
-      );
-      await FileProjectRepository().saveProject(
-        fixture.project.copyWith(
-          presentation: const ProjectPresentationProfile(
-            branding: ProjectBrandingProfile(iconPath: iconPath),
+              ]),
+            );
+        final externalLicense = File(p.join(licenseRoot.path, 'LICENSE.txt'));
+        await externalLicense.writeAsString(
+          'Redistribution allowed for every media in this preset.',
+        );
+        await FileProjectRepository().saveProject(
+          fixture.project.copyWith(
+            presentation: const ProjectPresentationProfile(
+              branding: ProjectBrandingProfile(iconPath: iconPath),
+            ),
           ),
-        ),
-        p.join(fixture.root.path, 'project.json'),
-      );
-      final service = ProjectPresentationPresetService(
-        mutations: fixture.mutations,
-        queries: fixture.queries,
-      );
-      final pack = p.join(fixture.root.path, 'licensed.pokemapstyle');
+          p.join(fixture.root.path, 'project.json'),
+        );
+        final service = ProjectPresentationPresetService(
+          mutations: fixture.mutations,
+          queries: fixture.queries,
+        );
+        final pack = p.join(fixture.root.path, 'licensed.pokemapstyle');
 
-      await service.exportCurrent(
-        projectRootPath: fixture.root.path,
-        presetId: 'licensed',
-        label: 'Licensed',
-        description: 'Profil avec licence guidée.',
-        destinationPath: pack,
-        redistributionLicenseSourcePath: externalLicense.path,
-      );
+        await service.exportCurrent(
+          projectRootPath: fixture.root.path,
+          presetId: 'licensed',
+          label: 'Licensed',
+          description: 'Profil avec licence guidée.',
+          destinationPath: pack,
+          redistributionLicenseSourcePath: externalLicense.path,
+        );
 
-      final durable = ProjectManifest.fromJson(
-        jsonDecode(
-          await File(p.join(fixture.root.path, 'project.json')).readAsString(),
-        ) as Map<String, dynamic>,
-      );
-      final preset = durable.presentationPresets.single;
-      expect(preset.assets.single.projectPath, iconPath);
-      expect(
-        preset.assets.single.licenseProjectPath,
-        startsWith('assets/presentation/licenses/'),
-      );
-      expect(File(pack).lengthSync(), greaterThan(0));
-    });
+        final durable = ProjectManifest.fromJson(
+          jsonDecode(
+                await File(
+                  p.join(fixture.root.path, 'project.json'),
+                ).readAsString(),
+              )
+              as Map<String, dynamic>,
+        );
+        final preset = durable.presentationPresets.single;
+        expect(preset.assets.single.projectPath, iconPath);
+        expect(
+          preset.assets.single.licenseProjectPath,
+          startsWith('assets/presentation/licenses/'),
+        );
+        expect(File(pack).lengthSync(), greaterThan(0));
+      },
+    );
 
     test('rejects unlicensed preset media before catalog mutation', () async {
       final fixture = await _MutationFixture.create();
@@ -587,16 +740,18 @@ void main() {
       const iconPath = 'assets/presentation/icon.png';
       await File(p.join(fixture.root.path, iconPath))
           .create(recursive: true)
-          .then((file) => file.writeAsBytes(<int>[
-                0x89,
-                0x50,
-                0x4e,
-                0x47,
-                0x0d,
-                0x0a,
-                0x1a,
-                0x0a,
-              ]));
+          .then(
+            (file) => file.writeAsBytes(<int>[
+              0x89,
+              0x50,
+              0x4e,
+              0x47,
+              0x0d,
+              0x0a,
+              0x1a,
+              0x0a,
+            ]),
+          );
       await FileProjectRepository().saveProject(
         fixture.project.copyWith(
           presentation: const ProjectPresentationProfile(
@@ -636,18 +791,20 @@ void main() {
       expect(File(pack).existsSync(), isFalse);
     });
 
-    test('rejects a non-text redistribution license before catalog mutation',
-        () async {
-      final fixture = await _MutationFixture.create();
-      addTearDown(fixture.dispose);
-      final licenseRoot = await Directory.systemTemp.createTemp(
-        'pokemap_invalid_preset_license_',
-      );
-      addTearDown(() => licenseRoot.delete(recursive: true));
-      const iconPath = 'assets/presentation/icon.png';
-      await File(p.join(fixture.root.path, iconPath))
-          .create(recursive: true)
-          .then((file) => file.writeAsBytes(<int>[
+    test(
+      'rejects a non-text redistribution license before catalog mutation',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final licenseRoot = await Directory.systemTemp.createTemp(
+          'pokemap_invalid_preset_license_',
+        );
+        addTearDown(() => licenseRoot.delete(recursive: true));
+        const iconPath = 'assets/presentation/icon.png';
+        await File(p.join(fixture.root.path, iconPath))
+            .create(recursive: true)
+            .then(
+              (file) => file.writeAsBytes(<int>[
                 0x89,
                 0x50,
                 0x4e,
@@ -656,59 +813,63 @@ void main() {
                 0x0a,
                 0x1a,
                 0x0a,
-              ]));
-      final externalLicense = File(p.join(licenseRoot.path, 'LICENSE.txt'));
-      await externalLicense.writeAsBytes(<int>[0xff, 0xfe, 0xfd]);
-      await FileProjectRepository().saveProject(
-        fixture.project.copyWith(
-          presentation: const ProjectPresentationProfile(
-            branding: ProjectBrandingProfile(iconPath: iconPath),
+              ]),
+            );
+        final externalLicense = File(p.join(licenseRoot.path, 'LICENSE.txt'));
+        await externalLicense.writeAsBytes(<int>[0xff, 0xfe, 0xfd]);
+        await FileProjectRepository().saveProject(
+          fixture.project.copyWith(
+            presentation: const ProjectPresentationProfile(
+              branding: ProjectBrandingProfile(iconPath: iconPath),
+            ),
           ),
-        ),
-        p.join(fixture.root.path, 'project.json'),
-      );
-      final service = ProjectPresentationPresetService(
-        mutations: fixture.mutations,
-        queries: fixture.queries,
-      );
+          p.join(fixture.root.path, 'project.json'),
+        );
+        final service = ProjectPresentationPresetService(
+          mutations: fixture.mutations,
+          queries: fixture.queries,
+        );
 
-      await expectLater(
-        service.exportCurrent(
-          projectRootPath: fixture.root.path,
-          presetId: 'invalid-license',
-          label: 'Invalid license',
-          description: 'Profil incomplet.',
-          destinationPath: p.join(fixture.root.path, 'invalid.pokemapstyle'),
-          redistributionLicenseSourcePath: externalLicense.path,
-        ),
-        throwsA(
-          isA<ProjectPresentationPresetExportException>().having(
-            (error) => error.code,
-            'code',
-            'presentation.preset.license_invalid',
+        await expectLater(
+          service.exportCurrent(
+            projectRootPath: fixture.root.path,
+            presetId: 'invalid-license',
+            label: 'Invalid license',
+            description: 'Profil incomplet.',
+            destinationPath: p.join(fixture.root.path, 'invalid.pokemapstyle'),
+            redistributionLicenseSourcePath: externalLicense.path,
           ),
-        ),
-      );
-      expect(
-        File(
-          p.join(fixture.root.path, 'assets/.pokemap-assets.json'),
-        ).existsSync(),
-        isFalse,
-      );
-    });
+          throwsA(
+            isA<ProjectPresentationPresetExportException>().having(
+              (error) => error.code,
+              'code',
+              'presentation.preset.license_invalid',
+            ),
+          ),
+        );
+        expect(
+          File(
+            p.join(fixture.root.path, 'assets/.pokemap-assets.json'),
+          ).existsSync(),
+          isFalse,
+        );
+      },
+    );
 
-    test('rejects an empty redistribution license before catalog mutation',
-        () async {
-      final fixture = await _MutationFixture.create();
-      addTearDown(fixture.dispose);
-      final licenseRoot = await Directory.systemTemp.createTemp(
-        'pokemap_empty_preset_license_',
-      );
-      addTearDown(() => licenseRoot.delete(recursive: true));
-      const iconPath = 'assets/presentation/icon.png';
-      await File(p.join(fixture.root.path, iconPath))
-          .create(recursive: true)
-          .then((file) => file.writeAsBytes(<int>[
+    test(
+      'rejects an empty redistribution license before catalog mutation',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final licenseRoot = await Directory.systemTemp.createTemp(
+          'pokemap_empty_preset_license_',
+        );
+        addTearDown(() => licenseRoot.delete(recursive: true));
+        const iconPath = 'assets/presentation/icon.png';
+        await File(p.join(fixture.root.path, iconPath))
+            .create(recursive: true)
+            .then(
+              (file) => file.writeAsBytes(<int>[
                 0x89,
                 0x50,
                 0x4e,
@@ -717,185 +878,192 @@ void main() {
                 0x0a,
                 0x1a,
                 0x0a,
-              ]));
-      final externalLicense = File(p.join(licenseRoot.path, 'LICENSE.txt'));
-      await externalLicense.writeAsString('   \n');
-      await FileProjectRepository().saveProject(
-        fixture.project.copyWith(
-          presentation: const ProjectPresentationProfile(
-            branding: ProjectBrandingProfile(iconPath: iconPath),
+              ]),
+            );
+        final externalLicense = File(p.join(licenseRoot.path, 'LICENSE.txt'));
+        await externalLicense.writeAsString('   \n');
+        await FileProjectRepository().saveProject(
+          fixture.project.copyWith(
+            presentation: const ProjectPresentationProfile(
+              branding: ProjectBrandingProfile(iconPath: iconPath),
+            ),
           ),
-        ),
-        p.join(fixture.root.path, 'project.json'),
-      );
-      final service = ProjectPresentationPresetService(
-        mutations: fixture.mutations,
-        queries: fixture.queries,
-      );
+          p.join(fixture.root.path, 'project.json'),
+        );
+        final service = ProjectPresentationPresetService(
+          mutations: fixture.mutations,
+          queries: fixture.queries,
+        );
 
-      await expectLater(
-        service.exportCurrent(
+        await expectLater(
+          service.exportCurrent(
+            projectRootPath: fixture.root.path,
+            presetId: 'empty-license',
+            label: 'Empty license',
+            description: 'Profil incomplet.',
+            destinationPath: p.join(fixture.root.path, 'invalid.pokemapstyle'),
+            redistributionLicenseSourcePath: externalLicense.path,
+          ),
+          throwsA(
+            isA<ProjectPresentationPresetExportException>().having(
+              (error) => error.code,
+              'code',
+              'presentation.preset.license_invalid',
+            ),
+          ),
+        );
+        expect(
+          File(
+            p.join(fixture.root.path, 'assets/.pokemap-assets.json'),
+          ).existsSync(),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'persists encounter tables through canonical campaign actions',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final gateway = CanonicalEncounterTablePersistenceGateway(
+          mutations: fixture.mutations,
+          queries: fixture.queries,
+        );
+        const table = ProjectEncounterTable(
+          id: 'grass_patch',
+          name: 'Grass Patch',
+          encounterKind: EncounterKind.walk,
+          chancePerStep: 0.12,
+          entries: <ProjectEncounterEntry>[
+            ProjectEncounterEntry(
+              speciesId: 'bulbasaur',
+              minLevel: 2,
+              maxLevel: 4,
+              weight: 3,
+            ),
+            ProjectEncounterEntry(
+              speciesId: 'pikachu',
+              minLevel: 3,
+              maxLevel: 5,
+              weight: 1,
+            ),
+          ],
+          tags: <String>['route', 'early-game'],
+        );
+
+        final created = await gateway.upsert(
           projectRootPath: fixture.root.path,
-          presetId: 'empty-license',
-          label: 'Empty license',
-          description: 'Profil incomplet.',
-          destinationPath: p.join(fixture.root.path, 'invalid.pokemapstyle'),
-          redistributionLicenseSourcePath: externalLicense.path,
-        ),
-        throwsA(
-          isA<ProjectPresentationPresetExportException>().having(
-            (error) => error.code,
-            'code',
-            'presentation.preset.license_invalid',
-          ),
-        ),
-      );
-      expect(
-        File(
-          p.join(fixture.root.path, 'assets/.pokemap-assets.json'),
-        ).existsSync(),
-        isFalse,
-      );
-    });
+          expectedProject: fixture.project,
+          table: table,
+        );
 
-    test('persists encounter tables through canonical campaign actions',
-        () async {
-      final fixture = await _MutationFixture.create();
-      addTearDown(fixture.dispose);
-      final gateway = CanonicalEncounterTablePersistenceGateway(
-        mutations: fixture.mutations,
-        queries: fixture.queries,
-      );
-      const table = ProjectEncounterTable(
-        id: 'grass_patch',
-        name: 'Grass Patch',
-        encounterKind: EncounterKind.walk,
-        chancePerStep: 0.12,
-        entries: <ProjectEncounterEntry>[
-          ProjectEncounterEntry(
-            speciesId: 'bulbasaur',
-            minLevel: 2,
-            maxLevel: 4,
-            weight: 3,
-          ),
-          ProjectEncounterEntry(
-            speciesId: 'pikachu',
-            minLevel: 3,
-            maxLevel: 5,
-            weight: 1,
-          ),
-        ],
-        tags: <String>['route', 'early-game'],
-      );
+        expect(
+          fixture.mutations.lastAppliedReceipt?.actionId,
+          'campaign.encounter_table.upsert',
+        );
+        expect(created.encounterTables, <ProjectEncounterTable>[table]);
+        expect(
+          (await FileProjectRepository().loadProject(
+            p.join(fixture.root.path, 'project.json'),
+          )).encounterTables.single,
+          table,
+        );
 
-      final created = await gateway.upsert(
-        projectRootPath: fixture.root.path,
-        expectedProject: fixture.project,
-        table: table,
-      );
-
-      expect(
-        fixture.mutations.lastAppliedReceipt?.actionId,
-        'campaign.encounter_table.upsert',
-      );
-      expect(created.encounterTables, <ProjectEncounterTable>[table]);
-      expect(
-        (await FileProjectRepository().loadProject(
-          p.join(fixture.root.path, 'project.json'),
-        ))
-            .encounterTables
-            .single,
-        table,
-      );
-
-      final deleted = await gateway.remove(
-        projectRootPath: fixture.root.path,
-        expectedProject: created,
-        tableId: table.id,
-      );
-
-      expect(
-        fixture.mutations.lastAppliedReceipt?.actionId,
-        'campaign.encounter_table.delete',
-      );
-      expect(deleted.encounterTables, isEmpty);
-      expect(
-        (await FileProjectRepository().loadProject(
-          p.join(fixture.root.path, 'project.json'),
-        ))
-            .encounterTables,
-        isEmpty,
-      );
-    });
-
-    test('rejects a stale encounter project without overwriting disk',
-        () async {
-      final fixture = await _MutationFixture.create();
-      addTearDown(fixture.dispose);
-      final gateway = CanonicalEncounterTablePersistenceGateway(
-        mutations: fixture.mutations,
-        queries: fixture.queries,
-      );
-      const table = ProjectEncounterTable(
-        id: 'grass_patch',
-        name: 'Grass Patch',
-        encounterKind: EncounterKind.walk,
-      );
-      final created = await gateway.upsert(
-        projectRootPath: fixture.root.path,
-        expectedProject: fixture.project,
-        table: table,
-      );
-      final projectPath = p.join(fixture.root.path, 'project.json');
-      final external = created.copyWith(name: 'External edit');
-      await FileProjectRepository().saveProject(external, projectPath);
-
-      await expectLater(
-        gateway.upsert(
+        final deleted = await gateway.remove(
           projectRootPath: fixture.root.path,
           expectedProject: created,
-          table: table.copyWith(name: 'Overwritten'),
-        ),
-        throwsA(isA<EditorConflictException>()),
-      );
+          tableId: table.id,
+        );
 
-      final durable = await FileProjectRepository().loadProject(projectPath);
-      expect(durable.name, 'External edit');
-      expect(durable.encounterTables.single.name, 'Grass Patch');
-    });
+        expect(
+          fixture.mutations.lastAppliedReceipt?.actionId,
+          'campaign.encounter_table.delete',
+        );
+        expect(deleted.encounterTables, isEmpty);
+        expect(
+          (await FileProjectRepository().loadProject(
+            p.join(fixture.root.path, 'project.json'),
+          )).encounterTables,
+          isEmpty,
+        );
+      },
+    );
 
-    test('plans without writing, applies once, and replays idempotently',
-        () async {
-      final fixture = await _MutationFixture.create();
-      addTearDown(fixture.dispose);
-      final before = await File(fixture.mapPath).readAsBytes();
-      final updated = fixture.map.copyWith(name: 'Edited through Authoring');
+    test(
+      'rejects a stale encounter project without overwriting disk',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final gateway = CanonicalEncounterTablePersistenceGateway(
+          mutations: fixture.mutations,
+          queries: fixture.queries,
+        );
+        const table = ProjectEncounterTable(
+          id: 'grass_patch',
+          name: 'Grass Patch',
+          encounterKind: EncounterKind.walk,
+        );
+        final created = await gateway.upsert(
+          projectRootPath: fixture.root.path,
+          expectedProject: fixture.project,
+          table: table,
+        );
+        final projectPath = p.join(fixture.root.path, 'project.json');
+        final external = created.copyWith(name: 'External edit');
+        await FileProjectRepository().saveProject(external, projectPath);
 
-      final plan = await fixture.mutations.plan(
-        fixture.root.path,
-        actionId: 'map.save',
-        parameters: {'map': updated.toJson()},
-        idempotencyKey: 'editor_save_plan_01',
-      );
+        await expectLater(
+          gateway.upsert(
+            projectRootPath: fixture.root.path,
+            expectedProject: created,
+            table: table.copyWith(name: 'Overwritten'),
+          ),
+          throwsA(isA<EditorConflictException>()),
+        );
 
-      expect(await File(fixture.mapPath).readAsBytes(), before);
-      expect(plan.receipt.status, AuthoringReceiptStatus.planned);
-      expect(plan.receipt.actionId, 'map.save');
+        final durable = await FileProjectRepository().loadProject(projectPath);
+        expect(durable.name, 'External edit');
+        expect(durable.encounterTables.single.name, 'Grass Patch');
+      },
+    );
 
-      final applied = await fixture.mutations.apply(
-        plan,
-        operationId: 'editor_save_apply_01',
-      );
-      final replay = await fixture.mutations.apply(
-        plan,
-        operationId: 'editor_save_apply_01',
-      );
+    test(
+      'plans without writing, applies once, and replays idempotently',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final before = await File(fixture.mapPath).readAsBytes();
+        final updated = fixture.map.copyWith(name: 'Edited through Authoring');
 
-      expect(replay.receipt.toJson(), applied.receipt.toJson());
-      expect(applied.receipt.status, AuthoringReceiptStatus.applied);
-      expect((await FileMapRepository().loadMap(fixture.mapPath)).name,
-          'Edited through Authoring');
-    });
+        final plan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'map.save',
+          parameters: {'map': updated.toJson()},
+          idempotencyKey: 'editor_save_plan_01',
+        );
+
+        expect(await File(fixture.mapPath).readAsBytes(), before);
+        expect(plan.receipt.status, AuthoringReceiptStatus.planned);
+        expect(plan.receipt.actionId, 'map.save');
+
+        final applied = await fixture.mutations.apply(
+          plan,
+          operationId: 'editor_save_apply_01',
+        );
+        final replay = await fixture.mutations.apply(
+          plan,
+          operationId: 'editor_save_apply_01',
+        );
+
+        expect(replay.receipt.toJson(), applied.receipt.toJson());
+        expect(applied.receipt.status, AuthoringReceiptStatus.applied);
+        expect(
+          (await FileMapRepository().loadMap(fixture.mapPath)).name,
+          'Edited through Authoring',
+        );
+      },
+    );
 
     test('applies Event V2 mode and raw asset repair canonically', () async {
       final fixture = await _MutationFixture.create();
@@ -914,10 +1082,7 @@ void main() {
       final persistedProject = await FileProjectRepository().loadProject(
         p.join(fixture.root.path, 'project.json'),
       );
-      expect(
-        persistedProject.eventRegistry?.mode,
-        EventSystemMode.dualRead,
-      );
+      expect(persistedProject.eventRegistry?.mode, EventSystemMode.dualRead);
 
       final rawAsset = File(
         p.join(fixture.root.path, 'assets', 'audio', 'pikachu.ogg'),
@@ -959,342 +1124,326 @@ void main() {
       expect(await rawAsset.readAsBytes(), afterBytes);
     });
 
-    test('normalizes and merges Smart Tile layers through the canonical API',
-        () async {
-      final fixture = await _MutationFixture.createSmartTiles();
-      addTearDown(fixture.dispose);
+    test(
+      'normalizes and merges Smart Tile layers through the canonical API',
+      () async {
+        final fixture = await _MutationFixture.createSmartTiles();
+        addTearDown(fixture.dispose);
 
-      final normalizePlan = await fixture.mutations.plan(
-        fixture.root.path,
-        actionId: 'smart_tile.layer.normalize',
-        parameters: const {
-          'mapId': 'm01',
-          'layerId': 'terrain',
-        },
-        idempotencyKey: 'editor_smart_tile_normalize',
-      );
-      final normalized = await fixture.mutations.apply(
-        normalizePlan,
-        operationId: 'editor_smart_tile_normalize',
-      );
-      final mergePlan = await fixture.mutations.plan(
-        fixture.root.path,
-        actionId: 'smart_tile.layer.merge',
-        parameters: const {
-          'mapId': 'm01',
-          'sourceLayerIds': ['path_target', 'path_source'],
-          'targetLayerId': 'path_target',
-          'mode': 'union',
-          'removeSources': true,
-          'conflictPolicy': 'reject',
-        },
-        idempotencyKey: 'editor_smart_tile_merge',
-      );
-      final merged = await fixture.mutations.apply(
-        mergePlan,
-        operationId: 'editor_smart_tile_merge',
-      );
-      final map = await FileMapRepository().loadMap(fixture.mapPath);
-      final target = map.layers[2] as SmartTileLayer;
+        final normalizePlan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'smart_tile.layer.normalize',
+          parameters: const {'mapId': 'm01', 'layerId': 'terrain'},
+          idempotencyKey: 'editor_smart_tile_normalize',
+        );
+        final normalized = await fixture.mutations.apply(
+          normalizePlan,
+          operationId: 'editor_smart_tile_normalize',
+        );
+        final mergePlan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'smart_tile.layer.merge',
+          parameters: const {
+            'mapId': 'm01',
+            'sourceLayerIds': ['path_target', 'path_source'],
+            'targetLayerId': 'path_target',
+            'mode': 'union',
+            'removeSources': true,
+            'conflictPolicy': 'reject',
+          },
+          idempotencyKey: 'editor_smart_tile_merge',
+        );
+        final merged = await fixture.mutations.apply(
+          mergePlan,
+          operationId: 'editor_smart_tile_merge',
+        );
+        final map = await FileMapRepository().loadMap(fixture.mapPath);
+        final target = map.layers[2] as SmartTileLayer;
 
-      expect(normalized.receipt.actionId, 'smart_tile.layer.normalize');
-      expect(merged.receipt.actionId, 'smart_tile.layer.merge');
-      expect(map.layers.map((layer) => layer.id), [
-        'base',
-        'terrain',
-        'path_target',
-        'collisions',
-      ]);
-      expect(smartTileSemanticCells(target), [0, 1, 0, 1, 1, 1, 0, 1, 0]);
-      expect(target.name, 'Target metadata');
-      expect(target.isVisible, isFalse);
-      expect(target.opacity, 0.5);
-      expect(target.layerSeed, 17);
-      expect(target.properties, {'keep': 'yes'});
-    });
+        expect(normalized.receipt.actionId, 'smart_tile.layer.normalize');
+        expect(merged.receipt.actionId, 'smart_tile.layer.merge');
+        expect(map.layers.map((layer) => layer.id), [
+          'base',
+          'terrain',
+          'path_target',
+          'collisions',
+        ]);
+        expect(smartTileSemanticCells(target), [0, 1, 0, 1, 1, 1, 0, 1, 0]);
+        expect(target.name, 'Target metadata');
+        expect(target.isVisible, isFalse);
+        expect(target.opacity, 0.5);
+        expect(target.layerSeed, 17);
+        expect(target.properties, {'keep': 'yes'});
+      },
+    );
 
-    test('creates updates and deletes reciprocal map connections canonically',
-        () async {
-      final root = await Directory.systemTemp.createTemp(
-        'pmcp_editor_connections_',
-      );
-      addTearDown(() async {
-        if (await root.exists()) await root.delete(recursive: true);
-      });
-      const project = ProjectManifest(
-        name: 'Connection editor parity',
-        maps: [
-          ProjectMapEntry(
-            id: 'alpha',
-            name: 'Alpha',
-            relativePath: 'maps/alpha.json',
-          ),
-          ProjectMapEntry(
-            id: 'beta',
-            name: 'Beta',
-            relativePath: 'maps/beta.json',
-          ),
-        ],
-        tilesets: [],
-      );
-      const alpha = MapData(
-        id: 'alpha',
-        name: 'Alpha',
-        size: GridSize(width: 8, height: 8),
-      );
-      const beta = MapData(
-        id: 'beta',
-        name: 'Beta',
-        size: GridSize(width: 8, height: 8),
-      );
-      final projectRepository = FileProjectRepository();
-      final mapRepository = FileMapRepository();
-      await projectRepository.saveProject(
-        project,
-        p.join(root.path, 'project.json'),
-      );
-      await mapRepository.saveMap(
-        alpha,
-        p.join(root.path, 'maps', 'alpha.json'),
-        projectDialogueContext: project,
-      );
-      await mapRepository.saveMap(
-        beta,
-        p.join(root.path, 'maps', 'beta.json'),
-        projectDialogueContext: project,
-      );
-      const reader = EditorProjectFileReader();
-      final queries = AuthoringQueryAdapter(fileReader: reader);
-      final mutations = AuthoringMutationAdapter(
-        fileReader: reader,
-        queries: queries,
-        projectRoots: reader,
-      );
-      addTearDown(mutations.closeAll);
-      addTearDown(queries.closeAll);
-
-      final create = await mutations.plan(
-        root.path,
-        actionId: 'connection.create_bidirectional_apply',
-        parameters: const {
-          'mapId': 'alpha',
-          'direction': 'east',
-          'targetMapId': 'beta',
-          'offset': 0,
-        },
-        idempotencyKey: 'editor_connection_create',
-      );
-      final created = await mutations.apply(
-        create,
-        operationId: 'editor_connection_create',
-      );
-
-      expect(created.receipt.affectedResources, hasLength(2));
-      expect(
-        (await mapRepository.loadMap(
-          p.join(root.path, 'maps', 'alpha.json'),
-        ))
-            .connections
-            .single,
-        const MapConnection(
-          direction: MapConnectionDirection.east,
-          targetMapId: 'beta',
-          offset: 0,
-        ),
-      );
-      expect(
-        (await mapRepository.loadMap(
-          p.join(root.path, 'maps', 'beta.json'),
-        ))
-            .connections
-            .single,
-        const MapConnection(
-          direction: MapConnectionDirection.west,
-          targetMapId: 'alpha',
-          offset: 0,
-        ),
-      );
-
-      final update = await mutations.plan(
-        root.path,
-        actionId: 'connection.update_bidirectional_apply',
-        parameters: const {
-          'mapId': 'alpha',
-          'direction': 'east',
-          'targetMapId': 'beta',
-          'offset': 2,
-        },
-        idempotencyKey: 'editor_connection_update',
-      );
-      await mutations.apply(
-        update,
-        operationId: 'editor_connection_update',
-      );
-      expect(
-        (await mapRepository.loadMap(
-          p.join(root.path, 'maps', 'beta.json'),
-        ))
-            .connections
-            .single
-            .offset,
-        -2,
-      );
-
-      final deletion = await mutations.plan(
-        root.path,
-        actionId: 'connection.delete_bidirectional_apply',
-        parameters: const {
-          'mapId': 'alpha',
-          'direction': 'east',
-        },
-        idempotencyKey: 'editor_connection_delete',
-      );
-      final confirmation = await mutations.confirm(deletion);
-      await mutations.apply(
-        deletion,
-        operationId: 'editor_connection_delete',
-        confirmationToken: confirmation,
-      );
-      expect(
-        (await mapRepository.loadMap(
-          p.join(root.path, 'maps', 'alpha.json'),
-        ))
-            .connections,
-        isEmpty,
-      );
-      expect(
-        (await mapRepository.loadMap(
-          p.join(root.path, 'maps', 'beta.json'),
-        ))
-            .connections,
-        isEmpty,
-      );
-    });
-
-    test('upserts and queries Smart Tile animations through the editor adapter',
-        () async {
-      final fixture = await _MutationFixture.createSmartTiles();
-      addTearDown(fixture.dispose);
-      const animation = ProjectSmartTileAnimation(
-        id: 'wind',
-        name: 'Wind',
-        frames: <ProjectSmartTileAnimationFrame>[
-          ProjectSmartTileAnimationFrame(
-            frame: SmartTileFrameRef(
-              atlasId: 'atlas',
-              column: 0,
-              row: 0,
+    test(
+      'creates updates and deletes reciprocal map connections canonically',
+      () async {
+        final root = await Directory.systemTemp.createTemp(
+          'pmcp_editor_connections_',
+        );
+        addTearDown(() async {
+          if (await root.exists()) await root.delete(recursive: true);
+        });
+        const project = ProjectManifest(
+          name: 'Connection editor parity',
+          maps: [
+            ProjectMapEntry(
+              id: 'alpha',
+              name: 'Alpha',
+              relativePath: 'maps/alpha.json',
             ),
-            durationMs: 120,
+            ProjectMapEntry(
+              id: 'beta',
+              name: 'Beta',
+              relativePath: 'maps/beta.json',
+            ),
+          ],
+          tilesets: [],
+        );
+        const alpha = MapData(
+          id: 'alpha',
+          name: 'Alpha',
+          size: GridSize(width: 8, height: 8),
+        );
+        const beta = MapData(
+          id: 'beta',
+          name: 'Beta',
+          size: GridSize(width: 8, height: 8),
+        );
+        final projectRepository = FileProjectRepository();
+        final mapRepository = FileMapRepository();
+        await projectRepository.saveProject(
+          project,
+          p.join(root.path, 'project.json'),
+        );
+        await mapRepository.saveMap(
+          alpha,
+          p.join(root.path, 'maps', 'alpha.json'),
+          projectDialogueContext: project,
+        );
+        await mapRepository.saveMap(
+          beta,
+          p.join(root.path, 'maps', 'beta.json'),
+          projectDialogueContext: project,
+        );
+        const reader = EditorProjectFileReader();
+        final queries = AuthoringQueryAdapter(fileReader: reader);
+        final mutations = AuthoringMutationAdapter(
+          fileReader: reader,
+          queries: queries,
+          projectRoots: reader,
+        );
+        addTearDown(mutations.closeAll);
+        addTearDown(queries.closeAll);
+
+        final create = await mutations.plan(
+          root.path,
+          actionId: 'connection.create_bidirectional_apply',
+          parameters: const {
+            'mapId': 'alpha',
+            'direction': 'east',
+            'targetMapId': 'beta',
+            'offset': 0,
+          },
+          idempotencyKey: 'editor_connection_create',
+        );
+        final created = await mutations.apply(
+          create,
+          operationId: 'editor_connection_create',
+        );
+
+        expect(created.receipt.affectedResources, hasLength(2));
+        expect(
+          (await mapRepository.loadMap(
+            p.join(root.path, 'maps', 'alpha.json'),
+          )).connections.single,
+          const MapConnection(
+            direction: MapConnectionDirection.east,
+            targetMapId: 'beta',
+            offset: 0,
           ),
-        ],
-      );
+        );
+        expect(
+          (await mapRepository.loadMap(
+            p.join(root.path, 'maps', 'beta.json'),
+          )).connections.single,
+          const MapConnection(
+            direction: MapConnectionDirection.west,
+            targetMapId: 'alpha',
+            offset: 0,
+          ),
+        );
 
-      final normalizationPlan = await fixture.mutations.plan(
-        fixture.root.path,
-        actionId: 'smart_tile.layer.normalize',
-        parameters: const <String, Object?>{
-          'mapId': 'm01',
-          'layerId': 'terrain',
-        },
-        idempotencyKey: 'editor_smart_tile_animation_preflight',
-      );
-      await fixture.mutations.apply(
-        normalizationPlan,
-        operationId: 'editor_smart_tile_animation_preflight',
-      );
+        final update = await mutations.plan(
+          root.path,
+          actionId: 'connection.update_bidirectional_apply',
+          parameters: const {
+            'mapId': 'alpha',
+            'direction': 'east',
+            'targetMapId': 'beta',
+            'offset': 2,
+          },
+          idempotencyKey: 'editor_connection_update',
+        );
+        await mutations.apply(update, operationId: 'editor_connection_update');
+        expect(
+          (await mapRepository.loadMap(
+            p.join(root.path, 'maps', 'beta.json'),
+          )).connections.single.offset,
+          -2,
+        );
 
-      final plan = await fixture.mutations.plan(
-        fixture.root.path,
-        actionId: 'smart_tile.animation.upsert',
-        parameters: <String, Object?>{
-          'animation': animation.toJson(),
-        },
-        idempotencyKey: 'editor_smart_tile_animation',
-      );
-      final applied = await fixture.mutations.apply(
-        plan,
-        operationId: 'editor_smart_tile_animation',
-      );
-      final session = await fixture.queries.open(fixture.root.path);
-      final queried = session.query(
-        AuthoringQueryRequest(
-          resourceKind: 'smartTileAnimation',
-          operation: AuthoringQueryOperation.list,
-        ),
-      );
-      final items = queried['items']! as List<Object?>;
+        final deletion = await mutations.plan(
+          root.path,
+          actionId: 'connection.delete_bidirectional_apply',
+          parameters: const {'mapId': 'alpha', 'direction': 'east'},
+          idempotencyKey: 'editor_connection_delete',
+        );
+        final confirmation = await mutations.confirm(deletion);
+        await mutations.apply(
+          deletion,
+          operationId: 'editor_connection_delete',
+          confirmationToken: confirmation,
+        );
+        expect(
+          (await mapRepository.loadMap(
+            p.join(root.path, 'maps', 'alpha.json'),
+          )).connections,
+          isEmpty,
+        );
+        expect(
+          (await mapRepository.loadMap(
+            p.join(root.path, 'maps', 'beta.json'),
+          )).connections,
+          isEmpty,
+        );
+      },
+    );
 
-      expect(applied.receipt.actionId, 'smart_tile.animation.upsert');
-      expect(applied.receipt.status, AuthoringReceiptStatus.applied);
-      expect(items, hasLength(1));
-      expect((items.single! as Map<String, Object?>)['id'], 'wind');
-    });
+    test(
+      'upserts and queries Smart Tile animations through the editor adapter',
+      () async {
+        final fixture = await _MutationFixture.createSmartTiles();
+        addTearDown(fixture.dispose);
+        const animation = ProjectSmartTileAnimation(
+          id: 'wind',
+          name: 'Wind',
+          frames: <ProjectSmartTileAnimationFrame>[
+            ProjectSmartTileAnimationFrame(
+              frame: SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0),
+              durationMs: 120,
+            ),
+          ],
+        );
 
-    test('retainOnly retires old mutation plans and preserves the active root',
-        () async {
-      final first = await _MutationFixture.create();
-      final second = await _MutationFixture.create();
-      addTearDown(first.dispose);
-      addTearDown(second.dispose);
-      final firstPlan = await first.mutations.plan(
-        first.root.path,
-        actionId: 'map.save',
-        parameters: {
-          'map': first.map.copyWith(name: 'Retired plan').toJson(),
-        },
-        idempotencyKey: 'retired_root_plan',
-      );
-      final secondPlan = await first.mutations.plan(
-        second.root.path,
-        actionId: 'map.save',
-        parameters: {
-          'map': second.map.copyWith(name: 'Retained plan').toJson(),
-        },
-        idempotencyKey: 'retained_root_plan',
-      );
-      final activeRoot = await const EditorProjectFileReader()
-          .canonicalizeDirectory(second.root.path);
+        final normalizationPlan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'smart_tile.layer.normalize',
+          parameters: const <String, Object?>{
+            'mapId': 'm01',
+            'layerId': 'terrain',
+          },
+          idempotencyKey: 'editor_smart_tile_animation_preflight',
+        );
+        await fixture.mutations.apply(
+          normalizationPlan,
+          operationId: 'editor_smart_tile_animation_preflight',
+        );
 
-      await first.mutations.retainOnly(activeRoot);
+        final plan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'smart_tile.animation.upsert',
+          parameters: <String, Object?>{'animation': animation.toJson()},
+          idempotencyKey: 'editor_smart_tile_animation',
+        );
+        final applied = await fixture.mutations.apply(
+          plan,
+          operationId: 'editor_smart_tile_animation',
+        );
+        final session = await fixture.queries.open(fixture.root.path);
+        final queried = session.query(
+          AuthoringQueryRequest(
+            resourceKind: 'smartTileAnimation',
+            operation: AuthoringQueryOperation.list,
+          ),
+        );
+        final items = queried['items']! as List<Object?>;
 
-      expect(first.mutations.diagnostics.retainedRoot, activeRoot);
-      expect(first.mutations.diagnostics.liveSessions, 1);
-      expect(first.mutations.diagnostics.openingSessions, 0);
-      expect(first.mutations.diagnostics.retiringSessions, 0);
-      expect(first.mutations.diagnostics.activeOperations, 0);
-      expect(first.mutations.diagnostics.closeCount, 1);
-      await expectLater(
-        () => first.mutations.confirm(firstPlan),
-        throwsA(isA<EditorAuthoringMutationFailure>()),
-      );
-      await expectLater(
-        () => first.mutations.plan(
+        expect(applied.receipt.actionId, 'smart_tile.animation.upsert');
+        expect(applied.receipt.status, AuthoringReceiptStatus.applied);
+        expect(items, hasLength(1));
+        expect((items.single! as Map<String, Object?>)['id'], 'wind');
+      },
+    );
+
+    test(
+      'retainOnly retires old mutation plans and preserves the active root',
+      () async {
+        final first = await _MutationFixture.create();
+        final second = await _MutationFixture.create();
+        addTearDown(first.dispose);
+        addTearDown(second.dispose);
+        final firstPlan = await first.mutations.plan(
           first.root.path,
           actionId: 'map.save',
           parameters: {
-            'map': first.map.copyWith(name: 'Forbidden reopen').toJson(),
+            'map': first.map.copyWith(name: 'Retired plan').toJson(),
           },
-          idempotencyKey: 'forbidden_reopen',
-        ),
-        throwsA(
-          isA<EditorAuthoringMutationFailure>().having(
-            (failure) => failure.original,
-            'original',
-            isA<EditorAuthoringStaleSessionException>(),
+          idempotencyKey: 'retired_root_plan',
+        );
+        final secondPlan = await first.mutations.plan(
+          second.root.path,
+          actionId: 'map.save',
+          parameters: {
+            'map': second.map.copyWith(name: 'Retained plan').toJson(),
+          },
+          idempotencyKey: 'retained_root_plan',
+        );
+        final activeRoot = await const EditorProjectFileReader()
+            .canonicalizeDirectory(second.root.path);
+
+        await first.mutations.retainOnly(activeRoot);
+
+        expect(first.mutations.diagnostics.retainedRoot, activeRoot);
+        expect(first.mutations.diagnostics.liveSessions, 1);
+        expect(first.mutations.diagnostics.openingSessions, 0);
+        expect(first.mutations.diagnostics.retiringSessions, 0);
+        expect(first.mutations.diagnostics.activeOperations, 0);
+        expect(first.mutations.diagnostics.closeCount, 1);
+        await expectLater(
+          () => first.mutations.confirm(firstPlan),
+          throwsA(isA<EditorAuthoringMutationFailure>()),
+        );
+        await expectLater(
+          () => first.mutations.plan(
+            first.root.path,
+            actionId: 'map.save',
+            parameters: {
+              'map': first.map.copyWith(name: 'Forbidden reopen').toJson(),
+            },
+            idempotencyKey: 'forbidden_reopen',
           ),
-        ),
-      );
-      final applied = await first.mutations.apply(
-        secondPlan,
-        operationId: 'retained_root_apply',
-      );
-      expect(applied.receipt.status, AuthoringReceiptStatus.applied);
-      expect(
-        (await FileMapRepository().loadMap(second.mapPath)).name,
-        'Retained plan',
-      );
-    });
+          throwsA(
+            isA<EditorAuthoringMutationFailure>().having(
+              (failure) => failure.original,
+              'original',
+              isA<EditorAuthoringStaleSessionException>(),
+            ),
+          ),
+        );
+        final applied = await first.mutations.apply(
+          secondPlan,
+          operationId: 'retained_root_apply',
+        );
+        expect(applied.receipt.status, AuthoringReceiptStatus.applied);
+        expect(
+          (await FileMapRepository().loadMap(second.mapPath)).name,
+          'Retained plan',
+        );
+      },
+    );
 
     test('retirement waits for an in-flight mutation workflow', () async {
       final fixture = await _MutationFixture.create();
@@ -1372,8 +1521,9 @@ void main() {
         operationId: 'direct_receipt_parity',
       );
 
-      final legacyDocument =
-          await FileMapRepository().loadMapDocument(product.mapPath);
+      final legacyDocument = await FileMapRepository().loadMapDocument(
+        product.mapPath,
+      );
       final useCase = SaveMapUseCase(
         FileMapRepository(),
         authoringMutations: product.mutations,
@@ -1415,8 +1565,9 @@ void main() {
       final updated = fixture.map.copyWith(
         gameplayZones: const <MapGameplayZone>[zone],
       );
-      final baseline =
-          await FileMapRepository().loadMapDocument(fixture.mapPath);
+      final baseline = await FileMapRepository().loadMapDocument(
+        fixture.mapPath,
+      );
 
       final result = await fixture.mutations.saveMap(
         updated,
@@ -1448,8 +1599,9 @@ void main() {
         },
         idempotencyKey: 'editor_expired_workspace_warmup',
       );
-      final baseline =
-          await FileMapRepository().loadMapDocument(fixture.mapPath);
+      final baseline = await FileMapRepository().loadMapDocument(
+        fixture.mapPath,
+      );
       clock.value = clock.value.add(const Duration(minutes: 6));
 
       final result = await fixture.mutations.saveMap(
@@ -1470,8 +1622,9 @@ void main() {
     test('stale external bytes are visible and never overwritten', () async {
       final fixture = await _MutationFixture.create();
       addTearDown(fixture.dispose);
-      final baseline =
-          await FileMapRepository().loadMapDocument(fixture.mapPath);
+      final baseline = await FileMapRepository().loadMapDocument(
+        fixture.mapPath,
+      );
       final local = fixture.map.copyWith(name: 'Local edit');
       await FileMapRepository().saveMap(
         fixture.map.copyWith(name: 'External edit'),
@@ -1492,62 +1645,69 @@ void main() {
         ),
         throwsA(isA<EditorConflictException>()),
       );
-      expect((await FileMapRepository().loadMap(fixture.mapPath)).name,
-          'External edit');
+      expect(
+        (await FileMapRepository().loadMap(fixture.mapPath)).name,
+        'External edit',
+      );
     });
 
-    test('undo is a forward history receipt and restores exact map semantics',
-        () async {
-      final fixture = await _MutationFixture.create();
-      addTearDown(fixture.dispose);
-      final plan = await fixture.mutations.plan(
-        fixture.root.path,
-        actionId: 'map.save',
-        parameters: {
-          'map': fixture.map.copyWith(name: 'Undo me').toJson(),
-        },
-        idempotencyKey: 'editor_history_apply_01',
-      );
-      final applied = await fixture.mutations.apply(
-        plan,
-        operationId: 'editor_history_apply_01',
-      );
+    test(
+      'undo is a forward history receipt and restores exact map semantics',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        final plan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: 'map.save',
+          parameters: {'map': fixture.map.copyWith(name: 'Undo me').toJson()},
+          idempotencyKey: 'editor_history_apply_01',
+        );
+        final applied = await fixture.mutations.apply(
+          plan,
+          operationId: 'editor_history_apply_01',
+        );
 
-      final undone = await fixture.mutations.undo(
-        fixture.root.path,
-        entryId: applied.receipt.receiptId,
-        idempotencyKey: 'editor_history_undo_01',
-      );
+        final undone = await fixture.mutations.undo(
+          fixture.root.path,
+          entryId: applied.receipt.receiptId,
+          idempotencyKey: 'editor_history_undo_01',
+        );
 
-      expect(undone.receipt.actionId, 'history.undo');
-      expect((await FileMapRepository().loadMap(fixture.mapPath)).toJson(),
-          fixture.map.toJson());
-    });
+        expect(undone.receipt.actionId, 'history.undo');
+        expect(
+          (await FileMapRepository().loadMap(fixture.mapPath)).toJson(),
+          fixture.map.toJson(),
+        );
+      },
+    );
 
-    test('receipt presenter keeps domain codes and confirmations actionable',
-        () {
-      const presenter = EditorReceiptPresenter();
-      final conflict = presenter.failure(
-        const EditorAuthoringMutationFailure(
-          code: 'transaction.revision_conflict',
-          message: 'The project changed.',
-          remediation: ['Reload the project.'],
-        ),
-      );
-      final confirmation = presenter.failure(
-        const EditorAuthoringMutationFailure(
-          code: 'confirmation.required',
-          message: 'Confirmation required.',
-        ),
-      );
+    test(
+      'receipt presenter keeps domain codes and confirmations actionable',
+      () {
+        const presenter = EditorReceiptPresenter();
+        final conflict = presenter.failure(
+          const EditorAuthoringMutationFailure(
+            code: 'transaction.revision_conflict',
+            message: 'The project changed.',
+            remediation: ['Reload the project.'],
+          ),
+        );
+        final confirmation = presenter.failure(
+          const EditorAuthoringMutationFailure(
+            code: 'confirmation.required',
+            message: 'Confirmation required.',
+          ),
+        );
 
-      expect(conflict.code, 'transaction.revision_conflict');
-      expect(conflict.isConflict, isTrue);
-      expect(conflict.message.toLowerCase(), contains('recharg'));
-      expect(confirmation.requiresConfirmation, isTrue);
-    });
+        expect(conflict.code, 'transaction.revision_conflict');
+        expect(conflict.isConflict, isTrue);
+        expect(conflict.message.toLowerCase(), contains('recharg'));
+        expect(confirmation.requiresConfirmation, isTrue);
+      },
+    );
   });
 }
+
 const _cinematicLibraryActionIds = <String>{
   'cinematicLibraryAsset.create',
   'cinematicLibraryAsset.duplicate',
@@ -1565,15 +1725,15 @@ const _cinematicLibraryActionIds = <String>{
 };
 
 Map<String, Object?> _stableReceipt(AuthoringReceipt receipt) => {
-      'actionId': receipt.actionId,
-      'actionVersion': receipt.actionVersion,
-      'status': receipt.status.wireName,
-      'diff': receipt.diff.toJson(),
-      'affectedResources': [
-        for (final resource in receipt.affectedResources)
-          {'kind': resource.kind, 'id': resource.id},
-      ],
-    };
+  'actionId': receipt.actionId,
+  'actionVersion': receipt.actionVersion,
+  'status': receipt.status.wireName,
+  'diff': receipt.diff.toJson(),
+  'affectedResources': [
+    for (final resource in receipt.affectedResources)
+      {'kind': resource.kind, 'id': resource.id},
+  ],
+};
 
 final class _BlockingProjectReader
     implements ProjectFileReader, EditorProjectRootLocator {
@@ -1644,9 +1804,9 @@ final class _CountingEditorReader
   }) {
     identityReads += 1;
     return _files.readIdentity(
-        projectRoot: projectRoot,
-        relativePath: relativePath,
-      );
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
   }
 
   @override
@@ -1666,6 +1826,41 @@ final class _CountingEditorReader
       _roots.locateForResource(resourcePath);
 }
 
+SceneAsset _pauseMenuVisibilityScene() => SceneAsset(
+      id: 'intro_scene',
+      name: 'Intro scene',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'action',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.interactive(
+              SceneInteractiveCommand.openPc(),
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: <SceneEdge>[
+          SceneEdge(
+            id: 'start_action',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'action',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'action_end',
+            fromNodeId: 'action',
+            fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        ],
+      ),
+    );
+
 final class _MutationFixture {
   _MutationFixture({
     required this.root,
@@ -1679,6 +1874,7 @@ final class _MutationFixture {
   static Future<_MutationFixture> create({
     WorkspaceHandleStore Function()? workspaceHandles,
     bool enableSnapshotCache = false,
+    void Function(String projectRoot)? invalidatePokemonSpeciesSnapshot,
   }) async {
     final root = await Directory.systemTemp.createTemp('pmcp081_editor_');
     const project = ProjectManifest(
@@ -1699,11 +1895,7 @@ final class _MutationFixture {
       version: ProjectVersion.v6,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
-        MapLayer.tile(
-          id: 'l_base',
-          name: 'Base',
-          cells: [0, 0, 0, 0],
-        ),
+        MapLayer.tile(id: 'l_base', name: 'Base', cells: [0, 0, 0, 0]),
         MapLayer.collision(
           id: 'l_collisions',
           name: 'Collisions',
@@ -1711,8 +1903,10 @@ final class _MutationFixture {
         ),
       ],
     );
-    await FileProjectRepository()
-        .saveProject(project, p.join(root.path, 'project.json'));
+    await FileProjectRepository().saveProject(
+      project,
+      p.join(root.path, 'project.json'),
+    );
     await FileMapRepository().saveMap(
       map,
       p.join(root.path, 'maps', 'alpha.json'),
@@ -1742,6 +1936,7 @@ final class _MutationFixture {
       workspaceHandles: workspaceHandles,
       fingerprintCache: fingerprintCache,
       snapshotCache: snapshotCache,
+      invalidatePokemonSpeciesSnapshot: invalidatePokemonSpeciesSnapshot,
     );
     return _MutationFixture(
       root: root,
@@ -1759,11 +1954,7 @@ final class _MutationFixture {
       name: 'Smart Tile editor fixture',
       version: ProjectVersion.v6,
       maps: const [
-        ProjectMapEntry(
-          id: 'm01',
-          name: 'M01',
-          relativePath: 'maps/m01.json',
-        ),
+        ProjectMapEntry(id: 'm01', name: 'M01', relativePath: 'maps/m01.json'),
       ],
       tilesets: const [
         ProjectTilesetEntry(
@@ -1890,7 +2081,7 @@ final class _MutationFixture {
             false,
             false,
             false,
-            false
+            false,
           ],
         ),
       ],
@@ -1936,6 +2127,31 @@ final class _MutationFixture {
     if (await root.exists()) await root.delete(recursive: true);
   }
 }
+
+Map<String, Object?> _pokemonSpeciesDocument(String id) => <String, Object?>{
+  'schemaVersion': currentPokemonDataSchemaVersion,
+  'id': id,
+  'slug': id,
+  'nationalDex': 999,
+  'names': <String, String>{'en': id},
+  'typing': <String, Object?>{
+    'types': <String>['grass'],
+  },
+  'baseStats': <String, int>{
+    'hp': 45,
+    'atk': 49,
+    'def': 49,
+    'spa': 65,
+    'spd': 65,
+    'spe': 45,
+  },
+  'abilities': <String, Object?>{'primary': 'overgrow'},
+  'progression': <String, Object?>{
+    'growthRateId': 'medium_slow',
+    'baseExp': 64,
+    'catchRate': 45,
+  },
+};
 
 final class _MutableClock {
   _MutableClock(this.value);

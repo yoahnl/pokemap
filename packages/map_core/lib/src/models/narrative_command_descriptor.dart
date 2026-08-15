@@ -17,6 +17,7 @@ enum NarrativeCommandParameterKind {
   storyStep,
   item,
   species,
+  speciesForm,
   starter,
   map,
   npc,
@@ -34,6 +35,7 @@ enum NarrativeCommandParameterKind {
   customAnimationDefinition,
   characterDirection,
   customAnimationPlayback,
+  pauseMenuAction,
 }
 
 @immutable

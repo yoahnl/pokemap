@@ -74,6 +74,43 @@ void main() {
       }
     });
 
+    test('hydrates one wild request with a versioned generated individual',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final request = _wildRequest(
+        speciesId: 'sparkitten',
+        level: 10,
+        generationSeed: 0x12345678,
+        pokemonOverrides: const ProjectEncounterPokemonOverrides(
+          natureId: 'modest',
+          shinyPolicy: ProjectEncounterShinyPolicy.always,
+        ),
+      );
+
+      final first = await mapper.hydrateWildRequest(
+        bundle: bundle,
+        request: request,
+      );
+      final repeated = await mapper.hydrateWildRequest(
+        bundle: bundle,
+        request: request,
+      );
+
+      expect(first.generatedPokemon, repeated.generatedPokemon);
+      expect(first.generatedPokemon?.natureId, 'modest');
+      expect(first.generatedPokemon?.isShiny, isTrue);
+      expect(first.generatedPokemon?.gender, 'male');
+      expect(first.generatedPokemon?.friendship, 50);
+      expect(first.generatedPokemon?.provenance?.mapId, 'field_map');
+      expect(first.generatedPokemon?.provenance?.sourceId, 'field_grass');
+      expect(first.generationProfileId, 'pokemap-wild-v1');
+      expect(first.generationSchemaVersion, 1);
+    });
+
     test('maps a PSDK setup and executes a legacy-filtered PSDK move',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
@@ -110,6 +147,7 @@ void main() {
         request: _wildRequest(
           speciesId: 'sparkitten',
           level: 10,
+          generationSeed: 0x12345678,
         ),
         itemCatalog: _heldItemCatalog,
       );
@@ -118,6 +156,11 @@ void main() {
         setup.player.moves.map((move) => move.battleEngineMethod).toList(),
         equals(<String>['s_bind', 's_haze', 's_self_stat', 's_gastro_acid']),
       );
+      expect(
+        setup.ruleset.reference,
+        PokemonRulesetProfile.pokeMapBetaV1Reference,
+      );
+      expect(identical(setup.ruleset, bundle.manifest.pokemon.ruleset), isTrue);
       expect(setup.player.heldItemId, equals('leftovers'));
 
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(setup);
@@ -261,6 +304,11 @@ void main() {
       );
 
       expect(setup.playerPokemon.speciesId, equals('sproutle'));
+      expect(
+        setup.ruleset.reference,
+        PokemonRulesetProfile.pokeMapBetaV1Reference,
+      );
+      expect(identical(setup.ruleset, bundle.manifest.pokemon.ruleset), isTrue);
       expect(setup.playerPokemon.level, equals(12));
       expect(setup.playerPokemon.currentHp, equals(23));
       expect(setup.playerPokemon.typing, isNotNull);
@@ -500,6 +548,7 @@ void main() {
         request: _wildRequest(
           speciesId: 'sparkitten',
           level: 10,
+          generationSeed: 0x12345678,
         ),
       );
 
@@ -511,8 +560,8 @@ void main() {
       expect(setup.enemyPokemon.typing, isNotNull);
       expect(setup.enemyPokemon.typing!.primaryType, equals('fire'));
       expect(setup.enemyPokemon.typing!.secondaryType, isNull);
-      expect(setup.enemyPokemon.stats.attack, equals(15));
-      expect(setup.enemyPokemon.stats.specialAttack, equals(17));
+      expect(setup.enemyPokemon.stats.attack, equals(16));
+      expect(setup.enemyPokemon.stats.specialAttack, equals(19));
       expect(setup.enemyPokemon.stats.speed, equals(18));
       expect(
         setup.enemyPokemon.moves.map((move) => move.id).toList(),
@@ -1761,6 +1810,7 @@ void main() {
           level: 10,
         ),
       );
+      final speciesReadsAfterFirst = speciesLoader.debugActualReadCount;
       final secondSetup = await mapper.map(
         bundle: bundle,
         gameState: _playerStateForTests(),
@@ -1773,7 +1823,8 @@ void main() {
       expect(firstSetup.playerPokemon.speciesId, equals('sproutle'));
       expect(secondSetup.enemyPokemon.speciesId, equals('sparkitten'));
       expect(moveCatalogLoader.debugActualReadCount, equals(1));
-      expect(speciesLoader.debugActualReadCount, equals(2));
+      expect(speciesReadsAfterFirst, equals(3));
+      expect(speciesLoader.debugActualReadCount, speciesReadsAfterFirst);
       expect(learnsetLoader.debugActualReadCount, equals(1));
     });
   });
@@ -1835,6 +1886,8 @@ RuntimeMapBundle _buildRuntimeBundle(
 WildBattleStartRequest _wildRequest({
   required String speciesId,
   required int level,
+  int generationSeed = 0,
+  ProjectEncounterPokemonOverrides? pokemonOverrides,
 }) {
   return WildBattleStartRequest(
     requestId: 'wild-request',
@@ -1854,6 +1907,8 @@ WildBattleStartRequest _wildRequest({
     maxLevel: level,
     weight: 30,
     playerPos: const GridPos(x: 1, y: 1),
+    generationSeed: generationSeed,
+    pokemonOverrides: pokemonOverrides,
   );
 }
 
@@ -1906,6 +1961,7 @@ Future<ProjectManifest> _writeAndLoadProjectManifest(
     tilesets: const <ProjectTilesetEntry>[],
     trainers: trainers,
     pokemon: const ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       dataRoot: 'custom/pokemon',
       speciesDir: 'custom/pokemon/species',
       learnsetsDir: 'custom/pokemon/learnsets',
@@ -1936,6 +1992,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/001-sproutle.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': 'sproutle',
       'slug': 'sproutle',
       'nationalDex': 1,
@@ -1984,6 +2041,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/004-sparkitten.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': 'sparkitten',
       'slug': 'sparkitten',
       'nationalDex': 4,
@@ -2032,6 +2090,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/007-aquafi.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': 'aquafi',
       'slug': 'aquafi',
       'nationalDex': 7,
@@ -2080,6 +2139,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/learnsets/sproutle.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'speciesId': 'sproutle',
       'startingMoves': <String>['tackle'],
       'relearnMoves': <String>['growl'],
@@ -2104,6 +2164,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/learnsets/sparkitten.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'speciesId': 'sparkitten',
       'startingMoves': <String>['scratch'],
       'relearnMoves': <String>['tail_whip'],
@@ -2128,6 +2189,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/learnsets/aquafi.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'speciesId': 'aquafi',
       'startingMoves': <String>['tackle'],
       'relearnMoves': <String>['water_gun'],
@@ -2488,6 +2550,7 @@ Future<void> _writeSquirtleStarterCoverageFixture(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/999-squirtle.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': 'squirtle',
       'slug': 'squirtle',
       'nationalDex': 7,
@@ -2536,6 +2599,7 @@ Future<void> _writeSquirtleStarterCoverageFixture(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/learnsets/squirtle.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'speciesId': 'squirtle',
       'startingMoves': <String>['tail_whip'],
       'relearnMoves': <String>['water_gun'],
@@ -2617,6 +2681,7 @@ Future<void> _rewriteSpeciesWithoutLearnsetRef(
     projectRoot,
     'custom/pokemon/species/$speciesFileName',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': speciesId,
       'typing': <String, Object>{
         'types': <String>['grass'],

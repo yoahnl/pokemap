@@ -19,6 +19,7 @@ final class SceneRuntimeHostCallbacks {
 
   SceneRuntimeExecutionCallbacks toExecutionCallbacks({
     required SceneRuntimeConsequenceCallback applyConsequence,
+    SceneRuntimeNodeConsequenceCallback? applyConsequenceWithNodeId,
   }) {
     return SceneRuntimeExecutionCallbacks(
       evaluateCondition: evaluateCondition,
@@ -27,6 +28,7 @@ final class SceneRuntimeHostCallbacks {
       playCinematic: playCinematic,
       playPresentationCinematic: playPresentationCinematic,
       applyConsequence: applyConsequence,
+      applyConsequenceWithNodeId: applyConsequenceWithNodeId,
       executeInteractiveCommand: executeInteractiveCommand,
     );
   }

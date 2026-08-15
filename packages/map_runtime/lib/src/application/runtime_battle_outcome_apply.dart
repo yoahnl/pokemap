@@ -26,19 +26,50 @@ class RuntimeActiveBattleContext {
   const RuntimeActiveBattleContext({
     required this.request,
     required this.playerPartyIndex,
-  }) : playerPartySlotIndicesByLineupIndex = const <int>[];
+    this.playerIndividualId = '',
+  })  : playerPartySlotIndicesByLineupIndex = const <int>[],
+        playerIndividualIdsByLineupIndex = const <String>[];
 
   factory RuntimeActiveBattleContext.withLineupMapping({
     required BattleStartRequest request,
     required int playerPartyIndex,
     required Iterable<int> playerPartySlotIndicesByLineupIndex,
+    String playerIndividualId = '',
+    Iterable<String> playerIndividualIdsByLineupIndex = const <String>[],
   }) {
+    final individualIds = playerIndividualIdsByLineupIndex
+        .map((id) => id.trim())
+        .toList(growable: false);
+    if (individualIds.any((id) => id.isEmpty) ||
+        individualIds.toSet().length != individualIds.length) {
+      throw ArgumentError.value(
+        playerIndividualIdsByLineupIndex,
+        'playerIndividualIdsByLineupIndex',
+        'must contain unique non-empty ids',
+      );
+    }
+    final partySlots = List<int>.unmodifiable(
+      playerPartySlotIndicesByLineupIndex,
+    );
+    if (individualIds.isNotEmpty && individualIds.length != partySlots.length) {
+      throw ArgumentError(
+        'Lineup party slots and individual ids must have the same length.',
+      );
+    }
+    final activeIndividualId = playerIndividualId.trim();
+    if (individualIds.isNotEmpty &&
+        activeIndividualId != individualIds.first) {
+      throw ArgumentError(
+        'The active individual id must match lineup index zero.',
+      );
+    }
     return RuntimeActiveBattleContext._(
       request: request,
       playerPartyIndex: playerPartyIndex,
-      playerPartySlotIndicesByLineupIndex: List<int>.unmodifiable(
-        playerPartySlotIndicesByLineupIndex,
-      ),
+      playerPartySlotIndicesByLineupIndex: partySlots,
+      playerIndividualId: activeIndividualId,
+      playerIndividualIdsByLineupIndex:
+          List<String>.unmodifiable(individualIds),
     );
   }
 
@@ -46,10 +77,13 @@ class RuntimeActiveBattleContext {
     required this.request,
     required this.playerPartyIndex,
     required this.playerPartySlotIndicesByLineupIndex,
+    required this.playerIndividualId,
+    required this.playerIndividualIdsByLineupIndex,
   });
 
   final BattleStartRequest request;
   final int playerPartyIndex;
+  final String playerIndividualId;
 
   /// Mapping stable lineup battle joueur -> slots de party runtime.
   ///
@@ -71,6 +105,7 @@ class RuntimeActiveBattleContext {
   ///   joueur, ce mapping devient obligatoire pour éviter d'écrire les PV sur
   ///   un slot runtime arbitraire.
   final List<int> playerPartySlotIndicesByLineupIndex;
+  final List<String> playerIndividualIdsByLineupIndex;
 }
 
 /// Typed successful-attempt identity extracted from an engine result.
@@ -291,6 +326,8 @@ GameState applyRuntimeDefeatRecoveryToGameState({
   required int playerPartyIndex,
   int? activePlayerLineupIndex,
   List<int> playerPartySlotIndicesByLineupIndex = const <int>[],
+  String playerIndividualId = '',
+  List<String> playerIndividualIdsByLineupIndex = const <String>[],
 }) {
   if (gameState.party.members.any((member) => !member.isFainted)) {
     return gameState;
@@ -298,10 +335,12 @@ GameState applyRuntimeDefeatRecoveryToGameState({
 
   final members = gameState.party.members;
   final revivePartySlotIndex = _resolveDefeatRecoveryPartySlotIndex(
-    partyLength: members.length,
+    gameState: gameState,
     playerPartyIndex: playerPartyIndex,
     activePlayerLineupIndex: activePlayerLineupIndex,
     playerPartySlotIndicesByLineupIndex: playerPartySlotIndicesByLineupIndex,
+    playerIndividualId: playerIndividualId,
+    playerIndividualIdsByLineupIndex: playerIndividualIdsByLineupIndex,
   );
 
   if (revivePartySlotIndex < 0 || revivePartySlotIndex >= members.length) {
@@ -329,11 +368,33 @@ GameState applyRuntimeDefeatRecoveryToGameState({
 }
 
 int _resolveDefeatRecoveryPartySlotIndex({
-  required int partyLength,
+  required GameState gameState,
   required int playerPartyIndex,
   required int? activePlayerLineupIndex,
   required List<int> playerPartySlotIndicesByLineupIndex,
+  required String playerIndividualId,
+  required List<String> playerIndividualIdsByLineupIndex,
 }) {
+  final individualId = activePlayerLineupIndex == null
+      ? playerIndividualId.trim()
+      : activePlayerLineupIndex >= 0 &&
+              activePlayerLineupIndex < playerIndividualIdsByLineupIndex.length
+          ? playerIndividualIdsByLineupIndex[activePlayerLineupIndex].trim()
+          : '';
+  if (individualId.isNotEmpty) {
+    final matches = gameState.party.members
+        .asMap()
+        .entries
+        .where((entry) => entry.value.individualId == individualId)
+        .toList(growable: false);
+    if (matches.length != 1) {
+      throw StateError(
+        'Le whiteout-lite runtime ne peut pas résoudre l’identité individuelle $individualId.',
+      );
+    }
+    return matches.single.key;
+  }
+
   // Compatibilité volontaire :
   // - les anciens call sites mono-slot ne connaissent que playerPartyIndex ;
   // - BE10 ajoute un mapping lineup -> slots runtime pour éviter de réanimer
@@ -356,11 +417,12 @@ int _resolveDefeatRecoveryPartySlotIndex({
 
   final mappedPartyIndex =
       playerPartySlotIndicesByLineupIndex[activePlayerLineupIndex];
-  if (mappedPartyIndex < 0 || mappedPartyIndex >= partyLength) {
+  if (mappedPartyIndex < 0 ||
+      mappedPartyIndex >= gameState.party.members.length) {
     throw StateError(
       'Le whiteout-lite runtime a reçu un mapping lineup->party invalide: '
       'lineupIndex=$activePlayerLineupIndex, '
-      'partyIndex=$mappedPartyIndex, partyLength=$partyLength',
+      'partyIndex=$mappedPartyIndex, partyLength=${gameState.party.members.length}',
     );
   }
 
@@ -389,7 +451,8 @@ RuntimeBattleOutcomeTransactionBase applyRuntimeBattleOutcomeTransactionBase({
   RuntimeBattleCaptureAttemptReceipt? captureAttemptReceipt,
 }) {
   if (context.request is TrainerBattleStartRequest && outcome.isRunaway) {
-    throw StateError('BattleOutcomeType.runaway est interdit en combat trainer.');
+    throw StateError(
+        'BattleOutcomeType.runaway est interdit en combat trainer.');
   }
   final stateWithPlayerHp = writePlayerBattleLineupBackToPartySlots(
     gameState: gameState,
@@ -498,44 +561,38 @@ RuntimeBattleCaptureAttemptReceipt _validatedCaptureReceipt({
 const _capturedPokemonDefaultNatureId = 'hardy';
 const _capturedPokemonFallbackAbilityId = 'unknown';
 
-/// Construit le Pokémon réellement ajouté à la party après une capture sauvage.
-///
-/// Le lot 13 reste volontairement minimal :
-/// - espèce, ability, moves et PP viennent du snapshot persistable original du
-///   combattant, jamais d'une forme temporaire comme `Transform` ;
-/// - niveau et PV restent ceux du combattant sauvage réellement engagé ;
-/// - la nature reste un fallback MVP déterministe (`hardy`) faute de véritable
-///   génération runtime existante ;
-/// - le statut majeur est conservé ; ivs/evs/shiny/held item restent aux
-///   defaults du modèle `PlayerPokemon` faute de données runtime dédiées.
-///
-/// Invariant important :
-/// - une capture réussie ne doit jamais produire un Pokémon owned déjà K.O. ;
-/// - si un call site forge un outcome capturé incohérent avec `enemyHp <= 0`,
-///   on clamp donc les PV du Pokémon capturé à 1 minimum.
 PlayerPokemon _buildCapturedWildPlayerPokemon({
   required BattleCombatant enemy,
   required WildBattleStartRequest request,
   required String ballItemId,
 }) {
+  final generatedPokemon = request.generatedPokemon;
   final normalizedAbilityId = enemy.writeBackAbilityId.trim().isEmpty
-      ? _capturedPokemonFallbackAbilityId
+      ? generatedPokemon?.abilityId ?? _capturedPokemonFallbackAbilityId
       : enemy.writeBackAbilityId.trim();
-  final normalizedMoveIds = enemy.writeBackMoves
+  final persistentMoves = _persistentWriteBackMoves(enemy.writeBackMoves);
+  final normalizedMoveIds = persistentMoves
       .map((move) => move.id.trim())
       .where((moveId) => moveId.isNotEmpty)
       .toSet()
       .toList(growable: false);
 
+  final provenance = generatedPokemon?.provenance;
   return PlayerPokemon(
+    individualId: generatedPokemon?.individualId ?? '',
     speciesId: enemy.writeBackSpeciesId.trim(),
-    natureId: _capturedPokemonDefaultNatureId,
+    formId: generatedPokemon?.formId ?? '',
+    natureId: generatedPokemon?.natureId ?? _capturedPokemonDefaultNatureId,
     abilityId: normalizedAbilityId,
+    gender: generatedPokemon?.gender,
     level: enemy.level,
+    ivs: generatedPokemon?.ivs ?? const PokemonStatSpread(),
+    evs: generatedPokemon?.evs ?? const PokemonStatSpread(),
     knownMoveIds: normalizedMoveIds,
+    experience: generatedPokemon?.experience,
     currentPpByMoveId: Map<String, int>.unmodifiable(
       <String, int>{
-        for (final move in enemy.writeBackMoves) move.id.trim(): move.currentPp,
+        for (final move in persistentMoves) move.id.trim(): move.currentPp,
       }..remove(''),
     ),
     currentHp: enemy.currentHp <= 0 ? 1 : enemy.currentHp,
@@ -548,10 +605,14 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
       BattleMajorStatusId.frz => 'frz',
       null => '',
     },
+    isShiny: generatedPokemon?.isShiny ?? false,
+    heldItemId: generatedPokemon?.heldItemId ?? '',
+    nickname: generatedPokemon?.nickname ?? '',
+    friendship: generatedPokemon?.friendship ?? 0,
     provenance: PlayerPokemonProvenance(
       kind: PlayerPokemonOriginKind.captured,
-      mapId: request.mapId,
-      sourceId: request.tableId,
+      mapId: provenance?.mapId ?? request.mapId,
+      sourceId: provenance?.sourceId ?? request.tableId,
       ballItemId: ballItemId,
       metLevel: enemy.level,
     ),
@@ -587,7 +648,8 @@ GameState writePlayerBattleLineupBackToPartySlots({
     ...battleState.playerReserve,
   ];
   final hasExplicitLineupMapping =
-      context.playerPartySlotIndicesByLineupIndex.isNotEmpty;
+      context.playerIndividualIdsByLineupIndex.isNotEmpty ||
+          context.playerPartySlotIndicesByLineupIndex.isNotEmpty;
 
   // BE10A durcit ici un seam devenu ambigu après l'ouverture du switch
   // pipeline :
@@ -609,9 +671,10 @@ GameState writePlayerBattleLineupBackToPartySlots({
     );
   }
 
-  final lineupToParty = hasExplicitLineupMapping
-      ? context.playerPartySlotIndicesByLineupIndex
-      : <int>[context.playerPartyIndex];
+  final lineupToParty = _resolvePlayerLineupPartyIndices(
+    gameState: gameState,
+    context: context,
+  );
 
   if (playerLineup.length != lineupToParty.length) {
     throw StateError(
@@ -712,7 +775,10 @@ GameState writePlayerPsdkHeldItemsBackToPartySlots({
   required ItemCatalogSnapshot itemCatalog,
 }) {
   final lineup = psdkState.partyForBank(psdkPlayerSlot.bank);
-  final mapping = context.playerPartySlotIndicesByLineupIndex;
+  final mapping = _resolvePlayerLineupPartyIndices(
+    gameState: gameState,
+    context: context,
+  );
   if (lineup.length != mapping.length) {
     throw StateError(
       'Le write-back held-item ne peut pas réconcilier la lineup PSDK et la '
@@ -763,6 +829,50 @@ GameState writePlayerPsdkHeldItemsBackToPartySlots({
   );
 }
 
+List<int> _resolvePlayerLineupPartyIndices({
+  required GameState gameState,
+  required RuntimeActiveBattleContext context,
+}) {
+  final individualIds = context.playerIndividualIdsByLineupIndex;
+  if (individualIds.isNotEmpty) {
+    final members = gameState.party.members;
+    final indices = <int>[];
+    final seenIndices = <int>{};
+    for (final individualId in individualIds) {
+      final matches = members
+          .asMap()
+          .entries
+          .where((entry) => entry.value.individualId == individualId)
+          .toList(growable: false);
+      if (matches.length != 1 || !seenIndices.add(matches.single.key)) {
+        throw StateError(
+          'RuntimeActiveBattleContext individual identity cannot be resolved uniquely: $individualId.',
+        );
+      }
+      indices.add(matches.single.key);
+    }
+    return List<int>.unmodifiable(indices);
+  }
+  if (context.playerPartySlotIndicesByLineupIndex.isNotEmpty) {
+    return context.playerPartySlotIndicesByLineupIndex;
+  }
+  final individualId = context.playerIndividualId;
+  if (individualId.isNotEmpty) {
+    final matches = gameState.party.members
+        .asMap()
+        .entries
+        .where((entry) => entry.value.individualId == individualId)
+        .toList(growable: false);
+    if (matches.length != 1) {
+      throw StateError(
+        'RuntimeActiveBattleContext active individual identity cannot be resolved uniquely: $individualId.',
+      );
+    }
+    return <int>[matches.single.key];
+  }
+  return <int>[context.playerPartyIndex];
+}
+
 String _canonicalItemIdForHeldEffect({
   required ItemCatalogSnapshot itemCatalog,
   required String heldEffectId,
@@ -802,7 +912,9 @@ List<BattleMove> _persistentWriteBackMoves(List<BattleMove> battleMoves) {
   final seenMoveIds = <String>{};
   for (final move in battleMoves) {
     final moveId = move.id.trim();
-    if (moveId.isEmpty || !seenMoveIds.add(moveId)) {
+    if (moveId.isEmpty ||
+        moveId == canonicalStruggleMoveId ||
+        !seenMoveIds.add(moveId)) {
       continue;
     }
     persistentMoves.add(move);

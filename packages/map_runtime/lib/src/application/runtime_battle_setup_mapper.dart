@@ -50,6 +50,28 @@ class RuntimeBattleSetupMapper {
   final RuntimeItemCatalogLoader itemCatalogLoader;
   final RuntimeBattleCombatantSeedBuilder combatantSeedBuilder;
 
+  Future<WildBattleStartRequest> hydrateWildRequest({
+    required RuntimeMapBundle bundle,
+    required WildBattleStartRequest request,
+  }) async {
+    if (request.generatedPokemon != null) return request;
+    final movesCatalog = await moveCatalogLoader.load(
+      projectRootDirectory: bundle.projectRootDirectory,
+      pokemonConfig: bundle.manifest.pokemon,
+    );
+    final generated = await combatantSeedBuilder.generateWildPlayerPokemon(
+      projectRootDirectory: bundle.projectRootDirectory,
+      pokemonConfig: bundle.manifest.pokemon,
+      movesCatalog: movesCatalog,
+      request: request,
+    );
+    return request.withGeneratedPokemon(
+      pokemon: generated.pokemon,
+      profileId: generated.profileId,
+      schemaVersion: generated.schemaVersion,
+    );
+  }
+
   Future<BattleSetup> map({
     required RuntimeMapBundle bundle,
     required GameState gameState,
@@ -186,6 +208,7 @@ class RuntimeBattleSetupMapper {
     };
 
     return BattleSetup(
+      ruleset: bundle.manifest.pokemon.ruleset,
       playerPokemon: playerSeed.toBattleCombatantData(lineupIndex: 0),
       playerReservePokemon: List<BattleCombatantData>.unmodifiable(
         playerReserveSeeds.asMap().entries.map(

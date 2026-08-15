@@ -465,6 +465,18 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'scene.pause_menu_visibility.set') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/narrative/pause_menu_visibility_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/narrative/pause_menu_visibility_transport_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (_cinematicLibraryTransportCertifiedActionIds.contains(actionId)) {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
@@ -524,6 +536,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'phase_6_personalization_studio_export_e2e_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
+  if (actionId == 'pokemon.ruleset.set') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/gameplay/pokemon_ruleset_authoring_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/gameplay/pokemon_ruleset_authoring_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/pokemon_authoring.test.ts',
     };
   }
   if (actionId == 'presentationMedia.import') {
@@ -1051,6 +1075,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/assets/presentation_authoring_test.dart',
   ),
   _ContractEvidenceRule(
+    ['pokemon.ruleset.'],
+    'test/domains/gameplay/pokemon_ruleset_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['pokemon.'],
     'test/domains/gameplay/pokemon_catalog_authoring_test.dart',
   ),
@@ -1100,6 +1128,7 @@ const _semanticOwners = <String, String>{
   'project': 'project',
   'projectSettings': 'project',
   'projectPokemonConfig': 'project',
+  'pokemonRuleset': 'project',
   'projectNewGameConfig': 'project',
   'projectPresentationProfile': 'project',
   'projectPresentationPreset': 'project',

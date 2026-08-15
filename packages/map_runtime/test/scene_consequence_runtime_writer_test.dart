@@ -4,6 +4,26 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('SceneConsequenceRuntimeWriter', () {
+    test('pause menu visibility writes one persistent save override', () {
+      const state = GameState(saveId: 'pause-menu');
+      final writer = SceneConsequenceRuntimeWriter(project: _project());
+
+      final result = writer.applyOne(
+        state,
+        SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: ProjectPauseActionId.pokedex,
+          visible: false,
+        ),
+      );
+
+      expect(result.success, isTrue);
+      expect(
+        result.gameState.pauseMenuState.visibilityOverrides,
+        <ProjectPauseActionId, bool>{ProjectPauseActionId.pokedex: false},
+      );
+      expect(state.pauseMenuState, const PlayerPauseMenuState.empty());
+    });
+
     test('applyOne validates and commits exactly one immutable consequence',
         () {
       const state = GameState(saveId: 'save_test');
@@ -609,12 +629,19 @@ void main() {
           SceneConsequence.giveMoney(amount: 500),
           SceneConsequence.givePokemon(
             speciesId: 'species_sproutle',
+            formId: 'base',
             level: 7,
             currentHp: 23,
             nickname: 'Mousse',
             friendship: 80,
             label: 'Capitaine',
           ),
+        ],
+        pokemonGrantOperationIds: const <String?>[
+          null,
+          null,
+          null,
+          'scene:rewards:execution:gift',
         ],
       );
 
@@ -635,6 +662,10 @@ void main() {
       );
       expect(
           result.gameState.party.members.single.speciesId, 'species_sproutle');
+      expect(
+        result.gameState.party.members.single.individualId,
+        startsWith('pkm_'),
+      );
       expect(result.gameState.party.members.single.level, 7);
       expect(result.gameState.party.members.single.currentHp, 23);
       expect(result.gameState.party.members.single.nickname, 'Mousse');
@@ -722,9 +753,13 @@ void main() {
         [
           SceneConsequence.givePokemon(
             speciesId: 'species_reward',
+            formId: 'base',
             level: 5,
             currentHp: 20,
           ),
+        ],
+        pokemonGrantOperationIds: const <String?>[
+          'scene:full-party:execution:gift',
         ],
       );
 
@@ -795,6 +830,7 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: ' ',
+            formId: 'base',
             level: 5,
             currentHp: 20,
           ),
@@ -803,6 +839,16 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: 'species_test',
+            formId: ' ',
+            level: 5,
+            currentHp: 20,
+          ),
+          SceneConsequenceRuntimeWriteErrorCode.missingPokemonFormReference,
+        ),
+        (
+          SceneConsequence.givePokemon(
+            speciesId: 'species_test',
+            formId: 'base',
             level: 0,
             currentHp: 20,
           ),
@@ -811,6 +857,7 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: 'species_test',
+            formId: 'base',
             level: 5,
             currentHp: 20,
             natureId: ' ',
@@ -820,6 +867,7 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: 'species_test',
+            formId: 'base',
             level: 5,
             currentHp: 0,
           ),
@@ -828,6 +876,7 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: 'species_test',
+            formId: 'base',
             level: 5,
             currentHp: 10,
             friendship: 256,
@@ -839,7 +888,15 @@ void main() {
       final writer = SceneConsequenceRuntimeWriter(project: _project());
 
       for (final (consequence, expectedError) in cases) {
-        final result = writer.applyAll(state, [consequence]);
+        final result = writer.applyAll(
+          state,
+          [consequence],
+          pokemonGrantOperationIds: <String?>[
+            consequence.kind == SceneConsequenceKind.givePokemon
+                ? 'scene:invalid:execution:gift'
+                : null,
+          ],
+        );
         expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
         expect(result.errorCode, expectedError);
         expect(identical(result.gameState, state), isTrue);
@@ -883,17 +940,27 @@ void main() {
             starterOptionId: 'starter_bulbasaur',
           ),
         ],
+        pokemonGrantOperationIds: const <String?>[
+          'scene:starter:execution:gift',
+        ],
       );
 
       expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
+      final expectedWithProvenance = authored.copyWith(
+        provenance: const PlayerPokemonProvenance(
+          kind: PlayerPokemonOriginKind.starter,
+          mapId: 'lab',
+          sourceId: 'starter_bulbasaur',
+          metLevel: 16,
+        ),
+      );
       expect(
         result.gameState.party.members.single,
-        authored.copyWith(
-          provenance: const PlayerPokemonProvenance(
-            kind: PlayerPokemonOriginKind.starter,
-            mapId: 'lab',
-            sourceId: 'starter_bulbasaur',
-            metLevel: 16,
+        expectedWithProvenance.copyWith(
+          individualId: deterministicPlayerPokemonIndividualId(
+            saveId: 'save_configured_starter',
+            location: 'give:party:0',
+            pokemon: expectedWithProvenance,
           ),
         ),
       );
@@ -908,6 +975,9 @@ void main() {
           SceneConsequence.giveConfiguredStarter(
             starterOptionId: 'starter_missing',
           ),
+        ],
+        pokemonGrantOperationIds: const <String?>[
+          'scene:starter:execution:missing',
         ],
       );
 

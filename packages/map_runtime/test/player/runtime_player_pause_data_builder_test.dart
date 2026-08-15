@@ -97,7 +97,9 @@ void main() {
     final details = await const RuntimePlayerPauseDataBuilder().build(
       gameState: state,
       projectRootDirectory: projectRoot.path,
-      pokemonConfig: const ProjectPokemonConfig(),
+      pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
       locale: 'fr',
       mapEnabled: true,
       projectMaps: const <ProjectMapEntry>[
@@ -296,7 +298,9 @@ void main() {
         ),
       ),
       projectRootDirectory: projectRoot.path,
-      pokemonConfig: const ProjectPokemonConfig(),
+      pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
       locale: 'fr',
       itemCatalog: _catalogWith(
         const <ProjectItemDefinition>[
@@ -336,6 +340,7 @@ void main() {
         party: PlayerParty(
           members: <PlayerPokemon>[
             PlayerPokemon(
+              individualId: 'pkm_sproutle',
               speciesId: 'sproutle',
               natureId: 'hardy',
               abilityId: 'overgrow',
@@ -352,7 +357,9 @@ void main() {
         ),
       ),
       projectRootDirectory: projectRoot.path,
-      pokemonConfig: const ProjectPokemonConfig(),
+      pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
       locale: 'fr',
       itemCatalog: _catalogWith(
         const <ProjectItemDefinition>[
@@ -387,7 +394,7 @@ void main() {
         .entries
         .single
         .heldItemAction!;
-    expect(action.partyTargetId, 'party.0');
+    expect(action.partyTargetId, 'pokemon.pkm_sproutle');
     expect(action.currentItemLabel, 'Baie Oran');
     expect(
       action.options.map((option) => (option.itemTargetId, option.label)),
@@ -490,7 +497,9 @@ void main() {
         ),
       ),
       projectRootDirectory: projectRoot.path,
-      pokemonConfig: const ProjectPokemonConfig(),
+      pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ),
       locale: 'fr',
       itemCatalog: catalog,
     );

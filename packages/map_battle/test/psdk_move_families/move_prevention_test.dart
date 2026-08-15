@@ -183,7 +183,7 @@ void main() {
     });
 
     test('Taunt expires through the end-turn effect lifecycle', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -771,7 +771,7 @@ BattleEngineSetup _requestSetup({
   required List<PsdkBattleMoveData> playerMoves,
   PsdkBattleEffectStack? playerEffects,
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speed: 100,
@@ -814,7 +814,7 @@ PsdkBattleTurnResult _runMove({
   String? opponentAbilityId,
 }) {
   final engine = PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speed: 100,

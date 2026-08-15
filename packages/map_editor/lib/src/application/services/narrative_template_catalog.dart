@@ -726,6 +726,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     NarrativeCommandIds.givePokemon => SceneActionPayload.consequence(
         SceneConsequence.givePokemon(
           speciesId: parameters['speciesId']!,
+          formId: parameters['formId']!,
           level: integer('level'),
           currentHp: integer('currentHp', fallback: integer('level')),
           natureId: parameters['natureId'] ?? 'hardy',
@@ -759,6 +760,15 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
               present: parameters['present'] == 'true',
             ),
         },
+      ),
+    NarrativeCommandIds.setPauseMenuEntryVisibility =>
+      SceneActionPayload.consequence(
+        SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: ProjectPauseActionId.values.byName(
+            parameters['actionId']!,
+          ),
+          visible: parameters['visible'] == 'true',
+        ),
       ),
     NarrativeCommandIds.playCharacterAnimation =>
       SceneActionPayload.interactive(

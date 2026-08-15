@@ -88,6 +88,60 @@ void main() {
       expect(String.fromCharCodes(bytes), '{"id":"map"}');
     });
 
+    test('probes regular and missing resources without reading bytes',
+        () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_resource_probe_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await Directory(_join(sandbox.path, 'project')).create();
+      final assets = await Directory(_join(project.path, 'assets')).create();
+      await File(_join(assets.path, 'front.png')).writeAsBytes(<int>[1, 2, 3]);
+      final canonicalRoot = await project.resolveSymbolicLinks();
+      const reader = LocalProjectFileReader();
+
+      final existing = await reader.probeResource(
+        projectRoot: canonicalRoot,
+        relativePath: 'assets/front.png',
+      );
+      final missing = await reader.probeResource(
+        projectRoot: canonicalRoot,
+        relativePath: 'assets/missing.png',
+      );
+
+      expect(existing.status, ProjectResourceProbeStatus.exists);
+      expect(existing.identity?.relativePath, 'assets/front.png');
+      expect(existing.identity?.byteLength, 3);
+      expect(missing.status, ProjectResourceProbeStatus.missing);
+      expect(missing.identity, isNull);
+    });
+
+    test('maps traversal and outward symlinks to unsafe probes', () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_unsafe_resource_probe_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await Directory(_join(sandbox.path, 'project')).create();
+      final assets = await Directory(_join(project.path, 'assets')).create();
+      final outside =
+          await File(_join(sandbox.path, 'outside.png')).writeAsBytes(<int>[1]);
+      await Link(_join(assets.path, 'outward.png')).create(outside.path);
+      final canonicalRoot = await project.resolveSymbolicLinks();
+      const reader = LocalProjectFileReader();
+
+      final traversal = await reader.probeResource(
+        projectRoot: canonicalRoot,
+        relativePath: '../outside.png',
+      );
+      final symlink = await reader.probeResource(
+        projectRoot: canonicalRoot,
+        relativePath: 'assets/outward.png',
+      );
+
+      expect(traversal.status, ProjectResourceProbeStatus.unsafePath);
+      expect(symlink.status, ProjectResourceProbeStatus.unsafePath);
+    });
+
     test('rejects an absolute project-relative path', () async {
       final project = _realFixtureDirectory();
       final canonicalRoot = await project.resolveSymbolicLinks();

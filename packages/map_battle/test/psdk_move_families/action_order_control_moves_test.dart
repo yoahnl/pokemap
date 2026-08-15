@@ -122,7 +122,7 @@ PsdkBattleEngine _engine({
   required List<PsdkBattleMoveData> opponentMoves,
 }) {
   return PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speed: playerSpeed,

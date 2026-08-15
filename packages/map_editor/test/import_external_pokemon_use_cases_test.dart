@@ -96,8 +96,8 @@ void main() {
         ),
       },
     );
-    writeRepository = const FilePokemonWriteRepository();
-    readRepository = const FilePokemonReadRepository();
+    writeRepository = FilePokemonWriteRepository();
+    readRepository = FilePokemonReadRepository();
     singleUseCase = ImportExternalPokemonSpeciesUseCase(
       externalSourceRepository: externalSourceRepository,
       writeRepository: writeRepository,

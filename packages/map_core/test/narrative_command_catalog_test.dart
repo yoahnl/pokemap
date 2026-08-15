@@ -84,6 +84,15 @@ void main() {
       catalog.byId(NarrativeCommandIds.awardBadge)!.parameters.single.kind,
       NarrativeCommandParameterKind.badge,
     );
+    final givePokemon = catalog.byId(NarrativeCommandIds.givePokemon)!;
+    expect(
+      givePokemon.parameters.map((parameter) => parameter.kind),
+      <NarrativeCommandParameterKind>[
+        NarrativeCommandParameterKind.species,
+        NarrativeCommandParameterKind.speciesForm,
+        NarrativeCommandParameterKind.integer,
+      ],
+    );
     expect(
       catalog
           .byId(NarrativeCommandIds.unlockFieldAbility)!

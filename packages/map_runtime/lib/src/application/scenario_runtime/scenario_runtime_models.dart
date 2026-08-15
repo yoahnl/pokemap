@@ -86,6 +86,7 @@ enum ScenarioRuntimeEffectType {
   dialogue,
   script,
   message,
+  givePokemon,
 
   /// Le graphe scénario demande un combat trainer.
   ///
@@ -103,9 +104,13 @@ class ScenarioRuntimeEffect {
     this.dialogueId,
     this.scriptId,
     this.message,
+    this.executionId,
     this.battleId,
     this.trainerId,
     this.npcEntityId,
+    this.pokemon,
+    this.grantOperationId,
+    this.preventDuplicateSpecies = false,
   });
 
   const ScenarioRuntimeEffect.none()
@@ -115,6 +120,10 @@ class ScenarioRuntimeEffect {
   final String? dialogueId;
   final String? scriptId;
   final String? message;
+  final String? executionId;
+  final PlayerPokemon? pokemon;
+  final String? grantOperationId;
+  final bool preventDuplicateSpecies;
 
   /// Identifiant stable du combat (utilisé pour nommer les flags d'outcome).
   /// Exemple : `battle_rival_port`.
@@ -247,6 +256,7 @@ typedef ScenarioRuntimeOutcomeEmitter = void Function({
 /// concrets (UI dialogue/script/message) via callbacks.
 class ScenarioRuntimeExecutionContext {
   ScenarioRuntimeExecutionContext({
+    this.executionId = '',
     required this.gameState,
     required this.onGameStateUpdated,
     required this.openDialogue,
@@ -262,6 +272,7 @@ class ScenarioRuntimeExecutionContext {
   });
 
   GameState gameState;
+  final String executionId;
   final void Function(GameState) onGameStateUpdated;
   final ScenarioRuntimeOpenDialogue openDialogue;
   final ScenarioRuntimeRunScript runScript;

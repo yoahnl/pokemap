@@ -128,7 +128,7 @@ PsdkBattleSetup _setup({
   String? playerAbilityId,
   PsdkBattleEffectStack? opponentEffects,
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(id: 'player', abilityId: playerAbilityId),
     opponent: _combatant(id: 'opponent', effects: opponentEffects),
     rngSeeds: const PsdkBattleRngSeeds(

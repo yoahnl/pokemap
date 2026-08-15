@@ -1,5 +1,6 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_battle/src/battle_condition_engine.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 BattleStatsSnapshot _stats({
@@ -283,7 +284,7 @@ void main() {
         const BattleMajorStatusState.slp(),
         const BattleMajorStatusState.frz(),
       ]) {
-        final setup = BattleSetup(
+        final setup = BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'status-carrier',
             level: 12,
@@ -508,7 +509,8 @@ void main() {
       expect(result.spikesEvents.single.layers, equals(1));
     });
 
-    test('runEntryHazards applies Stealth Rock before Spikes and stops on KO', () {
+    test('runEntryHazards applies Stealth Rock before Spikes and stops on KO',
+        () {
       final side = BattleSideState.player(
         active: _combatant(
           speciesId: 'fragile_switch',
@@ -523,7 +525,12 @@ void main() {
         reserve: const <BattleCombatant>[],
       ).withStealthRock(true).withSpikesLayers(3);
 
-      final result = engine.runEntryHazards(side: side);
+      final result = engine.runEntryHazards(
+        side: side,
+        rules: PokemonBattleRules.fromProfile(
+          PokemonRulesetProfile.pokeMapBetaV1,
+        ),
+      );
 
       expect(result.side.active.isFainted, isTrue);
       expect(

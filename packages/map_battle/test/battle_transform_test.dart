@@ -21,7 +21,7 @@ void main() {
   group('BattleSession Transform', () {
     test('copies target battle form, stats, ability, stages and moves', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'ditto',
             level: 50,

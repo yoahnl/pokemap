@@ -395,7 +395,7 @@ BattleEngineTurnResult _runMove({
   PsdkBattleStatStages? opponentStatStages,
 }) {
   final engine = BattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         currentHp: 100,

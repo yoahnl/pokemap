@@ -115,6 +115,68 @@ void main() {
     );
   });
 
+  testWidgets('Pokemon form picker follows the selected species',
+      (tester) async {
+    SceneActionBuildResult? result;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.givePokemon,
+      initialParameters: const {'speciesId': 'sproutle', 'formId': 'sunny'},
+      options: const {
+        NarrativeCommandParameterKind.species: [
+          SceneActionPickerOption(id: 'sproutle', label: 'Sproutle'),
+          SceneActionPickerOption(id: 'shellby', label: 'Shellby'),
+        ],
+        NarrativeCommandParameterKind.speciesForm: [
+          SceneActionPickerOption(
+            id: 'base',
+            label: 'Forme de base',
+            parentId: 'sproutle',
+          ),
+          SceneActionPickerOption(
+            id: 'sunny',
+            label: 'Sunny',
+            parentId: 'sproutle',
+          ),
+          SceneActionPickerOption(
+            id: 'shell',
+            label: 'Shell',
+            parentId: 'shellby',
+          ),
+        ],
+      },
+      onSubmitResult: (value) => result = value,
+    );
+
+    expect(find.text('Sunny'), findsOneWidget);
+    expect(find.text('Shell'), findsNothing);
+
+    final speciesPicker = tester
+        .widgetList<PokeMapDropdownField<String>>(
+          find.byType(PokeMapDropdownField<String>),
+        )
+        .singleWhere((field) => field.label == 'Espèce');
+    speciesPicker.onChanged('shellby');
+    await tester.pump();
+
+    expect(find.text('Sunny'), findsNothing);
+    expect(find.text('Shell'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+
+    expect(result!.parameters['speciesId'], 'shellby');
+    expect(result!.parameters['formId'], 'shell');
+    expect(
+      (result!.payload as SceneActionPayload).consequence,
+      SceneConsequence.givePokemon(
+        speciesId: 'shellby',
+        formId: 'shell',
+        level: 1,
+        currentHp: 1,
+      ),
+    );
+  });
+
   testWidgets('custom animation uses actor definition and direction pickers',
       (tester) async {
     SceneNodePayload? submitted;
@@ -235,6 +297,48 @@ void main() {
         mapId: 'map_port',
         entityId: 'npc_sailor',
         present: false,
+      ),
+    );
+  });
+
+  testWidgets('pause menu visibility uses a guided picker without Resume',
+      (tester) async {
+    SceneActionBuildResult? result;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.setPauseMenuEntryVisibility,
+      runtimeCommandIds: const {
+        NarrativeCommandIds.setPauseMenuEntryVisibility,
+      },
+      initialParameters: const {'visible': 'false'},
+      onSubmitResult: (value) => result = value,
+    );
+
+    final actionField = tester
+        .widgetList<PokeMapDropdownField<String>>(
+          find.byType(PokeMapDropdownField<String>),
+        )
+        .singleWhere((field) => field.label == 'Entrée du menu');
+    expect(actionField.items.map((item) => item.label), contains('Pokédex'));
+    expect(actionField.items.map((item) => item.label), isNot(contains('Reprendre')));
+    final visibilityField = tester
+        .widgetList<PokeMapDropdownField<String>>(
+          find.byType(PokeMapDropdownField<String>),
+        )
+        .singleWhere((field) => field.label == 'Visibilité');
+    expect(
+      visibilityField.items.map((item) => item.label),
+      <String>['Afficher', 'Masquer'],
+    );
+
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+
+    expect(
+      (result!.payload as SceneActionPayload).consequence,
+      SceneConsequence.setPauseMenuEntryVisibility(
+        actionId: ProjectPauseActionId.party,
+        visible: false,
       ),
     );
   });

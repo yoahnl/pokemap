@@ -20,13 +20,13 @@
   },
   "content": {
     "fileCount": 1,
-    "totalBytes": 67,
-    "treeSha256": "7f4f52d0ba676cc3c003514c125d94e192a61555146eea8f79aa3dec480401d9",
+    "totalBytes": 588,
+    "treeSha256": "89359d6842296f5217ba941cb9e81794201945cb40ecbb30e4162bf1f572cba4",
     "files": [
       {
         "path": "project/project.json",
-        "size": 67,
-        "sha256": "37174190ed0a5555f5cfecb1dda482e45bdc01f3ee81860981869ce8c3c5dc02",
+        "size": 588,
+        "sha256": "2cbd1528bf720b0359ded6ecf02c07d6b31a21ec02d769b3b4bba127fc7704e9",
         "mediaType": "application/json"
       }
     ]

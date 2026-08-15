@@ -1,5 +1,5 @@
 import '../errors/application_errors.dart';
-import '../models/pokemon_project_data_models.dart';
+import 'package:map_core/map_core.dart';
 
 /// Normalise des payloads de catalogues externes vers [PokemonCatalogFile].
 ///

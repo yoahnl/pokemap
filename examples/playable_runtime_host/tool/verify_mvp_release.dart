@@ -51,6 +51,7 @@ Future<void> main(List<String> arguments) async {
         projectRoot: p
             .relative(projectRoot.path, from: repositoryRoot.path)
             .replaceAll(r'\', '/'),
+        expectedProjectTreeHash: treeHash,
         scenarioPath:
             'examples/playable_runtime_host/evaluation/scenarios/selbrume/'
             'mvp_certification.json',

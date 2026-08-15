@@ -723,6 +723,7 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: 'species_sproutle',
+            formId: 'base',
             level: 5,
             currentHp: 20,
           ),
@@ -733,6 +734,13 @@ void main() {
             starterOptionId: 'starter_sproutle',
           ),
           'Donner un starter configuré',
+        ),
+        (
+          SceneConsequence.setPauseMenuEntryVisibility(
+            actionId: ProjectPauseActionId.pokedex,
+            visible: false,
+          ),
+          'Modifier la visibilité du menu pause',
         ),
       ];
 
@@ -755,16 +763,19 @@ void main() {
         SceneConsequence.giveMoney(amount: 0),
         SceneConsequence.givePokemon(
           speciesId: ' ',
+          formId: 'base',
           level: 5,
           currentHp: 20,
         ),
         SceneConsequence.givePokemon(
           speciesId: 'species_test',
+          formId: 'base',
           level: 101,
           currentHp: 20,
         ),
         SceneConsequence.givePokemon(
           speciesId: 'species_test',
+          formId: 'base',
           level: 5,
           currentHp: 0,
         ),

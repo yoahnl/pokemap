@@ -2722,7 +2722,9 @@ Future<String> _writeRuntimeProject(
   List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
   List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
   List<ScenarioAsset> scenarios = const <ScenarioAsset>[],
-  ProjectPokemonConfig pokemonConfig = const ProjectPokemonConfig(),
+  ProjectPokemonConfig pokemonConfig = const ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+  ),
 }) async {
   final manifest = ProjectManifest(
     name: 'Runtime Movement Regression',

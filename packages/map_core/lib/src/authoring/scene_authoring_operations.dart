@@ -1700,6 +1700,11 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
         'givePokemon consequence requires a species id.',
       );
       _trimRequired(
+        consequence.formId,
+        'consequence.formId',
+        'givePokemon consequence requires a form id.',
+      );
+      _trimRequired(
         consequence.natureId,
         'consequence.natureId',
         'givePokemon consequence requires a nature id.',
@@ -1743,6 +1748,7 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
     case SceneHealPartyConsequence():
     case SceneAwardBadgeConsequence():
     case SceneUnlockFieldAbilityConsequence():
+    case SceneSetPauseMenuEntryVisibilityConsequence():
     case SceneFinishGameConsequence():
       break;
   }
@@ -2435,6 +2441,8 @@ String _defaultConsequenceActionTitle(SceneConsequence consequence) {
     SceneGivePokemonConsequence() => 'Donner un Pokémon',
     SceneGiveConfiguredStarterConsequence() => 'Donner un starter configuré',
     SceneSetNpcPresenceConsequence() => 'Modifier la présence d’un PNJ',
+    SceneSetPauseMenuEntryVisibilityConsequence() =>
+      'Modifier la visibilité du menu pause',
     _ => 'Conséquence',
   };
 }

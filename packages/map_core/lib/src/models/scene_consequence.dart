@@ -2,6 +2,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import 'enums.dart';
 import 'narrative_value.dart';
+import 'project_presentation_profile.dart';
 import 'scene_finish_game_contract.dart';
 
 enum SceneConsequenceKind {
@@ -17,6 +18,7 @@ enum SceneConsequenceKind {
   awardBadge,
   unlockFieldAbility,
   setNpcPresence,
+  setPauseMenuEntryVisibility,
   finishGame,
 }
 
@@ -73,6 +75,7 @@ abstract base class SceneConsequence {
 
   factory SceneConsequence.givePokemon({
     required String speciesId,
+    required String formId,
     required int level,
     required int currentHp,
     String natureId,
@@ -114,6 +117,13 @@ abstract base class SceneConsequence {
     String? notes,
   }) = SceneSetNpcPresenceConsequence;
 
+  factory SceneConsequence.setPauseMenuEntryVisibility({
+    required ProjectPauseActionId actionId,
+    required bool visible,
+    String? label,
+    String? notes,
+  }) = SceneSetPauseMenuEntryVisibilityConsequence;
+
   factory SceneConsequence.finishGame({
     int contractVersion,
     required String endingId,
@@ -150,6 +160,8 @@ abstract base class SceneConsequence {
         SceneUnlockFieldAbilityConsequence.fromJson(json),
       SceneConsequenceKind.setNpcPresence =>
         SceneSetNpcPresenceConsequence.fromJson(json),
+      SceneConsequenceKind.setPauseMenuEntryVisibility =>
+        SceneSetPauseMenuEntryVisibilityConsequence.fromJson(json),
       SceneConsequenceKind.finishGame =>
         SceneFinishGameConsequence.fromJson(json),
     };
@@ -484,6 +496,7 @@ final class SceneGiveMoneyConsequence extends SceneConsequence {
 final class SceneGivePokemonConsequence extends SceneConsequence {
   SceneGivePokemonConsequence({
     required String speciesId,
+    required String formId,
     required this.level,
     required this.currentHp,
     this.currentHpIsLegacyFallback = false,
@@ -494,6 +507,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
     String? label,
     String? notes,
   })  : speciesId = speciesId.trim(),
+        formId = formId.trim(),
         natureId = natureId.trim(),
         abilityId = abilityId.trim(),
         nickname = nickname.trim(),
@@ -505,6 +519,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
     final hasAuthoredCurrentHp = json.containsKey('currentHp');
     return SceneGivePokemonConsequence(
       speciesId: _readRequiredString(json, 'speciesId'),
+      formId: _readRequiredString(json, 'formId'),
       level: level,
       currentHp:
           hasAuthoredCurrentHp ? _readRequiredInt(json, 'currentHp') : level,
@@ -524,6 +539,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
   SceneConsequenceKind get kind => SceneConsequenceKind.givePokemon;
 
   final String speciesId;
+  final String formId;
   final int level;
   final int currentHp;
   final bool currentHpIsLegacyFallback;
@@ -538,6 +554,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
   Map<String, dynamic> toJson() => _withoutNulls({
         'kind': _kindToJson(kind),
         'speciesId': speciesId,
+        'formId': formId,
         'level': level,
         if (!currentHpIsLegacyFallback) 'currentHp': currentHp,
         'natureId': natureId,
@@ -553,6 +570,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
       identical(this, other) ||
       other is SceneGivePokemonConsequence &&
           other.speciesId == speciesId &&
+          other.formId == formId &&
           other.level == level &&
           other.currentHp == currentHp &&
           other.currentHpIsLegacyFallback == currentHpIsLegacyFallback &&
@@ -566,6 +584,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
   @override
   int get hashCode => Object.hash(
         speciesId,
+        formId,
         level,
         currentHp,
         currentHpIsLegacyFallback,
@@ -807,6 +826,66 @@ final class SceneSetNpcPresenceConsequence extends SceneConsequence {
   int get hashCode => Object.hash(mapId, entityId, present, label, notes);
 }
 
+@immutable
+final class SceneSetPauseMenuEntryVisibilityConsequence
+    extends SceneConsequence {
+  SceneSetPauseMenuEntryVisibilityConsequence({
+    required this.actionId,
+    required this.visible,
+    String? label,
+    String? notes,
+  })  : label = _trimOptional(label),
+        notes = _trimOptional(notes) {
+    if (actionId == ProjectPauseActionId.resume) {
+      throw ArgumentError.value(
+        actionId,
+        'actionId',
+        'Resume visibility cannot be changed',
+      );
+    }
+  }
+
+  factory SceneSetPauseMenuEntryVisibilityConsequence.fromJson(
+    Map<String, dynamic> json,
+  ) =>
+      SceneSetPauseMenuEntryVisibilityConsequence(
+        actionId: _readPauseActionId(json, 'actionId'),
+        visible: _readRequiredBool(json, 'visible'),
+        label: _readOptionalString(json, 'label'),
+        notes: _readOptionalString(json, 'notes'),
+      );
+
+  @override
+  SceneConsequenceKind get kind =>
+      SceneConsequenceKind.setPauseMenuEntryVisibility;
+
+  final ProjectPauseActionId actionId;
+  final bool visible;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'actionId': actionId.name,
+        'visible': visible,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneSetPauseMenuEntryVisibilityConsequence &&
+          other.actionId == actionId &&
+          other.visible == visible &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(actionId, visible, label, notes);
+}
+
 /// Terminal authored consequence.
 ///
 /// [endingId] forms the idempotency key with the active session. The only V1
@@ -999,8 +1078,21 @@ String _kindToJson(SceneConsequenceKind kind) {
     SceneConsequenceKind.awardBadge => 'awardBadge',
     SceneConsequenceKind.unlockFieldAbility => 'unlockFieldAbility',
     SceneConsequenceKind.setNpcPresence => 'setNpcPresence',
+    SceneConsequenceKind.setPauseMenuEntryVisibility =>
+      'setPauseMenuEntryVisibility',
     SceneConsequenceKind.finishGame => 'finishGame',
   };
+}
+
+ProjectPauseActionId _readPauseActionId(
+  Map<String, dynamic> json,
+  String key,
+) {
+  final value = _readRequiredString(json, key);
+  for (final actionId in ProjectPauseActionId.values) {
+    if (actionId.name == value) return actionId;
+  }
+  throw FormatException('Unknown SceneConsequence.$key: $value.');
 }
 
 SceneGameCompletionOutcome _readGameCompletionOutcome(Object? value) {

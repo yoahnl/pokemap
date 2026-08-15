@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('PSDK major status effect hooks', () {
     test('burn and poison deal residual damage from their effect hooks', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(status: PsdkBattleMajorStatus.burn),
@@ -44,7 +44,7 @@ void main() {
     });
 
     test('toxic increments its counter and scales residual damage', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(status: PsdkBattleMajorStatus.toxic, toxicCounter: 1),
@@ -71,7 +71,7 @@ void main() {
     });
 
     test('sleep effect prevents regular moves then cures after two turns', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(status: PsdkBattleMajorStatus.sleep),
@@ -124,7 +124,7 @@ void main() {
     });
 
     test('paralysis and freeze can prevent moves through effect hooks', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(status: PsdkBattleMajorStatus.paralysis),

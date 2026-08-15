@@ -66,6 +66,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   // Scene completes, those authoritative writes are kept by rebasing the
   // buffered consequences onto the latest host GameState.
   final pendingConsequences = <SceneConsequence>[];
+  final pendingPokemonGrantOperationIds = <String?>[];
   final writer = consequenceWriter ??
       SceneConsequenceRuntimeWriter(
         project: project,
@@ -75,9 +76,19 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
   final execution = await SceneRuntimeExecutor(
     callbacks: callbacks.toExecutionCallbacks(
       applyConsequence: (consequence) {
+        throw UnsupportedError('Scene node id is required for consequences.');
+      },
+      applyConsequenceWithNodeId: (nodeId, consequence) {
+        final grantOperationId = scenePokemonGrantOperationId(
+          sceneId: request.sceneId,
+          executionId: request.executionId,
+          nodeId: nodeId,
+          consequence: consequence,
+        );
         final validation = writer.applyOne(
           validationState,
           consequence,
+          pokemonGrantOperationId: grantOperationId,
         );
         if (!validation.success) {
           throw StateError(
@@ -87,6 +98,7 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
         }
         validationState = validation.gameState;
         pendingConsequences.add(consequence);
+        pendingPokemonGrantOperationIds.add(grantOperationId);
         return 'completed';
       },
     ),
@@ -101,7 +113,11 @@ Future<NarrativeSceneExecutionResult> executeNarrativeEventScene({
     );
   }
 
-  final writeResult = writer.applyAll(currentGameState(), pendingConsequences);
+  final writeResult = writer.applyAll(
+    currentGameState(),
+    pendingConsequences,
+    pokemonGrantOperationIds: pendingPokemonGrantOperationIds,
+  );
   if (!writeResult.success) {
     return NarrativeSceneExecutionResult.failed(
       StateError(

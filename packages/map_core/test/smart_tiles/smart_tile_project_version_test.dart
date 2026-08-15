@@ -24,7 +24,9 @@ void main() {
 
     test('decodes canonical v6 manifests and maps', () {
       expect(
-        ProjectManifest.fromJson(_minimalManifestJson(version: 'v6')).version,
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+          _minimalManifestJson(version: 'v6'),
+        ).version,
         ProjectVersion.v6,
       );
       expect(
@@ -36,7 +38,7 @@ void main() {
     for (final version in <String>['v1', 'v2', 'v3', 'v4', 'v5']) {
       test('rejects legacy project format $version explicitly', () {
         expect(
-          () => ProjectManifest.fromJson(
+          () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(
             _minimalManifestJson(version: version),
           ),
           throwsA(
@@ -59,10 +61,7 @@ void main() {
             isA<FormatException>().having(
               (error) => error.message,
               'message',
-              allOf(
-                contains('smart_tile_v6_map_required'),
-                contains(version),
-              ),
+              allOf(contains('smart_tile_v6_map_required'), contains(version)),
             ),
           ),
         );
@@ -79,11 +78,12 @@ void main() {
     ]) {
       test('v6 rejects the legacy manifest key $legacyKey even when empty', () {
         final raw = _minimalManifestJson(version: 'v6')
-          ..[legacyKey] =
-              legacyKey == 'surfaceCatalog' ? <String, Object?>{} : <Object?>[];
+          ..[legacyKey] = legacyKey == 'surfaceCatalog'
+              ? <String, Object?>{}
+              : <Object?>[];
 
         expect(
-          () => ProjectManifest.fromJson(raw),
+          () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(raw),
           throwsA(
             isA<FormatException>().having(
               (error) => error.message,

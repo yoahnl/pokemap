@@ -613,7 +613,7 @@ PsdkBattleCombatant _combatant({
   bool itemConsumed = false,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: PsdkBattleCombatantSetup(
         id: 'player',
         speciesId: 'player',

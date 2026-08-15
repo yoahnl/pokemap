@@ -69,7 +69,7 @@ void main() {
     test('accepts native capture and projects a failed attempt plus enemy turn',
         () {
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(
-        PsdkBattleSetup.singles(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             hp: 120,
@@ -126,7 +126,7 @@ void main() {
 
     test('projects native capture success and canonical item into legacy', () {
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(
-        PsdkBattleSetup.singles(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             hp: 120,
@@ -171,7 +171,7 @@ void main() {
     test('writes back original Transform PP after a real PSDK transformation',
         () {
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(
-        PsdkBattleSetup.singles(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player_0',
             hp: 999,
@@ -329,7 +329,7 @@ void main() {
 
     test('writes back Lunar Dance PP restoration through the PSDK adapter', () {
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(
-        PsdkBattleSetup.singles(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player_0',
             hp: 999,
@@ -454,7 +454,7 @@ void main() {
 
     test('projects exact switched participants into the legacy outcome', () {
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(
-        PsdkBattleSetup.singles(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player_0',
             hp: 100,
@@ -513,7 +513,7 @@ RuntimePsdkBattleSessionAdapter _copyMoveSession({
   required String battleEngineMethod,
 }) {
   return RuntimePsdkBattleSessionAdapter.fromSetup(
-    PsdkBattleSetup.singles(
+    PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player_0',
         hp: 999,
@@ -598,7 +598,7 @@ GameState _applySinglePlayerOutcome({
 }
 
 PsdkBattleSetup _setup() {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       hp: 120,

@@ -156,6 +156,18 @@ class ProjectValidator {
     _validateTrainers(manifest);
     _validateCharacters(manifest);
     _validateSettings(manifest.settings);
+    _validatePokemonRuleset(manifest.pokemon);
+  }
+
+  static void _validatePokemonRuleset(ProjectPokemonConfig pokemon) {
+    try {
+      pokemon.ruleset.requireSupported();
+    } on FormatException catch (error) {
+      throw ValidationException(
+        error.message,
+        code: 'pokemon_ruleset_unsupported',
+      );
+    }
   }
 
   static void _validateNewGameConfig(ProjectManifest manifest) {
@@ -1577,6 +1589,54 @@ class ProjectValidator {
             'Encounter table $id entry $i weight must be positive (got ${entry.weight})',
             code: 'encounter.weight_non_positive',
             details: <String, Object?>{'tableId': id, 'entryIndex': i},
+          );
+        }
+        final overrides = entry.pokemonOverrides;
+        if (overrides == null) continue;
+        final natureId = overrides.natureId;
+        final abilityId = overrides.abilityId;
+        final gender = overrides.gender?.trim().toLowerCase();
+        if (natureId != null && natureId.trim().isEmpty) {
+          throw ValidationException(
+            'Encounter table $id entry $i nature override cannot be blank',
+            code: 'encounter.pokemon_override_invalid',
+          );
+        }
+        if (abilityId != null && abilityId.trim().isEmpty) {
+          throw ValidationException(
+            'Encounter table $id entry $i ability override cannot be blank',
+            code: 'encounter.pokemon_override_invalid',
+          );
+        }
+        if (gender != null &&
+            !const <String>{'male', 'female', 'genderless'}.contains(gender)) {
+          throw ValidationException(
+            'Encounter table $id entry $i gender override is unsupported',
+            code: 'encounter.pokemon_override_invalid',
+          );
+        }
+        final ivs = overrides.ivs;
+        if (ivs != null &&
+            <int>[
+              ivs.hp,
+              ivs.attack,
+              ivs.defense,
+              ivs.specialAttack,
+              ivs.specialDefense,
+              ivs.speed,
+            ].any((value) => value < 0 || value > 31)) {
+          throw ValidationException(
+            'Encounter table $id entry $i IV overrides must stay within 0..31',
+            code: 'encounter.pokemon_override_invalid',
+          );
+        }
+        final moveIds = overrides.knownMoveIds.map((moveId) => moveId.trim());
+        if (moveIds.length > 4 ||
+            moveIds.any((moveId) => moveId.isEmpty) ||
+            moveIds.toSet().length != moveIds.length) {
+          throw ValidationException(
+            'Encounter table $id entry $i move overrides must contain at most four unique nonblank ids',
+            code: 'encounter.pokemon_override_invalid',
           );
         }
       }

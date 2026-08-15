@@ -5,7 +5,7 @@ void main() {
   group('PSDK status cure move families', () {
     test('s_take_heart cures the user and raises special stats', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             majorStatus: PsdkBattleMajorStatus.burn,
@@ -54,7 +54,7 @@ void main() {
 
     test('s_heal_bell is blocked by Soundproof before curing the user', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'soundproof',

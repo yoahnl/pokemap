@@ -10,6 +10,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/server";
 import { LocalAuthoringClient, type JsonRecord } from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { createPokeMapMcpServer } from "../src/server.js";
+import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
 const authoringPackageRoot = resolve(repositoryRoot, "packages/map_authoring");
@@ -116,6 +117,7 @@ async function writeFixture(root: string): Promise<void> {
       version: "v6",
       maps: [],
       tilesets: [],
+      pokemon: canonicalPokemonConfig(),
       newGame: {
         initialBag: [{ itemId: "potion", quantity: 1 }],
       },

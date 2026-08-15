@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import '../domain/battle/battle_context.dart';
 import '../domain/battle/battle_outcome.dart';
 import '../domain/battle/battle_slot.dart';
@@ -26,6 +28,7 @@ import '../domain/handler/battle_handler_result.dart';
 import '../domain/handler/battle_status_change_handler.dart';
 import '../domain/handler/battle_switch_handler.dart';
 import '../domain/move/battle_move_behavior.dart';
+import '../domain/move/behaviors/z_move_behavior.dart';
 import '../domain/move/battle_move_data.dart';
 import '../domain/move/battle_move_history_recorder.dart';
 import '../domain/move/battle_move_prevention.dart';
@@ -67,14 +70,17 @@ final class BattleTurnRunner {
     required PsdkBattleMoveBehaviorRegistry moveBehaviorRegistry,
     BattleMoveProcedureHooks moveProcedureHooks = BattleMoveProcedureHooks.none,
     PsdkBattleAi? opponentAi,
+    bool enforceRulesetFeatures = true,
   })  : _moveBehaviorRegistry = moveBehaviorRegistry,
         _moveProcedureHooks = moveProcedureHooks,
-        _opponentAi = opponentAi;
+        _opponentAi = opponentAi,
+        _enforceRulesetFeatures = enforceRulesetFeatures;
 
   final BattleContext _context;
   final PsdkBattleMoveBehaviorRegistry _moveBehaviorRegistry;
   final BattleMoveProcedureHooks _moveProcedureHooks;
   final PsdkBattleAi? _opponentAi;
+  final bool _enforceRulesetFeatures;
   static const BattleMoveHistoryRecorder _moveHistoryRecorder =
       BattleMoveHistoryRecorder();
 
@@ -162,7 +168,7 @@ final class BattleTurnRunner {
     final previousTurnNumber = _context.turnNumber;
 
     const actionMapper = PsdkBattleActionDecisionMapper();
-    var actions = PsdkBattleActionQueue(
+    final ordered = PsdkBattleActionQueue(
       actions: <PsdkBattleAction>[
         actionMapper.map(
           state: _context.state,
@@ -177,13 +183,20 @@ final class BattleTurnRunner {
       ],
     ).ordered(
       rng: _context.rng,
+      rules: _context.battleRules,
       trickRoom: _hasActiveFieldEffect(_context.state, 'trick_room'),
     );
+    _requireEnabledFeatures(ordered.actions);
+    var actions = ordered.actions;
 
     _context.beginTurn();
     final timeline = BattleTimelineBuilder()
       ..add(BattleTurnStartedTimelineEvent(turn: _context.turnNumber));
     try {
+      _context.applyStateAndRng(
+        nextState: _context.state,
+        nextRng: ordered.rng,
+      );
       final preAttack = _resolvePreAttackActions(actions);
       if (preAttack.applied) {
         _context.applyStateAndRng(
@@ -645,6 +658,26 @@ final class BattleTurnRunner {
           ? null
           : BattleEngineDecisionRequest.fromContext(_context),
     );
+  }
+
+  void _requireEnabledFeatures(Iterable<PsdkBattleAction> actions) {
+    if (!_enforceRulesetFeatures) {
+      return;
+    }
+    for (final action in actions) {
+      final requiresModernGimmicks = switch (action) {
+        PsdkBattleMegaAction() => true,
+        PsdkBattleFightAction(:final move) =>
+          move.battleEngineMethod == 's_z_move' ||
+              signatureZMoveSpecFor(move.dbSymbol) != null,
+        _ => false,
+      };
+      if (requiresModernGimmicks) {
+        _context.battleRules.requireFeatureEnabled(
+          PokemonDisabledFeature.modernGimmicks,
+        );
+      }
+    }
   }
 
   BattleDecision _opponentDecision() {

@@ -4,7 +4,6 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../errors/application_errors.dart';
-import '../models/pokemon_project_data_models.dart';
 import '../ports/project_workspace.dart';
 
 class PokemonItemCatalogEntryView {
@@ -282,7 +281,9 @@ Future<ProjectPokemonConfig> _readProjectPokemonConfig(
   final manifestPath = workspace.projectManifestPath;
   try {
     if (!await workspace.fileExists(manifestPath)) {
-      return const ProjectPokemonConfig();
+      throw EditorPersistenceException(
+        'Project manifest is required at $manifestPath.',
+      );
     }
     final decoded = jsonDecode(await workspace.readTextFile(manifestPath));
     if (decoded is! Map<String, dynamic>) {

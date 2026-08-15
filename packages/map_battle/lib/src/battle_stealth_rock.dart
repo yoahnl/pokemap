@@ -1,6 +1,6 @@
 import 'battle_state.dart';
 import 'battle_topology.dart';
-import 'battle_type_chart.dart';
+import 'pokemon_battle_rules.dart';
 
 /// Événements observables strictement dédiés à Stealth Rock.
 ///
@@ -52,8 +52,11 @@ final class BattleStealthRockEvent {
 /// - base 1/8 des PV max ;
 /// - multipliée par l'efficacité du type Roche contre le typing entrant ;
 /// - puis tronquée avec un minimum de 1 si l'effet est non nul.
-int resolveStealthRockEntryDamage(BattleCombatant combatant) {
-  final typeMultiplier = BattleTypeChart.resolveEffectivenessMultiplier(
+int resolveStealthRockEntryDamage(
+  BattleCombatant combatant, {
+  required PokemonBattleRules rules,
+}) {
+  final typeMultiplier = rules.resolveEffectivenessMultiplier(
     moveType: 'rock',
     defenderTyping: combatant.typing,
   );

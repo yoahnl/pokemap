@@ -204,6 +204,7 @@ void main() {
         event: fixture.event,
         page: fixture.event.pages.single,
         gameState: gameState,
+        executionId: 'scene_gameplay_execution',
       );
 
       expect(result.status, SceneEventRuntimeHookStatus.completed);
@@ -224,6 +225,7 @@ void main() {
           SceneConsequence.giveMoney(amount: 500),
           SceneConsequence.givePokemon(
             speciesId: 'species_sproutle',
+            formId: 'base',
             level: 7,
             currentHp: 23,
           ),
@@ -250,6 +252,7 @@ void main() {
         event: fixture.event,
         page: fixture.event.pages.single,
         gameState: gameState,
+        executionId: 'scene_gameplay_execution',
       );
 
       expect(result.status, SceneEventRuntimeHookStatus.completed);

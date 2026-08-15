@@ -22,7 +22,7 @@ void main() {
     });
 
     test('groups multiple active positions from a PSDK state by bank', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           const PsdkBattleSlotRef(bank: 0, position: 0):
               PsdkBattleCombatant.fromSetup(
@@ -57,7 +57,7 @@ void main() {
       const ally = PsdkBattleSlotRef(bank: 0, position: 1);
       const foe = PsdkBattleSlotRef(bank: 1, position: 0);
       const faintedFoe = PsdkBattleSlotRef(bank: 1, position: 1);
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           user: PsdkBattleCombatant.fromSetup(
             _combatantSetup(
@@ -101,7 +101,7 @@ void main() {
       const rightAlly = PsdkBattleSlotRef(bank: 1, position: 2);
       const distantAlly = PsdkBattleSlotRef(bank: 1, position: 3);
       const faintedAdjacentAlly = PsdkBattleSlotRef(bank: 1, position: 4);
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           target: PsdkBattleCombatant.fromSetup(
             _combatantSetup(
@@ -543,7 +543,7 @@ BattleBattler _battler(
 }
 
 BattleEngineSetup _engineSetup() {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatantSetup(
       id: 'player-bulbasaur',
       speciesId: 'bulbasaur',

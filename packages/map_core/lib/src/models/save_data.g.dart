@@ -59,7 +59,9 @@ const _$PlayerPokemonOriginKindEnumMap = {
 
 _PlayerPokemon _$PlayerPokemonFromJson(Map<String, dynamic> json) =>
     _PlayerPokemon(
+      individualId: json['individualId'] as String? ?? '',
       speciesId: json['speciesId'] as String,
+      formId: json['formId'] as String? ?? '',
       natureId: json['natureId'] as String,
       abilityId: json['abilityId'] as String,
       gender: json['gender'] as String?,
@@ -93,7 +95,9 @@ _PlayerPokemon _$PlayerPokemonFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$PlayerPokemonToJson(_PlayerPokemon instance) =>
     <String, dynamic>{
+      'individualId': instance.individualId,
       'speciesId': instance.speciesId,
+      'formId': instance.formId,
       'natureId': instance.natureId,
       'abilityId': instance.abilityId,
       'gender': instance.gender,
@@ -301,8 +305,18 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
       : NarrativeEventProgress.fromJson(
           readNarrativeEventProgressJson(json, 'narrativeEventProgress'),
         ),
+  pauseMenuState: json['pauseMenuState'] == null
+      ? const PlayerPauseMenuState.empty()
+      : PlayerPauseMenuState.fromJson(
+          json['pauseMenuState'] as Map<String, dynamic>,
+        ),
   completedBattleRequestIds:
       (json['completedBattleRequestIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toSet() ??
+      const {},
+  appliedPokemonGrantOperationIds:
+      (json['appliedPokemonGrantOperationIds'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toSet() ??
       const {},
@@ -328,7 +342,10 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'narrativeEventProgress': narrativeEventProgressToJson(
     instance.narrativeEventProgress,
   ),
+  'pauseMenuState': instance.pauseMenuState.toJson(),
   'completedBattleRequestIds': instance.completedBattleRequestIds.toList(),
+  'appliedPokemonGrantOperationIds': instance.appliedPokemonGrantOperationIds
+      .toList(),
   'properties': instance.properties,
 };
 

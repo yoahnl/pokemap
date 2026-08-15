@@ -532,6 +532,9 @@ Map<String, dynamic> _legacyBrokenProjectJson() {
   return <String, dynamic>{
     'version': 'v6',
     'name': 'Legacy',
+    'pokemon': ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    ).toJson(),
     'maps': <dynamic>[],
     'tilesets': <dynamic>[
       <String, dynamic>{

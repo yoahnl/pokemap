@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
+
+import '../ports/pokemon_read_repository.dart';
 import '../ports/project_workspace.dart';
 import 'initialize_pokemon_project_storage_use_case.dart';
 import '../seeds/pokemon_moves_bootstrap_seed.dart';
@@ -16,9 +19,11 @@ import '../seeds/pokemon_moves_bootstrap_seed.dart';
 class SeedPokemonDemoDataUseCase {
   const SeedPokemonDemoDataUseCase({
     this.initializeStorage = const InitializePokemonProjectStorageUseCase(),
+    required this.snapshotController,
   });
 
   final InitializePokemonProjectStorageUseCase initializeStorage;
+  final PokemonSpeciesSnapshotController snapshotController;
 
   Future<void> execute(ProjectWorkspace workspace) async {
     await initializeStorage.execute(workspace);
@@ -47,12 +52,14 @@ class SeedPokemonDemoDataUseCase {
       );
     }
 
+    var speciesChanged = false;
     for (final entry in _speciesSeeds.entries) {
-      await _writeJsonIfAbsent(
-        workspace,
-        'data/pokemon/species/${entry.key}',
-        entry.value,
-      );
+      speciesChanged = await _writeJsonIfAbsent(
+            workspace,
+            'data/pokemon/species/${entry.key}',
+            entry.value,
+          ) ||
+          speciesChanged;
     }
 
     for (final entry in _learnsetSeeds.entries) {
@@ -77,6 +84,9 @@ class SeedPokemonDemoDataUseCase {
         'data/pokemon/media/${entry.key}',
         entry.value,
       );
+    }
+    if (speciesChanged) {
+      snapshotController.invalidateSpeciesSnapshot(workspace);
     }
   }
 
@@ -134,19 +144,20 @@ class SeedPokemonDemoDataUseCase {
     return true;
   }
 
-  Future<void> _writeJsonIfAbsent(
+  Future<bool> _writeJsonIfAbsent(
     ProjectWorkspace workspace,
     String relativePath,
     Map<String, Object?> payload,
   ) async {
     final absolutePath = workspace.resolveProjectRelativePath(relativePath);
     if (await workspace.fileExists(absolutePath)) {
-      return;
+      return false;
     }
     await workspace.writeTextFile(
       absolutePath,
       const JsonEncoder.withIndent('  ').convert(payload),
     );
+    return true;
   }
 }
 
@@ -265,6 +276,7 @@ const Map<String, Map<String, Object?>> _catalogSeeds =
 const Map<String, Map<String, Object?>> _speciesSeeds =
     <String, Map<String, Object?>>{
   '0001-bulbasaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'id': 'bulbasaur',
     'slug': 'bulbasaur',
     'nationalDex': 1,
@@ -308,6 +320,12 @@ const Map<String, Map<String, Object?>> _speciesSeeds =
       'catchRate': 45,
       'baseFriendship': 50,
     },
+    'forms': <String, Object?>{
+      'baseFormId': 'bulbasaur',
+      'isBaseForm': true,
+      'formId': 'base',
+      'otherForms': <String>[],
+    },
     'refs': <String, Object?>{
       'learnset': 'bulbasaur',
       'evolution': 'bulbasaur',
@@ -331,6 +349,7 @@ const Map<String, Map<String, Object?>> _speciesSeeds =
     },
   },
   '0002-ivysaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'id': 'ivysaur',
     'slug': 'ivysaur',
     'nationalDex': 2,
@@ -374,6 +393,12 @@ const Map<String, Map<String, Object?>> _speciesSeeds =
       'catchRate': 45,
       'baseFriendship': 50,
     },
+    'forms': <String, Object?>{
+      'baseFormId': 'ivysaur',
+      'isBaseForm': true,
+      'formId': 'base',
+      'otherForms': <String>[],
+    },
     'refs': <String, Object?>{
       'learnset': 'ivysaur',
       'evolution': 'ivysaur',
@@ -401,6 +426,7 @@ const Map<String, Map<String, Object?>> _speciesSeeds =
 const Map<String, Map<String, Object?>> _learnsetSeeds =
     <String, Map<String, Object?>>{
   'bulbasaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'bulbasaur',
     'startingMoves': <String>['tackle', 'growl'],
     'relearnMoves': <String>['tackle', 'growl', 'vine_whip', 'razor_leaf'],
@@ -442,6 +468,7 @@ const Map<String, Map<String, Object?>> _learnsetSeeds =
     'transfer': <Object?>[],
   },
   'ivysaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'ivysaur',
     'startingMoves': <String>['tackle', 'growl', 'vine_whip'],
     'relearnMoves': <String>['tackle', 'growl', 'vine_whip', 'razor_leaf'],
@@ -482,6 +509,7 @@ const Map<String, Map<String, Object?>> _learnsetSeeds =
 const Map<String, Map<String, Object?>> _evolutionSeeds =
     <String, Map<String, Object?>>{
   'bulbasaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'bulbasaur',
     'preEvolution': null,
     'evolutions': <Object?>[
@@ -499,6 +527,7 @@ const Map<String, Map<String, Object?>> _evolutionSeeds =
     ],
   },
   'ivysaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'ivysaur',
     'preEvolution': 'bulbasaur',
     'evolutions': <Object?>[],
@@ -508,6 +537,7 @@ const Map<String, Map<String, Object?>> _evolutionSeeds =
 const Map<String, Map<String, Object?>> _mediaSeeds =
     <String, Map<String, Object?>>{
   'bulbasaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'bulbasaur',
     'defaultFormId': 'base',
     'variants': <String, Object?>{
@@ -535,6 +565,7 @@ const Map<String, Map<String, Object?>> _mediaSeeds =
     },
   },
   'ivysaur.json': <String, Object?>{
+    'schemaVersion': currentPokemonDataSchemaVersion,
     'speciesId': 'ivysaur',
     'defaultFormId': 'base',
     'variants': <String, Object?>{

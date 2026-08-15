@@ -188,7 +188,7 @@ void main() {
         () {
       final policy = _LastLegalFightPolicy();
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: _combatant(
             speciesId: 'player',
             lineupIndex: 0,
@@ -255,12 +255,12 @@ void main() {
     test(
         'basic replacement policies keep the historical first usable reserve fallback',
         () {
-      final lowDifficultyChoice = battleOpponentPolicyForDifficulty(2)
-          .chooseReplacement(
+      final lowDifficultyChoice =
+          battleOpponentPolicyForDifficulty(2).chooseReplacement(
         legalReplacementOptions: _replacementOptions(),
       );
-      final legacyChoice = battleOpponentPolicyForDifficulty(null)
-          .chooseReplacement(
+      final legacyChoice =
+          battleOpponentPolicyForDifficulty(null).chooseReplacement(
         legalReplacementOptions: _replacementOptions(),
       );
 
@@ -376,12 +376,12 @@ void main() {
         ),
       ];
 
-      final aggressiveChoice = battleOpponentPolicyForDifficulty(5)
-          .chooseReplacement(
+      final aggressiveChoice =
+          battleOpponentPolicyForDifficulty(5).chooseReplacement(
         legalReplacementOptions: legalReplacementOptions,
       );
-      final calculatedChoice = battleOpponentPolicyForDifficulty(9)
-          .chooseReplacement(
+      final calculatedChoice =
+          battleOpponentPolicyForDifficulty(9).chooseReplacement(
         legalReplacementOptions: legalReplacementOptions,
       );
 
@@ -394,7 +394,8 @@ void main() {
     test(
         'basic voluntary switch behavior keeps the legacy fallback and never switches voluntarily',
         () {
-      final choice = battleOpponentPolicyForDifficulty(null).chooseVoluntarySwitch(
+      final choice =
+          battleOpponentPolicyForDifficulty(null).chooseVoluntarySwitch(
         activeCombatant: _battleCombatant(
           speciesId: 'status_wall',
           lineupIndex: 0,

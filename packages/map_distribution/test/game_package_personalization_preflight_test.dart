@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:test/test.dart';
@@ -161,6 +162,7 @@ void main() {
         payloadBytes: valid.receipt.payloadBytes,
         fileCount: valid.receipt.fileCount,
         signatureStatus: valid.receipt.signatureStatus,
+        pokemonRuleset: valid.receipt.pokemonRuleset,
       );
 
       expect(
@@ -243,6 +245,9 @@ Map<String, List<int>> _validPayload() => <String, List<int>>{
           'version': 'v6',
           'maps': <Object?>[],
           'tilesets': <Object?>[],
+          'pokemon': const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          ).toJson(),
         }),
       ),
       'presentation/icon.png': _onePixelPngHeader(),
@@ -274,6 +279,9 @@ Map<String, List<int>> _windowOnlyPayload() => <String, List<int>>{
           'version': 'v6',
           'maps': <Object?>[],
           'tilesets': <Object?>[],
+          'pokemon': const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+          ).toJson(),
         }),
       ),
     };

@@ -218,7 +218,7 @@ PsdkBattleSetup _setup({
   int playerCurrentHp = 100,
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speed: 100,

@@ -18,7 +18,7 @@ void main() {
     tempProjectRoot =
         await Directory.systemTemp.createTemp('moves_catalog_8c_');
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    loadUseCase = const LoadPokemonMovesCatalogUseCase(
+    loadUseCase = LoadPokemonMovesCatalogUseCase(
       readRepository: FilePokemonReadRepository(),
     );
 

@@ -245,6 +245,7 @@ EvaluationWorkerRequest _request(String runId) {
   return EvaluationWorkerRequest.run(
     runId: runId,
     projectRoot: 'selbrume',
+    expectedProjectTreeHash: 'a' * 64,
     scenarioPath: 'evaluation/scenario.json',
     outputDirectory: 'build/pokemap-eval/runs/$runId',
   );

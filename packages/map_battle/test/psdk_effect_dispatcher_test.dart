@@ -233,7 +233,7 @@ _EndTurnRun _addMarker(String markerId) {
 }
 
 PsdkBattleState _state({required PsdkBattleEffectStack effects}) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(id: 'player', effects: effects),

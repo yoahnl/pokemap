@@ -18,7 +18,7 @@ void main() {
     test('tracks exact player party participants through the final outcome',
         () {
       final engine = BattleEngine(
-        setup: BattleEngineSetup.singles(
+        setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player_0',
             speciesId: 'lead',
@@ -67,7 +67,8 @@ void main() {
 
       final finished = engine.submit(const BattleDecision.fight(moveSlot: 0));
       expect(finished.outcome!.playerParticipantPartyIndexes, {0, 1});
-      expect(finished.outcome!.playerParticipantPartyIndexes, isNot(contains(2)));
+      expect(
+          finished.outcome!.playerParticipantPartyIndexes, isNot(contains(2)));
     });
 
     test('decision request exposes legal reserve switches', () {
@@ -375,7 +376,7 @@ BattleEngineSetup _setup({
   PsdkBattleCombatantSetup? opponentReserve,
   List<PsdkBattleMoveData>? opponentMoves,
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: player ??
         _combatant(
           id: 'player-bulbasaur',

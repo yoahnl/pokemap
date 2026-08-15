@@ -43,6 +43,44 @@ final _heldItemCatalog = ItemCatalogSnapshot.fromCatalog(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('an empty learned move pool projects transient Struggle in both lanes',
+      () {
+    final legacyMoves = resolveBattleMovesForSeed(
+      moveIds: const <String>[],
+      combatantLabel: 'NoMoveMon',
+      lookupMove: (_) => null,
+    );
+    final psdkMoves = resolvePsdkBattleMovesForSeed(
+      moveIds: const <String>[],
+      combatantLabel: 'NoMoveMon',
+      lookupMove: (_) => null,
+    );
+
+    expect(legacyMoves, <BattleMoveData>[canonicalLegacyStruggleMoveData]);
+    expect(psdkMoves, hasLength(1));
+    expect(psdkMoves.single.id, canonicalStruggleMoveId);
+    expect(psdkMoves.single.battleEngineMethod, 's_struggle');
+  });
+
+  test('a declared unknown move still fails closed in both lanes', () {
+    expect(
+      () => resolveBattleMovesForSeed(
+        moveIds: const <String>['missing_move'],
+        combatantLabel: 'BrokenMon',
+        lookupMove: (_) => null,
+      ),
+      throwsA(isA<RuntimeBattleSetupException>()),
+    );
+    expect(
+      () => resolvePsdkBattleMovesForSeed(
+        moveIds: const <String>['missing_move'],
+        combatantLabel: 'BrokenMon',
+        lookupMove: (_) => null,
+      ),
+      throwsA(isA<RuntimeBattleSetupException>()),
+    );
+  });
+
   group('RuntimeBattleCombatantSeedBuilder', () {
     late Directory tempProjectRoot;
     final builder = RuntimeBattleCombatantSeedBuilder();
@@ -449,7 +487,7 @@ void main() {
       expect(seededMoveIds, <String>['tackle', 'growl', 'vine_whip']);
 
       var firstBattle = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: firstSeed.toBattleCombatantData(),
           enemyPokemon: const BattleCombatantData(
             speciesId: 'pp-target',
@@ -492,7 +530,36 @@ void main() {
       final reloaded = hydrateRuntimePlayerPokemonProgression(
         gameState: deserialized,
         catalogs: const RuntimePlayerPokemonProgressionCatalogs(
-          growthRateIdBySpeciesId: <String, String>{},
+          speciesById: <String, PlayerPokemonHydrationSpecies>{
+            'sproutle': PlayerPokemonHydrationSpecies(
+              id: 'sproutle',
+              baseStats: PokemonBaseStats(
+                hp: 45,
+                attack: 49,
+                defense: 49,
+                specialAttack: 65,
+                specialDefense: 65,
+                speed: 45,
+              ),
+              primaryAbilityId: 'overgrow',
+              abilityIds: <String>['overgrow'],
+              growthRateId: 'medium',
+            ),
+            'aquafi': PlayerPokemonHydrationSpecies(
+              id: 'aquafi',
+              baseStats: PokemonBaseStats(
+                hp: 44,
+                attack: 48,
+                defense: 65,
+                specialAttack: 50,
+                specialDefense: 64,
+                speed: 43,
+              ),
+              primaryAbilityId: 'torrent',
+              abilityIds: <String>['torrent'],
+              growthRateId: 'medium',
+            ),
+          },
           maxPpByMoveId: <String, int>{
             'tackle': 35,
             'growl': 35,
@@ -500,6 +567,7 @@ void main() {
             'water_gun': 35,
           },
         ),
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
       );
       final persistedPokemon = reloaded.party.members.first;
       expect(persistedPokemon.knownMoveIds, seededMoveIds);
@@ -507,7 +575,11 @@ void main() {
         persistedPokemon.currentPpByMoveId,
         <String, int>{'tackle': 34, 'growl': 35, 'vine_whip': 35},
       );
-      expect(reloaded.party.members[1], unusedPartyMember);
+      expect(reloaded.party.members[1].individualId, startsWith('pkm_'));
+      expect(
+        reloaded.party.members[1].copyWith(individualId: ''),
+        unusedPartyMember,
+      );
 
       final secondSeed = await builder.buildPlayerCombatantSeed(
         projectRootDirectory: tempProjectRoot.path,
@@ -540,25 +612,70 @@ void main() {
         request: _wildRequest(
           speciesId: 'sparkitten',
           level: 10,
+          generationSeed: 0x12345678,
         ),
       );
 
       expect(seed.speciesId, equals('sparkitten'));
       expect(seed.level, equals(10));
-      expect(seed.currentHp, isNull);
+      expect(seed.currentHp, equals(30));
       expect(seed.abilityId, equals('blaze'));
       expect(seed.typing.primaryType, equals('fire'));
       expect(seed.typing.secondaryType, isNull);
-      expect(seed.maxHp, equals(27));
-      expect(seed.stats.attack, equals(15));
-      expect(seed.stats.defense, equals(13));
-      expect(seed.stats.specialAttack, equals(17));
+      expect(seed.maxHp, equals(30));
+      expect(seed.stats.attack, equals(16));
+      expect(seed.stats.defense, equals(14));
+      expect(seed.stats.specialAttack, equals(19));
       expect(seed.stats.specialDefense, equals(15));
       expect(seed.stats.speed, equals(18));
       expect(
         seed.moves.map((move) => move.id).toList(growable: false),
         equals(<String>['scratch', 'tail_whip', 'ember']),
       );
+    });
+
+    test('builds playable wild seeds with transient Struggle only', () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+      final request = _wildRequest(
+        speciesId: 'sparkitten',
+        level: 3,
+      ).withGeneratedPokemon(
+        pokemon: const PlayerPokemon(
+          speciesId: 'sparkitten',
+          natureId: 'hardy',
+          abilityId: 'blaze',
+          level: 3,
+          knownMoveIds: <String>[],
+          currentPpByMoveId: <String, int>{},
+          currentHp: 14,
+        ),
+        profileId: WildPokemonGenerationProfile.pokeMapBetaV1.profileId,
+        schemaVersion: WildPokemonGenerationProfile.pokeMapBetaV1.schemaVersion,
+      );
+
+      final legacySeed = await builder.buildWildCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        request: request,
+      );
+      final psdkSeed = await builder.buildWildPsdkCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        request: request,
+      );
+
+      expect(
+          legacySeed.moves, <BattleMoveData>[canonicalLegacyStruggleMoveData]);
+      expect(psdkSeed.moves, hasLength(1));
+      expect(psdkSeed.moves.single.id, canonicalStruggleMoveId);
+      expect(psdkSeed.moves.single.battleEngineMethod, 's_struggle');
+      expect(request.generatedPokemon?.knownMoveIds, isEmpty);
     });
 
     test('builds a trainer combatant seed from explicit trainer moves',
@@ -748,7 +865,7 @@ void main() {
         playerPokemon: playerPokemon,
       );
       var battle = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: seed.toBattleCombatantData(),
           enemyPokemon: const BattleCombatantData(
             speciesId: 'transform-target',
@@ -834,7 +951,7 @@ void main() {
       );
       expect(seed.moves.single.id, 'transform');
       var battle = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: seed.toBattleCombatantData(),
           enemyPokemon: const BattleCombatantData(
             speciesId: 'transform-target',
@@ -1221,6 +1338,7 @@ void main() {
 
 ProjectPokemonConfig _pokemonConfig() {
   return const ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     dataRoot: 'custom/pokemon',
     speciesDir: 'custom/pokemon/species',
     learnsetsDir: 'custom/pokemon/learnsets',
@@ -1235,6 +1353,7 @@ ProjectPokemonConfig _pokemonConfig() {
 WildBattleStartRequest _wildRequest({
   required String speciesId,
   required int level,
+  int generationSeed = 0,
 }) {
   return WildBattleStartRequest(
     requestId: 'wild-request',
@@ -1254,6 +1373,7 @@ WildBattleStartRequest _wildRequest({
     maxLevel: level,
     weight: 30,
     playerPos: const GridPos(x: 1, y: 1),
+    generationSeed: generationSeed,
   );
 }
 
@@ -1262,6 +1382,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/001-sproutle.json',
     <String, dynamic>{
+      'schemaVersion': currentPokemonDataSchemaVersion,
       'id': 'sproutle',
       'typing': <String, Object>{
         'types': <String>['grass'],
@@ -1287,6 +1408,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/004-sparkitten.json',
     <String, dynamic>{
+      'schemaVersion': currentPokemonDataSchemaVersion,
       'id': 'sparkitten',
       'typing': <String, Object>{
         'types': <String>['fire'],
@@ -1312,6 +1434,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/007-aquafi.json',
     <String, dynamic>{
+      'schemaVersion': currentPokemonDataSchemaVersion,
       'id': 'aquafi',
       'typing': <String, Object>{
         'types': <String>['water', 'fairy'],
@@ -1694,6 +1817,7 @@ Future<void> _rewriteSpeciesWithoutLearnsetRef(
     projectRoot,
     'custom/pokemon/species/$speciesFileName',
     <String, dynamic>{
+      'schemaVersion': currentPokemonDataSchemaVersion,
       'id': speciesId,
       'typing': <String, Object>{
         'types': <String>['grass'],

@@ -12,9 +12,11 @@ final class RuntimePlayerTestHarness {
     RuntimeNewGamePreSessionRunner? preSessionRunner,
     GameSessionSavePolicy savePolicy = const GameSessionSavePolicy(),
     RuntimePlayerLoadSlot? defaultSaveSlot,
+    Set<ProjectPauseActionId>? defaultVisiblePauseActions,
   })  : source = MemoryRuntimeGameSource(
           descriptorGate: descriptorGate,
           descriptorError: descriptorError,
+          defaultVisiblePauseActions: defaultVisiblePauseActions,
         ),
         preferences = MemoryPlayerPreferencesGateway(),
         exit = MemoryRuntimeExternalExit() {
@@ -81,10 +83,15 @@ final class MemoryRuntimeGameSource implements RuntimeGameSource {
   MemoryRuntimeGameSource({
     this.descriptorGate,
     this.descriptorError,
-  });
+    Set<ProjectPauseActionId>? defaultVisiblePauseActions,
+  }) : defaultVisiblePauseActions = Set<ProjectPauseActionId>.unmodifiable(
+          defaultVisiblePauseActions ?? ProjectPauseActionId.values,
+        );
 
   final Future<void>? descriptorGate;
   final Object? descriptorError;
+  @override
+  final Set<ProjectPauseActionId> defaultVisiblePauseActions;
   final requests = <SessionDescriptorRequest>[];
   int _sessionSerial = 0;
 
@@ -340,6 +347,7 @@ final class FakeRuntimeSessionAdapter
   Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
       pauseDetails =
       const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{};
+  PlayerPauseMenuState pauseMenuState = const PlayerPauseMenuState.empty();
   RuntimeWorldServiceSnapshot? _worldServiceSnapshot;
   final pauseCommands = <RuntimePlayerPauseCommand>[];
   RuntimePlayerPauseCommandResult pauseCommandResult =
@@ -370,6 +378,12 @@ final class FakeRuntimeSessionAdapter
       loadPauseDetails() async {
     calls.add('pause-details');
     return pauseDetails;
+  }
+
+  @override
+  Future<PlayerPauseMenuState> loadPauseMenuState() async {
+    calls.add('pause-menu-state');
+    return pauseMenuState;
   }
 
   @override

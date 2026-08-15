@@ -333,7 +333,7 @@ RuntimePsdkBattleSessionAdapter _session({
       const <PsdkBattleCombatantSetup>[],
 }) {
   return RuntimePsdkBattleSessionAdapter.fromSetup(
-    PsdkBattleSetup.singles(
+    PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: player,
       playerReserves: playerReserves,
       opponent: _combatant(

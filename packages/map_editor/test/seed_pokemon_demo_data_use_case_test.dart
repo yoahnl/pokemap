@@ -17,7 +17,9 @@ void main() {
   setUp(() async {
     tempProjectRoot = await Directory.systemTemp.createTemp('pokemon_demo_');
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    useCase = const SeedPokemonDemoDataUseCase();
+    useCase = SeedPokemonDemoDataUseCase(
+      snapshotController: FilePokemonReadRepository(),
+    );
   });
 
   tearDown(() async {

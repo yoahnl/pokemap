@@ -146,6 +146,7 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
       NarrativeCommandIds.givePokemon: () => SceneActionPayload.consequence(
             SceneConsequence.givePokemon(
               speciesId: 'sproutle',
+              formId: 'base',
               level: 5,
               currentHp: 18,
             ),
@@ -182,6 +183,13 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
               mapId: 'map_port',
               entityId: 'npc_sailor',
               present: false,
+            ),
+          ),
+      NarrativeCommandIds.setPauseMenuEntryVisibility: () =>
+          SceneActionPayload.consequence(
+            SceneConsequence.setPauseMenuEntryVisibility(
+              actionId: ProjectPauseActionId.pokedex,
+              visible: false,
             ),
           ),
       NarrativeCommandIds.warp: () => SceneActionPayload.interactive(

@@ -26,10 +26,10 @@ void main() {
       'pokemon_media_import_source_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    useCase = const ImportPokemonMediaJsonUseCase(
+    useCase = ImportPokemonMediaJsonUseCase(
       FilePokemonWriteRepository(),
     );
-    readRepository = const FilePokemonReadRepository();
+    readRepository = FilePokemonReadRepository();
 
     final createProjectUseCase = CreateProjectUseCase(
       FileProjectRepository(),

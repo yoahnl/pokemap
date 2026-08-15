@@ -10,7 +10,7 @@ void main() {
   test('runtime write-back consumes an authoring simulation outcome', () {
     final simulation = const BattleAuthoringSimulator().simulate(
       BattleAuthoringSimulationRequest(
-        setup: const BattleSetup(
+        setup: const BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'hero',
             level: 5,

@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import '../contracts/json_contract_support.dart';
 import '../contracts/query_request.dart';
 import '../domains/project/capability_truth_adapter.dart';
@@ -49,6 +51,7 @@ final class AuthoringReadDescription {
           'validation': const {
             'structure': true,
             'references': true,
+            'pokemonCatalog': true,
             'capabilityTruth': 'explicit_only',
             'capabilityCertification': 'requested_only',
           },
@@ -157,6 +160,7 @@ final class AuthoringValidationResult {
     required this.references,
     required this.capabilityCertification,
     required this.capabilityTruth,
+    required this.pokemonCatalog,
   });
 
   final String snapshotRevision;
@@ -164,10 +168,12 @@ final class AuthoringValidationResult {
   final AuthoringReferenceValidationResult references;
   final AuthoringCapabilityCertificationResult capabilityCertification;
   final AuthoringCapabilityTruthReport capabilityTruth;
+  final PokemonCatalogCoherenceReport pokemonCatalog;
 
   bool get valid =>
       structure.valid &&
       references.valid &&
+      pokemonCatalog.canPlaytest &&
       (!capabilityCertification.requested ||
           capabilityCertification.valid == true);
 
@@ -177,6 +183,7 @@ final class AuthoringValidationResult {
           'valid': valid,
           'structure': structure.toJson(),
           'references': references.toJson(),
+          'pokemonCatalog': pokemonCatalog.toJson(),
           'capabilityCertification': capabilityCertification.toJson(),
           'capabilityTruth': capabilityTruth.toJson(),
         },

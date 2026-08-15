@@ -16,6 +16,11 @@ typedef RuntimePostBattleRewardResolutionLoader
   required BattleOutcome outcome,
 });
 
+typedef RuntimePostBattlePlayerPokemonHydrator = Future<GameState> Function({
+  required GameState gameState,
+  required RuntimeMapBundle bundle,
+});
+
 enum RuntimePostBattleMessageKind {
   victory,
   defeat,
@@ -144,14 +149,18 @@ final class RuntimePostBattleDecisionCoordinator {
   RuntimePostBattleDecisionCoordinator({
     RuntimePostBattleRewardResolutionLoader? resolveReward,
     RuntimeBattleRewardResolver? rewardResolver,
+    RuntimePostBattlePlayerPokemonHydrator? hydrateOwnedPlayerPokemon,
     GameStateMutations mutations = const GameStateMutations(),
     StoryFlagsManager storyFlagsManager = const StoryFlagsManager(),
   })  : _resolveReward = resolveReward ??
             (rewardResolver ?? RuntimeBattleRewardResolver()).resolve,
+        _hydrateOwnedPlayerPokemon =
+            hydrateOwnedPlayerPokemon ?? _preserveOwnedPlayerPokemon,
         _mutations = mutations,
         _storyFlagsManager = storyFlagsManager;
 
   final RuntimePostBattleRewardResolutionLoader _resolveReward;
+  final RuntimePostBattlePlayerPokemonHydrator _hydrateOwnedPlayerPokemon;
   final GameStateMutations _mutations;
   final StoryFlagsManager _storyFlagsManager;
 
@@ -183,12 +192,25 @@ final class RuntimePostBattleDecisionCoordinator {
       );
     }
     try {
-      final writeBack = applyRuntimeBattleOutcomeTransactionBase(
+      var writeBack = applyRuntimeBattleOutcomeTransactionBase(
         gameState: transactionBaseState,
         context: runtimeContext,
         outcome: outcome,
         captureAttemptReceipt: captureAttemptReceipt,
       );
+      if (outcome.isCaptured) {
+        final hydratedState = await _hydrateOwnedPlayerPokemon(
+          gameState: writeBack.state,
+          bundle: bundle,
+        );
+        writeBack = RuntimeBattleOutcomeTransactionBase(
+          state: hydratedState,
+          captureDestination: _captureDestinationWithState(
+            writeBack.captureDestination,
+            hydratedState,
+          ),
+        );
+      }
       if (!outcome.isVictory) {
         return RuntimePostBattleCoordinatorResult.success(
           _nonVictoryTransaction(
@@ -465,6 +487,10 @@ RuntimePostBattleTransaction _nonVictoryTransaction({
   required RuntimeMapBundle bundle,
   required ItemCatalogSnapshot itemCatalog,
 }) {
+  final finalState = _completeBattleRequest(
+    writeBack.state,
+    runtimeContext.request,
+  );
   final messages = <RuntimePostBattleMessage>[
     switch (outcome.type) {
       BattleOutcomeType.defeat => const RuntimePostBattleMessage(
@@ -485,7 +511,10 @@ RuntimePostBattleTransaction _nonVictoryTransaction({
         ),
     },
   ];
-  final destination = writeBack.captureDestination;
+  final destination = _captureDestinationWithState(
+    writeBack.captureDestination,
+    finalState,
+  );
   if (destination != null) {
     messages.add(
       RuntimePostBattleMessage(
@@ -520,11 +549,31 @@ RuntimePostBattleTransaction _nonVictoryTransaction({
     pendingEvolution: null,
     pendingPartyMoveIds: const <String>[],
     captureDestination: destination,
-    finalState: _completeBattleRequest(
-      writeBack.state,
-      runtimeContext.request,
-    ),
+    finalState: finalState,
     progression: null,
+  );
+}
+
+Future<GameState> _preserveOwnedPlayerPokemon({
+  required GameState gameState,
+  required RuntimeMapBundle bundle,
+}) async {
+  return gameState;
+}
+
+CaptureDestinationResult? _captureDestinationWithState(
+  CaptureDestinationResult? destination,
+  GameState state,
+) {
+  if (destination == null) return null;
+  return CaptureDestinationResult(
+    state: state,
+    destination: destination.destination,
+    partyIndex: destination.partyIndex,
+    storageIndex: destination.storageIndex,
+    boxId: destination.boxId,
+    boxIndex: destination.boxIndex,
+    failure: destination.failure,
   );
 }
 

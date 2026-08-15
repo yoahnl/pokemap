@@ -3338,7 +3338,6 @@ void _seedNewGameConfig(Map<String, dynamic> project) {
     initialParty: <PlayerPokemon>[],
     initialFacts: <String, bool>{},
     existingPartyFactId: 'fact_player_started_with_existing_pokemon',
-    preSessionSceneId: 'scene_mael_intro',
     starterOptions: <ProjectStarterOption>[
       ProjectStarterOption(
         id: 'starter_bulbasaur',

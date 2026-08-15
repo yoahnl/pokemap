@@ -286,7 +286,7 @@ return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFo
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectManifest implements ProjectManifest {
-  const _ProjectManifest({required this.name, this.version = ProjectVersion.v6, required final  List<ProjectMapEntry> maps, final  List<ProjectMapGroup> groups = const [], final  List<ProjectTilesetFolder> tilesetFolders = const [], required final  List<ProjectTilesetEntry> tilesets, final  List<ProjectElementCategory> elementCategories = const [], final  List<ProjectElementEntry> elements = const [], @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) final  List<EnvironmentPreset> environmentPresets = const [], final  List<ProjectEncounterTable> encounterTables = const [], final  List<ProjectDialogueFolder> dialogueFolders = const [], final  List<ProjectDialogueEntry> dialogues = const [], final  List<ProjectScriptEntry> scripts = const [], final  List<ScenarioAsset> scenarios = const [], @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) final  List<CinematicAsset> cinematics = const [], @JsonKey(name: 'cinematicLibraryCatalog', fromJson: _cinematicLibraryCatalogFromJson, toJson: _cinematicLibraryCatalogToJson, includeIfNull: false) this.cinematicLibraryCatalog = const CinematicLibraryCatalog.empty(), @JsonKey(name: 'presentationCinematics', fromJson: _presentationCinematicsFromJson, toJson: _presentationCinematicsToJson, includeIfNull: false) final  List<PresentationCinematicAsset> presentationCinematics = const [], @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) final  List<CinematicMediaAsset> cinematicMediaAssets = const [], @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) final  List<NarrativeFactDefinition> facts = const [], @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) final  List<WorldRuleDefinition> worldRules = const [], final  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions = const [], @JsonKey(includeIfNull: false) this.eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) final  List<SceneAsset> scenes = const [], @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) final  List<StorylineAsset> storylines = const [], final  List<ShopDefinition> shops = const [], final  List<BadgeDefinition> badges = const [], final  List<ProjectTrainerEntry> trainers = const [], final  List<ProjectCharacterEntry> characters = const [], @JsonKey(toJson: _projectCharacterStudioCatalogToJson, includeIfNull: false) this.characterStudioCatalog = const ProjectCharacterStudioCatalog(), this.settings = const ProjectSettings(), this.pokemon = const ProjectPokemonConfig(), this.newGame = const ProjectNewGameConfig(), @JsonKey(includeIfNull: false) this.presentation, final  List<ProjectPresentationPresetRecord> presentationPresets = const [], final  Map<String, dynamic> globalProperties = const {}, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) this.smartTileCatalog = const ProjectSmartTileCatalog.empty(), @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) this.borderCatalog = const ProjectBorderCatalog.empty(), @ProjectShadowCatalogJsonConverter() this.shadowCatalog = const ProjectShadowCatalog.empty(), @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) this.projectedBuildingShadowCatalog = const ProjectBuildingShadowPresetCatalog.empty()}): _maps = maps,_groups = groups,_tilesetFolders = tilesetFolders,_tilesets = tilesets,_elementCategories = elementCategories,_elements = elements,_environmentPresets = environmentPresets,_encounterTables = encounterTables,_dialogueFolders = dialogueFolders,_dialogues = dialogues,_scripts = scripts,_scenarios = scenarios,_cinematics = cinematics,_presentationCinematics = presentationCinematics,_cinematicMediaAssets = cinematicMediaAssets,_facts = facts,_worldRules = worldRules,_narrativeDiagnosticSuppressions = narrativeDiagnosticSuppressions,_scenes = scenes,_storylines = storylines,_shops = shops,_badges = badges,_trainers = trainers,_characters = characters,_presentationPresets = presentationPresets,_globalProperties = globalProperties;
+  const _ProjectManifest({required this.name, this.version = ProjectVersion.v6, required final  List<ProjectMapEntry> maps, final  List<ProjectMapGroup> groups = const [], final  List<ProjectTilesetFolder> tilesetFolders = const [], required final  List<ProjectTilesetEntry> tilesets, final  List<ProjectElementCategory> elementCategories = const [], final  List<ProjectElementEntry> elements = const [], @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) final  List<EnvironmentPreset> environmentPresets = const [], final  List<ProjectEncounterTable> encounterTables = const [], final  List<ProjectDialogueFolder> dialogueFolders = const [], final  List<ProjectDialogueEntry> dialogues = const [], final  List<ProjectScriptEntry> scripts = const [], final  List<ScenarioAsset> scenarios = const [], @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) final  List<CinematicAsset> cinematics = const [], @JsonKey(name: 'cinematicLibraryCatalog', fromJson: _cinematicLibraryCatalogFromJson, toJson: _cinematicLibraryCatalogToJson, includeIfNull: false) this.cinematicLibraryCatalog = const CinematicLibraryCatalog.empty(), @JsonKey(name: 'presentationCinematics', fromJson: _presentationCinematicsFromJson, toJson: _presentationCinematicsToJson, includeIfNull: false) final  List<PresentationCinematicAsset> presentationCinematics = const [], @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) final  List<CinematicMediaAsset> cinematicMediaAssets = const [], @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) final  List<NarrativeFactDefinition> facts = const [], @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) final  List<WorldRuleDefinition> worldRules = const [], final  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions = const [], @JsonKey(includeIfNull: false) this.eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) final  List<SceneAsset> scenes = const [], @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) final  List<StorylineAsset> storylines = const [], final  List<ShopDefinition> shops = const [], final  List<BadgeDefinition> badges = const [], final  List<ProjectTrainerEntry> trainers = const [], final  List<ProjectCharacterEntry> characters = const [], @JsonKey(toJson: _projectCharacterStudioCatalogToJson, includeIfNull: false) this.characterStudioCatalog = const ProjectCharacterStudioCatalog(), this.settings = const ProjectSettings(), this.pokemon = const ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1), this.newGame = const ProjectNewGameConfig(), @JsonKey(includeIfNull: false) this.presentation, final  List<ProjectPresentationPresetRecord> presentationPresets = const [], final  Map<String, dynamic> globalProperties = const {}, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) this.smartTileCatalog = const ProjectSmartTileCatalog.empty(), @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) this.borderCatalog = const ProjectBorderCatalog.empty(), @ProjectShadowCatalogJsonConverter() this.shadowCatalog = const ProjectShadowCatalog.empty(), @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) this.projectedBuildingShadowCatalog = const ProjectBuildingShadowPresetCatalog.empty()}): _maps = maps,_groups = groups,_tilesetFolders = tilesetFolders,_tilesets = tilesets,_elementCategories = elementCategories,_elements = elements,_environmentPresets = environmentPresets,_encounterTables = encounterTables,_dialogueFolders = dialogueFolders,_dialogues = dialogues,_scripts = scripts,_scenarios = scenarios,_cinematics = cinematics,_presentationCinematics = presentationCinematics,_cinematicMediaAssets = cinematicMediaAssets,_facts = facts,_worldRules = worldRules,_narrativeDiagnosticSuppressions = narrativeDiagnosticSuppressions,_scenes = scenes,_storylines = storylines,_shops = shops,_badges = badges,_trainers = trainers,_characters = characters,_presentationPresets = presentationPresets,_globalProperties = globalProperties;
   factory _ProjectManifest.fromJson(Map<String, dynamic> json) => _$ProjectManifestFromJson(json);
 
 @override final  String name;
@@ -626,7 +626,7 @@ $ProjectPresentationProfileCopyWith<$Res>? get presentation {
 /// @nodoc
 mixin _$ProjectPokemonConfig {
 
- bool get enabled; String get dataRoot; String get speciesDir; String get learnsetsDir; String get evolutionsDir; String get mediaDir; Map<String, String> get catalogFiles;
+ bool get enabled; PokemonRulesetProfile get ruleset; String get dataRoot; String get speciesDir; String get learnsetsDir; String get evolutionsDir; String get mediaDir; Map<String, String> get catalogFiles;
 /// Create a copy of ProjectPokemonConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -639,16 +639,16 @@ $ProjectPokemonConfigCopyWith<ProjectPokemonConfig> get copyWith => _$ProjectPok
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPokemonConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.dataRoot, dataRoot) || other.dataRoot == dataRoot)&&(identical(other.speciesDir, speciesDir) || other.speciesDir == speciesDir)&&(identical(other.learnsetsDir, learnsetsDir) || other.learnsetsDir == learnsetsDir)&&(identical(other.evolutionsDir, evolutionsDir) || other.evolutionsDir == evolutionsDir)&&(identical(other.mediaDir, mediaDir) || other.mediaDir == mediaDir)&&const DeepCollectionEquality().equals(other.catalogFiles, catalogFiles));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPokemonConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.ruleset, ruleset) || other.ruleset == ruleset)&&(identical(other.dataRoot, dataRoot) || other.dataRoot == dataRoot)&&(identical(other.speciesDir, speciesDir) || other.speciesDir == speciesDir)&&(identical(other.learnsetsDir, learnsetsDir) || other.learnsetsDir == learnsetsDir)&&(identical(other.evolutionsDir, evolutionsDir) || other.evolutionsDir == evolutionsDir)&&(identical(other.mediaDir, mediaDir) || other.mediaDir == mediaDir)&&const DeepCollectionEquality().equals(other.catalogFiles, catalogFiles));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,enabled,dataRoot,speciesDir,learnsetsDir,evolutionsDir,mediaDir,const DeepCollectionEquality().hash(catalogFiles));
+int get hashCode => Object.hash(runtimeType,enabled,ruleset,dataRoot,speciesDir,learnsetsDir,evolutionsDir,mediaDir,const DeepCollectionEquality().hash(catalogFiles));
 
 @override
 String toString() {
-  return 'ProjectPokemonConfig(enabled: $enabled, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
+  return 'ProjectPokemonConfig(enabled: $enabled, ruleset: $ruleset, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
 }
 
 
@@ -659,7 +659,7 @@ abstract mixin class $ProjectPokemonConfigCopyWith<$Res>  {
   factory $ProjectPokemonConfigCopyWith(ProjectPokemonConfig value, $Res Function(ProjectPokemonConfig) _then) = _$ProjectPokemonConfigCopyWithImpl;
 @useResult
 $Res call({
- bool enabled, String dataRoot, String speciesDir, String learnsetsDir, String evolutionsDir, String mediaDir, Map<String, String> catalogFiles
+ bool enabled, PokemonRulesetProfile ruleset, String dataRoot, String speciesDir, String learnsetsDir, String evolutionsDir, String mediaDir, Map<String, String> catalogFiles
 });
 
 
@@ -676,10 +676,11 @@ class _$ProjectPokemonConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPokemonConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? enabled = null,Object? dataRoot = null,Object? speciesDir = null,Object? learnsetsDir = null,Object? evolutionsDir = null,Object? mediaDir = null,Object? catalogFiles = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? enabled = null,Object? ruleset = null,Object? dataRoot = null,Object? speciesDir = null,Object? learnsetsDir = null,Object? evolutionsDir = null,Object? mediaDir = null,Object? catalogFiles = null,}) {
   return _then(_self.copyWith(
 enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
-as bool,dataRoot: null == dataRoot ? _self.dataRoot : dataRoot // ignore: cast_nullable_to_non_nullable
+as bool,ruleset: null == ruleset ? _self.ruleset : ruleset // ignore: cast_nullable_to_non_nullable
+as PokemonRulesetProfile,dataRoot: null == dataRoot ? _self.dataRoot : dataRoot // ignore: cast_nullable_to_non_nullable
 as String,speciesDir: null == speciesDir ? _self.speciesDir : speciesDir // ignore: cast_nullable_to_non_nullable
 as String,learnsetsDir: null == learnsetsDir ? _self.learnsetsDir : learnsetsDir // ignore: cast_nullable_to_non_nullable
 as String,evolutionsDir: null == evolutionsDir ? _self.evolutionsDir : evolutionsDir // ignore: cast_nullable_to_non_nullable
@@ -770,10 +771,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enabled,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enabled,  PokemonRulesetProfile ruleset,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectPokemonConfig() when $default != null:
-return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
+return $default(_that.enabled,_that.ruleset,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
   return orElse();
 
 }
@@ -791,10 +792,10 @@ return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enabled,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enabled,  PokemonRulesetProfile ruleset,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPokemonConfig():
-return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
+return $default(_that.enabled,_that.ruleset,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -811,10 +812,10 @@ return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enabled,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enabled,  PokemonRulesetProfile ruleset,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPokemonConfig() when $default != null:
-return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
+return $default(_that.enabled,_that.ruleset,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
   return null;
 
 }
@@ -826,10 +827,11 @@ return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectPokemonConfig implements ProjectPokemonConfig {
-  const _ProjectPokemonConfig({this.enabled = true, this.dataRoot = 'data/pokemon', this.speciesDir = 'data/pokemon/species', this.learnsetsDir = 'data/pokemon/learnsets', this.evolutionsDir = 'data/pokemon/evolutions', this.mediaDir = 'data/pokemon/media', final  Map<String, String> catalogFiles = _defaultPokemonCatalogFiles}): _catalogFiles = catalogFiles;
+  const _ProjectPokemonConfig({this.enabled = true, required this.ruleset, this.dataRoot = 'data/pokemon', this.speciesDir = 'data/pokemon/species', this.learnsetsDir = 'data/pokemon/learnsets', this.evolutionsDir = 'data/pokemon/evolutions', this.mediaDir = 'data/pokemon/media', final  Map<String, String> catalogFiles = _defaultPokemonCatalogFiles}): _catalogFiles = catalogFiles;
   factory _ProjectPokemonConfig.fromJson(Map<String, dynamic> json) => _$ProjectPokemonConfigFromJson(json);
 
 @override@JsonKey() final  bool enabled;
+@override final  PokemonRulesetProfile ruleset;
 @override@JsonKey() final  String dataRoot;
 @override@JsonKey() final  String speciesDir;
 @override@JsonKey() final  String learnsetsDir;
@@ -856,16 +858,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPokemonConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.dataRoot, dataRoot) || other.dataRoot == dataRoot)&&(identical(other.speciesDir, speciesDir) || other.speciesDir == speciesDir)&&(identical(other.learnsetsDir, learnsetsDir) || other.learnsetsDir == learnsetsDir)&&(identical(other.evolutionsDir, evolutionsDir) || other.evolutionsDir == evolutionsDir)&&(identical(other.mediaDir, mediaDir) || other.mediaDir == mediaDir)&&const DeepCollectionEquality().equals(other._catalogFiles, _catalogFiles));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPokemonConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.ruleset, ruleset) || other.ruleset == ruleset)&&(identical(other.dataRoot, dataRoot) || other.dataRoot == dataRoot)&&(identical(other.speciesDir, speciesDir) || other.speciesDir == speciesDir)&&(identical(other.learnsetsDir, learnsetsDir) || other.learnsetsDir == learnsetsDir)&&(identical(other.evolutionsDir, evolutionsDir) || other.evolutionsDir == evolutionsDir)&&(identical(other.mediaDir, mediaDir) || other.mediaDir == mediaDir)&&const DeepCollectionEquality().equals(other._catalogFiles, _catalogFiles));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,enabled,dataRoot,speciesDir,learnsetsDir,evolutionsDir,mediaDir,const DeepCollectionEquality().hash(_catalogFiles));
+int get hashCode => Object.hash(runtimeType,enabled,ruleset,dataRoot,speciesDir,learnsetsDir,evolutionsDir,mediaDir,const DeepCollectionEquality().hash(_catalogFiles));
 
 @override
 String toString() {
-  return 'ProjectPokemonConfig(enabled: $enabled, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
+  return 'ProjectPokemonConfig(enabled: $enabled, ruleset: $ruleset, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
 }
 
 
@@ -876,7 +878,7 @@ abstract mixin class _$ProjectPokemonConfigCopyWith<$Res> implements $ProjectPok
   factory _$ProjectPokemonConfigCopyWith(_ProjectPokemonConfig value, $Res Function(_ProjectPokemonConfig) _then) = __$ProjectPokemonConfigCopyWithImpl;
 @override @useResult
 $Res call({
- bool enabled, String dataRoot, String speciesDir, String learnsetsDir, String evolutionsDir, String mediaDir, Map<String, String> catalogFiles
+ bool enabled, PokemonRulesetProfile ruleset, String dataRoot, String speciesDir, String learnsetsDir, String evolutionsDir, String mediaDir, Map<String, String> catalogFiles
 });
 
 
@@ -893,10 +895,11 @@ class __$ProjectPokemonConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPokemonConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? enabled = null,Object? dataRoot = null,Object? speciesDir = null,Object? learnsetsDir = null,Object? evolutionsDir = null,Object? mediaDir = null,Object? catalogFiles = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? enabled = null,Object? ruleset = null,Object? dataRoot = null,Object? speciesDir = null,Object? learnsetsDir = null,Object? evolutionsDir = null,Object? mediaDir = null,Object? catalogFiles = null,}) {
   return _then(_ProjectPokemonConfig(
 enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
-as bool,dataRoot: null == dataRoot ? _self.dataRoot : dataRoot // ignore: cast_nullable_to_non_nullable
+as bool,ruleset: null == ruleset ? _self.ruleset : ruleset // ignore: cast_nullable_to_non_nullable
+as PokemonRulesetProfile,dataRoot: null == dataRoot ? _self.dataRoot : dataRoot // ignore: cast_nullable_to_non_nullable
 as String,speciesDir: null == speciesDir ? _self.speciesDir : speciesDir // ignore: cast_nullable_to_non_nullable
 as String,learnsetsDir: null == learnsetsDir ? _self.learnsetsDir : learnsetsDir // ignore: cast_nullable_to_non_nullable
 as String,evolutionsDir: null == evolutionsDir ? _self.evolutionsDir : evolutionsDir // ignore: cast_nullable_to_non_nullable
@@ -4926,11 +4929,319 @@ $ElementCollisionProfileCopyWith<$Res>? get collisionProfile {
 
 
 /// @nodoc
+mixin _$ProjectEncounterPokemonOverrides {
+
+ String? get natureId; String? get abilityId; String? get gender; PokemonStatSpread? get ivs; ProjectEncounterShinyPolicy get shinyPolicy; List<String> get knownMoveIds;
+/// Create a copy of ProjectEncounterPokemonOverrides
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectEncounterPokemonOverridesCopyWith<ProjectEncounterPokemonOverrides> get copyWith => _$ProjectEncounterPokemonOverridesCopyWithImpl<ProjectEncounterPokemonOverrides>(this as ProjectEncounterPokemonOverrides, _$identity);
+
+  /// Serializes this ProjectEncounterPokemonOverrides to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectEncounterPokemonOverrides&&(identical(other.natureId, natureId) || other.natureId == natureId)&&(identical(other.abilityId, abilityId) || other.abilityId == abilityId)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.ivs, ivs) || other.ivs == ivs)&&(identical(other.shinyPolicy, shinyPolicy) || other.shinyPolicy == shinyPolicy)&&const DeepCollectionEquality().equals(other.knownMoveIds, knownMoveIds));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,natureId,abilityId,gender,ivs,shinyPolicy,const DeepCollectionEquality().hash(knownMoveIds));
+
+@override
+String toString() {
+  return 'ProjectEncounterPokemonOverrides(natureId: $natureId, abilityId: $abilityId, gender: $gender, ivs: $ivs, shinyPolicy: $shinyPolicy, knownMoveIds: $knownMoveIds)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectEncounterPokemonOverridesCopyWith<$Res>  {
+  factory $ProjectEncounterPokemonOverridesCopyWith(ProjectEncounterPokemonOverrides value, $Res Function(ProjectEncounterPokemonOverrides) _then) = _$ProjectEncounterPokemonOverridesCopyWithImpl;
+@useResult
+$Res call({
+ String? natureId, String? abilityId, String? gender, PokemonStatSpread? ivs, ProjectEncounterShinyPolicy shinyPolicy, List<String> knownMoveIds
+});
+
+
+$PokemonStatSpreadCopyWith<$Res>? get ivs;
+
+}
+/// @nodoc
+class _$ProjectEncounterPokemonOverridesCopyWithImpl<$Res>
+    implements $ProjectEncounterPokemonOverridesCopyWith<$Res> {
+  _$ProjectEncounterPokemonOverridesCopyWithImpl(this._self, this._then);
+
+  final ProjectEncounterPokemonOverrides _self;
+  final $Res Function(ProjectEncounterPokemonOverrides) _then;
+
+/// Create a copy of ProjectEncounterPokemonOverrides
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? natureId = freezed,Object? abilityId = freezed,Object? gender = freezed,Object? ivs = freezed,Object? shinyPolicy = null,Object? knownMoveIds = null,}) {
+  return _then(_self.copyWith(
+natureId: freezed == natureId ? _self.natureId : natureId // ignore: cast_nullable_to_non_nullable
+as String?,abilityId: freezed == abilityId ? _self.abilityId : abilityId // ignore: cast_nullable_to_non_nullable
+as String?,gender: freezed == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
+as String?,ivs: freezed == ivs ? _self.ivs : ivs // ignore: cast_nullable_to_non_nullable
+as PokemonStatSpread?,shinyPolicy: null == shinyPolicy ? _self.shinyPolicy : shinyPolicy // ignore: cast_nullable_to_non_nullable
+as ProjectEncounterShinyPolicy,knownMoveIds: null == knownMoveIds ? _self.knownMoveIds : knownMoveIds // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
+}
+/// Create a copy of ProjectEncounterPokemonOverrides
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PokemonStatSpreadCopyWith<$Res>? get ivs {
+    if (_self.ivs == null) {
+    return null;
+  }
+
+  return $PokemonStatSpreadCopyWith<$Res>(_self.ivs!, (value) {
+    return _then(_self.copyWith(ivs: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [ProjectEncounterPokemonOverrides].
+extension ProjectEncounterPokemonOverridesPatterns on ProjectEncounterPokemonOverrides {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectEncounterPokemonOverrides value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectEncounterPokemonOverrides() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectEncounterPokemonOverrides value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectEncounterPokemonOverrides():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectEncounterPokemonOverrides value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectEncounterPokemonOverrides() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? natureId,  String? abilityId,  String? gender,  PokemonStatSpread? ivs,  ProjectEncounterShinyPolicy shinyPolicy,  List<String> knownMoveIds)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectEncounterPokemonOverrides() when $default != null:
+return $default(_that.natureId,_that.abilityId,_that.gender,_that.ivs,_that.shinyPolicy,_that.knownMoveIds);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? natureId,  String? abilityId,  String? gender,  PokemonStatSpread? ivs,  ProjectEncounterShinyPolicy shinyPolicy,  List<String> knownMoveIds)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectEncounterPokemonOverrides():
+return $default(_that.natureId,_that.abilityId,_that.gender,_that.ivs,_that.shinyPolicy,_that.knownMoveIds);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? natureId,  String? abilityId,  String? gender,  PokemonStatSpread? ivs,  ProjectEncounterShinyPolicy shinyPolicy,  List<String> knownMoveIds)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectEncounterPokemonOverrides() when $default != null:
+return $default(_that.natureId,_that.abilityId,_that.gender,_that.ivs,_that.shinyPolicy,_that.knownMoveIds);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _ProjectEncounterPokemonOverrides implements ProjectEncounterPokemonOverrides {
+  const _ProjectEncounterPokemonOverrides({this.natureId, this.abilityId, this.gender, this.ivs, this.shinyPolicy = ProjectEncounterShinyPolicy.random, final  List<String> knownMoveIds = const <String>[]}): _knownMoveIds = knownMoveIds;
+  factory _ProjectEncounterPokemonOverrides.fromJson(Map<String, dynamic> json) => _$ProjectEncounterPokemonOverridesFromJson(json);
+
+@override final  String? natureId;
+@override final  String? abilityId;
+@override final  String? gender;
+@override final  PokemonStatSpread? ivs;
+@override@JsonKey() final  ProjectEncounterShinyPolicy shinyPolicy;
+ final  List<String> _knownMoveIds;
+@override@JsonKey() List<String> get knownMoveIds {
+  if (_knownMoveIds is EqualUnmodifiableListView) return _knownMoveIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_knownMoveIds);
+}
+
+
+/// Create a copy of ProjectEncounterPokemonOverrides
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectEncounterPokemonOverridesCopyWith<_ProjectEncounterPokemonOverrides> get copyWith => __$ProjectEncounterPokemonOverridesCopyWithImpl<_ProjectEncounterPokemonOverrides>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectEncounterPokemonOverridesToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectEncounterPokemonOverrides&&(identical(other.natureId, natureId) || other.natureId == natureId)&&(identical(other.abilityId, abilityId) || other.abilityId == abilityId)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.ivs, ivs) || other.ivs == ivs)&&(identical(other.shinyPolicy, shinyPolicy) || other.shinyPolicy == shinyPolicy)&&const DeepCollectionEquality().equals(other._knownMoveIds, _knownMoveIds));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,natureId,abilityId,gender,ivs,shinyPolicy,const DeepCollectionEquality().hash(_knownMoveIds));
+
+@override
+String toString() {
+  return 'ProjectEncounterPokemonOverrides(natureId: $natureId, abilityId: $abilityId, gender: $gender, ivs: $ivs, shinyPolicy: $shinyPolicy, knownMoveIds: $knownMoveIds)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectEncounterPokemonOverridesCopyWith<$Res> implements $ProjectEncounterPokemonOverridesCopyWith<$Res> {
+  factory _$ProjectEncounterPokemonOverridesCopyWith(_ProjectEncounterPokemonOverrides value, $Res Function(_ProjectEncounterPokemonOverrides) _then) = __$ProjectEncounterPokemonOverridesCopyWithImpl;
+@override @useResult
+$Res call({
+ String? natureId, String? abilityId, String? gender, PokemonStatSpread? ivs, ProjectEncounterShinyPolicy shinyPolicy, List<String> knownMoveIds
+});
+
+
+@override $PokemonStatSpreadCopyWith<$Res>? get ivs;
+
+}
+/// @nodoc
+class __$ProjectEncounterPokemonOverridesCopyWithImpl<$Res>
+    implements _$ProjectEncounterPokemonOverridesCopyWith<$Res> {
+  __$ProjectEncounterPokemonOverridesCopyWithImpl(this._self, this._then);
+
+  final _ProjectEncounterPokemonOverrides _self;
+  final $Res Function(_ProjectEncounterPokemonOverrides) _then;
+
+/// Create a copy of ProjectEncounterPokemonOverrides
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? natureId = freezed,Object? abilityId = freezed,Object? gender = freezed,Object? ivs = freezed,Object? shinyPolicy = null,Object? knownMoveIds = null,}) {
+  return _then(_ProjectEncounterPokemonOverrides(
+natureId: freezed == natureId ? _self.natureId : natureId // ignore: cast_nullable_to_non_nullable
+as String?,abilityId: freezed == abilityId ? _self.abilityId : abilityId // ignore: cast_nullable_to_non_nullable
+as String?,gender: freezed == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
+as String?,ivs: freezed == ivs ? _self.ivs : ivs // ignore: cast_nullable_to_non_nullable
+as PokemonStatSpread?,shinyPolicy: null == shinyPolicy ? _self.shinyPolicy : shinyPolicy // ignore: cast_nullable_to_non_nullable
+as ProjectEncounterShinyPolicy,knownMoveIds: null == knownMoveIds ? _self._knownMoveIds : knownMoveIds // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
+}
+
+/// Create a copy of ProjectEncounterPokemonOverrides
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PokemonStatSpreadCopyWith<$Res>? get ivs {
+    if (_self.ivs == null) {
+    return null;
+  }
+
+  return $PokemonStatSpreadCopyWith<$Res>(_self.ivs!, (value) {
+    return _then(_self.copyWith(ivs: value));
+  });
+}
+}
+
+
+/// @nodoc
 mixin _$ProjectEncounterEntry {
 
 /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
  String get speciesId; int get minLevel; int get maxLevel;/// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
- int get weight;
+ int get weight;@JsonKey(includeIfNull: false) ProjectEncounterPokemonOverrides? get pokemonOverrides;
 /// Create a copy of ProjectEncounterEntry
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -4943,16 +5254,16 @@ $ProjectEncounterEntryCopyWith<ProjectEncounterEntry> get copyWith => _$ProjectE
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectEncounterEntry&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.minLevel, minLevel) || other.minLevel == minLevel)&&(identical(other.maxLevel, maxLevel) || other.maxLevel == maxLevel)&&(identical(other.weight, weight) || other.weight == weight));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectEncounterEntry&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.minLevel, minLevel) || other.minLevel == minLevel)&&(identical(other.maxLevel, maxLevel) || other.maxLevel == maxLevel)&&(identical(other.weight, weight) || other.weight == weight)&&(identical(other.pokemonOverrides, pokemonOverrides) || other.pokemonOverrides == pokemonOverrides));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,speciesId,minLevel,maxLevel,weight);
+int get hashCode => Object.hash(runtimeType,speciesId,minLevel,maxLevel,weight,pokemonOverrides);
 
 @override
 String toString() {
-  return 'ProjectEncounterEntry(speciesId: $speciesId, minLevel: $minLevel, maxLevel: $maxLevel, weight: $weight)';
+  return 'ProjectEncounterEntry(speciesId: $speciesId, minLevel: $minLevel, maxLevel: $maxLevel, weight: $weight, pokemonOverrides: $pokemonOverrides)';
 }
 
 
@@ -4963,11 +5274,11 @@ abstract mixin class $ProjectEncounterEntryCopyWith<$Res>  {
   factory $ProjectEncounterEntryCopyWith(ProjectEncounterEntry value, $Res Function(ProjectEncounterEntry) _then) = _$ProjectEncounterEntryCopyWithImpl;
 @useResult
 $Res call({
- String speciesId, int minLevel, int maxLevel, int weight
+ String speciesId, int minLevel, int maxLevel, int weight,@JsonKey(includeIfNull: false) ProjectEncounterPokemonOverrides? pokemonOverrides
 });
 
 
-
+$ProjectEncounterPokemonOverridesCopyWith<$Res>? get pokemonOverrides;
 
 }
 /// @nodoc
@@ -4980,16 +5291,29 @@ class _$ProjectEncounterEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectEncounterEntry
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? speciesId = null,Object? minLevel = null,Object? maxLevel = null,Object? weight = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? speciesId = null,Object? minLevel = null,Object? maxLevel = null,Object? weight = null,Object? pokemonOverrides = freezed,}) {
   return _then(_self.copyWith(
 speciesId: null == speciesId ? _self.speciesId : speciesId // ignore: cast_nullable_to_non_nullable
 as String,minLevel: null == minLevel ? _self.minLevel : minLevel // ignore: cast_nullable_to_non_nullable
 as int,maxLevel: null == maxLevel ? _self.maxLevel : maxLevel // ignore: cast_nullable_to_non_nullable
 as int,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
-as int,
+as int,pokemonOverrides: freezed == pokemonOverrides ? _self.pokemonOverrides : pokemonOverrides // ignore: cast_nullable_to_non_nullable
+as ProjectEncounterPokemonOverrides?,
   ));
 }
+/// Create a copy of ProjectEncounterEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectEncounterPokemonOverridesCopyWith<$Res>? get pokemonOverrides {
+    if (_self.pokemonOverrides == null) {
+    return null;
+  }
 
+  return $ProjectEncounterPokemonOverridesCopyWith<$Res>(_self.pokemonOverrides!, (value) {
+    return _then(_self.copyWith(pokemonOverrides: value));
+  });
+}
 }
 
 
@@ -5071,10 +5395,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String speciesId,  int minLevel,  int maxLevel,  int weight)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String speciesId,  int minLevel,  int maxLevel,  int weight, @JsonKey(includeIfNull: false)  ProjectEncounterPokemonOverrides? pokemonOverrides)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectEncounterEntry() when $default != null:
-return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight);case _:
+return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight,_that.pokemonOverrides);case _:
   return orElse();
 
 }
@@ -5092,10 +5416,10 @@ return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight);case
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String speciesId,  int minLevel,  int maxLevel,  int weight)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String speciesId,  int minLevel,  int maxLevel,  int weight, @JsonKey(includeIfNull: false)  ProjectEncounterPokemonOverrides? pokemonOverrides)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectEncounterEntry():
-return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight);case _:
+return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight,_that.pokemonOverrides);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -5112,10 +5436,10 @@ return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight);case
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String speciesId,  int minLevel,  int maxLevel,  int weight)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String speciesId,  int minLevel,  int maxLevel,  int weight, @JsonKey(includeIfNull: false)  ProjectEncounterPokemonOverrides? pokemonOverrides)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectEncounterEntry() when $default != null:
-return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight);case _:
+return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight,_that.pokemonOverrides);case _:
   return null;
 
 }
@@ -5124,10 +5448,10 @@ return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight);case
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _ProjectEncounterEntry implements ProjectEncounterEntry {
-  const _ProjectEncounterEntry({required this.speciesId, required this.minLevel, required this.maxLevel, this.weight = 1});
+  const _ProjectEncounterEntry({required this.speciesId, required this.minLevel, required this.maxLevel, this.weight = 1, @JsonKey(includeIfNull: false) this.pokemonOverrides});
   factory _ProjectEncounterEntry.fromJson(Map<String, dynamic> json) => _$ProjectEncounterEntryFromJson(json);
 
 /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
@@ -5136,6 +5460,7 @@ class _ProjectEncounterEntry implements ProjectEncounterEntry {
 @override final  int maxLevel;
 /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
 @override@JsonKey() final  int weight;
+@override@JsonKey(includeIfNull: false) final  ProjectEncounterPokemonOverrides? pokemonOverrides;
 
 /// Create a copy of ProjectEncounterEntry
 /// with the given fields replaced by the non-null parameter values.
@@ -5150,16 +5475,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectEncounterEntry&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.minLevel, minLevel) || other.minLevel == minLevel)&&(identical(other.maxLevel, maxLevel) || other.maxLevel == maxLevel)&&(identical(other.weight, weight) || other.weight == weight));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectEncounterEntry&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.minLevel, minLevel) || other.minLevel == minLevel)&&(identical(other.maxLevel, maxLevel) || other.maxLevel == maxLevel)&&(identical(other.weight, weight) || other.weight == weight)&&(identical(other.pokemonOverrides, pokemonOverrides) || other.pokemonOverrides == pokemonOverrides));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,speciesId,minLevel,maxLevel,weight);
+int get hashCode => Object.hash(runtimeType,speciesId,minLevel,maxLevel,weight,pokemonOverrides);
 
 @override
 String toString() {
-  return 'ProjectEncounterEntry(speciesId: $speciesId, minLevel: $minLevel, maxLevel: $maxLevel, weight: $weight)';
+  return 'ProjectEncounterEntry(speciesId: $speciesId, minLevel: $minLevel, maxLevel: $maxLevel, weight: $weight, pokemonOverrides: $pokemonOverrides)';
 }
 
 
@@ -5170,11 +5495,11 @@ abstract mixin class _$ProjectEncounterEntryCopyWith<$Res> implements $ProjectEn
   factory _$ProjectEncounterEntryCopyWith(_ProjectEncounterEntry value, $Res Function(_ProjectEncounterEntry) _then) = __$ProjectEncounterEntryCopyWithImpl;
 @override @useResult
 $Res call({
- String speciesId, int minLevel, int maxLevel, int weight
+ String speciesId, int minLevel, int maxLevel, int weight,@JsonKey(includeIfNull: false) ProjectEncounterPokemonOverrides? pokemonOverrides
 });
 
 
-
+@override $ProjectEncounterPokemonOverridesCopyWith<$Res>? get pokemonOverrides;
 
 }
 /// @nodoc
@@ -5187,17 +5512,30 @@ class __$ProjectEncounterEntryCopyWithImpl<$Res>
 
 /// Create a copy of ProjectEncounterEntry
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? speciesId = null,Object? minLevel = null,Object? maxLevel = null,Object? weight = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? speciesId = null,Object? minLevel = null,Object? maxLevel = null,Object? weight = null,Object? pokemonOverrides = freezed,}) {
   return _then(_ProjectEncounterEntry(
 speciesId: null == speciesId ? _self.speciesId : speciesId // ignore: cast_nullable_to_non_nullable
 as String,minLevel: null == minLevel ? _self.minLevel : minLevel // ignore: cast_nullable_to_non_nullable
 as int,maxLevel: null == maxLevel ? _self.maxLevel : maxLevel // ignore: cast_nullable_to_non_nullable
 as int,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
-as int,
+as int,pokemonOverrides: freezed == pokemonOverrides ? _self.pokemonOverrides : pokemonOverrides // ignore: cast_nullable_to_non_nullable
+as ProjectEncounterPokemonOverrides?,
   ));
 }
 
+/// Create a copy of ProjectEncounterEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectEncounterPokemonOverridesCopyWith<$Res>? get pokemonOverrides {
+    if (_self.pokemonOverrides == null) {
+    return null;
+  }
 
+  return $ProjectEncounterPokemonOverridesCopyWith<$Res>(_self.pokemonOverrides!, (value) {
+    return _then(_self.copyWith(pokemonOverrides: value));
+  });
+}
 }
 
 

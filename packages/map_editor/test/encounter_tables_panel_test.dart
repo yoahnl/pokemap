@@ -906,9 +906,31 @@ void main() {
         '3',
       );
 
-      await tester.tap(
-        find.byKey(const Key('encounter-tables-entry-save-button')),
+      final natureControl = find.byKey(
+        const Key('encounter-entry-nature-control'),
       );
+      await tester.ensureVisible(natureControl);
+      tester
+          .widget<PokeMapDropdownField<String>>(natureControl)
+          .onChanged('jolly');
+      await tester.pumpAndSettle();
+
+      final shinyControl = find.byKey(
+        const Key('encounter-entry-shiny-policy-control'),
+      );
+      await tester.ensureVisible(shinyControl);
+      tester
+          .widget<PokeMapDropdownField<ProjectEncounterShinyPolicy>>(
+            shinyControl,
+          )
+          .onChanged(ProjectEncounterShinyPolicy.always);
+      await tester.pumpAndSettle();
+
+      final saveButton = find.byKey(
+        const Key('encounter-tables-entry-save-button'),
+      );
+      await tester.ensureVisible(saveButton);
+      await tester.tap(saveButton);
       await tester.pumpAndSettle();
 
       final savedEntry = container
@@ -922,6 +944,11 @@ void main() {
       expect(savedEntry.minLevel, 2);
       expect(savedEntry.maxLevel, 4);
       expect(savedEntry.weight, 3);
+      expect(savedEntry.pokemonOverrides?.natureId, 'jolly');
+      expect(
+        savedEntry.pokemonOverrides?.shinyPolicy,
+        ProjectEncounterShinyPolicy.always,
+      );
       expect(find.text('Bulbasaur'), findsOneWidget);
       expect(find.textContaining('Lv. 2–4'), findsOneWidget);
       expect(find.text('100.0% du roster'), findsOneWidget);

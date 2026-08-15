@@ -29,7 +29,9 @@ void main() {
       ],
     );
 
-    final decoded = ProjectManifest.fromJson(manifest.toJson());
+    final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+      manifest.toJson(),
+    );
 
     expect(decoded.presentationPresets, manifest.presentationPresets);
     expect(
@@ -56,7 +58,7 @@ void main() {
     ];
 
     expect(
-      () => ProjectManifest.fromJson(manifest),
+      () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(manifest),
       throwsA(isA<FormatException>()),
     );
   });

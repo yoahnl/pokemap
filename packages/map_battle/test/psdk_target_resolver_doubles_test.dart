@@ -108,7 +108,7 @@ BattleMoveProcedureExecution _execution({
 }
 
 PsdkBattleState _singlesState() {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       const PsdkBattleSlotRef(bank: 0, position: 0):
           PsdkBattleCombatant.fromSetup(_combatant(id: 'player')),
@@ -129,7 +129,7 @@ PsdkBattleState _state({
     const PsdkBattleSlotRef(bank: 1, position: 1),
     const PsdkBattleSlotRef(bank: 1, position: 2),
   ];
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       for (final slot in slots)
         slot: PsdkBattleCombatant.fromSetup(

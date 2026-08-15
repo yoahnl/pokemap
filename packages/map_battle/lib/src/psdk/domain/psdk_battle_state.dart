@@ -1,13 +1,17 @@
+import 'package:map_core/map_core.dart';
+
 import 'psdk_battle_combatant.dart';
 import 'psdk_battle_field.dart';
 import 'psdk_battle_outcome.dart';
 import 'psdk_battle_setup.dart';
 import 'psdk_battle_slots.dart';
 import '../../domain/effect/ability/ability_effect.dart';
+import '../../pokemon_battle_rules.dart';
 
 /// Current observable state for the PSDK lane.
 class PsdkBattleState {
   PsdkBattleState({
+    required this.ruleset,
     required Map<PsdkBattleSlotRef, PsdkBattleCombatant> combatants,
     Map<int, List<PsdkBattleCombatant>>? parties,
     Set<int> megaEvolvedBanks = const <int>{},
@@ -31,12 +35,34 @@ class PsdkBattleState {
           playerParticipantPartyIndexes,
         );
 
+  factory PsdkBattleState.pokeMapBetaV1ForTest({
+    required Map<PsdkBattleSlotRef, PsdkBattleCombatant> combatants,
+    Map<int, List<PsdkBattleCombatant>>? parties,
+    Set<int> megaEvolvedBanks = const <int>{},
+    Set<int> zMoveUsedBanks = const <int>{},
+    Iterable<int> playerParticipantPartyIndexes = const <int>{0},
+    PsdkBattleFieldState field = const PsdkBattleFieldState(),
+    PsdkBattleOutcome? outcome,
+  }) {
+    return PsdkBattleState(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      combatants: combatants,
+      parties: parties,
+      megaEvolvedBanks: megaEvolvedBanks,
+      zMoveUsedBanks: zMoveUsedBanks,
+      playerParticipantPartyIndexes: playerParticipantPartyIndexes,
+      field: field,
+      outcome: outcome,
+    );
+  }
+
   factory PsdkBattleState.fromSetup(PsdkBattleSetup setup) {
     final combatants = <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(setup.player),
       psdkOpponentSlot: PsdkBattleCombatant.fromSetup(setup.opponent),
     };
     return PsdkBattleState(
+      ruleset: setup.ruleset,
       combatants: combatants,
       parties: <int, List<PsdkBattleCombatant>>{
         psdkPlayerSlot.bank: <PsdkBattleCombatant>[
@@ -53,12 +79,17 @@ class PsdkBattleState {
   }
 
   final Map<PsdkBattleSlotRef, PsdkBattleCombatant> _combatants;
+  final PokemonRulesetProfile ruleset;
   final Map<int, List<PsdkBattleCombatant>> _parties;
   final Set<int> _megaEvolvedBanks;
   final Set<int> _zMoveUsedBanks;
   final Set<int> _playerParticipantPartyIndexes;
   final PsdkBattleFieldState field;
   final PsdkBattleOutcome? outcome;
+
+  PokemonBattleRules get battleRules => PokemonBattleRules.fromProfile(
+        ruleset,
+      );
 
   /// Player party indexes that actually occupied the active battle slot.
   Set<int> get playerParticipantPartyIndexes =>
@@ -172,6 +203,7 @@ class PsdkBattleState {
     PsdkBattleOutcome? outcome,
   }) {
     return PsdkBattleState(
+      ruleset: ruleset,
       combatants: combatants ?? this.combatants,
       parties: parties ?? this.parties,
       megaEvolvedBanks: megaEvolvedBanks ?? this.megaEvolvedBanks,

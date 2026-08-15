@@ -5,7 +5,7 @@ void main() {
   group('PSDK ability effects', () {
     test('hydrates known ability ids into the battler effect stack', () {
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'skill_link',
@@ -63,7 +63,7 @@ void main() {
 
     test('Shadow Tag prevents opposing non-Ghost switch attempts', () {
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             move: _move(id: 'tackle', power: 40),
@@ -464,7 +464,7 @@ void main() {
             ),
           );
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'oblivious',
@@ -535,7 +535,7 @@ void main() {
 
     test('Rattled does not react to non-Intimidate stat changes', () {
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'intimidate',
@@ -586,7 +586,7 @@ void main() {
 
     test('Opportunist copies opposing positive stat changes', () {
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'opportunist',
@@ -939,7 +939,7 @@ void main() {
           _calculatedDamage(category: PsdkBattleMoveCategory.special);
 
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'gorilla_tactics',
@@ -1329,7 +1329,7 @@ void main() {
 
     test('Pressure spends one extra PP while an alive foe has Pressure', () {
       final engine = PsdkBattleEngine(
-        setup: BattleEngineSetup.singles(
+        setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             move: _move(id: 'tackle', power: 40, pp: 5, currentPp: 5),
@@ -1368,7 +1368,7 @@ void main() {
 
     test('Truant alternates allowed and loafing turns like PSDK', () {
       final engine = PsdkBattleEngine(
-        setup: BattleEngineSetup.singles(
+        setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'truant',
@@ -1413,7 +1413,7 @@ void main() {
 
     test('Truant ignores move attempts prevented before its own hook', () {
       final engine = PsdkBattleEngine(
-        setup: BattleEngineSetup.singles(
+        setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'truant',
@@ -3565,7 +3565,7 @@ void main() {
       const userSlot = PsdkBattleSlotRef(bank: 0, position: 0);
       const allySlot = PsdkBattleSlotRef(bank: 0, position: 1);
       const foeSlot = PsdkBattleSlotRef(bank: 1, position: 0);
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           userSlot: PsdkBattleCombatant.fromSetup(
             _combatant(id: 'user', move: _move(id: 'surf', power: 60)),
@@ -4372,7 +4372,7 @@ void main() {
     test('Rough Skin and Iron Barbs punish opposing contact damage', () {
       for (final abilityId in <String>['rough_skin', 'iron_barbs']) {
         final state = PsdkBattleState.fromSetup(
-          BattleEngineSetup.singles(
+          BattleEngineSetup.singlesPokeMapBetaV1ForTest(
             player: _combatant(
               id: 'player',
               move: _move(id: 'scratch', power: 40),
@@ -5881,7 +5881,7 @@ void main() {
       final result = const BattleStatusChangeHandler().applyMajorStatus(
         context: BattleHandlerContext(
           state: PsdkBattleState.fromSetup(
-            BattleEngineSetup.singles(
+            BattleEngineSetup.singlesPokeMapBetaV1ForTest(
               player: _combatant(
                 id: 'player',
                 abilityId: 'flash_fire',
@@ -6185,7 +6185,7 @@ void main() {
         final result = const BattleStatusChangeHandler().applyMajorStatus(
           context: BattleHandlerContext(
             state: PsdkBattleState.fromSetup(
-              BattleEngineSetup.singles(
+              BattleEngineSetup.singlesPokeMapBetaV1ForTest(
                 player: _combatant(
                   id: 'player',
                   abilityId: entry.abilityId,
@@ -6369,7 +6369,7 @@ void main() {
         playerMajorStatus: PsdkBattleMajorStatus.sleep,
       );
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'comatose',
@@ -6414,7 +6414,7 @@ void main() {
     test('non-volatile status immunity abilities cure bypassed status hooks',
         () {
       final state = PsdkBattleState.fromSetup(
-        BattleEngineSetup.singles(
+        BattleEngineSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             abilityId: 'limber',
@@ -6484,7 +6484,7 @@ PsdkBattleTurnResult _runMove({
   ),
 }) {
   final engine = PsdkBattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: playerSpeciesId,
@@ -6529,7 +6529,7 @@ PsdkBattleFightAction _fightActionForAbility({
   PsdkBattleMoveData? move,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         abilityId: abilityId,
@@ -6576,7 +6576,7 @@ BattleHandlerResult _switchPreventionFor({
   BattleMoveDefinition? move,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         abilityId: playerAbilityId,
@@ -6637,7 +6637,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
 }) {
   const benchSlot = PsdkBattleSlotRef(bank: 0, position: -1);
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: playerSpeciesId,
@@ -6697,7 +6697,7 @@ BattleHandlerResult _changeWeatherForAbility({
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: playerSpeciesId,
@@ -6737,7 +6737,7 @@ BattleHandlerResult _clearWeatherForAbility({
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: playerSpeciesId,
@@ -6802,7 +6802,7 @@ BattleHandlerResult _switchOutPrimalWeather({
       _combatant(id: 'opponent', move: _move(id: 'opponent_wait', power: 0)),
     ),
   };
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: combatants,
     parties: <int, List<PsdkBattleCombatant>>{
       psdkPlayerSlot.bank: <PsdkBattleCombatant>[active, bench],
@@ -6853,7 +6853,7 @@ BattleHandlerResult _faintPrimalWeatherHolder({
       _combatant(id: 'opponent', move: _move(id: 'opponent_wait', power: 0)),
     ),
   };
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: combatants,
     field: PsdkBattleFieldState(
       weather: PsdkBattleWeatherState(id: weather, remainingTurns: null),
@@ -6893,7 +6893,7 @@ BattleHandlerResult _resolveAbilityEndTurn({
   ),
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: playerSpeciesId,
@@ -6937,7 +6937,7 @@ BattleHandlerResult _applyStatusWithAbility({
   PsdkBattleSlotRef target = psdkOpponentSlot,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: playerSpeciesId,
@@ -6980,7 +6980,7 @@ BattleHandlerResult _damageAbilityHolder({
   PsdkBattleMoveCategory moveCategory = PsdkBattleMoveCategory.physical,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: speciesId,
@@ -7022,7 +7022,7 @@ BattleHandlerResult _damageFromAbilityHolder({
   required int rawDamage,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: speciesId,
@@ -7082,7 +7082,7 @@ BattleHandlerResult _switchOutFormAbilityHolder({
       move: _move(id: 'opponent_wait', power: 0),
     ),
   );
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: active,
       psdkOpponentSlot: opponent,
@@ -7109,7 +7109,7 @@ const _psdkPlayerAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
 const _psdkOpponentAllySlot = PsdkBattleSlotRef(bank: 1, position: 1);
 
 BattleHandlerResult _resolveHealerEndTurn({required int genericSeed}) {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7147,7 +7147,7 @@ BattleHandlerResult _resolveHealerEndTurn({required int genericSeed}) {
 }
 
 BattleHandlerResult _dispatchHospitalitySwitchIn() {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7182,7 +7182,7 @@ BattleHandlerResult _dispatchHospitalitySwitchIn() {
 }
 
 BattleHandlerResult _dispatchCostarSwitchIn() {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7223,7 +7223,7 @@ BattleHandlerResult _dispatchCostarSwitchIn() {
 }
 
 BattleHandlerResult _dispatchCuriousMedicineSwitchIn() {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7265,7 +7265,7 @@ BattleHandlerResult _applyStatusToOpponent({
   required PsdkBattleMajorStatus status,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(id: 'player', move: _move(id: 'tackle', power: 40)),
       opponent: _combatant(
         id: 'opponent',
@@ -7469,7 +7469,7 @@ int _calculatedDamage({
   bool isLastActionOfTurn = false,
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         abilityId: abilityId,
@@ -7520,6 +7520,7 @@ int _calculatedDamage({
           ),
           rng: _rng(),
           field: field,
+          state: state,
           isLastActionOfTurn: isLastActionOfTurn,
         ),
       )
@@ -7545,7 +7546,7 @@ int _calculatedDamageFromState(PsdkBattleState state) {
 
 int _calculatedDamageWithPower(int power) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         move: _move(id: 'shape_test', power: power),
@@ -7592,7 +7593,7 @@ int _calculatedDoublesDamage({
   const userAllySlot = PsdkBattleSlotRef(bank: 0, position: 1);
   const targetSlot = PsdkBattleSlotRef(bank: 1, position: 0);
   const targetAllySlot = PsdkBattleSlotRef(bank: 1, position: 1);
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       userSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7687,7 +7688,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
   ),
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         abilityId: playerAbilityId,
@@ -7751,7 +7752,7 @@ BattleHandlerResult _applyAllyKoAbilityDamage({
   int targetCurrentHp = 100,
   int rawDamage = 30,
 }) {
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -7833,7 +7834,7 @@ List<BattleEffect> _bankEffectsFor(
 
 BattleEffect _abilityEffectForOpponent(String abilityId) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         move: _move(id: 'tackle', power: 40),
@@ -7885,7 +7886,7 @@ BattleHandlerResult _applyPlayerStatDrop({
     ),
   );
   final state = originalTargets.contains(_psdkOpponentAllySlot)
-      ? PsdkBattleState(
+      ? PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: player,
             psdkOpponentSlot: opponent,
@@ -7899,7 +7900,7 @@ BattleHandlerResult _applyPlayerStatDrop({
           },
         )
       : PsdkBattleState.fromSetup(
-          BattleEngineSetup.singles(
+          BattleEngineSetup.singlesPokeMapBetaV1ForTest(
             player: _combatant(
               id: 'player',
               abilityId: playerAbilityId,
@@ -7943,7 +7944,7 @@ BattleHandlerResult _applyStatusToPlayer({
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
   final state = PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         abilityId: playerAbilityId,

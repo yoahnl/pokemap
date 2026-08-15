@@ -408,6 +408,70 @@ void main() {
           storageResult.transaction!.messages.last.text, contains('stockage'));
     });
 
+    test('hydrates a captured Pokemon before exposing the commit state',
+        () async {
+      var hydrationCount = 0;
+      final coordinator = RuntimePostBattleDecisionCoordinator(
+        hydrateOwnedPlayerPokemon: ({
+          required gameState,
+          required bundle,
+        }) async {
+          hydrationCount++;
+          final members = List<PlayerPokemon>.of(gameState.party.members);
+          final result = const PlayerPokemonHydrator().hydrate(
+            pokemon: members.last,
+            catalogs: const PlayerPokemonHydrationCatalogs(
+              speciesById: <String, PlayerPokemonHydrationSpecies>{
+                'capture_target': PlayerPokemonHydrationSpecies(
+                  id: 'capture_target',
+                  baseStats: PokemonBaseStats(
+                    hp: 45,
+                    attack: 49,
+                    defense: 49,
+                    specialAttack: 65,
+                    specialDefense: 65,
+                    speed: 45,
+                  ),
+                  primaryAbilityId: 'wild_power',
+                  abilityIds: <String>['wild_power'],
+                  growthRateId: 'medium',
+                ),
+              },
+              maxPpByMoveId: <String, int>{'wait': 35},
+            ),
+            ruleset: bundle.manifest.pokemon.ruleset,
+            origin: PlayerPokemonHydrationOrigin.capture,
+          );
+          expect(result.hasErrors, isFalse);
+          members[members.length - 1] = result.pokemon!;
+          return gameState.copyWith(
+            party: gameState.party.copyWith(members: members),
+          );
+        },
+      );
+      final capture = _successfulCaptureSubmission(
+        state: _captureState(partySize: 1),
+      );
+
+      final result = await coordinator.begin(
+        transactionBaseState: capture.updatedGameState,
+        bundle: _bundle(),
+        runtimeContext: _captureContext(),
+        outcome: capture.engineResult.state.outcome!,
+        captureAttemptReceipt: capture.receipt,
+        itemCatalog: _itemCatalog(),
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(hydrationCount, 1);
+      final finalState = result.transaction!.finalState!;
+      expect(finalState.party.members.last.experience, 1000);
+      expect(
+        result.transaction!.captureDestination!.state,
+        same(finalState),
+      );
+    });
+
     test('final trainer transaction survives a save JSON roundtrip', () async {
       final coordinator = RuntimePostBattleDecisionCoordinator(
         resolveReward: _multiLevelAutomaticMoveResolution,
@@ -635,6 +699,7 @@ Future<RuntimeBattleRewardResolution>
 }) async {
   final reward = _trainerReward();
   final context = BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: const <BattleProgressionDefeatedOpponent>[
@@ -678,6 +743,7 @@ Future<RuntimeBattleRewardResolution> _multiLevelAutomaticMoveResolution({
 }) async {
   final reward = _trainerReward(itemId: rewardItemId);
   final context = BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: const <BattleProgressionDefeatedOpponent>[
@@ -938,7 +1004,7 @@ RuntimeBattleCaptureAttemptSubmission<BattleSession>
     itemId: canonicalPokeBallItemId,
     itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
     submitToEngine: () => createBattleSession(
-      const BattleSetup(
+      const BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'capture_player',
           level: 10,

@@ -70,14 +70,17 @@ String _fingerprint(String path, List<int> bytes) =>
       NarrativeProjectFingerprintEntry(relativePath: path, bytes: bytes),
     ]);
 
-const _manifestJson = '''
-{
-  "name": "Projection",
-  "version": "v6",
-  "maps": [{"id": "alpha", "name": "Alpha", "relativePath": "maps/alpha.json"}],
-  "tilesets": []
-}
-''';
+final _manifestJson = jsonEncode({
+  'name': 'Projection',
+  'version': 'v6',
+  'pokemon': ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+  ).toJson(),
+  'maps': [
+    {'id': 'alpha', 'name': 'Alpha', 'relativePath': 'maps/alpha.json'},
+  ],
+  'tilesets': <Object?>[],
+});
 
 String _mapJson(String name) => '''
 {

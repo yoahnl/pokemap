@@ -10,6 +10,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/server";
 import { LocalAuthoringClient, type JsonRecord } from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { createPokeMapMcpServer } from "../src/server.js";
+import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
 const authoringPackageRoot = resolve(repositoryRoot, "packages/map_authoring");
@@ -426,6 +427,7 @@ async function writeFixture(root: string): Promise<void> {
         },
       ],
       tilesets: [],
+      pokemon: canonicalPokemonConfig(),
       newGame: {
         initialBag: [{ itemId: "potion", quantity: 1 }],
       },
@@ -457,6 +459,9 @@ async function writeFixture(root: string): Promise<void> {
   );
   const catalogDirectory = join(root, "data/pokemon/catalogs");
   await mkdir(catalogDirectory, { recursive: true });
+  for (const directory of ["species", "learnsets", "evolutions", "media"]) {
+    await mkdir(join(root, "data/pokemon", directory), { recursive: true });
+  }
   await writeFile(
     join(catalogDirectory, "items.json"),
     JSON.stringify({
@@ -475,4 +480,10 @@ async function writeFixture(root: string): Promise<void> {
       ],
     }),
   );
+  for (const catalogId of ["types", "abilities", "moves", "growth_rates"]) {
+    await writeFile(
+      join(catalogDirectory, `${catalogId}.json`),
+      JSON.stringify({ schemaVersion: 1, catalog: catalogId, entries: [] }),
+    );
+  }
 }

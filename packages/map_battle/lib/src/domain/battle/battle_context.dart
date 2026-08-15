@@ -9,6 +9,7 @@ import '../rng/battle_rng_streams.dart';
 import 'battle_outcome.dart';
 import 'battle_setup.dart';
 import 'battle_topology.dart';
+import '../../pokemon_battle_rules.dart';
 
 /// Mutable state owned by the clean battle application layer.
 ///
@@ -40,6 +41,10 @@ final class BattleContext {
   PsdkBattleState state;
   BattleRngStreams rng;
   int turnNumber;
+
+  PokemonBattleRules get battleRules => PokemonBattleRules.fromProfile(
+        setup.ruleset,
+      );
 
   bool get canBattleContinue => state.outcome == null;
 

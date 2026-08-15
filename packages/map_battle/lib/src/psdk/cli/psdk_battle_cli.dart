@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
+
 import '../psdk_battle.dart';
 
 /// Tiny CLI harness for the parallel PSDK battle lane.
@@ -1145,6 +1147,7 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
 
 PsdkBattleSetup _smokeSetup() {
   return PsdkBattleSetup.singles(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     player: PsdkBattleCombatantSetup(
       id: 'player-charmander',
       speciesId: 'charmander',
@@ -1251,6 +1254,7 @@ PsdkBattleSetup _singleTurnSetup({
   PsdkBattleMoveData? opponentMove,
 }) {
   return PsdkBattleSetup.singles(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     player: PsdkBattleCombatantSetup(
       id: 'player',
       speciesId: 'player',

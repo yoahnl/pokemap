@@ -116,8 +116,18 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
       : NarrativeEventProgress.fromJson(
           readNarrativeEventProgressJson(json, 'narrativeEventProgress'),
         ),
+  pauseMenuState: json['pauseMenuState'] == null
+      ? const PlayerPauseMenuState.empty()
+      : PlayerPauseMenuState.fromJson(
+          json['pauseMenuState'] as Map<String, dynamic>,
+        ),
   completedBattleRequestIds:
       (json['completedBattleRequestIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toSet() ??
+      const {},
+  appliedPokemonGrantOperationIds:
+      (json['appliedPokemonGrantOperationIds'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toSet() ??
       const {},
@@ -151,7 +161,11 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
       'narrativeEventProgress': narrativeEventProgressToJson(
         instance.narrativeEventProgress,
       ),
+      'pauseMenuState': instance.pauseMenuState.toJson(),
       'completedBattleRequestIds': instance.completedBattleRequestIds.toList(),
+      'appliedPokemonGrantOperationIds': instance
+          .appliedPokemonGrantOperationIds
+          .toList(),
       'consumedEventIds': instance.consumedEventIds.toList(),
       'metadata': instance.metadata,
     };

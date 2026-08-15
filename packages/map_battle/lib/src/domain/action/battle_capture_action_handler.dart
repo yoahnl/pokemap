@@ -47,7 +47,7 @@ final class BattleCaptureActionHandler {
     // The generic seed is injected by PsdkBattleSetup. Wrapping it in the
     // public immutable BattleRng makes both engines call the exact same pure
     // formula and advance it exactly once.
-    final capture = const BattleCaptureFormula().attempt(
+    final capture = context.battleRules.attemptCapture(
       targetCurrentHp: opponent.currentHp,
       targetMaxHp: opponent.maxHp,
       catchRate: catchRate,

@@ -313,7 +313,7 @@ PsdkBattleSetup _setup({
   PsdkBattleEffectStack? opponentEffects,
   PsdkBattleMajorStatus? opponentStatus,
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant('player', effects: playerEffects),
     opponent: _combatant(
       'opponent',
