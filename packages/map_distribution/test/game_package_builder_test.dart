@@ -169,6 +169,67 @@ void main() {
       );
     });
 
+    test('accepts only the canonical Presentation publication receipt JSON',
+        () {
+      final built = builder.build(
+        manifest: _draftManifest(),
+        payloadFiles: <String, List<int>>{
+          'project/project.json': _validProjectBytes(),
+          'presentation/cinematics/publication.json': utf8.encode(
+            jsonEncode(<String, Object?>{
+              'canPublish': true,
+              'totalPayloadBytes': 0,
+              'media': <Object?>[
+                <String, Object?>{
+                  'provenance': <String, Object?>{
+                    'sourceUrl': 'https://assets.example.test/opening',
+                  },
+                  'license': <String, Object?>{
+                    'url': 'https://licenses.example.test/opening',
+                  },
+                },
+              ],
+            }),
+          ),
+        },
+      );
+
+      expect(
+        built.manifest.content.files.map((entry) => entry.path),
+        contains('presentation/cinematics/publication.json'),
+      );
+      expect(
+        () => builder.build(
+          manifest: _draftManifest(),
+          payloadFiles: <String, List<int>>{
+            'project/project.json': _validProjectBytes(),
+            'presentation/cinematics/authoring.json': utf8.encode('{}'),
+          },
+        ),
+        throwsA(
+          isA<GamePackageFormatException>()
+              .having((error) => error.code, 'code', 'executableContent'),
+        ),
+      );
+      expect(
+        () => builder.build(
+          manifest: _draftManifest(),
+          payloadFiles: <String, List<int>>{
+            'project/project.json': _validProjectBytes(),
+            'presentation/cinematics/publication.json': utf8.encode(
+              jsonEncode(<String, Object?>{
+                'license': <String, Object?>{'url': 'file:///tmp/license'},
+              }),
+            ),
+          },
+        ),
+        throwsA(
+          isA<GamePackageFormatException>()
+              .having((error) => error.code, 'code', 'referenceEscapesRoot'),
+        ),
+      );
+    });
+
     test('does not allow a stale signature to cover changed content', () {
       final unsigned = builder.build(
         manifest: _draftManifest(),

@@ -160,7 +160,9 @@ final class GamePackageContentValidator {
           current.referenceContext || (key != null && _isReferenceKey(key));
       if (current.value case final String text) {
         _scanText(path, text);
-        if (referenceContext && _escapesPackage(text)) {
+        if (referenceContext &&
+            _escapesPackage(text) &&
+            !_isPublicationMetadataUrl(path, key, text)) {
           _fail(
             'referenceEscapesRoot',
             path,
@@ -209,6 +211,9 @@ final class GamePackageContentValidator {
       return extension == '.txt' || extension == '.md';
     }
     if (path.startsWith('presentation/')) {
+      if (path == 'presentation/cinematics/publication.json') {
+        return true;
+      }
       if (path.startsWith('presentation/fonts/') &&
           (extension == '.txt' || extension == '.md')) {
         return true;
@@ -410,6 +415,19 @@ final class GamePackageContentValidator {
     return _referenceKeys.contains(normalized) ||
         _camelCaseReferenceSuffix.hasMatch(key) ||
         _separatedReferenceSuffix.hasMatch(key);
+  }
+
+  bool _isPublicationMetadataUrl(String path, String? key, String value) {
+    if (path != 'presentation/cinematics/publication.json' || key == null) {
+      return false;
+    }
+    final normalized = _normalizeKey(key);
+    if (normalized != 'sourceurl' && normalized != 'url') return false;
+    final uri = Uri.tryParse(value.trim());
+    return uri != null &&
+        (uri.scheme == 'https' || uri.scheme == 'http') &&
+        uri.host.isNotEmpty &&
+        uri.userInfo.isEmpty;
   }
 
   bool _isNonEmpty(Object? value) => switch (value) {

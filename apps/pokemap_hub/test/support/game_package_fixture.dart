@@ -25,6 +25,7 @@ Future<File> writeTestPackage(
   String minHubVersion = '1.0.0',
   String projectFormat = 'v6',
   List<String> requiredCapabilities = const <String>[],
+  Map<String, List<int>> additionalPayloadFiles = const <String, List<int>>{},
 }) async {
   final manifest = GamePackageManifest(
     packageFormat: 1,
@@ -59,12 +60,17 @@ Future<File> writeTestPackage(
         'version': projectFormat,
         'maps': <Object?>[],
         'tilesets': <Object?>[],
+        'pokemon':
+            const ProjectPokemonConfig(
+              ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+            ).toJson(),
       }),
     ),
     for (var index = 0; index < extraFiles; index++)
       'project/data/chunk-$index.json': utf8.encode(
         jsonEncode(<String, Object?>{'index': index}),
       ),
+    ...additionalPayloadFiles,
   };
   final built = const GamePackageBuilder().build(
     manifest: manifest,

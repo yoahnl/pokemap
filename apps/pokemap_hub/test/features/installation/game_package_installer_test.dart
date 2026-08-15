@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub.dart';
@@ -150,6 +153,116 @@ void main() {
             extraction.map((event) => event.completedBytes).toList()..sort(),
           ),
         );
+      },
+    );
+
+    test(
+      'reinstalls a Presentation media closure offline with exact hashes',
+      () async {
+        final mediaBytes = base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk'
+          '+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        );
+        final mediaSha256 = sha256.convert(mediaBytes).toString();
+        final mediaPath = 'project/assets/.pokemap-store/$mediaSha256.blob';
+        final mediaCatalog = ProjectMediaCatalog(
+          entries: <ProjectMediaAsset>[
+            ProjectMediaAsset(
+              id: 'opening.poster',
+              label: 'Poster ouverture',
+              kind: ProjectMediaKind.poster,
+              sourceAssetId: 'asset.opening.poster',
+              provenance: ProjectMediaProvenance(source: 'Avelune Studio'),
+              license: ProjectMediaLicense(
+                identifier: 'LicenseRef-Poster',
+                name: 'Poster redistribution grant',
+              ),
+              technicalMetadata: ProjectMediaTechnicalMetadata(
+                mediaType: 'image/png',
+                container: 'png',
+                codec: 'png',
+                sizeBytes: mediaBytes.length,
+                width: 1,
+                height: 1,
+              ),
+            ),
+          ],
+        );
+        final package = await writeTestPackage(
+          packages,
+          additionalPayloadFiles: <String, List<int>>{
+            'project/assets/.pokemap-media.json': utf8.encode(
+              jsonEncode(mediaCatalog.toJson()),
+            ),
+            'presentation/cinematics/publication.json': utf8.encode(
+              jsonEncode(<String, Object?>{
+                'canPublish': true,
+                'totalPayloadBytes': mediaBytes.length,
+                'media': <Object?>[
+                  <String, Object?>{
+                    'id': 'opening.poster',
+                    'sourceAssetId': 'asset.opening.poster',
+                    'license': <String, Object?>{
+                      'identifier': 'LicenseRef-Poster',
+                      'name': 'Poster redistribution grant',
+                    },
+                  },
+                ],
+              }),
+            ),
+            mediaPath: mediaBytes,
+          },
+        );
+        final supportRoot = Directory(p.join(root.path, 'PokeMap'));
+
+        final result = await installer().install(
+          package,
+          source: GamePackageInstallSource.localFile,
+        );
+
+        final versionRoot = Directory(
+          p.join(
+            supportRoot.path,
+            'games',
+            result.game.gameId,
+            'versions',
+            result.game.current.gameVersion.toString(),
+          ),
+        );
+        expect(
+          await File(p.join(versionRoot.path, mediaPath)).readAsBytes(),
+          mediaBytes,
+        );
+        expect(
+          await File(
+            p.join(
+              versionRoot.path,
+              'presentation',
+              'cinematics',
+              'publication.json',
+            ),
+          ).exists(),
+          isTrue,
+        );
+        final healthy = await const InstalledGameVerifier().verify(
+          supportRoot: supportRoot,
+          gameId: result.game.gameId,
+          pointer: result.game.current,
+          receiptFileName: result.game.currentVersion.receiptFileName,
+        );
+        expect(healthy.code, InstalledGameVerificationCode.healthy);
+
+        await File(
+          p.join(versionRoot.path, mediaPath),
+        ).writeAsBytes(<int>[...mediaBytes, 0], flush: true);
+        final altered = await const InstalledGameVerifier().verify(
+          supportRoot: supportRoot,
+          gameId: result.game.gameId,
+          pointer: result.game.current,
+          receiptFileName: result.game.currentVersion.receiptFileName,
+        );
+        expect(altered.code, InstalledGameVerificationCode.sizeMismatch);
+        expect(altered.affectedPaths, <String>[mediaPath]);
       },
     );
 

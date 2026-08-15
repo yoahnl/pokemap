@@ -92,6 +92,20 @@ final class RuntimeProjectedFontRole {
   final String? licensePackagePath;
 }
 
+final class _PresentationPackageProjection {
+  const _PresentationPackageProjection({
+    required this.catalog,
+    required this.receipt,
+    required this.excludedSourceAssetIds,
+    required this.excludedLogicalPaths,
+  });
+
+  final ProjectMediaCatalog catalog;
+  final PresentationMediaPublicationReceipt receipt;
+  final Set<String> excludedSourceAssetIds;
+  final Set<String> excludedLogicalPaths;
+}
+
 final class RuntimeProjectProjectionBuilder {
   const RuntimeProjectProjectionBuilder({
     this.maxWorkspaceEntries = 100000,
@@ -245,7 +259,19 @@ final class RuntimeProjectProjectionBuilder {
       presentation: presentation,
     );
 
-    await _addPortableAssetClosure(payload, authorFiles, budget);
+    final presentationPackage = await _preparePresentationPackage(
+      authorProject,
+      authorFiles,
+      budget,
+    );
+
+    await _addPortableAssetClosure(
+      payload,
+      authorFiles,
+      budget,
+      excludedAssetIds:
+          presentationPackage?.excludedSourceAssetIds ?? const <String>{},
+    );
 
     await for (final entity
         in projectRoot.list(recursive: true, followLinks: false)) {
@@ -274,6 +300,8 @@ final class RuntimeProjectProjectionBuilder {
       if (type != FileSystemEntityType.file ||
           relative == 'project.json' ||
           dialogueSources.contains(relative) ||
+          (presentationPackage?.excludedLogicalPaths.contains(relative) ??
+              false) ||
           _isExcludedAuthoringPath(relative)) {
         continue;
       }
@@ -311,6 +339,19 @@ final class RuntimeProjectProjectionBuilder {
       'project/project.json',
       _encodeRuntimeJson(projectedProject.toJson()),
     );
+    if (presentationPackage != null) {
+      budget
+        ..addPayload(
+          payload,
+          'project/$projectMediaCatalogStorageKey',
+          encodeProjectMediaCatalogBytes(presentationPackage.catalog),
+        )
+        ..addPayload(
+          payload,
+          'presentation/cinematics/publication.json',
+          _encodeRuntimeJson(presentationPackage.receipt.toJson()),
+        );
+    }
 
     final iconPackagePath = await _addPresentationAsset(
       payload,
@@ -442,15 +483,19 @@ final class RuntimeProjectProjectionBuilder {
     Map<String, List<int>> payload,
     _AuthorProjectFileResolver authorFiles,
     _ProjectionBudget budget,
+    {Set<String> excludedAssetIds = const <String>{}}
   ) async {
-    if (authorFiles.catalog.records.isEmpty) return;
+    final records = authorFiles.catalog.records
+        .where((record) => !excludedAssetIds.contains(record.id))
+        .toList();
+    if (records.isEmpty && authorFiles.catalog.records.isEmpty) return;
     budget.addPayload(
       payload,
       _normalizePackagePath('project/$assetCatalogStorageKey'),
-      _encodeRuntimeJson(authorFiles.catalog.toJson()),
+      _encodeRuntimeJson(AssetCatalog(records: records).toJson()),
     );
     final packagedArtifacts = <String>{};
-    for (final record in authorFiles.catalog.records) {
+    for (final record in records) {
       final storagePath = assetBlobStorageKey(record.artifact);
       if (!packagedArtifacts.add(storagePath)) continue;
       budget.addPayload(
@@ -459,6 +504,70 @@ final class RuntimeProjectProjectionBuilder {
         await authorFiles.read(record.logicalPath, budget),
       );
     }
+  }
+
+  Future<_PresentationPackageProjection?> _preparePresentationPackage(
+    ProjectManifest project,
+    _AuthorProjectFileResolver authorFiles,
+    _ProjectionBudget budget,
+  ) async {
+    final storedCatalog = await authorFiles.readProjectMediaCatalog(budget);
+    if (storedCatalog == null && project.presentationCinematics.isEmpty) {
+      return null;
+    }
+    final sourceCatalog = storedCatalog ?? ProjectMediaCatalog();
+    final receipt = const PresentationMediaPublicationPreflight().inspect(
+      catalog: sourceCatalog,
+      cinematics: project.presentationCinematics,
+    );
+    if (!receipt.canPublish) {
+      final diagnostic = receipt.diagnostics.first;
+      throw GamePackageExportException(
+        code: diagnostic.code,
+        path: diagnostic.path,
+        message: diagnostic.message,
+      );
+    }
+    final packagedMediaIds = receipt.media.map((media) => media.id).toSet();
+    final packagedSourceAssetIds = <String>{};
+    for (final media in receipt.media) {
+      final record = authorFiles.catalog.find(media.sourceAssetId);
+      if (record == null) {
+        throw GamePackageExportException(
+          code: 'presentationMediaSourceMissing',
+          path: 'media[${media.id}].sourceAssetId',
+          message: 'Presentation media source is missing from the asset catalog.',
+        );
+      }
+      final metadata = media.technicalMetadata!;
+      if (record.artifact.byteLength != metadata.sizeBytes ||
+          record.artifact.mediaType != metadata.mediaType) {
+        throw GamePackageExportException(
+          code: 'presentationMediaSourceMetadataMismatch',
+          path: 'media[${media.id}].technicalMetadata',
+          message: 'Presentation media metadata does not match its source.',
+        );
+      }
+      packagedSourceAssetIds.add(media.sourceAssetId);
+    }
+    final presentationSourceAssetIds = sourceCatalog.entries
+        .map((media) => media.sourceAssetId)
+        .toSet();
+    final excludedSourceAssetIds = presentationSourceAssetIds
+        .difference(packagedSourceAssetIds);
+    final excludedLogicalPaths = authorFiles.catalog.records
+        .where((record) => excludedSourceAssetIds.contains(record.id))
+        .map((record) => record.logicalPath)
+        .toSet();
+    return _PresentationPackageProjection(
+      catalog: ProjectMediaCatalog(
+        entries: sourceCatalog.entries
+            .where((media) => packagedMediaIds.contains(media.id)),
+      ),
+      receipt: receipt,
+      excludedSourceAssetIds: excludedSourceAssetIds,
+      excludedLogicalPaths: excludedLogicalPaths,
+    );
   }
 
   Future<RuntimeProjectedResponsiveVideo> _addResponsiveVideo(
@@ -1027,6 +1136,39 @@ final class _AuthorProjectFileResolver {
 
   final Directory root;
   final AssetCatalog catalog;
+
+  Future<ProjectMediaCatalog?> readProjectMediaCatalog(
+    _ProjectionBudget budget,
+  ) async {
+    final file = _fileWithinRoot(
+      projectMediaCatalogStorageKey,
+      logicalPath: projectMediaCatalogStorageKey,
+    );
+    final type = await FileSystemEntity.type(file.path, followLinks: false);
+    if (type == FileSystemEntityType.notFound) return null;
+    if (type != FileSystemEntityType.file) {
+      throw const GamePackageExportException(
+        code: 'invalidPresentationMediaCatalog',
+        path: projectMediaCatalogStorageKey,
+        message: 'The Presentation media catalog is missing or unsafe.',
+      );
+    }
+    final bytes = await budget.readFile(
+      file,
+      logicalPath: projectMediaCatalogStorageKey,
+      jsonLike: true,
+    );
+    try {
+      return decodeProjectMediaCatalogBytes(bytes);
+    } on Object catch (error) {
+      throw GamePackageExportException(
+        code: 'invalidPresentationMediaCatalog',
+        path: projectMediaCatalogStorageKey,
+        message: 'The Presentation media catalog is malformed.',
+        cause: error,
+      );
+    }
+  }
 
   Future<List<int>> read(
     String relativePath,

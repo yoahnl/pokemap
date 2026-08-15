@@ -574,6 +574,198 @@ void main() {
     expect(item, isNot(contains('spriteUrl')));
     expect(item['localSpritePath'], 'assets/icon.png');
   });
+  test(
+    'packages only the referenced Presentation media closure with its receipt',
+    () async {
+      final root = await createAuthorProject(
+        withDialogue: false,
+        withCanonicalPokemon: true,
+        projectVersion: ProjectVersion.v7,
+      );
+      addTearDown(() => root.delete(recursive: true));
+      final fixture = await _configurePresentationCinematicMedia(root);
+
+      final result = await const RuntimeProjectProjectionBuilder().build(
+        projectRoot: root,
+        profile: neutralExportProfile(),
+      );
+
+      expect(
+        result.payloadFiles,
+        contains('project/$projectMediaCatalogStorageKey'),
+      );
+      expect(
+        result.payloadFiles,
+        contains('presentation/cinematics/publication.json'),
+      );
+      final packagedMedia = decodeProjectMediaCatalogBytes(
+        result.payloadFiles['project/$projectMediaCatalogStorageKey']!,
+      );
+      expect(packagedMedia.entries.map((entry) => entry.id), <String>[
+        'captions.fr',
+        'opening.poster',
+        'opening.video',
+      ]);
+      final packagedAssets = AssetCatalog.fromJson(
+        jsonDecode(
+              utf8.decode(
+                result.payloadFiles['project/$assetCatalogStorageKey']!,
+              ),
+            )
+            as Map<String, dynamic>,
+      );
+      expect(
+        packagedAssets.records.map((record) => record.id),
+        containsAll(fixture.referencedAssetIds),
+      );
+      expect(
+        packagedAssets.records.map((record) => record.id),
+        isNot(contains(fixture.unreferencedAssetId)),
+      );
+      expect(
+        result.payloadFiles.keys,
+        containsAll(fixture.referencedBlobPackagePaths),
+      );
+      expect(
+        result.payloadFiles.keys,
+        isNot(contains(fixture.unreferencedBlobPackagePath)),
+      );
+      expect(
+        result.payloadFiles.keys,
+        isNot(contains(fixture.unreferencedLogicalPackagePath)),
+      );
+      final publication =
+          jsonDecode(
+                utf8.decode(
+                  result
+                      .payloadFiles['presentation/cinematics/publication.json']!,
+                ),
+              )
+              as Map<String, dynamic>;
+      expect(publication['canPublish'], isTrue);
+      expect(publication['totalPayloadBytes'], fixture.totalPayloadBytes);
+      expect(
+        (publication['media'] as List<Object?>)
+            .cast<Map<String, dynamic>>()
+            .map((entry) => entry['id']),
+        <String>['captions.fr', 'opening.poster', 'opening.video'],
+      );
+      expect(
+        ((publication['media'] as List<Object?>).last
+            as Map<String, dynamic>)['license'],
+        containsPair('identifier', 'LicenseRef-Opening'),
+      );
+      expect(jsonEncode(publication), isNot(contains(root.path)));
+
+      final first = await const GamePackageExportService().build(
+        projectRoot: root,
+        profile: neutralExportProfile(),
+      );
+      final second = await const GamePackageExportService().build(
+        projectRoot: root,
+        profile: neutralExportProfile(),
+      );
+      expect(first.packageBytes, second.packageBytes);
+      expect(
+        first.manifest.content.files.map((entry) => entry.path),
+        containsAll(<String>[
+          'project/$projectMediaCatalogStorageKey',
+          'presentation/cinematics/publication.json',
+          ...fixture.referencedBlobPackagePaths,
+        ]),
+      );
+      expect(
+        first.manifest.content.files.map((entry) => entry.path),
+        isNot(contains(fixture.unreferencedBlobPackagePath)),
+      );
+      expect(
+        first.manifest.content.files.map((entry) => entry.path),
+        isNot(contains(fixture.unreferencedLogicalPackagePath)),
+      );
+    },
+  );
+
+  test(
+    'rejects a Presentation media source missing from the asset catalog',
+    () async {
+      final root = await createAuthorProject(
+        withDialogue: false,
+        withCanonicalPokemon: false,
+        projectVersion: ProjectVersion.v7,
+      );
+      addTearDown(() => root.delete(recursive: true));
+      await _configurePresentationCinematicMedia(root);
+      final catalogFile = File(p.join(root.path, assetCatalogStorageKey));
+      final catalog = AssetCatalog.fromJson(
+        jsonDecode(await catalogFile.readAsString()) as Map<String, dynamic>,
+      );
+      await catalogFile.writeAsString(
+        jsonEncode(
+          AssetCatalog(
+            records: catalog.records.where(
+              (record) => record.id != 'asset.opening.video',
+            ),
+          ).toJson(),
+        ),
+        flush: true,
+      );
+
+      await expectLater(
+        const RuntimeProjectProjectionBuilder().build(
+          projectRoot: root,
+          profile: neutralExportProfile(),
+        ),
+        throwsA(
+          isA<GamePackageExportException>()
+              .having(
+                (error) => error.code,
+                'code',
+                'presentationMediaSourceMissing',
+              )
+              .having(
+                (error) => error.path,
+                'path',
+                'media[opening.video].sourceAssetId',
+              ),
+        ),
+      );
+    },
+  );
+
+  test('rejects an altered Presentation media blob before packaging', () async {
+    final root = await createAuthorProject(
+      withDialogue: false,
+      withCanonicalPokemon: false,
+      projectVersion: ProjectVersion.v7,
+    );
+    addTearDown(() => root.delete(recursive: true));
+    await _configurePresentationCinematicMedia(root);
+    final catalogFile = File(p.join(root.path, assetCatalogStorageKey));
+    final catalog = AssetCatalog.fromJson(
+      jsonDecode(await catalogFile.readAsString()) as Map<String, dynamic>,
+    );
+    final video = catalog.require('asset.opening.video');
+    final blob = File(p.join(root.path, assetBlobStorageKey(video.artifact)));
+    final altered = await blob.readAsBytes();
+    altered[0] ^= 0xff;
+    await blob.writeAsBytes(altered, flush: true);
+
+    await expectLater(
+      const RuntimeProjectProjectionBuilder().build(
+        projectRoot: root,
+        profile: neutralExportProfile(),
+      ),
+      throwsA(
+        isA<GamePackageExportException>()
+            .having((error) => error.code, 'code', 'assetBlobIntegrityMismatch')
+            .having(
+              (error) => error.path,
+              'path',
+              'assets/presentation/asset.opening.video.bin',
+            ),
+      ),
+    );
+  });
 }
 
 final List<int> _h264Mp4Fixture = <int>[
@@ -659,4 +851,216 @@ Future<void> _configureCatalogOnlyIntro(
     p.join(root.path, assetBlobStorageKey(posterArtifact)),
   );
   await posterBlob.writeAsBytes(onePixelPng, flush: true);
+}
+
+Future<
+  ({
+    Set<String> referencedAssetIds,
+    String unreferencedAssetId,
+    Set<String> referencedBlobPackagePaths,
+    String unreferencedBlobPackagePath,
+    String unreferencedLogicalPackagePath,
+    int totalPayloadBytes,
+  })
+>
+_configurePresentationCinematicMedia(Directory root) async {
+  final captionBytes = utf8.encode(
+    'WEBVTT\n\n00:00.000 --> 00:01.000\nBienvenue\n',
+  );
+  final unusedBytes = <int>[...onePixelPng, 0];
+  final sources = <String, ({List<int> bytes, String mediaType})>{
+    'asset.opening.video': (bytes: _h264Mp4Fixture, mediaType: 'video/mp4'),
+    'asset.opening.poster': (bytes: onePixelPng, mediaType: 'image/png'),
+    'asset.captions.fr': (bytes: captionBytes, mediaType: 'text/vtt'),
+    'asset.unused.image': (bytes: unusedBytes, mediaType: 'image/png'),
+  };
+  final records = <AssetRecord>[];
+  final blobPaths = <String, String>{};
+  for (final source in sources.entries) {
+    final logicalPath = 'assets/presentation/${source.key}.bin';
+    final artifact = ContentArtifactRef.fromBytes(
+      source.value.bytes,
+      mediaType: source.value.mediaType,
+    );
+    records.add(
+      AssetRecord(
+        id: source.key,
+        logicalPath: logicalPath,
+        artifact: artifact,
+      ),
+    );
+    final logicalFile = File(p.join(root.path, logicalPath));
+    await logicalFile.parent.create(recursive: true);
+    await logicalFile.writeAsBytes(source.value.bytes, flush: true);
+    final storageKey = assetBlobStorageKey(artifact);
+    blobPaths[source.key] = 'project/$storageKey';
+    final blob = File(p.join(root.path, storageKey));
+    await blob.parent.create(recursive: true);
+    await blob.writeAsBytes(source.value.bytes, flush: true);
+  }
+  final assetCatalog = AssetCatalog(records: records);
+  final assetCatalogFile = File(p.join(root.path, assetCatalogStorageKey));
+  await assetCatalogFile.parent.create(recursive: true);
+  await assetCatalogFile.writeAsString(
+    jsonEncode(assetCatalog.toJson()),
+    flush: true,
+  );
+
+  final mediaCatalog = ProjectMediaCatalog(
+    entries: <ProjectMediaAsset>[
+      ProjectMediaAsset(
+        id: 'opening.video',
+        label: 'Ouverture',
+        kind: ProjectMediaKind.video,
+        sourceAssetId: 'asset.opening.video',
+        posterMediaId: 'opening.poster',
+        captions: <ProjectMediaCaption>[
+          ProjectMediaCaption(locale: 'fr', mediaId: 'captions.fr'),
+        ],
+        fallbackMediaId: 'opening.poster',
+        provenance: ProjectMediaProvenance(
+          source: 'Avelune Studio',
+          creator: 'Studio Brume',
+        ),
+        license: ProjectMediaLicense(
+          identifier: 'LicenseRef-Opening',
+          name: 'Opening redistribution grant',
+          notice: 'Redistribution permitted.',
+        ),
+        technicalMetadata: ProjectMediaTechnicalMetadata(
+          mediaType: 'video/mp4',
+          container: 'mp4',
+          codec: 'h264',
+          audioCodec: 'aac',
+          sizeBytes: _h264Mp4Fixture.length,
+          width: 1280,
+          height: 720,
+          durationMilliseconds: 1000,
+        ),
+      ),
+      ProjectMediaAsset(
+        id: 'opening.poster',
+        label: 'Poster ouverture',
+        kind: ProjectMediaKind.poster,
+        sourceAssetId: 'asset.opening.poster',
+        provenance: ProjectMediaProvenance(source: 'Avelune Studio'),
+        license: ProjectMediaLicense(
+          identifier: 'LicenseRef-Poster',
+          name: 'Poster redistribution grant',
+        ),
+        technicalMetadata: ProjectMediaTechnicalMetadata(
+          mediaType: 'image/png',
+          container: 'png',
+          codec: 'png',
+          sizeBytes: onePixelPng.length,
+          width: 1,
+          height: 1,
+        ),
+      ),
+      ProjectMediaAsset(
+        id: 'captions.fr',
+        label: 'Sous-titres français',
+        kind: ProjectMediaKind.captions,
+        sourceAssetId: 'asset.captions.fr',
+        provenance: ProjectMediaProvenance(source: 'Avelune Studio'),
+        license: ProjectMediaLicense(
+          identifier: 'LicenseRef-Captions',
+          name: 'Caption redistribution grant',
+        ),
+        technicalMetadata: ProjectMediaTechnicalMetadata(
+          mediaType: 'text/vtt',
+          container: 'vtt',
+          codec: 'webvtt',
+          sizeBytes: captionBytes.length,
+        ),
+      ),
+      ProjectMediaAsset(
+        id: 'unused.image',
+        label: 'Média non utilisé',
+        kind: ProjectMediaKind.image,
+        sourceAssetId: 'asset.unused.image',
+        provenance: ProjectMediaProvenance(source: 'Avelune Studio'),
+        license: ProjectMediaLicense(
+          identifier: 'LicenseRef-Unused',
+          name: 'Unused redistribution grant',
+        ),
+        technicalMetadata: ProjectMediaTechnicalMetadata(
+          mediaType: 'image/png',
+          container: 'png',
+          codec: 'png',
+          sizeBytes: unusedBytes.length,
+          width: 1,
+          height: 1,
+        ),
+      ),
+    ],
+  );
+  await File(
+    p.join(root.path, projectMediaCatalogStorageKey),
+  ).writeAsBytes(encodeProjectMediaCatalogBytes(mediaCatalog), flush: true);
+
+  final cinematic = PresentationCinematicAsset(
+    id: 'opening',
+    title: 'Ouverture',
+    durationUs: 2000000,
+    layers: <PresentationLayer>[
+      PresentationLayer(id: 'background', label: 'Fond', zIndex: 0),
+    ],
+    tracks: <PresentationTrack>[
+      PresentationTrack(
+        id: 'visual',
+        label: 'Visuel',
+        kind: PresentationTrackKind.visual,
+        clips: <PresentationClip>[
+          PresentationVisualClip(
+            id: 'opening-video',
+            startUs: 0,
+            durationUs: 2000000,
+            layerId: 'background',
+            resourceId: 'opening.video',
+          ),
+        ],
+      ),
+      PresentationTrack(
+        id: 'captions',
+        label: 'Sous-titres',
+        kind: PresentationTrackKind.caption,
+        clips: <PresentationClip>[
+          PresentationCaptionClip(
+            id: 'opening-caption',
+            startUs: 0,
+            durationUs: 1000000,
+            captionId: 'captions.fr',
+            locale: 'fr',
+          ),
+        ],
+      ),
+    ],
+  );
+  final projectFile = File(p.join(root.path, 'project.json'));
+  final project =
+      jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+  project['presentationCinematics'] = <Object?>[
+    encodePresentationCinematicAsset(cinematic),
+  ];
+  await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+  return (
+    referencedAssetIds: <String>{
+      'asset.opening.video',
+      'asset.opening.poster',
+      'asset.captions.fr',
+    },
+    unreferencedAssetId: 'asset.unused.image',
+    referencedBlobPackagePaths: <String>{
+      blobPaths['asset.opening.video']!,
+      blobPaths['asset.opening.poster']!,
+      blobPaths['asset.captions.fr']!,
+    },
+    unreferencedBlobPackagePath: blobPaths['asset.unused.image']!,
+    unreferencedLogicalPackagePath:
+        'project/assets/presentation/asset.unused.image.bin',
+    totalPayloadBytes:
+        _h264Mp4Fixture.length + onePixelPng.length + captionBytes.length,
+  );
 }
