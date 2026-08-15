@@ -4,6 +4,7 @@ import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'narrative_action_support.dart';
+import 'presentation_cinematic_template_actions.dart';
 
 final class CinematicLibraryAuthoringException implements Exception {
   CinematicLibraryAuthoringException(
@@ -24,6 +25,22 @@ final class CinematicLibraryActions {
   const CinematicLibraryActions();
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
+    _descriptor(
+      'cinematicLibraryAsset.create',
+      'Create and place one cinematic library asset',
+      'cinematicLibraryEntry',
+    ),
+    _descriptor(
+      'cinematicLibraryAsset.duplicate',
+      'Duplicate and place one cinematic library asset',
+      'cinematicLibraryEntry',
+    ),
+    _descriptor(
+      'cinematicLibraryAsset.delete',
+      'Delete one cinematic and its library placement',
+      'cinematicLibraryEntry',
+      risk: AuthoringRiskLevel.high,
+    ),
     _descriptor(
       'cinematicLibraryFolder.create',
       'Create one cinematic library folder',
@@ -137,6 +154,12 @@ _CinematicLibraryMutation _buildMutation(AuthoringPlanningContext context) {
   final catalog = project.cinematicLibraryCatalog;
   final parameters = context.request.parameters;
   switch (context.request.actionId) {
+    case 'cinematicLibraryAsset.create':
+      return _createLibraryAsset(context, operations);
+    case 'cinematicLibraryAsset.duplicate':
+      return _duplicateLibraryAsset(context, operations);
+    case 'cinematicLibraryAsset.delete':
+      return _deleteLibraryAsset(context, operations);
     case 'cinematicLibraryFolder.create':
       _requireExactParameters(
         parameters,
@@ -333,6 +356,383 @@ _CinematicLibraryMutation _buildMutation(AuthoringPlanningContext context) {
       );
   }
 }
+
+_CinematicLibraryMutation _createLibraryAsset(
+  AuthoringPlanningContext context,
+  CinematicLibraryCatalogOperations operations,
+) {
+  final parameters = context.request.parameters;
+  final family = _family(parameters);
+  final expected = switch (family) {
+    CinematicLibraryFamily.world => const <String>{
+        'family',
+        'cinematicId',
+        'title',
+        'targetFolderId',
+        'targetIndex',
+        'startingPoint',
+      },
+    CinematicLibraryFamily.presentation => const <String>{
+        'family',
+        'cinematicId',
+        'title',
+        'targetFolderId',
+        'targetIndex',
+        'templateId',
+        'templateVersion',
+      },
+  };
+  _requireExactParameters(parameters, expected);
+  final project = context.snapshot.manifest;
+  final cinematicId = _string(parameters, 'cinematicId');
+  final title = _string(parameters, 'title');
+  _requireAvailableCinematicId(project, family, cinematicId);
+  final withAsset = switch (family) {
+    CinematicLibraryFamily.world => project.copyWith(
+        cinematics: <CinematicAsset>[
+          ...project.cinematics,
+          CinematicAsset(
+            id: cinematicId,
+            title: title,
+            timeline: _worldStartingTimeline(
+              _string(parameters, 'startingPoint'),
+            ),
+          ),
+        ],
+      ),
+    CinematicLibraryFamily.presentation => project.copyWith(
+        presentationCinematics: <PresentationCinematicAsset>[
+          ...project.presentationCinematics,
+          instantiatePresentationCinematicTemplate(
+            PresentationCinematicTemplateCatalog.canonical().require(
+              _string(parameters, 'templateId'),
+              version: _integer(parameters, 'templateVersion'),
+            ),
+            cinematicId: cinematicId,
+            title: title,
+            description: null,
+          ),
+        ],
+      ),
+  };
+  final updatedCatalog = operations.placeCinematic(
+    withAsset.cinematicLibraryCatalog,
+    family: family,
+    cinematicId: cinematicId,
+    targetFolderId: _nullableString(parameters, 'targetFolderId'),
+    targetIndex: _integer(parameters, 'targetIndex'),
+  );
+  return _assetMutation(
+    project,
+    withAsset.copyWith(cinematicLibraryCatalog: updatedCatalog),
+    family: family,
+    cinematicId: cinematicId,
+    before: null,
+    after: _encodedLibraryAsset(withAsset, family, cinematicId),
+  );
+}
+
+_CinematicLibraryMutation _duplicateLibraryAsset(
+  AuthoringPlanningContext context,
+  CinematicLibraryCatalogOperations operations,
+) {
+  final parameters = context.request.parameters;
+  _requireExactParameters(
+    parameters,
+    const <String>{
+      'family',
+      'cinematicId',
+      'duplicateId',
+      'title',
+      'targetFolderId',
+      'targetIndex',
+    },
+  );
+  final project = context.snapshot.manifest;
+  final family = _family(parameters);
+  final cinematicId = _string(parameters, 'cinematicId');
+  final duplicateId = _string(parameters, 'duplicateId');
+  final title = _string(parameters, 'title');
+  _requireAvailableCinematicId(project, family, duplicateId);
+  final withAsset = switch (family) {
+    CinematicLibraryFamily.world => project.copyWith(
+        cinematics: <CinematicAsset>[
+          ...project.cinematics,
+          _duplicateWorldCinematic(
+            _worldCinematic(project, cinematicId),
+            duplicateId: duplicateId,
+            title: title,
+          ),
+        ],
+      ),
+    CinematicLibraryFamily.presentation => project.copyWith(
+        presentationCinematics: <PresentationCinematicAsset>[
+          ...project.presentationCinematics,
+          _duplicatePresentationCinematic(
+            _presentationCinematic(project, cinematicId),
+            duplicateId: duplicateId,
+            title: title,
+          ),
+        ],
+      ),
+  };
+  final updatedCatalog = operations.placeCinematic(
+    withAsset.cinematicLibraryCatalog,
+    family: family,
+    cinematicId: duplicateId,
+    targetFolderId: _nullableString(parameters, 'targetFolderId'),
+    targetIndex: _integer(parameters, 'targetIndex'),
+  );
+  return _assetMutation(
+    project,
+    withAsset.copyWith(cinematicLibraryCatalog: updatedCatalog),
+    family: family,
+    cinematicId: duplicateId,
+    before: null,
+    after: _encodedLibraryAsset(withAsset, family, duplicateId),
+  );
+}
+
+_CinematicLibraryMutation _deleteLibraryAsset(
+  AuthoringPlanningContext context,
+  CinematicLibraryCatalogOperations operations,
+) {
+  final parameters = context.request.parameters;
+  _requireExactParameters(parameters, const <String>{'family', 'cinematicId'});
+  final project = context.snapshot.manifest;
+  final family = _family(parameters);
+  final cinematicId = _string(parameters, 'cinematicId');
+  final before = _encodedLibraryAsset(project, family, cinematicId);
+  final withoutAsset = switch (family) {
+    CinematicLibraryFamily.world => removeCinematicAsset(
+        project,
+        cinematicId,
+      ).updatedProject,
+    CinematicLibraryFamily.presentation => _deletePresentationCinematic(
+        project,
+        cinematicId,
+      ),
+  };
+  final entry = withoutAsset.cinematicLibraryCatalog.entryFor(
+    family,
+    cinematicId,
+  );
+  final updatedCatalog = entry == null
+      ? withoutAsset.cinematicLibraryCatalog
+      : operations.removeCinematic(
+          withoutAsset.cinematicLibraryCatalog,
+          family: family,
+          cinematicId: cinematicId,
+        );
+  return _assetMutation(
+    project,
+    withoutAsset.copyWith(cinematicLibraryCatalog: updatedCatalog),
+    family: family,
+    cinematicId: cinematicId,
+    before: before,
+    after: null,
+  );
+}
+
+_CinematicLibraryMutation _assetMutation(
+  ProjectManifest beforeProject,
+  ProjectManifest afterProject, {
+  required CinematicLibraryFamily family,
+  required String cinematicId,
+  required Object? before,
+  required Object? after,
+}) =>
+    _CinematicLibraryMutation(
+      project: afterProject,
+      resourceKind: 'cinematicLibraryEntry',
+      path: '/cinematicLibraryCatalog/assets/${family.name}/$cinematicId',
+      before: before,
+      after: after,
+      preview: <String, Object?>{
+        'family': family.name,
+        'cinematicId': cinematicId,
+        'catalogChanged': beforeProject.cinematicLibraryCatalog !=
+            afterProject.cinematicLibraryCatalog,
+      },
+    );
+
+CinematicTimeline _worldStartingTimeline(String startingPoint) =>
+    switch (startingPoint) {
+      'blank' => CinematicTimeline(),
+      'establishingShot' => CinematicTimeline(
+          steps: <CinematicTimelineStep>[
+            CinematicTimelineStep(
+              id: 'template.establishing.marker',
+              kind: CinematicTimelineStepKind.marker,
+              label: 'Plan d’établissement',
+            ),
+            CinematicTimelineStep(
+              id: 'template.establishing.camera',
+              kind: CinematicTimelineStepKind.camera,
+              label: 'Installer le décor',
+              durationMs: 1200,
+            ),
+          ],
+        ),
+      'dialogueBeat' => CinematicTimeline(
+          steps: <CinematicTimelineStep>[
+            CinematicTimelineStep(
+              id: 'template.dialogue.marker',
+              kind: CinematicTimelineStepKind.marker,
+              label: 'Temps de dialogue',
+            ),
+            CinematicTimelineStep(
+              id: 'template.dialogue.line',
+              kind: CinematicTimelineStepKind.dialogueLine,
+              label: 'Réplique à configurer',
+              dialogueText: 'Dialogue à configurer',
+              durationMs: 1000,
+            ),
+          ],
+        ),
+      _ => throw CinematicLibraryAuthoringException(
+          'cinematic_library.starting_point_unknown',
+          'The requested in-game cinematic starting point is unknown.',
+          details: <String, Object?>{'startingPoint': startingPoint},
+        ),
+    };
+
+CinematicAsset _duplicateWorldCinematic(
+  CinematicAsset source, {
+  required String duplicateId,
+  required String title,
+}) =>
+    source.copyWith(
+      id: duplicateId,
+      title: title,
+      timeline: CinematicTimeline(
+        steps: <CinematicTimelineStep>[
+          for (var index = 0; index < source.timeline.steps.length; index++)
+            CinematicTimelineStep.fromJson(<String, Object?>{
+              ...source.timeline.steps[index].toJson(),
+              'id': '${duplicateId}_step_${index + 1}',
+            }),
+        ],
+      ),
+      metadata: Map<String, String>.from(source.metadata)
+        ..remove(cinematicLibraryArchivedMetadataKey),
+    );
+
+PresentationCinematicAsset _duplicatePresentationCinematic(
+  PresentationCinematicAsset source, {
+  required String duplicateId,
+  required String title,
+}) {
+  final encoded = encodePresentationCinematicAsset(source);
+  final tracks = (encoded['tracks']! as List<Object?>)
+      .cast<Map<String, Object?>>()
+      .map(
+        (track) => <String, Object?>{
+          ...track,
+          'clips': <Object?>[
+            for (final clip in (track['clips']! as List<Object?>))
+              <String, Object?>{
+                ...(clip as Map<String, Object?>),
+                'id': '$duplicateId-${clip['id']}',
+              },
+          ],
+        },
+      )
+      .toList(growable: false);
+  return decodePresentationCinematicAsset(<String, Object?>{
+    ...encoded,
+    'id': duplicateId,
+    'title': title,
+    'tracks': tracks,
+  });
+}
+
+ProjectManifest _deletePresentationCinematic(
+  ProjectManifest project,
+  String cinematicId,
+) {
+  _presentationCinematic(project, cinematicId);
+  final deletion = PresentationReferenceGraph.build(
+    cinematics: project.presentationCinematics,
+    scenes: project.scenes,
+  ).planDeletion(PresentationReferenceKey.presentationCinematic(cinematicId));
+  if (!deletion.canDelete) {
+    throw CinematicLibraryAuthoringException(
+      'cinematic_library.asset_in_use',
+      'The Presentation cinematic is still referenced.',
+      details: <String, Object?>{
+        'usages': <Object?>[
+          for (final usage in deletion.usages) usage.toJson(),
+        ],
+      },
+    );
+  }
+  return project.copyWith(
+    presentationCinematics: <PresentationCinematicAsset>[
+      for (final cinematic in project.presentationCinematics)
+        if (cinematic.id != cinematicId) cinematic,
+    ],
+  );
+}
+
+void _requireAvailableCinematicId(
+  ProjectManifest project,
+  CinematicLibraryFamily family,
+  String cinematicId,
+) {
+  final exists = switch (family) {
+    CinematicLibraryFamily.world =>
+      project.cinematics.any((asset) => asset.id == cinematicId),
+    CinematicLibraryFamily.presentation =>
+      project.presentationCinematics.any((asset) => asset.id == cinematicId),
+  };
+  if (exists) {
+    throw CinematicLibraryAuthoringException(
+      'cinematic_library.asset_id_unavailable',
+      'The requested cinematic identity already exists.',
+      details: <String, Object?>{
+        'family': family.name,
+        'cinematicId': cinematicId,
+      },
+    );
+  }
+}
+
+CinematicAsset _worldCinematic(ProjectManifest project, String cinematicId) {
+  for (final cinematic in project.cinematics) {
+    if (cinematic.id == cinematicId) return cinematic;
+  }
+  throw CinematicLibraryAuthoringException(
+    'cinematic_library.asset_unknown',
+    'The cinematic identity is unknown in the requested family.',
+  );
+}
+
+PresentationCinematicAsset _presentationCinematic(
+  ProjectManifest project,
+  String cinematicId,
+) {
+  for (final cinematic in project.presentationCinematics) {
+    if (cinematic.id == cinematicId) return cinematic;
+  }
+  throw CinematicLibraryAuthoringException(
+    'cinematic_library.asset_unknown',
+    'The cinematic identity is unknown in the requested family.',
+  );
+}
+
+Object _encodedLibraryAsset(
+  ProjectManifest project,
+  CinematicLibraryFamily family,
+  String cinematicId,
+) =>
+    switch (family) {
+      CinematicLibraryFamily.world =>
+        _worldCinematic(project, cinematicId).toJson(),
+      CinematicLibraryFamily.presentation => encodePresentationCinematicAsset(
+          _presentationCinematic(project, cinematicId),
+        ),
+    };
 
 _CinematicLibraryMutation _moveFolder(
   ProjectManifest project,

@@ -588,6 +588,9 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
 }
 
 const Set<String> _cinematicLibraryTransportCertifiedActionIds = <String>{
+  'cinematicLibraryAsset.create',
+  'cinematicLibraryAsset.duplicate',
+  'cinematicLibraryAsset.delete',
   'cinematicLibraryFolder.create',
   'cinematicLibraryFolder.rename',
   'cinematicLibraryFolder.move',
@@ -877,7 +880,11 @@ final class _ContractEvidenceRule {
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
-    ['cinematicLibraryFolder.', 'cinematicLibraryEntry.'],
+    [
+      'cinematicLibraryAsset.',
+      'cinematicLibraryFolder.',
+      'cinematicLibraryEntry.',
+    ],
     'test/domains/narrative/cinematic_library_authoring_test.dart',
   ),
   _ContractEvidenceRule(

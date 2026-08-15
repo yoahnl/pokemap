@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/narrative_document_route.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_library_browser.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_library_dialogs.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
@@ -226,6 +229,160 @@ void main() {
     expect(find.text('Dossier indisponible'), findsOneWidget);
     expect(find.text('Histoire'), findsOneWidget);
   });
+
+  testWidgets('new Presentation flow exposes the six presets without ratio', (
+    tester,
+  ) async {
+    CinematicLibraryCreateRequest? received;
+    await tester.pumpWidget(
+      _Harness(
+        project: _project(),
+        state: CinematicLibraryNavigationState.initial().switchFamily(
+          CinematicLibraryFamily.presentation,
+        ),
+        onCreate: (request) async {
+          received = request;
+          return 'new-presentation';
+        },
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('cinematic-library-new')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nouvelle cinématique de présentation'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('presentation-template-card')),
+      findsNWidgets(6),
+    );
+    expect(find.textContaining('16:9'), findsNothing);
+    expect(find.textContaining('9:16'), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('cinematic-create-title')),
+      'Ouverture céleste',
+    );
+    final immersive = find.byKey(
+      const ValueKey('presentation-template-immersiveOpening'),
+    );
+    await tester.ensureVisible(immersive);
+    await tester.tap(immersive);
+    await tester.tap(find.byKey(const ValueKey('cinematic-create-submit')));
+    await tester.pumpAndSettle();
+
+    expect(received?.title, 'Ouverture céleste');
+    expect(received?.family, CinematicLibraryFamily.presentation);
+    expect(received?.presentationTemplateId, 'immersiveOpening');
+    expect(received?.presentationTemplateVersion, 1);
+  });
+
+  testWidgets('new in-game flow offers only the three starting points', (
+    tester,
+  ) async {
+    CinematicLibraryCreateRequest? received;
+    await tester.pumpWidget(
+      _Harness(
+        project: _project(),
+        state: CinematicLibraryNavigationState.initial(),
+        onCreate: (request) async {
+          received = request;
+          return 'new-world';
+        },
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('cinematic-library-new')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('world-starting-point-card')),
+      findsNWidgets(3),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('cinematic-create-title')),
+      'Arrivée au port',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('world-starting-point-establishingShot')),
+    );
+    await tester.tap(find.byKey(const ValueKey('cinematic-create-submit')));
+    await tester.pumpAndSettle();
+
+    expect(received?.family, CinematicLibraryFamily.world);
+    expect(
+      received?.worldStartingPoint,
+      CinematicLibraryWorldStartingPoint.establishingShot,
+    );
+  });
+
+  testWidgets('selected asset exposes the complete management command set', (
+    tester,
+  ) async {
+    String? duplicatedId;
+    await tester.pumpWidget(
+      _Harness(
+        project: _project(),
+        state: CinematicLibraryNavigationState.initial()
+            .updateActive(folderId: 'world-story')
+            .updateActive(folderId: 'world-chapter'),
+        onDuplicate: ({required family, required cinematicId, folderId}) async {
+          duplicatedId = cinematicId;
+          return 'world-intro-copy';
+        },
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('cinematic-entry-world-intro')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('cinematic-library-actions')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Renommer'), findsOneWidget);
+    expect(find.text('Déplacer'), findsOneWidget);
+    expect(find.text('Dupliquer'), findsOneWidget);
+    expect(find.text('Archiver'), findsOneWidget);
+    expect(find.text('Supprimer'), findsOneWidget);
+
+    await tester.tap(find.text('Dupliquer'));
+    await tester.pumpAndSettle();
+    expect(duplicatedId, 'world-intro');
+  });
+
+  testWidgets(
+    'creation keeps values on failure and neutralizes double submit',
+    (tester) async {
+      final pending = Completer<String?>();
+      var calls = 0;
+      await tester.pumpWidget(
+        _Harness(
+          project: _project(),
+          state: CinematicLibraryNavigationState.initial(),
+          onCreate: (request) {
+            calls += 1;
+            return pending.future;
+          },
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('cinematic-library-new')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('cinematic-create-title')),
+        'Titre conservé',
+      );
+      final submit = find.byKey(const ValueKey('cinematic-create-submit'));
+      await tester.tap(submit);
+      await tester.tap(submit, warnIfMissed: false);
+      expect(calls, 1);
+
+      pending.completeError(StateError('Conflit simulé'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nouvelle cinématique in-game'), findsOneWidget);
+      expect(find.text('Titre conservé'), findsOneWidget);
+      expect(find.textContaining('Conflit simulé'), findsOneWidget);
+    },
+  );
 }
 
 class _Harness extends StatefulWidget {
@@ -235,6 +392,8 @@ class _Harness extends StatefulWidget {
     required this.state,
     this.onChanged,
     this.onOpenPresentation,
+    this.onCreate,
+    this.onDuplicate,
     this.loadState = CinematicLibraryBrowserLoadState.content,
   });
 
@@ -242,6 +401,8 @@ class _Harness extends StatefulWidget {
   final CinematicLibraryNavigationState state;
   final ValueChanged<CinematicLibraryNavigationState>? onChanged;
   final OpenPresentationCinematicCallback? onOpenPresentation;
+  final CinematicLibraryCreateCallback? onCreate;
+  final CinematicLibraryDuplicateCallback? onDuplicate;
   final CinematicLibraryBrowserLoadState loadState;
 
   @override
@@ -271,6 +432,8 @@ class _HarnessState extends State<_Harness> {
             onOpenPresentation:
                 widget.onOpenPresentation ??
                 ({required cinematicId, required source}) {},
+            onCreate: widget.onCreate,
+            onDuplicate: widget.onDuplicate,
           ),
         ),
       ),

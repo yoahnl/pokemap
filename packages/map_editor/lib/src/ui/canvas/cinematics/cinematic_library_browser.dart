@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../../../application/models/narrative_document_route.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import 'cinematic_library_dialogs.dart';
 
 enum CinematicLibraryViewMode { list, grid }
 
@@ -182,6 +183,12 @@ class CinematicLibraryBrowser extends StatefulWidget {
     required this.onNavigationChanged,
     required this.onOpenInGame,
     required this.onOpenPresentation,
+    this.onCreate,
+    this.onRename,
+    this.onMove,
+    this.onDuplicate,
+    this.onArchive,
+    this.onDelete,
     this.loadState = CinematicLibraryBrowserLoadState.content,
     this.errorMessage,
   });
@@ -191,6 +198,12 @@ class CinematicLibraryBrowser extends StatefulWidget {
   final ValueChanged<CinematicLibraryNavigationState> onNavigationChanged;
   final ValueChanged<String> onOpenInGame;
   final OpenPresentationCinematicCallback onOpenPresentation;
+  final CinematicLibraryCreateCallback? onCreate;
+  final CinematicLibraryRenameCallback? onRename;
+  final CinematicLibraryMoveCallback? onMove;
+  final CinematicLibraryDuplicateCallback? onDuplicate;
+  final CinematicLibraryArchiveCallback? onArchive;
+  final CinematicLibraryDeleteCallback? onDelete;
   final CinematicLibraryBrowserLoadState loadState;
   final String? errorMessage;
 
@@ -313,6 +326,13 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
             onOpen: navigation.active.selectedAssetId == null
                 ? null
                 : () => _openSelection(navigation.active),
+            onCreate: widget.onCreate == null
+                ? null
+                : () => _createCinematic(navigation),
+            onManage: navigation.active.selectedAssetId == null ||
+                    !_hasManagementCommands
+                ? null
+                : () => _manageSelection(navigation),
           ),
           const SizedBox(height: 12),
           PokeMapCinematicBreadcrumb(
@@ -508,6 +528,211 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
       source: navigation.toSourceContext(),
     );
   }
+
+  Future<void> _createCinematic(
+    CinematicLibraryNavigationState navigation,
+  ) async {
+    final family = navigation.activeFamily;
+    final createdId = await showCinematicLibraryCreateDialog(
+      context: context,
+      family: family,
+      initialFolderId: navigation.active.folderId,
+      folders: widget.project.cinematicLibraryCatalog.folders
+          .where(
+            (folder) =>
+                folder.family == family &&
+                !folder.isArchived,
+          )
+          .toList(growable: false),
+      onCreate: widget.onCreate!,
+    );
+    if (!mounted || createdId == null) return;
+    widget.onNavigationChanged(
+      navigation.updateActive(selectedAssetId: createdId),
+    );
+  }
+
+  bool get _hasManagementCommands =>
+      widget.onRename != null ||
+      widget.onMove != null ||
+      widget.onDuplicate != null ||
+      widget.onArchive != null ||
+      widget.onDelete != null;
+
+  Future<void> _manageSelection(
+    CinematicLibraryNavigationState navigation,
+  ) async {
+    final selectedId = navigation.active.selectedAssetId;
+    if (selectedId == null) return;
+    final family = navigation.activeFamily;
+    final title = _assetTitle(family, selectedId) ?? 'Cinématique';
+    final entry = widget.project.cinematicLibraryCatalog.entryFor(
+      family,
+      selectedId,
+    );
+    final archived = entry?.isArchived ?? false;
+    final command = await showCinematicLibraryManagementDialog(
+      context: context,
+      title: title,
+      archived: archived,
+    );
+    if (!mounted || command == null) return;
+    switch (command) {
+      case CinematicLibraryManagementCommand.rename:
+        final callback = widget.onRename;
+        if (callback == null) return;
+        await showCinematicLibraryRenameDialog(
+          context: context,
+          initialTitle: title,
+          onRename: (nextTitle) => callback(
+            family: family,
+            cinematicId: selectedId,
+            title: nextTitle,
+          ),
+        );
+      case CinematicLibraryManagementCommand.move:
+        final callback = widget.onMove;
+        if (callback == null) return;
+        await showCinematicLibraryMoveDialog(
+          context: context,
+          initialFolderId: entry?.folderId,
+          folders: widget.project.cinematicLibraryCatalog.folders
+              .where(
+                (folder) => folder.family == family && !folder.isArchived,
+              )
+              .toList(growable: false),
+          onMove: (folderId) => callback(
+            family: family,
+            cinematicId: selectedId,
+            folderId: folderId,
+          ),
+        );
+      case CinematicLibraryManagementCommand.duplicate:
+        final callback = widget.onDuplicate;
+        if (callback == null) return;
+        try {
+          final duplicateId = await callback(
+            family: family,
+            cinematicId: selectedId,
+            folderId: entry?.folderId,
+          );
+          if (!mounted || duplicateId == null) return;
+          widget.onNavigationChanged(
+            navigation.updateActive(selectedAssetId: duplicateId),
+          );
+        } catch (error) {
+          if (!mounted) return;
+          await showPokeMapNoticeDialog(
+            context,
+            title: 'Duplication impossible',
+            message: error.toString(),
+          );
+        }
+      case CinematicLibraryManagementCommand.archive:
+      case CinematicLibraryManagementCommand.restore:
+        final callback = widget.onArchive;
+        if (callback == null) return;
+        try {
+          await callback(
+            family: family,
+            cinematicId: selectedId,
+            archived: command == CinematicLibraryManagementCommand.archive,
+          );
+          if (!mounted) return;
+          widget.onNavigationChanged(
+            navigation.updateActive(selectedAssetId: null),
+          );
+        } catch (error) {
+          if (!mounted) return;
+          await showPokeMapNoticeDialog(
+            context,
+            title: archived
+                ? 'Restauration impossible'
+                : 'Archivage impossible',
+            message: error.toString(),
+          );
+        }
+      case CinematicLibraryManagementCommand.delete:
+        await _deleteSelection(
+          navigation: navigation,
+          family: family,
+          cinematicId: selectedId,
+          title: title,
+        );
+    }
+  }
+
+  Future<void> _deleteSelection({
+    required CinematicLibraryNavigationState navigation,
+    required CinematicLibraryFamily family,
+    required String cinematicId,
+    required String title,
+  }) async {
+    final callback = widget.onDelete;
+    if (callback == null) return;
+    final usageCount = _usageCount(family, cinematicId);
+    if (usageCount > 0) {
+      await showPokeMapNoticeDialog(
+        context,
+        title: 'Suppression bloquée',
+        message:
+            '« $title » est encore utilisée $usageCount fois. Retirez ou remplacez ces usages avant de la supprimer.',
+      );
+      return;
+    }
+    final confirmed = await showPokeMapBinaryConfirmationDialog(
+      context,
+      title: 'Supprimer la cinématique ?',
+      message:
+          '« $title » sera retirée de la bibliothèque et du projet. Cette action est définitive.',
+      secondaryLabel: 'Annuler',
+      primaryLabel: 'Supprimer',
+      primaryIsDestructive: true,
+      icon: Icons.delete_outline_rounded,
+    );
+    if (!confirmed || !mounted) return;
+    try {
+      await callback(family: family, cinematicId: cinematicId);
+      if (!mounted) return;
+      widget.onNavigationChanged(
+        navigation.updateActive(selectedAssetId: null),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      await showPokeMapNoticeDialog(
+        context,
+        title: 'Suppression impossible',
+        message: error.toString(),
+      );
+    }
+  }
+
+  String? _assetTitle(CinematicLibraryFamily family, String id) {
+    if (family == CinematicLibraryFamily.world) {
+      return widget.project.cinematics
+          .where((asset) => asset.id == id)
+          .firstOrNull
+          ?.title;
+    }
+    return widget.project.presentationCinematics
+        .where((asset) => asset.id == id)
+        .firstOrNull
+        ?.title;
+  }
+
+  int _usageCount(CinematicLibraryFamily family, String id) {
+    if (family == CinematicLibraryFamily.world) {
+      return buildCinematicsLibraryReadModel(widget.project)
+              .entryById(id)
+              ?.usages
+              .length ??
+          0;
+    }
+    return PresentationReferenceGraph.build(
+      cinematics: widget.project.presentationCinematics,
+      scenes: widget.project.scenes,
+    ).usagesOf(PresentationReferenceKey.presentationCinematic(id)).length;
+  }
 }
 
 class _LibraryHeader extends StatelessWidget {
@@ -516,12 +741,16 @@ class _LibraryHeader extends StatelessWidget {
     required this.assetCount,
     required this.selectedAssetId,
     required this.onOpen,
+    required this.onCreate,
+    required this.onManage,
   });
 
   final CinematicLibraryFamily family;
   final int assetCount;
   final String? selectedAssetId;
   final VoidCallback? onOpen;
+  final VoidCallback? onCreate;
+  final VoidCallback? onManage;
 
   @override
   Widget build(BuildContext context) {
@@ -562,6 +791,27 @@ class _LibraryHeader extends StatelessWidget {
               : null,
           leading: const Icon(Icons.open_in_new_rounded),
           child: const Text('Ouvrir'),
+        ),
+        const SizedBox(width: 8),
+        PokeMapButton(
+          key: const ValueKey('cinematic-library-actions'),
+          onPressed: onManage,
+          disabledReason: selectedAssetId == null
+              ? 'Sélectionnez une cinématique à gérer.'
+              : null,
+          variant: PokeMapButtonVariant.secondary,
+          leading: const Icon(Icons.more_horiz_rounded),
+          child: const Text('Actions'),
+        ),
+        const SizedBox(width: 8),
+        PokeMapButton(
+          key: const ValueKey('cinematic-library-new'),
+          onPressed: onCreate,
+          disabledReason: onCreate == null
+              ? 'Chargez un projet enregistrable pour créer une cinématique.'
+              : null,
+          leading: const Icon(Icons.add_rounded),
+          child: const Text('Nouvelle'),
         ),
       ],
     );

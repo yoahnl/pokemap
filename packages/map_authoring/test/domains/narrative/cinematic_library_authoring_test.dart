@@ -48,6 +48,9 @@ void main() {
         descriptor.id: descriptor,
     };
     const expected = <String>{
+      'cinematicLibraryAsset.create',
+      'cinematicLibraryAsset.duplicate',
+      'cinematicLibraryAsset.delete',
       'cinematicLibraryFolder.create',
       'cinematicLibraryFolder.rename',
       'cinematicLibraryFolder.move',
@@ -73,6 +76,147 @@ void main() {
         }),
       );
     }
+  });
+
+  test('creates world and Presentation assets with their placement atomically',
+      () {
+    final world = _apply(
+      _snapshot().manifest,
+      'cinematicLibraryAsset.create',
+      const <String, Object?>{
+        'family': 'world',
+        'cinematicId': 'world-created',
+        'title': 'World created',
+        'targetFolderId': 'world-folder',
+        'targetIndex': 1,
+        'startingPoint': 'establishingShot',
+      },
+    );
+    final presentation = _apply(
+      world,
+      'cinematicLibraryAsset.create',
+      const <String, Object?>{
+        'family': 'presentation',
+        'cinematicId': 'presentation-created',
+        'title': 'Presentation created',
+        'targetFolderId': 'opening-folder',
+        'targetIndex': 1,
+        'templateId': 'titleIdentity',
+        'templateVersion': 1,
+      },
+    );
+
+    final worldAsset = presentation.cinematics.singleWhere(
+      (asset) => asset.id == 'world-created',
+    );
+    final presentationAsset = presentation.presentationCinematics.singleWhere(
+      (asset) => asset.id == 'presentation-created',
+    );
+    expect(worldAsset.timeline.steps, hasLength(2));
+    expect(
+      worldAsset.timeline.steps.last.kind,
+      CinematicTimelineStepKind.camera,
+    );
+    expect(presentationAsset.layers, isNotEmpty);
+    expect(
+      presentation.cinematicLibraryCatalog
+          .entryFor(CinematicLibraryFamily.world, 'world-created')
+          ?.folderId,
+      'world-folder',
+    );
+    expect(
+      presentation.cinematicLibraryCatalog
+          .entryFor(
+            CinematicLibraryFamily.presentation,
+            'presentation-created',
+          )
+          ?.folderId,
+      'opening-folder',
+    );
+  });
+
+  test('duplicates and deletes both cinematic families with their placement',
+      () {
+    var manifest = _snapshot().manifest;
+    manifest = _apply(
+      manifest,
+      'cinematicLibraryAsset.duplicate',
+      const <String, Object?>{
+        'family': 'world',
+        'cinematicId': 'world-intro',
+        'duplicateId': 'world-copy',
+        'title': 'World copy',
+        'targetFolderId': 'world-folder',
+        'targetIndex': 1,
+      },
+    );
+    manifest = _apply(
+      manifest,
+      'cinematicLibraryAsset.duplicate',
+      const <String, Object?>{
+        'family': 'presentation',
+        'cinematicId': 'presentation-intro',
+        'duplicateId': 'presentation-copy',
+        'title': 'Presentation copy',
+        'targetFolderId': 'opening-folder',
+        'targetIndex': 1,
+      },
+    );
+
+    expect(
+        manifest.cinematics.map((asset) => asset.id), contains('world-copy'));
+    expect(
+      manifest.presentationCinematics.map((asset) => asset.id),
+      contains('presentation-copy'),
+    );
+    expect(
+      manifest.cinematicLibraryCatalog
+          .entryFor(CinematicLibraryFamily.world, 'world-copy'),
+      isNotNull,
+    );
+    expect(
+      manifest.cinematicLibraryCatalog.entryFor(
+        CinematicLibraryFamily.presentation,
+        'presentation-copy',
+      ),
+      isNotNull,
+    );
+
+    manifest = _apply(
+      manifest,
+      'cinematicLibraryAsset.delete',
+      const <String, Object?>{
+        'family': 'world',
+        'cinematicId': 'world-copy',
+      },
+    );
+    manifest = _apply(
+      manifest,
+      'cinematicLibraryAsset.delete',
+      const <String, Object?>{
+        'family': 'presentation',
+        'cinematicId': 'presentation-copy',
+      },
+    );
+
+    expect(manifest.cinematics.map((asset) => asset.id),
+        isNot(contains('world-copy')));
+    expect(
+      manifest.presentationCinematics.map((asset) => asset.id),
+      isNot(contains('presentation-copy')),
+    );
+    expect(
+      manifest.cinematicLibraryCatalog
+          .entryFor(CinematicLibraryFamily.world, 'world-copy'),
+      isNull,
+    );
+    expect(
+      manifest.cinematicLibraryCatalog.entryFor(
+        CinematicLibraryFamily.presentation,
+        'presentation-copy',
+      ),
+      isNull,
+    );
   });
 
   test('applies canonical folder and placement mutations atomically', () {

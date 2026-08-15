@@ -458,6 +458,95 @@ void main() {
   );
 
   testWidgets(
+    'Library creation commits atomically and opens the current in-game Builder',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'cinematics_library_create_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final manifestFile = File('${root.path}/project.json');
+      final project = _cinematicsProject().copyWith(scenarios: const []);
+      manifestFile.writeAsStringSync(jsonEncode(project.toJson()));
+
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.cutscene,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(projectRootPath: root.path);
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('cinematic-library-new')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('cinematic-create-title')),
+        'Arrivée sur l’île',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('world-starting-point-establishingShot')),
+      );
+      await _invokeAsyncPokeMapButton(
+        tester,
+        find.byKey(const ValueKey('cinematic-create-submit')),
+        () => container
+            .read(editorNotifierProvider)
+            .project!
+            .cinematics
+            .any((asset) => asset.title == 'Arrivée sur l’île'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CinematicBuilderWorkspace), findsOneWidget);
+      expect(
+        _readManifest(manifestFile).cinematics.singleWhere(
+          (asset) => asset.title == 'Arrivée sur l’île',
+        ).timeline.steps,
+        hasLength(2),
+      );
+      expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-back-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cinématiques de présentation'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('cinematic-library-new')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('cinematic-create-title')),
+        'Ouverture céleste',
+      );
+      await _invokeAsyncPokeMapButton(
+        tester,
+        find.byKey(const ValueKey('cinematic-create-submit')),
+        () => container
+            .read(editorNotifierProvider)
+            .project!
+            .presentationCinematics
+            .any((asset) => asset.title == 'Ouverture céleste'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('cinematics-presentation-document-route')),
+        findsOneWidget,
+      );
+      expect(
+        _readManifest(manifestFile)
+            .presentationCinematics
+            .map((asset) => asset.title),
+        contains('Ouverture céleste'),
+      );
+      expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
+    },
+  );
+
+  testWidgets(
     'Cinematics never reports a dirty no-op retry as saved',
     (tester) async {
       final root = Directory.systemTemp.createTempSync(

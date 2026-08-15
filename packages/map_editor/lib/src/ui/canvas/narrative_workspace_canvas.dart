@@ -7,6 +7,7 @@ import '../../application/services/narrative_activity_journal.dart';
 import '../../application/services/narrative_diagnostic_suppression_service.dart';
 import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/services/narrative_template_catalog.dart';
+import '../../application/authoring_api/cinematic_library_authoring_gateway.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../application/models/narrative_document_route.dart';
 import '../../domain/repositories/repositories.dart';
@@ -1759,6 +1760,10 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       EditorWorkspaceMode.cutscene => _CinematicsWorkspaceBody(
           editorNotifier: editorNotifier,
+          cinematicLibraryGateway: CanonicalCinematicLibraryAuthoringGateway(
+            mutations: ref.read(authoringMutationAdapterProvider),
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
           projectRootPath: editor.projectRootPath,
           project: editor.project,
           activeMap: editor.activeMap,
@@ -2543,6 +2548,7 @@ class _StepWorkspaceBody extends StatelessWidget {
 class _CinematicsWorkspaceBody extends StatefulWidget {
   const _CinematicsWorkspaceBody({
     required this.editorNotifier,
+    required this.cinematicLibraryGateway,
     required this.projectRootPath,
     required this.project,
     required this.activeMap,
@@ -2561,6 +2567,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   });
 
   final EditorNotifier editorNotifier;
+  final CinematicLibraryAuthoringGateway cinematicLibraryGateway;
   final String? projectRootPath;
   final ProjectManifest? project;
   final MapData? activeMap;
@@ -2717,6 +2724,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     return CinematicsLibraryWorkspace(
       project: project,
       projectRootPath: widget.projectRootPath,
+      libraryAuthoringGateway: widget.cinematicLibraryGateway,
+      onCanonicalManifestChanged: (manifest, {required statusMessage}) {
+        widget.editorNotifier.acceptCanonicalProjectManifest(
+          manifest,
+          statusMessage: statusMessage,
+        );
+      },
       requestedEntryId: widget.requestedCinematicId,
       requestedEntryNonce: widget.requestedCinematicNonce,
       openRequestedEntryInBuilder: true,

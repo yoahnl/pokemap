@@ -88,7 +88,7 @@ final class PresentationCinematicTemplateActions {
         details: <String, Object?>{'cinematicId': cinematicId},
       );
     }
-    final cinematic = _instantiateRecipe(
+    final cinematic = instantiatePresentationCinematicTemplate(
       template,
       cinematicId: cinematicId,
       title: _string(parameters, 'title'),
@@ -140,7 +140,7 @@ PresentationCinematicTemplate _requireTemplate(String id, int version) {
   }
 }
 
-PresentationCinematicAsset _instantiateRecipe(
+PresentationCinematicAsset instantiatePresentationCinematicTemplate(
   PresentationCinematicTemplate template, {
   required String cinematicId,
   required String title,

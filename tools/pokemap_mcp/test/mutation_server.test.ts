@@ -884,6 +884,9 @@ test("MCP executes and rereads every cinematic library catalog action", async ()
     let sequence = 0;
     const observedActionIds = new Set<string>();
     const actionIds = [
+      "cinematicLibraryAsset.create",
+      "cinematicLibraryAsset.duplicate",
+      "cinematicLibraryAsset.delete",
       "cinematicLibraryFolder.create",
       "cinematicLibraryFolder.rename",
       "cinematicLibraryFolder.move",
@@ -1002,6 +1005,32 @@ test("MCP executes and rereads every cinematic library catalog action", async ()
       cinematicId: "world-a",
       isArchived: true,
     });
+    await apply("cinematicLibraryAsset.create", {
+      family: "world",
+      cinematicId: "world-created",
+      title: "World created",
+      targetFolderId: "chapter",
+      targetIndex: 2,
+      startingPoint: "blank",
+    });
+    await apply("cinematicLibraryAsset.duplicate", {
+      family: "world",
+      cinematicId: "world-created",
+      duplicateId: "world-created-copy",
+      title: "World created copy",
+      targetFolderId: "chapter",
+      targetIndex: 3,
+    });
+    await apply(
+      "cinematicLibraryAsset.delete",
+      { family: "world", cinematicId: "world-created-copy" },
+      true,
+    );
+    await apply(
+      "cinematicLibraryAsset.delete",
+      { family: "world", cinematicId: "world-created" },
+      true,
+    );
     await apply(
       "cinematicLibraryEntry.remove",
       { family: "world", cinematicId: "world-a" },

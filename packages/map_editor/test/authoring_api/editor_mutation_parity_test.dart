@@ -132,7 +132,9 @@ void main() {
           idempotencyKey: 'editor-cinematic-library-$sequence',
         );
         final confirmationToken = switch (actionId) {
-          'cinematicLibraryFolder.delete' || 'cinematicLibraryEntry.remove' =>
+          'cinematicLibraryAsset.delete' ||
+          'cinematicLibraryFolder.delete' ||
+          'cinematicLibraryEntry.remove' =>
             await fixture.mutations.confirm(plan),
           _ => null,
         };
@@ -203,6 +205,30 @@ void main() {
         'family': 'world',
         'cinematicId': 'world-a',
         'isArchived': true,
+      });
+      await applyAction('cinematicLibraryAsset.create', const {
+        'family': 'world',
+        'cinematicId': 'world-created',
+        'title': 'World created',
+        'targetFolderId': 'chapter',
+        'targetIndex': 2,
+        'startingPoint': 'blank',
+      });
+      await applyAction('cinematicLibraryAsset.duplicate', const {
+        'family': 'world',
+        'cinematicId': 'world-created',
+        'duplicateId': 'world-created-copy',
+        'title': 'World created copy',
+        'targetFolderId': 'chapter',
+        'targetIndex': 3,
+      });
+      await applyAction('cinematicLibraryAsset.delete', const {
+        'family': 'world',
+        'cinematicId': 'world-created-copy',
+      });
+      await applyAction('cinematicLibraryAsset.delete', const {
+        'family': 'world',
+        'cinematicId': 'world-created',
       });
       await applyAction('cinematicLibraryEntry.remove', const {
         'family': 'world',
@@ -1523,6 +1549,9 @@ void main() {
   });
 }
 const _cinematicLibraryActionIds = <String>{
+  'cinematicLibraryAsset.create',
+  'cinematicLibraryAsset.duplicate',
+  'cinematicLibraryAsset.delete',
   'cinematicLibraryFolder.create',
   'cinematicLibraryFolder.rename',
   'cinematicLibraryFolder.move',

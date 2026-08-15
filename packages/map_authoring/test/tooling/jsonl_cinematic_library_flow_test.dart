@@ -340,6 +340,32 @@ final class _Harness {
       'cinematicId': 'world-a',
       'isArchived': true,
     });
+    await apply('cinematicLibraryAsset.create', const {
+      'family': 'world',
+      'cinematicId': 'world-created',
+      'title': 'World created',
+      'targetFolderId': 'chapter',
+      'targetIndex': 2,
+      'startingPoint': 'blank',
+    });
+    await apply('cinematicLibraryAsset.duplicate', const {
+      'family': 'world',
+      'cinematicId': 'world-created',
+      'duplicateId': 'world-created-copy',
+      'title': 'World created copy',
+      'targetFolderId': 'chapter',
+      'targetIndex': 3,
+    });
+    await apply(
+      'cinematicLibraryAsset.delete',
+      const {'family': 'world', 'cinematicId': 'world-created-copy'},
+      confirmed: true,
+    );
+    await apply(
+      'cinematicLibraryAsset.delete',
+      const {'family': 'world', 'cinematicId': 'world-created'},
+      confirmed: true,
+    );
     await apply(
       'cinematicLibraryEntry.remove',
       const {'family': 'world', 'cinematicId': 'world-a'},
@@ -474,6 +500,9 @@ final class _ActionSequenceResult {
 }
 
 const _cinematicLibraryActionIds = <String>{
+  'cinematicLibraryAsset.create',
+  'cinematicLibraryAsset.duplicate',
+  'cinematicLibraryAsset.delete',
   'cinematicLibraryFolder.create',
   'cinematicLibraryFolder.rename',
   'cinematicLibraryFolder.move',

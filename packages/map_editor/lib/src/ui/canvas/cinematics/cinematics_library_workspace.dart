@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:map_core/map_core.dart';
 
+import '../../../application/authoring_api/cinematic_library_authoring_gateway.dart';
 import '../../../application/models/narrative_document_route.dart';
 import '../../../application/services/narrative_template_catalog.dart';
 import '../../../features/character_studio/application/character_studio_media_resolver.dart';
@@ -19,6 +20,7 @@ import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_actor_sprite_preview_resolver.dart';
 import 'cinematic_builder_workspace.dart';
 import 'cinematic_library_browser.dart';
+import 'cinematic_library_dialogs.dart';
 import 'cinematic_map_backdrop_layer_plan_loader.dart';
 import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_tile_plan_loader.dart';
@@ -28,6 +30,11 @@ import 'cinematic_stage_preview_readiness.dart';
 typedef CreateCinematicShellCallback = Future<String?> Function({
   required String title,
   NarrativeTemplateKind? templateKind,
+});
+
+typedef AdoptCanonicalCinematicLibraryManifest = void Function(
+  ProjectManifest manifest, {
+  required String statusMessage,
 });
 
 typedef UpdateCinematicMetadataCallback = Future<bool> Function({
@@ -276,6 +283,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     this.onOpenSceneUsage,
     this.initialPresentationSource,
     this.onOpenPresentation,
+    this.libraryAuthoringGateway,
+    this.onCanonicalManifestChanged,
     this.startInAdvancedManager = false,
   });
 
@@ -296,6 +305,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final OpenCinematicSceneUsageCallback? onOpenSceneUsage;
   final NarrativeLibrarySourceContext? initialPresentationSource;
   final OpenPresentationCinematicCallback? onOpenPresentation;
+  final CinematicLibraryAuthoringGateway? libraryAuthoringGateway;
+  final AdoptCanonicalCinematicLibraryManifest? onCanonicalManifestChanged;
   final bool startInAdvancedManager;
   final RemoveCinematicCallback onRemoveCinematic;
   final AddTimelineDraftCallback onAddTimelineDraft;
@@ -587,6 +598,13 @@ class _CinematicsLibraryWorkspaceState
               onOpenInGame: _openInGameFromLibrary,
               onOpenPresentation: widget.onOpenPresentation ??
                   ({required cinematicId, required source}) {},
+              onCreate: _canUseLibraryCommands ? _createFromLibrary : null,
+              onRename: _canUseLibraryCommands ? _renameFromLibrary : null,
+              onMove: _canUseLibraryCommands ? _moveFromLibrary : null,
+              onDuplicate:
+                  _canUseLibraryCommands ? _duplicateFromLibrary : null,
+              onArchive: _canUseLibraryCommands ? _archiveFromLibrary : null,
+              onDelete: _canUseLibraryCommands ? _deleteFromLibrary : null,
             ),
           ),
         ),
@@ -691,6 +709,164 @@ class _CinematicsLibraryWorkspaceState
       _loadedEditorId = null;
     });
     widget.onBuilderEntryChanged?.call(cinematicId);
+  }
+
+  bool get _canUseLibraryCommands {
+    final root = widget.projectRootPath?.trim();
+    return widget.libraryAuthoringGateway != null &&
+        widget.onCanonicalManifestChanged != null &&
+        root != null &&
+        root.isNotEmpty;
+  }
+
+  Future<String?> _createFromLibrary(
+    CinematicLibraryCreateRequest request,
+  ) async {
+    final root = widget.projectRootPath?.trim();
+    final gateway = widget.libraryAuthoringGateway;
+    final adopt = widget.onCanonicalManifestChanged;
+    if (root == null || root.isEmpty || gateway == null || adopt == null) {
+      throw StateError('Le projet doit être enregistré avant la création.');
+    }
+    final result = await gateway.create(
+      root,
+      expectedProject: widget.project,
+      family: request.family,
+      title: request.title,
+      folderId: request.folderId,
+      worldStartingPoint: request.worldStartingPoint,
+      presentationTemplateId: request.presentationTemplateId,
+      presentationTemplateVersion: request.presentationTemplateVersion,
+    );
+    adopt(
+      result.manifest,
+      statusMessage: 'Cinématique « ${request.title} » créée',
+    );
+    if (!mounted) return result.cinematicId;
+    final selectedNavigation = _libraryNavigation
+        .switchFamily(request.family)
+        .updateActive(
+          folderId: request.folderId,
+          selectedAssetId: result.cinematicId,
+          scrollOffset: 0,
+        );
+    setState(() => _libraryNavigation = selectedNavigation);
+    if (request.family == CinematicLibraryFamily.world) {
+      setState(() {
+        _selectedEntryId = result.cinematicId;
+        _builderEntryId = result.cinematicId;
+        _loadedEditorId = null;
+      });
+      widget.onBuilderEntryChanged?.call(result.cinematicId);
+    } else {
+      widget.onOpenPresentation?.call(
+        cinematicId: result.cinematicId,
+        source: selectedNavigation.active.toSourceContext(),
+      );
+    }
+    return result.cinematicId;
+  }
+
+  Future<void> _renameFromLibrary({
+    required CinematicLibraryFamily family,
+    required String cinematicId,
+    required String title,
+  }) async {
+    final gateway = _requireLibraryGateway();
+    final manifest = await gateway.rename(
+      _requireProjectRoot(),
+      expectedProject: widget.project,
+      family: family,
+      cinematicId: cinematicId,
+      title: title,
+    );
+    _adoptLibraryManifest(manifest, 'Cinématique renommée');
+  }
+
+  Future<void> _moveFromLibrary({
+    required CinematicLibraryFamily family,
+    required String cinematicId,
+    String? folderId,
+  }) async {
+    final manifest = await _requireLibraryGateway().move(
+      _requireProjectRoot(),
+      expectedProject: widget.project,
+      family: family,
+      cinematicId: cinematicId,
+      folderId: folderId,
+    );
+    _adoptLibraryManifest(manifest, 'Cinématique déplacée');
+  }
+
+  Future<String?> _duplicateFromLibrary({
+    required CinematicLibraryFamily family,
+    required String cinematicId,
+    String? folderId,
+  }) async {
+    final result = await _requireLibraryGateway().duplicate(
+      _requireProjectRoot(),
+      expectedProject: widget.project,
+      family: family,
+      cinematicId: cinematicId,
+      folderId: folderId,
+    );
+    _adoptLibraryManifest(result.manifest, 'Cinématique dupliquée');
+    return result.cinematicId;
+  }
+
+  Future<void> _archiveFromLibrary({
+    required CinematicLibraryFamily family,
+    required String cinematicId,
+    required bool archived,
+  }) async {
+    final manifest = await _requireLibraryGateway().setArchived(
+      _requireProjectRoot(),
+      expectedProject: widget.project,
+      family: family,
+      cinematicId: cinematicId,
+      archived: archived,
+    );
+    _adoptLibraryManifest(
+      manifest,
+      archived ? 'Cinématique archivée' : 'Cinématique restaurée',
+    );
+  }
+
+  Future<void> _deleteFromLibrary({
+    required CinematicLibraryFamily family,
+    required String cinematicId,
+  }) async {
+    final manifest = await _requireLibraryGateway().delete(
+      _requireProjectRoot(),
+      expectedProject: widget.project,
+      family: family,
+      cinematicId: cinematicId,
+    );
+    _adoptLibraryManifest(manifest, 'Cinématique supprimée');
+  }
+
+  CinematicLibraryAuthoringGateway _requireLibraryGateway() {
+    final gateway = widget.libraryAuthoringGateway;
+    if (gateway == null) {
+      throw StateError('Les commandes de bibliothèque sont indisponibles.');
+    }
+    return gateway;
+  }
+
+  String _requireProjectRoot() {
+    final root = widget.projectRootPath?.trim();
+    if (root == null || root.isEmpty) {
+      throw StateError('Le projet doit être enregistré avant cette action.');
+    }
+    return root;
+  }
+
+  void _adoptLibraryManifest(ProjectManifest manifest, String message) {
+    final adopt = widget.onCanonicalManifestChanged;
+    if (adopt == null) {
+      throw StateError('La projection canonique du projet est indisponible.');
+    }
+    adopt(manifest, statusMessage: message);
   }
 
   Widget _buildRequestedEntryUnavailable() {
