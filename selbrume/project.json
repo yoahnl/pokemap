@@ -1,6 +1,6 @@
 {
   "name": "Selbrume",
-  "version": "v6",
+  "version": "v7",
   "maps": [
     {
       "id": "map_bourg_selbrume",
@@ -35954,7 +35954,6 @@
     "initialParty": [],
     "initialFacts": {},
     "existingPartyFactId": "fact_player_started_with_existing_pokemon",
-    "starterSelectionSceneId": "scene_mael_intro",
     "starterOptions": [
       {
         "id": "starter_bulbasaur",
