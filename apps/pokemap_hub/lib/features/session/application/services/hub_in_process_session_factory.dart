@@ -17,7 +17,6 @@ final class HubInProcessSessionFactory {
     required this.unmountGame,
     this.preloadedInitialMap,
     this.audioMixer,
-    this.saveIdFactory,
     this.now,
   });
 
@@ -27,7 +26,6 @@ final class HubInProcessSessionFactory {
   final PlayableMapGameUnmount unmountGame;
   final SessionPreloadedInitialMapLoader? preloadedInitialMap;
   final RuntimeAudioMixer? audioMixer;
-  final SessionSaveIdFactory? saveIdFactory;
   final DateTime Function()? now;
 
   GameSessionAdapter call(GameSessionDescriptor descriptor) {
@@ -75,7 +73,6 @@ final class HubInProcessSessionFactory {
             unmountGame: unmountGame,
             preloadedInitialMap: preloadedInitialMap,
             audioMixer: audioMixer,
-            saveIdFactory: saveIdFactory,
             now: now,
           ),
     );

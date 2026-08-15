@@ -519,40 +519,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       'title.${runtimeAction.name}',
       source: PlayerInputSource.touch,
     );
-    final projection =
-        const RuntimeTitleMenuPolicy.singleSave().project(player);
-    if (runtimeAction == RuntimePlayerAction.newGame &&
-        projection.requiresNewGameConfirmation) {
-      unawaited(_confirmNewGame(player));
-      return;
-    }
     _dispatchPlayer(runtimeAction, player);
-  }
-
-  Future<void> _confirmNewGame(RuntimePlayerSnapshot player) async {
-    final strings = PlayerStartupStrings.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(strings.replaceSaveTitle),
-        content: Text(strings.replaceSaveBody),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(strings.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(strings.begin),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    final payload = widget.payloadForAction?.call(
-      RuntimePlayerAction.newGame,
-    );
-    _dispatchPlayer(RuntimePlayerAction.newGame, player, payload: payload);
   }
 
   void _dispatchStartup(RuntimeStartupAction action) {

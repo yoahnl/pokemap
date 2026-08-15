@@ -1,5 +1,7 @@
 import 'dart:collection';
 
+import 'package:map_core/map_core.dart';
+
 import '../session/game_session_contract.dart';
 import '../session/player_input.dart';
 import 'runtime_player_host.dart';
@@ -9,6 +11,7 @@ import 'runtime_world_service_models.dart';
 enum RuntimePlayerPhase {
   boot,
   title,
+  preSession,
   preparingSession,
   loadingSession,
   playing,
@@ -44,6 +47,7 @@ enum RuntimePlayerAction {
   returnToHost,
   retry,
   cancel,
+  resolvePreSessionInteraction,
 }
 
 final class RuntimePlayerSaveAddress {
@@ -184,6 +188,7 @@ final class RuntimePlayerSnapshot {
     required this.phase,
     required this.gameTitle,
     this.pauseSection,
+    this.preSessionRequest,
     List<RuntimePlayerActionAvailability> actions =
         const <RuntimePlayerActionAvailability>[],
     this.loadingProgress,
@@ -242,6 +247,7 @@ final class RuntimePlayerSnapshot {
   final RuntimePlayerPhase phase;
   final String gameTitle;
   final RuntimePlayerPauseSection? pauseSection;
+  final SceneInteractionRequest? preSessionRequest;
   final List<RuntimePlayerActionAvailability> actions;
   final GameSessionLoadingProgress? loadingProgress;
   final GameResultSnapshot? result;
@@ -277,6 +283,8 @@ final class RuntimePlayerSnapshot {
     String? gameTitle,
     RuntimePlayerPauseSection? pauseSection,
     bool clearPauseSection = false,
+    SceneInteractionRequest? preSessionRequest,
+    bool clearPreSessionRequest = false,
     List<RuntimePlayerActionAvailability>? actions,
     GameSessionLoadingProgress? loadingProgress,
     bool clearLoadingProgress = false,
@@ -310,6 +318,9 @@ final class RuntimePlayerSnapshot {
       gameTitle: gameTitle ?? this.gameTitle,
       pauseSection:
           clearPauseSection ? null : pauseSection ?? this.pauseSection,
+      preSessionRequest: clearPreSessionRequest
+          ? null
+          : preSessionRequest ?? this.preSessionRequest,
       actions: actions ?? this.actions,
       loadingProgress:
           clearLoadingProgress ? null : loadingProgress ?? this.loadingProgress,

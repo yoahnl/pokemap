@@ -130,6 +130,10 @@ GameSessionDescriptor _descriptor() => GameSessionDescriptor(
       grantedCapabilities: const <String>{},
       locale: 'fr-FR',
       accessibility: const GameSessionAccessibilityOptions(),
+      initialGameState: const GameState(
+        saveId: 'slot-1',
+        currentMapId: 'map-start',
+      ),
     );
 
 class _FakeInProcessRuntime implements InProcessGameSessionRuntime {

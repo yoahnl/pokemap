@@ -27,6 +27,10 @@ void main() {
           grantedCapabilities: const <String>{},
           locale: locale,
           accessibility: const GameSessionAccessibilityOptions(),
+          initialGameState: const GameState(
+            saveId: 'slot-1',
+            currentMapId: 'map-start',
+          ),
         ),
         projectFilePath: () async => '',
         initialSave: () async => null,

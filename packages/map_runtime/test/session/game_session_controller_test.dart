@@ -426,6 +426,10 @@ GameSessionDescriptor _descriptor({String sessionId = 'session-a'}) {
     grantedCapabilities: const <String>{'battle.v1'},
     locale: 'fr-FR',
     accessibility: const GameSessionAccessibilityOptions(),
+    initialGameState: const GameState(
+      saveId: 'slot-1',
+      currentMapId: 'map-start',
+    ),
   );
 }
 

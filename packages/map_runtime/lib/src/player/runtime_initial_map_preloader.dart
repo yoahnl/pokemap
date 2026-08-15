@@ -272,6 +272,19 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     return cached.result;
   }
 
+  RuntimeMapBundle? preparedNewGameBundle({
+    required String projectFilePath,
+  }) {
+    final cached = _cached;
+    if (cached == null ||
+        cached.request.mode != RuntimeInitialMapPreloadMode.newGame ||
+        cached.projectFilePath != p.normalize(p.absolute(projectFilePath)) ||
+        cached.result.bundle.map.id != cached.mapId) {
+      return null;
+    }
+    return cached.result.bundle;
+  }
+
   @override
   void clear() {
     _generation++;

@@ -526,7 +526,7 @@ void main() {
     );
   });
 
-  testWidgets('asks before replacing the single save with New Game',
+  testWidgets('delegates New Game overwrite authority to the Player',
       (tester) async {
     final commands = <RuntimePlayerCommand>[];
 
@@ -549,11 +549,7 @@ void main() {
 
     await tester.tap(find.text('Nouveau jeu'));
     await tester.pumpAndSettle();
-    expect(find.text('Remplacer la partie actuelle ?'), findsOneWidget);
-    expect(commands, isEmpty);
-
-    await tester.tap(find.text('Commencer'));
-    await tester.pumpAndSettle();
+    expect(find.text('Remplacer la partie actuelle ?'), findsNothing);
     expect(commands.single.action, RuntimePlayerAction.newGame);
     expect(commands.single.snapshotRevision, 9);
   });

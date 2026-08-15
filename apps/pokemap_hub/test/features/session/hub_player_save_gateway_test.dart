@@ -329,6 +329,10 @@ GameSessionDescriptor _descriptor(GameIdentity identity) =>
       grantedCapabilities: const <String>{},
       locale: 'fr-FR',
       accessibility: const GameSessionAccessibilityOptions(),
+      initialGameState: const GameState(
+        saveId: 'slot-1',
+        currentMapId: 'route-1',
+      ),
     );
 
 SaveSlotAddress activeAddress(GameIdentity identity) => SaveSlotAddress(

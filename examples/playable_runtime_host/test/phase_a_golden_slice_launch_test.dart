@@ -84,7 +84,7 @@ void main() {
       );
       final player = host.snapshot.playerSnapshot!;
 
-      final result = await host.coordinator.dispatchPlayerCommand(
+      final launch = host.coordinator.dispatchPlayerCommand(
         startupSnapshotRevision: host.snapshot.revision,
         command: RuntimePlayerCommand(
           action: RuntimePlayerAction.newGame,
@@ -95,7 +95,24 @@ void main() {
           ),
         ),
       );
+      await _waitForPreSessionInteraction(host);
+      final interactionSnapshot = host.snapshot.playerSnapshot!;
+      final request = interactionSnapshot.preSessionRequest!;
+      final resolution = await host.coordinator.dispatchPlayerCommand(
+        startupSnapshotRevision: host.snapshot.revision,
+        command: RuntimePlayerCommand(
+          action: RuntimePlayerAction.resolvePreSessionInteraction,
+          snapshotRevision: interactionSnapshot.revision,
+          payload: SceneInteractionResult.confirmed(
+            requestId: request.requestId,
+            revision: request.revision,
+            value: true,
+          ),
+        ),
+      );
+      final result = await launch;
 
+      expect(resolution.status, RuntimePlayerCommandStatus.accepted);
       expect(result.status, RuntimePlayerCommandStatus.accepted);
       expect(launches, hasLength(1));
       expect(launches.single.launchMode, GameSessionLaunchMode.newGame);
@@ -292,7 +309,7 @@ void main() {
       clock: const _ImmediateClock(),
       minimumSplashDuration: Duration.zero,
       sessionPort: CallbackStandaloneRuntimeSessionPort(
-        onLaunch: (_, __, ___) async {},
+        onLaunch: (_, _, _) async {},
       ),
     );
     addTearDown(host.dispose);
@@ -330,7 +347,7 @@ void main() {
         manifest: await _loadManifest(_goldenProjectPath()),
         minimumSplashDuration: Duration.zero,
         sessionPort: CallbackStandaloneRuntimeSessionPort(
-          onLaunch: (_, __, ___) async {},
+          onLaunch: (_, _, _) async {},
         ),
       );
       addTearDown(host.dispose);
@@ -383,6 +400,10 @@ void main() {
         grantedCapabilities: const <String>{},
         locale: 'fr',
         accessibility: const GameSessionAccessibilityOptions(),
+        initialGameState: const GameState(
+          saveId: standaloneRuntimeSlotId,
+          currentMapId: 'golden_field',
+        ),
       );
 
       await expectLater(
@@ -445,7 +466,7 @@ void main() {
       clock: clock,
       minimumSplashDuration: const Duration(seconds: 10),
       sessionPort: CallbackStandaloneRuntimeSessionPort(
-        onLaunch: (_, __, ___) async {},
+        onLaunch: (_, _, _) async {},
       ),
     );
     addTearDown(host.dispose);
@@ -510,6 +531,16 @@ Future<void> _waitForPreparation(StandaloneRuntimeStartupHost host) async {
     await Future<void>.delayed(const Duration(milliseconds: 5));
   }
   fail('Timed out waiting for standalone startup preparation.');
+}
+
+Future<void> _waitForPreSessionInteraction(
+  StandaloneRuntimeStartupHost host,
+) async {
+  for (var attempt = 0; attempt < 200; attempt++) {
+    if (host.snapshot.playerSnapshot?.preSessionRequest != null) return;
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+  fail('Timed out waiting for the standalone preSession interaction.');
 }
 
 final class _GateClock implements RuntimeStartupClock {

@@ -187,7 +187,7 @@ void main() {
     expect(payload.identity.pronounSet, PlayerPronounSet.feminine);
   });
 
-  test('session identity is valid only for New Game descriptors', () {
+  test('initial game state is valid only for New Game descriptors', () {
     final identity = GameIdentity(
       gameId: 'com.pokemap.identity-test',
       gameVersion: '1.0.0',
@@ -196,6 +196,22 @@ void main() {
       compatibilityId: 'identity-test-v1',
     );
 
+    expect(
+      () => GameSessionDescriptor(
+        sessionId: 'session-new',
+        sessionToken: 'token',
+        identity: identity,
+        profileId: 'player',
+        slotId: 'slot_1',
+        launchMode: GameSessionLaunchMode.newGame,
+        installedVersionHandle: 'installed',
+        runtimeApiVersion: '1.0.0',
+        grantedCapabilities: const <String>{},
+        locale: 'fr',
+        accessibility: const GameSessionAccessibilityOptions(),
+      ),
+      throwsA(isA<GameSessionException>()),
+    );
     expect(
       () => GameSessionDescriptor(
         sessionId: 'session',
@@ -210,7 +226,10 @@ void main() {
         grantedCapabilities: const <String>{},
         locale: 'fr',
         accessibility: const GameSessionAccessibilityOptions(),
-        initialPlayerIdentity: GameSessionPlayerIdentity(name: 'Camille'),
+        initialGameState: const GameState(
+          saveId: 'slot_1',
+          currentMapId: 'map_start',
+        ),
       ),
       throwsA(isA<GameSessionException>()),
     );

@@ -575,4 +575,7 @@ GameSessionDescriptor _descriptor(
       grantedCapabilities: const <String>{'map.v1'},
       locale: 'fr-FR',
       accessibility: const GameSessionAccessibilityOptions(),
+      initialGameState: launchMode == GameSessionLaunchMode.newGame
+          ? GameState(saveId: slotId, currentMapId: 'p3_test_map')
+          : null,
     );

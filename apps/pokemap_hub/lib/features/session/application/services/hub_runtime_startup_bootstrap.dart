@@ -133,6 +133,13 @@ final class HubRuntimeStartupBootstrap
         },
         loadSave: saveGateway.readLaunchableEnvelope,
       );
+      final newGameFlow = RuntimeProjectNewGameFlowPort(
+        projectFilePath: () async {
+          final project = await launch.assets.resolveReference(launch.project);
+          return project.path;
+        },
+        initialMapPreloader: initialMapPreloader,
+      );
       final sessionFactory = HubInProcessSessionFactory(
         launch: launch,
         saves: store,
@@ -149,6 +156,7 @@ final class HubRuntimeStartupBootstrap
         gameSource: gameSource,
         saveGateway: saveGateway,
         preferencesGateway: preferencesGateway,
+        newGameFlow: newGameFlow,
         sessionController: sessions,
         externalExit: HubRuntimeExternalExit(onHubRequested),
         defaultSaveSlot: RuntimePlayerLoadSlot(

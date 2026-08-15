@@ -523,9 +523,12 @@ final class RuntimeStartupCoordinator {
             );
           }
           final save = _player.snapshot.continueSave;
-          final request = save != null && save.canContinue
-              ? RuntimeInitialMapPreloadRequest.continueGame(save.address)
-              : const RuntimeInitialMapPreloadRequest.newGame();
+          if (save == null || !save.canContinue) {
+            return const RuntimeStartupPreparationStepResult.completed();
+          }
+          final request = RuntimeInitialMapPreloadRequest.continueGame(
+            save.address,
+          );
           try {
             await _initialMapPreloadPort.preloadInitialMap(
               request,

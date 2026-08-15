@@ -1,0 +1,292 @@
+import 'dart:async';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+import 'support/runtime_player_test_harness.dart';
+
+void main() {
+  test('prepares and projects a new game before creating its descriptor',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+    final configBefore = harness.newGameFlow.project.newGame.toJson();
+
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.newGameFlow.prepareCalls, 1);
+    expect(harness.source.requests, hasLength(1));
+    final state = harness.source.requests.single.initialGameState;
+    expect(state, isNotNull);
+    expect(state!.saveId, 'slot_1');
+    expect(state.currentMapId, 'start_map');
+    expect(state.scriptVariables.values['player_name']?.value, 'Player');
+    expect(harness.newGameFlow.project.newGame.toJson(), configBefore);
+  });
+
+  test('asks for overwrite confirmation before preload and preserves the save',
+      () async {
+    final seed = RuntimePlayerTestHarness();
+    final existing = compatiblePlayerSave(seed.source.identity);
+    await seed.dispose();
+    final harness = RuntimePlayerTestHarness(latestSave: existing);
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final launch = harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+    await _waitForInteraction(harness.coordinator);
+
+    final snapshot = harness.coordinator.snapshot;
+    expect(snapshot.phase, RuntimePlayerPhase.preSession);
+    expect(snapshot.preSessionRequest?.kind,
+        SceneInteractionRequestKind.confirmation);
+    expect(harness.newGameFlow.prepareCalls, 0);
+    final request = snapshot.preSessionRequest!;
+    final resolution = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.resolvePreSessionInteraction,
+        snapshotRevision: snapshot.revision,
+        payload: SceneInteractionResult.confirmed(
+          requestId: request.requestId,
+          revision: request.revision,
+          value: false,
+        ),
+      ),
+    );
+
+    expect(resolution.status, RuntimePlayerCommandStatus.accepted);
+    expect((await launch).status, RuntimePlayerCommandStatus.cancelled);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+    expect(harness.source.requests, isEmpty);
+    expect(harness.saves.commits, isEmpty);
+    expect(await harness.saves.readSummary(existing.address), same(existing));
+  });
+
+  test('confirmed overwrite keeps the old save until a checkpoint commits',
+      () async {
+    final seed = RuntimePlayerTestHarness();
+    final existing = compatiblePlayerSave(seed.source.identity);
+    await seed.dispose();
+    final harness = RuntimePlayerTestHarness(latestSave: existing);
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final launch = harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+    await _waitForInteraction(harness.coordinator);
+    final snapshot = harness.coordinator.snapshot;
+    final request = snapshot.preSessionRequest!;
+
+    final resolution = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.resolvePreSessionInteraction,
+        snapshotRevision: snapshot.revision,
+        payload: SceneInteractionResult.confirmed(
+          requestId: request.requestId,
+          revision: request.revision,
+          value: true,
+        ),
+      ),
+    );
+
+    expect(resolution.status, RuntimePlayerCommandStatus.accepted);
+    expect((await launch).status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.newGameFlow.prepareCalls, 1);
+    expect(harness.source.requests, hasLength(1));
+    expect(harness.saves.commits, isEmpty);
+    expect(await harness.saves.readSummary(existing.address), same(existing));
+  });
+
+  test('runs a text-only preSession interaction before one exact session',
+      () async {
+    final harness = RuntimePlayerTestHarness(
+      preSessionRunner: _MessagePreSessionRunner(),
+    );
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final launch = harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+    await _waitForInteraction(harness.coordinator);
+    final snapshot = harness.coordinator.snapshot;
+    final request = snapshot.preSessionRequest!;
+
+    final resolution = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.resolvePreSessionInteraction,
+        snapshotRevision: snapshot.revision,
+        payload: SceneInteractionResult.acknowledged(
+          requestId: request.requestId,
+          revision: request.revision,
+        ),
+      ),
+    );
+    final staleReplay = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.resolvePreSessionInteraction,
+        snapshotRevision: snapshot.revision,
+        payload: SceneInteractionResult.acknowledged(
+          requestId: request.requestId,
+          revision: request.revision,
+        ),
+      ),
+    );
+
+    expect(resolution.status, RuntimePlayerCommandStatus.accepted);
+    expect(staleReplay.status, isNot(RuntimePlayerCommandStatus.accepted));
+    expect((await launch).status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.source.requests, hasLength(1));
+    expect(harness.adapters, hasLength(1));
+  });
+
+  test('cancel and a late preload completion cannot create a session',
+      () async {
+    final gate = Completer<void>();
+    final harness = RuntimePlayerTestHarness(
+      newGamePreparationGate: gate.future,
+    );
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final launch = harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+    await _waitForPhase(harness.coordinator, RuntimePlayerPhase.preSession);
+    final cancelled = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.cancel,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+    gate.complete();
+
+    expect(cancelled.status, RuntimePlayerCommandStatus.accepted);
+    expect((await launch).status, RuntimePlayerCommandStatus.cancelled);
+    expect(harness.newGameFlow.clearCalls, greaterThanOrEqualTo(1));
+    expect(harness.source.requests, isEmpty);
+    expect(harness.saves.commits, isEmpty);
+  });
+
+  test('project drift fails closed and retry uses a fresh preparation',
+      () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+    harness.newGameFlow.currentProjectRevision = 'sha256:changed';
+
+    final failed = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+
+    expect(failed.status, RuntimePlayerCommandStatus.failed);
+    expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.error);
+    expect(harness.source.requests, isEmpty);
+    harness.newGameFlow.currentProjectRevision =
+        harness.newGameFlow.preparation.projectRevision;
+
+    final retried = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.retry,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+
+    expect(retried.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.newGameFlow.prepareCalls, 2);
+    expect(harness.source.requests, hasLength(1));
+  });
+}
+
+final class _MessagePreSessionRunner implements RuntimeNewGamePreSessionRunner {
+  @override
+  Future<NewGameDraft> run({
+    required String runId,
+    required NewGameDraft draft,
+    required SceneStructuredInteractionPort interactions,
+  }) async {
+    final result = await interactions.request(
+      SceneInteractionRequest.message(
+        requestId: '$runId:intro',
+        revision: 0,
+        prompt: SceneInteractionPrompt(
+          localizationKey: 'test.pre_session.intro',
+          fallbackText: 'Bienvenue.',
+        ),
+      ),
+    );
+    if (result is SceneCancelledInteractionResult) {
+      throw StateError('cancelled');
+    }
+    return draft;
+  }
+}
+
+Future<void> _waitForInteraction(RuntimePlayerCoordinator coordinator) async {
+  for (var attempt = 0; attempt < 100; attempt++) {
+    if (coordinator.snapshot.preSessionRequest != null) return;
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('No preSession interaction was published.');
+}
+
+Future<void> _waitForPhase(
+  RuntimePlayerCoordinator coordinator,
+  RuntimePlayerPhase phase,
+) async {
+  for (var attempt = 0; attempt < 100; attempt++) {
+    if (coordinator.snapshot.phase == phase) return;
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Player never reached ${phase.name}.');
+}

@@ -81,10 +81,6 @@ final class GameSessionAccessibilityOptions {
       );
 }
 
-/// Player identity selected by the guided New Game flow.
-///
-/// Pronouns remain semantic so the runtime can project dialogue variables in
-/// the descriptor locale. This data is accepted only for a new game.
 final class GameSessionPlayerIdentity {
   GameSessionPlayerIdentity({
     required String name,
@@ -132,7 +128,7 @@ final class GameSessionDescriptor {
     required Set<String> grantedCapabilities,
     required this.locale,
     required this.accessibility,
-    this.initialPlayerIdentity,
+    this.initialGameState,
   }) : grantedCapabilities = Set<String>.unmodifiable(grantedCapabilities) {
     if (protocolVersion != gameSessionProtocolVersion) {
       throw const GameSessionException(
@@ -160,11 +156,26 @@ final class GameSessionDescriptor {
         'Continue and Load descriptors require an opaque save read handle.',
       );
     }
-    if (launchMode != GameSessionLaunchMode.newGame &&
-        initialPlayerIdentity != null) {
+    if (launchMode == GameSessionLaunchMode.newGame &&
+        initialGameState == null) {
       throw const GameSessionException(
         GameSessionErrorCode.invalidDescriptor,
-        'Only a new game descriptor can provide an initial player identity.',
+        'A new game descriptor requires its committed initial GameState.',
+      );
+    }
+    if (launchMode != GameSessionLaunchMode.newGame &&
+        initialGameState != null) {
+      throw const GameSessionException(
+        GameSessionErrorCode.invalidDescriptor,
+        'Only a new game descriptor can provide an initial GameState.',
+      );
+    }
+    if (initialGameState != null &&
+        (initialGameState!.saveId != slotId ||
+            initialGameState!.currentMapId.trim().isEmpty)) {
+      throw const GameSessionException(
+        GameSessionErrorCode.invalidDescriptor,
+        'The initial GameState must target the descriptor slot and a map.',
       );
     }
   }
@@ -186,7 +197,7 @@ final class GameSessionDescriptor {
   final Set<String> grantedCapabilities;
   final String locale;
   final GameSessionAccessibilityOptions accessibility;
-  final GameSessionPlayerIdentity? initialPlayerIdentity;
+  final GameState? initialGameState;
 
   GameSessionPublicContext get publicContext => GameSessionPublicContext(
         protocolVersion: protocolVersion,

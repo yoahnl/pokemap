@@ -290,7 +290,7 @@ void main() {
     expect(harness.source.requests.single.slotId, 'slot_2');
   });
 
-  test('forwards guided identity only to a new game descriptor', () async {
+  test('projects guided identity into the committed new game state', () async {
     final harness = RuntimePlayerTestHarness();
     addTearDown(harness.dispose);
     await harness.coordinator.initialize();
@@ -306,7 +306,6 @@ void main() {
           ),
           identity: GameSessionPlayerIdentity(
             name: 'Camille',
-            avatarCharacterId: 'hero_b',
             pronounSet: PlayerPronounSet.feminine,
           ),
         ),
@@ -314,14 +313,10 @@ void main() {
     );
 
     expect(result.status, RuntimePlayerCommandStatus.accepted);
-    expect(
-      harness.source.requests.single.initialPlayerIdentity,
-      GameSessionPlayerIdentity(
-        name: 'Camille',
-        avatarCharacterId: 'hero_b',
-        pronounSet: PlayerPronounSet.feminine,
-      ),
-    );
+    final state = harness.source.requests.single.initialGameState!;
+    expect(state.trainerProfile.name, 'Camille');
+    expect(state.trainerProfile.avatarCharacterId, isNull);
+    expect(state.trainerProfile.pronounSet, PlayerPronounSet.feminine);
   });
 
   test('Continue resolves an opaque save handle before launch', () async {

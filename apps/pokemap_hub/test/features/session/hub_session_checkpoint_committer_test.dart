@@ -28,7 +28,8 @@ void main() {
     }
   });
 
-  test('builds and atomically commits active and completed envelopes',
+  test(
+    'builds and atomically commits active and completed envelopes',
       () async {
     final committer = HubSessionCheckpointCommitter(store: store);
     final descriptor = _descriptor(identity);
@@ -58,9 +59,11 @@ void main() {
     read = await store.read(activeAddress(identity));
     expect(read.envelope?.status, SaveStatus.completed);
     expect(read.envelope?.completedAt, completedAt);
-  });
+    },
+  );
 
-  test('rejects mismatched identity and malformed completion metadata',
+  test(
+    'rejects mismatched identity and malformed completion metadata',
       () async {
     final committer = HubSessionCheckpointCommitter(store: store);
     final other = GameIdentity(
@@ -91,9 +94,11 @@ void main() {
       ),
       throwsA(isA<HubSessionCheckpointException>()),
     );
-  });
+    },
+  );
 
-  test('publishes success only after the exact disk generation is confirmed',
+  test(
+    'publishes success only after the exact disk generation is confirmed',
       () async {
     var confirmed = false;
     store = HubSaveStore(
@@ -119,9 +124,11 @@ void main() {
     final read = await store.read(activeAddress(identity));
     expect(read.status, SaveSlotReadStatus.valid);
     expect(read.envelope?.checksum, isA<SaveChecksum>());
-  });
+    },
+  );
 
-  test('a corrupt promoted generation restores the previous valid save',
+  test(
+    'a corrupt promoted generation restores the previous valid save',
       () async {
     final stable = HubSessionCheckpointCommitter(store: store);
     final previousAt = DateTime.utc(2026, 7, 25, 1);
@@ -166,7 +173,8 @@ void main() {
     final recovered = await store.read(activeAddress(identity));
     expect(recovered.status, SaveSlotReadStatus.valid);
     expect(recovered.envelope?.updatedAt, previousAt);
-  });
+    },
+  );
 }
 
 SaveSlotAddress activeAddress(GameIdentity identity) => SaveSlotAddress(
@@ -188,6 +196,10 @@ GameSessionDescriptor _descriptor(GameIdentity identity) =>
       grantedCapabilities: const <String>{},
       locale: 'fr-FR',
       accessibility: const GameSessionAccessibilityOptions(),
+      initialGameState: const GameState(
+        saveId: 'slot-1',
+        currentMapId: 'route-1',
+      ),
     );
 
 GameSessionCheckpoint _checkpoint({DateTime? updatedAt}) {

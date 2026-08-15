@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../foundation/player_action_availability.dart';
@@ -8,6 +9,7 @@ import '../localization/player_localizations.dart';
 import 'player_pause_menu.dart';
 import 'player_control_profile.dart';
 import 'player_save_strings.dart';
+import 'player_scene_interaction_surface.dart';
 import 'player_session_surfaces.dart';
 import 'player_title_options_surface.dart';
 import 'player_title_screen.dart';
@@ -35,6 +37,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     this.onControlProfileChanged,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
     this.pausePresentation,
+    this.onPreSessionResult,
   });
 
   final RuntimePlayerSnapshot snapshot;
@@ -50,6 +53,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
   final PlayerPauseMenuLabels pauseMenuLabels;
   final PlayerPausePresentation? pausePresentation;
+  final ValueChanged<SceneInteractionResult>? onPreSessionResult;
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +111,15 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
             actionIcons: titlePresentation.actionIcons,
           ),
           onSelected: (action) => _dispatch(_titleAction(action)),
+        ),
+      RuntimePlayerPhase.preSession when snapshot.preSessionRequest != null =>
+        PlayerSceneInteractionSurface(
+          request: snapshot.preSessionRequest!,
+          onResult: onPreSessionResult ?? (_) {},
+        ),
+      RuntimePlayerPhase.preSession => PlayerLoadingSurface(
+          stage: l10n.preparingSession,
+          onCancel: _callbackFor(RuntimePlayerAction.cancel),
         ),
       RuntimePlayerPhase.preparingSession => PlayerLoadingSurface(
           stage: l10n.preparingSession,
@@ -337,6 +350,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           true,
         RuntimePlayerPhase.boot ||
         RuntimePlayerPhase.title ||
+        RuntimePlayerPhase.preSession ||
         RuntimePlayerPhase.preparingSession ||
         RuntimePlayerPhase.result ||
         RuntimePlayerPhase.credits ||

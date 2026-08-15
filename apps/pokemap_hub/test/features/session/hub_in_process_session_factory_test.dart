@@ -51,6 +51,10 @@ void main() {
         grantedCapabilities: const <String>{},
         locale: 'fr-FR',
         accessibility: const GameSessionAccessibilityOptions(),
+        initialGameState: const GameState(
+          saveId: 'slot-1',
+          currentMapId: 'map-start',
+        ),
       );
       expect(() => factory.call(wrong), throwsStateError);
     },
@@ -138,6 +142,10 @@ GameSessionDescriptor _descriptor(InstalledGameLaunchContext launch) =>
       grantedCapabilities: launch.grantedCapabilities,
       locale: 'fr-FR',
       accessibility: const GameSessionAccessibilityOptions(),
+      initialGameState: const GameState(
+        saveId: 'slot-1',
+        currentMapId: 'map-start',
+      ),
     );
 
 Future<InstalledGameLaunchContext> _context(Directory root) async {

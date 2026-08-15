@@ -131,6 +131,17 @@ void main() {
     final loadingGate = Completer<void>();
     final clock = _ManualStartupClock();
     final harness = _RuntimeStartupTestHarness(
+      latestSave: PlayerSaveSummary(
+        address: SaveSlotAddress(
+          gameId: 'com.pokemap.runtime-player-test',
+          profileId: 'player',
+          slotId: 'main',
+        ),
+        updatedAt: DateTime.utc(2026, 8, 9),
+        playTimeSeconds: 120,
+        status: SaveStatus.active,
+        canContinue: true,
+      ),
       clock: clock,
       initialMapPreloadPort: _MemoryInitialMapPreloadPort(
         gate: loadingGate.future,
@@ -218,7 +229,7 @@ void main() {
     expect(harness.startup.snapshot.isPreparationReady, isTrue);
   });
 
-  test('preloads the project new game map when no save is launchable',
+  test('defers New Game preload until the Player owns the selected slot',
       () async {
     final preloader = _MemoryInitialMapPreloadPort();
     final harness = _RuntimeStartupTestHarness(
@@ -230,16 +241,11 @@ void main() {
     harness.clock.elapseMinimum();
     await _flushEvents();
 
-    expect(preloader.requests, hasLength(1));
-    expect(
-      preloader.requests.single.mode,
-      RuntimeInitialMapPreloadMode.newGame,
-    );
-    expect(preloader.requests.single.saveAddress, isNull);
+    expect(preloader.requests, isEmpty);
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
   });
 
-  test('an invalid discovered save falls back to the authored new game map',
+  test('an invalid discovered save still defers New Game preload to Player',
       () async {
     final preloader = _MemoryInitialMapPreloadPort();
     final harness = _RuntimeStartupTestHarness(
@@ -263,11 +269,7 @@ void main() {
     harness.clock.elapseMinimum();
     await _flushEvents();
 
-    expect(preloader.requests, hasLength(1));
-    expect(
-      preloader.requests.single.mode,
-      RuntimeInitialMapPreloadMode.newGame,
-    );
+    expect(preloader.requests, isEmpty);
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
   });
 

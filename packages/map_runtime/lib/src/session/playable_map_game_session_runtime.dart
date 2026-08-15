@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -33,7 +32,6 @@ typedef SessionPreloadedInitialMapLoader
   required GameSessionDescriptor descriptor,
   required SaveEnvelope? initialSave,
 });
-typedef SessionSaveIdFactory = String Function();
 
 /// Disposable in-process graph backed by the production `PlayableMapGame`.
 ///
@@ -62,14 +60,12 @@ final class PlayableMapGameSessionRuntime
     required PlayableMapGameUnmount unmountGame,
     SessionPreloadedInitialMapLoader? preloadedInitialMap,
     this.audioMixer,
-    SessionSaveIdFactory? saveIdFactory,
     DateTime Function()? now,
   })  : _projectFilePath = projectFilePath,
         _initialSave = initialSave,
         _mountGame = mountGame,
         _unmountGame = unmountGame,
         _preloadedInitialMap = preloadedInitialMap,
-        _saveIdFactory = saveIdFactory ?? _uuidV4,
         _now = now ?? DateTime.now;
 
   final GameSessionDescriptor descriptor;
@@ -79,7 +75,6 @@ final class PlayableMapGameSessionRuntime
   final PlayableMapGameUnmount _unmountGame;
   final SessionPreloadedInitialMapLoader? _preloadedInitialMap;
   final RuntimeAudioMixer? audioMixer;
-  final SessionSaveIdFactory _saveIdFactory;
   final DateTime Function() _now;
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
   final _worldServiceSnapshots =
@@ -174,9 +169,16 @@ final class PlayableMapGameSessionRuntime
           'The installed project does not define a launchable new game.',
         );
       }
-      mapId = manifest.newGame.startMapId.trim();
+      initialState = descriptor.initialGameState!;
+      mapId = initialState.currentMapId.trim();
+      if (mapId != manifest.newGame.startMapId.trim()) {
+        preloadedInitialMap?.dispose();
+        throw StateError(
+          'The committed New Game state does not target the authored map.',
+        );
+      }
       _createdAt = _now().toUtc();
-      _saveId = _saveIdFactory();
+      _saveId = initialState.saveId;
     } else {
       final envelope = save!;
       initialState = const GameStateSaveEnvelopeMapper().restore(envelope);
@@ -227,14 +229,11 @@ final class PlayableMapGameSessionRuntime
         bundle: bundle,
         projectFilePath: projectFilePath,
         saveData: saveData,
+        initialGameState: descriptor.initialGameState,
         saveRepository: memorySaves,
         gameCompletionEmitter: emitCompletion,
         defeatRecoveryCheckpointEmitter: emitDefeatRecoveryCheckpointRequest,
         runtimeLocale: descriptor.locale,
-        initialPlayerName: descriptor.initialPlayerIdentity?.name,
-        initialPlayerAvatarCharacterId:
-            descriptor.initialPlayerIdentity?.avatarCharacterId,
-        initialPlayerPronounSet: descriptor.initialPlayerIdentity?.pronounSet,
         initialMapActivationReason:
             descriptor.launchMode == GameSessionLaunchMode.newGame
                 ? MapActivationReason.initialBoot
@@ -530,18 +529,4 @@ final class _SessionMemoryGameSaveRepository implements GameSaveRepository {
   Future<void> delete() async {
     _state = null;
   }
-}
-
-String _uuidV4() {
-  final random = Random.secure();
-  final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  String hex(int value) => value.toRadixString(16).padLeft(2, '0');
-  final source = bytes.map(hex).join();
-  return '${source.substring(0, 8)}-'
-      '${source.substring(8, 12)}-'
-      '${source.substring(12, 16)}-'
-      '${source.substring(16, 20)}-'
-      '${source.substring(20)}';
 }

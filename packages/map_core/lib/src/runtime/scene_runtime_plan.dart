@@ -20,11 +20,7 @@ enum SceneRuntimePlanIntentKind {
   executeInteractiveCommand,
 }
 
-enum SceneRuntimePlanDiagnosticSeverity {
-  error,
-  warning,
-  info,
-}
+enum SceneRuntimePlanDiagnosticSeverity { error, warning, info }
 
 enum SceneRuntimePlanDiagnosticCode {
   planBuildBlockedBySceneDiagnostics,
@@ -136,8 +132,9 @@ final class SceneRuntimePlanIntent {
     this.interactiveCommand,
   })  : branchSourceOutcomes = List<String>.unmodifiable(branchSourceOutcomes),
         expectedOutcomes = List<String>.unmodifiable(expectedOutcomes),
-        battleDeclaredOutcomes =
-            List<String>.unmodifiable(battleDeclaredOutcomes);
+       battleDeclaredOutcomes = List<String>.unmodifiable(
+         battleDeclaredOutcomes,
+       );
 
   factory SceneRuntimePlanIntent.start() {
     return SceneRuntimePlanIntent._(kind: SceneRuntimePlanIntentKind.start);
@@ -210,9 +207,7 @@ final class SceneRuntimePlanIntent {
     );
   }
 
-  factory SceneRuntimePlanIntent.playCinematic({
-    required String cinematicId,
-  }) {
+  factory SceneRuntimePlanIntent.playCinematic({required String cinematicId}) {
     return SceneRuntimePlanIntent._(
       kind: SceneRuntimePlanIntentKind.playCinematic,
       cinematicId: cinematicId,
@@ -271,8 +266,7 @@ final class SceneRuntimePlanIntent {
         SceneRuntimePlanIntentKind.merge ||
         SceneRuntimePlanIntentKind.playCinematic ||
         SceneRuntimePlanIntentKind.playPresentationCinematic ||
-        SceneRuntimePlanIntentKind.applyConsequence =>
-          const ['completed'],
+    SceneRuntimePlanIntentKind.applyConsequence => const ['completed'],
         SceneRuntimePlanIntentKind.executeInteractiveCommand =>
           interactiveCommand?.outputPortIds ?? const <String>[],
         SceneRuntimePlanIntentKind.evaluateCondition => const ['true', 'false'],
@@ -282,8 +276,7 @@ final class SceneRuntimePlanIntent {
                     SceneBranchOutcomeFallbackPolicy.defaultRoute &&
                 !branchSourceOutcomes.contains('default'))
               'default',
-            if (branchFallbackPolicy ==
-                    SceneBranchOutcomeFallbackPolicy.errorRoute &&
+      if (branchFallbackPolicy == SceneBranchOutcomeFallbackPolicy.errorRoute &&
                 !branchSourceOutcomes.contains('error'))
               'error',
           ],
@@ -292,7 +285,8 @@ final class SceneRuntimePlanIntent {
             for (final outcome in expectedOutcomes)
               if (outcome != 'completed') outcome,
           ],
-        SceneRuntimePlanIntentKind.startBattle => battleDeclaredOutcomes.isEmpty
+    SceneRuntimePlanIntentKind.startBattle =>
+      battleDeclaredOutcomes.isEmpty
             ? const ['victory', 'defeat']
             : battleDeclaredOutcomes,
         SceneRuntimePlanIntentKind.end => const [],
@@ -316,10 +310,7 @@ final class SceneRuntimePlanIntent {
           other.trainerId == trainerId &&
           other.battleTemplateId == battleTemplateId &&
           other.npcEntityId == npcEntityId &&
-          _listEquals(
-            other.battleDeclaredOutcomes,
-            battleDeclaredOutcomes,
-          ) &&
+          _listEquals(other.battleDeclaredOutcomes, battleDeclaredOutcomes) &&
           other.cinematicId == cinematicId &&
           other.presentationCinematicId == presentationCinematicId &&
           other.consequence == consequence &&
@@ -440,8 +431,11 @@ String sceneExecutionCapabilityForRuntimeIntent(
     SceneRuntimePlanIntentKind.end => SceneExecutionCapabilityIds.flowEnd,
     SceneRuntimePlanIntentKind.evaluateCondition =>
       SceneExecutionCapabilityIds.worldCondition,
-    SceneRuntimePlanIntentKind.showDialogue =>
-      SceneExecutionCapabilityIds.worldDialogue,
+    SceneRuntimePlanIntentKind.showDialogue => switch (profile) {
+      SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldDialogue,
+      SceneExecutionProfile.preSession =>
+        SceneExecutionCapabilityIds.inputMessage,
+    },
     SceneRuntimePlanIntentKind.startBattle =>
       SceneExecutionCapabilityIds.worldBattle,
     SceneRuntimePlanIntentKind.playCinematic =>
@@ -452,15 +446,13 @@ String sceneExecutionCapabilityForRuntimeIntent(
     SceneRuntimePlanIntentKind.executeInteractiveCommand =>
       SceneExecutionCapabilityIds.worldAction,
     SceneRuntimePlanIntentKind.branchByOutcome => switch (profile) {
-        SceneExecutionProfile.world =>
-          SceneExecutionCapabilityIds.worldBranch,
+      SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldBranch,
         SceneExecutionProfile.preSession =>
           SceneExecutionCapabilityIds.flowBranch,
       },
     SceneRuntimePlanIntentKind.merge => switch (profile) {
         SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldMerge,
-        SceneExecutionProfile.preSession =>
-          SceneExecutionCapabilityIds.flowMerge,
+      SceneExecutionProfile.preSession => SceneExecutionCapabilityIds.flowMerge,
       },
   };
 }
@@ -470,9 +462,7 @@ final class SceneRuntimePlanBuildResult {
   SceneRuntimePlanBuildResult({
     required this.plan,
     required List<SceneRuntimePlanDiagnostic> diagnostics,
-  }) : diagnostics = List<SceneRuntimePlanDiagnostic>.unmodifiable(
-          diagnostics,
-        );
+  }) : diagnostics = List<SceneRuntimePlanDiagnostic>.unmodifiable(diagnostics);
 
   final SceneRuntimePlan? plan;
   final List<SceneRuntimePlanDiagnostic> diagnostics;

@@ -217,6 +217,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required RuntimeMapBundle bundle,
     required this.projectFilePath,
     SaveData? saveData,
+    GameState? initialGameState,
     GameSaveRepository? saveRepository,
     this.bundleTransformer,
     this.runtimeCutscenes = const <RuntimeCutsceneAsset>[],
@@ -251,9 +252,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     @visibleForTesting double Function()? devicePixelRatioProvider,
   })  : _bundle = bundle,
         _gameState = normalizeLoadedGameState(
-          saveData == null
-              ? const GameState(saveId: 'default')
-              : gameStateFromSaveData(saveData),
+          initialGameState ??
+              (saveData == null
+                  ? const GameState(saveId: 'default')
+                  : gameStateFromSaveData(saveData)),
         ),
         _dialogueSessionLoader = dialogueSessionLoader ?? loadDialogueContent,
         _runtimeMapBundleLoader =
@@ -280,9 +282,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             locale: runtimeLocale,
             emitCompletion: gameCompletionEmitter,
           );
-    _isProjectNewGameBoot =
-        saveData == null && _bundle.manifest.newGame.enabled;
-    if (_isProjectNewGameBoot) {
+    _isProjectNewGameBoot = saveData == null &&
+        (initialGameState != null || _bundle.manifest.newGame.enabled);
+    if (_isProjectNewGameBoot && initialGameState == null) {
       _gameState = createNewGameStateFromProject(
         project: _bundle.manifest,
         startMap: _bundle.map,

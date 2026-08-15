@@ -244,6 +244,11 @@ void main() {
         launchMode: GameSessionLaunchMode.newGame,
         profileId: 'golden-player',
         slotId: 'slot-1',
+        initialGameState: const GameState(
+          saveId: 'slot-1',
+          currentMapId: 'runtime_harbor',
+          trainerProfile: TrainerProfile(name: 'Phase 6 Player'),
+        ),
       );
       var mounted = false;
       var unmounted = false;
@@ -253,13 +258,14 @@ void main() {
           supportRoot: supportRoot,
           identity: launch.identity,
         ),
-        mountGame: (_) async {
+        mountGame: (game) async {
+          expect(game.gameStateSnapshot.saveId, 'slot-1');
+          expect(game.gameStateSnapshot.trainerProfile.name, 'Phase 6 Player');
           mounted = true;
         },
         unmountGame: (_) async {
           unmounted = true;
         },
-        saveIdFactory: () => 'phase-6-save',
         now: () => DateTime.utc(2026, 7, 27, 12),
       ).call(descriptor);
 

@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 
 import '../session/game_session_contract.dart';
 import '../session/game_session_controller.dart';
 import 'runtime_player_host.dart';
 import 'runtime_player_models.dart';
+import 'runtime_new_game_flow.dart';
 import 'runtime_player_pause_data.dart';
 import 'runtime_world_service_models.dart';
 
@@ -18,12 +20,14 @@ final class RuntimePlayerCoordinator {
     required RuntimeGameSource gameSource,
     required PlayerSaveGateway saveGateway,
     required PlayerPreferencesGateway preferencesGateway,
+    required RuntimeNewGameFlowPort newGameFlow,
     required GameSessionController sessionController,
     required RuntimeExternalExit externalExit,
     RuntimePlayerLoadSlot? defaultSaveSlot,
   })  : _gameSource = gameSource,
         _saveGateway = saveGateway,
         _preferencesGateway = preferencesGateway,
+        _newGameFlow = newGameFlow,
         _sessions = sessionController,
         _externalExit = externalExit,
         _defaultSaveSlot = defaultSaveSlot,
@@ -45,6 +49,7 @@ final class RuntimePlayerCoordinator {
   final RuntimeGameSource _gameSource;
   final PlayerSaveGateway _saveGateway;
   final PlayerPreferencesGateway _preferencesGateway;
+  final RuntimeNewGameFlowPort _newGameFlow;
   final GameSessionController _sessions;
   final RuntimeExternalExit _externalExit;
   final RuntimePlayerLoadSlot? _defaultSaveSlot;
@@ -60,6 +65,10 @@ final class RuntimePlayerCoordinator {
   _RuntimeLaunchRequest? _retryLaunch;
   RuntimePlayerSnapshot? _lifecycleResumeSnapshot;
   Future<bool>? _activeSaveBoundary;
+  HeadlessSceneInteractionPort? _preSessionInteractions;
+  StreamSubscription<SceneInteractionRequest>? _preSessionSubscription;
+  NewGameSeedCommitJournal _newGameCommitJournal =
+      NewGameSeedCommitJournal.empty();
   int _launchGeneration = 0;
   bool _lifecycleActive = true;
   bool _creditsOpenedFromTitle = false;
@@ -87,6 +96,11 @@ final class RuntimePlayerCoordinator {
     _ensureOpen();
     if (command.action == RuntimePlayerAction.cancel) {
       return _cancel(command);
+    }
+    if (command.action == RuntimePlayerAction.resolvePreSessionInteraction) {
+      return Future<RuntimePlayerCommandResult>.value(
+        _resolvePreSessionInteraction(command),
+      );
     }
     if (command.snapshotRevision == _snapshot.revision &&
         _snapshot.phase == RuntimePlayerPhase.saving) {
@@ -120,6 +134,7 @@ final class RuntimePlayerCoordinator {
         case RuntimePlayerAction.showCredits:
         case RuntimePlayerAction.finishCredits:
         case RuntimePlayerAction.cancel:
+        case RuntimePlayerAction.resolvePreSessionInteraction:
         case RuntimePlayerAction.returnToHost:
           break;
       }
@@ -139,7 +154,8 @@ final class RuntimePlayerCoordinator {
   }) {
     _ensureOpen();
     if (snapshotRevision == _snapshot.revision &&
-        (_snapshot.phase == RuntimePlayerPhase.preparingSession ||
+        (_snapshot.phase == RuntimePlayerPhase.preSession ||
+            _snapshot.phase == RuntimePlayerPhase.preparingSession ||
             _snapshot.phase == RuntimePlayerPhase.loadingSession)) {
       return _cancel(
         RuntimePlayerCommand(
@@ -159,6 +175,9 @@ final class RuntimePlayerCoordinator {
     // observe this generation change as soon as their current await returns.
     _lifecycleActive = false;
     _launchGeneration++;
+    _cancelPreSessionInteraction(
+      SceneInteractionCancellationReason.superseded,
+    );
     return _serialize(() async {
       _ensureOpen();
       if (_snapshot.phase == RuntimePlayerPhase.lifecyclePaused) return;
@@ -203,6 +222,7 @@ final class RuntimePlayerCoordinator {
           _publishPlaying();
         case RuntimePlayerPhase.boot:
         case RuntimePlayerPhase.title:
+        case RuntimePlayerPhase.preSession:
         case RuntimePlayerPhase.preparingSession:
         case RuntimePlayerPhase.loadingSession:
         case RuntimePlayerPhase.saving:
@@ -252,12 +272,12 @@ final class RuntimePlayerCoordinator {
             safeMessage: 'A profile and slot are required for a new game.',
           );
         }
-        return _launch(
+        return _launchNewGame(
           _RuntimeLaunchRequest(
             launchMode: GameSessionLaunchMode.newGame,
             profileId: slot.profileId,
             slotId: slot.slotId,
-            initialPlayerIdentity: switch (payload) {
+            requestedIdentity: switch (payload) {
               RuntimePlayerNewGameSetup() => payload.identity,
               _ => null,
             },
@@ -317,7 +337,9 @@ final class RuntimePlayerCoordinator {
                 : RuntimePlayerCommandStatus.failed,
           );
         }
-        return _launch(retry);
+        return retry.launchMode == GameSessionLaunchMode.newGame
+            ? _launchNewGame(retry)
+            : _launch(retry);
       case RuntimePlayerAction.openMenu:
         await _sessions.pause();
         final pauseDetails = Map<RuntimePlayerPauseSection,
@@ -553,6 +575,7 @@ final class RuntimePlayerCoordinator {
           checkpoint: _snapshot.phase == RuntimePlayerPhase.paused,
         );
       case RuntimePlayerAction.cancel:
+      case RuntimePlayerAction.resolvePreSessionInteraction:
         return const RuntimePlayerCommandResult(
           status: RuntimePlayerCommandStatus.unavailable,
           safeMessage: 'This action is not available on the current surface.',
@@ -612,6 +635,7 @@ final class RuntimePlayerCoordinator {
           when _snapshot.pauseSection == RuntimePlayerPauseSection.options =>
         RuntimePlayerAction.returnToTitle,
       RuntimePlayerPhase.title => RuntimePlayerAction.returnToHost,
+      RuntimePlayerPhase.preSession ||
       RuntimePlayerPhase.preparingSession ||
       RuntimePlayerPhase.loadingSession ||
       RuntimePlayerPhase.error =>
@@ -747,6 +771,281 @@ final class RuntimePlayerCoordinator {
     return _returnToTitle(checkpoint: false);
   }
 
+  Future<RuntimePlayerCommandResult> _launchNewGame(
+    _RuntimeLaunchRequest request,
+  ) async {
+    if (!_lifecycleActive) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.cancelled,
+      );
+    }
+    final generation = ++_launchGeneration;
+    final runId = 'new-game-$generation';
+    _retryLaunch = request;
+    _publish(
+      _snapshot.next(
+        phase: RuntimePlayerPhase.preSession,
+        clearLoadingProgress: true,
+        clearFailure: true,
+        clearPreSessionRequest: true,
+        actions: _cancelActions,
+      ),
+    );
+    final interactions = HeadlessSceneInteractionPort();
+    _preSessionInteractions = interactions;
+    _preSessionSubscription = interactions.requests.listen((interaction) {
+      if (generation != _launchGeneration || _disposed) return;
+      _publish(
+        _snapshot.next(
+          phase: RuntimePlayerPhase.preSession,
+          preSessionRequest: interaction,
+          actions: _preSessionInteractionActions,
+        ),
+      );
+    });
+    var keepPreload = false;
+    try {
+      final existing = await _saveGateway.readSummary(
+        SaveSlotAddress(
+          gameId: _gameSource.identity.gameId,
+          profileId: request.profileId,
+          slotId: request.slotId,
+        ),
+      );
+      if (generation != _launchGeneration) return _finishCancelledLaunch();
+      if (existing != null) {
+        final overwrite = await interactions.request(
+          SceneInteractionRequest.confirmation(
+            requestId: '$runId:overwrite',
+            revision: 0,
+            prompt: SceneInteractionPrompt(
+              localizationKey: 'player.new_game.confirm_overwrite',
+              fallbackText:
+                  'Cette sauvegarde existe déjà. Voulez-vous la remplacer ?',
+            ),
+          ),
+        );
+        if (generation != _launchGeneration) return _finishCancelledLaunch();
+        if (overwrite is SceneCancelledInteractionResult ||
+            overwrite is! SceneConfirmedInteractionResult ||
+            !overwrite.value) {
+          _publishTitle();
+          return const RuntimePlayerCommandResult(
+            status: RuntimePlayerCommandStatus.cancelled,
+          );
+        }
+        _publish(
+          _snapshot.next(
+            phase: RuntimePlayerPhase.preSession,
+            clearPreSessionRequest: true,
+            actions: _cancelActions,
+          ),
+        );
+      }
+      final preparation = await _newGameFlow.prepare();
+      if (generation != _launchGeneration) return _finishCancelledLaunch();
+      var draft = NewGameDraft.start(
+        draftId: '$runId:draft',
+        projectRevision: preparation.projectRevision,
+        slotId: request.slotId,
+        config: preparation.project.newGame,
+      );
+      draft = _applyRequestedIdentity(draft, request.requestedIdentity);
+      draft = _applyUnambiguousFallbacks(draft);
+      final runner = preparation.preSessionRunner;
+      if (runner != null) {
+        draft = await runner.run(
+          runId: runId,
+          draft: draft,
+          interactions: interactions,
+        );
+      }
+      if (generation != _launchGeneration) return _finishCancelledLaunch();
+      final currentProjectRevision =
+          await _newGameFlow.readCurrentProjectRevision();
+      if (generation != _launchGeneration) return _finishCancelledLaunch();
+      final commit = commitNewGameDraft(
+        journal: _newGameCommitJournal,
+        operationId: '$runId:commit',
+        currentProjectRevision: currentProjectRevision,
+        expectedDraftRevision: draft.revision,
+        draft: draft,
+      );
+      if (commit.status != NewGameSeedCommitStatus.committed &&
+          commit.status != NewGameSeedCommitStatus.replayed) {
+        throw StateError('The New Game draft could not be committed.');
+      }
+      _newGameCommitJournal = commit.journal;
+      final initialGameState = createNewGameStateFromSeed(
+        project: preparation.project,
+        startMap: preparation.startMap,
+        seed: commit.seed!,
+        currentProjectRevision: currentProjectRevision,
+        locale: _preferences?.locale ?? 'en',
+        tileWidthPx: preparation.project.settings.tileWidth,
+        tileHeightPx: preparation.project.settings.tileHeight,
+      );
+      if (generation != _launchGeneration) return _finishCancelledLaunch();
+      final launch = await _launch(
+        request.withInitialGameState(initialGameState),
+        launchGeneration: generation,
+      );
+      keepPreload = launch.status == RuntimePlayerCommandStatus.accepted;
+      return launch;
+    } catch (_) {
+      if (generation != _launchGeneration) {
+        return _finishCancelledLaunch();
+      }
+      _publishFailure(
+        const GameSessionFailure(
+          code: GameSessionFailureCode.runtime,
+          recoverability: GameSessionFailureRecoverability.retry,
+          safeMessage: 'La nouvelle partie n’a pas pu être préparée.',
+        ),
+        allowRetry: true,
+      );
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.failed,
+        safeMessage: 'La nouvelle partie n’a pas pu être préparée.',
+      );
+    } finally {
+      await _closePreSessionInteractions(interactions);
+      if (!keepPreload) _newGameFlow.clear();
+    }
+  }
+
+  NewGameDraft _applyRequestedIdentity(
+    NewGameDraft draft,
+    GameSessionPlayerIdentity? identity,
+  ) {
+    if (identity == null) return draft;
+    var next = _applyDraftCommand(
+      draft,
+      NewGameDraftCommand.setPlayerName(
+        expectedRevision: draft.revision,
+        playerName: identity.name,
+      ),
+    );
+    next = _applyDraftCommand(
+      next,
+      NewGameDraftCommand.setPronouns(
+        expectedRevision: next.revision,
+        pronounSet: identity.pronounSet,
+      ),
+    );
+    if (identity.avatarCharacterId != null) {
+      next = _applyDraftCommand(
+        next,
+        NewGameDraftCommand.selectAvatar(
+          expectedRevision: next.revision,
+          avatarCharacterId: identity.avatarCharacterId,
+        ),
+      );
+    }
+    return next;
+  }
+
+  NewGameDraft _applyUnambiguousFallbacks(NewGameDraft draft) {
+    var next = draft;
+    if (next.avatarCharacterId == null &&
+        next.allowedAvatarCharacterIds.length == 1) {
+      next = _applyDraftCommand(
+        next,
+        NewGameDraftCommand.selectAvatar(
+          expectedRevision: next.revision,
+          avatarCharacterId: next.allowedAvatarCharacterIds.single,
+        ),
+      );
+    }
+    if (next.starterOptionId == null &&
+        next.allowedStarterOptionIds.length == 1) {
+      next = _applyDraftCommand(
+        next,
+        NewGameDraftCommand.selectStarter(
+          expectedRevision: next.revision,
+          starterOptionId: next.allowedStarterOptionIds.single,
+        ),
+      );
+    }
+    return next;
+  }
+
+  NewGameDraft _applyDraftCommand(
+    NewGameDraft draft,
+    NewGameDraftCommand command,
+  ) {
+    final result = draft.apply(command);
+    if (result.status != NewGameDraftCommandStatus.applied) {
+      throw StateError('The guided New Game selection is invalid.');
+    }
+    return result.draft;
+  }
+
+  RuntimePlayerCommandResult _resolvePreSessionInteraction(
+    RuntimePlayerCommand command,
+  ) {
+    if (command.snapshotRevision != _snapshot.revision) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.stale,
+      );
+    }
+    if (!_snapshot.isActionEnabled(
+      RuntimePlayerAction.resolvePreSessionInteraction,
+    )) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.unavailable,
+      );
+    }
+    final result = command.payload;
+    final interactions = _preSessionInteractions;
+    if (result is! SceneInteractionResult || interactions == null) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.unavailable,
+      );
+    }
+    final resolution = interactions.resolve(result);
+    return RuntimePlayerCommandResult(
+      status: switch (resolution.status) {
+        SceneInteractionResolutionStatus.accepted =>
+          RuntimePlayerCommandStatus.accepted,
+        SceneInteractionResolutionStatus.staleRevision ||
+        SceneInteractionResolutionStatus.alreadyTerminal =>
+          RuntimePlayerCommandStatus.stale,
+        SceneInteractionResolutionStatus.unknownRequest ||
+        SceneInteractionResolutionStatus.kindMismatch ||
+        SceneInteractionResolutionStatus.invalidResult =>
+          RuntimePlayerCommandStatus.unavailable,
+      },
+    );
+  }
+
+  void _cancelPreSessionInteraction(
+    SceneInteractionCancellationReason reason,
+  ) {
+    final interactions = _preSessionInteractions;
+    final request = interactions?.pendingRequests.firstOrNull;
+    if (interactions == null || request == null) return;
+    interactions.cancel(
+      requestId: request.requestId,
+      revision: request.revision,
+      reason: reason,
+    );
+  }
+
+  Future<void> _closePreSessionInteractions(
+    HeadlessSceneInteractionPort interactions,
+  ) async {
+    if (!identical(_preSessionInteractions, interactions)) {
+      interactions.close();
+      return;
+    }
+    _preSessionInteractions = null;
+    final subscription = _preSessionSubscription;
+    _preSessionSubscription = null;
+    await subscription?.cancel();
+    interactions.close();
+  }
+
   Future<RuntimePlayerCommandResult> _launchSave(
     PlayerSaveSummary save,
     GameSessionLaunchMode launchMode,
@@ -770,18 +1069,20 @@ final class RuntimePlayerCoordinator {
   }
 
   Future<RuntimePlayerCommandResult> _launch(
-    _RuntimeLaunchRequest request,
-  ) async {
+    _RuntimeLaunchRequest request, {
+    int? launchGeneration,
+  }) async {
     if (!_lifecycleActive) {
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.cancelled,
       );
     }
-    final generation = ++_launchGeneration;
+    final generation = launchGeneration ?? ++_launchGeneration;
     _retryLaunch = request;
     _publish(
       _snapshot.next(
         phase: RuntimePlayerPhase.preparingSession,
+        clearPreSessionRequest: true,
         clearLoadingProgress: true,
         clearFailure: true,
         actions: _cancelActions,
@@ -793,7 +1094,7 @@ final class RuntimePlayerCoordinator {
         profileId: request.profileId,
         slotId: request.slotId,
         saveReadHandle: request.saveReadHandle,
-        initialPlayerIdentity: request.initialPlayerIdentity,
+        initialGameState: request.initialGameState,
       );
       if (generation != _launchGeneration) {
         return _finishCancelledLaunch();
@@ -853,6 +1154,8 @@ final class RuntimePlayerCoordinator {
       );
     }
     _launchGeneration++;
+    _cancelPreSessionInteraction(SceneInteractionCancellationReason.user);
+    _newGameFlow.clear();
     await _cancelLiveSession();
     _publishTitle();
     return const RuntimePlayerCommandResult(
@@ -924,6 +1227,13 @@ final class RuntimePlayerCoordinator {
     if (_disposed) return;
     _disposed = true;
     _launchGeneration++;
+    _cancelPreSessionInteraction(SceneInteractionCancellationReason.disposed);
+    _newGameFlow.clear();
+    final preSessionSubscription = _preSessionSubscription;
+    _preSessionSubscription = null;
+    _preSessionInteractions?.close();
+    _preSessionInteractions = null;
+    await preSessionSubscription?.cancel();
     await _cancelLiveSession();
     await _worldServiceSubscription.cancel();
     await _sessionSubscription.cancel();
@@ -1018,6 +1328,7 @@ final class RuntimePlayerCoordinator {
     _publish(
       _snapshot.next(
         phase: RuntimePlayerPhase.title,
+        clearPreSessionRequest: true,
         clearPauseSection: true,
         clearLoadingProgress: true,
         failure: failure,
@@ -1103,6 +1414,7 @@ final class RuntimePlayerCoordinator {
       _snapshot.next(
         phase: RuntimePlayerPhase.error,
         failure: failure,
+        clearPreSessionRequest: true,
         clearLoadingProgress: true,
         actions: <RuntimePlayerActionAvailability>[
           if (allowRetry)
@@ -1261,6 +1573,14 @@ final class RuntimePlayerCoordinator {
     RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.cancel),
   ];
 
+  static const _preSessionInteractionActions =
+      <RuntimePlayerActionAvailability>[
+    RuntimePlayerActionAvailability.enabled(
+      RuntimePlayerAction.resolvePreSessionInteraction,
+    ),
+    RuntimePlayerActionAvailability.enabled(RuntimePlayerAction.cancel),
+  ];
+
   List<RuntimePlayerActionAvailability> _resultActions(
     GameCompletionEvent completion,
   ) =>
@@ -1341,12 +1661,25 @@ final class _RuntimeLaunchRequest {
     required this.profileId,
     required this.slotId,
     this.saveReadHandle,
-    this.initialPlayerIdentity,
+    this.requestedIdentity,
+    this.initialGameState,
   });
 
   final GameSessionLaunchMode launchMode;
   final String profileId;
   final String slotId;
   final String? saveReadHandle;
-  final GameSessionPlayerIdentity? initialPlayerIdentity;
+  final GameSessionPlayerIdentity? requestedIdentity;
+  final GameState? initialGameState;
+
+  _RuntimeLaunchRequest withInitialGameState(GameState value) {
+    return _RuntimeLaunchRequest(
+      launchMode: launchMode,
+      profileId: profileId,
+      slotId: slotId,
+      saveReadHandle: saveReadHandle,
+      requestedIdentity: requestedIdentity,
+      initialGameState: value,
+    );
+  }
 }

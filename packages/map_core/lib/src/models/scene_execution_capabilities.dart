@@ -86,7 +86,11 @@ String sceneExecutionCapabilityForNode(
   return switch (node.kind) {
     SceneNodeKind.start => SceneExecutionCapabilityIds.flowStart,
     SceneNodeKind.end => SceneExecutionCapabilityIds.flowEnd,
-    SceneNodeKind.yarnDialogue => SceneExecutionCapabilityIds.worldDialogue,
+    SceneNodeKind.yarnDialogue => switch (profile) {
+      SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldDialogue,
+      SceneExecutionProfile.preSession =>
+        SceneExecutionCapabilityIds.inputMessage,
+    },
     SceneNodeKind.condition => SceneExecutionCapabilityIds.worldCondition,
     SceneNodeKind.action => SceneExecutionCapabilityIds.worldAction,
     SceneNodeKind.battle => SceneExecutionCapabilityIds.worldBattle,
@@ -100,8 +104,7 @@ String sceneExecutionCapabilityForNode(
       },
     SceneNodeKind.merge => switch (profile) {
         SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldMerge,
-        SceneExecutionProfile.preSession =>
-          SceneExecutionCapabilityIds.flowMerge,
+      SceneExecutionProfile.preSession => SceneExecutionCapabilityIds.flowMerge,
       },
   };
 }

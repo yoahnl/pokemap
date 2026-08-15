@@ -45,6 +45,12 @@
       ]
     }
   ],
+  "newGame": {
+    "enabled": true,
+    "startMapId": "golden_field",
+    "startSpawnId": "spawn_start",
+    "playerName": "Player"
+  },
   "pokemon": {
     "enabled": true,
     "dataRoot": "data/pokemon",

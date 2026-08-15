@@ -8,6 +8,8 @@ final class RuntimePlayerTestHarness {
     PlayerSaveSummary? latestSave,
     Future<void>? descriptorGate,
     Object? descriptorError,
+    Future<void>? newGamePreparationGate,
+    RuntimeNewGamePreSessionRunner? preSessionRunner,
     GameSessionSavePolicy savePolicy = const GameSessionSavePolicy(),
     RuntimePlayerLoadSlot? defaultSaveSlot,
   })  : source = MemoryRuntimeGameSource(
@@ -16,6 +18,10 @@ final class RuntimePlayerTestHarness {
         ),
         preferences = MemoryPlayerPreferencesGateway(),
         exit = MemoryRuntimeExternalExit() {
+    newGameFlow = MemoryRuntimeNewGameFlowPort(
+      preparationGate: newGamePreparationGate,
+      preSessionRunner: preSessionRunner,
+    );
     saves = MemoryPlayerSaveGateway(
       identity: source.identity,
       latestSave: latestSave,
@@ -33,6 +39,7 @@ final class RuntimePlayerTestHarness {
       gameSource: source,
       saveGateway: saves,
       preferencesGateway: preferences,
+      newGameFlow: newGameFlow,
       sessionController: sessions,
       externalExit: exit,
       defaultSaveSlot: defaultSaveSlot,
@@ -41,6 +48,7 @@ final class RuntimePlayerTestHarness {
   }
 
   final MemoryRuntimeGameSource source;
+  late final MemoryRuntimeNewGameFlowPort newGameFlow;
   late final MemoryPlayerSaveGateway saves;
   final MemoryPlayerPreferencesGateway preferences;
   final MemoryRuntimeExternalExit exit;
@@ -59,14 +67,14 @@ final class SessionDescriptorRequest {
     required this.profileId,
     required this.slotId,
     required this.saveReadHandle,
-    required this.initialPlayerIdentity,
+    required this.initialGameState,
   });
 
   final GameSessionLaunchMode launchMode;
   final String profileId;
   final String slotId;
   final String? saveReadHandle;
-  final GameSessionPlayerIdentity? initialPlayerIdentity;
+  final GameState? initialGameState;
 }
 
 final class MemoryRuntimeGameSource implements RuntimeGameSource {
@@ -98,7 +106,7 @@ final class MemoryRuntimeGameSource implements RuntimeGameSource {
     required String profileId,
     required String slotId,
     String? saveReadHandle,
-    GameSessionPlayerIdentity? initialPlayerIdentity,
+    GameState? initialGameState,
   }) async {
     requests.add(
       SessionDescriptorRequest(
@@ -106,7 +114,7 @@ final class MemoryRuntimeGameSource implements RuntimeGameSource {
         profileId: profileId,
         slotId: slotId,
         saveReadHandle: saveReadHandle,
-        initialPlayerIdentity: initialPlayerIdentity,
+        initialGameState: initialGameState,
       ),
     );
     await descriptorGate;
@@ -125,8 +133,79 @@ final class MemoryRuntimeGameSource implements RuntimeGameSource {
       grantedCapabilities: const <String>{'battle.v1'},
       locale: 'fr',
       accessibility: const GameSessionAccessibilityOptions(),
-      initialPlayerIdentity: initialPlayerIdentity,
+      initialGameState: initialGameState,
     );
+  }
+}
+
+final class MemoryRuntimeNewGameFlowPort implements RuntimeNewGameFlowPort {
+  MemoryRuntimeNewGameFlowPort({
+    this.preparationGate,
+    RuntimeNewGamePreSessionRunner? preSessionRunner,
+  }) {
+    project = ProjectManifest(
+      name: 'Runtime Player Test',
+      version: ProjectVersion.v7,
+      maps: const <ProjectMapEntry>[
+        ProjectMapEntry(
+          id: 'start_map',
+          name: 'Start',
+          relativePath: 'maps/start_map.json',
+        ),
+      ],
+      tilesets: const <ProjectTilesetEntry>[],
+      newGame: const ProjectNewGameConfig(
+        enabled: true,
+        startMapId: 'start_map',
+      ),
+    );
+    preparation = RuntimeNewGamePreparation(
+      projectRevision: 'sha256:runtime-player-test',
+      project: project,
+      startMap: const MapData(
+        id: 'start_map',
+        name: 'Start',
+        size: GridSize(width: 4, height: 4),
+        version: ProjectVersion.v7,
+        mapMetadata: MapMetadata(defaultSpawnId: 'spawn_start'),
+        entities: <MapEntity>[
+          MapEntity(
+            id: 'spawn_start',
+            kind: MapEntityKind.spawn,
+            pos: GridPos(x: 1, y: 1),
+            spawn: MapEntitySpawnData(
+              spawnKey: 'spawn_start',
+              role: EntitySpawnRole.playerStart,
+              facing: EntityFacing.south,
+            ),
+          ),
+        ],
+      ),
+      preSessionRunner: preSessionRunner,
+    );
+    currentProjectRevision = preparation.projectRevision;
+  }
+
+  final Future<void>? preparationGate;
+  late final ProjectManifest project;
+  late final RuntimeNewGamePreparation preparation;
+  late String currentProjectRevision;
+  int prepareCalls = 0;
+  int clearCalls = 0;
+
+  @override
+  Future<RuntimeNewGamePreparation> prepare() async {
+    prepareCalls++;
+    await preparationGate;
+    return preparation;
+  }
+
+  @override
+  Future<String> readCurrentProjectRevision() async => currentProjectRevision;
+
+  @override
+  void clear() {
+    clearCalls++;
   }
 }
 

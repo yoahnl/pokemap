@@ -82,6 +82,40 @@ void main() {
       expect(unknown.issueCode?.wireName, 'scene.capability.unknown');
     });
 
+    test('maps dialogue to the profile-specific interaction capability', () {
+      final node = SceneNode(
+        id: 'node_dialogue',
+        kind: SceneNodeKind.yarnDialogue,
+        payload: SceneYarnDialoguePayload(dialogueId: 'dialogue_intro'),
+      );
+      final intent = SceneRuntimePlanIntent.showDialogue(
+        dialogueId: 'dialogue_intro',
+      );
+
+      expect(
+        sceneExecutionCapabilityForNode(SceneExecutionProfile.world, node),
+        SceneExecutionCapabilityIds.worldDialogue,
+      );
+      expect(
+        sceneExecutionCapabilityForRuntimeIntent(
+          SceneExecutionProfile.world,
+          intent,
+        ),
+        SceneExecutionCapabilityIds.worldDialogue,
+      );
+      expect(
+        sceneExecutionCapabilityForNode(SceneExecutionProfile.preSession, node),
+        SceneExecutionCapabilityIds.inputMessage,
+      );
+      expect(
+        sceneExecutionCapabilityForRuntimeIntent(
+          SceneExecutionProfile.preSession,
+          intent,
+        ),
+        SceneExecutionCapabilityIds.inputMessage,
+      );
+    });
+
     test('blocks world-only nodes with one shared diagnostic code', () async {
       final scene = _scene(
         profile: SceneExecutionProfile.preSession,
@@ -101,8 +135,8 @@ void main() {
         scene,
       ).byCode(SceneDiagnosticCode.capabilityForbiddenForProfile).single;
       final build = buildSceneRuntimePlan(scene);
-      final runtime =
-          await SceneRuntimeExecutor(callbacks: _callbacks()).execute(
+      final runtime = await SceneRuntimeExecutor(callbacks: _callbacks())
+          .execute(
         _runtimePlan(
           profile: SceneExecutionProfile.preSession,
           middleIntent: SceneRuntimePlanIntent.startBattle(
@@ -145,10 +179,7 @@ void main() {
         middleEdgeKind: SceneEdgeKind.presentationCompleted,
       );
       final presentationNode = scene.graph.nodes[1];
-      expect(
-        SceneNode.fromJson(presentationNode.toJson()),
-        presentationNode,
-      );
+      expect(SceneNode.fromJson(presentationNode.toJson()), presentationNode);
       final build = buildSceneRuntimePlan(scene);
       var presentationCalls = 0;
 

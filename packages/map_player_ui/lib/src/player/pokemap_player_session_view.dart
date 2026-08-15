@@ -226,6 +226,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
       RuntimePlayerPhase.result => PlayerInputSurface.result,
       RuntimePlayerPhase.credits => PlayerInputSurface.credits,
       RuntimePlayerPhase.boot ||
+      RuntimePlayerPhase.preSession ||
       RuntimePlayerPhase.preparingSession ||
       RuntimePlayerPhase.loadingSession ||
       RuntimePlayerPhase.saving ||
@@ -476,6 +477,13 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
           controlProfile:
               widget.onControlProfileChanged == null ? null : _controlProfile,
           onControlProfileChanged: widget.onControlProfileChanged,
+          onPreSessionResult: (result) => unawaited(
+            _dispatchCommand(
+              RuntimePlayerAction.resolvePreSessionInteraction,
+              snapshot,
+              payload: result,
+            ),
+          ),
           onAction: (action) => _dispatchSurfaceAction(action, snapshot),
         ),
         if (showTouchControls)

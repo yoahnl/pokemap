@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -27,6 +28,7 @@ void main() {
     expect(find.byKey(const ValueKey<String>('test-game-scene')), findsNothing);
 
     for (final phase in <RuntimePlayerPhase>[
+      RuntimePlayerPhase.preSession,
       RuntimePlayerPhase.preparingSession,
       RuntimePlayerPhase.loadingSession,
       RuntimePlayerPhase.playing,
@@ -454,6 +456,53 @@ void main() {
     await tester.tap(find.text('Annuler'));
     expect(controller.commands.single.action, RuntimePlayerAction.cancel);
     expect(controller.commands.single.snapshotRevision, 11);
+  });
+
+  testWidgets('routes a preSession result through the Player command',
+      (tester) async {
+    final request = SceneInteractionRequest.message(
+      requestId: 'pre-session-intro',
+      revision: 3,
+      prompt: SceneInteractionPrompt(
+        localizationKey: 'test.pre_session.intro',
+        fallbackText: 'Bienvenue à Avelune.',
+      ),
+    );
+    final controller = _FakeRuntimePlayerCoordinator(
+      RuntimePlayerSnapshot(
+        revision: 12,
+        phase: RuntimePlayerPhase.preSession,
+        gameTitle: 'Aube',
+        preSessionRequest: request,
+        actions: const <RuntimePlayerActionAvailability>[
+          RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.resolvePreSessionInteraction,
+          ),
+        ],
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(_app(_view(controller)));
+    expect(find.text('Bienvenue à Avelune.'), findsOneWidget);
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('scene-interaction-message-submit'),
+      ),
+    );
+
+    final command = controller.commands.single;
+    expect(
+      command.action,
+      RuntimePlayerAction.resolvePreSessionInteraction,
+    );
+    expect(command.snapshotRevision, 12);
+    expect(
+      command.payload,
+      isA<SceneAcknowledgedInteractionResult>()
+          .having((result) => result.requestId, 'requestId', request.requestId)
+          .having((result) => result.revision, 'revision', request.revision),
+    );
   });
 
   testWidgets('keeps the game scene mounted only across live session phases',

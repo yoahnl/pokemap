@@ -133,6 +133,10 @@ final class StandaloneRuntimeStartupHost {
       loadSave: (_) => saves.readEnvelope(),
       manifestLoader: (_) async => manifest,
     );
+    final newGameFlow = RuntimeProjectNewGameFlowPort(
+      projectFilePath: () async => projectFilePath,
+      initialMapPreloader: initialMapPreloader,
+    );
     final source = _StandaloneRuntimeGameSource(
       identity: identity,
       displayTitle: manifest.name,
@@ -156,6 +160,7 @@ final class StandaloneRuntimeStartupHost {
       gameSource: source,
       saveGateway: saves,
       preferencesGateway: preferences,
+      newGameFlow: newGameFlow,
       sessionController: sessions,
       externalExit: _CallbackRuntimeExternalExit(onExternalExit ?? _noOp),
       defaultSaveSlot: const RuntimePlayerLoadSlot(
@@ -442,7 +447,7 @@ final class _StandaloneRuntimeGameSource implements RuntimeGameSource {
     required String profileId,
     required String slotId,
     String? saveReadHandle,
-    GameSessionPlayerIdentity? initialPlayerIdentity,
+    GameState? initialGameState,
   }) async {
     final playerPreferences = await preferences.load();
     final serial = ++_sessionSerial;
@@ -466,7 +471,7 @@ final class _StandaloneRuntimeGameSource implements RuntimeGameSource {
       },
       locale: playerPreferences.locale,
       accessibility: playerPreferences.accessibility,
-      initialPlayerIdentity: initialPlayerIdentity,
+      initialGameState: initialGameState,
     );
   }
 }
