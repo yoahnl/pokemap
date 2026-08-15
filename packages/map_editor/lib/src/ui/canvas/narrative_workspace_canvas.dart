@@ -47,6 +47,7 @@ import 'cinematics/presentation/presentation_studio_diagnostic.dart';
 import 'cinematics/presentation/presentation_studio_shell.dart';
 import 'cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'cinematics/presentation/presentation_studio_properties_panel.dart';
+import 'cinematics/presentation/presentation_studio_project_content_controller.dart';
 import 'cinematics/presentation/presentation_studio_responsive_canvas.dart';
 import 'cinematics/presentation/presentation_studio_timeline.dart';
 import 'cinematics/presentation/presentation_timeline_editing_controller.dart';
@@ -1898,6 +1899,10 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               queries: ref.read(authoringQueryAdapterProvider),
             ),
           ),
+          presentationMediaReader:
+              AuthoringPresentationTimelineProjectionMediaReader(
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
           projectRootPath: editor.projectRootPath,
           project: editor.project,
           activeMap: editor.activeMap,
@@ -2756,6 +2761,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
     required this.presentationPropertyGateway,
     required this.presentationAddGateway,
     required this.presentationTimelineProjectionGateway,
+    required this.presentationMediaReader,
     required this.projectRootPath,
     required this.project,
     required this.activeMap,
@@ -2782,6 +2788,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   final PresentationStudioAddAuthoringGateway presentationAddGateway;
   final PresentationTimelineProjectionGateway
       presentationTimelineProjectionGateway;
+  final PresentationTimelineProjectionMediaReader presentationMediaReader;
   final String? projectRootPath;
   final ProjectManifest? project;
   final MapData? activeMap;
@@ -2814,6 +2821,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       _presentationTimelineEditingController;
   PresentationTimelineProjectionController?
       _presentationTimelineProjectionController;
+  PresentationStudioProjectContentController?
+      _presentationProjectContentController;
   final List<PresentationTimelineAuthoringTransaction>
       _presentationTimelineUndo = <PresentationTimelineAuthoringTransaction>[];
   final List<PresentationTimelineAuthoringTransaction>
@@ -2834,6 +2843,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     _presentationResponsiveCanvasController =
         PresentationStudioResponsiveCanvasController(durationUs: 0);
     _syncPresentationTimelineProjectionController();
+    _syncPresentationProjectContentController();
     _syncRequestedChildRoute();
     _capturePresentationSource();
   }
@@ -2842,6 +2852,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   void dispose() {
     _presentationTimelineEditingController?.dispose();
     _presentationTimelineProjectionController?.dispose();
+    _presentationProjectContentController?.dispose();
     _presentationResponsiveCanvasController.dispose();
     super.dispose();
   }
@@ -2868,6 +2879,12 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         oldWidget.project != widget.project) {
       _syncPresentationTimelineProjectionController();
     }
+    if (oldWidget.projectRootPath != widget.projectRootPath) {
+      _syncPresentationProjectContentController();
+    } else if (oldWidget.project != widget.project ||
+        oldWidget.documentRoute != widget.documentRoute) {
+      _preparePresentationProjectContent();
+    }
   }
 
   void _syncPresentationTimelineProjectionController() {
@@ -2880,6 +2897,37 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
             projectRootPath: projectRootPath,
             gateway: widget.presentationTimelineProjectionGateway,
           );
+  }
+
+  void _syncPresentationProjectContentController() {
+    _presentationProjectContentController?.dispose();
+    final projectRootPath = widget.projectRootPath?.trim();
+    _presentationProjectContentController =
+        projectRootPath == null || projectRootPath.isEmpty
+        ? null
+        : PresentationStudioProjectContentController(
+            projectRootPath: projectRootPath,
+            mediaReader: widget.presentationMediaReader,
+            projectionGateway: widget.presentationTimelineProjectionGateway,
+          );
+    _preparePresentationProjectContent();
+  }
+
+  void _preparePresentationProjectContent() {
+    final controller = _presentationProjectContentController;
+    final route = widget.documentRoute;
+    final project = widget.project;
+    if (controller == null ||
+        project == null ||
+        route?.kind != NarrativeDocumentKind.presentationCinematic) {
+      return;
+    }
+    for (final asset in project.presentationCinematics) {
+      if (asset.id == route!.documentId) {
+        unawaited(controller.prepare(asset));
+        return;
+      }
+    }
   }
 
   void _syncRequestedChildRoute() {
@@ -3018,6 +3066,36 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           ? _presentationDocumentState(narrativeStatus)
           : PokeMapCinematicDocumentState.saved;
       final evaluator = const PresentationCinematicEvaluator();
+      Widget buildPresentationCanvas(PresentationFrameContentPort contentPort) =>
+          PresentationStudioResponsiveCanvas(
+            controller: _presentationResponsiveCanvasController,
+            frameBuilder: (playheadUs) => documentIsEmpty
+                ? null
+                : evaluator.evaluate(
+                    resolvedAsset,
+                    timeUs: playheadUs
+                        .clamp(0, resolvedAsset.durationUs)
+                        .toInt(),
+                  ),
+            contentPort: contentPort,
+            playerTheme: PokeMapPlayerTheme.dark(),
+            orientationOverrides: _presentationOrientationOverrides(
+              resolvedAsset,
+            ),
+            mediaBindings: _presentationResponsiveMediaBindings(
+              resolvedAsset,
+            ),
+            asset: resolvedAsset,
+            onRetry: _presentationResponsiveCanvasController.setReady,
+          );
+      final projectContentController = _presentationProjectContentController;
+      final presentationCanvas = projectContentController == null
+          ? buildPresentationCanvas(const _PresentationStudioContentPort())
+          : AnimatedBuilder(
+              animation: projectContentController,
+              builder: (context, _) =>
+                  buildPresentationCanvas(projectContentController),
+            );
       return KeyedSubtree(
         key: const ValueKey('cinematics-presentation-document-route'),
         child: PresentationStudioShell(
@@ -3049,27 +3127,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           previewToolbar: PresentationStudioResponsiveToolbar(
             controller: _presentationResponsiveCanvasController,
           ),
-          canvas: PresentationStudioResponsiveCanvas(
-            controller: _presentationResponsiveCanvasController,
-            frameBuilder: (playheadUs) => documentIsEmpty
-                ? null
-                : evaluator.evaluate(
-                    resolvedAsset,
-                    timeUs: playheadUs
-                        .clamp(0, resolvedAsset.durationUs)
-                        .toInt(),
-                  ),
-            contentPort: const _PresentationStudioContentPort(),
-            playerTheme: PokeMapPlayerTheme.dark(),
-            orientationOverrides: _presentationOrientationOverrides(
-              resolvedAsset,
-            ),
-            mediaBindings: _presentationResponsiveMediaBindings(
-              resolvedAsset,
-            ),
-            asset: resolvedAsset,
-            onRetry: _presentationResponsiveCanvasController.setReady,
-          ),
+          canvas: presentationCanvas,
           layersPanel: PresentationStudioLayerTree(
             asset: resolvedAsset,
             playheadUs: _presentationResponsiveCanvasController.playheadUs,
