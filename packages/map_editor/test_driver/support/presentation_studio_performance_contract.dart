@@ -123,7 +123,8 @@ void _validateLibrary(Object? value, {required bool enforceBudgets}) {
       value['firstUs'] is! int ||
       (value['firstUs']! as int) < 0 ||
       value['restoredFolder'] != true ||
-      value['restoredScrollOffset'] != true) {
+      value['restoredScrollOffset'] != true ||
+      value['restoredQuery'] != true) {
     throw const FormatException('CIN-060 Library evidence is incomplete.');
   }
   final search = _validateMetrics(value['search'], minimumSamples: 31);

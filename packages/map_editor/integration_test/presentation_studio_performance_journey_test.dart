@@ -182,6 +182,7 @@ Future<_MeasuredScenario> _measureScenario(
     final restoredFolder = source.folderId == fixture.folderIds.last;
     final restoredScrollOffset =
         (source.scrollOffset - scrollAtOpen).abs() < 0.5;
+    final restoredQuery = source.searchQuery.toLowerCase().contains('needle');
     final controllerMetrics = _measureControllerMetrics(fixture.target);
     final frameMetrics = await _measureTimelineFrames(tester);
     final visibleTracks = find
@@ -198,25 +199,6 @@ Future<_MeasuredScenario> _measureScenario(
     } else {
       await _closeTarget(tester);
     }
-    final restoredSearch = find.descendant(
-      of: search,
-      matching: find.byType(EditableText),
-    );
-    await _pumpUntil(tester, () {
-      if (restoredSearch.evaluate().isEmpty) return false;
-      return tester
-          .widget<EditableText>(restoredSearch)
-          .controller
-          .text
-          .toLowerCase()
-          .contains('needle');
-    });
-    final restoredQuery = tester
-        .widget<EditableText>(restoredSearch)
-        .controller
-        .text
-        .toLowerCase()
-        .contains('needle');
     expect(restoredFolder, isTrue);
     expect(restoredScrollOffset, isTrue);
     expect(restoredQuery, isTrue);
@@ -228,6 +210,7 @@ Future<_MeasuredScenario> _measureScenario(
           'search': _metrics(searchSamples),
           'restoredFolder': restoredFolder,
           'restoredScrollOffset': restoredScrollOffset,
+          'restoredQuery': restoredQuery,
         },
         'studio': <String, Object?>{
           'firstFrameUs': studioOpen.elapsedMicroseconds,

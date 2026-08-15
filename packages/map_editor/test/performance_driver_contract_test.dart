@@ -78,6 +78,18 @@ void main() {
     );
   });
 
+  test('rejects a CIN-060 receipt without restored library search', () {
+    final receipt = _validPresentationStudioReceipt();
+    final scenarios = receipt['scenarios']! as List<Map<String, Object?>>;
+    final library = scenarios.first['library']! as Map<String, Object?>;
+    library['restoredQuery'] = false;
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
   test('accepts a complete PERF-009 soak receipt', () {
     expect(
       () => performance_driver.validatePerformanceResponse(_validSoakReceipt()),
@@ -566,6 +578,7 @@ Map<String, dynamic> _validPresentationStudioReceipt() => <String, dynamic>{
           'search': _sampleMetrics(List<int>.filled(31, 1000)),
           'restoredFolder': true,
           'restoredScrollOffset': true,
+          'restoredQuery': true,
         },
         'studio': <String, Object?>{
           'firstFrameUs': 1000,
