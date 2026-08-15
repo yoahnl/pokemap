@@ -354,10 +354,15 @@ void main() {
         beforeAddPanel,
       );
 
+      await tester.tap(find.byKey(presentationStudioPlayPauseKey));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
       await tester.tap(
         find.byKey(const ValueKey('cinematics-presentation-route-back')),
       );
       await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
 
       expect(
         container
@@ -365,6 +370,7 @@ void main() {
             .documentRoute,
         isNull,
       );
+      expect(tester.takeException(), isNull);
       expect(find.text('Ouvertures'), findsWidgets);
       final search = tester.widget<EditableText>(
         find.descendant(

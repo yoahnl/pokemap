@@ -83,6 +83,9 @@ class PresentationStudioViewport extends StatefulWidget {
     this.errorMessage,
     this.onRetry,
     this.showSafeArea = true,
+    this.reduceMotion,
+    this.reduceFlashes = false,
+    this.showCaptions = true,
     this.orientationOverrides = const PresentationFrameOrientationOverrides(),
     this.onFocused,
     this.onCompositionTap,
@@ -97,6 +100,9 @@ class PresentationStudioViewport extends StatefulWidget {
   final String? errorMessage;
   final VoidCallback? onRetry;
   final bool showSafeArea;
+  final bool? reduceMotion;
+  final bool reduceFlashes;
+  final bool showCaptions;
   final PresentationFrameOrientationOverrides orientationOverrides;
   final VoidCallback? onFocused;
   final ValueChanged<Offset>? onCompositionTap;
@@ -296,6 +302,9 @@ class _PresentationStudioViewportState
       orientation: widget.orientation,
       contentPort: widget.contentPort,
       playerTheme: widget.playerTheme,
+      reduceMotion: widget.reduceMotion,
+      reduceFlashes: widget.reduceFlashes,
+      showCaptions: widget.showCaptions,
       orientationOverrides: widget.orientationOverrides,
     );
   }

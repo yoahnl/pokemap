@@ -68,6 +68,7 @@ export 'src/models/presentation_cinematic_template_catalog.dart';
 export 'src/models/project_media_catalog.dart';
 export 'src/read_models/presentation_frame.dart';
 export 'src/operations/presentation_cinematic_evaluator.dart';
+export 'src/operations/presentation_playback_clock.dart';
 export 'src/operations/cinematic_library_catalog_operations.dart';
 export 'src/operations/presentation_media_publication.dart';
 export 'src/serialization/presentation_cinematic_codec.dart';

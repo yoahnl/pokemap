@@ -1916,7 +1916,6 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     return mainContent;
   }
 }
-
 EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(
   EditorState editor,
 ) {
@@ -2660,7 +2659,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     super.initState();
     _presentationLayoutStore = FilePresentationStudioLayoutStore();
     _presentationResponsiveCanvasController =
-        PresentationStudioResponsiveCanvasController();
+        PresentationStudioResponsiveCanvasController(durationUs: 0);
     _syncRequestedChildRoute();
     _capturePresentationSource();
   }
@@ -2680,6 +2679,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       _syncRequestedChildRoute();
     }
     if (oldWidget.documentRoute != widget.documentRoute) {
+      _presentationResponsiveCanvasController.stop();
       _presentationTimelineEditingController?.cancelDrag();
       _presentationTimelineUndo.clear();
       _presentationTimelineRedo.clear();
@@ -2789,6 +2789,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         );
       }
       final resolvedAsset = asset;
+      _presentationResponsiveCanvasController.configureDuration(
+        resolvedAsset.durationUs,
+        notify: false,
+      );
       final timelineEditingController =
           _presentationTimelineEditingController ??=
               PresentationTimelineEditingController(asset: resolvedAsset);

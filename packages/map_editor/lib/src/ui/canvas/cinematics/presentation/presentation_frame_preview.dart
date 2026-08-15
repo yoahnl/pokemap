@@ -9,6 +9,9 @@ class PresentationFramePreview extends StatelessWidget {
     required this.orientation,
     required this.contentPort,
     required this.playerTheme,
+    this.reduceMotion,
+    this.reduceFlashes = false,
+    this.showCaptions = true,
     this.orientationOverrides = const PresentationFrameOrientationOverrides(),
   });
 
@@ -16,6 +19,9 @@ class PresentationFramePreview extends StatelessWidget {
   final PresentationFrameOrientation orientation;
   final PresentationFrameContentPort contentPort;
   final ThemeData playerTheme;
+  final bool? reduceMotion;
+  final bool reduceFlashes;
+  final bool showCaptions;
   final PresentationFrameOrientationOverrides orientationOverrides;
 
   @override
@@ -25,6 +31,9 @@ class PresentationFramePreview extends StatelessWidget {
       frame: frame,
       orientation: orientation,
       contentPort: contentPort,
+      reduceMotion: reduceMotion,
+      reduceFlashes: reduceFlashes,
+      showCaptions: showCaptions,
       orientationOverrides: orientationOverrides,
     ),
   );

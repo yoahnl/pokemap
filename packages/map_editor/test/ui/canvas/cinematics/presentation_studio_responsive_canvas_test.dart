@@ -16,6 +16,7 @@ void main() {
     'controller preserves playhead, selection and orientation viewports',
     () {
       final controller = PresentationStudioResponsiveCanvasController(
+        durationUs: 4_000_000,
         playheadUs: 2_000_000,
         initialSelection: const PresentationStudioSelection(
           layerId: 'hero-layer',
@@ -47,6 +48,7 @@ void main() {
     tester,
   ) async {
     final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
       playheadUs: 2_000_000,
     );
     addTearDown(controller.dispose);
@@ -92,10 +94,103 @@ void main() {
     expect(find.textContaining('00:02.000'), findsOneWidget);
   });
 
+  testWidgets('temporal preview evaluates one shared frame at the playhead', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
+      mode: PresentationStudioCanvasMode.compare,
+    );
+    addTearDown(controller.dispose);
+
+    await _pumpResponsiveCanvas(
+      tester,
+      controller: controller,
+      frameBuilder: (playheadUs) => _frame(timeUs: playheadUs),
+    );
+
+    await tester.tap(find.byKey(presentationStudioPlayPauseKey));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    final renderers = tester
+        .widgetList<PresentationFrameRenderer>(
+          find.byType(PresentationFrameRenderer),
+        )
+        .toList();
+    expect(controller.playheadUs, 250_000);
+    expect(renderers.map((renderer) => renderer.frame.timeUs).toSet(), {
+      250_000,
+    });
+    expect(identical(renderers.first.frame, renderers.last.frame), isTrue);
+  });
+
+  testWidgets('preview forwards renderer accessibility preferences', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
+    );
+    addTearDown(controller.dispose);
+
+    await _pumpResponsiveCanvas(
+      tester,
+      controller: controller,
+      frameBuilder: (_) => _frame(),
+      reduceMotion: true,
+      reduceFlashes: true,
+      showCaptions: false,
+    );
+
+    final renderer = tester.widget<PresentationFrameRenderer>(
+      find.byType(PresentationFrameRenderer),
+    );
+    expect(renderer.reduceMotion, isTrue);
+    expect(renderer.reduceFlashes, isTrue);
+    expect(renderer.showCaptions, isFalse);
+  });
+
+  testWidgets('preview exposes loading and renderer error states', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
+    );
+    addTearDown(controller.dispose);
+    controller.setLoading();
+
+    await _pumpResponsiveCanvas(
+      tester,
+      controller: controller,
+      frameBuilder: (_) => _frame(),
+    );
+
+    expect(
+      tester
+          .widget<PresentationStudioViewport>(
+            find.byType(PresentationStudioViewport),
+          )
+          .state,
+      PresentationStudioViewportState.loading,
+    );
+
+    controller.setError('Décodage vidéo impossible.');
+    await tester.pump();
+
+    final viewport = tester.widget<PresentationStudioViewport>(
+      find.byType(PresentationStudioViewport),
+    );
+    expect(viewport.state, PresentationStudioViewportState.error);
+    expect(viewport.errorMessage, 'Décodage vidéo impossible.');
+    expect(find.byType(PresentationFrameRenderer), findsNothing);
+  });
+
   testWidgets('canvas tap updates the shared Presentation selection', (
     tester,
   ) async {
-    final controller = PresentationStudioResponsiveCanvasController();
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
+    );
     addTearDown(controller.dispose);
     final asset = PresentationCinematicAsset(
       id: 'opening',
@@ -140,6 +235,7 @@ void main() {
     tester,
   ) async {
     final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
       mode: PresentationStudioCanvasMode.compare,
     );
     addTearDown(controller.dispose);
@@ -175,6 +271,7 @@ void main() {
     tester,
   ) async {
     final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
       mode: PresentationStudioCanvasMode.compare,
     );
     addTearDown(controller.dispose);
@@ -210,6 +307,7 @@ void main() {
     tester,
   ) async {
     final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
       mode: PresentationStudioCanvasMode.compare,
     );
     addTearDown(controller.dispose);
@@ -250,6 +348,7 @@ void main() {
     tester,
   ) async {
     final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
       mode: PresentationStudioCanvasMode.compare,
     );
     addTearDown(controller.dispose);
@@ -283,6 +382,7 @@ void main() {
     tester,
   ) async {
     final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
       mode: PresentationStudioCanvasMode.compare,
     );
     addTearDown(controller.dispose);
@@ -312,6 +412,7 @@ void main() {
     tester,
   ) async {
     final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
       mode: PresentationStudioCanvasMode.compare,
       playheadUs: 750_000,
       initialSelection: const PresentationStudioSelection(
@@ -349,7 +450,9 @@ void main() {
     testWidgets(
       'all responsive modes fit ${size.width.toInt()}x${size.height.toInt()}',
       (tester) async {
-        final controller = PresentationStudioResponsiveCanvasController();
+        final controller = PresentationStudioResponsiveCanvasController(
+          durationUs: 4_000_000,
+        );
         addTearDown(controller.dispose);
 
         await _pumpResponsiveCanvas(
@@ -378,6 +481,7 @@ void main() {
     ) async {
       await loadEventBuilderV2PhaseKCaptureFonts();
       final controller = PresentationStudioResponsiveCanvasController(
+        durationUs: 4_000_000,
         mode: mode,
         playheadUs: 2_000_000,
       );
@@ -412,6 +516,9 @@ Future<void> _pumpResponsiveCanvas(
   PresentationFrameOrientationOverrides orientationOverrides =
       const PresentationFrameOrientationOverrides(),
   List<PresentationStudioResponsiveMediaBinding> mediaBindings = const [],
+  bool? reduceMotion,
+  bool reduceFlashes = false,
+  bool showCaptions = true,
   PresentationCinematicAsset? asset,
   Size surfaceSize = const Size(1280, 800),
   String? fontFamily,
@@ -444,6 +551,9 @@ Future<void> _pumpResponsiveCanvas(
           playerTheme: PokeMapPlayerTheme.dark(),
           orientationOverrides: orientationOverrides,
           mediaBindings: mediaBindings,
+          reduceMotion: reduceMotion,
+          reduceFlashes: reduceFlashes,
+          showCaptions: showCaptions,
           asset: asset,
         ),
       ),

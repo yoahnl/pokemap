@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
 
@@ -21,6 +23,20 @@ const presentationStudioCompareModeKey = ValueKey<String>(
 const presentationStudioResponsiveMediaBlockerKey = ValueKey<String>(
   'presentation-studio-responsive-media-blocker',
 );
+const presentationStudioTransportShortcutsKey = ValueKey<String>(
+  'presentation-studio-transport-shortcuts',
+);
+const presentationStudioFrameBackwardKey = ValueKey<String>(
+  'presentation-studio-frame-backward',
+);
+const presentationStudioPlayPauseKey = ValueKey<String>(
+  'presentation-studio-play-pause',
+);
+const presentationStudioStopKey = ValueKey<String>('presentation-studio-stop');
+const presentationStudioFrameForwardKey = ValueKey<String>(
+  'presentation-studio-frame-forward',
+);
+const presentationStudioLoopKey = ValueKey<String>('presentation-studio-loop');
 
 enum PresentationStudioCanvasMode { landscape, portrait, compare }
 
@@ -72,11 +88,15 @@ final class PresentationStudioResponsiveMediaBinding {
 final class PresentationStudioResponsiveCanvasController
     extends ChangeNotifier {
   PresentationStudioResponsiveCanvasController({
+    required int durationUs,
     PresentationStudioCanvasMode mode = PresentationStudioCanvasMode.landscape,
     int playheadUs = 0,
     PresentationStudioSelection? initialSelection,
   }) : _mode = mode,
-       _playheadUs = playheadUs,
+       _playbackClock = PresentationPlaybackClock(
+         durationUs: durationUs,
+         initialPlayheadUs: playheadUs,
+       ),
        selection = PresentationStudioSelectionController(
          initialSelection: initialSelection,
        ),
@@ -95,12 +115,20 @@ final class PresentationStudioResponsiveCanvasController
   final landscapeViewport = PresentationStudioViewportController();
   final portraitViewport = PresentationStudioViewportController();
   final PresentationStudioSelectionController selection;
+  final PresentationPlaybackClock _playbackClock;
   PresentationStudioCanvasMode _mode;
-  int _playheadUs;
   PresentationFrameOrientation _activeOrientation;
+  String? _previewErrorMessage;
+  bool _disposed = false;
 
   PresentationStudioCanvasMode get mode => _mode;
-  int get playheadUs => _playheadUs;
+  int get durationUs => _playbackClock.durationUs;
+  int get playheadUs => _playbackClock.playheadUs;
+  bool get loop => _playbackClock.loop;
+  PresentationPlaybackStatus get status => _playbackClock.status;
+  PresentationMediaClockPolicy get mediaClockPolicy =>
+      _playbackClock.mediaClockPolicy;
+  String? get previewErrorMessage => _previewErrorMessage;
   String? get selectedClipId => selection.value?.clipId;
   PresentationFrameOrientation get activeOrientation => _activeOrientation;
 
@@ -119,10 +147,83 @@ final class PresentationStudioResponsiveCanvasController
     if (timeUs < 0) {
       throw ArgumentError.value(timeUs, 'timeUs', 'must be nonnegative');
     }
-    if (_playheadUs == timeUs) return;
-    _playheadUs = timeUs;
+    final previous = playheadUs;
+    _playbackClock.seekTo(timeUs);
+    if (previous == playheadUs) return;
     selection.resetCanvasCycle();
     notifyListeners();
+  }
+
+  int? play() {
+    final previous = status;
+    final token = _playbackClock.play();
+    if (previous != status) notifyListeners();
+    return token;
+  }
+
+  int? resume() {
+    final previous = status;
+    final token = _playbackClock.resume();
+    if (previous != status) notifyListeners();
+    return token;
+  }
+
+  void pause() => _applyTransport(_playbackClock.pause);
+
+  void stop() {
+    final previous = (status, playheadUs);
+    _playbackClock.stop();
+    if (previous != (status, playheadUs)) {
+      selection.resetCanvasCycle();
+      notifyListeners();
+    }
+  }
+
+  void stepForward() => _applyPlayheadTransport(_playbackClock.stepForward);
+
+  void stepBackward() => _applyPlayheadTransport(_playbackClock.stepBackward);
+
+  void setLoop(bool value) {
+    if (loop == value) return;
+    _playbackClock.setLoop(value);
+    notifyListeners();
+  }
+
+  void holdForInteraction() =>
+      _applyTransport(_playbackClock.holdForInteraction);
+
+  bool advanceBy(int deltaUs, {required int token}) {
+    final changed = _playbackClock.advanceBy(deltaUs, token: token);
+    if (changed) {
+      selection.resetCanvasCycle();
+      notifyListeners();
+    }
+    return changed;
+  }
+
+  void configureDuration(int value, {bool notify = true}) {
+    final previous = (durationUs, playheadUs, status);
+    _playbackClock.configureDuration(value);
+    if (previous == (durationUs, playheadUs, status)) return;
+    selection.resetCanvasCycle();
+    if (notify) notifyListeners();
+  }
+
+  void setLoading() {
+    _previewErrorMessage = null;
+    _applyTransport(_playbackClock.setLoading);
+  }
+
+  void setError([String message = 'Le rendu de l’aperçu a échoué.']) {
+    final previous = (status, _previewErrorMessage);
+    _previewErrorMessage = message;
+    _playbackClock.setError();
+    if (previous != (status, _previewErrorMessage)) notifyListeners();
+  }
+
+  void setReady() {
+    _previewErrorMessage = null;
+    _applyTransport(_playbackClock.setReady);
   }
 
   void focus(PresentationFrameOrientation orientation) {
@@ -143,8 +244,27 @@ final class PresentationStudioResponsiveCanvasController
     }
   }
 
+  void _applyTransport(void Function() operation) {
+    final previous = (status, playheadUs, mediaClockPolicy);
+    operation();
+    if (previous != (status, playheadUs, mediaClockPolicy)) {
+      notifyListeners();
+    }
+  }
+
+  void _applyPlayheadTransport(void Function() operation) {
+    final previous = (status, playheadUs);
+    operation();
+    if (previous == (status, playheadUs)) return;
+    selection.resetCanvasCycle();
+    notifyListeners();
+  }
+
   @override
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _playbackClock.dispose();
     landscapeViewport.dispose();
     portraitViewport.dispose();
     selection.dispose();
@@ -152,7 +272,7 @@ final class PresentationStudioResponsiveCanvasController
   }
 }
 
-class PresentationStudioResponsiveToolbar extends StatelessWidget {
+class PresentationStudioResponsiveToolbar extends StatefulWidget {
   const PresentationStudioResponsiveToolbar({
     super.key,
     required this.controller,
@@ -161,45 +281,171 @@ class PresentationStudioResponsiveToolbar extends StatelessWidget {
   final PresentationStudioResponsiveCanvasController controller;
 
   @override
+  State<PresentationStudioResponsiveToolbar> createState() =>
+      _PresentationStudioResponsiveToolbarState();
+}
+
+class _PresentationStudioResponsiveToolbarState
+    extends State<PresentationStudioResponsiveToolbar>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  late final Ticker _ticker;
+  final FocusNode _focusNode = FocusNode(
+    debugLabel: 'Presentation Studio transports',
+  );
+  Duration _lastTick = Duration.zero;
+  int? _activeToken;
+
+  PresentationStudioResponsiveCanvasController get controller =>
+      widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _ticker = createTicker(_tick);
+  }
+
+  @override
+  void didUpdateWidget(
+    covariant PresentationStudioResponsiveToolbar oldWidget,
+  ) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) _stopTicker();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _ticker.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed ||
+        controller.status != PresentationPlaybackStatus.playing) {
+      return;
+    }
+    controller.pause();
+    _stopTicker();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: controller,
-      builder: (context, _) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            PokeMapBadge(
-              label: 'Aperçu ${_formatTime(controller.playheadUs)}',
-              variant: PokeMapBadgeVariant.info,
+      builder: (context, _) => CallbackShortcuts(
+        bindings: <ShortcutActivator, VoidCallback>{
+          const SingleActivator(LogicalKeyboardKey.space): _togglePlayback,
+          const SingleActivator(LogicalKeyboardKey.home): _stop,
+          const SingleActivator(LogicalKeyboardKey.arrowLeft): _stepBackward,
+          const SingleActivator(LogicalKeyboardKey.arrowRight): _stepForward,
+          const SingleActivator(LogicalKeyboardKey.keyL): _toggleLoop,
+        },
+        child: Focus(
+          focusNode: _focusNode,
+          autofocus: true,
+          child: GestureDetector(
+            key: presentationStudioTransportShortcutsKey,
+            behavior: HitTestBehavior.opaque,
+            onTap: _focusNode.requestFocus,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  PokeMapBadge(
+                    label: _statusLabel,
+                    variant: _statusBadgeVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  PokeMapIconButton(
+                    key: presentationStudioFrameBackwardKey,
+                    onPressed: _transportsEnabled ? _stepBackward : null,
+                    icon: const Icon(Icons.skip_previous_rounded),
+                    tooltip: 'Frame précédente',
+                    disabledReason: _disabledReason,
+                    variant: PokeMapIconButtonVariant.soft,
+                  ),
+                  const SizedBox(width: 4),
+                  PokeMapIconButton(
+                    key: presentationStudioPlayPauseKey,
+                    onPressed: _transportsEnabled ? _togglePlayback : null,
+                    icon: Icon(
+                      controller.status == PresentationPlaybackStatus.playing
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                    ),
+                    tooltip:
+                        controller.status == PresentationPlaybackStatus.playing
+                        ? 'Pause'
+                        : 'Lecture',
+                    disabledReason: _disabledReason,
+                    isSelected:
+                        controller.status == PresentationPlaybackStatus.playing,
+                    variant: PokeMapIconButtonVariant.soft,
+                  ),
+                  const SizedBox(width: 4),
+                  PokeMapIconButton(
+                    key: presentationStudioStopKey,
+                    onPressed: _transportsEnabled ? _stop : null,
+                    icon: const Icon(Icons.stop_rounded),
+                    tooltip: 'Stop et retour au début',
+                    disabledReason: _disabledReason,
+                    variant: PokeMapIconButtonVariant.soft,
+                  ),
+                  const SizedBox(width: 4),
+                  PokeMapIconButton(
+                    key: presentationStudioFrameForwardKey,
+                    onPressed: _transportsEnabled ? _stepForward : null,
+                    icon: const Icon(Icons.skip_next_rounded),
+                    tooltip: 'Frame suivante',
+                    disabledReason: _disabledReason,
+                    variant: PokeMapIconButtonVariant.soft,
+                  ),
+                  const SizedBox(width: 4),
+                  PokeMapIconButton(
+                    key: presentationStudioLoopKey,
+                    onPressed: _transportsEnabled ? _toggleLoop : null,
+                    icon: const Icon(Icons.repeat_rounded),
+                    tooltip: controller.loop
+                        ? 'Désactiver la boucle'
+                        : 'Activer la boucle',
+                    disabledReason: _disabledReason,
+                    isSelected: controller.loop,
+                    variant: PokeMapIconButtonVariant.soft,
+                  ),
+                  const SizedBox(width: 8),
+                  _modeButton(
+                    key: presentationStudioLandscapeModeKey,
+                    label: '16:9',
+                    mode: PresentationStudioCanvasMode.landscape,
+                  ),
+                  const SizedBox(width: 6),
+                  _modeButton(
+                    key: presentationStudioPortraitModeKey,
+                    label: '9:16',
+                    mode: PresentationStudioCanvasMode.portrait,
+                  ),
+                  const SizedBox(width: 6),
+                  _modeButton(
+                    key: presentationStudioCompareModeKey,
+                    label: 'Comparer',
+                    mode: PresentationStudioCanvasMode.compare,
+                    icon: const Icon(Icons.vertical_split_rounded),
+                  ),
+                  const SizedBox(width: 6),
+                  PokeMapButton(
+                    onPressed: controller.fitVisibleViewports,
+                    size: PokeMapButtonSize.small,
+                    variant: PokeMapButtonVariant.ghost,
+                    leading: const Icon(Icons.fit_screen_rounded),
+                    child: const Text('Ajuster'),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(width: 8),
-            _modeButton(
-              key: presentationStudioLandscapeModeKey,
-              label: '16:9',
-              mode: PresentationStudioCanvasMode.landscape,
-            ),
-            const SizedBox(width: 6),
-            _modeButton(
-              key: presentationStudioPortraitModeKey,
-              label: '9:16',
-              mode: PresentationStudioCanvasMode.portrait,
-            ),
-            const SizedBox(width: 6),
-            _modeButton(
-              key: presentationStudioCompareModeKey,
-              label: 'Comparer',
-              mode: PresentationStudioCanvasMode.compare,
-              icon: const Icon(Icons.vertical_split_rounded),
-            ),
-            const SizedBox(width: 6),
-            PokeMapButton(
-              onPressed: controller.fitVisibleViewports,
-              size: PokeMapButtonSize.small,
-              variant: PokeMapButtonVariant.ghost,
-              leading: const Icon(Icons.fit_screen_rounded),
-              child: const Text('Ajuster'),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -221,6 +467,95 @@ class PresentationStudioResponsiveToolbar extends StatelessWidget {
       child: Text(label),
     );
   }
+
+  bool get _transportsEnabled =>
+      controller.durationUs > 0 &&
+      controller.status != PresentationPlaybackStatus.loading &&
+      controller.status != PresentationPlaybackStatus.error &&
+      controller.status != PresentationPlaybackStatus.disposed;
+
+  String? get _disabledReason => switch (controller.status) {
+    PresentationPlaybackStatus.loading =>
+      'L’aperçu est en cours de chargement.',
+    PresentationPlaybackStatus.error => 'Le rendu de l’aperçu a échoué.',
+    _ when controller.durationUs == 0 => 'La cinématique est vide.',
+    _ => null,
+  };
+
+  String get _statusLabel => switch (controller.status) {
+    PresentationPlaybackStatus.loading => 'Chargement de l’aperçu',
+    PresentationPlaybackStatus.error => 'Aperçu indisponible',
+    PresentationPlaybackStatus.interactionHold => 'Interaction en attente',
+    _ =>
+      '${_formatTime(controller.playheadUs)} / ${_formatTime(controller.durationUs)}',
+  };
+
+  PokeMapBadgeVariant get _statusBadgeVariant => switch (controller.status) {
+    PresentationPlaybackStatus.error => PokeMapBadgeVariant.error,
+    PresentationPlaybackStatus.interactionHold => PokeMapBadgeVariant.warning,
+    _ => PokeMapBadgeVariant.info,
+  };
+
+  void _togglePlayback() {
+    if (!_transportsEnabled) return;
+    if (controller.status == PresentationPlaybackStatus.playing) {
+      controller.pause();
+      _stopTicker();
+      return;
+    }
+    _activeToken =
+        controller.status == PresentationPlaybackStatus.paused ||
+            controller.status == PresentationPlaybackStatus.interactionHold
+        ? controller.resume()
+        : controller.play();
+    if (_activeToken != null && !_ticker.isActive) {
+      _lastTick = Duration.zero;
+      _ticker.start();
+    }
+  }
+
+  void _stop() {
+    if (!_transportsEnabled) return;
+    _stopTicker();
+    controller.stop();
+  }
+
+  void _stepBackward() {
+    if (!_transportsEnabled) return;
+    _stopTicker();
+    controller.stepBackward();
+  }
+
+  void _stepForward() {
+    if (!_transportsEnabled) return;
+    _stopTicker();
+    controller.stepForward();
+  }
+
+  void _toggleLoop() {
+    if (!_transportsEnabled) return;
+    controller.setLoop(!controller.loop);
+  }
+
+  void _tick(Duration elapsed) {
+    final token = _activeToken;
+    if (token == null) {
+      _stopTicker();
+      return;
+    }
+    final delta = elapsed - _lastTick;
+    _lastTick = elapsed;
+    controller.advanceBy(delta.inMicroseconds, token: token);
+    if (controller.status != PresentationPlaybackStatus.playing) {
+      _stopTicker();
+    }
+  }
+
+  void _stopTicker() {
+    if (_ticker.isActive) _ticker.stop(canceled: false);
+    _lastTick = Duration.zero;
+    _activeToken = null;
+  }
 }
 
 class PresentationStudioResponsiveCanvas extends StatelessWidget {
@@ -232,6 +567,9 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
     required this.playerTheme,
     this.orientationOverrides = const PresentationFrameOrientationOverrides(),
     this.mediaBindings = const <PresentationStudioResponsiveMediaBinding>[],
+    this.reduceMotion,
+    this.reduceFlashes = false,
+    this.showCaptions = true,
     this.asset,
   });
 
@@ -241,6 +579,9 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
   final ThemeData playerTheme;
   final PresentationFrameOrientationOverrides orientationOverrides;
   final List<PresentationStudioResponsiveMediaBinding> mediaBindings;
+  final bool? reduceMotion;
+  final bool reduceFlashes;
+  final bool showCaptions;
   final PresentationCinematicAsset? asset;
 
   @override
@@ -320,6 +661,17 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
       orientation: orientation,
       contentPort: contentPort,
       playerTheme: playerTheme,
+      state: switch (controller.status) {
+        PresentationPlaybackStatus.loading =>
+          PresentationStudioViewportState.loading,
+        PresentationPlaybackStatus.error =>
+          PresentationStudioViewportState.error,
+        _ => PresentationStudioViewportState.ready,
+      },
+      errorMessage: controller.previewErrorMessage,
+      reduceMotion: reduceMotion,
+      reduceFlashes: reduceFlashes,
+      showCaptions: showCaptions,
       orientationOverrides: orientationOverrides,
       onFocused: () => controller.focus(orientation),
       onCompositionTap: frame == null || asset == null
