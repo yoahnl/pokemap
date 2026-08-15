@@ -5248,8 +5248,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     unawaited(
       Future<void>.microtask(() async {
         try {
-          final granted = await applyRuntimePlayerPokemonGrant(
-            gameState: _gameState,
+          final committed = await transactRuntimePlayerPokemonGrant(
+            transactions: _narrativeStateTransactions,
             pokemon: pokemon,
             grantOperationId: grantOperationId,
             projectRootDirectory: _bundle.projectRootDirectory,
@@ -5264,10 +5264,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               );
             },
           );
-          final committed =
-              await _narrativeStateTransactions.transact<GameState>((_) {
-            return NarrativeEventStateTransaction.commit(granted, granted);
-          });
           _applyNarrativeGameState(committed);
           _scheduleNarrativeContinuationAdvance(runtimeSourceId);
         } catch (error, stackTrace) {

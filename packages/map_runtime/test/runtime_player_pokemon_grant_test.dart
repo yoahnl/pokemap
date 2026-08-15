@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
@@ -83,6 +85,56 @@ void main() {
     expect(second.party.members, hasLength(2));
     expect(
       second.party.members.map((pokemon) => pokemon.individualId).toSet(),
+      hasLength(2),
+    );
+  });
+
+  test('concurrent grants hydrate and commit against serialized state',
+      () async {
+    final transactions = NarrativeEventStateTransactions(
+      const GameState(saveId: 'grant'),
+    );
+    final firstLoadStarted = Completer<void>();
+    final releaseFirstLoad = Completer<void>();
+    var catalogLoads = 0;
+    Future<RuntimePlayerPokemonProgressionCatalogs> loadCatalogs({
+      required GameState gameState,
+      required String projectRootDirectory,
+      required ProjectPokemonConfig pokemonConfig,
+    }) async {
+      catalogLoads += 1;
+      if (catalogLoads == 1) {
+        firstLoadStarted.complete();
+        await releaseFirstLoad.future;
+      }
+      return _catalogs;
+    }
+
+    final first = transactRuntimePlayerPokemonGrant(
+      transactions: transactions,
+      pokemon: candidate(),
+      grantOperationId: 'scenario:run-a:gift',
+      projectRootDirectory: '/project',
+      pokemonConfig: config,
+      catalogLoader: loadCatalogs,
+    );
+    await firstLoadStarted.future;
+    final second = transactRuntimePlayerPokemonGrant(
+      transactions: transactions,
+      pokemon: candidate(),
+      grantOperationId: 'scenario:run-b:gift',
+      projectRootDirectory: '/project',
+      pokemonConfig: config,
+      catalogLoader: loadCatalogs,
+    );
+    releaseFirstLoad.complete();
+
+    expect((await first).party.members, hasLength(1));
+    expect((await second).party.members, hasLength(2));
+    final committed = await transactions.read();
+    expect(committed.party.members, hasLength(2));
+    expect(
+      committed.party.members.map((pokemon) => pokemon.individualId).toSet(),
       hasLength(2),
     );
   });

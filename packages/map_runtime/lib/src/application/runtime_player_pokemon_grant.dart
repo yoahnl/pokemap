@@ -65,6 +65,31 @@ Future<GameState> applyRuntimePlayerPokemonGrant({
   );
 }
 
+Future<GameState> transactRuntimePlayerPokemonGrant({
+  required NarrativeEventStateTransactions transactions,
+  required PlayerPokemon pokemon,
+  required String grantOperationId,
+  required String projectRootDirectory,
+  required ProjectPokemonConfig pokemonConfig,
+  bool preventDuplicateSpecies = false,
+  RuntimePlayerPokemonProgressionCatalogLoader? catalogLoader,
+  void Function(PlayerPokemonHydrationDiagnostic diagnostic)? onDiagnostic,
+}) {
+  return transactions.transact<GameState>((transactionState) async {
+    final granted = await applyRuntimePlayerPokemonGrant(
+      gameState: transactionState,
+      pokemon: pokemon,
+      grantOperationId: grantOperationId,
+      projectRootDirectory: projectRootDirectory,
+      pokemonConfig: pokemonConfig,
+      preventDuplicateSpecies: preventDuplicateSpecies,
+      catalogLoader: catalogLoader,
+      onDiagnostic: onDiagnostic,
+    );
+    return NarrativeEventStateTransaction.commit(granted, granted);
+  });
+}
+
 PlayerPokemonHydrationOrigin _grantOrigin(PlayerPokemon pokemon) {
   return switch (pokemon.provenance?.kind) {
     PlayerPokemonOriginKind.starter => PlayerPokemonHydrationOrigin.starter,
