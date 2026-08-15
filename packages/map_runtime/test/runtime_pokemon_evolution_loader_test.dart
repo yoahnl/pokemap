@@ -525,6 +525,7 @@ Future<void> _writeSpecies(
   await file.parent.create(recursive: true);
   await file.writeAsString(
     jsonEncode(<String, dynamic>{
+      'schemaVersion': 1,
       'id': id,
       'typing': <String, dynamic>{
         'types': <String>['grass'],
