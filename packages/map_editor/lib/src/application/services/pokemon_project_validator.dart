@@ -21,6 +21,18 @@ class PokemonProjectValidator {
       workspace.projectRoot,
     );
     final manifest = await _readManifest(projectRoot);
+    return validateProjectFiles(
+      reader: reader,
+      projectRoot: projectRoot,
+      manifest: manifest,
+    );
+  }
+
+  Future<PokemonValidationReport> validateProjectFiles({
+    required ProjectFileReader reader,
+    required String projectRoot,
+    required ProjectManifest manifest,
+  }) {
     return loader.validateProjectFiles(
       reader: reader,
       projectRoot: projectRoot,

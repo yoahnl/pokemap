@@ -25,6 +25,20 @@ void main() {
     expect(options.target, EvaluationTarget.headless);
   });
 
+  test('run accepts an attested project projection', () {
+    final options = PokeMapEvalCli.parse(<String>[
+      'run',
+      'selbrume.shop.after-lysa',
+      '--project-root',
+      'build/pokemap-eval/input/job-1/selbrume',
+      '--expected-project-tree-hash',
+      'a' * 64,
+    ]);
+
+    expect(options.projectRoot, 'build/pokemap-eval/input/job-1/selbrume');
+    expect(options.expectedProjectTreeHash, 'a' * 64);
+  });
+
   test('profile run parses an explicit repeatable performance contract', () {
     final options = PokeMapEvalCli.parse(
       <String>[
@@ -403,6 +417,7 @@ final class _CliFixture {
         stdoutSink: stdout.writeln,
         stderrSink: stderr.writeln,
         runIdFactory: () => 'run-test',
+        projectTreeHashResolver: (_) async => 'a' * 64,
       ),
     );
   }

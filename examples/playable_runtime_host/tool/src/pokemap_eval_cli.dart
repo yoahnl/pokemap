@@ -10,6 +10,7 @@ import 'package:pokemap_loader/src/evaluation/scenario/evaluation_scenario_parse
 import 'package:pokemap_loader/src/evaluation/web/evaluation_web_launcher.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
 import 'package:pokemap_loader/src/evaluation/worker/headless_worker_process.dart';
+import 'package:pokemap_loader/src/project_tree_digest.dart';
 
 enum PokeMapEvalCommand {
   list,
@@ -24,6 +25,8 @@ final class PokeMapEvalOptions {
     required this.command,
     this.scenarioId,
     this.projectId,
+    this.projectRoot,
+    this.expectedProjectTreeHash,
     this.policy,
     this.checkpointId,
     this.includeFacts = false,
@@ -41,6 +44,8 @@ final class PokeMapEvalOptions {
   final PokeMapEvalCommand command;
   final String? scenarioId;
   final String? projectId;
+  final String? projectRoot;
+  final String? expectedProjectTreeHash;
   final EvaluationPolicy? policy;
   final String? checkpointId;
   final bool includeFacts;
@@ -69,6 +74,9 @@ abstract interface class PokeMapEvalWorker {
 }
 
 typedef PokeMapEvalOutputSink = void Function(String line);
+typedef PokeMapEvalProjectTreeHashResolver = Future<String> Function(
+  String projectRoot,
+);
 
 final class PokeMapEvalCli {
   PokeMapEvalCli({
@@ -78,8 +86,13 @@ final class PokeMapEvalCli {
     required this.stdoutSink,
     required this.stderrSink,
     String Function()? runIdFactory,
+    PokeMapEvalProjectTreeHashResolver? projectTreeHashResolver,
   })  : interactiveWorker = interactiveWorker ?? worker,
-        _runIdFactory = runIdFactory ?? _defaultRunId;
+        _runIdFactory = runIdFactory ?? _defaultRunId,
+        _projectTreeHashResolver = projectTreeHashResolver ??
+            ((projectRoot) => const ProjectTreeDigest().compute(
+                  Directory(p.join(repositoryRoot.path, projectRoot)),
+                ));
 
   factory PokeMapEvalCli.standard() {
     final root = _discoverRepositoryRoot();
@@ -108,6 +121,7 @@ final class PokeMapEvalCli {
   final PokeMapEvalOutputSink stdoutSink;
   final PokeMapEvalOutputSink stderrSink;
   final String Function() _runIdFactory;
+  final PokeMapEvalProjectTreeHashResolver _projectTreeHashResolver;
 
   static PokeMapEvalOptions parse(List<String> arguments) {
     if (arguments.isEmpty) {
@@ -222,6 +236,8 @@ final class PokeMapEvalCli {
         jsonOnly: options.jsonOnly,
         target: options.target,
         buildMode: options.buildMode,
+        projectRoot: options.projectRoot,
+        expectedProjectTreeHash: options.expectedProjectTreeHash,
       ))
           .result;
     }
@@ -236,6 +252,8 @@ final class PokeMapEvalCli {
         jsonOnly: false,
         target: options.target,
         buildMode: options.buildMode,
+        projectRoot: options.projectRoot,
+        expectedProjectTreeHash: options.expectedProjectTreeHash,
         emitOutput: false,
         runId: '$batchId-profile-${index + 1}',
       );
@@ -386,6 +404,8 @@ final class PokeMapEvalCli {
     required bool jsonOnly,
     required EvaluationTarget target,
     EvaluationBuildMode buildMode = EvaluationBuildMode.debug,
+    String? projectRoot,
+    String? expectedProjectTreeHash,
     bool emitOutput = true,
     String? runId,
   }) async {
@@ -421,6 +441,8 @@ final class PokeMapEvalCli {
       jsonOnly: jsonOnly,
       target: target,
       buildMode: buildMode,
+      projectRoot: projectRoot,
+      expectedProjectTreeHash: expectedProjectTreeHash,
       emitOutput: emitOutput,
     );
   }
@@ -433,6 +455,8 @@ final class PokeMapEvalCli {
     required bool jsonOnly,
     required EvaluationTarget target,
     EvaluationBuildMode buildMode = EvaluationBuildMode.debug,
+    String? projectRoot,
+    String? expectedProjectTreeHash,
     bool emitOutput = true,
   }) async {
     stderrSink(
@@ -443,10 +467,14 @@ final class PokeMapEvalCli {
       EvaluationTarget.headless => worker,
       EvaluationTarget.interactive => interactiveWorker,
     };
+    final effectiveProjectRoot = projectRoot ?? scenario.projectId;
+    final effectiveProjectTreeHash = expectedProjectTreeHash ??
+        await _projectTreeHashResolver(effectiveProjectRoot);
     final result = await selectedWorker.run(
       EvaluationWorkerRequest.run(
         runId: runId,
-        projectRoot: scenario.projectId,
+        projectRoot: effectiveProjectRoot,
+        expectedProjectTreeHash: effectiveProjectTreeHash,
         scenarioPath: scenarioPath,
         outputDirectory: outputDirectory,
       ),
@@ -1042,6 +1070,8 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
   var buildMode = EvaluationBuildMode.debug;
   var runs = 1;
   String? jsonOutput;
+  String? projectRoot;
+  String? expectedProjectTreeHash;
   var jsonOnly = false;
   var index = 1;
   while (index < arguments.length) {
@@ -1091,6 +1121,25 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
       case '--json-output':
         jsonOutput = _optionValue(arguments, index, '--json-output');
         index += 2;
+      case '--project-root':
+        projectRoot = _portablePath(
+          _optionValue(arguments, index, '--project-root'),
+          '--project-root',
+        );
+        index += 2;
+      case '--expected-project-tree-hash':
+        final value = _optionValue(
+          arguments,
+          index,
+          '--expected-project-tree-hash',
+        );
+        if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(value)) {
+          throw const PokeMapEvalUsageException(
+            '--expected-project-tree-hash must be a lowercase SHA-256.',
+          );
+        }
+        expectedProjectTreeHash = value;
+        index += 2;
       default:
         throw PokeMapEvalUsageException(
           'Unknown option "${arguments[index]}".',
@@ -1109,6 +1158,11 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
       '--build-mode profile, and --json-output.',
     );
   }
+  if ((projectRoot == null) != (expectedProjectTreeHash == null)) {
+    throw const PokeMapEvalUsageException(
+      '--project-root and --expected-project-tree-hash must be supplied together.',
+    );
+  }
   return PokeMapEvalOptions(
     command: PokeMapEvalCommand.run,
     scenarioId: scenarioId,
@@ -1118,6 +1172,8 @@ PokeMapEvalOptions _parseRun(List<String> arguments) {
     buildMode: buildMode,
     runs: runs,
     jsonOutput: jsonOutput,
+    projectRoot: projectRoot,
+    expectedProjectTreeHash: expectedProjectTreeHash,
   );
 }
 
@@ -1231,6 +1287,22 @@ String _optionValue(List<String> arguments, int index, String option) {
   return arguments[index + 1];
 }
 
+String _portablePath(String value, String option) {
+  final normalized = value.replaceAll(r'\', '/');
+  final segments = normalized.split('/');
+  if (value.trim().isEmpty ||
+      normalized.startsWith('/') ||
+      RegExp(r'^[A-Za-z]:/').hasMatch(normalized) ||
+      segments.any(
+        (segment) => segment.isEmpty || segment == '.' || segment == '..',
+      )) {
+    throw PokeMapEvalUsageException(
+      '$option must be a portable relative path without traversal.',
+    );
+  }
+  return normalized;
+}
+
 List<int> _sampleList(Object? value, String field) {
   if (value is! List || value.any((sample) => sample is! int)) {
     throw FormatException('$field must contain integer microseconds.');
@@ -1298,6 +1370,7 @@ Usage:
   pokemap eval list [--project <id>]
   pokemap eval run <scenario-id> [--policy probe|certify]
     [--target headless|interactive] [--json]
+    [--project-root <path> --expected-project-tree-hash <sha256>]
     [--build-mode debug|profile] [--runs <positive-int>]
     [--json-output <package-relative-path>]
   pokemap eval inspect --checkpoint <id> [--facts] [--party] [--bag]

@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_editor/game_export.dart';
+import 'package:map_editor/src/application/models/pokemon_validation_report.dart';
+import 'package:map_editor/src/application/services/pokemon_project_validator.dart';
 import 'package:path/path.dart' as p;
 
 import 'game_export_test_fixture.dart';
@@ -395,6 +398,134 @@ void main() {
           root,
           diagnosticCode: 'pokemon.species.type_missing_in_catalog',
         );
+      },
+    );
+
+    test(
+      'validates and packages the same projection when the workspace changes',
+      () async {
+        final root = await createAuthorProject(withDialogue: false);
+        addTearDown(() => root.delete(recursive: true));
+        final typesFile = File(
+          p.join(root.path, 'data', 'pokemon', 'catalogs', 'types.json'),
+        );
+        final projectedTypes = await typesFile.readAsBytes();
+        var packageBuildCount = 0;
+        final service = GamePackageExportService(
+          pokemonProjectValidator: _HookedPokemonProjectValidator(
+            beforeValidation: () async {
+              final types =
+                  jsonDecode(await typesFile.readAsString())
+                      as Map<String, dynamic>;
+              types['entries'] = <Object?>[];
+              await typesFile.writeAsString(jsonEncode(types), flush: true);
+            },
+          ),
+          packageArchiveBuilder: ({required manifest, required payloadFiles}) {
+            packageBuildCount++;
+            return const GamePackageBuilder().build(
+              manifest: manifest,
+              payloadFiles: payloadFiles,
+            );
+          },
+        );
+
+        final artifact = await service.build(
+          projectRoot: root,
+          profile: neutralExportProfile(),
+        );
+
+        expect(packageBuildCount, 1);
+        expect(
+          artifact.inspection.payloadPaths,
+          contains('project/data/pokemon/catalogs/types.json'),
+        );
+        expect(artifact.packageBytes, isNotEmpty);
+        expect(await typesFile.readAsBytes(), isNot(projectedTypes));
+        expect(artifact.certification.pokemonValidationSha256, hasLength(64));
+        expect(
+          artifact.inspection.receipt.pokemonRuleset,
+          PokemonRulesetProfile.pokeMapBetaV1Reference,
+        );
+      },
+    );
+
+    test(
+      'never invokes the package builder or writes a file when projection validation fails',
+      () async {
+        final root = await createAuthorProject(withDialogue: false);
+        addTearDown(() => root.delete(recursive: true));
+        final typesFile = File(
+          p.join(root.path, 'data', 'pokemon', 'catalogs', 'types.json'),
+        );
+        final types =
+            jsonDecode(await typesFile.readAsString()) as Map<String, dynamic>;
+        types['entries'] = <Object?>[];
+        await typesFile.writeAsString(jsonEncode(types), flush: true);
+        final output = File(p.join(root.parent.path, 'invalid.avelunegame'));
+        addTearDown(() async {
+          if (await output.exists()) await output.delete();
+        });
+        var packageBuildCount = 0;
+        final service = GamePackageExportService(
+          packageArchiveBuilder: ({required manifest, required payloadFiles}) {
+            packageBuildCount++;
+            return const GamePackageBuilder().build(
+              manifest: manifest,
+              payloadFiles: payloadFiles,
+            );
+          },
+        );
+
+        await expectLater(
+          service.exportToFile(
+            projectRoot: root,
+            profile: neutralExportProfile(),
+            outputFile: output,
+          ),
+          throwsA(
+            isA<GamePackageExportException>().having(
+              (error) => error.code,
+              'code',
+              'gameplayReadinessFailed',
+            ),
+          ),
+        );
+
+        expect(packageBuildCount, 0);
+        expect(await output.exists(), isFalse);
+      },
+    );
+
+    test(
+      'fails closed when projected Pokemon validation is unavailable',
+      () async {
+        final root = await createAuthorProject(withDialogue: false);
+        addTearDown(() => root.delete(recursive: true));
+        var packageBuildCount = 0;
+        final service = GamePackageExportService(
+          pokemonProjectValidator: const _UnavailablePokemonProjectValidator(),
+          packageArchiveBuilder: ({required manifest, required payloadFiles}) {
+            packageBuildCount++;
+            return const GamePackageBuilder().build(
+              manifest: manifest,
+              payloadFiles: payloadFiles,
+            );
+          },
+        );
+
+        await expectLater(
+          service.build(projectRoot: root, profile: neutralExportProfile()),
+          throwsA(
+            isA<GamePackageExportException>().having(
+              (error) => error.code,
+              'code',
+              'gameplayReadinessFailed',
+            ),
+          ),
+        );
+
+        expect(packageBuildCount, 0);
       },
     );
 
@@ -802,6 +933,40 @@ void main() {
       );
     },
   );
+}
+
+final class _HookedPokemonProjectValidator extends PokemonProjectValidator {
+  _HookedPokemonProjectValidator({required this.beforeValidation});
+
+  final Future<void> Function() beforeValidation;
+
+  @override
+  Future<PokemonValidationReport> validateProjectFiles({
+    required ProjectFileReader reader,
+    required String projectRoot,
+    required ProjectManifest manifest,
+  }) async {
+    await beforeValidation();
+    return super.validateProjectFiles(
+      reader: reader,
+      projectRoot: projectRoot,
+      manifest: manifest,
+    );
+  }
+}
+
+final class _UnavailablePokemonProjectValidator
+    extends PokemonProjectValidator {
+  const _UnavailablePokemonProjectValidator();
+
+  @override
+  Future<PokemonValidationReport> validateProjectFiles({
+    required ProjectFileReader reader,
+    required String projectRoot,
+    required ProjectManifest manifest,
+  }) {
+    throw StateError('projected validation unavailable');
+  }
 }
 
 Future<void> _replaceFinishPayload(

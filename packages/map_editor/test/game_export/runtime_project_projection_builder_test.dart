@@ -5,11 +5,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/game_export.dart';
+import 'package:map_editor/src/features/game_export/application/runtime_project_projection_file_reader.dart';
 import 'package:path/path.dart' as p;
 
 import 'game_export_test_fixture.dart';
 
 void main() {
+  test('preserves empty projected directories for catalog validation',
+      () async {
+    final root = await createAuthorProject(withCanonicalPokemon: false);
+    addTearDown(() => root.delete(recursive: true));
+    final emptyDirectory = Directory(
+      p.join(root.path, 'data', 'pokemon', 'empty-catalog'),
+    );
+    await emptyDirectory.create(recursive: true);
+
+    final result = await const RuntimeProjectProjectionBuilder().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+    final reader = RuntimeProjectProjectionFileReader(result);
+
+    expect(
+      result.payloadDirectories,
+      contains('project/data/pokemon/empty-catalog'),
+    );
+    expect(
+      await reader.listFiles(
+        projectRoot: RuntimeProjectProjectionFileReader.projectRoot,
+        relativeDirectory: 'data/pokemon/empty-catalog',
+      ),
+      isEmpty,
+    );
+  });
+
   test('projects a clean data-only runtime tree without mutating the author',
       () async {
     final root = await createAuthorProject(withCanonicalPokemon: false);

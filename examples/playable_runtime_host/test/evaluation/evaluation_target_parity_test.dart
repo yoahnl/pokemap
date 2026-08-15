@@ -7,6 +7,7 @@ import 'package:pokemap_loader/src/evaluation/contracts/evaluation_receipt.dart'
 import 'package:pokemap_loader/src/evaluation/interactive/interactive_worker_client.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
 import 'package:pokemap_loader/src/evaluation/worker/headless_worker_process.dart';
+import 'package:pokemap_loader/src/project_tree_digest.dart';
 
 void main() {
   test(
@@ -20,6 +21,9 @@ void main() {
       final interactiveRunId = 'parity-interactive-$suffix';
       final headlessOutput = 'build/pokemap-eval/runs/$headlessRunId';
       final interactiveOutput = 'build/pokemap-eval/runs/$interactiveRunId';
+      final expectedProjectTreeHash = await const ProjectTreeDigest().compute(
+        Directory(p.join(repositoryRoot.path, 'selbrume')),
+      );
       addTearDown(() async {
         for (final relative in <String>[headlessOutput, interactiveOutput]) {
           final directory = Directory(p.join(repositoryRoot.path, relative));
@@ -36,6 +40,7 @@ void main() {
         _request(
           runId: headlessRunId,
           outputDirectory: headlessOutput,
+          expectedProjectTreeHash: expectedProjectTreeHash,
         ),
       );
       final interactive = await InteractiveWorkerClient(
@@ -46,6 +51,7 @@ void main() {
         _request(
           runId: interactiveRunId,
           outputDirectory: interactiveOutput,
+          expectedProjectTreeHash: expectedProjectTreeHash,
         ),
         playbackRate: 2,
       );
@@ -76,10 +82,12 @@ void main() {
 EvaluationWorkerRequest _request({
   required String runId,
   required String outputDirectory,
+  required String expectedProjectTreeHash,
 }) {
   return EvaluationWorkerRequest.run(
     runId: runId,
     projectRoot: 'selbrume',
+    expectedProjectTreeHash: expectedProjectTreeHash,
     scenarioPath:
         'examples/playable_runtime_host/evaluation/scenarios/selbrume/'
         'shop_after_lysa.json',

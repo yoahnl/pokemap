@@ -8,6 +8,7 @@ import 'package:pokemap_loader/src/evaluation/contracts/evaluation_event.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_receipt.dart';
 import 'package:pokemap_loader/src/evaluation/interactive/interactive_worker_client.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
+import 'package:pokemap_loader/src/project_tree_digest.dart';
 
 const _token = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
@@ -77,7 +78,8 @@ void main() {
     final root = await Directory.systemTemp.createTemp('interactive-timeout-');
     addTearDown(() => root.delete(recursive: true));
     final scenario = File(p.join(root.path, 'scenario.json'));
-    await scenario.writeAsString('{}');
+    await scenario.writeAsString(_scenarioJson);
+    final projectTreeHash = await _writeProject(root);
     final process = _RecordingProcessRunner();
     final client = InteractiveWorkerClient(
       repositoryRoot: root,
@@ -91,6 +93,7 @@ void main() {
       EvaluationWorkerRequest.run(
         runId: 'interactive-timeout',
         projectRoot: 'selbrume',
+        expectedProjectTreeHash: projectTreeHash,
         scenarioPath: 'scenario.json',
         outputDirectory: 'build/run',
       ),
@@ -106,7 +109,8 @@ void main() {
     final root = await Directory.systemTemp.createTemp('interactive-run-');
     addTearDown(() => root.delete(recursive: true));
     final scenario = File(p.join(root.path, 'scenario.json'));
-    await scenario.writeAsString('{"schemaVersion":1}');
+    await scenario.writeAsString(_scenarioJson);
+    final projectTreeHash = await _writeProject(root);
     final process = _BridgeProcessRunner();
     final client = InteractiveWorkerClient(
       repositoryRoot: root,
@@ -121,6 +125,7 @@ void main() {
       EvaluationWorkerRequest.run(
         runId: 'interactive-success',
         projectRoot: 'selbrume',
+        expectedProjectTreeHash: projectTreeHash,
         scenarioPath: 'scenario.json',
         outputDirectory: 'build/run',
       ),
@@ -132,6 +137,50 @@ void main() {
     expect(events.single.type, 'run.started');
     expect(process.child.killCalls, 1);
   });
+
+  test(
+    'client refuses a mismatched project digest before process launch',
+    () async {
+      final root = await Directory.systemTemp.createTemp('interactive-digest-');
+      addTearDown(() => root.delete(recursive: true));
+      final scenario = File(p.join(root.path, 'scenario.json'));
+      await scenario.writeAsString(_scenarioJson);
+      await _writeProject(root);
+      final process = _RecordingProcessRunner();
+      final client = InteractiveWorkerClient(
+        repositoryRoot: root,
+        packageRoot: Directory(p.join(root.path, 'host')),
+        processRunner: process,
+        tokenGenerator: () => _token,
+      );
+
+      final result = await client.run(
+        EvaluationWorkerRequest.run(
+          runId: 'interactive-digest-mismatch',
+          projectRoot: 'selbrume',
+          expectedProjectTreeHash: '0' * 64,
+          scenarioPath: 'scenario.json',
+          outputDirectory: 'build/run',
+        ),
+      );
+
+      expect(result.status, EvaluationRunStatus.infrastructureFailure);
+      expect(result.message, contains('digest mismatch'));
+      expect(process.executable, isNull);
+    },
+  );
+}
+
+const _scenarioJson =
+    '{"schemaVersion":1,"id":"selbrume.test","title":"Test",'
+    '"projectId":"selbrume","policy":"probe",'
+    '"start":{"newGame":true},"steps":[]}';
+
+Future<String> _writeProject(Directory root) async {
+  final project = Directory(p.join(root.path, 'selbrume'));
+  await project.create();
+  await File(p.join(project.path, 'project.json')).writeAsString('{}');
+  return const ProjectTreeDigest().compute(project);
 }
 
 final class _RecordingProcessRunner implements InteractiveProcessRunner {
