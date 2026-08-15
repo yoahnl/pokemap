@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_editor/src/application/models/pokemon_validation_report.dart';
 import 'package:map_editor/src/application/services/pokemon_project_validator.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
@@ -33,7 +34,7 @@ void main() {
       snapshotController: pokemonRepository,
     );
     validateUseCase = ValidatePokemonProjectDataUseCase(
-      PokemonProjectValidator(pokemonRepository),
+      const PokemonProjectValidator(),
     );
   });
 
@@ -369,7 +370,109 @@ void main() {
         expect(_hasIssue(report, 'species.type_missing_in_catalog'), isFalse);
       },
     );
+
+    test(
+      'matches canonical validation for custom directories and item evolutions',
+      () async {
+        await seedUseCase.execute(workspace);
+        await _movePokemonDataToCustomDirectories(workspace);
+        await _mutateJsonFile(
+          workspace,
+          'custom/pokemon/evolutions/bulbasaur.json',
+          (json) {
+            final evolution =
+                (json['evolutions'] as List<Object?>).first
+                    as Map<String, dynamic>;
+            evolution['method'] = 'use_item';
+            evolution['itemId'] = 'missing-stone';
+          },
+        );
+        await _mutateJsonFile(
+          workspace,
+          'custom/pokemon/learnsets/bulbasaur.json',
+          (json) {
+            (json['levelUp'] as List<Object?>).add(<String, Object?>{
+              'moveId': 'tackle',
+              'level': 101,
+              'source': 'level_up',
+              'versionGroup': 'beta',
+            });
+          },
+        );
+
+        final editorReport = await validateUseCase.execute(workspace);
+        final canonicalReport = await _canonicalPokemonReport(tempProjectRoot);
+
+        expect(editorReport.toJson(), canonicalReport);
+        final missingItem = editorReport.issues.singleWhere(
+          (issue) => issue.code == 'evolution.item_missing',
+        );
+        expect(missingItem.path, startsWith('custom/pokemon/evolutions/'));
+        final invalidLevel = editorReport.issues.singleWhere(
+          (issue) => issue.code == 'learnset.level_up_level_invalid',
+        );
+        expect(invalidLevel.path, startsWith('custom/pokemon/learnsets/'));
+      },
+    );
   });
+}
+
+Future<void> _movePokemonDataToCustomDirectories(
+  ProjectFileSystem workspace,
+) async {
+  final customRoot = Directory(
+    workspace.resolveProjectRelativePath('custom/pokemon'),
+  );
+  await customRoot.create(recursive: true);
+  for (final directory in const <String>[
+    'species',
+    'learnsets',
+    'evolutions',
+    'media',
+    'catalogs',
+  ]) {
+    await Directory(
+      workspace.resolveProjectRelativePath('data/pokemon/$directory'),
+    ).rename(workspace.resolveProjectRelativePath('custom/pokemon/$directory'));
+  }
+  await _mutateJsonFile(workspace, 'project.json', (json) {
+    final pokemon = json['pokemon'] as Map<String, dynamic>;
+    pokemon['speciesDir'] = 'custom/pokemon/species';
+    pokemon['learnsetsDir'] = 'custom/pokemon/learnsets';
+    pokemon['evolutionsDir'] = 'custom/pokemon/evolutions';
+    pokemon['mediaDir'] = 'custom/pokemon/media';
+    final catalogs = pokemon['catalogFiles'] as Map<String, dynamic>;
+    for (final key in catalogs.keys.toList(growable: false)) {
+      catalogs[key] = (catalogs[key] as String).replaceFirst(
+        'data/pokemon/catalogs/',
+        'custom/pokemon/catalogs/',
+      );
+    }
+  });
+}
+
+Future<Map<String, Object?>> _canonicalPokemonReport(Directory root) async {
+  const reader = LocalProjectFileReader();
+  final policy = await WorkspacePolicy.create(
+    allowedRootPaths: <String>[root.path],
+    fileReader: reader,
+  );
+  final handles = WorkspaceHandleStore();
+  final api = AuthoringReadApi(
+    openService: ProjectOpenService(
+      policy: policy,
+      fileReader: reader,
+      handles: handles,
+    ),
+    snapshotLoader: ProjectSnapshotLoader(handles: handles),
+  );
+  final opened = await api.openProject(root.path);
+  try {
+    final validation = await api.validate(opened.projectHandle);
+    return Map<String, Object?>.from(validation['pokemonCatalog']! as Map);
+  } finally {
+    await api.close(opened.workspaceHandle);
+  }
 }
 
 String _resolveRepositoryRootFromCurrentDirectory() {

@@ -61,19 +61,32 @@ void main() {
           diagnostic['code'] == 'species.ability_missing_in_catalog',
     );
     expect(missingAbility['severity'], 'error');
-    expect(missingAbility['path'], contains('abilities'));
+    expect(missingAbility['path'], contains('custom/species'));
     expect(missingAbility['recommendedAction'], isNotEmpty);
+    final missingItem = diagnostics.singleWhere(
+      (diagnostic) => diagnostic['code'] == 'evolution.item_missing',
+    );
+    expect(missingItem['path'], contains('custom/evolutions'));
+    final invalidLevel = diagnostics.singleWhere(
+      (diagnostic) => diagnostic['code'] == 'learnset.level_up_level_invalid',
+    );
+    expect(invalidLevel['path'], contains('custom/learnsets'));
   });
 }
 
 Future<void> _writeFixture(Directory root) async {
   final pokemon = const ProjectPokemonConfig(
     ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    speciesDir: 'custom/species',
+    learnsetsDir: 'custom/learnsets',
+    evolutionsDir: 'custom/evolutions',
+    mediaDir: 'custom/media',
     catalogFiles: <String, String>{
-      'types': 'data/pokemon/catalogs/types.json',
-      'abilities': 'data/pokemon/catalogs/abilities.json',
-      'moves': 'data/pokemon/catalogs/moves.json',
-      'growth_rates': 'data/pokemon/catalogs/growth_rates.json',
+      'types': 'custom/catalogs/types.json',
+      'abilities': 'custom/catalogs/abilities.json',
+      'moves': 'custom/catalogs/moves.json',
+      'growth_rates': 'custom/catalogs/growth_rates.json',
+      'items': 'custom/catalogs/items.json',
     },
   );
   final manifest = ProjectManifest(
@@ -89,7 +102,7 @@ Future<void> _writeFixture(Directory root) async {
     'moves': <String>['tackle'],
     'growth_rates': <String>['medium_slow'],
   }.entries) {
-    await _writeJson(root, 'data/pokemon/catalogs/${entry.key}.json', {
+    await _writeJson(root, 'custom/catalogs/${entry.key}.json', {
       'schemaVersion': 1,
       'kind': 'pokemon_catalog',
       'catalog': entry.key,
@@ -99,7 +112,20 @@ Future<void> _writeFixture(Directory root) async {
       ],
     });
   }
-  await _writeJson(root, 'data/pokemon/species/sproutle.json', {
+  await _writeJson(root, 'custom/catalogs/items.json', {
+    'schemaVersion': 1,
+    'entries': <Object?>[
+      <String, Object?>{
+        'id': 'leaf-stone',
+        'displayName': 'Leaf Stone',
+        'aliases': <String>[],
+        'pocketId': 'items',
+        'tags': <String>[],
+        'uses': <Object?>[],
+      },
+    ],
+  });
+  await _writeJson(root, 'custom/species/sproutle.json', {
     'schemaVersion': 1,
     'id': 'sproutle',
     'slug': 'sproutle',
@@ -129,23 +155,43 @@ Future<void> _writeFixture(Directory root) async {
       'catchRate': 45,
       'baseFriendship': 50,
     },
+    'forms': <String, Object?>{
+      'baseFormId': 'sproutle',
+      'isBaseForm': true,
+      'formId': 'base',
+      'otherForms': <String>[],
+    },
     'refs': <String, Object?>{
       'learnset': 'sproutle',
       'evolution': 'sproutle',
       'media': 'sproutle',
     },
   });
-  await _writeJson(root, 'data/pokemon/learnsets/sproutle.json', {
+  await _writeJson(root, 'custom/learnsets/sproutle.json', {
     'schemaVersion': 1,
     'speciesId': 'sproutle',
     'startingMoves': <String>['tackle'],
+    'levelUp': <Object?>[
+      <String, Object?>{
+        'moveId': 'tackle',
+        'level': 101,
+        'source': 'level_up',
+        'versionGroup': 'beta',
+      },
+    ],
   });
-  await _writeJson(root, 'data/pokemon/evolutions/sproutle.json', {
+  await _writeJson(root, 'custom/evolutions/sproutle.json', {
     'schemaVersion': 1,
     'speciesId': 'sproutle',
-    'evolutions': <Object?>[],
+    'evolutions': <Object?>[
+      <String, Object?>{
+        'targetSpeciesId': 'sproutle-evolved',
+        'method': 'use_item',
+        'itemId': 'missing-stone',
+      },
+    ],
   });
-  await _writeJson(root, 'data/pokemon/media/sproutle.json', {
+  await _writeJson(root, 'custom/media/sproutle.json', {
     'schemaVersion': 1,
     'speciesId': 'sproutle',
     'defaultFormId': 'base',

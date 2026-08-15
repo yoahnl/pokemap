@@ -108,6 +108,16 @@ void main() {
       speciesId: 'bulbasaur',
       entries: const [
         PokemonEvolutionEntry(targetSpeciesId: 'ivysaur', method: 'moon_phase'),
+        PokemonEvolutionEntry(
+          targetSpeciesId: 'ivysaur',
+          method: 'use_item',
+          itemId: 'moon-stone',
+        ),
+        PokemonEvolutionEntry(
+          targetSpeciesId: 'ivysaur',
+          method: 'use_item',
+          itemId: 'missing-stone',
+        ),
       ],
     );
     final ivysaurEvolution = _evolution(
@@ -163,7 +173,14 @@ void main() {
         'evolution.target_species_missing',
         'evolution.level_above_ruleset_max',
         'evolution.cycle_detected',
+        'evolution.item_missing',
       }),
+    );
+    expect(
+      report.diagnostics
+          .where((diagnostic) => diagnostic.code == 'evolution.item_missing')
+          .length,
+      1,
     );
   });
 
@@ -195,6 +212,186 @@ void main() {
         'species.form_base_missing',
         'media.back_static_missing',
         'media.asset_missing',
+      }),
+    );
+  });
+
+  test('accepts one reciprocal form graph with matching media variants', () {
+    final report = validator.validate(
+      _validSnapshot(
+        species: [
+          _document(
+            'species/bulbasaur.json',
+            _species(
+              forms: const PokemonSpeciesForms(
+                baseFormId: 'bulbasaur',
+                isBaseForm: true,
+                formId: 'base',
+                otherForms: ['mega'],
+              ),
+            ),
+          ),
+          _document(
+            'species/bulbasaur-mega.json',
+            _species(
+              id: 'bulbasaur-mega',
+              forms: const PokemonSpeciesForms(
+                baseFormId: 'bulbasaur',
+                isBaseForm: false,
+                formId: 'mega',
+                otherForms: ['base'],
+              ),
+              learnsetRef: 'bulbasaur-mega',
+              evolutionRef: 'bulbasaur-mega',
+              mediaRef: 'bulbasaur',
+            ),
+          ),
+        ],
+        learnsets: [
+          _document('learnsets/bulbasaur.json', _learnset()),
+          _document(
+            'learnsets/bulbasaur-mega.json',
+            _learnset(speciesId: 'bulbasaur-mega'),
+          ),
+        ],
+        evolutions: [
+          _document('evolutions/bulbasaur.json', _evolution()),
+          _document(
+            'evolutions/bulbasaur-mega.json',
+            _evolution(speciesId: 'bulbasaur-mega'),
+          ),
+        ],
+        media: [
+          _document(
+            'media/bulbasaur.json',
+            _media(
+              variants: const {
+                'base': PokemonMediaVariant(
+                  frontStatic: 'assets/pokemon/bulbasaur-front.png',
+                  backStatic: 'assets/pokemon/bulbasaur-back.png',
+                ),
+                'mega': PokemonMediaVariant(
+                  frontStatic: 'assets/pokemon/bulbasaur-front.png',
+                  backStatic: 'assets/pokemon/bulbasaur-back.png',
+                ),
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+
+    expect(report.diagnostics, isEmpty);
+  });
+
+  test('reports invalid base identities, duplicate forms and broken links', () {
+    final report = validator.validate(
+      _validSnapshot(
+        species: [
+          _document(
+            'species/base.json',
+            _species(
+              forms: const PokemonSpeciesForms(
+                baseFormId: 'wrong-base',
+                isBaseForm: true,
+                formId: 'base',
+                otherForms: ['mega', 'missing'],
+              ),
+            ),
+          ),
+          _document(
+            'species/mega-a.json',
+            _species(
+              id: 'mega-a',
+              forms: const PokemonSpeciesForms(
+                baseFormId: 'bulbasaur',
+                isBaseForm: false,
+                formId: 'mega',
+              ),
+            ),
+          ),
+          _document(
+            'species/mega-b.json',
+            _species(
+              id: 'mega-b',
+              forms: const PokemonSpeciesForms(
+                baseFormId: 'bulbasaur',
+                isBaseForm: false,
+                formId: 'mega',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    expect(
+      report.diagnostics.map((diagnostic) => diagnostic.code),
+      containsAll(<String>{
+        'species.form_base_identity_mismatch',
+        'species.form_id_duplicate',
+        'species.other_form_missing',
+        'species.other_form_not_reciprocal',
+      }),
+    );
+  });
+
+  test('reports media variants missing from or unknown to the form graph', () {
+    final report = validator.validate(
+      _validSnapshot(
+        species: [
+          _document(
+            'species/bulbasaur.json',
+            _species(
+              forms: const PokemonSpeciesForms(
+                baseFormId: 'bulbasaur',
+                isBaseForm: true,
+                formId: 'base',
+                otherForms: ['mega'],
+              ),
+            ),
+          ),
+          _document(
+            'species/bulbasaur-mega.json',
+            _species(
+              id: 'bulbasaur-mega',
+              forms: const PokemonSpeciesForms(
+                baseFormId: 'bulbasaur',
+                isBaseForm: false,
+                formId: 'mega',
+                otherForms: ['base'],
+              ),
+              learnsetRef: 'bulbasaur-mega',
+              evolutionRef: 'bulbasaur-mega',
+              mediaRef: 'bulbasaur',
+            ),
+          ),
+        ],
+        media: [
+          _document(
+            'media/bulbasaur.json',
+            _media(
+              variants: const {
+                'base': PokemonMediaVariant(
+                  frontStatic: 'assets/pokemon/bulbasaur-front.png',
+                  backStatic: 'assets/pokemon/bulbasaur-back.png',
+                ),
+                'shadow': PokemonMediaVariant(
+                  frontStatic: 'assets/pokemon/bulbasaur-front.png',
+                  backStatic: 'assets/pokemon/bulbasaur-back.png',
+                ),
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+
+    expect(
+      report.diagnostics.map((diagnostic) => diagnostic.code),
+      containsAll(<String>{
+        'media.form_variant_missing',
+        'media.form_variant_unknown',
       }),
     );
   });
@@ -319,7 +516,7 @@ PokemonSpeciesFile _species({
   String learnsetRef = 'bulbasaur',
   String evolutionRef = 'bulbasaur',
   String mediaRef = 'bulbasaur',
-  PokemonSpeciesForms forms = const PokemonSpeciesForms(),
+  PokemonSpeciesForms? forms,
 }) => PokemonSpeciesFile(
   id: id,
   slug: id,
@@ -337,7 +534,9 @@ PokemonSpeciesFile _species({
     catchRate: catchRate,
     baseFriendship: 50,
   ),
-  forms: forms,
+  forms:
+      forms ??
+      PokemonSpeciesForms(baseFormId: id, isBaseForm: true, formId: 'base'),
   refs: PokemonSpeciesRefs(
     learnset: learnsetRef,
     evolution: evolutionRef,
@@ -366,10 +565,11 @@ PokemonMediaFile _media({
     frontStatic: 'assets/pokemon/bulbasaur-front.png',
     backStatic: 'assets/pokemon/bulbasaur-back.png',
   ),
+  Map<String, PokemonMediaVariant>? variants,
 }) => PokemonMediaFile(
   speciesId: speciesId,
   defaultFormId: 'base',
-  variants: <String, PokemonMediaVariant>{'base': variant},
+  variants: variants ?? <String, PokemonMediaVariant>{'base': variant},
 );
 
 PokemonCatalogDocument<T> _document<T>(String path, T value) =>

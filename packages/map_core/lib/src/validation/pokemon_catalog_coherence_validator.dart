@@ -149,11 +149,11 @@ final class PokemonCatalogCoherenceValidator {
       family: 'media',
       collector: collector,
     );
+    final formIdsBySpecies = _validateFormGraph(snapshot.species, collector);
 
     for (final document in snapshot.species) {
       _validateSpecies(
         document,
-        speciesIds: speciesIds,
         learnsetIds: learnsetIds,
         evolutionIds: evolutionIds,
         mediaIds: mediaIds,
@@ -185,6 +185,7 @@ final class PokemonCatalogCoherenceValidator {
       _validateMedia(
         document,
         speciesIds: speciesIds,
+        formIds: formIdsBySpecies[document.value.speciesId],
         assetPaths: snapshot.availableAssetPaths,
         assetInventoryComplete: snapshot.assetInventoryComplete,
         collector: collector,
@@ -260,6 +261,7 @@ final class PokemonCatalogCoherenceValidator {
       'abilities',
       'moves',
       'growth_rates',
+      'items',
     ]) {
       if (result.containsKey(requiredCatalog)) continue;
       collector.warning(
@@ -311,7 +313,6 @@ final class PokemonCatalogCoherenceValidator {
 
   void _validateSpecies(
     PokemonCatalogDocument<PokemonSpeciesFile> document, {
-    required Set<String> speciesIds,
     required Set<String> learnsetIds,
     required Set<String> evolutionIds,
     required Set<String> mediaIds,
@@ -443,18 +444,148 @@ final class PokemonCatalogCoherenceValidator {
       label: 'media document',
       collector: collector,
     );
-    if (!species.forms.isBaseForm) {
-      final baseId = species.forms.baseFormId.trim();
-      if (baseId.isEmpty || !speciesIds.contains(baseId)) {
-        collector.error(
-          code: 'species.form_base_missing',
-          path: '$path.forms.baseFormId',
-          message: 'Form "${species.id}" references an unknown base species.',
-          action:
-              'Reference an existing base species or mark this as a base form.',
-        );
+  }
+
+  Map<String, Set<String>> _validateFormGraph(
+    List<PokemonCatalogDocument<PokemonSpeciesFile>> documents,
+    _DiagnosticCollector collector,
+  ) {
+    final sorted = documents.toList(growable: false)
+      ..sort((left, right) => left.path.compareTo(right.path));
+    final speciesById = <String, PokemonCatalogDocument<PokemonSpeciesFile>>{};
+    for (final document in sorted) {
+      final speciesId = document.value.id.trim();
+      if (speciesId.isNotEmpty) {
+        speciesById.putIfAbsent(speciesId, () => document);
       }
     }
+    final groups = <String, List<_PokemonFormNode>>{};
+    for (final document in sorted) {
+      final species = document.value;
+      final speciesId = species.id.trim();
+      final declaredBaseId = species.forms.baseFormId.trim();
+      final formId = species.forms.formId.trim();
+      final baseSpeciesId = species.forms.isBaseForm
+          ? speciesId
+          : declaredBaseId;
+      if (declaredBaseId.isEmpty) {
+        collector.error(
+          code: 'species.form_base_id_empty',
+          path: '${document.path}.forms.baseFormId',
+          message: 'Species "$speciesId" has no base form species id.',
+          action: 'Set baseFormId to the canonical base species id.',
+        );
+      }
+      if (formId.isEmpty) {
+        collector.error(
+          code: 'species.form_id_empty',
+          path: '${document.path}.forms.formId',
+          message: 'Species "$speciesId" has no stable form id.',
+          action: 'Assign a stable formId within the base species graph.',
+        );
+      }
+      if (species.forms.isBaseForm && declaredBaseId != speciesId) {
+        collector.error(
+          code: 'species.form_base_identity_mismatch',
+          path: '${document.path}.forms.baseFormId',
+          message: 'Base species "$speciesId" must reference its own id.',
+          action: 'Set baseFormId to "$speciesId".',
+        );
+      }
+      if (!species.forms.isBaseForm) {
+        final baseDocument = speciesById[declaredBaseId];
+        if (baseDocument == null || !baseDocument.value.forms.isBaseForm) {
+          collector.error(
+            code: 'species.form_base_missing',
+            path: '${document.path}.forms.baseFormId',
+            message: 'Form "$speciesId" references an unknown base species.',
+            action:
+                'Reference an existing base species or mark this as a base form.',
+          );
+        }
+      }
+      if (baseSpeciesId.isNotEmpty) {
+        groups
+            .putIfAbsent(baseSpeciesId, () => <_PokemonFormNode>[])
+            .add(_PokemonFormNode(document: document, formId: formId));
+      }
+    }
+
+    final result = <String, Set<String>>{};
+    final groupIds = groups.keys.toList(growable: false)..sort();
+    for (final groupId in groupIds) {
+      final nodes = groups[groupId]!
+        ..sort(
+          (left, right) => left.document.path.compareTo(right.document.path),
+        );
+      final nodesByFormId = <String, List<_PokemonFormNode>>{};
+      for (final node in nodes) {
+        if (node.formId.isEmpty) continue;
+        nodesByFormId
+            .putIfAbsent(node.formId, () => <_PokemonFormNode>[])
+            .add(node);
+      }
+      final formIds = Set<String>.unmodifiable(nodesByFormId.keys);
+      for (final node in nodes) {
+        final speciesId = node.document.value.id.trim();
+        if (speciesId.isNotEmpty) result[speciesId] = formIds;
+      }
+      final sortedFormIds = nodesByFormId.keys.toList(growable: false)..sort();
+      for (final formId in sortedFormIds) {
+        final duplicates = nodesByFormId[formId]!;
+        if (duplicates.length > 1) {
+          collector.error(
+            code: 'species.form_id_duplicate',
+            path: '${duplicates.first.document.path}.forms.formId',
+            message:
+                'Base species "$groupId" declares formId "$formId" more than once.',
+            action: 'Keep one species document for each formId.',
+          );
+        }
+      }
+      for (final node in nodes) {
+        final forms = node.document.value.forms;
+        final seen = <String>{};
+        for (var index = 0; index < forms.otherForms.length; index += 1) {
+          final otherFormId = forms.otherForms[index].trim();
+          final path = '${node.document.path}.forms.otherForms[$index]';
+          if (otherFormId.isEmpty || !nodesByFormId.containsKey(otherFormId)) {
+            collector.error(
+              code: 'species.other_form_missing',
+              path: path,
+              message:
+                  'Form "${node.formId}" references unknown form "$otherFormId".',
+              action:
+                  'Reference a formId declared for base species "$groupId".',
+            );
+            continue;
+          }
+          if (!seen.add(otherFormId)) {
+            collector.error(
+              code: 'species.other_form_duplicate',
+              path: path,
+              message:
+                  'Form "${node.formId}" references form "$otherFormId" more than once.',
+              action: 'Keep each otherForms reference only once.',
+            );
+            continue;
+          }
+          final target = nodesByFormId[otherFormId]!.first.document.value.forms;
+          if (!target.otherForms
+              .map((value) => value.trim())
+              .contains(node.formId)) {
+            collector.error(
+              code: 'species.other_form_not_reciprocal',
+              path: path,
+              message:
+                  'Form "$otherFormId" does not reference "${node.formId}" back.',
+              action: 'Make otherForms links reciprocal within the form graph.',
+            );
+          }
+        }
+      }
+    }
+    return Map<String, Set<String>>.unmodifiable(result);
   }
 
   void _validateLearnset(
@@ -685,6 +816,7 @@ final class PokemonCatalogCoherenceValidator {
   void _validateMedia(
     PokemonCatalogDocument<PokemonMediaFile> document, {
     required Set<String> speciesIds,
+    required Set<String>? formIds,
     required Set<String> assetPaths,
     required bool assetInventoryComplete,
     required _DiagnosticCollector collector,
@@ -705,6 +837,33 @@ final class PokemonCatalogCoherenceValidator {
         message: 'Media "$speciesId" references an unknown species.',
         action: 'Create the species or remove its orphan media document.',
       );
+    }
+    if (formIds != null) {
+      final declaredVariants = media.variants.keys
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toSet();
+      final sortedFormIds = formIds.toList(growable: false)..sort();
+      for (final formId in sortedFormIds) {
+        if (declaredVariants.contains(formId)) continue;
+        collector.error(
+          code: 'media.form_variant_missing',
+          path: '$path.variants.$formId',
+          message: 'Media "$speciesId" has no variant for form "$formId".',
+          action: 'Add a media variant for every declared Pokemon form.',
+        );
+      }
+      final sortedVariants = declaredVariants.toList(growable: false)..sort();
+      for (final formId in sortedVariants) {
+        if (formIds.contains(formId)) continue;
+        collector.error(
+          code: 'media.form_variant_unknown',
+          path: '$path.variants.$formId',
+          message: 'Media "$speciesId" declares unknown form "$formId".',
+          action:
+              'Remove the variant or declare the form in the species graph.',
+        );
+      }
     }
     final defaultFormId = media.defaultFormId.trim();
     final variant = media.variants[defaultFormId];
@@ -877,6 +1036,13 @@ final class PokemonCatalogCoherenceValidator {
   }
 }
 
+final class _PokemonFormNode {
+  const _PokemonFormNode({required this.document, required this.formId});
+
+  final PokemonCatalogDocument<PokemonSpeciesFile> document;
+  final String formId;
+}
+
 final class _DiagnosticCollector {
   final List<PokemonCatalogDiagnostic> diagnostics =
       <PokemonCatalogDiagnostic>[];
@@ -977,6 +1143,7 @@ String _catalogReferenceLabel(String catalog) => switch (catalog) {
   'abilities' => 'ability',
   'types' => 'type',
   'moves' => 'move',
+  'items' => 'item',
   _ => catalog,
 };
 
@@ -985,6 +1152,7 @@ String _catalogReferencePlural(String catalog) => switch (catalog) {
   'abilities' => 'abilities',
   'types' => 'types',
   'moves' => 'moves',
+  'items' => 'items',
   _ => catalog,
 };
 

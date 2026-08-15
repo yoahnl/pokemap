@@ -320,6 +320,12 @@ const Map<String, Map<String, Object?>> _speciesSeeds =
       'catchRate': 45,
       'baseFriendship': 50,
     },
+    'forms': <String, Object?>{
+      'baseFormId': 'bulbasaur',
+      'isBaseForm': true,
+      'formId': 'base',
+      'otherForms': <String>[],
+    },
     'refs': <String, Object?>{
       'learnset': 'bulbasaur',
       'evolution': 'bulbasaur',
@@ -386,6 +392,12 @@ const Map<String, Map<String, Object?>> _speciesSeeds =
       'baseExp': 142,
       'catchRate': 45,
       'baseFriendship': 50,
+    },
+    'forms': <String, Object?>{
+      'baseFormId': 'ivysaur',
+      'isBaseForm': true,
+      'formId': 'base',
+      'otherForms': <String>[],
     },
     'refs': <String, Object?>{
       'learnset': 'ivysaur',

@@ -8,7 +8,6 @@ import 'package:pub_semver/pub_semver.dart';
 import '../../../application/models/pokemon_validation_report.dart';
 import '../../../application/services/pokemon_project_validator.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
-import '../../../infrastructure/repositories/file_repositories.dart';
 import 'game_package_gameplay_readiness_gate.dart';
 import 'game_package_export_profile.dart';
 import 'runtime_project_projection_builder.dart';
@@ -101,8 +100,7 @@ final class GamePackageExportService {
       if (projection.project.pokemon.enabled) {
         try {
           final validator =
-              pokemonProjectValidator ??
-              PokemonProjectValidator(FilePokemonReadRepository());
+              pokemonProjectValidator ?? const PokemonProjectValidator();
           pokemonValidationReport = await validator.validate(
             ProjectFileSystem(projectRoot.path),
           );

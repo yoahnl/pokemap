@@ -15,35 +15,73 @@ final class PokemonCatalogCoherenceLoader {
   Future<PokemonCatalogCoherenceReport> validate(
     ProjectWorkspaceAccess access,
     ProjectManifest manifest,
-  ) async {
+  ) =>
+      _validate(
+        manifest,
+        readBytes: access.readBytes,
+        listFiles: access.listFiles,
+      );
+
+  Future<PokemonCatalogCoherenceReport> validateProjectFiles({
+    required ProjectFileReader reader,
+    required String projectRoot,
+    required ProjectManifest manifest,
+  }) {
+    final directoryReader = reader is ProjectDirectoryReader
+        ? reader as ProjectDirectoryReader
+        : null;
+    return _validate(
+      manifest,
+      readBytes: (path) => reader.readBytes(
+        projectRoot: projectRoot,
+        relativePath: path,
+      ),
+      listFiles: (directory) async => directoryReader == null
+          ? null
+          : await directoryReader.listFiles(
+              projectRoot: projectRoot,
+              relativeDirectory: directory,
+            ),
+    );
+  }
+
+  Future<PokemonCatalogCoherenceReport> _validate(
+    ProjectManifest manifest, {
+    required _PokemonDocumentReader readBytes,
+    required _PokemonDirectoryLister listFiles,
+  }) async {
     if (!manifest.pokemon.enabled) {
       return PokemonCatalogCoherenceReport(const []);
     }
     final diagnostics = <PokemonCatalogDiagnostic>[];
-    final catalogs = await _loadCatalogs(access, manifest, diagnostics);
+    final catalogs = await _loadCatalogs(readBytes, manifest, diagnostics);
     final species = await _loadDirectory<PokemonSpeciesFile>(
-      access,
+      readBytes,
+      listFiles,
       manifest.pokemon.speciesDir,
       family: 'species',
       decode: PokemonSpeciesFile.fromJson,
       diagnostics: diagnostics,
     );
     final learnsets = await _loadDirectory<PokemonLearnsetFile>(
-      access,
+      readBytes,
+      listFiles,
       manifest.pokemon.learnsetsDir,
       family: 'learnset',
       decode: PokemonLearnsetFile.fromJson,
       diagnostics: diagnostics,
     );
     final evolutions = await _loadDirectory<PokemonEvolutionFile>(
-      access,
+      readBytes,
+      listFiles,
       manifest.pokemon.evolutionsDir,
       family: 'evolution',
       decode: PokemonEvolutionFile.fromJson,
       diagnostics: diagnostics,
     );
     final media = await _loadDirectory<PokemonMediaFile>(
-      access,
+      readBytes,
+      listFiles,
       manifest.pokemon.mediaDir,
       family: 'media',
       decode: PokemonMediaFile.fromJson,
@@ -66,7 +104,7 @@ final class PokemonCatalogCoherenceLoader {
   }
 
   Future<List<PokemonCatalogDocument<PokemonCatalogFile>>> _loadCatalogs(
-    ProjectWorkspaceAccess access,
+    _PokemonDocumentReader readBytes,
     ProjectManifest manifest,
     List<PokemonCatalogDiagnostic> diagnostics,
   ) async {
@@ -74,23 +112,24 @@ final class PokemonCatalogCoherenceLoader {
     final entries = manifest.pokemon.catalogFiles.entries.toList()
       ..sort((left, right) => left.key.compareTo(right.key));
     for (final entry in entries) {
-      if (!const <String>{
-        'abilities',
-        'growth_rates',
-        'moves',
-        'types',
-      }.contains(entry.key)) {
-        continue;
-      }
       final path = _normalizePath(entry.value);
-      final value = await _readDocument<PokemonCatalogFile>(
-        access,
-        path,
-        family: 'catalog',
-        decode: PokemonCatalogFile.fromJson,
-        diagnostics: diagnostics,
-        missingIsWarning: true,
-      );
+      final value = entry.key == 'items'
+          ? await _readDocument<PokemonCatalogFile>(
+              readBytes,
+              path,
+              family: 'catalog',
+              decode: _decodeItemCatalog,
+              diagnostics: diagnostics,
+              missingIsWarning: true,
+            )
+          : await _readDocument<PokemonCatalogFile>(
+              readBytes,
+              path,
+              family: 'catalog',
+              decode: PokemonCatalogFile.fromJson,
+              diagnostics: diagnostics,
+              missingIsWarning: true,
+            );
       if (value != null) {
         documents.add(PokemonCatalogDocument(path: path, value: value));
       }
@@ -99,7 +138,8 @@ final class PokemonCatalogCoherenceLoader {
   }
 
   Future<List<PokemonCatalogDocument<T>>> _loadDirectory<T>(
-    ProjectWorkspaceAccess access,
+    _PokemonDocumentReader readBytes,
+    _PokemonDirectoryLister listFiles,
     String rawDirectory, {
     required String family,
     required T Function(Map<String, dynamic>) decode,
@@ -107,7 +147,7 @@ final class PokemonCatalogCoherenceLoader {
   }) async {
     final directory = _normalizePath(rawDirectory);
     final paths = await _listJsonFiles(
-      access,
+      listFiles,
       directory,
       family: family,
       diagnostics: diagnostics,
@@ -115,7 +155,7 @@ final class PokemonCatalogCoherenceLoader {
     final documents = <PokemonCatalogDocument<T>>[];
     for (final path in paths) {
       final value = await _readDocument<T>(
-        access,
+        readBytes,
         path,
         family: family,
         decode: decode,
@@ -129,13 +169,13 @@ final class PokemonCatalogCoherenceLoader {
   }
 
   Future<List<String>> _listJsonFiles(
-    ProjectWorkspaceAccess access,
+    _PokemonDirectoryLister listFiles,
     String directory, {
     required String family,
     required List<PokemonCatalogDiagnostic> diagnostics,
   }) async {
     try {
-      final listed = await access.listFiles(directory);
+      final listed = await listFiles(directory);
       if (listed == null) {
         diagnostics.add(
           PokemonCatalogDiagnostic(
@@ -171,7 +211,7 @@ final class PokemonCatalogCoherenceLoader {
   }
 
   Future<T?> _readDocument<T>(
-    ProjectWorkspaceAccess access,
+    _PokemonDocumentReader readBytes,
     String path, {
     required String family,
     required T Function(Map<String, dynamic>) decode,
@@ -179,7 +219,7 @@ final class PokemonCatalogCoherenceLoader {
     bool missingIsWarning = false,
   }) async {
     try {
-      final bytes = await access.readBytes(path);
+      final bytes = await readBytes(path);
       final decoded = jsonDecode(utf8.decode(bytes));
       if (decoded is! Map) throw const FormatException('Expected JSON object.');
       return decode(Map<String, dynamic>.from(decoded));
@@ -215,13 +255,37 @@ final class PokemonCatalogCoherenceLoader {
           code: '$family.read_error',
           severity: PokemonCatalogDiagnosticSeverity.error,
           path: path,
-          message: 'The Pokemon document is invalid: $error',
+          message: 'Invalid JSON Pokemon document: $error',
           recommendedAction: 'Repair or replace the invalid Pokemon JSON.',
         ),
       );
       return null;
     }
   }
+}
+
+typedef _PokemonDocumentReader = Future<List<int>> Function(String path);
+typedef _PokemonDirectoryLister = Future<List<String>?> Function(
+  String directory,
+);
+
+PokemonCatalogFile _decodeItemCatalog(Map<String, dynamic> json) {
+  if (json['schemaVersion'] != currentPokemonDataSchemaVersion) {
+    throw UnsupportedPokemonDataSchema(
+      actualVersion: json['schemaVersion'],
+      path: r'$.schemaVersion',
+    );
+  }
+  final catalog = ProjectItemCatalog.fromJson(json);
+  return PokemonCatalogFile(
+    schemaVersion: catalog.schemaVersion,
+    kind: 'project_item_catalog',
+    catalog: 'items',
+    meta: const PokemonDataMeta(description: 'Project items'),
+    entries: <Map<String, dynamic>>[
+      for (final item in catalog.entries) <String, dynamic>{'id': item.id},
+    ],
+  );
 }
 
 String _normalizePath(String value) =>

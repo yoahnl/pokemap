@@ -222,17 +222,38 @@ class ShowdownPokemonSpeciesConverter {
     final otherForms = <String>[
       ..._readOptionalStringList(payload['otherFormes']),
       ..._readOptionalStringList(payload['cosmeticFormes']),
-    ].map(_normalizeIdentifier).where((value) => value.isNotEmpty).toSet()
-      ..remove('');
+    ]
+        .map(
+          (value) => _normalizeFormId(
+            value,
+            baseSpeciesId: isBaseForm ? currentId : baseSpeciesId,
+          ),
+        )
+        .where((value) => value.isNotEmpty)
+        .toSet();
+    if (!isBaseForm) {
+      otherForms.add('base');
+    }
     final sortedOtherForms = otherForms.toList(growable: false)..sort();
 
     return PokemonSpeciesForms(
-      baseFormId: isBaseForm ? '' : baseSpeciesId,
+      baseFormId: isBaseForm ? currentId : baseSpeciesId,
       isBaseForm: isBaseForm,
-      formId: isBaseForm ? '' : _normalizeIdentifier(forme),
+      formId: isBaseForm ? 'base' : _normalizeIdentifier(forme),
       formName: isBaseForm ? null : forme,
       otherForms: sortedOtherForms,
     );
+  }
+
+  String _normalizeFormId(String raw, {required String baseSpeciesId}) {
+    final normalized = _normalizeIdentifier(raw);
+    if (normalized.startsWith(baseSpeciesId) &&
+        normalized.length > baseSpeciesId.length) {
+      return normalized
+          .substring(baseSpeciesId.length)
+          .replaceFirst(RegExp(r'^[-_]+'), '');
+    }
+    return normalized;
   }
 
   PokemonSpeciesClassification _readClassification(
