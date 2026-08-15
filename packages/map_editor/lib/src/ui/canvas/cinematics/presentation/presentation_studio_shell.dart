@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../theme/theme.dart';
 import '../../../design_system/design_system.dart';
+import '../cinematic_studio_localizations.dart';
 import 'presentation_studio_diagnostic.dart';
 
 const presentationStudioShellKey = ValueKey<String>(
@@ -178,19 +179,19 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
     }
     if (_exitGuardOpen) return;
     _exitGuardOpen = true;
+    final copy = CinematicStudioCopy.of(context);
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => PokeMapDialog(
-          title: 'Enregistrer avant de quitter ?',
-          message:
-              'Cette cinématique contient des modifications qui ne sont pas encore enregistrées.',
+          title: copy.saveBeforeExit,
+          message: copy.unsavedCinematicMessage,
           icon: Icons.save_outlined,
           footer: PokeMapCinematicExitGuardActions(
-            cancelLabel: 'Annuler',
-            discardLabel: 'Quitter sans enregistrer',
-            saveLabel: 'Enregistrer et quitter',
+            cancelLabel: copy.cancel,
+            discardLabel: copy.leaveWithoutSaving,
+            saveLabel: copy.saveAndLeave,
             isSaving: _savingFromGuard,
             onCancel: () => Navigator.of(dialogContext).pop(),
             onDiscard: () {
@@ -232,6 +233,7 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final copy = CinematicStudioCopy.of(context);
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.keyS, meta: true): () {
@@ -254,9 +256,9 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PokeMapCinematicWorkspaceToolbar(
-                backLabel: 'Retour à la bibliothèque',
+                backLabel: copy.backToLibrary,
                 title: widget.title,
-                contextLabel: 'Cinématique de présentation',
+                contextLabel: copy.presentationCinematic,
                 backButtonKey: widget.backButtonKey,
                 onBack: () => unawaited(_requestExit()),
                 status: PokeMapCinematicDocumentStatus(
@@ -276,7 +278,7 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
                         : () => unawaited(widget.onSave()),
                     size: PokeMapButtonSize.small,
                     leading: const Icon(Icons.save_outlined),
-                    child: const Text('Enregistrer'),
+                    child: Text(copy.save),
                   ),
                 ],
               ),
@@ -314,7 +316,7 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
                               PokeMapCinematicResizeHandle(
                                 key: presentationStudioInspectorResizeKey,
                                 axis: PokeMapCinematicResizeAxis.horizontal,
-                                tooltip: 'Redimensionner le panneau droit',
+                                tooltip: copy.resizeRightPanel,
                                 onResize: (delta) {
                                   setState(
                                     () => _layout = layout.copyWith(
@@ -340,8 +342,8 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
                                         )
                                       : PokeMapCinematicPanelTabs(
                                           selected: _selectedPanel,
-                                          layersLabel: 'Calques',
-                                          propertiesLabel: 'Propriétés',
+                                          layersLabel: copy.layers,
+                                          propertiesLabel: copy.properties,
                                           onChanged: (panel) => setState(
                                             () => _selectedPanel = panel,
                                           ),
@@ -358,7 +360,7 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
                                                   leading: const Icon(
                                                     Icons.add_rounded,
                                                   ),
-                                                  child: const Text('Ajouter'),
+                                                  child: Text(copy.add),
                                                 ),
                                         ),
                                   child: _addPanelOpen
@@ -377,7 +379,7 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
                         PokeMapCinematicResizeHandle(
                           key: presentationStudioTimelineResizeKey,
                           axis: PokeMapCinematicResizeAxis.vertical,
-                          tooltip: 'Redimensionner la timeline',
+                          tooltip: copy.resizeTimeline,
                           onResize: (delta) {
                             setState(
                               () => _layout = layout.copyWith(
@@ -433,22 +435,28 @@ class _AddPanelHeader extends StatelessWidget {
   final VoidCallback onBack;
 
   @override
-  Widget build(BuildContext context) => PokeMapToolbarSurface(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-    child: Row(
-      children: <Widget>[
-        PokeMapIconButton(
-          onPressed: onBack,
-          tooltip: 'Fermer la palette Ajouter',
-          semanticLabel: 'Fermer la palette Ajouter',
-          icon: const Icon(Icons.arrow_back_rounded),
-          variant: PokeMapIconButtonVariant.soft,
-        ),
-        const SizedBox(width: 8),
-        const Expanded(
-          child: Text('Ajouter', style: TextStyle(fontWeight: FontWeight.w700)),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapToolbarSurface(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      child: Row(
+        children: <Widget>[
+          PokeMapIconButton(
+            onPressed: onBack,
+            tooltip: copy.closeAddPalette,
+            semanticLabel: copy.closeAddPalette,
+            icon: const Icon(Icons.arrow_back_rounded),
+            variant: PokeMapIconButtonVariant.soft,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              copy.add,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -9,6 +9,7 @@ import '../../../../theme/theme.dart';
 import '../../../../application/authoring_api/presentation_studio_timeline_command.dart';
 import '../../../../application/authoring_api/presentation_timeline_projection_gateway.dart';
 import '../../../design_system/design_system.dart';
+import '../cinematic_studio_localizations.dart';
 import 'presentation_studio_layer_tree.dart';
 import 'presentation_timeline_editing_controller.dart';
 
@@ -503,7 +504,8 @@ class _PresentationStudioTimelineState
 
   @override
   Widget build(BuildContext context) {
-    final stateSurface = _stateSurface();
+    final copy = CinematicStudioCopy.of(context);
+    final stateSurface = _stateSurface(copy);
     if (stateSurface != null) return stateSurface;
     return Focus(
       key: presentationStudioTimelineKey,
@@ -535,8 +537,8 @@ class _PresentationStudioTimelineState
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _ruler(viewportWidth),
-                Expanded(child: _tracks(viewportWidth)),
+                _ruler(viewportWidth, copy),
+                Expanded(child: _tracks(viewportWidth, copy)),
                 _horizontalScrollbar(viewportWidth),
               ],
             );
@@ -546,29 +548,29 @@ class _PresentationStudioTimelineState
     );
   }
 
-  Widget? _stateSurface() => switch (widget.state) {
+  Widget? _stateSurface(CinematicStudioCopy copy) => switch (widget.state) {
     PresentationStudioTimelineState.ready => null,
-    PresentationStudioTimelineState.loading => const PokeMapEmptyState(
-      title: 'Chargement de la timeline',
-      description: 'Préparation des pistes visibles…',
-      icon: SizedBox.square(
+    PresentationStudioTimelineState.loading => PokeMapEmptyState(
+      title: copy.timelineLoading,
+      description: copy.preparingVisibleTracks,
+      icon: const SizedBox.square(
         dimension: 24,
         child: CircularProgressIndicator(strokeWidth: 2),
       ),
     ),
-    PresentationStudioTimelineState.disabled => const PokeMapEmptyState(
-      title: 'Timeline indisponible',
-      description: 'La timeline est désactivée pour ce document.',
-      icon: Icon(Icons.block_rounded),
+    PresentationStudioTimelineState.disabled => PokeMapEmptyState(
+      title: copy.timelineUnavailable,
+      description: copy.timelineDisabled,
+      icon: const Icon(Icons.block_rounded),
     ),
     PresentationStudioTimelineState.error => PokeMapEmptyState(
-      title: 'Timeline invalide',
-      description: widget.diagnostic ?? 'La structure des pistes est invalide.',
+      title: copy.timelineInvalid,
+      description: widget.diagnostic ?? copy.invalidTrackStructure,
       icon: const Icon(Icons.error_outline_rounded),
     ),
   };
 
-  Widget _ruler(double viewportWidth) {
+  Widget _ruler(double viewportWidth, CinematicStudioCopy copy) {
     return SizedBox(
       height: 32,
       child: Row(
@@ -583,32 +585,32 @@ class _PresentationStudioTimelineState
                 child: Row(
                   children: [
                     PokeMapIconButton(
-                      semanticLabel: 'Annuler la dernière édition de clips',
-                      tooltip: 'Annuler',
+                      semanticLabel: copy.undoLastClipEdit,
+                      tooltip: copy.undo,
                       onPressed: widget.canUndo && !widget.mutationPending
                           ? widget.onUndo
                           : null,
                       icon: const Icon(Icons.undo_rounded),
                     ),
                     PokeMapIconButton(
-                      semanticLabel: 'Rétablir la dernière édition de clips',
-                      tooltip: 'Rétablir',
+                      semanticLabel: copy.redoLastClipEdit,
+                      tooltip: copy.redo,
                       onPressed: widget.canRedo && !widget.mutationPending
                           ? widget.onRedo
                           : null,
                       icon: const Icon(Icons.redo_rounded),
                     ),
                     PokeMapIconButton(
-                      semanticLabel: 'Copier les clips sélectionnés',
-                      tooltip: 'Copier',
+                      semanticLabel: copy.copySelectedClips,
+                      tooltip: copy.copyAction,
                       onPressed: _editingController.selectedClipIds.isEmpty
                           ? null
                           : _editingController.copySelection,
                       icon: const Icon(Icons.copy_rounded),
                     ),
                     PokeMapIconButton(
-                      semanticLabel: 'Coller les clips au playhead',
-                      tooltip: 'Coller',
+                      semanticLabel: copy.pasteAtPlayhead,
+                      tooltip: copy.paste,
                       onPressed:
                           _editingController.hasClipboard &&
                               !widget.mutationPending
@@ -617,8 +619,8 @@ class _PresentationStudioTimelineState
                       icon: const Icon(Icons.content_paste_rounded),
                     ),
                     PokeMapIconButton(
-                      semanticLabel: 'Dupliquer les clips sélectionnés',
-                      tooltip: 'Dupliquer',
+                      semanticLabel: copy.duplicateSelectedClips,
+                      tooltip: copy.duplicate,
                       onPressed:
                           !_editingController.canEditSelection ||
                               widget.mutationPending
@@ -627,8 +629,8 @@ class _PresentationStudioTimelineState
                       icon: const Icon(Icons.control_point_duplicate_rounded),
                     ),
                     PokeMapIconButton(
-                      semanticLabel: 'Supprimer les clips sélectionnés',
-                      tooltip: 'Supprimer',
+                      semanticLabel: copy.deleteSelectedClips,
+                      tooltip: copy.delete,
                       onPressed:
                           !_editingController.canEditSelection ||
                               widget.mutationPending
@@ -637,8 +639,8 @@ class _PresentationStudioTimelineState
                       icon: const Icon(Icons.delete_outline_rounded),
                     ),
                     PokeMapIconButton(
-                      semanticLabel: 'Dézoomer la timeline',
-                      tooltip: 'Dézoomer',
+                      semanticLabel: copy.zoomOutTimeline,
+                      tooltip: copy.zoomOut,
                       onPressed: () => _viewportController.zoomAt(
                         factor: 0.8,
                         anchorViewportX: _viewportController.viewportWidth / 2,
@@ -646,8 +648,8 @@ class _PresentationStudioTimelineState
                       icon: const Icon(Icons.remove_rounded),
                     ),
                     PokeMapIconButton(
-                      semanticLabel: 'Zoomer la timeline',
-                      tooltip: 'Zoomer',
+                      semanticLabel: copy.zoomInTimeline,
+                      tooltip: copy.zoomIn,
                       onPressed: () => _viewportController.zoomAt(
                         factor: 1.25,
                         anchorViewportX: _viewportController.viewportWidth / 2,
@@ -665,7 +667,7 @@ class _PresentationStudioTimelineState
             pixelsPerSecond: _viewportController.pixelsPerSecond,
             scrollOffset: _viewportController.scrollOffset,
             width: viewportWidth,
-            semanticLabel: 'Règle temporelle Presentation',
+            semanticLabel: copy.presentationTimeRuler,
             onSeekAtX: _seekAt,
           ),
         ],
@@ -673,12 +675,12 @@ class _PresentationStudioTimelineState
     );
   }
 
-  Widget _tracks(double viewportWidth) {
+  Widget _tracks(double viewportWidth, CinematicStudioCopy copy) {
     if (widget.asset.tracks.isEmpty) {
-      return const PokeMapEmptyState(
-        title: 'Timeline vide',
-        description: 'Ajoutez une piste pour commencer la composition.',
-        icon: Icon(Icons.view_timeline_outlined),
+      return PokeMapEmptyState(
+        title: copy.emptyTimeline,
+        description: copy.addTrackToStart,
+        icon: const Icon(Icons.view_timeline_outlined),
       );
     }
     return LayoutBuilder(
@@ -815,6 +817,7 @@ class _PresentationStudioTimelineState
   }
 
   Widget _clip(PresentationClip clip, int trackIndex) {
+    final copy = CinematicStudioCopy.of(context);
     final renderedClip = _editingController.previewClip(clip.id);
     final left =
         renderedClip.startUs / 1000000 * _viewportController.pixelsPerSecond -
@@ -875,16 +878,17 @@ class _PresentationStudioTimelineState
           stateLabel: _clipStateLabel(
             clip,
             projection,
+            copy,
             markerUsageCount: widget.markerUsageCountById[clip.id] ?? 0,
           ),
           preview: _clipPreview(clip, projection),
           selected: selected,
           onPressed: () => _selectClip(clip),
           startTrimLabel: selected && clip is! PresentationMarkerClip
-              ? 'Rogner le début de ${_clipLabel(clip)}'
+              ? copy.trimStart(_clipLabel(clip))
               : null,
           endTrimLabel: selected && clip is! PresentationMarkerClip
-              ? 'Rogner la fin de ${_clipLabel(clip)}'
+              ? copy.trimEnd(_clipLabel(clip))
               : null,
           onStartTrimBegin:
               !_editingEnabled || !_editingController.isClipEditable(clip.id)
@@ -1069,40 +1073,41 @@ PokeMapCinematicTimelineClipState _projectionClipState(
 
 String? _clipStateLabel(
   PresentationClip clip,
-  PresentationTimelineMediaProjection? projection, {
+  PresentationTimelineMediaProjection? projection,
+  CinematicStudioCopy copy, {
   required int markerUsageCount,
 }) {
-  if (projection?.loading ?? false) return 'Préparation de l’aperçu…';
+  if (projection?.loading ?? false) return copy.preparingPreview;
   final diagnostic = projection?.diagnostic?.trim();
   if (diagnostic != null && diagnostic.isNotEmpty) return diagnostic;
   return switch (clip) {
     PresentationAudioClip() => <String>[
       '${(clip.volume * 100).round()} %',
-      if (clip.loop) 'boucle',
-      if (clip.fadeInUs > 0 || clip.fadeOutUs > 0) 'fondus',
-      if (_hasResponsiveVariants(clip)) 'variantes L/P',
+      if (clip.loop) copy.loopState,
+      if (clip.fadeInUs > 0 || clip.fadeOutUs > 0) copy.fadesState,
+      if (_hasResponsiveVariants(clip)) copy.responsiveVariants,
       if (projection?.fallbackUsed ?? false) 'fallback',
     ].join(' · '),
     PresentationVisualClip(mediaKind: PresentationVisualMediaKind.video) =>
       <String>[
-        'Vidéo',
-        if (_hasResponsiveVariants(clip)) 'variantes L/P',
+        copy.video,
+        if (_hasResponsiveVariants(clip)) copy.responsiveVariants,
         if (projection?.fallbackUsed ?? false) 'fallback',
       ].join(' · '),
     PresentationCaptionClip() => <String>[
       clip.locale.toUpperCase(),
-      if (projection != null) '${projection.captions.length} segments',
-      if (clip.fallbackToProjectDefault) 'fallback locale',
+      if (projection != null) copy.segmentCount(projection.captions.length),
+      if (clip.fallbackToProjectDefault) copy.localeFallback,
     ].join(' · '),
     PresentationMarkerClip() => <String>[
       clip.markerKind == PresentationMarkerKind.interactionCue
-          ? 'Cue Scene'
-          : 'Repère',
-      if (clip.required) 'requis',
+          ? copy.sceneCue
+          : copy.marker,
+      if (clip.required) copy.requiredState,
       if (clip.markerKind == PresentationMarkerKind.interactionCue)
         markerUsageCount == 0
-            ? 'non relié'
-            : '$markerUsageCount ${markerUsageCount == 1 ? 'usage' : 'usages'} Scene',
+            ? copy.unlinked
+            : copy.sceneUsageCount(markerUsageCount),
     ].join(' · '),
     _ => null,
   };

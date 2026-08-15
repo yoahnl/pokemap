@@ -8,6 +8,7 @@ import 'package:map_player_ui/presentation_renderer.dart';
 
 import '../../../../theme/theme.dart';
 import '../../../design_system/design_system.dart';
+import '../cinematic_studio_localizations.dart';
 import 'presentation_frame_preview.dart';
 
 const presentationStudioViewportKey = ValueKey<String>(
@@ -149,6 +150,7 @@ class _PresentationStudioViewportState
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     final colors = context.pokeMapColors;
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
@@ -195,9 +197,8 @@ class _PresentationStudioViewportState
         child: Semantics(
           key: presentationStudioViewportKey,
           container: true,
-          label: 'Canvas de cinématique de présentation',
-          hint:
-              'F ajuste le cadre, plus et moins changent le zoom, les flèches déplacent le cadre.',
+          label: copy.viewportLabel,
+          hint: copy.viewportHint,
           child: ColoredBox(
             color: colors.backgroundApp,
             child: AnimatedBuilder(
@@ -244,8 +245,7 @@ class _PresentationStudioViewportState
                                           ),
                                     child: PokeMapCinematicViewport(
                                       composition: _composition,
-                                      semanticLabel:
-                                          'Aperçu de la frame Presentation',
+                                      semanticLabel: copy.framePreview,
                                       showSafeArea: widget.showSafeArea,
                                       state: _designSystemState,
                                       statusLabel: widget.errorMessage,
@@ -253,10 +253,10 @@ class _PresentationStudioViewportState
                                           widget.state ==
                                               PresentationStudioViewportState
                                                   .error
-                                          ? 'Réessayer le rendu'
+                                          ? copy.retryRender
                                           : null,
                                       onRetry: widget.onRetry,
-                                      child: _content(),
+                                      child: _content(copy),
                                     ),
                                   ),
                                 ),
@@ -283,17 +283,16 @@ class _PresentationStudioViewportState
     );
   }
 
-  Widget _content() {
+  Widget _content(CinematicStudioCopy copy) {
     if (widget.state == PresentationStudioViewportState.error) {
       return const SizedBox.expand();
     }
     final frame = widget.frame;
     if (frame == null) {
-      return const PokeMapEmptyState(
-        title: 'Aucun contenu à afficher',
-        description:
-            'Ajoutez un média ou un texte pour composer la première frame.',
-        icon: Icon(Icons.movie_creation_outlined),
+      return PokeMapEmptyState(
+        title: copy.noContentToDisplay,
+        description: copy.addFirstFrameContent,
+        icon: const Icon(Icons.movie_creation_outlined),
         compact: true,
       );
     }
@@ -349,6 +348,7 @@ class _PresentationStudioViewportControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     return PokeMapToolbarSurface(
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -357,8 +357,8 @@ class _PresentationStudioViewportControls extends StatelessWidget {
           PokeMapIconButton(
             onPressed: controller.zoomOut,
             icon: const Icon(Icons.remove_rounded),
-            tooltip: 'Réduire le zoom',
-            semanticLabel: 'Réduire le zoom',
+            tooltip: copy.zoomOut,
+            semanticLabel: copy.zoomOut,
             size: 28,
             variant: PokeMapIconButtonVariant.ghost,
           ),
@@ -377,8 +377,8 @@ class _PresentationStudioViewportControls extends StatelessWidget {
           PokeMapIconButton(
             onPressed: controller.zoomIn,
             icon: const Icon(Icons.add_rounded),
-            tooltip: 'Augmenter le zoom',
-            semanticLabel: 'Augmenter le zoom',
+            tooltip: copy.zoomIn,
+            semanticLabel: copy.zoomIn,
             size: 28,
             variant: PokeMapIconButtonVariant.ghost,
           ),
@@ -386,8 +386,8 @@ class _PresentationStudioViewportControls extends StatelessWidget {
           PokeMapIconButton(
             onPressed: controller.fit,
             icon: const Icon(Icons.fit_screen_rounded),
-            tooltip: 'Ajuster le cadre',
-            semanticLabel: 'Ajuster le cadre',
+            tooltip: copy.fitFrame,
+            semanticLabel: copy.fitFrame,
             size: 28,
             variant: PokeMapIconButtonVariant.soft,
           ),

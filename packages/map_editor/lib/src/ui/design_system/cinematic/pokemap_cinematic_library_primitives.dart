@@ -194,22 +194,28 @@ class PokeMapCinematicLibraryStateSurface extends StatelessWidget {
       );
     }
     final isError = state == PokeMapCinematicLibraryState.error;
-    return PokeMapEmptyState(
-      title: title,
-      description: description,
-      icon: Icon(
-        isError ? Icons.error_outline_rounded : Icons.movie_filter_outlined,
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      liveRegion: isError,
+      label: '$title. $description',
+      child: PokeMapEmptyState(
+        title: title,
+        description: description,
+        icon: Icon(
+          isError ? Icons.error_outline_rounded : Icons.movie_filter_outlined,
+        ),
+        action: actionLabel == null
+            ? null
+            : PokeMapButton(
+                semanticLabel: actionLabel,
+                onPressed: onAction,
+                variant: isError
+                    ? PokeMapButtonVariant.secondary
+                    : PokeMapButtonVariant.primary,
+                child: Text(actionLabel!),
+              ),
       ),
-      action: actionLabel == null
-          ? null
-          : PokeMapButton(
-              semanticLabel: actionLabel,
-              onPressed: onAction,
-              variant: isError
-                  ? PokeMapButtonVariant.secondary
-                  : PokeMapButtonVariant.primary,
-              child: Text(actionLabel!),
-            ),
     );
   }
 }

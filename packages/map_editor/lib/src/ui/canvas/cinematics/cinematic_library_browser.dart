@@ -5,6 +5,7 @@ import '../../../application/models/narrative_document_route.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'cinematic_library_dialogs.dart';
+import 'cinematic_studio_localizations.dart';
 
 enum CinematicLibraryViewMode { list, grid }
 
@@ -283,6 +284,7 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     final normalized = widget.navigation.normalize(
       widget.project.cinematicLibraryCatalog,
     );
@@ -295,6 +297,7 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
     final snapshot = _CinematicLibrarySnapshot.build(
       widget.project,
       navigation.active,
+      copy,
     );
     final familyMode = navigation.activeFamily == CinematicLibraryFamily.world
         ? PokeMapCinematicLibraryMode.inGame
@@ -309,8 +312,8 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
         children: [
           PokeMapCinematicFamilyTabs(
             selected: familyMode,
-            inGameLabel: 'Cinématiques in-game',
-            presentationLabel: 'Cinématiques de présentation',
+            inGameLabel: copy.inGameFamily,
+            presentationLabel: copy.presentationFamily,
             onChanged: (mode) {
               final family = mode == PokeMapCinematicLibraryMode.inGame
                   ? CinematicLibraryFamily.world
@@ -329,14 +332,15 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
             onCreate: widget.onCreate == null
                 ? null
                 : () => _createCinematic(navigation),
-            onManage: navigation.active.selectedAssetId == null ||
+            onManage:
+                navigation.active.selectedAssetId == null ||
                     !_hasManagementCommands
                 ? null
                 : () => _manageSelection(navigation),
           ),
           const SizedBox(height: 12),
           PokeMapCinematicBreadcrumb(
-            semanticLabel: 'Chemin de la bibliothèque de cinématiques',
+            semanticLabel: copy.libraryBreadcrumb,
             items: snapshot.breadcrumbs
                 .map(
                   (item) => PokeMapCinematicBreadcrumbItem(
@@ -375,11 +379,10 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
           ),
           const SizedBox(height: 12),
           if (navigation.folderWasInaccessible) ...[
-            const PokeMapActionBanner(
+            PokeMapActionBanner(
               tone: PokeMapTone.warning,
-              title: 'Dossier indisponible',
-              message:
-                  'Le dossier a été déplacé ou supprimé. La bibliothèque est revenue à sa racine sans modifier son contenu.',
+              title: copy.unavailableFolder,
+              message: copy.unavailableFolderMessage,
             ),
             const SizedBox(height: 12),
           ],
@@ -393,12 +396,13 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
     CinematicLibraryNavigationState navigation,
     _CinematicLibrarySnapshot snapshot,
   ) {
+    final copy = CinematicStudioCopy.of(context);
     if (widget.loadState == CinematicLibraryBrowserLoadState.loading) {
-      return const Center(
+      return Center(
         child: PokeMapCinematicLibraryStateSurface(
           state: PokeMapCinematicLibraryState.loading,
-          title: 'Chargement des cinématiques…',
-          description: 'Lecture du catalogue et de ses dossiers.',
+          title: copy.loadingCinematics,
+          description: copy.loadingCatalog,
         ),
       );
     }
@@ -406,10 +410,8 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
       return Center(
         child: PokeMapCinematicLibraryStateSurface(
           state: PokeMapCinematicLibraryState.error,
-          title: 'Bibliothèque indisponible',
-          description:
-              widget.errorMessage ??
-              'Le catalogue n’a pas pu être chargé. Le projet reste intact.',
+          title: copy.libraryUnavailable,
+          description: widget.errorMessage ?? copy.libraryUnavailableMessage,
         ),
       );
     }
@@ -418,10 +420,10 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
       return Center(
         child: PokeMapCinematicLibraryStateSurface(
           state: PokeMapCinematicLibraryState.empty,
-          title: searching ? 'Aucun résultat' : 'Bibliothèque vide',
+          title: searching ? copy.noResults : copy.emptyLibrary,
           description: searching
-              ? 'Aucune cinématique ni aucun dossier ne correspond à la recherche.'
-              : 'Cette famille ne contient encore aucune cinématique dans ce dossier.',
+              ? copy.noResultsMessage
+              : copy.emptyLibraryMessage,
         ),
       );
     }
@@ -468,39 +470,42 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
   Widget _buildItem(
     CinematicLibraryNavigationState navigation,
     _CinematicLibraryItem item,
-  ) => switch (item) {
-    _CinematicLibraryFolderItem(:final folder) => PokeMapAssetCard(
-      key: ValueKey('cinematic-folder-${folder.id}'),
-      thumbnail: const Icon(Icons.folder_outlined),
-      label: folder.name,
-      description: 'Dossier',
-      onPressed: () => _openFolder(navigation, folder.id),
-      trailing: const Icon(Icons.chevron_right_rounded),
-    ),
-    _CinematicLibraryAssetItem(:final asset) => PokeMapAssetCard(
-      key: ValueKey(
-        navigation.activeFamily == CinematicLibraryFamily.world
-            ? 'cinematic-entry-${asset.id}'
-            : 'cinematic-asset-${asset.id}',
+  ) {
+    final copy = CinematicStudioCopy.of(context);
+    return switch (item) {
+      _CinematicLibraryFolderItem(:final folder) => PokeMapAssetCard(
+        key: ValueKey('cinematic-folder-${folder.id}'),
+        thumbnail: const Icon(Icons.folder_outlined),
+        label: folder.name,
+        description: copy.folder,
+        onPressed: () => _openFolder(navigation, folder.id),
+        trailing: const Icon(Icons.chevron_right_rounded),
       ),
-      thumbnail: Icon(
-        navigation.activeFamily == CinematicLibraryFamily.world
-            ? Icons.videogame_asset_outlined
-            : Icons.movie_creation_outlined,
+      _CinematicLibraryAssetItem(:final asset) => PokeMapAssetCard(
+        key: ValueKey(
+          navigation.activeFamily == CinematicLibraryFamily.world
+              ? 'cinematic-entry-${asset.id}'
+              : 'cinematic-asset-${asset.id}',
+        ),
+        thumbnail: Icon(
+          navigation.activeFamily == CinematicLibraryFamily.world
+              ? Icons.videogame_asset_outlined
+              : Icons.movie_creation_outlined,
+        ),
+        label: asset.title,
+        description: asset.description,
+        selected: navigation.active.selectedAssetId == asset.id,
+        onPressed: () => widget.onNavigationChanged(
+          navigation.updateActive(selectedAssetId: asset.id),
+        ),
+        trailing: Icon(
+          navigation.active.selectedAssetId == asset.id
+              ? Icons.check_circle_outline
+              : Icons.chevron_right_rounded,
+        ),
       ),
-      label: asset.title,
-      description: asset.description,
-      selected: navigation.active.selectedAssetId == asset.id,
-      onPressed: () => widget.onNavigationChanged(
-        navigation.updateActive(selectedAssetId: asset.id),
-      ),
-      trailing: Icon(
-        navigation.active.selectedAssetId == asset.id
-            ? Icons.check_circle_outline
-            : Icons.chevron_right_rounded,
-      ),
-    ),
-  };
+    };
+  }
 
   void _openFolder(
     CinematicLibraryNavigationState navigation,
@@ -538,11 +543,7 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
       family: family,
       initialFolderId: navigation.active.folderId,
       folders: widget.project.cinematicLibraryCatalog.folders
-          .where(
-            (folder) =>
-                folder.family == family &&
-                !folder.isArchived,
-          )
+          .where((folder) => folder.family == family && !folder.isArchived)
           .toList(growable: false),
       onCreate: widget.onCreate!,
     );
@@ -565,7 +566,8 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
     final selectedId = navigation.active.selectedAssetId;
     if (selectedId == null) return;
     final family = navigation.activeFamily;
-    final title = _assetTitle(family, selectedId) ?? 'Cinématique';
+    final copy = CinematicStudioCopy.of(context);
+    final title = _assetTitle(family, selectedId) ?? copy.genericCinematic;
     final entry = widget.project.cinematicLibraryCatalog.entryFor(
       family,
       selectedId,
@@ -597,9 +599,7 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
           context: context,
           initialFolderId: entry?.folderId,
           folders: widget.project.cinematicLibraryCatalog.folders
-              .where(
-                (folder) => folder.family == family && !folder.isArchived,
-              )
+              .where((folder) => folder.family == family && !folder.isArchived)
               .toList(growable: false),
           onMove: (folderId) => callback(
             family: family,
@@ -624,7 +624,7 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
           if (!mounted) return;
           await showPokeMapNoticeDialog(
             context,
-            title: 'Duplication impossible',
+            title: copy.duplicationFailed,
             message: error.toString(),
           );
         }
@@ -646,9 +646,7 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
           if (!mounted) return;
           await showPokeMapNoticeDialog(
             context,
-            title: archived
-                ? 'Restauration impossible'
-                : 'Archivage impossible',
+            title: archived ? copy.restoreFailed : copy.archiveFailed,
             message: error.toString(),
           );
         }
@@ -668,25 +666,24 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
     required String cinematicId,
     required String title,
   }) async {
+    final copy = CinematicStudioCopy.of(context);
     final callback = widget.onDelete;
     if (callback == null) return;
     final usageCount = _usageCount(family, cinematicId);
     if (usageCount > 0) {
       await showPokeMapNoticeDialog(
         context,
-        title: 'Suppression bloquée',
-        message:
-            '« $title » est encore utilisée $usageCount fois. Retirez ou remplacez ces usages avant de la supprimer.',
+        title: copy.deletionBlocked,
+        message: copy.deletionBlockedMessage(title, usageCount),
       );
       return;
     }
     final confirmed = await showPokeMapBinaryConfirmationDialog(
       context,
-      title: 'Supprimer la cinématique ?',
-      message:
-          '« $title » sera retirée de la bibliothèque et du projet. Cette action est définitive.',
-      secondaryLabel: 'Annuler',
-      primaryLabel: 'Supprimer',
+      title: copy.deleteCinematicTitle,
+      message: copy.deleteCinematicMessage(title),
+      secondaryLabel: copy.cancel,
+      primaryLabel: copy.delete,
       primaryIsDestructive: true,
       icon: Icons.delete_outline_rounded,
     );
@@ -701,7 +698,7 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
       if (!mounted) return;
       await showPokeMapNoticeDialog(
         context,
-        title: 'Suppression impossible',
+        title: copy.deletionFailed,
         message: error.toString(),
       );
     }
@@ -722,10 +719,9 @@ class _CinematicLibraryBrowserState extends State<CinematicLibraryBrowser> {
 
   int _usageCount(CinematicLibraryFamily family, String id) {
     if (family == CinematicLibraryFamily.world) {
-      return buildCinematicsLibraryReadModel(widget.project)
-              .entryById(id)
-              ?.usages
-              .length ??
+      return buildCinematicsLibraryReadModel(
+            widget.project,
+          ).entryById(id)?.usages.length ??
           0;
     }
     return PresentationReferenceGraph.build(
@@ -755,6 +751,7 @@ class _LibraryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final copy = CinematicStudioCopy.of(context);
     return Row(
       children: [
         Expanded(
@@ -763,8 +760,8 @@ class _LibraryHeader extends StatelessWidget {
             children: [
               Text(
                 family == CinematicLibraryFamily.world
-                    ? 'Bibliothèque in-game'
-                    : 'Bibliothèque de présentation',
+                    ? copy.inGameLibrary
+                    : copy.presentationLibrary,
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontSize: 18,
@@ -773,7 +770,7 @@ class _LibraryHeader extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                '$assetCount cinématique${assetCount > 1 ? 's' : ''}',
+                copy.cinematicCount(assetCount),
                 style: TextStyle(color: colors.textMuted, fontSize: 12),
               ),
             ],
@@ -786,32 +783,28 @@ class _LibraryHeader extends StatelessWidget {
                 : 'cinematic-open-selection',
           ),
           onPressed: onOpen,
-          disabledReason: selectedAssetId == null
-              ? 'Sélectionnez une cinématique à ouvrir.'
-              : null,
+          disabledReason: selectedAssetId == null ? copy.selectToOpen : null,
           leading: const Icon(Icons.open_in_new_rounded),
-          child: const Text('Ouvrir'),
+          child: Text(copy.open),
         ),
         const SizedBox(width: 8),
         PokeMapButton(
           key: const ValueKey('cinematic-library-actions'),
           onPressed: onManage,
-          disabledReason: selectedAssetId == null
-              ? 'Sélectionnez une cinématique à gérer.'
-              : null,
+          disabledReason: selectedAssetId == null ? copy.selectToManage : null,
           variant: PokeMapButtonVariant.secondary,
           leading: const Icon(Icons.more_horiz_rounded),
-          child: const Text('Actions'),
+          child: Text(copy.actions),
         ),
         const SizedBox(width: 8),
         PokeMapButton(
           key: const ValueKey('cinematic-library-new'),
           onPressed: onCreate,
           disabledReason: onCreate == null
-              ? 'Chargez un projet enregistrable pour créer une cinématique.'
+              ? copy.projectRequiredToCreate
               : null,
           leading: const Icon(Icons.add_rounded),
-          child: const Text('Nouvelle'),
+          child: Text(copy.newCinematic),
         ),
       ],
     );
@@ -837,38 +830,39 @@ class _LibraryControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final search = PokeMapSearchField(
           key: const ValueKey('cinematic-family-search'),
           controller: searchController,
-          hintText: 'Rechercher une cinématique ou un dossier…',
-          semanticLabel: 'Rechercher dans la famille active',
+          hintText: copy.searchHint,
+          semanticLabel: copy.searchSemantics,
           onChanged: onSearchChanged,
         );
         final sort = SizedBox(
           width: 180,
           child: PokeMapDropdownField<NarrativeLibrarySort>(
             key: const ValueKey('cinematic-family-sort'),
-            label: 'Trier',
+            label: copy.sort,
             value: navigation.sort,
             compact: true,
-            items: const [
+            items: [
               PokeMapDropdownItem(
                 value: NarrativeLibrarySort.manual,
-                label: 'Ordre manuel',
+                label: copy.manualOrder,
               ),
               PokeMapDropdownItem(
                 value: NarrativeLibrarySort.nameAscending,
-                label: 'Nom A–Z',
+                label: copy.nameAscending,
               ),
               PokeMapDropdownItem(
                 value: NarrativeLibrarySort.nameDescending,
-                label: 'Nom Z–A',
+                label: copy.nameDescending,
               ),
               PokeMapDropdownItem(
                 value: NarrativeLibrarySort.updatedDescending,
-                label: 'Modifiées récemment',
+                label: copy.recentlyModified,
               ),
             ],
             onChanged: onSortChanged,
@@ -878,21 +872,21 @@ class _LibraryControls extends StatelessWidget {
           width: 150,
           child: PokeMapDropdownField<NarrativeLibraryVisibility>(
             key: const ValueKey('cinematic-family-visibility'),
-            label: 'Afficher',
+            label: copy.show,
             value: navigation.visibility,
             compact: true,
-            items: const [
+            items: [
               PokeMapDropdownItem(
                 value: NarrativeLibraryVisibility.active,
-                label: 'Actives',
+                label: copy.active,
               ),
               PokeMapDropdownItem(
                 value: NarrativeLibraryVisibility.archived,
-                label: 'Archivées',
+                label: copy.archived,
               ),
               PokeMapDropdownItem(
                 value: NarrativeLibraryVisibility.all,
-                label: 'Toutes',
+                label: copy.all,
               ),
             ],
             onChanged: onVisibilityChanged,
@@ -904,8 +898,8 @@ class _LibraryControls extends StatelessWidget {
             PokeMapIconButton(
               key: const ValueKey('cinematic-view-list'),
               onPressed: () => onViewModeChanged(CinematicLibraryViewMode.list),
-              tooltip: 'Vue en liste',
-              semanticLabel: 'Afficher en liste',
+              tooltip: copy.listView,
+              semanticLabel: copy.showAsList,
               isSelected: navigation.viewMode == CinematicLibraryViewMode.list,
               variant: PokeMapIconButtonVariant.soft,
               icon: const Icon(Icons.view_list_outlined),
@@ -914,8 +908,8 @@ class _LibraryControls extends StatelessWidget {
             PokeMapIconButton(
               key: const ValueKey('cinematic-view-grid'),
               onPressed: () => onViewModeChanged(CinematicLibraryViewMode.grid),
-              tooltip: 'Vue en grille',
-              semanticLabel: 'Afficher en grille',
+              tooltip: copy.gridView,
+              semanticLabel: copy.showAsGrid,
               isSelected: navigation.viewMode == CinematicLibraryViewMode.grid,
               variant: PokeMapIconButtonVariant.soft,
               icon: const Icon(Icons.grid_view_outlined),
@@ -966,6 +960,7 @@ final class _CinematicLibrarySnapshot {
   factory _CinematicLibrarySnapshot.build(
     ProjectManifest project,
     CinematicLibraryFamilyNavigation navigation,
+    CinematicStudioCopy copy,
   ) {
     final catalog = project.cinematicLibraryCatalog;
     final folders = catalog.folders
@@ -984,7 +979,7 @@ final class _CinematicLibrarySnapshot {
                 title: asset.title,
                 description: asset.description?.trim().isNotEmpty == true
                     ? asset.description!
-                    : 'Cinématique in-game',
+                    : copy.inGameFamily,
                 isArchived: isCinematicArchived(asset),
               ),
           ]
@@ -1035,8 +1030,8 @@ final class _CinematicLibrarySnapshot {
       _CinematicBreadcrumb(
         id: null,
         name: navigation.family == CinematicLibraryFamily.world
-            ? 'In-game'
-            : 'Présentation',
+            ? copy.inGameShort
+            : copy.presentationShort,
         isCurrent: navigation.folderId == null,
       ),
     ];

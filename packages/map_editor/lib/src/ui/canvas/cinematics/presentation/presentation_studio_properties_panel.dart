@@ -5,6 +5,7 @@ import 'package:map_player_ui/presentation_renderer.dart';
 
 import '../../../../application/authoring_api/presentation_studio_property_command.dart';
 import '../../../design_system/design_system.dart';
+import '../cinematic_studio_localizations.dart';
 import 'presentation_studio_layer_tree.dart';
 
 const _unsetProperty = Object();
@@ -166,23 +167,23 @@ class _MixedSelectionInspector extends StatelessWidget {
   final Set<String> selectedClipIds;
 
   @override
-  Widget build(BuildContext context) => PokeMapCinematicInspectorSection(
-    title: 'Sélection multiple',
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        PokeMapBadge(
-          label: '${selectedClipIds.length} clips sélectionnés',
-          variant: PokeMapBadgeVariant.info,
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Les déplacements et suppressions groupés restent disponibles dans '
-          'la timeline. Sélectionnez un seul clip pour modifier ses propriétés.',
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapCinematicInspectorSection(
+      title: copy.multipleSelection,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          PokeMapBadge(
+            label: copy.selectedClipCount(selectedClipIds.length),
+            variant: PokeMapBadgeVariant.info,
+          ),
+          const SizedBox(height: 8),
+          Text(copy.multipleSelectionMessage),
+        ],
+      ),
+    );
+  }
 }
 
 class PresentationDocumentInspectorSection extends StatefulWidget {
@@ -245,63 +246,67 @@ class _PresentationDocumentInspectorSectionState
   }
 
   @override
-  Widget build(BuildContext context) => PokeMapCinematicInspectorSection(
-    title: 'Document',
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        PokeMapTextField(
-          label: 'Titre',
-          controller: _title,
-          fieldKey: const ValueKey<String>('presentation-property-title'),
-          errorText: _titleError,
-          onSubmitted: (_) => _commitMetadata(),
-        ),
-        const SizedBox(height: 10),
-        PokeMapTextField(
-          label: 'Description',
-          controller: _description,
-          maxLines: 3,
-          textInputAction: TextInputAction.newline,
-          onSubmitted: (_) => _commitMetadata(),
-        ),
-        const SizedBox(height: 10),
-        PokeMapTextField(
-          label: 'Durée (secondes)',
-          controller: _duration,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: <TextInputFormatter>[
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-          ],
-          errorText: _durationError,
-          onSubmitted: (_) => _commitMetadata(),
-        ),
-        const SizedBox(height: 12),
-        const _ReadOnlyProperty(
-          title: 'Composition responsive',
-          value: 'Document unique · 16:9 et 9:16',
-        ),
-        const SizedBox(height: 8),
-        const _ReadOnlyProperty(
-          title: 'Zones sûres',
-          value: 'Actives dans les deux orientations',
-        ),
-        const SizedBox(height: 8),
-        const _ReadOnlyProperty(
-          title: 'Fond',
-          value: 'Transparent jusqu’au premier calque visuel',
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapCinematicInspectorSection(
+      title: copy.document,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          PokeMapTextField(
+            label: copy.title,
+            controller: _title,
+            fieldKey: const ValueKey<String>('presentation-property-title'),
+            errorText: _titleError,
+            onSubmitted: (_) => _commitMetadata(),
+          ),
+          const SizedBox(height: 10),
+          PokeMapTextField(
+            label: copy.description,
+            controller: _description,
+            maxLines: 3,
+            textInputAction: TextInputAction.newline,
+            onSubmitted: (_) => _commitMetadata(),
+          ),
+          const SizedBox(height: 10),
+          PokeMapTextField(
+            label: copy.durationSeconds,
+            controller: _duration,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: <TextInputFormatter>[
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+            ],
+            errorText: _durationError,
+            onSubmitted: (_) => _commitMetadata(),
+          ),
+          const SizedBox(height: 12),
+          _ReadOnlyProperty(
+            title: copy.responsiveComposition,
+            value: copy.oneDocumentBothOrientations,
+          ),
+          const SizedBox(height: 8),
+          _ReadOnlyProperty(
+            title: copy.safeAreas,
+            value: copy.activeBothOrientations,
+          ),
+          const SizedBox(height: 8),
+          _ReadOnlyProperty(
+            title: copy.background,
+            value: copy.transparentUntilVisual,
+          ),
+        ],
+      ),
+    );
+  }
 
   void _commitMetadata() {
+    final copy = CinematicStudioCopy.of(context);
     final title = _title.text.trim();
     final seconds = double.tryParse(_duration.text.replaceAll(',', '.'));
     setState(() {
-      _titleError = title.isEmpty ? 'Le titre est obligatoire.' : null;
+      _titleError = title.isEmpty ? copy.titleRequired : null;
       _durationError = seconds == null || seconds <= 0
-          ? 'Saisissez une durée supérieure à zéro.'
+          ? copy.positiveDurationRequired
           : null;
     });
     if (_titleError != null || _durationError != null) return;
@@ -372,46 +377,50 @@ class _PresentationLayerInspectorSectionState
   }
 
   @override
-  Widget build(BuildContext context) => PokeMapCinematicInspectorSection(
-    title: 'Calque visuel',
-    child: Column(
-      children: <Widget>[
-        PokeMapTextField(
-          label: 'Nom',
-          controller: _label,
-          errorText: _labelError,
-          onSubmitted: (_) => _commit(),
-        ),
-        const SizedBox(height: 10),
-        PokeMapTextField(
-          label: 'Ordre Z',
-          controller: _zIndex,
-          keyboardType: TextInputType.number,
-          errorText: _zIndexError,
-          onSubmitted: (_) => _commit(),
-        ),
-        const SizedBox(height: 10),
-        PokeMapToggleTile(
-          label: 'Visible',
-          value: widget.layer.visible,
-          onChanged: (value) => _emit(visible: value),
-        ),
-        const SizedBox(height: 8),
-        PokeMapToggleTile(
-          label: 'Verrouillé',
-          value: widget.layer.locked,
-          onChanged: (value) => _emit(locked: value),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapCinematicInspectorSection(
+      title: copy.visualLayer,
+      child: Column(
+        children: <Widget>[
+          PokeMapTextField(
+            label: copy.name,
+            controller: _label,
+            errorText: _labelError,
+            onSubmitted: (_) => _commit(),
+          ),
+          const SizedBox(height: 10),
+          PokeMapTextField(
+            label: copy.zOrder,
+            controller: _zIndex,
+            keyboardType: TextInputType.number,
+            errorText: _zIndexError,
+            onSubmitted: (_) => _commit(),
+          ),
+          const SizedBox(height: 10),
+          PokeMapToggleTile(
+            label: copy.visible,
+            value: widget.layer.visible,
+            onChanged: (value) => _emit(visible: value),
+          ),
+          const SizedBox(height: 8),
+          PokeMapToggleTile(
+            label: copy.locked,
+            value: widget.layer.locked,
+            onChanged: (value) => _emit(locked: value),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _commit() {
+    final copy = CinematicStudioCopy.of(context);
     final label = _label.text.trim();
     final zIndex = int.tryParse(_zIndex.text);
     setState(() {
-      _labelError = label.isEmpty ? 'Le nom est obligatoire.' : null;
-      _zIndexError = zIndex == null ? 'Saisissez un entier.' : null;
+      _labelError = label.isEmpty ? copy.nameRequired : null;
+      _zIndexError = zIndex == null ? copy.integerRequired : null;
     });
     if (_labelError != null || _zIndexError != null) return;
     _emit(label: label, zIndex: zIndex);
@@ -451,31 +460,32 @@ class PresentationVisualInspectorSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     final override = orientation == PresentationFrameOrientation.landscape
         ? clip.landscapeCompositionOverride
         : clip.portraitCompositionOverride;
     final composition = override ?? clip.to;
     final orientationLabel =
         orientation == PresentationFrameOrientation.landscape
-        ? 'Paysage 16:9'
-        : 'Portrait 9:16';
+        ? copy.landscapeOrientation
+        : copy.portraitOrientation;
     return Column(
       children: <Widget>[
         PokeMapCinematicInspectorSection(
-          title: 'Média responsive',
+          title: copy.responsiveMedia,
           child: Column(
             children: <Widget>[
               PokeMapDropdownField<PresentationVisualMediaKind>(
-                label: 'Type de média',
+                label: copy.mediaType,
                 value: clip.mediaKind,
-                items: const <PokeMapDropdownItem<PresentationVisualMediaKind>>[
+                items: <PokeMapDropdownItem<PresentationVisualMediaKind>>[
                   PokeMapDropdownItem(
                     value: PresentationVisualMediaKind.image,
-                    label: 'Image',
+                    label: copy.image,
                   ),
                   PokeMapDropdownItem(
                     value: PresentationVisualMediaKind.video,
-                    label: 'Vidéo',
+                    label: copy.video,
                   ),
                   PokeMapDropdownItem(
                     value: PresentationVisualMediaKind.poster,
@@ -487,23 +497,23 @@ class PresentationVisualInspectorSection extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               _ReadOnlyProperty(
-                title: 'Source partagée',
+                title: copy.sharedSource,
                 value: clip.resourceId,
               ),
               const SizedBox(height: 8),
               _OptionalResourceControl(
-                label: 'Source paysage',
+                label: copy.landscapeSource,
                 resourceId: clip.landscapeResourceId,
-                fallbackLabel: 'Utilise la source partagée',
+                fallbackLabel: copy.usesSharedSource,
                 onReset: clip.landscapeResourceId == null
                     ? null
                     : () => _emit(_copyVisual(clip, landscapeResourceId: null)),
               ),
               const SizedBox(height: 8),
               _OptionalResourceControl(
-                label: 'Source portrait',
+                label: copy.portraitSource,
                 resourceId: clip.portraitResourceId,
-                fallbackLabel: 'Utilise la source partagée',
+                fallbackLabel: copy.usesSharedSource,
                 onReset: clip.portraitResourceId == null
                     ? null
                     : () => _emit(_copyVisual(clip, portraitResourceId: null)),
@@ -513,12 +523,12 @@ class PresentationVisualInspectorSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         PokeMapCinematicInspectorSection(
-          title: 'Composition · $orientationLabel',
+          title: copy.compositionFor(orientationLabel),
           child: Column(
             children: <Widget>[
               if (override == null)
-                const PokeMapBadge(
-                  label: 'Valeurs partagées',
+                PokeMapBadge(
+                  label: copy.sharedValues,
                   variant: PokeMapBadgeVariant.neutral,
                 )
               else
@@ -541,7 +551,7 @@ class PresentationVisualInspectorSection extends StatelessWidget {
                               portraitCompositionOverride: null,
                             ),
                     ),
-                    child: const Text('Revenir au partagé'),
+                    child: Text(copy.resetToShared),
                   ),
                 ),
               const SizedBox(height: 8),
@@ -647,121 +657,128 @@ class _PresentationTextInspectorSectionState
   }
 
   @override
-  Widget build(BuildContext context) => PokeMapCinematicInspectorSection(
-    title: 'Texte',
-    child: Column(
-      children: <Widget>[
-        PokeMapTextField(
-          label: 'Contenu',
-          controller: _text,
-          fieldKey: const ValueKey<String>('presentation-property-text'),
-          maxLines: 4,
-          errorText: _textError,
-          onSubmitted: (_) => _commit(),
-        ),
-        const SizedBox(height: 10),
-        PokeMapTextField(
-          label: 'Clé de localisation',
-          controller: _localizationKey,
-          onSubmitted: (_) => _commit(),
-        ),
-        const SizedBox(height: 10),
-        PokeMapTextField(
-          label: 'Taille',
-          controller: _fontSize,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          errorText: _fontSizeError,
-          onSubmitted: (_) => _commit(),
-        ),
-        const SizedBox(height: 10),
-        PokeMapTextField(
-          label: 'Police',
-          controller: _fontFamily,
-          onSubmitted: (_) => _commit(),
-        ),
-        const SizedBox(height: 10),
-        PokeMapTextField(
-          label: 'Couleur',
-          controller: _colorHex,
-          fieldKey: const ValueKey<String>('presentation-property-text-color'),
-          errorText: _colorHexError,
-          onSubmitted: (_) => _commit(),
-        ),
-        const SizedBox(height: 10),
-        PokeMapDropdownField<PresentationTextWeight>(
-          label: 'Graisse',
-          value: widget.clip.style.weight,
-          items: const <PokeMapDropdownItem<PresentationTextWeight>>[
-            PokeMapDropdownItem(
-              value: PresentationTextWeight.regular,
-              label: 'Normale',
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapCinematicInspectorSection(
+      title: copy.text,
+      child: Column(
+        children: <Widget>[
+          PokeMapTextField(
+            label: copy.content,
+            controller: _text,
+            fieldKey: const ValueKey<String>('presentation-property-text'),
+            maxLines: 4,
+            errorText: _textError,
+            onSubmitted: (_) => _commit(),
+          ),
+          const SizedBox(height: 10),
+          PokeMapTextField(
+            label: copy.localizationKey,
+            controller: _localizationKey,
+            onSubmitted: (_) => _commit(),
+          ),
+          const SizedBox(height: 10),
+          PokeMapTextField(
+            label: copy.size,
+            controller: _fontSize,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            errorText: _fontSizeError,
+            onSubmitted: (_) => _commit(),
+          ),
+          const SizedBox(height: 10),
+          PokeMapTextField(
+            label: copy.font,
+            controller: _fontFamily,
+            onSubmitted: (_) => _commit(),
+          ),
+          const SizedBox(height: 10),
+          PokeMapTextField(
+            label: copy.color,
+            controller: _colorHex,
+            fieldKey: const ValueKey<String>(
+              'presentation-property-text-color',
             ),
-            PokeMapDropdownItem(
-              value: PresentationTextWeight.medium,
-              label: 'Moyenne',
-            ),
-            PokeMapDropdownItem(
-              value: PresentationTextWeight.bold,
-              label: 'Grasse',
-            ),
-          ],
-          onChanged: (value) =>
-              _emit(_copyTextStyle(widget.clip.style, weight: value)),
-        ),
-        const SizedBox(height: 10),
-        PokeMapDropdownField<PresentationTextAlignment>(
-          label: 'Alignement',
-          value: widget.clip.style.alignment,
-          items: <PokeMapDropdownItem<PresentationTextAlignment>>[
-            for (final value in PresentationTextAlignment.values)
-              PokeMapDropdownItem<PresentationTextAlignment>(
-                value: value,
-                label: switch (value) {
-                  PresentationTextAlignment.start => 'Début',
-                  PresentationTextAlignment.center => 'Centré',
-                  PresentationTextAlignment.end => 'Fin',
-                },
+            errorText: _colorHexError,
+            onSubmitted: (_) => _commit(),
+          ),
+          const SizedBox(height: 10),
+          PokeMapDropdownField<PresentationTextWeight>(
+            label: copy.weight,
+            value: widget.clip.style.weight,
+            items: <PokeMapDropdownItem<PresentationTextWeight>>[
+              PokeMapDropdownItem(
+                value: PresentationTextWeight.regular,
+                label: copy.regular,
               ),
-          ],
-          onChanged: (value) =>
-              _emit(_copyTextStyle(widget.clip.style, alignment: value)),
-        ),
-        const SizedBox(height: 10),
-        PokeMapDropdownField<PresentationTextWrapping>(
-          label: 'Retour à la ligne',
-          value: widget.clip.style.wrapping,
-          items: const <PokeMapDropdownItem<PresentationTextWrapping>>[
-            PokeMapDropdownItem<PresentationTextWrapping>(
-              value: PresentationTextWrapping.wrap,
-              label: 'Automatique',
+              PokeMapDropdownItem(
+                value: PresentationTextWeight.medium,
+                label: copy.medium,
+              ),
+              PokeMapDropdownItem(
+                value: PresentationTextWeight.bold,
+                label: copy.bold,
+              ),
+            ],
+            onChanged: (value) =>
+                _emit(_copyTextStyle(widget.clip.style, weight: value)),
+          ),
+          const SizedBox(height: 10),
+          PokeMapDropdownField<PresentationTextAlignment>(
+            label: copy.alignment,
+            value: widget.clip.style.alignment,
+            items: <PokeMapDropdownItem<PresentationTextAlignment>>[
+              for (final value in PresentationTextAlignment.values)
+                PokeMapDropdownItem<PresentationTextAlignment>(
+                  value: value,
+                  label: switch (value) {
+                    PresentationTextAlignment.start => copy.start,
+                    PresentationTextAlignment.center => copy.centered,
+                    PresentationTextAlignment.end => copy.end,
+                  },
+                ),
+            ],
+            onChanged: (value) =>
+                _emit(_copyTextStyle(widget.clip.style, alignment: value)),
+          ),
+          const SizedBox(height: 10),
+          PokeMapDropdownField<PresentationTextWrapping>(
+            label: copy.wrapping,
+            value: widget.clip.style.wrapping,
+            items: <PokeMapDropdownItem<PresentationTextWrapping>>[
+              PokeMapDropdownItem<PresentationTextWrapping>(
+                value: PresentationTextWrapping.wrap,
+                label: copy.automatic,
+              ),
+              PokeMapDropdownItem<PresentationTextWrapping>(
+                value: PresentationTextWrapping.noWrap,
+                label: copy.oneLine,
+              ),
+            ],
+            onChanged: (value) =>
+                _emit(_copyTextStyle(widget.clip.style, wrapping: value)),
+          ),
+          const SizedBox(height: 10),
+          PokeMapToggleTile(
+            label: copy.respectSafeAreas,
+            value: widget.clip.style.respectSafeArea,
+            onChanged: (value) => _emit(
+              _copyTextStyle(widget.clip.style, respectSafeArea: value),
             ),
-            PokeMapDropdownItem<PresentationTextWrapping>(
-              value: PresentationTextWrapping.noWrap,
-              label: 'Une ligne',
-            ),
-          ],
-          onChanged: (value) =>
-              _emit(_copyTextStyle(widget.clip.style, wrapping: value)),
-        ),
-        const SizedBox(height: 10),
-        PokeMapToggleTile(
-          label: 'Respecter les zones sûres',
-          value: widget.clip.style.respectSafeArea,
-          onChanged: (value) =>
-              _emit(_copyTextStyle(widget.clip.style, respectSafeArea: value)),
-        ),
-      ],
-    ),
-  );
+          ),
+        ],
+      ),
+    );
+  }
 
   void _commit() {
+    final copy = CinematicStudioCopy.of(context);
     final text = _text.text.trim();
     final fontSize = double.tryParse(_fontSize.text.replaceAll(',', '.'));
     final colorHex = _colorHex.text.trim();
     setState(() {
-      _textError = text.isEmpty ? 'Le texte est obligatoire.' : null;
+      _textError = text.isEmpty ? copy.textRequired : null;
       _fontSizeError = fontSize == null || fontSize <= 0
-          ? 'Saisissez une taille supérieure à zéro.'
+          ? copy.positiveSizeRequired
           : null;
       _colorHexError =
           RegExp(r'^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$').hasMatch(colorHex)
@@ -820,123 +837,129 @@ class PresentationAudioInspectorSection extends StatelessWidget {
   final ValueChanged<PresentationStudioPropertyCommand> onCommand;
 
   @override
-  Widget build(BuildContext context) => PokeMapCinematicInspectorSection(
-    title: 'Audio',
-    child: Column(
-      children: <Widget>[
-        PokeMapDropdownField<PresentationAudioKind>(
-          label: 'Type',
-          value: clip.audioKind,
-          items: const <PokeMapDropdownItem<PresentationAudioKind>>[
-            PokeMapDropdownItem(
-              value: PresentationAudioKind.music,
-              label: 'Musique',
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapCinematicInspectorSection(
+      title: 'Audio',
+      child: Column(
+        children: <Widget>[
+          PokeMapDropdownField<PresentationAudioKind>(
+            label: copy.type,
+            value: clip.audioKind,
+            items: <PokeMapDropdownItem<PresentationAudioKind>>[
+              PokeMapDropdownItem(
+                value: PresentationAudioKind.music,
+                label: copy.music,
+              ),
+              PokeMapDropdownItem(
+                value: PresentationAudioKind.voice,
+                label: copy.voice,
+              ),
+              PokeMapDropdownItem(
+                value: PresentationAudioKind.soundEffect,
+                label: copy.soundEffect,
+              ),
+            ],
+            onChanged: (value) => _emit(
+              _copyAudio(
+                clip,
+                audioKind: value,
+                landscapeResourceId: value == PresentationAudioKind.music
+                    ? null
+                    : clip.landscapeResourceId,
+                portraitResourceId: value == PresentationAudioKind.music
+                    ? null
+                    : clip.portraitResourceId,
+                bus: switch (value) {
+                  PresentationAudioKind.music => PresentationAudioBus.music,
+                  PresentationAudioKind.voice => PresentationAudioBus.voice,
+                  PresentationAudioKind.soundEffect =>
+                    PresentationAudioBus.effects,
+                },
+              ),
             ),
-            PokeMapDropdownItem(
-              value: PresentationAudioKind.voice,
-              label: 'Voix',
+          ),
+          const SizedBox(height: 10),
+          _ReadOnlyProperty(title: copy.sharedSource, value: clip.resourceId),
+          if (clip.audioKind != PresentationAudioKind.music) ...<Widget>[
+            const SizedBox(height: 8),
+            _OptionalResourceControl(
+              label: copy.landscapeSource,
+              resourceId: clip.landscapeResourceId,
+              fallbackLabel: copy.usesSharedSource,
+              onReset: clip.landscapeResourceId == null
+                  ? null
+                  : () => _emit(_copyAudio(clip, landscapeResourceId: null)),
             ),
-            PokeMapDropdownItem(
-              value: PresentationAudioKind.soundEffect,
-              label: 'Effet sonore',
+            const SizedBox(height: 8),
+            _OptionalResourceControl(
+              label: copy.portraitSource,
+              resourceId: clip.portraitResourceId,
+              fallbackLabel: copy.usesSharedSource,
+              onReset: clip.portraitResourceId == null
+                  ? null
+                  : () => _emit(_copyAudio(clip, portraitResourceId: null)),
             ),
           ],
-          onChanged: (value) => _emit(
-            _copyAudio(
-              clip,
-              audioKind: value,
-              landscapeResourceId: value == PresentationAudioKind.music
-                  ? null
-                  : clip.landscapeResourceId,
-              portraitResourceId: value == PresentationAudioKind.music
-                  ? null
-                  : clip.portraitResourceId,
-              bus: switch (value) {
-                PresentationAudioKind.music => PresentationAudioBus.music,
-                PresentationAudioKind.voice => PresentationAudioBus.voice,
-                PresentationAudioKind.soundEffect =>
-                  PresentationAudioBus.effects,
-              },
+          const SizedBox(height: 10),
+          PokeMapGuidedSlider(
+            label: copy.volume,
+            value: (clip.volume * 100).round(),
+            min: 0,
+            max: 100,
+            onChanged: (value) => _emit(_copyAudio(clip, volume: value / 100)),
+          ),
+          const SizedBox(height: 10),
+          PokeMapToggleTile(
+            label: copy.loop,
+            value: clip.loop,
+            onChanged: (value) => _emit(_copyAudio(clip, loop: value)),
+          ),
+          const SizedBox(height: 10),
+          _NumberPropertyField(
+            label: copy.fadeInSeconds,
+            value: clip.fadeInUs / Duration.microsecondsPerSecond,
+            fieldKey: const ValueKey<String>('presentation-property-fade-in'),
+            minimumInclusive: 0,
+            maximumInclusive: clip.durationUs / Duration.microsecondsPerSecond,
+            onChanged: (value) => _emit(
+              _copyAudio(
+                clip,
+                fadeInUs: (value * Duration.microsecondsPerSecond).round(),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 10),
-        _ReadOnlyProperty(title: 'Source partagée', value: clip.resourceId),
-        if (clip.audioKind != PresentationAudioKind.music) ...<Widget>[
-          const SizedBox(height: 8),
-          _OptionalResourceControl(
-            label: 'Source paysage',
-            resourceId: clip.landscapeResourceId,
-            fallbackLabel: 'Utilise la source partagée',
-            onReset: clip.landscapeResourceId == null
-                ? null
-                : () => _emit(_copyAudio(clip, landscapeResourceId: null)),
+          const SizedBox(height: 10),
+          _NumberPropertyField(
+            label: copy.fadeOutSeconds,
+            value: clip.fadeOutUs / Duration.microsecondsPerSecond,
+            fieldKey: const ValueKey<String>('presentation-property-fade-out'),
+            minimumInclusive: 0,
+            maximumInclusive: clip.durationUs / Duration.microsecondsPerSecond,
+            onChanged: (value) => _emit(
+              _copyAudio(
+                clip,
+                fadeOutUs: (value * Duration.microsecondsPerSecond).round(),
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
-          _OptionalResourceControl(
-            label: 'Source portrait',
-            resourceId: clip.portraitResourceId,
-            fallbackLabel: 'Utilise la source partagée',
-            onReset: clip.portraitResourceId == null
-                ? null
-                : () => _emit(_copyAudio(clip, portraitResourceId: null)),
+          const SizedBox(height: 10),
+          PokeMapDropdownField<PresentationAudioBus>(
+            label: 'Bus',
+            value: clip.bus,
+            items: <PokeMapDropdownItem<PresentationAudioBus>>[
+              for (final value in PresentationAudioBus.values)
+                PokeMapDropdownItem(
+                  value: value,
+                  label: copy.audioBusLabel(value.name),
+                ),
+            ],
+            onChanged: (value) => _emit(_copyAudio(clip, bus: value)),
           ),
         ],
-        const SizedBox(height: 10),
-        PokeMapGuidedSlider(
-          label: 'Volume',
-          value: (clip.volume * 100).round(),
-          min: 0,
-          max: 100,
-          onChanged: (value) => _emit(_copyAudio(clip, volume: value / 100)),
-        ),
-        const SizedBox(height: 10),
-        PokeMapToggleTile(
-          label: 'Boucle',
-          value: clip.loop,
-          onChanged: (value) => _emit(_copyAudio(clip, loop: value)),
-        ),
-        const SizedBox(height: 10),
-        _NumberPropertyField(
-          label: 'Fondu d’entrée (secondes)',
-          value: clip.fadeInUs / Duration.microsecondsPerSecond,
-          fieldKey: const ValueKey<String>('presentation-property-fade-in'),
-          minimumInclusive: 0,
-          maximumInclusive: clip.durationUs / Duration.microsecondsPerSecond,
-          onChanged: (value) => _emit(
-            _copyAudio(
-              clip,
-              fadeInUs: (value * Duration.microsecondsPerSecond).round(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        _NumberPropertyField(
-          label: 'Fondu de sortie (secondes)',
-          value: clip.fadeOutUs / Duration.microsecondsPerSecond,
-          fieldKey: const ValueKey<String>('presentation-property-fade-out'),
-          minimumInclusive: 0,
-          maximumInclusive: clip.durationUs / Duration.microsecondsPerSecond,
-          onChanged: (value) => _emit(
-            _copyAudio(
-              clip,
-              fadeOutUs: (value * Duration.microsecondsPerSecond).round(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        PokeMapDropdownField<PresentationAudioBus>(
-          label: 'Bus',
-          value: clip.bus,
-          items: <PokeMapDropdownItem<PresentationAudioBus>>[
-            for (final value in PresentationAudioBus.values)
-              PokeMapDropdownItem(value: value, label: _audioBusLabel(value)),
-          ],
-          onChanged: (value) => _emit(_copyAudio(clip, bus: value)),
-        ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 
   void _emit(PresentationAudioClip value) => onCommand(
     PresentationStudioPropertyCommand.updateClip(
@@ -1014,73 +1037,79 @@ class _PresentationCaptionInspectorSectionState
   }
 
   @override
-  Widget build(BuildContext context) => PokeMapCinematicInspectorSection(
-    title: 'Sous-titres',
-    child: Column(
-      children: <Widget>[
-        _ReadOnlyProperty(title: 'Ressource', value: clip.captionId),
-        const SizedBox(height: 8),
-        PokeMapTextField(
-          label: 'Locale',
-          controller: _locale,
-          fieldKey: const ValueKey<String>(
-            'presentation-property-caption-locale',
-          ),
-          errorText: _localeError,
-          onSubmitted: (_) => _commitTiming(),
-        ),
-        const SizedBox(height: 8),
-        PokeMapTextField(
-          label: 'Début (secondes)',
-          controller: _start,
-          fieldKey: const ValueKey<String>(
-            'presentation-property-caption-start',
-          ),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          errorText: _timingError,
-          onSubmitted: (_) => _commitTiming(),
-        ),
-        const SizedBox(height: 8),
-        PokeMapTextField(
-          label: 'Durée (secondes)',
-          controller: _duration,
-          fieldKey: const ValueKey<String>(
-            'presentation-property-caption-duration',
-          ),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          errorText: _timingError,
-          onSubmitted: (_) => _commitTiming(),
-        ),
-        const SizedBox(height: 10),
-        PokeMapDropdownField<PresentationCaptionStyle>(
-          label: 'Style accessible',
-          value: widget.clip.style,
-          items: const <PokeMapDropdownItem<PresentationCaptionStyle>>[
-            PokeMapDropdownItem(
-              value: PresentationCaptionStyle.standard,
-              label: 'Standard',
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapCinematicInspectorSection(
+      title: copy.captions,
+      child: Column(
+        children: <Widget>[
+          _ReadOnlyProperty(title: copy.resource, value: clip.captionId),
+          const SizedBox(height: 8),
+          PokeMapTextField(
+            label: 'Locale',
+            controller: _locale,
+            fieldKey: const ValueKey<String>(
+              'presentation-property-caption-locale',
             ),
-            PokeMapDropdownItem(
-              value: PresentationCaptionStyle.highContrast,
-              label: 'Contraste renforcé',
+            errorText: _localeError,
+            onSubmitted: (_) => _commitTiming(),
+          ),
+          const SizedBox(height: 8),
+          PokeMapTextField(
+            label: copy.startSeconds,
+            controller: _start,
+            fieldKey: const ValueKey<String>(
+              'presentation-property-caption-start',
             ),
-          ],
-          onChanged: (value) => _emit(_copyCaption(widget.clip, style: value)),
-        ),
-        const SizedBox(height: 10),
-        PokeMapToggleTile(
-          label: 'Fallback locale projet',
-          value: widget.clip.fallbackToProjectDefault,
-          onChanged: (value) =>
-              _emit(_copyCaption(widget.clip, fallbackToProjectDefault: value)),
-        ),
-      ],
-    ),
-  );
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            errorText: _timingError,
+            onSubmitted: (_) => _commitTiming(),
+          ),
+          const SizedBox(height: 8),
+          PokeMapTextField(
+            label: copy.durationSeconds,
+            controller: _duration,
+            fieldKey: const ValueKey<String>(
+              'presentation-property-caption-duration',
+            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            errorText: _timingError,
+            onSubmitted: (_) => _commitTiming(),
+          ),
+          const SizedBox(height: 10),
+          PokeMapDropdownField<PresentationCaptionStyle>(
+            label: copy.accessibleStyle,
+            value: widget.clip.style,
+            items: <PokeMapDropdownItem<PresentationCaptionStyle>>[
+              PokeMapDropdownItem(
+                value: PresentationCaptionStyle.standard,
+                label: 'Standard',
+              ),
+              PokeMapDropdownItem(
+                value: PresentationCaptionStyle.highContrast,
+                label: copy.highContrast,
+              ),
+            ],
+            onChanged: (value) =>
+                _emit(_copyCaption(widget.clip, style: value)),
+          ),
+          const SizedBox(height: 10),
+          PokeMapToggleTile(
+            label: copy.projectLocaleFallback,
+            value: widget.clip.fallbackToProjectDefault,
+            onChanged: (value) => _emit(
+              _copyCaption(widget.clip, fallbackToProjectDefault: value),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   PresentationCaptionClip get clip => widget.clip;
 
   void _commitTiming() {
+    final copy = CinematicStudioCopy.of(context);
     final locale = _locale.text.trim();
     final startSeconds = double.tryParse(_start.text.replaceAll(',', '.'));
     final durationSeconds = double.tryParse(
@@ -1099,10 +1128,10 @@ class _PresentationCaptionInspectorSectionState
         durationUs != null &&
         startUs + durationUs <= widget.cinematicDurationUs;
     setState(() {
-      _localeError = locale.isEmpty ? 'La locale est obligatoire.' : null;
+      _localeError = locale.isEmpty ? copy.localeRequired : null;
       _timingError = validStart && validDuration && fitsDocument
           ? null
-          : 'Le timing doit être positif et rester dans le document.';
+          : copy.timingMustFit;
     });
     if (_localeError != null || _timingError != null) return;
     _emit(
@@ -1141,49 +1170,50 @@ class PresentationMarkerInspectorSection extends StatelessWidget {
   final ValueChanged<PresentationStudioPropertyCommand> onCommand;
 
   @override
-  Widget build(BuildContext context) => PokeMapCinematicInspectorSection(
-    title: 'Repère et interaction',
-    child: Column(
-      children: <Widget>[
-        _ReadOnlyProperty(title: 'Identité stable', value: clip.id),
-        const SizedBox(height: 8),
-        _MarkerNameField(
-          value: clip.label,
-          onChanged: (value) => _emit(_copyMarker(clip, label: value)),
-        ),
-        const SizedBox(height: 8),
-        _ReadOnlyProperty(
-          title: 'Usages',
-          value:
-              '$sceneUsageCount ${sceneUsageCount == 1 ? 'usage' : 'usages'} dans Scene',
-        ),
-        const SizedBox(height: 10),
-        PokeMapDropdownField<PresentationMarkerKind>(
-          label: 'Type',
-          value: clip.markerKind,
-          items: const <PokeMapDropdownItem<PresentationMarkerKind>>[
-            PokeMapDropdownItem(
-              value: PresentationMarkerKind.ordinary,
-              label: 'Repère ordinaire',
-            ),
-            PokeMapDropdownItem(
-              value: PresentationMarkerKind.interactionCue,
-              label: 'Point d’interaction Scene',
-            ),
-          ],
-          onChanged: (value) => _emit(_copyMarker(clip, markerKind: value)),
-        ),
-        const SizedBox(height: 10),
-        PokeMapToggleTile(
-          label: 'Requis',
-          description:
-              'La validation bloque si ce cue n’est relié à aucune Scene.',
-          value: clip.required,
-          onChanged: (value) => _emit(_copyMarker(clip, required: value)),
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapCinematicInspectorSection(
+      title: copy.markerAndInteraction,
+      child: Column(
+        children: <Widget>[
+          _ReadOnlyProperty(title: copy.stableIdentity, value: clip.id),
+          const SizedBox(height: 8),
+          _MarkerNameField(
+            value: clip.label,
+            onChanged: (value) => _emit(_copyMarker(clip, label: value)),
+          ),
+          const SizedBox(height: 8),
+          _ReadOnlyProperty(
+            title: copy.usages,
+            value: copy.usageInScene(sceneUsageCount),
+          ),
+          const SizedBox(height: 10),
+          PokeMapDropdownField<PresentationMarkerKind>(
+            label: copy.type,
+            value: clip.markerKind,
+            items: <PokeMapDropdownItem<PresentationMarkerKind>>[
+              PokeMapDropdownItem(
+                value: PresentationMarkerKind.ordinary,
+                label: copy.ordinaryMarker,
+              ),
+              PokeMapDropdownItem(
+                value: PresentationMarkerKind.interactionCue,
+                label: copy.sceneInteractionPoint,
+              ),
+            ],
+            onChanged: (value) => _emit(_copyMarker(clip, markerKind: value)),
+          ),
+          const SizedBox(height: 10),
+          PokeMapToggleTile(
+            label: copy.required,
+            description: copy.requiredCueValidation,
+            value: clip.required,
+            onChanged: (value) => _emit(_copyMarker(clip, required: value)),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _emit(PresentationMarkerClip value) => onCommand(
     PresentationStudioPropertyCommand.updateClip(
@@ -1230,17 +1260,20 @@ class _MarkerNameFieldState extends State<_MarkerNameField> {
   }
 
   @override
-  Widget build(BuildContext context) => PokeMapTextField(
-    label: 'Nom',
-    controller: _controller,
-    fieldKey: const ValueKey<String>('presentation-property-marker-name'),
-    errorText: _error,
-    onSubmitted: (_) {
-      final value = _controller.text.trim();
-      setState(() => _error = value.isEmpty ? 'Le nom est obligatoire.' : null);
-      if (_error == null) widget.onChanged(value);
-    },
-  );
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapTextField(
+      label: copy.name,
+      controller: _controller,
+      fieldKey: const ValueKey<String>('presentation-property-marker-name'),
+      errorText: _error,
+      onSubmitted: (_) {
+        final value = _controller.text.trim();
+        setState(() => _error = value.isEmpty ? copy.nameRequired : null);
+        if (_error == null) widget.onChanged(value);
+      },
+    );
+  }
 }
 
 class PresentationTransitionInspectorSection extends StatelessWidget {
@@ -1259,6 +1292,7 @@ class PresentationTransitionInspectorSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     final easing = switch (clip) {
       final PresentationVisualClip visual => visual.easing,
       final PresentationTextClip text => text.easing,
@@ -1275,11 +1309,11 @@ class PresentationTransitionInspectorSection extends StatelessWidget {
       _ => PresentationVisualTransition.none,
     };
     return PokeMapCinematicInspectorSection(
-      title: 'Transitions et animation',
+      title: copy.transitionsAndAnimation,
       child: Column(
         children: <Widget>[
           PokeMapDropdownField<PresentationEasing>(
-            label: 'Courbe',
+            label: copy.curve,
             value: easing,
             items: <PokeMapDropdownItem<PresentationEasing>>[
               for (final value in PresentationEasing.values)
@@ -1293,9 +1327,9 @@ class PresentationTransitionInspectorSection extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           PokeMapDropdownField<PresentationVisualTransitionKind>(
-            label: 'Transition d’entrée',
+            label: copy.transitionIn,
             value: transitionIn.kind,
-            items: _transitionItems(),
+            items: _transitionItems(copy),
             onChanged: (value) => _emit(
               _copyTransitionClip(
                 clip,
@@ -1306,7 +1340,7 @@ class PresentationTransitionInspectorSection extends StatelessWidget {
           if (transitionIn.kind != PresentationVisualTransitionKind.none) ...[
             const SizedBox(height: 8),
             _NumberPropertyField(
-              label: 'Durée d’entrée (secondes)',
+              label: copy.transitionInDuration,
               value: transitionIn.durationUs / Duration.microsecondsPerSecond,
               fieldKey: const ValueKey<String>(
                 'presentation-property-transition-in-duration',
@@ -1328,9 +1362,9 @@ class PresentationTransitionInspectorSection extends StatelessWidget {
           ],
           const SizedBox(height: 10),
           PokeMapDropdownField<PresentationVisualTransitionKind>(
-            label: 'Transition de sortie',
+            label: copy.transitionOut,
             value: transitionOut.kind,
-            items: _transitionItems(),
+            items: _transitionItems(copy),
             onChanged: (value) => _emit(
               _copyTransitionClip(
                 clip,
@@ -1341,7 +1375,7 @@ class PresentationTransitionInspectorSection extends StatelessWidget {
           if (transitionOut.kind != PresentationVisualTransitionKind.none) ...[
             const SizedBox(height: 8),
             _NumberPropertyField(
-              label: 'Durée de sortie (secondes)',
+              label: copy.transitionOutDuration,
               value: transitionOut.durationUs / Duration.microsecondsPerSecond,
               fieldKey: const ValueKey<String>(
                 'presentation-property-transition-out-duration',
@@ -1362,9 +1396,9 @@ class PresentationTransitionInspectorSection extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 8),
-          const _ReadOnlyProperty(
+          _ReadOnlyProperty(
             title: 'Reduced motion',
-            value: 'Aperçu final sans translation ni rotation animée',
+            value: copy.reducedMotionDescription,
           ),
         ],
       ),
@@ -1379,10 +1413,14 @@ class PresentationTransitionInspectorSection extends StatelessWidget {
     ),
   );
 
-  List<PokeMapDropdownItem<PresentationVisualTransitionKind>>
-  _transitionItems() => <PokeMapDropdownItem<PresentationVisualTransitionKind>>[
+  List<PokeMapDropdownItem<PresentationVisualTransitionKind>> _transitionItems(
+    CinematicStudioCopy copy,
+  ) => <PokeMapDropdownItem<PresentationVisualTransitionKind>>[
     for (final value in PresentationVisualTransitionKind.values)
-      PokeMapDropdownItem(value: value, label: _transitionLabel(value)),
+      PokeMapDropdownItem(
+        value: value,
+        label: copy.transitionLabel(value.name),
+      ),
   ];
 
   PresentationVisualTransition _transitionForKind(
@@ -1411,84 +1449,87 @@ class _CompositionFields extends StatelessWidget {
   final ValueChanged<PresentationVisualComposition> onChanged;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: <Widget>[
-      _NumberPropertyField(
-        label: 'Position X',
-        value: composition.translateX,
-        onChanged: (value) =>
-            onChanged(_copyComposition(composition, translateX: value)),
-      ),
-      const SizedBox(height: 8),
-      _NumberPropertyField(
-        label: 'Position Y',
-        value: composition.translateY,
-        onChanged: (value) =>
-            onChanged(_copyComposition(composition, translateY: value)),
-      ),
-      const SizedBox(height: 8),
-      _NumberPropertyField(
-        label: 'Échelle',
-        value: composition.scaleX,
-        minimumExclusive: 0,
-        onChanged: (value) => onChanged(
-          _copyComposition(composition, scaleX: value, scaleY: value),
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return Column(
+      children: <Widget>[
+        _NumberPropertyField(
+          label: copy.positionX,
+          value: composition.translateX,
+          onChanged: (value) =>
+              onChanged(_copyComposition(composition, translateX: value)),
         ),
-      ),
-      const SizedBox(height: 8),
-      _NumberPropertyField(
-        label: 'Rotation (tours)',
-        value: composition.rotationTurns,
-        onChanged: (value) =>
-            onChanged(_copyComposition(composition, rotationTurns: value)),
-      ),
-      const SizedBox(height: 8),
-      PokeMapGuidedSlider(
-        label: 'Opacité',
-        value: (composition.opacity * 100).round(),
-        min: 0,
-        max: 100,
-        onChanged: (value) =>
-            onChanged(_copyComposition(composition, opacity: value / 100)),
-      ),
-      const SizedBox(height: 8),
-      _NumberPropertyField(
-        label: 'Recadrage gauche',
-        value: composition.cropLeft,
-        minimumInclusive: 0,
-        maximumExclusive: 1 - composition.cropRight,
-        onChanged: (value) =>
-            onChanged(_copyComposition(composition, cropLeft: value)),
-      ),
-      const SizedBox(height: 8),
-      _NumberPropertyField(
-        label: 'Recadrage haut',
-        value: composition.cropTop,
-        minimumInclusive: 0,
-        maximumExclusive: 1 - composition.cropBottom,
-        onChanged: (value) =>
-            onChanged(_copyComposition(composition, cropTop: value)),
-      ),
-      const SizedBox(height: 8),
-      _NumberPropertyField(
-        label: 'Recadrage droit',
-        value: composition.cropRight,
-        minimumInclusive: 0,
-        maximumExclusive: 1 - composition.cropLeft,
-        onChanged: (value) =>
-            onChanged(_copyComposition(composition, cropRight: value)),
-      ),
-      const SizedBox(height: 8),
-      _NumberPropertyField(
-        label: 'Recadrage bas',
-        value: composition.cropBottom,
-        minimumInclusive: 0,
-        maximumExclusive: 1 - composition.cropTop,
-        onChanged: (value) =>
-            onChanged(_copyComposition(composition, cropBottom: value)),
-      ),
-    ],
-  );
+        const SizedBox(height: 8),
+        _NumberPropertyField(
+          label: copy.positionY,
+          value: composition.translateY,
+          onChanged: (value) =>
+              onChanged(_copyComposition(composition, translateY: value)),
+        ),
+        const SizedBox(height: 8),
+        _NumberPropertyField(
+          label: copy.scale,
+          value: composition.scaleX,
+          minimumExclusive: 0,
+          onChanged: (value) => onChanged(
+            _copyComposition(composition, scaleX: value, scaleY: value),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _NumberPropertyField(
+          label: copy.rotationTurns,
+          value: composition.rotationTurns,
+          onChanged: (value) =>
+              onChanged(_copyComposition(composition, rotationTurns: value)),
+        ),
+        const SizedBox(height: 8),
+        PokeMapGuidedSlider(
+          label: copy.opacity,
+          value: (composition.opacity * 100).round(),
+          min: 0,
+          max: 100,
+          onChanged: (value) =>
+              onChanged(_copyComposition(composition, opacity: value / 100)),
+        ),
+        const SizedBox(height: 8),
+        _NumberPropertyField(
+          label: copy.cropLeft,
+          value: composition.cropLeft,
+          minimumInclusive: 0,
+          maximumExclusive: 1 - composition.cropRight,
+          onChanged: (value) =>
+              onChanged(_copyComposition(composition, cropLeft: value)),
+        ),
+        const SizedBox(height: 8),
+        _NumberPropertyField(
+          label: copy.cropTop,
+          value: composition.cropTop,
+          minimumInclusive: 0,
+          maximumExclusive: 1 - composition.cropBottom,
+          onChanged: (value) =>
+              onChanged(_copyComposition(composition, cropTop: value)),
+        ),
+        const SizedBox(height: 8),
+        _NumberPropertyField(
+          label: copy.cropRight,
+          value: composition.cropRight,
+          minimumInclusive: 0,
+          maximumExclusive: 1 - composition.cropLeft,
+          onChanged: (value) =>
+              onChanged(_copyComposition(composition, cropRight: value)),
+        ),
+        const SizedBox(height: 8),
+        _NumberPropertyField(
+          label: copy.cropBottom,
+          value: composition.cropBottom,
+          minimumInclusive: 0,
+          maximumExclusive: 1 - composition.cropTop,
+          onChanged: (value) =>
+              onChanged(_copyComposition(composition, cropBottom: value)),
+        ),
+      ],
+    );
+  }
 }
 
 class _NumberPropertyField extends StatefulWidget {
@@ -1542,33 +1583,37 @@ class _NumberPropertyFieldState extends State<_NumberPropertyField> {
   }
 
   @override
-  Widget build(BuildContext context) => PokeMapTextField(
-    label: widget.label,
-    controller: _controller,
-    fieldKey: widget.fieldKey,
-    keyboardType: const TextInputType.numberWithOptions(
-      signed: true,
-      decimal: true,
-    ),
-    errorText: _error,
-    onSubmitted: (_) {
-      final value = double.tryParse(_controller.text.replaceAll(',', '.'));
-      final invalid =
-          value == null ||
-          !value.isFinite ||
-          (widget.minimumExclusive != null &&
-              value <= widget.minimumExclusive!) ||
-          (widget.minimumInclusive != null &&
-              value < widget.minimumInclusive!) ||
-          (widget.maximumExclusive != null &&
-              value >= widget.maximumExclusive!) ||
-          (widget.maximumInclusive != null && value > widget.maximumInclusive!);
-      setState(() {
-        _error = invalid ? 'Valeur numérique invalide.' : null;
-      });
-      if (!invalid) widget.onChanged(value);
-    },
-  );
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapTextField(
+      label: widget.label,
+      controller: _controller,
+      fieldKey: widget.fieldKey,
+      keyboardType: const TextInputType.numberWithOptions(
+        signed: true,
+        decimal: true,
+      ),
+      errorText: _error,
+      onSubmitted: (_) {
+        final value = double.tryParse(_controller.text.replaceAll(',', '.'));
+        final invalid =
+            value == null ||
+            !value.isFinite ||
+            (widget.minimumExclusive != null &&
+                value <= widget.minimumExclusive!) ||
+            (widget.minimumInclusive != null &&
+                value < widget.minimumInclusive!) ||
+            (widget.maximumExclusive != null &&
+                value >= widget.maximumExclusive!) ||
+            (widget.maximumInclusive != null &&
+                value > widget.maximumInclusive!);
+        setState(() {
+          _error = invalid ? copy.invalidNumber : null;
+        });
+        if (!invalid) widget.onChanged(value);
+      },
+    );
+  }
 }
 
 class _ReadOnlyProperty extends StatelessWidget {
@@ -1606,23 +1651,26 @@ class _OptionalResourceControl extends StatelessWidget {
   final VoidCallback? onReset;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: <Widget>[
-      Expanded(
-        child: _ReadOnlyProperty(
-          title: label,
-          value: resourceId ?? fallbackLabel,
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: _ReadOnlyProperty(
+            title: label,
+            value: resourceId ?? fallbackLabel,
+          ),
         ),
-      ),
-      const SizedBox(width: 6),
-      PokeMapIconButton(
-        onPressed: onReset,
-        tooltip: 'Revenir à la source partagée',
-        semanticLabel: 'Revenir à la source partagée pour $label',
-        icon: const Icon(Icons.restart_alt_rounded),
-      ),
-    ],
-  );
+        const SizedBox(width: 6),
+        PokeMapIconButton(
+          onPressed: onReset,
+          tooltip: copy.resetSharedSource,
+          semanticLabel: copy.resetSharedSourceFor(label),
+          icon: const Icon(Icons.restart_alt_rounded),
+        ),
+      ],
+    );
+  }
 }
 
 class _InspectorToolbar extends StatelessWidget {
@@ -1641,34 +1689,34 @@ class _InspectorToolbar extends StatelessWidget {
   final VoidCallback? onRedo;
 
   @override
-  Widget build(BuildContext context) => PokeMapToolbarSurface(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    child: Row(
-      children: <Widget>[
-        const Expanded(
-          child: Text(
-            'Propriétés',
-            style: TextStyle(fontWeight: FontWeight.w700),
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapToolbarSurface(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              copy.properties,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
           ),
-        ),
-        if (mutationPending)
-          const PokeMapBadge(
-            label: 'Enregistrement…',
-            variant: PokeMapBadgeVariant.info,
+          if (mutationPending)
+            PokeMapBadge(label: copy.saving, variant: PokeMapBadgeVariant.info),
+          PokeMapIconButton(
+            onPressed: canUndo ? onUndo : null,
+            tooltip: copy.undoProperty,
+            icon: const Icon(Icons.undo_rounded),
           ),
-        PokeMapIconButton(
-          onPressed: canUndo ? onUndo : null,
-          tooltip: 'Annuler la propriété',
-          icon: const Icon(Icons.undo_rounded),
-        ),
-        PokeMapIconButton(
-          onPressed: canRedo ? onRedo : null,
-          tooltip: 'Rétablir la propriété',
-          icon: const Icon(Icons.redo_rounded),
-        ),
-      ],
-    ),
-  );
+          PokeMapIconButton(
+            onPressed: canRedo ? onRedo : null,
+            tooltip: copy.redoProperty,
+            icon: const Icon(Icons.redo_rounded),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 _LocatedClip? _locateClip(PresentationCinematicAsset asset, String clipId) {
@@ -1884,19 +1932,3 @@ PresentationVisualComposition _copyComposition(
 
 String _formatSeconds(int microseconds) =>
     (microseconds / Duration.microsecondsPerSecond).toStringAsFixed(2);
-
-String _audioBusLabel(PresentationAudioBus bus) => switch (bus) {
-  PresentationAudioBus.music => 'Musique',
-  PresentationAudioBus.voice => 'Voix',
-  PresentationAudioBus.effects => 'Effets',
-};
-
-String _transitionLabel(PresentationVisualTransitionKind kind) =>
-    switch (kind) {
-      PresentationVisualTransitionKind.none => 'Aucune',
-      PresentationVisualTransitionKind.fade => 'Fondu',
-      PresentationVisualTransitionKind.slideLeft => 'Glisse gauche',
-      PresentationVisualTransitionKind.slideRight => 'Glisse droite',
-      PresentationVisualTransitionKind.slideUp => 'Glisse haut',
-      PresentationVisualTransitionKind.slideDown => 'Glisse bas',
-    };

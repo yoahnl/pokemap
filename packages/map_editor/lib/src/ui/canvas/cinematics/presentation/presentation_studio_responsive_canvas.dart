@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
 
 import '../../../design_system/design_system.dart';
+import '../cinematic_studio_localizations.dart';
 import 'presentation_studio_layer_tree.dart';
 import 'presentation_studio_viewport.dart';
 
@@ -333,6 +334,7 @@ class _PresentationStudioResponsiveToolbarState
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) => CallbackShortcuts(
@@ -355,7 +357,7 @@ class _PresentationStudioResponsiveToolbarState
               child: Row(
                 children: [
                   PokeMapBadge(
-                    label: _statusLabel,
+                    label: _statusLabel(copy),
                     variant: _statusBadgeVariant,
                   ),
                   const SizedBox(width: 8),
@@ -363,8 +365,8 @@ class _PresentationStudioResponsiveToolbarState
                     key: presentationStudioFrameBackwardKey,
                     onPressed: _transportsEnabled ? _stepBackward : null,
                     icon: const Icon(Icons.skip_previous_rounded),
-                    tooltip: 'Frame précédente',
-                    disabledReason: _disabledReason,
+                    tooltip: copy.previousFrame,
+                    disabledReason: _disabledReason(copy),
                     variant: PokeMapIconButtonVariant.soft,
                   ),
                   const SizedBox(width: 4),
@@ -378,9 +380,9 @@ class _PresentationStudioResponsiveToolbarState
                     ),
                     tooltip:
                         controller.status == PresentationPlaybackStatus.playing
-                        ? 'Pause'
-                        : 'Lecture',
-                    disabledReason: _disabledReason,
+                        ? copy.pause
+                        : copy.play,
+                    disabledReason: _disabledReason(copy),
                     isSelected:
                         controller.status == PresentationPlaybackStatus.playing,
                     variant: PokeMapIconButtonVariant.soft,
@@ -390,8 +392,8 @@ class _PresentationStudioResponsiveToolbarState
                     key: presentationStudioStopKey,
                     onPressed: _transportsEnabled ? _stop : null,
                     icon: const Icon(Icons.stop_rounded),
-                    tooltip: 'Stop et retour au début',
-                    disabledReason: _disabledReason,
+                    tooltip: copy.stopAndRewind,
+                    disabledReason: _disabledReason(copy),
                     variant: PokeMapIconButtonVariant.soft,
                   ),
                   const SizedBox(width: 4),
@@ -399,8 +401,8 @@ class _PresentationStudioResponsiveToolbarState
                     key: presentationStudioFrameForwardKey,
                     onPressed: _transportsEnabled ? _stepForward : null,
                     icon: const Icon(Icons.skip_next_rounded),
-                    tooltip: 'Frame suivante',
-                    disabledReason: _disabledReason,
+                    tooltip: copy.nextFrame,
+                    disabledReason: _disabledReason(copy),
                     variant: PokeMapIconButtonVariant.soft,
                   ),
                   const SizedBox(width: 4),
@@ -409,9 +411,9 @@ class _PresentationStudioResponsiveToolbarState
                     onPressed: _transportsEnabled ? _toggleLoop : null,
                     icon: const Icon(Icons.repeat_rounded),
                     tooltip: controller.loop
-                        ? 'Désactiver la boucle'
-                        : 'Activer la boucle',
-                    disabledReason: _disabledReason,
+                        ? copy.disableLoop
+                        : copy.enableLoop,
+                    disabledReason: _disabledReason(copy),
                     isSelected: controller.loop,
                     variant: PokeMapIconButtonVariant.soft,
                   ),
@@ -430,7 +432,7 @@ class _PresentationStudioResponsiveToolbarState
                   const SizedBox(width: 6),
                   _modeButton(
                     key: presentationStudioCompareModeKey,
-                    label: 'Comparer',
+                    label: copy.compare,
                     mode: PresentationStudioCanvasMode.compare,
                     icon: const Icon(Icons.vertical_split_rounded),
                   ),
@@ -440,7 +442,7 @@ class _PresentationStudioResponsiveToolbarState
                     size: PokeMapButtonSize.small,
                     variant: PokeMapButtonVariant.ghost,
                     leading: const Icon(Icons.fit_screen_rounded),
-                    child: const Text('Ajuster'),
+                    child: Text(copy.fit),
                   ),
                 ],
               ),
@@ -474,18 +476,18 @@ class _PresentationStudioResponsiveToolbarState
       controller.status != PresentationPlaybackStatus.error &&
       controller.status != PresentationPlaybackStatus.disposed;
 
-  String? get _disabledReason => switch (controller.status) {
-    PresentationPlaybackStatus.loading =>
-      'L’aperçu est en cours de chargement.',
-    PresentationPlaybackStatus.error => 'Le rendu de l’aperçu a échoué.',
-    _ when controller.durationUs == 0 => 'La cinématique est vide.',
-    _ => null,
-  };
+  String? _disabledReason(CinematicStudioCopy copy) =>
+      switch (controller.status) {
+        PresentationPlaybackStatus.loading => copy.previewLoadingReason,
+        PresentationPlaybackStatus.error => copy.previewFailedReason,
+        _ when controller.durationUs == 0 => copy.emptyCinematicReason,
+        _ => null,
+      };
 
-  String get _statusLabel => switch (controller.status) {
-    PresentationPlaybackStatus.loading => 'Chargement de l’aperçu',
-    PresentationPlaybackStatus.error => 'Aperçu indisponible',
-    PresentationPlaybackStatus.interactionHold => 'Interaction en attente',
+  String _statusLabel(CinematicStudioCopy copy) => switch (controller.status) {
+    PresentationPlaybackStatus.loading => copy.previewLoading,
+    PresentationPlaybackStatus.error => copy.previewUnavailable,
+    PresentationPlaybackStatus.interactionHold => copy.interactionPending,
     _ =>
       '${_formatTime(controller.playheadUs)} / ${_formatTime(controller.durationUs)}',
   };
@@ -588,6 +590,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     return AnimatedBuilder(
       key: presentationStudioResponsiveCanvasKey,
       animation: controller,
@@ -595,11 +598,11 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
         final frame = frameBuilder(controller.playheadUs);
         final issues = frame == null
             ? const <String>[]
-            : _validateBindings(frame, mediaBindings);
+            : _validateBindings(frame, mediaBindings, copy);
         if (issues.isNotEmpty) {
           return PokeMapEmptyState(
             key: presentationStudioResponsiveMediaBlockerKey,
-            title: 'Composition responsive bloquée',
+            title: copy.responsiveCompositionBlocked,
             description: issues.join('\n'),
             icon: const Icon(Icons.warning_amber_rounded),
           );
@@ -615,11 +618,13 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
             frame: frame,
             orientation: PresentationFrameOrientation.landscape,
             contentPort: responsivePort,
+            copy: copy,
           ),
           PresentationStudioCanvasMode.portrait => _viewport(
             frame: frame,
             orientation: PresentationFrameOrientation.portrait,
             contentPort: responsivePort,
+            copy: copy,
           ),
           PresentationStudioCanvasMode.compare => Row(
             children: [
@@ -628,6 +633,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
                   frame: frame,
                   orientation: PresentationFrameOrientation.landscape,
                   contentPort: responsivePort,
+                  copy: copy,
                   showLabel: true,
                 ),
               ),
@@ -637,6 +643,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
                   frame: frame,
                   orientation: PresentationFrameOrientation.portrait,
                   contentPort: responsivePort,
+                  copy: copy,
                   showLabel: true,
                 ),
               ),
@@ -651,6 +658,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
     required PresentationFrame? frame,
     required PresentationFrameOrientation orientation,
     required PresentationFrameContentPort contentPort,
+    required CinematicStudioCopy copy,
     bool showLabel = false,
   }) {
     final viewport = PresentationStudioViewport(
@@ -670,7 +678,10 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
           PresentationStudioViewportState.error,
         _ => PresentationStudioViewportState.ready,
       },
-      errorMessage: controller.previewErrorMessage,
+      errorMessage:
+          controller.previewErrorMessage == 'Le rendu de l’aperçu a échoué.'
+          ? copy.previewFailedReason
+          : controller.previewErrorMessage,
       reduceMotion: reduceMotion,
       reduceFlashes: reduceFlashes,
       showCaptions: showCaptions,
@@ -692,8 +703,9 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
           padding: const EdgeInsets.only(top: 8),
           child: PokeMapBadge(
             label: switch (orientation) {
-              PresentationFrameOrientation.landscape => 'Paysage 16:9',
-              PresentationFrameOrientation.portrait => 'Portrait 9:16',
+              PresentationFrameOrientation.landscape =>
+                copy.landscapeOrientation,
+              PresentationFrameOrientation.portrait => copy.portraitOrientation,
             },
             variant: controller.activeOrientation == orientation
                 ? PokeMapBadgeVariant.info
@@ -761,6 +773,7 @@ PresentationVisualFrameClip _withResourceId(
 List<String> _validateBindings(
   PresentationFrame frame,
   List<PresentationStudioResponsiveMediaBinding> bindings,
+  CinematicStudioCopy copy,
 ) {
   final clipDurations = <String, int>{
     for (final clip in frame.visuals) clip.clipId: clip.durationUs,
@@ -770,7 +783,7 @@ List<String> _validateBindings(
   final ids = <String>{};
   for (final binding in bindings) {
     if (!ids.add(binding.clipId)) {
-      issues.add('Le clip ${binding.clipId} possède plusieurs liaisons média.');
+      issues.add(copy.duplicateMediaBinding(binding.clipId));
       continue;
     }
     final clipDurationUs = clipDurations[binding.clipId];
@@ -781,9 +794,7 @@ List<String> _validateBindings(
       if (binding.sharedResourceId == null ||
           binding.landscapeResourceId != null ||
           binding.portraitResourceId != null) {
-        issues.add(
-          'La musique ${binding.clipId} doit garder une source partagée unique.',
-        );
+        issues.add(copy.musicRequiresSharedSource(binding.clipId));
         continue;
       }
       _validateDuration(
@@ -792,15 +803,14 @@ List<String> _validateBindings(
         availableUs: binding.sharedDurationUs,
         requiredUs: clipDurationUs,
         requiredMetadata: true,
+        copy: copy,
       );
       continue;
     }
     if (binding.sharedResourceId == null &&
         binding.landscapeResourceId == null &&
         binding.portraitResourceId == null) {
-      issues.add(
-        'Le clip ${binding.clipId} doit fournir au moins une source média.',
-      );
+      issues.add(copy.mediaSourceRequired(binding.clipId));
       continue;
     }
     final timed =
@@ -814,6 +824,7 @@ List<String> _validateBindings(
         availableUs: binding.sharedDurationUs,
         requiredUs: clipDurationUs,
         requiredMetadata: timed && binding.requireDurationMetadata,
+        copy: copy,
       );
     }
     if (binding.landscapeResourceId case final resourceId?) {
@@ -823,6 +834,7 @@ List<String> _validateBindings(
         availableUs: binding.landscapeDurationUs,
         requiredUs: clipDurationUs,
         requiredMetadata: timed && binding.requireDurationMetadata,
+        copy: copy,
       );
     }
     if (binding.portraitResourceId case final resourceId?) {
@@ -832,6 +844,7 @@ List<String> _validateBindings(
         availableUs: binding.portraitDurationUs,
         requiredUs: clipDurationUs,
         requiredMetadata: timed && binding.requireDurationMetadata,
+        copy: copy,
       );
     }
   }
@@ -844,17 +857,16 @@ void _validateDuration({
   required int? availableUs,
   required int requiredUs,
   required bool requiredMetadata,
+  required CinematicStudioCopy copy,
 }) {
   if (availableUs == null) {
     if (requiredMetadata) {
-      issues.add('La durée de $resourceId est inconnue.');
+      issues.add(copy.mediaDurationUnknown(resourceId));
     }
     return;
   }
   if (availableUs < requiredUs) {
-    issues.add(
-      '$resourceId est trop court : $availableUs µs disponibles pour $requiredUs µs.',
-    );
+    issues.add(copy.mediaTooShort(resourceId, availableUs, requiredUs));
   }
 }
 

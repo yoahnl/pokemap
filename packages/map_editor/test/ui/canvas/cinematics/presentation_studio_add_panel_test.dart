@@ -3,12 +3,43 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/l10n/app_localizations.dart';
 import 'package:map_editor/src/application/authoring_api/presentation_studio_add_authoring_gateway.dart';
 import 'package:map_editor/src/application/authoring_api/editor_receipt_presenter.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_add_panel.dart';
 
 void main() {
+  testWidgets('English add panel remains reachable at 200 percent text scale', (
+    tester,
+  ) async {
+    await _pumpPanel(
+      tester,
+      gateway: _FakeGateway(media: const []),
+      project: _project(),
+      playheadUs: 0,
+      onInserted: (_) {},
+      locale: const Locale('en'),
+      textScaler: const TextScaler.linear(2),
+      width: 620,
+    );
+
+    for (final label in <String>[
+      'Visual',
+      'Text',
+      'Audio',
+      'Video',
+      'Accessibility',
+      'Cues',
+    ]) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(find.text('Import media'), findsOneWidget);
+    expect(find.text('Add to timeline'), findsOneWidget);
+    expect(find.text('No media in this category'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'search and categories keep the target frozen until one explicit insertion',
     (tester) async {
@@ -282,13 +313,23 @@ Future<void> _pumpPanel(
   required int playheadUs,
   required ValueChanged<PresentationStudioInsertionResult> onInserted,
   PresentationStudioMediaPicker picker = const _FakePicker(null),
+  Locale locale = const Locale('fr'),
+  TextScaler textScaler = TextScaler.noScaling,
+  double width = 360,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: PokeMapTheme.dark(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        child: child!,
+      ),
       home: Scaffold(
         body: SizedBox(
-          width: 360,
+          width: width,
           height: 800,
           child: PresentationStudioAddPanel(
             gateway: gateway,

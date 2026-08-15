@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import '../cinematics/cinematic_studio_localizations.dart';
 
 sealed class ScenePresentationPickerResult {
   const ScenePresentationPickerResult();
@@ -15,7 +16,8 @@ final class ScenePresentationPickerExisting
   final PresentationCinematicAsset cinematic;
 }
 
-final class ScenePresentationPickerCreate extends ScenePresentationPickerResult {
+final class ScenePresentationPickerCreate
+    extends ScenePresentationPickerResult {
   const ScenePresentationPickerCreate();
 }
 
@@ -35,6 +37,7 @@ class _ScenePresentationCinematicPickerState
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     final query = _query.trim().toLowerCase();
     final visible =
         widget.cinematics
@@ -54,7 +57,7 @@ class _ScenePresentationCinematicPickerState
               children: [
                 Expanded(
                   child: Text(
-                    '${widget.cinematics.length} cinématique${widget.cinematics.length > 1 ? 's' : ''} compatible${widget.cinematics.length > 1 ? 's' : ''}',
+                    copy.compatibleCount(widget.cinematics.length),
                     style: TextStyle(
                       color: colors.textSecondary,
                       fontSize: 12,
@@ -66,31 +69,29 @@ class _ScenePresentationCinematicPickerState
                   key: const ValueKey(
                     'scene-presentation-picker-create-and-link',
                   ),
-                  onPressed: () => Navigator.of(context).pop(
-                    const ScenePresentationPickerCreate(),
-                  ),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pop(const ScenePresentationPickerCreate()),
                   variant: PokeMapButtonVariant.ghost,
                   size: PokeMapButtonSize.small,
                   leading: const Icon(Icons.add_rounded),
-                  child: const Text('Créer et lier'),
+                  child: Text(copy.createAndLink),
                 ),
               ],
             ),
             const SizedBox(height: 10),
             PokeMapSearchField(
               key: const ValueKey('scene-presentation-picker-search'),
-              hintText: 'Rechercher une cinématique de présentation…',
-              semanticLabel: 'Rechercher une cinématique compatible',
+              hintText: copy.pickerSearchHint,
+              semanticLabel: copy.pickerSearchSemantics,
               autofocus: true,
               onChanged: (value) => setState(() => _query = value),
             ),
             const SizedBox(height: 10),
-            const PokeMapDiagnosticCallout(
+            PokeMapDiagnosticCallout(
               severity: PokeMapDiagnosticSeverity.info,
-              title: 'Utiliser une cinématique existante',
-              message:
-                  'La sélection ajoute un nœud typé au graph. Les repères '
-                  'd’interaction obligatoires devront ensuite être reliés.',
+              title: copy.useExisting,
+              message: copy.useExistingMessage,
             ),
             const SizedBox(height: 10),
             Expanded(
@@ -98,12 +99,10 @@ class _ScenePresentationCinematicPickerState
                   ? PokeMapEmptyState(
                       key: const ValueKey('scene-presentation-picker-empty'),
                       icon: const Icon(Icons.search_off_rounded),
-                      title: query.isEmpty
-                          ? 'Aucune cinématique compatible'
-                          : 'Aucun résultat',
+                      title: query.isEmpty ? copy.noCompatible : copy.noResults,
                       description: query.isEmpty
-                          ? 'Créez une cinématique de présentation dans la bibliothèque.'
-                          : 'Modifiez la recherche pour afficher une autre cinématique.',
+                          ? copy.createPresentationInLibrary
+                          : copy.changeSearch,
                     )
                   : ListView.separated(
                       itemCount: visible.length,
@@ -140,6 +139,7 @@ class _PresentationCinematicOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final copy = CinematicStudioCopy.of(context);
     final visualClips = _visualClips(cinematic);
     final markers = _interactionMarkers(cinematic);
     final requiredMarkers = markers.where((marker) => marker.required).toList();
@@ -154,11 +154,10 @@ class _PresentationCinematicOption extends StatelessWidget {
       key: ValueKey(
         'scene-presentation-picker-option-${_pickerKeyPart(cinematic.id)}',
       ),
-      onTap: () => Navigator.of(context).pop(
-        ScenePresentationPickerExisting(cinematic),
-      ),
+      onTap: () =>
+          Navigator.of(context).pop(ScenePresentationPickerExisting(cinematic)),
       keyboardInteractive: true,
-      semanticLabel: 'Utiliser ${cinematic.title}',
+      semanticLabel: copy.useCinematic(cinematic.title),
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,20 +203,18 @@ class _PresentationCinematicOption extends StatelessWidget {
             children: [
               PokeMapBadge(
                 label: hasLandscapeAlternative
-                    ? 'Paysage · média dédié'
-                    : 'Paysage · fallback',
+                    ? copy.landscapeDedicated
+                    : copy.landscapeFallback,
                 variant: PokeMapBadgeVariant.success,
               ),
               PokeMapBadge(
                 label: hasPortraitAlternative
-                    ? 'Portrait · média dédié'
-                    : 'Portrait · fallback',
+                    ? copy.portraitDedicated
+                    : copy.portraitFallback,
                 variant: PokeMapBadgeVariant.success,
               ),
               PokeMapBadge(
-                label: markers.isEmpty
-                    ? 'Aucune interaction'
-                    : '${markers.length} interaction${markers.length > 1 ? 's' : ''}',
+                label: copy.interactionCount(markers.length),
                 variant: markers.isEmpty
                     ? PokeMapBadgeVariant.neutral
                     : PokeMapBadgeVariant.info,
@@ -241,8 +238,7 @@ class _PresentationCinematicOption extends StatelessWidget {
             const SizedBox(height: 8),
             PokeMapDiagnosticCallout(
               severity: PokeMapDiagnosticSeverity.warning,
-              message:
-                  '${requiredMarkers.length} interaction${requiredMarkers.length > 1 ? 's' : ''} obligatoire${requiredMarkers.length > 1 ? 's' : ''} à relier dans cette scène.',
+              message: copy.requiredInteractionCount(requiredMarkers.length),
             ),
           ],
         ],

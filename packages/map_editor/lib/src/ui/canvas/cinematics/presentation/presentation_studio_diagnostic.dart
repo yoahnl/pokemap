@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../../application/authoring_api/editor_receipt_presenter.dart';
+import '../cinematic_studio_localizations.dart';
 import '../../../design_system/design_system.dart';
 
 const presentationStudioDiagnosticFocusKey = ValueKey<String>(
@@ -26,7 +27,7 @@ final class PresentationStudioDiagnostic {
     Object error, {
     required String title,
     required String impact,
-    String actionLabel = 'Réessayer',
+    String? actionLabel,
     String fallbackCode = PresentationDiagnosticCodes.saveFailed,
   }) {
     final failure = EditorAuthoringMutationFailure.capture(error);
@@ -38,7 +39,7 @@ final class PresentationStudioDiagnostic {
       title: title,
       cause: failure.message,
       impact: impact,
-      actionLabel: actionLabel,
+      actionLabel: actionLabel ?? '',
     );
   }
 
@@ -48,8 +49,6 @@ final class PresentationStudioDiagnostic {
   final String cause;
   final String impact;
   final String actionLabel;
-
-  String get message => 'Cause : $cause\nImpact : $impact\nCode : $code';
 }
 
 class PresentationStudioDiagnosticCallout extends StatefulWidget {
@@ -102,6 +101,15 @@ class _PresentationStudioDiagnosticCalloutState
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    final message = copy.diagnosticMessage(
+      cause: widget.diagnostic.cause,
+      impact: widget.diagnostic.impact,
+      code: widget.diagnostic.code,
+    );
+    final actionLabel = widget.diagnostic.actionLabel.isEmpty
+        ? copy.retry
+        : widget.diagnostic.actionLabel;
     final severity = switch (widget.diagnostic.severity) {
       PresentationDiagnosticSeverity.warning =>
         PokeMapDiagnosticSeverity.warning,
@@ -115,14 +123,12 @@ class _PresentationStudioDiagnosticCalloutState
         container: true,
         liveRegion:
             widget.diagnostic.severity == PresentationDiagnosticSeverity.error,
-        label:
-            '${widget.diagnostic.title}. ${widget.diagnostic.message}. '
-            '${widget.diagnostic.actionLabel}',
+        label: '${widget.diagnostic.title}. $message. $actionLabel',
         child: PokeMapDiagnosticCallout(
           severity: severity,
           title: widget.diagnostic.title,
-          message: widget.diagnostic.message,
-          actionLabel: widget.diagnostic.actionLabel,
+          message: message,
+          actionLabel: actionLabel,
           onAction: widget.onAction,
         ),
       ),

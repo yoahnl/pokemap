@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../../../application/authoring_api/cinematic_library_authoring_gateway.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import 'cinematic_studio_localizations.dart';
 
 export '../../../application/authoring_api/cinematic_library_authoring_gateway.dart'
     show CinematicLibraryWorldStartingPoint;
@@ -60,31 +61,32 @@ showCinematicLibraryManagementDialog({
   required String title,
   required bool archived,
 }) {
+  final copy = CinematicStudioCopy.of(context);
   return showPokeMapConfirmationDialog<CinematicLibraryManagementCommand>(
     context: context,
     title: title,
-    message: 'Choisissez une action pour cette cinématique.',
+    message: copy.chooseAction,
     actions: [
-      const PokeMapDialogAction(
-        label: 'Renommer',
+      PokeMapDialogAction(
+        label: copy.rename,
         value: CinematicLibraryManagementCommand.rename,
       ),
-      const PokeMapDialogAction(
-        label: 'Déplacer',
+      PokeMapDialogAction(
+        label: copy.move,
         value: CinematicLibraryManagementCommand.move,
       ),
-      const PokeMapDialogAction(
-        label: 'Dupliquer',
+      PokeMapDialogAction(
+        label: copy.duplicate,
         value: CinematicLibraryManagementCommand.duplicate,
       ),
       PokeMapDialogAction(
-        label: archived ? 'Restaurer' : 'Archiver',
+        label: archived ? copy.restore : copy.archive,
         value: archived
             ? CinematicLibraryManagementCommand.restore
             : CinematicLibraryManagementCommand.archive,
       ),
-      const PokeMapDialogAction(
-        label: 'Supprimer',
+      PokeMapDialogAction(
+        label: copy.delete,
         value: CinematicLibraryManagementCommand.delete,
         variant: PokeMapButtonVariant.danger,
       ),
@@ -213,9 +215,10 @@ class _CinematicLibraryCreateDialogState
   @override
   Widget build(BuildContext context) {
     final isPresentation = widget.family == CinematicLibraryFamily.presentation;
+    final copy = CinematicStudioCopy.of(context);
     final title = isPresentation
-        ? 'Nouvelle cinématique de présentation'
-        : 'Nouvelle cinématique in-game';
+        ? copy.newPresentationCinematic
+        : copy.newInGameCinematic;
     return PokeMapDialog(
       title: title,
       icon: isPresentation
@@ -234,7 +237,7 @@ class _CinematicLibraryCreateDialogState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               PokeMapTextField(
-                label: 'Titre',
+                label: copy.title,
                 fieldKey: const ValueKey('cinematic-create-title'),
                 controller: _titleController,
                 focusNode: _titleFocusNode,
@@ -248,13 +251,13 @@ class _CinematicLibraryCreateDialogState
               ),
               const SizedBox(height: 14),
               PokeMapDropdownField<String>(
-                label: 'Dossier',
+                label: copy.folder,
                 value: _folderValue,
                 enabled: !_pending,
                 items: [
-                  const PokeMapDropdownItem(
+                  PokeMapDropdownItem(
                     value: _rootFolder,
-                    label: 'Racine de la bibliothèque',
+                    label: copy.rootLibrary,
                   ),
                   for (final folder in _sortedFolders())
                     PokeMapDropdownItem(
@@ -266,7 +269,7 @@ class _CinematicLibraryCreateDialogState
               ),
               const SizedBox(height: 18),
               Text(
-                isPresentation ? 'Preset de départ' : 'Point de départ',
+                isPresentation ? copy.startingPreset : copy.startingPoint,
                 style: TextStyle(
                   color: context.pokeMapColors.textPrimary,
                   fontSize: 13,
@@ -292,7 +295,7 @@ class _CinematicLibraryCreateDialogState
                 const SizedBox(height: 14),
                 PokeMapActionBanner(
                   tone: PokeMapTone.danger,
-                  title: 'Création impossible',
+                  title: copy.creationFailed,
                   message: _error!,
                 ),
               ],
@@ -305,7 +308,7 @@ class _CinematicLibraryCreateDialogState
 
   String? get _titleError {
     if (_error == null || _titleController.text.trim().isNotEmpty) return null;
-    return 'Le titre est obligatoire.';
+    return CinematicStudioCopy.of(context).titleRequired;
   }
 
   List<CinematicLibraryFolder> _sortedFolders() {
@@ -335,7 +338,7 @@ class _CinematicLibraryCreateDialogState
     final title = _titleController.text.trim();
     if (title.isEmpty) {
       setState(
-        () => _error = 'Saisissez un titre avant de créer la cinématique.',
+        () => _error = CinematicStudioCopy.of(context).enterTitleBeforeCreate,
       );
       _titleFocusNode.requestFocus();
       return;
@@ -371,7 +374,7 @@ class _CinematicLibraryCreateDialogState
       if (id == null || id.trim().isEmpty) {
         setState(() {
           _pending = false;
-          _error = 'La commande n’a retourné aucune cinématique.';
+          _error = CinematicStudioCopy.of(context).commandReturnedNoCinematic;
         });
         _titleFocusNode.requestFocus();
         return;
@@ -423,48 +426,51 @@ class _CinematicLibraryRenameDialogState
   }
 
   @override
-  Widget build(BuildContext context) => PokeMapDialog(
-    title: 'Renommer la cinématique',
-    icon: Icons.drive_file_rename_outline_rounded,
-    footer: _CommandDialogFooter(
-      pending: _pending,
-      submitLabel: 'Renommer',
-      onCancel: () => Navigator.of(context).pop(false),
-      onSubmit: _submit,
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        PokeMapTextField(
-          label: 'Titre',
-          fieldKey: const ValueKey('cinematic-rename-title'),
-          controller: _controller,
-          focusNode: _focusNode,
-          autofocus: true,
-          enabled: !_pending,
-          errorText: _controller.text.trim().isEmpty ? _error : null,
-          onChanged: (_) {
-            if (_error != null) setState(() => _error = null);
-          },
-          onSubmitted: (_) => _submit(),
-        ),
-        if (_error != null && _controller.text.trim().isNotEmpty) ...[
-          const SizedBox(height: 12),
-          PokeMapActionBanner(
-            tone: PokeMapTone.danger,
-            title: 'Renommage impossible',
-            message: _error!,
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapDialog(
+      title: copy.renameCinematic,
+      icon: Icons.drive_file_rename_outline_rounded,
+      footer: _CommandDialogFooter(
+        pending: _pending,
+        submitLabel: copy.rename,
+        onCancel: () => Navigator.of(context).pop(false),
+        onSubmit: _submit,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapTextField(
+            label: copy.title,
+            fieldKey: const ValueKey('cinematic-rename-title'),
+            controller: _controller,
+            focusNode: _focusNode,
+            autofocus: true,
+            enabled: !_pending,
+            errorText: _controller.text.trim().isEmpty ? _error : null,
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+            },
+            onSubmitted: (_) => _submit(),
           ),
+          if (_error != null && _controller.text.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            PokeMapActionBanner(
+              tone: PokeMapTone.danger,
+              title: copy.renameFailed,
+              message: _error!,
+            ),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 
   Future<void> _submit() async {
     if (_pending) return;
     final title = _controller.text.trim();
     if (title.isEmpty) {
-      setState(() => _error = 'Le titre est obligatoire.');
+      setState(() => _error = CinematicStudioCopy.of(context).titleRequired);
       _focusNode.requestFocus();
       return;
     }
@@ -519,43 +525,46 @@ class _CinematicLibraryMoveDialogState
   }
 
   @override
-  Widget build(BuildContext context) => PokeMapDialog(
-    title: 'Déplacer la cinématique',
-    icon: Icons.drive_file_move_outline,
-    footer: _CommandDialogFooter(
-      pending: _pending,
-      submitLabel: 'Déplacer',
-      onCancel: () => Navigator.of(context).pop(false),
-      onSubmit: _submit,
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        PokeMapDropdownField<String>(
-          label: 'Dossier de destination',
-          value: _folderValue,
-          enabled: !_pending,
-          items: [
-            const PokeMapDropdownItem(
-              value: _rootFolder,
-              label: 'Racine de la bibliothèque',
-            ),
-            for (final folder in _sortedFolders())
-              PokeMapDropdownItem(value: folder.id, label: _folderPath(folder)),
-          ],
-          onChanged: (value) => setState(() => _folderValue = value),
-        ),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          PokeMapActionBanner(
-            tone: PokeMapTone.danger,
-            title: 'Déplacement impossible',
-            message: _error!,
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapDialog(
+      title: copy.moveCinematic,
+      icon: Icons.drive_file_move_outline,
+      footer: _CommandDialogFooter(
+        pending: _pending,
+        submitLabel: copy.move,
+        onCancel: () => Navigator.of(context).pop(false),
+        onSubmit: _submit,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapDropdownField<String>(
+            label: copy.destinationFolder,
+            value: _folderValue,
+            enabled: !_pending,
+            items: [
+              PokeMapDropdownItem(value: _rootFolder, label: copy.rootLibrary),
+              for (final folder in _sortedFolders())
+                PokeMapDropdownItem(
+                  value: folder.id,
+                  label: _folderPath(folder),
+                ),
+            ],
+            onChanged: (value) => setState(() => _folderValue = value),
           ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            PokeMapActionBanner(
+              tone: PokeMapTone.danger,
+              title: copy.moveFailed,
+              message: _error!,
+            ),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 
   List<CinematicLibraryFolder> _sortedFolders() {
     final copy = widget.folders.toList();
@@ -612,23 +621,26 @@ class _CommandDialogFooter extends StatelessWidget {
   final VoidCallback onSubmit;
 
   @override
-  Widget build(BuildContext context) => Wrap(
-    alignment: WrapAlignment.end,
-    spacing: 8,
-    runSpacing: 8,
-    children: [
-      PokeMapButton(
-        onPressed: pending ? null : onCancel,
-        variant: PokeMapButtonVariant.secondary,
-        child: const Text('Annuler'),
-      ),
-      PokeMapButton(
-        onPressed: pending ? null : onSubmit,
-        isLoading: pending,
-        child: Text(submitLabel),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        PokeMapButton(
+          onPressed: pending ? null : onCancel,
+          variant: PokeMapButtonVariant.secondary,
+          child: Text(copy.cancel),
+        ),
+        PokeMapButton(
+          onPressed: pending ? null : onSubmit,
+          isLoading: pending,
+          child: Text(submitLabel),
+        ),
+      ],
+    );
+  }
 }
 
 class _DialogFooter extends StatelessWidget {
@@ -643,25 +655,28 @@ class _DialogFooter extends StatelessWidget {
   final VoidCallback onSubmit;
 
   @override
-  Widget build(BuildContext context) => Wrap(
-    alignment: WrapAlignment.end,
-    spacing: 8,
-    runSpacing: 8,
-    children: [
-      PokeMapButton(
-        onPressed: pending ? null : onCancel,
-        variant: PokeMapButtonVariant.secondary,
-        child: const Text('Annuler'),
-      ),
-      PokeMapButton(
-        key: const ValueKey('cinematic-create-submit'),
-        onPressed: pending ? null : onSubmit,
-        isLoading: pending,
-        leading: const Icon(Icons.add_rounded),
-        child: const Text('Créer'),
-      ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        PokeMapButton(
+          onPressed: pending ? null : onCancel,
+          variant: PokeMapButtonVariant.secondary,
+          child: Text(copy.cancel),
+        ),
+        PokeMapButton(
+          key: const ValueKey('cinematic-create-submit'),
+          onPressed: pending ? null : onSubmit,
+          isLoading: pending,
+          leading: const Icon(Icons.add_rounded),
+          child: Text(copy.create),
+        ),
+      ],
+    );
+  }
 }
 
 class _WorldStartingPointPicker extends StatelessWidget {
@@ -676,54 +691,57 @@ class _WorldStartingPointPicker extends StatelessWidget {
   final ValueChanged<CinematicLibraryWorldStartingPoint> onChanged;
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      for (final value in CinematicLibraryWorldStartingPoint.values) ...[
-        SizedBox(
-          key: ValueKey('world-starting-point-${value.name}'),
-          child: PokeMapCard(
-            key: const ValueKey('world-starting-point-card'),
-            selected: selected == value,
-            keyboardInteractive: enabled,
-            semanticLabel: _worldLabel(value),
-            onTap: enabled ? () => onChanged(value) : null,
-            child: Row(
-              children: [
-                Icon(
-                  _worldIcon(value),
-                  color: context.pokeMapColors.brandPrimary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _worldLabel(value),
-                        style: TextStyle(
-                          color: context.pokeMapColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        _worldDescription(value),
-                        style: TextStyle(
-                          color: context.pokeMapColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return Column(
+      children: [
+        for (final value in CinematicLibraryWorldStartingPoint.values) ...[
+          SizedBox(
+            key: ValueKey('world-starting-point-${value.name}'),
+            child: PokeMapCard(
+              key: const ValueKey('world-starting-point-card'),
+              selected: selected == value,
+              keyboardInteractive: enabled,
+              semanticLabel: copy.worldLabel(value.name),
+              onTap: enabled ? () => onChanged(value) : null,
+              child: Row(
+                children: [
+                  Icon(
+                    _worldIcon(value),
+                    color: context.pokeMapColors.brandPrimary,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          copy.worldLabel(value.name),
+                          style: TextStyle(
+                            color: context.pokeMapColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          copy.worldDescription(value.name),
+                          style: TextStyle(
+                            color: context.pokeMapColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 8),
+        ],
       ],
-    ],
-  );
+    );
+  }
 }
 
 class _PresentationTemplatePicker extends StatelessWidget {
@@ -739,6 +757,7 @@ class _PresentationTemplatePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     final templates =
         PresentationCinematicTemplateCatalog.canonical().templates;
     return LayoutBuilder(
@@ -757,7 +776,7 @@ class _PresentationTemplatePicker extends StatelessWidget {
                   key: const ValueKey('presentation-template-card'),
                   selected: selectedId == template.id,
                   keyboardInteractive: enabled,
-                  semanticLabel: _templateLabel(template.id),
+                  semanticLabel: copy.templateLabel(template.id),
                   onTap: enabled ? () => onChanged(template.id) : null,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -765,7 +784,7 @@ class _PresentationTemplatePicker extends StatelessWidget {
                       _TemplatePreview(template: template),
                       const SizedBox(height: 9),
                       Text(
-                        _templateLabel(template.id),
+                        copy.templateLabel(template.id),
                         key: ValueKey('presentation-template-${template.id}'),
                         style: TextStyle(
                           color: context.pokeMapColors.textPrimary,
@@ -774,7 +793,7 @@ class _PresentationTemplatePicker extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        _templateDescription(template.id),
+                        copy.templateDescription(template.id),
                         style: TextStyle(
                           color: context.pokeMapColors.textSecondary,
                           fontSize: 11,
@@ -800,6 +819,7 @@ class _TemplatePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final copy = CinematicStudioCopy.of(context);
     final slotCount = template.mediaSlots.length;
     return Container(
       height: 68,
@@ -835,8 +855,8 @@ class _TemplatePreview extends StatelessWidget {
               children: [
                 Text(
                   slotCount == 0
-                      ? 'Composition libre'
-                      : '$slotCount média${slotCount > 1 ? 's' : ''}',
+                      ? copy.freeComposition
+                      : copy.mediaCount(slotCount),
                   style: TextStyle(
                     color: colors.textPrimary,
                     fontSize: 11,
@@ -845,7 +865,7 @@ class _TemplatePreview extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Paysage + portrait natifs',
+                  copy.nativeOrientations,
                   style: TextStyle(color: colors.textMuted, fontSize: 10),
                 ),
               ],
@@ -857,22 +877,6 @@ class _TemplatePreview extends StatelessWidget {
   }
 }
 
-String _worldLabel(CinematicLibraryWorldStartingPoint value) => switch (value) {
-  CinematicLibraryWorldStartingPoint.blank => 'Vide',
-  CinematicLibraryWorldStartingPoint.establishingShot => 'Plan d’établissement',
-  CinematicLibraryWorldStartingPoint.dialogueBeat => 'Temps de dialogue',
-};
-
-String _worldDescription(CinematicLibraryWorldStartingPoint value) =>
-    switch (value) {
-      CinematicLibraryWorldStartingPoint.blank =>
-        'Une timeline vide à construire dans le Studio in-game actuel.',
-      CinematicLibraryWorldStartingPoint.establishingShot =>
-        'Un cadrage d’ouverture puis un temps de respiration.',
-      CinematicLibraryWorldStartingPoint.dialogueBeat =>
-        'Un premier temps narratif prêt à recevoir un dialogue.',
-    };
-
 IconData _worldIcon(CinematicLibraryWorldStartingPoint value) =>
     switch (value) {
       CinematicLibraryWorldStartingPoint.blank => Icons.crop_free_rounded,
@@ -881,29 +885,6 @@ IconData _worldIcon(CinematicLibraryWorldStartingPoint value) =>
       CinematicLibraryWorldStartingPoint.dialogueBeat =>
         Icons.chat_bubble_outline_rounded,
     };
-
-String _templateLabel(String id) => switch (id) {
-  'blank' => 'Vide',
-  'titleIdentity' => 'Titre & identité',
-  'immersiveOpening' => 'Ouverture immersive',
-  'stagedStory' => 'Récit mis en scène',
-  'interactivePath' => 'Parcours interactif',
-  'adaptiveVideo' => 'Vidéo adaptative',
-  _ => id,
-};
-
-String _templateDescription(String id) => switch (id) {
-  'blank' => 'Une composition libre, sans média imposé.',
-  'titleIdentity' => 'Installe un titre, une identité et un fond responsive.',
-  'immersiveOpening' =>
-    'Construit une ouverture visuelle, sonore et immédiatement cinématique.',
-  'stagedStory' =>
-    'Superpose décors, narration et voix pour une séquence plus longue.',
-  'interactivePath' =>
-    'Prépare les repères où une Scene peut demander un choix ou une saisie.',
-  'adaptiveVideo' => 'Démarre autour d’une vidéo et de son poster adaptatifs.',
-  _ => '',
-};
 
 IconData _templateIcon(String id) => switch (id) {
   'blank' => Icons.crop_free_rounded,

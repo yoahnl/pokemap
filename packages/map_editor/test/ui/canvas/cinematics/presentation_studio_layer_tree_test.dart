@@ -1,10 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/l10n/app_localizations.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_layer_tree.dart';
 
 void main() {
+  testWidgets('English layer bank stays reachable at 200 percent', (
+    tester,
+  ) async {
+    final selection = PresentationStudioSelectionController();
+    addTearDown(selection.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: PokeMapTheme.dark(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(2)),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: SizedBox(
+            width: 520,
+            height: 800,
+            child: PresentationStudioLayerTree(
+              asset: _asset(),
+              playheadUs: 0,
+              selectionController: selection,
+              onCommand: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Layer bank'), findsOneWidget);
+    expect(find.text('Visuals'), findsOneWidget);
+    expect(find.text('Captions'), findsOneWidget);
+    expect(find.text('Cues'), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(
+            find.byKey(
+              const ValueKey<String>('presentation-layer-create-folder'),
+            ),
+          )
+          .label,
+      contains('Create visual folder'),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   test('one selection identity synchronizes canvas, tree and timeline', () {
     final asset = _asset();
     final frame = const PresentationCinematicEvaluator().evaluate(

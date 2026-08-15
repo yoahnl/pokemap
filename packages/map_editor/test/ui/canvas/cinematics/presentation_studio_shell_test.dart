@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/l10n/app_localizations.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_shell.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_diagnostic.dart';
@@ -85,6 +86,51 @@ void main() {
       expect(find.text('Enregistrer avant de quitter ?'), findsNothing);
     },
   );
+
+  testWidgets('English shell stays operable at 200 percent text scale', (
+    tester,
+  ) async {
+    var saves = 0;
+    await _pumpShell(
+      tester,
+      store: _MemoryLayoutStore(),
+      locale: const Locale('en'),
+      textScaler: const TextScaler.linear(2),
+      addPanel: const Text('ADD PANEL'),
+      diagnostic: const PresentationStudioDiagnostic(
+        code: PresentationDiagnosticCodes.saveFailed,
+        severity: PresentationDiagnosticSeverity.error,
+        title: 'Save failed',
+        cause: 'The project changed on disk.',
+        impact: 'The local draft is preserved.',
+        actionLabel: '',
+      ),
+      onDiagnosticAction: () {},
+      onSave: () async {
+        saves += 1;
+        return true;
+      },
+    );
+
+    expect(find.bySemanticsLabel('Back to library'), findsOneWidget);
+    expect(find.text('Presentation cinematic'), findsOneWidget);
+    expect(find.text('Save'), findsOneWidget);
+    expect(find.text('Layers'), findsOneWidget);
+    expect(find.text('Properties'), findsOneWidget);
+    expect(find.text('Add'), findsOneWidget);
+    expect(
+      find.textContaining('Cause: The project changed on disk.'),
+      findsOneWidget,
+    );
+    expect(find.text('Try again'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pump();
+    expect(saves, 1);
+  });
 
   testWidgets(
     'dirty Presentation shell guards exit with the three exact actions',
@@ -255,6 +301,8 @@ Future<void> _pumpShell(
   PresentationStudioDiagnostic? diagnostic,
   VoidCallback? onDiagnosticAction,
   Size surfaceSize = const Size(1280, 800),
+  Locale locale = const Locale('fr'),
+  TextScaler textScaler = TextScaler.noScaling,
 }) async {
   tester.view.physicalSize = surfaceSize;
   tester.view.devicePixelRatio = 1;
@@ -263,7 +311,14 @@ Future<void> _pumpShell(
 
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: PokeMapTheme.dark(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        child: child!,
+      ),
       home: Scaffold(
         body: PresentationStudioShell(
           title: 'Ouverture Avelune',

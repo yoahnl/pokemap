@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/l10n/app_localizations.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_responsive_canvas.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_layer_tree.dart';
@@ -92,6 +93,66 @@ void main() {
       2_000_000,
     });
     expect(find.textContaining('00:02.000'), findsOneWidget);
+  });
+
+  testWidgets('English responsive controls remain usable at 200 percent', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
+    );
+    addTearDown(controller.dispose);
+
+    await _pumpResponsiveCanvas(
+      tester,
+      controller: controller,
+      frameBuilder: (_) => _frame(),
+      locale: const Locale('en'),
+      textScaler: const TextScaler.linear(2),
+    );
+
+    expect(find.bySemanticsLabel('Previous frame'), findsOneWidget);
+    expect(find.bySemanticsLabel('Play'), findsOneWidget);
+    expect(find.text('Compare'), findsOneWidget);
+    expect(find.text('Fit'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(presentationStudioLoopKey));
+    await tester.pump();
+    expect(find.bySemanticsLabel('Disable loop'), findsOneWidget);
+  });
+
+  testWidgets('English responsive blocker is explicit', (tester) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      durationUs: 4_000_000,
+      mode: PresentationStudioCanvasMode.compare,
+    );
+    addTearDown(controller.dispose);
+
+    await _pumpResponsiveCanvas(
+      tester,
+      controller: controller,
+      frameBuilder: (_) => _frame(),
+      locale: const Locale('en'),
+      mediaBindings: const [
+        PresentationStudioResponsiveMediaBinding(
+          clipId: 'hero-clip',
+          kind: PresentationStudioResponsiveMediaKind.image,
+          sharedResourceId: 'hero-shared',
+        ),
+        PresentationStudioResponsiveMediaBinding(
+          clipId: 'hero-clip',
+          kind: PresentationStudioResponsiveMediaKind.image,
+          portraitResourceId: 'hero-portrait',
+        ),
+      ],
+    );
+
+    expect(find.text('Responsive composition blocked'), findsOneWidget);
+    expect(
+      find.text('Clip hero-clip has multiple media bindings.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('temporal preview evaluates one shared frame at the playhead', (
@@ -535,6 +596,8 @@ Future<void> _pumpResponsiveCanvas(
   Size surfaceSize = const Size(1280, 800),
   String? fontFamily,
   VoidCallback? onRetry,
+  Locale locale = const Locale('fr'),
+  TextScaler textScaler = TextScaler.noScaling,
 }) async {
   tester.view.physicalSize = surfaceSize;
   tester.view.devicePixelRatio = 1;
@@ -552,7 +615,14 @@ Future<void> _pumpResponsiveCanvas(
         );
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: theme,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        child: child!,
+      ),
       home: Scaffold(
         appBar: AppBar(
           title: PresentationStudioResponsiveToolbar(controller: controller),

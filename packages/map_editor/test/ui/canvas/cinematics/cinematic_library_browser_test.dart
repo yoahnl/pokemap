@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/l10n/app_localizations.dart';
 import 'package:map_editor/src/application/models/narrative_document_route.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_library_browser.dart';
@@ -99,6 +101,64 @@ void main() {
       await tester.pump();
       expect(find.text('Chapitre 1'), findsWidgets);
       expect(state.active.folderId, 'world-chapter');
+    },
+  );
+
+  testWidgets(
+    'English Library stays keyboard reachable at 200 percent and preserves graphemes',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      String? createdTitle;
+
+      await tester.pumpWidget(
+        _Harness(
+          project: _project(),
+          state: CinematicLibraryNavigationState.initial(),
+          locale: const Locale('en'),
+          textScaler: const TextScaler.linear(2),
+          onCreate: (request) async {
+            createdTitle = request.title;
+            return 'created';
+          },
+        ),
+      );
+
+      expect(find.text('In-game cinematics'), findsOneWidget);
+      expect(find.text('Presentation cinematics'), findsOneWidget);
+      expect(find.text('New'), findsOneWidget);
+      expect(
+        tester
+            .widget<PokeMapDropdownField<NarrativeLibrarySort>>(
+              find.byKey(const ValueKey('cinematic-family-sort')),
+            )
+            .label,
+        'Sort',
+      );
+      expect(
+        tester
+            .widget<PokeMapDropdownField<NarrativeLibraryVisibility>>(
+              find.byKey(const ValueKey('cinematic-family-visibility')),
+            )
+            .label,
+        'Show',
+      );
+      expect(tester.takeException(), isNull);
+
+      final create = find.byKey(const ValueKey('cinematic-library-new'));
+      expect(await _focusWithTab(tester, create), isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      expect(find.text('New in-game cinematic'), findsOneWidget);
+      const title = 'Aube 👩🏽‍🚀 e\u0301toilée';
+      await tester.enterText(
+        find.byKey(const ValueKey('cinematic-create-title')),
+        title,
+      );
+      expect(find.text(title), findsOneWidget);
+      expect(createdTitle, isNull);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -395,6 +455,8 @@ class _Harness extends StatefulWidget {
     this.onCreate,
     this.onDuplicate,
     this.loadState = CinematicLibraryBrowserLoadState.content,
+    this.locale = const Locale('fr'),
+    this.textScaler = TextScaler.noScaling,
   });
 
   final ProjectManifest project;
@@ -404,6 +466,8 @@ class _Harness extends StatefulWidget {
   final CinematicLibraryCreateCallback? onCreate;
   final CinematicLibraryDuplicateCallback? onDuplicate;
   final CinematicLibraryBrowserLoadState loadState;
+  final Locale locale;
+  final TextScaler textScaler;
 
   @override
   State<_Harness> createState() => _HarnessState();
@@ -415,7 +479,14 @@ class _HarnessState extends State<_Harness> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      locale: widget.locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: PokeMapTheme.dark(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: widget.textScaler),
+        child: child!,
+      ),
       home: Scaffold(
         body: SizedBox(
           width: 1200,
@@ -508,3 +579,30 @@ ProjectManifest _project() => ProjectManifest(
     ],
   ),
 );
+
+Future<bool> _focusWithTab(WidgetTester tester, Finder target) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  for (var attempt = 0; attempt < 32; attempt++) {
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    if (_primaryFocusIsInside(target)) return true;
+  }
+  return false;
+}
+
+bool _primaryFocusIsInside(Finder finder) {
+  final target = finder.evaluate().single;
+  final focusContext = FocusManager.instance.primaryFocus?.context;
+  if (focusContext == null) return false;
+  var current = focusContext as Element?;
+  while (current != null) {
+    if (identical(current, target)) return true;
+    Element? parent;
+    current.visitAncestorElements((ancestor) {
+      parent = ancestor;
+      return false;
+    });
+    current = parent;
+  }
+  return false;
+}

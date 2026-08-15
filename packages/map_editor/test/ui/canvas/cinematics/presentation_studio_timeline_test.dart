@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/l10n/app_localizations.dart';
 import 'package:map_editor/src/application/authoring_api/presentation_studio_timeline_command.dart';
 import 'package:map_editor/src/application/authoring_api/presentation_timeline_projection_gateway.dart';
 import 'package:map_editor/src/theme/theme.dart';
@@ -14,6 +15,57 @@ import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_ti
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets('English empty timeline stays operable at 200 percent', (
+    tester,
+  ) async {
+    final selection = PresentationStudioSelectionController();
+    addTearDown(selection.dispose);
+    final asset = PresentationCinematicAsset(
+      id: 'empty',
+      title: 'Empty',
+      durationUs: 4_000_000,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: PokeMapTheme.dark(),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(2)),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 320,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: selection,
+              onPlayheadChanged: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.bySemanticsLabel('Undo the last clip edit'), findsOneWidget);
+    expect(
+      tester
+          .widget<PokeMapCinematicTimelineViewportRuler>(
+            find.byType(PokeMapCinematicTimelineViewportRuler),
+          )
+          .semanticLabel,
+      'Presentation time ruler',
+    );
+    expect(find.text('Empty timeline'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   test('zoom anchored under the pointer preserves the targeted instant', () {
     final controller = PresentationTimelineViewportController(
       durationUs: const Duration(minutes: 15).inMicroseconds,

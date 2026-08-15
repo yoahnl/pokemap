@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../application/authoring_api/presentation_studio_add_authoring_gateway.dart';
 import '../../../design_system/design_system.dart';
+import '../cinematic_studio_localizations.dart';
 import 'presentation_studio_diagnostic.dart';
 
 class PresentationStudioAddPanel extends StatefulWidget {
@@ -101,7 +102,7 @@ class _PresentationStudioAddPanelState
     } on Object catch (error) {
       if (!mounted) return;
       setState(() {
-        _loadError = _message(error);
+        _loadError = _message(error, CinematicStudioCopy.of(context));
         _loading = false;
       });
     }
@@ -151,10 +152,11 @@ class _PresentationStudioAddPanelState
       if (!mounted || generation != _importGeneration) return;
       setState(() {
         _importing = false;
+        final copy = CinematicStudioCopy.of(context);
         _mutationDiagnostic = PresentationStudioDiagnostic.fromError(
           error,
-          title: 'Import impossible',
-          impact: 'Le catalogue et votre brouillon restent inchangés.',
+          title: copy.importFailed,
+          impact: copy.importDraftUnchanged,
           fallbackCode: PresentationDiagnosticCodes.catalogUnavailable,
         );
         _retryMutation = () => unawaited(_runImport(picked));
@@ -185,7 +187,9 @@ class _PresentationStudioAddPanelState
           category: _category,
           playheadUs: _frozenPlayheadUs,
           durationUs: durationUs,
-          label: media?.label ?? _quickLabel(_category),
+          label:
+              media?.label ??
+              CinematicStudioCopy.of(context).quickLabel(_category.name),
           mediaId: media?.id,
           targetVisualFolderId: _frozenTargetVisualFolderId,
         ),
@@ -203,10 +207,11 @@ class _PresentationStudioAddPanelState
       if (!mounted) return;
       setState(() {
         _inserting = false;
+        final copy = CinematicStudioCopy.of(context);
         _mutationDiagnostic = PresentationStudioDiagnostic.fromError(
           error,
-          title: 'Ajout impossible',
-          impact: 'Le média n’a pas été ajouté ; votre brouillon est conservé.',
+          title: copy.additionFailed,
+          impact: copy.additionDraftUnchanged,
           fallbackCode: PresentationDiagnosticCodes.saveFailed,
         );
         _retryMutation = () => unawaited(_insert());
@@ -258,141 +263,143 @@ class _PresentationStudioAddPanelState
   }
 
   @override
-  Widget build(BuildContext context) => FocusTraversalGroup(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              PokeMapSearchField(
-                key: const ValueKey<String>('presentation-add-search'),
-                hintText: 'Rechercher dans les médias…',
-                semanticLabel: 'Rechercher un média à ajouter',
-                onChanged: (value) => setState(() => _query = value),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: <Widget>[
-                  for (final category in PresentationStudioAddCategory.values)
-                    PokeMapButton(
-                      key: ValueKey<String>(
-                        'presentation-add-category-${category.name}',
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return FocusTraversalGroup(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                PokeMapSearchField(
+                  key: const ValueKey<String>('presentation-add-search'),
+                  hintText: copy.mediaSearchHint,
+                  semanticLabel: copy.mediaSearchSemantics,
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: <Widget>[
+                    for (final category in PresentationStudioAddCategory.values)
+                      PokeMapButton(
+                        key: ValueKey<String>(
+                          'presentation-add-category-${category.name}',
+                        ),
+                        onPressed: () => _selectCategory(category),
+                        variant: PokeMapButtonVariant.ghost,
+                        size: PokeMapButtonSize.small,
+                        isSelected: _category == category,
+                        child: Text(copy.categoryLabel(category.name)),
                       ),
-                      onPressed: () => _selectCategory(category),
-                      variant: PokeMapButtonVariant.ghost,
-                      size: PokeMapButtonSize.small,
-                      isSelected: _category == category,
-                      child: Text(_categoryLabel(category)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        copy.insertionAt(_formatTime(_frozenPlayheadUs)),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      'Insertion à ${_formatTime(_frozenPlayheadUs)}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                    if (_frozenTargetVisualFolderId != null)
+                      PokeMapBadge(
+                        label: copy.folderLabel(_frozenTargetVisualFolderId!),
+                        variant: PokeMapBadgeVariant.info,
+                      ),
+                  ],
+                ),
+                if (!_isQuickCategory) ...<Widget>[
+                  const SizedBox(height: 10),
+                  PokeMapButton(
+                    key: const ValueKey<String>('presentation-add-import'),
+                    onPressed: _importing
+                        ? null
+                        : () => unawaited(_importMedia()),
+                    leading: const Icon(Icons.file_upload_outlined),
+                    size: PokeMapButtonSize.small,
+                    child: Text(copy.importMedia),
                   ),
-                  if (_frozenTargetVisualFolderId != null)
-                    PokeMapBadge(
-                      label: 'Dossier $_frozenTargetVisualFolderId',
-                      variant: PokeMapBadgeVariant.info,
-                    ),
                 ],
+                if (_importing) ...<Widget>[
+                  const SizedBox(height: 10),
+                  Semantics(
+                    liveRegion: true,
+                    label: copy.importInProgress,
+                    child: Text('${copy.importInProgress}…'),
+                  ),
+                  const SizedBox(height: 6),
+                  PokeMapProgressBar(
+                    value: 0.5,
+                    semanticLabel: copy.importProgress,
+                  ),
+                  const SizedBox(height: 6),
+                  PokeMapButton(
+                    onPressed: _cancelImport,
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    child: Text(copy.cancelImport),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Expanded(child: _catalogBody()),
+          if (_durationConflict)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: PokeMapDiagnosticCallout(
+                severity: PokeMapDiagnosticSeverity.warning,
+                title: copy.durationConflict,
+                message: copy.durationConflictMessage,
+                actionLabel: copy.fitRemainingDuration,
+                onAction: () => setState(() => _durationAdjusted = true),
               ),
-              if (!_isQuickCategory) ...<Widget>[
-                const SizedBox(height: 10),
-                PokeMapButton(
-                  key: const ValueKey<String>('presentation-add-import'),
-                  onPressed: _importing
-                      ? null
-                      : () => unawaited(_importMedia()),
-                  leading: const Icon(Icons.file_upload_outlined),
-                  size: PokeMapButtonSize.small,
-                  child: const Text('Importer un média'),
-                ),
-              ],
-              if (_importing) ...<Widget>[
-                const SizedBox(height: 10),
-                Semantics(
-                  liveRegion: true,
-                  label: 'Import en cours',
-                  child: const Text('Import en cours…'),
-                ),
-                const SizedBox(height: 6),
-                const PokeMapProgressBar(
-                  value: 0.5,
-                  semanticLabel: 'Progression de l’import',
-                ),
-                const SizedBox(height: 6),
-                PokeMapButton(
-                  onPressed: _cancelImport,
-                  variant: PokeMapButtonVariant.ghost,
-                  size: PokeMapButtonSize.small,
-                  child: const Text('Annuler l’import'),
-                ),
-              ],
-            ],
-          ),
-        ),
-        Expanded(child: _catalogBody()),
-        if (_durationConflict)
+            ),
+          if (_mutationDiagnostic != null && _retryMutation != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: PresentationStudioDiagnosticCallout(
+                diagnostic: _mutationDiagnostic!,
+                onAction: _retryMutation!,
+              ),
+            ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: PokeMapDiagnosticCallout(
-              severity: PokeMapDiagnosticSeverity.warning,
-              title: 'Conflit de durée',
-              message: 'Ce média dépasse la durée restante de la cinématique.',
-              actionLabel: 'Ajuster à la durée restante',
-              onAction: () => setState(() => _durationAdjusted = true),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: PokeMapButton(
+              key: const ValueKey<String>('presentation-add-confirm'),
+              onPressed: _canInsert ? () => unawaited(_insert()) : null,
+              isLoading: _inserting,
+              leading: const Icon(Icons.add_to_queue_rounded),
+              child: Text(
+                _insertionComplete ? copy.addedToTimeline : copy.addToTimeline,
+              ),
             ),
           ),
-        if (_mutationDiagnostic != null && _retryMutation != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: PresentationStudioDiagnosticCallout(
-              diagnostic: _mutationDiagnostic!,
-              onAction: _retryMutation!,
-            ),
-          ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-          child: PokeMapButton(
-            key: const ValueKey<String>('presentation-add-confirm'),
-            onPressed: _canInsert ? () => unawaited(_insert()) : null,
-            isLoading: _inserting,
-            leading: const Icon(Icons.add_to_queue_rounded),
-            child: Text(
-              _insertionComplete
-                  ? 'Ajouté à la timeline'
-                  : 'Ajouter à la timeline',
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 
   Widget _catalogBody() {
+    final copy = CinematicStudioCopy.of(context);
     if (_loading) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
+      return Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             PokeMapProgressBar(
               value: 0.5,
-              semanticLabel: 'Chargement du catalogue média',
+              semanticLabel: copy.loadingMediaCatalogSemantics,
             ),
-            SizedBox(height: 10),
-            Text('Chargement du catalogue…'),
+            const SizedBox(height: 10),
+            Text(copy.loadingCatalogShort),
           ],
         ),
       );
@@ -401,12 +408,12 @@ class _PresentationStudioAddPanelState
       return PokeMapEmptyState(
         compact: true,
         icon: const Icon(Icons.cloud_off_outlined),
-        title: 'Catalogue indisponible',
+        title: copy.catalogUnavailable,
         description: _loadError,
         action: PokeMapButton(
           onPressed: () => unawaited(_loadMedia()),
           size: PokeMapButtonSize.small,
-          child: const Text('Réessayer'),
+          child: Text(copy.retry),
         ),
       );
     }
@@ -415,10 +422,10 @@ class _PresentationStudioAddPanelState
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
         children: <Widget>[
           PokeMapCinematicMediaCatalogCard(
-            title: _quickLabel(_category),
+            title: copy.quickLabel(_category.name),
             metadata: _category == PresentationStudioAddCategory.text
-                ? 'Bloc texte éditable après insertion'
-                : 'Repère à la tête de lecture',
+                ? copy.editableTextAfterInsertion
+                : copy.cueAtPlayhead,
             preview: Icon(
               _category == PresentationStudioAddCategory.text
                   ? Icons.text_fields_rounded
@@ -435,12 +442,10 @@ class _PresentationStudioAddPanelState
       return PokeMapEmptyState(
         compact: true,
         icon: const Icon(Icons.perm_media_outlined),
-        title: _query.trim().isEmpty
-            ? 'Aucun média dans cette catégorie'
-            : 'Aucun résultat',
+        title: _query.trim().isEmpty ? copy.noMediaInCategory : copy.noResults,
         description: _query.trim().isEmpty
-            ? 'Importez un média pour commencer.'
-            : 'Essayez une autre recherche.',
+            ? copy.importMediaToStart
+            : copy.tryAnotherSearch,
       );
     }
     return ListView.separated(
@@ -460,9 +465,9 @@ class _PresentationStudioAddPanelState
           onPressed: ready ? () => _selectMedia(item) : null,
           disabledReason: ready
               ? null
-              : _availabilityRecovery(item.availability),
+              : copy.availabilityRecovery(item.availability.name),
           status: PokeMapBadge(
-            label: _availabilityLabel(item.availability),
+            label: copy.availabilityLabel(item.availability.name),
             variant: _availabilityVariant(item.availability),
             icon: Icon(_availabilityIcon(item.availability)),
           ),
@@ -513,31 +518,6 @@ bool _belongsToCategory(
   PresentationStudioAddCategory.marker => false,
 };
 
-String _categoryLabel(PresentationStudioAddCategory category) =>
-    switch (category) {
-      PresentationStudioAddCategory.visual => 'Visuel',
-      PresentationStudioAddCategory.text => 'Texte',
-      PresentationStudioAddCategory.audio => 'Audio',
-      PresentationStudioAddCategory.video => 'Vidéo',
-      PresentationStudioAddCategory.accessibility => 'Accessibilité',
-      PresentationStudioAddCategory.marker => 'Repères',
-    };
-
-String _quickLabel(PresentationStudioAddCategory category) =>
-    switch (category) {
-      PresentationStudioAddCategory.text => 'Nouveau texte',
-      PresentationStudioAddCategory.marker => 'Nouveau repère',
-      _ => throw ArgumentError.value(category, 'category'),
-    };
-
-String _availabilityLabel(PresentationStudioMediaAvailability availability) =>
-    switch (availability) {
-      PresentationStudioMediaAvailability.ready => 'Prêt',
-      PresentationStudioMediaAvailability.missing => 'Manquant',
-      PresentationStudioMediaAvailability.corrupt => 'Corrompu',
-      PresentationStudioMediaAvailability.unsupported => 'Non supporté',
-    };
-
 PokeMapBadgeVariant _availabilityVariant(
   PresentationStudioMediaAvailability availability,
 ) => switch (availability) {
@@ -546,18 +526,6 @@ PokeMapBadgeVariant _availabilityVariant(
   PresentationStudioMediaAvailability.corrupt => PokeMapBadgeVariant.error,
   PresentationStudioMediaAvailability.unsupported =>
     PokeMapBadgeVariant.warning,
-};
-
-String _availabilityRecovery(
-  PresentationStudioMediaAvailability availability,
-) => switch (availability) {
-  PresentationStudioMediaAvailability.ready => 'Média prêt.',
-  PresentationStudioMediaAvailability.missing =>
-    'Média manquant. Réimportez-le ou remplacez sa source.',
-  PresentationStudioMediaAvailability.corrupt =>
-    'Média corrompu. Réimportez une copie valide.',
-  PresentationStudioMediaAvailability.unsupported =>
-    'Format non supporté. Convertissez ou remplacez ce média.',
 };
 
 IconData _availabilityIcon(PresentationStudioMediaAvailability availability) =>
@@ -584,7 +552,7 @@ String _formatTime(int microseconds) {
   return '$minutes:$seconds.${milliseconds.toString().padLeft(2, '0')}';
 }
 
-String _message(Object error) {
+String _message(Object error, CinematicStudioCopy copy) {
   final value = error.toString().trim();
-  return value.isEmpty ? 'Une erreur inconnue est survenue.' : value;
+  return value.isEmpty ? copy.unknownError : value;
 }

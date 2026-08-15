@@ -83,6 +83,7 @@ void main() {
   testWidgets('library state surfaces keep actions disabled while loading', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     var retries = 0;
 
     await tester.pumpWidget(
@@ -111,7 +112,19 @@ void main() {
     );
 
     expect(find.byType(PokeMapCinematicSkeletonTile), findsNWidgets(3));
+    expect(
+      tester
+          .getSemantics(
+            find.bySemanticsLabel(
+              'Impossible de charger. Le catalogue reste intact.',
+            ),
+          )
+          .flagsCollection
+          .isLiveRegion,
+      isTrue,
+    );
     await tester.tap(find.widgetWithText(PokeMapButton, 'Réessayer').last);
     expect(retries, 1);
+    semantics.dispose();
   });
 }

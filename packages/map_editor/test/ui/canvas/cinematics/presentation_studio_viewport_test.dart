@@ -5,11 +5,32 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/l10n/app_localizations.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_viewport.dart';
 import 'package:map_player_ui/presentation_renderer.dart';
 
 void main() {
+  testWidgets('English viewport stays operable at 200 percent text scale', (
+    tester,
+  ) async {
+    await _pumpViewport(
+      tester,
+      locale: const Locale('en'),
+      textScaler: const TextScaler.linear(2),
+    );
+
+    expect(
+      tester.getSemantics(find.byKey(presentationStudioViewportKey)).label,
+      startsWith('Presentation cinematic canvas'),
+    );
+    expect(find.text('No content to display'), findsOneWidget);
+    expect(find.byTooltip('Zoom out'), findsOneWidget);
+    expect(find.byTooltip('Zoom in'), findsOneWidget);
+    expect(find.byTooltip('Fit frame'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   test(
     'viewport controller keeps zoom, pan, fit and recenter deterministic',
     () {
@@ -230,6 +251,8 @@ Future<void> _pumpViewport(
   PresentationStudioViewportState state = PresentationStudioViewportState.ready,
   String? errorMessage,
   Size surfaceSize = const Size(900, 620),
+  Locale locale = const Locale('fr'),
+  TextScaler textScaler = TextScaler.noScaling,
 }) async {
   tester.view.physicalSize = surfaceSize;
   tester.view.devicePixelRatio = 1;
@@ -239,7 +262,14 @@ Future<void> _pumpViewport(
 
   await tester.pumpWidget(
     MaterialApp(
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: PokeMapTheme.dark(),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        child: child!,
+      ),
       home: Scaffold(
         body: PresentationStudioViewport(
           controller: controller,

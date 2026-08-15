@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/l10n/app_localizations.dart';
 import 'package:map_editor/src/application/authoring_api/presentation_studio_property_command.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_layer_tree.dart';
@@ -8,6 +9,31 @@ import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_st
 import 'package:map_player_ui/presentation_renderer.dart';
 
 void main() {
+  testWidgets('English properties remain readable at 200 percent text scale', (
+    tester,
+  ) async {
+    final selection = PresentationStudioSelectionController();
+    final commands = <PresentationStudioPropertyCommand>[];
+    addTearDown(selection.dispose);
+
+    await _pump(
+      tester,
+      asset: _asset(),
+      selection: selection,
+      commands: commands,
+      locale: const Locale('en'),
+      textScaler: const TextScaler.linear(2),
+      width: 520,
+    );
+
+    expect(find.text('Properties'), findsOneWidget);
+    expect(find.text('Document'), findsOneWidget);
+    expect(find.text('Duration (seconds)'), findsOneWidget);
+    expect(find.text('Responsive composition'), findsOneWidget);
+    expect(find.text('Safe areas'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('document validation stays inline and keeps the selection', (
     tester,
   ) async {
@@ -436,12 +462,22 @@ Future<void> _pump(
       PresentationFrameOrientation.landscape,
   Map<String, int> markerUsageCountById = const <String, int>{},
   Set<String> selectedClipIds = const <String>{},
+  Locale locale = const Locale('fr'),
+  TextScaler textScaler = TextScaler.noScaling,
+  double width = 360,
 }) => tester.pumpWidget(
   MaterialApp(
+    locale: locale,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     theme: PokeMapTheme.dark(),
+    builder: (context, child) => MediaQuery(
+      data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+      child: child!,
+    ),
     home: Scaffold(
       body: SizedBox(
-        width: 360,
+        width: width,
         height: 760,
         child: PresentationStudioPropertiesPanel(
           asset: asset,

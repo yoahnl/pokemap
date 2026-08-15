@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../design_system/design_system.dart';
+import '../cinematic_studio_localizations.dart';
 
 enum PresentationStudioSelectionOrigin { canvas, layers, properties, timeline }
 
@@ -244,6 +245,7 @@ class _PresentationStudioLayerTreeState
 
   @override
   Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
     return AnimatedBuilder(
       animation: widget.selectionController,
       builder: (context, _) => ListView(
@@ -252,18 +254,18 @@ class _PresentationStudioLayerTreeState
             padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
             child: Row(
               children: <Widget>[
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Banque de calques',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                    copy.layerBank,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
                 PokeMapIconButton(
                   key: const ValueKey<String>(
                     'presentation-layer-create-folder',
                   ),
-                  semanticLabel: 'Créer un dossier visuel',
-                  tooltip: 'Créer un dossier visuel',
+                  semanticLabel: copy.createVisualFolder,
+                  tooltip: copy.createVisualFolder,
                   onPressed: () => _editFolder(),
                   icon: const Icon(Icons.create_new_folder_outlined),
                 ),
@@ -272,7 +274,7 @@ class _PresentationStudioLayerTreeState
           ),
           _systemGroup(
             id: 'visuals',
-            label: 'Visuels',
+            label: copy.visuals,
             children: _visualChildren(),
           ),
           _systemGroup(
@@ -282,12 +284,12 @@ class _PresentationStudioLayerTreeState
           ),
           _systemGroup(
             id: 'captions',
-            label: 'Sous-titres',
+            label: copy.captions,
             children: _trackChildren(PresentationTrackKind.caption),
           ),
           _systemGroup(
             id: 'markers',
-            label: 'Repères',
+            label: copy.cues,
             children: _trackChildren(PresentationTrackKind.marker),
           ),
         ],
@@ -300,6 +302,7 @@ class _PresentationStudioLayerTreeState
     required String label,
     required List<Widget> children,
   }) {
+    final copy = CinematicStudioCopy.of(context);
     final expanded = !_collapsed.contains(id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -309,7 +312,7 @@ class _PresentationStudioLayerTreeState
           expanded: expanded,
           hidden: false,
           locked: false,
-          toggleLabel: '${expanded ? 'Replier' : 'Déplier'} $label',
+          toggleLabel: copy.toggleGroup(expanded: expanded, label: label),
           stateLabel: label,
           onToggleExpanded: () => _toggle(id),
         ),
@@ -346,25 +349,28 @@ class _PresentationStudioLayerTreeState
   }
 
   Widget _folder(PresentationVisualFolder folder) {
+    final copy = CinematicStudioCopy.of(context);
     final expanded = !_collapsed.contains('folder:${folder.id}');
     final header = PokeMapCinematicLayerGroupHeader(
       label: folder.label,
       expanded: expanded,
       hidden: folder.hidden,
       locked: folder.locked,
-      toggleLabel: '${expanded ? 'Replier' : 'Déplier'} ${folder.label}',
+      toggleLabel: copy.toggleGroup(expanded: expanded, label: folder.label),
       stateLabel: folder.label,
       onToggleExpanded: () => _toggle('folder:${folder.id}'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           PokeMapIconButton(
-            semanticLabel: folder.hidden
-                ? 'Afficher ${folder.label}'
-                : 'Masquer ${folder.label}',
-            tooltip: folder.hidden
-                ? 'Afficher ${folder.label}'
-                : 'Masquer ${folder.label}',
+            semanticLabel: copy.visibilityAction(
+              visible: !folder.hidden,
+              label: folder.label,
+            ),
+            tooltip: copy.visibilityAction(
+              visible: !folder.hidden,
+              label: folder.label,
+            ),
             onPressed: () => widget.onCommand(
               PresentationStudioLayerCommand(
                 actionId: 'presentationVisualFolder.setVisibility',
@@ -383,12 +389,14 @@ class _PresentationStudioLayerTreeState
             size: 30,
           ),
           PokeMapIconButton(
-            semanticLabel: folder.locked
-                ? 'Déverrouiller ${folder.label}'
-                : 'Verrouiller ${folder.label}',
-            tooltip: folder.locked
-                ? 'Déverrouiller ${folder.label}'
-                : 'Verrouiller ${folder.label}',
+            semanticLabel: copy.lockAction(
+              locked: folder.locked,
+              label: folder.label,
+            ),
+            tooltip: copy.lockAction(
+              locked: folder.locked,
+              label: folder.label,
+            ),
             onPressed: () => widget.onCommand(
               PresentationStudioLayerCommand(
                 actionId: 'presentationVisualFolder.setLocked',
@@ -407,16 +415,16 @@ class _PresentationStudioLayerTreeState
             size: 30,
           ),
           PokeMapMenuIconButton<_FolderMenuAction>(
-            semanticLabel: 'Actions pour ${folder.label}',
-            tooltip: 'Actions pour ${folder.label}',
-            items: const <PokeMapMenuItem<_FolderMenuAction>>[
+            semanticLabel: copy.actionsFor(folder.label),
+            tooltip: copy.actionsFor(folder.label),
+            items: <PokeMapMenuItem<_FolderMenuAction>>[
               PokeMapMenuItem<_FolderMenuAction>(
                 value: _FolderMenuAction.rename,
-                label: 'Renommer',
+                label: copy.rename,
               ),
               PokeMapMenuItem<_FolderMenuAction>(
                 value: _FolderMenuAction.delete,
-                label: 'Supprimer',
+                label: copy.delete,
                 destructive: true,
               ),
             ],
@@ -457,6 +465,7 @@ class _PresentationStudioLayerTreeState
   }
 
   Widget _layerRow(PresentationLayer layer, {int indent = 0}) {
+    final copy = CinematicStudioCopy.of(context);
     final selected = widget.selectionController.value?.layerId == layer.id;
     final row = PokeMapCinematicLayerRow(
       key: ValueKey<String>('presentation-layer-${layer.id}'),
@@ -466,11 +475,12 @@ class _PresentationStudioLayerTreeState
       locked: layer.locked,
       selected: selected,
       indent: indent,
-      visibilityLabel:
-          '${layer.visible ? 'Masquer' : 'Afficher'} ${layer.label}',
-      lockLabel:
-          '${layer.locked ? 'Déverrouiller' : 'Verrouiller'} ${layer.label}',
-      dragLabel: 'Réordonner ${layer.label}',
+      visibilityLabel: copy.visibilityAction(
+        visible: layer.visible,
+        label: layer.label,
+      ),
+      lockLabel: copy.lockAction(locked: layer.locked, label: layer.label),
+      dragLabel: copy.reorder(layer.label),
       dragHandle: LongPressDraggable<_LayerDragPayload>(
         data: _LayerDragPayload.layer(layer.id),
         feedback: Material(
@@ -512,25 +522,29 @@ class _PresentationStudioLayerTreeState
     );
   }
 
-  List<Widget> _trackChildren(PresentationTrackKind kind) => <Widget>[
-    for (final track in widget.asset.tracks)
-      if (track.kind == kind)
-        PokeMapCinematicLayerRow(
-          key: ValueKey<String>('presentation-track-${track.id}'),
-          kind: switch (kind) {
-            PresentationTrackKind.visual => PokeMapCinematicLayerKind.visual,
-            PresentationTrackKind.audio => PokeMapCinematicLayerKind.audio,
-            PresentationTrackKind.caption => PokeMapCinematicLayerKind.captions,
-            PresentationTrackKind.marker => PokeMapCinematicLayerKind.markers,
-          },
-          label: track.label,
-          visible: true,
-          locked: false,
-          visibilityLabel: '${track.label} visible',
-          lockLabel: '${track.label} déverrouillé',
-          dragLabel: 'Réordonner ${track.label}',
-        ),
-  ];
+  List<Widget> _trackChildren(PresentationTrackKind kind) {
+    final copy = CinematicStudioCopy.of(context);
+    return <Widget>[
+      for (final track in widget.asset.tracks)
+        if (track.kind == kind)
+          PokeMapCinematicLayerRow(
+            key: ValueKey<String>('presentation-track-${track.id}'),
+            kind: switch (kind) {
+              PresentationTrackKind.visual => PokeMapCinematicLayerKind.visual,
+              PresentationTrackKind.audio => PokeMapCinematicLayerKind.audio,
+              PresentationTrackKind.caption =>
+                PokeMapCinematicLayerKind.captions,
+              PresentationTrackKind.marker => PokeMapCinematicLayerKind.markers,
+            },
+            label: track.label,
+            visible: true,
+            locked: false,
+            visibilityLabel: copy.visibleState(track.label),
+            lockLabel: copy.unlockedState(track.label),
+            dragLabel: copy.reorder(track.label),
+          ),
+    ];
+  }
 
   PresentationLayer _layer(String layerId) {
     for (final layer in widget.asset.layers) {
@@ -655,12 +669,12 @@ class _PresentationStudioLayerTreeState
   }
 
   Future<void> _deleteFolder(PresentationVisualFolder folder) async {
+    final copy = CinematicStudioCopy.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => PokeMapDialog(
-        title: 'Supprimer ${folder.label} ?',
-        message:
-            'Les calques restent dans Visuels et conservent leur profondeur.',
+        title: copy.deleteFolderTitle(folder.label),
+        message: copy.deleteFolderMessage,
         icon: Icons.delete_outline_rounded,
         footer: Wrap(
           alignment: WrapAlignment.end,
@@ -670,12 +684,12 @@ class _PresentationStudioLayerTreeState
             PokeMapButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
               variant: PokeMapButtonVariant.ghost,
-              child: const Text('Annuler'),
+              child: Text(copy.cancel),
             ),
             PokeMapButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
               variant: PokeMapButtonVariant.danger,
-              child: const Text('Supprimer le dossier'),
+              child: Text(copy.deleteFolder),
             ),
           ],
         ),
@@ -743,32 +757,35 @@ class _FolderNameDialogState extends State<_FolderNameDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => PokeMapDialog(
-    title: widget.creating ? 'Nouveau dossier visuel' : 'Renommer le dossier',
-    icon: Icons.folder_outlined,
-    footer: Wrap(
-      alignment: WrapAlignment.end,
-      spacing: 8,
-      runSpacing: 8,
-      children: <Widget>[
-        PokeMapButton(
-          onPressed: () => Navigator.of(context).pop(),
-          variant: PokeMapButtonVariant.ghost,
-          child: const Text('Annuler'),
-        ),
-        PokeMapButton(
-          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: Text(widget.creating ? 'Créer' : 'Renommer'),
-        ),
-      ],
-    ),
-    child: PokeMapTextField(
-      label: 'Nom du dossier',
-      controller: _controller,
-      autofocus: true,
-      onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final copy = CinematicStudioCopy.of(context);
+    return PokeMapDialog(
+      title: widget.creating ? copy.newVisualFolder : copy.renameFolder,
+      icon: Icons.folder_outlined,
+      footer: Wrap(
+        alignment: WrapAlignment.end,
+        spacing: 8,
+        runSpacing: 8,
+        children: <Widget>[
+          PokeMapButton(
+            onPressed: () => Navigator.of(context).pop(),
+            variant: PokeMapButtonVariant.ghost,
+            child: Text(copy.cancel),
+          ),
+          PokeMapButton(
+            onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
+            child: Text(widget.creating ? copy.create : copy.rename),
+          ),
+        ],
+      ),
+      child: PokeMapTextField(
+        label: copy.folderName,
+        controller: _controller,
+        autofocus: true,
+        onSubmitted: (value) => Navigator.of(context).pop(value.trim()),
+      ),
+    );
+  }
 }
 
 void _requireLayer(PresentationCinematicAsset asset, String layerId) {
