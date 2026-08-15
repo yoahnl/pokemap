@@ -90,7 +90,7 @@ Future<({Set<String>? speciesIds, Set<String>? moveIds})> _loadPokemonCatalogs(
     return (speciesIds: const <String>{}, moveIds: const <String>{});
   }
   final workspace = ProjectFileSystem(projectRoot);
-  const reader = PokemonProjectDataReader();
+  final reader = PokemonProjectDataReader();
   Set<String>? speciesIds;
   Set<String>? moveIds;
   try {

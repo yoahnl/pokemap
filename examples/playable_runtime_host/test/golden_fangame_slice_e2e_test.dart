@@ -47,7 +47,11 @@ void main() {
         state,
         pokemon: selectedStarter.pokemon,
       );
-      expect(state.party.members.single, selectedStarter.pokemon.normalized());
+      expect(state.party.members.single.individualId, isNotEmpty);
+      expect(
+        state.party.members.single.copyWith(individualId: ''),
+        selectedStarter.pokemon.normalized(),
+      );
       completed.add('starter_chosen');
 
       const encounterPosition = GridPos(x: 2, y: 1);
@@ -176,6 +180,7 @@ void main() {
       state = _applyGoldenTrainerProgression(
         state: state,
         oldMaxHp: trainerOutcome.finalState.player.maxHp,
+        ruleset: route.manifest.pokemon.ruleset,
       );
       expect(state.party.members.first.level, levelBeforeReward + 1);
       expect(state.trainerProfile.money, 1500);
@@ -267,6 +272,7 @@ Future<GameState> _hydrateGoldenBattlePokemon({
 GameState _applyGoldenTrainerProgression({
   required GameState state,
   required int oldMaxHp,
+  required PokemonRulesetProfile ruleset,
 }) {
   final members = List<PlayerPokemon>.of(state.party.members);
   final member = members.first;
@@ -283,6 +289,7 @@ GameState _applyGoldenTrainerProgression({
           party: state.party.copyWith(members: members),
         ),
         context: BattleProgressionContext(
+          ruleset: ruleset,
           outcome: BattleProgressionOutcomeKind.victory,
           playerParticipantPartySlots: const <int>{0},
           defeatedOpponents: <BattleProgressionDefeatedOpponent>[
