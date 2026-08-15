@@ -160,6 +160,47 @@ void main() {
       isTrue,
     );
   });
+
+  test('loads Presentation cinematic ownership from the V7 manifest', () {
+    final cinematic = _cinematic('media.shared');
+    final mediaCatalog = ProjectMediaCatalog(
+      entries: [
+        ProjectMediaAsset(
+          id: 'media.shared',
+          label: 'Shared',
+          kind: ProjectMediaKind.image,
+          sourceAssetId: 'asset.shared',
+        ),
+      ],
+    );
+    final assetCatalog = _physicalAssets(mediaCatalog);
+
+    final index = ProjectReferenceIndex.fromSnapshot(
+      _snapshot(
+        cinematic: cinematic,
+        mediaCatalog: mediaCatalog,
+        assetCatalog: assetCatalog,
+      ),
+    );
+
+    expect(
+      index
+          .nodeFor(
+            ProjectReferenceKey(
+              kind: 'presentationCinematic',
+              id: cinematic.id,
+            ),
+          )
+          ?.defined,
+      isTrue,
+    );
+    expect(
+      ProjectReferenceQueries(index)
+          .dependents(ProjectReferenceKey(kind: 'media', id: 'media.shared'))
+          .map((edge) => edge.owner.id),
+      [cinematic.id],
+    );
+  });
 }
 
 PresentationCinematicAsset _cinematic(String visualId, {String? audioId}) {
@@ -241,14 +282,17 @@ SceneAsset _scene(String cinematicId) {
 
 ProjectSnapshot _snapshot({
   SceneAsset? scene,
+  PresentationCinematicAsset? cinematic,
   ProjectMediaCatalog? mediaCatalog,
   AssetCatalog? assetCatalog,
 }) {
   final manifest = ProjectManifest(
     name: 'Presentation reference fixture',
+    version: ProjectVersion.v7,
     maps: const [],
     tilesets: const [],
     scenes: scene == null ? const [] : [scene],
+    presentationCinematics: cinematic == null ? const [] : [cinematic],
   );
   final bytes = utf8.encode(jsonEncode(manifest.toJson()));
   final mediaBytes = mediaCatalog == null

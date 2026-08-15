@@ -532,6 +532,14 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
+  if (actionId == 'presentationClip.create') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
+    };
+  }
   if (actionId == 'campaign.encounter_table.upsert' ||
       actionId == 'campaign.encounter_table.delete') {
     return const <AuthoringTransport, String>{
@@ -844,6 +852,15 @@ final class _ContractEvidenceRule {
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
+    [
+      'presentationCinematic.',
+      'presentationTrack.',
+      'presentationClip.',
+      'presentationLayer.',
+    ],
+    'test/domains/narrative/presentation_cinematic_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['smart_tile.pattern.upsert', 'smart_tile.pattern.delete'],
     'test/domains/maps/smart_tile_catalog_actions_test.dart',
   ),
@@ -1057,6 +1074,10 @@ const _semanticOwners = <String, String>{
   'storyline': 'storyline',
   'cinematic': 'cinematic',
   'cinematicMediaAsset': 'cinematic',
+  'presentationCinematic': 'project',
+  'presentationTrack': 'presentationCinematic',
+  'presentationClip': 'presentationCinematic',
+  'presentationLayer': 'presentationCinematic',
   'shop': 'campaignContent',
   'badge': 'campaignContent',
   'trainer': 'campaignContent',
@@ -1093,6 +1114,10 @@ const _requiredDirectReadResourceKinds = <String>{
   'itemUsage',
   'itemReadiness',
   'mapConnection',
+  'presentationCinematic',
+  'presentationTrack',
+  'presentationClip',
+  'presentationLayer',
   'presentationPreviewContext',
 };
 

@@ -216,6 +216,47 @@ final class AuthoringResourceKindRegistry {
             'Stable logical media identity linked to project-owned source assets',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'presentationCinematic',
+        version: 1,
+        displayName: 'Presentation cinematic',
+        summary: 'Project-owned out-of-engine cinematic timeline',
+        extensions: const <String, Object?>{
+          'childResourceKinds': <String>[
+            'presentationTrack',
+            'presentationClip',
+            'presentationLayer',
+          ],
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationTrack',
+        version: 1,
+        displayName: 'Presentation track',
+        summary: 'Typed ordered track inside a Presentation cinematic',
+        extensions: const <String, Object?>{
+          'idFormat': 'uriComponent(cinematicId):uriComponent(trackId)',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationClip',
+        version: 1,
+        displayName: 'Presentation clip',
+        summary: 'Temporal clip inside a Presentation cinematic track',
+        extensions: const <String, Object?>{
+          'idFormat': 'uriComponent(cinematicId):uriComponent(trackId):'
+              'uriComponent(clipId)',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationLayer',
+        version: 1,
+        displayName: 'Presentation layer',
+        summary: 'Visual stacking layer inside a Presentation cinematic',
+        extensions: const <String, Object?>{
+          'idFormat': 'uriComponent(cinematicId):uriComponent(layerId)',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'smartTileAtlas',
         version: 1,
         displayName: 'Smart Tile atlas',
@@ -489,6 +530,10 @@ final class AuthoringResourceKindRegistry {
       'projectPresentationProfile',
       'projectPresentationPreset',
       'presentationPreviewContext',
+      'presentationCinematic',
+      'presentationTrack',
+      'presentationClip',
+      'presentationLayer',
       'presentationMedia',
       'scenario',
       'scene',

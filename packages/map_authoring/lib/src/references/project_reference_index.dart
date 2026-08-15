@@ -254,7 +254,7 @@ final class ProjectReferenceIndex {
 
   factory ProjectReferenceIndex.fromSnapshot(
     ProjectSnapshot snapshot, {
-    Iterable<PresentationCinematicAsset> presentationCinematics = const [],
+    Iterable<PresentationCinematicAsset>? presentationCinematics,
   }) {
     final projectMediaCatalog = _projectMediaCatalog(snapshot);
     final sourceAssets = projectMediaCatalog == null
@@ -267,7 +267,8 @@ final class ProjectReferenceIndex {
       ),
     );
     final presentation = PresentationReferenceGraph.build(
-      cinematics: presentationCinematics,
+      cinematics:
+          presentationCinematics ?? snapshot.manifest.presentationCinematics,
       scenes: snapshot.manifest.scenes,
       mediaCatalog: projectMediaCatalog,
       sourceAssets: sourceAssets,
