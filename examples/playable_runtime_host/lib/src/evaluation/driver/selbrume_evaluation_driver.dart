@@ -206,6 +206,8 @@ final class SelbrumeEvaluationDriver
     await driver._pumpUntil(
       () => !game.debugIsMapActivationDispatchInFlight,
       operation: 'game.start',
+      maxTicks: 15000,
+      allowTransitionClock: true,
     );
     driver._require(
       driver.state.currentMapId == 'map_bourg_selbrume',

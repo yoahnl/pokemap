@@ -31,10 +31,10 @@ void main() {
       'pokemon_bundle_import_source_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    readRepository = const FilePokemonReadRepository();
+    readRepository = FilePokemonReadRepository();
 
-    const writeRepository = FilePokemonWriteRepository();
-    useCase = const ImportPokemonJsonBundleUseCase(
+    final writeRepository = FilePokemonWriteRepository();
+    useCase = ImportPokemonJsonBundleUseCase(
       writeRepository: writeRepository,
       speciesImportUseCase: ImportPokemonSpeciesJsonUseCase(writeRepository),
       learnsetImportUseCase: ImportPokemonLearnsetJsonUseCase(writeRepository),
@@ -144,7 +144,9 @@ void main() {
         'execute leaves project data untouched when a detected companion is invalid',
         () async {
       final sourcePaths = await _writeValidBundle(tempImportRoot);
-      await sourcePaths.learnset.writeAsString('{"speciesId": ""}');
+      await sourcePaths.learnset.writeAsString(
+        '{"schemaVersion": 1, "speciesId": ""}',
+      );
       final beforeProjectJson = await projectFile.readAsString();
 
       await expectLater(

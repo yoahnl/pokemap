@@ -135,7 +135,7 @@ void main() {
 
     test('No Retreat prevents switching for its holder', () {
       final state = PsdkBattleState.fromSetup(
-        PsdkBattleSetup.singles(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             effects: const PsdkBattleEffectStack.empty().addEffect(
               NoRetreatEffect(scope: BattlerBattleEffectScope(psdkPlayerSlot)),
@@ -186,7 +186,7 @@ void main() {
     });
 
     test('Embargo counts down and expires through end-turn dispatch', () {
-      final initialState = PsdkBattleState(
+      final initialState = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -250,7 +250,7 @@ void main() {
     });
 
     test('Flinch status prevention keeps existing flinch from reapplying', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(_combatant()),
           psdkOpponentSlot: PsdkBattleCombatant.fromSetup(

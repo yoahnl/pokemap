@@ -126,6 +126,7 @@ void main() {
       ),
       projectRootDirectory: root.path,
       pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         catalogFiles: {'items': 'data/items.json'},
       ),
     );

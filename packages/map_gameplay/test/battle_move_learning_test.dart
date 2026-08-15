@@ -605,6 +605,7 @@ void main() {
 
       expect(
         () => BattleProgressionResult(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           state: state,
           appliedReward: BattleReward(
             sourceKind: BattleRewardSourceKind.wild,
@@ -628,6 +629,7 @@ void main() {
       final result = service.apply(
         state: state,
         context: BattleProgressionContext(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           outcome: BattleProgressionOutcomeKind.victory,
           playerParticipantPartySlots: const <int>{1, 0},
           defeatedOpponents: const <BattleProgressionDefeatedOpponent>[
@@ -799,6 +801,7 @@ BattleProgressionContext _context({
       const <PokemonMoveLearningCandidate>[],
 }) {
   return BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: opponents,

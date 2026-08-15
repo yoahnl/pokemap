@@ -92,6 +92,18 @@ final class HeldItemOperations {
     );
   }
 
+  HeldItemTransferResult equipByIndividualId(
+    GameState state, {
+    required String individualId,
+    required String itemId,
+  }) {
+    final partyIndex = _partyIndexByIndividualId(state, individualId);
+    if (partyIndex == null) {
+      return _failed(state, HeldItemTransferFailure.invalidTarget);
+    }
+    return equip(state, partyIndex: partyIndex, itemId: itemId);
+  }
+
   HeldItemTransferResult unequip(
     GameState state, {
     required int partyIndex,
@@ -127,8 +139,30 @@ final class HeldItemOperations {
     );
   }
 
+  HeldItemTransferResult unequipByIndividualId(
+    GameState state, {
+    required String individualId,
+  }) {
+    final partyIndex = _partyIndexByIndividualId(state, individualId);
+    if (partyIndex == null) {
+      return _failed(state, HeldItemTransferFailure.invalidTarget);
+    }
+    return unequip(state, partyIndex: partyIndex);
+  }
+
   bool _isValidTarget(GameState state, int partyIndex) {
     return partyIndex >= 0 && partyIndex < state.party.members.length;
+  }
+
+  int? _partyIndexByIndividualId(GameState state, String individualId) {
+    final normalizedId = individualId.trim();
+    if (normalizedId.isEmpty) return null;
+    final matches = state.party.members
+        .asMap()
+        .entries
+        .where((entry) => entry.value.individualId == normalizedId)
+        .toList(growable: false);
+    return matches.length == 1 ? matches.single.key : null;
   }
 
   HeldItemTransferResult _failed(

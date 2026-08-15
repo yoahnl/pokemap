@@ -448,8 +448,12 @@ void main() {
 
     test('rejects absolute, escaping, and source-traversal paths', () async {
       for (final config in <ProjectPokemonConfig>[
-        ProjectPokemonConfig(evolutionsDir: tempRoot.path),
-        const ProjectPokemonConfig(evolutionsDir: '../outside'),
+        ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+            evolutionsDir: tempRoot.path),
+        const ProjectPokemonConfig(
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+            evolutionsDir: '../outside'),
       ]) {
         await expectLater(
           () => RuntimePokemonEvolutionLoader().loadLevelUpCandidates(
@@ -474,6 +478,7 @@ void main() {
 
 ProjectPokemonConfig _config() {
   return const ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     evolutionsDir: 'custom/evolutions',
     speciesDir: 'custom/species',
   );
@@ -520,6 +525,7 @@ Future<void> _writeSpecies(
   await file.parent.create(recursive: true);
   await file.writeAsString(
     jsonEncode(<String, dynamic>{
+      'schemaVersion': 1,
       'id': id,
       'typing': <String, dynamic>{
         'types': <String>['grass'],

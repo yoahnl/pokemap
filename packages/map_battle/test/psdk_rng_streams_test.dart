@@ -105,7 +105,7 @@ BattleEngineSetup _setup({
   required List<PsdkBattleMoveData> opponentMoves,
   required BattleRngSeeds seeds,
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player-bulbasaur',
       speciesId: 'bulbasaur',

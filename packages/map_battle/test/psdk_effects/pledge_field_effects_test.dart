@@ -179,7 +179,7 @@ PsdkBattleState _state({
   PsdkBattleCombatantSetup? player,
   PsdkBattleCombatantSetup? opponent,
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         player ?? _combatant(id: 'player'),

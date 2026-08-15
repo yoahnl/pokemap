@@ -1,5 +1,8 @@
 library map_gameplay;
 
+export 'src/pokemon_gameplay_rules.dart'
+    show PokemonGameplayFeatureDisabledError, PokemonGameplayRules;
+
 export 'src/battle_reward.dart'
     show
         BattleRewardSourceKind,
@@ -18,6 +21,25 @@ export 'src/pokemon_stat_calculator.dart'
         PokemonBaseStats,
         PokemonCalculatedStats,
         PokemonStatCalculator;
+export 'src/player_pokemon_hydrator.dart'
+    show
+        PlayerPokemonHydrationOrigin,
+        PlayerPokemonHydrationDiagnosticSeverity,
+        PlayerPokemonHydrationDiagnosticCode,
+        PlayerPokemonHydrationDiagnostic,
+        PlayerPokemonHydrationSpecies,
+        PlayerPokemonHydrationCatalogs,
+        PlayerPokemonHydrationResult,
+        PlayerPokemonHydrator;
+export 'src/wild_player_pokemon_generator.dart'
+    show
+        WildPokemonGenerationProfile,
+        WildPokemonGenerationSpecies,
+        WildPokemonLevelUpMove,
+        WildPokemonGenerationLearnset,
+        WildPokemonGenerationContext,
+        WildPlayerPokemonGenerationResult,
+        WildPlayerPokemonGenerator;
 export 'src/pokemon_evolution_service.dart'
     show
         PokemonEvolutionTriggerKind,

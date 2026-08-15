@@ -687,6 +687,7 @@ final class TypeResistingBerryEffect extends BattleItemEffect {
       return true;
     }
     return _isSuperEffective(
+      state: context.state,
       moveType: resistedType,
       target: target,
     );
@@ -738,7 +739,10 @@ final class EnigmaBerryEffect extends BattleItemEffect {
     if (target.heldItemId != itemId ||
         !psdkCanConsumeBerry(state: context.state, owner: owner) ||
         !_isSuperEffective(
-            moveType: context.move.type.toLowerCase(), target: target)) {
+          state: context.state,
+          moveType: context.move.type.toLowerCase(),
+          target: target,
+        )) {
       return null;
     }
 
@@ -1012,10 +1016,12 @@ BattleEffectEndTurnResult? _consumeHeldBerry({
 }
 
 bool _isSuperEffective({
+  required PsdkBattleState state,
   required String moveType,
   required PsdkBattleCombatant target,
 }) {
   final effectiveness = const BattleMoveTypeProcessor().resolveEffectiveness(
+    rules: state.battleRules,
     moveType: moveType,
     targetTypes: target.types,
     extraTargetTypes: <String>[

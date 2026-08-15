@@ -7,6 +7,7 @@ import 'battle_status.dart';
 import 'battle_stealth_rock.dart';
 import 'battle_topology.dart';
 import 'battle_volatile.dart';
+import 'pokemon_battle_rules.dart';
 
 part 'battle_condition_side_conditions.dart';
 
@@ -237,8 +238,9 @@ final class BattleConditionEngine {
   /// - ce seam n'ouvre ni Boots, ni Toxic Spikes, ni framework universel.
   BattleSideConditionResolution runEntryHazards({
     required BattleSideState side,
+    required PokemonBattleRules rules,
   }) {
-    return _sideConditionRules.runEntryHazards(side: side);
+    return _sideConditionRules.runEntryHazards(side: side, rules: rules);
   }
 
   /// Résout la phase de fin de tour des conditions déjà supportées.

@@ -60,7 +60,7 @@ BattleCombatantData _combatant({
 
 BattleSession _session() {
   return createBattleSession(
-    BattleSetup(
+    BattleSetup.pokeMapBetaV1ForTest(
       playerPokemon: _combatant(
         speciesId: 'squirtle',
         lineupIndex: 0,

@@ -791,7 +791,7 @@ BattleMoveBehaviorResolution _resolveMoveWithTeammate({
 }) {
   const teammateSlot = PsdkBattleSlotRef(bank: 0, position: 1);
   final registry = createStaticBasicMoveRegistry();
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(id: 'player', speed: 100, move: playerMove),
@@ -844,7 +844,7 @@ BattleMoveBehaviorResolution _resolveMoveAgainstTarget({
   required PsdkBattleMoveHistory opponentMoveHistory,
 }) {
   final registry = createStaticBasicMoveRegistry();
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(id: 'player', speed: 100, move: playerMove),
@@ -892,7 +892,7 @@ BattleMoveBehaviorResolution _resolveCopycatWithMoveHistories({
     power: 0,
     battleEngineMethod: 's_mirror_move',
   );
-  final state = PsdkBattleState(
+  final state = PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(id: 'player', speed: 100, move: playerMove),
@@ -949,7 +949,7 @@ PsdkBattleTurnResult _runMove({
   int selectedMoveSlot = 0,
 }) {
   final engine = PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speed: playerSpeed,

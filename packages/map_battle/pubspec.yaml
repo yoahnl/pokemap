@@ -3,6 +3,7 @@ description: >-
   Pure Dart battle engine for Pokémon-like RPG combat.
   Deterministic, testable, and independent of Flutter/Flame.
 version: 0.1.0
+publish_to: none
 
 repository: https://git.yoahn.me/yoahn/pokemonProject.git
 
@@ -13,6 +14,10 @@ topics:
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  map_core:
+    path: ../map_core
 
 dev_dependencies:
   lints: ^6.1.0

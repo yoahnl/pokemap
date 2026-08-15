@@ -355,6 +355,7 @@ final class BattleProgressionResult {
     Iterable<BattleEvolutionChange> evolutionChanges =
         const <BattleEvolutionChange>[],
     PokemonEvolutionService evolutionService = const PokemonEvolutionService(),
+    required PokemonRulesetProfile ruleset,
   }) {
     final evolutionQueue = _validatedEvolutionQueue(evolutionOpportunities);
     final moveAdvanced = _advanceMoveLearning(
@@ -364,6 +365,7 @@ final class BattleProgressionResult {
     );
     if (moveAdvanced.pending != null) {
       return BattleProgressionResult._(
+        ruleset: ruleset,
         state: moveAdvanced.state,
         appliedReward: appliedReward,
         changes: List<BattlePokemonProgressionChange>.unmodifiable(changes),
@@ -383,6 +385,7 @@ final class BattleProgressionResult {
       changes: evolutionChanges,
     );
     return BattleProgressionResult._(
+      ruleset: ruleset,
       state: evolutionAdvanced.state,
       appliedReward: appliedReward,
       changes: List<BattlePokemonProgressionChange>.unmodifiable(changes),
@@ -397,6 +400,7 @@ final class BattleProgressionResult {
   }
 
   const BattleProgressionResult._({
+    required this.ruleset,
     required this.state,
     required this.appliedReward,
     required this.changes,
@@ -414,6 +418,8 @@ final class BattleProgressionResult {
         _evolutionService = evolutionService;
 
   final GameState state;
+  final PokemonRulesetProfile ruleset;
+  PokemonRulesetReference get rulesetReference => ruleset.reference;
   final BattleReward appliedReward;
   final List<BattlePokemonProgressionChange> changes;
   final PendingBattleMoveLearning? pendingMoveLearning;
@@ -459,6 +465,7 @@ final class BattleProgressionResult {
           kind: BattleMoveLearningChangeKind.replacementRequested,
         );
         return BattleProgressionResult._(
+          ruleset: ruleset,
           state: state,
           appliedReward: appliedReward,
           changes: changes,
@@ -523,6 +530,7 @@ final class BattleProgressionResult {
     );
     if (advanced.pending != null) {
       return BattleProgressionResult._(
+        ruleset: ruleset,
         state: advanced.state,
         appliedReward: appliedReward,
         changes: changes,
@@ -541,6 +549,7 @@ final class BattleProgressionResult {
       changes: evolutionChanges,
     );
     return BattleProgressionResult._(
+      ruleset: ruleset,
       state: evolutionAdvanced.state,
       appliedReward: appliedReward,
       changes: changes,
@@ -586,6 +595,7 @@ final class BattleProgressionResult {
     switch (decision) {
       case AcceptBattleEvolutionDecision():
         final evolved = _evolutionService.evolve(
+          ruleset: ruleset,
           pokemon: _partyMemberAt(state, pending.partySlot),
           candidate: pending.candidate,
           sourceMaxHp: opportunity.sourceMaxHp,
@@ -631,6 +641,7 @@ final class BattleProgressionResult {
       ],
     );
     return BattleProgressionResult._(
+      ruleset: ruleset,
       state: advanced.state,
       appliedReward: appliedReward,
       changes: changes,

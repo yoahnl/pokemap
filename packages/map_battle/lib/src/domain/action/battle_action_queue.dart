@@ -1,5 +1,6 @@
 import '../rng/battle_rng_streams.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../pokemon_battle_rules.dart';
 import 'battle_action.dart';
 import 'battle_action_ordering.dart';
 
@@ -16,13 +17,15 @@ final class PsdkBattleActionQueue {
   List<PsdkBattleAction> get actions =>
       List<PsdkBattleAction>.unmodifiable(_actions);
 
-  List<PsdkBattleAction> ordered({
+  PsdkBattleActionOrderingResult ordered({
     required BattleRngStreams rng,
+    required PokemonBattleRules rules,
     bool trickRoom = false,
   }) {
     return _ordering.order(
       actions: _actions,
       rng: rng,
+      rules: rules,
       trickRoom: trickRoom,
     );
   }

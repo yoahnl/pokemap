@@ -246,7 +246,7 @@ void main() {
       );
       final result = const PsdkBattleMoveExecutor().execute(
         PsdkBattleMoveRequest(
-          state: PsdkBattleState(
+          state: PsdkBattleState.pokeMapBetaV1ForTest(
             combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
               psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
                 _combatant(
@@ -350,7 +350,7 @@ PsdkBattleTurnResult _runMove({
   ),
 }) {
   final engine = PsdkBattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         maxHp: playerMaxHp,

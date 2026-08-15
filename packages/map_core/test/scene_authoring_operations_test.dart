@@ -723,6 +723,7 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: 'species_sproutle',
+            formId: 'base',
             level: 5,
             currentHp: 20,
           ),
@@ -755,16 +756,19 @@ void main() {
         SceneConsequence.giveMoney(amount: 0),
         SceneConsequence.givePokemon(
           speciesId: ' ',
+          formId: 'base',
           level: 5,
           currentHp: 20,
         ),
         SceneConsequence.givePokemon(
           speciesId: 'species_test',
+          formId: 'base',
           level: 101,
           currentHp: 20,
         ),
         SceneConsequence.givePokemon(
           speciesId: 'species_test',
+          formId: 'base',
           level: 5,
           currentHp: 0,
         ),

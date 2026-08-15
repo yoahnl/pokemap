@@ -1,10 +1,9 @@
 import 'package:path/path.dart' as p;
 
 import '../errors/application_errors.dart';
-import '../models/pokemon_project_data_models.dart';
+import 'package:map_core/map_core.dart';
 import '../ports/pokemon_read_repository.dart';
 import '../ports/project_workspace.dart';
-import '../services/pokemon_project_data_reader.dart';
 
 /// Callback UI minimal pour supprimer une espèce locale depuis le workspace.
 ///
@@ -60,13 +59,9 @@ class DeletedPokedexSpeciesResult {
 ///   partager un même asset ;
 /// - on ne modifie pas le manifeste projet.
 class DeletePokedexSpeciesUseCase {
-  const DeletePokedexSpeciesUseCase({
-    required this.readRepository,
-    this.dataReader = const PokemonProjectDataReader(),
-  });
+  const DeletePokedexSpeciesUseCase({required this.readRepository});
 
   final PokemonReadRepository readRepository;
-  final PokemonProjectDataReader dataReader;
 
   Future<DeletedPokedexSpeciesResult> execute(
     ProjectWorkspace workspace,
@@ -89,10 +84,19 @@ class DeletePokedexSpeciesUseCase {
       workspace,
       normalizedSpeciesId,
     );
-    final speciesRelativePath = await dataReader.resolveSpeciesRelativePathById(
-      workspace,
-      normalizedSpeciesId,
-    );
+    final snapshotController =
+        readRepository is PokemonSpeciesSnapshotController
+            ? readRepository as PokemonSpeciesSnapshotController
+            : null;
+    final speciesRelativePath = snapshotController == null
+        ? _resolveSpeciesRelativePathFromEntries(
+            await readRepository.listSpeciesIndexEntries(workspace),
+            normalizedSpeciesId,
+          )
+        : await snapshotController.resolveSpeciesRelativePathById(
+            workspace,
+            normalizedSpeciesId,
+          );
     if (speciesRelativePath == null) {
       throw EditorNotFoundException(
         'Pokemon species file not found for id: $normalizedSpeciesId',
@@ -135,12 +139,25 @@ class DeletePokedexSpeciesUseCase {
         deletedRelativePaths.add(normalizedPath);
       }
     }
+    snapshotController?.invalidateSpeciesSnapshot(workspace);
 
     return DeletedPokedexSpeciesResult(
       speciesId: normalizedSpeciesId,
       primaryName: _resolvePrimaryName(species),
       deletedRelativePaths: deletedRelativePaths..sort(),
     );
+  }
+
+  String? _resolveSpeciesRelativePathFromEntries(
+    List<PokemonSpeciesIndexEntry> entries,
+    String speciesId,
+  ) {
+    for (final entry in entries) {
+      if (entry.id == speciesId) {
+        return entry.relativePath;
+      }
+    }
+    return null;
   }
 
   Future<PokemonMediaFile?> _readOptionalMedia(

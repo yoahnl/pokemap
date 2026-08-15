@@ -143,7 +143,7 @@ PsdkBattleSetup _setup({
       const <PsdkBattleCombatantSetup>[],
   List<PsdkBattleMoveData>? playerMoves,
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       hp: playerHp,

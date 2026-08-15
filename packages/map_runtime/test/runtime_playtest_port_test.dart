@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
@@ -13,6 +14,7 @@ void main() {
     ]);
     final port = RuntimePlaytestPort(
       driverFactory: (_) async => driver,
+      pokemonCatalogPreflight: _readyPokemonCatalog,
       clock: clock.call,
     );
     final session = await port.start(_request());
@@ -74,7 +76,10 @@ void main() {
     final driver = _FakeRuntimePlaytestDriver(
       projectRevision: 'sha256:${'b' * 64}',
     );
-    final port = RuntimePlaytestPort(driverFactory: (_) async => driver);
+    final port = RuntimePlaytestPort(
+      driverFactory: (_) async => driver,
+      pokemonCatalogPreflight: _readyPokemonCatalog,
+    );
 
     await expectLater(port.start(_request()), throwsStateError);
     expect(driver.disposeCount, 1);
@@ -85,7 +90,10 @@ void main() {
     final driver = _FakeRuntimePlaytestDriver(
       projectRevision: 'sha256:${'a' * 64}',
     );
-    final port = RuntimePlaytestPort(driverFactory: (_) async => driver);
+    final port = RuntimePlaytestPort(
+      driverFactory: (_) async => driver,
+      pokemonCatalogPreflight: _readyPokemonCatalog,
+    );
     final session = await port.start(_request());
     driver.projectRevision = 'sha256:${'b' * 64}';
 
@@ -103,7 +111,39 @@ void main() {
     expect(session.state, PlaytestSessionState.failed);
     expect(driver.disposeCount, 1);
   });
+
+  test('start blocks Pokemon catalog errors before creating a driver', () async {
+    var driverCreated = false;
+    final report = PokemonCatalogCoherenceReport(const [
+      PokemonCatalogDiagnostic(
+        code: 'species.id_empty',
+        severity: PokemonCatalogDiagnosticSeverity.error,
+        path: 'species/invalid.json.id',
+        message: 'Species id cannot be empty.',
+        recommendedAction: 'Assign a stable species id.',
+      ),
+    ]);
+    final port = RuntimePlaytestPort(
+      driverFactory: (_) async {
+        driverCreated = true;
+        return _FakeRuntimePlaytestDriver(
+          projectRevision: 'sha256:${'a' * 64}',
+        );
+      },
+      pokemonCatalogPreflight: (_) async => report,
+    );
+
+    await expectLater(
+      port.start(_request()),
+      throwsA(isA<RuntimePlaytestReadinessException>()),
+    );
+    expect(driverCreated, isFalse);
+  });
 }
+
+Future<PokemonCatalogCoherenceReport> _readyPokemonCatalog(
+  PlaytestStartRequest _,
+) async => PokemonCatalogCoherenceReport(const []);
 
 PlaytestStartRequest _request() => PlaytestStartRequest(
       sessionId: 'session-070',

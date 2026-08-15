@@ -25,10 +25,9 @@ void main() {
       expect(species.breeding.eggGroups, <String>['monster', 'grass']);
       expect(species.refs.learnset, 'bulbasaur');
       expect(species.forms.isBaseForm, isTrue);
-      expect(
-        species.forms.otherForms,
-        <String>['bulbasauralpha', 'bulbasaurmega'],
-      );
+      expect(species.forms.baseFormId, 'bulbasaur');
+      expect(species.forms.formId, 'base');
+      expect(species.forms.otherForms, <String>['alpha', 'mega']);
       expect(species.classification.isLegendary, isFalse);
       expect(species.progression.growthRateId, 'medium_slow');
     });
@@ -44,6 +43,7 @@ void main() {
       expect(species.forms.baseFormId, 'lycanroc');
       expect(species.forms.formId, 'dusk');
       expect(species.forms.formName, 'Dusk');
+      expect(species.forms.otherForms, <String>['base']);
       expect(species.abilities.primary, 'tough_claws');
       expect(species.classification.isLegendary, isTrue);
       expect(species.classification.isMythical, isFalse);
@@ -129,7 +129,7 @@ const String _bulbasaurShowdownPayload = '''
   "color": "Green",
   "heightm": 0.7,
   "weightkg": 6.9,
-  "otherFormes": ["bulbasaurmega", "bulbasauralpha"]
+  "otherFormes": ["bulbasaur-mega", "bulbasauralpha"]
 }
 ''';
 

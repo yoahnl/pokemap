@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -7,17 +8,21 @@ import 'package:pub_semver/pub_semver.dart';
 
 import '../../../application/models/pokemon_validation_report.dart';
 import '../../../application/services/pokemon_project_validator.dart';
-import '../../../infrastructure/filesystem/project_filesystem.dart';
-import '../../../infrastructure/repositories/file_repositories.dart';
 import 'game_package_gameplay_readiness_gate.dart';
 import 'game_package_export_profile.dart';
 import 'runtime_project_projection_builder.dart';
+import 'runtime_project_projection_file_reader.dart';
 
 typedef GamePackageAtomicFileWriter =
     Future<void> Function({
       required File outputFile,
       required List<int> packageBytes,
       required String packageSha256,
+    });
+typedef GamePackageArchiveBuilder =
+    GamePackageBuildResult Function({
+      required GamePackageManifest manifest,
+      required Map<String, List<int>> payloadFiles,
     });
 
 final class GamePackageExportWriteFailure implements Exception {
@@ -39,10 +44,12 @@ final class GamePackageExportCertification {
   GamePackageExportCertification({
     required List<String> diagnostics,
     required this.gameplayReadinessReport,
+    required this.pokemonValidationSha256,
   }) : diagnostics = List.unmodifiable(diagnostics);
 
   final List<String> diagnostics;
   final NarrativeProjectValidationReport gameplayReadinessReport;
+  final String? pokemonValidationSha256;
 
   bool get isCertified =>
       gameplayReadinessReport.isPlayable && diagnostics.isEmpty;
@@ -76,17 +83,17 @@ final class GamePackageExportService {
   const GamePackageExportService({
     this.projectionBuilder = const RuntimeProjectProjectionBuilder(),
     this.gameplayReadinessGate = const GamePackageGameplayReadinessGate(),
-    this.pokemonProjectValidator = const PokemonProjectValidator(
-      FilePokemonReadRepository(),
-    ),
+    this.pokemonProjectValidator,
     this.packageBuilder = const GamePackageBuilder(),
+    this.packageArchiveBuilder,
     this.atomicFileWriter,
   });
 
   final RuntimeProjectProjectionBuilder projectionBuilder;
   final GamePackageGameplayReadinessGate gameplayReadinessGate;
-  final PokemonProjectValidator pokemonProjectValidator;
+  final PokemonProjectValidator? pokemonProjectValidator;
   final GamePackageBuilder packageBuilder;
+  final GamePackageArchiveBuilder? packageArchiveBuilder;
   final GamePackageAtomicFileWriter? atomicFileWriter;
 
   Future<GamePackageExportArtifact> build({
@@ -102,8 +109,15 @@ final class GamePackageExportService {
       Object? pokemonValidationFailure;
       if (projection.project.pokemon.enabled) {
         try {
-          pokemonValidationReport = await pokemonProjectValidator.validate(
-            ProjectFileSystem(projectRoot.path),
+          final validator =
+              pokemonProjectValidator ?? const PokemonProjectValidator();
+          final projectionReader = RuntimeProjectProjectionFileReader(
+            projection,
+          );
+          pokemonValidationReport = await validator.validateProjectFiles(
+            reader: projectionReader,
+            projectRoot: RuntimeProjectProjectionFileReader.projectRoot,
+            manifest: projection.project,
           );
         } on Object catch (error) {
           // Export remains fail-closed if the canonical validator itself
@@ -299,10 +313,12 @@ final class GamePackageExportService {
         ),
         content: emptyContent,
       );
-      final built = packageBuilder.build(
-        manifest: manifest,
-        payloadFiles: projection.payloadFiles,
-      );
+      final built =
+          (packageArchiveBuilder ??
+          ({required manifest, required payloadFiles}) => packageBuilder.build(
+            manifest: manifest,
+            payloadFiles: payloadFiles,
+          ))(manifest: manifest, payloadFiles: projection.payloadFiles);
       final inspector = GamePackageInspector(
         hostCompatibility: GamePackageHostCompatibility(
           hubVersion: Version.parse('1.2.0'),
@@ -336,6 +352,13 @@ final class GamePackageExportService {
       final certification = GamePackageExportCertification(
         diagnostics: diagnostics,
         gameplayReadinessReport: gameplayReadinessReport,
+        pokemonValidationSha256: pokemonValidationReport == null
+            ? null
+            : sha256
+                  .convert(
+                    utf8.encode(jsonEncode(pokemonValidationReport.toJson())),
+                  )
+                  .toString(),
       );
       if (!certification.isCertified) {
         throw GamePackageExportException(

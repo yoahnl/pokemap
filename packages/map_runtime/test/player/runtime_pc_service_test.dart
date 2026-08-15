@@ -35,6 +35,9 @@ void main() {
         <String>['Lead', 'Reserve']);
     expect(initialContent.stored.single.label, 'Coffre');
     expect(initialContent.stored.single.speciesId, 'stored');
+    expect(initialContent.stored.single.formId, 'stored-form');
+    expect(initialContent.party.last.targetId, 'pokemon.pkm_reserve');
+    expect(initialContent.stored.single.targetId, 'pokemon.pkm_stored');
     expect(initialContent.stored.single.natureId, 'hardy');
     expect(initialContent.stored.single.abilityId, 'steadfast');
     expect(initialContent.stored.single.nickname, 'Coffre');
@@ -243,7 +246,9 @@ GameState _state() => GameState(
     );
 
 PlayerPokemon _pokemon(String speciesId) => PlayerPokemon(
+      individualId: 'pkm_$speciesId',
       speciesId: speciesId,
+      formId: speciesId == 'stored' ? 'stored-form' : '',
       natureId: 'hardy',
       abilityId: 'steadfast',
       currentHp: 10,

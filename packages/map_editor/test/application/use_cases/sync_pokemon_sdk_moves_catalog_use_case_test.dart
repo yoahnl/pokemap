@@ -26,8 +26,8 @@ void main() {
       'psdk_moves_catalog_sync_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    readRepository = const FilePokemonReadRepository();
-    writeRepository = const FilePokemonWriteRepository();
+    readRepository = FilePokemonReadRepository();
+    writeRepository = FilePokemonWriteRepository();
     studioSource = _FakePokemonSdkStudioProjectSource(
       payload: PokemonSdkStudioProjectPayload(
         moves: <Map<String, dynamic>>[

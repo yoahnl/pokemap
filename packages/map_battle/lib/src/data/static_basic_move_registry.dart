@@ -109,6 +109,7 @@ import '../domain/effect/move/two_turn_charge_effect.dart';
 import '../domain/effect/side/doubles_guard_effects.dart';
 import '../domain/effect/side/hazard_effects.dart';
 import '../battle_type_chart.dart';
+import '../pokemon_battle_rules.dart';
 import '../battle_typing.dart';
 import '../psdk/domain/psdk_battle_field.dart';
 import '../psdk/domain/psdk_battle_combatant.dart';
@@ -3802,6 +3803,7 @@ BattleMoveBehaviorResolution _resolveSuperDuperEffective(
   );
   final superEffective = const BattleMoveTypeProcessor()
           .resolveEffectiveness(
+            rules: context.state.battleRules,
             moveType: context.move.type,
             targetTypes: target.types,
             forceGrounded: target.effects.contains('smack_down'),
@@ -7149,7 +7151,10 @@ BattleMoveBehaviorResolution _resolveConversion2(
   final latest = eligibleTargets.reduce(
     (best, current) => current.turn > best.turn ? current : best,
   );
-  final resistantTypes = _conversion2ResistantTypes(latest.type!);
+  final resistantTypes = _conversion2ResistantTypes(
+    latest.type!,
+    rules: context.state.battleRules,
+  );
   if (resistantTypes.isEmpty) {
     return BattleMoveBehaviorResolution(
       state: prepared.state,
@@ -7256,12 +7261,15 @@ StockpileEffect? _stockpileEffectOf(PsdkBattleCombatant battler) {
   return null;
 }
 
-List<String> _conversion2ResistantTypes(String moveType) {
+List<String> _conversion2ResistantTypes(
+  String moveType, {
+  required PokemonBattleRules rules,
+}) {
   final normalized = moveType.trim().toLowerCase();
   return BattleTypeChart.supportedTypes
       .where(
         (type) =>
-            BattleTypeChart.resolveEffectivenessMultiplier(
+            rules.resolveEffectivenessMultiplier(
               moveType: normalized,
               defenderTyping: BattleTypingSnapshot(primaryType: type),
             ) <

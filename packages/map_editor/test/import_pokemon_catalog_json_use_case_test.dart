@@ -26,10 +26,10 @@ void main() {
       'pokemon_catalog_import_source_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    useCase = const ImportPokemonCatalogJsonUseCase(
+    useCase = ImportPokemonCatalogJsonUseCase(
       FilePokemonWriteRepository(),
     );
-    readRepository = const FilePokemonReadRepository();
+    readRepository = FilePokemonReadRepository();
 
     final createProjectUseCase = CreateProjectUseCase(
       FileProjectRepository(),

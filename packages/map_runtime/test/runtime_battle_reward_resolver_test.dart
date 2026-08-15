@@ -45,9 +45,10 @@ void main() {
         loadMoveLearningCandidates: learnsetLoader.load,
         loadEvolutionCandidates: evolutionLoader.load,
       );
+      final bundle = _bundle();
 
       final resolution = await resolver.resolve(
-        bundle: _bundle(),
+        bundle: bundle,
         postWriteBackState: _state(),
         runtimeContext: _context(const WildBattleStartRequest(
           requestId: 'wild-win',
@@ -77,6 +78,17 @@ void main() {
           200);
       expect(resolution.progression.changes.single.oldLevel, 5);
       expect(resolution.progression.changes.single.newLevel, 11);
+      expect(
+        resolution.progression.rulesetReference,
+        PokemonRulesetProfile.pokeMapBetaV1Reference,
+      );
+      expect(
+        identical(
+          resolution.progressionContext.ruleset,
+          bundle.manifest.pokemon.ruleset,
+        ),
+        isTrue,
+      );
       expect(
           resolution.progression.state.party.members.single.experience, 1553);
       expect(resolution.progression.state.trainerProfile.money, 0);

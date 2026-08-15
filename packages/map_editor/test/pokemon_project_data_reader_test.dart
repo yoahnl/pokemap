@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,7 @@ import 'package:map_editor/src/application/use_cases/project_management_use_case
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -18,8 +20,14 @@ void main() {
   setUp(() async {
     tempProjectRoot = await Directory.systemTemp.createTemp('pokemon_readers_');
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    seedUseCase = const SeedPokemonDemoDataUseCase();
-    reader = const PokemonProjectDataReader();
+    await CreateProjectUseCase(
+      FileProjectRepository(),
+      const FileProjectWorkspaceFactory(),
+    ).execute('Pokemon Reader Project', tempProjectRoot.path);
+    reader = PokemonProjectDataReader();
+    seedUseCase = SeedPokemonDemoDataUseCase(
+      snapshotController: FilePokemonReadRepository(reader: reader),
+    );
   });
 
   tearDown(() async {
@@ -162,6 +170,7 @@ void main() {
       );
       await customSpeciesFile.writeAsString('''
 {
+  "schemaVersion": 1,
   "id": "mystery_mon",
   "nationalDex": 9999,
   "names": {},
@@ -250,6 +259,31 @@ void main() {
       );
     });
 
+    test('rejects a species file without an explicit schema version',
+        () async {
+      await seedUseCase.execute(workspace);
+      final speciesFile = File(
+        workspace.resolveProjectRelativePath(
+          'data/pokemon/species/0001-bulbasaur.json',
+        ),
+      );
+      final json = jsonDecode(await speciesFile.readAsString())
+          as Map<String, dynamic>
+        ..remove('schemaVersion');
+      await speciesFile.writeAsString(jsonEncode(json));
+
+      await expectLater(
+        () => reader.readSpeciesById(workspace, 'bulbasaur'),
+        throwsA(
+          isA<UnsupportedPokemonDataSchema>().having(
+            (error) => error.actualVersion,
+            'actualVersion',
+            isNull,
+          ),
+        ),
+      );
+    });
+
     test('fails explicitly when the species projection encounters invalid json',
         () async {
       await seedUseCase.execute(workspace);
@@ -294,6 +328,7 @@ void main() {
       );
       await duplicateFile.writeAsString('''
 {
+  "schemaVersion": 1,
   "id": "bulbasaur",
   "nationalDex": 9999,
   "names": {

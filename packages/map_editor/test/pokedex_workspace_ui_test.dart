@@ -3014,7 +3014,7 @@ void main() {
           projectRepository: FileProjectRepository(),
           databaseIndex: PokemonDatabaseIndex(
             projectRepository: FileProjectRepository(),
-            pokemonReadRepository: const FilePokemonReadRepository(),
+            pokemonReadRepository: FilePokemonReadRepository(),
           ),
         );
 

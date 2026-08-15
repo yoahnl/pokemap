@@ -190,6 +190,60 @@ void main() {
 
       expect(gateway.expectedProjects, isEmpty);
     });
+
+    test('authors, preserves and clears wild generation overrides', () async {
+      final project = _project(
+        encounterTables: const <ProjectEncounterTable>[
+          ProjectEncounterTable(
+            id: 'grass_patch',
+            name: 'Grass Patch',
+            encounterKind: EncounterKind.walk,
+          ),
+        ],
+      );
+      final created = await AddEncounterEntryUseCase(gateway).execute(
+        workspace,
+        project,
+        tableId: 'grass_patch',
+        speciesId: 'eevee',
+        minLevel: 8,
+        maxLevel: 8,
+        pokemonOverrides: const ProjectEncounterPokemonOverrides(
+          natureId: 'jolly',
+          shinyPolicy: ProjectEncounterShinyPolicy.never,
+        ),
+      );
+      final preserved = await UpdateEncounterEntryUseCase(gateway).execute(
+        workspace,
+        created,
+        tableId: 'grass_patch',
+        entryIndex: 0,
+        weight: 2,
+      );
+      final cleared = await UpdateEncounterEntryUseCase(gateway).execute(
+        workspace,
+        preserved,
+        tableId: 'grass_patch',
+        entryIndex: 0,
+        clearPokemonOverrides: true,
+      );
+
+      expect(
+        created.encounterTables.single.entries.single.pokemonOverrides,
+        const ProjectEncounterPokemonOverrides(
+          natureId: 'jolly',
+          shinyPolicy: ProjectEncounterShinyPolicy.never,
+        ),
+      );
+      expect(
+        preserved.encounterTables.single.entries.single.pokemonOverrides,
+        created.encounterTables.single.entries.single.pokemonOverrides,
+      );
+      expect(
+        cleared.encounterTables.single.entries.single.pokemonOverrides,
+        isNull,
+      );
+    });
   });
 }
 

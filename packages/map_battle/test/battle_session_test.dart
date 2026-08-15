@@ -18,7 +18,7 @@ void main() {
       bool allowCapture = false,
       bool allowFlee = true,
     }) {
-      return BattleSetup(
+      return BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -69,7 +69,7 @@ void main() {
     });
 
     test('createBattleSession respects currentHp when provided by runtime', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -103,7 +103,7 @@ void main() {
     test(
         'createBattleSession preserves the additional honest battle contract fields transported by BE1 through BE9',
         () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -260,7 +260,7 @@ void main() {
         'withUpdatedPlayerCombatant updates a reserve combatant by lineup identity',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'pikachu',
             lineupIndex: 1,
@@ -313,7 +313,7 @@ void main() {
     test(
         'createBattleSession preserves an explicit major status seed and move status effect',
         () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -357,7 +357,7 @@ void main() {
 
     test('createBattleSession preserves reserves and stable lineup identities',
         () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'lead_player',
           lineupIndex: 0,
@@ -477,7 +477,7 @@ void main() {
     });
 
     test('getAvailableChoices hides fight choices whose currentPp is zero', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -523,7 +523,7 @@ void main() {
     });
 
     test('forcing a move with zero PP is rejected explicitly', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -568,7 +568,7 @@ void main() {
     test(
         'enemy with no configured move fails explicitly instead of masquerading as a run action',
         () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -611,7 +611,7 @@ void main() {
     test(
         'enemy with only zero-PP moves fails explicitly while Struggle stays out of scope',
         () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -735,7 +735,7 @@ void main() {
 
     test('getAvailableChoices exposes Continue for a forced recharge turn', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: BattleCombatantData(
             speciesId: 'pikachu',
             level: 5,
@@ -807,7 +807,7 @@ void main() {
 
     test('KO enemy results in victory', () {
       // Créer un ennemi avec peu de PV
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 100,
@@ -842,7 +842,7 @@ void main() {
 
     test('KO player results in defeat', () {
       // Créer un joueur avec peu de PV face à un ennemi puissant
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -877,7 +877,7 @@ void main() {
 
     test('trainer battle victory outcome is compatible with marking', () {
       // Créer un setup où le joueur gagne en 1 coup
-      final oneHitSetup = BattleSetup(
+      final oneHitSetup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'mewtwo',
           level: 100,
@@ -921,7 +921,7 @@ void main() {
     });
 
     test('multiple turns until one combatant faints', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -971,7 +971,7 @@ void main() {
         'generic bag healing commits a real turn and the enemy still responds in the same turn flow',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: const BattleCombatantData(
             speciesId: 'sproutle',
             level: 10,
@@ -1056,7 +1056,7 @@ void main() {
         'generic bag healing rejects invalid targets instead of faking a committed item turn',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: const BattleCombatantData(
             speciesId: 'sproutle',
             level: 10,
@@ -1121,7 +1121,7 @@ void main() {
 
     test('a second canonical item id records its own timeline event', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: const BattleCombatantData(
             speciesId: 'sproutle',
             level: 10,
@@ -1188,7 +1188,7 @@ void main() {
 
     test('a large canonical flat heal remains explicit in the timeline', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: const BattleCombatantData(
             speciesId: 'sproutle',
             level: 10,
@@ -1259,7 +1259,7 @@ void main() {
 
     test('a canonical restore-to-full item commits a real turn', () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: const BattleCombatantData(
             speciesId: 'sproutle',
             level: 10,
@@ -1347,7 +1347,7 @@ void main() {
         'restore-to-full rejects invalid targets instead of faking a committed item turn',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: const BattleCombatantData(
             speciesId: 'sproutle',
             level: 10,
@@ -1434,7 +1434,7 @@ void main() {
         'generic flat healing rejects non-positive amounts before committing a turn',
         () {
       final session = createBattleSession(
-        BattleSetup(
+        BattleSetup.pokeMapBetaV1ForTest(
           playerPokemon: const BattleCombatantData(
             speciesId: 'sproutle',
             level: 10,

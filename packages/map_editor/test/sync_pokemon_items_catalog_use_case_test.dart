@@ -24,7 +24,7 @@ void main() {
     external = _FakeExternalRepository();
     sync = SyncExternalPokemonItemsCatalogUseCase(
       externalSourceRepository: external,
-      writeRepository: const FilePokemonWriteRepository(),
+      writeRepository: FilePokemonWriteRepository(),
     );
     await CreateProjectUseCase(
       FileProjectRepository(),

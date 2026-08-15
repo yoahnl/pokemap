@@ -72,6 +72,7 @@ void main() {
             actionKind: kScenarioActionGivePokemon,
             params: <String, String>{
               'speciesId': 'test_starter_species',
+              'formId': 'base',
               'level': '5',
               'knownMoveIds': 'tackle,growl',
             },

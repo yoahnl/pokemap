@@ -66,13 +66,17 @@ final class AuthoringMutationAdapter
     WorkspaceHandleStore Function()? workspaceHandles,
     ProjectSnapshotFingerprintCache? fingerprintCache,
     ProjectSnapshotCache? snapshotCache,
+    void Function(String projectRoot)? invalidatePokemonSpeciesSnapshot,
   }) : _fileReader = fileReader,
        _queries = queries,
        _projectRoots = projectRoots,
        _workspaceHandles = workspaceHandles ?? (() => WorkspaceHandleStore()),
        _fingerprintCache =
            fingerprintCache ?? ProjectSnapshotFingerprintCache(),
-       _snapshotCache = snapshotCache ?? ProjectSnapshotCache();
+       _snapshotCache = snapshotCache ?? ProjectSnapshotCache(),
+       _invalidatePokemonSpeciesSnapshot =
+           invalidatePokemonSpeciesSnapshot ??
+           _ignorePokemonSpeciesSnapshotInvalidation;
 
   final ProjectFileReader _fileReader;
   final AuthoringQueryAdapter _queries;
@@ -80,6 +84,7 @@ final class AuthoringMutationAdapter
   final WorkspaceHandleStore Function() _workspaceHandles;
   final ProjectSnapshotFingerprintCache _fingerprintCache;
   final ProjectSnapshotCache _snapshotCache;
+  final void Function(String projectRoot) _invalidatePokemonSpeciesSnapshot;
   final Map<String, Future<_EditorMutationSession>> _sessions = {};
   final Set<String> _openingRoots = {};
   String? _retainedRoot;
@@ -234,6 +239,10 @@ final class AuthoringMutationAdapter
           snapshotRevision: response.snapshotRevision,
         );
         _lastAppliedReceipt = result.receipt;
+        _invalidateSpeciesSnapshotIfTouched(
+          session.canonicalRoot,
+          result.receipt,
+        );
         await _queries.invalidate(session.canonicalRoot);
         return result;
       });
@@ -258,6 +267,10 @@ final class AuthoringMutationAdapter
           snapshotRevision: response.snapshotRevision,
         );
         _lastAppliedReceipt = result.receipt;
+        _invalidateSpeciesSnapshotIfTouched(
+          session.canonicalRoot,
+          result.receipt,
+        );
         await _queries.invalidate(session.canonicalRoot);
         return result;
       });
@@ -317,8 +330,23 @@ final class AuthoringMutationAdapter
       snapshotRevision: response.snapshotRevision,
     );
     _lastAppliedReceipt = result.receipt;
+    _invalidateSpeciesSnapshotIfTouched(session.canonicalRoot, result.receipt);
     await _queries.invalidate(session.canonicalRoot);
     return result;
+  }
+
+  void _invalidateSpeciesSnapshotIfTouched(
+    String projectRoot,
+    AuthoringReceipt receipt,
+  ) {
+    final touchesSpecies = receipt.affectedResources.any(
+      (resource) =>
+          resource.kind == 'pokemonDocument' &&
+          resource.id.startsWith('species:'),
+    );
+    if (touchesSpecies) {
+      _invalidatePokemonSpeciesSnapshot(projectRoot);
+    }
   }
 
   /// Canonical product path for saving one already-declared map document.
@@ -549,6 +577,8 @@ final class AuthoringMutationAdapter
         '$_identityCounter';
   }
 }
+
+void _ignorePokemonSpeciesSnapshotInvalidation(String projectRoot) {}
 
 Map<String, Object?> _strictJsonMap(Map<String, dynamic> value) {
   final encoded = EditorPerformanceTelemetry.encodeJson(value);

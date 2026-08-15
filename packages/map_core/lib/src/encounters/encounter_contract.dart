@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
@@ -88,7 +90,11 @@ List<ProjectEncounterEntry> canonicalEncounterEntries(
       if (comparison != 0) return comparison;
       comparison = left.maxLevel.compareTo(right.maxLevel);
       if (comparison != 0) return comparison;
-      return left.weight.compareTo(right.weight);
+      comparison = left.weight.compareTo(right.weight);
+      if (comparison != 0) return comparison;
+      return jsonEncode(
+        left.pokemonOverrides?.toJson(),
+      ).compareTo(jsonEncode(right.pokemonOverrides?.toJson()));
     });
   return List<ProjectEncounterEntry>.unmodifiable(ordered);
 }

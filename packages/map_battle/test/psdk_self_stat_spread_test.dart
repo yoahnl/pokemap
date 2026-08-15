@@ -101,7 +101,7 @@ List<PsdkBattleDamageEvent> _damageEvents(
 }
 
 PsdkBattleState _doublesState(PsdkBattleMoveData move) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(id: 'player', move: move),

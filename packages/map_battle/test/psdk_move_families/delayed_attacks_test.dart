@@ -5,7 +5,7 @@ void main() {
   group('PSDK delayed attack move families', () {
     test('Future Sight damages the targeted position after its countdown', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -71,7 +71,7 @@ void main() {
 
     test('Future Sight fails while the targeted position already has one', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -116,7 +116,7 @@ void main() {
 
     test('Future Sight stays on the target slot through replacement', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -187,7 +187,7 @@ void main() {
 
     test('Wish heals the replacement occupying the original slot', () {
       final engine = BattleEngine.fromPsdk(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -233,7 +233,7 @@ void main() {
 
     test('Wish fails while a previous Wish is still active on the slot', () {
       final engine = BattleEngine.fromPsdk(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -275,7 +275,7 @@ void main() {
 
     test('Healing Wish restores the next replacement HP and status', () {
       final engine = BattleEngine.fromPsdk(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -325,7 +325,7 @@ void main() {
 
     test('Healing Wish fails when no replacement is available', () {
       final engine = BattleEngine.fromPsdk(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -364,7 +364,7 @@ void main() {
 
     test('Lunar Dance restores PP to the next replacement', () {
       final engine = BattleEngine.fromPsdk(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,

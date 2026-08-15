@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import 'game_package_compatibility.dart';
 import 'game_package_manifest.dart';
 import 'game_package_security_policy.dart';
@@ -15,6 +17,7 @@ final class GamePackageInspectionReceipt {
     required this.payloadBytes,
     required this.fileCount,
     required this.signatureStatus,
+    required this.pokemonRuleset,
   });
 
   final int receiptVersion;
@@ -28,6 +31,7 @@ final class GamePackageInspectionReceipt {
   final int payloadBytes;
   final int fileCount;
   final PackageSignatureStatus signatureStatus;
+  final PokemonRulesetReference pokemonRuleset;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'receiptVersion': receiptVersion,
@@ -41,6 +45,7 @@ final class GamePackageInspectionReceipt {
         'payloadBytes': payloadBytes,
         'fileCount': fileCount,
         'signatureStatus': signatureStatus.name,
+        'pokemonRuleset': pokemonRuleset.toJson(),
       };
 }
 

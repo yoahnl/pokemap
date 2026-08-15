@@ -133,7 +133,7 @@ void main() {
     });
 
     test('end turn applies burn poison and toxic residual damage', () {
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(
@@ -290,7 +290,7 @@ PsdkBattleSetup _setup({
   int genericSeed = 5,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speed: 100,

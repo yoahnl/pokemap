@@ -725,7 +725,7 @@ BattleEngineSetup _setup({
     generic: 4,
   ),
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speciesId: playerSpeciesId,

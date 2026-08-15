@@ -6,6 +6,7 @@ import 'game_state_mutations.dart';
 import 'items/item_catalog_snapshot.dart';
 import 'pokemon_evolution_service.dart';
 import 'pokemon_experience_curve.dart';
+import 'pokemon_gameplay_rules.dart';
 import 'pokemon_stat_calculator.dart';
 
 export 'battle_progression_result.dart'
@@ -66,6 +67,7 @@ final class BattleProgressionPartySlotMetadata {
 final class BattleProgressionContext {
   BattleProgressionContext({
     required this.outcome,
+    required this.ruleset,
     required Iterable<int> playerParticipantPartySlots,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
@@ -92,12 +94,14 @@ final class BattleProgressionContext {
             Map<int, List<PokemonEvolutionCandidate>>.unmodifiable(
           _evolutionCandidatesBySlot(evolutionCandidatesByPartySlot),
         ) {
+    ruleset.requireSupported();
     for (final slot in this.playerParticipantPartySlots) {
       RangeError.checkNotNegative(slot, 'playerParticipantPartySlots');
     }
   }
 
   final BattleProgressionOutcomeKind outcome;
+  final PokemonRulesetProfile ruleset;
   final Set<int> playerParticipantPartySlots;
   final List<BattleProgressionDefeatedOpponent> defeatedOpponents;
   final Map<int, BattleProgressionPartySlotMetadata> partySlotMetadata;
@@ -133,11 +137,13 @@ final class BattleProgressionService {
     bool applyAuthoredRewards = true,
     ItemCatalogSnapshot? itemCatalog,
   }) {
+    final rules = PokemonGameplayRules.fromProfile(context.ruleset);
     if (context.outcome != BattleProgressionOutcomeKind.victory) {
       return BattleProgressionResult(
         state: state,
         appliedReward: _emptyRewardLike(reward),
         changes: const <BattlePokemonProgressionChange>[],
+        ruleset: context.ruleset,
       );
     }
 
@@ -157,6 +163,7 @@ final class BattleProgressionService {
     final totalExperience = _totalExperience(
       opponents: context.defeatedOpponents,
       sourceKind: reward.sourceKind,
+      rules: rules,
     );
     final experiencePerParticipant = totalExperience ~/ participantSlots.length;
     final plannedGrants = <BattleExperienceGrant>[
@@ -200,7 +207,9 @@ final class BattleProgressionService {
           'Party slot $slot experience is below its persisted level floor.',
         );
       }
-      final capExperience = curve.totalExperienceForLevel(100);
+      final capExperience = curve.totalExperienceForLevel(
+        rules.maxLevel,
+      );
       if (oldExperience > capExperience) {
         throw StateError(
           'Party slot $slot experience exceeds its level-100 cap.',
@@ -212,7 +221,10 @@ final class BattleProgressionService {
               ? capExperience
               : oldExperience + grant.experience;
       final effectiveExperience = newExperience - oldExperience;
-      final newLevel = curve.levelForExperience(newExperience);
+      final newLevel = curve.levelForExperience(
+        newExperience,
+        maxLevel: rules.maxLevel,
+      );
       final calculatedStats = statCalculator.calculate(
         baseStats: metadata.baseStats,
         ivs: member.ivs,
@@ -321,6 +333,7 @@ final class BattleProgressionService {
       changes: changes,
       moveLearningOpportunities: moveLearningOpportunities,
       evolutionOpportunities: evolutionOpportunities,
+      ruleset: context.ruleset,
     );
   }
 }
@@ -405,6 +418,7 @@ Map<int, List<PokemonEvolutionCandidate>> _evolutionCandidatesBySlot(
 int _totalExperience({
   required Iterable<BattleProgressionDefeatedOpponent> opponents,
   required BattleRewardSourceKind sourceKind,
+  required PokemonGameplayRules rules,
 }) {
   // Dart VM integers are arbitrary precision, while web targets use a bounded
   // safe integer range. Saturating here keeps the split deterministic across
@@ -413,12 +427,11 @@ int _totalExperience({
   var total = 0;
   for (final opponent in opponents) {
     final validated = opponent.validated();
-    final earned = switch (sourceKind) {
-      BattleRewardSourceKind.wild =>
-        (validated.level * validated.baseExperience) ~/ 7,
-      BattleRewardSourceKind.trainer =>
-        (validated.level * validated.baseExperience * 3) ~/ 14,
-    };
+    final earned = rules.experienceForDefeatedPokemon(
+      level: validated.level,
+      baseExperience: validated.baseExperience,
+      trainerBattle: sourceKind == BattleRewardSourceKind.trainer,
+    );
     if (earned >= maxSafeExperience - total) return maxSafeExperience;
     total += earned;
   }

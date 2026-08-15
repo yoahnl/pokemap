@@ -5,7 +5,7 @@ void main() {
   group('PSDK generic end-turn effects', () {
     test('skips later owner effects after an earlier end-turn KO', () {
       final log = <String>[];
-      final state = PsdkBattleState(
+      final state = PsdkBattleState.pokeMapBetaV1ForTest(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
           psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
             _combatant(

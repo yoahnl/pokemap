@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import 'runtime_battle_outcome_apply.dart';
@@ -17,10 +18,13 @@ final class RuntimeBattleProgressionContextMapper {
     required RuntimeActiveBattleContext runtimeContext,
     required BattleOutcome outcome,
     required int partyLength,
+    GameState? gameState,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
+    required PokemonRulesetProfile ruleset,
   }) {
     return BattleProgressionContext(
+      ruleset: ruleset,
       outcome: switch (outcome.type) {
         BattleOutcomeType.victory => BattleProgressionOutcomeKind.victory,
         BattleOutcomeType.defeat => BattleProgressionOutcomeKind.defeat,
@@ -31,6 +35,7 @@ final class RuntimeBattleProgressionContextMapper {
         runtimeContext: runtimeContext,
         participantLineupIndexes: outcome.playerParticipantLineupIndexes,
         partyLength: partyLength,
+        gameState: gameState,
       ),
       defeatedOpponents: defeatedOpponents,
       partySlotMetadata: partySlotMetadata,
@@ -41,10 +46,13 @@ final class RuntimeBattleProgressionContextMapper {
     required RuntimeActiveBattleContext runtimeContext,
     required PsdkBattleOutcome outcome,
     required int partyLength,
+    GameState? gameState,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
+    required PokemonRulesetProfile ruleset,
   }) {
     return BattleProgressionContext(
+      ruleset: ruleset,
       outcome: switch (outcome.kind) {
         PsdkBattleOutcomeKind.victory => BattleProgressionOutcomeKind.victory,
         PsdkBattleOutcomeKind.defeat => BattleProgressionOutcomeKind.defeat,
@@ -55,6 +63,7 @@ final class RuntimeBattleProgressionContextMapper {
         runtimeContext: runtimeContext,
         participantLineupIndexes: outcome.playerParticipantPartyIndexes,
         partyLength: partyLength,
+        gameState: gameState,
       ),
       defeatedOpponents: defeatedOpponents,
       partySlotMetadata: partySlotMetadata,
@@ -66,6 +75,7 @@ Set<int> _mapParticipantLineupIndexes({
   required RuntimeActiveBattleContext runtimeContext,
   required Iterable<int> participantLineupIndexes,
   required int partyLength,
+  required GameState? gameState,
 }) {
   if (partyLength <= 0) {
     throw StateError(
@@ -73,7 +83,13 @@ Set<int> _mapParticipantLineupIndexes({
     );
   }
 
-  final mapping = runtimeContext.playerPartySlotIndicesByLineupIndex;
+  final individualIds = runtimeContext.playerIndividualIdsByLineupIndex;
+  final mapping = individualIds.isEmpty
+      ? runtimeContext.playerPartySlotIndicesByLineupIndex
+      : _partyIndicesForIndividualIds(
+          individualIds: individualIds,
+          gameState: gameState,
+        );
   if (mapping.isEmpty) {
     throw StateError(
       'Battle progression requires the lineup-to-party mapping.',
@@ -85,11 +101,20 @@ Set<int> _mapParticipantLineupIndexes({
       'lineupLength=${mapping.length}, partyLength=$partyLength.',
     );
   }
-  if (mapping.first != runtimeContext.playerPartyIndex) {
+  if (individualIds.isEmpty &&
+      mapping.first != runtimeContext.playerPartyIndex) {
     throw StateError(
       'Battle progression active slot disagrees with lineup index zero: '
       'activePartySlot=${runtimeContext.playerPartyIndex}, '
       'mappedPartySlot=${mapping.first}.',
+    );
+  }
+  if (individualIds.isNotEmpty &&
+      individualIds.first != runtimeContext.playerIndividualId) {
+    throw StateError(
+      'Battle progression active identity disagrees with lineup index zero: '
+      'activeIndividualId=${runtimeContext.playerIndividualId}, '
+      'mappedIndividualId=${individualIds.first}.',
     );
   }
 
@@ -122,4 +147,31 @@ Set<int> _mapParticipantLineupIndexes({
     participants.add(mapping[lineupIndex]);
   }
   return Set<int>.unmodifiable(participants);
+}
+
+List<int> _partyIndicesForIndividualIds({
+  required List<String> individualIds,
+  required GameState? gameState,
+}) {
+  if (gameState == null) {
+    throw StateError(
+      'Battle progression requires current GameState to resolve individual identities.',
+    );
+  }
+  final indices = <int>[];
+  final seen = <int>{};
+  for (final individualId in individualIds) {
+    final matches = gameState.party.members
+        .asMap()
+        .entries
+        .where((entry) => entry.value.individualId == individualId)
+        .toList(growable: false);
+    if (matches.length != 1 || !seen.add(matches.single.key)) {
+      throw StateError(
+        'Battle progression cannot resolve individual identity $individualId uniquely.',
+      );
+    }
+    indices.add(matches.single.key);
+  }
+  return List<int>.unmodifiable(indices);
 }

@@ -5,7 +5,7 @@ void main() {
   group('PSDK global battle ordering', () {
     test('battle end short-circuits end-turn field progression after a KO', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'attacker',
             speed: 100,

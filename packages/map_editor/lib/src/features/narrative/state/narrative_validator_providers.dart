@@ -255,7 +255,7 @@ final narrativeValidatorPokemonCatalogLoaderProvider =
     }
 
     final workspace = ProjectFileSystem(request.projectRootPath);
-    const reader = PokemonProjectDataReader();
+    final reader = PokemonProjectDataReader();
     final speciesFuture = _loadSpeciesIds(reader, workspace);
     final movesFuture = _loadMoveIds(reader, workspace);
     return NarrativeValidatorPokemonCatalogSnapshot(

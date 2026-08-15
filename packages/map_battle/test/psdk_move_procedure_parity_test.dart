@@ -41,7 +41,7 @@ void main() {
     test('no-target failures stop before accuracy and keep PSDK events clean',
         () {
       final execution = _execution(
-        state: PsdkBattleState(
+        state: PsdkBattleState.pokeMapBetaV1ForTest(
           combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
             psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
               _combatant(id: 'player'),
@@ -220,7 +220,7 @@ PsdkBattleSetup _setup(
   PsdkBattleMoveData move, {
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(id: 'player', moves: <PsdkBattleMoveData>[move]),
     opponent: _combatant(id: 'opponent', types: opponentTypes),
     rngSeeds: const PsdkBattleRngSeeds(

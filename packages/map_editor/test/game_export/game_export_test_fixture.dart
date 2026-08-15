@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/game_export.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
+import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:path/path.dart' as p;
 
 Future<Directory> createAuthorProject({
@@ -64,6 +65,7 @@ Future<Directory> createAuthorProject({
       initialParty: [
         PlayerPokemon(
           speciesId: withCanonicalPokemon ? 'bulbasaur' : 'fixture.partner',
+          formId: 'partner',
           natureId: 'hardy',
           abilityId: withCanonicalPokemon ? 'overgrow' : 'steadfast',
           level: 5,
@@ -71,7 +73,10 @@ Future<Directory> createAuthorProject({
         ),
       ],
     ),
-    pokemon: ProjectPokemonConfig(enabled: withCanonicalPokemon),
+    pokemon: ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      enabled: withCanonicalPokemon,
+    ),
     settings: const ProjectSettings(
       tileWidth: 16,
       tileHeight: 16,
@@ -82,19 +87,16 @@ Future<Directory> createAuthorProject({
       'weather': 'clear',
     },
   ).toJson();
-  await File(p.join(root.path, 'project.json')).writeAsString(
-    jsonEncode(project),
-    flush: true,
-  );
+  await File(
+    p.join(root.path, 'project.json'),
+  ).writeAsString(jsonEncode(project), flush: true);
   await Directory(p.join(root.path, 'maps')).create(recursive: true);
   final mapJson = const MapData(
     id: 'map.start',
     name: 'Start',
     version: ProjectVersion.v6,
     size: GridSize(width: 8, height: 8),
-    layers: <MapLayer>[
-      MapLayer.object(id: 'events', name: 'Events'),
-    ],
+    layers: <MapLayer>[MapLayer.object(id: 'events', name: 'Events')],
     mapMetadata: MapMetadata(defaultSpawnId: 'spawn.player'),
     entities: <MapEntity>[
       MapEntity(
@@ -112,14 +114,12 @@ Future<Directory> createAuthorProject({
       'scriptPathRelative': 'dialogues/intro.yarn',
     };
   }
-  await File(p.join(root.path, 'maps', 'start.json')).writeAsString(
-    jsonEncode(mapJson),
-    flush: true,
-  );
+  await File(
+    p.join(root.path, 'maps', 'start.json'),
+  ).writeAsString(jsonEncode(mapJson), flush: true);
   if (withDialogue) {
     await Directory(p.join(root.path, 'dialogues')).create(recursive: true);
-    await File(p.join(root.path, 'dialogues', 'intro.yarn')).writeAsString(
-      '''
+    await File(p.join(root.path, 'dialogues', 'intro.yarn')).writeAsString('''
 title: Start
 ---
 Guide: Bienvenue.
@@ -127,119 +127,155 @@ Guide: Bienvenue.
   <<outcome continue>>
   En route.
 ===
-''',
-      flush: true,
-    );
+''', flush: true);
   }
   await Directory(p.join(root.path, 'assets')).create(recursive: true);
-  await File(p.join(root.path, 'assets', 'icon.png')).writeAsBytes(
-    onePixelPng,
-    flush: true,
-  );
-  await Directory(p.join(root.path, 'data', 'pokemon', 'media'))
-      .create(recursive: true);
+  await File(
+    p.join(root.path, 'assets', 'icon.png'),
+  ).writeAsBytes(onePixelPng, flush: true);
+  await Directory(
+    p.join(root.path, 'data', 'pokemon', 'media'),
+  ).create(recursive: true);
   await File(
     p.join(root.path, 'data', 'pokemon', 'media', 'creature.png'),
   ).writeAsBytes(onePixelPng, flush: true);
-  await File(p.join(root.path, 'LICENSE.txt')).writeAsString(
-    'Example license',
-    flush: true,
-  );
-  await File(p.join(root.path, 'CREDITS.txt')).writeAsString(
-    'Example credits',
-    flush: true,
-  );
-  await File(p.join(root.path, 'runtime_host_launch_save.json')).writeAsString(
-    '{}',
-    flush: true,
-  );
+  await File(
+    p.join(root.path, 'LICENSE.txt'),
+  ).writeAsString('Example license', flush: true);
+  await File(
+    p.join(root.path, 'CREDITS.txt'),
+  ).writeAsString('Example credits', flush: true);
+  await File(
+    p.join(root.path, 'runtime_host_launch_save.json'),
+  ).writeAsString('{}', flush: true);
   await Directory(p.join(root.path, 'saves')).create(recursive: true);
-  await File(p.join(root.path, 'saves', 'slot.json')).writeAsString(
-    '{}',
-    flush: true,
-  );
+  await File(
+    p.join(root.path, 'saves', 'slot.json'),
+  ).writeAsString('{}', flush: true);
   await Directory(p.join(root.path, '.dart_tool')).create(recursive: true);
-  await File(p.join(root.path, '.dart_tool', 'cache.json')).writeAsString(
-    '{}',
-    flush: true,
-  );
+  await File(
+    p.join(root.path, '.dart_tool', 'cache.json'),
+  ).writeAsString('{}', flush: true);
   if (withCanonicalPokemon) {
-    await const SeedPokemonDemoDataUseCase().execute(
-      ProjectFileSystem(root.path),
-    );
+    await SeedPokemonDemoDataUseCase(
+      snapshotController: FilePokemonReadRepository(),
+    ).execute(ProjectFileSystem(root.path));
+    await _writeReferencedPokemonAssets(root);
   }
   return root;
 }
 
+Future<void> _writeReferencedPokemonAssets(Directory root) async {
+  final mediaDirectory = Directory(
+    p.join(root.path, 'data', 'pokemon', 'media'),
+  );
+  await for (final entity in mediaDirectory.list()) {
+    if (entity is! File || !entity.path.endsWith('.json')) continue;
+    final media =
+        jsonDecode(await entity.readAsString()) as Map<String, dynamic>;
+    final variants = (media['variants'] as Map<String, dynamic>).values;
+    for (final rawVariant in variants) {
+      final variant = rawVariant as Map<String, dynamic>;
+      final paths = <String>[
+        for (final key in const <String>[
+          'frontStatic',
+          'backStatic',
+          'frontShinyStatic',
+          'backShinyStatic',
+          'icon',
+          'party',
+          'overworld',
+          'portrait',
+          'cry',
+        ])
+          if (variant[key] case final String path) path,
+        for (final animation
+            in (variant['animations'] as Map<String, dynamic>? ?? const {})
+                .values)
+          if ((animation as Map<String, dynamic>)['sheet']
+              case final String path)
+            path,
+      ];
+      for (final relativePath in paths) {
+        final file = File(p.join(root.path, relativePath));
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(
+          relativePath.endsWith('.ogg')
+              ? utf8.encode('OggS pokemon-fixture')
+              : onePixelPng,
+          flush: true,
+        );
+      }
+    }
+  }
+}
+
 SceneAsset _playableCompletionScene() => SceneAsset(
-      id: 'scene.main',
-      name: 'Main journey',
-      graph: SceneGraph(
-        startNodeId: 'start',
-        nodes: <SceneNode>[
-          SceneNode(id: 'start', kind: SceneNodeKind.start),
-          SceneNode(
-            id: 'finish',
-            kind: SceneNodeKind.action,
-            payload: SceneActionPayload.consequence(
-              SceneConsequence.finishGame(
-                endingId: 'ending.fixture.complete',
-                outcome: SceneGameCompletionOutcome.completed,
-                result: SceneFinishGameResult(
-                  title: SceneLocalizedText(fallback: 'Adventure complete'),
-                  summary: SceneLocalizedText(
-                    fallback: 'The fixture reached its authored ending.',
-                  ),
-                ),
-                postGamePolicy: ScenePostGamePolicy.returnToTitle,
+  id: 'scene.main',
+  name: 'Main journey',
+  graph: SceneGraph(
+    startNodeId: 'start',
+    nodes: <SceneNode>[
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'finish',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload.consequence(
+          SceneConsequence.finishGame(
+            endingId: 'ending.fixture.complete',
+            outcome: SceneGameCompletionOutcome.completed,
+            result: SceneFinishGameResult(
+              title: SceneLocalizedText(fallback: 'Adventure complete'),
+              summary: SceneLocalizedText(
+                fallback: 'The fixture reached its authored ending.',
               ),
             ),
+            postGamePolicy: ScenePostGamePolicy.returnToTitle,
           ),
-          SceneNode(
-            id: 'end',
-            kind: SceneNodeKind.end,
-            payload: SceneEndPayload(
-              outcomePolicy: SceneOutcomePolicy.progression,
-            ),
-          ),
-        ],
-        edges: <SceneEdge>[
-          SceneEdge(
-            id: 'start-finish',
-            fromNodeId: 'start',
-            fromPortId: 'completed',
-            toNodeId: 'finish',
-            kind: SceneEdgeKind.defaultFlow,
-          ),
-          SceneEdge(
-            id: 'finish-end',
-            fromNodeId: 'finish',
-            fromPortId: 'completed',
-            toNodeId: 'end',
-            kind: SceneEdgeKind.defaultFlow,
-          ),
-        ],
+        ),
       ),
-    );
+      SceneNode(
+        id: 'end',
+        kind: SceneNodeKind.end,
+        payload: SceneEndPayload(outcomePolicy: SceneOutcomePolicy.progression),
+      ),
+    ],
+    edges: <SceneEdge>[
+      SceneEdge(
+        id: 'start-finish',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'finish',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneEdge(
+        id: 'finish-end',
+        fromNodeId: 'finish',
+        fromPortId: 'completed',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+    ],
+  ),
+);
 
 GamePackageExportProfile neutralExportProfile({
   String gameId = 'games.example.neutral',
   String title = 'Neutral Adventure',
   String version = '1.2.0',
-}) =>
-    GamePackageExportProfile(
-      gameId: gameId,
-      gameVersion: version,
-      title: title,
-      description: 'A neutral exported game.',
-      authorName: 'Example Studio',
-      defaultLocale: 'fr',
-      supportedLocales: const <String>['fr', 'en'],
-      iconPath: 'assets/icon.png',
-      coverPath: 'assets/icon.png',
-      licensePath: 'LICENSE.txt',
-      creditsPath: 'CREDITS.txt',
-    );
+}) => GamePackageExportProfile(
+  gameId: gameId,
+  gameVersion: version,
+  title: title,
+  description: 'A neutral exported game.',
+  authorName: 'Example Studio',
+  defaultLocale: 'fr',
+  supportedLocales: const <String>['fr', 'en'],
+  iconPath: 'assets/icon.png',
+  coverPath: 'assets/icon.png',
+  licensePath: 'LICENSE.txt',
+  creditsPath: 'CREDITS.txt',
+);
 
 final List<int> onePixelPng = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk'

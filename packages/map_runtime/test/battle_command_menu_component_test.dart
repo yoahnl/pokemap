@@ -79,7 +79,7 @@ BattleSession _session({
   bool allowCapture = false,
 }) {
   return createBattleSession(
-    BattleSetup(
+    BattleSetup.pokeMapBetaV1ForTest(
       playerPokemon: player,
       playerReservePokemon: playerReserve,
       enemyPokemon: enemy,

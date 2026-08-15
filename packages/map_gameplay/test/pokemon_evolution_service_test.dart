@@ -36,6 +36,7 @@ void main() {
       );
 
       final result = evolutionService.evolve(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         pokemon: source,
         candidate: _candidate(
           minLevel: 5,
@@ -70,6 +71,7 @@ void main() {
     test('falls back to target primary ability when source is incompatible',
         () {
       final result = evolutionService.evolve(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         pokemon: _pokemon(currentHp: 20, abilityId: 'source_only'),
         candidate: _candidate(minLevel: 5),
         sourceMaxHp: 20,
@@ -80,16 +82,19 @@ void main() {
 
     test('preserves KO, full HP, and clamps a living Pokemon to one HP', () {
       final fainted = evolutionService.evolve(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         pokemon: _pokemon(currentHp: 0),
         candidate: _candidate(minLevel: 5),
         sourceMaxHp: 20,
       );
       final full = evolutionService.evolve(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         pokemon: _pokemon(currentHp: 20),
         candidate: _candidate(minLevel: 5),
         sourceMaxHp: 20,
       );
       final barelyAlive = evolutionService.evolve(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         pokemon: _pokemon(currentHp: 1),
         candidate: _candidate(minLevel: 5, targetHp: 1),
         sourceMaxHp: 9999,
@@ -104,6 +109,7 @@ void main() {
         () {
       expect(
         () => evolutionService.evolve(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           pokemon: _pokemon(currentHp: 20).copyWith(speciesId: 'other'),
           candidate: _candidate(),
           sourceMaxHp: 20,
@@ -112,6 +118,7 @@ void main() {
       );
       expect(
         () => evolutionService.evolve(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           pokemon: _pokemon(currentHp: 20).copyWith(level: 5),
           candidate: _candidate(minLevel: 6),
           sourceMaxHp: 20,
@@ -212,6 +219,7 @@ void main() {
       );
 
       final result = operations.useItem(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         state,
         itemId: 'leaf-stone',
         partyIndex: 0,
@@ -266,6 +274,7 @@ void main() {
       );
 
       final result = const PokemonEvolutionItemOperations().useItem(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         state,
         itemId: 'fire-stone',
         partyIndex: 0,
@@ -297,6 +306,7 @@ void main() {
       );
 
       final result = const PokemonEvolutionItemOperations().useItem(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         state,
         itemId: 'vault-key',
         partyIndex: 0,
@@ -627,6 +637,7 @@ void main() {
           ),
         ]),
         context: BattleProgressionContext(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           outcome: BattleProgressionOutcomeKind.victory,
           playerParticipantPartySlots: const <int>{1, 0},
           defeatedOpponents: const <BattleProgressionDefeatedOpponent>[
@@ -678,6 +689,7 @@ void main() {
 
       expect(
         () => BattleProgressionResult(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           state: state,
           appliedReward: BattleReward(
             sourceKind: BattleRewardSourceKind.wild,
@@ -785,6 +797,7 @@ BattleProgressionContext _context({
       const <int, List<PokemonEvolutionCandidate>>{},
 }) {
   return BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: opponents,

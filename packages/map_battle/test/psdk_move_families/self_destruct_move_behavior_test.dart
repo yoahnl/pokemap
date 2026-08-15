@@ -216,7 +216,7 @@ PsdkBattleTurnResult _runMove({
   ),
 }) {
   final engine = PsdkBattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         maxHp: 100,

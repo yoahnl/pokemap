@@ -1,16 +1,17 @@
-import '../../battle_type_chart.dart';
 import '../../battle_typing.dart';
+import '../../pokemon_battle_rules.dart';
 import '../../psdk/domain/psdk_battle_combatant.dart';
 
 final class BattleMoveTypeProcessor {
   const BattleMoveTypeProcessor();
 
   double resolveStabMultiplier({
+    required PokemonBattleRules rules,
     required String moveType,
     required PsdkBattleTypes userTypes,
     Iterable<String> extraUserTypes = const <String>[],
   }) {
-    final multiplier = BattleTypeChart.resolveStabMultiplier(
+    final multiplier = rules.resolveStabMultiplier(
       moveType: moveType,
       attackerTyping: _typingSnapshot(userTypes),
     );
@@ -26,6 +27,7 @@ final class BattleMoveTypeProcessor {
   }
 
   BattleTypeEffectivenessResult resolveEffectiveness({
+    required PokemonBattleRules rules,
     required String moveType,
     required PsdkBattleTypes targetTypes,
     Iterable<String> extraTargetTypes = const <String>[],
@@ -42,6 +44,7 @@ final class BattleMoveTypeProcessor {
       foresight: foresight,
       miracleEye: miracleEye,
       neutralizeFlyingWeaknesses: neutralizeFlyingWeaknesses,
+      rules: rules,
     );
     return BattleTypeEffectivenessResult(multiplier: multiplier);
   }
@@ -55,6 +58,7 @@ double _resolveEffectivenessMultiplier({
   required bool foresight,
   required bool miracleEye,
   required bool neutralizeFlyingWeaknesses,
+  required PokemonBattleRules rules,
 }) {
   final normalizedMoveType = moveType.toLowerCase();
   var multiplier = 1.0;
@@ -76,7 +80,7 @@ double _resolveEffectivenessMultiplier({
       multiplier *= overwrite;
       continue;
     }
-    multiplier *= BattleTypeChart.resolveEffectivenessMultiplier(
+    multiplier *= rules.resolveEffectivenessMultiplier(
       moveType: normalizedMoveType,
       defenderTyping: BattleTypingSnapshot(primaryType: normalized),
     );

@@ -125,7 +125,7 @@ PsdkBattleState _state({
   PsdkBattleEffectStack? playerEffects,
 }) {
   return PsdkBattleState.fromSetup(
-    BattleEngineSetup.singles(
+    BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant('player', effects: playerEffects),
       opponent: _combatant('opponent'),
       rngSeeds: const PsdkBattleRngSeeds(

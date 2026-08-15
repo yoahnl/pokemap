@@ -4,7 +4,6 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../errors/application_errors.dart';
-import '../models/pokemon_project_data_models.dart';
 import '../ports/pokemon_read_repository.dart';
 import '../ports/pokemon_sdk_studio_project_source.dart';
 import '../ports/pokemon_write_repository.dart';
@@ -166,9 +165,9 @@ final class SyncPokemonSdkMovesCatalogUseCase {
     final mergedEntries = <Map<String, dynamic>>[];
 
     final externalEntries = externalCatalog.entries.toList(growable: false)
-      ..sort((left, right) => _entryDbSymbol(left).compareTo(
-            _entryDbSymbol(right),
-          ));
+      ..sort(
+        (left, right) => _entryDbSymbol(left).compareTo(_entryDbSymbol(right)),
+      );
     for (final externalEntry in externalEntries) {
       final dbSymbol = _entryDbSymbol(externalEntry);
       final id = _entryId(externalEntry);
@@ -198,8 +197,9 @@ final class SyncPokemonSdkMovesCatalogUseCase {
     for (final id in localOnlyById.keys.toList(growable: false)..sort()) {
       mergedEntries.add(_deepCopy(localOnlyById[id]!));
     }
-    for (final entry in localByDbSymbol.values.toList(growable: false)
-      ..sort((left, right) => _entryId(left).compareTo(_entryId(right)))) {
+    for (final entry in localByDbSymbol.values.toList(
+      growable: false,
+    )..sort((left, right) => _entryId(left).compareTo(_entryId(right)))) {
       mergedEntries.add(_deepCopy(entry));
     }
 
@@ -237,9 +237,7 @@ final class SyncPokemonSdkMovesCatalogUseCase {
     final notes = <String>[
       ...externalMeta.notes,
       if (localMeta != null)
-        ...localMeta.notes.where(
-          (note) => !externalMeta.notes.contains(note),
-        ),
+        ...localMeta.notes.where((note) => !externalMeta.notes.contains(note)),
     ];
 
     return PokemonDataMeta(
@@ -383,7 +381,9 @@ Future<ProjectPokemonConfig> _readProjectPokemonConfig(
   final manifestPath = workspace.projectManifestPath;
   try {
     if (!await workspace.fileExists(manifestPath)) {
-      return const ProjectPokemonConfig();
+      throw EditorPersistenceException(
+        'Project manifest is required at $manifestPath.',
+      );
     }
 
     final raw = await workspace.readTextFile(manifestPath);

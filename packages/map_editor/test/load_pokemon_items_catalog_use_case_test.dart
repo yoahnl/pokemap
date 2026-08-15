@@ -106,7 +106,18 @@ void main() {
 
 class _FakeWorkspace implements ProjectWorkspace {
   _FakeWorkspace({Map<String, String> files = const {}})
-      : files = Map.of(files);
+    : files = Map.of(files) {
+    this.files.putIfAbsent(
+      projectManifestPath,
+      () => jsonEncode(
+        const ProjectManifest(
+          name: 'Pokemon items fixture',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+        ).toJson(),
+      ),
+    );
+  }
 
   final Map<String, String> files;
 

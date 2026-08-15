@@ -118,7 +118,7 @@ PsdkBattleState _state({
 }) {
   final opponentBattler = PsdkBattleCombatant.fromSetup(opponent);
   final playerBattler = PsdkBattleCombatant.fromSetup(player);
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkOpponentSlot: opponentBattler,
       psdkPlayerSlot: playerBattler,

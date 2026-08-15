@@ -146,6 +146,7 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
       NarrativeCommandIds.givePokemon: () => SceneActionPayload.consequence(
             SceneConsequence.givePokemon(
               speciesId: 'sproutle',
+              formId: 'base',
               level: 5,
               currentHp: 18,
             ),

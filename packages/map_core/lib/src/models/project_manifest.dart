@@ -9,6 +9,8 @@ import 'enums.dart';
 import 'project_trainer.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
+import 'pokemon_ruleset_profile.dart';
+import 'save_data.dart';
 import 'project_presentation_profile.dart';
 import 'project_presentation_preset.dart';
 import 'presentation_cinematic_asset.dart';
@@ -52,6 +54,7 @@ Object? _readProjectBorderCatalog(Map json, String key) {
   }
   return json[key] ?? _explicitNullProjectBorderCatalog;
 }
+
 ProjectBorderCatalog _projectBorderCatalogFromJson(Object? json) {
   if (identical(json, _explicitNullProjectBorderCatalog)) {
     throw const FormatException(r'$.borderCatalog: expected an object');
@@ -76,9 +79,7 @@ ProjectSmartTileCatalog _projectSmartTileCatalogFromJson(Object? json) {
   if (json is! Map) {
     throw const FormatException(r'$.smartTileCatalog: expected an object');
   }
-  return ProjectSmartTileCatalog.fromJson(
-    Map<String, dynamic>.from(json),
-  );
+  return ProjectSmartTileCatalog.fromJson(Map<String, dynamic>.from(json));
 }
 
 Map<String, Object?>? _projectSmartTileCatalogToJson(
@@ -148,9 +149,7 @@ List<StorylineAsset> _storylinesFromJson(Object? json) {
   ];
 }
 
-List<Map<String, dynamic>> _storylinesToJson(
-  List<StorylineAsset> storylines,
-) {
+List<Map<String, dynamic>> _storylinesToJson(List<StorylineAsset> storylines) {
   return [for (final storyline in storylines) storyline.toJson()];
 }
 
@@ -177,9 +176,7 @@ List<SceneAsset> _scenesFromJson(Object? json) {
   if (json is! List) {
     throw const ValidationException('scenes must be a JSON list');
   }
-  return [
-    for (final item in json) SceneAsset.fromJson(_sceneJsonObject(item)),
-  ];
+  return [for (final item in json) SceneAsset.fromJson(_sceneJsonObject(item))];
 }
 
 List<Map<String, dynamic>> _scenesToJson(List<SceneAsset> scenes) {
@@ -215,18 +212,14 @@ List<CinematicAsset> _cinematicsFromJson(Object? json) {
   ];
 }
 
-List<Map<String, dynamic>> _cinematicsToJson(
-  List<CinematicAsset> cinematics,
-) {
+List<Map<String, dynamic>> _cinematicsToJson(List<CinematicAsset> cinematics) {
   return [for (final cinematic in cinematics) cinematic.toJson()];
 }
 
 List<CinematicMediaAsset> _cinematicMediaAssetsFromJson(Object? json) {
   if (json == null) return const [];
   if (json is! List) {
-    throw const ValidationException(
-      'cinematicMediaAssets must be a JSON list',
-    );
+    throw const ValidationException('cinematicMediaAssets must be a JSON list');
   }
   return [
     for (final item in json)
@@ -236,8 +229,7 @@ List<CinematicMediaAsset> _cinematicMediaAssetsFromJson(Object? json) {
 
 List<Map<String, dynamic>> _cinematicMediaAssetsToJson(
   List<CinematicMediaAsset> assets,
-) =>
-    [for (final asset in assets) asset.toJson()];
+) => [for (final asset in assets) asset.toJson()];
 
 Map<String, dynamic> _cinematicJsonObject(Object? json) {
   if (json is! Map) {
@@ -268,9 +260,7 @@ List<NarrativeFactDefinition> _factsFromJson(Object? json) {
   ];
 }
 
-List<Map<String, dynamic>> _factsToJson(
-  List<NarrativeFactDefinition> facts,
-) {
+List<Map<String, dynamic>> _factsToJson(List<NarrativeFactDefinition> facts) {
   return [for (final fact in facts) fact.toJson()];
 }
 
@@ -326,7 +316,8 @@ Map<String, dynamic> _worldRuleJsonObject(Object? json) {
 /// Missing or `null` root data remains an empty in-memory catalog. When the
 /// object is present, it must use the explicit catalog codec shape.
 ProjectBuildingShadowPresetCatalog _projectedBuildingShadowCatalogFromJson(
-    Object? json) {
+  Object? json,
+) {
   if (json == null) {
     return const ProjectBuildingShadowPresetCatalog.empty();
   }
@@ -348,7 +339,7 @@ Map<String, Object?>? _projectedBuildingShadowCatalogToJson(
 }
 
 ProjectElementProjectedBuildingShadowConfig?
-    _projectedBuildingShadowConfigFromJson(Object? json) {
+_projectedBuildingShadowConfigFromJson(Object? json) {
   if (json == null) {
     return null;
   }
@@ -480,11 +471,7 @@ abstract class ProjectManifest with _$ProjectManifest {
     )
     List<CinematicMediaAsset> cinematicMediaAssets,
     @Default([])
-    @JsonKey(
-      name: 'facts',
-      fromJson: _factsFromJson,
-      toJson: _factsToJson,
-    )
+    @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
     List<NarrativeFactDefinition> facts,
     @Default([])
     @JsonKey(
@@ -497,11 +484,7 @@ abstract class ProjectManifest with _$ProjectManifest {
     List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
     @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
     @Default([])
-    @JsonKey(
-      name: 'scenes',
-      fromJson: _scenesFromJson,
-      toJson: _scenesToJson,
-    )
+    @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
     List<SceneAsset> scenes,
     @Default([])
     @JsonKey(
@@ -515,13 +498,11 @@ abstract class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectTrainerEntry> trainers,
     @Default([]) List<ProjectCharacterEntry> characters,
     @Default(ProjectCharacterStudioCatalog())
-    @JsonKey(
-      toJson: _projectCharacterStudioCatalogToJson,
-      includeIfNull: false,
-    )
+    @JsonKey(toJson: _projectCharacterStudioCatalogToJson, includeIfNull: false)
     ProjectCharacterStudioCatalog characterStudioCatalog,
     @Default(ProjectSettings()) ProjectSettings settings,
-    @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
+    @Default(ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1))
+    ProjectPokemonConfig pokemon,
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
     @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
     @Default([]) List<ProjectPresentationPresetRecord> presentationPresets,
@@ -557,18 +538,17 @@ abstract class ProjectManifest with _$ProjectManifest {
   }) = _ProjectManifest;
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) {
+    _preflightPokemonRulesetManifestJson(json);
     final migratedJson = _migrateLegacyTilesetSources(json);
     _preflightProjectManifestJson(migratedJson);
     final decoded = _$ProjectManifestFromJson(migratedJson);
-    final shops =
-        decoded.shops.map((shop) => shop.normalized()).toList(growable: false);
+    final shops = decoded.shops
+        .map((shop) => shop.normalized())
+        .toList(growable: false);
     final badges = decoded.badges
         .map((badge) => badge.normalized())
         .toList(growable: false);
-    _assertUniqueDefinitionIds(
-      kind: 'shop',
-      ids: shops.map((shop) => shop.id),
-    );
+    _assertUniqueDefinitionIds(kind: 'shop', ids: shops.map((shop) => shop.id));
     _assertUniqueDefinitionIds(
       kind: 'badge',
       ids: badges.map((badge) => badge.id),
@@ -583,6 +563,39 @@ abstract class ProjectManifest with _$ProjectManifest {
       ids: manifest.presentationCinematics.map((cinematic) => cinematic.id),
     );
     return manifest;
+  }
+
+  factory ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+    Map<String, dynamic> json,
+  ) {
+    final explicit = Map<String, dynamic>.from(json);
+    final pokemon = explicit['pokemon'];
+    if (pokemon is Map) {
+      explicit['pokemon'] = <String, dynamic>{
+        ...Map<String, dynamic>.from(pokemon),
+        if (!pokemon.containsKey('ruleset'))
+          'ruleset': PokemonRulesetProfile.pokeMapBetaV1.toJson(),
+      };
+    } else if (!explicit.containsKey('pokemon')) {
+      explicit['pokemon'] = const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ).toJson();
+    }
+    return ProjectManifest.fromJson(explicit);
+  }
+}
+
+void _preflightPokemonRulesetManifestJson(Map<String, dynamic> json) {
+  final pokemon = json['pokemon'];
+  if (pokemon is! Map ||
+      !pokemon.containsKey('ruleset') ||
+      pokemon['ruleset'] == null) {
+    throw const FormatException(
+      r'$.pokemon.ruleset: explicit Pokemon ruleset required',
+    );
+  }
+  if (pokemon['ruleset'] is! Map) {
+    throw const FormatException(r'$.pokemon.ruleset: expected an object');
   }
 }
 
@@ -646,9 +659,7 @@ void _preflightProjectManifestJson(Map<String, dynamic> json) {
 
 const String _legacyVisualLibraryMetadataKey = 'pokemapAuthoringVisualLibrary';
 
-Map<String, dynamic> _migrateLegacyTilesetSources(
-  Map<String, dynamic> json,
-) {
+Map<String, dynamic> _migrateLegacyTilesetSources(Map<String, dynamic> json) {
   final rawProperties = json['globalProperties'];
   if (rawProperties is! Map ||
       !rawProperties.containsKey(_legacyVisualLibraryMetadataKey)) {
@@ -706,10 +717,7 @@ Map<String, dynamic> _migrateLegacyTilesetSources(
         '($tilesetId)',
       );
     }
-    tileset['source'] = <String, dynamic>{
-      'kind': 'regular_atlas',
-      ...atlas,
-    };
+    tileset['source'] = <String, dynamic>{'kind': 'regular_atlas', ...atlas};
   }
   final properties = Map<String, dynamic>.from(rawProperties)
     ..remove(_legacyVisualLibraryMetadataKey);
@@ -733,7 +741,8 @@ void _assertUniqueDefinitionIds({
   for (final id in ids) {
     if (!seen.add(id)) {
       throw FormatException(
-          'ProjectManifest contains duplicate $kind id "$id"');
+        'ProjectManifest contains duplicate $kind id "$id"',
+      );
     }
   }
 }
@@ -743,6 +752,7 @@ abstract class ProjectPokemonConfig with _$ProjectPokemonConfig {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectPokemonConfig({
     @Default(true) bool enabled,
+    required PokemonRulesetProfile ruleset,
     @Default('data/pokemon') String dataRoot,
     @Default('data/pokemon/species') String speciesDir,
     @Default('data/pokemon/learnsets') String learnsetsDir,
@@ -1018,9 +1028,31 @@ abstract class ProjectElementEntry with _$ProjectElementEntry {
 /// default when older project files omit `chancePerStep`.
 const double defaultEncounterChancePerStep = 0.12;
 
+enum ProjectEncounterShinyPolicy { random, never, always }
+
+@freezed
+abstract class ProjectEncounterPokemonOverrides
+    with _$ProjectEncounterPokemonOverrides {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectEncounterPokemonOverrides({
+    String? natureId,
+    String? abilityId,
+    String? gender,
+    PokemonStatSpread? ivs,
+    @Default(ProjectEncounterShinyPolicy.random)
+    ProjectEncounterShinyPolicy shinyPolicy,
+    @Default(<String>[]) List<String> knownMoveIds,
+  }) = _ProjectEncounterPokemonOverrides;
+
+  factory ProjectEncounterPokemonOverrides.fromJson(
+    Map<String, dynamic> json,
+  ) => _$ProjectEncounterPokemonOverridesFromJson(json);
+}
+
 /// Entrée pondérée dans une table de rencontres.
 @freezed
 abstract class ProjectEncounterEntry with _$ProjectEncounterEntry {
+  @JsonSerializable(explicitToJson: true)
   const factory ProjectEncounterEntry({
     /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
     required String speciesId,
@@ -1029,6 +1061,8 @@ abstract class ProjectEncounterEntry with _$ProjectEncounterEntry {
 
     /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
     @Default(1) int weight,
+    @JsonKey(includeIfNull: false)
+    ProjectEncounterPokemonOverrides? pokemonOverrides,
   }) = _ProjectEncounterEntry;
 
   factory ProjectEncounterEntry.fromJson(Map<String, dynamic> json) =>

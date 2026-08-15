@@ -59,7 +59,9 @@ const _$PlayerPokemonOriginKindEnumMap = {
 
 _PlayerPokemon _$PlayerPokemonFromJson(Map<String, dynamic> json) =>
     _PlayerPokemon(
+      individualId: json['individualId'] as String? ?? '',
       speciesId: json['speciesId'] as String,
+      formId: json['formId'] as String? ?? '',
       natureId: json['natureId'] as String,
       abilityId: json['abilityId'] as String,
       gender: json['gender'] as String?,
@@ -93,7 +95,9 @@ _PlayerPokemon _$PlayerPokemonFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$PlayerPokemonToJson(_PlayerPokemon instance) =>
     <String, dynamic>{
+      'individualId': instance.individualId,
       'speciesId': instance.speciesId,
+      'formId': instance.formId,
       'natureId': instance.natureId,
       'abilityId': instance.abilityId,
       'gender': instance.gender,
@@ -306,6 +310,11 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
           ?.map((e) => e as String)
           .toSet() ??
       const {},
+  appliedPokemonGrantOperationIds:
+      (json['appliedPokemonGrantOperationIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toSet() ??
+      const {},
   properties:
       (json['properties'] as Map<String, dynamic>?)?.map(
         (k, e) => MapEntry(k, e as String),
@@ -329,6 +338,8 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
     instance.narrativeEventProgress,
   ),
   'completedBattleRequestIds': instance.completedBattleRequestIds.toList(),
+  'appliedPokemonGrantOperationIds': instance.appliedPokemonGrantOperationIds
+      .toList(),
   'properties': instance.properties,
 };
 

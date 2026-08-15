@@ -211,7 +211,7 @@ BattleEngineSetup _setup({
   List<PsdkBattleCombatantSetup> playerReserves =
       const <PsdkBattleCombatantSetup>[],
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       moves: playerMoves ?? <PsdkBattleMoveData>[_move(id: 'player-hit')],

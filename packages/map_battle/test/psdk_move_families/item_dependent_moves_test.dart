@@ -439,7 +439,7 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
 }) {
   final engine = PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speciesId: playerSpeciesId,

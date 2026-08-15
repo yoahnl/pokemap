@@ -252,7 +252,7 @@ PsdkBattleState _state({
   PsdkBattleEffectStack? opponentLeftEffects,
   PsdkBattleEffectStack? opponentRightEffects,
 }) {
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       _playerLeft: PsdkBattleCombatant.fromSetup(
         _combatant(

@@ -533,6 +533,7 @@ RuntimeBattleRewardResolution _resolution({
     money: 100,
   );
   final context = BattleProgressionContext(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: const <BattleProgressionDefeatedOpponent>[

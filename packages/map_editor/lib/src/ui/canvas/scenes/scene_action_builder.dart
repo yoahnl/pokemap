@@ -10,11 +10,13 @@ final class SceneActionPickerOption {
   const SceneActionPickerOption({
     required this.id,
     required this.label,
+    this.parentId,
     this.parameters = const {},
   });
 
   final String id;
   final String label;
+  final String? parentId;
   final Map<String, String> parameters;
 }
 
@@ -353,6 +355,13 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
   List<SceneActionPickerOption> _optionsFor(
     NarrativeCommandParameterKind kind,
   ) {
+    if (kind == NarrativeCommandParameterKind.speciesForm) {
+      final speciesId = _values['speciesId'];
+      return [
+        for (final option in widget.pickerOptions[kind] ?? const [])
+          if (option.parentId == speciesId) option,
+      ];
+    }
     return switch (kind) {
       NarrativeCommandParameterKind.completionOutcome => const [
           SceneActionPickerOption(id: 'completed', label: 'Partie terminée'),
@@ -406,6 +415,17 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
     setState(() {
       _values[parameter.id] = value;
       _applyOptionParameters(parameter.kind, value);
+      if (parameter.kind == NarrativeCommandParameterKind.species) {
+        final options = _optionsFor(NarrativeCommandParameterKind.speciesForm);
+        final selectedFormId = _values['formId'];
+        if (!options.any((option) => option.id == selectedFormId)) {
+          if (options.isEmpty) {
+            _values.remove('formId');
+          } else {
+            _values['formId'] = options.first.id;
+          }
+        }
+      }
       _submissionError = null;
     });
   }

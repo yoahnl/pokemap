@@ -11,7 +11,6 @@ import '../../app/providers/core/repository_providers.dart';
 import '../../app/providers/pokedex/pokedex_providers.dart';
 import '../../application/models/pokedex_species_detail.dart';
 import '../../application/models/pokemon_database_index.dart';
-import '../../application/models/pokemon_project_data_models.dart';
 import '../../application/ports/project_workspace.dart';
 import '../../application/services/local_catalog_lookup_service.dart';
 import '../../application/services/pokemon_moves_catalog_lookup_service.dart';

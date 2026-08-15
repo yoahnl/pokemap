@@ -205,6 +205,9 @@ Map<String, dynamic> _projectJson({required String version}) =>
       'version': version,
       'maps': <Object?>[],
       'tilesets': <Object?>[],
+      'pokemon': const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ).toJson(),
     };
 
 PresentationCinematicAsset _presentation(String id) =>

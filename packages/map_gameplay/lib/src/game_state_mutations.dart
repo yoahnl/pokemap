@@ -991,8 +991,10 @@ class GameStateMutations {
       );
     }
 
-    final normalizedPokemon = pokemon.copyWith(
-      speciesId: normalizedSpeciesId,
+    final normalizedPokemon = _preparePokemonForOwnership(
+      state,
+      pokemon: pokemon,
+      allocationLocation: 'give:party:${state.party.members.length}',
     );
 
     if (state.party.members.length < maxPartySize) {
@@ -1066,23 +1068,93 @@ class GameStateMutations {
       return state;
     }
 
+    final normalizedPokemon = _preparePokemonForOwnership(
+      state,
+      pokemon: pokemon,
+      allocationLocation: 'give:party:${state.party.members.length}',
+    );
+
     if (preventDuplicateSpecies) {
       final alreadyOwned = state.party.members.any(
-        (m) => m.speciesId.trim() == normalizedSpeciesId,
+        (m) => m.speciesId.trim() == normalizedPokemon.speciesId,
       );
       if (alreadyOwned) {
         return state;
       }
     }
 
-    final normalizedPokemon = pokemon.copyWith(
-      speciesId: normalizedSpeciesId,
-    );
-
     final newMembers = [...state.party.members, normalizedPokemon];
 
     return state.copyWith(
       party: state.party.copyWith(members: newMembers),
+    );
+  }
+
+  GameState givePokemonOnce(
+    GameState state, {
+    required String grantOperationId,
+    required PlayerPokemon pokemon,
+    bool preventDuplicateSpecies = false,
+  }) {
+    final normalizedOperationId = grantOperationId.trim();
+    if (normalizedOperationId.isEmpty) {
+      throw ArgumentError.value(
+        grantOperationId,
+        'grantOperationId',
+        'must not be empty',
+      );
+    }
+    if (state.appliedPokemonGrantOperationIds.contains(normalizedOperationId)) {
+      return state;
+    }
+    final nextState = givePokemon(
+      state,
+      pokemon: pokemon,
+      preventDuplicateSpecies: preventDuplicateSpecies,
+    );
+    if (pokemon.speciesId.trim().isEmpty) {
+      return state;
+    }
+    return nextState.copyWith(
+      appliedPokemonGrantOperationIds: <String>{
+        ...nextState.appliedPokemonGrantOperationIds,
+        normalizedOperationId,
+      },
+    );
+  }
+
+  PlayerPokemon _preparePokemonForOwnership(
+    GameState state, {
+    required PlayerPokemon pokemon,
+    required String allocationLocation,
+  }) {
+    final occupiedIndividualIds = <String>{
+      for (final member in state.party.members) member.individualId.trim(),
+      for (final box in state.pokemonStorage.boxes)
+        for (final member in box.pokemon) member.individualId.trim(),
+    }..remove('');
+    final requestedIndividualId = pokemon.individualId.trim();
+    if (requestedIndividualId.isNotEmpty &&
+        occupiedIndividualIds.contains(requestedIndividualId)) {
+      throw StateError(
+        'PlayerPokemon individualId values must be unique across party and storage',
+      );
+    }
+    final normalizedPokemon = pokemon.copyWith(
+      individualId: requestedIndividualId,
+      speciesId: pokemon.speciesId.trim(),
+      formId: pokemon.formId.trim(),
+    );
+    if (requestedIndividualId.isNotEmpty) {
+      return normalizedPokemon;
+    }
+    return normalizedPokemon.copyWith(
+      individualId: nextPlayerPokemonIndividualId(
+        saveId: state.saveId,
+        location: allocationLocation,
+        pokemon: normalizedPokemon,
+        occupiedIndividualIds: occupiedIndividualIds,
+      ),
     );
   }
 

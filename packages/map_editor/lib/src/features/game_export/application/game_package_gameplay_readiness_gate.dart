@@ -437,7 +437,7 @@ void _appendPokemonValidationDiagnostics({
         message: issue.message,
         path: issue.location,
         destination: NarrativeProjectDiagnosticDestination.overview,
-        suggestedFixLabel: 'Corriger les données Pokémon indiquées.',
+        suggestedFixLabel: issue.recommendedAction,
       ),
     );
   }

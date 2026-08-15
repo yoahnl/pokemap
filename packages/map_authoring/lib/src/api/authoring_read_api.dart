@@ -97,7 +97,7 @@ final class AuthoringReadApi
         AuthoringReadCommandDescriptor(
           id: 'validate',
           summary:
-              'Inspect project structure, references, and optional capability certification.',
+              'Inspect project structure, Pokemon coherence, references, and optional capability certification.',
         ),
       ],
       queryOperations: AuthoringQueryOperation.values,
@@ -155,6 +155,10 @@ final class AuthoringReadApi
       records: records,
       requiredCapabilityIds: requiredIds,
     );
+    final pokemonCatalog = await _snapshotLoader.validatePokemonCatalog(
+      projectHandle,
+      snapshot.manifest,
+    );
     final structureDiagnostics = <AuthoringStructureDiagnostic>[];
     try {
       ProjectValidator.validate(snapshot.manifest);
@@ -202,6 +206,7 @@ final class AuthoringReadApi
         providedCapabilityCount: records.length,
       ),
       capabilityTruth: capabilityTruth,
+      pokemonCatalog: pokemonCatalog,
     );
   }
 

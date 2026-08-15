@@ -16,6 +16,7 @@ import {
 } from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { createPokeMapMcpServer } from "../src/server.js";
+import { canonicalPokemonConfig } from "./pokemon_fixture.js";
 
 const repositoryRoot = resolve(process.cwd(), "../..");
 const authoringPackageRoot = resolve(repositoryRoot, "packages/map_authoring");
@@ -130,6 +131,31 @@ async function mutationFixture(
     await writeFile(join(root, "project.json"), JSON.stringify(project));
   } else {
     await writeFile(join(root, "project.json"), scaffoldBytes);
+  }
+  const projectPath = join(root, "project.json");
+  const project = record(JSON.parse(await readFile(projectPath, "utf8")));
+  project.pokemon = canonicalPokemonConfig();
+  await writeFile(projectPath, JSON.stringify(project));
+  for (const directory of ["species", "learnsets", "evolutions", "media"]) {
+    await mkdir(join(root, "data/pokemon", directory), { recursive: true });
+  }
+  const catalogDirectory = join(root, "data/pokemon/catalogs");
+  await mkdir(catalogDirectory, { recursive: true });
+  for (const catalogId of [
+    "types",
+    "abilities",
+    "moves",
+    "growth_rates",
+    "items",
+  ]) {
+    await writeFile(
+      join(catalogDirectory, `${catalogId}.json`),
+      JSON.stringify({
+        schemaVersion: 1,
+        ...(catalogId === "items" ? {} : { catalog: catalogId }),
+        entries: [],
+      }),
+    );
   }
   const authoring = new LocalAuthoringClient({
     allowedRoots: [root],
@@ -844,6 +870,95 @@ async function applyMutation(
   return String(validation.snapshotRevision);
 }
 
+test("MCP scene.upsert preserves a non-base Pokemon form", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = (described.mutationActions as JsonRecord[]).map(
+      (action) => String(action.id),
+    );
+    assert.ok(actionIds.includes("scene.upsert"));
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: String(validated.snapshotRevision),
+      actionId: "scene.upsert",
+      sequence: "scene-pokemon-form",
+      parameters: {
+        scene: {
+          id: "gift-scene-mcp",
+          name: "Gift Scene MCP",
+          graph: {
+            startNodeId: "start",
+            nodes: [
+              { id: "start", kind: "start" },
+              {
+                id: "gift",
+                kind: "action",
+                payload: {
+                  kind: "action",
+                  consequence: {
+                    kind: "givePokemon",
+                    speciesId: "sproutle",
+                    formId: "sunny",
+                    level: 7,
+                    currentHp: 24,
+                    natureId: "hardy",
+                    abilityId: "overgrow",
+                  },
+                },
+              },
+              { id: "end", kind: "end" },
+            ],
+            edges: [
+              {
+                id: "start-gift",
+                fromNodeId: "start",
+                fromPortId: "completed",
+                toNodeId: "gift",
+                kind: "default",
+              },
+              {
+                id: "gift-end",
+                fromNodeId: "gift",
+                fromPortId: "completed",
+                toNodeId: "end",
+                kind: "actionCompleted",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const project = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    const scenes = project.scenes as JsonRecord[];
+    const scene = scenes.find((candidate) => candidate.id === "gift-scene-mcp");
+    const graph = record(scene?.graph);
+    const nodes = graph.nodes as JsonRecord[];
+    const gift = nodes.find((candidate) => candidate.id === "gift");
+    const consequence = record(record(gift?.payload).consequence);
+    assert.equal(consequence.speciesId, "sproutle");
+    assert.equal(consequence.formId, "sunny");
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP commits and undoes one atomic Presentation clip batch", async () => {
   const fixture = await mutationFixture();
   try {
@@ -880,6 +995,7 @@ test("MCP commits and undoes one atomic Presentation clip batch", async () => {
         version: "v7",
         maps: [],
         tilesets: [],
+        pokemon: canonicalPokemonConfig(),
         presentationCinematics: [
           {
             schemaVersion: 3,
@@ -1124,6 +1240,7 @@ test("MCP executes and rereads every cinematic library catalog action", async ()
         version: "v7",
         maps: [],
         tilesets: [],
+        pokemon: canonicalPokemonConfig(),
         cinematics: [
           {
             id: "world-a",
@@ -2351,6 +2468,11 @@ test("MCP authors, rereads, and safely deletes an encounter table", async () => 
               minLevel: 2,
               maxLevel: 4,
               weight: 3,
+              pokemonOverrides: {
+                natureId: "jolly",
+                shinyPolicy: "never",
+                knownMoveIds: [],
+              },
             },
             {
               speciesId: "pidgey",
@@ -2378,6 +2500,14 @@ test("MCP authors, rereads, and safely deletes an encounter table", async () => 
     assert.ok(table);
     assert.equal(table.encounterKind, "walk");
     assert.equal((table.entries as unknown[]).length, 2);
+    assert.deepEqual(record((table.entries as JsonRecord[])[0]).pokemonOverrides, {
+      natureId: "jolly",
+      abilityId: null,
+      gender: null,
+      ivs: null,
+      shinyPolicy: "never",
+      knownMoveIds: [],
+    });
     assert.deepEqual(table.tags, ["route", "early-game"]);
 
     const plannedDelete = await toolData(fixture.client, "pokemap_plan", {

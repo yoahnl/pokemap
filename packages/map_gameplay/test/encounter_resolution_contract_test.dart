@@ -83,6 +83,7 @@ void main() {
       expect(original.encounterKind, EncounterKind.walk);
       expect(original.encounter?.speciesId, 'zubat');
       expect(original.encounter?.level, 7);
+      expect(original.encounter?.generationSeed, isNot(0));
       expect(repeated.encounter?.toJson(), original.encounter?.toJson());
       expect(reorderedResult.encounter?.toJson(), original.encounter?.toJson());
 
@@ -91,6 +92,42 @@ void main() {
           _check(world, project, seed: seed).encounter!.toJson().toString(),
       };
       expect(outcomes.length, greaterThan(1));
+    });
+
+    test('carries authored generation overrides into the encounter snapshot',
+        () {
+      final project = _project().copyWith(
+        encounterTables: <ProjectEncounterTable>[
+          _project().encounterTables.first.copyWith(
+            entries: const <ProjectEncounterEntry>[
+              ProjectEncounterEntry(
+                speciesId: 'zubat',
+                minLevel: 5,
+                maxLevel: 5,
+                pokemonOverrides: ProjectEncounterPokemonOverrides(
+                  natureId: 'timid',
+                  shinyPolicy: ProjectEncounterShinyPolicy.never,
+                ),
+              ),
+            ],
+          ),
+          _project().encounterTables.last,
+        ],
+      );
+      final result = _check(
+        _world(<MapGameplayZone>[
+          _zone(id: 'only', tableId: 'alpha'),
+        ]),
+        project,
+        seed: 4,
+      );
+
+      expect(result.encounter?.pokemonOverrides?.natureId, 'timid');
+      expect(
+        result.encounter?.pokemonOverrides?.shinyPolicy,
+        ProjectEncounterShinyPolicy.never,
+      );
+      expect(result.encounter?.generationSeed, isNot(0));
     });
 
     test('evaluates authored flag and typed fact conditions before selection',

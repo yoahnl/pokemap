@@ -23,8 +23,12 @@ final class PokemonJsonDocument {
   factory PokemonJsonDocument.fromJson(
     PokemonDocumentKind kind,
     Map<String, dynamic> json,
-  ) =>
-      PokemonJsonDocument._(kind, Map<String, Object?>.from(json));
+  ) {
+    return PokemonJsonDocument._(
+      kind,
+      _canonicalSharedPokemonDocument(kind, json),
+    );
+  }
 
   final PokemonDocumentKind kind;
   final Map<String, Object?> _json;
@@ -112,108 +116,51 @@ final class PokemonCatalogAuthoringService {
   }
 }
 
-enum PokemonDataIssueSeverity { warning, error }
-
-final class PokemonDataIssue {
-  const PokemonDataIssue({
-    required this.code,
-    required this.path,
-    required this.message,
-    this.severity = PokemonDataIssueSeverity.error,
-  });
-
-  final String code;
-  final String path;
-  final String message;
-  final PokemonDataIssueSeverity severity;
-
-  Map<String, Object?> toJson() => {
-        'code': code,
-        'path': path,
-        'message': message,
-        'severity': severity.name,
-      };
-}
-
-final class PokemonDataValidationReport {
-  PokemonDataValidationReport(Iterable<PokemonDataIssue> issues)
-      : issues = List.unmodifiable(
-          issues.toList()
-            ..sort((left, right) {
-              final path = left.path.compareTo(right.path);
-              return path != 0 ? path : left.code.compareTo(right.code);
-            }),
-        );
-
-  final List<PokemonDataIssue> issues;
-
-  bool get canPublish => issues.every(
-        (issue) => issue.severity != PokemonDataIssueSeverity.error,
-      );
-
-  Map<String, Object?> toJson() => {
-        'canPublish': canPublish,
-        'issues': [for (final issue in issues) issue.toJson()],
-      };
-}
+typedef PokemonDataIssueSeverity = PokemonCatalogDiagnosticSeverity;
+typedef PokemonDataIssue = PokemonCatalogDiagnostic;
+typedef PokemonDataValidationReport = PokemonCatalogCoherenceReport;
 
 final class PokemonDataBatchValidator {
   const PokemonDataBatchValidator();
 
   PokemonDataValidationReport validate({
+    required PokemonRulesetProfile ruleset,
     Iterable<PokemonJsonDocument> catalogs = const [],
     Iterable<PokemonJsonDocument> species = const [],
     Iterable<PokemonJsonDocument> learnsets = const [],
     Iterable<PokemonJsonDocument> evolutions = const [],
     Iterable<PokemonJsonDocument> media = const [],
   }) {
-    final issues = <PokemonDataIssue>[];
-    final speciesIds = _uniqueIdentities(species, 'species', issues);
-    _uniqueIdentities(catalogs, 'catalog', issues);
-    _uniqueIdentities(learnsets, 'learnset', issues);
-    _uniqueIdentities(evolutions, 'evolution', issues);
-    _uniqueIdentities(media, 'media', issues);
-
-    for (final document in [...learnsets, ...evolutions, ...media]) {
-      if (!speciesIds.contains(document.identity)) {
-        issues.add(PokemonDataIssue(
-          code: '${document.kind.name}.species_missing',
-          path: '/${document.kind.name}/${document.identity}',
-          message: 'The document references an unknown species.',
-        ));
-      }
-    }
-    for (final document in evolutions) {
-      final entries = document.toJson()['evolutions'];
-      if (entries is! List) continue;
-      for (var index = 0; index < entries.length; index++) {
-        final raw = entries[index];
-        if (raw is! Map) continue;
-        final target = raw['targetSpeciesId'];
-        if (target is String && !speciesIds.contains(target)) {
-          issues.add(PokemonDataIssue(
-            code: 'evolution.target_missing',
-            path: '/evolution/${document.identity}/evolutions/$index',
-            message: 'Evolution target "$target" is unknown.',
-          ));
-        }
-      }
-    }
-    for (final document in media) {
-      final json = document.toJson();
-      final defaultForm = json['defaultFormId'];
-      final variants = json['variants'];
-      if (defaultForm is String &&
-          defaultForm.isNotEmpty &&
-          (variants is! Map || !variants.containsKey(defaultForm))) {
-        issues.add(PokemonDataIssue(
-          code: 'media.default_form_missing',
-          path: '/media/${document.identity}/defaultFormId',
-          message: 'Default media form "$defaultForm" has no variant.',
-        ));
-      }
-    }
-    return PokemonDataValidationReport(issues);
+    return const PokemonCatalogCoherenceValidator().validate(
+      PokemonCatalogCoherenceSnapshot(
+        ruleset: ruleset,
+        catalogs: _decodeDocuments(
+          catalogs,
+          PokemonCatalogFile.fromJson,
+          'catalogs',
+        ),
+        species: _decodeDocuments(
+          species,
+          PokemonSpeciesFile.fromJson,
+          'species',
+        ),
+        learnsets: _decodeDocuments(
+          learnsets,
+          PokemonLearnsetFile.fromJson,
+          'learnsets',
+        ),
+        evolutions: _decodeDocuments(
+          evolutions,
+          PokemonEvolutionFile.fromJson,
+          'evolutions',
+        ),
+        media: _decodeDocuments(
+          media,
+          PokemonMediaFile.fromJson,
+          'media',
+        ),
+      ),
+    );
   }
 }
 
@@ -487,20 +434,35 @@ String _entryId(Map<Object?, Object?> entry) {
   return value;
 }
 
-Set<String> _uniqueIdentities(
+Map<String, Object?> _canonicalSharedPokemonDocument(
+  PokemonDocumentKind kind,
+  Map<String, dynamic> json,
+) =>
+    switch (kind) {
+      PokemonDocumentKind.catalog => PokemonCatalogFile.fromJson(json).toJson(),
+      PokemonDocumentKind.species => PokemonSpeciesFile.fromJson(json).toJson(),
+      PokemonDocumentKind.learnset =>
+        PokemonLearnsetFile.fromJson(json).toJson(),
+      PokemonDocumentKind.evolution =>
+        PokemonEvolutionFile.fromJson(json).toJson(),
+      PokemonDocumentKind.media => PokemonMediaFile.fromJson(json).toJson(),
+    };
+
+List<PokemonCatalogDocument<T>> _decodeDocuments<T>(
   Iterable<PokemonJsonDocument> documents,
+  T Function(Map<String, dynamic>) decode,
   String family,
-  List<PokemonDataIssue> issues,
 ) {
-  final ids = <String>{};
+  final result = <PokemonCatalogDocument<T>>[];
+  var index = 0;
   for (final document in documents) {
-    if (!ids.add(document.identity)) {
-      issues.add(PokemonDataIssue(
-        code: '$family.duplicate_id',
-        path: '/$family/${document.identity}',
-        message: 'Duplicate $family identity.',
-      ));
-    }
+    result.add(
+      PokemonCatalogDocument<T>(
+        path: '$family/${document.identity}-$index.json',
+        value: decode(Map<String, dynamic>.from(document.toJson())),
+      ),
+    );
+    index += 1;
   }
-  return ids;
+  return result;
 }

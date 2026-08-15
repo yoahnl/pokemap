@@ -136,7 +136,7 @@ _ProjectManifest _$ProjectManifestFromJson(
       ? const ProjectSettings()
       : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
   pokemon: json['pokemon'] == null
-      ? const ProjectPokemonConfig()
+      ? const ProjectPokemonConfig(ruleset: PokemonRulesetProfile.pokeMapBetaV1)
       : ProjectPokemonConfig.fromJson(json['pokemon'] as Map<String, dynamic>),
   newGame: json['newGame'] == null
       ? const ProjectNewGameConfig()
@@ -255,6 +255,9 @@ _ProjectPokemonConfig _$ProjectPokemonConfigFromJson(
   Map<String, dynamic> json,
 ) => _ProjectPokemonConfig(
   enabled: json['enabled'] as bool? ?? true,
+  ruleset: PokemonRulesetProfile.fromJson(
+    json['ruleset'] as Map<String, dynamic>,
+  ),
   dataRoot: json['dataRoot'] as String? ?? 'data/pokemon',
   speciesDir: json['speciesDir'] as String? ?? 'data/pokemon/species',
   learnsetsDir: json['learnsetsDir'] as String? ?? 'data/pokemon/learnsets',
@@ -271,6 +274,7 @@ Map<String, dynamic> _$ProjectPokemonConfigToJson(
   _ProjectPokemonConfig instance,
 ) => <String, dynamic>{
   'enabled': instance.enabled,
+  'ruleset': instance.ruleset.toJson(),
   'dataRoot': instance.dataRoot,
   'speciesDir': instance.speciesDir,
   'learnsetsDir': instance.learnsetsDir,
@@ -677,6 +681,45 @@ const _$ElementPresetKindEnumMap = {
   ElementPresetKind.tallDecoration: 'tall_decoration',
 };
 
+_ProjectEncounterPokemonOverrides _$ProjectEncounterPokemonOverridesFromJson(
+  Map<String, dynamic> json,
+) => _ProjectEncounterPokemonOverrides(
+  natureId: json['natureId'] as String?,
+  abilityId: json['abilityId'] as String?,
+  gender: json['gender'] as String?,
+  ivs: json['ivs'] == null
+      ? null
+      : PokemonStatSpread.fromJson(json['ivs'] as Map<String, dynamic>),
+  shinyPolicy:
+      $enumDecodeNullable(
+        _$ProjectEncounterShinyPolicyEnumMap,
+        json['shinyPolicy'],
+      ) ??
+      ProjectEncounterShinyPolicy.random,
+  knownMoveIds:
+      (json['knownMoveIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+);
+
+Map<String, dynamic> _$ProjectEncounterPokemonOverridesToJson(
+  _ProjectEncounterPokemonOverrides instance,
+) => <String, dynamic>{
+  'natureId': instance.natureId,
+  'abilityId': instance.abilityId,
+  'gender': instance.gender,
+  'ivs': instance.ivs?.toJson(),
+  'shinyPolicy': _$ProjectEncounterShinyPolicyEnumMap[instance.shinyPolicy]!,
+  'knownMoveIds': instance.knownMoveIds,
+};
+
+const _$ProjectEncounterShinyPolicyEnumMap = {
+  ProjectEncounterShinyPolicy.random: 'random',
+  ProjectEncounterShinyPolicy.never: 'never',
+  ProjectEncounterShinyPolicy.always: 'always',
+};
+
 _ProjectEncounterEntry _$ProjectEncounterEntryFromJson(
   Map<String, dynamic> json,
 ) => _ProjectEncounterEntry(
@@ -684,6 +727,11 @@ _ProjectEncounterEntry _$ProjectEncounterEntryFromJson(
   minLevel: (json['minLevel'] as num).toInt(),
   maxLevel: (json['maxLevel'] as num).toInt(),
   weight: (json['weight'] as num?)?.toInt() ?? 1,
+  pokemonOverrides: json['pokemonOverrides'] == null
+      ? null
+      : ProjectEncounterPokemonOverrides.fromJson(
+          json['pokemonOverrides'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectEncounterEntryToJson(
@@ -693,6 +741,7 @@ Map<String, dynamic> _$ProjectEncounterEntryToJson(
   'minLevel': instance.minLevel,
   'maxLevel': instance.maxLevel,
   'weight': instance.weight,
+  'pokemonOverrides': ?instance.pokemonOverrides?.toJson(),
 };
 
 _ProjectEncounterTable _$ProjectEncounterTableFromJson(

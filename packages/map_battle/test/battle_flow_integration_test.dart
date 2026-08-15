@@ -12,7 +12,7 @@ const _integrationTestStats = BattleStatsSnapshot(
 void main() {
   group('Battle flow hardening - runtime integration', () {
     test('BattleSetup creates session with correct initial state', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -49,7 +49,7 @@ void main() {
     test('trainer battle request is not consumed twice (anti-retrigger)', () {
       // Ce test vérifie que la logique métier de map_battle
       // ne permet pas de consommer deux fois la même session
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -89,7 +89,7 @@ void main() {
     });
 
     test('battle ends cleanly after outcome', () {
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -126,7 +126,7 @@ void main() {
 
     test('trainer interaction flow: setup → battle → outcome', () {
       // Simule le flow complet d'un battle trainer
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -166,7 +166,7 @@ void main() {
     test('trainer LoS flow: same as interaction (unified pattern)', () {
       // Le flow LoS utilise le même BattleSetup que l'interaction
       // Ce test vérifie que les deux chemins sont cohérents
-      final setupFromLoS = BattleSetup(
+      final setupFromLoS = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -185,7 +185,7 @@ void main() {
         trainerId: 'gym_leader_1',
       );
 
-      final setupFromInteraction = BattleSetup(
+      final setupFromInteraction = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,
@@ -216,7 +216,7 @@ void main() {
 
     test('wild encounter flow: setup → battle → outcome', () {
       // Simule le flow complet d'un wild encounter
-      final setup = BattleSetup(
+      final setup = BattleSetup.pokeMapBetaV1ForTest(
         playerPokemon: BattleCombatantData(
           speciesId: 'pikachu',
           level: 5,

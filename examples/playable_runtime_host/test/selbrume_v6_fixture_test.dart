@@ -33,14 +33,14 @@ void main() {
   });
 
   test(
-    'ITM-103 Selbrume is a strict reference-preserving V6 fixture',
+    'ITM-103 Selbrume is a strict V7 project with V6 maps',
     () async {
       final projectRoot = p.join(_repositoryRoot().path, 'selbrume');
       final projectFile = File(p.join(projectRoot, 'project.json'));
       final rawProject =
           jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
 
-      expect(rawProject['version'], 'v6');
+      expect(rawProject['version'], 'v7');
       for (final field in const <String>[
         'terrainCategories',
         'pathCategories',
@@ -88,7 +88,7 @@ void main() {
       final project = snapshot.manifest;
 
       ProjectValidator.validate(project);
-      expect(project.version, ProjectVersion.v6);
+      expect(project.version, ProjectVersion.v7);
       expect(project.maps, hasLength(10));
       expect(project.dialogues, hasLength(24));
       expect(project.scenarios, hasLength(3));
@@ -210,7 +210,7 @@ void main() {
       final exportedProject = ProjectManifest.fromJson(
         jsonDecode(jsonEncode(project.toJson())) as Map<String, dynamic>,
       );
-      expect(exportedProject.version, ProjectVersion.v6);
+      expect(exportedProject.version, ProjectVersion.v7);
       expect(
         exportedProject.maps.map((entry) => entry.id),
         orderedEquals(project.maps.map((entry) => entry.id)),

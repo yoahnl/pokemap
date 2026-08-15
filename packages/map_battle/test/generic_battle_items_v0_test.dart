@@ -120,7 +120,7 @@ BattleSessionFacade _session({
   PsdkBattleCombatantSetup? reserve,
 }) {
   return BattleSessionFacade.fromPsdkSetup(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(id: 'player', hp: playerHp, status: playerStatus),
       playerReserves: <PsdkBattleCombatantSetup>[if (reserve != null) reserve],
       opponent: _combatant(id: 'opponent', hp: 80),

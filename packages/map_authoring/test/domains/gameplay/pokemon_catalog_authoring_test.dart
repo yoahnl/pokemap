@@ -1,11 +1,12 @@
 import 'dart:convert';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('Pokemon catalog authoring', () {
-    test('generic catalog edits preserve unknown JSON fields losslessly', () {
+    test('generic catalog edits canonicalize the document envelope', () {
       final catalog = PokemonJsonDocument.fromJson(
         PokemonDocumentKind.catalog,
         {
@@ -32,7 +33,7 @@ void main() {
         },
       );
 
-      expect(updated.toJson()['vendorExtension'], {'kept': true});
+      expect(updated.toJson().containsKey('vendorExtension'), isFalse);
       expect(
         (updated.toJson()['entries'] as List).first,
         {
@@ -44,10 +45,45 @@ void main() {
       expect(jsonDecode(jsonEncode(updated.toJson())), updated.toJson());
     });
 
+    test('shared codecs reject future schemas for every document family', () {
+      final futureSchema = currentPokemonDataSchemaVersion + 1;
+      final documents = <PokemonDocumentKind, Map<String, dynamic>>{
+        PokemonDocumentKind.catalog: <String, dynamic>{
+          'schemaVersion': futureSchema,
+          'catalog': 'moves',
+          'entries': <Object?>[],
+        },
+        PokemonDocumentKind.species: <String, dynamic>{
+          'schemaVersion': futureSchema,
+          'id': 'sproutle',
+        },
+        PokemonDocumentKind.learnset: <String, dynamic>{
+          'schemaVersion': futureSchema,
+          'speciesId': 'sproutle',
+        },
+        PokemonDocumentKind.evolution: <String, dynamic>{
+          'schemaVersion': futureSchema,
+          'speciesId': 'sproutle',
+        },
+        PokemonDocumentKind.media: <String, dynamic>{
+          'schemaVersion': futureSchema,
+          'speciesId': 'sproutle',
+        },
+      };
+
+      for (final entry in documents.entries) {
+        expect(
+          () => PokemonJsonDocument.fromJson(entry.key, entry.value),
+          throwsFormatException,
+        );
+      }
+    });
+
     test('batch validation reports broken evolution and media references', () {
       final species = PokemonJsonDocument.fromJson(
         PokemonDocumentKind.species,
         {
+          'schemaVersion': currentPokemonDataSchemaVersion,
           'id': 'sproutle',
           'forms': {'entries': []}
         },
@@ -55,6 +91,7 @@ void main() {
       final evolution = PokemonJsonDocument.fromJson(
         PokemonDocumentKind.evolution,
         {
+          'schemaVersion': currentPokemonDataSchemaVersion,
           'speciesId': 'sproutle',
           'evolutions': [
             {'targetSpeciesId': 'missing', 'method': 'level'},
@@ -64,6 +101,7 @@ void main() {
       final media = PokemonJsonDocument.fromJson(
         PokemonDocumentKind.media,
         {
+          'schemaVersion': currentPokemonDataSchemaVersion,
           'speciesId': 'sproutle',
           'defaultFormId': 'base',
           'variants': <String, Object?>{},
@@ -71,6 +109,7 @@ void main() {
       );
 
       final report = const PokemonDataBatchValidator().validate(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         species: [species],
         evolutions: [evolution],
         media: [media],
@@ -79,7 +118,10 @@ void main() {
       expect(report.canPublish, isFalse);
       expect(
         report.issues.map((issue) => issue.code),
-        containsAll({'evolution.target_missing', 'media.default_form_missing'}),
+        containsAll({
+          'evolution.target_species_missing',
+          'media.default_form_missing',
+        }),
       );
     });
 

@@ -74,6 +74,11 @@ class WildBattleStartRequest extends BattleStartRequest {
     required this.maxLevel,
     required this.weight,
     required this.playerPos,
+    this.generationSeed = 0,
+    this.pokemonOverrides,
+    this.generatedPokemon,
+    this.generationProfileId = '',
+    this.generationSchemaVersion = 0,
   }) : super(
           kind: RuntimeBattleKind.wild,
           source: RuntimeBattleSourceKind.encounterZone,
@@ -89,6 +94,38 @@ class WildBattleStartRequest extends BattleStartRequest {
   final int maxLevel;
   final int weight;
   final GridPos playerPos;
+  final int generationSeed;
+  final ProjectEncounterPokemonOverrides? pokemonOverrides;
+  final PlayerPokemon? generatedPokemon;
+  final String generationProfileId;
+  final int generationSchemaVersion;
+
+  WildBattleStartRequest withGeneratedPokemon({
+    required PlayerPokemon pokemon,
+    required String profileId,
+    required int schemaVersion,
+  }) {
+    return WildBattleStartRequest(
+      requestId: requestId,
+      createdAtEpochMs: createdAtEpochMs,
+      returnContext: returnContext,
+      mapId: mapId,
+      zoneId: zoneId,
+      tableId: tableId,
+      encounterKind: encounterKind,
+      speciesId: speciesId,
+      level: level,
+      minLevel: minLevel,
+      maxLevel: maxLevel,
+      weight: weight,
+      playerPos: playerPos,
+      generationSeed: generationSeed,
+      pokemonOverrides: pokemonOverrides,
+      generatedPokemon: pokemon,
+      generationProfileId: profileId,
+      generationSchemaVersion: schemaVersion,
+    );
+  }
 
   @override
   Map<String, dynamic> toJson() {
@@ -108,6 +145,11 @@ class WildBattleStartRequest extends BattleStartRequest {
       'maxLevel': maxLevel,
       'weight': weight,
       'playerPos': playerPos.toJson(),
+      'generationSeed': generationSeed,
+      'pokemonOverrides': pokemonOverrides?.toJson(),
+      'generatedPokemon': generatedPokemon?.toJson(),
+      'generationProfileId': generationProfileId,
+      'generationSchemaVersion': generationSchemaVersion,
     };
   }
 }

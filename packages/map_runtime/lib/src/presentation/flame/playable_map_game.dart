@@ -56,6 +56,7 @@ import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../application/runtime_move_catalog_loader.dart';
 import '../../application/runtime_item_catalog_loader.dart';
+import '../../application/runtime_player_pokemon_grant.dart';
 import '../../application/runtime_player_pokemon_progression_hydrator.dart';
 import '../../application/runtime_pokemon_learnset_loader.dart';
 import '../../application/runtime_pokemon_evolution_loader.dart';
@@ -261,8 +262,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _runtimeTilesetImageLoader =
             runtimeTilesetImageLoader ?? loadTilesetImagesById,
         _runtimePlayerPokemonProgressionCatalogLoader =
-            runtimePlayerPokemonProgressionCatalogLoader ??
-                loadRuntimePlayerPokemonProgressionCatalogs,
+            runtimePlayerPokemonProgressionCatalogLoader,
         _encounterRandom = encounterRandom ?? math.Random() {
     if (bundleTransformer != null) {
       _bundle = bundleTransformer!(_bundle);
@@ -360,6 +360,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             loadMoveLearningCandidates:
                 _battleLearnsetLoader.loadLevelUpCandidates,
             loadEvolutionCandidates: evolutionLoader.loadLevelUpCandidates,
+          ),
+          hydrateOwnedPlayerPokemon: ({
+            required gameState,
+            required bundle,
+          }) =>
+              _hydrateOwnedPlayerPokemonProgression(
+            gameState,
+            bundle: bundle,
           ),
         );
     _cinematicRuntimeHost = _PlayableMapCinematicRuntimeHost(this);
@@ -510,7 +518,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late final RuntimeTilesetImageSingleFlightCache _tilesetImageCache;
   bool _isRemoved = false;
   bool _onLoadInProgress = false;
-  final RuntimePlayerPokemonProgressionCatalogLoader
+  final RuntimePlayerPokemonProgressionCatalogLoader?
       _runtimePlayerPokemonProgressionCatalogLoader;
   final Map<String, RuntimeMapBundle> _runtimeBundleByMapId =
       <String, RuntimeMapBundle>{};
@@ -879,14 +887,34 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeMapBundle? bundle,
   }) async {
     final catalogueBundle = bundle ?? _bundle;
-    final catalogs = await _runtimePlayerPokemonProgressionCatalogLoader(
-      gameState: gameState,
-      projectRootDirectory: catalogueBundle.projectRootDirectory,
-      pokemonConfig: catalogueBundle.manifest.pokemon,
-    );
+    final injectedLoader = _runtimePlayerPokemonProgressionCatalogLoader;
+    final catalogs = injectedLoader == null
+        ? await loadRuntimePlayerPokemonProgressionCatalogs(
+            gameState: gameState,
+            projectRootDirectory: catalogueBundle.projectRootDirectory,
+            pokemonConfig: catalogueBundle.manifest.pokemon,
+            moveCatalogLoader: _battleMoveCatalogLoader,
+            speciesLoader: _battleSpeciesLoader,
+          )
+        : await injectedLoader(
+            gameState: gameState,
+            projectRootDirectory: catalogueBundle.projectRootDirectory,
+            pokemonConfig: catalogueBundle.manifest.pokemon,
+          );
     return hydrateRuntimePlayerPokemonProgression(
       gameState: gameState,
       catalogs: catalogs,
+      ruleset: catalogueBundle.manifest.pokemon.ruleset,
+      defaultOrigin: _isProjectNewGameBoot
+          ? PlayerPokemonHydrationOrigin.newGame
+          : PlayerPokemonHydrationOrigin.legacySave,
+      onDiagnostic: (diagnostic) {
+        debugPrint(
+          '[pokemon_hydration] severity=${diagnostic.severity.name} '
+          'code=${diagnostic.code.name} species=${diagnostic.speciesId} '
+          'message=${diagnostic.message}',
+        );
+      },
     );
   }
 
@@ -4795,6 +4823,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final continuationBarrier = battleHandoffReady
           ? _registerNarrativeContinuationBarrier(result)
           : null;
+      if (result.effect.type == ScenarioRuntimeEffectType.givePokemon) {
+        _startScenarioPokemonGrantEffect(result);
+      }
 
       if (publishesOwnOutcomes && outcomes.isNotEmpty) {
         _scheduleNarrativeOutcomesPublication(
@@ -4812,9 +4843,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Contexte partagé dispatch / continuation : inclut le filtre Step Studio
   /// pour ne pas relancer une cutscene locale dont la step est déjà complétée.
   ScenarioRuntimeExecutionContext _buildScenarioRuntimeExecutionContext(
-    List<NarrativeOutcomeRef> deferredOutcomes,
-  ) {
+      List<NarrativeOutcomeRef> deferredOutcomes,
+      {String? executionId}) {
     return ScenarioRuntimeExecutionContext(
+      executionId: executionId ?? _nextNarrativeRuntimeId('scenario'),
       gameState: _gameState,
       onGameStateUpdated: (state) {
         _gameState = state;
@@ -5109,15 +5141,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     String runtimeSourceId,
   ) {
     final parts = runtimeSourceId.split(':');
-    if (parts.length != 4) {
+    if (parts.length != 5) {
       return const _ScenarioContinuationResumeResult.invalid();
     }
     final scenarioId = parts[1].trim();
     final sourceNodeId = parts[2].trim();
     final resumeAfterNodeId = parts[3].trim();
+    final executionId = parts[4].trim();
     if (scenarioId.isEmpty ||
         sourceNodeId.isEmpty ||
-        resumeAfterNodeId.isEmpty) {
+        resumeAfterNodeId.isEmpty ||
+        executionId.isEmpty) {
       return const _ScenarioContinuationResumeResult.invalid();
     }
     final outcomes = <NarrativeOutcomeRef>[];
@@ -5127,7 +5161,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       scenarioId: scenarioId,
       sourceNodeId: sourceNodeId,
       resumeAfterNodeId: resumeAfterNodeId,
-      context: _buildScenarioRuntimeExecutionContext(outcomes),
+      context: _buildScenarioRuntimeExecutionContext(
+        outcomes,
+        executionId: executionId,
+      ),
     );
     _handleScenarioRuntimeCompletionResult(
       result,
@@ -5139,6 +5176,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final battleHandoffReady =
         result.effect.type != ScenarioRuntimeEffectType.battle ||
             _handleScenarioBattleEffect(result);
+    if (result.effect.type == ScenarioRuntimeEffectType.givePokemon) {
+      _startScenarioPokemonGrantEffect(result);
+    }
     final pendingTransitionAfterResume = _pendingScenarioTransitionMapRequest;
     _PendingScenarioTransitionMapRequest? ownedTransitionMapRequest;
     if (pendingTransitionAfterResume != null &&
@@ -5187,6 +5227,54 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         runtimeSourceId,
         effectOutcomes: effectOutcomes,
       ),
+    );
+  }
+
+  void _startScenarioPokemonGrantEffect(
+    ScenarioRuntimeExecutionResult result,
+  ) {
+    final runtimeSourceId = _scenarioContinuationRuntimeSourceId(result);
+    final pokemon = result.effect.pokemon;
+    final grantOperationId = result.effect.grantOperationId?.trim() ?? '';
+    if (runtimeSourceId == null ||
+        pokemon == null ||
+        grantOperationId.isEmpty) {
+      if (runtimeSourceId != null) {
+        _cancelNarrativeContinuationBarrier(runtimeSourceId);
+      }
+      _showNotification('Don du Pokémon impossible.');
+      return;
+    }
+    unawaited(
+      Future<void>.microtask(() async {
+        try {
+          final committed = await transactRuntimePlayerPokemonGrant(
+            transactions: _narrativeStateTransactions,
+            pokemon: pokemon,
+            grantOperationId: grantOperationId,
+            projectRootDirectory: _bundle.projectRootDirectory,
+            pokemonConfig: _bundle.manifest.pokemon,
+            preventDuplicateSpecies: result.effect.preventDuplicateSpecies,
+            catalogLoader: _runtimePlayerPokemonProgressionCatalogLoader,
+            onDiagnostic: (diagnostic) {
+              debugPrint(
+                '[pokemon_grant] severity=${diagnostic.severity.name} '
+                'code=${diagnostic.code.name} species=${diagnostic.speciesId} '
+                'message=${diagnostic.message}',
+              );
+            },
+          );
+          _applyNarrativeGameState(committed);
+          _scheduleNarrativeContinuationAdvance(runtimeSourceId);
+        } catch (error, stackTrace) {
+          debugPrint(
+            '[pokemon_grant] failed operation=$grantOperationId '
+            'error=$error\n$stackTrace',
+          );
+          _showNotification('Don du Pokémon impossible.');
+          _cancelNarrativeContinuationBarrier(runtimeSourceId);
+        }
+      }),
     );
   }
 
@@ -5402,6 +5490,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       case ScenarioRuntimeEffectType.dialogue:
       case ScenarioRuntimeEffectType.script:
       case ScenarioRuntimeEffectType.battle:
+      case ScenarioRuntimeEffectType.givePokemon:
       case ScenarioRuntimeEffectType.none:
         break;
       case ScenarioRuntimeEffectType.message:
@@ -5410,10 +5499,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final scenarioId = result.scenarioId?.trim() ?? '';
     final sourceNodeId = result.sourceNodeId?.trim() ?? '';
     final stopNodeId = result.stopNodeId?.trim() ?? '';
-    if (scenarioId.isEmpty || sourceNodeId.isEmpty || stopNodeId.isEmpty) {
+    final executionId = result.effect.executionId?.trim() ?? '';
+    if (scenarioId.isEmpty ||
+        sourceNodeId.isEmpty ||
+        stopNodeId.isEmpty ||
+        executionId.isEmpty) {
       return null;
     }
-    return 'scenario:$scenarioId:$sourceNodeId:$stopNodeId';
+    return 'scenario:$scenarioId:$sourceNodeId:$stopNodeId:$executionId';
   }
 
   _NarrativeContinuationBarrier? _registerNarrativeContinuationBarrier(
@@ -7470,6 +7563,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       if (_flowPhase != _RuntimeFlowPhase.battleTransition) {
         return;
       }
+      if (request case WildBattleStartRequest wildRequest) {
+        request = await _traceAsync(
+          'battle',
+          'generateWildPokemon',
+          () => _battleSetupMapper.hydrateWildRequest(
+            bundle: _bundle,
+            request: wildRequest,
+          ),
+        );
+      }
       // BE10 recadré élargit légèrement cet invariant runtime :
       // - on mémorise toujours le slot actif exact utilisé au handoff ;
       // - mais on mémorise aussi l'ordre actif + réserves réellement injecté
@@ -7585,6 +7688,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         request: request,
         playerPartyIndex: playerLineup.activeIndex,
         playerPartySlotIndicesByLineupIndex: playerLineup.lineupPartyIndices,
+        playerIndividualId: _battleRuntimeGameState
+            .party.members[playerLineup.activeIndex].individualId,
+        playerIndividualIdsByLineupIndex: playerLineup.lineupPartyIndices.map(
+          (partyIndex) =>
+              _battleRuntimeGameState.party.members[partyIndex].individualId,
+        ),
       );
       _captureAttemptReceipt = null;
 
@@ -8307,6 +8416,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
               playerPartySlotIndicesByLineupIndex:
                   activeBattleContext.playerPartySlotIndicesByLineupIndex,
+              playerIndividualId: activeBattleContext.playerIndividualId,
+              playerIndividualIdsByLineupIndex:
+                  activeBattleContext.playerIndividualIdsByLineupIndex,
             ),
           );
         }
@@ -8679,6 +8791,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         activePlayerLineupIndex: activePlayerLineupIndex,
         playerPartySlotIndicesByLineupIndex:
             battleContext.playerPartySlotIndicesByLineupIndex,
+        playerIndividualId: battleContext.playerIndividualId,
+        playerIndividualIdsByLineupIndex:
+            battleContext.playerIndividualIdsByLineupIndex,
       );
       final respawn = _resolveWhiteoutLiteRespawn(battleContext);
       _world = _buildSafeWorldState(
@@ -9018,6 +9133,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           page: page.page,
           gameState: session.gameState,
           currentGameState: () => session.gameState,
+          executionId: _nextNarrativeRuntimeId('scene'),
         );
       } finally {
         _activeNarrativeSceneWorkingSession = null;

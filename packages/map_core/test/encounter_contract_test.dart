@@ -11,7 +11,7 @@ void main() {
 
       final projectJson = jsonEncode(project.toJson());
       final mapJson = jsonEncode(map.toJson());
-      final restoredProject = ProjectManifest.fromJson(
+      final restoredProject = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         jsonDecode(projectJson) as Map<String, dynamic>,
       );
       final restoredMap = MapData.fromJson(
@@ -26,6 +26,82 @@ void main() {
       MapValidator.validate(
         restoredMap,
         projectDialogueContext: restoredProject,
+      );
+    });
+
+    test('round-trips canonical wild Pokemon generation overrides', () {
+      const entry = ProjectEncounterEntry(
+        speciesId: 'eevee',
+        minLevel: 12,
+        maxLevel: 12,
+        pokemonOverrides: ProjectEncounterPokemonOverrides(
+          natureId: 'jolly',
+          abilityId: 'adaptability',
+          gender: 'female',
+          ivs: PokemonStatSpread(
+            hp: 31,
+            attack: 30,
+            defense: 29,
+            specialAttack: 28,
+            specialDefense: 27,
+            speed: 26,
+          ),
+          shinyPolicy: ProjectEncounterShinyPolicy.never,
+          knownMoveIds: <String>['tackle', 'quick_attack'],
+        ),
+      );
+
+      final json = entry.toJson();
+      final restored = ProjectEncounterEntry.fromJson(json);
+
+      expect(restored, entry);
+      expect(json['pokemonOverrides'], <String, Object?>{
+        'natureId': 'jolly',
+        'abilityId': 'adaptability',
+        'gender': 'female',
+        'ivs': <String, Object?>{
+          'hp': 31,
+          'attack': 30,
+          'defense': 29,
+          'specialAttack': 28,
+          'specialDefense': 27,
+          'speed': 26,
+        },
+        'shinyPolicy': 'never',
+        'knownMoveIds': <String>['tackle', 'quick_attack'],
+      });
+    });
+
+    test('rejects malformed wild Pokemon generation overrides before save', () {
+      final project = _project(
+        encounterTables: const <ProjectEncounterTable>[
+          ProjectEncounterTable(
+            id: 'invalid_overrides',
+            name: 'Invalid overrides',
+            encounterKind: EncounterKind.walk,
+            entries: <ProjectEncounterEntry>[
+              ProjectEncounterEntry(
+                speciesId: 'eevee',
+                minLevel: 5,
+                maxLevel: 5,
+                pokemonOverrides: ProjectEncounterPokemonOverrides(
+                  ivs: PokemonStatSpread(speed: 32),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        () => ProjectValidator.validate(project),
+        throwsA(
+          isA<ValidationException>().having(
+            (error) => error.code,
+            'code',
+            'encounter.pokemon_override_invalid',
+          ),
+        ),
       );
     });
 

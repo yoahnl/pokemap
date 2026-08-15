@@ -294,6 +294,7 @@ final class BattleSwitchHandler {
       final targetAfterSpikes = state.battlerAt(target);
       final multiplier = const BattleMoveTypeProcessor()
           .resolveEffectiveness(
+            rules: context.state.battleRules,
             moveType: 'rock',
             targetTypes: targetAfterSpikes.types,
           )

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_state_snapshot.dart';
@@ -27,6 +28,7 @@ void main() {
     final driver = _FakeEvaluationDriver();
 
     final port = RuntimePlaytestPort(
+      pokemonCatalogPreflight: _readyPokemonCatalog,
       driverFactory: (request) => EvaluationPlaytestDriver.start(
         request: request,
         projectRoot: projectRoot,
@@ -76,6 +78,7 @@ void main() {
     final revision = await computeEvaluationProjectRevision(projectRoot);
     final beforeRevision = await computeEvaluationProjectRevision(projectRoot);
     final port = RuntimePlaytestPort(
+      pokemonCatalogPreflight: _readyPokemonCatalog,
       driverFactory: (request) => EvaluationPlaytestDriver.start(
         request: request,
         projectRoot: projectRoot,
@@ -137,6 +140,7 @@ void main() {
     final service = PlaytestPlayerStateService(
       handles: handles,
       playtest: RuntimePlaytestPort(
+        pokemonCatalogPreflight: _readyPokemonCatalog,
         driverFactory: (request) => EvaluationPlaytestDriver.start(
           request: request,
           projectRoot: projectRoot,
@@ -247,6 +251,10 @@ final class _FakeEvaluationDriver
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+Future<PokemonCatalogCoherenceReport> _readyPokemonCatalog(
+  PlaytestStartRequest _,
+) async => PokemonCatalogCoherenceReport(const []);
 
 Directory _findRepositoryRoot() {
   var current = Directory.current.absolute;

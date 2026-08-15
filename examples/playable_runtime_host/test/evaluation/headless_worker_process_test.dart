@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_receipt.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
 import 'package:pokemap_loader/src/evaluation/worker/headless_worker_process.dart';
+import 'package:pokemap_loader/src/project_tree_digest.dart';
 
 void main() {
   test('worker request round-trips through JSON', () {
@@ -36,6 +37,7 @@ void main() {
       () => EvaluationWorkerRequest.run(
         runId: 'run-absolute',
         projectRoot: '/tmp/selbrume',
+        expectedProjectTreeHash: 'a' * 64,
         scenarioPath: 'evaluation/scenario.json',
         outputDirectory: 'build/run-absolute',
       ),
@@ -45,6 +47,7 @@ void main() {
       () => EvaluationWorkerRequest.run(
         runId: 'run-escape',
         projectRoot: 'selbrume',
+        expectedProjectTreeHash: 'a' * 64,
         scenarioPath: '../scenario.json',
         outputDirectory: 'build/run-escape',
       ),
@@ -103,6 +106,9 @@ void main() {
       final scenarioPath =
           p.relative(scenario.path, from: root.path).replaceAll(r'\', '/');
       final workerStderr = StringBuffer();
+      final expectedProjectTreeHash = await const ProjectTreeDigest().compute(
+        Directory(p.join(root.path, 'selbrume')),
+      );
 
       final result = await HeadlessWorkerProcess(
         hostRoot: root,
@@ -111,6 +117,7 @@ void main() {
         EvaluationWorkerRequest.run(
           runId: runId,
           projectRoot: 'selbrume',
+          expectedProjectTreeHash: expectedProjectTreeHash,
           scenarioPath: scenarioPath,
           outputDirectory: relativeOutput,
         ),
@@ -159,6 +166,7 @@ EvaluationWorkerRequest _requestFixture({
   return EvaluationWorkerRequest.run(
     runId: runId,
     projectRoot: 'selbrume',
+    expectedProjectTreeHash: 'a' * 64,
     scenarioPath:
         'examples/playable_runtime_host/evaluation/scenarios/selbrume/'
         'shop_after_lysa.json',

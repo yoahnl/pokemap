@@ -4,6 +4,7 @@ import 'items/bag_operation_result.dart';
 import 'items/bag_operations.dart';
 import 'items/item_catalog_snapshot.dart';
 import 'pokemon_stat_calculator.dart';
+import 'pokemon_gameplay_rules.dart';
 
 enum PokemonEvolutionTriggerKind {
   levelUp,
@@ -298,11 +299,13 @@ final class PokemonEvolutionService {
   final PokemonStatCalculator statCalculator;
 
   PokemonEvolutionResult evolve({
+    required PokemonRulesetProfile ruleset,
     required PlayerPokemon pokemon,
     required PokemonEvolutionCandidate candidate,
     required int sourceMaxHp,
     PokemonEvolutionTrigger trigger = const PokemonEvolutionTrigger.levelUp(),
   }) {
+    PokemonGameplayRules.fromProfile(ruleset).requireEvolutionSupported();
     final validatedCandidate = candidate.validated();
     RangeError.checkValueInInterval(sourceMaxHp, 1, 9999, 'sourceMaxHp');
     if (pokemon.speciesId != validatedCandidate.sourceSpeciesId) {
@@ -401,12 +404,14 @@ final class PokemonEvolutionItemOperations {
 
   PokemonEvolutionItemUseResult useItem(
     GameState state, {
+    required PokemonRulesetProfile ruleset,
     required String itemId,
     required int partyIndex,
     required PokemonEvolutionCandidate candidate,
     required int sourceMaxHp,
     required ItemCatalogSnapshot itemCatalog,
   }) {
+    PokemonGameplayRules.fromProfile(ruleset).requireEvolutionSupported();
     final normalizedItemId = itemId.trim();
     if (normalizedItemId.isEmpty || sourceMaxHp <= 0) {
       return PokemonEvolutionItemUseResult.failed(
@@ -443,6 +448,7 @@ final class PokemonEvolutionItemOperations {
     }
 
     final evolution = evolutionService.evolve(
+      ruleset: ruleset,
       pokemon: pokemon,
       candidate: candidate,
       sourceMaxHp: sourceMaxHp,
@@ -474,6 +480,38 @@ final class PokemonEvolutionItemOperations {
       ),
       evolution,
       consumption.consumptionReceipt!,
+    );
+  }
+
+  PokemonEvolutionItemUseResult useItemByIndividualId(
+    GameState state, {
+    required PokemonRulesetProfile ruleset,
+    required String itemId,
+    required String individualId,
+    required PokemonEvolutionCandidate candidate,
+    required int sourceMaxHp,
+    required ItemCatalogSnapshot itemCatalog,
+  }) {
+    final normalizedId = individualId.trim();
+    final matches = state.party.members
+        .asMap()
+        .entries
+        .where((entry) => entry.value.individualId == normalizedId)
+        .toList(growable: false);
+    if (normalizedId.isEmpty || matches.length != 1) {
+      return PokemonEvolutionItemUseResult.failed(
+        state,
+        PokemonEvolutionItemUseFailure.invalidTarget,
+      );
+    }
+    return useItem(
+      state,
+      ruleset: ruleset,
+      itemId: itemId,
+      partyIndex: matches.single.key,
+      candidate: candidate,
+      sourceMaxHp: sourceMaxHp,
+      itemCatalog: itemCatalog,
     );
   }
 }

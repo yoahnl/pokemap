@@ -726,6 +726,7 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
     NarrativeCommandIds.givePokemon => SceneActionPayload.consequence(
         SceneConsequence.givePokemon(
           speciesId: parameters['speciesId']!,
+          formId: parameters['formId']!,
           level: integer('level'),
           currentHp: integer('currentHp', fallback: integer('level')),
           natureId: parameters['natureId'] ?? 'hardy',

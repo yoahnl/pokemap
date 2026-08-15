@@ -21,7 +21,7 @@ void main() {
         await Directory.systemTemp.createTemp('pokemon_project_storage_');
     useCase = const InitializePokemonProjectStorageUseCase();
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    loadMovesCatalogUseCase = const LoadPokemonMovesCatalogUseCase(
+    loadMovesCatalogUseCase = LoadPokemonMovesCatalogUseCase(
       readRepository: FilePokemonReadRepository(),
     );
   });

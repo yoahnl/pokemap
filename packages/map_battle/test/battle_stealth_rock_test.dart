@@ -1,4 +1,5 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 BattleStatsSnapshot _stats({
@@ -90,7 +91,7 @@ BattleSession _session({
   bool isTrainerBattle = false,
 }) {
   return createBattleSession(
-    BattleSetup(
+    BattleSetup.pokeMapBetaV1ForTest(
       playerPokemon: player,
       playerReservePokemon: playerReserve,
       enemyPokemon: enemy,
@@ -688,8 +689,17 @@ void main() {
         ),
       );
 
-      expect(resolveStealthRockEntryDamage(quadrupleWeak), equals(40));
-      expect(resolveStealthRockEntryDamage(quarterResist), equals(1));
+      final rules = PokemonBattleRules.fromProfile(
+        PokemonRulesetProfile.pokeMapBetaV1,
+      );
+      expect(
+        resolveStealthRockEntryDamage(quadrupleWeak, rules: rules),
+        equals(40),
+      );
+      expect(
+        resolveStealthRockEntryDamage(quarterResist, rules: rules),
+        equals(1),
+      );
     });
   });
 }

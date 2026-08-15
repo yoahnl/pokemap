@@ -87,7 +87,7 @@ void main() {
 }
 
 PsdkBattleSetup _setup() {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player-charmander',
       speciesId: 'charmander',

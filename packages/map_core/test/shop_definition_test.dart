@@ -46,9 +46,7 @@ void main() {
       final shop = ShopDefinition(
         id: 'mart',
         label: 'Boutique',
-        states: <ShopStateDefinition>[
-          _state(' after-story '),
-        ],
+        states: <ShopStateDefinition>[_state(' after-story ')],
       ).normalized();
 
       expect(shop.states.single.id, 'after-story');
@@ -97,24 +95,31 @@ void main() {
     });
 
     test('manifest preserves shops and defaults legacy projects to empty', () {
-      final manifest = ProjectManifest.fromJson(<String, dynamic>{
-        'name': 'Selbrume',
-        'version': 'v6',
-        'maps': <Object?>[],
-        'tilesets': <Object?>[],
-        'shops': <Object?>[
-          const ShopDefinition(id: 'mart', label: 'Mart').toJson(),
-        ],
-      });
-      final legacy = ProjectManifest.fromJson(<String, dynamic>{
-        'name': 'Legacy',
-        'version': 'v6',
-        'maps': <Object?>[],
-        'tilesets': <Object?>[],
-      });
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        <String, dynamic>{
+          'name': 'Selbrume',
+          'version': 'v6',
+          'maps': <Object?>[],
+          'tilesets': <Object?>[],
+          'shops': <Object?>[
+            const ShopDefinition(id: 'mart', label: 'Mart').toJson(),
+          ],
+        },
+      );
+      final legacy = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        <String, dynamic>{
+          'name': 'Legacy',
+          'version': 'v6',
+          'maps': <Object?>[],
+          'tilesets': <Object?>[],
+        },
+      );
 
       expect(manifest.shops.single.id, 'mart');
-      expect(ProjectManifest.fromJson(manifest.toJson()).shops, manifest.shops);
+      expect(
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest(manifest.toJson()).shops,
+        manifest.shops,
+      );
       expect(legacy.shops, isEmpty);
     });
 
@@ -130,7 +135,7 @@ void main() {
         ]),
       ]) {
         expect(
-          () => ProjectManifest.fromJson(<String, dynamic>{
+          () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
             'name': 'Selbrume',
             'version': 'v6',
             'maps': <Object?>[],
@@ -145,7 +150,7 @@ void main() {
 }
 
 ShopStateDefinition _state(String id) => ShopStateDefinition(
-      id: id,
-      label: 'After story',
-      activation: ScriptConditionFactory.flagIsSet('story.finished'),
-    );
+  id: id,
+  label: 'After story',
+  activation: ScriptConditionFactory.flagIsSet('story.finished'),
+);

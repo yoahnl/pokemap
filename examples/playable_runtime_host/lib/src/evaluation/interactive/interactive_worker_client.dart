@@ -11,6 +11,7 @@ import '../contracts/evaluation_policy.dart';
 import '../contracts/evaluation_receipt.dart';
 import '../scenario/evaluation_scenario_parser.dart';
 import '../worker/evaluation_worker_protocol.dart';
+import '../../project_tree_digest.dart';
 
 const _interactiveProtocolVersion = 1;
 
@@ -155,10 +156,25 @@ final class InteractiveWorkerClient {
   }) async {
     InteractiveWorkerLaunch? session;
     try {
+      final projectRoot = Directory(
+        p.join(repositoryRoot.path, request.projectRoot),
+      );
+      final projectTreeHash = await const ProjectTreeDigest().compute(
+        projectRoot,
+      );
+      if (projectTreeHash != request.expectedProjectTreeHash) {
+        throw StateError(
+          'Evaluation project digest mismatch: expected '
+          '${request.expectedProjectTreeHash}, got $projectTreeHash.',
+        );
+      }
       final scenarioFile = File(
         p.join(repositoryRoot.path, request.scenarioPath),
       );
       final scenarioSource = await scenarioFile.readAsString();
+      final scenario = const EvaluationScenarioParser().parseString(
+        scenarioSource,
+      );
       session = await launch(
         projectFile: '${request.projectRoot}/project.json',
         playbackRate: playbackRate,
@@ -167,6 +183,7 @@ final class InteractiveWorkerClient {
       return await session.run(
         request: request,
         scenarioSource: scenarioSource,
+        expectedProjectId: scenario.projectId,
         eventSink: eventSink,
       );
     } on TimeoutException catch (failure) {
@@ -217,6 +234,7 @@ final class InteractiveWorkerLaunch {
   Future<EvaluationWorkerResult> run({
     required EvaluationWorkerRequest request,
     required String scenarioSource,
+    required String expectedProjectId,
     void Function(EvaluationEvent event)? eventSink,
   }) async {
     final socket = await _listener.first.timeout(_readyTimeout);
@@ -254,7 +272,7 @@ final class InteractiveWorkerLaunch {
       'protocolVersion': _interactiveProtocolVersion,
     }));
     final ready = await _nextEnvelope(lines).timeout(_readyTimeout);
-    _validateReady(ready, expectedProjectId: request.projectRoot);
+    _validateReady(ready, expectedProjectId: expectedProjectId);
 
     socket.writeln(
       jsonEncode(<String, Object?>{
@@ -441,7 +459,7 @@ final class InteractiveWorkerLaunch {
         'evidenceLevel',
       ),
       'commit': await _gitHead(repositoryRoot),
-      'projectTreeHash': await _treeDigest(
+      'projectTreeHash': await const ProjectTreeDigest().compute(
         Directory(p.join(repositoryRoot.path, request.projectRoot)),
       ),
       'commandDigest': sha256.convert(utf8.encode(scenarioSource)).toString(),
@@ -550,27 +568,6 @@ Future<String> _gitHead(Directory repositoryRoot) async {
     throw StateError('Unable to resolve the evaluation commit.');
   }
   return (result.stdout as String).trim().toLowerCase();
-}
-
-Future<String> _treeDigest(Directory root) async {
-  final files = await root
-      .list(recursive: true, followLinks: false)
-      .where((entity) => entity is File)
-      .cast<File>()
-      .toList();
-  files.sort(
-    (left, right) => p
-        .relative(left.path, from: root.path)
-        .compareTo(p.relative(right.path, from: root.path)),
-  );
-  final entries = <String>[];
-  for (final file in files) {
-    final relative =
-        p.relative(file.path, from: root.path).replaceAll(r'\', '/');
-    final digest = await sha256.bind(file.openRead()).first;
-    entries.add('$relative\u0000$digest');
-  }
-  return sha256.convert(utf8.encode(entries.join('\u0000'))).toString();
 }
 
 Future<void> _writeJsonAtomically(

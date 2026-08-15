@@ -129,7 +129,7 @@ BattleEngineSetup _setup({
   List<PsdkBattleMoveData>? playerMoves,
   List<PsdkBattleMoveData>? opponentMoves,
 }) {
-  return BattleEngineSetup.singles(
+  return BattleEngineSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player-active',
       hp: playerHp,

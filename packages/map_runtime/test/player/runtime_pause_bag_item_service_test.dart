@@ -102,6 +102,67 @@ void main() {
     );
   });
 
+  test('pause bag command resolves its individual after a party reorder',
+      () async {
+    var state = const GameState(
+      saveId: 'bag-stable-target',
+      party: PlayerParty(
+        members: <PlayerPokemon>[
+          PlayerPokemon(
+            individualId: 'pkm_other',
+            speciesId: 'other',
+            natureId: 'hardy',
+            abilityId: 'steadfast',
+            currentHp: 20,
+          ),
+          PlayerPokemon(
+            individualId: 'pkm_target',
+            speciesId: 'target',
+            natureId: 'hardy',
+            abilityId: 'steadfast',
+            currentHp: 5,
+          ),
+        ],
+      ),
+      bag: Bag(
+        entries: <BagEntry>[
+          BagEntry(itemId: 'potion', quantity: 1),
+        ],
+      ),
+    );
+    const staleTargetId = 'pokemon.pkm_target';
+    state = state.copyWith(
+      party: PlayerParty(
+        members: <PlayerPokemon>[
+          state.party.members[1],
+          state.party.members[0],
+        ],
+      ),
+    );
+    final controller = PlayerServiceRuntimeController.contextual(
+      currentGameState: () => state,
+      commitAndSave: (next) async => state = next,
+      setInputLocked: (_) {},
+      loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+        maxHpByPartyIndex: <int, int>{0: 30, 1: 30},
+      ),
+      itemCatalog: _catalogWith(const <ProjectItemDefinition>[]),
+    );
+    addTearDown(controller.dispose);
+
+    final used = await controller.useBagItemOutsideBattle(
+      const RuntimePlayerPauseCommand.useBagItem(
+        itemTargetId: 'potion',
+        partyTargetId: staleTargetId,
+      ),
+    );
+
+    expect(used.status, RuntimePlayerPauseCommandStatus.accepted);
+    expect(state.party.members[0].individualId, 'pkm_target');
+    expect(state.party.members[0].currentHp, 25);
+    expect(state.party.members[1].currentHp, 20);
+  });
+
   test('pause bag uses a custom pocket item through its authored capability',
       () async {
     var state = const GameState(
@@ -272,6 +333,7 @@ void main() {
       ),
       projectRootDirectory: root.path,
       pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         evolutionsDir: 'custom/evolutions',
         speciesDir: 'custom/species',
       ),
@@ -335,6 +397,7 @@ void main() {
       ),
       projectRootDirectory: root.path,
       pokemonConfig: const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         evolutionsDir: 'custom/evolutions',
       ),
       itemCatalog: _catalogWith(
@@ -498,6 +561,7 @@ Future<void> _writeEvolutionFixture(Directory root) async {
 }
 
 const _machineConfig = ProjectPokemonConfig(
+  ruleset: PokemonRulesetProfile.pokeMapBetaV1,
   speciesDir: 'machine/species',
   learnsetsDir: 'machine/learnsets',
   catalogFiles: <String, String>{

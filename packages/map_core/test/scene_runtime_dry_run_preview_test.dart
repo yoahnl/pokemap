@@ -146,6 +146,7 @@ void main() {
         SceneConsequence.giveMoney(amount: 250),
         SceneConsequence.givePokemon(
           speciesId: 'sproutle',
+          formId: 'base',
           level: 5,
           currentHp: 20,
         ),

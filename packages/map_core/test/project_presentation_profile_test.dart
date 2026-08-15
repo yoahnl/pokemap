@@ -324,12 +324,13 @@ void main() {
     });
 
     test('legacy project JSON remains valid and receives safe defaults', () {
-      final manifest = ProjectManifest.fromJson(<String, dynamic>{
-        'name': 'Legacy game',
-        'version': 'v6',
-        'maps': <Object?>[],
-        'tilesets': <Object?>[],
-      });
+      final manifest =
+          ProjectManifest.fromJsonPokeMapBetaV1ForTest(<String, dynamic>{
+            'name': 'Legacy game',
+            'version': 'v6',
+            'maps': <Object?>[],
+            'tilesets': <Object?>[],
+          });
 
       expect(manifest.presentation, isNull);
       expect(
@@ -355,7 +356,10 @@ void main() {
 
       final json = manifest.toJson();
 
-      expect(ProjectManifest.fromJson(json).presentation, presentation);
+      expect(
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest(json).presentation,
+        presentation,
+      );
       expect(json['presentation'], presentation.toJson());
     });
 

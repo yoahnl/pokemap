@@ -1017,7 +1017,11 @@ final class AnticipationEffect extends BattleAbilityEffect {
         continue;
       }
       for (final move in foeBattler.moves) {
-        if (_isDangerousMove(move: move, target: owner)) {
+        if (_isDangerousMove(
+          state: context.state,
+          move: move,
+          target: owner,
+        )) {
           return BattleEffectSwitchEventResult(
             state: context.state,
             rng: context.rng,
@@ -1038,6 +1042,7 @@ final class AnticipationEffect extends BattleAbilityEffect {
   }
 
   bool _isDangerousMove({
+    required PsdkBattleState state,
     required PsdkBattleMoveData move,
     required PsdkBattleCombatant target,
   }) {
@@ -1045,6 +1050,7 @@ final class AnticipationEffect extends BattleAbilityEffect {
       return true;
     }
     final effectiveness = _typeProcessor.resolveEffectiveness(
+      rules: state.battleRules,
       moveType: move.type,
       targetTypes: target.types,
       extraTargetTypes: <String>[

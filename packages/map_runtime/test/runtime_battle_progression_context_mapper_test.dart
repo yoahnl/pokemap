@@ -12,6 +12,7 @@ void main() {
         () {
       final outcome = _switchedPsdkOutcome();
       final progressionContext = mapper.fromPsdkOutcome(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         runtimeContext: _runtimeContext(
           playerPartyIndex: 3,
           lineupToPartySlots: const <int>[3, 1, 4],
@@ -27,6 +28,10 @@ void main() {
         ],
       );
 
+      expect(
+        progressionContext.ruleset,
+        PokemonRulesetProfile.pokeMapBetaV1,
+      );
       expect(progressionContext.playerParticipantPartySlots, <int>{1, 3});
       expect(
         progressionContext.playerParticipantPartySlots,
@@ -53,6 +58,7 @@ void main() {
 
     test('maps legacy participant indexes through the same strict seam', () {
       final context = mapper.fromLegacyOutcome(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         runtimeContext: _runtimeContext(
           playerPartyIndex: 4,
           lineupToPartySlots: const <int>[4, 2, 5],
@@ -65,14 +71,47 @@ void main() {
         partySlotMetadata: const <BattleProgressionPartySlotMetadata>[],
       );
 
+      expect(context.ruleset, PokemonRulesetProfile.pokeMapBetaV1);
       expect(context.outcome, BattleProgressionOutcomeKind.victory);
       expect(context.playerParticipantPartySlots, <int>{2, 4});
       expect(context.playerParticipantPartySlots, isNot(contains(5)));
     });
 
+    test('resolves progression participants after the party was reordered', () {
+      final state = GameState(
+        saveId: 'progression-identity-reorder',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            _partyPokemon(0).copyWith(individualId: 'pkm_reserve'),
+            _partyPokemon(1).copyWith(individualId: 'pkm_active'),
+          ],
+        ),
+      );
+      final context = mapper.fromLegacyOutcome(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        runtimeContext: _runtimeContext(
+          playerPartyIndex: 0,
+          lineupToPartySlots: const <int>[0, 1],
+          playerIndividualId: 'pkm_active',
+          lineupIndividualIds: const <String>[
+            'pkm_active',
+            'pkm_reserve',
+          ],
+        ),
+        outcome: _legacyOutcome(participants: const <int>{0}),
+        partyLength: state.party.members.length,
+        gameState: state,
+        defeatedOpponents: const <BattleProgressionDefeatedOpponent>[],
+        partySlotMetadata: const <BattleProgressionPartySlotMetadata>[],
+      );
+
+      expect(context.playerParticipantPartySlots, <int>{1});
+    });
+
     test('fails closed when the lineup mapping is absent', () {
       expect(
         () => mapper.fromLegacyOutcome(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           runtimeContext: _runtimeContext(
             playerPartyIndex: 3,
             lineupToPartySlots: const <int>[],
@@ -89,6 +128,7 @@ void main() {
     test('fails closed when the mapping length cannot cover a participant', () {
       expect(
         () => mapper.fromLegacyOutcome(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           runtimeContext: _runtimeContext(
             playerPartyIndex: 3,
             lineupToPartySlots: const <int>[3],
@@ -105,6 +145,7 @@ void main() {
     test('fails closed on an invalid mapped party index', () {
       expect(
         () => mapper.fromLegacyOutcome(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           runtimeContext: _runtimeContext(
             playerPartyIndex: 3,
             lineupToPartySlots: const <int>[3, 5],
@@ -121,6 +162,7 @@ void main() {
     test('fails closed on duplicate mapped party slots', () {
       expect(
         () => mapper.fromLegacyOutcome(
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
           runtimeContext: _runtimeContext(
             playerPartyIndex: 3,
             lineupToPartySlots: const <int>[3, 3],
@@ -139,6 +181,8 @@ void main() {
 RuntimeActiveBattleContext _runtimeContext({
   required int playerPartyIndex,
   required List<int> lineupToPartySlots,
+  String playerIndividualId = '',
+  List<String> lineupIndividualIds = const <String>[],
 }) {
   return RuntimeActiveBattleContext.withLineupMapping(
     request: const WildBattleStartRequest(
@@ -162,6 +206,8 @@ RuntimeActiveBattleContext _runtimeContext({
     ),
     playerPartyIndex: playerPartyIndex,
     playerPartySlotIndicesByLineupIndex: lineupToPartySlots,
+    playerIndividualId: playerIndividualId,
+    playerIndividualIdsByLineupIndex: lineupIndividualIds,
   );
 }
 
@@ -204,7 +250,7 @@ BattleCombatant _legacyCombatant(
 
 PsdkBattleOutcome _switchedPsdkOutcome() {
   final engine = BattleEngine(
-    setup: BattleEngineSetup.singles(
+    setup: BattleEngineSetup.singlesPokeMapBetaV1ForTest(
       player: _psdkCombatant(
         id: 'player_0',
         speciesId: 'lead',
@@ -328,3 +374,13 @@ GameState _partyState(int length) {
     ),
   );
 }
+
+PlayerPokemon _partyPokemon(int index) => PlayerPokemon(
+      speciesId: 'party_$index',
+      natureId: 'hardy',
+      abilityId: 'ability_$index',
+      level: 5,
+      experience: 125,
+      currentPpByMoveId: const <String, int>{},
+      currentHp: 19,
+    );

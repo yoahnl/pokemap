@@ -21,12 +21,14 @@ final class SceneConsequenceCatalogOption {
     required this.id,
     required this.label,
     this.details = const <String>[],
+    this.formIds = const <String>[],
     this.itemDefinition,
   });
 
   final String id;
   final String label;
   final List<String> details;
+  final List<String> formIds;
   final ProjectItemDefinition? itemDefinition;
 }
 
@@ -309,6 +311,7 @@ Future<SceneConsequenceCatalogSection> _loadSpecies(
           SceneConsequenceCatalogOption(
             id: entry.id.trim(),
             label: entry.primaryName.trim(),
+            formIds: List<String>.from(entry.formIds),
             details: <String>[
               'Pokédex n°${entry.nationalDex}',
             ],
@@ -340,4 +343,15 @@ int _compareOptions(
   SceneConsequenceCatalogOption right,
 ) {
   return left.label.toLowerCase().compareTo(right.label.toLowerCase());
+}
+
+String scenePokemonFormLabel(String formId) {
+  final normalized = formId.trim();
+  if (normalized == 'base') return 'Forme de base';
+  if (normalized.isEmpty) return 'Forme indisponible';
+  return normalized
+      .split(RegExp(r'[-_]'))
+      .where((part) => part.isNotEmpty)
+      .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+      .join(' ');
 }

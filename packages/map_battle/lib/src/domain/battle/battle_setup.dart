@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_rng.dart';
@@ -10,7 +12,35 @@ import '../../psdk/domain/psdk_battle_setup.dart';
 /// `BattleSetup` used by runtime and tests; reusing that public name here would
 /// create an ambiguous API and make the migration look safer than it is.
 final class BattleEngineSetup {
+  factory BattleEngineSetup.singlesPokeMapBetaV1ForTest({
+    required PsdkBattleCombatantSetup player,
+    required PsdkBattleCombatantSetup opponent,
+    required PsdkBattleRngSeeds rngSeeds,
+    PsdkBattleFieldState field = const PsdkBattleFieldState(),
+    bool canFlee = false,
+    bool canCapture = false,
+    bool isTrainerBattle = false,
+    List<PsdkBattleCombatantSetup> playerReserves =
+        const <PsdkBattleCombatantSetup>[],
+    List<PsdkBattleCombatantSetup> opponentReserves =
+        const <PsdkBattleCombatantSetup>[],
+  }) {
+    return BattleEngineSetup.singles(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      player: player,
+      opponent: opponent,
+      rngSeeds: rngSeeds,
+      field: field,
+      canFlee: canFlee,
+      canCapture: canCapture,
+      isTrainerBattle: isTrainerBattle,
+      playerReserves: playerReserves,
+      opponentReserves: opponentReserves,
+    );
+  }
+
   BattleEngineSetup.singles({
+    required PokemonRulesetProfile ruleset,
     required PsdkBattleCombatantSetup player,
     required PsdkBattleCombatantSetup opponent,
     required PsdkBattleRngSeeds rngSeeds,
@@ -23,6 +53,7 @@ final class BattleEngineSetup {
     List<PsdkBattleCombatantSetup> opponentReserves =
         const <PsdkBattleCombatantSetup>[],
   }) : _psdkSetup = PsdkBattleSetup.singles(
+          ruleset: ruleset,
           player: player,
           opponent: opponent,
           rngSeeds: rngSeeds,

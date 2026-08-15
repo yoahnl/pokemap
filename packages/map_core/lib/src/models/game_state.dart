@@ -111,6 +111,8 @@ abstract class GameState with _$GameState {
 
     @Default({}) Set<String> completedBattleRequestIds,
 
+    @Default({}) Set<String> appliedPokemonGrantOperationIds,
+
     /// IDs d'événements déjà consommés (objets ramassés, etc.).
     @Default({}) Set<String> consumedEventIds,
 

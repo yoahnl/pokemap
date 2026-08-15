@@ -26,10 +26,10 @@ void main() {
       'pokemon_learnset_import_source_',
     );
     workspace = ProjectFileSystem(tempProjectRoot.path);
-    useCase = const ImportPokemonLearnsetJsonUseCase(
+    useCase = ImportPokemonLearnsetJsonUseCase(
       FilePokemonWriteRepository(),
     );
-    readRepository = const FilePokemonReadRepository();
+    readRepository = FilePokemonReadRepository();
 
     final createProjectUseCase = CreateProjectUseCase(
       FileProjectRepository(),

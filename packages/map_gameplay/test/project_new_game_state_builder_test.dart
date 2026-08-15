@@ -49,7 +49,9 @@ void main() {
     test('builds the authored existing-party alternative and marks the fact',
         () {
       const eevee = PlayerPokemon(
+        individualId: 'authored-template-id',
         speciesId: 'eevee',
+        formId: 'partner',
         natureId: 'hardy',
         abilityId: 'run-away',
         level: 5,
@@ -59,9 +61,29 @@ void main() {
       final state = createNewGameStateFromProject(
         project: _project(initialParty: const <PlayerPokemon>[eevee]),
         startMap: _startMap(),
+        saveId: 'new-game-identity',
+      );
+      final repeated = createNewGameStateFromProject(
+        project: _project(initialParty: const <PlayerPokemon>[eevee]),
+        startMap: _startMap(),
+        saveId: 'new-game-identity',
+      );
+      final otherSave = createNewGameStateFromProject(
+        project: _project(initialParty: const <PlayerPokemon>[eevee]),
+        startMap: _startMap(),
+        saveId: 'other-new-game-identity',
       );
 
-      expect(state.party.members, const <PlayerPokemon>[eevee]);
+      final individual = state.party.members.single;
+      expect(individual.individualId, startsWith('pkm_'));
+      expect(individual.individualId, isNot('authored-template-id'));
+      expect(individual.formId, 'partner');
+      expect(
+          repeated.party.members.single.individualId, individual.individualId);
+      expect(
+        otherSave.party.members.single.individualId,
+        isNot(individual.individualId),
+      );
       expect(
         state
             .narrativeFactRuntimeState.overridesByFactId['fact_existing_party'],

@@ -14,6 +14,11 @@ typedef SceneRuntimeConsequenceCallback = FutureOr<String> Function(
   SceneConsequence consequence,
 );
 
+typedef SceneRuntimeNodeConsequenceCallback = FutureOr<String> Function(
+  String nodeId,
+  SceneConsequence consequence,
+);
+
 enum SceneRuntimeExecutionStatus {
   completed,
   failed,
@@ -40,6 +45,7 @@ final class SceneRuntimeExecutionCallbacks {
     required this.startBattle,
     required this.playCinematic,
     required this.applyConsequence,
+    this.applyConsequenceWithNodeId,
     this.playPresentationCinematic,
     this.executeInteractiveCommand,
   });
@@ -50,6 +56,7 @@ final class SceneRuntimeExecutionCallbacks {
   final SceneRuntimeIntentCallback playCinematic;
   final SceneRuntimeIntentCallback? playPresentationCinematic;
   final SceneRuntimeConsequenceCallback applyConsequence;
+  final SceneRuntimeNodeConsequenceCallback? applyConsequenceWithNodeId;
   final SceneRuntimeIntentCallback? executeInteractiveCommand;
 }
 
@@ -415,7 +422,9 @@ final class SceneRuntimeExecutor {
     }
     String outputPortId;
     try {
-      outputPortId = await callbacks.applyConsequence(consequence);
+      outputPortId = await (callbacks.applyConsequenceWithNodeId == null
+          ? callbacks.applyConsequence(consequence)
+          : callbacks.applyConsequenceWithNodeId!(nodeId, consequence));
     } catch (error) {
       return _OutputPortResult(
         errorCode: SceneRuntimeExecutionErrorCode.callbackFailed,

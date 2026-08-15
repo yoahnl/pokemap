@@ -6,8 +6,17 @@ import 'package:path/path.dart' as p;
 
 import '../errors/application_errors.dart';
 import '../models/pokemon_database_index.dart';
-import '../models/pokemon_project_data_models.dart';
 import '../ports/project_workspace.dart';
+
+class PokemonSpeciesSnapshotMetrics {
+  const PokemonSpeciesSnapshotMetrics();
+
+  void onSnapshotBuildStarted(String projectRoot, String relativeDirectory) {}
+
+  void onSpeciesDirectoryListed(String projectRoot, String relativeDirectory) {}
+
+  void onSpeciesJsonRead(String projectRoot, String relativePath) {}
+}
 
 /// Lecteur local des donnees Pokemon stockees dans le workspace projet.
 ///
@@ -18,7 +27,22 @@ import '../ports/project_workspace.dart';
 /// - les erreurs doivent etre explicites pour que les prochains lots UI
 ///   puissent les afficher proprement
 class PokemonProjectDataReader {
-  const PokemonProjectDataReader();
+  PokemonProjectDataReader({
+    this.snapshotMetrics = const PokemonSpeciesSnapshotMetrics(),
+  });
+
+  final PokemonSpeciesSnapshotMetrics snapshotMetrics;
+  final Map<String, Map<String, Future<_PokemonSpeciesSnapshot>>>
+  _speciesSnapshotsByProjectRoot =
+      <String, Map<String, Future<_PokemonSpeciesSnapshot>>>{};
+
+  void invalidateSpeciesSnapshot(ProjectWorkspace workspace) {
+    invalidateSpeciesSnapshotForProjectRoot(workspace.projectRoot);
+  }
+
+  void invalidateSpeciesSnapshotForProjectRoot(String projectRoot) {
+    _speciesSnapshotsByProjectRoot.remove(_normalizeProjectRoot(projectRoot));
+  }
 
   Future<PokemonDataManifest> readManifest(ProjectWorkspace workspace) async {
     final json = await _readJsonFile(
@@ -84,20 +108,14 @@ class PokemonProjectDataReader {
     final trimmedId = speciesId.trim();
     if (trimmedId.isEmpty) {
       throw const EditorValidationException(
-          'Pokemon species id cannot be empty');
+        'Pokemon species id cannot be empty',
+      );
     }
 
-    final speciesPathEntry =
-        await _resolveSpeciesIndexEntryById(workspace, trimmedId);
-    final species = await _readSpeciesAtRelativePath(
-      workspace,
-      speciesPathEntry.relativePath,
-    );
-    if (species.id != trimmedId) {
-      throw EditorPersistenceException(
-        'Pokemon species file id mismatch for "$trimmedId": '
-        '${speciesPathEntry.relativePath} contains "${species.id}"',
-      );
+    final snapshot = await _speciesSnapshot(workspace);
+    final species = snapshot.speciesById[trimmedId];
+    if (species == null) {
+      throw EditorNotFoundException('Pokemon species not found: $trimmedId');
     }
     return species;
   }
@@ -131,8 +149,9 @@ class PokemonProjectDataReader {
         'Pokemon evolution id cannot be empty',
       );
     }
-    final evolutionsDirectory =
-        await _evolutionsDirectoryRelativePath(workspace);
+    final evolutionsDirectory = await _evolutionsDirectoryRelativePath(
+      workspace,
+    );
     final json = await _readJsonFile(
       workspace,
       p.join(evolutionsDirectory, '$trimmedId.json'),
@@ -147,9 +166,7 @@ class PokemonProjectDataReader {
   ) async {
     final trimmedId = speciesId.trim();
     if (trimmedId.isEmpty) {
-      throw const EditorValidationException(
-        'Pokemon media id cannot be empty',
-      );
+      throw const EditorValidationException('Pokemon media id cannot be empty');
     }
     final mediaDirectory = await _mediaDirectoryRelativePath(workspace);
     final json = await _readJsonFile(
@@ -161,18 +178,13 @@ class PokemonProjectDataReader {
   }
 
   Future<List<String>> listSpeciesFiles(ProjectWorkspace workspace) async {
-    final speciesDirectory = await _speciesDirectoryRelativePath(workspace);
-    return _listJsonRelativePaths(
-      workspace,
-      speciesDirectory,
-      label: 'Pokemon species directory',
-    );
+    return (await _speciesSnapshot(workspace)).relativePaths;
   }
 
   Future<List<PokemonSpeciesIndexEntry>> listSpeciesIndexEntries(
     ProjectWorkspace workspace,
   ) async {
-    return _buildSpeciesIndexEntries(workspace);
+    return (await _speciesSnapshot(workspace)).index.entries;
   }
 
   Future<List<PokemonDatabaseIndexEntry>> listDatabaseIndexEntries(
@@ -186,20 +198,14 @@ class PokemonProjectDataReader {
       );
     }
 
-    final entries = <PokemonDatabaseIndexEntry>[];
-    for (final relativePath in await _listJsonRelativePaths(
+    final snapshot = await _speciesSnapshot(
       workspace,
-      trimmedDirectory,
-      label: 'Pokemon species directory',
-    )) {
-      final species = await _readSpeciesAtRelativePath(
-        workspace,
-        relativePath,
-      );
-      final speciesIndexEntry = PokemonSpeciesIndexEntry.fromSpeciesFile(
-        species,
-        relativePath: relativePath,
-      );
+      relativeDirectory: trimmedDirectory,
+    );
+    final entries = <PokemonDatabaseIndexEntry>[];
+    for (final speciesIndexEntry in snapshot.index.entries) {
+      final relativePath = speciesIndexEntry.relativePath;
+      final species = snapshot.speciesById[speciesIndexEntry.id]!;
 
       // Le lot 11 ne doit plus accepter silencieusement une espèce parseable
       // mais inutilisable pour la future liste. On vérifie donc ici le contrat
@@ -307,8 +313,11 @@ class PokemonProjectDataReader {
   Future<PokemonSpeciesFile> readSpeciesByRelativePath(
     ProjectWorkspace workspace,
     String relativePath,
-  ) {
-    return _readSpeciesAtRelativePath(workspace, relativePath);
+  ) async {
+    final normalizedPath = p.normalize(relativePath.trim());
+    final snapshot = await _speciesSnapshot(workspace);
+    return snapshot.speciesByRelativePath[normalizedPath] ??
+        _readSpeciesAtRelativePath(workspace, normalizedPath);
   }
 
   Future<List<String>> listLearnsetIds(ProjectWorkspace workspace) async {
@@ -321,8 +330,9 @@ class PokemonProjectDataReader {
   }
 
   Future<List<String>> listEvolutionIds(ProjectWorkspace workspace) async {
-    final evolutionsDirectory =
-        await _evolutionsDirectoryRelativePath(workspace);
+    final evolutionsDirectory = await _evolutionsDirectoryRelativePath(
+      workspace,
+    );
     return _listJsonFileStemIds(
       workspace,
       evolutionsDirectory,
@@ -346,78 +356,152 @@ class PokemonProjectDataReader {
     final trimmedId = speciesId.trim();
     if (trimmedId.isEmpty) {
       throw const EditorValidationException(
-          'Pokemon species id cannot be empty');
-    }
-
-    final speciesDir = await _speciesDirectory(workspace);
-    if (!await speciesDir.exists()) {
-      return null;
-    }
-
-    final matches = <String>[];
-
-    await for (final entity in speciesDir.list(recursive: false)) {
-      if (entity is! File) continue;
-      if (p.extension(entity.path).toLowerCase() != '.json') continue;
-      final relativePath =
-          p.normalize(p.relative(entity.path, from: workspace.projectRoot));
-
-      // Le basename ne suffit pas ici : un fichier peut s'appeler
-      // `9999-bulbasaur.json` tout en déclarant en réalité `"id": "ivysaur"`.
-      // Pour la résolution d'un overwrite species, la seule source de vérité
-      // acceptable est donc l'id réellement stocké dans le JSON.
-      //
-      // On choisit volontairement la correction la plus sûre :
-      // - on lit chaque JSON species ;
-      // - on ignore silencieusement les fichiers invalides / non objets /
-      //   sans `id` exploitable ;
-      // - on ne compte comme match que les fichiers qui déclarent exactement
-      //   l'id demandé.
-      //
-      // Cette approche évite les faux positifs de basename et garde le writer
-      // ainsi que l'import externe cohérents avec la merge policy annoncée.
-      final declaredId = await _readDeclaredSpeciesId(entity);
-      if (declaredId == trimmedId) {
-        matches.add(relativePath);
-      }
-    }
-
-    matches.sort();
-    final uniqueMatches = matches.toSet().toList(growable: false)..sort();
-
-    if (uniqueMatches.length > 1) {
-      throw EditorConflictException(
-        'Multiple Pokemon species files match the id "$trimmedId": '
-        '${uniqueMatches.join(', ')}',
+        'Pokemon species id cannot be empty',
       );
     }
 
-    if (uniqueMatches.isEmpty) {
+    final speciesDirectory = await _speciesDirectory(workspace);
+    if (!await speciesDirectory.exists()) {
       return null;
     }
-
-    return uniqueMatches.single;
+    return (await _speciesSnapshot(
+      workspace,
+    )).index.byId(trimmedId)?.relativePath;
   }
 
-  Future<List<PokemonSpeciesIndexEntry>> _buildSpeciesIndexEntries(
+  Future<String?> resolveSpeciesWriteRelativePathById(
     ProjectWorkspace workspace,
+    String speciesId,
   ) async {
-    final entries = <PokemonSpeciesIndexEntry>[];
-    for (final relativePath in await listSpeciesFiles(workspace)) {
-      final species = await _readSpeciesAtRelativePath(workspace, relativePath);
-      entries.add(
-        PokemonSpeciesIndexEntry.fromSpeciesFile(
-          species,
-          relativePath: relativePath,
-        ),
+    try {
+      return await resolveSpeciesRelativePathById(workspace, speciesId);
+    } on EditorConflictException catch (error) {
+      throw EditorConflictException(
+        'Multiple Pokemon species files match the id "${speciesId.trim()}": '
+        '${error.message}',
+      );
+    } on EditorPersistenceException {
+      return _scanSpeciesRelativePathById(workspace, speciesId.trim());
+    }
+  }
+
+  Future<String?> _scanSpeciesRelativePathById(
+    ProjectWorkspace workspace,
+    String speciesId,
+  ) async {
+    final speciesDirectory = await _speciesDirectory(workspace);
+    final matches = <String>[];
+    await for (final entity in speciesDirectory.list(recursive: false)) {
+      if (entity is! File) continue;
+      if (p.extension(entity.path).toLowerCase() != '.json') continue;
+      if (await _readDeclaredSpeciesId(entity) != speciesId) continue;
+      matches.add(
+        p.normalize(p.relative(entity.path, from: workspace.projectRoot)),
       );
     }
-    entries.sort((left, right) {
-      final dexCompare = left.nationalDex.compareTo(right.nationalDex);
-      if (dexCompare != 0) return dexCompare;
-      return left.id.compareTo(right.id);
-    });
-    return entries;
+    matches.sort();
+    if (matches.length > 1) {
+      throw EditorConflictException(
+        'Multiple Pokemon species files match the id "$speciesId": '
+        '${matches.join(', ')}',
+      );
+    }
+    return matches.isEmpty ? null : matches.single;
+  }
+
+  Future<_PokemonSpeciesSnapshot> _speciesSnapshot(
+    ProjectWorkspace workspace, {
+    String? relativeDirectory,
+  }) async {
+    final directory = p.normalize(
+      relativeDirectory ?? await _speciesDirectoryRelativePath(workspace),
+    );
+    final cache = _snapshotCacheFor(workspace);
+    final existing = cache[directory];
+    if (existing != null) {
+      return existing;
+    }
+    final pending = _buildSpeciesSnapshot(workspace, directory);
+    cache[directory] = pending;
+    try {
+      return await pending;
+    } catch (_) {
+      if (identical(cache[directory], pending)) {
+        cache.remove(directory);
+      }
+      rethrow;
+    }
+  }
+
+  Map<String, Future<_PokemonSpeciesSnapshot>> _snapshotCacheFor(
+    ProjectWorkspace workspace,
+  ) {
+    return _speciesSnapshotsByProjectRoot.putIfAbsent(
+      _normalizeProjectRoot(workspace.projectRoot),
+      () => <String, Future<_PokemonSpeciesSnapshot>>{},
+    );
+  }
+
+  Future<_PokemonSpeciesSnapshot> _buildSpeciesSnapshot(
+    ProjectWorkspace workspace,
+    String relativeDirectory,
+  ) async {
+    snapshotMetrics.onSnapshotBuildStarted(
+      workspace.projectRoot,
+      relativeDirectory,
+    );
+    snapshotMetrics.onSpeciesDirectoryListed(
+      workspace.projectRoot,
+      relativeDirectory,
+    );
+    final relativePaths = await _listJsonRelativePaths(
+      workspace,
+      relativeDirectory,
+      label: 'Pokemon species directory',
+    );
+    final entries = <PokemonSpeciesIndexEntry>[];
+    final speciesById = <String, PokemonSpeciesFile>{};
+    final speciesByRelativePath = <String, PokemonSpeciesFile>{};
+    final entryById = <String, PokemonSpeciesIndexEntry>{};
+    for (final relativePath in relativePaths) {
+      snapshotMetrics.onSpeciesJsonRead(workspace.projectRoot, relativePath);
+      final species = await _readSpeciesAtRelativePath(workspace, relativePath);
+      final entry = PokemonSpeciesIndexEntry.fromSpeciesFile(
+        species,
+        relativePath: relativePath,
+      );
+      final id = entry.id.trim();
+      if (id.isEmpty) {
+        throw EditorPersistenceException(
+          'Pokemon species index file must define a non-empty id: '
+          '$relativePath',
+        );
+      }
+      final previous = entryById[id];
+      if (previous != null) {
+        final paths = <String>[previous.relativePath, relativePath]..sort();
+        throw EditorConflictException(
+          'Multiple Pokemon species files share the same id "$id": '
+          '${paths.join(', ')}',
+        );
+      }
+      entries.add(entry);
+      entryById[id] = entry;
+      speciesById[id] = species;
+      speciesByRelativePath[p.normalize(relativePath)] = species;
+    }
+    try {
+      return _PokemonSpeciesSnapshot(
+        index: PokemonSpeciesIndex(entries),
+        relativePaths: relativePaths,
+        speciesById: speciesById,
+        speciesByRelativePath: speciesByRelativePath,
+      );
+    } on StateError catch (error) {
+      throw EditorPersistenceException(
+        'Invalid Pokemon species index in $relativeDirectory: $error',
+      );
+    }
   }
 
   Future<PokemonSpeciesFile> _readSpeciesAtRelativePath(
@@ -489,30 +573,9 @@ class PokemonProjectDataReader {
     }
   }
 
-  Future<PokemonSpeciesIndexEntry> _resolveSpeciesIndexEntryById(
-    ProjectWorkspace workspace,
-    String speciesId,
-  ) async {
-    final matches = (await _buildSpeciesIndexEntries(workspace))
-        .where((entry) => entry.id == speciesId)
-        .toList(growable: false);
-    if (matches.isEmpty) {
-      throw EditorNotFoundException('Pokemon species not found: $speciesId');
-    }
-    if (matches.length > 1) {
-      throw EditorConflictException(
-        'Multiple Pokemon species files share the same id "$speciesId": '
-        '${matches.map((entry) => entry.relativePath).join(', ')}',
-      );
-    }
-    return matches.single;
-  }
-
   Future<Directory> _speciesDirectory(ProjectWorkspace workspace) async {
     final speciesDirectory = await _speciesDirectoryRelativePath(workspace);
-    return Directory(
-      workspace.resolveProjectRelativePath(speciesDirectory),
-    );
+    return Directory(workspace.resolveProjectRelativePath(speciesDirectory));
   }
 
   Future<String> _pokemonDataManifestRelativePath(
@@ -556,9 +619,7 @@ class PokemonProjectDataReader {
     );
   }
 
-  Future<String> _mediaDirectoryRelativePath(
-    ProjectWorkspace workspace,
-  ) async {
+  Future<String> _mediaDirectoryRelativePath(ProjectWorkspace workspace) async {
     final pokemonConfig = await _readProjectPokemonConfig(workspace);
     return _normalizeConfiguredRelativePath(
       pokemonConfig.mediaDir,
@@ -571,13 +632,10 @@ class PokemonProjectDataReader {
   ) async {
     final manifestPath = workspace.projectManifestPath;
     try {
-      // Real projects always have `project.json`, but a few lightweight tests
-      // and temporary workspaces still seed only the Pokemon files. Falling
-      // back to the historical default layout keeps those fixtures working
-      // while still honoring project-specific paths whenever the manifest is
-      // present.
       if (!await workspace.fileExists(manifestPath)) {
-        return const ProjectPokemonConfig();
+        throw EditorPersistenceException(
+          'Project manifest is required at $manifestPath.',
+        );
       }
 
       final raw = await workspace.readTextFile(manifestPath);
@@ -612,6 +670,15 @@ class PokemonProjectDataReader {
   }) {
     final trimmed = rawRelativePath.trim();
     return p.normalize(trimmed.isEmpty ? fallback : trimmed);
+  }
+
+  String _normalizeProjectRoot(String projectRoot) {
+    final normalized = p.normalize(p.absolute(projectRoot));
+    try {
+      return p.normalize(Directory(normalized).resolveSymbolicLinksSync());
+    } on FileSystemException {
+      return normalized;
+    }
   }
 
   String _resolvePathWithinPokemonDataRoot({
@@ -670,25 +737,11 @@ class PokemonProjectDataReader {
 
   Future<String?> _readDeclaredSpeciesId(File file) async {
     try {
-      final raw = await file.readAsString();
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) {
-        return null;
-      }
-
-      final declaredId = decoded['id'];
-      if (declaredId is! String) {
-        return null;
-      }
-
-      final trimmedId = declaredId.trim();
-      if (trimmedId.isEmpty) {
-        return null;
-      }
-
-      // Un fichier mal formé ou non concerné ne doit pas bloquer la résolution
-      // d'une autre espèce. On remonte seulement les vrais doublons d'id.
-      return trimmedId;
+      final decoded = jsonDecode(await file.readAsString());
+      if (decoded is! Map<String, dynamic>) return null;
+      final id = decoded['id'];
+      if (id is! String || id.trim().isEmpty) return null;
+      return id.trim();
     } on FileSystemException {
       return null;
     } on FormatException {
@@ -728,4 +781,22 @@ class PokemonProjectDataReader {
       );
     }
   }
+}
+
+class _PokemonSpeciesSnapshot {
+  _PokemonSpeciesSnapshot({
+    required this.index,
+    required List<String> relativePaths,
+    required Map<String, PokemonSpeciesFile> speciesById,
+    required Map<String, PokemonSpeciesFile> speciesByRelativePath,
+  }) : relativePaths = List<String>.unmodifiable(relativePaths),
+       speciesById = Map<String, PokemonSpeciesFile>.unmodifiable(speciesById),
+       speciesByRelativePath = Map<String, PokemonSpeciesFile>.unmodifiable(
+         speciesByRelativePath,
+       );
+
+  final PokemonSpeciesIndex index;
+  final List<String> relativePaths;
+  final Map<String, PokemonSpeciesFile> speciesById;
+  final Map<String, PokemonSpeciesFile> speciesByRelativePath;
 }

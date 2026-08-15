@@ -18,6 +18,8 @@ final class EditorProjectFileReader
         ProjectFileReader,
         ProjectResourceIdentityReader,
         ProjectSnapshotCacheIdentityReader,
+        ProjectDirectoryReader,
+        ProjectResourceProbeReader,
         EditorProjectRootLocator {
   const EditorProjectFileReader({
     ProjectFileReader delegate = const LocalProjectFileReader(),
@@ -60,6 +62,45 @@ final class EditorProjectFileReader
       return Future.value();
     }
     return (delegate as ProjectSnapshotCacheIdentityReader).readIdentity(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
+  }
+
+  @override
+  Future<List<String>> listFiles({
+    required String projectRoot,
+    required String relativeDirectory,
+  }) {
+    EditorPerformanceTelemetry.incrementCounter(
+      EditorPerformanceCounterName.filesystemMetadata,
+    );
+    final delegate = _delegate;
+    if (delegate is! ProjectDirectoryReader) {
+      throw const WorkspaceAccessException(
+        'workspace.directory_unavailable',
+        'The project reader cannot list directories.',
+      );
+    }
+    return (delegate as ProjectDirectoryReader).listFiles(
+      projectRoot: projectRoot,
+      relativeDirectory: relativeDirectory,
+    );
+  }
+
+  @override
+  Future<ProjectResourceProbe> probeResource({
+    required String projectRoot,
+    required String relativePath,
+  }) {
+    EditorPerformanceTelemetry.incrementCounter(
+      EditorPerformanceCounterName.filesystemMetadata,
+    );
+    final delegate = _delegate;
+    if (delegate is! ProjectResourceProbeReader) {
+      return Future.value(const ProjectResourceProbe.inventoryUnavailable());
+    }
+    return (delegate as ProjectResourceProbeReader).probeResource(
       projectRoot: projectRoot,
       relativePath: relativePath,
     );

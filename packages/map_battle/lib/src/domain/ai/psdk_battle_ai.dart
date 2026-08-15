@@ -297,12 +297,17 @@ final class PsdkBattleAi {
       );
     }
 
-    final rawEffectiveness = _effectiveness(move, targetBattler);
+    final rawEffectiveness = _effectiveness(
+      state: state,
+      move: move,
+      target: targetBattler,
+    );
     final effectiveness =
         move.category == PsdkBattleMoveCategory.status && rawEffectiveness > 0
             ? 1.0
             : rawEffectiveness;
     final estimatedDamage = _estimatedDamage(
+      state: state,
       move: move,
       user: userBattler,
       target: targetBattler,
@@ -348,14 +353,16 @@ final class PsdkBattleAi {
     return prevention?.reason.jsonName;
   }
 
-  double _effectiveness(
-    PsdkBattleMoveData move,
-    PsdkBattleCombatant target,
-  ) {
+  double _effectiveness({
+    required PsdkBattleState state,
+    required PsdkBattleMoveData move,
+    required PsdkBattleCombatant target,
+  }) {
     if (level < 2) {
       return 1;
     }
     return _typeProcessor.resolveEffectiveness(
+      rules: state.battleRules,
       moveType: move.type,
       targetTypes: target.types,
       extraTargetTypes: <String>[
@@ -366,6 +373,7 @@ final class PsdkBattleAi {
   }
 
   int _estimatedDamage({
+    required PsdkBattleState state,
     required PsdkBattleMoveData move,
     required PsdkBattleCombatant user,
     required PsdkBattleCombatant target,
@@ -389,6 +397,7 @@ final class PsdkBattleAi {
         (((levelFactor * move.power * offense) ~/ _positive(defense)) ~/ 50) +
             2;
     final stab = _typeProcessor.resolveStabMultiplier(
+      rules: state.battleRules,
       moveType: move.type,
       userTypes: user.types,
       extraUserTypes: <String>[

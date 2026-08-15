@@ -9,14 +9,18 @@ void main() {
       'ProjectManifest without projectedBuildingShadowCatalog decodes an empty '
       'catalog and omits the root on toJson',
       () {
-        final manifest = ProjectManifest.fromJson(_manifestJson());
+        final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+          _manifestJson(),
+        );
 
         expect(manifest.projectedBuildingShadowCatalog.isEmpty, isTrue);
 
         final json = _wireJson(manifest.toJson());
         expect(json, isNot(contains('projectedBuildingShadowCatalog')));
-        expect(_elementJsonAt(json, 0),
-            isNot(contains('projectedBuildingShadow')));
+        expect(
+          _elementJsonAt(json, 0),
+          isNot(contains('projectedBuildingShadow')),
+        );
       },
     );
 
@@ -24,7 +28,7 @@ void main() {
       'ProjectManifest with projectedBuildingShadowCatalog null decodes empty '
       'and omits the root on toJson',
       () {
-        final manifest = ProjectManifest.fromJson(
+        final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(projectedBuildingShadowCatalog: null),
         );
 
@@ -40,10 +44,8 @@ void main() {
       'presets',
       () {
         expect(
-          () => ProjectManifest.fromJson(
-            _manifestJson(
-              projectedBuildingShadowCatalog: <String, Object?>{},
-            ),
+          () => ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+            _manifestJson(projectedBuildingShadowCatalog: <String, Object?>{}),
           ),
           throwsA(isA<ValidationException>()),
         );
@@ -54,7 +56,7 @@ void main() {
       'ProjectManifest with empty projectedBuildingShadowCatalog presets decodes '
       'empty and omits the root on toJson',
       () {
-        final manifest = ProjectManifest.fromJson(
+        final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(
             projectedBuildingShadowCatalog: <String, Object?>{
               'presets': <Object?>[],
@@ -73,7 +75,7 @@ void main() {
       'ProjectManifest with non-empty projectedBuildingShadowCatalog round-trips '
       'and emits the root',
       () {
-        final manifest = ProjectManifest.fromJson(
+        final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(projectedBuildingShadowCatalog: _catalogJson()),
         );
 
@@ -89,7 +91,7 @@ void main() {
         final json = _wireJson(manifest.toJson());
         expect(json['projectedBuildingShadowCatalog'], _catalogJson());
 
-        final roundTripped = ProjectManifest.fromJson(json);
+        final roundTripped = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
         expect(
           roundTripped.projectedBuildingShadowCatalog,
           manifest.projectedBuildingShadowCatalog,
@@ -97,16 +99,13 @@ void main() {
       },
     );
 
-    test(
-      'ProjectElementEntry without projectedBuildingShadow decodes null and '
-      'omits the field on toJson',
-      () {
-        final element = ProjectElementEntry.fromJson(_elementJson());
+    test('ProjectElementEntry without projectedBuildingShadow decodes null and '
+        'omits the field on toJson', () {
+      final element = ProjectElementEntry.fromJson(_elementJson());
 
-        expect(element.projectedBuildingShadow, isNull);
-        expect(element.toJson(), isNot(contains('projectedBuildingShadow')));
-      },
-    );
+      expect(element.projectedBuildingShadow, isNull);
+      expect(element.toJson(), isNot(contains('projectedBuildingShadow')));
+    });
 
     test(
       'ProjectElementEntry with projectedBuildingShadow null decodes null and '
@@ -135,8 +134,10 @@ void main() {
         expect(json['projectedBuildingShadow'], _projectedShadowConfigJson());
 
         final roundTripped = ProjectElementEntry.fromJson(json);
-        expect(roundTripped.projectedBuildingShadow,
-            element.projectedBuildingShadow);
+        expect(
+          roundTripped.projectedBuildingShadow,
+          element.projectedBuildingShadow,
+        );
       },
     );
 
@@ -171,7 +172,7 @@ void main() {
       'existing V1-only manifest round-trip stays free of projected building '
       'shadow output',
       () {
-        final manifest = ProjectManifest.fromJson(
+        final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
           _manifestJson(
             shadowCatalog: _v1ShadowCatalogJson(),
             elements: <Object?>[
@@ -182,8 +183,8 @@ void main() {
         );
 
         final json = _wireJson(manifest.toJson());
-        final elements =
-            (json['elements'] as List<Object?>).cast<Map<String, Object?>>();
+        final elements = (json['elements'] as List<Object?>)
+            .cast<Map<String, Object?>>();
 
         expect(json['shadowCatalog'], _v1ShadowCatalogJson());
         expect(json, isNot(contains('projectedBuildingShadowCatalog')));
@@ -193,7 +194,9 @@ void main() {
     );
 
     test('copyWith can replace manifest catalog and element config', () {
-      final manifest = ProjectManifest.fromJson(_manifestJson());
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _manifestJson(),
+      );
       final catalog = ProjectBuildingShadowPresetCatalog(
         presets: <ProjectBuildingShadowPreset>[_shortWestPreset()],
       );
@@ -255,10 +258,7 @@ Map<String, Object?> _elementJson({
 
 Map<String, Object?> _catalogJson() {
   return <String, Object?>{
-    'presets': <Object?>[
-      _shortWestPresetJson(),
-      _longEastPresetJson(),
-    ],
+    'presets': <Object?>[_shortWestPresetJson(), _longEastPresetJson()],
   };
 }
 
@@ -272,10 +272,7 @@ Map<String, Object?> _shortWestPresetJson() {
       'nearWidthRatio': 0.85,
       'farWidthRatio': 0.75,
     },
-    'appearance': <String, Object?>{
-      'opacity': 0.18,
-      'colorHexRgb': '000000',
-    },
+    'appearance': <String, Object?>{'opacity': 0.18, 'colorHexRgb': '000000'},
     'timeOfDayMode': 'fixed',
     'sortOrder': 0,
   };
@@ -291,10 +288,7 @@ Map<String, Object?> _longEastPresetJson() {
       'nearWidthRatio': 0.9,
       'farWidthRatio': 0.7,
     },
-    'appearance': <String, Object?>{
-      'opacity': 0.16,
-      'colorHexRgb': '000000',
-    },
+    'appearance': <String, Object?>{'opacity': 0.16, 'colorHexRgb': '000000'},
     'timeOfDayMode': 'followsSun',
     'categoryId': 'buildings',
     'sortOrder': 10,
@@ -311,28 +305,17 @@ ProjectBuildingShadowPreset _shortWestPreset() {
       nearWidthRatio: 0.85,
       farWidthRatio: 0.75,
     ),
-    appearance: ProjectedShadowAppearance(
-      opacity: 0.18,
-      colorHexRgb: '000000',
-    ),
+    appearance: ProjectedShadowAppearance(opacity: 0.18, colorHexRgb: '000000'),
     timeOfDayMode: ProjectedShadowTimeOfDayMode.fixed,
   );
 }
 
-Map<String, Object?> _projectedShadowConfigJson({
-  bool enabled = true,
-}) {
+Map<String, Object?> _projectedShadowConfigJson({bool enabled = true}) {
   return <String, Object?>{
     'enabled': enabled,
     'presetId': 'short-west-building-shadow',
-    'anchor': <String, Object?>{
-      'xRatio': 0.5,
-      'yRatio': 0.98,
-    },
-    'localOffset': <String, Object?>{
-      'x': 0,
-      'y': 0,
-    },
+    'anchor': <String, Object?>{'xRatio': 0.5, 'yRatio': 0.98},
+    'localOffset': <String, Object?>{'x': 0, 'y': 0},
   };
 }
 

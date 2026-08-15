@@ -396,7 +396,7 @@ PsdkBattleState _stateWithRetaliateUser({
       const PsdkBattleDamageHistory.empty(),
 }) {
   const allySlot = PsdkBattleSlotRef(bank: 0, position: -1);
-  return PsdkBattleState(
+  return PsdkBattleState.pokeMapBetaV1ForTest(
     combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
       psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
         _combatant(
@@ -442,7 +442,7 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
 }) {
   final engine = PsdkBattleEngine(
-    setup: PsdkBattleSetup.singles(
+    setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
       player: _combatant(
         id: 'player',
         speed: playerSpeed,

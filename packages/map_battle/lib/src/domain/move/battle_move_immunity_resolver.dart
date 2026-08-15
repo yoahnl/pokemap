@@ -130,6 +130,7 @@ final class BattleMoveImmunityResolver {
     }
 
     final effectiveness = _typeProcessor.resolveEffectiveness(
+      rules: execution.context.state.battleRules,
       moveType: moveType,
       targetTypes: _effectiveVisibleTypes(target),
       extraTargetTypes: _extraTypes(target),

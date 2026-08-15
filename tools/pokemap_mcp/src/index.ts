@@ -9,6 +9,7 @@ import {
 } from "./config.js";
 import { createPokeMapMcpServer } from "./server.js";
 import { LocalRuntimeGateway } from "./runtime_gateway.js";
+import { createLocalPlaytestProjectionFactory } from "./playtest_projection.js";
 
 try {
   start(parseConfig(process.argv.slice(2)));
@@ -35,6 +36,13 @@ function start(config: PokeMapMcpConfig): void {
     runtimeHostRoot: config.runtimeHostRoot,
     repositoryRoot: config.repositoryRoot,
     dartExecutable: config.dartExecutable,
+    playtestProjectionFactory: createLocalPlaytestProjectionFactory({
+      authoring,
+      authoringPackageRoot: config.authoringPackageRoot,
+      repositoryRoot: config.repositoryRoot,
+      runtimeHostRoot: config.runtimeHostRoot,
+      dartExecutable: config.dartExecutable,
+    }),
   });
   const handle = serveStdio(
     () => createPokeMapMcpServer({ authoring, artifacts, runtime }),

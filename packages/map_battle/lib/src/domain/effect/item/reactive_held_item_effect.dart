@@ -160,6 +160,7 @@ final class WeaknessPolicyEffect extends BattleItemEffect {
     PsdkBattleCombatant target,
   ) {
     final effectiveness = const BattleMoveTypeProcessor().resolveEffectiveness(
+      rules: context.state.battleRules,
       moveType: context.move.type,
       targetTypes: target.types,
       extraTargetTypes: <String>[

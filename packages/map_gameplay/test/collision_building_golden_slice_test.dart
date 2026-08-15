@@ -203,6 +203,9 @@ Map<String, dynamic> _legacyBuildingProjectJson() {
   return <String, dynamic>{
     'version': 'v6',
     'name': 'Building Golden Slice',
+    'pokemon': ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    ).toJson(),
     'maps': <dynamic>[],
     'tilesets': <dynamic>[
       <String, dynamic>{

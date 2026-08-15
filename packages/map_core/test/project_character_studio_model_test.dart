@@ -87,7 +87,7 @@ void main() {
       );
 
       final json = jsonDecode(jsonEncode(manifest.toJson()));
-      final decoded = ProjectManifest.fromJson(
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
         Map<String, dynamic>.from(json as Map),
       );
 
@@ -106,10 +106,7 @@ void main() {
       expect(animation.loop, isTrue);
       expect(animation.toJson()['sourceAssetId'], isNull);
       expect(animation.toJson(), isNot(contains('loop')));
-      expect(
-        animation.copyWith(loop: false).toJson()['loop'],
-        isFalse,
-      );
+      expect(animation.copyWith(loop: false).toJson()['loop'], isFalse);
     });
 
     test('supports single and directional custom clips', () {

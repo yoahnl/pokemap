@@ -15,6 +15,7 @@ import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
 import '../domains/gameplay/character_studio/character_studio_action_support.dart';
 import '../domains/gameplay/item_catalog_actions.dart';
+import '../domains/gameplay/pokemon_ruleset_actions.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
 import '../domains/narrative/cinematic_library_actions.dart';
@@ -218,6 +219,13 @@ final class JsonlWorker {
         domainCode: error.code,
         message: error.message,
         details: _safeDetails(error.details),
+      );
+    } on PokemonRulesetAuthoringException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.validationFailed,
+        domainCode: error.code,
+        message: error.message,
       );
     } on PresentationCinematicAuthoringException catch (error) {
       result = _failure(

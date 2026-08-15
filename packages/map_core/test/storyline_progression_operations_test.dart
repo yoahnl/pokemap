@@ -25,10 +25,14 @@ void main() {
         edgeId: edge.id,
       );
 
-      expect(connected.disposition,
-          StorylineProgressionMutationDisposition.applied);
-      expect(disconnected.disposition,
-          StorylineProgressionMutationDisposition.applied);
+      expect(
+        connected.disposition,
+        StorylineProgressionMutationDisposition.applied,
+      );
+      expect(
+        disconnected.disposition,
+        StorylineProgressionMutationDisposition.applied,
+      );
       expect(disconnected.after, project);
     });
 
@@ -76,8 +80,9 @@ void main() {
         project: connected.after,
         storylineId: 'story_main',
       );
-      final edge =
-          projection.edgesOfKind(StorylineProgressionEdgeKind.requires).single;
+      final edge = projection
+          .edgesOfKind(StorylineProgressionEdgeKind.requires)
+          .single;
       final disconnected = disconnectStorylineProgressionEdge(
         connected.after,
         storylineId: 'story_main',
@@ -143,8 +148,10 @@ void main() {
         edgeId: edge.id,
       );
 
-      expect(connected.disposition,
-          StorylineProgressionMutationDisposition.applied);
+      expect(
+        connected.disposition,
+        StorylineProgressionMutationDisposition.applied,
+      );
       expect(cleared.after, project);
     });
 
@@ -173,7 +180,9 @@ void main() {
       );
 
       expect(
-          result.disposition, StorylineProgressionMutationDisposition.rejected);
+        result.disposition,
+        StorylineProgressionMutationDisposition.rejected,
+      );
       expect(result.code, 'destinationNotFound');
       expect(result.after, same(project));
     });
@@ -197,25 +206,29 @@ void main() {
       expect(result.after, same(project));
     });
 
-    test('refuses disconnecting derived order and preserves JSON round-trip',
-        () {
-      final project = _project();
-      final orderEdge = buildStorylineProgressionProjection(
-        project: project,
-        storylineId: 'story_main',
-      ).edgesOfKind(StorylineProgressionEdgeKind.authorOrder).first;
+    test(
+      'refuses disconnecting derived order and preserves JSON round-trip',
+      () {
+        final project = _project();
+        final orderEdge = buildStorylineProgressionProjection(
+          project: project,
+          storylineId: 'story_main',
+        ).edgesOfKind(StorylineProgressionEdgeKind.authorOrder).first;
 
-      final rejected = disconnectStorylineProgressionEdge(
-        project,
-        storylineId: 'story_main',
-        edgeId: orderEdge.id,
-      );
-      final decoded = ProjectManifest.fromJson(project.toJson());
+        final rejected = disconnectStorylineProgressionEdge(
+          project,
+          storylineId: 'story_main',
+          edgeId: orderEdge.id,
+        );
+        final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+          project.toJson(),
+        );
 
-      expect(rejected.code, 'edgeReadOnly');
-      expect(rejected.after, same(project));
-      expect(decoded, project);
-    });
+        expect(rejected.code, 'edgeReadOnly');
+        expect(rejected.after, same(project));
+        expect(decoded, project);
+      },
+    );
   });
 }
 
@@ -282,11 +295,7 @@ ProjectManifest _project({
         title: 'Resolution',
         order: 1,
         steps: [
-          StorylineStep(
-            id: 'step_resolution',
-            title: 'Resolution',
-            order: 0,
-          ),
+          StorylineStep(id: 'step_resolution', title: 'Resolution', order: 0),
         ],
       ),
     ],
@@ -315,14 +324,8 @@ ProjectManifest _project({
       ),
     ],
     facts: [
-      NarrativeFactDefinition(
-        id: 'fact_port_open',
-        label: 'Port open',
-      ),
-      NarrativeFactDefinition(
-        id: 'fact_rival_waiting',
-        label: 'Rival waiting',
-      ),
+      NarrativeFactDefinition(id: 'fact_port_open', label: 'Port open'),
+      NarrativeFactDefinition(id: 'fact_rival_waiting', label: 'Rival waiting'),
     ],
     storylines: [
       main,

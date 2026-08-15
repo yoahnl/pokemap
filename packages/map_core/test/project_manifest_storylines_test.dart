@@ -6,14 +6,16 @@ import 'package:test/test.dart';
 void main() {
   group('ProjectManifest storylines integration', () {
     test('decodes old project JSON without storylines as empty list', () {
-      final manifest = ProjectManifest.fromJson(_minimalProjectJson());
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+        _minimalProjectJson(),
+      );
 
       expect(manifest.storylines, isEmpty);
       expect(manifest.scenarios, isEmpty);
     });
 
     test('decodes project JSON with main and side quest storylines', () {
-      final manifest = ProjectManifest.fromJson({
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest({
         ..._minimalProjectJson(),
         'storylines': [
           _mainStoryline().toJson(),
@@ -38,7 +40,7 @@ void main() {
 
       final json =
           jsonDecode(jsonEncode(manifest.toJson())) as Map<String, dynamic>;
-      final decoded = ProjectManifest.fromJson(json);
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
       expect(decoded.storylines, equals(manifest.storylines));
       expect(decoded.toJson()['storylines'], isA<List<dynamic>>());
@@ -50,11 +52,9 @@ void main() {
         name: 'Legacy Global Story',
         scope: ScenarioScope.globalStory,
         entryNodeId: 'start',
-        nodes: [
-          ScenarioNode(id: 'start', type: ScenarioNodeType.start),
-        ],
+        nodes: [ScenarioNode(id: 'start', type: ScenarioNodeType.start)],
       );
-      final manifest = ProjectManifest.fromJson({
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest({
         ..._minimalProjectJson(),
         'scenarios': [scenario.toJson()],
       });
@@ -71,11 +71,9 @@ void main() {
         name: 'Local Event Flow',
         scope: ScenarioScope.localEventFlow,
         entryNodeId: 'start',
-        nodes: [
-          ScenarioNode(id: 'start', type: ScenarioNodeType.start),
-        ],
+        nodes: [ScenarioNode(id: 'start', type: ScenarioNodeType.start)],
       );
-      final manifest = ProjectManifest.fromJson({
+      final manifest = ProjectManifest.fromJsonPokeMapBetaV1ForTest({
         ..._minimalProjectJson(),
         'scenarios': [scenario.toJson()],
       });
@@ -86,41 +84,33 @@ void main() {
 
     test('rejects invalid storylines JSON shape', () {
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'storylines': 'not-a-list',
         }),
         _throwsDecode,
       );
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'storylines': ['not-an-object'],
         }),
         _throwsDecode,
       );
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'storylines': [
-            {
-              'id': 'broken',
-              'type': 'unknown',
-              'title': 'Broken',
-            },
+            {'id': 'broken', 'type': 'unknown', 'title': 'Broken'},
           ],
         }),
         _throwsDecode,
       );
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'storylines': [
-            {
-              'id': '',
-              'type': 'main',
-              'title': 'Broken',
-            },
+            {'id': '', 'type': 'main', 'title': 'Broken'},
           ],
         }),
         _throwsDecode,

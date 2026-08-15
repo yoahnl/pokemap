@@ -74,6 +74,7 @@ export 'src/battle_typing.dart';
 export 'src/battle_type_chart.dart';
 export 'src/battle_rng.dart';
 export 'src/capture_formula.dart';
+export 'src/pokemon_battle_rules.dart';
 export 'src/battle_action.dart';
 export 'src/battle_move.dart';
 export 'src/battle_opponent_policy.dart';
@@ -121,7 +122,7 @@ export 'src/domain/action/battle_action.dart'
 export 'src/domain/action/battle_action_decision_mapper.dart'
     show PsdkBattleActionDecisionMapper;
 export 'src/domain/action/battle_action_ordering.dart'
-    show PsdkBattleActionOrdering;
+    show PsdkBattleActionOrdering, PsdkBattleActionOrderingResult;
 export 'src/domain/action/battle_action_queue.dart' show PsdkBattleActionQueue;
 export 'src/domain/handler/battle_ability_change_handler.dart'
     show BattleAbilityChangeHandler;

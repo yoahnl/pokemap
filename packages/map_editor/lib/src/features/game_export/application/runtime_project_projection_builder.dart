@@ -13,6 +13,7 @@ final class RuntimeProjectProjection {
     required this.project,
     required this.presentation,
     required Map<String, List<int>> payloadFiles,
+    required Set<String> payloadDirectories,
     required this.compiledDialogueCount,
     required this.scrubbedSecretFieldCount,
     this.iconPackagePath,
@@ -29,11 +30,15 @@ final class RuntimeProjectProjection {
             (path, bytes) => MapEntry(path, List<int>.unmodifiable(bytes)),
           ),
         ),
+        payloadDirectories = Set.unmodifiable(
+          payloadDirectories.toList(growable: false)..sort(),
+        ),
         typographyRoles = Map.unmodifiable(typographyRoles);
 
   final ProjectManifest project;
   final ProjectPresentationProfile presentation;
   final Map<String, List<int>> payloadFiles;
+  final Set<String> payloadDirectories;
   final int compiledDialogueCount;
   final int scrubbedSecretFieldCount;
   final String? iconPackagePath;
@@ -164,6 +169,7 @@ final class RuntimeProjectProjectionBuilder {
     }
 
     final payload = <String, List<int>>{};
+    final payloadDirectories = <String>{};
     final dialogueSources = <String>{};
     final compiledEntries = <ProjectDialogueEntry>[];
     final compiledPaths = <String>{};
@@ -257,6 +263,13 @@ final class RuntimeProjectProjectionBuilder {
           path: relative,
           message: 'Author workspaces containing symlinks cannot be exported.',
         );
+      }
+      if (type == FileSystemEntityType.directory &&
+          !_isExcludedAuthoringPath(relative)) {
+        payloadDirectories.add(
+          _normalizePackagePath('project/$relative'),
+        );
+        continue;
       }
       if (type != FileSystemEntityType.file ||
           relative == 'project.json' ||
@@ -411,6 +424,7 @@ final class RuntimeProjectProjectionBuilder {
       project: projectedProject,
       presentation: presentation,
       payloadFiles: payload,
+      payloadDirectories: payloadDirectories,
       compiledDialogueCount: compiledEntries.length,
       scrubbedSecretFieldCount: scrubbedSecretFieldCount,
       iconPackagePath: iconPackagePath,

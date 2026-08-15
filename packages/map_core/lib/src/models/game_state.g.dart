@@ -121,6 +121,11 @@ _GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
           ?.map((e) => e as String)
           .toSet() ??
       const {},
+  appliedPokemonGrantOperationIds:
+      (json['appliedPokemonGrantOperationIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toSet() ??
+      const {},
   consumedEventIds:
       (json['consumedEventIds'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -152,6 +157,9 @@ Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
         instance.narrativeEventProgress,
       ),
       'completedBattleRequestIds': instance.completedBattleRequestIds.toList(),
+      'appliedPokemonGrantOperationIds': instance
+          .appliedPokemonGrantOperationIds
+          .toList(),
       'consumedEventIds': instance.consumedEventIds.toList(),
       'metadata': instance.metadata,
     };

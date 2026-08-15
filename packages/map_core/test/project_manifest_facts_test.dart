@@ -6,16 +6,21 @@ import 'package:test/test.dart';
 void main() {
   group('ProjectManifest facts integration', () {
     test('decodes absent null and empty facts as empty list', () {
-      expect(ProjectManifest.fromJson(_minimalProjectJson()).facts, isEmpty);
       expect(
-        ProjectManifest.fromJson({
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest(
+          _minimalProjectJson(),
+        ).facts,
+        isEmpty,
+      );
+      expect(
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'facts': null,
         }).facts,
         isEmpty,
       );
       expect(
-        ProjectManifest.fromJson({
+        ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'facts': <Object?>[],
         }).facts,
@@ -43,24 +48,26 @@ void main() {
 
       final json =
           jsonDecode(jsonEncode(manifest.toJson())) as Map<String, dynamic>;
-      final decoded = ProjectManifest.fromJson(json);
+      final decoded = ProjectManifest.fromJsonPokeMapBetaV1ForTest(json);
 
       expect(decoded.facts, equals(manifest.facts));
       expect(decoded.toJson()['facts'], isA<List<dynamic>>());
-      expect((decoded.toJson()['facts'] as List).single['label'],
-          'Brume vue au port');
+      expect(
+        (decoded.toJson()['facts'] as List).single['label'],
+        'Brume vue au port',
+      );
     });
 
     test('rejects invalid facts JSON shape', () {
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'facts': 'not-a-list',
         }),
         throwsA(isA<Object>()),
       );
       expect(
-        () => ProjectManifest.fromJson({
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
           ..._minimalProjectJson(),
           'facts': ['not-an-object'],
         }),

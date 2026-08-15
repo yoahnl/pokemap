@@ -6,7 +6,7 @@ void main() {
     test('Substitute absorbs opposing damage before the user HP is touched',
         () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -68,7 +68,7 @@ void main() {
     test('Substitute fails when the user max HP is below the PSDK cost floor',
         () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -118,7 +118,7 @@ void main() {
 
     test('Substitute blocks opposing major status moves', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -173,7 +173,7 @@ void main() {
 
     test('Substitute blocks regular opposing stat drops', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -227,7 +227,7 @@ void main() {
 
     test('Sound stat moves bypass Substitute', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -283,7 +283,7 @@ void main() {
 
     test('Infiltrator damage bypasses Substitute without breaking it', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 100,
@@ -332,7 +332,7 @@ void main() {
 
     test('Focus Punch fails when the user was damaged earlier this turn', () {
       final engine = PsdkBattleEngine(
-        setup: PsdkBattleSetup.singles(
+        setup: PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
           player: _combatant(
             id: 'player',
             speed: 1,

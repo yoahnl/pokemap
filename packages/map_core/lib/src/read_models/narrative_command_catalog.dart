@@ -148,6 +148,11 @@ final class NarrativeCommandCatalog {
             'Espèce',
             NarrativeCommandParameterKind.species,
           ),
+          _parameter(
+            'formId',
+            'Forme',
+            NarrativeCommandParameterKind.speciesForm,
+          ),
           _parameter('level', 'Niveau', NarrativeCommandParameterKind.integer),
         ],
       ),

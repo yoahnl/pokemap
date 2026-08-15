@@ -792,7 +792,7 @@ PsdkBattleSetup _setup({
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
   PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       types: playerTypes,
@@ -932,19 +932,18 @@ List<BattleEffect> _bankEffects(
   return state.combatants.values
       .expand((combatant) => combatant.effects.effects)
       .where((effect) {
-        if (effect.id != effectId) {
-          return false;
-        }
-        final scope = effect.scope;
-        if (scope is BankBattleEffectScope) {
-          return scope.bank == bank;
-        }
-        if (scope is BattlerBattleEffectScope) {
-          return scope.slot.bank == bank;
-        }
-        return false;
-      })
-      .toList(growable: false);
+    if (effect.id != effectId) {
+      return false;
+    }
+    final scope = effect.scope;
+    if (scope is BankBattleEffectScope) {
+      return scope.bank == bank;
+    }
+    if (scope is BattlerBattleEffectScope) {
+      return scope.slot.bank == bank;
+    }
+    return false;
+  }).toList(growable: false);
 }
 
 List<PsdkBattleDamageEvent> _damageEvents(

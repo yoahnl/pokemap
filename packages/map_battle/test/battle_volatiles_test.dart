@@ -31,7 +31,7 @@ BattleSession _session({
   int enemyHp = 80,
 }) {
   return createBattleSession(
-    BattleSetup(
+    BattleSetup.pokeMapBetaV1ForTest(
       playerPokemon: BattleCombatantData(
         speciesId: 'playermon',
         level: 30,

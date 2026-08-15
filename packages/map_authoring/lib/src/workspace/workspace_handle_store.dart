@@ -79,6 +79,12 @@ final class ProjectResourceBytes {
 /// The canonical filesystem root remains captured privately by [readBytes].
 typedef ProjectResourceIdentityLookup = Future<ProjectResourceIdentity?>
     Function(String relativePath);
+typedef ProjectDirectoryLister = Future<List<String>> Function(
+  String relativeDirectory,
+);
+typedef ProjectResourceProbeLookup = Future<ProjectResourceProbe> Function(
+  String relativePath,
+);
 
 final class ProjectWorkspaceAccess {
   ProjectWorkspaceAccess._({
@@ -88,9 +94,13 @@ final class ProjectWorkspaceAccess {
     required this.expiresAt,
     required ProjectResourceReader readBytes,
     ProjectResourceIdentityLookup? readIdentity,
+    ProjectDirectoryLister? listFiles,
+    ProjectResourceProbeLookup? probeResource,
     required this.canReuseSnapshots,
   })  : _readBytes = readBytes,
-        _readIdentity = readIdentity;
+        _readIdentity = readIdentity,
+        _listFiles = listFiles,
+        _probeResource = probeResource;
 
   final ProjectHandle projectHandle;
   final String projectName;
@@ -99,6 +109,15 @@ final class ProjectWorkspaceAccess {
   final bool canReuseSnapshots;
   final ProjectResourceReader _readBytes;
   final ProjectResourceIdentityLookup? _readIdentity;
+  final ProjectDirectoryLister? _listFiles;
+  final ProjectResourceProbeLookup? _probeResource;
+
+  Future<List<String>?> listFiles(String relativeDirectory) async =>
+      await _listFiles?.call(relativeDirectory);
+
+  Future<ProjectResourceProbe> probeResource(String relativePath) async =>
+      await _probeResource?.call(relativePath) ??
+      const ProjectResourceProbe.inventoryUnavailable();
 
   /// Identity of a stored resource when the reader can report it cheaply.
   ///
@@ -167,6 +186,8 @@ final class WorkspaceHandleStore {
     required String initialFingerprint,
     required ProjectResourceReader readBytes,
     ProjectResourceIdentityLookup? readIdentity,
+    ProjectDirectoryLister? listFiles,
+    ProjectResourceProbeLookup? probeResource,
     bool canReuseSnapshots = false,
   }) {
     if (canReuseSnapshots && readIdentity == null) {
@@ -185,6 +206,8 @@ final class WorkspaceHandleStore {
       expiresAt: expiresAt,
       readBytes: readBytes,
       readIdentity: readIdentity,
+      listFiles: listFiles,
+      probeResource: probeResource,
       canReuseSnapshots: canReuseSnapshots,
     );
     return RegisteredProjectHandles(
@@ -205,6 +228,13 @@ final class WorkspaceHandleStore {
       readIdentity: stored.readIdentity == null
           ? null
           : (relativePath) => _readIdentityForHandle(handle, relativePath),
+      listFiles: stored.listFiles == null
+          ? null
+          : (relativeDirectory) =>
+              _listFilesForHandle(handle, relativeDirectory),
+      probeResource: stored.probeResource == null
+          ? null
+          : (relativePath) => _probeResourceForHandle(handle, relativePath),
       canReuseSnapshots: stored.canReuseSnapshots,
     );
   }
@@ -275,6 +305,26 @@ final class WorkspaceHandleStore {
     return identity;
   }
 
+  Future<List<String>> _listFilesForHandle(
+    ProjectHandle handle,
+    String relativeDirectory,
+  ) async {
+    final stored = _requireActive(handle);
+    final paths = await stored.listFiles!(relativeDirectory);
+    _requireActive(handle);
+    return List.unmodifiable(paths);
+  }
+
+  Future<ProjectResourceProbe> _probeResourceForHandle(
+    ProjectHandle handle,
+    String relativePath,
+  ) async {
+    final stored = _requireActive(handle);
+    final result = await stored.probeResource!(relativePath);
+    _requireActive(handle);
+    return result;
+  }
+
   void _remove(ProjectHandle handle, _StoredProjectAccess stored) {
     _projects.remove(handle);
     _projectsByWorkspace.remove(stored.workspaceHandle);
@@ -307,6 +357,8 @@ final class _StoredProjectAccess {
     required this.expiresAt,
     required this.readBytes,
     this.readIdentity,
+    this.listFiles,
+    this.probeResource,
     required this.canReuseSnapshots,
   });
 
@@ -316,6 +368,8 @@ final class _StoredProjectAccess {
   final DateTime expiresAt;
   final ProjectResourceReader readBytes;
   final ProjectResourceIdentityLookup? readIdentity;
+  final ProjectDirectoryLister? listFiles;
+  final ProjectResourceProbeLookup? probeResource;
   final bool canReuseSnapshots;
 }
 

@@ -278,7 +278,7 @@ PsdkBattleSetup _setup({
   String? playerHeldItemId,
   PsdkBattleEffectStack? playerEffects,
 }) {
-  return PsdkBattleSetup.singles(
+  return PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
     player: _combatant(
       id: 'player',
       speed: 100,
