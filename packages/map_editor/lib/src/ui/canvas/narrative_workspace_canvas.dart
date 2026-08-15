@@ -43,6 +43,7 @@ import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
 import 'cinematics/presentation/presentation_studio_add_panel.dart';
+import 'cinematics/presentation/presentation_studio_diagnostic.dart';
 import 'cinematics/presentation/presentation_studio_shell.dart';
 import 'cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'cinematics/presentation/presentation_studio_properties_panel.dart';
@@ -2709,6 +2710,43 @@ String _presentationDocumentStatusLabel(
   null => 'Brouillon local',
 };
 
+PresentationStudioDiagnostic? _presentationDocumentDiagnostic(
+  EditorNotifier notifier,
+  NarrativeDocumentSessionStatus? status,
+) => switch (status) {
+  NarrativeDocumentSessionStatus.failed => PresentationStudioDiagnostic(
+      code: PresentationDiagnosticCodes.saveFailed,
+      severity: PresentationDiagnosticSeverity.error,
+      title: 'Enregistrement impossible',
+      cause: notifier.narrativeDocumentDiagnosticMessage ??
+          'Le projet n’a pas pu être enregistré.',
+      impact: 'Le brouillon local est conservé et peut être réessayé.',
+      actionLabel: 'Réessayer l’enregistrement',
+    ),
+  NarrativeDocumentSessionStatus.conflicted => PresentationStudioDiagnostic(
+      code: PresentationDiagnosticCodes.saveConflict,
+      severity: PresentationDiagnosticSeverity.error,
+      title: 'Conflit d’enregistrement',
+      cause: notifier.narrativeDocumentDiagnosticMessage ??
+          'Le projet a changé en dehors du Studio.',
+      impact:
+          'Le brouillon local est conservé ; aucune version n’a été écrasée.',
+      actionLabel: 'Recharger la version externe',
+    ),
+  _ => null,
+};
+
+VoidCallback? _presentationDocumentDiagnosticAction(
+  EditorNotifier notifier,
+  NarrativeDocumentSessionStatus? status,
+) => switch (status) {
+  NarrativeDocumentSessionStatus.failed =>
+    () => unawaited(notifier.saveNarrativeDocument()),
+  NarrativeDocumentSessionStatus.conflicted =>
+    () => unawaited(notifier.reloadExternalNarrativeDocument()),
+  _ => null,
+};
+
 class _CinematicsWorkspaceBody extends StatefulWidget {
   const _CinematicsWorkspaceBody({
     required this.editorNotifier,
@@ -2786,6 +2824,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   final List<PresentationPropertyAuthoringTransaction>
       _presentationPropertyRedo = <PresentationPropertyAuthoringTransaction>[];
   bool _presentationPropertyMutationPending = false;
+  PresentationStudioDiagnostic? _presentationDiagnostic;
+  VoidCallback? _presentationDiagnosticAction;
 
   @override
   void initState() {
@@ -2820,6 +2860,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       _presentationTimelineRedo.clear();
       _presentationPropertyUndo.clear();
       _presentationPropertyRedo.clear();
+      _presentationDiagnostic = null;
+      _presentationDiagnosticAction = null;
       _capturePresentationSource();
     }
     if (oldWidget.projectRootPath != widget.projectRootPath ||
@@ -2930,11 +2972,17 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           ),
           body: PokeMapPageSurface(
             key: const ValueKey('cinematics-presentation-document-route'),
-            child: const PokeMapEmptyState(
+            child: PokeMapEmptyState(
               title: 'Cinématique de présentation introuvable',
               description:
-                  'Cette cible n’existe plus dans le projet. Revenez à la bibliothèque sans modifier le catalogue.',
-              icon: Icon(CupertinoIcons.exclamationmark_triangle),
+                  'Cause : la référence ne correspond à aucune cinématique.\n'
+                  'Impact : le playtest et la publication restent bloqués.\n'
+                  'Code : ${PresentationDiagnosticCodes.referenceMissing}',
+              icon: const Icon(CupertinoIcons.exclamationmark_triangle),
+              action: PokeMapButton(
+                onPressed: _closePresentationDocument,
+                child: const Text('Revenir à la source'),
+              ),
             ),
           ),
         );
@@ -2952,6 +3000,16 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         (track) => track.clips.isEmpty,
       );
       final narrativeStatus = widget.editorNotifier.narrativeDocumentStatus;
+      final documentDiagnostic = _presentationDocumentDiagnostic(
+        widget.editorNotifier,
+        narrativeStatus,
+      );
+      final activeDiagnostic = _presentationDiagnostic ?? documentDiagnostic;
+      final activeDiagnosticAction = _presentationDiagnosticAction ??
+          _presentationDocumentDiagnosticAction(
+            widget.editorNotifier,
+            narrativeStatus,
+          );
       final isCreateAndLinkDraft =
           presentationRoute!.source is NarrativeSceneSourceContext &&
               narrativeStatus != null &&
@@ -2969,6 +3027,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               ? _presentationDocumentStatusLabel(narrativeStatus)
               : 'Enregistré',
           layoutStore: _presentationLayoutStore,
+          diagnostic: activeDiagnostic,
+          onDiagnosticAction: activeDiagnosticAction,
           backButtonKey: const ValueKey(
             'cinematics-presentation-route-back',
           ),
@@ -3008,6 +3068,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               resolvedAsset,
             ),
             asset: resolvedAsset,
+            onRetry: _presentationResponsiveCanvasController.setReady,
           ),
           layersPanel: PresentationStudioLayerTree(
             asset: resolvedAsset,
@@ -3197,6 +3258,40 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     }
   }
 
+  void _clearPresentationDiagnostic() {
+    if (!mounted ||
+        (_presentationDiagnostic == null &&
+            _presentationDiagnosticAction == null)) {
+      return;
+    }
+    setState(() {
+      _presentationDiagnostic = null;
+      _presentationDiagnosticAction = null;
+    });
+  }
+
+  void _reportPresentationDiagnostic(
+    Object error, {
+    required String title,
+    required String impact,
+    required VoidCallback retry,
+  }) {
+    final diagnostic = PresentationStudioDiagnostic.fromError(
+      error,
+      title: title,
+      impact: impact,
+      fallbackCode: PresentationDiagnosticCodes.saveFailed,
+    );
+    if (!mounted) return;
+    setState(() {
+      _presentationDiagnostic = diagnostic;
+      _presentationDiagnosticAction = retry;
+    });
+    widget.editorNotifier.reportNarrativeNavigationFailure(
+      '${diagnostic.title} : ${diagnostic.cause}',
+    );
+  }
+
   Future<void> _applyPresentationLayerCommand(
     PresentationStudioLayerCommand command,
   ) async {
@@ -3222,9 +3317,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         manifest,
         statusMessage: 'Calques de présentation enregistrés.',
       );
+      _clearPresentationDiagnostic();
     } on Object catch (error) {
-      widget.editorNotifier.reportNarrativeNavigationFailure(
-        'Impossible de modifier les calques : $error',
+      _reportPresentationDiagnostic(
+        error,
+        title: 'Modification des calques impossible',
+        impact: 'Le calque reste inchangé et le brouillon est conservé.',
+        retry: () => unawaited(_applyPresentationLayerCommand(command)),
       );
     } finally {
       _presentationLayerMutationPending = false;
@@ -3255,14 +3354,18 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         transaction.manifest,
         statusMessage: 'Timeline de présentation enregistrée.',
       );
+      _clearPresentationDiagnostic();
       if (!mounted || widget.documentRoute?.documentId != documentId) return;
       setState(() {
         _presentationTimelineUndo.add(transaction);
         _presentationTimelineRedo.clear();
       });
     } on Object catch (error) {
-      widget.editorNotifier.reportNarrativeNavigationFailure(
-        'Impossible de modifier la timeline : $error',
+      _reportPresentationDiagnostic(
+        error,
+        title: 'Modification de la timeline impossible',
+        impact: 'La timeline reste inchangée et le brouillon est conservé.',
+        retry: () => unawaited(_applyPresentationTimelineCommand(command)),
       );
     } finally {
       if (mounted) {
@@ -3292,14 +3395,18 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         manifest,
         statusMessage: 'Édition de timeline annulée.',
       );
+      _clearPresentationDiagnostic();
       if (!mounted || widget.documentRoute?.documentId != documentId) return;
       setState(() {
         _presentationTimelineUndo.removeLast();
         _presentationTimelineRedo.add(transaction);
       });
     } on Object catch (error) {
-      widget.editorNotifier.reportNarrativeNavigationFailure(
-        'Impossible d’annuler la timeline : $error',
+      _reportPresentationDiagnostic(
+        error,
+        title: 'Annulation de la timeline impossible',
+        impact: 'La timeline reste dans son état actuel.',
+        retry: () => unawaited(_undoPresentationTimelineCommand()),
       );
     } finally {
       if (mounted) {
@@ -3329,14 +3436,18 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         redone.manifest,
         statusMessage: 'Édition de timeline rétablie.',
       );
+      _clearPresentationDiagnostic();
       if (!mounted || widget.documentRoute?.documentId != documentId) return;
       setState(() {
         _presentationTimelineRedo.removeLast();
         _presentationTimelineUndo.add(redone);
       });
     } on Object catch (error) {
-      widget.editorNotifier.reportNarrativeNavigationFailure(
-        'Impossible de rétablir la timeline : $error',
+      _reportPresentationDiagnostic(
+        error,
+        title: 'Rétablissement de la timeline impossible',
+        impact: 'La timeline reste dans son état actuel.',
+        retry: () => unawaited(_redoPresentationTimelineCommand()),
       );
     } finally {
       if (mounted) {
@@ -3369,14 +3480,18 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         transaction.manifest,
         statusMessage: 'Propriétés de présentation enregistrées.',
       );
+      _clearPresentationDiagnostic();
       if (!mounted || widget.documentRoute?.documentId != documentId) return;
       setState(() {
         _presentationPropertyUndo.add(transaction);
         _presentationPropertyRedo.clear();
       });
     } on Object catch (error) {
-      widget.editorNotifier.reportNarrativeNavigationFailure(
-        'Impossible de modifier les propriétés : $error',
+      _reportPresentationDiagnostic(
+        error,
+        title: 'Modification des propriétés impossible',
+        impact: 'La propriété reste inchangée et le brouillon est conservé.',
+        retry: () => unawaited(_applyPresentationPropertyCommand(command)),
       );
     } finally {
       if (mounted) {
@@ -3406,14 +3521,18 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         manifest,
         statusMessage: 'Modification de propriété annulée.',
       );
+      _clearPresentationDiagnostic();
       if (!mounted || widget.documentRoute?.documentId != documentId) return;
       setState(() {
         _presentationPropertyUndo.removeLast();
         _presentationPropertyRedo.add(transaction);
       });
     } on Object catch (error) {
-      widget.editorNotifier.reportNarrativeNavigationFailure(
-        'Impossible d’annuler la propriété : $error',
+      _reportPresentationDiagnostic(
+        error,
+        title: 'Annulation de la propriété impossible',
+        impact: 'La propriété reste dans son état actuel.',
+        retry: () => unawaited(_undoPresentationPropertyCommand()),
       );
     } finally {
       if (mounted) {
@@ -3443,14 +3562,18 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         redone.manifest,
         statusMessage: 'Modification de propriété rétablie.',
       );
+      _clearPresentationDiagnostic();
       if (!mounted || widget.documentRoute?.documentId != documentId) return;
       setState(() {
         _presentationPropertyRedo.removeLast();
         _presentationPropertyUndo.add(redone);
       });
     } on Object catch (error) {
-      widget.editorNotifier.reportNarrativeNavigationFailure(
-        'Impossible de rétablir la propriété : $error',
+      _reportPresentationDiagnostic(
+        error,
+        title: 'Rétablissement de la propriété impossible',
+        impact: 'La propriété reste dans son état actuel.',
+        retry: () => unawaited(_redoPresentationPropertyCommand()),
       );
     } finally {
       if (mounted) {

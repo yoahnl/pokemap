@@ -3,11 +3,65 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_shell.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_diagnostic.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets('critical diagnostic announces, focuses and recovers', (
+    tester,
+  ) async {
+    var recoveries = 0;
+    await _pumpShell(
+      tester,
+      store: _MemoryLayoutStore(),
+      diagnostic: const PresentationStudioDiagnostic(
+        code: PresentationDiagnosticCodes.saveConflict,
+        severity: PresentationDiagnosticSeverity.error,
+        title: 'Conflit d’enregistrement',
+        cause: 'Le projet a changé sur le disque.',
+        impact: 'Le brouillon local est conservé et n’a pas été écrasé.',
+        actionLabel: 'Recharger la version externe',
+      ),
+      onDiagnosticAction: () => recoveries += 1,
+    );
+
+    expect(
+      find.textContaining('Cause : Le projet a changé sur le disque.'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        'Impact : Le brouillon local est conservé et n’a pas été écrasé.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Code : cinematic.presentation.save_conflict'),
+      findsOneWidget,
+    );
+    final semantics = tester.getSemantics(
+      find.byKey(presentationStudioDiagnosticCalloutKey),
+    );
+    expect(semantics.flagsCollection.isLiveRegion, isTrue);
+    expect(
+      find.bySemanticsLabel('Recharger la version externe'),
+      findsOneWidget,
+    );
+    expect(
+      Focus.of(
+        tester.element(find.byKey(presentationStudioDiagnosticFocusKey)),
+      ).hasFocus,
+      isTrue,
+    );
+
+    await tester.tap(find.text('Recharger la version externe'));
+    await tester.pump();
+    expect(recoveries, 1);
+  });
+
   testWidgets(
     'clean Presentation shell exits immediately and owns every slot',
     (tester) async {
@@ -198,6 +252,8 @@ Future<void> _pumpShell(
   Future<void> Function()? onDiscard,
   Future<bool> Function()? onSave,
   Widget? addPanel,
+  PresentationStudioDiagnostic? diagnostic,
+  VoidCallback? onDiagnosticAction,
   Size surfaceSize = const Size(1280, 800),
 }) async {
   tester.view.physicalSize = surfaceSize;
@@ -224,6 +280,8 @@ Future<void> _pumpShell(
           layersPanel: const Text('CALQUES SLOT'),
           propertiesPanel: const Text('PROPRIÉTÉS SLOT'),
           addPanel: addPanel,
+          diagnostic: diagnostic,
+          onDiagnosticAction: onDiagnosticAction,
           timeline: const Text('TIMELINE SLOT'),
         ),
       ),

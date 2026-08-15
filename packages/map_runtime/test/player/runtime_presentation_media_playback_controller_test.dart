@@ -149,8 +149,9 @@ void main() {
     expect(snapshot.status, RuntimePresentationMediaPlaybackStatus.failed);
     expect(
       snapshot.diagnosticCode,
-      RuntimePresentationMediaPlaybackDiagnosticCodes.mediaMissing,
+      PresentationDiagnosticCodes.mediaMissing,
     );
+    expect(snapshot.diagnosticSeverity, PresentationDiagnosticSeverity.error);
     expect(snapshot.diagnosticMessage, 'Presentation media is unavailable.');
     expect(snapshot.diagnosticMessage, isNot(contains('/')));
   });

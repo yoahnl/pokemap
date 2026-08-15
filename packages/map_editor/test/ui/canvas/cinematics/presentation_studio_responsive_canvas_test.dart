@@ -153,6 +153,7 @@ void main() {
   testWidgets('preview exposes loading and renderer error states', (
     tester,
   ) async {
+    var retries = 0;
     final controller = PresentationStudioResponsiveCanvasController(
       durationUs: 4_000_000,
     );
@@ -163,6 +164,10 @@ void main() {
       tester,
       controller: controller,
       frameBuilder: (_) => _frame(),
+      onRetry: () {
+        retries += 1;
+        controller.setReady();
+      },
     );
 
     expect(
@@ -183,6 +188,13 @@ void main() {
     expect(viewport.state, PresentationStudioViewportState.error);
     expect(viewport.errorMessage, 'Décodage vidéo impossible.');
     expect(find.byType(PresentationFrameRenderer), findsNothing);
+
+    await tester.tap(find.text('Réessayer le rendu'));
+    await tester.pump();
+
+    expect(retries, 1);
+    expect(controller.status, PresentationPlaybackStatus.ready);
+    expect(find.byType(PresentationFrameRenderer), findsOneWidget);
   });
 
   testWidgets('canvas tap updates the shared Presentation selection', (
@@ -522,6 +534,7 @@ Future<void> _pumpResponsiveCanvas(
   PresentationCinematicAsset? asset,
   Size surfaceSize = const Size(1280, 800),
   String? fontFamily,
+  VoidCallback? onRetry,
 }) async {
   tester.view.physicalSize = surfaceSize;
   tester.view.devicePixelRatio = 1;
@@ -555,6 +568,7 @@ Future<void> _pumpResponsiveCanvas(
           reduceFlashes: reduceFlashes,
           showCaptions: showCaptions,
           asset: asset,
+          onRetry: onRetry,
         ),
       ),
     ),

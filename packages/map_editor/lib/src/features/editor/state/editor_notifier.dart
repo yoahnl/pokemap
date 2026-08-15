@@ -1665,6 +1665,12 @@ class EditorNotifier extends _$EditorNotifier
   NarrativeDocumentSessionStatus? get narrativeDocumentStatus =>
       _narrativeDocumentSession?.state.status;
 
+  String? get narrativeDocumentDiagnosticCode =>
+      _narrativeDocumentSession?.state.code;
+
+  String? get narrativeDocumentDiagnosticMessage =>
+      _narrativeDocumentSession?.state.message;
+
   bool get canUndoNarrativeDocument {
     final session = _narrativeDocumentSession;
     return session != null &&

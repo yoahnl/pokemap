@@ -254,7 +254,7 @@ void main() {
       );
       expect(
         result.diagnosticCode,
-        ScenePresentationCinematicRuntimeDiagnosticCodes.launchFailed,
+        PresentationDiagnosticCodes.launchFailed,
       );
     });
 

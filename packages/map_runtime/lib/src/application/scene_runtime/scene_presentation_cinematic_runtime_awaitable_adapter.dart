@@ -6,7 +6,7 @@ import '../../player/runtime_presentation_execution_controller.dart';
 import 'scene_presentation_cinematic_runtime_awaitable_result.dart';
 
 abstract final class ScenePresentationCinematicRuntimeDiagnosticCodes {
-  static const launchFailed = 'cinematic.presentation.launch_failed';
+  static const launchFailed = PresentationDiagnosticCodes.launchFailed;
 }
 
 abstract interface class ScenePresentationCinematicRuntimePlayer {

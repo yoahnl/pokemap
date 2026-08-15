@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/authoring_api/presentation_studio_add_authoring_gateway.dart';
+import 'package:map_editor/src/application/authoring_api/editor_receipt_presenter.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_add_panel.dart';
 
@@ -125,9 +126,21 @@ void main() {
 
     expect(find.text('Fichier introuvable'), findsOneWidget);
     expect(find.text('Réimportation requise'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(RegExp('Image manquante.*Réimportez-le')),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(RegExp('Image corrompue.*Réimportez une copie')),
+      findsOneWidget,
+    );
     await tester.drag(find.byType(ListView), const Offset(0, -240));
     await tester.pump();
     expect(find.text('Format non supporté'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(RegExp('Codec exotique.*Convertissez')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Plan très long'));
     await tester.pump();
@@ -201,6 +214,65 @@ void main() {
     expect(gateway.loadCalls, 2);
     expect(find.text('Aucun média dans cette catégorie'), findsOneWidget);
   });
+
+  testWidgets(
+    'failed insertion keeps the draft and retry applies one mutation',
+    (tester) async {
+      final gateway = _FakeGateway(
+        media: const <PresentationStudioMediaCatalogItem>[
+          PresentationStudioMediaCatalogItem(
+            id: 'mountains',
+            label: 'Montagnes',
+            kind: ProjectMediaKind.image,
+            availability: PresentationStudioMediaAvailability.ready,
+            metadataLabel: 'PNG',
+          ),
+        ],
+        insertFailures: 1,
+      );
+      final inserted = <PresentationStudioInsertionResult>[];
+
+      await _pumpPanel(
+        tester,
+        gateway: gateway,
+        project: _project(),
+        playheadUs: 0,
+        onInserted: inserted.add,
+      );
+      await tester.tap(find.text('Montagnes'));
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('presentation-add-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Cause : Le manifeste a changé.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          'Impact : Le média n’a pas été ajouté ; votre brouillon est conservé.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Code : cinematic.presentation.save_conflict'),
+        findsOneWidget,
+      );
+      expect(gateway.insertCalls, 1);
+      expect(inserted, isEmpty);
+
+      final retry = find.text('Réessayer');
+      await tester.tap(retry);
+      await tester.tap(retry);
+      await tester.pumpAndSettle();
+
+      expect(gateway.insertCalls, 2);
+      expect(gateway.insertions, hasLength(1));
+      expect(inserted, hasLength(1));
+    },
+  );
 }
 
 Future<void> _pumpPanel(
@@ -258,13 +330,16 @@ final class _FakeGateway implements PresentationStudioAddAuthoringGateway {
     required this.media,
     this.importCompleter,
     this.loadFailures = 0,
+    this.insertFailures = 0,
   });
 
   final List<PresentationStudioMediaCatalogItem> media;
   final Completer<PresentationStudioMediaImportResult>? importCompleter;
   final int loadFailures;
+  final int insertFailures;
   final List<PresentationStudioInsertionRequest> insertions = [];
   int loadCalls = 0;
+  int insertCalls = 0;
 
   @override
   Future<List<PresentationStudioMediaCatalogItem>> loadMedia(
@@ -289,6 +364,14 @@ final class _FakeGateway implements PresentationStudioAddAuthoringGateway {
     required ProjectManifest expectedProject,
     required PresentationStudioInsertionRequest request,
   }) async {
+    insertCalls += 1;
+    if (insertCalls <= insertFailures) {
+      throw const EditorAuthoringMutationFailure(
+        code: PresentationDiagnosticCodes.saveConflict,
+        message: 'Le manifeste a changé.',
+        remediation: <String>['Rechargez le projet puis réessayez.'],
+      );
+    }
     insertions.add(request);
     return PresentationStudioInsertionResult(
       manifest: expectedProject,

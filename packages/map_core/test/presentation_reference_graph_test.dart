@@ -2,6 +2,25 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('Presentation diagnostics share stable codes and severities', () {
+    expect(
+      PresentationReferenceDiagnosticCodes.referenceMissing,
+      PresentationDiagnosticCodes.referenceMissing,
+    );
+    expect(
+      PresentationReferenceDiagnosticCodes.mediaMissing,
+      PresentationDiagnosticCodes.mediaMissing,
+    );
+    expect(
+      PresentationReferenceDiagnosticCodes.mediaUnsupported,
+      PresentationDiagnosticCodes.mediaUnsupported,
+    );
+    expect(
+      PresentationReferenceSeverity.error,
+      PresentationDiagnosticSeverity.error,
+    );
+  });
+
   group('PresentationReferenceGraph', () {
     test('indexes Scene, cinematic, cue, media and fallback usages', () {
       final cinematic = _cinematic(

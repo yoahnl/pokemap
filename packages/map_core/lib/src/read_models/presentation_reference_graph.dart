@@ -1,4 +1,5 @@
 import '../models/presentation_cinematic_asset.dart';
+import '../models/presentation_diagnostic.dart';
 import '../models/project_media_catalog.dart';
 import '../models/scene_asset.dart';
 
@@ -21,18 +22,18 @@ enum PresentationReferenceRelation {
 
 enum PresentationReferenceResolution { resolved, missing, incompatible }
 
-enum PresentationReferenceSeverity { error }
+typedef PresentationReferenceSeverity = PresentationDiagnosticSeverity;
 
 abstract final class PresentationReferenceDiagnosticCodes {
-  static const referenceMissing = 'cinematic.presentation.reference_missing';
+  static const referenceMissing = PresentationDiagnosticCodes.referenceMissing;
   static const referenceAmbiguous =
-      'cinematic.presentation.reference_ambiguous';
-  static const referenceCycle = 'cinematic.presentation.reference_cycle';
-  static const mediaMissing = 'cinematic.presentation.media_missing';
+      PresentationDiagnosticCodes.referenceAmbiguous;
+  static const referenceCycle = PresentationDiagnosticCodes.referenceCycle;
+  static const mediaMissing = PresentationDiagnosticCodes.mediaMissing;
   static const mediaSourceMissing =
-      'cinematic.presentation.media_source_missing';
-  static const mediaUnsupported = 'cinematic.presentation.media_unsupported';
-  static const resourceInUse = 'cinematic.presentation.resource_in_use';
+      PresentationDiagnosticCodes.mediaSourceMissing;
+  static const mediaUnsupported = PresentationDiagnosticCodes.mediaUnsupported;
+  static const resourceInUse = PresentationDiagnosticCodes.resourceInUse;
 }
 
 final class PresentationReferenceKey {

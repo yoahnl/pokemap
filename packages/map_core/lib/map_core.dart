@@ -72,6 +72,7 @@ export 'src/models/map_event_definition.dart';
 export 'src/models/cinematic_asset.dart';
 export 'src/models/cinematic_library_catalog.dart';
 export 'src/models/presentation_cinematic_asset.dart';
+export 'src/models/presentation_diagnostic.dart';
 export 'src/models/presentation_cinematic_template_catalog.dart';
 export 'src/models/project_media_catalog.dart';
 export 'src/read_models/presentation_frame.dart';

@@ -571,6 +571,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
     this.reduceFlashes = false,
     this.showCaptions = true,
     this.asset,
+    this.onRetry,
   });
 
   final PresentationStudioResponsiveCanvasController controller;
@@ -583,6 +584,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
   final bool reduceFlashes;
   final bool showCaptions;
   final PresentationCinematicAsset? asset;
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -674,6 +676,7 @@ class PresentationStudioResponsiveCanvas extends StatelessWidget {
       showCaptions: showCaptions,
       orientationOverrides: orientationOverrides,
       onFocused: () => controller.focus(orientation),
+      onRetry: onRetry,
       onCompositionTap: frame == null || asset == null
           ? null
           : (position) => controller.selection.selectCanvas(

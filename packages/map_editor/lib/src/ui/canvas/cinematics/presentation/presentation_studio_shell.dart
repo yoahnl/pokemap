@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../theme/theme.dart';
 import '../../../design_system/design_system.dart';
+import 'presentation_studio_diagnostic.dart';
 
 const presentationStudioShellKey = ValueKey<String>(
   'presentation-studio-shell',
@@ -97,6 +98,8 @@ class PresentationStudioShell extends StatefulWidget {
     required this.propertiesPanel,
     required this.timeline,
     this.addPanel,
+    this.diagnostic,
+    this.onDiagnosticAction,
     this.statusDetail,
     this.backButtonKey,
   });
@@ -116,6 +119,8 @@ class PresentationStudioShell extends StatefulWidget {
   final Widget propertiesPanel;
   final Widget timeline;
   final Widget? addPanel;
+  final PresentationStudioDiagnostic? diagnostic;
+  final VoidCallback? onDiagnosticAction;
 
   @override
   State<PresentationStudioShell> createState() =>
@@ -275,6 +280,15 @@ class _PresentationStudioShellState extends State<PresentationStudioShell> {
                   ),
                 ],
               ),
+              if (widget.diagnostic != null &&
+                  widget.onDiagnosticAction != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: PresentationStudioDiagnosticCallout(
+                    diagnostic: widget.diagnostic!,
+                    onAction: widget.onDiagnosticAction!,
+                  ),
+                ),
               PokeMapToolbarSurface(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,

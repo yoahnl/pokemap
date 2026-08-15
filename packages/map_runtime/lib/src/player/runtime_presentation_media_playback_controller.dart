@@ -13,9 +13,9 @@ enum RuntimePresentationMediaPlaybackStatus {
 }
 
 abstract final class RuntimePresentationMediaPlaybackDiagnosticCodes {
-  static const mediaMissing = 'cinematic.presentation.media_missing';
-  static const mediaUnsupported = 'cinematic.presentation.media_unsupported';
-  static const playbackFailed = 'cinematic.presentation.playback_failed';
+  static const mediaMissing = PresentationDiagnosticCodes.mediaMissing;
+  static const mediaUnsupported = PresentationDiagnosticCodes.mediaUnsupported;
+  static const playbackFailed = PresentationDiagnosticCodes.playbackFailed;
 }
 
 final class RuntimePresentationMediaPlaybackSnapshot {
@@ -26,6 +26,7 @@ final class RuntimePresentationMediaPlaybackSnapshot {
     this.videoHandle,
     this.usedFallback = false,
     this.diagnosticCode,
+    this.diagnosticSeverity,
     this.diagnosticMessage,
   });
 
@@ -39,6 +40,7 @@ final class RuntimePresentationMediaPlaybackSnapshot {
   final Object? videoHandle;
   final bool usedFallback;
   final String? diagnosticCode;
+  final PresentationDiagnosticSeverity? diagnosticSeverity;
   final String? diagnosticMessage;
 }
 
@@ -357,6 +359,7 @@ final class RuntimePresentationMediaPlaybackController {
       status: RuntimePresentationMediaPlaybackStatus.failed,
       requestedMediaId: mediaId,
       diagnosticCode: code,
+      diagnosticSeverity: PresentationDiagnosticSeverity.error,
       diagnosticMessage: 'Presentation media is unavailable.',
     );
     return _snapshot;

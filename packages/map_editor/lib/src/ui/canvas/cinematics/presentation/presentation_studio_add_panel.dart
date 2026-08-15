@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../application/authoring_api/presentation_studio_add_authoring_gateway.dart';
 import '../../../design_system/design_system.dart';
+import 'presentation_studio_diagnostic.dart';
 
 class PresentationStudioAddPanel extends StatefulWidget {
   const PresentationStudioAddPanel({
@@ -44,7 +45,8 @@ class _PresentationStudioAddPanelState
   PresentationStudioMediaCatalogItem? _selectedMedia;
   String _query = '';
   String? _loadError;
-  String? _mutationError;
+  PresentationStudioDiagnostic? _mutationDiagnostic;
+  VoidCallback? _retryMutation;
   bool _loading = true;
   bool _importing = false;
   bool _inserting = false;
@@ -108,10 +110,16 @@ class _PresentationStudioAddPanelState
   Future<void> _importMedia() async {
     final picked = await widget.mediaPicker.pick(_category);
     if (picked == null || !mounted) return;
+    await _runImport(picked);
+  }
+
+  Future<void> _runImport(PresentationStudioPickedMedia picked) async {
+    if (_importing) return;
     final generation = ++_importGeneration;
     setState(() {
       _importing = true;
-      _mutationError = null;
+      _mutationDiagnostic = null;
+      _retryMutation = null;
     });
     try {
       final result = await widget.gateway.importMedia(
@@ -133,6 +141,7 @@ class _PresentationStudioAddPanelState
         _selectedMedia = result.media;
         _importing = false;
         _insertionComplete = false;
+        _retryMutation = null;
       });
       widget.onProjectChanged(result.manifest);
     } on PresentationStudioImportCancelled {
@@ -142,7 +151,13 @@ class _PresentationStudioAddPanelState
       if (!mounted || generation != _importGeneration) return;
       setState(() {
         _importing = false;
-        _mutationError = _message(error);
+        _mutationDiagnostic = PresentationStudioDiagnostic.fromError(
+          error,
+          title: 'Import impossible',
+          impact: 'Le catalogue et votre brouillon restent inchangés.',
+          fallbackCode: PresentationDiagnosticCodes.catalogUnavailable,
+        );
+        _retryMutation = () => unawaited(_runImport(picked));
       });
     }
   }
@@ -158,7 +173,8 @@ class _PresentationStudioAddPanelState
     final durationUs = _effectiveDurationUs;
     setState(() {
       _inserting = true;
-      _mutationError = null;
+      _mutationDiagnostic = null;
+      _retryMutation = null;
     });
     try {
       final result = await widget.gateway.insert(
@@ -179,6 +195,7 @@ class _PresentationStudioAddPanelState
         _currentProject = result.manifest;
         _inserting = false;
         _insertionComplete = true;
+        _retryMutation = null;
       });
       widget.onProjectChanged(result.manifest);
       widget.onInserted(result);
@@ -186,7 +203,13 @@ class _PresentationStudioAddPanelState
       if (!mounted) return;
       setState(() {
         _inserting = false;
-        _mutationError = _message(error);
+        _mutationDiagnostic = PresentationStudioDiagnostic.fromError(
+          error,
+          title: 'Ajout impossible',
+          impact: 'Le média n’a pas été ajouté ; votre brouillon est conservé.',
+          fallbackCode: PresentationDiagnosticCodes.saveFailed,
+        );
+        _retryMutation = () => unawaited(_insert());
       });
     }
   }
@@ -331,13 +354,12 @@ class _PresentationStudioAddPanelState
               onAction: () => setState(() => _durationAdjusted = true),
             ),
           ),
-        if (_mutationError != null)
+        if (_mutationDiagnostic != null && _retryMutation != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-            child: PokeMapDiagnosticCallout(
-              severity: PokeMapDiagnosticSeverity.error,
-              title: 'Action impossible',
-              message: _mutationError!,
+            child: PresentationStudioDiagnosticCallout(
+              diagnostic: _mutationDiagnostic!,
+              onAction: _retryMutation!,
             ),
           ),
         Padding(
@@ -436,7 +458,9 @@ class _PresentationStudioAddPanelState
           preview: Icon(_mediaIcon(item.kind)),
           selected: _selectedMedia?.id == item.id,
           onPressed: ready ? () => _selectMedia(item) : null,
-          disabledReason: ready ? null : _availabilityLabel(item.availability),
+          disabledReason: ready
+              ? null
+              : _availabilityRecovery(item.availability),
           status: PokeMapBadge(
             label: _availabilityLabel(item.availability),
             variant: _availabilityVariant(item.availability),
@@ -453,7 +477,8 @@ class _PresentationStudioAddPanelState
       _selectedMedia = null;
       _insertionComplete = false;
       _durationAdjusted = false;
-      _mutationError = null;
+      _mutationDiagnostic = null;
+      _retryMutation = null;
     });
   }
 
@@ -462,7 +487,8 @@ class _PresentationStudioAddPanelState
       _selectedMedia = item;
       _insertionComplete = false;
       _durationAdjusted = false;
-      _mutationError = null;
+      _mutationDiagnostic = null;
+      _retryMutation = null;
     });
   }
 
@@ -520,6 +546,18 @@ PokeMapBadgeVariant _availabilityVariant(
   PresentationStudioMediaAvailability.corrupt => PokeMapBadgeVariant.error,
   PresentationStudioMediaAvailability.unsupported =>
     PokeMapBadgeVariant.warning,
+};
+
+String _availabilityRecovery(
+  PresentationStudioMediaAvailability availability,
+) => switch (availability) {
+  PresentationStudioMediaAvailability.ready => 'Média prêt.',
+  PresentationStudioMediaAvailability.missing =>
+    'Média manquant. Réimportez-le ou remplacez sa source.',
+  PresentationStudioMediaAvailability.corrupt =>
+    'Média corrompu. Réimportez une copie valide.',
+  PresentationStudioMediaAvailability.unsupported =>
+    'Format non supporté. Convertissez ou remplacez ce média.',
 };
 
 IconData _availabilityIcon(PresentationStudioMediaAvailability availability) =>
