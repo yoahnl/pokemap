@@ -37,6 +37,7 @@ import 'cinematics/cinematics_library_workspace.dart';
 import 'cinematics/presentation/presentation_studio_shell.dart';
 import 'cinematics/presentation/presentation_studio_layer_tree.dart';
 import 'cinematics/presentation/presentation_studio_responsive_canvas.dart';
+import 'cinematics/presentation/presentation_studio_timeline.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'events/event_builder_workspace.dart';
@@ -2788,10 +2789,16 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
             description: 'L’inspecteur typé sera branché dans ce slot.',
             icon: Icon(CupertinoIcons.slider_horizontal_3),
           ),
-          timeline: const PokeMapEmptyState(
-            title: 'Timeline',
-            description: 'La timeline scalable sera branchée dans ce slot.',
-            icon: Icon(CupertinoIcons.time),
+          timeline: AnimatedBuilder(
+            animation: _presentationResponsiveCanvasController,
+            builder: (context, _) => PresentationStudioTimeline(
+              asset: resolvedAsset,
+              playheadUs: _presentationResponsiveCanvasController.playheadUs,
+              selectionController:
+                  _presentationResponsiveCanvasController.selection,
+              onPlayheadChanged:
+                  _presentationResponsiveCanvasController.seekTo,
+            ),
           ),
         ),
       );

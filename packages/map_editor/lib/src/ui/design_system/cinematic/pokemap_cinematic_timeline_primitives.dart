@@ -55,6 +55,69 @@ class PokeMapCinematicTimelineRuler extends StatelessWidget {
   }
 }
 
+class PokeMapCinematicTimelineViewportRuler extends StatelessWidget {
+  const PokeMapCinematicTimelineViewportRuler({
+    super.key,
+    required this.duration,
+    required this.playhead,
+    required this.pixelsPerSecond,
+    required this.scrollOffset,
+    required this.width,
+    required this.semanticLabel,
+    this.onSeekAtX,
+    this.height = 32,
+  }) : assert(pixelsPerSecond > 0),
+       assert(scrollOffset >= 0),
+       assert(width > 0),
+       assert(height > 0);
+
+  final Duration duration;
+  final Duration playhead;
+  final double pixelsPerSecond;
+  final double scrollOffset;
+  final double width;
+  final String semanticLabel;
+  final ValueChanged<double>? onSeekAtX;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final normalizedPlayhead = playhead < Duration.zero
+        ? Duration.zero
+        : playhead > duration
+        ? duration
+        : playhead;
+    return Semantics(
+      container: true,
+      button: onSeekAtX != null,
+      label:
+          '$semanticLabel. ${_formatDuration(normalizedPlayhead)} sur ${_formatDuration(duration)}',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: onSeekAtX == null
+            ? null
+            : (details) => onSeekAtX!(details.localPosition.dx),
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: CustomPaint(
+            painter: _PokeMapCinematicTimelineViewportRulerPainter(
+              duration: duration,
+              playhead: normalizedPlayhead,
+              pixelsPerSecond: pixelsPerSecond,
+              scrollOffset: scrollOffset,
+              divider: colors.divider,
+              tick: colors.textMuted,
+              playheadColor: colors.brandPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class PokeMapCinematicTrackRow extends StatelessWidget {
   const PokeMapCinematicTrackRow({
     super.key,
@@ -422,6 +485,93 @@ class _PokeMapCinematicTimelineRulerPainter extends CustomPainter {
     return duration != oldDelegate.duration ||
         playhead != oldDelegate.playhead ||
         pixelsPerSecond != oldDelegate.pixelsPerSecond ||
+        divider != oldDelegate.divider ||
+        tick != oldDelegate.tick ||
+        playheadColor != oldDelegate.playheadColor;
+  }
+}
+
+class _PokeMapCinematicTimelineViewportRulerPainter extends CustomPainter {
+  const _PokeMapCinematicTimelineViewportRulerPainter({
+    required this.duration,
+    required this.playhead,
+    required this.pixelsPerSecond,
+    required this.scrollOffset,
+    required this.divider,
+    required this.tick,
+    required this.playheadColor,
+  });
+
+  final Duration duration;
+  final Duration playhead;
+  final double pixelsPerSecond;
+  final double scrollOffset;
+  final Color divider;
+  final Color tick;
+  final Color playheadColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawLine(
+      Offset(0, size.height - 1),
+      Offset(size.width, size.height - 1),
+      Paint()..color = divider,
+    );
+    final step = switch (pixelsPerSecond) {
+      >= 160 => 0.5,
+      >= 60 => 1.0,
+      >= 30 => 2.0,
+      _ => 5.0,
+    };
+    final visibleStartSeconds = scrollOffset / pixelsPerSecond;
+    final visibleEndSeconds = (scrollOffset + size.width) / pixelsPerSecond;
+    final durationSeconds = duration.inMicroseconds / 1000000;
+    var second = (visibleStartSeconds / step).floor() * step;
+    while (second <= visibleEndSeconds && second <= durationSeconds) {
+      if (second >= 0) {
+        final x = second * pixelsPerSecond - scrollOffset;
+        canvas.drawLine(
+          Offset(x, size.height - 10),
+          Offset(x, size.height),
+          Paint()
+            ..color = tick
+            ..strokeWidth = 1,
+        );
+        final label = TextPainter(
+          text: TextSpan(
+            text: _formatDuration(
+              Duration(microseconds: (second * 1000000).round()),
+            ),
+            style: TextStyle(color: tick, fontSize: 9),
+          ),
+          textDirection: TextDirection.ltr,
+          maxLines: 1,
+        )..layout();
+        label.paint(canvas, Offset(x + 4, 3));
+      }
+      second += step;
+    }
+    final playheadX =
+        playhead.inMicroseconds / 1000000 * pixelsPerSecond - scrollOffset;
+    if (playheadX >= 0 && playheadX <= size.width) {
+      canvas.drawLine(
+        Offset(playheadX, 0),
+        Offset(playheadX, size.height),
+        Paint()
+          ..color = playheadColor
+          ..strokeWidth = 2,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(
+    _PokeMapCinematicTimelineViewportRulerPainter oldDelegate,
+  ) {
+    return duration != oldDelegate.duration ||
+        playhead != oldDelegate.playhead ||
+        pixelsPerSecond != oldDelegate.pixelsPerSecond ||
+        scrollOffset != oldDelegate.scrollOffset ||
         divider != oldDelegate.divider ||
         tick != oldDelegate.tick ||
         playheadColor != oldDelegate.playheadColor;

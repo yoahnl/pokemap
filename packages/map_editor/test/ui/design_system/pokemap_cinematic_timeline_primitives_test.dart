@@ -37,6 +37,39 @@ void main() {
     );
   });
 
+  testWidgets('viewport ruler keeps a bounded paint surface for long media', (
+    tester,
+  ) async {
+    var seekX = -1.0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: PokeMapCinematicTimelineViewportRuler(
+              duration: const Duration(minutes: 15),
+              playhead: const Duration(minutes: 8),
+              pixelsPerSecond: 120,
+              scrollOffset: 57000,
+              width: 720,
+              semanticLabel: 'Règle virtualisée',
+              onSeekAtX: (value) => seekX = value,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final ruler = find.byType(PokeMapCinematicTimelineViewportRuler);
+    expect(tester.getSize(ruler).width, 720);
+    expect(tester.getSemantics(ruler).label, contains('08:00'));
+
+    await tester.tapAt(tester.getTopLeft(ruler) + const Offset(240, 12));
+    expect(seekX, closeTo(240, 0.1));
+  });
+
   testWidgets('clip owns width selection status and trim handles', (
     tester,
   ) async {

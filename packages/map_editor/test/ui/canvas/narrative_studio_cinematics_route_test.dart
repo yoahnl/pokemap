@@ -14,6 +14,7 @@ import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.
 import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_shell.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_responsive_canvas.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_timeline.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_viewport.dart';
 import 'package:map_editor/src/ui/canvas/cutscene_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_navigation.dart';
@@ -310,6 +311,12 @@ void main() {
       expect(find.byType(PresentationStudioShell), findsOneWidget);
       expect(find.byType(PresentationStudioResponsiveCanvas), findsOneWidget);
       expect(find.byType(PresentationStudioViewport), findsOneWidget);
+      expect(find.byType(PresentationStudioTimeline), findsOneWidget);
+      expect(find.text('Timeline vide'), findsOneWidget);
+      expect(
+        find.text('La timeline scalable sera branchée dans ce slot.'),
+        findsNothing,
+      );
       expect(find.text('Aucun contenu à afficher'), findsOneWidget);
       expect(find.byType(CinematicsLibraryWorkspace), findsNothing);
       expect(find.text('Cinématiques in-game'), findsNothing);
