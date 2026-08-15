@@ -35,11 +35,35 @@ final class EditorAuthoringMutationResult {
     required this.receipt,
     required this.snapshotRevision,
     this.resourceRevision,
+    this.projection,
   });
 
   final AuthoringReceipt receipt;
   final String snapshotRevision;
   final String? resourceRevision;
+  final EditorAuthoringMutationProjection? projection;
+}
+
+final class EditorAuthoringMutationProjection {
+  EditorAuthoringMutationProjection._(ProjectSnapshot snapshot)
+    : _snapshot = snapshot,
+      snapshotRevision = snapshot.revision,
+      manifest = snapshot.manifest,
+      mapsById = Map<String, MapData>.unmodifiable(<String, MapData>{
+        for (final map in snapshot.maps) map.id: map,
+      });
+
+  final ProjectSnapshot _snapshot;
+  final String snapshotRevision;
+  final ProjectManifest manifest;
+  final Map<String, MapData> mapsById;
+
+  MapData? mapById(String mapId) => mapsById[mapId];
+
+  String? resourceRevision(String identity) {
+    if (!_snapshot.resourceFingerprints.containsKey(identity)) return null;
+    return narrativeEventBytesFingerprint(_snapshot.resourceBytes(identity));
+  }
 }
 
 final class EditorStagedArtifact {
@@ -325,9 +349,15 @@ final class AuthoringMutationAdapter
       operationId: operationId,
       confirmationToken: confirmationToken,
     );
+    final snapshot = await session.snapshot(
+      cacheValidation: ProjectSnapshotCacheValidation.session,
+    );
     final result = EditorAuthoringMutationResult(
       receipt: response.receipt,
       snapshotRevision: response.snapshotRevision,
+      projection: snapshot.revision == response.snapshotRevision
+          ? EditorAuthoringMutationProjection._(snapshot)
+          : null,
     );
     _lastAppliedReceipt = result.receipt;
     _invalidateSpeciesSnapshotIfTouched(session.canonicalRoot, result.receipt);

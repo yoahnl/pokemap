@@ -153,6 +153,37 @@ void main() {
       );
       expect(fullReads, 2);
     });
+
+    test('offloads large history verification through the executor', () async {
+      final project = await Directory.systemTemp.createTemp('pokemap_history_');
+      addTearDown(() => project.delete(recursive: true));
+      final seed = await FileAuthoringHistoryStore.open(
+        projectRoot: project.path,
+      );
+      await seed.append(_entry(0));
+      final worker = _CountingHistoryDecodeWorker();
+      final executor = FileAuthoringHistoryDecodeExecutor(
+        offloadThresholdBytes: 0,
+        workerRunner: worker.run,
+      );
+      final reopened = await FileAuthoringHistoryStore.open(
+        projectRoot: project.path,
+        decodeExecutor: executor,
+      );
+
+      await reopened.append(_entry(1));
+
+      expect(worker.calls, 1);
+      expect(executor.diagnostics.localOperations, 0);
+      expect(executor.diagnostics.workerOperations, 1);
+      expect(executor.diagnostics.workerFailures, 0);
+      expect(
+        (await reopened.list(projectId: 'project-history', limit: 10))
+            .entries
+            .map((entry) => entry.entryId),
+        ['receipt-1', 'receipt-0'],
+      );
+    });
   });
 
   group('FileAuthoringContentBlobStore', () {
@@ -241,6 +272,15 @@ final class _RecordThenFailOnce implements AuthoringTransactionCommitHook {
       _failed = true;
       throw StateError('Simulated interruption after history persistence.');
     }
+  }
+}
+
+final class _CountingHistoryDecodeWorker {
+  var calls = 0;
+
+  Future<T> run<T>(T Function() operation) async {
+    calls++;
+    return operation();
   }
 }
 

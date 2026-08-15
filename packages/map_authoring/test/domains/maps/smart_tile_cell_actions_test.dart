@@ -108,6 +108,25 @@ void main() {
       expect(smartTileSemanticCells(layer), <int>[1, 0, 0, 1]);
     });
 
+    test('validates only the declared Smart Tile cell delta', () {
+      final fixture = _fixture(includeInvalidUnrelatedLayer: true);
+      final draft = _build(
+        fixture.snapshot,
+        actionId: 'smart_tile.cell.paint',
+        parameters: const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'materialId': 'grass',
+          'cells': <Map<String, int>>[
+            <String, int>{'x': 1, 'y': 1},
+          ],
+        },
+      );
+
+      final layer = _map(draft).layers.first as SmartTileLayer;
+      expect(smartTileSemanticCells(layer), <int>[0, 0, 0, 1]);
+    });
+
     test('erases a gesture through the same canonical boundary', () {
       final fixture = _fixture(
         field: const SmartTileField.cell(
@@ -469,6 +488,7 @@ AuthoringMutationDraft _build(
   GridSize mapSize = const GridSize(width: 2, height: 2),
   bool includePattern = false,
   bool includeCollision = false,
+  bool includeInvalidUnrelatedLayer = false,
 }) {
   final resolvedField = field ??
       SmartTileField.cell(
@@ -496,6 +516,12 @@ AuthoringMutationDraft _build(
             mapSize.width * mapSize.height,
             false,
           ),
+        ),
+      if (includeInvalidUnrelatedLayer)
+        const MapLayer.collision(
+          id: 'unrelated-invalid',
+          name: 'Unrelated invalid collision',
+          collisions: <bool>[],
         ),
     ],
   );

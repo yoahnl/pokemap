@@ -100,7 +100,10 @@ final class SemanticMapActionContext {
 
   ProjectManifest get manifest => planning.snapshot.manifest;
 
-  AuthoringMutationDraft draft(SemanticMapEdit edit) {
+  AuthoringMutationDraft draft(
+    SemanticMapEdit edit, {
+    MapMutationDelta? delta,
+  }) {
     if (!edit.map.layers.any((layer) => layer.id == edit.layerId)) {
       throw semanticFailure(
         'map.layer_missing',
@@ -108,13 +111,20 @@ final class SemanticMapActionContext {
         details: {'layerId': edit.layerId},
       );
     }
-    final validation = inspectMapValidation(
-      edit.map,
-      manifest: planning.snapshot.manifest,
-      fallbackCode: 'map.semantic_projected_state_invalid',
-      fallbackMessage:
-          'The semantic operation would produce invalid PokeMap data.',
-    );
+    final validation = delta == null
+        ? inspectMapValidation(
+            edit.map,
+            manifest: planning.snapshot.manifest,
+            fallbackCode: 'map.semantic_projected_state_invalid',
+            fallbackMessage:
+                'The semantic operation would produce invalid PokeMap data.',
+          )
+        : _inspectMapDeltaValidation(
+            before: map,
+            after: edit.map,
+            delta: delta,
+            manifest: planning.snapshot.manifest,
+          );
     if (validation != null) {
       throw validation.toFailure(validationState: 'projected');
     }
@@ -216,6 +226,32 @@ final class SemanticMapActionContext {
         'changedItemCount': changedItems,
         ...preview,
       },
+    );
+  }
+}
+
+MapValidationIssue? _inspectMapDeltaValidation({
+  required MapData before,
+  required MapData after,
+  required MapMutationDelta delta,
+  required ProjectManifest manifest,
+}) {
+  try {
+    MapDeltaValidator.validate(
+      DeltaValidationContext(
+        before: before,
+        after: after,
+        delta: delta,
+        project: manifest,
+      ),
+    );
+    return null;
+  } on Object catch (error) {
+    return MapValidationIssue.fromError(
+      error,
+      fallbackCode: 'map.semantic_projected_state_invalid',
+      fallbackMessage:
+          'The semantic operation would produce invalid PokeMap data.',
     );
   }
 }

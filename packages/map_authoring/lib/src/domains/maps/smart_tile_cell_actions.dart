@@ -120,6 +120,12 @@ final class SmartTileCellActions {
           'undoBoundary': 'gesture',
         },
       ),
+      delta: MapMutationDelta.smartTileCells(
+        layerId: layerId,
+        cellIndices: <int>{
+          for (final cell in cells) cell.y * context.map.size.width + cell.x,
+        },
+      ),
     );
   }
 }

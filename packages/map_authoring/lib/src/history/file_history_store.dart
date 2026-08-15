@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:typed_data';
 
 import '../security/authoring_permission.dart';
 import '../support/authoring_file_snapshot.dart';
@@ -18,13 +20,87 @@ final class AuthoringHistoryStoreException implements Exception {
   String toString() => 'AuthoringHistoryStoreException($code): $message';
 }
 
+typedef FileAuthoringHistoryDecodeWorkerRunner = Future<T> Function<T>(
+  T Function() operation,
+);
+
+final class FileAuthoringHistoryDecodeDiagnostics {
+  const FileAuthoringHistoryDecodeDiagnostics({
+    required this.localOperations,
+    required this.workerOperations,
+    required this.workerFailures,
+  });
+
+  final int localOperations;
+  final int workerOperations;
+  final int workerFailures;
+}
+
+final class FileAuthoringHistoryDecodeExecutor {
+  FileAuthoringHistoryDecodeExecutor({
+    this.offloadThresholdBytes = defaultOffloadThresholdBytes,
+    FileAuthoringHistoryDecodeWorkerRunner? workerRunner,
+  }) : _workerRunner = workerRunner ?? _runFileAuthoringHistoryDecodeWorker {
+    if (offloadThresholdBytes < 0) {
+      throw ArgumentError.value(
+        offloadThresholdBytes,
+        'offloadThresholdBytes',
+        'must not be negative',
+      );
+    }
+  }
+
+  static const int defaultOffloadThresholdBytes = 1024 * 1024;
+
+  final int offloadThresholdBytes;
+  final FileAuthoringHistoryDecodeWorkerRunner _workerRunner;
+
+  var _localOperations = 0;
+  var _workerOperations = 0;
+  var _workerFailures = 0;
+
+  FileAuthoringHistoryDecodeDiagnostics get diagnostics =>
+      FileAuthoringHistoryDecodeDiagnostics(
+        localOperations: _localOperations,
+        workerOperations: _workerOperations,
+        workerFailures: _workerFailures,
+      );
+
+  Future<_HistoryReadResult> _decode(Uint8List bytes) async {
+    if (bytes.length < offloadThresholdBytes) {
+      _localOperations++;
+      return _decodeFileAuthoringHistory(bytes);
+    }
+    final transferred = TransferableTypedData.fromList([bytes]);
+    _workerOperations++;
+    try {
+      return await _workerRunner(
+        () => _decodeFileAuthoringHistory(
+          transferred.materialize().asUint8List(),
+        ),
+      );
+    } on Object {
+      _workerFailures++;
+      rethrow;
+    }
+  }
+}
+
+Future<T> _runFileAuthoringHistoryDecodeWorker<T>(T Function() operation) =>
+    Isolate.run(operation);
+
 /// Locked, hash-chained JSONL history with snapshot-bound pagination.
 final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
-  FileAuthoringHistoryStore._(this._projectRoot, this._onFullRead);
+  FileAuthoringHistoryStore._(
+    this._projectRoot,
+    this._onFullRead,
+    this._decodeExecutor,
+  );
 
   static Future<FileAuthoringHistoryStore> open({
     required String projectRoot,
     void Function()? onFullRead,
+    FileAuthoringHistoryDecodeExecutor? decodeExecutor,
   }) async {
     try {
       final directory = Directory(projectRoot);
@@ -37,6 +113,7 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
       return FileAuthoringHistoryStore._(
         await directory.resolveSymbolicLinks(),
         onFullRead,
+        decodeExecutor ?? FileAuthoringHistoryDecodeExecutor(),
       );
     } on AuthoringHistoryStoreException {
       rethrow;
@@ -50,6 +127,7 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
 
   final String _projectRoot;
   final void Function()? _onFullRead;
+  final FileAuthoringHistoryDecodeExecutor _decodeExecutor;
   _HistoryAppendIndex? _cachedAppendIndex;
   AuthoringFileSnapshot? _cachedSnapshot;
 
@@ -235,83 +313,16 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
       _cachedSnapshot = null;
       return state;
     }
-    final content = await file.readAsString();
-    if (content.isEmpty) {
+    final bytes = await file.readAsBytes();
+    if (bytes.isEmpty) {
       final state = _HistoryState.empty();
       _cachedAppendIndex = _HistoryAppendIndex.fromState(state);
       _cachedSnapshot = snapshot;
       return state;
     }
-    final lines = content.split('\n');
-    if (lines.last.isEmpty) lines.removeLast();
-    if (lines.any((line) => line.isEmpty)) throw const FormatException();
-    final entries = <String, _StoredHistoryEntry>{};
-    var lastSequence = 0;
-    String? lastDigest;
-    for (final line in lines) {
-      final decoded = jsonDecode(line);
-      if (decoded is! Map) throw const FormatException();
-      final event = _HistoryEvent.fromJson(
-        Map<String, dynamic>.from(decoded),
-      );
-      if (event.sequence != lastSequence + 1 ||
-          event.previousDigest != lastDigest ||
-          event.digest !=
-              _eventDigest(
-                sequence: event.sequence,
-                previousDigest: event.previousDigest,
-                type: event.type,
-                payload: event.payload,
-              )) {
-        throw const FormatException();
-      }
-      if (event.type == 'append') {
-        final rawEntry = event.payload['entry'];
-        if (event.payload.length != 1 || rawEntry is! Map) {
-          throw const FormatException();
-        }
-        final entry = AuthoringHistoryEntry.fromJson(
-          Map<String, dynamic>.from(rawEntry),
-        );
-        final key = _entryKey(entry.projectId, entry.entryId);
-        if (entries.containsKey(key)) throw const FormatException();
-        entries[key] = _StoredHistoryEntry(
-          entry: entry,
-          sequence: event.sequence,
-        );
-      } else if (event.type == 'markNonUndoable') {
-        if (event.payload.keys.toSet().difference(
-              const {'projectId', 'entryId', 'reason'},
-            ).isNotEmpty ||
-            event.payload.length != 3) {
-          throw const FormatException();
-        }
-        final projectId = event.payload['projectId'];
-        final entryId = event.payload['entryId'];
-        final reason = event.payload['reason'];
-        if (projectId is! String || entryId is! String || reason is! String) {
-          throw const FormatException();
-        }
-        final stored = entries[_entryKey(projectId, entryId)];
-        if (stored == null || stored.entry.nonUndoableReason != null) {
-          throw const FormatException();
-        }
-        entries[_entryKey(projectId, entryId)] = _StoredHistoryEntry(
-          entry: stored.entry.markNonUndoable(reason),
-          sequence: stored.sequence,
-        );
-      } else {
-        throw const FormatException();
-      }
-      lastSequence = event.sequence;
-      lastDigest = event.digest;
-    }
-    final state = _HistoryState(
-      entries: entries,
-      lastSequence: lastSequence,
-      lastDigest: lastDigest,
-    );
-    _cachedAppendIndex = _HistoryAppendIndex.fromState(state);
+    final decoded = await _decodeExecutor._decode(bytes);
+    final state = decoded.state;
+    _cachedAppendIndex = decoded.appendIndex;
     _cachedSnapshot = snapshot;
     return state;
   }
@@ -413,6 +424,99 @@ final class FileAuthoringHistoryStore implements AuthoringHistoryStore {
       );
     }
   }
+}
+
+final class _HistoryReadResult {
+  const _HistoryReadResult({
+    required this.state,
+    required this.appendIndex,
+  });
+
+  final _HistoryState state;
+  final _HistoryAppendIndex appendIndex;
+}
+
+_HistoryReadResult _decodeFileAuthoringHistory(Uint8List bytes) {
+  final entries = <String, _StoredHistoryEntry>{};
+  var lastSequence = 0;
+  String? lastDigest;
+  var lineStart = 0;
+
+  void applyLine(int lineEnd) {
+    if (lineEnd == lineStart) throw const FormatException();
+    final decoded = jsonDecode(
+      utf8.decoder.convert(bytes, lineStart, lineEnd),
+    );
+    if (decoded is! Map) throw const FormatException();
+    final event = _HistoryEvent.fromJson(Map<String, dynamic>.from(decoded));
+    if (event.sequence != lastSequence + 1 ||
+        event.previousDigest != lastDigest ||
+        event.digest !=
+            _eventDigest(
+              sequence: event.sequence,
+              previousDigest: event.previousDigest,
+              type: event.type,
+              payload: event.payload,
+            )) {
+      throw const FormatException();
+    }
+    if (event.type == 'append') {
+      final rawEntry = event.payload['entry'];
+      if (event.payload.length != 1 || rawEntry is! Map) {
+        throw const FormatException();
+      }
+      final entry = AuthoringHistoryEntry.fromJson(
+        Map<String, dynamic>.from(rawEntry),
+      );
+      final key = _entryKey(entry.projectId, entry.entryId);
+      if (entries.containsKey(key)) throw const FormatException();
+      entries[key] = _StoredHistoryEntry(
+        entry: entry,
+        sequence: event.sequence,
+      );
+    } else if (event.type == 'markNonUndoable') {
+      if (event.payload.keys.toSet().difference(
+            const {'projectId', 'entryId', 'reason'},
+          ).isNotEmpty ||
+          event.payload.length != 3) {
+        throw const FormatException();
+      }
+      final projectId = event.payload['projectId'];
+      final entryId = event.payload['entryId'];
+      final reason = event.payload['reason'];
+      if (projectId is! String || entryId is! String || reason is! String) {
+        throw const FormatException();
+      }
+      final stored = entries[_entryKey(projectId, entryId)];
+      if (stored == null || stored.entry.nonUndoableReason != null) {
+        throw const FormatException();
+      }
+      entries[_entryKey(projectId, entryId)] = _StoredHistoryEntry(
+        entry: stored.entry.markNonUndoable(reason),
+        sequence: stored.sequence,
+      );
+    } else {
+      throw const FormatException();
+    }
+    lastSequence = event.sequence;
+    lastDigest = event.digest;
+  }
+
+  for (var index = 0; index < bytes.length; index++) {
+    if (bytes[index] != 0x0a) continue;
+    applyLine(index);
+    lineStart = index + 1;
+  }
+  if (lineStart < bytes.length) applyLine(bytes.length);
+  final state = _HistoryState(
+    entries: entries,
+    lastSequence: lastSequence,
+    lastDigest: lastDigest,
+  );
+  return _HistoryReadResult(
+    state: state,
+    appendIndex: _HistoryAppendIndex.fromState(state),
+  );
 }
 
 final class _HistoryState {

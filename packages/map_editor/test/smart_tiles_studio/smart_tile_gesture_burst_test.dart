@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/services/editor_performance_telemetry.dart';
+import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -42,6 +43,20 @@ void main() {
 
     expect(h.painted(), <GridPos>[const GridPos(x: 1, y: 1)]);
     expect(h.notifier.state.errorMessage, isNull);
+  });
+
+  test('canonical adoption reuses the mutation session projection', () async {
+    final h = await _Harness.create();
+    addTearDown(h.dispose);
+
+    h.paint(const GridPos(x: 1, y: 1));
+    await h.settle();
+
+    expect(
+      h.container.read(authoringQueryAdapterProvider).diagnostics.liveSessions,
+      0,
+    );
+    expect(h.painted(), <GridPos>[const GridPos(x: 1, y: 1)]);
   });
 
   // The tests above only look at the settled map, so they stayed green while

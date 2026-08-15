@@ -8681,6 +8681,7 @@ class EditorNotifier extends _$EditorNotifier
         expectedSnapshotRevision: applied.snapshotRevision,
         mapId: gesture.mapId,
         layerId: gesture.layerId,
+        projection: applied.projection,
         statusMessage: gesture.materialId == null
             ? '${cells.length} cellule(s) Smart Tile effacée(s).'
             : '${cells.length} cellule(s) Smart Tile peinte(s).',
@@ -8929,17 +8930,31 @@ class EditorNotifier extends _$EditorNotifier
     required String mapId,
     required String layerId,
     required String statusMessage,
+    EditorAuthoringMutationProjection? projection,
   }) async {
-    final canonical =
-        await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
-    if (canonical.snapshotRevision != expectedSnapshotRevision) {
+    late final String snapshotRevision;
+    late final ProjectManifest manifest;
+    late final MapData? map;
+    late final String? mapRevision;
+    if (projection?.snapshotRevision == expectedSnapshotRevision) {
+      snapshotRevision = projection!.snapshotRevision;
+      manifest = projection.manifest;
+      map = projection.mapById(mapId);
+      mapRevision = projection.resourceRevision('map:$mapId');
+    } else {
+      final canonical =
+          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      snapshotRevision = canonical.snapshotRevision;
+      manifest = canonical.manifest;
+      map = canonical.mapById(mapId);
+      mapRevision = canonical.resourceRevision('map:$mapId');
+    }
+    if (snapshotRevision != expectedSnapshotRevision) {
       throw const EditorAuthoringMutationFailure(
         code: 'smart_tile.cell.snapshot_stale',
         message: 'Le snapshot canonique du geste Smart Tile est obsolète.',
       );
     }
-    final map = canonical.mapById(mapId);
-    final mapRevision = canonical.resourceRevision('map:$mapId');
     if (map == null || mapRevision == null) {
       throw const EditorAuthoringMutationFailure(
         code: 'smart_tile.cell.snapshot_missing',
@@ -8951,7 +8966,7 @@ class EditorNotifier extends _$EditorNotifier
       return false;
     }
     return acceptCanonicalSmartTilePublication(
-      manifest: canonical.manifest,
+      manifest: manifest,
       map: map,
       mapRevision: mapRevision,
       layerId: layerId,

@@ -314,6 +314,36 @@ void main() {
       },
     );
 
+    test(
+      'interactive execution leaves retention pruning to explicit maintenance',
+      () async {
+        final store = _PruneRecordingStore(
+          FileIdempotencyStore(filePath: ledgerPath),
+        );
+        final ledger = AuthoringIdempotencyLedger(
+          store: store,
+          clock: () => now,
+        );
+        final request = _request(requestId: 'req-no-implicit-prune');
+
+        await ledger.execute(
+          scope: _scope(),
+          request: request,
+          operationId: 'operation-no-implicit-prune',
+          apply: () => _receipt(request, 'receipt-no-implicit-prune'),
+        );
+
+        expect(store.pruneCalls, 0);
+        expect(
+          await ledger.inspect(scope: _scope(), request: request),
+          isNotNull,
+        );
+        expect(store.pruneCalls, 0);
+        expect(await ledger.pruneExpired(), 0);
+        expect(store.pruneCalls, 1);
+      },
+    );
+
     test('reuses one validated file snapshot until another writer changes it',
         () async {
       var fullReads = 0;
@@ -356,7 +386,66 @@ void main() {
       expect(fullReads, 2);
     });
 
-    test('first ledger access compacts expired completed receipts', () async {
+    test('offloads large JSONL decoding through the executor', () async {
+      final request = _request(requestId: 'req-worker-decode');
+      await _ledger(ledgerPath, () => now).execute(
+        scope: _scope(),
+        request: request,
+        operationId: 'operation-worker-decode',
+        apply: () => _receipt(request, 'receipt-worker-decode'),
+      );
+      final worker = _CountingIdempotencyDecodeWorker();
+      final executor = FileIdempotencyDecodeExecutor(
+        offloadThresholdBytes: 0,
+        workerRunner: worker.run,
+      );
+
+      final record = await FileIdempotencyStore(
+        filePath: ledgerPath,
+        decodeExecutor: executor,
+      ).read(_scope());
+
+      expect(record?.receipt?.receiptId, 'receipt-worker-decode');
+      expect(worker.calls, 1);
+      expect(executor.diagnostics.localOperations, 0);
+      expect(executor.diagnostics.workerOperations, 1);
+      expect(executor.diagnostics.workerFailures, 0);
+    });
+
+    test('indexes all durable keys without retaining every receipt', () async {
+      final firstRequest = _request(requestId: 'req-index-first');
+      final secondRequest = _request(
+        requestId: 'req-index-second',
+        idempotencyKey: 'key-second',
+      );
+      final seed = _ledger(ledgerPath, () => now);
+      await seed.execute(
+        scope: _scope(),
+        request: firstRequest,
+        operationId: 'operation-index-first',
+        apply: () => _receipt(firstRequest, 'receipt-index-first'),
+      );
+      await seed.execute(
+        scope: _scope(key: 'key-second'),
+        request: secondRequest,
+        operationId: 'operation-index-second',
+        apply: () => _receipt(secondRequest, 'receipt-index-second'),
+      );
+      final reopened = FileIdempotencyStore(filePath: ledgerPath);
+
+      final first = await reopened.read(_scope());
+
+      expect(first?.receipt?.receiptId, 'receipt-index-first');
+      expect(reopened.diagnostics.indexedRecords, 2);
+      expect(reopened.diagnostics.materializedRecords, 1);
+      expect(
+        (await reopened.read(_scope(key: 'key-second')))?.receipt?.receiptId,
+        'receipt-index-second',
+      );
+      expect(reopened.diagnostics.materializedRecords, 2);
+    });
+
+    test('explicit maintenance compacts expired completed receipts', () async {
       final request = _request(requestId: 'req-expired');
       final scope = _scope();
       final first = AuthoringIdempotencyLedger(
@@ -377,6 +466,7 @@ void main() {
         completedRetention: const Duration(hours: 1),
       );
 
+      expect(await reopened.pruneExpired(), 1);
       expect(await reopened.inspect(scope: scope, request: request), isNull);
       expect(await File(ledgerPath).readAsString(), isEmpty);
     });
@@ -494,6 +584,44 @@ final class _RecordingPerformanceObserver
 
   @override
   AuthoringPerformanceSpan? startSpan(String name) => null;
+}
+
+final class _PruneRecordingStore implements IdempotencyStore {
+  _PruneRecordingStore(this.delegate);
+
+  final IdempotencyStore delegate;
+  var pruneCalls = 0;
+
+  @override
+  Future<AuthoringIdempotencyRecord?> read(AuthoringIdempotencyScope scope) =>
+      delegate.read(scope);
+
+  @override
+  Future<AuthoringIdempotencyReservation> reserve(
+    AuthoringIdempotencyRecord pendingRecord,
+  ) =>
+      delegate.reserve(pendingRecord);
+
+  @override
+  Future<AuthoringIdempotencyRecord> complete(
+    AuthoringIdempotencyRecord completedRecord,
+  ) =>
+      delegate.complete(completedRecord);
+
+  @override
+  Future<int> pruneExpired(DateTime now) {
+    pruneCalls++;
+    return delegate.pruneExpired(now);
+  }
+}
+
+final class _CountingIdempotencyDecodeWorker {
+  var calls = 0;
+
+  Future<T> run<T>(T Function() operation) async {
+    calls++;
+    return operation();
+  }
 }
 
 Future<void> _expectUnsafeStore(String filePath) async {
