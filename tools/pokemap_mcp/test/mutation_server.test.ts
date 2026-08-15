@@ -139,6 +139,24 @@ async function mutationFixture(
   for (const directory of ["species", "learnsets", "evolutions", "media"]) {
     await mkdir(join(root, "data/pokemon", directory), { recursive: true });
   }
+  const catalogDirectory = join(root, "data/pokemon/catalogs");
+  await mkdir(catalogDirectory, { recursive: true });
+  for (const catalogId of [
+    "types",
+    "abilities",
+    "moves",
+    "growth_rates",
+    "items",
+  ]) {
+    await writeFile(
+      join(catalogDirectory, `${catalogId}.json`),
+      JSON.stringify({
+        schemaVersion: 1,
+        ...(catalogId === "items" ? {} : { catalog: catalogId }),
+        entries: [],
+      }),
+    );
+  }
   const authoring = new LocalAuthoringClient({
     allowedRoots: [root],
     authoringPackageRoot,

@@ -1709,6 +1709,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'data/pokemon/species/001-sproutle.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': 'sproutle',
       'slug': 'sproutle',
       'nationalDex': 1,
@@ -1757,6 +1758,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'data/pokemon/species/004-sparkitten.json',
     <String, dynamic>{
+      'schemaVersion': 1,
       'id': 'sparkitten',
       'slug': 'sparkitten',
       'nationalDex': 4,

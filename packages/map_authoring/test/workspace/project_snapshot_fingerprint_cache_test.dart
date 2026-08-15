@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 /// The fingerprint cache may only ever skip work that would have produced the
@@ -500,14 +502,17 @@ final class _LyingIdentityReader
   }
 }
 
-const String _manifestJson = '''
-{
-  "name": "Fingerprint cache",
-  "version": "v6",
-  "maps": [{"id": "alpha", "name": "Alpha", "relativePath": "maps/alpha.json"}],
-  "tilesets": []
-}
-''';
+final String _manifestJson = jsonEncode({
+  'name': 'Fingerprint cache',
+  'version': 'v6',
+  'pokemon': ProjectPokemonConfig(
+    ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+  ).toJson(),
+  'maps': [
+    {'id': 'alpha', 'name': 'Alpha', 'relativePath': 'maps/alpha.json'},
+  ],
+  'tilesets': <Object?>[],
+});
 
 String _mapJson(String name) => '''
 {

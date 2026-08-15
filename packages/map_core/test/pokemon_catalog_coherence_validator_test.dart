@@ -509,7 +509,7 @@ void main() {
     );
   });
 
-  test('warnings remain non-blocking and the full report JSON is stable', () {
+  test('missing required catalogs block export and playtest', () {
     final snapshot = _validSnapshot(
       catalogs: _validCatalogs()
           .where((document) => document.value.catalog != 'abilities')
@@ -518,17 +518,17 @@ void main() {
 
     final report = validator.validate(snapshot);
 
-    expect(report.canExport, isTrue);
-    expect(report.canPlaytest, isTrue);
+    expect(report.canExport, isFalse);
+    expect(report.canPlaytest, isFalse);
     expect(report.toJson(), <String, Object?>{
-      'canExport': true,
-      'canPlaytest': true,
-      'errorCount': 0,
-      'warningCount': 1,
+      'canExport': false,
+      'canPlaytest': false,
+      'errorCount': 1,
+      'warningCount': 0,
       'diagnostics': <Object?>[
         <String, Object?>{
           'code': 'catalog.abilities_missing',
-          'severity': 'warning',
+          'severity': 'error',
           'path': 'catalogs/abilities',
           'message':
               'The abilities catalog is unavailable; ability references were not checked.',

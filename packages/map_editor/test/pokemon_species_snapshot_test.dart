@@ -7,6 +7,7 @@ import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/services/pokemon_project_data_reader.dart';
 import 'package:map_editor/src/application/use_cases/delete_pokedex_species_use_case.dart';
 import 'package:map_editor/src/application/use_cases/initialize_pokemon_project_storage_use_case.dart';
+import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/seed_pokemon_demo_data_use_case.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
@@ -23,6 +24,10 @@ void main() {
       'pokemon_species_snapshot_',
     );
     workspace = ProjectFileSystem(projectRoot.path);
+    await CreateProjectUseCase(
+      FileProjectRepository(),
+      const FileProjectWorkspaceFactory(),
+    ).execute('Pokemon Species Snapshot Project', projectRoot.path);
     metrics = _CountingPokemonSpeciesSnapshotMetrics();
     reader = PokemonProjectDataReader(snapshotMetrics: metrics);
     seedUseCase = SeedPokemonDemoDataUseCase(
@@ -204,6 +209,10 @@ void main() {
     );
     try {
       final otherWorkspace = ProjectFileSystem(otherRoot.path);
+      await CreateProjectUseCase(
+        FileProjectRepository(),
+        const FileProjectWorkspaceFactory(),
+      ).execute('Other Pokemon Species Snapshot Project', otherRoot.path);
       await seedUseCase.execute(workspace);
       await seedUseCase.execute(otherWorkspace);
       final otherSpeciesFile = File(
@@ -264,6 +273,7 @@ Map<String, Object?> _speciesJson({
   required int nationalDex,
 }) {
   return <String, Object?>{
+    'schemaVersion': 1,
     'id': id,
     'slug': id,
     'nationalDex': nationalDex,

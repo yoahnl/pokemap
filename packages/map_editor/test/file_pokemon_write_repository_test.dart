@@ -23,6 +23,10 @@ void main() {
         await Directory.systemTemp.createTemp('pokemon_write_repo_');
     repoRootPath = _resolveRepositoryRootFromCurrentDirectory();
     workspace = ProjectFileSystem(tempProjectRoot.path);
+    await CreateProjectUseCase(
+      FileProjectRepository(),
+      const FileProjectWorkspaceFactory(),
+    ).execute('Pokemon Write Repo Project', tempProjectRoot.path);
     initializeStorage = const InitializePokemonProjectStorageUseCase();
     writeRepository = FilePokemonWriteRepository();
     readRepository = FilePokemonReadRepository();
@@ -167,12 +171,6 @@ void main() {
     });
 
     test('leaves project.json strictly unchanged', () async {
-      final createProjectUseCase = CreateProjectUseCase(
-        FileProjectRepository(),
-        const FileProjectWorkspaceFactory(),
-      );
-      await createProjectUseCase.execute(
-          'Pokemon Write Repo Project', tempProjectRoot.path);
       await initializeStorage.execute(workspace);
 
       final projectFile = File(workspace.projectManifestPath);

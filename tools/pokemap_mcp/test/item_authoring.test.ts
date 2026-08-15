@@ -480,4 +480,10 @@ async function writeFixture(root: string): Promise<void> {
       ],
     }),
   );
+  for (const catalogId of ["types", "abilities", "moves", "growth_rates"]) {
+    await writeFile(
+      join(catalogDirectory, `${catalogId}.json`),
+      JSON.stringify({ schemaVersion: 1, catalog: catalogId, entries: [] }),
+    );
+  }
 }

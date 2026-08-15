@@ -332,7 +332,7 @@ void main() {
     );
 
     test(
-      'adds a warning when moves catalog is absent and skips that validation',
+      'blocks validation when the moves catalog is absent',
       () async {
         await seedUseCase.execute(workspace);
         final movesCatalog = File(
@@ -344,10 +344,13 @@ void main() {
 
         final report = await validateUseCase.execute(workspace);
 
+        expect(report.isValid, isFalse);
         expect(_hasIssue(report, 'catalog.moves_missing'), isTrue);
         expect(
           report.issues.any(
-            (issue) => issue.severity == PokemonValidationSeverity.warning,
+            (issue) =>
+                issue.code == 'catalog.moves_missing' &&
+                issue.severity == PokemonValidationSeverity.error,
           ),
           isTrue,
         );
@@ -355,7 +358,7 @@ void main() {
     );
 
     test(
-      'adds a warning when types catalog is absent and skips that validation',
+      'blocks validation when the types catalog is absent',
       () async {
         await seedUseCase.execute(workspace);
         final typesCatalog = File(
@@ -367,13 +370,13 @@ void main() {
 
         final report = await validateUseCase.execute(workspace);
 
-        expect(report.isValid, isTrue);
+        expect(report.isValid, isFalse);
         expect(_hasIssue(report, 'catalog.types_missing'), isTrue);
         expect(
           report.issues.any(
             (issue) =>
                 issue.code == 'catalog.types_missing' &&
-                issue.severity == PokemonValidationSeverity.warning,
+                issue.severity == PokemonValidationSeverity.error,
           ),
           isTrue,
         );

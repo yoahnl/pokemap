@@ -541,6 +541,7 @@ void main() {
     await File(p.join(speciesDirectory.path, '0008-wartortle.json'))
         .writeAsString(
       jsonEncode({
+        'schemaVersion': 1,
         'id': 'wartortle',
         'typing': <String, Object?>{
           'types': <String>['water'],

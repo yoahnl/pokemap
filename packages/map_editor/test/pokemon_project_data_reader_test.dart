@@ -20,6 +20,10 @@ void main() {
   setUp(() async {
     tempProjectRoot = await Directory.systemTemp.createTemp('pokemon_readers_');
     workspace = ProjectFileSystem(tempProjectRoot.path);
+    await CreateProjectUseCase(
+      FileProjectRepository(),
+      const FileProjectWorkspaceFactory(),
+    ).execute('Pokemon Reader Project', tempProjectRoot.path);
     reader = PokemonProjectDataReader();
     seedUseCase = SeedPokemonDemoDataUseCase(
       snapshotController: FilePokemonReadRepository(reader: reader),

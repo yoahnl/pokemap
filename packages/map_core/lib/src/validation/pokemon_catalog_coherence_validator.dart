@@ -271,7 +271,7 @@ final class PokemonCatalogCoherenceValidator {
       'items',
     ]) {
       if (result.containsKey(requiredCatalog)) continue;
-      collector.warning(
+      collector.error(
         code: 'catalog.${requiredCatalog}_missing',
         path: 'catalogs/$requiredCatalog',
         message:

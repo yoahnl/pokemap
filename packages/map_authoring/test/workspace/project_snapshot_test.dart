@@ -497,6 +497,9 @@ Future<Directory> _writeProject(
   final manifest = {
     'name': 'Snapshot Test',
     'version': 'v6',
+    'pokemon': ProjectPokemonConfig(
+      ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+    ).toJson(),
     'maps': mapEntries,
     'tilesets': <Object?>[],
     'dialogues': dialogueEntries,
