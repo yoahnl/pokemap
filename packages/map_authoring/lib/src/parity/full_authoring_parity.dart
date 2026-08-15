@@ -464,7 +464,62 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
   AuthoringTransport.mcp: '../../tools/pokemap_mcp/src/authoring_client.ts',
 };
 
+const Set<String> _cin006CertifiedActionIds = <String>{
+  'scene.preSession.create',
+  'scene.preSession.interaction.insert',
+  'scene.preSession.presentation.insert',
+  'scene.preSession.condition.insert',
+  'scene.preSession.end.configure',
+};
+
+const Set<String> _cin019CertifiedActionIds = <String>{
+  'presentationCinematic.create',
+  'presentationCinematic.update',
+  'presentationCinematic.duplicate',
+  'presentationCinematic.delete',
+  'presentationTrack.create',
+  'presentationTrack.update',
+  'presentationTrack.move',
+  'presentationTrack.duplicate',
+  'presentationTrack.delete',
+  'presentationClip.create',
+  'presentationClip.update',
+  'presentationClip.move',
+  'presentationClip.resize',
+  'presentationClip.duplicate',
+  'presentationClip.delete',
+  'presentationLayer.create',
+  'presentationLayer.update',
+  'presentationLayer.move',
+  'presentationLayer.duplicate',
+  'presentationLayer.delete',
+};
+
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (_cin006CertifiedActionIds.contains(actionId)) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_scene_pre_session_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_scene_pre_session_flow_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
+  if (_cin019CertifiedActionIds.contains(actionId)) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (actionId == 'scene.pause_menu_visibility.set') {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
@@ -570,14 +625,6 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/assets/presentation_media_configuration_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
-    };
-  }
-  if (actionId == 'presentationClip.create') {
-    return const <AuthoringTransport, String>{
-      AuthoringTransport.directApi:
-          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
-      AuthoringTransport.cli:
-          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
     };
   }
   if (actionId == 'presentationClip.batch' ||

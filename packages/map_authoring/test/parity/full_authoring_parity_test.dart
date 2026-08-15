@@ -223,6 +223,18 @@ void main() {
       }
     });
 
+    test('certifies every CIN-006 and CIN-019 action on four transports', () {
+      final catalog = AuthoringFullParityCatalog.canonical();
+
+      for (final actionId in _cin033CertifiedActionIds) {
+        expect(
+          catalog.requireMutationAction(actionId).endToEndVerifiedTransports,
+          AuthoringTransport.values.toSet(),
+          reason: actionId,
+        );
+      }
+    });
+
     test('binds item transport receipts to action revision and fixture', () {
       final catalog = AuthoringFullParityCatalog.canonical(
         transportExecutionReceipts:
@@ -1557,6 +1569,34 @@ Map<String, Object?> _stableReceipt(Object? raw) {
     ],
   };
 }
+
+const Set<String> _cin033CertifiedActionIds = <String>{
+  'scene.preSession.create',
+  'scene.preSession.interaction.insert',
+  'scene.preSession.presentation.insert',
+  'scene.preSession.condition.insert',
+  'scene.preSession.end.configure',
+  'presentationCinematic.create',
+  'presentationCinematic.update',
+  'presentationCinematic.duplicate',
+  'presentationCinematic.delete',
+  'presentationTrack.create',
+  'presentationTrack.update',
+  'presentationTrack.move',
+  'presentationTrack.duplicate',
+  'presentationTrack.delete',
+  'presentationClip.create',
+  'presentationClip.update',
+  'presentationClip.move',
+  'presentationClip.resize',
+  'presentationClip.duplicate',
+  'presentationClip.delete',
+  'presentationLayer.create',
+  'presentationLayer.update',
+  'presentationLayer.move',
+  'presentationLayer.duplicate',
+  'presentationLayer.delete',
+};
 
 const Set<String> _itemActionIds = <String>{
   'item.create',

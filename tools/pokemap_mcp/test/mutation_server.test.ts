@@ -1069,6 +1069,533 @@ test("MCP scene.upsert preserves a non-base Pokemon form", async () => {
 });
 
 
+test("CIN-033 certifies preSession and Presentation through live MCP", async () => {
+  const fixture = await mutationFixture();
+  try {
+    await writeFile(
+      join(fixture.root, "project.json"),
+      JSON.stringify({
+        name: "CIN-033 MCP fixture",
+        version: "v7",
+        maps: [],
+        tilesets: [],
+        pokemon: canonicalPokemonConfig(),
+        presentationCinematics: [
+          {
+            schemaVersion: 3,
+            capabilities: ["cinematic.presentation"],
+            timebase: { unit: "microsecond", ticksPerSecond: 1_000_000 },
+            id: "opening",
+            title: "Opening",
+            description: "",
+            durationUs: 4_000_000,
+            layers: [
+              {
+                id: "background",
+                label: "Background",
+                zIndex: 0,
+                visible: true,
+                locked: false,
+              },
+              {
+                id: "foreground",
+                label: "Foreground",
+                zIndex: 2,
+                visible: true,
+                locked: false,
+              },
+            ],
+            visualFolders: [],
+            tracks: [
+              {
+                id: "visual",
+                label: "Visual",
+                kind: "visual",
+                clips: [
+                  {
+                    id: "line",
+                    kind: "visual",
+                    contentKind: "text",
+                    startUs: 250_000,
+                    durationUs: 1_000_000,
+                    layerId: "background",
+                    text: "Opening",
+                  },
+                ],
+              },
+              {
+                id: "secondary",
+                label: "Secondary",
+                kind: "marker",
+                clips: [],
+              },
+            ],
+          },
+          {
+            schemaVersion: 3,
+            capabilities: ["cinematic.presentation"],
+            timebase: { unit: "microsecond", ticksPerSecond: 1_000_000 },
+            id: "credits",
+            title: "Credits",
+            description: "",
+            durationUs: 1_000_000,
+            layers: [],
+            visualFolders: [],
+            tracks: [],
+          },
+        ],
+        newGame: {
+          enabled: true,
+          startMapId: "map_start",
+        },
+      }),
+    );
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const catalog = new Map(
+      (record(described.fullParity).mutationActions as JsonRecord[]).map(
+        (action) => [String(action.actionId), action],
+      ),
+    );
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    let revision = String(
+      (
+        await toolData(fixture.client, "pokemap_validate", {
+          projectHandle,
+        })
+      ).snapshotRevision,
+    );
+    const initialRevision = revision;
+    const observedActionIds = new Set<string>();
+    let sequence = 0;
+    let firstReceipt: JsonRecord | undefined;
+
+    const apply = async (
+      actionId: string,
+      parameters: JsonRecord,
+      confirmed = false,
+    ): Promise<void> => {
+      sequence += 1;
+      const planned = await toolData(fixture.client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: "cin033-request-" + sequence,
+          actionId,
+          actionVersion: 1,
+          workspaceHandle,
+          parameters,
+          expectedRevision: revision,
+          idempotencyKey: "cin033-idempotency-" + sequence,
+          dryRun: false,
+        },
+      });
+      const confirmation = confirmed
+        ? await toolData(fixture.client, "pokemap_apply", {
+            operation: "confirm",
+            projectHandle,
+            planId: planned.planId,
+          })
+        : undefined;
+      const operationId = "cin033-operation-" + sequence;
+      const applied = await toolData(fixture.client, "pokemap_apply", {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId,
+        ...(confirmation
+          ? { confirmationToken: confirmation.confirmationToken }
+          : {}),
+      });
+      const receipt = record(applied.receipt);
+      assert.equal(receipt.actionId, actionId);
+      assert.equal(receipt.status, "applied");
+      observedActionIds.add(actionId);
+      if (sequence === 1) {
+        firstReceipt = receipt;
+        const replay = await toolData(fixture.client, "pokemap_apply", {
+          operation: "apply",
+          projectHandle,
+          planId: planned.planId,
+          operationId,
+        });
+        assert.deepEqual(record(replay.receipt), receipt);
+      }
+      revision = String(
+        (
+          await toolData(fixture.client, "pokemap_validate", {
+            projectHandle,
+          })
+        ).snapshotRevision,
+      );
+    };
+
+    const presentationSteps: Array<{
+      actionId: string;
+      parameters: JsonRecord;
+      confirmed?: boolean;
+    }> = [
+      {
+        actionId: "presentationCinematic.create",
+        parameters: {
+          cinematicId: "intro",
+          title: "Intro",
+          description: "Before title",
+          durationUs: 1_500_000,
+        },
+      },
+      {
+        actionId: "presentationCinematic.update",
+        parameters: {
+          cinematicId: "intro",
+          title: "Intro revised",
+          description: null,
+          durationUs: 1_750_000,
+        },
+      },
+      {
+        actionId: "presentationCinematic.duplicate",
+        parameters: {
+          cinematicId: "intro",
+          duplicateId: "intro-copy",
+          title: "Intro copy",
+        },
+      },
+      {
+        actionId: "presentationCinematic.delete",
+        parameters: { cinematicId: "credits" },
+        confirmed: true,
+      },
+      {
+        actionId: "presentationTrack.create",
+        parameters: {
+          cinematicId: "opening",
+          track: {
+            id: "transient",
+            label: "Transient",
+            kind: "marker",
+            clips: [],
+          },
+        },
+      },
+      {
+        actionId: "presentationTrack.update",
+        parameters: {
+          cinematicId: "opening",
+          track: {
+            id: "secondary",
+            label: "Secondary revised",
+            kind: "marker",
+            clips: [],
+          },
+        },
+      },
+      {
+        actionId: "presentationTrack.move",
+        parameters: {
+          cinematicId: "opening",
+          trackId: "secondary",
+          insertionIndex: 0,
+        },
+      },
+      {
+        actionId: "presentationTrack.duplicate",
+        parameters: {
+          cinematicId: "opening",
+          trackId: "secondary",
+          duplicateId: "secondary-copy",
+          label: "Secondary copy",
+        },
+      },
+      {
+        actionId: "presentationTrack.delete",
+        parameters: {
+          cinematicId: "opening",
+          trackId: "transient",
+        },
+        confirmed: true,
+      },
+      {
+        actionId: "presentationClip.create",
+        parameters: {
+          cinematicId: "opening",
+          trackId: "visual",
+          clip: {
+            id: "extra",
+            kind: "visual",
+            contentKind: "text",
+            startUs: 2_000_000,
+            durationUs: 500_000,
+            layerId: "background",
+            text: "Extra",
+          },
+        },
+      },
+      {
+        actionId: "presentationClip.update",
+        parameters: {
+          cinematicId: "opening",
+          trackId: "visual",
+          clip: {
+            id: "line",
+            kind: "visual",
+            contentKind: "text",
+            startUs: 250_000,
+            durationUs: 1_000_000,
+            layerId: "background",
+            text: "Opening revised",
+          },
+        },
+      },
+      {
+        actionId: "presentationClip.move",
+        parameters: {
+          cinematicId: "opening",
+          clipId: "line",
+          targetTrackId: "visual",
+          startUs: 500_000,
+        },
+      },
+      {
+        actionId: "presentationClip.resize",
+        parameters: {
+          cinematicId: "opening",
+          clipId: "line",
+          durationUs: 1_250_000,
+        },
+      },
+      {
+        actionId: "presentationClip.duplicate",
+        parameters: {
+          cinematicId: "opening",
+          clipId: "line",
+          duplicateId: "line-copy",
+          targetTrackId: "visual",
+          startUs: 2_500_000,
+        },
+      },
+      {
+        actionId: "presentationClip.delete",
+        parameters: {
+          cinematicId: "opening",
+          clipId: "extra",
+        },
+        confirmed: true,
+      },
+      {
+        actionId: "presentationLayer.create",
+        parameters: {
+          cinematicId: "opening",
+          layer: {
+            id: "transient-layer",
+            label: "Transient layer",
+            zIndex: 4,
+            visible: true,
+            locked: false,
+          },
+        },
+      },
+      {
+        actionId: "presentationLayer.update",
+        parameters: {
+          cinematicId: "opening",
+          layer: {
+            id: "background",
+            label: "Background revised",
+            zIndex: 0,
+            visible: true,
+            locked: false,
+          },
+        },
+      },
+      {
+        actionId: "presentationLayer.move",
+        parameters: {
+          cinematicId: "opening",
+          layerId: "background",
+          insertionIndex: 1,
+          targetFolderId: null,
+        },
+      },
+      {
+        actionId: "presentationLayer.duplicate",
+        parameters: {
+          cinematicId: "opening",
+          layerId: "background",
+          duplicateId: "background-copy",
+          label: "Background copy",
+          zIndex: 8,
+        },
+      },
+      {
+        actionId: "presentationLayer.delete",
+        parameters: {
+          cinematicId: "opening",
+          layerId: "transient-layer",
+        },
+        confirmed: true,
+      },
+    ];
+    const preSessionSteps: Array<{
+      actionId: string;
+      parameters: JsonRecord;
+    }> = [
+      {
+        actionId: "scene.preSession.create",
+        parameters: {
+          sceneId: "new_game_intro",
+          name: "Nouvelle partie",
+          templateId: "minimal",
+          setAsEntrypoint: true,
+        },
+      },
+      {
+        actionId: "scene.preSession.interaction.insert",
+        parameters: {
+          sceneId: "new_game_intro",
+          nodeId: "ask_name",
+          targetNodeId: "end",
+          interaction: {
+            kind: "text",
+            prompt: { localizationKey: "newGame.playerName.prompt" },
+            resultBinding: { field: "playerName" },
+          },
+        },
+      },
+      {
+        actionId: "scene.preSession.presentation.insert",
+        parameters: {
+          sceneId: "new_game_intro",
+          nodeId: "opening",
+          targetNodeId: "end",
+          presentationCinematicId: "opening",
+        },
+      },
+      {
+        actionId: "scene.preSession.condition.insert",
+        parameters: {
+          sceneId: "new_game_intro",
+          nodeId: "has_name",
+          targetNodeId: "end",
+          falseEndNodeId: "end_missing_name",
+          draftField: "playerName",
+          operator: "isTrue",
+        },
+      },
+      {
+        actionId: "scene.preSession.end.configure",
+        parameters: {
+          sceneId: "new_game_intro",
+          nodeId: "end",
+          outcomeId: "ready",
+          outcomeLabel: "Prêt",
+          outcomePolicy: "progression",
+        },
+      },
+    ];
+
+    for (const step of presentationSteps) {
+      await apply(step.actionId, step.parameters, step.confirmed);
+    }
+    for (const step of preSessionSteps) {
+      await apply(step.actionId, step.parameters);
+    }
+
+    const expectedActionIds = new Set(
+      [...presentationSteps, ...preSessionSteps].map((step) => step.actionId),
+    );
+    assert.deepEqual(observedActionIds, expectedActionIds);
+    assert.equal(firstReceipt?.status, "applied");
+    for (const actionId of expectedActionIds) {
+      const action = catalog.get(actionId);
+      assert.ok(action, actionId);
+      assert.deepEqual(
+        [...(action.endToEndVerifiedTransports as string[])].sort(),
+        ["cli", "directApi", "editor", "mcp"],
+        actionId,
+      );
+    }
+
+    for (const resourceKind of [
+      "presentationCinematic",
+      "presentationTrack",
+      "presentationClip",
+      "presentationLayer",
+    ]) {
+      const filters =
+        resourceKind === "presentationCinematic"
+          ? {}
+          : { cinematicId: "opening" };
+      const firstPage = await toolData(fixture.client, "pokemap_query", {
+        projectHandle,
+        resourceKind,
+        operation: "list",
+        view: "detail",
+        filters,
+        pageSize: 1,
+      });
+      assert.equal((firstPage.items as unknown[]).length, 1, resourceKind);
+      assert.equal(typeof firstPage.nextCursor, "string", resourceKind);
+      const nextPage = await toolData(fixture.client, "pokemap_query", {
+        projectHandle,
+        resourceKind,
+        operation: "list",
+        view: "detail",
+        filters,
+        pageSize: 1,
+        cursor: firstPage.nextCursor,
+      });
+      assert.equal((nextPage.items as unknown[]).length, 1, resourceKind);
+    }
+    const scene = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "scene",
+      operation: "get",
+      view: "detail",
+      ids: ["new_game_intro"],
+    });
+    assert.equal((scene.items as unknown[]).length, 1);
+
+    const stale = await fixture.client.callTool({
+      name: "pokemap_plan",
+      arguments: {
+        projectHandle,
+        request: {
+          requestId: "cin033-stale",
+          actionId: "scene.preSession.interaction.insert",
+          actionVersion: 1,
+          workspaceHandle,
+          parameters: {
+            sceneId: "new_game_intro",
+            nodeId: "stale",
+            targetNodeId: "end",
+            interaction: {
+              kind: "message",
+              prompt: { localizationKey: "stale.prompt" },
+            },
+          },
+          expectedRevision: initialRevision,
+          idempotencyKey: "cin033-stale",
+          dryRun: false,
+        },
+      },
+    });
+    assert.equal(stale.isError, true);
+    assert.equal(
+      record(record(stale.structuredContent).error).domainCode,
+      "plan.stale",
+    );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP commits and undoes one atomic Presentation clip batch", async () => {
   const fixture = await mutationFixture();
   try {

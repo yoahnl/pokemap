@@ -94,8 +94,7 @@ void main() {
       }
     });
 
-    test('editor persists a typed pause menu visibility consequence',
-        () async {
+    test('editor persists a typed pause menu visibility consequence', () async {
       final fixture = await _MutationFixture.create();
       addTearDown(fixture.dispose);
       final projectPath = p.join(fixture.root.path, 'project.json');
@@ -122,10 +121,12 @@ void main() {
         operationId: 'editor-pause-menu-visibility',
       );
       final durable = await FileProjectRepository().loadProject(projectPath);
-      final consequence = (durable.scenes.single.graph.nodes
-              .singleWhere((node) => node.id == 'action')
-              .payload as SceneActionPayload)
-          .consequence;
+      final consequence =
+          (durable.scenes.single.graph.nodes
+                      .singleWhere((node) => node.id == 'action')
+                      .payload
+                  as SceneActionPayload)
+              .consequence;
 
       expect(applied.receipt.actionId, 'scene.pause_menu_visibility.set');
       expect(applied.receipt.status, AuthoringReceiptStatus.applied);
@@ -137,6 +138,114 @@ void main() {
         ),
       );
     });
+
+    test(
+      'CIN-033 certifies preSession and Presentation in the editor',
+      () async {
+        final fixture = await _MutationFixture.create();
+        addTearDown(fixture.dispose);
+        await FileProjectRepository().saveProject(
+          _cin033EditorManifest(),
+          p.join(fixture.root.path, 'project.json'),
+        );
+        final observedActionIds = <String>{};
+        EditorAuthoringMutationResult? firstResult;
+        final steps = _cin033EditorSteps();
+
+        for (var index = 0; index < steps.length; index += 1) {
+          final step = steps[index];
+          final sequence = index + 1;
+          final plan = await fixture.mutations.plan(
+            fixture.root.path,
+            actionId: step.actionId,
+            parameters: step.parameters,
+            idempotencyKey: 'cin033-editor-idempotency-$sequence',
+            requestId: 'cin033-editor-request-$sequence',
+          );
+          final confirmationToken = step.confirmed
+              ? await fixture.mutations.confirm(plan)
+              : null;
+          final result = await fixture.mutations.apply(
+            plan,
+            operationId: 'cin033-editor-operation-$sequence',
+            confirmationToken: confirmationToken,
+          );
+          observedActionIds.add(result.receipt.actionId);
+          if (sequence == 1) {
+            firstResult = result;
+            final replay = await fixture.mutations.apply(
+              plan,
+              operationId: 'cin033-editor-operation-$sequence',
+            );
+            expect(replay.receipt.toJson(), result.receipt.toJson());
+          }
+        }
+
+        expect(observedActionIds, _cin033CertifiedActionIds);
+        expect(firstResult?.receipt.status, AuthoringReceiptStatus.applied);
+
+        final session = await fixture.queries.open(fixture.root.path);
+        for (final resourceKind in const <String>[
+          'presentationCinematic',
+          'presentationTrack',
+          'presentationClip',
+          'presentationLayer',
+        ]) {
+          final filters = resourceKind == 'presentationCinematic'
+              ? const <String, Object?>{}
+              : const <String, Object?>{'cinematicId': 'opening'};
+          final firstPage = session.query(
+            AuthoringQueryRequest(
+              resourceKind: resourceKind,
+              operation: AuthoringQueryOperation.list,
+              view: AuthoringQueryView.detail,
+              filters: filters,
+              pageSize: 1,
+            ),
+          );
+          expect(firstPage['items'], hasLength(1), reason: resourceKind);
+          final cursor = firstPage['nextCursor'];
+          expect(cursor, isNotNull, reason: resourceKind);
+          final nextPage = session.query(
+            AuthoringQueryRequest(
+              resourceKind: resourceKind,
+              operation: AuthoringQueryOperation.list,
+              view: AuthoringQueryView.detail,
+              filters: filters,
+              pageSize: 1,
+              cursor: cursor! as String,
+            ),
+          );
+          expect(nextPage['items'], hasLength(1), reason: resourceKind);
+        }
+        final scene = session.query(
+          AuthoringQueryRequest(
+            resourceKind: 'scene',
+            operation: AuthoringQueryOperation.get,
+            ids: const <String>['new_game_intro'],
+            view: AuthoringQueryView.detail,
+          ),
+        );
+        expect(scene['items'], hasLength(1));
+
+        await expectLater(
+          () => fixture.mutations.plan(
+            fixture.root.path,
+            actionId: 'scene.preSession.interaction.insert',
+            parameters: _cin033StaleInteractionParameters,
+            idempotencyKey: 'cin033-editor-stale',
+            expectedRevision: _cin033StaleRevision,
+          ),
+          throwsA(
+            isA<EditorAuthoringMutationFailure>().having(
+              (failure) => failure.code,
+              'code',
+              'plan.stale',
+            ),
+          ),
+        );
+      },
+    );
 
     test('editor executes every cinematic library catalog action', () async {
       final fixture = await _MutationFixture.create();
@@ -1827,39 +1936,331 @@ final class _CountingEditorReader
 }
 
 SceneAsset _pauseMenuVisibilityScene() => SceneAsset(
-      id: 'intro_scene',
-      name: 'Intro scene',
-      graph: SceneGraph(
-        startNodeId: 'start',
-        nodes: <SceneNode>[
-          SceneNode(id: 'start', kind: SceneNodeKind.start),
-          SceneNode(
-            id: 'action',
-            kind: SceneNodeKind.action,
-            payload: SceneActionPayload.interactive(
-              SceneInteractiveCommand.openPc(),
-            ),
-          ),
-          SceneNode(id: 'end', kind: SceneNodeKind.end),
-        ],
-        edges: <SceneEdge>[
-          SceneEdge(
-            id: 'start_action',
-            fromNodeId: 'start',
-            fromPortId: 'completed',
-            toNodeId: 'action',
-            kind: SceneEdgeKind.defaultFlow,
-          ),
-          SceneEdge(
-            id: 'action_end',
-            fromNodeId: 'action',
-            fromPortId: 'completed',
-            toNodeId: 'end',
-            kind: SceneEdgeKind.actionCompleted,
-          ),
-        ],
+  id: 'intro_scene',
+  name: 'Intro scene',
+  graph: SceneGraph(
+    startNodeId: 'start',
+    nodes: <SceneNode>[
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(
+        id: 'action',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload.interactive(
+          SceneInteractiveCommand.openPc(),
+        ),
       ),
-    );
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ],
+    edges: <SceneEdge>[
+      SceneEdge(
+        id: 'start_action',
+        fromNodeId: 'start',
+        fromPortId: 'completed',
+        toNodeId: 'action',
+        kind: SceneEdgeKind.defaultFlow,
+      ),
+      SceneEdge(
+        id: 'action_end',
+        fromNodeId: 'action',
+        fromPortId: 'completed',
+        toNodeId: 'end',
+        kind: SceneEdgeKind.actionCompleted,
+      ),
+    ],
+  ),
+);
+
+ProjectManifest _cin033EditorManifest() => ProjectManifest(
+  name: 'CIN-033 editor fixture',
+  version: ProjectVersion.v7,
+  maps: const <ProjectMapEntry>[
+    ProjectMapEntry(
+      id: 'alpha',
+      name: 'Alpha',
+      relativePath: 'maps/alpha.json',
+    ),
+  ],
+  tilesets: const <ProjectTilesetEntry>[],
+  presentationCinematics: <PresentationCinematicAsset>[
+    PresentationCinematicAsset(
+      id: 'opening',
+      title: 'Opening',
+      durationUs: 4000000,
+      layers: <PresentationLayer>[
+        PresentationLayer(id: 'background', label: 'Background', zIndex: 0),
+        PresentationLayer(id: 'foreground', label: 'Foreground', zIndex: 2),
+      ],
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: 'visual',
+          label: 'Visual',
+          kind: PresentationTrackKind.visual,
+          clips: <PresentationClip>[
+            PresentationTextClip(
+              id: 'line',
+              startUs: 250000,
+              durationUs: 1000000,
+              layerId: 'background',
+              text: 'Opening',
+            ),
+          ],
+        ),
+        PresentationTrack(
+          id: 'secondary',
+          label: 'Secondary',
+          kind: PresentationTrackKind.marker,
+        ),
+      ],
+    ),
+    PresentationCinematicAsset(
+      id: 'credits',
+      title: 'Credits',
+      durationUs: 1000000,
+    ),
+  ],
+  newGame: const ProjectNewGameConfig(enabled: true, startMapId: 'alpha'),
+);
+
+List<_Cin033EditorStep> _cin033EditorSteps() => <_Cin033EditorStep>[
+  const _Cin033EditorStep('presentationCinematic.create', <String, Object?>{
+    'cinematicId': 'intro',
+    'title': 'Intro',
+    'description': 'Before title',
+    'durationUs': 1500000,
+  }),
+  const _Cin033EditorStep('presentationCinematic.update', <String, Object?>{
+    'cinematicId': 'intro',
+    'title': 'Intro revised',
+    'description': null,
+    'durationUs': 1750000,
+  }),
+  const _Cin033EditorStep('presentationCinematic.duplicate', <String, Object?>{
+    'cinematicId': 'intro',
+    'duplicateId': 'intro-copy',
+    'title': 'Intro copy',
+  }),
+  const _Cin033EditorStep('presentationCinematic.delete', <String, Object?>{
+    'cinematicId': 'credits',
+  }, confirmed: true),
+  const _Cin033EditorStep('presentationTrack.create', <String, Object?>{
+    'cinematicId': 'opening',
+    'track': <String, Object?>{
+      'id': 'transient',
+      'label': 'Transient',
+      'kind': 'marker',
+      'clips': <Object?>[],
+    },
+  }),
+  const _Cin033EditorStep('presentationTrack.update', <String, Object?>{
+    'cinematicId': 'opening',
+    'track': <String, Object?>{
+      'id': 'secondary',
+      'label': 'Secondary revised',
+      'kind': 'marker',
+      'clips': <Object?>[],
+    },
+  }),
+  const _Cin033EditorStep('presentationTrack.move', <String, Object?>{
+    'cinematicId': 'opening',
+    'trackId': 'secondary',
+    'insertionIndex': 0,
+  }),
+  const _Cin033EditorStep('presentationTrack.duplicate', <String, Object?>{
+    'cinematicId': 'opening',
+    'trackId': 'secondary',
+    'duplicateId': 'secondary-copy',
+    'label': 'Secondary copy',
+  }),
+  const _Cin033EditorStep('presentationTrack.delete', <String, Object?>{
+    'cinematicId': 'opening',
+    'trackId': 'transient',
+  }, confirmed: true),
+  const _Cin033EditorStep('presentationClip.create', <String, Object?>{
+    'cinematicId': 'opening',
+    'trackId': 'visual',
+    'clip': <String, Object?>{
+      'id': 'extra',
+      'kind': 'visual',
+      'contentKind': 'text',
+      'startUs': 2000000,
+      'durationUs': 500000,
+      'layerId': 'background',
+      'text': 'Extra',
+    },
+  }),
+  const _Cin033EditorStep('presentationClip.update', <String, Object?>{
+    'cinematicId': 'opening',
+    'trackId': 'visual',
+    'clip': <String, Object?>{
+      'id': 'line',
+      'kind': 'visual',
+      'contentKind': 'text',
+      'startUs': 250000,
+      'durationUs': 1000000,
+      'layerId': 'background',
+      'text': 'Opening revised',
+    },
+  }),
+  const _Cin033EditorStep('presentationClip.move', <String, Object?>{
+    'cinematicId': 'opening',
+    'clipId': 'line',
+    'targetTrackId': 'visual',
+    'startUs': 500000,
+  }),
+  const _Cin033EditorStep('presentationClip.resize', <String, Object?>{
+    'cinematicId': 'opening',
+    'clipId': 'line',
+    'durationUs': 1250000,
+  }),
+  const _Cin033EditorStep('presentationClip.duplicate', <String, Object?>{
+    'cinematicId': 'opening',
+    'clipId': 'line',
+    'duplicateId': 'line-copy',
+    'targetTrackId': 'visual',
+    'startUs': 2500000,
+  }),
+  const _Cin033EditorStep('presentationClip.delete', <String, Object?>{
+    'cinematicId': 'opening',
+    'clipId': 'extra',
+  }, confirmed: true),
+  const _Cin033EditorStep('presentationLayer.create', <String, Object?>{
+    'cinematicId': 'opening',
+    'layer': <String, Object?>{
+      'id': 'transient-layer',
+      'label': 'Transient layer',
+      'zIndex': 4,
+      'visible': true,
+      'locked': false,
+    },
+  }),
+  const _Cin033EditorStep('presentationLayer.update', <String, Object?>{
+    'cinematicId': 'opening',
+    'layer': <String, Object?>{
+      'id': 'background',
+      'label': 'Background revised',
+      'zIndex': 0,
+      'visible': true,
+      'locked': false,
+    },
+  }),
+  const _Cin033EditorStep('presentationLayer.move', <String, Object?>{
+    'cinematicId': 'opening',
+    'layerId': 'background',
+    'insertionIndex': 1,
+    'targetFolderId': null,
+  }),
+  const _Cin033EditorStep('presentationLayer.duplicate', <String, Object?>{
+    'cinematicId': 'opening',
+    'layerId': 'background',
+    'duplicateId': 'background-copy',
+    'label': 'Background copy',
+    'zIndex': 8,
+  }),
+  const _Cin033EditorStep('presentationLayer.delete', <String, Object?>{
+    'cinematicId': 'opening',
+    'layerId': 'transient-layer',
+  }, confirmed: true),
+  const _Cin033EditorStep('scene.preSession.create', <String, Object?>{
+    'sceneId': 'new_game_intro',
+    'name': 'Nouvelle partie',
+    'templateId': 'minimal',
+    'setAsEntrypoint': true,
+  }),
+  _Cin033EditorStep('scene.preSession.interaction.insert', <String, Object?>{
+    'sceneId': 'new_game_intro',
+    'nodeId': 'ask_name',
+    'targetNodeId': 'end',
+    'interaction': ScenePreSessionInteractionSpec.text(
+      prompt: SceneInteractionPrompt(
+        localizationKey: 'newGame.playerName.prompt',
+      ),
+      resultBinding: const ScenePreSessionResultBinding(
+        field: ScenePreSessionDraftField.playerName,
+      ),
+    ).toJson(),
+  }),
+  const _Cin033EditorStep(
+    'scene.preSession.presentation.insert',
+    <String, Object?>{
+      'sceneId': 'new_game_intro',
+      'nodeId': 'opening',
+      'targetNodeId': 'end',
+      'presentationCinematicId': 'opening',
+    },
+  ),
+  const _Cin033EditorStep(
+    'scene.preSession.condition.insert',
+    <String, Object?>{
+      'sceneId': 'new_game_intro',
+      'nodeId': 'has_name',
+      'targetNodeId': 'end',
+      'falseEndNodeId': 'end_missing_name',
+      'draftField': 'playerName',
+      'operator': 'isTrue',
+    },
+  ),
+  const _Cin033EditorStep('scene.preSession.end.configure', <String, Object?>{
+    'sceneId': 'new_game_intro',
+    'nodeId': 'end',
+    'outcomeId': 'ready',
+    'outcomeLabel': 'Prêt',
+    'outcomePolicy': 'progression',
+  }),
+];
+
+const Set<String> _cin033CertifiedActionIds = <String>{
+  'presentationCinematic.create',
+  'presentationCinematic.update',
+  'presentationCinematic.duplicate',
+  'presentationCinematic.delete',
+  'presentationTrack.create',
+  'presentationTrack.update',
+  'presentationTrack.move',
+  'presentationTrack.duplicate',
+  'presentationTrack.delete',
+  'presentationClip.create',
+  'presentationClip.update',
+  'presentationClip.move',
+  'presentationClip.resize',
+  'presentationClip.duplicate',
+  'presentationClip.delete',
+  'presentationLayer.create',
+  'presentationLayer.update',
+  'presentationLayer.move',
+  'presentationLayer.duplicate',
+  'presentationLayer.delete',
+  'scene.preSession.create',
+  'scene.preSession.interaction.insert',
+  'scene.preSession.presentation.insert',
+  'scene.preSession.condition.insert',
+  'scene.preSession.end.configure',
+};
+
+const Map<String, Object?> _cin033StaleInteractionParameters =
+    <String, Object?>{
+      'sceneId': 'new_game_intro',
+      'nodeId': 'stale',
+      'targetNodeId': 'end',
+      'interaction': <String, Object?>{
+        'kind': 'message',
+        'prompt': <String, Object?>{'localizationKey': 'stale.prompt'},
+      },
+    };
+
+const String _cin033StaleRevision =
+    'sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+
+final class _Cin033EditorStep {
+  const _Cin033EditorStep(
+    this.actionId,
+    this.parameters, {
+    this.confirmed = false,
+  });
+
+  final String actionId;
+  final Map<String, Object?> parameters;
+  final bool confirmed;
+}
 
 final class _MutationFixture {
   _MutationFixture({
