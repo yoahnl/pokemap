@@ -11,6 +11,182 @@ const playerObjectPronounScriptVariable = 'player_pronoun_object';
 const playerPossessivePronounScriptVariable = 'player_pronoun_possessive';
 const playerReflexivePronounScriptVariable = 'player_pronoun_reflexive';
 
+enum NewGameSeedProjectionIssueCode {
+  staleProjectRevision,
+  starterRequired,
+  starterUnknown,
+  starterPartyFull,
+  variableReserved,
+}
+
+final class NewGameSeedProjectionException implements Exception {
+  NewGameSeedProjectionException({
+    required this.code,
+    required this.field,
+    Map<String, String> arguments = const <String, String>{},
+  }) : arguments = Map<String, String>.unmodifiable(arguments);
+
+  final NewGameSeedProjectionIssueCode code;
+  final String field;
+  final Map<String, String> arguments;
+
+  String get diagnosticCode => switch (code) {
+        NewGameSeedProjectionIssueCode.staleProjectRevision =>
+          'new_game.seed_projection_stale_project',
+        NewGameSeedProjectionIssueCode.starterRequired =>
+          'new_game.seed_projection_starter_required',
+        NewGameSeedProjectionIssueCode.starterUnknown =>
+          'new_game.seed_projection_starter_unknown',
+        NewGameSeedProjectionIssueCode.starterPartyFull =>
+          'new_game.seed_projection_starter_party_full',
+        NewGameSeedProjectionIssueCode.variableReserved =>
+          'new_game.seed_projection_variable_reserved',
+      };
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'code': code.name,
+        'diagnosticCode': diagnosticCode,
+        'field': field,
+        if (arguments.isNotEmpty) 'arguments': arguments,
+      };
+
+  @override
+  String toString() =>
+      'NewGameSeedProjectionException(code: ${code.name}, field: $field)';
+}
+
+GameState createNewGameStateFromSeed({
+  required ProjectManifest project,
+  required MapData startMap,
+  required NewGameSeed seed,
+  required String currentProjectRevision,
+  String locale = 'en',
+  int tileWidthPx = 16,
+  int tileHeightPx = 16,
+}) {
+  final normalizedProjectRevision = currentProjectRevision.trim();
+  if (normalizedProjectRevision.isEmpty) {
+    throw ArgumentError.value(
+      currentProjectRevision,
+      'currentProjectRevision',
+      'must not be empty or blank',
+    );
+  }
+  if (seed.projectRevision != normalizedProjectRevision) {
+    throw NewGameSeedProjectionException(
+      code: NewGameSeedProjectionIssueCode.staleProjectRevision,
+      field: 'projectRevision',
+      arguments: <String, String>{
+        'expected': normalizedProjectRevision,
+        'actual': seed.projectRevision,
+      },
+    );
+  }
+
+  final state = createNewGameStateFromProject(
+    project: project,
+    startMap: startMap,
+    saveId: seed.slotId,
+    playerName: seed.playerName,
+    playerAvatarCharacterId: seed.avatarCharacterId,
+    playerPronounSet: seed.pronounSet,
+    locale: locale,
+    tileWidthPx: tileWidthPx,
+    tileHeightPx: tileHeightPx,
+  );
+  final starter = _resolveStarter(project.newGame, seed.starterOptionId);
+  if (starter != null && state.party.members.length >= maxPlayerPartySize) {
+    throw NewGameSeedProjectionException(
+      code: NewGameSeedProjectionIssueCode.starterPartyFull,
+      field: 'starterOptionId',
+      arguments: <String, String>{
+        'capacity': maxPlayerPartySize.toString(),
+      },
+    );
+  }
+
+  final party = starter == null
+      ? state.party
+      : PlayerParty(
+          members: <PlayerPokemon>[...state.party.members, starter],
+        ).normalized();
+  final scriptVariables = <String, ScriptVariableValue>{
+    ...state.scriptVariables.values,
+  };
+  for (final entry in seed.variables.entries) {
+    if (_playerIdentityVariableIds.contains(entry.key)) {
+      throw NewGameSeedProjectionException(
+        code: NewGameSeedProjectionIssueCode.variableReserved,
+        field: 'variables',
+        arguments: <String, String>{'variableId': entry.key},
+      );
+    }
+    scriptVariables[entry.key] = _scriptVariableValue(entry.value);
+  }
+  final facts = <String, NarrativeValue>{
+    ...state.narrativeFactRuntimeState.valuesByFactId,
+  };
+  final existingPartyFactId = project.newGame.existingPartyFactId?.trim();
+  if (existingPartyFactId != null && existingPartyFactId.isNotEmpty) {
+    facts[existingPartyFactId] =
+        NarrativeValue.boolean(party.members.isNotEmpty);
+  }
+
+  return normalizeLoadedGameState(
+    state.copyWith(
+      party: party,
+      scriptVariables: ScriptVariables(values: scriptVariables),
+      narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+        valuesByFactId: facts,
+      ),
+    ),
+  );
+}
+
+const _playerIdentityVariableIds = <String>{
+  playerNameScriptVariable,
+  playerAvatarScriptVariable,
+  playerPronounSetScriptVariable,
+  playerSubjectPronounScriptVariable,
+  playerObjectPronounScriptVariable,
+  playerPossessivePronounScriptVariable,
+  playerReflexivePronounScriptVariable,
+};
+
+PlayerPokemon? _resolveStarter(
+  ProjectNewGameConfig config,
+  String? starterOptionId,
+) {
+  final normalizedStarterOptionId = starterOptionId?.trim();
+  if (normalizedStarterOptionId == null || normalizedStarterOptionId.isEmpty) {
+    if (config.starterOptions.isNotEmpty) {
+      throw NewGameSeedProjectionException(
+        code: NewGameSeedProjectionIssueCode.starterRequired,
+        field: 'starterOptionId',
+      );
+    }
+    return null;
+  }
+  for (final option in config.starterOptions) {
+    if (option.id == normalizedStarterOptionId) {
+      return option.pokemon;
+    }
+  }
+  throw NewGameSeedProjectionException(
+    code: NewGameSeedProjectionIssueCode.starterUnknown,
+    field: 'starterOptionId',
+    arguments: <String, String>{'starterOptionId': normalizedStarterOptionId},
+  );
+}
+
+ScriptVariableValue _scriptVariableValue(NarrativeValue value) =>
+    switch (value.kind) {
+      NarrativeValueKind.boolean => ScriptVariableValue.bool(value.boolValue),
+      NarrativeValueKind.integer => ScriptVariableValue.int(value.intValue),
+      NarrativeValueKind.string =>
+        ScriptVariableValue.string(value.stringValue),
+    };
+
 /// Crée un [GameState] initial pour une nouvelle partie.
 ///
 /// Le state produit est propre : party vide, bag vide, flags vides,
