@@ -761,6 +761,15 @@ SceneNodePayload buildScenePayloadForNarrativeCommand({
             ),
         },
       ),
+    NarrativeCommandIds.setPauseMenuEntryVisibility =>
+      SceneActionPayload.consequence(
+        SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: ProjectPauseActionId.values.byName(
+            parameters['actionId']!,
+          ),
+          visible: parameters['visible'] == 'true',
+        ),
+      ),
     NarrativeCommandIds.playCharacterAnimation =>
       SceneActionPayload.interactive(
         SceneInteractiveCommand.playCharacterAnimation(

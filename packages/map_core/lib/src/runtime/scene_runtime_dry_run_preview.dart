@@ -1,6 +1,7 @@
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/enums.dart';
+import '../models/project_presentation_profile.dart';
 import 'scene_execution_context.dart';
 import 'scene_runtime_plan.dart';
 
@@ -31,6 +32,8 @@ final class SceneDryRunConsequenceState {
     Set<String> badgeIds = const <String>{},
     Set<FieldAbility> unlockedFieldAbilities = const <FieldAbility>{},
     Map<String, bool> npcPresenceByRef = const <String, bool>{},
+    Map<ProjectPauseActionId, bool> pauseMenuVisibilityByActionId =
+        const <ProjectPauseActionId, bool>{},
     this.money = 0,
     this.partyMemberCount = 0,
     this.partyHealed = false,
@@ -40,6 +43,10 @@ final class SceneDryRunConsequenceState {
         itemQuantityById = Map<String, int>.unmodifiable(itemQuantityById),
         badgeIds = Set<String>.unmodifiable(badgeIds),
         npcPresenceByRef = Map<String, bool>.unmodifiable(npcPresenceByRef),
+        pauseMenuVisibilityByActionId =
+            Map<ProjectPauseActionId, bool>.unmodifiable(
+          pauseMenuVisibilityByActionId,
+        ),
         unlockedFieldAbilities =
             Set<FieldAbility>.unmodifiable(unlockedFieldAbilities);
 
@@ -53,6 +60,7 @@ final class SceneDryRunConsequenceState {
   final Set<String> badgeIds;
   final Set<FieldAbility> unlockedFieldAbilities;
   final Map<String, bool> npcPresenceByRef;
+  final Map<ProjectPauseActionId, bool> pauseMenuVisibilityByActionId;
   final int money;
   final int partyMemberCount;
   final bool partyHealed;
@@ -442,6 +450,17 @@ _PreviewConsequenceResult _previewConsequence({
           ref: consequence.present,
         },
       );
+    case SceneSetPauseMenuEntryVisibilityConsequence():
+      before = '${consequence.actionId.name}='
+          '${state.pauseMenuVisibilityByActionId[consequence.actionId] ?? 'project default'}';
+      after = '${consequence.actionId.name}=${consequence.visible}';
+      next = _copyConsequenceState(
+        state,
+        pauseMenuVisibilityByActionId: <ProjectPauseActionId, bool>{
+          ...state.pauseMenuVisibilityByActionId,
+          consequence.actionId: consequence.visible,
+        },
+      );
     case SceneFinishGameConsequence():
       before = 'completion=pending';
       after = 'completion=${consequence.endingId} '
@@ -468,6 +487,7 @@ SceneDryRunConsequenceState _copyConsequenceState(
   Set<String>? badgeIds,
   Set<FieldAbility>? unlockedFieldAbilities,
   Map<String, bool>? npcPresenceByRef,
+  Map<ProjectPauseActionId, bool>? pauseMenuVisibilityByActionId,
   int? money,
   int? partyMemberCount,
   bool? partyHealed,
@@ -481,6 +501,8 @@ SceneDryRunConsequenceState _copyConsequenceState(
     unlockedFieldAbilities:
         unlockedFieldAbilities ?? state.unlockedFieldAbilities,
     npcPresenceByRef: npcPresenceByRef ?? state.npcPresenceByRef,
+    pauseMenuVisibilityByActionId:
+        pauseMenuVisibilityByActionId ?? state.pauseMenuVisibilityByActionId,
     money: money ?? state.money,
     partyMemberCount: partyMemberCount ?? state.partyMemberCount,
     partyHealed: partyHealed ?? state.partyHealed,

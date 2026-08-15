@@ -328,6 +328,10 @@ final class PlayableMapGameSessionRuntime
   }
 
   @override
+  Future<PlayerPauseMenuState> loadPauseMenuState() async =>
+      _requireGame().gameStateSnapshot.pauseMenuState;
+
+  @override
   Future<RuntimePlayerPauseCommandResult> dispatchPauseCommand(
     RuntimePlayerPauseCommand command,
   ) {

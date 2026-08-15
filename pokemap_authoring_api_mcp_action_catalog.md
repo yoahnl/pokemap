@@ -1517,6 +1517,7 @@ scene.end_configure
 scene.dialogue_configure
 scene.condition_configure
 scene.action_configure
+scene.pause_menu_visibility.set
 scene.battle_configure
 scene.cinematic_configure
 scene.branch_configure
@@ -1532,7 +1533,7 @@ scene.preview
 
 ### 16.3 Catalogue canonique de commandes Scene
 
-Ces 22 commandes existent déjà dans le catalogue canonique et doivent devenir
+Ces 23 commandes existent déjà dans le catalogue canonique et doivent devenir
 des options découvrables de l’Authoring API :
 
 ```text
@@ -1548,6 +1549,7 @@ healParty
 awardBadge
 unlockFieldAbility
 setNpcPresence
+setPauseMenuEntryVisibility
 finishGame
 warp
 moveNpc

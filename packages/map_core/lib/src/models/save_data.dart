@@ -7,6 +7,7 @@ import 'enums.dart';
 import 'geometry.dart';
 import 'narrative_event_progress.dart';
 import 'narrative_fact_runtime_state.dart';
+import 'player_pause_menu_state.dart';
 
 part 'save_data.freezed.dart';
 part 'save_data.g.dart';
@@ -824,6 +825,8 @@ abstract class SaveData with _$SaveData {
     )
     @Default(NarrativeEventProgress.empty())
     NarrativeEventProgress narrativeEventProgress,
+    @Default(PlayerPauseMenuState.empty())
+    PlayerPauseMenuState pauseMenuState,
     @Default({}) Set<String> completedBattleRequestIds,
     @Default({}) Set<String> appliedPokemonGrantOperationIds,
     @Default({}) Map<String, String> properties,

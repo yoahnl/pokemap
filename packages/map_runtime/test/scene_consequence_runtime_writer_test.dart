@@ -4,6 +4,26 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('SceneConsequenceRuntimeWriter', () {
+    test('pause menu visibility writes one persistent save override', () {
+      const state = GameState(saveId: 'pause-menu');
+      final writer = SceneConsequenceRuntimeWriter(project: _project());
+
+      final result = writer.applyOne(
+        state,
+        SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: ProjectPauseActionId.pokedex,
+          visible: false,
+        ),
+      );
+
+      expect(result.success, isTrue);
+      expect(
+        result.gameState.pauseMenuState.visibilityOverrides,
+        <ProjectPauseActionId, bool>{ProjectPauseActionId.pokedex: false},
+      );
+      expect(state.pauseMenuState, const PlayerPauseMenuState.empty());
+    });
+
     test('applyOne validates and commits exactly one immutable consequence',
         () {
       const state = GameState(saveId: 'save_test');

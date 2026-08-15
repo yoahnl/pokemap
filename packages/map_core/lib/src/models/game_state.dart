@@ -4,6 +4,7 @@ import 'enums.dart';
 import 'geometry.dart';
 import 'narrative_event_progress.dart';
 import 'narrative_fact_runtime_state.dart';
+import 'player_pause_menu_state.dart';
 import 'save_data.dart';
 
 part 'game_state.freezed.dart';
@@ -108,6 +109,8 @@ abstract class GameState with _$GameState {
     )
     @Default(NarrativeEventProgress.empty())
     NarrativeEventProgress narrativeEventProgress,
+    @Default(PlayerPauseMenuState.empty())
+    PlayerPauseMenuState pauseMenuState,
 
     @Default({}) Set<String> completedBattleRequestIds,
 

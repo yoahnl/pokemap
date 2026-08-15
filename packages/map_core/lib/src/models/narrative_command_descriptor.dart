@@ -35,6 +35,7 @@ enum NarrativeCommandParameterKind {
   customAnimationDefinition,
   characterDirection,
   customAnimationPlayback,
+  pauseMenuAction,
 }
 
 @immutable

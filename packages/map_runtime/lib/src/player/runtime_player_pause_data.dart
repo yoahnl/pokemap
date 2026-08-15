@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 enum RuntimePlayerPauseSection {
@@ -244,6 +245,8 @@ abstract interface class RuntimePlayerPauseCommandPort {
 /// The Hub and a future standalone host both consume the same data-only
 /// snapshots. Neither host reads or interprets the live [GameState].
 abstract interface class RuntimePlayerPauseDataPort {
+  Future<PlayerPauseMenuState> loadPauseMenuState();
+
   Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>
       loadPauseDetails();
 }

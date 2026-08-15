@@ -102,12 +102,17 @@ void main() {
 
     await adapter.prepare(_descriptor());
     final details = await adapter.loadPauseDetails();
+    final pauseMenuState = await adapter.loadPauseMenuState();
 
     expect(
       details[RuntimePlayerPauseSection.party]!.entries.single.title,
       'Salamèche',
     );
     expect(runtime.calls, contains('pause-details'));
+    expect(
+      pauseMenuState.visibilityOverrides,
+      <ProjectPauseActionId, bool>{ProjectPauseActionId.pokedex: false},
+    );
     await adapter.dispose();
   });
 }
@@ -247,6 +252,15 @@ final class _FakeContextualRuntime extends _FakeInProcessRuntime
 final class _FakePauseDataRuntime extends _FakeInProcessRuntime
     implements RuntimePlayerPauseDataPort {
   _FakePauseDataRuntime(super.sessionId);
+
+  @override
+  Future<PlayerPauseMenuState> loadPauseMenuState() async {
+    calls.add('pause-menu-state');
+    return const PlayerPauseMenuState.empty().setActionVisibility(
+      ProjectPauseActionId.pokedex,
+      visible: false,
+    );
+  }
 
   @override
   Future<Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>>

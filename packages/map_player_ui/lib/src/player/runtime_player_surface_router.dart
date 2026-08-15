@@ -142,7 +142,8 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           activeInputSource: snapshot.activeInputSource,
           logicalSelectionId: snapshot.logicalSelectionId,
           labels: pauseMenuLabels,
-          presentation: pausePresentation,
+          presentation: (pausePresentation ?? const PlayerPausePresentation())
+              .resolveVisibility(snapshot.pauseMenuState),
           saveMessage: snapshot.saveReceipt == null
               ? null
               : PlayerSaveStrings.of(context).saved(snapshot.saveReceipt!),

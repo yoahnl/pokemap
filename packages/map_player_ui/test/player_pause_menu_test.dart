@@ -4,6 +4,24 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
+  test('save visibility overrides project defaults and keeps Resume visible',
+      () {
+    final presentation = const PlayerPausePresentation(
+      hiddenActions: <PlayerPauseAction>{PlayerPauseAction.pokedex},
+    ).resolveVisibility(
+      PlayerPauseMenuState(
+        visibilityOverrides: const <ProjectPauseActionId, bool>{
+          ProjectPauseActionId.bag: false,
+          ProjectPauseActionId.pokedex: true,
+        },
+      ),
+    );
+
+    expect(presentation.visibleActions, contains(PlayerPauseAction.resume));
+    expect(presentation.visibleActions, isNot(contains(PlayerPauseAction.bag)));
+    expect(presentation.visibleActions, contains(PlayerPauseAction.pokedex));
+  });
+
   testWidgets('pause uses a grid on wide surfaces and dispatches selection',
       (tester) async {
     tester.view.physicalSize = const Size(1100, 760);

@@ -465,6 +465,18 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'scene.pause_menu_visibility.set') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/narrative/pause_menu_visibility_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/narrative/pause_menu_visibility_transport_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (_cinematicLibraryTransportCertifiedActionIds.contains(actionId)) {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:

@@ -320,12 +320,14 @@ final class RuntimePlayerCoordinator {
         return _launch(retry);
       case RuntimePlayerAction.openMenu:
         await _sessions.pause();
+        final pauseMenuState = await _sessions.loadPauseMenuState();
         final pauseDetails = Map<RuntimePlayerPauseSection,
             RuntimePlayerPauseDetailSnapshot>.from(
           await _sessions.loadPauseDetails(),
         );
         _publishPause(
           RuntimePlayerPauseSection.root,
+          pauseMenuState: pauseMenuState,
           pauseDetails: pauseDetails,
         );
         return const RuntimePlayerCommandResult(
@@ -1028,6 +1030,7 @@ final class RuntimePlayerCoordinator {
         clearWorldService: true,
         clearActiveSaveAddress: true,
         clearSaveReceipt: true,
+        clearPauseMenuState: true,
         preferences: _preferences,
         hasDiscoveredSave: _latestSave != null,
         continueSave: _latestSave,
@@ -1065,9 +1068,11 @@ final class RuntimePlayerCoordinator {
     bool clearFailure = false,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>?
         pauseDetails,
+    PlayerPauseMenuState? pauseMenuState,
     RuntimePlayerSaveReceipt? saveReceipt,
   }) {
     final effectivePauseDetails = pauseDetails ?? _snapshot.pauseDetails;
+    final effectivePauseMenuState = pauseMenuState ?? _snapshot.pauseMenuState;
     _publish(
       _snapshot.next(
         phase: RuntimePlayerPhase.paused,
@@ -1076,10 +1081,12 @@ final class RuntimePlayerCoordinator {
         failure: failure,
         clearFailure: clearFailure,
         pauseDetails: effectivePauseDetails,
+        pauseMenuState: effectivePauseMenuState,
         saveReceipt: saveReceipt,
         actions: _pauseActions(
           includeReturnToRoot: section != RuntimePlayerPauseSection.root,
           pauseDetails: effectivePauseDetails,
+          pauseMenuState: effectivePauseMenuState,
         ),
       ),
     );
@@ -1200,55 +1207,79 @@ final class RuntimePlayerCoordinator {
     required bool includeReturnToRoot,
     required Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
         pauseDetails,
+    required PlayerPauseMenuState pauseMenuState,
   }) {
     return <RuntimePlayerActionAvailability>[
       const RuntimePlayerActionAvailability.enabled(
         RuntimePlayerAction.resume,
       ),
-      const RuntimePlayerActionAvailability.enabled(
-        RuntimePlayerAction.openParty,
-      ),
-      const RuntimePlayerActionAvailability.enabled(
-        RuntimePlayerAction.openBag,
-      ),
-      const RuntimePlayerActionAvailability.enabled(
-        RuntimePlayerAction.useBagItem,
-      ),
-      if (pauseDetails.containsKey(RuntimePlayerPauseSection.pokedex))
+      if (_isPauseActionVisible(ProjectPauseActionId.party, pauseMenuState))
         const RuntimePlayerActionAvailability.enabled(
-          RuntimePlayerAction.openPokedex,
-        )
-      else
-        RuntimePlayerActionAvailability.disabled(
-          RuntimePlayerAction.openPokedex,
-          reason: 'This game does not provide a Pokédex.',
+          RuntimePlayerAction.openParty,
         ),
-      if (_hasCapability('map.v1'))
+      if (_isPauseActionVisible(ProjectPauseActionId.bag, pauseMenuState)) ...[
         const RuntimePlayerActionAvailability.enabled(
-          RuntimePlayerAction.openMap,
-        )
-      else
-        RuntimePlayerActionAvailability.disabled(
-          RuntimePlayerAction.openMap,
-          reason: 'This game does not provide a player map.',
+          RuntimePlayerAction.openBag,
         ),
-      const RuntimePlayerActionAvailability.enabled(
-        RuntimePlayerAction.save,
-      ),
-      const RuntimePlayerActionAvailability.enabled(
-        RuntimePlayerAction.openOptions,
-      ),
-      const RuntimePlayerActionAvailability.enabled(
-        RuntimePlayerAction.updatePreferences,
-      ),
-      const RuntimePlayerActionAvailability.enabled(
-        RuntimePlayerAction.returnToTitle,
-      ),
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.useBagItem,
+        ),
+      ],
+      if (_isPauseActionVisible(ProjectPauseActionId.pokedex, pauseMenuState))
+        if (pauseDetails.containsKey(RuntimePlayerPauseSection.pokedex))
+          const RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openPokedex,
+          )
+        else
+          RuntimePlayerActionAvailability.disabled(
+            RuntimePlayerAction.openPokedex,
+            reason: 'This game does not provide a Pokédex.',
+          ),
+      if (_isPauseActionVisible(ProjectPauseActionId.map, pauseMenuState))
+        if (_hasCapability('map.v1'))
+          const RuntimePlayerActionAvailability.enabled(
+            RuntimePlayerAction.openMap,
+          )
+        else
+          RuntimePlayerActionAvailability.disabled(
+            RuntimePlayerAction.openMap,
+            reason: 'This game does not provide a player map.',
+          ),
+      if (_isPauseActionVisible(ProjectPauseActionId.save, pauseMenuState))
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.save,
+        ),
+      if (_isPauseActionVisible(ProjectPauseActionId.options, pauseMenuState))
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.openOptions,
+        ),
+      if (_isPauseActionVisible(ProjectPauseActionId.options, pauseMenuState))
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.updatePreferences,
+        ),
+      if (_isPauseActionVisible(
+        ProjectPauseActionId.returnToTitle,
+        pauseMenuState,
+      ))
+        const RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.returnToTitle,
+        ),
       if (includeReturnToRoot)
         const RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.returnToPauseRoot,
         ),
     ];
+  }
+
+  bool _isPauseActionVisible(
+    ProjectPauseActionId actionId,
+    PlayerPauseMenuState pauseMenuState,
+  ) {
+    return pauseMenuState.isActionVisible(
+      actionId,
+      projectDefaultVisibility:
+          _gameSource.defaultVisiblePauseActions.contains(actionId),
+    );
   }
 
   bool _hasCapability(String capability) {

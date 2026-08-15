@@ -27,6 +27,11 @@ final class SceneActions {
       'Set one bounded Character Studio animation on a Scene action node',
       resourceKinds: const ['project', 'scene'],
     ),
+    narrativeActionDescriptor(
+      'scene.pause_menu_visibility.set',
+      'Set one persistent pause menu entry visibility on a Scene action node',
+      resourceKinds: const ['project', 'scene'],
+    ),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
@@ -116,6 +121,50 @@ final class SceneActions {
           path: '/scenes/$sceneId/graph/nodes/$nodeId/interactiveCommand',
           before: before?.toJson(),
           after: after?.toJson(),
+          preview: const ModernNarrativeInspector()
+              .inspect(project: projected, maps: context.snapshot.maps)
+              .toJson(),
+        );
+      case 'scene.pause_menu_visibility.set':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {'sceneId', 'nodeId', 'actionId', 'visible'},
+        );
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final nodeId = narrativeStringParameter(parameters, 'nodeId');
+        final beforeScene = context.snapshot.manifest.scenes
+            .where((candidate) => candidate.id == sceneId)
+            .firstOrNull;
+        final beforePayload = beforeScene?.graph.nodes
+            .where((node) => node.id == nodeId)
+            .firstOrNull
+            ?.payload
+            .toJson();
+        final projected = setPauseMenuEntryVisibility(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          nodeId: nodeId,
+          actionId: _decodePauseActionId(
+            narrativeStringParameter(parameters, 'actionId'),
+          ),
+          visible: _booleanParameter(parameters, 'visible'),
+        );
+        final afterScene = projected.scenes
+            .where((candidate) => candidate.id == sceneId)
+            .first;
+        final afterPayload = afterScene.graph.nodes
+            .where((node) => node.id == nodeId)
+            .first
+            .payload
+            .toJson();
+        return narrativeProjectDraft(
+          context.snapshot,
+          projected,
+          operation: context.request.actionId,
+          path: '/scenes/$sceneId/graph/nodes/$nodeId/consequence',
+          before: beforePayload,
+          after: afterPayload,
           preview: const ModernNarrativeInspector()
               .inspect(project: projected, maps: context.snapshot.maps)
               .toJson(),
@@ -249,6 +298,51 @@ final class SceneActions {
     );
     return upsert(project, maps: maps, scene: updatedScene);
   }
+
+  ProjectManifest setPauseMenuEntryVisibility(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String nodeId,
+    required ProjectPauseActionId actionId,
+    required bool visible,
+  }) {
+    final scene = project.scenes
+        .where((candidate) => candidate.id == sceneId)
+        .firstOrNull;
+    if (scene == null) {
+      throw NarrativeAuthoringException(
+        'scene.unknown',
+        'The Scene identity is unknown.',
+        details: <String, Object?>{'sceneId': sceneId},
+      );
+    }
+    final updated = updateSceneActionConsequencePayload(
+      scene,
+      nodeId: nodeId,
+      consequence: SceneConsequence.setPauseMenuEntryVisibility(
+        actionId: actionId,
+        visible: visible,
+      ),
+    );
+    return upsert(project, maps: maps, scene: updated.updatedScene);
+  }
+}
+
+ProjectPauseActionId _decodePauseActionId(String value) {
+  try {
+    return ProjectPauseActionId.values.byName(value);
+  } on ArgumentError {
+    throw ArgumentError.value(value, 'actionId', 'is not a pause menu entry');
+  }
+}
+
+bool _booleanParameter(Map<String, Object?> parameters, String key) {
+  final value = parameters[key];
+  if (value is! bool) {
+    throw ArgumentError.value(value, key, 'must be a boolean');
+  }
+  return value;
 }
 
 SceneAsset _decodeScene(Map<String, dynamic> json) {
