@@ -118,6 +118,10 @@ final class _MemoryGameSource implements RuntimeGameSource {
   String get displayTitle => 'Contract Test';
 
   @override
+  final Set<ProjectPauseActionId> defaultVisiblePauseActions =
+      Set<ProjectPauseActionId>.unmodifiable(ProjectPauseActionId.values);
+
+  @override
   Future<GameSessionDescriptor> createSessionDescriptor({
     required GameSessionLaunchMode launchMode,
     required String profileId,

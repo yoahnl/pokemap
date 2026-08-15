@@ -297,10 +297,17 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
         return PokeMapDropdownField<String>(
           label: parameter.label,
           value: _values[parameter.id] ?? 'true',
-          items: const [
-            PokeMapDropdownItem(value: 'true', label: 'Vrai'),
-            PokeMapDropdownItem(value: 'false', label: 'Faux'),
-          ],
+          items: _command.id ==
+                      NarrativeCommandIds.setPauseMenuEntryVisibility &&
+                  parameter.id == 'visible'
+              ? const [
+                  PokeMapDropdownItem(value: 'true', label: 'Afficher'),
+                  PokeMapDropdownItem(value: 'false', label: 'Masquer'),
+                ]
+              : const [
+                  PokeMapDropdownItem(value: 'true', label: 'Vrai'),
+                  PokeMapDropdownItem(value: 'false', label: 'Faux'),
+                ],
           onChanged: (value) => _setReferenceValue(parameter, value),
         );
       case NarrativeCommandParameterKind.integer:
@@ -396,6 +403,18 @@ class _SceneActionBuilderState extends State<SceneActionBuilder> {
           ),
           SceneActionPickerOption(
               id: 'forDuration', label: 'Pendant une durée'),
+        ],
+      NarrativeCommandParameterKind.pauseMenuAction => const [
+          SceneActionPickerOption(id: 'party', label: 'Équipe'),
+          SceneActionPickerOption(id: 'bag', label: 'Sac'),
+          SceneActionPickerOption(id: 'pokedex', label: 'Pokédex'),
+          SceneActionPickerOption(id: 'map', label: 'Carte'),
+          SceneActionPickerOption(id: 'save', label: 'Sauvegarder'),
+          SceneActionPickerOption(id: 'options', label: 'Options'),
+          SceneActionPickerOption(
+            id: 'returnToTitle',
+            label: 'Retour au titre',
+          ),
         ],
       _ => widget.pickerOptions[kind] ?? const [],
     };

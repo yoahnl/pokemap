@@ -1,5 +1,7 @@
 import 'dart:collection';
 
+import 'package:map_core/map_core.dart';
+
 import '../session/game_session_contract.dart';
 import '../session/player_input.dart';
 import 'runtime_player_host.dart';
@@ -198,6 +200,7 @@ final class RuntimePlayerSnapshot {
     this.continueSave,
     this.activeSaveAddress,
     this.saveReceipt,
+    this.pauseMenuState = const PlayerPauseMenuState.empty(),
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> pauseDetails =
         const <RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>{},
   })  : actions = List<RuntimePlayerActionAvailability>.unmodifiable(actions),
@@ -255,6 +258,7 @@ final class RuntimePlayerSnapshot {
   final PlayerSaveSummary? continueSave;
   final RuntimePlayerSaveAddress? activeSaveAddress;
   final RuntimePlayerSaveReceipt? saveReceipt;
+  final PlayerPauseMenuState pauseMenuState;
   final Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
       pauseDetails;
 
@@ -300,6 +304,8 @@ final class RuntimePlayerSnapshot {
     bool clearActiveSaveAddress = false,
     RuntimePlayerSaveReceipt? saveReceipt,
     bool clearSaveReceipt = false,
+    PlayerPauseMenuState? pauseMenuState,
+    bool clearPauseMenuState = false,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>?
         pauseDetails,
     bool clearPauseDetails = false,
@@ -332,6 +338,9 @@ final class RuntimePlayerSnapshot {
           ? null
           : activeSaveAddress ?? this.activeSaveAddress,
       saveReceipt: clearSaveReceipt ? null : saveReceipt ?? this.saveReceipt,
+      pauseMenuState: clearPauseMenuState
+          ? const PlayerPauseMenuState.empty()
+          : pauseMenuState ?? this.pauseMenuState,
       pauseDetails: clearPauseDetails
           ? const <RuntimePlayerPauseSection,
               RuntimePlayerPauseDetailSnapshot>{}

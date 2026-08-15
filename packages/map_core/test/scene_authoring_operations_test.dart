@@ -735,6 +735,13 @@ void main() {
           ),
           'Donner un starter configuré',
         ),
+        (
+          SceneConsequence.setPauseMenuEntryVisibility(
+            actionId: ProjectPauseActionId.pokedex,
+            visible: false,
+          ),
+          'Modifier la visibilité du menu pause',
+        ),
       ];
 
       for (final (consequence, expectedTitle) in cases) {

@@ -41,6 +41,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
     storyFlags: StoryFlags(activeFlags: migratedFlags),
     narrativeFactRuntimeState: normalizedSaveData.narrativeFactRuntimeState,
     narrativeEventProgress: normalizedSaveData.narrativeEventProgress,
+    pauseMenuState: normalizedSaveData.pauseMenuState,
     completedBattleRequestIds:
         normalizedSaveData.completedBattleRequestIds,
     appliedPokemonGrantOperationIds:
@@ -77,6 +78,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     progression: normalizedProgression,
     narrativeFactRuntimeState: normalizedGameState.narrativeFactRuntimeState,
     narrativeEventProgress: normalizedGameState.narrativeEventProgress,
+    pauseMenuState: normalizedGameState.pauseMenuState,
     completedBattleRequestIds: normalizedGameState.completedBattleRequestIds,
     appliedPokemonGrantOperationIds:
         normalizedGameState.appliedPokemonGrantOperationIds,

@@ -334,6 +334,11 @@ Map<String, SceneConsequence Function()> _consequenceSamples() => {
             entityId: 'npc_guide',
             present: false,
           ),
+      NarrativeCommandIds.setPauseMenuEntryVisibility: () =>
+          SceneConsequence.setPauseMenuEntryVisibility(
+            actionId: ProjectPauseActionId.pokedex,
+            visible: false,
+          ),
     };
 
 Map<String, SceneInteractiveCommand Function()> _interactiveSamples() => {

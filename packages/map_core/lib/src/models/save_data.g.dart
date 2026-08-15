@@ -305,6 +305,11 @@ _SaveData _$SaveDataFromJson(Map<String, dynamic> json) => _SaveData(
       : NarrativeEventProgress.fromJson(
           readNarrativeEventProgressJson(json, 'narrativeEventProgress'),
         ),
+  pauseMenuState: json['pauseMenuState'] == null
+      ? const PlayerPauseMenuState.empty()
+      : PlayerPauseMenuState.fromJson(
+          json['pauseMenuState'] as Map<String, dynamic>,
+        ),
   completedBattleRequestIds:
       (json['completedBattleRequestIds'] as List<dynamic>?)
           ?.map((e) => e as String)
@@ -337,6 +342,7 @@ Map<String, dynamic> _$SaveDataToJson(_SaveData instance) => <String, dynamic>{
   'narrativeEventProgress': narrativeEventProgressToJson(
     instance.narrativeEventProgress,
   ),
+  'pauseMenuState': instance.pauseMenuState.toJson(),
   'completedBattleRequestIds': instance.completedBattleRequestIds.toList(),
   'appliedPokemonGrantOperationIds': instance.appliedPokemonGrantOperationIds
       .toList(),

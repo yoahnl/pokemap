@@ -1560,6 +1560,18 @@ Map<String, NarrativeEventProjectionSummary> _buildSceneProjectionIndex({
             humanLabel: 'Termine « ${label ?? 'Étape narrative liée'} ».',
             debugReference: 'storyStep:${_debugIdentity(stepId)}',
           ),
+        SceneSetPauseMenuEntryVisibilityConsequence(
+          :final actionId,
+          :final visible,
+          :final label,
+        ) =>
+          NarrativeEventProjectedConsequenceSummary(
+            kind: consequence.kind,
+            humanLabel: label ??
+                '${visible ? 'Affiche' : 'Masque'} l’entrée '
+                    '« ${actionId.name} » du menu pause.',
+            debugReference: 'pauseMenu:${actionId.name}:$visible',
+          ),
         _ => null,
       };
       if (summary == null) continue;
@@ -1632,6 +1644,11 @@ String _projectedConsequenceKey(SceneConsequence consequence) {
       'markEventConsumed|${_debugIdentity(mapId)}|${_debugIdentity(eventId)}',
     SceneCompleteStoryStepConsequence(:final stepId) =>
       'completeStoryStep|${_debugIdentity(stepId)}',
+    SceneSetPauseMenuEntryVisibilityConsequence(
+      :final actionId,
+      :final visible,
+    ) =>
+      'setPauseMenuEntryVisibility|${actionId.name}|$visible',
     _ => 'unsupported|${consequence.kind.name}',
   };
 }

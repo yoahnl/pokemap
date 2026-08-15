@@ -35,6 +35,7 @@ export 'src/read_models/project_item_reference_index.dart';
 export 'src/read_models/presentation_reference_graph.dart';
 export 'src/models/project_tileset_source.dart';
 export 'src/models/project_presentation_profile.dart';
+export 'src/models/player_pause_menu_state.dart';
 export 'src/models/project_battle_presentation_profile.dart';
 export 'src/models/project_dialogue_presentation_profile.dart';
 export 'src/models/project_presentation_preset.dart';

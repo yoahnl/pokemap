@@ -242,6 +242,7 @@ void main() {
           'scene.upsert',
           'scene.delete',
           'scene.character_animation.set',
+          'scene.pause_menu_visibility.set',
           'event_v2.record_upsert',
           'event_v2.registry_mode.set',
           'event_v2.publish',
@@ -285,6 +286,29 @@ void main() {
         action.interactiveCommand,
         SceneInteractiveCommand.playCharacterAnimation(
           runtimeCommand: command,
+        ),
+      );
+    });
+
+    test('semantic Scene action sets a typed pause menu visibility command',
+        () {
+      final projected = const SceneActions().setPauseMenuEntryVisibility(
+        _manifest(scenes: <SceneAsset>[_scene()]),
+        maps: const <MapData>[],
+        sceneId: 'intro_scene',
+        nodeId: 'action',
+        actionId: ProjectPauseActionId.pokedex,
+        visible: false,
+      );
+      final action = projected.scenes.single.graph.nodes
+          .singleWhere((node) => node.id == 'action')
+          .payload as SceneActionPayload;
+
+      expect(
+        action.consequence,
+        SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: ProjectPauseActionId.pokedex,
+          visible: false,
         ),
       );
     });

@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:map_core/map_core.dart';
+
 import '../presentation/flame/runtime_input_authority.dart';
 import '../presentation/flame/runtime_input_event.dart';
 import '../player/runtime_player_pause_data.dart';
@@ -136,6 +138,15 @@ final class InProcessGameSessionAdapter
       );
     }
     return port.loadPauseDetails();
+  }
+
+  @override
+  Future<PlayerPauseMenuState> loadPauseMenuState() {
+    final port = _pauseDataPort;
+    if (port == null || _disposed) {
+      return Future.value(const PlayerPauseMenuState.empty());
+    }
+    return port.loadPauseMenuState();
   }
 
   @override

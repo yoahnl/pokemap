@@ -94,6 +94,50 @@ void main() {
       }
     });
 
+    test('editor persists a typed pause menu visibility consequence',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final projectPath = p.join(fixture.root.path, 'project.json');
+      await FileProjectRepository().saveProject(
+        fixture.project.copyWith(
+          scenes: <SceneAsset>[_pauseMenuVisibilityScene()],
+        ),
+        projectPath,
+      );
+
+      final plan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'scene.pause_menu_visibility.set',
+        parameters: const <String, Object?>{
+          'sceneId': 'intro_scene',
+          'nodeId': 'action',
+          'actionId': 'pokedex',
+          'visible': false,
+        },
+        idempotencyKey: 'editor-pause-menu-visibility',
+      );
+      final applied = await fixture.mutations.apply(
+        plan,
+        operationId: 'editor-pause-menu-visibility',
+      );
+      final durable = await FileProjectRepository().loadProject(projectPath);
+      final consequence = (durable.scenes.single.graph.nodes
+              .singleWhere((node) => node.id == 'action')
+              .payload as SceneActionPayload)
+          .consequence;
+
+      expect(applied.receipt.actionId, 'scene.pause_menu_visibility.set');
+      expect(applied.receipt.status, AuthoringReceiptStatus.applied);
+      expect(
+        consequence,
+        SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: ProjectPauseActionId.pokedex,
+          visible: false,
+        ),
+      );
+    });
+
     test('editor executes every cinematic library catalog action', () async {
       final fixture = await _MutationFixture.create();
       addTearDown(fixture.dispose);
@@ -1781,6 +1825,41 @@ final class _CountingEditorReader
   Future<String> locateForResource(String resourcePath) =>
       _roots.locateForResource(resourcePath);
 }
+
+SceneAsset _pauseMenuVisibilityScene() => SceneAsset(
+      id: 'intro_scene',
+      name: 'Intro scene',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'action',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.interactive(
+              SceneInteractiveCommand.openPc(),
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: <SceneEdge>[
+          SceneEdge(
+            id: 'start_action',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'action',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'action_end',
+            fromNodeId: 'action',
+            fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        ],
+      ),
+    );
 
 final class _MutationFixture {
   _MutationFixture({

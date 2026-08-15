@@ -185,6 +185,13 @@ Map<String, SceneNodePayload Function()> _canonicalSamples() => {
               present: false,
             ),
           ),
+      NarrativeCommandIds.setPauseMenuEntryVisibility: () =>
+          SceneActionPayload.consequence(
+            SceneConsequence.setPauseMenuEntryVisibility(
+              actionId: ProjectPauseActionId.pokedex,
+              visible: false,
+            ),
+          ),
       NarrativeCommandIds.warp: () => SceneActionPayload.interactive(
             SceneInteractiveCommand.warp(
               destinationMapId: 'map_port',

@@ -273,6 +273,27 @@ void main() {
       }
     });
 
+    test('pause menu visibility round-trips and rejects Resume', () {
+      final consequence = SceneConsequence.setPauseMenuEntryVisibility(
+        actionId: ProjectPauseActionId.pokedex,
+        visible: false,
+      );
+
+      expect(consequence.toJson(), <String, dynamic>{
+        'kind': 'setPauseMenuEntryVisibility',
+        'actionId': 'pokedex',
+        'visible': false,
+      });
+      expect(SceneConsequence.fromJson(consequence.toJson()), consequence);
+      expect(
+        () => SceneConsequence.setPauseMenuEntryVisibility(
+          actionId: ProjectPauseActionId.resume,
+          visible: false,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('rejects unknown consequence kind', () {
       expect(
         () => SceneConsequence.fromJson({

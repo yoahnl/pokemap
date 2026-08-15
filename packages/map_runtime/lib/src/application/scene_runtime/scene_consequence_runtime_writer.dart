@@ -156,6 +156,11 @@ final class SceneConsequenceRuntimeWriter {
           gameState,
           consequence as SceneSetNpcPresenceConsequence,
         ),
+      SceneConsequenceKind.setPauseMenuEntryVisibility =>
+        _applySetPauseMenuEntryVisibility(
+          gameState,
+          consequence as SceneSetPauseMenuEntryVisibilityConsequence,
+        ),
       SceneConsequenceKind.finishGame => _applyFinishGame(
           gameState,
           consequence as SceneFinishGameConsequence,
@@ -557,6 +562,20 @@ final class SceneConsequenceRuntimeWriter {
   ) {
     return _SceneConsequenceRuntimeWriteStep.applied(
       mutations.unlockFieldAbility(gameState, consequence.ability),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applySetPauseMenuEntryVisibility(
+    GameState gameState,
+    SceneSetPauseMenuEntryVisibilityConsequence consequence,
+  ) {
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      gameState.copyWith(
+        pauseMenuState: gameState.pauseMenuState.setActionVisibility(
+          consequence.actionId,
+          visible: consequence.visible,
+        ),
+      ),
     );
   }
 

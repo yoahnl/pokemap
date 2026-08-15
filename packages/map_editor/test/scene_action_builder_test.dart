@@ -301,6 +301,48 @@ void main() {
     );
   });
 
+  testWidgets('pause menu visibility uses a guided picker without Resume',
+      (tester) async {
+    SceneActionBuildResult? result;
+    await _pumpBuilder(
+      tester,
+      initialCommandId: NarrativeCommandIds.setPauseMenuEntryVisibility,
+      runtimeCommandIds: const {
+        NarrativeCommandIds.setPauseMenuEntryVisibility,
+      },
+      initialParameters: const {'visible': 'false'},
+      onSubmitResult: (value) => result = value,
+    );
+
+    final actionField = tester
+        .widgetList<PokeMapDropdownField<String>>(
+          find.byType(PokeMapDropdownField<String>),
+        )
+        .singleWhere((field) => field.label == 'Entrée du menu');
+    expect(actionField.items.map((item) => item.label), contains('Pokédex'));
+    expect(actionField.items.map((item) => item.label), isNot(contains('Reprendre')));
+    final visibilityField = tester
+        .widgetList<PokeMapDropdownField<String>>(
+          find.byType(PokeMapDropdownField<String>),
+        )
+        .singleWhere((field) => field.label == 'Visibilité');
+    expect(
+      visibilityField.items.map((item) => item.label),
+      <String>['Afficher', 'Masquer'],
+    );
+
+    await tester.tap(find.byKey(const ValueKey('scene-action-submit')));
+    await tester.pump();
+
+    expect(
+      (result!.payload as SceneActionPayload).consequence,
+      SceneConsequence.setPauseMenuEntryVisibility(
+        actionId: ProjectPauseActionId.party,
+        visible: false,
+      ),
+    );
+  });
+
   testWidgets('deleted picker target is kept visible and blocks editing',
       (tester) async {
     await _pumpBuilder(

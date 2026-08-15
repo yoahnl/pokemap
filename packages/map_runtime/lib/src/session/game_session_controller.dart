@@ -102,6 +102,17 @@ final class GameSessionController
   }
 
   @override
+  Future<PlayerPauseMenuState> loadPauseMenuState() {
+    final port = _pauseDataPort;
+    if (port == null ||
+        _controllerDisposed ||
+        _snapshot.state != GameSessionState.paused) {
+      return Future.value(const PlayerPauseMenuState.empty());
+    }
+    return port.loadPauseMenuState();
+  }
+
+  @override
   Future<RuntimePlayerPauseCommandResult> dispatchPauseCommand(
     RuntimePlayerPauseCommand command,
   ) {

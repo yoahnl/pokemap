@@ -1737,6 +1737,7 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
     case SceneHealPartyConsequence():
     case SceneAwardBadgeConsequence():
     case SceneUnlockFieldAbilityConsequence():
+    case SceneSetPauseMenuEntryVisibilityConsequence():
     case SceneFinishGameConsequence():
       break;
   }
@@ -2429,6 +2430,8 @@ String _defaultConsequenceActionTitle(SceneConsequence consequence) {
     SceneGivePokemonConsequence() => 'Donner un Pokémon',
     SceneGiveConfiguredStarterConsequence() => 'Donner un starter configuré',
     SceneSetNpcPresenceConsequence() => 'Modifier la présence d’un PNJ',
+    SceneSetPauseMenuEntryVisibilityConsequence() =>
+      'Modifier la visibilité du menu pause',
     _ => 'Conséquence',
   };
 }

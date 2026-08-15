@@ -959,6 +959,116 @@ test("MCP scene.upsert preserves a non-base Pokemon form", async () => {
   }
 });
 
++test("MCP persists a typed pause menu visibility consequence", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const projectDocument = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    const scenes = Array.isArray(projectDocument.scenes)
+      ? projectDocument.scenes
+      : [];
+    projectDocument.scenes = [
+      ...scenes,
+      {
+        id: "intro_scene",
+        name: "Intro scene",
+        graph: {
+          startNodeId: "start",
+          nodes: [
+            { id: "start", kind: "start" },
+            {
+              id: "action",
+              kind: "action",
+              payload: {
+                kind: "action",
+                parameters: {},
+                interactiveCommand: { kind: "openPc" },
+              },
+            },
+            { id: "end", kind: "end" },
+          ],
+          edges: [
+            {
+              id: "start_action",
+              fromNodeId: "start",
+              fromPortId: "completed",
+              toNodeId: "action",
+              kind: "default",
+            },
+            {
+              id: "action_end",
+              fromNodeId: "action",
+              fromPortId: "completed",
+              toNodeId: "end",
+              kind: "actionCompleted",
+            },
+          ],
+        },
+      },
+    ];
+    await writeFile(
+      join(fixture.root, "project.json"),
+      JSON.stringify(projectDocument),
+    );
+
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const pauseAction = (
+      record(described.fullParity).mutationActions as JsonRecord[]
+    ).find(
+      (action) =>
+        String(action.actionId) === "scene.pause_menu_visibility.set",
+    );
+    assert.ok(pauseAction);
+
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle: String(opened.projectHandle),
+    });
+
+    await applyMutation(fixture.client, {
+      projectHandle: String(opened.projectHandle),
+      workspaceHandle: String(opened.workspaceHandle),
+      expectedRevision: String(validated.snapshotRevision),
+      actionId: "scene.pause_menu_visibility.set",
+      parameters: {
+        sceneId: "intro_scene",
+        nodeId: "action",
+        actionId: "pokedex",
+        visible: false,
+      },
+      sequence: "pause-menu-visibility",
+    });
+
+    const persisted = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    const persistedScene = (persisted.scenes as JsonRecord[]).find(
+      (scene) => String(scene.id) === "intro_scene",
+    );
+    assert.ok(persistedScene);
+    const graph = record(persistedScene.graph);
+    const actionNode = (graph.nodes as JsonRecord[]).find(
+      (node) => String(node.id) === "action",
+    );
+    assert.ok(actionNode);
+    assert.deepEqual(record(record(actionNode.payload).consequence), {
+      kind: "setPauseMenuEntryVisibility",
+      actionId: "pokedex",
+      visible: false,
+    });
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+
 test("MCP commits and undoes one atomic Presentation clip batch", async () => {
   const fixture = await mutationFixture();
   try {
