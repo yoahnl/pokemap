@@ -6,6 +6,7 @@ import 'package:integration_test/integration_test_driver.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/fine_mask_performance_contract.dart';
+import 'support/presentation_studio_performance_contract.dart';
 
 Future<void> main() async {
   await integrationDriver(
@@ -125,6 +126,12 @@ void _validatePerformanceData(
       'integration_test/editor_performance_soak_journey_test.dart') {
     if (requireProvenance) _validateProvenance(data);
     _validatePerformanceSoak(data);
+  } else if (target == presentationStudioPerformanceTarget) {
+    if (requireProvenance) _validateProvenance(data);
+    validatePresentationStudioPerformanceReceipt(
+      data,
+      requireProvenance: requireProvenance,
+    );
   } else if (!const <String>{
     'integration_test/editor_asset_cache_journey_test.dart',
     'integration_test/editor_codec_offload_journey_test.dart',

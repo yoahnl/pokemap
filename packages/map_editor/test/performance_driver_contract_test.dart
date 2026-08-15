@@ -24,6 +24,60 @@ void main() {
     );
   });
 
+  test('accepts a complete CIN-060 Studio receipt', () {
+    expect(
+      () => performance_driver.validatePerformanceResponse(
+        _validPresentationStudioReceipt(),
+      ),
+      returnsNormally,
+    );
+  });
+
+  test('rejects a CIN-060 receipt with mutable budgets', () {
+    final receipt = _validPresentationStudioReceipt();
+    final budgets = receipt['performanceBudgets']! as Map<String, Object?>;
+    budgets['interactionP95Us'] = 20000;
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects a CIN-060 receipt without the limit fixture', () {
+    final receipt = _validPresentationStudioReceipt();
+    final fixtures = receipt['fixtureMatrix']! as List<Map<String, Object?>>;
+    fixtures.removeLast();
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects a CIN-060 receipt with unbounded rendered clips', () {
+    final receipt = _validPresentationStudioReceipt();
+    final scenarios = receipt['scenarios']! as List<Map<String, Object?>>;
+    final studio = scenarios.last['studio']! as Map<String, Object?>;
+    studio['visibleClipWidgetsMax'] = 81;
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects a CIN-060 receipt without every media projection kind', () {
+    final receipt = _validPresentationStudioReceipt();
+    final media = receipt['media']! as Map<String, Object?>;
+    media['projectionKinds'] = <String>['audio', 'video'];
+
+    expect(
+      () => performance_driver.validatePerformanceResponse(receipt),
+      throwsFormatException,
+    );
+  });
+
   test('accepts a complete PERF-009 soak receipt', () {
     expect(
       () => performance_driver.validatePerformanceResponse(_validSoakReceipt()),
@@ -460,6 +514,114 @@ void main() {
     );
   });
 }
+
+Map<String, dynamic> _validPresentationStudioReceipt() => <String, dynamic>{
+  'schemaVersion': 2,
+  'generatorVersion': 1,
+  'benchmark': 'presentation_studio_cin_060',
+  'target':
+      'integration_test/presentation_studio_performance_journey_test.dart',
+  'executionMode': 'flutter-profile',
+  'commit': '0123456789abcdef0123456789abcdef01234567',
+  'treeState': 'clean',
+  'architecture': 'arm64',
+  'sdk': 'Dart 3',
+  'toolchain': <String, Object?>{
+    'dart': 'Dart 3',
+    'flutter': <String, Object?>{'frameworkRevision': 'flutter-sha'},
+    'flame': '1.0.0',
+  },
+  'fixtureMatrix': <Map<String, Object?>>[
+    _presentationFixture('small', 10, 10, 10, 100),
+    _presentationFixture('medium', 250, 50, 50, 500),
+    _presentationFixture('limit', 1000, 100, 100, 1100),
+  ],
+  'performanceBudgets': <String, Object?>{
+    'libraryFirstUs': 5000000,
+    'librarySearchP95Us': 100000,
+    'studioFirstFrameUs': 5000000,
+    'interactionP95Us': 16000,
+    'frameBuildP95Us': 16000,
+    'frameRasterP95Us': 16000,
+    'frameTotalP95Us': 32000,
+    'mediaColdP95Us': 1000000,
+    'mediaWarmP95Us': 16000,
+    'undoP95Us': 250000,
+    'redoP95Us': 250000,
+    'rssGrowthBytes': 128 * 1024 * 1024,
+    'visibleTrackWidgetsMax': 12,
+    'visibleClipWidgetsMax': 80,
+    'fileHandleGrowthMax': 2,
+  },
+  'optimizationPolicy': <String, Object?>{
+    'certificationOnly': true,
+    'hiddenOptimizations': 0,
+  },
+  'scenarios': <Map<String, Object?>>[
+    for (final fixture in const <String>['small', 'medium', 'limit'])
+      <String, Object?>{
+        'fixture': fixture,
+        'library': <String, Object?>{
+          'firstUs': 1000,
+          'search': _sampleMetrics(List<int>.filled(31, 1000)),
+          'restoredFolder': true,
+          'restoredScrollOffset': true,
+        },
+        'studio': <String, Object?>{
+          'firstFrameUs': 1000,
+          'pointer': _sampleMetrics(List<int>.filled(60, 1000)),
+          'drag': _sampleMetrics(List<int>.filled(60, 1000)),
+          'trim': _sampleMetrics(List<int>.filled(60, 1000)),
+          'scrub': _sampleMetrics(List<int>.filled(60, 1000)),
+          'zoom': _sampleMetrics(List<int>.filled(60, 1000)),
+          'frames': <String, Object?>{
+            'build': _sampleMetrics(List<int>.filled(60, 1000)),
+            'raster': _sampleMetrics(List<int>.filled(60, 1000)),
+            'total': _sampleMetrics(List<int>.filled(60, 1000)),
+          },
+          'visibleTrackWidgetsMax': 8,
+          'visibleClipWidgetsMax': 20,
+        },
+      },
+  ],
+  'media': <String, Object?>{
+    'cold': _sampleMetrics(List<int>.filled(31, 5000)),
+    'warm': _sampleMetrics(List<int>.filled(31, 1000)),
+    'projectionKinds': <String>['audio', 'video', 'captions'],
+    'backgroundDecodeResponsive': true,
+    'coldGatewayLoads': 93,
+    'warmGatewayLoads': 0,
+  },
+  'session': <String, Object?>{
+    'undoRedoCycles': 50,
+    'openCloseCycles': 50,
+    'undo': _sampleMetrics(List<int>.filled(50, 1000)),
+    'redo': _sampleMetrics(List<int>.filled(50, 1000)),
+    'rssBeforeBytes': 1000000,
+    'rssAfterBytes': 2000000,
+    'rssGrowthBytes': 1000000,
+    'fileHandlesBefore': 10,
+    'fileHandlesAfter': 10,
+    'fileHandleGrowth': 0,
+    'orphanedTransactions': 0,
+    'draftPreservedAfterConflict': true,
+  },
+};
+
+Map<String, Object?> _presentationFixture(
+  String name,
+  int libraryAssets,
+  int layers,
+  int tracks,
+  int clips,
+) => <String, Object?>{
+  'name': name,
+  'libraryAssets': libraryAssets,
+  'layers': layers,
+  'tracks': tracks,
+  'clips': clips,
+  'durationUs': const Duration(minutes: 15).inMicroseconds,
+};
 
 Map<String, dynamic> _validFineMaskReceipt() => <String, dynamic>{
   'schemaVersion': 2,
