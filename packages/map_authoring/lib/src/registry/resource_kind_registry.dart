@@ -219,7 +219,8 @@ final class AuthoringResourceKindRegistry {
         id: 'cinematicLibraryCatalog',
         version: 1,
         displayName: 'Cinematic library catalog',
-        summary: 'Persistent folder and placement catalog for both cinematic families',
+        summary:
+            'Persistent folder and placement catalog for both cinematic families',
         extensions: const <String, Object?>{
           'childResourceKinds': <String>[
             'cinematicLibraryFolder',
@@ -241,6 +242,13 @@ final class AuthoringResourceKindRegistry {
         extensions: const <String, Object?>{
           'idFormat': 'uriComponent(family):uriComponent(cinematicId)',
         },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationCinematicTemplate',
+        version: 1,
+        displayName: 'Presentation cinematic template',
+        summary:
+            'Versioned canonical recipe for a responsive Presentation cinematic',
       ),
       AuthoringResourceKindDescriptor(
         id: 'presentationCinematic',
@@ -560,6 +568,7 @@ final class AuthoringResourceKindRegistry {
       'projectPresentationProfile',
       'projectPresentationPreset',
       'presentationPreviewContext',
+      'presentationCinematicTemplate',
       'presentationCinematic',
       'presentationTrack',
       'presentationClip',

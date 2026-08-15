@@ -83,6 +83,7 @@ export 'src/domains/narrative/dialogue_source_store.dart';
 export 'src/domains/narrative/cinematic_actions.dart';
 export 'src/domains/narrative/cinematic_library_actions.dart';
 export 'src/domains/narrative/presentation_cinematic_actions.dart';
+export 'src/domains/narrative/presentation_cinematic_template_actions.dart';
 export 'src/domains/narrative/event_actions.dart';
 export 'src/domains/narrative/fact_rule_actions.dart';
 export 'src/domains/narrative/modern_narrative_inspection.dart';

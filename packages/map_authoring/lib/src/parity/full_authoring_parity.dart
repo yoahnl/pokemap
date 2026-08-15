@@ -881,6 +881,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/narrative/cinematic_library_authoring_test.dart',
   ),
   _ContractEvidenceRule(
+    ['presentationCinematicTemplate.'],
+    'test/domains/narrative/presentation_cinematic_template_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
     [
       'presentationCinematic.',
       'presentationTrack.',
@@ -1107,6 +1111,7 @@ const _semanticOwners = <String, String>{
   'cinematicLibraryFolder': 'cinematicLibraryCatalog',
   'cinematicLibraryEntry': 'cinematicLibraryCatalog',
   'presentationCinematic': 'project',
+  'presentationCinematicTemplate': 'project',
   'presentationTrack': 'presentationCinematic',
   'presentationClip': 'presentationCinematic',
   'presentationLayer': 'presentationCinematic',
@@ -1150,6 +1155,7 @@ const _requiredDirectReadResourceKinds = <String>{
   'cinematicLibraryFolder',
   'cinematicLibraryEntry',
   'presentationCinematic',
+  'presentationCinematicTemplate',
   'presentationTrack',
   'presentationClip',
   'presentationLayer',

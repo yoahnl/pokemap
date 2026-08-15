@@ -699,6 +699,7 @@ final Set<String> _approvedResourceKinds = {
   'cinematicLibraryFolder',
   'cinematicLibraryEntry',
   'cinematicMediaAsset',
+  'presentationCinematicTemplate',
   'presentationCinematic',
   'presentationTrack',
   'presentationClip',

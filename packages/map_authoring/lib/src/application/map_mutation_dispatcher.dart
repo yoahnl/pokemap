@@ -26,6 +26,7 @@ import '../domains/narrative/dialogue_actions.dart';
 import '../domains/narrative/cinematic_actions.dart';
 import '../domains/narrative/cinematic_library_actions.dart';
 import '../domains/narrative/presentation_cinematic_actions.dart';
+import '../domains/narrative/presentation_cinematic_template_actions.dart';
 import '../domains/narrative/event_actions.dart';
 import '../domains/narrative/fact_rule_actions.dart';
 import '../domains/narrative/scene_actions.dart';
@@ -144,6 +145,8 @@ final class MapMutationDispatcher {
     const cinematics = CinematicActions();
     const cinematicLibrary = CinematicLibraryActions();
     const presentationCinematics = PresentationCinematicActions();
+    const presentationCinematicTemplates =
+        PresentationCinematicTemplateActions();
     const scripts = ScriptActions();
     const scenes = SceneActions();
     const events = EventV2Actions();
@@ -332,6 +335,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: presentationCinematics.build,
+        ),
+      for (final descriptor in PresentationCinematicTemplateActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: presentationCinematicTemplates.build,
         ),
       for (final descriptor in ScriptActions.descriptors)
         MapMutationActionRegistration(

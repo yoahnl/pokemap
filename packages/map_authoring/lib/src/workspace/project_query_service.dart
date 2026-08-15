@@ -868,6 +868,12 @@ List<_QueryRecord> _records(
         for (final cinematic in snapshot.manifest.presentationCinematics)
           _presentationCinematicRecord(cinematic),
       ];
+    case 'presentationCinematicTemplate':
+      return <_QueryRecord>[
+        for (final template
+            in PresentationCinematicTemplateCatalog.canonical().templates)
+          _presentationCinematicTemplateRecord(template),
+      ];
     case 'presentationTrack':
       return <_QueryRecord>[
         for (final cinematic in snapshot.manifest.presentationCinematics)
@@ -1387,6 +1393,26 @@ _QueryRecord _presentationCinematicRecord(
       (count, track) => count + track.clips.length,
     ),
     'layerCount': cinematic.layers.length,
+  };
+  return _QueryRecord(
+    summary: summary,
+    detail: <String, Object?>{...encoded, ...summary},
+  );
+}
+
+_QueryRecord _presentationCinematicTemplateRecord(
+  PresentationCinematicTemplate template,
+) {
+  final encoded = template.toJson();
+  final summary = <String, Object?>{
+    'id': template.id,
+    'name': template.nameKey,
+    'resourceKind': 'presentationCinematicTemplate',
+    'version': template.version,
+    'order': template.order,
+    'nameKey': template.nameKey,
+    'descriptionKey': template.descriptionKey,
+    'defaultDurationUs': template.defaultDurationUs,
   };
   return _QueryRecord(
     summary: summary,
@@ -2016,6 +2042,10 @@ Comparator<_QueryRecord> _comparator(List<AuthoringQuerySort> sort) {
 }
 
 List<AuthoringQuerySort> _effectiveSort(AuthoringQueryRequest request) {
+  if (request.sort.isEmpty &&
+      request.resourceKind == 'presentationCinematicTemplate') {
+    return const <AuthoringQuerySort>[AuthoringQuerySort(field: 'order')];
+  }
   if (request.sort.isEmpty &&
       request.extensions['actionId'] == 'world_graph.find_path') {
     return const [AuthoringQuerySort(field: 'pathIndex')];

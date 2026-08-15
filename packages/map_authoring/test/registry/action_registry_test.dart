@@ -108,6 +108,7 @@ void main() {
           'mapConnection',
           'pokemonDocument',
           'presentationCinematic',
+          'presentationCinematicTemplate',
           'presentationClip',
           'presentationLayer',
           'presentationMedia',
