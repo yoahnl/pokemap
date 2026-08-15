@@ -835,6 +835,106 @@ void main() {
       expect(updatedState.progression.seenSpeciesIds, contains('wildmon'));
     });
 
+    test('captured wild battle never persists transient Struggle', () {
+      final context = RuntimeActiveBattleContext(
+        request: _wildRequest().withGeneratedPokemon(
+          pokemon: const PlayerPokemon(
+            individualId: 'pkm_struggle_capture',
+            speciesId: 'wildmon',
+            natureId: 'hardy',
+            abilityId: 'run-away',
+            level: 3,
+            knownMoveIds: <String>[],
+            currentPpByMoveId: <String, int>{},
+            currentHp: 12,
+          ),
+          profileId: 'pokemap-wild-v1',
+          schemaVersion: 1,
+        ),
+        playerPartyIndex: 0,
+      );
+      final attempt = _acceptedCaptureAttempt(
+        gameState: _baseState(),
+        context: context,
+      );
+
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: attempt.updatedGameState,
+        context: context,
+        outcome: _finishedOutcome(
+          type: BattleOutcomeType.captured,
+          playerCurrentHp: 19,
+          enemySpeciesId: 'wildmon',
+          enemyLevel: 3,
+          enemyCurrentHp: 4,
+          enemyAbilityId: 'run-away',
+          enemyMoveIds: const <String>[canonicalStruggleMoveId],
+        ),
+        captureAttemptReceipt: attempt.receipt,
+      );
+
+      final captured = updatedState.party.members.last;
+      expect(captured.knownMoveIds, isEmpty);
+      expect(captured.currentPpByMoveId, isEmpty);
+    });
+
+    test('player write-back never persists transient Struggle', () {
+      const initialState = GameState(
+        saveId: 'transient-struggle-writeback',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'no-move-mon',
+              natureId: 'hardy',
+              abilityId: 'run-away',
+              level: 3,
+              knownMoveIds: <String>[],
+              currentPpByMoveId: <String, int>{},
+              currentHp: 12,
+            ),
+          ],
+        ),
+      );
+      final outcome = BattleOutcome(
+        type: BattleOutcomeType.runaway,
+        finalState: BattleState(
+          phase: BattlePhase.finished,
+          player: const BattleCombatant(
+            speciesId: 'no-move-mon',
+            level: 3,
+            currentHp: 8,
+            maxHp: 12,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[canonicalLegacyStruggleMove],
+          ),
+          enemy: const BattleCombatant(
+            speciesId: 'enemy',
+            level: 3,
+            currentHp: 12,
+            maxHp: 12,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(id: 'wait', name: 'Wait', power: 0),
+            ],
+          ),
+          currentTurn: null,
+          outcome: null,
+        ),
+      );
+
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: initialState,
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 0,
+        ),
+        outcome: outcome,
+      );
+
+      expect(updatedState.party.members.single.knownMoveIds, isEmpty);
+      expect(updatedState.party.members.single.currentPpByMoveId, isEmpty);
+    });
+
     test('captures the original wild identity and moves after a real Transform',
         () {
       var battle = createBattleSession(

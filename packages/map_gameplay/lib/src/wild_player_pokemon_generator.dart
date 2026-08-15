@@ -407,14 +407,14 @@ List<String> _learnableMoveIds(
         .where((entry) => entry.level <= level)
         .map((entry) => entry.moveId),
   ];
-  return _normalizedMoves(ordered);
+  return _normalizedCatalogMoves(ordered);
 }
 
 List<String> _resolveAuthoredMoveIds(
   Iterable<String> authoredMoveIds,
   List<String> learnableMoveIds,
 ) {
-  final normalized = _normalizedMoves(authoredMoveIds);
+  final normalized = _normalizedAuthoredMoves(authoredMoveIds);
   if (normalized.length > 4) {
     throw const FormatException(
         'A wild Pokemon cannot know more than four authored moves.');
@@ -429,7 +429,22 @@ List<String> _resolveAuthoredMoveIds(
   return normalized;
 }
 
-List<String> _normalizedMoves(Iterable<String> values) {
+List<String> _normalizedCatalogMoves(Iterable<String> values) {
+  final normalized = <String>[];
+  final seen = <String>{};
+  for (final value in values) {
+    final moveId = value.trim();
+    if (moveId.isEmpty) {
+      throw const FormatException('Wild Pokemon move ids must not be empty.');
+    }
+    if (seen.add(moveId)) {
+      normalized.add(moveId);
+    }
+  }
+  return List<String>.unmodifiable(normalized);
+}
+
+List<String> _normalizedAuthoredMoves(Iterable<String> values) {
   final normalized = <String>[];
   final seen = <String>{};
   for (final value in values) {

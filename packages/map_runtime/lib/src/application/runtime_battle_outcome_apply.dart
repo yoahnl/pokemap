@@ -570,7 +570,8 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
   final normalizedAbilityId = enemy.writeBackAbilityId.trim().isEmpty
       ? generatedPokemon?.abilityId ?? _capturedPokemonFallbackAbilityId
       : enemy.writeBackAbilityId.trim();
-  final normalizedMoveIds = enemy.writeBackMoves
+  final persistentMoves = _persistentWriteBackMoves(enemy.writeBackMoves);
+  final normalizedMoveIds = persistentMoves
       .map((move) => move.id.trim())
       .where((moveId) => moveId.isNotEmpty)
       .toSet()
@@ -591,7 +592,7 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
     experience: generatedPokemon?.experience,
     currentPpByMoveId: Map<String, int>.unmodifiable(
       <String, int>{
-        for (final move in enemy.writeBackMoves) move.id.trim(): move.currentPp,
+        for (final move in persistentMoves) move.id.trim(): move.currentPp,
       }..remove(''),
     ),
     currentHp: enemy.currentHp <= 0 ? 1 : enemy.currentHp,
@@ -911,7 +912,9 @@ List<BattleMove> _persistentWriteBackMoves(List<BattleMove> battleMoves) {
   final seenMoveIds = <String>{};
   for (final move in battleMoves) {
     final moveId = move.id.trim();
-    if (moveId.isEmpty || !seenMoveIds.add(moveId)) {
+    if (moveId.isEmpty ||
+        moveId == canonicalStruggleMoveId ||
+        !seenMoveIds.add(moveId)) {
       continue;
     }
     persistentMoves.add(move);

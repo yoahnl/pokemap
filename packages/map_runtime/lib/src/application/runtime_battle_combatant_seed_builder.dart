@@ -110,8 +110,9 @@ RuntimeBattleMoveProjection resolveBattleMovesForSeedWithDiagnostics({
   );
 
   if (candidateMoveIds.isEmpty) {
-    throw RuntimeBattleSetupException(
-      '$combatantLabel n’a aucune attaque exploitable pour démarrer le combat.',
+    return RuntimeBattleMoveProjection(
+      moves: const <BattleMoveData>[canonicalLegacyStruggleMoveData],
+      diagnostics: const <RuntimeBattleMoveBridgeDiagnostics>[],
     );
   }
 
@@ -186,12 +187,6 @@ RuntimeBattleMoveProjection resolveBattleMovesForSeedWithDiagnostics({
     );
   }
 
-  // R1 garde ici un hard-fail volontaire :
-  // - on ne réinjecte pas de move "par défaut" qui n'appartient pas au Pokémon ;
-  // - on ne maquille pas non plus le trou avec un faux support Struggle runtime ;
-  // - on préfère échouer tôt, avec un diagnostic produit/actionnable, tant que
-  //   le bridge battle actuel ne sait pas projeter honnêtement aucune attaque
-  //   du set candidat.
   throw RuntimeBattleSetupException(
     'Le combat ne peut pas démarrer car "$combatantLabel" n’a aucun move bridgeable restant après filtrage. '
     'Attribuez-lui au moins une attaque réellement supportée par le bridge battle actuel.',
@@ -234,8 +229,9 @@ RuntimePsdkBattleMoveProjection resolvePsdkBattleMovesForSeedWithDiagnostics({
   );
 
   if (candidateMoveIds.isEmpty) {
-    throw RuntimeBattleSetupException(
-      '$combatantLabel n’a aucune attaque exploitable pour démarrer le combat.',
+    return RuntimePsdkBattleMoveProjection(
+      moves: <PsdkBattleMoveData>[createCanonicalPsdkStruggleMove()],
+      diagnostics: const <RuntimeBattleMoveBridgeDiagnostics>[],
     );
   }
 

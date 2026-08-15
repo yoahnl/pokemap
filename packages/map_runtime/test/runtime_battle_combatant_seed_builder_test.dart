@@ -43,6 +43,44 @@ final _heldItemCatalog = ItemCatalogSnapshot.fromCatalog(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('an empty learned move pool projects transient Struggle in both lanes',
+      () {
+    final legacyMoves = resolveBattleMovesForSeed(
+      moveIds: const <String>[],
+      combatantLabel: 'NoMoveMon',
+      lookupMove: (_) => null,
+    );
+    final psdkMoves = resolvePsdkBattleMovesForSeed(
+      moveIds: const <String>[],
+      combatantLabel: 'NoMoveMon',
+      lookupMove: (_) => null,
+    );
+
+    expect(legacyMoves, <BattleMoveData>[canonicalLegacyStruggleMoveData]);
+    expect(psdkMoves, hasLength(1));
+    expect(psdkMoves.single.id, canonicalStruggleMoveId);
+    expect(psdkMoves.single.battleEngineMethod, 's_struggle');
+  });
+
+  test('a declared unknown move still fails closed in both lanes', () {
+    expect(
+      () => resolveBattleMovesForSeed(
+        moveIds: const <String>['missing_move'],
+        combatantLabel: 'BrokenMon',
+        lookupMove: (_) => null,
+      ),
+      throwsA(isA<RuntimeBattleSetupException>()),
+    );
+    expect(
+      () => resolvePsdkBattleMovesForSeed(
+        moveIds: const <String>['missing_move'],
+        combatantLabel: 'BrokenMon',
+        lookupMove: (_) => null,
+      ),
+      throwsA(isA<RuntimeBattleSetupException>()),
+    );
+  });
+
   group('RuntimeBattleCombatantSeedBuilder', () {
     late Directory tempProjectRoot;
     final builder = RuntimeBattleCombatantSeedBuilder();
@@ -594,6 +632,50 @@ void main() {
         seed.moves.map((move) => move.id).toList(growable: false),
         equals(<String>['scratch', 'tail_whip', 'ember']),
       );
+    });
+
+    test('builds playable wild seeds with transient Struggle only', () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+      final request = _wildRequest(
+        speciesId: 'sparkitten',
+        level: 3,
+      ).withGeneratedPokemon(
+        pokemon: const PlayerPokemon(
+          speciesId: 'sparkitten',
+          natureId: 'hardy',
+          abilityId: 'blaze',
+          level: 3,
+          knownMoveIds: <String>[],
+          currentPpByMoveId: <String, int>{},
+          currentHp: 14,
+        ),
+        profileId: WildPokemonGenerationProfile.pokeMapBetaV1.profileId,
+        schemaVersion: WildPokemonGenerationProfile.pokeMapBetaV1.schemaVersion,
+      );
+
+      final legacySeed = await builder.buildWildCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        request: request,
+      );
+      final psdkSeed = await builder.buildWildPsdkCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        request: request,
+      );
+
+      expect(
+          legacySeed.moves, <BattleMoveData>[canonicalLegacyStruggleMoveData]);
+      expect(psdkSeed.moves, hasLength(1));
+      expect(psdkSeed.moves.single.id, canonicalStruggleMoveId);
+      expect(psdkSeed.moves.single.battleEngineMethod, 's_struggle');
+      expect(request.generatedPokemon?.knownMoveIds, isEmpty);
     });
 
     test('builds a trainer combatant seed from explicit trainer moves',
@@ -1300,6 +1382,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/001-sproutle.json',
     <String, dynamic>{
+      'schemaVersion': currentPokemonDataSchemaVersion,
       'id': 'sproutle',
       'typing': <String, Object>{
         'types': <String>['grass'],
@@ -1325,6 +1408,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/004-sparkitten.json',
     <String, dynamic>{
+      'schemaVersion': currentPokemonDataSchemaVersion,
       'id': 'sparkitten',
       'typing': <String, Object>{
         'types': <String>['fire'],
@@ -1350,6 +1434,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     projectRoot,
     'custom/pokemon/species/007-aquafi.json',
     <String, dynamic>{
+      'schemaVersion': currentPokemonDataSchemaVersion,
       'id': 'aquafi',
       'typing': <String, Object>{
         'types': <String>['water', 'fairy'],
@@ -1732,6 +1817,7 @@ Future<void> _rewriteSpeciesWithoutLearnsetRef(
     projectRoot,
     'custom/pokemon/species/$speciesFileName',
     <String, dynamic>{
+      'schemaVersion': currentPokemonDataSchemaVersion,
       'id': speciesId,
       'typing': <String, Object>{
         'types': <String>['grass'],

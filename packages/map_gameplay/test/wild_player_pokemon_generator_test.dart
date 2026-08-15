@@ -218,6 +218,66 @@ void main() {
     expect(result.pokemon.currentPpByMoveId, isEmpty);
   });
 
+  test('catalog move overlaps are deduplicated before selecting the last four',
+      () {
+    final result = generator.generate(
+      seed: 5,
+      species: species,
+      learnset: const WildPokemonGenerationLearnset(
+        startingMoves: <String>['tackle', 'growl'],
+        relearnMoves: <String>['growl', 'defense_curl'],
+        levelUp: <WildPokemonLevelUpMove>[
+          WildPokemonLevelUpMove(moveId: 'tackle', level: 1),
+          WildPokemonLevelUpMove(moveId: 'vine_whip', level: 3),
+          WildPokemonLevelUpMove(moveId: 'defense_curl', level: 4),
+          WildPokemonLevelUpMove(moveId: 'razor_leaf', level: 7),
+        ],
+      ),
+      maxPpByMoveId: maxPpByMoveId,
+      level: 7,
+      ruleset: ruleset,
+      context: const WildPokemonGenerationContext(
+        mapId: 'route_01',
+        sourceId: 'overlapping_catalog',
+      ),
+    );
+
+    expect(
+      result.pokemon.knownMoveIds,
+      <String>['growl', 'defense_curl', 'vine_whip', 'razor_leaf'],
+    );
+    expect(
+      result.pokemon.currentPpByMoveId,
+      <String, int>{
+        'growl': 40,
+        'defense_curl': 40,
+        'vine_whip': 25,
+        'razor_leaf': 25,
+      },
+    );
+  });
+
+  test('duplicate authored move overrides remain invalid', () {
+    expect(
+      () => generator.generate(
+        seed: 5,
+        species: species,
+        learnset: learnset,
+        maxPpByMoveId: maxPpByMoveId,
+        level: 7,
+        ruleset: ruleset,
+        context: const WildPokemonGenerationContext(
+          mapId: 'route_01',
+          sourceId: 'duplicate_override',
+        ),
+        overrides: const ProjectEncounterPokemonOverrides(
+          knownMoveIds: <String>['tackle', 'tackle'],
+        ),
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('authored overrides are validated and preserve shiny locks', () {
     final result = generator.generate(
       seed: 9,
