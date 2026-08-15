@@ -13,6 +13,7 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_shell.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_viewport.dart';
 import 'package:map_editor/src/ui/canvas/cutscene_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
@@ -306,6 +307,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(PresentationStudioShell), findsOneWidget);
+      expect(find.byType(PresentationStudioViewport), findsOneWidget);
+      expect(find.text('Aucun contenu à afficher'), findsOneWidget);
       expect(find.byType(CinematicsLibraryWorkspace), findsNothing);
       expect(find.text('Cinématiques in-game'), findsNothing);
       expect(find.text('Cinématiques de présentation'), findsNothing);
@@ -751,6 +754,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(PresentationStudioShell), findsOneWidget);
+      expect(find.byType(PresentationStudioViewport), findsOneWidget);
       expect(find.byType(NarrativeStudioWorkspacePage), findsNothing);
       expect(
         tester.takeException(),

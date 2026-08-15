@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_player_ui/presentation_renderer.dart';
 
 import '../../app/providers/core_providers.dart';
 import '../../application/services/narrative_activity_journal.dart';
@@ -31,6 +32,7 @@ import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
 import 'cinematics/presentation/presentation_studio_shell.dart';
+import 'cinematics/presentation/presentation_studio_viewport.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'events/event_builder_workspace.dart';
@@ -2595,13 +2597,22 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   bool _showLegacyCutsceneStudio = false;
   NarrativeLibrarySourceContext? _restoredPresentationSource;
   late final PresentationStudioLayoutStore _presentationLayoutStore;
+  late final PresentationStudioViewportController
+      _presentationViewportController;
 
   @override
   void initState() {
     super.initState();
     _presentationLayoutStore = FilePresentationStudioLayoutStore();
+    _presentationViewportController = PresentationStudioViewportController();
     _syncRequestedChildRoute();
     _capturePresentationSource();
+  }
+
+  @override
+  void dispose() {
+    _presentationViewportController.dispose();
+    super.dispose();
   }
 
   @override
@@ -2715,6 +2726,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           ),
         );
       }
+      final frame = const PresentationCinematicEvaluator().evaluate(
+        asset,
+        timeUs: 0,
+      );
+      final documentIsEmpty = asset.tracks.every(
+        (track) => track.clips.isEmpty,
+      );
       return KeyedSubtree(
         key: const ValueKey('cinematics-presentation-document-route'),
         child: PresentationStudioShell(
@@ -2728,12 +2746,15 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           onExit: _closePresentationDocument,
           onDiscard: () async {},
           onSave: () async => true,
-          previewToolbar: const _PresentationStudioPreviewToolbar(),
-          canvas: const PokeMapEmptyState(
-            title: 'Canvas Presentation',
-            description:
-                'Le viewport partagé prendra place ici sans modifier le shell.',
-            icon: Icon(CupertinoIcons.rectangle_expand_vertical),
+          previewToolbar: _PresentationStudioPreviewToolbar(
+            viewportController: _presentationViewportController,
+          ),
+          canvas: PresentationStudioViewport(
+            controller: _presentationViewportController,
+            frame: documentIsEmpty ? null : frame,
+            orientation: PresentationFrameOrientation.landscape,
+            contentPort: const _PresentationStudioContentPort(),
+            playerTheme: PokeMapPlayerTheme.dark(),
           ),
           layersPanel: const PokeMapEmptyState(
             title: 'Calques',
@@ -3801,7 +3822,9 @@ String _cinematicAuthoringOperationId(String action) =>
     'cinematic_${action}_${DateTime.now().microsecondsSinceEpoch}';
 
 class _PresentationStudioPreviewToolbar extends StatelessWidget {
-  const _PresentationStudioPreviewToolbar();
+  const _PresentationStudioPreviewToolbar({required this.viewportController});
+
+  final PresentationStudioViewportController viewportController;
 
   @override
   Widget build(BuildContext context) {
@@ -3840,8 +3863,7 @@ class _PresentationStudioPreviewToolbar extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           PokeMapButton(
-            onPressed: null,
-            disabledReason: 'Disponible avec le viewport Presentation.',
+            onPressed: viewportController.fit,
             size: PokeMapButtonSize.small,
             variant: PokeMapButtonVariant.ghost,
             leading: const Icon(CupertinoIcons.arrow_up_left_arrow_down_right),
@@ -3851,6 +3873,29 @@ class _PresentationStudioPreviewToolbar extends StatelessWidget {
       ),
     );
   }
+}
+
+final class _PresentationStudioContentPort
+    implements PresentationFrameContentPort {
+  const _PresentationStudioContentPort();
+
+  @override
+  PresentationVisualResolution resolveVisual({
+    required PresentationVisualFrameClip clip,
+    required PresentationFrameOrientation orientation,
+  }) => PresentationVisualUnavailable(
+    reason: PresentationContentUnavailableReason.missing,
+    message: 'Média ${clip.resourceId} introuvable',
+  );
+
+  @override
+  PresentationCaptionResolution resolveCaption({
+    required PresentationCaptionFrameClip clip,
+    required Locale locale,
+  }) => PresentationCaptionUnavailable(
+    reason: PresentationContentUnavailableReason.missing,
+    message: 'Sous-titre ${clip.captionId} introuvable',
+  );
 }
 
 class _CutsceneWorkspaceBody extends StatelessWidget {
