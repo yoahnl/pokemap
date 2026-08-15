@@ -14,6 +14,7 @@ import 'project_presentation_preset.dart';
 import 'presentation_cinematic_asset.dart';
 import 'project_tileset_source.dart';
 import 'cinematic_asset.dart';
+import 'cinematic_library_catalog.dart';
 import 'cinematic_media_asset.dart';
 import 'narrative_event_registry.dart';
 import 'narrative_diagnostic_suppression.dart';
@@ -94,6 +95,22 @@ Map<String, Object?>? _projectCharacterStudioCatalogToJson(
     return null;
   }
   return catalog.toJson();
+}
+
+CinematicLibraryCatalog _cinematicLibraryCatalogFromJson(Object? json) {
+  if (json == null) return const CinematicLibraryCatalog.empty();
+  if (json is! Map) {
+    throw const FormatException(
+      r'$.cinematicLibraryCatalog: expected an object',
+    );
+  }
+  return CinematicLibraryCatalog.fromJson(Map<String, Object?>.from(json));
+}
+
+Map<String, Object?>? _cinematicLibraryCatalogToJson(
+  CinematicLibraryCatalog catalog,
+) {
+  return catalog.isEmpty ? null : catalog.toJson();
 }
 
 List<Map<String, dynamic>>? _characterPortraitsToJson(
@@ -439,6 +456,14 @@ abstract class ProjectManifest with _$ProjectManifest {
       toJson: _cinematicsToJson,
     )
     List<CinematicAsset> cinematics,
+    @Default(CinematicLibraryCatalog.empty())
+    @JsonKey(
+      name: 'cinematicLibraryCatalog',
+      fromJson: _cinematicLibraryCatalogFromJson,
+      toJson: _cinematicLibraryCatalogToJson,
+      includeIfNull: false,
+    )
+    CinematicLibraryCatalog cinematicLibraryCatalog,
     @Default([])
     @JsonKey(
       name: 'presentationCinematics',
@@ -577,6 +602,12 @@ void _preflightProjectManifestJson(Map<String, dynamic> json) {
   if (version == 'v6' && json.containsKey('presentationCinematics')) {
     throw const FormatException(
       r'$.presentationCinematics: cinematic_v2_project_v7_required '
+      '(expected=v7, actual=v6)',
+    );
+  }
+  if (version == 'v6' && json.containsKey('cinematicLibraryCatalog')) {
+    throw const FormatException(
+      r'$.cinematicLibraryCatalog: cinematic_v2_project_v7_required '
       '(expected=v7, actual=v6)',
     );
   }

@@ -839,6 +839,30 @@ List<_QueryRecord> _records(
             detail: _projectMediaDetail(media),
           ),
       ];
+    case 'cinematicLibraryCatalog':
+      final catalog = snapshot.manifest.cinematicLibraryCatalog;
+      final record = <String, Object?>{
+        'id': 'cinematic-library',
+        'name': 'Cinematic library',
+        'resourceKind': 'cinematicLibraryCatalog',
+        'schemaVersion': CinematicLibraryCatalog.currentSchemaVersion,
+        'folderCount': catalog.folders.length,
+        'entryCount': catalog.entries.length,
+        ...catalog.toJson(),
+      };
+      return <_QueryRecord>[
+        _QueryRecord(summary: record, detail: record),
+      ];
+    case 'cinematicLibraryFolder':
+      return <_QueryRecord>[
+        for (final folder in snapshot.manifest.cinematicLibraryCatalog.folders)
+          _cinematicLibraryFolderRecord(folder),
+      ];
+    case 'cinematicLibraryEntry':
+      return <_QueryRecord>[
+        for (final entry in snapshot.manifest.cinematicLibraryCatalog.entries)
+          _cinematicLibraryEntryRecord(entry),
+      ];
     case 'presentationCinematic':
       return <_QueryRecord>[
         for (final cinematic in snapshot.manifest.presentationCinematics)
@@ -1449,6 +1473,29 @@ _QueryRecord _presentationLayerRecord(
 
 String _presentationResourceId(Iterable<String> segments) =>
     segments.map(Uri.encodeComponent).join(':');
+
+_QueryRecord _cinematicLibraryFolderRecord(CinematicLibraryFolder folder) {
+  final record = <String, Object?>{
+    ...folder.toJson(),
+    'name': folder.name,
+    'resourceKind': 'cinematicLibraryFolder',
+  };
+  return _QueryRecord(summary: record, detail: record);
+}
+
+_QueryRecord _cinematicLibraryEntryRecord(CinematicLibraryEntry entry) {
+  final id = _presentationResourceId(<String>[
+    entry.family.name,
+    entry.cinematicId,
+  ]);
+  final record = <String, Object?>{
+    ...entry.toJson(),
+    'id': id,
+    'name': entry.cinematicId,
+    'resourceKind': 'cinematicLibraryEntry',
+  };
+  return _QueryRecord(summary: record, detail: record);
+}
 
 String _directionLabel(MapConnectionDirection direction) => switch (direction) {
       MapConnectionDirection.north => 'North',

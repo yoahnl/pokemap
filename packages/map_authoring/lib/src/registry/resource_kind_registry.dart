@@ -216,6 +216,33 @@ final class AuthoringResourceKindRegistry {
             'Stable logical media identity linked to project-owned source assets',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'cinematicLibraryCatalog',
+        version: 1,
+        displayName: 'Cinematic library catalog',
+        summary: 'Persistent folder and placement catalog for both cinematic families',
+        extensions: const <String, Object?>{
+          'childResourceKinds': <String>[
+            'cinematicLibraryFolder',
+            'cinematicLibraryEntry',
+          ],
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'cinematicLibraryFolder',
+        version: 1,
+        displayName: 'Cinematic library folder',
+        summary: 'Recursive stable folder scoped to one cinematic family',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'cinematicLibraryEntry',
+        version: 1,
+        displayName: 'Cinematic library entry',
+        summary: 'Folder placement and archive state for one cinematic',
+        extensions: const <String, Object?>{
+          'idFormat': 'uriComponent(family):uriComponent(cinematicId)',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'presentationCinematic',
         version: 1,
         displayName: 'Presentation cinematic',
@@ -516,6 +543,9 @@ final class AuthoringResourceKindRegistry {
       'characterStudioCharacter',
       'characterStudioDependency',
       'characterStudioReadiness',
+      'cinematicLibraryCatalog',
+      'cinematicLibraryEntry',
+      'cinematicLibraryFolder',
       'dialogue',
       'elementCategory',
       'eventV2',

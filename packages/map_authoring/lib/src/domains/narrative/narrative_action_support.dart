@@ -59,11 +59,12 @@ AuthoringMutationDraft narrativeProjectDraft(
       ],
       diff: AuthoringDiff([
         AuthoringDiffEntry(
-          operation: operation.endsWith('.delete')
-              ? AuthoringDiffOperation.remove
-              : before == null
-                  ? AuthoringDiffOperation.add
-                  : AuthoringDiffOperation.replace,
+          operation:
+              operation.endsWith('.delete') || operation.endsWith('.remove')
+                  ? AuthoringDiffOperation.remove
+                  : before == null
+                      ? AuthoringDiffOperation.add
+                      : AuthoringDiffOperation.replace,
           resource: project,
           path: path,
           before: before,

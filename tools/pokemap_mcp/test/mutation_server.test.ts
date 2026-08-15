@@ -844,6 +844,230 @@ async function applyMutation(
   return String(validation.snapshotRevision);
 }
 
+test("MCP executes and rereads every cinematic library catalog action", async () => {
+  const fixture = await mutationFixture();
+  try {
+    await writeFile(
+      join(fixture.root, "project.json"),
+      JSON.stringify({
+        name: "Cinematic library MCP fixture",
+        version: "v7",
+        maps: [],
+        tilesets: [],
+        cinematics: [
+          {
+            id: "world-a",
+            title: "World A",
+            timeline: { steps: [] },
+          },
+          {
+            id: "world-b",
+            title: "World B",
+            timeline: { steps: [] },
+          },
+        ],
+      }),
+    );
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    let revision = String(
+      (
+        await toolData(fixture.client, "pokemap_validate", {
+          projectHandle,
+        })
+      ).snapshotRevision,
+    );
+    let sequence = 0;
+    const observedActionIds = new Set<string>();
+    const actionIds = [
+      "cinematicLibraryFolder.create",
+      "cinematicLibraryFolder.rename",
+      "cinematicLibraryFolder.move",
+      "cinematicLibraryFolder.reorder",
+      "cinematicLibraryFolder.setArchived",
+      "cinematicLibraryFolder.delete",
+      "cinematicLibraryEntry.place",
+      "cinematicLibraryEntry.reorder",
+      "cinematicLibraryEntry.setArchived",
+      "cinematicLibraryEntry.remove",
+    ];
+
+    const apply = async (
+      actionId: string,
+      parameters: JsonRecord,
+      confirmed = false,
+    ): Promise<void> => {
+      sequence += 1;
+      const planned = await toolData(fixture.client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: `cin049-plan-${sequence}`,
+          actionId,
+          actionVersion: 1,
+          workspaceHandle,
+          parameters,
+          expectedRevision: revision,
+          idempotencyKey: `cin049-idempotency-${sequence}`,
+          dryRun: false,
+        },
+      });
+      const confirmation = confirmed
+        ? await toolData(fixture.client, "pokemap_apply", {
+            operation: "confirm",
+            projectHandle,
+            planId: planned.planId,
+          })
+        : undefined;
+      const applied = await toolData(fixture.client, "pokemap_apply", {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId: `cin049-operation-${sequence}`,
+        ...(confirmation
+          ? { confirmationToken: confirmation.confirmationToken }
+          : {}),
+      });
+      assert.equal(record(applied.receipt).actionId, actionId);
+      observedActionIds.add(actionId);
+      revision = String(
+        (
+          await toolData(fixture.client, "pokemap_validate", {
+            projectHandle,
+          })
+        ).snapshotRevision,
+      );
+    };
+
+    await apply("cinematicLibraryFolder.create", {
+      folderId: "root-a",
+      family: "world",
+      name: "Root A",
+      parentFolderId: null,
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryFolder.create", {
+      folderId: "root-b",
+      family: "world",
+      name: "Root B",
+      parentFolderId: null,
+      targetIndex: 1,
+    });
+    await apply("cinematicLibraryFolder.create", {
+      folderId: "chapter",
+      family: "world",
+      name: "Chapter",
+      parentFolderId: "root-a",
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryFolder.rename", {
+      folderId: "chapter",
+      name: "Opening",
+    });
+    await apply("cinematicLibraryFolder.move", {
+      folderId: "chapter",
+      targetParentFolderId: "root-b",
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryFolder.reorder", {
+      folderId: "root-b",
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryFolder.setArchived", {
+      folderId: "root-a",
+      isArchived: true,
+    });
+    await apply("cinematicLibraryEntry.place", {
+      family: "world",
+      cinematicId: "world-a",
+      targetFolderId: "chapter",
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryEntry.place", {
+      family: "world",
+      cinematicId: "world-b",
+      targetFolderId: "chapter",
+      targetIndex: 1,
+    });
+    await apply("cinematicLibraryEntry.reorder", {
+      family: "world",
+      cinematicId: "world-b",
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryEntry.setArchived", {
+      family: "world",
+      cinematicId: "world-a",
+      isArchived: true,
+    });
+    await apply(
+      "cinematicLibraryEntry.remove",
+      { family: "world", cinematicId: "world-a" },
+      true,
+    );
+    await apply(
+      "cinematicLibraryFolder.delete",
+      { folderId: "root-a" },
+      true,
+    );
+
+    assert.deepEqual([...observedActionIds].sort(), [...actionIds].sort());
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const resourceKinds = new Set(
+      (described.resourceKinds as JsonRecord[]).map((kind) => String(kind.id)),
+    );
+    for (const resourceKind of [
+      "cinematicLibraryCatalog",
+      "cinematicLibraryFolder",
+      "cinematicLibraryEntry",
+    ]) {
+      assert.ok(resourceKinds.has(resourceKind), resourceKind);
+    }
+    const parityActions = record(described.fullParity)
+      .mutationActions as JsonRecord[];
+    for (const actionId of actionIds) {
+      const parity = parityActions.find(
+        (action) => String(action.actionId) === actionId,
+      );
+      assert.deepEqual(record(parity).endToEndVerifiedTransports, [
+        "cli",
+        "directApi",
+        "editor",
+        "mcp",
+      ]);
+    }
+    const folders = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "cinematicLibraryFolder",
+      operation: "list",
+      filters: { family: "world" },
+      view: "detail",
+    });
+    const chapter = (folders.items as JsonRecord[]).find(
+      (folder) => String(folder.id) === "chapter",
+    );
+    assert.equal(record(chapter).parentFolderId, "root-b");
+    const entries = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "cinematicLibraryEntry",
+      operation: "list",
+      filters: { family: "world" },
+      view: "detail",
+    });
+    assert.deepEqual(
+      (entries.items as JsonRecord[]).map((entry) => entry.cinematicId),
+      ["world-b"],
+    );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP applies and rereads the authored presentation profile", async () => {
   const fixture = await mutationFixture();
   try {

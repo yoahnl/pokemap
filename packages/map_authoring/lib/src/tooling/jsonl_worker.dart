@@ -17,6 +17,7 @@ import '../domains/gameplay/character_studio/character_studio_action_support.dar
 import '../domains/gameplay/item_catalog_actions.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
+import '../domains/narrative/cinematic_library_actions.dart';
 import '../domains/narrative/presentation_cinematic_actions.dart';
 import '../history/authoring_history.dart';
 import '../ports/project_file_reader.dart';
@@ -221,6 +222,14 @@ final class JsonlWorker {
       result = _failure(
         requestId,
         code: _presentationCinematicDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
+      );
+    } on CinematicLibraryAuthoringException catch (error) {
+      result = _failure(
+        requestId,
+        code: _cinematicLibraryDomainErrorCode(error.code),
         domainCode: error.code,
         message: error.message,
         details: _safeDetails(error.details),
@@ -703,6 +712,13 @@ AuthoringErrorCode _itemDomainErrorCode(String code) => switch (code) {
 AuthoringErrorCode _presentationCinematicDomainErrorCode(String code) {
   if (code.endsWith('_unsupported')) return AuthoringErrorCode.unsupported;
   if (code.endsWith('_not_found')) return AuthoringErrorCode.notFound;
+  if (code.endsWith('_invalid')) return AuthoringErrorCode.invalidRequest;
+  return AuthoringErrorCode.validationFailed;
+}
+
+AuthoringErrorCode _cinematicLibraryDomainErrorCode(String code) {
+  if (code.endsWith('_unsupported')) return AuthoringErrorCode.unsupported;
+  if (code.endsWith('_unknown')) return AuthoringErrorCode.notFound;
   if (code.endsWith('_invalid')) return AuthoringErrorCode.invalidRequest;
   return AuthoringErrorCode.validationFailed;
 }

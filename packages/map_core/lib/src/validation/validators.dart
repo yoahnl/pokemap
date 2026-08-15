@@ -1,6 +1,7 @@
 import '../exceptions/map_exceptions.dart';
 import '../encounters/encounter_contract.dart';
 import '../models/badge_definition.dart';
+import '../models/cinematic_library_catalog.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
@@ -98,6 +99,14 @@ class ProjectValidator {
         code: 'cinematic_v2_project_v7_required',
       );
     }
+    if (manifest.version == ProjectVersion.v6 &&
+        !manifest.cinematicLibraryCatalog.isEmpty) {
+      throw const ValidationException(
+        'Cinematic library catalog requires ProjectVersion.v7',
+        code: 'cinematic_v2_project_v7_required',
+      );
+    }
+    _validateCinematicLibrary(manifest);
     final smartTileDiagnostics = validateProjectSmartTileCatalog(
       catalog: manifest.smartTileCatalog,
       projectTilesetIds: manifest.tilesets.map((tileset) => tileset.id),
@@ -267,6 +276,33 @@ class ProjectValidator {
       } on StateError catch (error) {
         throw ValidationException(
           'Invalid newGame starter option $optionId: $error',
+        );
+      }
+    }
+  }
+
+  static void _validateCinematicLibrary(ProjectManifest manifest) {
+    final worldIds = manifest.cinematics
+        .map((cinematic) => cinematic.id)
+        .toSet();
+    final presentationIds = manifest.presentationCinematics
+        .map((cinematic) => cinematic.id)
+        .toSet();
+    for (final entry in manifest.cinematicLibraryCatalog.entries) {
+      final known = switch (entry.family) {
+        CinematicLibraryFamily.world => worldIds.contains(entry.cinematicId),
+        CinematicLibraryFamily.presentation =>
+          presentationIds.contains(entry.cinematicId),
+      };
+      if (!known) {
+        throw ValidationException(
+          'Cinematic library entry references an unknown '
+          '${entry.family.name} cinematic: ${entry.cinematicId}',
+          code: 'cinematic_library.asset_unknown',
+          details: <String, Object?>{
+            'family': entry.family.name,
+            'cinematicId': entry.cinematicId,
+          },
         );
       }
     }

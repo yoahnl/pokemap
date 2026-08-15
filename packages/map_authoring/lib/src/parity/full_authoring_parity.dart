@@ -465,6 +465,18 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (_cinematicLibraryTransportCertifiedActionIds.contains(actionId)) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/narrative/cinematic_library_authoring_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_cinematic_library_flow_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (_characterStudioTransportCertifiedActionIds.contains(actionId)) {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
@@ -574,6 +586,19 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   }
   return const {};
 }
+
+const Set<String> _cinematicLibraryTransportCertifiedActionIds = <String>{
+  'cinematicLibraryFolder.create',
+  'cinematicLibraryFolder.rename',
+  'cinematicLibraryFolder.move',
+  'cinematicLibraryFolder.reorder',
+  'cinematicLibraryFolder.setArchived',
+  'cinematicLibraryFolder.delete',
+  'cinematicLibraryEntry.place',
+  'cinematicLibraryEntry.reorder',
+  'cinematicLibraryEntry.setArchived',
+  'cinematicLibraryEntry.remove',
+};
 
 const Set<String> _characterStudioTransportCertifiedActionIds = <String>{
   'characterStudio.character.create',
@@ -852,6 +877,10 @@ final class _ContractEvidenceRule {
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
+    ['cinematicLibraryFolder.', 'cinematicLibraryEntry.'],
+    'test/domains/narrative/cinematic_library_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
     [
       'presentationCinematic.',
       'presentationTrack.',
@@ -1074,6 +1103,9 @@ const _semanticOwners = <String, String>{
   'storyline': 'storyline',
   'cinematic': 'cinematic',
   'cinematicMediaAsset': 'cinematic',
+  'cinematicLibraryCatalog': 'project',
+  'cinematicLibraryFolder': 'cinematicLibraryCatalog',
+  'cinematicLibraryEntry': 'cinematicLibraryCatalog',
   'presentationCinematic': 'project',
   'presentationTrack': 'presentationCinematic',
   'presentationClip': 'presentationCinematic',
@@ -1114,6 +1146,9 @@ const _requiredDirectReadResourceKinds = <String>{
   'itemUsage',
   'itemReadiness',
   'mapConnection',
+  'cinematicLibraryCatalog',
+  'cinematicLibraryFolder',
+  'cinematicLibraryEntry',
   'presentationCinematic',
   'presentationTrack',
   'presentationClip',

@@ -76,6 +76,9 @@ _ProjectManifest _$ProjectManifestFromJson(
   cinematics: json['cinematics'] == null
       ? const []
       : _cinematicsFromJson(json['cinematics']),
+  cinematicLibraryCatalog: json['cinematicLibraryCatalog'] == null
+      ? const CinematicLibraryCatalog.empty()
+      : _cinematicLibraryCatalogFromJson(json['cinematicLibraryCatalog']),
   presentationCinematics: json['presentationCinematics'] == null
       ? const []
       : _presentationCinematicsFromJson(json['presentationCinematics']),
@@ -194,6 +197,9 @@ Map<String, dynamic> _$ProjectManifestToJson(
   'scripts': instance.scripts.map((e) => e.toJson()).toList(),
   'scenarios': instance.scenarios.map((e) => e.toJson()).toList(),
   'cinematics': _cinematicsToJson(instance.cinematics),
+  'cinematicLibraryCatalog': ?_cinematicLibraryCatalogToJson(
+    instance.cinematicLibraryCatalog,
+  ),
   'presentationCinematics': ?_presentationCinematicsToJson(
     instance.presentationCinematics,
   ),
