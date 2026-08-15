@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../theme/theme.dart';
 import '../pokemap_badge.dart';
@@ -11,6 +12,7 @@ enum PokeMapCinematicDocumentState {
   dirty,
   saving,
   saved,
+  recovered,
   conflict,
   error,
 }
@@ -36,6 +38,7 @@ class PokeMapCinematicDocumentStatus extends StatelessWidget {
       PokeMapCinematicDocumentState.dirty => PokeMapBadgeVariant.warning,
       PokeMapCinematicDocumentState.saving => PokeMapBadgeVariant.info,
       PokeMapCinematicDocumentState.saved => PokeMapBadgeVariant.success,
+      PokeMapCinematicDocumentState.recovered => PokeMapBadgeVariant.warning,
       PokeMapCinematicDocumentState.conflict => PokeMapBadgeVariant.warning,
       PokeMapCinematicDocumentState.error => PokeMapBadgeVariant.error,
     };
@@ -44,6 +47,7 @@ class PokeMapCinematicDocumentStatus extends StatelessWidget {
       PokeMapCinematicDocumentState.dirty => Icons.edit_outlined,
       PokeMapCinematicDocumentState.saving => Icons.sync_rounded,
       PokeMapCinematicDocumentState.saved => Icons.check_circle_outline,
+      PokeMapCinematicDocumentState.recovered => Icons.restore_rounded,
       PokeMapCinematicDocumentState.conflict => Icons.warning_amber_rounded,
       PokeMapCinematicDocumentState.error => Icons.error_outline_rounded,
     };
@@ -52,6 +56,7 @@ class PokeMapCinematicDocumentStatus extends StatelessWidget {
       container: true,
       liveRegion:
           state == PokeMapCinematicDocumentState.saving ||
+          state == PokeMapCinematicDocumentState.recovered ||
           state == PokeMapCinematicDocumentState.conflict ||
           state == PokeMapCinematicDocumentState.error,
       label: detailText == null || detailText.isEmpty
@@ -69,6 +74,101 @@ class PokeMapCinematicDocumentStatus extends StatelessWidget {
   }
 }
 
+enum PokeMapCinematicResizeAxis { horizontal, vertical }
+
+class PokeMapCinematicResizeHandle extends StatelessWidget {
+  const PokeMapCinematicResizeHandle({
+    super.key,
+    required this.axis,
+    required this.tooltip,
+    required this.onResize,
+    this.onResizeEnd,
+    this.thickness = 12,
+    this.keyboardStep = 12,
+  });
+
+  final PokeMapCinematicResizeAxis axis;
+  final String tooltip;
+  final ValueChanged<double> onResize;
+  final VoidCallback? onResizeEnd;
+  final double thickness;
+  final double keyboardStep;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final horizontal = axis == PokeMapCinematicResizeAxis.horizontal;
+    void resize(double delta) {
+      onResize(delta);
+      onResizeEnd?.call();
+    }
+
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        if (horizontal)
+          const SingleActivator(LogicalKeyboardKey.arrowLeft): () =>
+              resize(-keyboardStep),
+        if (horizontal)
+          const SingleActivator(LogicalKeyboardKey.arrowRight): () =>
+              resize(keyboardStep),
+        if (!horizontal)
+          const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+              resize(-keyboardStep),
+        if (!horizontal)
+          const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+              resize(keyboardStep),
+      },
+      child: Focus(
+        child: Builder(
+          builder: (focusContext) => Semantics(
+            label: tooltip,
+            onIncrease: () => resize(keyboardStep),
+            onDecrease: () => resize(-keyboardStep),
+            child: MouseRegion(
+              cursor: horizontal
+                  ? SystemMouseCursors.resizeColumn
+                  : SystemMouseCursors.resizeRow,
+              child: Tooltip(
+                message: tooltip,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Focus.of(focusContext).requestFocus(),
+                  onHorizontalDragUpdate: horizontal
+                      ? (details) => onResize(details.delta.dx)
+                      : null,
+                  onHorizontalDragEnd: horizontal
+                      ? (_) => onResizeEnd?.call()
+                      : null,
+                  onVerticalDragUpdate: horizontal
+                      ? null
+                      : (details) => onResize(details.delta.dy),
+                  onVerticalDragEnd: horizontal
+                      ? null
+                      : (_) => onResizeEnd?.call(),
+                  child: SizedBox(
+                    width: horizontal ? thickness : double.infinity,
+                    height: horizontal ? double.infinity : thickness,
+                    child: Center(
+                      child: Container(
+                        width: horizontal ? 2 : 48,
+                        height: horizontal ? 48 : 2,
+                        decoration: BoxDecoration(
+                          color: colors.divider,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class PokeMapCinematicWorkspaceToolbar extends StatelessWidget {
   const PokeMapCinematicWorkspaceToolbar({
     super.key,
@@ -78,6 +178,7 @@ class PokeMapCinematicWorkspaceToolbar extends StatelessWidget {
     required this.onBack,
     required this.status,
     this.actions = const [],
+    this.backButtonKey,
   });
 
   final String backLabel;
@@ -86,6 +187,7 @@ class PokeMapCinematicWorkspaceToolbar extends StatelessWidget {
   final VoidCallback? onBack;
   final Widget status;
   final List<Widget> actions;
+  final Key? backButtonKey;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +200,7 @@ class PokeMapCinematicWorkspaceToolbar extends StatelessWidget {
           child: Row(
             children: [
               PokeMapIconButton(
+                key: backButtonKey,
                 onPressed: onBack,
                 icon: const Icon(Icons.arrow_back_rounded),
                 tooltip: backLabel,

@@ -12,6 +12,7 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_shell.dart';
 import 'package:map_editor/src/ui/canvas/cutscene_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
@@ -304,6 +305,10 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(find.byType(PresentationStudioShell), findsOneWidget);
+      expect(find.byType(CinematicsLibraryWorkspace), findsNothing);
+      expect(find.text('Cinématiques in-game'), findsNothing);
+      expect(find.text('Cinématiques de présentation'), findsNothing);
       expect(find.text('Ouverture Avelune'), findsWidgets);
 
       await tester.tap(
@@ -727,6 +732,38 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Cinématiques de présentation'));
+      await tester.pumpAndSettle();
+      final presentationFolder = find.byKey(
+        const ValueKey('cinematic-folder-presentation-openings'),
+      );
+      if (presentationFolder.evaluate().isNotEmpty) {
+        await tester.tap(presentationFolder);
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-asset-presentation-opening')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-open-selection')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(PresentationStudioShell), findsOneWidget);
+      expect(find.byType(NarrativeStudioWorkspacePage), findsNothing);
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Presentation Studio viewport: $size',
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematics-presentation-route-back')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Cinématiques in-game'));
+      await tester.pumpAndSettle();
     }
   });
 

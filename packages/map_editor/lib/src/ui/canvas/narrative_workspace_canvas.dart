@@ -26,9 +26,11 @@ import '../../features/narrative/state/narrative_event_builder_v2_providers.dart
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/narrative/state/narrative_validator_providers.dart';
 import '../../features/narrative/state/scene_consequence_catalog_providers.dart';
+import '../../infrastructure/repositories/file_presentation_studio_layout_store.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
+import 'cinematics/presentation/presentation_studio_shell.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'events/event_builder_workspace.dart';
@@ -2592,10 +2594,12 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
 class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   bool _showLegacyCutsceneStudio = false;
   NarrativeLibrarySourceContext? _restoredPresentationSource;
+  late final PresentationStudioLayoutStore _presentationLayoutStore;
 
   @override
   void initState() {
     super.initState();
+    _presentationLayoutStore = FilePresentationStudioLayoutStore();
     _syncRequestedChildRoute();
     _capturePresentationSource();
   }
@@ -2682,40 +2686,69 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           break;
         }
       }
-      return NarrativeStudioWorkspacePage(
-        presentation: NarrativeStudioRoutePresentation(
-          destination: NarrativeStudioDestination.cinematics,
-          label: 'Cinématiques',
-          breadcrumbLabels: [
-            'Cinématiques',
-            'Présentation',
-            asset?.title ?? 'Cinématique introuvable',
-          ],
-        ),
-        leading: PokeMapIconButton(
-          key: const ValueKey('cinematics-presentation-route-back'),
-          onPressed: () {
-            final source = widget.onCloseDocument();
-            if (source is NarrativeLibrarySourceContext) {
-              setState(() => _restoredPresentationSource = source);
-            }
-          },
-          tooltip: 'Retour à la bibliothèque de présentation',
-          variant: PokeMapIconButtonVariant.soft,
-          icon: const Icon(CupertinoIcons.chevron_left),
-        ),
-        body: PokeMapPageSurface(
-          key: const ValueKey('cinematics-presentation-document-route'),
-          child: PokeMapEmptyState(
-            title: asset?.title ?? 'Cinématique de présentation introuvable',
-            description: asset == null
-                ? 'Cette cible n’existe plus dans le projet. Revenez à la bibliothèque sans modifier le catalogue.'
-                : 'La route dédiée est prête. Le Studio de présentation sera assemblé par le prochain lot UI.',
-            icon: Icon(
-              asset == null
-                  ? CupertinoIcons.exclamationmark_triangle
-                  : CupertinoIcons.film,
+      if (asset == null) {
+        return NarrativeStudioWorkspacePage(
+          presentation: const NarrativeStudioRoutePresentation(
+            destination: NarrativeStudioDestination.cinematics,
+            label: 'Cinématiques',
+            breadcrumbLabels: [
+              'Cinématiques',
+              'Présentation',
+              'Cinématique introuvable',
+            ],
+          ),
+          leading: PokeMapIconButton(
+            key: const ValueKey('cinematics-presentation-route-back'),
+            onPressed: _closePresentationDocument,
+            tooltip: 'Retour à la bibliothèque de présentation',
+            variant: PokeMapIconButtonVariant.soft,
+            icon: const Icon(CupertinoIcons.chevron_left),
+          ),
+          body: PokeMapPageSurface(
+            key: const ValueKey('cinematics-presentation-document-route'),
+            child: const PokeMapEmptyState(
+              title: 'Cinématique de présentation introuvable',
+              description:
+                  'Cette cible n’existe plus dans le projet. Revenez à la bibliothèque sans modifier le catalogue.',
+              icon: Icon(CupertinoIcons.exclamationmark_triangle),
             ),
+          ),
+        );
+      }
+      return KeyedSubtree(
+        key: const ValueKey('cinematics-presentation-document-route'),
+        child: PresentationStudioShell(
+          title: asset.title,
+          documentState: PokeMapCinematicDocumentState.saved,
+          statusLabel: 'Enregistré',
+          layoutStore: _presentationLayoutStore,
+          backButtonKey: const ValueKey(
+            'cinematics-presentation-route-back',
+          ),
+          onExit: _closePresentationDocument,
+          onDiscard: () async {},
+          onSave: () async => true,
+          previewToolbar: const _PresentationStudioPreviewToolbar(),
+          canvas: const PokeMapEmptyState(
+            title: 'Canvas Presentation',
+            description:
+                'Le viewport partagé prendra place ici sans modifier le shell.',
+            icon: Icon(CupertinoIcons.rectangle_expand_vertical),
+          ),
+          layersPanel: const PokeMapEmptyState(
+            title: 'Calques',
+            description: 'L’arbre de calques sera branché dans ce slot.',
+            icon: Icon(CupertinoIcons.square_stack_3d_up),
+          ),
+          propertiesPanel: const PokeMapEmptyState(
+            title: 'Propriétés',
+            description: 'L’inspecteur typé sera branché dans ce slot.',
+            icon: Icon(CupertinoIcons.slider_horizontal_3),
+          ),
+          timeline: const PokeMapEmptyState(
+            title: 'Timeline',
+            description: 'La timeline scalable sera branchée dans ce slot.',
+            icon: Icon(CupertinoIcons.time),
           ),
         ),
       );
@@ -2805,6 +2838,13 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         );
       },
     );
+  }
+
+  void _closePresentationDocument() {
+    final source = widget.onCloseDocument();
+    if (source is NarrativeLibrarySourceContext) {
+      setState(() => _restoredPresentationSource = source);
+    }
   }
 
   Future<String?> _createCinematicShell({
@@ -3759,6 +3799,59 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
 
 String _cinematicAuthoringOperationId(String action) =>
     'cinematic_${action}_${DateTime.now().microsecondsSinceEpoch}';
+
+class _PresentationStudioPreviewToolbar extends StatelessWidget {
+  const _PresentationStudioPreviewToolbar();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          const PokeMapBadge(
+            label: 'Aperçu',
+            variant: PokeMapBadgeVariant.info,
+          ),
+          const SizedBox(width: 8),
+          PokeMapButton(
+            onPressed: null,
+            disabledReason: 'Disponible avec le viewport Presentation.',
+            size: PokeMapButtonSize.small,
+            variant: PokeMapButtonVariant.secondary,
+            child: const Text('16:9'),
+          ),
+          const SizedBox(width: 6),
+          PokeMapButton(
+            onPressed: null,
+            disabledReason: 'Disponible avec le viewport Presentation.',
+            size: PokeMapButtonSize.small,
+            variant: PokeMapButtonVariant.secondary,
+            child: const Text('9:16'),
+          ),
+          const SizedBox(width: 6),
+          PokeMapButton(
+            onPressed: null,
+            disabledReason: 'Disponible avec le mode Compare.',
+            size: PokeMapButtonSize.small,
+            variant: PokeMapButtonVariant.ghost,
+            leading: const Icon(CupertinoIcons.square_split_2x1),
+            child: const Text('Comparer'),
+          ),
+          const SizedBox(width: 6),
+          PokeMapButton(
+            onPressed: null,
+            disabledReason: 'Disponible avec le viewport Presentation.',
+            size: PokeMapButtonSize.small,
+            variant: PokeMapButtonVariant.ghost,
+            leading: const Icon(CupertinoIcons.arrow_up_left_arrow_down_right),
+            child: const Text('Ajuster'),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _CutsceneWorkspaceBody extends StatelessWidget {
   const _CutsceneWorkspaceBody({
