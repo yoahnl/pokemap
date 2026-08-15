@@ -609,6 +609,7 @@ void main() {
           SceneConsequence.giveMoney(amount: 500),
           SceneConsequence.givePokemon(
             speciesId: 'species_sproutle',
+            formId: 'base',
             level: 7,
             currentHp: 23,
             nickname: 'Mousse',
@@ -732,6 +733,7 @@ void main() {
         [
           SceneConsequence.givePokemon(
             speciesId: 'species_reward',
+            formId: 'base',
             level: 5,
             currentHp: 20,
           ),
@@ -808,6 +810,7 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: ' ',
+            formId: 'base',
             level: 5,
             currentHp: 20,
           ),
@@ -816,6 +819,16 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: 'species_test',
+            formId: ' ',
+            level: 5,
+            currentHp: 20,
+          ),
+          SceneConsequenceRuntimeWriteErrorCode.missingPokemonFormReference,
+        ),
+        (
+          SceneConsequence.givePokemon(
+            speciesId: 'species_test',
+            formId: 'base',
             level: 0,
             currentHp: 20,
           ),
@@ -824,6 +837,7 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: 'species_test',
+            formId: 'base',
             level: 5,
             currentHp: 20,
             natureId: ' ',
@@ -833,6 +847,7 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: 'species_test',
+            formId: 'base',
             level: 5,
             currentHp: 0,
           ),
@@ -841,6 +856,7 @@ void main() {
         (
           SceneConsequence.givePokemon(
             speciesId: 'species_test',
+            formId: 'base',
             level: 5,
             currentHp: 10,
             friendship: 256,

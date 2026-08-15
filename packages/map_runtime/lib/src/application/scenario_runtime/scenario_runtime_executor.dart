@@ -1071,6 +1071,18 @@ class ScenarioRuntimeExecutor {
                       'Action givePokemon sans speciesId dans "${node.id}".',
                 );
               }
+              final formId = node.payload.params['formId']?.trim() ?? '';
+              if (formId.isEmpty) {
+                return ScenarioRuntimeExecutionResult(
+                  status: ScenarioRuntimeExecutionStatus.blocked,
+                  effect: const ScenarioRuntimeEffect.none(),
+                  scenarioId: scenario.id,
+                  sourceNodeId: sourceId,
+                  stopNodeId: node.id,
+                  message:
+                      'Action givePokemon sans formId dans "${node.id}".',
+                );
+              }
               final executionId = context.executionId.trim();
               if (executionId.isEmpty) {
                 return ScenarioRuntimeExecutionResult(
@@ -1126,7 +1138,7 @@ class ScenarioRuntimeExecutor {
 
               final unresolvedPokemon = PlayerPokemon(
                 speciesId: speciesId,
-                formId: node.payload.params['formId']?.trim() ?? '',
+                formId: formId,
                 level: clampedLevel,
                 natureId: natureId,
                 abilityId: abilityId,

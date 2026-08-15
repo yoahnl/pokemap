@@ -73,6 +73,7 @@ abstract base class SceneConsequence {
 
   factory SceneConsequence.givePokemon({
     required String speciesId,
+    required String formId,
     required int level,
     required int currentHp,
     String natureId,
@@ -484,6 +485,7 @@ final class SceneGiveMoneyConsequence extends SceneConsequence {
 final class SceneGivePokemonConsequence extends SceneConsequence {
   SceneGivePokemonConsequence({
     required String speciesId,
+    required String formId,
     required this.level,
     required this.currentHp,
     this.currentHpIsLegacyFallback = false,
@@ -494,6 +496,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
     String? label,
     String? notes,
   })  : speciesId = speciesId.trim(),
+        formId = formId.trim(),
         natureId = natureId.trim(),
         abilityId = abilityId.trim(),
         nickname = nickname.trim(),
@@ -505,6 +508,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
     final hasAuthoredCurrentHp = json.containsKey('currentHp');
     return SceneGivePokemonConsequence(
       speciesId: _readRequiredString(json, 'speciesId'),
+      formId: _readRequiredString(json, 'formId'),
       level: level,
       currentHp:
           hasAuthoredCurrentHp ? _readRequiredInt(json, 'currentHp') : level,
@@ -524,6 +528,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
   SceneConsequenceKind get kind => SceneConsequenceKind.givePokemon;
 
   final String speciesId;
+  final String formId;
   final int level;
   final int currentHp;
   final bool currentHpIsLegacyFallback;
@@ -538,6 +543,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
   Map<String, dynamic> toJson() => _withoutNulls({
         'kind': _kindToJson(kind),
         'speciesId': speciesId,
+        'formId': formId,
         'level': level,
         if (!currentHpIsLegacyFallback) 'currentHp': currentHp,
         'natureId': natureId,
@@ -553,6 +559,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
       identical(this, other) ||
       other is SceneGivePokemonConsequence &&
           other.speciesId == speciesId &&
+          other.formId == formId &&
           other.level == level &&
           other.currentHp == currentHp &&
           other.currentHpIsLegacyFallback == currentHpIsLegacyFallback &&
@@ -566,6 +573,7 @@ final class SceneGivePokemonConsequence extends SceneConsequence {
   @override
   int get hashCode => Object.hash(
         speciesId,
+        formId,
         level,
         currentHp,
         currentHpIsLegacyFallback,

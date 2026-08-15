@@ -307,6 +307,7 @@ Map<String, SceneConsequence Function()> _consequenceSamples() => {
           SceneConsequence.giveMoney(amount: 200),
       NarrativeCommandIds.givePokemon: () => SceneConsequence.givePokemon(
             speciesId: 'sproutle',
+            formId: 'base',
             level: 5,
             currentHp: 18,
           ),

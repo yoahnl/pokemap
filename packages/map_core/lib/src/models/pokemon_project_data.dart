@@ -124,6 +124,7 @@ class PokemonSpeciesIndexEntry {
     required this.primaryName,
     required this.types,
     required this.relativePath,
+    this.formIds = const <String>[],
   });
 
   final String id;
@@ -131,12 +132,17 @@ class PokemonSpeciesIndexEntry {
   final String primaryName;
   final List<String> types;
   final String relativePath;
+  final List<String> formIds;
 
   factory PokemonSpeciesIndexEntry.fromJson(
     Map<String, dynamic> json, {
     required String relativePath,
   }) {
     final names = _readStringMap(json['names']);
+    final forms = PokemonSpeciesForms.fromJson(
+      (json['forms'] as Map?)?.cast<String, dynamic>() ??
+          const <String, dynamic>{},
+    );
     return PokemonSpeciesIndexEntry(
       id: (json['id'] as String?)?.trim() ?? '',
       nationalDex: (json['nationalDex'] as num?)?.toInt() ?? 0,
@@ -147,6 +153,7 @@ class PokemonSpeciesIndexEntry {
             const <String, dynamic>{},
       ).types,
       relativePath: relativePath,
+      formIds: _canonicalPokemonFormIds(forms.formId, forms.otherForms),
     );
   }
 
@@ -159,6 +166,10 @@ class PokemonSpeciesIndexEntry {
     primaryName: _pickPrimaryName(species.names) ?? species.id.trim(),
     types: List<String>.from(species.typing.types),
     relativePath: relativePath,
+    formIds: _canonicalPokemonFormIds(
+      species.forms.formId,
+      species.forms.otherForms,
+    ),
   );
 }
 
@@ -188,6 +199,9 @@ class PokemonSpeciesIndex {
   late final Map<String, PokemonSpeciesIndexEntry> _entriesById;
 
   PokemonSpeciesIndexEntry? byId(String id) => _entriesById[id.trim()];
+
+  List<String> formIdsForSpecies(String id) =>
+      byId(id)?.formIds ?? const <String>[];
 }
 
 class PokemonSpeciesTyping {
@@ -988,6 +1002,23 @@ List<String> _readStringList(Object? raw) {
       .map((value) => value.trim())
       .where((value) => value.isNotEmpty)
       .toList(growable: false);
+}
+
+List<String> _canonicalPokemonFormIds(
+  String primaryFormId,
+  Iterable<String> otherFormIds,
+) {
+  final primary = primaryFormId.trim();
+  final others = otherFormIds
+      .map((formId) => formId.trim())
+      .where((formId) => formId.isNotEmpty && formId != primary)
+      .toSet()
+      .toList(growable: false)
+    ..sort();
+  return List<String>.unmodifiable(<String>[
+    if (primary.isNotEmpty) primary,
+    ...others,
+  ]);
 }
 
 Map<String, String> _readStringMap(Object? raw) {

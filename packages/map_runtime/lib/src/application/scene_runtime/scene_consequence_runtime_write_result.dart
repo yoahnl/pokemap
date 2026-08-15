@@ -19,6 +19,7 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   insufficientItemQuantity,
   invalidMoneyAmount,
   missingPokemonSpeciesReference,
+  missingPokemonFormReference,
   invalidPokemonLevel,
   invalidPokemonCurrentHp,
   invalidPokemonDefinition,

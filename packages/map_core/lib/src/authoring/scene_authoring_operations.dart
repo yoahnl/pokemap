@@ -1689,6 +1689,11 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
         'givePokemon consequence requires a species id.',
       );
       _trimRequired(
+        consequence.formId,
+        'consequence.formId',
+        'givePokemon consequence requires a form id.',
+      );
+      _trimRequired(
         consequence.natureId,
         'consequence.natureId',
         'givePokemon consequence requires a nature id.',

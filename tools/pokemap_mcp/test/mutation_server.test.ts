@@ -849,6 +849,95 @@ async function applyMutation(
   return String(validation.snapshotRevision);
 }
 
+test("MCP scene.upsert preserves a non-base Pokemon form", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = (described.mutationActions as JsonRecord[]).map(
+      (action) => String(action.id),
+    );
+    assert.ok(actionIds.includes("scene.upsert"));
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: String(validated.snapshotRevision),
+      actionId: "scene.upsert",
+      sequence: "scene-pokemon-form",
+      parameters: {
+        scene: {
+          id: "gift-scene-mcp",
+          name: "Gift Scene MCP",
+          graph: {
+            startNodeId: "start",
+            nodes: [
+              { id: "start", kind: "start" },
+              {
+                id: "gift",
+                kind: "action",
+                payload: {
+                  kind: "action",
+                  consequence: {
+                    kind: "givePokemon",
+                    speciesId: "sproutle",
+                    formId: "sunny",
+                    level: 7,
+                    currentHp: 24,
+                    natureId: "hardy",
+                    abilityId: "overgrow",
+                  },
+                },
+              },
+              { id: "end", kind: "end" },
+            ],
+            edges: [
+              {
+                id: "start-gift",
+                fromNodeId: "start",
+                fromPortId: "completed",
+                toNodeId: "gift",
+                kind: "default",
+              },
+              {
+                id: "gift-end",
+                fromNodeId: "gift",
+                fromPortId: "completed",
+                toNodeId: "end",
+                kind: "actionCompleted",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const project = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    const scenes = project.scenes as JsonRecord[];
+    const scene = scenes.find((candidate) => candidate.id === "gift-scene-mcp");
+    const graph = record(scene?.graph);
+    const nodes = graph.nodes as JsonRecord[];
+    const gift = nodes.find((candidate) => candidate.id === "gift");
+    const consequence = record(record(gift?.payload).consequence);
+    assert.equal(consequence.speciesId, "sproutle");
+    assert.equal(consequence.formId, "sunny");
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP applies and rereads the authored presentation profile", async () => {
   const fixture = await mutationFixture();
   try {

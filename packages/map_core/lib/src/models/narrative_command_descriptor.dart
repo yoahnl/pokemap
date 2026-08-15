@@ -17,6 +17,7 @@ enum NarrativeCommandParameterKind {
   storyStep,
   item,
   species,
+  speciesForm,
   starter,
   map,
   npc,

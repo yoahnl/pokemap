@@ -1377,15 +1377,23 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
       catalogs.species,
       consequence.speciesId,
     );
+    final formExists =
+        species?.formIds.contains(consequence.formId) ?? false;
     return [
       const _InspectorRow(label: 'Type', value: 'Donner un Pokémon'),
       _InspectorRow(
         label: 'Pokémon',
         value: species?.label ?? 'Espèce locale indisponible',
       ),
+      _InspectorRow(
+        label: 'Forme',
+        value: formExists
+            ? scenePokemonFormLabel(consequence.formId)
+            : 'Forme locale indisponible',
+      ),
       _InspectorRow(label: 'Niveau', value: '${consequence.level}'),
       _InspectorRow(label: 'PV courants', value: '${consequence.currentHp}'),
-      if (species == null) ...[
+      if (species == null || !formExists) ...[
         const SizedBox(height: 6),
         PokeMapDiagnosticCallout(
           key: const ValueKey(
@@ -1394,7 +1402,9 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
           severity: PokeMapDiagnosticSeverity.error,
           title: 'Référence à corriger',
           message: catalogs.species.isReady
-              ? 'Espèce introuvable dans le catalogue local.'
+              ? species == null
+                  ? 'Espèce introuvable dans le catalogue local.'
+                  : 'Forme introuvable pour cette espèce locale.'
               : catalogs.species.message,
         ),
       ],
@@ -1623,6 +1633,7 @@ class _GameplayConsequenceEditSheetState
     extends State<_GameplayConsequenceEditSheet> {
   late String? _selectedItemId;
   late String? _selectedSpeciesId;
+  late String? _selectedPokemonFormId;
   late String? _selectedConfiguredStarterId;
   late final TextEditingController _quantityController;
   late final TextEditingController _moneyController;
@@ -1642,6 +1653,10 @@ class _GameplayConsequenceEditSheetState
       SceneGivePokemonConsequence(:final speciesId) => speciesId,
       _ => null,
     };
+    final initialPokemonFormId = switch (consequence) {
+      SceneGivePokemonConsequence(:final formId) => formId,
+      _ => null,
+    };
     final initialConfiguredStarterId = switch (consequence) {
       SceneGiveConfiguredStarterConsequence(:final starterOptionId) =>
         starterOptionId,
@@ -1655,6 +1670,11 @@ class _GameplayConsequenceEditSheetState
       widget.catalogs.species.options,
       initialSpeciesId,
     );
+    final selectedSpecies = _speciesOption(_selectedSpeciesId);
+    _selectedPokemonFormId =
+        selectedSpecies?.formIds.contains(initialPokemonFormId) == true
+            ? initialPokemonFormId
+            : selectedSpecies?.formIds.firstOrNull;
     _selectedConfiguredStarterId = _resolveInitialSelection(
       widget.catalogs.configuredStarters.options,
       initialConfiguredStarterId,
@@ -1791,6 +1811,8 @@ class _GameplayConsequenceEditSheetState
     if (consequence is SceneGivePokemonConsequence) {
       final level = int.tryParse(_levelController.text.trim());
       final currentHp = int.tryParse(_currentHpController.text.trim());
+      final selectedSpecies = _speciesOption(_selectedSpeciesId);
+      final formIds = selectedSpecies?.formIds ?? const <String>[];
       return [
         PokeMapDropdownField<String>(
           key: const ValueKey('scene-gameplay-consequence-species-picker'),
@@ -1801,8 +1823,35 @@ class _GameplayConsequenceEditSheetState
               PokeMapDropdownItem(value: option.id, label: option.label),
           ],
           enabled: widget.catalogs.species.options.isNotEmpty,
-          onChanged: (value) => setState(() => _selectedSpeciesId = value),
+          onChanged: (value) => setState(() {
+            _selectedSpeciesId = value;
+            final species = _speciesOption(value);
+            _selectedPokemonFormId = species?.formIds.firstOrNull;
+          }),
         ),
+        const SizedBox(height: 12),
+        if (formIds.isEmpty)
+          const PokeMapDiagnosticCallout(
+            key: ValueKey('scene-gameplay-consequence-form-diagnostic'),
+            severity: PokeMapDiagnosticSeverity.error,
+            title: 'Formes indisponibles',
+            message: 'Cette espèce ne déclare aucune forme sélectionnable.',
+          )
+        else
+          PokeMapDropdownField<String>(
+            key: const ValueKey('scene-gameplay-consequence-form-picker'),
+            label: 'Forme',
+            value: _selectedPokemonFormId ?? formIds.first,
+            items: [
+              for (final formId in formIds)
+                PokeMapDropdownItem(
+                  value: formId,
+                  label: scenePokemonFormLabel(formId),
+                ),
+            ],
+            onChanged: (value) =>
+                setState(() => _selectedPokemonFormId = value),
+          ),
         const SizedBox(height: 12),
         PokeMapTextField(
           key: const ValueKey('scene-gameplay-consequence-level-field'),
@@ -1900,6 +1949,7 @@ class _GameplayConsequenceEditSheetState
         :final notes,
       ) =>
         _selectedSpeciesId == null ||
+                _selectedPokemonFormId == null ||
                 level == null ||
                 level < 1 ||
                 level > 100 ||
@@ -1908,6 +1958,7 @@ class _GameplayConsequenceEditSheetState
             ? null
             : SceneConsequence.givePokemon(
                 speciesId: _selectedSpeciesId!,
+                formId: _selectedPokemonFormId!,
                 level: level,
                 currentHp: currentHp,
                 natureId: natureId,
@@ -1938,6 +1989,13 @@ class _GameplayConsequenceEditSheetState
       return requestedId;
     }
     return options.firstOrNull?.id;
+  }
+
+  SceneConsequenceCatalogOption? _speciesOption(String? speciesId) {
+    for (final option in widget.catalogs.species.options) {
+      if (option.id == speciesId) return option;
+    }
+    return null;
   }
 }
 

@@ -353,6 +353,12 @@ final class SceneConsequenceRuntimeWriter {
         'Scene consequence givePokemon requires a non-empty species reference.',
       );
     }
+    if (consequence.formId.trim().isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingPokemonFormReference,
+        'Scene consequence givePokemon requires a non-empty form reference.',
+      );
+    }
     if (consequence.level < 1 || consequence.level > 100) {
       return const _SceneConsequenceRuntimeWriteStep.failed(
         SceneConsequenceRuntimeWriteErrorCode.invalidPokemonLevel,
@@ -389,6 +395,7 @@ final class SceneConsequenceRuntimeWriter {
 
     final unresolvedPokemon = PlayerPokemon(
       speciesId: consequence.speciesId,
+      formId: consequence.formId,
       natureId: consequence.natureId,
       abilityId: consequence.abilityId,
       level: consequence.level,

@@ -196,6 +196,36 @@ void main() {
       throwsStateError,
     );
   });
+
+  test('PokemonSpeciesIndex exposes stable deduplicated forms per species', () {
+    final json = _speciesJson()
+      ..['forms'] = <String, dynamic>{
+        'formId': 'base',
+        'otherForms': <String>['sunny', 'mega', 'sunny', ' '],
+      };
+    final species = PokemonSpeciesFile.fromJson(json);
+    final fromJson = PokemonSpeciesIndexEntry.fromJson(
+      json,
+      relativePath: 'species/0001-bulbasaur.json',
+    );
+    final fromSpecies = PokemonSpeciesIndexEntry.fromSpeciesFile(
+      species,
+      relativePath: 'species/0001-bulbasaur.json',
+    );
+
+    expect(fromJson.formIds, <String>['base', 'mega', 'sunny']);
+    expect(fromSpecies.formIds, fromJson.formIds);
+    expect(
+      PokemonSpeciesIndex(<PokemonSpeciesIndexEntry>[fromSpecies])
+          .formIdsForSpecies('bulbasaur'),
+      <String>['base', 'mega', 'sunny'],
+    );
+    expect(
+      PokemonSpeciesIndex(<PokemonSpeciesIndexEntry>[fromSpecies])
+          .formIdsForSpecies('missing'),
+      isEmpty,
+    );
+  });
 }
 
 Map<String, dynamic> _speciesJson() => <String, dynamic>{

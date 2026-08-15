@@ -12,6 +12,7 @@ void main() {
   );
   final consequence = SceneConsequence.givePokemon(
     speciesId: 'bulbasaur',
+    formId: 'mega',
     natureId: 'hardy',
     abilityId: 'overgrow',
     level: 5,
@@ -36,6 +37,9 @@ void main() {
     expect(first.success, isTrue);
     expect(replay.success, isTrue);
     expect(replay.gameState.party.members, hasLength(1));
+    expect(replay.gameState.party.members.single.speciesId, 'bulbasaur');
+    expect(replay.gameState.party.members.single.formId, 'mega');
+    expect(replay.gameState.party.members.single.individualId, isNotEmpty);
     expect(replay.gameState, restored);
     expect(replay.gameState.appliedPokemonGrantOperationIds, hasLength(1));
   });

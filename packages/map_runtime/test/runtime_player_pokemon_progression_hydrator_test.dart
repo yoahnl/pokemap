@@ -397,6 +397,7 @@ void main() {
               payload: SceneActionPayload.consequence(
                 SceneConsequence.givePokemon(
                   speciesId: 'wartortle',
+                  formId: 'base',
                   level: 5,
                   currentHp: 999,
                 ),
@@ -449,6 +450,7 @@ void main() {
           .members
           .single;
       expect(pokemon.abilityId, 'torrent');
+      expect(pokemon.formId, 'base');
       expect(pokemon.experience, 135);
       expect(pokemon.currentPpByMoveId, isEmpty);
       expect(pokemon.currentHp, 20);
@@ -475,6 +477,7 @@ void main() {
               actionKind: kScenarioActionGivePokemon,
               params: <String, String>{
                 'speciesId': 'wartortle',
+                'formId': 'base',
                 'natureId': 'bold',
                 'abilityId': 'torrent',
                 'level': '5',
@@ -518,6 +521,7 @@ void main() {
       final state = game.gameStateSnapshot;
       expect(state.party.members, hasLength(1));
       expect(state.party.members.single.speciesId, 'wartortle');
+      expect(state.party.members.single.formId, 'base');
       expect(state.party.members.single.experience, 135);
       expect(state.party.members.single.currentHp, 20);
       expect(state.appliedPokemonGrantOperationIds, hasLength(1));

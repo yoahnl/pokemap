@@ -112,7 +112,10 @@ void main() {
             type: ScenarioNodeType.action,
             payload: ScenarioNodePayload(
               actionKind: kScenarioActionGivePokemon,
-              params: {'speciesId': 'default_species'},
+              params: {
+                'speciesId': 'default_species',
+                'formId': 'base',
+              },
             ),
           ),
           ScenarioNode(
@@ -142,6 +145,7 @@ void main() {
       expect(state.party.members, isEmpty);
       final pokemon = result.effect.pokemon!;
       expect(pokemon.speciesId, 'default_species');
+      expect(pokemon.formId, 'base');
       expect(pokemon.level, 5); // default level
       expect(pokemon.natureId, 'hardy'); // default nature
       expect(pokemon.abilityId, 'unknown'); // default ability
@@ -202,6 +206,55 @@ void main() {
       expect(state.party.members, isEmpty);
     });
 
+    test('givePokemon blocks when formId is missing', () {
+      final scenario = ScenarioAsset(
+        id: 'test_no_form',
+        name: 'No form',
+        entryNodeId: 'source',
+        nodes: const <ScenarioNode>[
+          ScenarioNode(
+            id: 'source',
+            type: ScenarioNodeType.reference,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioSourceEntityInteract,
+            ),
+            binding: ScenarioNodeBinding(
+              mapId: 'test_map',
+              entityId: 'test_npc',
+            ),
+          ),
+          ScenarioNode(
+            id: 'give',
+            type: ScenarioNodeType.action,
+            payload: ScenarioNodePayload(
+              actionKind: kScenarioActionGivePokemon,
+              params: {'speciesId': 'test_species'},
+            ),
+          ),
+          ScenarioNode(id: 'end', type: ScenarioNodeType.end),
+        ],
+        edges: const <ScenarioEdge>[
+          ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'give'),
+          ScenarioEdge(id: 'e2', fromNodeId: 'give', toNodeId: 'end'),
+        ],
+      );
+
+      final result = executor.dispatch(
+        scenarios: [scenario],
+        sourceEvent: ScenarioRuntimeSourceEvent.entityInteract(
+          mapId: 'test_map',
+          entityId: 'test_npc',
+        ),
+        context: makeContext(
+          state: const GameState(saveId: 'test'),
+          onUpdate: (_) {},
+        ),
+      );
+
+      expect(result.status, ScenarioRuntimeExecutionStatus.blocked);
+      expect(result.message, contains('formId'));
+    });
+
     test('givePokemon transports the duplicate-species policy', () {
       final scenario = ScenarioAsset(
         id: 'test_prevent_dup',
@@ -226,6 +279,7 @@ void main() {
               actionKind: kScenarioActionGivePokemon,
               params: {
                 'speciesId': 'unique_species',
+                'formId': 'base',
                 'preventDuplicate': 'true',
               },
             ),
@@ -281,6 +335,7 @@ void main() {
               actionKind: kScenarioActionGivePokemon,
               params: {
                 'speciesId': 'test_species',
+                'formId': 'base',
                 'level': '10',
                 'knownMoveIds': 'tackle,growl',
               },
@@ -339,6 +394,7 @@ void main() {
               actionKind: kScenarioActionGivePokemon,
               params: {
                 'speciesId': 'test_species',
+                'formId': 'base',
                 'knownMoveIds': ' tackle , growl , ',
               },
             ),
@@ -396,6 +452,7 @@ void main() {
               actionKind: kScenarioActionGivePokemon,
               params: {
                 'speciesId': 'test_species',
+                'formId': 'base',
                 'level': '10',
                 'currentHp': '25',
               },
@@ -455,6 +512,7 @@ void main() {
               actionKind: kScenarioActionGivePokemon,
               params: {
                 'speciesId': 'test_species',
+                'formId': 'base',
                 'level': '15',
               },
             ),
@@ -513,6 +571,7 @@ void main() {
               actionKind: kScenarioActionGivePokemon,
               params: {
                 'speciesId': 'test_species',
+                'formId': 'base',
                 'level': '8',
                 'currentHp': 'not_a_number',
               },

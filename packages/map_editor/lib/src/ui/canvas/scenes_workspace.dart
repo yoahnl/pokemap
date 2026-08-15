@@ -2312,6 +2312,7 @@ class _SceneConsequencePickerDialogState
   SceneConsequenceCatalogOption? _selectedStoryStep;
   SceneConsequenceCatalogOption? _selectedItem;
   SceneConsequenceCatalogOption? _selectedSpecies;
+  String? _selectedPokemonFormId;
   SceneConsequenceCatalogOption? _selectedConfiguredStarter;
   bool _setFactValue = true;
   final TextEditingController _setFactValueController = TextEditingController();
@@ -2350,6 +2351,7 @@ class _SceneConsequencePickerDialogState
     _selectedStoryStep = widget.catalogs.storySteps.options.firstOrNull;
     _selectedItem = widget.catalogs.items.options.firstOrNull;
     _selectedSpecies = widget.catalogs.species.options.firstOrNull;
+    _selectedPokemonFormId = _selectedSpecies?.formIds.firstOrNull;
     _selectedConfiguredStarter =
         widget.catalogs.configuredStarters.options.firstOrNull;
   }
@@ -2705,6 +2707,7 @@ class _SceneConsequencePickerDialogState
     final level = int.tryParse(_pokemonLevelController.text.trim());
     final currentHp = int.tryParse(_pokemonCurrentHpController.text.trim());
     final friendship = int.tryParse(_pokemonFriendshipController.text.trim());
+    final formIds = _selectedSpecies?.formIds ?? const <String>[];
     return [
       for (final species in widget.catalogs.species.options)
         _ConsequencePickerCard(
@@ -2715,9 +2718,35 @@ class _SceneConsequencePickerDialogState
           title: species.label,
           subtitle: 'Espèce locale activée',
           details: species.details,
-          onTap: () => setState(() => _selectedSpecies = species),
+          onTap: () => setState(() {
+            _selectedSpecies = species;
+            _selectedPokemonFormId = species.formIds.firstOrNull;
+          }),
         ),
       const SizedBox(height: 4),
+      if (formIds.isEmpty)
+        const PokeMapDiagnosticCallout(
+          key: ValueKey('scene-consequence-pokemon-form-diagnostic'),
+          severity: PokeMapDiagnosticSeverity.error,
+          title: 'Formes indisponibles',
+          message: 'Cette espèce ne déclare aucune forme sélectionnable.',
+        )
+      else
+        PokeMapDropdownField<String>(
+          key: const ValueKey('scene-consequence-pokemon-form-picker'),
+          label: 'Forme',
+          value: _selectedPokemonFormId ?? formIds.first,
+          items: [
+            for (final formId in formIds)
+              PokeMapDropdownItem(
+                value: formId,
+                label: scenePokemonFormLabel(formId),
+              ),
+          ],
+          onChanged: (value) =>
+              setState(() => _selectedPokemonFormId = value),
+        ),
+      const SizedBox(height: 12),
       PokeMapTextField(
         key: const ValueKey('scene-consequence-pokemon-level-field'),
         label: 'Niveau',
@@ -2820,6 +2849,7 @@ class _SceneConsequencePickerDialogState
                 amount: int.parse(_moneyAmountController.text.trim()),
               ),
       _SceneConsequencePickerMode.givePokemon => _selectedSpecies == null ||
+              _selectedPokemonFormId == null ||
               (int.tryParse(_pokemonLevelController.text.trim()) ?? 0) < 1 ||
               (int.tryParse(_pokemonLevelController.text.trim()) ?? 101) >
                   100 ||
@@ -2832,6 +2862,7 @@ class _SceneConsequencePickerDialogState
           ? null
           : SceneConsequence.givePokemon(
               speciesId: _selectedSpecies!.id,
+              formId: _selectedPokemonFormId!,
               level: int.parse(_pokemonLevelController.text.trim()),
               currentHp: int.parse(_pokemonCurrentHpController.text.trim()),
               nickname: _pokemonNicknameController.text,

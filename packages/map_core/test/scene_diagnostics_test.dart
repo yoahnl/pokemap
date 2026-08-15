@@ -1024,11 +1024,13 @@ void main() {
         SceneConsequence.giveMoney(amount: -1),
         SceneConsequence.givePokemon(
           speciesId: 'species_test',
+          formId: 'base',
           level: 101,
           currentHp: 20,
         ),
         SceneConsequence.givePokemon(
           speciesId: 'species_test',
+          formId: 'base',
           level: 5,
           currentHp: 0,
         ),
@@ -1091,6 +1093,7 @@ void main() {
       final consequence = SceneConsequence.fromJson(<String, dynamic>{
         'kind': 'givePokemon',
         'speciesId': 'species_legacy',
+        'formId': 'base',
         'level': 9,
         'natureId': 'hardy',
         'abilityId': 'legacy-ability',
