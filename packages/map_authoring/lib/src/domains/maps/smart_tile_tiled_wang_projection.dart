@@ -61,7 +61,6 @@ final class TiledWangImportProjector {
     }
 
     return manifest.copyWith(
-      version: ProjectVersion.v6,
       smartTileCatalog: ProjectSmartTileCatalog(
         categories: current.categories,
         atlases: _appendAndSortById(

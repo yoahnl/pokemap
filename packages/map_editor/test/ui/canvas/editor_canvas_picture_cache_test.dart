@@ -118,6 +118,43 @@ void main() {
     );
   });
 
+  test('animated Smart Tile painters reuse prepared visual plans', () {
+    final owner = EditorCanvasPictureCacheOwner(maxEntries: 16);
+    final clock = EditorCanvasRepaintClock();
+    addTearDown(() {
+      clock.dispose();
+      owner.dispose();
+    });
+
+    _record(_painter(owner: owner, clock: clock));
+    final buildsAfterWarmUp = owner.smartTileVisualPlanBuildCount;
+    expect(buildsAfterWarmUp, greaterThan(0));
+
+    clock.update(const Duration(milliseconds: 110));
+    _record(_painter(owner: owner, clock: clock));
+
+    expect(owner.smartTileVisualPlanBuildCount, buildsAfterWarmUp);
+    expect(owner.smartTileVisualPlanHitCount, greaterThan(0));
+    expect(owner.smartTileVisualPlanEntryCount, lessThanOrEqualTo(3));
+  });
+
+  test('unrelated project changes preserve prepared Smart Tile plans', () {
+    final owner = EditorCanvasPictureCacheOwner(maxEntries: 16);
+    addTearDown(owner.dispose);
+
+    _record(_painter(owner: owner));
+    final buildsAfterWarmUp = owner.smartTileVisualPlanBuildCount;
+    _record(
+      _painter(
+        owner: owner,
+        project: _project.copyWith(name: 'Renamed cache project'),
+      ),
+    );
+
+    expect(owner.smartTileVisualPlanBuildCount, buildsAfterWarmUp);
+    expect(owner.smartTileVisualPlanHitCount, greaterThan(0));
+  });
+
   test('revision state stays isolated for multiple visible maps', () {
     final owner = EditorCanvasPictureCacheOwner(maxEntries: 16);
     addTearDown(owner.dispose);
@@ -320,6 +357,7 @@ MapGridPainter _painter({
   EditorCanvasPictureCacheOwner? owner,
   EditorCanvasRepaintClock? clock,
   MapData map = _map,
+  ProjectManifest? project,
   Map<String, ui.Image?> imagesById = const <String, ui.Image?>{},
   EditorCanvasPictureCacheObserver? onCacheEvent,
 }) {
@@ -336,7 +374,7 @@ MapGridPainter _painter({
     warps: const <MapWarp>[],
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    project: _project,
+    project: project ?? _project,
     animationClock: clock,
     pictureCacheOwner: owner,
     debugOnPictureCache: onCacheEvent,

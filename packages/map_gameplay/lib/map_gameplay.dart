@@ -187,9 +187,12 @@ export 'src/runtime_map_projection.dart'
         projectRuntimeMapLocations;
 export 'src/new_game_state_builder.dart'
     show
+        NewGameSeedProjectionIssueCode,
+        NewGameSeedProjectionException,
         createNewGameState,
         createNewGameStateFromMap,
         createNewGameStateFromProject,
+        createNewGameStateFromSeed,
         applyPlayerIdentityDialogueVariables,
         playerNameScriptVariable,
         playerAvatarScriptVariable,

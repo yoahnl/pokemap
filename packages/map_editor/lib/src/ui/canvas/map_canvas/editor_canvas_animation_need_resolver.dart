@@ -80,11 +80,56 @@ bool editorObjectLayerNeedsAnimation(
 bool editorSmartTileLayerNeedsAnimation(
   SmartTileLayer layer,
   ProjectManifest? project,
-) =>
-    layer.isVisible &&
-    layer.opacity > 0 &&
-    layer.animationActivation == SmartTileAnimationActivation.always &&
-    (project?.smartTileCatalog.animations.isNotEmpty ?? false);
+) {
+  if (!layer.isVisible ||
+      layer.opacity <= 0 ||
+      layer.animationActivation != SmartTileAnimationActivation.always ||
+      project == null) {
+    return false;
+  }
+  final catalog = project.smartTileCatalog;
+  for (final preset in catalog.presets) {
+    if (preset.id != layer.presetId || preset.usage != layer.usage) continue;
+    for (final rule in preset.rules) {
+      for (final candidate in rule.candidates) {
+        if (_smartTilePartsNeedAnimation(candidate.parts, catalog)) {
+          return true;
+        }
+      }
+    }
+    break;
+  }
+  final patternIds = <String>{
+    for (final stroke in layer.patternStrokes)
+      if (stroke.cells.isNotEmpty) stroke.patternId,
+  };
+  if (patternIds.isEmpty) return false;
+  for (final pattern in catalog.patterns) {
+    if (!patternIds.contains(pattern.id) || pattern.usage != layer.usage) {
+      continue;
+    }
+    for (final cell in pattern.cells) {
+      if (_smartTilePartsNeedAnimation(cell.parts, catalog)) return true;
+    }
+  }
+  return false;
+}
+
+bool _smartTilePartsNeedAnimation(
+  Iterable<SmartTileVisualPart> parts,
+  ProjectSmartTileCatalog catalog,
+) {
+  for (final part in parts) {
+    final source = part.source;
+    if (source is! SmartTileAnimationSource) continue;
+    for (final animation in catalog.animations) {
+      if (animation.id == source.animationId && animation.frames.isNotEmpty) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 
 bool editorPlacedElementLayerNeedsAnimation(
   MapData map,

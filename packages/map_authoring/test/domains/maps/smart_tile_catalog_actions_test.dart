@@ -180,6 +180,32 @@ void main() {
       );
     });
 
+    test('preserves a v7 manifest through a Smart Tile mutation', () {
+      final fixture = _fixture(projectVersion: ProjectVersion.v7);
+
+      final draft = const SmartTileCatalogActions().build(
+        _context(
+          fixture,
+          actionId: 'smart_tile.material.upsert',
+          parameters: <String, Object?>{
+            'material': const ProjectSmartTileMaterial(
+              id: 'dirt',
+              name: 'Dirt',
+              connectionGroupId: 'ground',
+              terrainType: TerrainType.dirt,
+            ).toJson(),
+          },
+        ),
+      );
+      final projectedManifest = ProjectManifest.fromJson(
+        jsonDecode(
+          utf8.decode(draft.changeSet.changes.single.afterBytes!),
+        ) as Map<String, dynamic>,
+      );
+
+      expect(projectedManifest.version, ProjectVersion.v7);
+    });
+
     test('upserts a reusable visual pattern without losing drafts', () {
       final fixture = _fixture(
         drafts: const <ProjectSmartTileAuthoringDraft>[_draft],
@@ -378,6 +404,7 @@ void main() {
   List<ProjectSmartTileAnimation> animations = const [],
   List<ProjectSmartTilePattern> patterns = const [],
   List<ProjectSmartTileAuthoringDraft> drafts = const [],
+  ProjectVersion projectVersion = ProjectVersion.v6,
 }) {
   final artifact = ContentArtifactRef.fromBytes(
     _pngBytes,
@@ -394,7 +421,7 @@ void main() {
   );
   final manifest = ProjectManifest(
     name: 'Smart Tile authoring fixture',
-    version: ProjectVersion.v6,
+    version: projectVersion,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',

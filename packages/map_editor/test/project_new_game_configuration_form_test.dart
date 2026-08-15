@@ -185,7 +185,7 @@ void main() {
       expect(saved!.playerPronounSet, PlayerPronounSet.feminine);
       expect(saved!.startingMoney, 750);
       expect(saved!.existingPartyFactId, 'fact_existing_party');
-      expect(saved!.starterSelectionSceneId, 'scene_starter_choice');
+      expect(saved!.preSessionSceneId, 'scene_starter_choice');
       expect(saved!.initialBag.single.itemId, 'custom-passive-thread');
       expect(saved!.initialFacts, <String, bool>{'fact_intro_active': false});
       expect(saved!.starterOptions.single.pokemon.speciesId, 'bulbasaur');
@@ -275,6 +275,7 @@ Future<void> _pumpForm(
 ProjectManifest _project() {
   return ProjectManifest(
     name: 'Selbrume',
+    version: ProjectVersion.v7,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map_start',
@@ -315,6 +316,7 @@ ProjectManifest _project() {
       SceneAsset(
         id: 'scene_starter_choice',
         name: 'Choix du partenaire',
+        executionProfile: SceneExecutionProfile.preSession,
         graph: SceneGraph(
           startNodeId: 'start',
           nodes: <SceneNode>[

@@ -12,11 +12,12 @@ Future<Directory> createAuthorProject({
   bool withDialogue = true,
   bool withCanonicalPokemon = true,
   String name = 'Neutral Adventure',
+  ProjectVersion projectVersion = ProjectVersion.v6,
 }) async {
   final root = await Directory.systemTemp.createTemp('pokemap_author_export_');
   final project = ProjectManifest(
     name: name,
-    version: ProjectVersion.v6,
+    version: projectVersion,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map.start',

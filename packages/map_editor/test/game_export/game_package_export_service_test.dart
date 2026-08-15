@@ -63,6 +63,38 @@ void main() {
     );
   });
 
+  test('exports a v7 project with Presentation ownership', () async {
+    final root = await createAuthorProject(
+      withDialogue: false,
+      projectVersion: ProjectVersion.v7,
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final project =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    project['presentationCinematics'] = <Object?>[
+      encodePresentationCinematicAsset(
+        PresentationCinematicAsset(
+          id: 'opening',
+          title: 'Opening',
+          durationUs: 1_000_000,
+        ),
+      ),
+    ];
+    await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+    final artifact = await const GamePackageExportService().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+
+    expect(artifact.manifest.compatibility.projectFormat, 'v7');
+    expect(
+      artifact.inspection.compatibility?.decision,
+      GamePackageCompatibilityDecision.accept,
+    );
+  });
+
   test(
     'builds, reopens and writes a deterministic certified package',
     () async {
@@ -284,21 +316,22 @@ void main() {
   });
 
   group('gameplay publication readiness gate', () {
-    test('rejects a Finish Game reachable only through the non-runtime '
-        'starterSelectionSceneId hint', () async {
+    test('rejects a preSession entrypoint that references a world Scene',
+        () async {
       final root = await createAuthorProject(withDialogue: false);
       addTearDown(() => root.delete(recursive: true));
       final projectFile = File(p.join(root.path, 'project.json'));
       final project =
           jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
       project.remove('eventRegistry');
-      (project['newGame'] as Map<String, dynamic>)['starterSelectionSceneId'] =
+      project['version'] = 'v7';
+      (project['newGame'] as Map<String, dynamic>)['preSessionSceneId'] =
           'scene.main';
       await projectFile.writeAsString(jsonEncode(project), flush: true);
 
       await _expectReadinessFailure(
         root,
-        diagnosticCode: 'exportStoryEndUnreachable',
+        diagnosticCode: 'exportPreSessionSceneUnavailable',
       );
     });
 
@@ -314,7 +347,7 @@ void main() {
         final newGame = project['newGame'] as Map<String, dynamic>;
         newGame['initialParty'] = <Object?>[];
         newGame['starterOptions'] = <Object?>[];
-        newGame.remove('starterSelectionSceneId');
+        newGame.remove('preSessionSceneId');
         await projectFile.writeAsString(jsonEncode(project), flush: true);
 
         await _expectReadinessFailure(

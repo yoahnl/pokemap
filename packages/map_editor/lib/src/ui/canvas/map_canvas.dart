@@ -12,7 +12,6 @@ import 'package:flutter/gestures.dart'
         PointerPanZoomUpdateEvent,
         PointerScrollEvent,
         PointerSignalEvent;
-import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:flutter/services.dart'
     show
         HardwareKeyboard,
@@ -442,11 +441,10 @@ enum MapContextMenuInvocation { pointer, keyboard }
 @visibleForTesting
 enum EditorCanvasRepaintLifecycleEvent {
   ownedClockCreated,
-  ownedTickerCreated,
-  ownedTickerStarted,
-  ownedTickerStopped,
+  ownedTimerStarted,
+  ownedTimerStopped,
   ownedClockReset,
-  ownedTickerDisposed,
+  ownedTimerDisposed,
   ownedClockDisposed,
 }
 
@@ -541,8 +539,7 @@ String _mapCanvasObjectMovePreviewSemanticsLabel(
       '$destination.';
 }
 
-class _MapCanvasState extends ConsumerState<MapCanvas>
-    with SingleTickerProviderStateMixin {
+class _MapCanvasState extends ConsumerState<MapCanvas> {
   final GlobalKey _mapViewportKey = GlobalKey();
   final FocusNode _mapFocusNode = FocusNode(debugLabel: 'Map canvas');
   final FocusNode _mapNavigationControlsFocusNode = FocusNode(
@@ -601,7 +598,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   /// owning pointer ends; this transient guard never enters map/collision IO.
   bool _borderStrokeGestureRejected = false;
 
-  Ticker? _entityEditorAnimTicker;
+  Timer? _entityEditorAnimationTimer;
   EditorCanvasRepaintClock? _ownedRepaintClock;
   bool _entityEditorAnimationRunning = false;
   String _shadowLightPreviewPresetId = 'neutral';
@@ -643,21 +640,17 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     _reportRepaintLifecycle(
       EditorCanvasRepaintLifecycleEvent.ownedClockCreated,
     );
-    _entityEditorAnimTicker = createTicker(clock.update);
-    _reportRepaintLifecycle(
-      EditorCanvasRepaintLifecycleEvent.ownedTickerCreated,
-    );
   }
 
   void _disposeOwnedRepaintResources() {
-    final ticker = _entityEditorAnimTicker;
-    if (ticker != null) {
-      ticker.dispose();
+    final timer = _entityEditorAnimationTimer;
+    if (timer != null) {
+      timer.cancel();
       _reportRepaintLifecycle(
-        EditorCanvasRepaintLifecycleEvent.ownedTickerDisposed,
+        EditorCanvasRepaintLifecycleEvent.ownedTimerDisposed,
       );
     }
-    _entityEditorAnimTicker = null;
+    _entityEditorAnimationTimer = null;
     final clock = _ownedRepaintClock;
     if (clock != null) {
       clock.dispose();
@@ -675,27 +668,26 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     }());
   }
 
-  void _syncEditorEntityAnimationTicker(bool needsAnimation) {
+  void _syncEditorEntityAnimationTimer(bool needsAnimation) {
     if (widget.repaintClockOverride != null ||
         needsAnimation == _entityEditorAnimationRunning) {
       return;
     }
     _entityEditorAnimationRunning = needsAnimation;
-    final ticker = _entityEditorAnimTicker!;
     if (needsAnimation) {
-      if (!ticker.isActive) {
-        ticker.start();
-        _reportRepaintLifecycle(
-          EditorCanvasRepaintLifecycleEvent.ownedTickerStarted,
-        );
-      }
+      final clock = _ownedRepaintClock!;
+      _entityEditorAnimationTimer = Timer.periodic(clock.frameStep, (timer) {
+        clock.update(clock.frameStep * timer.tick);
+      });
+      _reportRepaintLifecycle(
+        EditorCanvasRepaintLifecycleEvent.ownedTimerStarted,
+      );
     } else {
-      if (ticker.isActive) {
-        ticker.stop();
-        _reportRepaintLifecycle(
-          EditorCanvasRepaintLifecycleEvent.ownedTickerStopped,
-        );
-      }
+      _entityEditorAnimationTimer?.cancel();
+      _entityEditorAnimationTimer = null;
+      _reportRepaintLifecycle(
+        EditorCanvasRepaintLifecycleEvent.ownedTimerStopped,
+      );
       _ownedRepaintClock!.reset();
       _reportRepaintLifecycle(
         EditorCanvasRepaintLifecycleEvent.ownedClockReset,
@@ -936,7 +928,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          _syncEditorEntityAnimationTicker(false);
+          _syncEditorEntityAnimationTimer(false);
         }
       });
       return const MapWorkspaceEmptyState();
@@ -997,7 +989,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
           if (!mounted) {
             return;
           }
-          _syncEditorEntityAnimationTicker(needsAnimation);
+          _syncEditorEntityAnimationTimer(needsAnimation);
         });
 
         final keyboardCursor = _resolveKeyboardCursor(state, activeMap);

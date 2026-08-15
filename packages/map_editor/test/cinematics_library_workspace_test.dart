@@ -1445,6 +1445,7 @@ class _HarnessState extends State<_Harness> {
             child: CinematicsLibraryWorkspace(
               project: _project,
               startExpanded: true,
+              startInAdvancedManager: true,
               onCreateCinematicShell: ({
                 required String title,
                 NarrativeTemplateKind? templateKind,

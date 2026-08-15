@@ -1,7 +1,10 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import '../contracts/artifact_ref.dart';
 import 'project_file_reader.dart';
+
+const int maximumAuthoringArtifactBytesV1 = 256 * 1024 * 1024;
 
 final class ArtifactStoreException implements Exception {
   const ArtifactStoreException(this.code, this.message);
@@ -52,7 +55,11 @@ abstract interface class ArtifactFileStager {
 /// Production protocol adapters may replace it with a durable store while
 /// keeping the same path-free handles and validation behavior.
 final class MemoryArtifactStore implements ArtifactStore {
-  MemoryArtifactStore({required this.maximumArtifactBytes}) {
+  MemoryArtifactStore({required int maximumArtifactBytes})
+      : maximumArtifactBytes =
+            maximumArtifactBytes < maximumAuthoringArtifactBytesV1
+                ? maximumArtifactBytes
+                : maximumAuthoringArtifactBytesV1 {
     if (maximumArtifactBytes <= 0) {
       throw ArgumentError.value(
         maximumArtifactBytes,
@@ -166,7 +173,8 @@ final class LocalArtifactStore implements ArtifactStore, ArtifactFileStager {
 
   final List<String> _allowedSourceRoots;
   final MemoryArtifactStore _memory;
-  final Set<String> _authorizedSourceFiles = <String>{};
+  final Map<String, ContentArtifactRef> _authorizedSourceArtifacts =
+      <String, ContentArtifactRef>{};
 
   /// Grants one exact, user-selected file to this staging session.
   ///
@@ -185,14 +193,24 @@ final class LocalArtifactStore implements ArtifactStore, ArtifactFileStager {
         'The artifact source is unavailable.',
       );
     }
-    final metadata = await File(resolvedSource).stat();
+    final metadata = await _statSource(resolvedSource);
     if (metadata.type != FileSystemEntityType.file) {
       throw const ArtifactStoreException(
         'artifact.source_not_regular',
         'The artifact source must be a regular file.',
       );
     }
-    _authorizedSourceFiles.add(resolvedSource);
+    if (metadata.size > _memory.maximumArtifactBytes) {
+      throw const ArtifactStoreException(
+        'artifact.too_large',
+        'The artifact exceeds the configured byte limit.',
+      );
+    }
+    final bytes = await _readStableSource(sourcePath, resolvedSource);
+    _authorizedSourceArtifacts[resolvedSource] = ContentArtifactRef.fromBytes(
+      bytes,
+      mediaType: sniffArtifactMediaType(bytes),
+    );
   }
 
   @override
@@ -221,7 +239,8 @@ final class LocalArtifactStore implements ArtifactStore, ArtifactFileStager {
         );
       }
     }
-    if (!_authorizedSourceFiles.contains(resolvedSource) &&
+    final authorized = _authorizedSourceArtifacts[resolvedSource];
+    if (authorized == null &&
         !roots.any(
           (root) =>
               workspacePathIsWithin(root: root, candidate: resolvedSource),
@@ -231,7 +250,7 @@ final class LocalArtifactStore implements ArtifactStore, ArtifactFileStager {
         'The artifact source resolves outside the allowed roots.',
       );
     }
-    final before = await File(resolvedSource).stat();
+    final before = await _statSource(resolvedSource);
     if (before.type != FileSystemEntityType.file) {
       throw const ArtifactStoreException(
         'artifact.source_not_regular',
@@ -244,15 +263,105 @@ final class LocalArtifactStore implements ArtifactStore, ArtifactFileStager {
         'The artifact exceeds the configured byte limit.',
       );
     }
-    final bytes = await File(resolvedSource).readAsBytes();
-    final after = await File(resolvedSource).stat();
+    final bytes = await _readStableSource(sourcePath, resolvedSource);
+    final after = await _statSource(resolvedSource);
     if (before.modified != after.modified || before.size != after.size) {
       throw const ArtifactStoreException(
         'artifact.source_changed_during_read',
         'The artifact source changed while it was inspected.',
       );
     }
+    if (authorized != null) {
+      final actual = ContentArtifactRef.fromBytes(
+        bytes,
+        mediaType: sniffArtifactMediaType(bytes),
+      );
+      if (actual.digest != authorized.digest ||
+          actual.byteLength != authorized.byteLength) {
+        throw const ArtifactStoreException(
+          'artifact.source_changed_after_authorization',
+          'The selected artifact changed after it was authorized.',
+        );
+      }
+    }
     return _memory.put(bytes, declaredMediaType: declaredMediaType);
+  }
+
+  Future<Uint8List> _readStableSource(
+    String sourcePath,
+    String resolvedSource,
+  ) async {
+    RandomAccessFile? reader;
+    try {
+      reader = await File(resolvedSource).open();
+      final bytes = BytesBuilder(copy: false);
+      var total = 0;
+      while (true) {
+        final remaining = _memory.maximumArtifactBytes - total;
+        final chunk = await reader.read(
+          remaining < 1024 * 1024 ? remaining + 1 : 1024 * 1024,
+        );
+        if (chunk.isEmpty) break;
+        total += chunk.length;
+        if (total > _memory.maximumArtifactBytes) {
+          throw const ArtifactStoreException(
+            'artifact.too_large',
+            'The artifact exceeds the configured byte limit.',
+          );
+        }
+        bytes.add(chunk);
+      }
+      final resolvedAfterRead = await File(sourcePath).resolveSymbolicLinks();
+      if (resolvedAfterRead != resolvedSource) {
+        throw const ArtifactStoreException(
+          'artifact.source_changed_during_read',
+          'The artifact source changed while it was inspected.',
+        );
+      }
+      final captured = bytes.takeBytes();
+      await reader.setPosition(0);
+      var offset = 0;
+      while (offset < captured.length) {
+        final remaining = captured.length - offset;
+        final chunk = await reader.read(
+          remaining < 1024 * 1024 ? remaining : 1024 * 1024,
+        );
+        if (chunk.isEmpty || !_sameByteRange(captured, offset, chunk)) {
+          throw const ArtifactStoreException(
+            'artifact.source_changed_during_read',
+            'The artifact source changed while it was inspected.',
+          );
+        }
+        offset += chunk.length;
+      }
+      if ((await reader.read(1)).isNotEmpty) {
+        throw const ArtifactStoreException(
+          'artifact.source_changed_during_read',
+          'The artifact source changed while it was inspected.',
+        );
+      }
+      return captured;
+    } on ArtifactStoreException {
+      rethrow;
+    } on FileSystemException {
+      throw const ArtifactStoreException(
+        'artifact.source_unavailable',
+        'The artifact source is unavailable.',
+      );
+    } finally {
+      await _closeArtifactSource(reader);
+    }
+  }
+
+  Future<FileStat> _statSource(String resolvedSource) async {
+    try {
+      return await File(resolvedSource).stat();
+    } on FileSystemException {
+      throw const ArtifactStoreException(
+        'artifact.source_unavailable',
+        'The artifact source is unavailable.',
+      );
+    }
   }
 
   @override
@@ -273,6 +382,23 @@ final class LocalArtifactStore implements ArtifactStore, ArtifactFileStager {
 
   @override
   List<ContentArtifactRef> list() => _memory.list();
+}
+
+Future<void> _closeArtifactSource(RandomAccessFile? reader) async {
+  if (reader == null) return;
+  try {
+    await reader.close();
+  } on FileSystemException {
+    return;
+  }
+}
+
+bool _sameByteRange(List<int> expected, int offset, List<int> actual) {
+  if (offset + actual.length > expected.length) return false;
+  for (var index = 0; index < actual.length; index++) {
+    if (expected[offset + index] != actual[index]) return false;
+  }
+  return true;
 }
 
 String sniffArtifactMediaType(List<int> bytes) {

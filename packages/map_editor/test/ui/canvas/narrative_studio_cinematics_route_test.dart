@@ -6,11 +6,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/application/models/narrative_authoring_transaction.dart';
+import 'package:map_editor/src/application/models/narrative_document_route.dart';
 import 'package:map_editor/src/application/ports/narrative_authoring_persistence_gateway.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_shell.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_responsive_canvas.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_timeline.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_studio_viewport.dart';
 import 'package:map_editor/src/ui/canvas/cutscene_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
@@ -252,6 +257,142 @@ void main() {
   );
 
   testWidgets(
+    'Presentation Library opens its typed route and restores exact context',
+    (tester) async {
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: _cinematicsProject(),
+          workspaceMode: EditorWorkspaceMode.cutscene,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+
+      await tester.tap(find.text('Cinématiques de présentation'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-folder-presentation-openings')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('cinematic-family-search')),
+        'ouverture',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-asset-presentation-opening')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-open-selection')),
+      );
+      await tester.pumpAndSettle();
+
+      final route = container
+          .read(narrativeStudioNavigationControllerProvider)
+          .documentRoute;
+      expect(route?.documentId, 'presentation-opening');
+      expect(
+        route?.source,
+        NarrativeLibrarySourceContext(
+          library: NarrativeLibraryKind.cinematics,
+          cinematicFamily: CinematicLibraryFamily.presentation,
+          folderId: 'presentation-openings',
+          searchQuery: 'ouverture',
+          selectedAssetId: 'presentation-opening',
+        ),
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematics-presentation-document-route'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(PresentationStudioShell), findsOneWidget);
+      expect(find.byType(PresentationStudioResponsiveCanvas), findsOneWidget);
+      expect(find.byType(PresentationStudioViewport), findsOneWidget);
+      expect(find.byType(PresentationStudioTimeline), findsOneWidget);
+      expect(find.text('Timeline vide'), findsOneWidget);
+      expect(
+        find.text('La timeline scalable sera branchée dans ce slot.'),
+        findsNothing,
+      );
+      expect(find.text('Aucun contenu à afficher'), findsOneWidget);
+      expect(find.byType(CinematicsLibraryWorkspace), findsNothing);
+      expect(find.text('Cinématiques in-game'), findsNothing);
+      expect(find.text('Cinématiques de présentation'), findsNothing);
+      expect(find.text('Ouverture Avelune'), findsWidgets);
+
+      await tester.tap(find.byKey(presentationStudioPortraitModeKey));
+      await tester.pump();
+      expect(
+        find.byKey(
+          const ValueKey('presentation-studio-portrait-viewport'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(presentationStudioCompareModeKey));
+      await tester.pump();
+      expect(find.byType(PresentationStudioViewport), findsNWidgets(2));
+      expect(find.text('Paysage 16:9'), findsOneWidget);
+      expect(find.text('Portrait 9:16'), findsOneWidget);
+
+      final beforeAddPanel = container
+          .read(editorNotifierProvider)
+          .project!
+          .toJson();
+      await tester.tap(find.text('Ajouter'));
+      await tester.pump();
+      expect(find.text('Projet indisponible'), findsOneWidget);
+      expect(find.text('Calques'), findsNothing);
+      await tester.tap(find.bySemanticsLabel('Fermer la palette Ajouter'));
+      await tester.pump();
+      expect(find.text('Projet indisponible'), findsNothing);
+      expect(
+        container.read(editorNotifierProvider).project!.toJson(),
+        beforeAddPanel,
+      );
+
+      await tester.tap(find.byKey(presentationStudioPlayPauseKey));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematics-presentation-route-back')),
+      );
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .documentRoute,
+        isNull,
+      );
+      expect(tester.takeException(), isNull);
+      expect(find.text('Ouvertures'), findsWidgets);
+      final search = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(const ValueKey('cinematic-family-search')),
+          matching: find.byType(EditableText),
+        ),
+      );
+      expect(search.controller.text, 'ouverture');
+      expect(
+        tester
+            .widget<PokeMapAssetCard>(
+              find.byKey(
+                const ValueKey('cinematic-asset-presentation-opening'),
+              ),
+            )
+            .selected,
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets(
     'Cinematics CRUD persists through the shared authoring transaction',
     (tester) async {
       final root = Directory.systemTemp.createTempSync(
@@ -279,6 +420,11 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = notifier.state.copyWith(projectRootPath: root.path);
       await tester.pump();
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematics-library-advanced-manager')),
+      );
+      await tester.pumpAndSettle();
 
       await tester.enterText(
         find.byKey(const ValueKey('cinematics-library-create-title-field')),
@@ -366,6 +512,95 @@ void main() {
   );
 
   testWidgets(
+    'Library creation commits atomically and opens the current in-game Builder',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'cinematics_library_create_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final manifestFile = File('${root.path}/project.json');
+      final project = _cinematicsProject().copyWith(scenarios: const []);
+      manifestFile.writeAsStringSync(jsonEncode(project.toJson()));
+
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.cutscene,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(projectRootPath: root.path);
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('cinematic-library-new')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('cinematic-create-title')),
+        'Arrivée sur l’île',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('world-starting-point-establishingShot')),
+      );
+      await _invokeAsyncPokeMapButton(
+        tester,
+        find.byKey(const ValueKey('cinematic-create-submit')),
+        () => container
+            .read(editorNotifierProvider)
+            .project!
+            .cinematics
+            .any((asset) => asset.title == 'Arrivée sur l’île'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CinematicBuilderWorkspace), findsOneWidget);
+      expect(
+        _readManifest(manifestFile).cinematics.singleWhere(
+          (asset) => asset.title == 'Arrivée sur l’île',
+        ).timeline.steps,
+        hasLength(2),
+      );
+      expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-back-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cinématiques de présentation'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('cinematic-library-new')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('cinematic-create-title')),
+        'Ouverture céleste',
+      );
+      await _invokeAsyncPokeMapButton(
+        tester,
+        find.byKey(const ValueKey('cinematic-create-submit')),
+        () => container
+            .read(editorNotifierProvider)
+            .project!
+            .presentationCinematics
+            .any((asset) => asset.title == 'Ouverture céleste'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('cinematics-presentation-document-route')),
+        findsOneWidget,
+      );
+      expect(
+        _readManifest(manifestFile)
+            .presentationCinematics
+            .map((asset) => asset.title),
+        contains('Ouverture céleste'),
+      );
+      expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
+    },
+  );
+
+  testWidgets(
     'Cinematics never reports a dirty no-op retry as saved',
     (tester) async {
       final root = Directory.systemTemp.createTempSync(
@@ -393,6 +628,11 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = notifier.state.copyWith(projectRootPath: root.path);
       await tester.pump();
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematics-library-advanced-manager')),
+      );
+      await tester.pumpAndSettle();
 
       final titleField =
           find.byKey(const ValueKey('cinematics-library-title-field'));
@@ -541,6 +781,39 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Cinématiques de présentation'));
+      await tester.pumpAndSettle();
+      final presentationFolder = find.byKey(
+        const ValueKey('cinematic-folder-presentation-openings'),
+      );
+      if (presentationFolder.evaluate().isNotEmpty) {
+        await tester.tap(presentationFolder);
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-asset-presentation-opening')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-open-selection')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(PresentationStudioShell), findsOneWidget);
+      expect(find.byType(PresentationStudioViewport), findsOneWidget);
+      expect(find.byType(NarrativeStudioWorkspacePage), findsNothing);
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Presentation Studio viewport: $size',
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematics-presentation-route-back')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.bySemanticsLabel('Cinématiques in-game'));
+      await tester.pumpAndSettle();
     }
   });
 
@@ -587,7 +860,12 @@ void main() {
     },
   );
 
-  for (final goldenState in <String>['library', 'builder', 'legacy']) {
+  for (final goldenState in <String>[
+    'library',
+    'presentation_library',
+    'builder',
+    'legacy',
+  ]) {
     testWidgets(
       'matches the full Cinematics $goldenState route at 1672x941',
       (tester) async {
@@ -603,7 +881,9 @@ void main() {
           cupertinoFontFamily: eventBuilderV2PhaseKCaptureFontFamily,
         );
 
-        if (goldenState == 'builder') {
+        if (goldenState == 'presentation_library') {
+          await tester.tap(find.text('Cinématiques de présentation'));
+        } else if (goldenState == 'builder') {
           await tester.tap(
             find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
           );
@@ -715,6 +995,7 @@ final class _FailingManifestGateway
 ProjectManifest _cinematicsProject() {
   return ProjectManifest(
     name: 'Cinématiques route fixture',
+    version: ProjectVersion.v7,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     scenarios: const <ScenarioAsset>[
@@ -735,5 +1016,30 @@ ProjectManifest _cinematicsProject() {
         timeline: CinematicTimeline(),
       ),
     ],
+    presentationCinematics: [
+      PresentationCinematicAsset(
+        id: 'presentation-opening',
+        title: 'Ouverture Avelune',
+        durationUs: 12000000,
+      ),
+    ],
+    cinematicLibraryCatalog: CinematicLibraryCatalog(
+      folders: [
+        CinematicLibraryFolder(
+          id: 'presentation-openings',
+          family: CinematicLibraryFamily.presentation,
+          name: 'Ouvertures',
+          sortOrder: 0,
+        ),
+      ],
+      entries: [
+        CinematicLibraryEntry(
+          family: CinematicLibraryFamily.presentation,
+          cinematicId: 'presentation-opening',
+          folderId: 'presentation-openings',
+          sortOrder: 0,
+        ),
+      ],
+    ),
   );
 }

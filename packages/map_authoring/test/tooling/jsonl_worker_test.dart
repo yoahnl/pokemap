@@ -536,6 +536,10 @@ final class _TestSetup {
         name: 'Clean validation fixture',
         maps: const [],
         tilesets: const [],
+        pokemon: const ProjectPokemonConfig(
+          enabled: false,
+          ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        ),
       );
       await File('${fixture.path}/project.json').writeAsString(
         const JsonEncoder.withIndent('  ').convert(manifest.toJson()),

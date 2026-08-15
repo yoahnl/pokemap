@@ -41,7 +41,7 @@ CIN-V2 exige `ProjectVersion.v7` et les capabilities `scene.preSession` et `cine
 
 `PresentationCinematicAsset` possède en plus sa propre version de schéma locale, initialement `1`. Une version future inconnue est rejetée ; elle n'est jamais interprétée comme une version courante partielle.
 
-Conséquence de test : `CIN-013` couvre codec, capability gate et erreurs de version ; `CIN-042` fournit le canary de compatibilité.
+Conséquence de test : `CIN-002` couvre le codec local de l'asset, `CIN-062` couvre la version projet, l'ownership manifeste et les erreurs de version ; `CIN-042` fournit le canary de compatibilité.
 
 ## CIN-ADR-002 — Familles cinématiques disjointes
 

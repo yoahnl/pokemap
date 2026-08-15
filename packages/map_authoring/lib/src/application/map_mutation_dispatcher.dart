@@ -1,11 +1,15 @@
 import 'dart:async';
 
+import 'package:map_distribution/map_distribution.dart';
+
 import '../contracts/action_descriptor.dart';
 import '../domains/assets/asset_actions.dart';
 import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/element_actions.dart';
 import '../domains/assets/palette_actions.dart';
 import '../domains/assets/presentation_actions.dart';
+import '../domains/assets/presentation_media_configuration_actions.dart';
+import '../domains/assets/presentation_media_import_actions.dart';
 import '../domains/assets/presentation_preset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
 import '../domains/assets/tiled_tileset_import_actions.dart';
@@ -21,6 +25,9 @@ import '../domains/gameplay/character_studio/character_studio_character_actions.
 import '../domains/gameplay/character_studio/character_studio_portrait_state_actions.dart';
 import '../domains/narrative/dialogue_actions.dart';
 import '../domains/narrative/cinematic_actions.dart';
+import '../domains/narrative/cinematic_library_actions.dart';
+import '../domains/narrative/presentation_cinematic_actions.dart';
+import '../domains/narrative/presentation_cinematic_template_actions.dart';
 import '../domains/narrative/event_actions.dart';
 import '../domains/narrative/fact_rule_actions.dart';
 import '../domains/narrative/scene_actions.dart';
@@ -72,6 +79,9 @@ final class MapMutationDispatcher {
   factory MapMutationDispatcher.canonical({
     ArtifactStore? artifactStore,
     TiledImageCollectionRasterCodec? tiledImageCollectionRasterCodec,
+    PresentationMediaProbePort presentationMediaProbe =
+        const PresentationMediaHeaderProbe(),
+    PresentationMediaImportFaultInjector? presentationMediaFaultInjector,
     AuthoringPerformanceObserver? performanceObserver,
   }) {
     final lifecycle = MapLifecycleActions(
@@ -95,9 +105,16 @@ final class MapMutationDispatcher {
     const placedElement = PlacedElementActions();
     const triggerZone = TriggerZoneActions();
     const warpConnection = WarpConnectionActions();
-    final artifacts =
-        artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20);
+    final artifacts = artifactStore ??
+        MemoryArtifactStore(
+          maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
+        );
     final assets = AssetActions(artifactStore: artifacts);
+    final presentationMedia = PresentationMediaImportActions(
+      artifactStore: artifacts,
+      probe: presentationMediaProbe,
+      faultInjector: presentationMediaFaultInjector,
+    );
     final characterStudioAssets = CharacterStudioAssetActions(
       artifactStore: artifacts,
     );
@@ -128,6 +145,10 @@ final class MapMutationDispatcher {
     const characterStudioPortraitStates = CharacterStudioPortraitStateActions();
     const dialogues = DialogueActions();
     const cinematics = CinematicActions();
+    const cinematicLibrary = CinematicLibraryActions();
+    const presentationCinematics = PresentationCinematicActions();
+    const presentationCinematicTemplates =
+        PresentationCinematicTemplateActions();
     const scripts = ScriptActions();
     const scenes = SceneActions();
     const events = EventV2Actions();
@@ -204,6 +225,17 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: assets.build,
+        ),
+      for (final descriptor in PresentationMediaImportActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: presentationMedia.build,
+        ),
+      for (final descriptor
+          in PresentationMediaConfigurationActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: const PresentationMediaConfigurationActions().build,
         ),
       for (final descriptor in CharacterStudioAssetActions.descriptors)
         MapMutationActionRegistration(
@@ -300,6 +332,21 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: cinematics.build,
+        ),
+      for (final descriptor in CinematicLibraryActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: cinematicLibrary.build,
+        ),
+      for (final descriptor in PresentationCinematicActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: presentationCinematics.build,
+        ),
+      for (final descriptor in PresentationCinematicTemplateActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: presentationCinematicTemplates.build,
         ),
       for (final descriptor in ScriptActions.descriptors)
         MapMutationActionRegistration(

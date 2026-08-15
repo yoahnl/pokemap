@@ -13,8 +13,10 @@ import 'pokemon_ruleset_profile.dart';
 import 'save_data.dart';
 import 'project_presentation_profile.dart';
 import 'project_presentation_preset.dart';
+import 'presentation_cinematic_asset.dart';
 import 'project_tileset_source.dart';
 import 'cinematic_asset.dart';
+import 'cinematic_library_catalog.dart';
 import 'cinematic_media_asset.dart';
 import 'narrative_event_registry.dart';
 import 'narrative_diagnostic_suppression.dart';
@@ -39,6 +41,7 @@ import '../operations/project_element_shadow_config_json_codec.dart';
 import '../operations/project_building_shadow_preset_catalog_json_codec.dart';
 import '../operations/project_element_projected_building_shadow_config_json_codec.dart';
 import '../operations/project_shadow_catalog_json_codec.dart';
+import '../serialization/presentation_cinematic_codec.dart';
 
 part 'project_manifest.freezed.dart';
 part 'project_manifest.g.dart';
@@ -93,6 +96,22 @@ Map<String, Object?>? _projectCharacterStudioCatalogToJson(
     return null;
   }
   return catalog.toJson();
+}
+
+CinematicLibraryCatalog _cinematicLibraryCatalogFromJson(Object? json) {
+  if (json == null) return const CinematicLibraryCatalog.empty();
+  if (json is! Map) {
+    throw const FormatException(
+      r'$.cinematicLibraryCatalog: expected an object',
+    );
+  }
+  return CinematicLibraryCatalog.fromJson(Map<String, Object?>.from(json));
+}
+
+Map<String, Object?>? _cinematicLibraryCatalogToJson(
+  CinematicLibraryCatalog catalog,
+) {
+  return catalog.isEmpty ? null : catalog.toJson();
 }
 
 List<Map<String, dynamic>>? _characterPortraitsToJson(
@@ -362,6 +381,27 @@ String? _tilesetTransparentColorToJson(TilesetTransparentColor? color) {
   return color?.toHexRgb();
 }
 
+List<PresentationCinematicAsset> _presentationCinematicsFromJson(Object? json) {
+  if (json == null) return const <PresentationCinematicAsset>[];
+  if (json is! List) {
+    throw const FormatException(
+      r'$.presentationCinematics: expected a list',
+    );
+  }
+  return List<PresentationCinematicAsset>.unmodifiable(
+    json.map(decodePresentationCinematicAsset),
+  );
+}
+
+List<Map<String, Object?>>? _presentationCinematicsToJson(
+  List<PresentationCinematicAsset> cinematics,
+) {
+  if (cinematics.isEmpty) return null;
+  return List<Map<String, Object?>>.unmodifiable(
+    cinematics.map(encodePresentationCinematicAsset),
+  );
+}
+
 const Map<String, String> _defaultPokemonCatalogFiles = <String, String>{
   'moves': 'data/pokemon/catalogs/moves.json',
   'abilities': 'data/pokemon/catalogs/abilities.json',
@@ -407,6 +447,22 @@ abstract class ProjectManifest with _$ProjectManifest {
       toJson: _cinematicsToJson,
     )
     List<CinematicAsset> cinematics,
+    @Default(CinematicLibraryCatalog.empty())
+    @JsonKey(
+      name: 'cinematicLibraryCatalog',
+      fromJson: _cinematicLibraryCatalogFromJson,
+      toJson: _cinematicLibraryCatalogToJson,
+      includeIfNull: false,
+    )
+    CinematicLibraryCatalog cinematicLibraryCatalog,
+    @Default([])
+    @JsonKey(
+      name: 'presentationCinematics',
+      fromJson: _presentationCinematicsFromJson,
+      toJson: _presentationCinematicsToJson,
+      includeIfNull: false,
+    )
+    List<PresentationCinematicAsset> presentationCinematics,
     @Default([])
     @JsonKey(
       name: 'cinematicMediaAssets',
@@ -484,7 +540,7 @@ abstract class ProjectManifest with _$ProjectManifest {
   factory ProjectManifest.fromJson(Map<String, dynamic> json) {
     _preflightPokemonRulesetManifestJson(json);
     final migratedJson = _migrateLegacyTilesetSources(json);
-    _preflightSmartTileManifestJson(migratedJson);
+    _preflightProjectManifestJson(migratedJson);
     final decoded = _$ProjectManifestFromJson(migratedJson);
     final shops = decoded.shops
         .map((shop) => shop.normalized())
@@ -501,6 +557,10 @@ abstract class ProjectManifest with _$ProjectManifest {
     _assertUniqueDefinitionIds(
       kind: 'presentation preset',
       ids: manifest.presentationPresets.map((preset) => preset.id),
+    );
+    _assertUniqueDefinitionIds(
+      kind: 'presentation cinematic',
+      ids: manifest.presentationCinematics.map((cinematic) => cinematic.id),
     );
     return manifest;
   }
@@ -539,12 +599,45 @@ void _preflightPokemonRulesetManifestJson(Map<String, dynamic> json) {
   }
 }
 
-void _preflightSmartTileManifestJson(Map<String, dynamic> json) {
+void _preflightProjectManifestJson(Map<String, dynamic> json) {
   final version = json['version'] ?? 'v1';
-  if (version != 'v6') {
+  if (version != 'v6' && version != 'v7') {
+    final isLegacyVersion = const <String>{'v1', 'v2', 'v3', 'v4', 'v5'}
+        .contains(version);
     throw FormatException(
-      r'$.version: smart_tile_v6_project_required '
-      '(expected=v6, actual=$version)',
+      isLegacyVersion
+          ? r'$.version: smart_tile_v6_project_required '
+                '(expected=v6|v7, actual=$version)'
+          : r'$.version: project_version_unsupported '
+                '(expected=v6|v7, actual=$version)',
+    );
+  }
+  if (version == 'v6' && json.containsKey('presentationCinematics')) {
+    throw const FormatException(
+      r'$.presentationCinematics: cinematic_v2_project_v7_required '
+      '(expected=v7, actual=v6)',
+    );
+  }
+  if (version == 'v6' && json.containsKey('cinematicLibraryCatalog')) {
+    throw const FormatException(
+      r'$.cinematicLibraryCatalog: cinematic_v2_project_v7_required '
+      '(expected=v7, actual=v6)',
+    );
+  }
+  final newGame = json['newGame'];
+  if (newGame is Map && newGame.containsKey('starterSelectionSceneId')) {
+    throw const FormatException(
+      r'$.newGame.starterSelectionSceneId: '
+      'new_game_legacy_entrypoint_unsupported '
+      '(expected=preSessionSceneId)',
+    );
+  }
+  if (version == 'v6' &&
+      newGame is Map &&
+      newGame.containsKey('preSessionSceneId')) {
+    throw const FormatException(
+      r'$.newGame.preSessionSceneId: cinematic_v2_project_v7_required '
+      '(expected=v7, actual=v6)',
     );
   }
   for (final key in const <String>[
@@ -558,7 +651,7 @@ void _preflightSmartTileManifestJson(Map<String, dynamic> json) {
     if (json.containsKey(key)) {
       throw FormatException(
         '\$.$key: smart_tile_v6_legacy_manifest_field_unsupported '
-        '(version=v6, field=$key)',
+        '(version=$version, field=$key)',
       );
     }
   }

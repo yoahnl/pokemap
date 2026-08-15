@@ -11,7 +11,7 @@ class CreateProjectUseCase {
 
   Future<ProjectManifest> execute(String name, String directory) async {
     final manifest = ProjectManifest(
-      version: ProjectVersion.v6,
+      version: ProjectVersion.v7,
       name: name,
       maps: [],
       tilesets: [],

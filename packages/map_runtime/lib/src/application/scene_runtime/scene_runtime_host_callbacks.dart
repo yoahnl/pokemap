@@ -6,6 +6,7 @@ final class SceneRuntimeHostCallbacks {
     required this.showDialogue,
     required this.startBattle,
     required this.playCinematic,
+    this.playPresentationCinematic,
     this.executeInteractiveCommand,
   });
 
@@ -13,6 +14,7 @@ final class SceneRuntimeHostCallbacks {
   final SceneRuntimeIntentCallback showDialogue;
   final SceneRuntimeIntentCallback startBattle;
   final SceneRuntimeIntentCallback playCinematic;
+  final SceneRuntimeIntentCallback? playPresentationCinematic;
   final SceneRuntimeIntentCallback? executeInteractiveCommand;
 
   SceneRuntimeExecutionCallbacks toExecutionCallbacks({
@@ -24,6 +26,7 @@ final class SceneRuntimeHostCallbacks {
       showDialogue: showDialogue,
       startBattle: startBattle,
       playCinematic: playCinematic,
+      playPresentationCinematic: playPresentationCinematic,
       applyConsequence: applyConsequence,
       applyConsequenceWithNodeId: applyConsequenceWithNodeId,
       executeInteractiveCommand: executeInteractiveCommand,

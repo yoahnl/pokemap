@@ -8,6 +8,7 @@ import '../contracts/artifact_ref.dart';
 import '../ports/project_file_reader.dart';
 import '../domains/assets/asset_store.dart';
 import '../domains/gameplay/pokemon_catalog_coherence_loader.dart';
+import '../domains/assets/project_media_store.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../transactions/change_set.dart';
 import 'project_snapshot.dart';
@@ -82,6 +83,9 @@ final class ProjectSnapshotDecodeExecutor {
 
   Future<AssetCatalog> decodeAssetCatalog(List<int> bytes) =>
       _execute(bytes, _decodeAssetCatalog);
+
+  Future<ProjectMediaCatalog> decodeProjectMediaCatalog(List<int> bytes) =>
+      _execute(bytes, _decodeProjectMediaCatalog);
 
   Future<ProjectItemCatalog> decodeItemCatalog(List<int> bytes) =>
       _execute(bytes, _decodeItemCatalog);
@@ -498,6 +502,27 @@ final class ProjectSnapshotLoader {
       }
     }
 
+    final projectMediaCatalogReadTimer = profiler?.startStage();
+    final projectMediaCatalogBytes = await _readOptional(
+      access,
+      projectMediaCatalogStorageKey,
+    );
+    profiler?.recordInitialRead(projectMediaCatalogReadTimer!);
+    if (projectMediaCatalogBytes != null) {
+      final projectMediaCatalogDecodeTimer = profiler?.startStage();
+      await _decodeExecutor.decodeProjectMediaCatalog(
+        projectMediaCatalogBytes.bytes,
+      );
+      resources.add(
+        _LoadedProjectResource(
+          relativePath: projectMediaCatalogStorageKey,
+          identity: projectMediaCatalogResourceIdentity,
+          bytes: projectMediaCatalogBytes,
+        ),
+      );
+      profiler?.recordDecodeModel(projectMediaCatalogDecodeTimer!);
+    }
+
     final resourceOrderingTimer = profiler?.startStage();
     resources.sort(
       (left, right) => left.relativePath.compareTo(right.relativePath),
@@ -719,6 +744,17 @@ AssetCatalog _decodeAssetCatalog(List<int> bytes) {
     throw const ProjectSnapshotException(
       'project.asset_catalog_invalid',
       'The project asset catalog is invalid.',
+    );
+  }
+}
+
+ProjectMediaCatalog _decodeProjectMediaCatalog(List<int> bytes) {
+  try {
+    return decodeProjectMediaCatalogBytes(bytes);
+  } on Object {
+    throw const ProjectSnapshotException(
+      'project.media_catalog_invalid',
+      'The project media catalog is invalid.',
     );
   }
 }

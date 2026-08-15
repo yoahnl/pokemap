@@ -1,5 +1,4 @@
 import '../models/border_catalog.dart';
-import '../models/enums.dart';
 import '../models/project_manifest.dart';
 
 /// Returns the current project-owned Border catalog without copying it.
@@ -13,7 +12,6 @@ ProjectManifest replaceProjectBorderCatalog(
   ProjectBorderCatalog borderCatalog,
 ) {
   return manifest.copyWith(
-    version: ProjectVersion.v6,
     borderCatalog: borderCatalog,
   );
 }

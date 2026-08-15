@@ -89,12 +89,156 @@ void main() {
 
       expect(decoded, asset);
       expect(jsonEncode(encodedAgain), jsonEncode(encoded));
-      expect(encoded['schemaVersion'], 1);
+      expect(encoded['schemaVersion'], 3);
       expect(encoded['capabilities'], ['cinematic.presentation']);
       expect(encoded['timebase'], {
         'unit': 'microsecond',
         'ticksPerSecond': 1000000,
       });
+    });
+
+    test('round-trips authored text, responsive media and typed audio', () {
+      final asset = PresentationCinematicAsset(
+        id: 'presentation_typed_properties',
+        title: 'Typed properties',
+        durationUs: 8_000_000,
+        layers: <PresentationLayer>[
+          PresentationLayer(id: 'hero', label: 'Hero', zIndex: 1),
+          PresentationLayer(id: 'title', label: 'Title', zIndex: 2),
+        ],
+        tracks: <PresentationTrack>[
+          PresentationTrack(
+            id: 'visuals',
+            label: 'Visuals',
+            kind: PresentationTrackKind.visual,
+            clips: <PresentationClip>[
+              PresentationVisualClip(
+                id: 'hero-image',
+                startUs: 0,
+                durationUs: 8_000_000,
+                layerId: 'hero',
+                resourceId: 'hero-shared',
+                landscapeResourceId: 'hero-landscape',
+                portraitResourceId: 'hero-portrait',
+                landscapeCompositionOverride: PresentationVisualComposition(
+                  translateX: -.1,
+                  scaleX: 1.1,
+                  scaleY: 1.1,
+                ),
+                portraitCompositionOverride: PresentationVisualComposition(
+                  translateY: .15,
+                  scaleX: 1.3,
+                  scaleY: 1.3,
+                ),
+              ),
+              PresentationTextClip(
+                id: 'title-text',
+                startUs: 500_000,
+                durationUs: 5_000_000,
+                layerId: 'title',
+                text: 'Une aventure vous attend',
+                localizationKey: 'cinematic.opening.title',
+                style: PresentationTextStyle(
+                  fontFamily: 'Avelune Sans',
+                  fontSize: 54,
+                  weight: PresentationTextWeight.bold,
+                  alignment: PresentationTextAlignment.center,
+                  wrapping: PresentationTextWrapping.wrap,
+                  colorHex: '#FFF4DB',
+                  respectSafeArea: true,
+                ),
+              ),
+            ],
+          ),
+          PresentationTrack(
+            id: 'audio',
+            label: 'Audio',
+            kind: PresentationTrackKind.audio,
+            clips: <PresentationClip>[
+              PresentationAudioClip(
+                id: 'voice',
+                startUs: 0,
+                durationUs: 4_000_000,
+                resourceId: 'voice-shared',
+                audioKind: PresentationAudioKind.voice,
+                landscapeResourceId: 'voice-landscape',
+                portraitResourceId: 'voice-portrait',
+                volume: .8,
+                fadeInUs: 250_000,
+                fadeOutUs: 500_000,
+                bus: PresentationAudioBus.voice,
+              ),
+              PresentationAudioClip(
+                id: 'music',
+                startUs: 0,
+                durationUs: 8_000_000,
+                resourceId: 'music-shared',
+                audioKind: PresentationAudioKind.music,
+                loop: true,
+                bus: PresentationAudioBus.music,
+              ),
+            ],
+          ),
+          PresentationTrack(
+            id: 'captions',
+            label: 'Captions',
+            kind: PresentationTrackKind.caption,
+            clips: <PresentationClip>[
+              PresentationCaptionClip(
+                id: 'caption',
+                startUs: 0,
+                durationUs: 4_000_000,
+                captionId: 'caption-fr',
+                locale: 'fr-FR',
+                style: PresentationCaptionStyle.highContrast,
+                fallbackToProjectDefault: true,
+              ),
+            ],
+          ),
+          PresentationTrack(
+            id: 'markers',
+            label: 'Markers',
+            kind: PresentationTrackKind.marker,
+            clips: <PresentationClip>[
+              PresentationMarkerClip(
+                id: 'ask-name',
+                startUs: 4_000_000,
+                label: 'Demander le nom',
+                markerKind: PresentationMarkerKind.interactionCue,
+                required: true,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final encoded = encodePresentationCinematicAsset(asset);
+      final decoded = decodePresentationCinematicAsset(
+        jsonDecode(jsonEncode(encoded)),
+      );
+
+      expect(decoded, asset);
+      expect(encodePresentationCinematicAsset(decoded), encoded);
+    });
+
+    test('music rejects orientation-specific media overrides', () {
+      expect(
+        () => PresentationAudioClip(
+          id: 'music',
+          startUs: 0,
+          durationUs: 1_000_000,
+          resourceId: 'shared',
+          audioKind: PresentationAudioKind.music,
+          portraitResourceId: 'portrait',
+        ),
+        throwsA(
+          isA<PresentationCinematicValidationException>().having(
+            (error) => error.path,
+            'path',
+            'PresentationAudioClip.portraitResourceId',
+          ),
+        ),
+      );
     });
 
     test('uses deterministic defaults for a minimal asset', () {
@@ -105,17 +249,123 @@ void main() {
       );
 
       expect(encodePresentationCinematicAsset(asset), {
-        'schemaVersion': 1,
+        'schemaVersion': 3,
         'capabilities': ['cinematic.presentation'],
         'timebase': {'unit': 'microsecond', 'ticksPerSecond': 1000000},
         'id': 'presentation_minimal',
         'title': 'Minimal',
         'durationUs': 1,
         'layers': <Object?>[],
+        'visualFolders': <Object?>[],
         'tracks': <Object?>[],
       });
       expect(asset.layers, isEmpty);
       expect(asset.tracks, isEmpty);
+    });
+
+    test('persists one-level visual folders and effective layer states', () {
+      final asset = PresentationCinematicAsset(
+        id: 'presentation_layers',
+        title: 'Layers',
+        durationUs: 1_000_000,
+        layers: <PresentationLayer>[
+          PresentationLayer(
+            id: 'title',
+            label: 'Title',
+            zIndex: 2,
+            visible: false,
+          ),
+          PresentationLayer(
+            id: 'subtitle',
+            label: 'Subtitle',
+            zIndex: 1,
+            locked: true,
+          ),
+          PresentationLayer(id: 'background', label: 'Background', zIndex: 0),
+        ],
+        visualFolders: <PresentationVisualFolder>[
+          PresentationVisualFolder(
+            id: 'titles',
+            label: 'Titles',
+            layerIds: const <String>['title', 'subtitle'],
+            hidden: true,
+            locked: true,
+          ),
+        ],
+      );
+
+      final decoded = decodePresentationCinematicAsset(
+        encodePresentationCinematicAsset(asset),
+      );
+
+      expect(decoded, asset);
+      expect(decoded.visualFolders.single.layerIds, <String>[
+        'title',
+        'subtitle',
+      ]);
+      expect(decoded.layers.first.visible, isFalse);
+      expect(decoded.layers[1].locked, isTrue);
+      expect(decoded.isLayerEffectivelyVisible('title'), isFalse);
+      expect(decoded.isLayerEffectivelyLocked('subtitle'), isTrue);
+    });
+
+    test('rejects nested membership and split visual folder blocks', () {
+      expect(
+        () => PresentationCinematicAsset(
+          id: 'presentation_duplicate_membership',
+          title: 'Duplicate membership',
+          durationUs: 1,
+          layers: <PresentationLayer>[
+            PresentationLayer(id: 'a', label: 'A', zIndex: 2),
+            PresentationLayer(id: 'b', label: 'B', zIndex: 1),
+          ],
+          visualFolders: <PresentationVisualFolder>[
+            PresentationVisualFolder(
+              id: 'first',
+              label: 'First',
+              layerIds: const <String>['a'],
+            ),
+            PresentationVisualFolder(
+              id: 'second',
+              label: 'Second',
+              layerIds: const <String>['a'],
+            ),
+          ],
+        ),
+        throwsA(
+          isA<PresentationCinematicValidationException>().having(
+            (error) => error.path,
+            'path',
+            r'$.visualFolders[1].layerIds[0]',
+          ),
+        ),
+      );
+      expect(
+        () => PresentationCinematicAsset(
+          id: 'presentation_split_folder',
+          title: 'Split folder',
+          durationUs: 1,
+          layers: <PresentationLayer>[
+            PresentationLayer(id: 'a', label: 'A', zIndex: 2),
+            PresentationLayer(id: 'root', label: 'Root', zIndex: 1),
+            PresentationLayer(id: 'b', label: 'B', zIndex: 0),
+          ],
+          visualFolders: <PresentationVisualFolder>[
+            PresentationVisualFolder(
+              id: 'split',
+              label: 'Split',
+              layerIds: const <String>['a', 'b'],
+            ),
+          ],
+        ),
+        throwsA(
+          isA<PresentationCinematicValidationException>().having(
+            (error) => error.path,
+            'path',
+            r'$.visualFolders[0].layerIds',
+          ),
+        ),
+      );
     });
 
     test(
@@ -164,6 +414,113 @@ void main() {
         expect(decoded.tracks.single.clips[1].startUs, 2_000_000);
       },
     );
+
+    test('round-trips canonical visual composition and transitions', () {
+      final asset = PresentationCinematicAsset(
+        id: 'presentation_composition',
+        title: 'Composition',
+        durationUs: 1_000_000,
+        layers: [PresentationLayer(id: 'hero', label: 'Hero', zIndex: 7)],
+        tracks: [
+          PresentationTrack(
+            id: 'visuals',
+            label: 'Visuels',
+            kind: PresentationTrackKind.visual,
+            clips: [
+              PresentationVisualClip(
+                id: 'hero_clip',
+                startUs: 0,
+                durationUs: 1_000_000,
+                layerId: 'hero',
+                resourceId: 'media.hero',
+                easing: PresentationEasing.easeInOut,
+                from: PresentationVisualComposition(
+                  translateX: -0.25,
+                  translateY: 0.1,
+                  scaleX: 0.8,
+                  scaleY: 0.9,
+                  rotationTurns: -0.05,
+                  opacity: 0.2,
+                  cropLeft: 0.1,
+                  cropTop: 0.05,
+                ),
+                to: PresentationVisualComposition(
+                  translateX: 0.25,
+                  translateY: -0.1,
+                  scaleX: 1.2,
+                  scaleY: 1.1,
+                  rotationTurns: 0.05,
+                  opacity: 0.9,
+                  cropRight: 0.1,
+                  cropBottom: 0.05,
+                ),
+                transitionIn: PresentationVisualTransition(
+                  kind: PresentationVisualTransitionKind.slideLeft,
+                  durationUs: 200_000,
+                ),
+                transitionOut: PresentationVisualTransition(
+                  kind: PresentationVisualTransitionKind.fade,
+                  durationUs: 300_000,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final encoded = encodePresentationCinematicAsset(asset);
+      final decoded = decodePresentationCinematicAsset(
+        jsonDecode(jsonEncode(encoded)),
+      );
+      final clip =
+          (encoded['tracks']! as List<Object?>).single as Map<String, Object?>;
+      final visual =
+          (clip['clips']! as List<Object?>).single as Map<String, Object?>;
+
+      expect(decoded, asset);
+      expect(visual['from'], {
+        'translateX': -0.25,
+        'translateY': 0.1,
+        'scaleX': 0.8,
+        'scaleY': 0.9,
+        'rotationTurns': -0.05,
+        'opacity': 0.2,
+        'cropLeft': 0.1,
+        'cropTop': 0.05,
+        'cropRight': 0.0,
+        'cropBottom': 0.0,
+      });
+      expect(visual['transitionIn'], {
+        'kind': 'slideLeft',
+        'durationUs': 200000,
+      });
+      expect(visual['transitionOut'], {'kind': 'fade', 'durationUs': 300000});
+    });
+
+    test('rejects invalid crop, opacity and transition durations', () {
+      expect(
+        () => PresentationVisualComposition(opacity: 1.1),
+        throwsA(isA<PresentationCinematicValidationException>()),
+      );
+      expect(
+        () => PresentationVisualComposition(cropLeft: 0.6, cropRight: 0.4),
+        throwsA(isA<PresentationCinematicValidationException>()),
+      );
+      expect(
+        () => PresentationVisualClip(
+          id: 'visual',
+          startUs: 0,
+          durationUs: 10,
+          layerId: 'layer',
+          resourceId: 'media',
+          transitionIn: PresentationVisualTransition(
+            kind: PresentationVisualTransitionKind.fade,
+            durationUs: 11,
+          ),
+        ),
+        throwsA(isA<PresentationCinematicValidationException>()),
+      );
+    });
 
     test('rejects incompatible tracks, duplicate ids and dangling layers', () {
       expect(
@@ -326,13 +683,13 @@ void main() {
       expect(
         () => decodePresentationCinematicAsset({
           ..._minimalJson(),
-          'schemaVersion': 2,
+          'schemaVersion': 4,
         }),
         throwsA(
           isA<UnsupportedPresentationCinematicSchema>().having(
             (error) => error.schemaVersion,
             'schemaVersion',
-            2,
+            4,
           ),
         ),
       );
@@ -365,6 +722,8 @@ void main() {
               {
                 'id': 'visual',
                 'kind': 'visual',
+                'contentKind': 'media',
+                'mediaKind': 'image',
                 'startUs': 0,
                 'durationUs': 1,
                 'layerId': 'missing',
@@ -449,12 +808,13 @@ void main() {
 }
 
 Map<String, Object?> _minimalJson() => {
-  'schemaVersion': 1,
+  'schemaVersion': 3,
   'capabilities': ['cinematic.presentation'],
   'timebase': {'unit': 'microsecond', 'ticksPerSecond': 1000000},
   'id': 'presentation_minimal',
   'title': 'Minimal',
   'durationUs': 1,
   'layers': <Object?>[],
+  'visualFolders': <Object?>[],
   'tracks': <Object?>[],
 };

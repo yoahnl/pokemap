@@ -2,6 +2,12 @@
 /// Exposes reusable components styled according to the PokeMap color tokens and theme guidelines.
 library;
 
+export 'cinematic/pokemap_cinematic_library_primitives.dart';
+export 'cinematic/pokemap_cinematic_layer_primitives.dart';
+export 'cinematic/pokemap_cinematic_media_primitives.dart';
+export 'cinematic/pokemap_cinematic_timeline_primitives.dart';
+export 'cinematic/pokemap_cinematic_canvas_primitives.dart';
+export 'cinematic/pokemap_cinematic_workspace_primitives.dart';
 export 'narrative/pokemap_dependency_inspector.dart';
 export 'narrative/pokemap_event_source_picker.dart';
 export 'narrative/pokemap_narrative_reference_picker.dart';

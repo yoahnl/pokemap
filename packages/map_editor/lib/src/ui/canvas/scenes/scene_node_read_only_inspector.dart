@@ -3053,6 +3053,13 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
         _InspectorRow(label: 'cinematicId', value: cinematicId),
         const _InspectorRow(label: 'Sortie attendue', value: 'completed'),
       ],
+    ScenePresentationCinematicPayload(:final presentationCinematicId) => [
+        _InspectorRow(
+          label: 'presentationCinematicId',
+          value: presentationCinematicId,
+        ),
+        const _InspectorRow(label: 'Sortie attendue', value: 'completed'),
+      ],
     SceneBranchByOutcomePayload(
       :final sourceNodeId,
       :final sourceOutcomeSetRef,
@@ -3226,6 +3233,7 @@ String _nodeInspectorModeLabel(
     SceneNodeKind.end => endEditable ? 'Éditable' : 'Lecture seule',
     SceneNodeKind.start ||
     SceneNodeKind.cinematic ||
+    SceneNodeKind.presentationCinematic ||
     SceneNodeKind.branchByOutcome ||
     SceneNodeKind.merge =>
       'Lecture seule',
@@ -3290,6 +3298,7 @@ String _nodeKindLabel(SceneNodeKind kind) {
     SceneNodeKind.action => 'Action',
     SceneNodeKind.battle => 'Combat',
     SceneNodeKind.cinematic => 'Cinématique',
+    SceneNodeKind.presentationCinematic => 'Cinématique de présentation',
     SceneNodeKind.branchByOutcome => 'Branche',
     SceneNodeKind.merge => 'Merge',
   };
@@ -3317,6 +3326,7 @@ String _edgeKindLabel(SceneEdgeKind kind) {
     SceneEdgeKind.battleVictory => 'victory',
     SceneEdgeKind.battleDefeat => 'defeat',
     SceneEdgeKind.cinematicCompleted => 'cinematic',
+    SceneEdgeKind.presentationCompleted => 'presentation',
     SceneEdgeKind.actionCompleted => 'action',
     SceneEdgeKind.branchOutcome => 'branch',
     SceneEdgeKind.error => 'error',

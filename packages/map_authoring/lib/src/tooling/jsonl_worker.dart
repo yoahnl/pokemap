@@ -18,6 +18,9 @@ import '../domains/gameplay/item_catalog_actions.dart';
 import '../domains/gameplay/pokemon_ruleset_actions.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
+import '../domains/narrative/cinematic_library_actions.dart';
+import '../domains/narrative/presentation_cinematic_actions.dart';
+import '../domains/narrative/presentation_cinematic_template_actions.dart';
 import '../history/authoring_history.dart';
 import '../ports/project_file_reader.dart';
 import '../ports/artifact_store.dart';
@@ -223,6 +226,30 @@ final class JsonlWorker {
         code: AuthoringErrorCode.validationFailed,
         domainCode: error.code,
         message: error.message,
+      );
+    } on PresentationCinematicAuthoringException catch (error) {
+      result = _failure(
+        requestId,
+        code: _presentationCinematicDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
+      );
+    } on PresentationCinematicTemplateAuthoringException catch (error) {
+      result = _failure(
+        requestId,
+        code: _presentationCinematicTemplateDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
+      );
+    } on CinematicLibraryAuthoringException catch (error) {
+      result = _failure(
+        requestId,
+        code: _cinematicLibraryDomainErrorCode(error.code),
+        domainCode: error.code,
+        message: error.message,
+        details: _safeDetails(error.details),
       );
     } on AuthoringPlanException catch (error) {
       result = _failure(
@@ -698,6 +725,27 @@ AuthoringErrorCode _itemDomainErrorCode(String code) => switch (code) {
         AuthoringErrorCode.invalidRequest,
       _ => AuthoringErrorCode.validationFailed,
     };
+
+AuthoringErrorCode _presentationCinematicDomainErrorCode(String code) {
+  if (code.endsWith('_unsupported')) return AuthoringErrorCode.unsupported;
+  if (code.endsWith('_not_found')) return AuthoringErrorCode.notFound;
+  if (code.endsWith('_invalid')) return AuthoringErrorCode.invalidRequest;
+  return AuthoringErrorCode.validationFailed;
+}
+
+AuthoringErrorCode _presentationCinematicTemplateDomainErrorCode(String code) {
+  if (code.endsWith('.unknown')) return AuthoringErrorCode.notFound;
+  if (code.endsWith('_unsupported')) return AuthoringErrorCode.unsupported;
+  if (code.endsWith('_invalid')) return AuthoringErrorCode.invalidRequest;
+  return AuthoringErrorCode.validationFailed;
+}
+
+AuthoringErrorCode _cinematicLibraryDomainErrorCode(String code) {
+  if (code.endsWith('_unsupported')) return AuthoringErrorCode.unsupported;
+  if (code.endsWith('_unknown')) return AuthoringErrorCode.notFound;
+  if (code.endsWith('_invalid')) return AuthoringErrorCode.invalidRequest;
+  return AuthoringErrorCode.validationFailed;
+}
 
 AuthoringErrorCode _artifactDomainErrorCode(String code) => switch (code) {
       'artifact.source_outside_allowed_roots' =>

@@ -69,6 +69,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
     this.introPoster,
     this.splashLogo,
     this.introDriverFactory,
+    this.audioMixer,
     this.titlePromptSource,
     this.titlePromptPoster,
     this.titleMenuSource,
@@ -102,6 +103,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
   final ImageProvider? introPoster;
   final ImageProvider? splashLogo;
   final PlayerIntroPlaybackFactory? introDriverFactory;
+  final RuntimeAudioMixer? audioMixer;
   final PlayerIntroVideoSource? titlePromptSource;
   final ImageProvider? titlePromptPoster;
   final PlayerIntroVideoSource? titleMenuSource;
@@ -342,6 +344,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       phase: snapshot.introPhase,
       allowReplay: snapshot.canReplayIntro,
       driverFactory: widget.introDriverFactory,
+      audioMixer: widget.audioMixer,
       onPlaybackCompleted: () {
         if (_active && _visiblePhase == RuntimeStartupPhase.intro) {
           widget.onIntroPlaybackCompleted(snapshot.revision);

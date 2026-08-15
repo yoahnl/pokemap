@@ -103,7 +103,7 @@ List<ProjectGameplayReadinessEvidence> _inspectProject(
       project.newGame.startMapId.trim().isNotEmpty &&
       mapIds.contains(project.newGame.startMapId);
   final hasStarter = project.newGame.starterOptions.isNotEmpty &&
-      (project.newGame.starterSelectionSceneId?.trim().isNotEmpty ?? false);
+      (project.newGame.preSessionSceneId?.trim().isNotEmpty ?? false);
   final hasPlayablePartyPath =
       hasStarter || project.newGame.initialParty.isNotEmpty;
   final hasEncounterTables = project.encounterTables.isNotEmpty;

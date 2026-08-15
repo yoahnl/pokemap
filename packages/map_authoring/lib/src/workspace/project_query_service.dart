@@ -7,6 +7,7 @@ import '../contracts/query_page.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_store.dart';
 import '../domains/assets/presentation_preview_context_resources.dart';
+import '../domains/assets/project_media_store.dart';
 import '../domains/gameplay/character_studio/character_studio_resources.dart';
 import '../domains/maps/map_region_query.dart';
 import '../domains/maps/warp_connection_actions.dart';
@@ -825,6 +826,79 @@ List<_QueryRecord> _records(
             detail: _assetDetail(asset),
           ),
       ];
+    case 'presentationMedia':
+      final bytes = snapshot.findResourceBytes(
+        projectMediaCatalogResourceIdentity,
+      );
+      if (bytes == null) return const [];
+      final catalog = decodeProjectMediaCatalogBytes(bytes);
+      return [
+        for (final media in catalog.entries)
+          _QueryRecord(
+            summary: _projectMediaSummary(media),
+            detail: _projectMediaDetail(media),
+          ),
+      ];
+    case 'cinematicLibraryCatalog':
+      final catalog = snapshot.manifest.cinematicLibraryCatalog;
+      final record = <String, Object?>{
+        'id': 'cinematic-library',
+        'name': 'Cinematic library',
+        'resourceKind': 'cinematicLibraryCatalog',
+        'schemaVersion': CinematicLibraryCatalog.currentSchemaVersion,
+        'folderCount': catalog.folders.length,
+        'entryCount': catalog.entries.length,
+        ...catalog.toJson(),
+      };
+      return <_QueryRecord>[
+        _QueryRecord(summary: record, detail: record),
+      ];
+    case 'cinematicLibraryFolder':
+      return <_QueryRecord>[
+        for (final folder in snapshot.manifest.cinematicLibraryCatalog.folders)
+          _cinematicLibraryFolderRecord(folder),
+      ];
+    case 'cinematicLibraryEntry':
+      return <_QueryRecord>[
+        for (final entry in snapshot.manifest.cinematicLibraryCatalog.entries)
+          _cinematicLibraryEntryRecord(entry),
+      ];
+    case 'presentationCinematic':
+      return <_QueryRecord>[
+        for (final cinematic in snapshot.manifest.presentationCinematics)
+          _presentationCinematicRecord(cinematic),
+      ];
+    case 'presentationCinematicTemplate':
+      return <_QueryRecord>[
+        for (final template
+            in PresentationCinematicTemplateCatalog.canonical().templates)
+          _presentationCinematicTemplateRecord(template),
+      ];
+    case 'presentationTrack':
+      return <_QueryRecord>[
+        for (final cinematic in snapshot.manifest.presentationCinematics)
+          for (final track in cinematic.tracks)
+            _presentationTrackRecord(cinematic, track),
+      ];
+    case 'presentationClip':
+      return <_QueryRecord>[
+        for (final cinematic in snapshot.manifest.presentationCinematics)
+          for (final track in cinematic.tracks)
+            for (final clip in track.clips)
+              _presentationClipRecord(cinematic, track, clip),
+      ];
+    case 'presentationLayer':
+      return <_QueryRecord>[
+        for (final cinematic in snapshot.manifest.presentationCinematics)
+          for (final layer in cinematic.layers)
+            _presentationLayerRecord(cinematic, layer),
+      ];
+    case 'presentationVisualFolder':
+      return <_QueryRecord>[
+        for (final cinematic in snapshot.manifest.presentationCinematics)
+          for (final folder in cinematic.visualFolders)
+            _presentationVisualFolderRecord(cinematic, folder),
+      ];
     case 'tilesetFolder':
       return [
         for (final folder in snapshot.manifest.tilesetFolders)
@@ -1309,6 +1383,173 @@ Map<String, Object?> _mapConnectionRecord(
       ...connection.toJson(),
     };
 
+_QueryRecord _presentationCinematicRecord(
+  PresentationCinematicAsset cinematic,
+) {
+  final encoded = encodePresentationCinematicAsset(cinematic);
+  final summary = <String, Object?>{
+    'id': cinematic.id,
+    'name': cinematic.title,
+    'resourceKind': 'presentationCinematic',
+    'description': cinematic.description,
+    'durationUs': cinematic.durationUs,
+    'trackCount': cinematic.tracks.length,
+    'clipCount': cinematic.tracks.fold<int>(
+      0,
+      (count, track) => count + track.clips.length,
+    ),
+    'layerCount': cinematic.layers.length,
+  };
+  return _QueryRecord(
+    summary: summary,
+    detail: <String, Object?>{...encoded, ...summary},
+  );
+}
+
+_QueryRecord _presentationCinematicTemplateRecord(
+  PresentationCinematicTemplate template,
+) {
+  final encoded = template.toJson();
+  final summary = <String, Object?>{
+    'id': template.id,
+    'name': template.nameKey,
+    'resourceKind': 'presentationCinematicTemplate',
+    'version': template.version,
+    'order': template.order,
+    'nameKey': template.nameKey,
+    'descriptionKey': template.descriptionKey,
+    'defaultDurationUs': template.defaultDurationUs,
+  };
+  return _QueryRecord(
+    summary: summary,
+    detail: <String, Object?>{...encoded, ...summary},
+  );
+}
+
+_QueryRecord _presentationTrackRecord(
+  PresentationCinematicAsset cinematic,
+  PresentationTrack track,
+) {
+  final encodedCinematic = encodePresentationCinematicAsset(cinematic);
+  final encodedTracks = encodedCinematic['tracks']! as List<Object?>;
+  final trackIndex = cinematic.tracks.indexOf(track);
+  final encoded = Map<String, Object?>.from(encodedTracks[trackIndex]! as Map);
+  final id = _presentationResourceId(<String>[cinematic.id, track.id]);
+  final summary = <String, Object?>{
+    'id': id,
+    'name': track.label,
+    'resourceKind': 'presentationTrack',
+    'cinematicId': cinematic.id,
+    'trackId': track.id,
+    'kind': track.kind.name,
+    'clipCount': track.clips.length,
+    'order': trackIndex,
+  };
+  return _QueryRecord(
+    summary: summary,
+    detail: <String, Object?>{...encoded, ...summary},
+  );
+}
+
+_QueryRecord _presentationClipRecord(
+  PresentationCinematicAsset cinematic,
+  PresentationTrack track,
+  PresentationClip clip,
+) {
+  final encodedCinematic = encodePresentationCinematicAsset(cinematic);
+  final encodedTracks = encodedCinematic['tracks']! as List<Object?>;
+  final trackIndex = cinematic.tracks.indexOf(track);
+  final encodedTrack = Map<String, Object?>.from(
+    encodedTracks[trackIndex]! as Map,
+  );
+  final encodedClips = encodedTrack['clips']! as List<Object?>;
+  final clipIndex = track.clips.indexOf(clip);
+  final encoded = Map<String, Object?>.from(encodedClips[clipIndex]! as Map);
+  final id = _presentationResourceId(
+    <String>[cinematic.id, track.id, clip.id],
+  );
+  final summary = <String, Object?>{
+    'id': id,
+    'name': clip.id,
+    'resourceKind': 'presentationClip',
+    'cinematicId': cinematic.id,
+    'trackId': track.id,
+    'clipId': clip.id,
+    'kind': clip.trackKind.name,
+    'startUs': clip.startUs,
+    'durationUs': clip.durationUs,
+    'endUs': clip.endUs,
+    'order': clipIndex,
+  };
+  return _QueryRecord(
+    summary: summary,
+    detail: <String, Object?>{...encoded, ...summary},
+  );
+}
+
+_QueryRecord _presentationLayerRecord(
+  PresentationCinematicAsset cinematic,
+  PresentationLayer layer,
+) {
+  final id = _presentationResourceId(<String>[cinematic.id, layer.id]);
+  final summary = <String, Object?>{
+    'id': id,
+    'name': layer.label,
+    'resourceKind': 'presentationLayer',
+    'cinematicId': cinematic.id,
+    'layerId': layer.id,
+    'zIndex': layer.zIndex,
+    'visible': layer.visible,
+    'locked': layer.locked,
+    'folderId': cinematic.folderForLayer(layer.id)?.id,
+  };
+  return _QueryRecord(summary: summary, detail: summary);
+}
+
+_QueryRecord _presentationVisualFolderRecord(
+  PresentationCinematicAsset cinematic,
+  PresentationVisualFolder folder,
+) {
+  final id = _presentationResourceId(<String>[cinematic.id, folder.id]);
+  final record = <String, Object?>{
+    'id': id,
+    'name': folder.label,
+    'resourceKind': 'presentationVisualFolder',
+    'cinematicId': cinematic.id,
+    'folderId': folder.id,
+    'layerIds': List<String>.of(folder.layerIds),
+    'hidden': folder.hidden,
+    'locked': folder.locked,
+  };
+  return _QueryRecord(summary: record, detail: record);
+}
+
+String _presentationResourceId(Iterable<String> segments) =>
+    segments.map(Uri.encodeComponent).join(':');
+
+_QueryRecord _cinematicLibraryFolderRecord(CinematicLibraryFolder folder) {
+  final record = <String, Object?>{
+    ...folder.toJson(),
+    'name': folder.name,
+    'resourceKind': 'cinematicLibraryFolder',
+  };
+  return _QueryRecord(summary: record, detail: record);
+}
+
+_QueryRecord _cinematicLibraryEntryRecord(CinematicLibraryEntry entry) {
+  final id = _presentationResourceId(<String>[
+    entry.family.name,
+    entry.cinematicId,
+  ]);
+  final record = <String, Object?>{
+    ...entry.toJson(),
+    'id': id,
+    'name': entry.cinematicId,
+    'resourceKind': 'cinematicLibraryEntry',
+  };
+  return _QueryRecord(summary: record, detail: record);
+}
+
 String _directionLabel(MapConnectionDirection direction) => switch (direction) {
       MapConnectionDirection.north => 'North',
       MapConnectionDirection.east => 'East',
@@ -1395,6 +1636,20 @@ Map<String, Object?> _assetDetail(AssetRecord asset) => {
         'artifactHandle': asset.artifact.handle,
         'mediaType': asset.artifact.mediaType,
       },
+    };
+
+Map<String, Object?> _projectMediaSummary(ProjectMediaAsset media) => {
+      'id': media.id,
+      'name': media.label,
+      'resourceKind': 'presentationMedia',
+      'kind': media.kind.id,
+      'sourceAssetId': media.sourceAssetId,
+    };
+
+Map<String, Object?> _projectMediaDetail(ProjectMediaAsset media) => {
+      ...media.toJson(),
+      'name': media.label,
+      'resourceKind': 'presentationMedia',
     };
 
 Map<String, Object?> _tilesetFolderRecord(ProjectTilesetFolder folder) => {
@@ -1814,6 +2069,10 @@ Comparator<_QueryRecord> _comparator(List<AuthoringQuerySort> sort) {
 }
 
 List<AuthoringQuerySort> _effectiveSort(AuthoringQueryRequest request) {
+  if (request.sort.isEmpty &&
+      request.resourceKind == 'presentationCinematicTemplate') {
+    return const <AuthoringQuerySort>[AuthoringQuerySort(field: 'order')];
+  }
   if (request.sort.isEmpty &&
       request.extensions['actionId'] == 'world_graph.find_path') {
     return const [AuthoringQuerySort(field: 'pathIndex')];

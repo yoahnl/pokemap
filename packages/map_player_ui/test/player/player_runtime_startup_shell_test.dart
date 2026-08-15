@@ -991,6 +991,9 @@ final class _GatePlaybackDriver implements PlayerIntroPlaybackDriver {
   }
 
   @override
+  Future<void> setVolume(double volume) async {}
+
+  @override
   Future<void> play() async {
     playCalls++;
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/theme.dart';
+import 'pokemap_icon_button.dart';
 import 'pokemap_panel.dart';
 
 const _menuRowHeight = 34.0;
@@ -60,9 +61,103 @@ class PokeMapContextMenu<T> extends StatefulWidget {
   State<PokeMapContextMenu<T>> createState() => _PokeMapContextMenuState<T>();
 }
 
+class PokeMapMenuIconButton<T> extends StatefulWidget {
+  const PokeMapMenuIconButton({
+    required this.items,
+    required this.onSelected,
+    required this.icon,
+    required this.tooltip,
+    this.semanticLabel,
+    this.size = 32,
+    super.key,
+  });
+
+  final List<PokeMapMenuItem<T>> items;
+  final ValueChanged<T> onSelected;
+  final Widget icon;
+  final String tooltip;
+  final String? semanticLabel;
+  final double size;
+
+  @override
+  State<PokeMapMenuIconButton<T>> createState() =>
+      _PokeMapMenuIconButtonState<T>();
+}
+
+class _PokeMapMenuIconButtonState<T> extends State<PokeMapMenuIconButton<T>> {
+  final FocusNode _focusNode = FocusNode(debugLabel: 'menu icon button');
+  final GlobalKey _buttonKey = GlobalKey();
+  OverlayEntry? _menuEntry;
+
+  @override
+  void dispose() {
+    final entry = _menuEntry;
+    entry?.remove();
+    entry?.dispose();
+    _menuEntry = null;
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _openMenu() {
+    if (_menuEntry != null || !widget.items.any((item) => item.enabled)) return;
+    _focusNode.requestFocus();
+    FocusManager.instance.applyFocusChangesIfNeeded();
+    final renderObject = _buttonKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return;
+    final globalAnchor = renderObject.localToGlobal(
+      Offset(0, renderObject.size.height),
+    );
+    final overlay = Overlay.of(context);
+    final overlayRenderObject = overlay.context.findRenderObject();
+    if (overlayRenderObject is! RenderBox) return;
+    final entry = OverlayEntry(
+      builder: (context) => PokeMapContextMenu<T>(
+        anchor: overlayRenderObject.globalToLocal(globalAnchor),
+        items: widget.items,
+        invokerFocusNode: _focusNode,
+        semanticLabel: widget.semanticLabel ?? widget.tooltip,
+        onSelected: _handleSelection,
+        onDismiss: _closeMenu,
+      ),
+    );
+    _menuEntry = entry;
+    overlay.insert(entry);
+    setState(() {});
+  }
+
+  void _closeMenu() {
+    final entry = _menuEntry;
+    if (entry == null) return;
+    _menuEntry = null;
+    entry.remove();
+    entry.dispose();
+    if (mounted) setState(() {});
+  }
+
+  void _handleSelection(T value) {
+    final matches = widget.items.where((item) => item.value == value).toList();
+    if (matches.length != 1 || !matches.single.enabled) return;
+    widget.onSelected(value);
+  }
+
+  @override
+  Widget build(BuildContext context) => PokeMapIconButton(
+    key: _buttonKey,
+    focusNode: _focusNode,
+    onPressed: _openMenu,
+    icon: widget.icon,
+    tooltip: widget.tooltip,
+    semanticLabel: widget.semanticLabel,
+    isSelected: _menuEntry != null,
+    size: widget.size,
+  );
+}
+
 class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
-  final FocusNode _menuFocusNode =
-      FocusNode(debugLabel: 'context menu keyboard scope');
+  final FocusNode _menuFocusNode = FocusNode(
+    debugLabel: 'context menu keyboard scope',
+  );
   late List<PokeMapMenuItem<T>> _renderedItems;
   late List<FocusNode> _itemFocusNodes;
   int? _focusedIndex;
@@ -86,13 +181,16 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
     if (previousFocusedIndex != null &&
         previousFocusedIndex < previousItems.length) {
       final focusedValue = previousItems[previousFocusedIndex].value;
-      final oldMatches =
-          previousItems.where((item) => item.value == focusedValue).length;
-      final newMatches =
-          nextItems.where((item) => item.value == focusedValue).length;
+      final oldMatches = previousItems
+          .where((item) => item.value == focusedValue)
+          .length;
+      final newMatches = nextItems
+          .where((item) => item.value == focusedValue)
+          .length;
       if (oldMatches == 1 && newMatches == 1) {
-        final candidateIndex =
-            nextItems.indexWhere((item) => item.value == focusedValue);
+        final candidateIndex = nextItems.indexWhere(
+          (item) => item.value == focusedValue,
+        );
         if (nextItems[candidateIndex].enabled) {
           reconciledIndex = candidateIndex;
         }
@@ -141,9 +239,9 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
   }
 
   List<int> get _enabledIndices => <int>[
-        for (var index = 0; index < _renderedItems.length; index += 1)
-          if (_renderedItems[index].enabled) index,
-      ];
+    for (var index = 0; index < _renderedItems.length; index += 1)
+      if (_renderedItems[index].enabled) index,
+  ];
 
   void _focusFirstEnabled() {
     if (!mounted) return;
@@ -281,7 +379,8 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
                               index >= 0 && index < _renderedItems.length,
                         )
                         .length;
-                    final contentHeight = (_menuVerticalPadding * 2) +
+                    final contentHeight =
+                        (_menuVerticalPadding * 2) +
                         (_renderedItems.length * _menuRowHeight) +
                         (dividerCount *
                             ((_menuDividerVerticalPadding * 2) +
@@ -308,9 +407,11 @@ class _PokeMapContextMenuState<T> extends State<PokeMapContextMenu<T>> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  for (var index = 0;
-                                      index < _renderedItems.length;
-                                      index += 1) ...[
+                                  for (
+                                    var index = 0;
+                                    index < _renderedItems.length;
+                                    index += 1
+                                  ) ...[
                                     _PokeMapContextMenuRow<T>(
                                       item: _renderedItems[index],
                                       focusNode: _itemFocusNodes[index],
@@ -387,14 +488,15 @@ class _PokeMapContextMenuRowState<T> extends State<_PokeMapContextMenuRow<T>> {
     final background = item.selected
         ? colors.cardSelected
         : item.enabled && _hovered
-            ? colors.cardHover
-            : colors.transparent;
+        ? colors.cardHover
+        : colors.transparent;
     final foreground = !item.enabled
         ? colors.textDisabled
         : item.destructive
-            ? colors.error
-            : colors.textPrimary;
-    final semanticLabel = !item.enabled &&
+        ? colors.error
+        : colors.textPrimary;
+    final semanticLabel =
+        !item.enabled &&
             item.disabledReason != null &&
             item.disabledReason!.isNotEmpty
         ? '${item.label}. Indisponible : ${item.disabledReason}'
@@ -438,11 +540,7 @@ class _PokeMapContextMenuRowState<T> extends State<_PokeMapContextMenuRow<T>> {
               child: Row(
                 children: [
                   if (item.selected) ...[
-                    Icon(
-                      Icons.check_rounded,
-                      color: foreground,
-                      size: 16,
-                    ),
+                    Icon(Icons.check_rounded, color: foreground, size: 16),
                     const SizedBox(width: 8),
                   ],
                   Expanded(
@@ -505,8 +603,10 @@ class _PokeMapContextMenuPositionDelegate extends SingleChildLayoutDelegate {
   @override
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
     const edgeInsets = 16.0;
-    final availableWidth =
-        (constraints.maxWidth - edgeInsets).clamp(0, double.infinity);
+    final availableWidth = (constraints.maxWidth - edgeInsets).clamp(
+      0,
+      double.infinity,
+    );
     final availableHeight = (constraints.maxHeight - edgeInsets)
         .clamp(0, double.infinity)
         .toDouble();
@@ -521,10 +621,14 @@ class _PokeMapContextMenuPositionDelegate extends SingleChildLayoutDelegate {
   @override
   Offset getPositionForChild(Size size, Size childSize) {
     const edgePadding = 8.0;
-    final maxX = (size.width - childSize.width - edgePadding)
-        .clamp(edgePadding, double.infinity);
-    final maxY = (size.height - childSize.height - edgePadding)
-        .clamp(edgePadding, double.infinity);
+    final maxX = (size.width - childSize.width - edgePadding).clamp(
+      edgePadding,
+      double.infinity,
+    );
+    final maxY = (size.height - childSize.height - edgePadding).clamp(
+      edgePadding,
+      double.infinity,
+    );
     return Offset(
       anchor.dx.clamp(edgePadding, maxX),
       anchor.dy.clamp(edgePadding, maxY),

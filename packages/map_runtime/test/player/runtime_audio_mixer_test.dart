@@ -73,4 +73,60 @@ void main() {
       throwsA(isA<AssertionError>()),
     );
   });
+
+  test('ducking is deterministic across owners and updates only its bus',
+      () async {
+    final mixer = RuntimeAudioMixer();
+    final musicVolumes = <double>[];
+    final effectsVolumes = <double>[];
+
+    await mixer.register(
+      channel: 'music',
+      route: RuntimeAudioRoute.cinematicMusic,
+      setVolume: (volume) async => musicVolumes.add(volume),
+    );
+    await mixer.register(
+      channel: 'effects',
+      route: RuntimeAudioRoute.cinematicEffects,
+      setVolume: (volume) async => effectsVolumes.add(volume),
+    );
+
+    await mixer.setDucking(
+      owner: 'voice-a',
+      bus: RuntimeAudioBus.music,
+      gain: 0.4,
+    );
+    await mixer.setDucking(
+      owner: 'voice-b',
+      bus: RuntimeAudioBus.music,
+      gain: 0.6,
+    );
+    await mixer.clearDucking('voice-a');
+    await mixer.clearDucking('voice-b');
+
+    expect(musicVolumes, [1, 0.4, 0.4, 0.6, 1]);
+    expect(effectsVolumes, [1]);
+  });
+
+  test('failed initial volume application does not retain the channel',
+      () async {
+    final mixer = RuntimeAudioMixer();
+    var calls = 0;
+
+    await expectLater(
+      mixer.register(
+        channel: 'broken',
+        route: RuntimeAudioRoute.cinematicMusic,
+        setVolume: (_) async {
+          calls++;
+          throw StateError('decoder rejected volume');
+        },
+      ),
+      throwsStateError,
+    );
+
+    await mixer.transitionTo(const RuntimeAudioMix(masterVolume: 0.5));
+
+    expect(calls, 1);
+  });
 }

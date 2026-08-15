@@ -256,7 +256,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       resolvedPresentation?.introVideo,
       introVariant,
       looping: false,
-      volume: _audioMixer?.mix.volumeFor(RuntimeAudioRoute.cinematicMusic) ?? 1,
+      volume: 1,
     );
     final player = Theme(
       data: startupTheme,
@@ -269,6 +269,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
               playerPresentation.title,
           introSource: introSource,
           introPoster: _startupImage(resolvedPresentation?.introPoster),
+          audioMixer: _audioMixer,
           titlePromptSource: _startupVideo(
             resolvedPresentation?.titlePromptVideo,
             promptVariant,

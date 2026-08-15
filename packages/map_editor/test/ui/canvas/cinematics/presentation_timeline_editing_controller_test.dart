@@ -1,0 +1,295 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/presentation/presentation_timeline_editing_controller.dart';
+
+void main() {
+  test('multi-clip drag stays local then emits one snapped batch', () {
+    final controller = PresentationTimelineEditingController(asset: _asset());
+    controller.selectClip('visual-a');
+    controller.selectClip('visual-b', additive: true);
+
+    controller.beginDrag(
+      clipId: 'visual-a',
+      kind: PresentationTimelineDragKind.move,
+    );
+    controller.updateDrag(deltaUs: 160000);
+
+    expect(controller.hasActiveDrag, isTrue);
+    expect(controller.previewClip('visual-a').startUs, 1200000);
+    expect(controller.previewClip('visual-b').startUs, 3200000);
+    expect(controller.asset.tracks.first.clips.first.startUs, 1000000);
+
+    final command = controller.finishDrag();
+
+    expect(command.actionId, 'presentationClip.batch');
+    expect(command.parameters['cinematicId'], 'opening');
+    expect(command.operations, <Map<String, Object?>>[
+      <String, Object?>{
+        'kind': 'edit',
+        'clipId': 'visual-a',
+        'targetTrackId': 'visuals',
+        'startUs': 1200000,
+        'durationUs': 1000000,
+      },
+      <String, Object?>{
+        'kind': 'edit',
+        'clipId': 'visual-b',
+        'targetTrackId': 'visuals',
+        'startUs': 3200000,
+        'durationUs': 1000000,
+      },
+    ]);
+    expect(controller.hasActiveDrag, isFalse);
+  });
+
+  test('cancel restores the exact source placements', () {
+    final controller = PresentationTimelineEditingController(asset: _asset())
+      ..selectClip('visual-a')
+      ..beginDrag(
+        clipId: 'visual-a',
+        kind: PresentationTimelineDragKind.trimStart,
+      )
+      ..updateDrag(deltaUs: 300000);
+
+    expect(controller.previewClip('visual-a').startUs, 1300000);
+    expect(controller.previewClip('visual-a').durationUs, 700000);
+
+    controller.cancelDrag();
+
+    expect(controller.previewClip('visual-a').startUs, 1000000);
+    expect(controller.previewClip('visual-a').durationUs, 1000000);
+    expect(controller.hasActiveDrag, isFalse);
+  });
+
+  test('single clip move can target another compatible track', () {
+    final controller = PresentationTimelineEditingController(asset: _asset())
+      ..selectClip('visual-a')
+      ..beginDrag(clipId: 'visual-a', kind: PresentationTimelineDragKind.move)
+      ..updateDrag(deltaUs: 0, targetTrackId: 'visuals-secondary');
+
+    expect(controller.previewTrackId('visual-a'), 'visuals-secondary');
+    final command = controller.finishDrag();
+    expect(command.operations.single['targetTrackId'], 'visuals-secondary');
+  });
+
+  test('copy and paste allocate explicit deterministic identities', () {
+    var sequence = 0;
+    final controller =
+        PresentationTimelineEditingController(
+            asset: _asset(),
+            duplicateIdFactory: (sourceId) => '$sourceId-copy-${++sequence}',
+          )
+          ..selectClip('visual-b')
+          ..selectClip('audio-a', additive: true)
+          ..copySelection();
+
+    final command = controller.paste(atUs: 5000000);
+
+    expect(command.actionId, 'presentationClip.batch');
+    expect(command.operations, <Map<String, Object?>>[
+      <String, Object?>{
+        'kind': 'duplicate',
+        'clipId': 'visual-b',
+        'duplicateId': 'visual-b-copy-1',
+        'targetTrackId': 'visuals',
+        'startUs': 5000000,
+      },
+      <String, Object?>{
+        'kind': 'duplicate',
+        'clipId': 'audio-a',
+        'duplicateId': 'audio-a-copy-2',
+        'targetTrackId': 'audio',
+        'startUs': 6000000,
+      },
+    ]);
+  });
+
+  test('delete selection is one deterministic batch', () {
+    final controller = PresentationTimelineEditingController(asset: _asset())
+      ..selectClip('visual-b')
+      ..selectClip('visual-a', additive: true);
+
+    final command = controller.deleteSelection();
+
+    expect(command.actionId, 'presentationClip.deleteBatch');
+    expect(command.parameters['clipIds'], <String>['visual-a', 'visual-b']);
+  });
+
+  test(
+    'marker duplication gets a new identity and deletion targets only its id',
+    () {
+      final asset = PresentationCinematicAsset(
+        id: 'markers',
+        title: 'Markers',
+        durationUs: 5000000,
+        tracks: <PresentationTrack>[
+          PresentationTrack(
+            id: 'marker-track',
+            label: 'Repères',
+            kind: PresentationTrackKind.marker,
+            clips: <PresentationClip>[
+              PresentationMarkerClip(
+                id: 'starter-cue',
+                startUs: 1000000,
+                label: 'Choisir le starter',
+                markerKind: PresentationMarkerKind.interactionCue,
+                required: true,
+              ),
+            ],
+          ),
+        ],
+      );
+      final controller = PresentationTimelineEditingController(
+        asset: asset,
+        duplicateIdFactory: (_) => 'starter-cue-copy',
+      )..selectClip('starter-cue');
+
+      final duplicate = controller.duplicateSelection();
+      final deletion = controller.deleteSelection();
+
+      expect(duplicate.operations.single, <String, Object?>{
+        'kind': 'duplicate',
+        'clipId': 'starter-cue',
+        'duplicateId': 'starter-cue-copy',
+        'targetTrackId': 'marker-track',
+        'startUs': 1100000,
+      });
+      expect(deletion.actionId, 'presentationClip.deleteBatch');
+      expect(deletion.parameters['clipIds'], <String>['starter-cue']);
+    },
+  );
+
+  test('switching cinematic clears selection and the local clipboard', () {
+    final controller = PresentationTimelineEditingController(asset: _asset())
+      ..selectClip('visual-a')
+      ..copySelection();
+
+    controller.configureAsset(_asset(id: 'second-opening'));
+
+    expect(controller.selectedClipIds, isEmpty);
+    expect(controller.hasClipboard, isFalse);
+  });
+
+  test('an effectively locked visual layer rejects clip mutations', () {
+    final controller = PresentationTimelineEditingController(
+      asset: _asset(layerLocked: true),
+    )..selectClip('visual-a');
+
+    expect(controller.canEditSelection, isFalse);
+    expect(
+      () => controller.beginDrag(
+        clipId: 'visual-a',
+        kind: PresentationTimelineDragKind.move,
+      ),
+      throwsStateError,
+    );
+    expect(controller.deleteSelection, throwsStateError);
+    expect(controller.duplicateSelection, throwsStateError);
+  });
+
+  test('timeline previews preserve every typed property', () {
+    final controller = PresentationTimelineEditingController(asset: _asset())
+      ..selectClip('visual-a')
+      ..beginDrag(
+        clipId: 'visual-a',
+        kind: PresentationTimelineDragKind.trimEnd,
+      )
+      ..updateDrag(deltaUs: 500000);
+
+    final visual = controller.previewClip('visual-a') as PresentationVisualClip;
+    expect(visual.landscapeResourceId, 'visual-a-landscape');
+    expect(visual.portraitResourceId, 'visual-a-portrait');
+    expect(visual.portraitCompositionOverride?.translateY, .25);
+
+    controller.cancelDrag();
+    controller
+      ..selectClip('text-a')
+      ..beginDrag(clipId: 'text-a', kind: PresentationTimelineDragKind.trimEnd)
+      ..updateDrag(deltaUs: 500000);
+
+    final text = controller.previewClip('text-a') as PresentationTextClip;
+    expect(text.text, 'Bienvenue');
+    expect(text.localizationKey, 'opening.title');
+    expect(text.style.weight, PresentationTextWeight.bold);
+  });
+
+  test('an effectively locked text layer rejects clip mutations', () {
+    final controller = PresentationTimelineEditingController(
+      asset: _asset(layerLocked: true),
+    )..selectClip('text-a');
+
+    expect(controller.canEditSelection, isFalse);
+  });
+}
+
+PresentationCinematicAsset _asset({
+  String id = 'opening',
+  bool layerLocked = false,
+}) => PresentationCinematicAsset(
+  id: id,
+  title: 'Opening',
+  durationUs: 10000000,
+  layers: <PresentationLayer>[
+    PresentationLayer(
+      id: 'foreground',
+      label: 'Foreground',
+      zIndex: 0,
+      locked: layerLocked,
+    ),
+  ],
+  tracks: <PresentationTrack>[
+    PresentationTrack(
+      id: 'visuals',
+      label: 'Visuals',
+      kind: PresentationTrackKind.visual,
+      clips: <PresentationClip>[
+        PresentationVisualClip(
+          id: 'visual-a',
+          startUs: 1000000,
+          durationUs: 1000000,
+          layerId: 'foreground',
+          resourceId: 'visual-a-resource',
+          landscapeResourceId: 'visual-a-landscape',
+          portraitResourceId: 'visual-a-portrait',
+          portraitCompositionOverride: PresentationVisualComposition(
+            translateY: .25,
+          ),
+        ),
+        PresentationVisualClip(
+          id: 'visual-b',
+          startUs: 3000000,
+          durationUs: 1000000,
+          layerId: 'foreground',
+          resourceId: 'visual-b-resource',
+        ),
+        PresentationTextClip(
+          id: 'text-a',
+          startUs: 6000000,
+          durationUs: 1000000,
+          layerId: 'foreground',
+          text: 'Bienvenue',
+          localizationKey: 'opening.title',
+          style: PresentationTextStyle(weight: PresentationTextWeight.bold),
+        ),
+      ],
+    ),
+    PresentationTrack(
+      id: 'audio',
+      label: 'Audio',
+      kind: PresentationTrackKind.audio,
+      clips: <PresentationClip>[
+        PresentationAudioClip(
+          id: 'audio-a',
+          startUs: 4000000,
+          durationUs: 1000000,
+          resourceId: 'audio-a-resource',
+        ),
+      ],
+    ),
+    PresentationTrack(
+      id: 'visuals-secondary',
+      label: 'Visuals secondary',
+      kind: PresentationTrackKind.visual,
+    ),
+  ],
+);

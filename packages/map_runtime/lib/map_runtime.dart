@@ -50,6 +50,25 @@ export 'src/player/runtime_audio_mixer.dart'
         RuntimeAudioRoute,
         RuntimeAudioRouteBus,
         RuntimeAudioVolumeSetter;
+export 'src/player/runtime_presentation_media_playback_controller.dart'
+    show
+        RuntimePresentationMediaPlaybackController,
+        RuntimePresentationMediaPlaybackDiagnosticCodes,
+        RuntimePresentationMediaPlaybackSnapshot,
+        RuntimePresentationMediaPlaybackStatus,
+        RuntimePresentationMediaUriResolver,
+        RuntimePresentationVideoAudioMode,
+        RuntimePresentationVideoPlaybackDriver;
+export 'src/player/runtime_presentation_execution_controller.dart'
+    show
+        RuntimePresentationCancellationReason,
+        RuntimePresentationExecutionController,
+        RuntimePresentationExecutionPhase,
+        RuntimePresentationExecutionResult,
+        RuntimePresentationExecutionSnapshot,
+        RuntimePresentationExecutionTerminal,
+        RuntimePresentationExecutionTerminalSink,
+        RuntimePresentationRunToken;
 export 'src/player/runtime_intro_sequence_controller.dart'
     show
         RuntimeIntroPhase,
@@ -433,6 +452,19 @@ export 'src/application/scene_runtime/scene_cinematic_runtime_awaitable_result.d
         SceneCinematicRuntimeAwaitableErrorCode,
         SceneCinematicRuntimeAwaitableResult,
         SceneCinematicRuntimeAwaitableStatus;
+export 'src/application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_adapter.dart'
+    show
+        RuntimePresentationSceneLaunch,
+        RuntimePresentationScenePlayer,
+        ScenePresentationCinematicRuntimeAwaitableAdapter,
+        ScenePresentationCinematicRuntimeDiagnosticCodes,
+        ScenePresentationCinematicRuntimePlayer,
+        ScenePresentationCinematicRuntimeRequest;
+export 'src/application/scene_runtime/scene_presentation_cinematic_runtime_awaitable_result.dart'
+    show
+        ScenePresentationCinematicRuntimeAwaitableErrorCode,
+        ScenePresentationCinematicRuntimeAwaitableResult,
+        ScenePresentationCinematicRuntimeAwaitableStatus;
 export 'src/application/scene_runtime/scene_consequence_runtime_writer.dart'
     show SceneConsequenceRuntimeWriter;
 export 'src/application/scene_runtime/narrative_game_completion_runtime_coordinator.dart'

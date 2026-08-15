@@ -1,13 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_player_ui/presentation_renderer.dart';
 
 import '../../app/providers/core_providers.dart';
 import '../../application/services/narrative_activity_journal.dart';
 import '../../application/services/narrative_diagnostic_suppression_service.dart';
 import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/services/narrative_template_catalog.dart';
+import '../../application/authoring_api/cinematic_library_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_add_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_layer_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_property_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_property_command.dart';
+import '../../application/authoring_api/presentation_studio_timeline_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_timeline_command.dart';
+import '../../application/authoring_api/presentation_timeline_projection_gateway.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
+import '../../application/models/narrative_document_route.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../features/editor/application/map_activation_coordinator.dart';
 import '../../features/editor/presentation/map_activation_guard.dart';
@@ -24,9 +36,17 @@ import '../../features/narrative/state/narrative_event_builder_v2_providers.dart
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/narrative/state/narrative_validator_providers.dart';
 import '../../features/narrative/state/scene_consequence_catalog_providers.dart';
+import '../../infrastructure/repositories/file_presentation_studio_layout_store.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
+import 'cinematics/presentation/presentation_studio_add_panel.dart';
+import 'cinematics/presentation/presentation_studio_shell.dart';
+import 'cinematics/presentation/presentation_studio_layer_tree.dart';
+import 'cinematics/presentation/presentation_studio_properties_panel.dart';
+import 'cinematics/presentation/presentation_studio_responsive_canvas.dart';
+import 'cinematics/presentation/presentation_studio_timeline.dart';
+import 'cinematics/presentation/presentation_timeline_editing_controller.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'events/event_builder_workspace.dart';
@@ -1758,6 +1778,36 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       EditorWorkspaceMode.cutscene => _CinematicsWorkspaceBody(
           editorNotifier: editorNotifier,
+          cinematicLibraryGateway: CanonicalCinematicLibraryAuthoringGateway(
+            mutations: ref.read(authoringMutationAdapterProvider),
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
+          presentationLayerGateway:
+              CanonicalPresentationStudioLayerAuthoringGateway(
+            mutations: ref.read(authoringMutationAdapterProvider),
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
+          presentationTimelineGateway:
+              CanonicalPresentationStudioTimelineAuthoringGateway(
+            mutations: ref.read(authoringMutationAdapterProvider),
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
+          presentationPropertyGateway:
+              CanonicalPresentationStudioPropertyAuthoringGateway(
+            mutations: ref.read(authoringMutationAdapterProvider),
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
+          presentationAddGateway:
+              CanonicalPresentationStudioAddAuthoringGateway(
+            mutations: ref.read(authoringMutationAdapterProvider),
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
+          presentationTimelineProjectionGateway:
+              CanonicalPresentationTimelineProjectionGateway(
+            reader: AuthoringPresentationTimelineProjectionMediaReader(
+              queries: ref.read(authoringQueryAdapterProvider),
+            ),
+          ),
           projectRootPath: editor.projectRootPath,
           project: editor.project,
           activeMap: editor.activeMap,
@@ -1774,9 +1824,16 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   NarrativeStudioDestination.cinematics
               ? studioNavigation.location.childRoute
               : NarrativeStudioChildRoute.cinematicLibrary,
+          documentRoute: studioNavigation.documentRoute,
           onRouteChanged: ref
               .read(narrativeStudioNavigationControllerProvider.notifier)
               .replace,
+          onOpenPresentationDocument: ref
+              .read(narrativeStudioNavigationControllerProvider.notifier)
+              .openDocument,
+          onCloseDocument: ref
+              .read(narrativeStudioNavigationControllerProvider.notifier)
+              .closeDocument,
           onSelectCutscene: (scenarioId) {
             narrativeController.selectCutscene(scenarioId);
             narrativeController.openCutscene(
@@ -1866,7 +1923,6 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     return mainContent;
   }
 }
-
 EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(
   EditorState editor,
 ) {
@@ -2535,6 +2591,12 @@ class _StepWorkspaceBody extends StatelessWidget {
 class _CinematicsWorkspaceBody extends StatefulWidget {
   const _CinematicsWorkspaceBody({
     required this.editorNotifier,
+    required this.cinematicLibraryGateway,
+    required this.presentationLayerGateway,
+    required this.presentationTimelineGateway,
+    required this.presentationPropertyGateway,
+    required this.presentationAddGateway,
+    required this.presentationTimelineProjectionGateway,
     required this.projectRootPath,
     required this.project,
     required this.activeMap,
@@ -2543,13 +2605,24 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
     required this.requestedCinematicId,
     required this.requestedCinematicNonce,
     required this.requestedCinematicChildRoute,
+    required this.documentRoute,
     required this.onRouteChanged,
+    required this.onOpenPresentationDocument,
+    required this.onCloseDocument,
     required this.onSelectCutscene,
     required this.onSelectOutcome,
     required this.onOpenSceneUsage,
   });
 
   final EditorNotifier editorNotifier;
+  final CinematicLibraryAuthoringGateway cinematicLibraryGateway;
+  final PresentationStudioLayerAuthoringGateway presentationLayerGateway;
+  final PresentationStudioTimelineAuthoringGateway
+      presentationTimelineGateway;
+  final PresentationStudioPropertyAuthoringGateway presentationPropertyGateway;
+  final PresentationStudioAddAuthoringGateway presentationAddGateway;
+  final PresentationTimelineProjectionGateway
+      presentationTimelineProjectionGateway;
   final String? projectRootPath;
   final ProjectManifest? project;
   final MapData? activeMap;
@@ -2558,7 +2631,10 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   final String? requestedCinematicId;
   final int requestedCinematicNonce;
   final NarrativeStudioChildRoute requestedCinematicChildRoute;
+  final NarrativeDocumentRoute? documentRoute;
   final ValueChanged<NarrativeStudioRouteLocation> onRouteChanged;
+  final ValueChanged<NarrativeDocumentRoute> onOpenPresentationDocument;
+  final NarrativeDocumentSourceContext? Function() onCloseDocument;
   final ValueChanged<String> onSelectCutscene;
   final ValueChanged<String?> onSelectOutcome;
   final OpenCinematicSceneUsageCallback onOpenSceneUsage;
@@ -2570,11 +2646,43 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
 
 class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   bool _showLegacyCutsceneStudio = false;
+  NarrativeLibrarySourceContext? _restoredPresentationSource;
+  late final PresentationStudioLayoutStore _presentationLayoutStore;
+  late final PresentationStudioResponsiveCanvasController
+      _presentationResponsiveCanvasController;
+  bool _presentationLayerMutationPending = false;
+  PresentationTimelineEditingController?
+      _presentationTimelineEditingController;
+  PresentationTimelineProjectionController?
+      _presentationTimelineProjectionController;
+  final List<PresentationTimelineAuthoringTransaction>
+      _presentationTimelineUndo = <PresentationTimelineAuthoringTransaction>[];
+  final List<PresentationTimelineAuthoringTransaction>
+      _presentationTimelineRedo = <PresentationTimelineAuthoringTransaction>[];
+  bool _presentationTimelineMutationPending = false;
+  final List<PresentationPropertyAuthoringTransaction>
+      _presentationPropertyUndo = <PresentationPropertyAuthoringTransaction>[];
+  final List<PresentationPropertyAuthoringTransaction>
+      _presentationPropertyRedo = <PresentationPropertyAuthoringTransaction>[];
+  bool _presentationPropertyMutationPending = false;
 
   @override
   void initState() {
     super.initState();
+    _presentationLayoutStore = FilePresentationStudioLayoutStore();
+    _presentationResponsiveCanvasController =
+        PresentationStudioResponsiveCanvasController(durationUs: 0);
+    _syncPresentationTimelineProjectionController();
     _syncRequestedChildRoute();
+    _capturePresentationSource();
+  }
+
+  @override
+  void dispose() {
+    _presentationTimelineEditingController?.dispose();
+    _presentationTimelineProjectionController?.dispose();
+    _presentationResponsiveCanvasController.dispose();
+    super.dispose();
   }
 
   @override
@@ -2584,11 +2692,45 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         widget.requestedCinematicChildRoute) {
       _syncRequestedChildRoute();
     }
+    if (oldWidget.documentRoute != widget.documentRoute) {
+      _presentationResponsiveCanvasController.stop();
+      _presentationTimelineEditingController?.cancelDrag();
+      _presentationTimelineUndo.clear();
+      _presentationTimelineRedo.clear();
+      _presentationPropertyUndo.clear();
+      _presentationPropertyRedo.clear();
+      _capturePresentationSource();
+    }
+    if (oldWidget.projectRootPath != widget.projectRootPath ||
+        oldWidget.project != widget.project) {
+      _syncPresentationTimelineProjectionController();
+    }
+  }
+
+  void _syncPresentationTimelineProjectionController() {
+    _presentationTimelineProjectionController?.dispose();
+    final projectRootPath = widget.projectRootPath?.trim();
+    _presentationTimelineProjectionController =
+        projectRootPath == null || projectRootPath.isEmpty
+        ? null
+        : PresentationTimelineProjectionController(
+            projectRootPath: projectRootPath,
+            gateway: widget.presentationTimelineProjectionGateway,
+          );
   }
 
   void _syncRequestedChildRoute() {
     _showLegacyCutsceneStudio = widget.requestedCinematicChildRoute ==
         NarrativeStudioChildRoute.cinematicLegacy;
+  }
+
+  void _capturePresentationSource() {
+    final route = widget.documentRoute;
+    if (route?.kind != NarrativeDocumentKind.presentationCinematic) return;
+    final source = route!.source;
+    if (source is NarrativeLibrarySourceContext) {
+      _restoredPresentationSource = source;
+    }
   }
 
   @override
@@ -2637,12 +2779,212 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       );
     }
 
+    final presentationRoute = widget.documentRoute;
+    if (presentationRoute?.kind ==
+        NarrativeDocumentKind.presentationCinematic) {
+      PresentationCinematicAsset? asset;
+      for (final candidate in project.presentationCinematics) {
+        if (candidate.id == presentationRoute!.documentId) {
+          asset = candidate;
+          break;
+        }
+      }
+      if (asset == null) {
+        return NarrativeStudioWorkspacePage(
+          presentation: const NarrativeStudioRoutePresentation(
+            destination: NarrativeStudioDestination.cinematics,
+            label: 'Cinématiques',
+            breadcrumbLabels: [
+              'Cinématiques',
+              'Présentation',
+              'Cinématique introuvable',
+            ],
+          ),
+          leading: PokeMapIconButton(
+            key: const ValueKey('cinematics-presentation-route-back'),
+            onPressed: _closePresentationDocument,
+            tooltip: 'Retour à la bibliothèque de présentation',
+            variant: PokeMapIconButtonVariant.soft,
+            icon: const Icon(CupertinoIcons.chevron_left),
+          ),
+          body: PokeMapPageSurface(
+            key: const ValueKey('cinematics-presentation-document-route'),
+            child: const PokeMapEmptyState(
+              title: 'Cinématique de présentation introuvable',
+              description:
+                  'Cette cible n’existe plus dans le projet. Revenez à la bibliothèque sans modifier le catalogue.',
+              icon: Icon(CupertinoIcons.exclamationmark_triangle),
+            ),
+          ),
+        );
+      }
+      final resolvedAsset = asset;
+      _presentationResponsiveCanvasController.configureDuration(
+        resolvedAsset.durationUs,
+        notify: false,
+      );
+      final timelineEditingController =
+          _presentationTimelineEditingController ??=
+              PresentationTimelineEditingController(asset: resolvedAsset);
+      timelineEditingController.configureAsset(resolvedAsset);
+      final documentIsEmpty = resolvedAsset.tracks.every(
+        (track) => track.clips.isEmpty,
+      );
+      final evaluator = const PresentationCinematicEvaluator();
+      return KeyedSubtree(
+        key: const ValueKey('cinematics-presentation-document-route'),
+        child: PresentationStudioShell(
+          title: resolvedAsset.title,
+          documentState: PokeMapCinematicDocumentState.saved,
+          statusLabel: 'Enregistré',
+          layoutStore: _presentationLayoutStore,
+          backButtonKey: const ValueKey(
+            'cinematics-presentation-route-back',
+          ),
+          onExit: _closePresentationDocument,
+          onDiscard: () async {},
+          onSave: () async => true,
+          previewToolbar: PresentationStudioResponsiveToolbar(
+            controller: _presentationResponsiveCanvasController,
+          ),
+          canvas: PresentationStudioResponsiveCanvas(
+            controller: _presentationResponsiveCanvasController,
+            frameBuilder: (playheadUs) => documentIsEmpty
+                ? null
+                : evaluator.evaluate(
+                    resolvedAsset,
+                    timeUs: playheadUs
+                        .clamp(0, resolvedAsset.durationUs)
+                        .toInt(),
+                  ),
+            contentPort: const _PresentationStudioContentPort(),
+            playerTheme: PokeMapPlayerTheme.dark(),
+            orientationOverrides: _presentationOrientationOverrides(
+              resolvedAsset,
+            ),
+            mediaBindings: _presentationResponsiveMediaBindings(
+              resolvedAsset,
+            ),
+            asset: resolvedAsset,
+          ),
+          layersPanel: PresentationStudioLayerTree(
+            asset: resolvedAsset,
+            playheadUs: _presentationResponsiveCanvasController.playheadUs,
+            selectionController:
+                _presentationResponsiveCanvasController.selection,
+            onCommand: (command) => unawaited(
+              _applyPresentationLayerCommand(command),
+            ),
+          ),
+          propertiesPanel: AnimatedBuilder(
+            animation: Listenable.merge([
+              _presentationResponsiveCanvasController,
+              timelineEditingController,
+            ]),
+            builder: (context, _) => PresentationStudioPropertiesPanel(
+              asset: resolvedAsset,
+              selectionController:
+                  _presentationResponsiveCanvasController.selection,
+              orientation:
+                  _presentationResponsiveCanvasController.activeOrientation,
+              selectedClipIds: timelineEditingController.selectedClipIds,
+              onCommand: (command) => unawaited(
+                _applyPresentationPropertyCommand(command),
+              ),
+              mutationPending: _presentationPropertyMutationPending,
+              canUndo: _presentationPropertyUndo.isNotEmpty,
+              canRedo: _presentationPropertyRedo.isNotEmpty,
+              onUndo: () => unawaited(_undoPresentationPropertyCommand()),
+              onRedo: () => unawaited(_redoPresentationPropertyCommand()),
+            ),
+          ),
+          addPanel: widget.projectRootPath == null
+              ? const PokeMapEmptyState(
+                  compact: true,
+                  icon: Icon(CupertinoIcons.folder),
+                  title: 'Projet indisponible',
+                  description:
+                      'Ouvrez un projet enregistré pour accéder au catalogue média.',
+                )
+              : PresentationStudioAddPanel(
+                  gateway: widget.presentationAddGateway,
+                  mediaPicker:
+                      const FilePickerPresentationStudioMediaPicker(),
+                  projectRootPath: widget.projectRootPath!,
+                  expectedProject: project,
+                  asset: resolvedAsset,
+                  playheadUs:
+                      _presentationResponsiveCanvasController.playheadUs,
+                  targetVisualFolderId: _selectedPresentationFolderId(
+                    resolvedAsset,
+                    _presentationResponsiveCanvasController
+                        .selection.value?.layerId,
+                  ),
+                  onProjectChanged: (manifest) {
+                    widget.editorNotifier.acceptCanonicalProjectManifest(
+                      manifest,
+                      statusMessage: 'Cinématique Presentation mise à jour.',
+                    );
+                  },
+                  onInserted: (result) {
+                    final updated = result.manifest.presentationCinematics
+                        .singleWhere((item) => item.id == resolvedAsset.id);
+                    _presentationResponsiveCanvasController.selection
+                        .selectClip(
+                          asset: updated,
+                          clipId: result.clipId,
+                        );
+                  },
+                ),
+          timeline: AnimatedBuilder(
+            animation: _presentationResponsiveCanvasController,
+            builder: (context, _) => PresentationStudioTimeline(
+              asset: resolvedAsset,
+              playheadUs: _presentationResponsiveCanvasController.playheadUs,
+              selectionController:
+                  _presentationResponsiveCanvasController.selection,
+              editingController: timelineEditingController,
+              projectionController:
+                  _presentationTimelineProjectionController,
+              onPlayheadChanged:
+                  _presentationResponsiveCanvasController.seekTo,
+              onCommand: (command) => unawaited(
+                _applyPresentationTimelineCommand(command),
+              ),
+              mutationPending: _presentationTimelineMutationPending,
+              canUndo: _presentationTimelineUndo.isNotEmpty,
+              canRedo: _presentationTimelineRedo.isNotEmpty,
+              onUndo: () => unawaited(_undoPresentationTimelineCommand()),
+              onRedo: () => unawaited(_redoPresentationTimelineCommand()),
+            ),
+          ),
+        ),
+      );
+    }
+
     return CinematicsLibraryWorkspace(
       project: project,
       projectRootPath: widget.projectRootPath,
+      libraryAuthoringGateway: widget.cinematicLibraryGateway,
+      onCanonicalManifestChanged: (manifest, {required statusMessage}) {
+        widget.editorNotifier.acceptCanonicalProjectManifest(
+          manifest,
+          statusMessage: statusMessage,
+        );
+      },
       requestedEntryId: widget.requestedCinematicId,
       requestedEntryNonce: widget.requestedCinematicNonce,
       openRequestedEntryInBuilder: true,
+      initialPresentationSource: _restoredPresentationSource,
+      onOpenPresentation: ({required cinematicId, required source}) {
+        setState(() => _restoredPresentationSource = source);
+        widget.onOpenPresentationDocument(
+          NarrativeDocumentRoute.presentation(
+            cinematicId: cinematicId,
+            source: source,
+          ),
+        );
+      },
       onBuilderEntryChanged: (cinematicId) {
         widget.onRouteChanged(
           NarrativeStudioRouteLocation.cinematics(
@@ -2704,6 +3046,275 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         );
       },
     );
+  }
+
+  void _closePresentationDocument() {
+    final source = widget.onCloseDocument();
+    if (source is NarrativeLibrarySourceContext) {
+      setState(() => _restoredPresentationSource = source);
+    }
+  }
+
+  Future<void> _applyPresentationLayerCommand(
+    PresentationStudioLayerCommand command,
+  ) async {
+    if (_presentationLayerMutationPending) return;
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    if (project == null || projectRootPath == null) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Le projet doit être enregistré avant de modifier ses calques.',
+      );
+      return;
+    }
+    _presentationLayerMutationPending = true;
+    try {
+      final manifest = await widget.presentationLayerGateway.apply(
+        projectRootPath,
+        expectedProject: project,
+        actionId: command.actionId,
+        parameters: command.parameters,
+      );
+      _presentationResponsiveCanvasController.selection.resetCanvasCycle();
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        manifest,
+        statusMessage: 'Calques de présentation enregistrés.',
+      );
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible de modifier les calques : $error',
+      );
+    } finally {
+      _presentationLayerMutationPending = false;
+    }
+  }
+
+  Future<void> _applyPresentationTimelineCommand(
+    PresentationTimelineClipCommand command,
+  ) async {
+    if (_presentationTimelineMutationPending) return;
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null || documentId == null) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Le projet doit être enregistré avant de modifier sa timeline.',
+      );
+      return;
+    }
+    setState(() => _presentationTimelineMutationPending = true);
+    try {
+      final transaction = await widget.presentationTimelineGateway.apply(
+        projectRootPath,
+        expectedProject: project,
+        command: command,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        transaction.manifest,
+        statusMessage: 'Timeline de présentation enregistrée.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationTimelineUndo.add(transaction);
+        _presentationTimelineRedo.clear();
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible de modifier la timeline : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationTimelineMutationPending = false);
+      }
+    }
+  }
+
+  Future<void> _undoPresentationTimelineCommand() async {
+    if (_presentationTimelineMutationPending ||
+        _presentationTimelineUndo.isEmpty) {
+      return;
+    }
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null) return;
+    final transaction = _presentationTimelineUndo.last;
+    setState(() => _presentationTimelineMutationPending = true);
+    try {
+      final manifest = await widget.presentationTimelineGateway.undo(
+        projectRootPath,
+        expectedProject: project,
+        transaction: transaction,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        manifest,
+        statusMessage: 'Édition de timeline annulée.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationTimelineUndo.removeLast();
+        _presentationTimelineRedo.add(transaction);
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible d’annuler la timeline : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationTimelineMutationPending = false);
+      }
+    }
+  }
+
+  Future<void> _redoPresentationTimelineCommand() async {
+    if (_presentationTimelineMutationPending ||
+        _presentationTimelineRedo.isEmpty) {
+      return;
+    }
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null) return;
+    final transaction = _presentationTimelineRedo.last;
+    setState(() => _presentationTimelineMutationPending = true);
+    try {
+      final redone = await widget.presentationTimelineGateway.redo(
+        projectRootPath,
+        expectedProject: project,
+        transaction: transaction,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        redone.manifest,
+        statusMessage: 'Édition de timeline rétablie.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationTimelineRedo.removeLast();
+        _presentationTimelineUndo.add(redone);
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible de rétablir la timeline : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationTimelineMutationPending = false);
+      }
+    }
+  }
+
+  Future<void> _applyPresentationPropertyCommand(
+    PresentationStudioPropertyCommand command,
+  ) async {
+    if (_presentationPropertyMutationPending) return;
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null || documentId == null) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Le projet doit être enregistré avant de modifier ses propriétés.',
+      );
+      return;
+    }
+    setState(() => _presentationPropertyMutationPending = true);
+    try {
+      final transaction = await widget.presentationPropertyGateway.apply(
+        projectRootPath,
+        expectedProject: project,
+        command: command,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        transaction.manifest,
+        statusMessage: 'Propriétés de présentation enregistrées.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationPropertyUndo.add(transaction);
+        _presentationPropertyRedo.clear();
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible de modifier les propriétés : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationPropertyMutationPending = false);
+      }
+    }
+  }
+
+  Future<void> _undoPresentationPropertyCommand() async {
+    if (_presentationPropertyMutationPending ||
+        _presentationPropertyUndo.isEmpty) {
+      return;
+    }
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null) return;
+    final transaction = _presentationPropertyUndo.last;
+    setState(() => _presentationPropertyMutationPending = true);
+    try {
+      final manifest = await widget.presentationPropertyGateway.undo(
+        projectRootPath,
+        expectedProject: project,
+        transaction: transaction,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        manifest,
+        statusMessage: 'Modification de propriété annulée.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationPropertyUndo.removeLast();
+        _presentationPropertyRedo.add(transaction);
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible d’annuler la propriété : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationPropertyMutationPending = false);
+      }
+    }
+  }
+
+  Future<void> _redoPresentationPropertyCommand() async {
+    if (_presentationPropertyMutationPending ||
+        _presentationPropertyRedo.isEmpty) {
+      return;
+    }
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null) return;
+    final transaction = _presentationPropertyRedo.last;
+    setState(() => _presentationPropertyMutationPending = true);
+    try {
+      final redone = await widget.presentationPropertyGateway.redo(
+        projectRootPath,
+        expectedProject: project,
+        transaction: transaction,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        redone.manifest,
+        statusMessage: 'Modification de propriété rétablie.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationPropertyRedo.removeLast();
+        _presentationPropertyUndo.add(redone);
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible de rétablir la propriété : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationPropertyMutationPending = false);
+      }
+    }
   }
 
   Future<String?> _createCinematicShell({
@@ -3656,8 +4267,83 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   }
 }
 
+String? _selectedPresentationFolderId(
+  PresentationCinematicAsset asset,
+  String? layerId,
+) {
+  if (layerId == null) return null;
+  for (final folder in asset.visualFolders) {
+    if (folder.layerIds.contains(layerId)) return folder.id;
+  }
+  return null;
+}
+
 String _cinematicAuthoringOperationId(String action) =>
     'cinematic_${action}_${DateTime.now().microsecondsSinceEpoch}';
+
+PresentationFrameOrientationOverrides _presentationOrientationOverrides(
+  PresentationCinematicAsset asset,
+) => PresentationFrameOrientationOverrides(
+  visualsByClipId: <String, PresentationVisualOrientationOverride>{
+    for (final track in asset.tracks)
+      for (final clip in track.clips)
+        if (clip is PresentationVisualClip &&
+            (clip.landscapeCompositionOverride != null ||
+                clip.portraitCompositionOverride != null))
+          clip.id: PresentationVisualOrientationOverride(
+            landscape: clip.landscapeCompositionOverride,
+            portrait: clip.portraitCompositionOverride,
+            reducedMotionLandscape: clip.landscapeCompositionOverride,
+            reducedMotionPortrait: clip.portraitCompositionOverride,
+          ),
+  },
+);
+
+List<PresentationStudioResponsiveMediaBinding>
+    _presentationResponsiveMediaBindings(PresentationCinematicAsset asset) =>
+        <PresentationStudioResponsiveMediaBinding>[
+          for (final track in asset.tracks)
+            for (final clip in track.clips)
+              if (clip is PresentationVisualClip)
+                PresentationStudioResponsiveMediaBinding(
+                  clipId: clip.id,
+                  kind: switch (clip.mediaKind) {
+                    PresentationVisualMediaKind.image =>
+                      PresentationStudioResponsiveMediaKind.image,
+                    PresentationVisualMediaKind.video =>
+                      PresentationStudioResponsiveMediaKind.video,
+                    PresentationVisualMediaKind.poster =>
+                      PresentationStudioResponsiveMediaKind.poster,
+                  },
+                  sharedResourceId: clip.resourceId,
+                  landscapeResourceId: clip.landscapeResourceId,
+                  portraitResourceId: clip.portraitResourceId,
+                  requireDurationMetadata: false,
+                ),
+        ];
+
+final class _PresentationStudioContentPort
+    implements PresentationFrameContentPort {
+  const _PresentationStudioContentPort();
+
+  @override
+  PresentationVisualResolution resolveVisual({
+    required PresentationVisualFrameClip clip,
+    required PresentationFrameOrientation orientation,
+  }) => PresentationVisualUnavailable(
+    reason: PresentationContentUnavailableReason.missing,
+    message: 'Média ${clip.resourceId} introuvable',
+  );
+
+  @override
+  PresentationCaptionResolution resolveCaption({
+    required PresentationCaptionFrameClip clip,
+    required Locale locale,
+  }) => PresentationCaptionUnavailable(
+    reason: PresentationContentUnavailableReason.missing,
+    message: 'Sous-titre ${clip.captionId} introuvable',
+  );
+}
 
 class _CutsceneWorkspaceBody extends StatelessWidget {
   const _CutsceneWorkspaceBody({

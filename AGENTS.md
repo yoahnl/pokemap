@@ -138,6 +138,22 @@ Do not broaden access to the home directory or filesystem root as a convenience 
 
 ## 5. Product and Architecture Rules
 
+### Pre-1.0.0 compatibility policy
+
+Until PokeMap reaches version `1.0.0`, legacy behavior and backward compatibility
+are not product requirements.
+
+- Do not preserve obsolete APIs, data schemas, serialized formats, fixtures, or
+  behavior solely for compatibility with a pre-`1.0.0` version.
+- Do not add migrations, dual readers/writers, fallbacks, adapters, aliases, or
+  deprecation bridges solely to support pre-`1.0.0` legacy data or code.
+- Prefer the clean current target design and remove obsolete paths when they are
+  in scope.
+- Only preserve or convert legacy behavior when the direct user request or the
+  current ticket explicitly requires it.
+- When old data is unsupported, reject it clearly and safely rather than
+  silently accepting, mutating, or corrupting it.
+
 No-code first:
 
 - guided pickers over manual IDs;
@@ -172,7 +188,9 @@ Package boundaries:
 - runtime integration: `map_runtime`;
 - authoring UI and editor use cases: `map_editor`;
 - gameplay rules must not hide inside Flame components;
-- schema changes usually require tests, fixtures, editor/runtime updates, and migration awareness.
+- schema changes usually require tests, fixtures, editor/runtime updates, and an
+  explicit schema-version break where applicable; pre-`1.0.0` migrations are not
+  required unless the current ticket explicitly requests one.
 
 ---
 
@@ -184,7 +202,6 @@ Be surgical.
 - Do not refactor nearby code because it is nearby.
 - Match existing naming, style, and test patterns.
 - Prefer small lots and characterization tests before model/schema changes.
-- Preserve legacy behavior unless the task explicitly changes it.
 - If scope is ambiguous, state the assumption and choose the smallest safe interpretation.
 - If you find unrelated issues, report them instead of fixing silently.
 

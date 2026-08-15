@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_distribution/map_distribution.dart';
 
 import '../errors/application_errors.dart';
 import '../services/editor_performance_telemetry.dart';
@@ -170,6 +169,18 @@ final class AuthoringMutationAdapter
     try {
       final session = await _open(projectRootPath);
       return await session.use(() => session.artifactStore.read(handle));
+    } on Object catch (error) {
+      throw EditorAuthoringMutationFailure.capture(error);
+    }
+  }
+
+  Future<void> releaseArtifact(
+    String projectRootPath, {
+    required String handle,
+  }) async {
+    try {
+      final session = await _open(projectRootPath);
+      await session.use(() => session.artifactStore.release(handle));
     } on Object catch (error) {
       throw EditorAuthoringMutationFailure.capture(error);
     }
@@ -625,7 +636,7 @@ final class _EditorMutationSession {
     final projectHandle = opened.projectHandle;
     final artifactStore = LocalArtifactStore(
       allowedSourceRoots: [canonicalRoot],
-      maximumArtifactBytes: presentationPresetMaxArchiveBytes,
+      maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
     );
     final mutations = LocalMapAuthoringMutationApi(
       policy: policy,

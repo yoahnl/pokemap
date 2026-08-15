@@ -347,7 +347,8 @@ Règles de découpage :
 |---:|---|---|---|---|
 | 0.460 | `BETA-WLD-008` | Nœud Scene typé Presentation et exécution awaitable. | `CIN-003`, `CIN-015`, `CIN-032` | `completed/cancelled/failed` exact-once ; non-régression des Cinematics monde canoniques. |
 | 0.462 | `BETA-CIN-006` | Actions et validations headless Scene/preSession. | `CIN-003`, `CIN-004`, `CIN-005` | Template, capabilities, draft bindings et diagnostics passent en API directe/JSONL. |
-| 0.464 | `BETA-CIN-019` | Resources, queries et actions sémantiques Presentation en API directe/JSONL. | `CIN-013`, `CIN-014` | Tracks/clips/layers/media queryables ; dry-run, CAS, receipts, undo et pagination prouvés. |
+| 0.463 | `BETA-CIN-062` | `ProjectVersion.v7` et ownership canonique des cinématiques Presentation dans le manifeste. | `CIN-002` | v6 sans donnée V2 lisible ; champ V2 sous v6 et version future rejetés ; v7 roundtrip sans rétrograder les maps v6. |
+| 0.464 | `BETA-CIN-019` | Resources, queries et actions sémantiques Presentation en API directe/JSONL. | `CIN-013`, `CIN-014`, `CIN-062` | Tracks/clips/layers/media queryables ; dry-run, CAS, receipts, undo et pagination prouvés. |
 | 0.466 | `BETA-CIN-033` | Adaptateur MCP et certification des quatre transports. | `CIN-006`, `CIN-019` | API directe, JSONL/CLI, Editor et MCP = 4/4 E2E avec catalogue live. |
 | 0.468 | `BETA-CIN-049` | Catalogue canonique de dossiers pour les deux familles cinématiques. | `CIN-001` | Modèle séparé de `CinematicAsset`, hiérarchie récursive sans cycle, ordre/déplacement/suppression gardée et parité API/JSONL/Editor/MCP 4/4. |
 
@@ -413,7 +414,7 @@ Règles de découpage :
 
 Dans Notion, les relations `Bloqué par` de `BETA-CIN-008` doivent contenir uniquement `CIN-010`, `CIN-028`, `CIN-033`, `CIN-036`, `CIN-038`, `CIN-041` et `BETA-LCH-001`.
 
-Projection révisée le 14 août 2026 : **64 tickets**, **201 dépendances**, **2 racines**, **0 cycle**, **0 parent manquant**, **0 violation d'ordre** et **0 relation inverse manquante** dans CIN-V2. Douze lots `BETA-CIN-050` à `BETA-CIN-061` rendent atomiques la fondation design system, les gabarits, le shell Studio, le responsive/Compare, les calques, inspecteurs, médias, timeline et performances Editor. `BETA-CIN-022` reste reporté après `BETA-CIN-008` et la refonte du Builder in-game demeure hors scope bêta.
+Projection révisée le 15 août 2026 : **65 tickets**, **203 dépendances**, **2 racines**, **0 cycle**, **0 parent manquant**, **0 violation d'ordre** et **0 relation inverse manquante** dans CIN-V2. `BETA-CIN-062` matérialise le gate `ProjectVersion.v7` et l'ownership Presentation qui manquaient entre le modèle pur et l'authoring. Douze lots `BETA-CIN-050` à `BETA-CIN-061` rendent atomiques la fondation design system, les gabarits, le shell Studio, le responsive/Compare, les calques, inspecteurs, médias, timeline et performances Editor. `BETA-CIN-022` reste reporté après `BETA-CIN-008` et la refonte du Builder in-game demeure hors scope bêta.
 
 ### 11.4 Chemin critique et parallélisation
 

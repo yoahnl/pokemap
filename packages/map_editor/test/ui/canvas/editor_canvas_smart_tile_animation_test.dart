@@ -25,25 +25,69 @@ void main() {
     );
 
     test(
-      'only always-active Smart Tile layers keep the editor clock running',
+      'a catalog animation outside the layer preset does not run the clock',
       () {
         final project = ProjectManifest(
-          name: 'Animated Smart Tile project',
+          name: 'Static Smart Tile project',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
           smartTileCatalog: ProjectSmartTileCatalog(
+            materials: const <ProjectSmartTileMaterial>[
+              ProjectSmartTileMaterial(
+                id: 'grass',
+                name: 'Grass',
+                connectionGroupId: 'grass',
+              ),
+            ],
             animations: const <ProjectSmartTileAnimation>[
               ProjectSmartTileAnimation(
-                id: 'grass-wave',
-                name: 'Grass wave',
+                id: 'unrelated-water-loop',
+                name: 'Unrelated water loop',
                 frames: <ProjectSmartTileAnimationFrame>[
                   ProjectSmartTileAnimationFrame(
                     frame: SmartTileFrameRef(
-                      atlasId: 'grass-atlas',
+                      atlasId: 'water-atlas',
                       column: 0,
                       row: 0,
                     ),
                     durationMs: 200,
+                  ),
+                ],
+              ),
+            ],
+            presets: const <ProjectSmartTilePreset>[
+              ProjectSmartTilePreset(
+                id: 'grass',
+                name: 'Grass',
+                usage: SmartTileUsage.path,
+                topology: SmartTileTopology.uniform,
+                coveragePolicy: SmartTileCoveragePolicy.complete,
+                coverageProfile: SmartTileCoverageProfile(
+                  mode: SmartTileCoverageMode.template,
+                ),
+                transformPolicy: SmartTileTransformPolicy(),
+                defaultMaterialId: 'grass',
+                allowedMaterialIds: <String>['grass'],
+                rules: <SmartTileRule>[
+                  SmartTileRule(
+                    id: 'fill',
+                    centerMatch: SmartTileSlotMatch.material('grass'),
+                    candidates: <SmartTileCandidate>[
+                      SmartTileCandidate(
+                        id: 'static-grass',
+                        parts: <SmartTileVisualPart>[
+                          SmartTileVisualPart(
+                            source: SmartTileVisualSource.frame(
+                              frame: SmartTileFrameRef(
+                                atlasId: 'grass-atlas',
+                                column: 0,
+                                row: 0,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -87,10 +131,203 @@ void main() {
             project: project,
             borderPreview: null,
           ),
-          isTrue,
+          isFalse,
         );
       },
     );
+
+    test('an animation referenced by the layer preset runs the clock', () {
+      final project = ProjectManifest(
+        name: 'Animated Smart Tile project',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        smartTileCatalog: ProjectSmartTileCatalog(
+          materials: const <ProjectSmartTileMaterial>[
+            ProjectSmartTileMaterial(
+              id: 'water',
+              name: 'Water',
+              connectionGroupId: 'water',
+            ),
+          ],
+          animations: const <ProjectSmartTileAnimation>[
+            ProjectSmartTileAnimation(
+              id: 'water-loop',
+              name: 'Water loop',
+              frames: <ProjectSmartTileAnimationFrame>[
+                ProjectSmartTileAnimationFrame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'water-atlas',
+                    column: 0,
+                    row: 0,
+                  ),
+                  durationMs: 110,
+                ),
+                ProjectSmartTileAnimationFrame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'water-atlas',
+                    column: 1,
+                    row: 0,
+                  ),
+                  durationMs: 110,
+                ),
+              ],
+            ),
+          ],
+          presets: const <ProjectSmartTilePreset>[
+            ProjectSmartTilePreset(
+              id: 'water',
+              name: 'Water',
+              usage: SmartTileUsage.terrain,
+              topology: SmartTileTopology.uniform,
+              coveragePolicy: SmartTileCoveragePolicy.complete,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
+              defaultMaterialId: 'water',
+              allowedMaterialIds: <String>['water'],
+              rules: <SmartTileRule>[
+                SmartTileRule(
+                  id: 'fill',
+                  centerMatch: SmartTileSlotMatch.material('water'),
+                  candidates: <SmartTileCandidate>[
+                    SmartTileCandidate(
+                      id: 'animated-water',
+                      parts: <SmartTileVisualPart>[
+                        SmartTileVisualPart(
+                          source: SmartTileVisualSource.animation(
+                            animationId: 'water-loop',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      const map = MapData(
+        id: 'water-map',
+        name: 'Water map',
+        version: ProjectVersion.v6,
+        size: GridSize(width: 1, height: 1),
+        layers: <MapLayer>[
+          SmartTileLayer(
+            id: 'water',
+            name: 'Water',
+            presetId: 'water',
+            usage: SmartTileUsage.terrain,
+            field: SmartTileField.cell(semanticCells: <int>[0]),
+            animationActivation: SmartTileAnimationActivation.always,
+          ),
+        ],
+      );
+
+      expect(
+        editorCanvasNeedsAnimation(
+          map: map,
+          project: project,
+          borderPreview: null,
+        ),
+        isTrue,
+      );
+    });
+
+    test('an animation referenced by a painted pattern runs the clock', () {
+      final project = ProjectManifest(
+        name: 'Animated Smart Tile pattern project',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        smartTileCatalog: ProjectSmartTileCatalog(
+          animations: const <ProjectSmartTileAnimation>[
+            ProjectSmartTileAnimation(
+              id: 'flower-loop',
+              name: 'Flower loop',
+              frames: <ProjectSmartTileAnimationFrame>[
+                ProjectSmartTileAnimationFrame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'flower-atlas',
+                    column: 0,
+                    row: 0,
+                  ),
+                  durationMs: 110,
+                ),
+              ],
+            ),
+          ],
+          presets: const <ProjectSmartTilePreset>[
+            ProjectSmartTilePreset(
+              id: 'grass',
+              name: 'Grass',
+              usage: SmartTileUsage.path,
+              topology: SmartTileTopology.uniform,
+              coveragePolicy: SmartTileCoveragePolicy.complete,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
+              defaultMaterialId: 'grass',
+              allowedMaterialIds: <String>['grass'],
+            ),
+          ],
+          patterns: const <ProjectSmartTilePattern>[
+            ProjectSmartTilePattern(
+              id: 'flowers',
+              name: 'Flowers',
+              usage: SmartTileUsage.path,
+              width: 1,
+              height: 1,
+              cells: <SmartTilePatternCell>[
+                SmartTilePatternCell(
+                  x: 0,
+                  y: 0,
+                  parts: <SmartTileVisualPart>[
+                    SmartTileVisualPart(
+                      source: SmartTileVisualSource.animation(
+                        animationId: 'flower-loop',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      const map = MapData(
+        id: 'flower-map',
+        name: 'Flower map',
+        version: ProjectVersion.v6,
+        size: GridSize(width: 1, height: 1),
+        layers: <MapLayer>[
+          SmartTileLayer(
+            id: 'grass',
+            name: 'Grass',
+            presetId: 'grass',
+            usage: SmartTileUsage.path,
+            field: SmartTileField.cell(semanticCells: <int>[0]),
+            patternStrokes: <SmartTilePatternStroke>[
+              SmartTilePatternStroke(
+                id: 'flowers-1',
+                patternId: 'flowers',
+                cells: <GridPos>[GridPos(x: 0, y: 0)],
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        editorCanvasNeedsAnimation(
+          map: map,
+          project: project,
+          borderPreview: null,
+        ),
+        isTrue,
+      );
+    });
 
     test('an animated atlas tile keeps the editor clock running', () {
       const map = MapData(

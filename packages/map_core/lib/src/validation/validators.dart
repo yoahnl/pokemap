@@ -1,6 +1,8 @@
-import '../exceptions/map_exceptions.dart';
+import '../diagnostics/scene_diagnostics.dart';
 import '../encounters/encounter_contract.dart';
+import '../exceptions/map_exceptions.dart';
 import '../models/badge_definition.dart';
+import '../models/cinematic_library_catalog.dart';
 import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
@@ -12,6 +14,7 @@ import '../models/project_presentation_profile.dart';
 import '../models/project_tileset_source.dart';
 import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
+import '../models/scene_asset.dart';
 import '../models/script_conditions.dart';
 import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
@@ -84,12 +87,35 @@ class ProjectValidator {
   }
 
   static void validate(ProjectManifest manifest) {
-    if (manifest.version != ProjectVersion.v6) {
+    if (manifest.version != ProjectVersion.v6 &&
+        manifest.version != ProjectVersion.v7) {
       throw const ValidationException(
-        'Smart Tiles-only projects require ProjectVersion.v6',
+        'Projects require ProjectVersion.v6 or ProjectVersion.v7',
         code: 'smart_tile_v6_project_required',
       );
     }
+    if (manifest.version == ProjectVersion.v6 &&
+        manifest.presentationCinematics.isNotEmpty) {
+      throw const ValidationException(
+        'Presentation cinematics require ProjectVersion.v7',
+        code: 'cinematic_v2_project_v7_required',
+      );
+    }
+    if (manifest.version == ProjectVersion.v6 &&
+        !manifest.cinematicLibraryCatalog.isEmpty) {
+      throw const ValidationException(
+        'Cinematic library catalog requires ProjectVersion.v7',
+        code: 'cinematic_v2_project_v7_required',
+      );
+    }
+    if (manifest.version == ProjectVersion.v6 &&
+        (manifest.newGame.preSessionSceneId?.trim().isNotEmpty ?? false)) {
+      throw const ValidationException(
+        'New Game preSession entrypoint requires ProjectVersion.v7',
+        code: 'cinematic_v2_project_v7_required',
+      );
+    }
+    _validateCinematicLibrary(manifest);
     final smartTileDiagnostics = validateProjectSmartTileCatalog(
       catalog: manifest.smartTileCatalog,
       projectTilesetIds: manifest.tilesets.map((tileset) => tileset.id),
@@ -242,14 +268,43 @@ class ProjectValidator {
         );
       }
     }
-    final starterSceneId = config.starterSelectionSceneId?.trim();
-    if (starterSceneId != null &&
-        starterSceneId.isNotEmpty &&
-        !manifest.scenes.any((scene) => scene.id == starterSceneId)) {
-      throw ValidationException(
-        'newGame starterSelectionSceneId references an unknown Scene: '
-        '$starterSceneId',
-      );
+    final preSessionSceneId = config.preSessionSceneId?.trim();
+    if (preSessionSceneId != null && preSessionSceneId.isNotEmpty) {
+      final scene = manifest.scenes
+          .where((candidate) => candidate.id == preSessionSceneId)
+          .firstOrNull;
+      if (scene == null) {
+        throw ValidationException(
+          'newGame preSessionSceneId references an unknown Scene: '
+          '$preSessionSceneId',
+          code: 'new_game_pre_session_scene_unknown',
+        );
+      }
+      if (scene.executionProfile != SceneExecutionProfile.preSession) {
+        throw ValidationException(
+          'newGame preSessionSceneId must reference a preSession Scene: '
+          '$preSessionSceneId',
+          code: 'new_game_pre_session_profile_required',
+        );
+      }
+      final diagnostics = diagnoseSceneAgainstProject(scene, manifest);
+      if (diagnostics.hasErrors) {
+        throw ValidationException(
+          'newGame preSessionSceneId references an invalid Scene: '
+          '$preSessionSceneId',
+          code: 'new_game_pre_session_scene_invalid',
+          details: <String, Object?>{
+            'sceneId': preSessionSceneId,
+            'diagnosticCodes': diagnostics.diagnostics
+                .where(
+                  (diagnostic) =>
+                      diagnostic.severity == SceneDiagnosticSeverity.error,
+                )
+                .map((diagnostic) => diagnostic.code.name)
+                .toList(growable: false),
+          },
+        );
+      }
     }
 
     final starterIds = <String>{};
@@ -271,6 +326,33 @@ class ProjectValidator {
       } on StateError catch (error) {
         throw ValidationException(
           'Invalid newGame starter option $optionId: $error',
+        );
+      }
+    }
+  }
+
+  static void _validateCinematicLibrary(ProjectManifest manifest) {
+    final worldIds = manifest.cinematics
+        .map((cinematic) => cinematic.id)
+        .toSet();
+    final presentationIds = manifest.presentationCinematics
+        .map((cinematic) => cinematic.id)
+        .toSet();
+    for (final entry in manifest.cinematicLibraryCatalog.entries) {
+      final known = switch (entry.family) {
+        CinematicLibraryFamily.world => worldIds.contains(entry.cinematicId),
+        CinematicLibraryFamily.presentation =>
+          presentationIds.contains(entry.cinematicId),
+      };
+      if (!known) {
+        throw ValidationException(
+          'Cinematic library entry references an unknown '
+          '${entry.family.name} cinematic: ${entry.cinematicId}',
+          code: 'cinematic_library.asset_unknown',
+          details: <String, Object?>{
+            'family': entry.family.name,
+            'cinematicId': entry.cinematicId,
+          },
         );
       }
     }
@@ -331,6 +413,11 @@ class ProjectValidator {
       manifest.scenarios,
       (s) => s.id,
       duplicateMessagePrefix: 'Duplicate scenario ID',
+    );
+    _validateUniqueIds(
+      manifest.presentationCinematics,
+      (cinematic) => cinematic.id,
+      duplicateMessagePrefix: 'Duplicate Presentation cinematic ID',
     );
     _validateUniqueIds(
       manifest.trainers,

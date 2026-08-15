@@ -959,9 +959,594 @@ test("MCP scene.upsert preserves a non-base Pokemon form", async () => {
   }
 });
 
+test("MCP commits and undoes one atomic Presentation clip batch", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actions = new Map(
+      (record(described.fullParity).mutationActions as JsonRecord[]).map(
+        (action) => [String(action.actionId), action],
+      ),
+    );
+    for (const actionId of [
+      "presentationClip.batch",
+      "presentationClip.deleteBatch",
+      "presentationTimeline.insert",
+    ]) {
+      const action = actions.get(actionId);
+      assert.ok(action);
+      assert.deepEqual(action.endToEndVerifiedTransports, [
+        "cli",
+        "directApi",
+        "editor",
+        "mcp",
+      ]);
+      assert.deepEqual(Object.keys(record(action.endToEndEvidence)).sort(), [
+        "cli",
+        "directApi",
+        "editor",
+        "mcp",
+      ]);
+    }
+    await writeFile(
+      join(fixture.root, "project.json"),
+      JSON.stringify({
+        name: "Presentation clip batch MCP fixture",
+        version: "v7",
+        maps: [],
+        tilesets: [],
+        pokemon: canonicalPokemonConfig(),
+        presentationCinematics: [
+          {
+            schemaVersion: 3,
+            capabilities: ["cinematic.presentation"],
+            timebase: { unit: "microsecond", ticksPerSecond: 1_000_000 },
+            id: "opening",
+            title: "Opening",
+            description: "",
+            durationUs: 5_000_000,
+            layers: [],
+            visualFolders: [],
+            tracks: [
+              {
+                id: "markers",
+                label: "Markers",
+                kind: "marker",
+                clips: [
+                  {
+                    id: "anchor",
+                    kind: "marker",
+                    startUs: 1_000_000,
+                    durationUs: 0,
+                    label: "Anchor",
+                    markerKind: "ordinary",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const validation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "cin024-mcp-batch",
+        actionId: "presentationClip.batch",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: {
+          cinematicId: "opening",
+          operations: [
+            {
+              kind: "edit",
+              clipId: "anchor",
+              targetTrackId: "markers",
+              startUs: 2_000_000,
+              durationUs: 0,
+            },
+          ],
+        },
+        expectedRevision: validation.snapshotRevision,
+        idempotencyKey: "cin024-mcp-batch",
+        dryRun: false,
+      },
+    });
+    const applied = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "cin024-mcp-batch-apply",
+    });
+    assert.equal(record(applied.receipt).actionId, "presentationClip.batch");
+    const queried = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationClip",
+      operation: "list",
+      view: "detail",
+      filters: { cinematicId: "opening", trackId: "markers" },
+    });
+    assert.equal(record((queried.items as unknown[])[0]).startUs, 2_000_000);
+    const history = await toolData(fixture.client, "pokemap_history", {
+      operation: "list",
+      projectHandle,
+      limit: 1,
+    });
+    const entry = record((history.entries as unknown[])[0]);
+    await toolData(fixture.client, "pokemap_history", {
+      operation: "undo",
+      projectHandle,
+      entryId: String(entry.entryId),
+      idempotencyKey: "cin024-mcp-batch-undo",
+    });
+    const restored = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationClip",
+      operation: "list",
+      view: "detail",
+      filters: { cinematicId: "opening", trackId: "markers" },
+    });
+    assert.equal(record((restored.items as unknown[])[0]).startUs, 1_000_000);
+    const deleteValidation = await toolData(
+      fixture.client,
+      "pokemap_validate",
+      { projectHandle },
+    );
+    const deletePlan = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "cin024-mcp-delete-batch",
+        actionId: "presentationClip.deleteBatch",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: { cinematicId: "opening", clipIds: ["anchor"] },
+        expectedRevision: deleteValidation.snapshotRevision,
+        idempotencyKey: "cin024-mcp-delete-batch",
+        dryRun: false,
+      },
+    });
+    const deleteConfirmation = await toolData(
+      fixture.client,
+      "pokemap_apply",
+      {
+        operation: "confirm",
+        projectHandle,
+        planId: deletePlan.planId,
+      },
+    );
+    const deleted = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: deletePlan.planId,
+      operationId: "cin024-mcp-delete-batch-apply",
+      confirmationToken: deleteConfirmation.confirmationToken,
+    });
+    assert.equal(
+      record(deleted.receipt).actionId,
+      "presentationClip.deleteBatch",
+    );
+    const afterDelete = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationClip",
+      operation: "list",
+      view: "detail",
+      filters: { cinematicId: "opening", trackId: "markers" },
+    });
+    assert.equal((afterDelete.items as unknown[]).length, 0);
+    const deleteHistory = await toolData(
+      fixture.client,
+      "pokemap_history",
+      { operation: "list", projectHandle, limit: 1 },
+    );
+    const deleteEntry = record((deleteHistory.entries as unknown[])[0]);
+    await toolData(fixture.client, "pokemap_history", {
+      operation: "undo",
+      projectHandle,
+      entryId: String(deleteEntry.entryId),
+      idempotencyKey: "cin024-mcp-delete-batch-undo",
+    });
+    const deleteRestored = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationClip",
+      operation: "list",
+      view: "detail",
+      filters: { cinematicId: "opening", trackId: "markers" },
+    });
+    assert.equal((deleteRestored.items as unknown[]).length, 1);
+
+    const insertValidation = await toolData(
+      fixture.client,
+      "pokemap_validate",
+      { projectHandle },
+    );
+    const insertPlan = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "cin055-mcp-timeline-insert",
+        actionId: "presentationTimeline.insert",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: {
+          cinematicId: "opening",
+          targetVisualFolderId: null,
+          layer: null,
+          track: {
+            id: "inserted-markers",
+            label: "Inserted markers",
+            kind: "marker",
+            clips: [
+              {
+                id: "inserted-marker",
+                kind: "marker",
+                startUs: 3_000_000,
+                durationUs: 0,
+                label: "Inserted marker",
+                markerKind: "ordinary",
+              },
+            ],
+          },
+        },
+        expectedRevision: insertValidation.snapshotRevision,
+        idempotencyKey: "cin055-mcp-timeline-insert",
+        dryRun: false,
+      },
+    });
+    const inserted = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: insertPlan.planId,
+      operationId: "cin055-mcp-timeline-insert-apply",
+    });
+    assert.equal(
+      record(inserted.receipt).actionId,
+      "presentationTimeline.insert",
+    );
+    const insertedClips = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationClip",
+      operation: "list",
+      view: "detail",
+      filters: { cinematicId: "opening", trackId: "inserted-markers" },
+    });
+    assert.equal((insertedClips.items as unknown[]).length, 1);
+    assert.equal(
+      record((insertedClips.items as unknown[])[0]).startUs,
+      3_000_000,
+    );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("MCP executes and rereads every cinematic library catalog action", async () => {
+  const fixture = await mutationFixture();
+  try {
+    await writeFile(
+      join(fixture.root, "project.json"),
+      JSON.stringify({
+        name: "Cinematic library MCP fixture",
+        version: "v7",
+        maps: [],
+        tilesets: [],
+        pokemon: canonicalPokemonConfig(),
+        cinematics: [
+          {
+            id: "world-a",
+            title: "World A",
+            timeline: { steps: [] },
+          },
+          {
+            id: "world-b",
+            title: "World B",
+            timeline: { steps: [] },
+          },
+        ],
+      }),
+    );
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    let revision = String(
+      (
+        await toolData(fixture.client, "pokemap_validate", {
+          projectHandle,
+        })
+      ).snapshotRevision,
+    );
+    let sequence = 0;
+    const observedActionIds = new Set<string>();
+    const actionIds = [
+      "cinematicLibraryAsset.create",
+      "cinematicLibraryAsset.duplicate",
+      "cinematicLibraryAsset.delete",
+      "cinematicLibraryFolder.create",
+      "cinematicLibraryFolder.rename",
+      "cinematicLibraryFolder.move",
+      "cinematicLibraryFolder.reorder",
+      "cinematicLibraryFolder.setArchived",
+      "cinematicLibraryFolder.delete",
+      "cinematicLibraryEntry.place",
+      "cinematicLibraryEntry.reorder",
+      "cinematicLibraryEntry.setArchived",
+      "cinematicLibraryEntry.remove",
+    ];
+
+    const apply = async (
+      actionId: string,
+      parameters: JsonRecord,
+      confirmed = false,
+    ): Promise<void> => {
+      sequence += 1;
+      const planned = await toolData(fixture.client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: `cin049-plan-${sequence}`,
+          actionId,
+          actionVersion: 1,
+          workspaceHandle,
+          parameters,
+          expectedRevision: revision,
+          idempotencyKey: `cin049-idempotency-${sequence}`,
+          dryRun: false,
+        },
+      });
+      const confirmation = confirmed
+        ? await toolData(fixture.client, "pokemap_apply", {
+            operation: "confirm",
+            projectHandle,
+            planId: planned.planId,
+          })
+        : undefined;
+      const applied = await toolData(fixture.client, "pokemap_apply", {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId: `cin049-operation-${sequence}`,
+        ...(confirmation
+          ? { confirmationToken: confirmation.confirmationToken }
+          : {}),
+      });
+      assert.equal(record(applied.receipt).actionId, actionId);
+      observedActionIds.add(actionId);
+      revision = String(
+        (
+          await toolData(fixture.client, "pokemap_validate", {
+            projectHandle,
+          })
+        ).snapshotRevision,
+      );
+    };
+
+    await apply("cinematicLibraryFolder.create", {
+      folderId: "root-a",
+      family: "world",
+      name: "Root A",
+      parentFolderId: null,
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryFolder.create", {
+      folderId: "root-b",
+      family: "world",
+      name: "Root B",
+      parentFolderId: null,
+      targetIndex: 1,
+    });
+    await apply("cinematicLibraryFolder.create", {
+      folderId: "chapter",
+      family: "world",
+      name: "Chapter",
+      parentFolderId: "root-a",
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryFolder.rename", {
+      folderId: "chapter",
+      name: "Opening",
+    });
+    await apply("cinematicLibraryFolder.move", {
+      folderId: "chapter",
+      targetParentFolderId: "root-b",
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryFolder.reorder", {
+      folderId: "root-b",
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryFolder.setArchived", {
+      folderId: "root-a",
+      isArchived: true,
+    });
+    await apply("cinematicLibraryEntry.place", {
+      family: "world",
+      cinematicId: "world-a",
+      targetFolderId: "chapter",
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryEntry.place", {
+      family: "world",
+      cinematicId: "world-b",
+      targetFolderId: "chapter",
+      targetIndex: 1,
+    });
+    await apply("cinematicLibraryEntry.reorder", {
+      family: "world",
+      cinematicId: "world-b",
+      targetIndex: 0,
+    });
+    await apply("cinematicLibraryEntry.setArchived", {
+      family: "world",
+      cinematicId: "world-a",
+      isArchived: true,
+    });
+    await apply("cinematicLibraryAsset.create", {
+      family: "world",
+      cinematicId: "world-created",
+      title: "World created",
+      targetFolderId: "chapter",
+      targetIndex: 2,
+      startingPoint: "blank",
+    });
+    await apply("cinematicLibraryAsset.duplicate", {
+      family: "world",
+      cinematicId: "world-created",
+      duplicateId: "world-created-copy",
+      title: "World created copy",
+      targetFolderId: "chapter",
+      targetIndex: 3,
+    });
+    await apply(
+      "cinematicLibraryAsset.delete",
+      { family: "world", cinematicId: "world-created-copy" },
+      true,
+    );
+    await apply(
+      "cinematicLibraryAsset.delete",
+      { family: "world", cinematicId: "world-created" },
+      true,
+    );
+    await apply(
+      "cinematicLibraryEntry.remove",
+      { family: "world", cinematicId: "world-a" },
+      true,
+    );
+    await apply(
+      "cinematicLibraryFolder.delete",
+      { folderId: "root-a" },
+      true,
+    );
+
+    assert.deepEqual([...observedActionIds].sort(), [...actionIds].sort());
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const resourceKinds = new Set(
+      (described.resourceKinds as JsonRecord[]).map((kind) => String(kind.id)),
+    );
+    for (const resourceKind of [
+      "cinematicLibraryCatalog",
+      "cinematicLibraryFolder",
+      "cinematicLibraryEntry",
+    ]) {
+      assert.ok(resourceKinds.has(resourceKind), resourceKind);
+    }
+    const parityActions = record(described.fullParity)
+      .mutationActions as JsonRecord[];
+    for (const actionId of actionIds) {
+      const parity = parityActions.find(
+        (action) => String(action.actionId) === actionId,
+      );
+      assert.deepEqual(record(parity).endToEndVerifiedTransports, [
+        "cli",
+        "directApi",
+        "editor",
+        "mcp",
+      ]);
+    }
+    const folders = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "cinematicLibraryFolder",
+      operation: "list",
+      filters: { family: "world" },
+      view: "detail",
+    });
+    const chapter = (folders.items as JsonRecord[]).find(
+      (folder) => String(folder.id) === "chapter",
+    );
+    assert.equal(record(chapter).parentFolderId, "root-b");
+    const entries = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "cinematicLibraryEntry",
+      operation: "list",
+      filters: { family: "world" },
+      view: "detail",
+    });
+    assert.deepEqual(
+      (entries.items as JsonRecord[]).map((entry) => entry.cinematicId),
+      ["world-b"],
+    );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP applies and rereads the authored presentation profile", async () => {
   const fixture = await mutationFixture();
   try {
+    await mkdir(join(fixture.root, "assets"), { recursive: true });
+    const importedSourcePath = join(fixture.root, "imported-opening.png");
+    await writeFile(importedSourcePath, pngHeader(1920, 1080));
+    const stagedImport = await toolData(
+      fixture.client,
+      "pokemap_artifact_stage",
+      {
+        sourcePath: importedSourcePath,
+        declaredMediaType: "image/png",
+      },
+    );
+    await writeFile(
+      join(fixture.root, "assets/.pokemap-media.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        entries: [
+          {
+            id: "opening-captions-fr",
+            label: "Sous-titres FR",
+            kind: "captions",
+            sourceAssetId: "asset.opening-captions-fr",
+            technicalMetadata: {
+              mediaType: "text/vtt",
+              container: "webvtt",
+              codec: "webvtt",
+              sizeBytes: 20,
+            },
+          },
+          {
+            id: "opening-poster",
+            label: "Poster ouverture",
+            kind: "poster",
+            sourceAssetId: "asset.opening-poster",
+            technicalMetadata: {
+              mediaType: "image/png",
+              container: "png",
+              codec: "png",
+              sizeBytes: 20,
+              width: 1920,
+              height: 1080,
+            },
+          },
+          {
+            id: "opening-video",
+            label: "Video ouverture",
+            kind: "video",
+            sourceAssetId: "asset.opening-video",
+            technicalMetadata: {
+              mediaType: "video/mp4",
+              container: "mp4",
+              codec: "h264",
+              sizeBytes: 100,
+              width: 1920,
+              height: 1080,
+              durationMilliseconds: 1000,
+            },
+          },
+        ],
+      }),
+    );
     const opened = await toolData(fixture.client, "pokemap_workspace", {
       operation: "open",
       projectRoot: fixture.root,
@@ -973,6 +1558,8 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       (action) => String(action.id),
     );
     assert.ok(actionIds.includes("presentation.update"));
+    assert.ok(actionIds.includes("presentationMedia.import"));
+    assert.ok(actionIds.includes("presentationMedia.configure"));
     for (const actionId of [
       "presentation.preset.import_plan",
       "presentation.preset.import_apply",
@@ -998,6 +1585,94 @@ test("MCP applies and rereads the authored presentation profile", async () => {
       "directApi",
       "editor",
       "mcp",
+    ]);
+    const mediaImportAction = (
+      record(described.fullParity).mutationActions as JsonRecord[]
+    ).find((action) => String(action.actionId) === "presentationMedia.import");
+    assert.deepEqual(record(mediaImportAction).endToEndVerifiedTransports, [
+      "cli",
+      "directApi",
+      "editor",
+      "mcp",
+    ]);
+    const mediaConfigurationAction = (
+      record(described.fullParity).mutationActions as JsonRecord[]
+    ).find(
+      (action) => String(action.actionId) === "presentationMedia.configure",
+    );
+    assert.deepEqual(
+      record(mediaConfigurationAction).endToEndVerifiedTransports,
+      ["cli", "directApi", "mcp"],
+    );
+
+    const mediaValidated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    let mediaRevision = String(mediaValidated.snapshotRevision);
+    mediaRevision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: mediaRevision,
+      actionId: "presentationMedia.import",
+      parameters: {
+        artifactHandle: stagedImport.artifactHandle,
+        mediaId: "imported-opening",
+        label: "Imported opening",
+        kind: "image",
+        assetId: "asset.imported-opening",
+        logicalPath: "assets/presentation/imported-opening.png",
+      },
+      sequence: "opening-media-import",
+    });
+    const importedMedia = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationMedia",
+      operation: "get",
+      view: "detail",
+      ids: ["imported-opening"],
+    });
+    assert.equal(
+      record((importedMedia.items as unknown[])[0]).sourceAssetId,
+      "asset.imported-opening",
+    );
+    await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: mediaRevision,
+      actionId: "presentationMedia.configure",
+      parameters: {
+        mediaId: "opening-video",
+        posterMediaId: "opening-poster",
+        fallbackMediaId: "opening-poster",
+        captions: [
+          { locale: "fr-FR", mediaId: "opening-captions-fr" },
+        ],
+        provenance: {
+          source: "Avelune Studio original",
+          creator: "Yoahn",
+        },
+        license: {
+          identifier: "LicenseRef-Avelune-Proprietary",
+          name: "Avelune proprietary media license",
+        },
+      },
+      sequence: "opening-media-metadata",
+    });
+    const queriedMedia = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "presentationMedia",
+      operation: "get",
+      view: "detail",
+      ids: ["opening-video"],
+    });
+    const openingVideo = record((queriedMedia.items as unknown[])[0]);
+    assert.equal(record(openingVideo.provenance).creator, "Yoahn");
+    assert.equal(
+      record(openingVideo.license).identifier,
+      "LicenseRef-Avelune-Proprietary",
+    );
+    assert.deepEqual(openingVideo.captions, [
+      { locale: "fr-FR", mediaId: "opening-captions-fr" },
     ]);
 
     const validated = await toolData(fixture.client, "pokemap_validate", {

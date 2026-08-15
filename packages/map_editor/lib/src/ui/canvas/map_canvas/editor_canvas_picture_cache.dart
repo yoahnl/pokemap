@@ -21,6 +21,7 @@ final class EditorCanvasPaintRevisionSnapshot {
   EditorCanvasPaintRevisionSnapshot({
     required this.mapRevision,
     required this.projectRevision,
+    required this.smartTileCatalogRevision,
     required this.assetsRevision,
     required this.overlayRevision,
     required this.geometryRevision,
@@ -31,6 +32,7 @@ final class EditorCanvasPaintRevisionSnapshot {
 
   final int mapRevision;
   final int projectRevision;
+  final int smartTileCatalogRevision;
   final int assetsRevision;
   final int overlayRevision;
   final int geometryRevision;
@@ -46,6 +48,7 @@ final class EditorCanvasPaintRevisionSnapshot {
       other is EditorCanvasPaintRevisionSnapshot &&
           other.mapRevision == mapRevision &&
           other.projectRevision == projectRevision &&
+          other.smartTileCatalogRevision == smartTileCatalogRevision &&
           other.assetsRevision == assetsRevision &&
           other.overlayRevision == overlayRevision &&
           other.geometryRevision == geometryRevision &&
@@ -57,6 +60,7 @@ final class EditorCanvasPaintRevisionSnapshot {
   int get hashCode => Object.hash(
     mapRevision,
     projectRevision,
+    smartTileCatalogRevision,
     assetsRevision,
     overlayRevision,
     geometryRevision,
@@ -74,28 +78,42 @@ final class EditorCanvasPictureCacheOwner {
   EditorCanvasPictureCacheOwner({
     this.maxEntries = 64,
     this.maxRevisionMaps = 8,
+    this.maxSmartTileVisualPlans = 96,
   }) : assert(maxEntries > 0),
-       assert(maxRevisionMaps > 0);
+       assert(maxRevisionMaps > 0),
+       assert(maxSmartTileVisualPlans > 0);
 
   final int maxEntries;
   final int maxRevisionMaps;
+  final int maxSmartTileVisualPlans;
   final Map<_EditorCanvasPictureCacheKey, ui.Picture> _pictures = {};
   final Map<_EditorCanvasPictureCacheSlot, _EditorCanvasPictureCacheKey>
   _latestKeyBySlot = {};
   final Map<String, _EditorCanvasMapRevisionState> _mapRevisionStates = {};
+  final Map<_EditorSmartTileVisualPlanKey, SmartTileLayerVisualPlan>
+  _smartTileVisualPlans = {};
+  final Map<_EditorSmartTileVisualPlanSlot, _EditorSmartTileVisualPlanKey>
+  _latestSmartTileVisualPlanKeyBySlot = {};
   ProjectManifest? _project;
+  ProjectSmartTileCatalog? _smartTileCatalog;
   Map<String, ui.Image?>? _imagesById;
   int _nextRevision = 0;
   int _projectRevision = 0;
+  int _smartTileCatalogRevision = 0;
   int _assetsRevision = 0;
   int _hitCount = 0;
   int _missCount = 0;
+  int _smartTileVisualPlanBuildCount = 0;
+  int _smartTileVisualPlanHitCount = 0;
   bool _disposed = false;
 
   int get entryCount => _pictures.length;
   int get revisionMapCount => _mapRevisionStates.length;
   int get hitCount => _hitCount;
   int get missCount => _missCount;
+  int get smartTileVisualPlanEntryCount => _smartTileVisualPlans.length;
+  int get smartTileVisualPlanBuildCount => _smartTileVisualPlanBuildCount;
+  int get smartTileVisualPlanHitCount => _smartTileVisualPlanHitCount;
 
   EditorCanvasPaintRevisionSnapshot resolveRevisions({
     required MapData map,
@@ -141,15 +159,21 @@ final class EditorCanvasPictureCacheOwner {
         mapState.layerRevisions.remove(removedId);
       }
     }
+    final smartTileCatalog = project?.smartTileCatalog;
+    if (_smartTileCatalog != smartTileCatalog) {
+      _smartTileCatalogRevision = ++_nextRevision;
+      _clearSmartTileVisualPlans();
+    }
+    _smartTileCatalog = smartTileCatalog;
     if (!identical(_project, project)) {
       _project = project;
       _projectRevision = ++_nextRevision;
-      clear();
+      _clearPictures();
     }
     if (!_sameImages(_imagesById, imagesById)) {
       _imagesById = imagesById;
       _assetsRevision = ++_nextRevision;
-      clear();
+      _clearPictures();
     }
     if (mapState.overlayToken != overlayToken) {
       mapState.overlayToken = overlayToken;
@@ -158,6 +182,7 @@ final class EditorCanvasPictureCacheOwner {
     return EditorCanvasPaintRevisionSnapshot(
       mapRevision: mapState.mapRevision,
       projectRevision: _projectRevision,
+      smartTileCatalogRevision: _smartTileCatalogRevision,
       assetsRevision: _assetsRevision,
       overlayRevision: mapState.overlayRevision,
       geometryRevision: mapState.geometryRevision,
@@ -197,7 +222,74 @@ final class EditorCanvasPictureCacheOwner {
     }
   }
 
+  SmartTileLayerVisualPlan _resolveSmartTileVisualPlan({
+    required MapData map,
+    required SmartTileLayer layer,
+    required ProjectSmartTileCatalog catalog,
+    required SmartTileVisualPass pass,
+    required EditorCanvasPaintRevisionSnapshot revisions,
+    required double destinationCellWidth,
+    required double destinationCellHeight,
+    required double sourceCellWidth,
+    required double sourceCellHeight,
+    required SmartTilePatternOwnerIndex patternOwnerIndex,
+  }) {
+    _ensureActive();
+    final slot = _EditorSmartTileVisualPlanSlot(
+      mapId: map.id,
+      layerId: layer.id,
+      pass: pass,
+      destinationCellWidth: destinationCellWidth,
+      destinationCellHeight: destinationCellHeight,
+      sourceCellWidth: sourceCellWidth,
+      sourceCellHeight: sourceCellHeight,
+    );
+    final key = _EditorSmartTileVisualPlanKey(
+      slot: slot,
+      layerRevision: revisions.layerRevision(layer.id),
+      smartTileCatalogRevision: revisions.smartTileCatalogRevision,
+      geometryRevision: revisions.geometryRevision,
+    );
+    final cached = _smartTileVisualPlans.remove(key);
+    if (cached != null) {
+      _smartTileVisualPlanHitCount += 1;
+      _smartTileVisualPlans[key] = cached;
+      return cached;
+    }
+    final plan = buildSmartTileLayerVisualPlan(
+      map: map,
+      layer: layer,
+      catalog: catalog,
+      pass: pass,
+      destinationCellWidth: destinationCellWidth,
+      destinationCellHeight: destinationCellHeight,
+      sourceCellWidth: sourceCellWidth,
+      sourceCellHeight: sourceCellHeight,
+      patternOwnerIndex: patternOwnerIndex,
+    );
+    _smartTileVisualPlanBuildCount += 1;
+    final previousKey = _latestSmartTileVisualPlanKeyBySlot[slot];
+    if (previousKey != null && previousKey != key) {
+      _smartTileVisualPlans.remove(previousKey);
+    }
+    _latestSmartTileVisualPlanKeyBySlot[slot] = key;
+    _smartTileVisualPlans[key] = plan;
+    while (_smartTileVisualPlans.length > maxSmartTileVisualPlans) {
+      final oldestKey = _smartTileVisualPlans.keys.first;
+      _smartTileVisualPlans.remove(oldestKey);
+      if (_latestSmartTileVisualPlanKeyBySlot[oldestKey.slot] == oldestKey) {
+        _latestSmartTileVisualPlanKeyBySlot.remove(oldestKey.slot);
+      }
+    }
+    return plan;
+  }
+
   void clear() {
+    _clearPictures();
+    _clearSmartTileVisualPlans();
+  }
+
+  void _clearPictures() {
     for (final picture in _pictures.values) {
       picture.dispose();
     }
@@ -205,11 +297,17 @@ final class EditorCanvasPictureCacheOwner {
     _latestKeyBySlot.clear();
   }
 
+  void _clearSmartTileVisualPlans() {
+    _smartTileVisualPlans.clear();
+    _latestSmartTileVisualPlanKeyBySlot.clear();
+  }
+
   void dispose() {
     if (_disposed) return;
     clear();
     _mapRevisionStates.clear();
     _project = null;
+    _smartTileCatalog = null;
     _imagesById = null;
     _disposed = true;
   }
@@ -219,6 +317,82 @@ final class EditorCanvasPictureCacheOwner {
       throw StateError('EditorCanvasPictureCacheOwner is disposed.');
     }
   }
+}
+
+@immutable
+final class _EditorSmartTileVisualPlanSlot {
+  const _EditorSmartTileVisualPlanSlot({
+    required this.mapId,
+    required this.layerId,
+    required this.pass,
+    required this.destinationCellWidth,
+    required this.destinationCellHeight,
+    required this.sourceCellWidth,
+    required this.sourceCellHeight,
+  });
+
+  final String mapId;
+  final String layerId;
+  final SmartTileVisualPass pass;
+  final double destinationCellWidth;
+  final double destinationCellHeight;
+  final double sourceCellWidth;
+  final double sourceCellHeight;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _EditorSmartTileVisualPlanSlot &&
+          other.mapId == mapId &&
+          other.layerId == layerId &&
+          other.pass == pass &&
+          other.destinationCellWidth == destinationCellWidth &&
+          other.destinationCellHeight == destinationCellHeight &&
+          other.sourceCellWidth == sourceCellWidth &&
+          other.sourceCellHeight == sourceCellHeight;
+
+  @override
+  int get hashCode => Object.hash(
+    mapId,
+    layerId,
+    pass,
+    destinationCellWidth,
+    destinationCellHeight,
+    sourceCellWidth,
+    sourceCellHeight,
+  );
+}
+
+@immutable
+final class _EditorSmartTileVisualPlanKey {
+  const _EditorSmartTileVisualPlanKey({
+    required this.slot,
+    required this.layerRevision,
+    required this.smartTileCatalogRevision,
+    required this.geometryRevision,
+  });
+
+  final _EditorSmartTileVisualPlanSlot slot;
+  final int layerRevision;
+  final int smartTileCatalogRevision;
+  final int geometryRevision;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _EditorSmartTileVisualPlanKey &&
+          other.slot == slot &&
+          other.layerRevision == layerRevision &&
+          other.smartTileCatalogRevision == smartTileCatalogRevision &&
+          other.geometryRevision == geometryRevision;
+
+  @override
+  int get hashCode => Object.hash(
+    slot,
+    layerRevision,
+    smartTileCatalogRevision,
+    geometryRevision,
+  );
 }
 
 final class _EditorCanvasMapRevisionState {

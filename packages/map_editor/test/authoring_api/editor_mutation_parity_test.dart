@@ -94,6 +94,174 @@ void main() {
       }
     });
 
+    test('editor executes every cinematic library catalog action', () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final projectFile = File(p.join(fixture.root.path, 'project.json'));
+      final project = fixture.project.copyWith(
+        version: ProjectVersion.v7,
+        cinematics: [
+          CinematicAsset(
+            id: 'world-a',
+            title: 'World A',
+            timeline: CinematicTimeline(),
+          ),
+          CinematicAsset(
+            id: 'world-b',
+            title: 'World B',
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+      await projectFile.writeAsString(
+        jsonEncode(project.toJson()),
+        flush: true,
+      );
+      var sequence = 0;
+      final observedActionIds = <String>[];
+
+      Future<void> applyAction(
+        String actionId,
+        Map<String, Object?> parameters,
+      ) async {
+        sequence += 1;
+        final plan = await fixture.mutations.plan(
+          fixture.root.path,
+          actionId: actionId,
+          parameters: parameters,
+          idempotencyKey: 'editor-cinematic-library-$sequence',
+        );
+        final confirmationToken = switch (actionId) {
+          'cinematicLibraryAsset.delete' ||
+          'cinematicLibraryFolder.delete' ||
+          'cinematicLibraryEntry.remove' => await fixture.mutations.confirm(
+            plan,
+          ),
+          _ => null,
+        };
+        final applied = await fixture.mutations.apply(
+          plan,
+          operationId: 'editor-cinematic-library-$sequence',
+          confirmationToken: confirmationToken,
+        );
+        observedActionIds.add(applied.receipt.actionId);
+      }
+
+      await applyAction('cinematicLibraryFolder.create', const {
+        'folderId': 'root-a',
+        'family': 'world',
+        'name': 'Root A',
+        'parentFolderId': null,
+        'targetIndex': 0,
+      });
+      await applyAction('cinematicLibraryFolder.create', const {
+        'folderId': 'root-b',
+        'family': 'world',
+        'name': 'Root B',
+        'parentFolderId': null,
+        'targetIndex': 1,
+      });
+      await applyAction('cinematicLibraryFolder.create', const {
+        'folderId': 'chapter',
+        'family': 'world',
+        'name': 'Chapter',
+        'parentFolderId': 'root-a',
+        'targetIndex': 0,
+      });
+      await applyAction('cinematicLibraryFolder.rename', const {
+        'folderId': 'chapter',
+        'name': 'Opening',
+      });
+      await applyAction('cinematicLibraryFolder.move', const {
+        'folderId': 'chapter',
+        'targetParentFolderId': 'root-b',
+        'targetIndex': 0,
+      });
+      await applyAction('cinematicLibraryFolder.reorder', const {
+        'folderId': 'root-b',
+        'targetIndex': 0,
+      });
+      await applyAction('cinematicLibraryFolder.setArchived', const {
+        'folderId': 'root-a',
+        'isArchived': true,
+      });
+      await applyAction('cinematicLibraryEntry.place', const {
+        'family': 'world',
+        'cinematicId': 'world-a',
+        'targetFolderId': 'chapter',
+        'targetIndex': 0,
+      });
+      await applyAction('cinematicLibraryEntry.place', const {
+        'family': 'world',
+        'cinematicId': 'world-b',
+        'targetFolderId': 'chapter',
+        'targetIndex': 1,
+      });
+      await applyAction('cinematicLibraryEntry.reorder', const {
+        'family': 'world',
+        'cinematicId': 'world-b',
+        'targetIndex': 0,
+      });
+      await applyAction('cinematicLibraryEntry.setArchived', const {
+        'family': 'world',
+        'cinematicId': 'world-a',
+        'isArchived': true,
+      });
+      await applyAction('cinematicLibraryAsset.create', const {
+        'family': 'world',
+        'cinematicId': 'world-created',
+        'title': 'World created',
+        'targetFolderId': 'chapter',
+        'targetIndex': 2,
+        'startingPoint': 'blank',
+      });
+      await applyAction('cinematicLibraryAsset.duplicate', const {
+        'family': 'world',
+        'cinematicId': 'world-created',
+        'duplicateId': 'world-created-copy',
+        'title': 'World created copy',
+        'targetFolderId': 'chapter',
+        'targetIndex': 3,
+      });
+      await applyAction('cinematicLibraryAsset.delete', const {
+        'family': 'world',
+        'cinematicId': 'world-created-copy',
+      });
+      await applyAction('cinematicLibraryAsset.delete', const {
+        'family': 'world',
+        'cinematicId': 'world-created',
+      });
+      await applyAction('cinematicLibraryEntry.remove', const {
+        'family': 'world',
+        'cinematicId': 'world-a',
+      });
+      await applyAction('cinematicLibraryFolder.delete', const {
+        'folderId': 'root-a',
+      });
+
+      final durable = ProjectManifest.fromJson(
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+      );
+      expect(observedActionIds.toSet(), _cinematicLibraryActionIds);
+      expect(
+        durable.cinematicLibraryCatalog.requireFolder('chapter').parentFolderId,
+        'root-b',
+      );
+      expect(
+        durable.cinematicLibraryCatalog
+            .entryFor(CinematicLibraryFamily.world, 'world-b')
+            ?.sortOrder,
+        0,
+      );
+      expect(
+        durable.cinematicLibraryCatalog.entryFor(
+          CinematicLibraryFamily.world,
+          'world-a',
+        ),
+        isNull,
+      );
+    });
+
     test(
       'warm canonical map save rereads only the touched map payload',
       () async {
@@ -1495,6 +1663,22 @@ void main() {
     );
   });
 }
+
+const _cinematicLibraryActionIds = <String>{
+  'cinematicLibraryAsset.create',
+  'cinematicLibraryAsset.duplicate',
+  'cinematicLibraryAsset.delete',
+  'cinematicLibraryFolder.create',
+  'cinematicLibraryFolder.rename',
+  'cinematicLibraryFolder.move',
+  'cinematicLibraryFolder.reorder',
+  'cinematicLibraryFolder.setArchived',
+  'cinematicLibraryFolder.delete',
+  'cinematicLibraryEntry.place',
+  'cinematicLibraryEntry.reorder',
+  'cinematicLibraryEntry.setArchived',
+  'cinematicLibraryEntry.remove',
+};
 
 Map<String, Object?> _stableReceipt(AuthoringReceipt receipt) => {
   'actionId': receipt.actionId,

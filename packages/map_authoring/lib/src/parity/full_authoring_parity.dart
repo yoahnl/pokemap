@@ -465,6 +465,18 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (_cinematicLibraryTransportCertifiedActionIds.contains(actionId)) {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/narrative/cinematic_library_authoring_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_cinematic_library_flow_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (_characterStudioTransportCertifiedActionIds.contains(actionId)) {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:
@@ -508,8 +520,7 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.directApi:
           'test/parity/full_authoring_parity_test.dart',
       AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
-      AuthoringTransport.editor:
-          '../map_editor/test/personalization/'
+      AuthoringTransport.editor: '../map_editor/test/personalization/'
           'phase_6_personalization_studio_export_e2e_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
@@ -525,6 +536,61 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/pokemon_authoring.test.ts',
+    };
+  }
+  if (actionId == 'presentationMedia.import') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/assets/presentation_media_import_transaction_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/assets/presentation_media_import_transaction_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/'
+          'presentation_studio_add_authoring_gateway_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
+  if (actionId == 'presentationMedia.configure') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/assets/presentation_media_configuration_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/assets/presentation_media_configuration_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
+  if (actionId == 'presentationClip.create') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
+    };
+  }
+  if (actionId == 'presentationClip.batch' ||
+      actionId == 'presentationClip.deleteBatch') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_presentation_clip_batch_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_presentation_clip_batch_flow_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/'
+          'presentation_studio_timeline_authoring_gateway_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
+  if (actionId == 'presentationTimeline.insert') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_presentation_cinematic_flow_test.dart',
+      AuthoringTransport.editor: '../map_editor/test/authoring_api/'
+          'presentation_studio_add_authoring_gateway_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
   if (actionId == 'campaign.encounter_table.upsert' ||
@@ -561,6 +627,22 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
   }
   return const {};
 }
+
+const Set<String> _cinematicLibraryTransportCertifiedActionIds = <String>{
+  'cinematicLibraryAsset.create',
+  'cinematicLibraryAsset.duplicate',
+  'cinematicLibraryAsset.delete',
+  'cinematicLibraryFolder.create',
+  'cinematicLibraryFolder.rename',
+  'cinematicLibraryFolder.move',
+  'cinematicLibraryFolder.reorder',
+  'cinematicLibraryFolder.setArchived',
+  'cinematicLibraryFolder.delete',
+  'cinematicLibraryEntry.place',
+  'cinematicLibraryEntry.reorder',
+  'cinematicLibraryEntry.setArchived',
+  'cinematicLibraryEntry.remove',
+};
 
 const Set<String> _characterStudioTransportCertifiedActionIds = <String>{
   'characterStudio.character.create',
@@ -839,6 +921,29 @@ final class _ContractEvidenceRule {
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
+    [
+      'cinematicLibraryAsset.',
+      'cinematicLibraryFolder.',
+      'cinematicLibraryEntry.',
+    ],
+    'test/domains/narrative/cinematic_library_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['presentationCinematicTemplate.'],
+    'test/domains/narrative/presentation_cinematic_template_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
+    [
+      'presentationCinematic.',
+      'presentationTrack.',
+      'presentationClip.',
+      'presentationTimeline.',
+      'presentationLayer.',
+      'presentationVisualFolder.',
+    ],
+    'test/domains/narrative/presentation_cinematic_authoring_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['smart_tile.pattern.upsert', 'smart_tile.pattern.delete'],
     'test/domains/maps/smart_tile_catalog_actions_test.dart',
   ),
@@ -946,6 +1051,14 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/assets/visual_library_contract_test.dart',
   ),
   _ContractEvidenceRule(
+    ['presentationMedia.import'],
+    'test/domains/assets/presentation_media_import_transaction_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['presentationMedia.configure'],
+    'test/domains/assets/presentation_media_configuration_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['presentation.'],
     'test/domains/assets/presentation_authoring_test.dart',
   ),
@@ -1049,6 +1162,15 @@ const _semanticOwners = <String, String>{
   'storyline': 'storyline',
   'cinematic': 'cinematic',
   'cinematicMediaAsset': 'cinematic',
+  'cinematicLibraryCatalog': 'project',
+  'cinematicLibraryFolder': 'cinematicLibraryCatalog',
+  'cinematicLibraryEntry': 'cinematicLibraryCatalog',
+  'presentationCinematic': 'project',
+  'presentationCinematicTemplate': 'project',
+  'presentationTrack': 'presentationCinematic',
+  'presentationClip': 'presentationCinematic',
+  'presentationLayer': 'presentationCinematic',
+  'presentationVisualFolder': 'presentationCinematic',
   'shop': 'campaignContent',
   'badge': 'campaignContent',
   'trainer': 'campaignContent',
@@ -1085,6 +1207,15 @@ const _requiredDirectReadResourceKinds = <String>{
   'itemUsage',
   'itemReadiness',
   'mapConnection',
+  'cinematicLibraryCatalog',
+  'cinematicLibraryFolder',
+  'cinematicLibraryEntry',
+  'presentationCinematic',
+  'presentationCinematicTemplate',
+  'presentationTrack',
+  'presentationClip',
+  'presentationLayer',
+  'presentationVisualFolder',
   'presentationPreviewContext',
 };
 

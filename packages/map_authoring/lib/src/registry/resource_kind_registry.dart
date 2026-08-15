@@ -209,6 +209,100 @@ final class AuthoringResourceKindRegistry {
         summary: 'Content-addressed immutable asset bytes',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'presentationMedia',
+        version: 1,
+        displayName: 'Presentation media',
+        summary:
+            'Stable logical media identity linked to project-owned source assets',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'cinematicLibraryCatalog',
+        version: 1,
+        displayName: 'Cinematic library catalog',
+        summary:
+            'Persistent folder and placement catalog for both cinematic families',
+        extensions: const <String, Object?>{
+          'childResourceKinds': <String>[
+            'cinematicLibraryFolder',
+            'cinematicLibraryEntry',
+          ],
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'cinematicLibraryFolder',
+        version: 1,
+        displayName: 'Cinematic library folder',
+        summary: 'Recursive stable folder scoped to one cinematic family',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'cinematicLibraryEntry',
+        version: 1,
+        displayName: 'Cinematic library entry',
+        summary: 'Folder placement and archive state for one cinematic',
+        extensions: const <String, Object?>{
+          'idFormat': 'uriComponent(family):uriComponent(cinematicId)',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationCinematicTemplate',
+        version: 1,
+        displayName: 'Presentation cinematic template',
+        summary:
+            'Versioned canonical recipe for a responsive Presentation cinematic',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationCinematic',
+        version: 1,
+        displayName: 'Presentation cinematic',
+        summary: 'Project-owned out-of-engine cinematic timeline',
+        extensions: const <String, Object?>{
+          'childResourceKinds': <String>[
+            'presentationTrack',
+            'presentationClip',
+            'presentationLayer',
+            'presentationVisualFolder',
+          ],
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationTrack',
+        version: 1,
+        displayName: 'Presentation track',
+        summary: 'Typed ordered track inside a Presentation cinematic',
+        extensions: const <String, Object?>{
+          'idFormat': 'uriComponent(cinematicId):uriComponent(trackId)',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationClip',
+        version: 1,
+        displayName: 'Presentation clip',
+        summary: 'Temporal clip inside a Presentation cinematic track',
+        extensions: const <String, Object?>{
+          'idFormat': 'uriComponent(cinematicId):uriComponent(trackId):'
+              'uriComponent(clipId)',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationLayer',
+        version: 1,
+        displayName: 'Presentation layer',
+        summary: 'Visual stacking layer inside a Presentation cinematic',
+        extensions: const <String, Object?>{
+          'idFormat': 'uriComponent(cinematicId):uriComponent(layerId)',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'presentationVisualFolder',
+        version: 1,
+        displayName: 'Presentation visual folder',
+        summary:
+            'One-level visual organization folder inside a Presentation cinematic',
+        extensions: const <String, Object?>{
+          'idFormat': 'uriComponent(cinematicId):uriComponent(folderId)',
+        },
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'smartTileAtlas',
         version: 1,
         displayName: 'Smart Tile atlas',
@@ -474,6 +568,9 @@ final class AuthoringResourceKindRegistry {
       'characterStudioCharacter',
       'characterStudioDependency',
       'characterStudioReadiness',
+      'cinematicLibraryCatalog',
+      'cinematicLibraryEntry',
+      'cinematicLibraryFolder',
       'dialogue',
       'elementCategory',
       'eventV2',
@@ -488,6 +585,13 @@ final class AuthoringResourceKindRegistry {
       'projectPresentationProfile',
       'projectPresentationPreset',
       'presentationPreviewContext',
+      'presentationCinematicTemplate',
+      'presentationCinematic',
+      'presentationTrack',
+      'presentationClip',
+      'presentationLayer',
+      'presentationVisualFolder',
+      'presentationMedia',
       'scenario',
       'scene',
       'script',

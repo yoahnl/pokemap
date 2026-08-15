@@ -47,7 +47,7 @@ void main() {
       );
       final manifest = ProjectManifest(
         name: 'Composite import fixture',
-        version: ProjectVersion.v6,
+        version: ProjectVersion.v7,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
       );
@@ -107,6 +107,7 @@ void main() {
               .afterBytes!,
         ),
       );
+      expect(projectedManifest.version, ProjectVersion.v7);
       expect(projectedManifest.tilesets.single, tileset);
       expect(
         projectedManifest.smartTileCatalog.atlases.map((atlas) => atlas.id),
