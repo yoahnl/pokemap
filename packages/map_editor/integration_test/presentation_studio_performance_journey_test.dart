@@ -39,6 +39,10 @@ void main() {
   testWidgets(
     'certifies CIN-060 small medium and limit Studio fixtures',
     (tester) async {
+      tester.binding.platformDispatcher.semanticsEnabledTestValue = false;
+      addTearDown(
+        tester.binding.platformDispatcher.clearSemanticsEnabledTestValue,
+      );
       await tester.binding.setSurfaceSize(const Size(1920, 1080));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
