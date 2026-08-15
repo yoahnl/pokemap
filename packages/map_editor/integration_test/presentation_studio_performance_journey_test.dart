@@ -198,10 +198,21 @@ Future<_MeasuredScenario> _measureScenario(
     } else {
       await _closeTarget(tester);
     }
+    final restoredSearch = find.descendant(
+      of: search,
+      matching: find.byType(EditableText),
+    );
+    await _pumpUntil(tester, () {
+      if (restoredSearch.evaluate().isEmpty) return false;
+      return tester
+          .widget<EditableText>(restoredSearch)
+          .controller
+          .text
+          .toLowerCase()
+          .contains('needle');
+    });
     final restoredQuery = tester
-        .widget<EditableText>(
-          find.descendant(of: search, matching: find.byType(EditableText)),
-        )
+        .widget<EditableText>(restoredSearch)
         .controller
         .text
         .toLowerCase()
