@@ -577,7 +577,7 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
       .toList(growable: false);
 
   final provenance = generatedPokemon?.provenance;
-  final captured = PlayerPokemon(
+  return PlayerPokemon(
     individualId: generatedPokemon?.individualId ?? '',
     speciesId: enemy.writeBackSpeciesId.trim(),
     formId: generatedPokemon?.formId ?? '',
@@ -614,14 +614,6 @@ PlayerPokemon _buildCapturedWildPlayerPokemon({
       sourceId: provenance?.sourceId ?? request.tableId,
       ballItemId: ballItemId,
       metLevel: enemy.level,
-    ),
-  );
-  if (captured.individualId.isNotEmpty) return captured;
-  return captured.copyWith(
-    individualId: deterministicPlayerPokemonIndividualId(
-      saveId: 'capture',
-      location: request.requestId,
-      pokemon: captured,
     ),
   );
 }

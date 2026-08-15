@@ -997,6 +997,16 @@ void main() {
           ],
         ),
       );
+      final captured = updatedState.party.members.last;
+      expect(
+        captured.individualId,
+        deterministicPlayerPokemonIndividualId(
+          saveId: attempt.updatedGameState.saveId,
+          location:
+              'give:party:${attempt.updatedGameState.party.members.length}',
+          pokemon: captured.copyWith(individualId: ''),
+        ),
+      );
     });
 
     test('captured outcome is rejected for trainer battles', () {

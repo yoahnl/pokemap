@@ -6,11 +6,15 @@ void main() {
   const mutations = GameStateMutations();
 
   PlayerPokemon testPokemon({
+    String individualId = '',
     String speciesId = 'test_species',
+    String formId = '',
     int level = 5,
   }) {
     return PlayerPokemon(
+      individualId: individualId,
       speciesId: speciesId,
+      formId: formId,
       level: level,
       natureId: 'hardy',
       abilityId: 'unknown',
@@ -141,11 +145,132 @@ void main() {
       final state = emptyState();
       final result = mutations.givePokemon(
         state,
-        pokemon: testPokemon(speciesId: '  test_species  '),
+        pokemon: testPokemon(
+          speciesId: '  test_species  ',
+          formId: '  seasonal  ',
+        ),
       );
 
       expect(result.party.members, hasLength(1));
       expect(result.party.members.first.speciesId, 'test_species');
+      expect(result.party.members.first.formId, 'seasonal');
+    });
+
+    test('allocates one stable identity when individualId is empty', () {
+      final result = mutations.givePokemon(
+        emptyState(),
+        pokemon: testPokemon(),
+      );
+      final individualId = result.party.members.single.individualId;
+
+      expect(individualId, startsWith('pkm_'));
+      final reloaded = normalizeLoadedGameState(
+        gameStateFromSaveData(saveDataFromGameState(result)),
+      );
+      expect(reloaded.party.members.single.individualId, individualId);
+    });
+
+    test('allocates distinct identities for two gifts of the same template',
+        () {
+      final template = testPokemon(speciesId: 'repeatable_gift');
+      final first = mutations.givePokemon(
+        emptyState(),
+        pokemon: template,
+      );
+      final second = mutations.givePokemon(
+        first,
+        pokemon: template,
+      );
+
+      expect(second.party.members, hasLength(2));
+      expect(
+        second.party.members.map((pokemon) => pokemon.individualId).toSet(),
+        hasLength(2),
+      );
+    });
+
+    test('preserves an explicit unique identity', () {
+      final result = mutations.givePokemon(
+        emptyState(),
+        pokemon: testPokemon(individualId: 'pkm_authored_gift'),
+      );
+
+      expect(result.party.members.single.individualId, 'pkm_authored_gift');
+    });
+
+    test('rejects an explicit identity already present in party', () {
+      final state = mutations.givePokemon(
+        emptyState(),
+        pokemon: testPokemon(individualId: 'pkm_collision'),
+      );
+
+      expect(
+        () => mutations.givePokemon(
+          state,
+          pokemon: testPokemon(
+            individualId: 'pkm_collision',
+            speciesId: 'other_species',
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'PlayerPokemon individualId values must be unique across party and storage',
+          ),
+        ),
+      );
+      expect(state.party.members, hasLength(1));
+    });
+
+    test('rejects an explicit identity already present in storage', () {
+      final state = emptyState().copyWith(
+        pokemonStorage: PokemonStorage(
+          boxes: <PokemonBox>[
+            PokemonBox(
+              id: 'box-identity',
+              label: 'Identity',
+              pokemon: <PlayerPokemon>[
+                testPokemon(individualId: 'pkm_stored_collision'),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        () => mutations.givePokemon(
+          state,
+          pokemon: testPokemon(
+            individualId: 'pkm_stored_collision',
+            speciesId: 'other_species',
+          ),
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'PlayerPokemon individualId values must be unique across party and storage',
+          ),
+        ),
+      );
+      expect(state.party.members, isEmpty);
+    });
+
+    test('rejects an identity collision before duplicate-species policy', () {
+      final state = mutations.givePokemon(
+        emptyState(),
+        pokemon: testPokemon(individualId: 'pkm_collision'),
+      );
+
+      expect(
+        () => mutations.givePokemon(
+          state,
+          pokemon: testPokemon(individualId: 'pkm_collision'),
+          preventDuplicateSpecies: true,
+        ),
+        throwsA(isA<StateError>()),
+      );
     });
 
     test('prevents duplicate species when requested', () {
