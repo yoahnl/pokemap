@@ -18,6 +18,7 @@ void main() {
           folderId: 'folder/openings',
           searchQuery: 'dragon du port',
           sort: NarrativeLibrarySort.updatedDescending,
+          visibility: NarrativeLibraryVisibility.archived,
           selectedAssetId: 'opening_port',
           scrollOffset: 412.5,
         ),

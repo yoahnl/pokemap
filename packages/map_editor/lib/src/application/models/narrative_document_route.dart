@@ -11,6 +11,8 @@ enum NarrativeLibrarySort {
   updatedDescending,
 }
 
+enum NarrativeLibraryVisibility { active, archived, all }
+
 enum NarrativeSceneInspector { none, node, properties }
 
 sealed class NarrativeDocumentSourceContext {
@@ -25,6 +27,7 @@ final class NarrativeLibrarySourceContext
     String? folderId,
     this.searchQuery = '',
     this.sort = NarrativeLibrarySort.manual,
+    this.visibility = NarrativeLibraryVisibility.active,
     String? selectedAssetId,
     this.scrollOffset = 0,
   }) : folderId = _optionalText(folderId, 'folderId'),
@@ -57,6 +60,7 @@ final class NarrativeLibrarySourceContext
   final String? folderId;
   final String searchQuery;
   final NarrativeLibrarySort sort;
+  final NarrativeLibraryVisibility visibility;
   final String? selectedAssetId;
   final double scrollOffset;
 
@@ -69,6 +73,7 @@ final class NarrativeLibrarySourceContext
           other.folderId == folderId &&
           other.searchQuery == searchQuery &&
           other.sort == sort &&
+          other.visibility == visibility &&
           other.selectedAssetId == selectedAssetId &&
           other.scrollOffset == scrollOffset;
 
@@ -79,6 +84,7 @@ final class NarrativeLibrarySourceContext
     folderId,
     searchQuery,
     sort,
+    visibility,
     selectedAssetId,
     scrollOffset,
   );
@@ -238,6 +244,7 @@ final class NarrativeDocumentRouteCodec {
         'folder': ?source.folderId,
         if (source.searchQuery.isNotEmpty) 'query': source.searchQuery,
         'sort': source.sort.name,
+        'visibility': source.visibility.name,
         'selected': ?source.selectedAssetId,
         'scroll': source.scrollOffset.toString(),
       },
@@ -318,6 +325,7 @@ final class NarrativeDocumentRouteCodec {
       'folder',
       'query',
       'sort',
+      'visibility',
       'selected',
       'scroll',
     });
@@ -340,12 +348,21 @@ final class NarrativeDocumentRouteCodec {
         'Unsupported Narrative library sort: $value.',
       ),
     };
+    final visibility = switch (query['visibility']) {
+      null || 'active' => NarrativeLibraryVisibility.active,
+      'archived' => NarrativeLibraryVisibility.archived,
+      'all' => NarrativeLibraryVisibility.all,
+      final value => throw FormatException(
+        'Unsupported Narrative library visibility: $value.',
+      ),
+    };
     return NarrativeLibrarySourceContext(
       library: library,
       cinematicFamily: family,
       folderId: query['folder'],
       searchQuery: query['query'] ?? '',
       sort: sort,
+      visibility: visibility,
       selectedAssetId: query['selected'],
       scrollOffset: _double(query['scroll'] ?? '0', 'scroll'),
     );

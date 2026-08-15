@@ -8,6 +8,7 @@ import '../../application/services/narrative_diagnostic_suppression_service.dart
 import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/services/narrative_template_catalog.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
+import '../../application/models/narrative_document_route.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../features/editor/application/map_activation_coordinator.dart';
 import '../../features/editor/presentation/map_activation_guard.dart';
@@ -1774,9 +1775,16 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   NarrativeStudioDestination.cinematics
               ? studioNavigation.location.childRoute
               : NarrativeStudioChildRoute.cinematicLibrary,
+          documentRoute: studioNavigation.documentRoute,
           onRouteChanged: ref
               .read(narrativeStudioNavigationControllerProvider.notifier)
               .replace,
+          onOpenPresentationDocument: ref
+              .read(narrativeStudioNavigationControllerProvider.notifier)
+              .openDocument,
+          onCloseDocument: ref
+              .read(narrativeStudioNavigationControllerProvider.notifier)
+              .closeDocument,
           onSelectCutscene: (scenarioId) {
             narrativeController.selectCutscene(scenarioId);
             narrativeController.openCutscene(
@@ -2543,7 +2551,10 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
     required this.requestedCinematicId,
     required this.requestedCinematicNonce,
     required this.requestedCinematicChildRoute,
+    required this.documentRoute,
     required this.onRouteChanged,
+    required this.onOpenPresentationDocument,
+    required this.onCloseDocument,
     required this.onSelectCutscene,
     required this.onSelectOutcome,
     required this.onOpenSceneUsage,
@@ -2558,7 +2569,10 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   final String? requestedCinematicId;
   final int requestedCinematicNonce;
   final NarrativeStudioChildRoute requestedCinematicChildRoute;
+  final NarrativeDocumentRoute? documentRoute;
   final ValueChanged<NarrativeStudioRouteLocation> onRouteChanged;
+  final ValueChanged<NarrativeDocumentRoute> onOpenPresentationDocument;
+  final NarrativeDocumentSourceContext? Function() onCloseDocument;
   final ValueChanged<String> onSelectCutscene;
   final ValueChanged<String?> onSelectOutcome;
   final OpenCinematicSceneUsageCallback onOpenSceneUsage;
@@ -2570,11 +2584,13 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
 
 class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   bool _showLegacyCutsceneStudio = false;
+  NarrativeLibrarySourceContext? _restoredPresentationSource;
 
   @override
   void initState() {
     super.initState();
     _syncRequestedChildRoute();
+    _capturePresentationSource();
   }
 
   @override
@@ -2584,11 +2600,23 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         widget.requestedCinematicChildRoute) {
       _syncRequestedChildRoute();
     }
+    if (oldWidget.documentRoute != widget.documentRoute) {
+      _capturePresentationSource();
+    }
   }
 
   void _syncRequestedChildRoute() {
     _showLegacyCutsceneStudio = widget.requestedCinematicChildRoute ==
         NarrativeStudioChildRoute.cinematicLegacy;
+  }
+
+  void _capturePresentationSource() {
+    final route = widget.documentRoute;
+    if (route?.kind != NarrativeDocumentKind.presentationCinematic) return;
+    final source = route!.source;
+    if (source is NarrativeLibrarySourceContext) {
+      _restoredPresentationSource = source;
+    }
   }
 
   @override
@@ -2637,12 +2665,71 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       );
     }
 
+    final presentationRoute = widget.documentRoute;
+    if (presentationRoute?.kind ==
+        NarrativeDocumentKind.presentationCinematic) {
+      PresentationCinematicAsset? asset;
+      for (final candidate in project.presentationCinematics) {
+        if (candidate.id == presentationRoute!.documentId) {
+          asset = candidate;
+          break;
+        }
+      }
+      return NarrativeStudioWorkspacePage(
+        presentation: NarrativeStudioRoutePresentation(
+          destination: NarrativeStudioDestination.cinematics,
+          label: 'Cinématiques',
+          breadcrumbLabels: [
+            'Cinématiques',
+            'Présentation',
+            asset?.title ?? 'Cinématique introuvable',
+          ],
+        ),
+        leading: PokeMapIconButton(
+          key: const ValueKey('cinematics-presentation-route-back'),
+          onPressed: () {
+            final source = widget.onCloseDocument();
+            if (source is NarrativeLibrarySourceContext) {
+              setState(() => _restoredPresentationSource = source);
+            }
+          },
+          tooltip: 'Retour à la bibliothèque de présentation',
+          variant: PokeMapIconButtonVariant.soft,
+          icon: const Icon(CupertinoIcons.chevron_left),
+        ),
+        body: PokeMapPageSurface(
+          key: const ValueKey('cinematics-presentation-document-route'),
+          child: PokeMapEmptyState(
+            title: asset?.title ?? 'Cinématique de présentation introuvable',
+            description: asset == null
+                ? 'Cette cible n’existe plus dans le projet. Revenez à la bibliothèque sans modifier le catalogue.'
+                : 'La route dédiée est prête. Le Studio de présentation sera assemblé par le prochain lot UI.',
+            icon: Icon(
+              asset == null
+                  ? CupertinoIcons.exclamationmark_triangle
+                  : CupertinoIcons.film,
+            ),
+          ),
+        ),
+      );
+    }
+
     return CinematicsLibraryWorkspace(
       project: project,
       projectRootPath: widget.projectRootPath,
       requestedEntryId: widget.requestedCinematicId,
       requestedEntryNonce: widget.requestedCinematicNonce,
       openRequestedEntryInBuilder: true,
+      initialPresentationSource: _restoredPresentationSource,
+      onOpenPresentation: ({required cinematicId, required source}) {
+        setState(() => _restoredPresentationSource = source);
+        widget.onOpenPresentationDocument(
+          NarrativeDocumentRoute.presentation(
+            cinematicId: cinematicId,
+            source: source,
+          ),
+        );
+      },
       onBuilderEntryChanged: (cinematicId) {
         widget.onRouteChanged(
           NarrativeStudioRouteLocation.cinematics(

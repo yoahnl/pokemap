@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:map_core/map_core.dart';
 
+import '../../../application/models/narrative_document_route.dart';
 import '../../../application/services/narrative_template_catalog.dart';
 import '../../../features/character_studio/application/character_studio_media_resolver.dart';
 import '../../../features/editor/state/models/editor_workspace_mode.dart';
@@ -17,6 +18,7 @@ import '../narrative_studio/narrative_studio_workspace_page.dart';
 import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_actor_sprite_preview_resolver.dart';
 import 'cinematic_builder_workspace.dart';
+import 'cinematic_library_browser.dart';
 import 'cinematic_map_backdrop_layer_plan_loader.dart';
 import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_tile_plan_loader.dart';
@@ -272,6 +274,9 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     this.openRequestedEntryInBuilder = false,
     this.onBuilderEntryChanged,
     this.onOpenSceneUsage,
+    this.initialPresentationSource,
+    this.onOpenPresentation,
+    this.startInAdvancedManager = false,
   });
 
   final bool startExpanded;
@@ -289,6 +294,9 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final BulkTagCinematicsCallback onBulkTagCinematics;
   final BulkArchiveCinematicsCallback onBulkArchiveCinematics;
   final OpenCinematicSceneUsageCallback? onOpenSceneUsage;
+  final NarrativeLibrarySourceContext? initialPresentationSource;
+  final OpenPresentationCinematicCallback? onOpenPresentation;
+  final bool startInAdvancedManager;
   final RemoveCinematicCallback onRemoveCinematic;
   final AddTimelineDraftCallback onAddTimelineDraft;
   final RemoveTimelineDraftCallback onRemoveTimelineDraft;
@@ -366,10 +374,16 @@ class _CinematicsLibraryWorkspaceState
   Map<String, CinematicResolvedTilesetAsset> _resolvedActorTilesets = const {};
   final Set<String> _loadingActorTilesetIds = {};
   int _actorTilesetGeneration = 0;
+  late CinematicLibraryNavigationState _libraryNavigation;
+  late bool _showAdvancedManager;
 
   @override
   void initState() {
     super.initState();
+    _libraryNavigation = CinematicLibraryNavigationState.initial(
+      restoredPresentation: widget.initialPresentationSource,
+    );
+    _showAdvancedManager = widget.startInAdvancedManager;
     _applyRequestedEntry();
   }
 
@@ -537,12 +551,61 @@ class _CinematicsLibraryWorkspaceState
     }
     final migrationScan = buildNarrativeLegacyMigrationScan(widget.project);
 
+    if (!_showAdvancedManager) {
+      return Material(
+        type: MaterialType.transparency,
+        child: NarrativeStudioWorkspacePage(
+          presentation: narrativeStudioRoutePresentationFor(
+            EditorWorkspaceMode.cutscene,
+          )!,
+          actions: [
+            PokeMapButton(
+              key: const ValueKey('cinematics-library-open-legacy-button'),
+              onPressed: widget.onOpenLegacyCutsceneStudio,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.archivebox),
+              child: const Text('Ancien studio'),
+            ),
+            PokeMapButton(
+              key: const ValueKey('cinematics-library-advanced-manager'),
+              onPressed: () => setState(() => _showAdvancedManager = true),
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.slider_horizontal_3),
+              child: const Text('Gestion avancée'),
+            ),
+          ],
+          body: PokeMapPageSurface(
+            key: const ValueKey('cinematics-library-workspace'),
+            child: CinematicLibraryBrowser(
+              project: widget.project,
+              navigation: _libraryNavigation,
+              onNavigationChanged: (value) {
+                setState(() => _libraryNavigation = value);
+              },
+              onOpenInGame: _openInGameFromLibrary,
+              onOpenPresentation: widget.onOpenPresentation ??
+                  ({required cinematicId, required source}) {},
+            ),
+          ),
+        ),
+      );
+    }
+
     return Material(
       type: MaterialType.transparency,
       child: NarrativeStudioWorkspacePage(
         presentation: narrativeStudioRoutePresentationFor(
           EditorWorkspaceMode.cutscene,
         )!,
+        leading: PokeMapIconButton(
+          key: const ValueKey('cinematics-advanced-manager-back'),
+          onPressed: () => setState(() => _showAdvancedManager = false),
+          tooltip: 'Retour aux bibliothèques de cinématiques',
+          variant: PokeMapIconButtonVariant.soft,
+          icon: const Icon(CupertinoIcons.chevron_left),
+        ),
         actions: [
           PokeMapButton(
             key: const ValueKey('cinematics-library-open-migration-center'),
@@ -613,6 +676,21 @@ class _CinematicsLibraryWorkspaceState
         ),
       ),
     );
+  }
+
+  void _openInGameFromLibrary(String cinematicId) {
+    final entry = buildCinematicsLibraryReadModel(
+      widget.project,
+    ).entryById(cinematicId);
+    if (entry == null || entry.kind != CinematicsLibraryEntryKind.canonical) {
+      return;
+    }
+    setState(() {
+      _selectedEntryId = cinematicId;
+      _builderEntryId = cinematicId;
+      _loadedEditorId = null;
+    });
+    widget.onBuilderEntryChanged?.call(cinematicId);
   }
 
   Widget _buildRequestedEntryUnavailable() {
