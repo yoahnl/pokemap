@@ -6,11 +6,11 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_policy.dart';
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_scenario.dart';
 import 'package:pokemap_loader/src/evaluation/interactive/interactive_worker_client.dart';
+import 'package:pokemap_loader/src/evaluation/project/evaluation_project_projection.dart';
 import 'package:pokemap_loader/src/evaluation/scenario/evaluation_scenario_parser.dart';
 import 'package:pokemap_loader/src/evaluation/web/evaluation_web_launcher.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
 import 'package:pokemap_loader/src/evaluation/worker/headless_worker_process.dart';
-import 'package:pokemap_loader/src/project_tree_digest.dart';
 
 enum PokeMapEvalCommand {
   list,
@@ -74,10 +74,6 @@ abstract interface class PokeMapEvalWorker {
 }
 
 typedef PokeMapEvalOutputSink = void Function(String line);
-typedef PokeMapEvalProjectTreeHashResolver = Future<String> Function(
-  String projectRoot,
-);
-
 final class PokeMapEvalCli {
   PokeMapEvalCli({
     required this.repositoryRoot,
@@ -86,13 +82,11 @@ final class PokeMapEvalCli {
     required this.stdoutSink,
     required this.stderrSink,
     String Function()? runIdFactory,
-    PokeMapEvalProjectTreeHashResolver? projectTreeHashResolver,
+    EvaluationProjectProjectionFactory? projectProjectionFactory,
   })  : interactiveWorker = interactiveWorker ?? worker,
         _runIdFactory = runIdFactory ?? _defaultRunId,
-        _projectTreeHashResolver = projectTreeHashResolver ??
-            ((projectRoot) => const ProjectTreeDigest().compute(
-                  Directory(p.join(repositoryRoot.path, projectRoot)),
-                ));
+        _projectProjectionFactory = projectProjectionFactory ??
+            const LocalEvaluationProjectProjectionFactory();
 
   factory PokeMapEvalCli.standard() {
     final root = _discoverRepositoryRoot();
@@ -121,7 +115,7 @@ final class PokeMapEvalCli {
   final PokeMapEvalOutputSink stdoutSink;
   final PokeMapEvalOutputSink stderrSink;
   final String Function() _runIdFactory;
-  final PokeMapEvalProjectTreeHashResolver _projectTreeHashResolver;
+  final EvaluationProjectProjectionFactory _projectProjectionFactory;
 
   static PokeMapEvalOptions parse(List<String> arguments) {
     if (arguments.isEmpty) {
@@ -467,19 +461,33 @@ final class PokeMapEvalCli {
       EvaluationTarget.headless => worker,
       EvaluationTarget.interactive => interactiveWorker,
     };
-    final effectiveProjectRoot = projectRoot ?? scenario.projectId;
-    final effectiveProjectTreeHash = expectedProjectTreeHash ??
-        await _projectTreeHashResolver(effectiveProjectRoot);
-    final result = await selectedWorker.run(
-      EvaluationWorkerRequest.run(
+    EvaluationProjectProjection? projection;
+    if (projectRoot == null) {
+      projection = await _projectProjectionFactory.create(
+        repositoryRoot: repositoryRoot,
+        projectId: scenario.projectId,
         runId: runId,
-        projectRoot: effectiveProjectRoot,
-        expectedProjectTreeHash: effectiveProjectTreeHash,
-        scenarioPath: scenarioPath,
-        outputDirectory: outputDirectory,
-      ),
-      buildMode: buildMode,
-    );
+      );
+    }
+    final effectiveProjectRoot =
+        projectRoot ?? projection!.relativeProjectRoot;
+    final effectiveProjectTreeHash =
+        expectedProjectTreeHash ?? projection!.projectTreeHash;
+    late final EvaluationWorkerResult result;
+    try {
+      result = await selectedWorker.run(
+        EvaluationWorkerRequest.run(
+          runId: runId,
+          projectRoot: effectiveProjectRoot,
+          expectedProjectTreeHash: effectiveProjectTreeHash,
+          scenarioPath: scenarioPath,
+          outputDirectory: outputDirectory,
+        ),
+        buildMode: buildMode,
+      );
+    } finally {
+      await projection?.dispose();
+    }
     _ReceiptSummary? receipt;
     if (result.receiptPath != null) {
       final receiptFile = File(

@@ -8,6 +8,7 @@ import 'package:pokemap_loader/src/evaluation/contracts/evaluation_receipt.dart'
 import 'package:pokemap_loader/src/evaluation/contracts/evaluation_scenario.dart';
 import 'package:pokemap_loader/src/evaluation/interactive/interactive_frame_metrics.dart';
 import 'package:pokemap_loader/src/evaluation/interactive/interactive_worker_client.dart';
+import 'package:pokemap_loader/src/evaluation/project/evaluation_project_projection.dart';
 import 'package:pokemap_loader/src/evaluation/scenario/evaluation_scenario_parser.dart';
 import 'package:pokemap_loader/src/evaluation/worker/evaluation_worker_protocol.dart';
 
@@ -247,6 +248,44 @@ void main() {
     expect(result.exitCode, 1);
   });
 
+  test('direct run consumes and disposes an attested immutable projection',
+      () async {
+    final fixture = await _CliFixture.create();
+    addTearDown(fixture.dispose);
+    await fixture.writeScenario();
+    fixture.worker.result = EvaluationWorkerResult.completed(
+      runId: 'run-test',
+      status: EvaluationRunStatus.succeeded,
+      exitCode: 0,
+    );
+
+    final result = await fixture.cli.execute(
+      <String>['run', 'selbrume.test'],
+    );
+
+    expect(result.exitCode, 0);
+    final request = fixture.worker.requests.single;
+    expect(request.projectRoot, 'build/projected/selbrume');
+    expect(request.expectedProjectTreeHash, 'a' * 64);
+    expect(fixture.projectProjectionFactory.creations, 1);
+    expect(fixture.projectProjectionFactory.disposals, 1);
+  });
+
+  test('direct run disposes its projection when the worker throws', () async {
+    final fixture = await _CliFixture.create();
+    addTearDown(fixture.dispose);
+    await fixture.writeScenario();
+    fixture.worker.onRun = (_, _) => throw StateError('worker failed');
+
+    final result = await fixture.cli.execute(
+      <String>['run', 'selbrume.test'],
+    );
+
+    expect(result.exitCode, 3);
+    expect(fixture.projectProjectionFactory.creations, 1);
+    expect(fixture.projectProjectionFactory.disposals, 1);
+  });
+
   test('list discovers strict scenarios without launching Flutter', () async {
     final fixture = await _CliFixture.create();
     addTearDown(fixture.dispose);
@@ -389,6 +428,7 @@ final class _CliFixture {
     required this.stdout,
     required this.stderr,
     required this.cli,
+    required this.projectProjectionFactory,
   });
 
   final Directory root;
@@ -397,6 +437,7 @@ final class _CliFixture {
   final StringBuffer stdout;
   final StringBuffer stderr;
   final PokeMapEvalCli cli;
+  final _FakeProjectProjectionFactory projectProjectionFactory;
 
   static Future<_CliFixture> create() async {
     final root = await Directory.systemTemp.createTemp('pokemap-eval-cli-');
@@ -404,12 +445,14 @@ final class _CliFixture {
     final interactiveWorker = _FakeWorker();
     final stdout = StringBuffer();
     final stderr = StringBuffer();
+    final projectProjectionFactory = _FakeProjectProjectionFactory();
     return _CliFixture._(
       root: root,
       worker: worker,
       interactiveWorker: interactiveWorker,
       stdout: stdout,
       stderr: stderr,
+      projectProjectionFactory: projectProjectionFactory,
       cli: PokeMapEvalCli(
         repositoryRoot: root,
         worker: worker,
@@ -417,7 +460,7 @@ final class _CliFixture {
         stdoutSink: stdout.writeln,
         stderrSink: stderr.writeln,
         runIdFactory: () => 'run-test',
-        projectTreeHashResolver: (_) async => 'a' * 64,
+        projectProjectionFactory: projectProjectionFactory,
       ),
     );
   }
@@ -449,6 +492,30 @@ final class _CliFixture {
   }
 
   Future<void> dispose() => root.delete(recursive: true);
+}
+
+final class _FakeProjectProjectionFactory
+    implements EvaluationProjectProjectionFactory {
+  var creations = 0;
+  var disposals = 0;
+
+  @override
+  Future<EvaluationProjectProjection> create({
+    required Directory repositoryRoot,
+    required String projectId,
+    required String runId,
+  }) async {
+    creations += 1;
+    final relativeRoot = 'build/projected/$projectId';
+    return EvaluationProjectProjection(
+      projectRoot: Directory(p.join(repositoryRoot.path, relativeRoot)),
+      relativeProjectRoot: relativeRoot,
+      projectTreeHash: 'a' * 64,
+      dispose: () async {
+        disposals += 1;
+      },
+    );
+  }
 }
 
 final class _FakeWorker implements PokeMapEvalWorker {
