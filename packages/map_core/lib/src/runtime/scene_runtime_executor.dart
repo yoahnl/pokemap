@@ -323,6 +323,12 @@ final class SceneRuntimeExecutor {
         return _consequenceCallbackOutput(node.id, intent, context);
       case SceneRuntimePlanIntentKind.executeInteractiveCommand:
         return _interactiveCommandCallbackOutput(node.id, intent, context);
+      case SceneRuntimePlanIntentKind.requestStructuredInteraction:
+        return const _OutputPortResult(
+          errorCode: SceneRuntimeExecutionErrorCode.unsupportedIntent,
+          message:
+              'No structured preSession interaction executor is installed.',
+        );
     }
   }
 

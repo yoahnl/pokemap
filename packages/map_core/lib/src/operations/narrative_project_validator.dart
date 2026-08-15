@@ -1836,6 +1836,8 @@ bool _sceneEdgeIsStaticallyTraversable(
 
   Set<bool>? values;
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.newGameDraft:
+      return (canBeTrue: true, canBeFalse: true);
     case SceneConditionSourceKind.fact:
     case SceneConditionSourceKind.factLikeStoryFlag:
       values = possibleFactValues[source.sourceId];

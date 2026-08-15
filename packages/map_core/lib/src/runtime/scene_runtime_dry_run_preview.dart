@@ -577,6 +577,7 @@ bool _requiresExplicitInput(SceneRuntimePlanIntentKind kind) {
   return switch (kind) {
     SceneRuntimePlanIntentKind.evaluateCondition ||
     SceneRuntimePlanIntentKind.showDialogue ||
+    SceneRuntimePlanIntentKind.requestStructuredInteraction ||
     SceneRuntimePlanIntentKind.startBattle =>
       true,
     _ => false,

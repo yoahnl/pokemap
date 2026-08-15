@@ -2745,6 +2745,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
 
   bool _isSourceKindAuthorable(SceneConditionSourceKind kind) {
     return switch (kind) {
+      SceneConditionSourceKind.newGameDraft => false,
       SceneConditionSourceKind.factLikeStoryFlag ||
       SceneConditionSourceKind.fact ||
       SceneConditionSourceKind.storyStepCompletion ||
@@ -3124,6 +3125,7 @@ SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
   return switch (kind) {
     SceneConditionSourceKind.storyStepCompletion =>
       SceneConditionOperator.equals,
+    SceneConditionSourceKind.newGameDraft ||
     SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.consumedEvent =>
@@ -3144,6 +3146,7 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
   return switch (kind) {
     SceneConditionSourceKind.storyStepCompletion =>
       SceneConditionValues.completed,
+    SceneConditionSourceKind.newGameDraft ||
     SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.consumedEvent ||

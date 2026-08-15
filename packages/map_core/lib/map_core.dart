@@ -96,6 +96,7 @@ export 'src/models/scenario_asset.dart';
 export 'src/models/scene_asset.dart';
 export 'src/models/scene_execution_capabilities.dart';
 export 'src/models/scene_interactive_command.dart';
+export 'src/models/scene_pre_session_interaction.dart';
 export 'src/models/scene_structured_interaction.dart';
 export 'src/models/narrative_command_descriptor.dart';
 export 'src/models/scene_consequence.dart';

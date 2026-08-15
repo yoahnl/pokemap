@@ -4,6 +4,7 @@ import '../exceptions/map_exceptions.dart';
 import 'narrative_value.dart';
 import 'scene_consequence.dart';
 import 'scene_interactive_command.dart';
+import 'scene_pre_session_interaction.dart';
 
 enum SceneExecutionProfile {
   world,
@@ -56,6 +57,7 @@ enum SceneOutcomePolicy {
 }
 
 enum SceneConditionSourceKind {
+  newGameDraft,
   fact,
   factLikeStoryFlag,
   storyStepCompletion,
@@ -102,6 +104,15 @@ final class SceneConditionSource {
       debugTechnicalLabel,
       'SceneConditionSource.debugTechnicalLabel',
     );
+    if (sourceKind == SceneConditionSourceKind.newGameDraft &&
+        !ScenePreSessionDraftField.values
+            .any((field) => field.name == sourceId)) {
+      throw ArgumentError.value(
+        sourceId,
+        'sourceId',
+        'must reference a canonical new game draft field',
+      );
+    }
     if (factOperator != null || expectedFactValue != null) {
       if (sourceKind != SceneConditionSourceKind.fact ||
           factOperator == null ||
@@ -983,16 +994,23 @@ final class SceneActionPayload extends SceneNodePayload {
     Map<String, String> parameters = const <String, String>{},
     this.consequence,
     this.interactiveCommand,
+    this.preSessionInteraction,
   })  : actionKind = _trimOptional(actionKind),
         parameters = Map<String, String>.unmodifiable(parameters) {
-    if (consequence != null && interactiveCommand != null) {
+    final typedPayloadCount = <Object?>[
+      consequence,
+      interactiveCommand,
+      preSessionInteraction,
+    ].where((value) => value != null).length;
+    if (typedPayloadCount > 1) {
       throw ArgumentError(
-        'SceneActionPayload cannot own a consequence and an interactive command.',
+        'SceneActionPayload cannot own more than one typed semantic.',
       );
     }
     if (this.actionKind == null &&
         consequence == null &&
-        interactiveCommand == null) {
+        interactiveCommand == null &&
+        preSessionInteraction == null) {
       throw ArgumentError.value(
         actionKind,
         'actionKind',
@@ -1025,6 +1043,12 @@ final class SceneActionPayload extends SceneNodePayload {
     );
   }
 
+  factory SceneActionPayload.preSessionInteraction(
+    ScenePreSessionInteractionSpec interaction,
+  ) {
+    return SceneActionPayload(preSessionInteraction: interaction);
+  }
+
   factory SceneActionPayload.fromJson(Map<String, dynamic> json) {
     return SceneActionPayload(
       actionKind: _readOptionalString(json, 'actionKind'),
@@ -1039,6 +1063,11 @@ final class SceneActionPayload extends SceneNodePayload {
         'interactiveCommand',
         SceneInteractiveCommand.fromJson,
       ),
+      preSessionInteraction: _readOptionalObject(
+        json,
+        'preSessionInteraction',
+        ScenePreSessionInteractionSpec.fromJson,
+      ),
     );
   }
 
@@ -1049,6 +1078,7 @@ final class SceneActionPayload extends SceneNodePayload {
   final Map<String, String> parameters;
   final SceneConsequence? consequence;
   final SceneInteractiveCommand? interactiveCommand;
+  final ScenePreSessionInteractionSpec? preSessionInteraction;
 
   @override
   Map<String, dynamic> toJson() => _withoutNulls({
@@ -1057,6 +1087,7 @@ final class SceneActionPayload extends SceneNodePayload {
         'parameters': parameters,
         'consequence': consequence?.toJson(),
         'interactiveCommand': interactiveCommand?.toJson(),
+        'preSessionInteraction': preSessionInteraction?.toJson(),
       });
 
   @override
@@ -1066,7 +1097,8 @@ final class SceneActionPayload extends SceneNodePayload {
           other.actionKind == actionKind &&
           _mapEquals(other.parameters, parameters) &&
           other.consequence == consequence &&
-          other.interactiveCommand == interactiveCommand;
+          other.interactiveCommand == interactiveCommand &&
+          other.preSessionInteraction == preSessionInteraction;
 
   @override
   int get hashCode => Object.hash(
@@ -1074,6 +1106,7 @@ final class SceneActionPayload extends SceneNodePayload {
         _mapHash(parameters),
         consequence,
         interactiveCommand,
+        preSessionInteraction,
       );
 }
 

@@ -662,7 +662,8 @@ void _diagnoseActionNode(
     return;
   }
 
-  if (payload.interactiveCommand != null) {
+  if (payload.interactiveCommand != null ||
+      payload.preSessionInteraction != null) {
     return;
   }
 
@@ -1750,6 +1751,7 @@ _SceneOutputPortSpec? _findPortSpec(
 
 bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
   return switch (kind) {
+    SceneConditionSourceKind.newGameDraft => true,
     SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.storyStepCompletion ||
@@ -1769,6 +1771,11 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
 
 bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
   return switch (source.sourceKind) {
+    SceneConditionSourceKind.newGameDraft =>
+      source.operator == SceneConditionOperator.isTrue ||
+          source.operator == SceneConditionOperator.isFalse ||
+          source.operator == SceneConditionOperator.equals &&
+              source.value != null,
     SceneConditionSourceKind.fact => source.expectedFactValue != null ||
         source.operator == SceneConditionOperator.isTrue ||
         source.operator == SceneConditionOperator.isFalse ||

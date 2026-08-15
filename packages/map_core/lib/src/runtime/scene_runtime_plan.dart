@@ -5,6 +5,8 @@ import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_execution_capabilities.dart';
 import '../models/scene_interactive_command.dart';
+import '../models/scene_pre_session_interaction.dart';
+import '../models/scene_structured_interaction.dart';
 
 enum SceneRuntimePlanIntentKind {
   start,
@@ -18,6 +20,7 @@ enum SceneRuntimePlanIntentKind {
   playPresentationCinematic,
   applyConsequence,
   executeInteractiveCommand,
+  requestStructuredInteraction,
 }
 
 enum SceneRuntimePlanDiagnosticSeverity { error, warning, info }
@@ -130,6 +133,7 @@ final class SceneRuntimePlanIntent {
     this.presentationCinematicId,
     this.consequence,
     this.interactiveCommand,
+    this.preSessionInteraction,
   })  : branchSourceOutcomes = List<String>.unmodifiable(branchSourceOutcomes),
         expectedOutcomes = List<String>.unmodifiable(expectedOutcomes),
        battleDeclaredOutcomes = List<String>.unmodifiable(
@@ -241,6 +245,15 @@ final class SceneRuntimePlanIntent {
     );
   }
 
+  factory SceneRuntimePlanIntent.requestStructuredInteraction({
+    required ScenePreSessionInteractionSpec interaction,
+  }) {
+    return SceneRuntimePlanIntent._(
+      kind: SceneRuntimePlanIntentKind.requestStructuredInteraction,
+      preSessionInteraction: interaction,
+    );
+  }
+
   final SceneRuntimePlanIntentKind kind;
   final String? sceneOutcomeId;
   final SceneOutcomePolicy? outcomePolicy;
@@ -260,6 +273,7 @@ final class SceneRuntimePlanIntent {
   final String? presentationCinematicId;
   final SceneConsequence? consequence;
   final SceneInteractiveCommand? interactiveCommand;
+  final ScenePreSessionInteractionSpec? preSessionInteraction;
 
   List<String> get declaredOutputPortIds => switch (kind) {
         SceneRuntimePlanIntentKind.start ||
@@ -269,6 +283,8 @@ final class SceneRuntimePlanIntent {
     SceneRuntimePlanIntentKind.applyConsequence => const ['completed'],
         SceneRuntimePlanIntentKind.executeInteractiveCommand =>
           interactiveCommand?.outputPortIds ?? const <String>[],
+        SceneRuntimePlanIntentKind.requestStructuredInteraction =>
+          preSessionInteraction?.outputPortIds ?? const <String>[],
         SceneRuntimePlanIntentKind.evaluateCondition => const ['true', 'false'],
         SceneRuntimePlanIntentKind.branchByOutcome => [
             ...branchSourceOutcomes,
@@ -314,7 +330,8 @@ final class SceneRuntimePlanIntent {
           other.cinematicId == cinematicId &&
           other.presentationCinematicId == presentationCinematicId &&
           other.consequence == consequence &&
-          other.interactiveCommand == interactiveCommand;
+          other.interactiveCommand == interactiveCommand &&
+          other.preSessionInteraction == preSessionInteraction;
 
   @override
   int get hashCode => Object.hash(
@@ -337,6 +354,7 @@ final class SceneRuntimePlanIntent {
         presentationCinematicId,
         consequence,
         interactiveCommand,
+        preSessionInteraction,
       );
 }
 
@@ -445,6 +463,20 @@ String sceneExecutionCapabilityForRuntimeIntent(
     SceneRuntimePlanIntentKind.applyConsequence ||
     SceneRuntimePlanIntentKind.executeInteractiveCommand =>
       SceneExecutionCapabilityIds.worldAction,
+    SceneRuntimePlanIntentKind.requestStructuredInteraction => switch (
+        intent.preSessionInteraction!.kind
+      ) {
+        SceneInteractionRequestKind.message =>
+          SceneExecutionCapabilityIds.inputMessage,
+        SceneInteractionRequestKind.choice =>
+          SceneExecutionCapabilityIds.inputChoice,
+        SceneInteractionRequestKind.text =>
+          SceneExecutionCapabilityIds.inputText,
+        SceneInteractionRequestKind.confirmation =>
+          SceneExecutionCapabilityIds.inputConfirmation,
+        SceneInteractionRequestKind.selection =>
+          SceneExecutionCapabilityIds.inputSelection,
+      },
     SceneRuntimePlanIntentKind.branchByOutcome => switch (profile) {
       SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldBranch,
         SceneExecutionProfile.preSession =>

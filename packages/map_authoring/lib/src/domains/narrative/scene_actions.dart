@@ -27,6 +27,31 @@ final class SceneActions {
       'Set one bounded Character Studio animation on a Scene action node',
       resourceKinds: const ['project', 'scene'],
     ),
+    narrativeActionDescriptor(
+      'scene.preSession.create',
+      'Create a typed preSession Scene from a canonical template',
+      resourceKinds: const ['project', 'scene'],
+    ),
+    narrativeActionDescriptor(
+      'scene.preSession.interaction.insert',
+      'Insert a structured preSession interaction before a Scene node',
+      resourceKinds: const ['project', 'scene'],
+    ),
+    narrativeActionDescriptor(
+      'scene.preSession.presentation.insert',
+      'Insert a canonical Presentation Cinematic before a Scene node',
+      resourceKinds: const ['project', 'scene', 'presentationCinematic'],
+    ),
+    narrativeActionDescriptor(
+      'scene.preSession.condition.insert',
+      'Insert a draft-local preSession condition with a false terminal',
+      resourceKinds: const ['project', 'scene'],
+    ),
+    narrativeActionDescriptor(
+      'scene.preSession.end.configure',
+      'Configure a typed preSession Scene end and declared outcome',
+      resourceKinds: const ['project', 'scene'],
+    ),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
@@ -120,6 +145,158 @@ final class SceneActions {
               .inspect(project: projected, maps: context.snapshot.maps)
               .toJson(),
         );
+      case 'scene.preSession.create':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {
+            'sceneId',
+            'name',
+            'templateId',
+            'setAsEntrypoint',
+          },
+        );
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final projected = createPreSessionScene(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          name: narrativeStringParameter(parameters, 'name'),
+          templateId: narrativeStringParameter(parameters, 'templateId'),
+          setAsEntrypoint: _optionalBoolParameter(
+            parameters,
+            'setAsEntrypoint',
+            fallback: true,
+          ),
+        );
+        return _preSessionProjectDraft(
+          context,
+          projected,
+          sceneId: sceneId,
+        );
+      case 'scene.preSession.interaction.insert':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {'sceneId', 'nodeId', 'targetNodeId', 'title', 'interaction'},
+        );
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final projected = insertPreSessionInteraction(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          nodeId: narrativeStringParameter(parameters, 'nodeId'),
+          targetNodeId: narrativeStringParameter(parameters, 'targetNodeId'),
+          title: _optionalStringParameter(parameters, 'title'),
+          interaction: _decodePreSessionInteraction(
+            narrativeObjectParameter(parameters, 'interaction'),
+          ),
+        );
+        return _preSessionProjectDraft(
+          context,
+          projected,
+          sceneId: sceneId,
+        );
+      case 'scene.preSession.presentation.insert':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {
+            'sceneId',
+            'nodeId',
+            'targetNodeId',
+            'title',
+            'presentationCinematicId',
+          },
+        );
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final projected = insertPreSessionPresentation(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          nodeId: narrativeStringParameter(parameters, 'nodeId'),
+          targetNodeId: narrativeStringParameter(parameters, 'targetNodeId'),
+          title: _optionalStringParameter(parameters, 'title'),
+          presentationCinematicId: narrativeStringParameter(
+            parameters,
+            'presentationCinematicId',
+          ),
+        );
+        return _preSessionProjectDraft(
+          context,
+          projected,
+          sceneId: sceneId,
+        );
+      case 'scene.preSession.condition.insert':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {
+            'sceneId',
+            'nodeId',
+            'targetNodeId',
+            'falseEndNodeId',
+            'title',
+            'draftField',
+            'operator',
+            'value',
+          },
+        );
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final projected = insertPreSessionCondition(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          nodeId: narrativeStringParameter(parameters, 'nodeId'),
+          targetNodeId: narrativeStringParameter(parameters, 'targetNodeId'),
+          falseEndNodeId: narrativeStringParameter(
+            parameters,
+            'falseEndNodeId',
+          ),
+          title: _optionalStringParameter(parameters, 'title'),
+          draftField: _enumParameter(
+            parameters,
+            'draftField',
+            ScenePreSessionDraftField.values,
+          ),
+          operator: _enumParameter(
+            parameters,
+            'operator',
+            SceneConditionOperator.values,
+          ),
+          value: _optionalStringParameter(parameters, 'value'),
+        );
+        return _preSessionProjectDraft(
+          context,
+          projected,
+          sceneId: sceneId,
+        );
+      case 'scene.preSession.end.configure':
+        rejectUnknownNarrativeParameters(
+          parameters,
+          const {
+            'sceneId',
+            'nodeId',
+            'outcomeId',
+            'outcomeLabel',
+            'outcomePolicy',
+          },
+        );
+        final sceneId = narrativeStringParameter(parameters, 'sceneId');
+        final projected = configurePreSessionEnd(
+          context.snapshot.manifest,
+          maps: context.snapshot.maps,
+          sceneId: sceneId,
+          nodeId: narrativeStringParameter(parameters, 'nodeId'),
+          outcomeId: narrativeStringParameter(parameters, 'outcomeId'),
+          outcomeLabel: narrativeStringParameter(parameters, 'outcomeLabel'),
+          outcomePolicy: _enumParameter(
+            parameters,
+            'outcomePolicy',
+            SceneOutcomePolicy.values,
+          ),
+        );
+        return _preSessionProjectDraft(
+          context,
+          projected,
+          sceneId: sceneId,
+        );
       default:
         throw NarrativeAuthoringException(
           'scene.action_unsupported',
@@ -168,6 +345,253 @@ final class SceneActions {
       );
     }
     return projected;
+  }
+
+  ProjectManifest createPreSessionScene(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String name,
+    required String templateId,
+    required bool setAsEntrypoint,
+  }) {
+    if (project.scenes.any((scene) => scene.id == sceneId)) {
+      throw NarrativeAuthoringException(
+        'scene.preSession.duplicate',
+        'The preSession Scene identity already exists.',
+        details: <String, Object?>{'sceneId': sceneId},
+      );
+    }
+    final scene = _createPreSessionTemplate(
+      project,
+      sceneId: sceneId,
+      name: name,
+      templateId: templateId,
+    );
+    var projected = upsert(project, maps: maps, scene: scene);
+    if (setAsEntrypoint) {
+      projected = projected.copyWith(
+        newGame: ProjectNewGameConfig.fromJson(<String, dynamic>{
+          ...projected.newGame.toJson(),
+          'preSessionSceneId': scene.id,
+        }),
+      );
+    }
+    return projected;
+  }
+
+  ProjectManifest insertPreSessionInteraction(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String nodeId,
+    required String targetNodeId,
+    required ScenePreSessionInteractionSpec interaction,
+    String? title,
+  }) {
+    final scene = _requirePreSessionScene(project, sceneId);
+    _validatePreSessionInteractionBinding(project, interaction);
+    final updated = _insertLinearNode(
+      scene,
+      node: SceneNode(
+        id: nodeId,
+        kind: SceneNodeKind.action,
+        title: title,
+        payload: SceneActionPayload.preSessionInteraction(interaction),
+      ),
+      targetNodeId: targetNodeId,
+      outgoingEdgeKind: SceneEdgeKind.actionCompleted,
+    );
+    return upsert(project, maps: maps, scene: updated);
+  }
+
+  ProjectManifest insertPreSessionPresentation(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String nodeId,
+    required String targetNodeId,
+    required String presentationCinematicId,
+    String? title,
+  }) {
+    if (!project.presentationCinematics
+        .any((asset) => asset.id == presentationCinematicId)) {
+      throw NarrativeAuthoringException(
+        'scene.preSession.presentation.unknown',
+        'The Presentation Cinematic identity is unknown.',
+        details: <String, Object?>{
+          'presentationCinematicId': presentationCinematicId,
+        },
+      );
+    }
+    final scene = _requirePreSessionScene(project, sceneId);
+    final updated = _insertLinearNode(
+      scene,
+      node: SceneNode(
+        id: nodeId,
+        kind: SceneNodeKind.presentationCinematic,
+        title: title,
+        payload: ScenePresentationCinematicPayload(
+          presentationCinematicId: presentationCinematicId,
+        ),
+      ),
+      targetNodeId: targetNodeId,
+      outgoingEdgeKind: SceneEdgeKind.presentationCompleted,
+    );
+    return upsert(project, maps: maps, scene: updated);
+  }
+
+  ProjectManifest insertPreSessionCondition(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String nodeId,
+    required String targetNodeId,
+    required String falseEndNodeId,
+    required ScenePreSessionDraftField draftField,
+    required SceneConditionOperator operator,
+    String? value,
+    String? title,
+  }) {
+    final scene = _requirePreSessionScene(project, sceneId);
+    _requireNewNodeIds(scene, <String>[nodeId, falseEndNodeId]);
+    final target = _requireTargetNode(scene, targetNodeId);
+    if (target.kind == SceneNodeKind.start) {
+      throw NarrativeAuthoringException(
+        'scene.preSession.target.invalid',
+        'A node cannot be inserted before the Scene start.',
+      );
+    }
+    final incoming = _singleIncomingEdge(scene, targetNodeId);
+    final nodes = <SceneNode>[
+      ...scene.graph.nodes,
+      SceneNode(
+        id: nodeId,
+        kind: SceneNodeKind.condition,
+        title: title,
+        payload: SceneConditionPayload(
+          conditionSource: SceneConditionSource(
+            sourceKind: SceneConditionSourceKind.newGameDraft,
+            sourceId: draftField.name,
+            operator: operator,
+            value: value,
+            label: draftField.name,
+          ),
+        ),
+      ),
+      SceneNode(id: falseEndNodeId, kind: SceneNodeKind.end),
+    ];
+    final edges = <SceneEdge>[
+      for (final edge in scene.graph.edges)
+        if (edge.id == incoming.id) _copyEdge(edge, toNodeId: nodeId) else edge,
+      SceneEdge(
+        id: _edgeId(nodeId, 'true', targetNodeId),
+        fromNodeId: nodeId,
+        fromPortId: 'true',
+        toNodeId: targetNodeId,
+        kind: SceneEdgeKind.conditionTrue,
+      ),
+      SceneEdge(
+        id: _edgeId(nodeId, 'false', falseEndNodeId),
+        fromNodeId: nodeId,
+        fromPortId: 'false',
+        toNodeId: falseEndNodeId,
+        kind: SceneEdgeKind.conditionFalse,
+      ),
+    ];
+    final updated = _copyScene(
+      scene,
+      graph: SceneGraph(
+        startNodeId: scene.graph.startNodeId,
+        nodes: nodes,
+        edges: edges,
+      ),
+    );
+    return upsert(project, maps: maps, scene: updated);
+  }
+
+  ProjectManifest configurePreSessionEnd(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required String sceneId,
+    required String nodeId,
+    required String outcomeId,
+    required String outcomeLabel,
+    required SceneOutcomePolicy outcomePolicy,
+  }) {
+    final scene = _requirePreSessionScene(project, sceneId);
+    final nodeIndex = scene.graph.nodes.indexWhere((node) => node.id == nodeId);
+    if (nodeIndex < 0 ||
+        scene.graph.nodes[nodeIndex].kind != SceneNodeKind.end) {
+      throw NarrativeAuthoringException(
+        'scene.preSession.end.required',
+        'The selected preSession node is not an end node.',
+        details: <String, Object?>{'nodeId': nodeId},
+      );
+    }
+    final nodes = <SceneNode>[];
+    final generatedOutcomes = <SceneOutcome>[];
+    for (final node in scene.graph.nodes) {
+      if (node.id == nodeId) {
+        nodes.add(
+          SceneNode(
+            id: node.id,
+            kind: node.kind,
+            title: node.title,
+            description: node.description,
+            payload: SceneEndPayload(
+              sceneOutcomeId: outcomeId,
+              outcomePolicy: outcomePolicy,
+            ),
+          ),
+        );
+        continue;
+      }
+      final payload = node.payload;
+      if (node.kind == SceneNodeKind.end &&
+          payload is SceneEndPayload &&
+          payload.sceneOutcomeId == null) {
+        final generatedOutcomeId = 'outcome_${node.id}';
+        nodes.add(
+          SceneNode(
+            id: node.id,
+            kind: node.kind,
+            title: node.title,
+            description: node.description,
+            payload: SceneEndPayload(
+              sceneOutcomeId: generatedOutcomeId,
+              outcomePolicy: SceneOutcomePolicy.retryable,
+            ),
+          ),
+        );
+        generatedOutcomes.add(
+          SceneOutcome(
+            id: generatedOutcomeId,
+            label: node.title ?? node.id,
+          ),
+        );
+        continue;
+      }
+      nodes.add(node);
+    }
+    final outcomes = <SceneOutcome>[
+      for (final outcome in scene.declaredOutcomes)
+        if (outcome.id != outcomeId &&
+            !generatedOutcomes.any((generated) => generated.id == outcome.id))
+          outcome,
+      ...generatedOutcomes,
+      SceneOutcome(id: outcomeId, label: outcomeLabel),
+    ];
+    final updated = _copyScene(
+      scene,
+      graph: SceneGraph(
+        startNodeId: scene.graph.startNodeId,
+        nodes: nodes,
+        edges: scene.graph.edges,
+      ),
+      declaredOutcomes: outcomes,
+    );
+    return upsert(project, maps: maps, scene: updated);
   }
 
   ProjectManifest delete(
@@ -249,6 +673,393 @@ final class SceneActions {
     );
     return upsert(project, maps: maps, scene: updatedScene);
   }
+}
+
+void _validatePreSessionInteractionBinding(
+  ProjectManifest project,
+  ScenePreSessionInteractionSpec interaction,
+) {
+  final field = interaction.resultBinding?.field;
+  if (field == null || field == ScenePreSessionDraftField.playerName) return;
+  final allowedIds = switch (field) {
+    ScenePreSessionDraftField.avatarCharacterId =>
+      project.newGame.playerAvatarCharacterIds.toSet(),
+    ScenePreSessionDraftField.starterOptionId =>
+      project.newGame.starterOptions.map((option) => option.id).toSet(),
+    ScenePreSessionDraftField.playerName => const <String>{},
+  };
+  final unknownIds = interaction.options
+      .map((option) => option.id)
+      .where((id) => !allowedIds.contains(id))
+      .toList(growable: false);
+  if (unknownIds.isNotEmpty) {
+    throw NarrativeAuthoringException(
+      'scene.preSession.binding.option_unknown',
+      'A structured interaction option is not allowed by New Game config.',
+      details: <String, Object?>{
+        'draftField': field.name,
+        'optionIds': unknownIds,
+      },
+    );
+  }
+}
+
+AuthoringMutationDraft _preSessionProjectDraft(
+  AuthoringPlanningContext context,
+  ProjectManifest projected, {
+  required String sceneId,
+}) {
+  final before = context.snapshot.manifest.scenes
+      .where((scene) => scene.id == sceneId)
+      .firstOrNull;
+  final after =
+      projected.scenes.where((scene) => scene.id == sceneId).firstOrNull;
+  return narrativeProjectDraft(
+    context.snapshot,
+    projected,
+    operation: context.request.actionId,
+    path: '/scenes/$sceneId',
+    before: before?.toJson(),
+    after: after?.toJson(),
+    preview: const ModernNarrativeInspector()
+        .inspect(project: projected, maps: context.snapshot.maps)
+        .toJson(),
+  );
+}
+
+SceneAsset _createPreSessionTemplate(
+  ProjectManifest project, {
+  required String sceneId,
+  required String name,
+  required String templateId,
+}) {
+  if (templateId == 'minimal') {
+    return SceneAsset(
+      id: sceneId,
+      name: name,
+      executionProfile: SceneExecutionProfile.preSession,
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_end',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      ),
+    );
+  }
+  if (templateId != 'identitySetup') {
+    throw NarrativeAuthoringException(
+      'scene.preSession.template.unknown',
+      'The preSession Scene template is unknown.',
+      details: <String, Object?>{'templateId': templateId},
+    );
+  }
+
+  final authoredNodes = <SceneNode>[
+    SceneNode(
+      id: 'playerName',
+      kind: SceneNodeKind.action,
+      title: 'Nom du joueur',
+      payload: SceneActionPayload.preSessionInteraction(
+        ScenePreSessionInteractionSpec.text(
+          prompt: SceneInteractionPrompt(
+            localizationKey: 'newGame.playerName.prompt',
+            fallbackText: 'Quel est ton nom ?',
+          ),
+          constraints: SceneTextInputConstraints(
+            minGraphemes: 1,
+            maxGraphemes: 24,
+          ),
+          resultBinding: const ScenePreSessionResultBinding(
+            field: ScenePreSessionDraftField.playerName,
+          ),
+        ),
+      ),
+    ),
+    if (project.newGame.playerAvatarCharacterIds.isNotEmpty)
+      SceneNode(
+        id: 'avatarCharacterId',
+        kind: SceneNodeKind.action,
+        title: 'Avatar',
+        payload: SceneActionPayload.preSessionInteraction(
+          ScenePreSessionInteractionSpec.selection(
+            prompt: SceneInteractionPrompt(
+              localizationKey: 'newGame.avatar.prompt',
+              fallbackText: 'Choisis ton avatar',
+            ),
+            options: [
+              for (final id in project.newGame.playerAvatarCharacterIds)
+                SceneInteractionOption(
+                  id: id,
+                  label: SceneInteractionPrompt(
+                    localizationKey: 'newGame.avatar.$id',
+                    fallbackText: id,
+                  ),
+                ),
+            ],
+            constraints: SceneSelectionConstraints(),
+            resultBinding: const ScenePreSessionResultBinding(
+              field: ScenePreSessionDraftField.avatarCharacterId,
+            ),
+          ),
+        ),
+      ),
+    if (project.newGame.starterOptions.isNotEmpty)
+      SceneNode(
+        id: 'starterOptionId',
+        kind: SceneNodeKind.action,
+        title: 'Starter',
+        payload: SceneActionPayload.preSessionInteraction(
+          ScenePreSessionInteractionSpec.selection(
+            prompt: SceneInteractionPrompt(
+              localizationKey: 'newGame.starter.prompt',
+              fallbackText: 'Choisis ton starter',
+            ),
+            options: [
+              for (final option in project.newGame.starterOptions)
+                SceneInteractionOption(
+                  id: option.id,
+                  label: SceneInteractionPrompt(
+                    localizationKey: 'newGame.starter.${option.id}',
+                    fallbackText: option.label,
+                  ),
+                ),
+            ],
+            constraints: SceneSelectionConstraints(),
+            resultBinding: const ScenePreSessionResultBinding(
+              field: ScenePreSessionDraftField.starterOptionId,
+            ),
+          ),
+        ),
+      ),
+  ];
+  final nodes = <SceneNode>[
+    SceneNode(id: 'start', kind: SceneNodeKind.start),
+    ...authoredNodes,
+    SceneNode(id: 'end', kind: SceneNodeKind.end),
+  ];
+  final orderedIds = nodes.map((node) => node.id).toList(growable: false);
+  return SceneAsset(
+    id: sceneId,
+    name: name,
+    executionProfile: SceneExecutionProfile.preSession,
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: nodes,
+      edges: [
+        for (var index = 0; index < orderedIds.length - 1; index += 1)
+          SceneEdge(
+            id: _edgeId(
+              orderedIds[index],
+              'completed',
+              orderedIds[index + 1],
+            ),
+            fromNodeId: orderedIds[index],
+            fromPortId: 'completed',
+            toNodeId: orderedIds[index + 1],
+            kind: index == 0
+                ? SceneEdgeKind.defaultFlow
+                : SceneEdgeKind.actionCompleted,
+          ),
+      ],
+    ),
+  );
+}
+
+SceneAsset _insertLinearNode(
+  SceneAsset scene, {
+  required SceneNode node,
+  required String targetNodeId,
+  required SceneEdgeKind outgoingEdgeKind,
+}) {
+  _requireNewNodeIds(scene, <String>[node.id]);
+  final target = _requireTargetNode(scene, targetNodeId);
+  if (target.kind == SceneNodeKind.start) {
+    throw NarrativeAuthoringException(
+      'scene.preSession.target.invalid',
+      'A node cannot be inserted before the Scene start.',
+    );
+  }
+  final incoming = _singleIncomingEdge(scene, targetNodeId);
+  return _copyScene(
+    scene,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: <SceneNode>[...scene.graph.nodes, node],
+      edges: <SceneEdge>[
+        for (final edge in scene.graph.edges)
+          if (edge.id == incoming.id)
+            _copyEdge(edge, toNodeId: node.id)
+          else
+            edge,
+        SceneEdge(
+          id: _edgeId(node.id, 'completed', targetNodeId),
+          fromNodeId: node.id,
+          fromPortId: 'completed',
+          toNodeId: targetNodeId,
+          kind: outgoingEdgeKind,
+        ),
+      ],
+    ),
+  );
+}
+
+SceneAsset _requirePreSessionScene(ProjectManifest project, String sceneId) {
+  final scene =
+      project.scenes.where((scene) => scene.id == sceneId).firstOrNull;
+  if (scene == null) {
+    throw NarrativeAuthoringException(
+      'scene.unknown',
+      'The Scene identity is unknown.',
+      details: <String, Object?>{'sceneId': sceneId},
+    );
+  }
+  if (scene.executionProfile != SceneExecutionProfile.preSession) {
+    throw NarrativeAuthoringException(
+      'scene.preSession.profile_required',
+      'The requested Scene is not a preSession Scene.',
+      details: <String, Object?>{'sceneId': sceneId},
+    );
+  }
+  return scene;
+}
+
+void _requireNewNodeIds(SceneAsset scene, List<String> nodeIds) {
+  final existing = scene.graph.nodes.map((node) => node.id).toSet();
+  final requested = <String>{};
+  for (final nodeId in nodeIds) {
+    if (!requested.add(nodeId) || existing.contains(nodeId)) {
+      throw NarrativeAuthoringException(
+        'scene.preSession.node.duplicate',
+        'The preSession node identity already exists.',
+        details: <String, Object?>{'nodeId': nodeId},
+      );
+    }
+  }
+}
+
+SceneNode _requireTargetNode(SceneAsset scene, String targetNodeId) {
+  final target =
+      scene.graph.nodes.where((node) => node.id == targetNodeId).firstOrNull;
+  if (target == null) {
+    throw NarrativeAuthoringException(
+      'scene.preSession.target.unknown',
+      'The insertion target node is unknown.',
+      details: <String, Object?>{'targetNodeId': targetNodeId},
+    );
+  }
+  return target;
+}
+
+SceneEdge _singleIncomingEdge(SceneAsset scene, String targetNodeId) {
+  final incoming = scene.graph.edges
+      .where((edge) => edge.toNodeId == targetNodeId)
+      .toList(growable: false);
+  if (incoming.length != 1) {
+    throw NarrativeAuthoringException(
+      'scene.preSession.target.incoming_ambiguous',
+      'The insertion target must have exactly one incoming edge.',
+      details: <String, Object?>{
+        'targetNodeId': targetNodeId,
+        'incomingEdgeCount': incoming.length,
+      },
+    );
+  }
+  return incoming.single;
+}
+
+SceneAsset _copyScene(
+  SceneAsset scene, {
+  required SceneGraph graph,
+  List<SceneOutcome>? declaredOutcomes,
+}) {
+  return SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    executionProfile: scene.executionProfile,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: graph,
+    layout: scene.layout,
+    declaredOutcomes: declaredOutcomes ?? scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+}
+
+SceneEdge _copyEdge(SceneEdge edge, {required String toNodeId}) {
+  return SceneEdge(
+    id: edge.id,
+    fromNodeId: edge.fromNodeId,
+    fromPortId: edge.fromPortId,
+    toNodeId: toNodeId,
+    kind: edge.kind,
+    label: edge.label,
+  );
+}
+
+String _edgeId(String fromNodeId, String fromPortId, String toNodeId) =>
+    'edge_${fromNodeId}_${fromPortId}_$toNodeId';
+
+ScenePreSessionInteractionSpec _decodePreSessionInteraction(
+  Map<String, dynamic> json,
+) {
+  try {
+    return ScenePreSessionInteractionSpec.fromJson(json);
+  } on Object catch (error) {
+    throw NarrativeAuthoringException(
+      'scene.preSession.interaction.invalid',
+      'The structured preSession interaction cannot be decoded.',
+      details: <String, Object?>{
+        'validationType': error.runtimeType.toString(),
+      },
+    );
+  }
+}
+
+bool _optionalBoolParameter(
+  Map<String, Object?> parameters,
+  String key, {
+  required bool fallback,
+}) {
+  final value = parameters[key];
+  if (value == null) return fallback;
+  if (value is! bool) {
+    throw ArgumentError.value(value, key, 'must be a boolean');
+  }
+  return value;
+}
+
+String? _optionalStringParameter(
+  Map<String, Object?> parameters,
+  String key,
+) {
+  final value = parameters[key];
+  if (value == null) return null;
+  if (value is! String || value.trim().isEmpty || value != value.trim()) {
+    throw ArgumentError.value(value, key, 'must be a nonblank trimmed string');
+  }
+  return value;
+}
+
+T _enumParameter<T extends Enum>(
+  Map<String, Object?> parameters,
+  String key,
+  List<T> values,
+) {
+  final value = narrativeStringParameter(parameters, key);
+  return values.where((candidate) => candidate.name == value).firstOrNull ??
+      (throw ArgumentError.value(value, key, 'contains an unknown value'));
 }
 
 SceneAsset _decodeScene(Map<String, dynamic> json) {

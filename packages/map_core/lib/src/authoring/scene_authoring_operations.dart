@@ -1554,6 +1554,17 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
 
 void _validateConditionSourceForV0(SceneConditionSource source) {
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.newGameDraft:
+      if (source.operator != SceneConditionOperator.isTrue &&
+          source.operator != SceneConditionOperator.isFalse &&
+          source.operator != SceneConditionOperator.equals) {
+        throw ArgumentError.value(
+          source.operator,
+          'source.operator',
+          'newGameDraft supports isTrue, isFalse or equals.',
+        );
+      }
+      return;
     case SceneConditionSourceKind.fact:
       if (source.expectedFactValue != null) {
         if (!source.expectedFactValue!.kind.compatibleOperators

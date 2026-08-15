@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import 'scene_asset.dart';
+import 'scene_structured_interaction.dart';
 
 abstract final class SceneExecutionCapabilityIds {
   static const flowStart = 'flow.start';
@@ -91,8 +92,8 @@ String sceneExecutionCapabilityForNode(
       SceneExecutionProfile.preSession =>
         SceneExecutionCapabilityIds.inputMessage,
     },
-    SceneNodeKind.condition => SceneExecutionCapabilityIds.worldCondition,
-    SceneNodeKind.action => SceneExecutionCapabilityIds.worldAction,
+    SceneNodeKind.condition => _conditionCapability(node),
+    SceneNodeKind.action => _actionCapability(node),
     SceneNodeKind.battle => SceneExecutionCapabilityIds.worldBattle,
     SceneNodeKind.cinematic => SceneExecutionCapabilityIds.worldCinematic,
     SceneNodeKind.presentationCinematic =>
@@ -106,6 +107,34 @@ String sceneExecutionCapabilityForNode(
         SceneExecutionProfile.world => SceneExecutionCapabilityIds.worldMerge,
       SceneExecutionProfile.preSession => SceneExecutionCapabilityIds.flowMerge,
       },
+  };
+}
+
+String _conditionCapability(SceneNode node) {
+  final payload = node.payload;
+  if (payload is SceneConditionPayload &&
+      payload.conditionSource?.sourceKind ==
+          SceneConditionSourceKind.newGameDraft) {
+    return SceneExecutionCapabilityIds.draftLocalCondition;
+  }
+  return SceneExecutionCapabilityIds.worldCondition;
+}
+
+String _actionCapability(SceneNode node) {
+  final payload = node.payload;
+  final interaction =
+      payload is SceneActionPayload ? payload.preSessionInteraction : null;
+  if (interaction == null) return SceneExecutionCapabilityIds.worldAction;
+  return switch (interaction.kind) {
+    SceneInteractionRequestKind.message =>
+      SceneExecutionCapabilityIds.inputMessage,
+    SceneInteractionRequestKind.choice =>
+      SceneExecutionCapabilityIds.inputChoice,
+    SceneInteractionRequestKind.text => SceneExecutionCapabilityIds.inputText,
+    SceneInteractionRequestKind.confirmation =>
+      SceneExecutionCapabilityIds.inputConfirmation,
+    SceneInteractionRequestKind.selection =>
+      SceneExecutionCapabilityIds.inputSelection,
   };
 }
 

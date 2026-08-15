@@ -34,7 +34,8 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
         final payload = node.payload;
         if (payload is! SceneActionPayload ||
             (payload.consequence == null &&
-                payload.interactiveCommand == null)) {
+                payload.interactiveCommand == null &&
+                payload.preSessionInteraction == null)) {
           diagnostics.add(
             SceneRuntimePlanDiagnostic(
               code: SceneRuntimePlanDiagnosticCode.unsupportedAction,
@@ -237,6 +238,12 @@ List<String> _declaredOutcomePortsForNode(SceneNode node) {
 }
 
 SceneRuntimePlanIntent _actionIntent(SceneActionPayload payload) {
+  final preSessionInteraction = payload.preSessionInteraction;
+  if (preSessionInteraction != null) {
+    return SceneRuntimePlanIntent.requestStructuredInteraction(
+      interaction: preSessionInteraction,
+    );
+  }
   final command = payload.interactiveCommand;
   if (command != null) {
     return SceneRuntimePlanIntent.executeInteractiveCommand(command: command);

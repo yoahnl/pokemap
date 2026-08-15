@@ -948,6 +948,8 @@ _ProjectedSymbolicSeeds _projectSymbolicSeeds({
       final source = payload.conditionSource;
       if (source == null) continue;
       switch (source.sourceKind) {
+        case SceneConditionSourceKind.newGameDraft:
+          break;
         case SceneConditionSourceKind.fact:
         case SceneConditionSourceKind.factLikeStoryFlag:
           relevantFactIds.add(source.sourceId);
@@ -1140,6 +1142,8 @@ _NarrativeBatchFootprint _narrativeBatchFootprint({
           final source = conditionSource;
           if (source == null) continue;
           switch (source.sourceKind) {
+            case SceneConditionSourceKind.newGameDraft:
+              break;
             case SceneConditionSourceKind.fact:
             case SceneConditionSourceKind.factLikeStoryFlag:
               reads.add('fact:${source.sourceId}');
@@ -1507,6 +1511,8 @@ bool? _sceneConditionValue(
 ) {
   if (source == null) return null;
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.newGameDraft:
+      return null;
     case SceneConditionSourceKind.fact:
     case SceneConditionSourceKind.factLikeStoryFlag:
       final actual = state.factValues[source.sourceId];
