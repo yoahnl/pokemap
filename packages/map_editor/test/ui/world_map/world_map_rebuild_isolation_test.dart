@@ -145,7 +145,7 @@ void main() {
     );
     expect(
       lifecycle,
-      isNot(contains(EditorCanvasRepaintLifecycleEvent.ownedTickerStarted)),
+      isNot(contains(EditorCanvasRepaintLifecycleEvent.ownedTimerStarted)),
     );
 
     notifier.state = notifier.state.copyWith(
@@ -162,7 +162,7 @@ void main() {
     expect(
       lifecycle.where(
         (event) =>
-            event == EditorCanvasRepaintLifecycleEvent.ownedTickerStarted,
+            event == EditorCanvasRepaintLifecycleEvent.ownedTimerStarted,
       ),
       hasLength(1),
     );
@@ -180,12 +180,12 @@ void main() {
     expect(
       paints,
       0,
-      reason: 'Switching to a static map must stop the production ticker.',
+      reason: 'Switching to a static map must stop the production timer.',
     );
     expect(
       lifecycle.where(
         (event) =>
-            event == EditorCanvasRepaintLifecycleEvent.ownedTickerStopped,
+            event == EditorCanvasRepaintLifecycleEvent.ownedTimerStopped,
       ),
       hasLength(1),
     );
@@ -222,12 +222,12 @@ void main() {
     expect(
       paints,
       0,
-      reason: 'Hiding the last animated layer must stop the production ticker.',
+      reason: 'Hiding the last animated layer must stop the production timer.',
     );
     expect(
       lifecycle.where(
         (event) =>
-            event == EditorCanvasRepaintLifecycleEvent.ownedTickerStopped,
+            event == EditorCanvasRepaintLifecycleEvent.ownedTimerStopped,
       ),
       hasLength(2),
     );
@@ -237,6 +237,33 @@ void main() {
       ),
       hasLength(2),
     );
+  });
+
+  testWidgets('production animation cadence does not add a vsync callback',
+      (tester) async {
+    final container = _container();
+    final notifier = container.read(editorNotifierProvider.notifier)
+      ..state = EditorState(
+        project: _projectWithAnimatedPath,
+        activeMap: _staticPathMap,
+        activeLayerId: 'ground',
+      );
+    await _pumpWorkspace(
+      tester,
+      container,
+      canvas: const MapCanvas(),
+    );
+    final staticCallbackCount = tester.binding.transientCallbackCount;
+
+    notifier.state = notifier.state.copyWith(
+      project: _projectWithAnimatedPath,
+      activeMap: _animatedPathMap,
+      activeLayerId: 'path',
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(tester.binding.transientCallbackCount, staticCallbackCount);
   });
 
   testWidgets(
@@ -453,7 +480,7 @@ void main() {
     expect(lifecycle, isEmpty);
   });
 
-  testWidgets('production clock and ticker are created and disposed once',
+  testWidgets('production clock and timer are started and disposed once',
       (tester) async {
     final container = _container();
     container.read(editorNotifierProvider.notifier).state = const EditorState(
@@ -472,8 +499,7 @@ void main() {
       lifecycle,
       <EditorCanvasRepaintLifecycleEvent>[
         EditorCanvasRepaintLifecycleEvent.ownedClockCreated,
-        EditorCanvasRepaintLifecycleEvent.ownedTickerCreated,
-        EditorCanvasRepaintLifecycleEvent.ownedTickerStarted,
+        EditorCanvasRepaintLifecycleEvent.ownedTimerStarted,
       ],
     );
 
@@ -484,9 +510,8 @@ void main() {
       lifecycle,
       <EditorCanvasRepaintLifecycleEvent>[
         EditorCanvasRepaintLifecycleEvent.ownedClockCreated,
-        EditorCanvasRepaintLifecycleEvent.ownedTickerCreated,
-        EditorCanvasRepaintLifecycleEvent.ownedTickerStarted,
-        EditorCanvasRepaintLifecycleEvent.ownedTickerDisposed,
+        EditorCanvasRepaintLifecycleEvent.ownedTimerStarted,
+        EditorCanvasRepaintLifecycleEvent.ownedTimerDisposed,
         EditorCanvasRepaintLifecycleEvent.ownedClockDisposed,
       ],
     );
@@ -494,7 +519,7 @@ void main() {
     expect(
       lifecycle.where(
         (event) =>
-            event == EditorCanvasRepaintLifecycleEvent.ownedTickerDisposed,
+            event == EditorCanvasRepaintLifecycleEvent.ownedTimerDisposed,
       ),
       hasLength(1),
     );
@@ -711,6 +736,11 @@ final _projectWithAnimatedPath = ProjectManifest(
         name: 'Water',
         connectionGroupId: 'water',
       ),
+      ProjectSmartTileMaterial(
+        id: 'grass',
+        name: 'Grass',
+        connectionGroupId: 'grass',
+      ),
     ],
     animations: const <ProjectSmartTileAnimation>[
       ProjectSmartTileAnimation(
@@ -729,6 +759,42 @@ final _projectWithAnimatedPath = ProjectManifest(
       ),
     ],
     presets: const <ProjectSmartTilePreset>[
+      ProjectSmartTilePreset(
+        id: 'static-path',
+        name: 'Static path',
+        usage: SmartTileUsage.path,
+        topology: SmartTileTopology.uniform,
+        status: SmartTilePresetStatus.published,
+        coveragePolicy: SmartTileCoveragePolicy.complete,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
+        defaultMaterialId: 'grass',
+        allowedMaterialIds: <String>['grass'],
+        rules: <SmartTileRule>[
+          SmartTileRule(
+            id: 'uniform-grass',
+            centerMatch: SmartTileSlotMatch.material('grass'),
+            candidates: <SmartTileCandidate>[
+              SmartTileCandidate(
+                id: 'static-grass',
+                parts: <SmartTileVisualPart>[
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(
+                        atlasId: 'animated-atlas',
+                        column: 0,
+                        row: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
       ProjectSmartTilePreset(
         id: 'animated-path',
         name: 'Animated path',
@@ -771,10 +837,13 @@ const _staticPathMap = MapData(
   version: ProjectVersion.v6,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
-    TileLayer(
+    SmartTileLayer(
       id: 'ground',
       name: 'Ground',
-      cells: <int>[0, 0, 0, 0],
+      presetId: 'static-path',
+      usage: SmartTileUsage.path,
+      materialPalette: <String>['', 'grass'],
+      field: SmartTileField.cell(semanticCells: <int>[1, 1, 1, 1]),
     ),
   ],
 );

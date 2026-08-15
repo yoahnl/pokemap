@@ -675,6 +675,7 @@ class MapGridPainter extends CustomPainter {
               smartBackgroundLayer,
               pass: SmartTileVisualPass.background,
               visibleBounds: visibleBounds,
+              revisions: revisions,
               cullingCounter: cullingCounter,
             ),
           );
@@ -828,6 +829,7 @@ class MapGridPainter extends CustomPainter {
                 smartLayer,
                 pass: SmartTileVisualPass.actorOcclusion,
                 visibleBounds: visibleBounds,
+                revisions: revisions,
                 cullingCounter: cullingCounter,
               ),
             );
@@ -908,6 +910,7 @@ class MapGridPainter extends CustomPainter {
                 smartLayer,
                 pass: SmartTileVisualPass.foreground,
                 visibleBounds: visibleBounds,
+                revisions: revisions,
                 cullingCounter: cullingCounter,
               ),
             );
@@ -3184,6 +3187,7 @@ class MapGridPainter extends CustomPainter {
     SmartTileLayer layer, {
     required SmartTileVisualPass pass,
     required EditorMapVisibleCellBounds visibleBounds,
+    required EditorCanvasPaintRevisionSnapshot? revisions,
     _MapGridCullingDebugCounter? cullingCounter,
   }) {
     final catalog = project?.smartTileCatalog;
@@ -3208,34 +3212,62 @@ class MapGridPainter extends CustomPainter {
         index: patternIndex,
       );
     }
-    final batch = resolveSmartTileLayerVisualBatch(
-      map: map,
-      layer: layer,
-      catalog: catalog,
-      pass: pass,
-      elapsedMs: resolveEditorSmartTileAnimationElapsedMs(
-        activation: layer.animationActivation,
-        elapsedMs: effectiveAnimationMs,
-      ),
-      startX: visibleBounds.left,
-      startY: visibleBounds.top,
-      endX: visibleBounds.right,
-      endY: visibleBounds.bottom,
-      destinationCellWidth: tileWidth,
-      destinationCellHeight: tileHeight,
-      sourceCellWidth: sourceTileWidth > 0
-          ? sourceTileWidth.toDouble()
-          : tileWidth,
-      sourceCellHeight: sourceTileHeight > 0
-          ? sourceTileHeight.toDouble()
-          : tileHeight,
-      patternOwnerIndex: patternIndex,
-      cellContextResolver:
-          cellStrokePreview?.kind == MapCellStrokeLayerKind.smartTile &&
-              cellStrokePreview?.layerId == layer.id
-          ? cellStrokePreview!.smartTileContextAt
-          : null,
+    final elapsedMs = resolveEditorSmartTileAnimationElapsedMs(
+      activation: layer.animationActivation,
+      elapsedMs: effectiveAnimationMs,
     );
+    final sourceCellWidth = sourceTileWidth > 0
+        ? sourceTileWidth.toDouble()
+        : tileWidth;
+    final sourceCellHeight = sourceTileHeight > 0
+        ? sourceTileHeight.toDouble()
+        : tileHeight;
+    final previewApplies =
+        cellStrokePreview?.kind == MapCellStrokeLayerKind.smartTile &&
+        cellStrokePreview?.layerId == layer.id;
+    final planOwner = pictureCacheOwner;
+    final batch = !previewApplies && planOwner != null && revisions != null
+        ? planOwner
+              ._resolveSmartTileVisualPlan(
+                map: map,
+                layer: layer,
+                catalog: catalog,
+                pass: pass,
+                revisions: revisions,
+                destinationCellWidth: tileWidth,
+                destinationCellHeight: tileHeight,
+                sourceCellWidth: sourceCellWidth,
+                sourceCellHeight: sourceCellHeight,
+                patternOwnerIndex: patternIndex,
+              )
+              .resolveBatch(
+                elapsedMs: elapsedMs,
+                viewportBounds: SmartTileGeometryRect(
+                  left: visibleBounds.left * tileWidth,
+                  top: visibleBounds.top * tileHeight,
+                  width: visibleBounds.width * tileWidth,
+                  height: visibleBounds.height * tileHeight,
+                ),
+              )
+        : resolveSmartTileLayerVisualBatch(
+            map: map,
+            layer: layer,
+            catalog: catalog,
+            pass: pass,
+            elapsedMs: elapsedMs,
+            startX: visibleBounds.left,
+            startY: visibleBounds.top,
+            endX: visibleBounds.right,
+            endY: visibleBounds.bottom,
+            destinationCellWidth: tileWidth,
+            destinationCellHeight: tileHeight,
+            sourceCellWidth: sourceCellWidth,
+            sourceCellHeight: sourceCellHeight,
+            patternOwnerIndex: patternIndex,
+            cellContextResolver: previewApplies
+                ? cellStrokePreview!.smartTileContextAt
+                : null,
+          );
     final visuals = batch.visuals;
     cullingCounter?.smartTileVisualVisits += visuals.length;
     cullingCounter?.smartTileOwnerCellVisits += batch.work.ownerCellVisits;
