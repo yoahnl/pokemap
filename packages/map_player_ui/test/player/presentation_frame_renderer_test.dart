@@ -94,6 +94,60 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('renders authored text with its typed style', (tester) async {
+    final frame = PresentationFrame(
+      cinematicId: 'opening',
+      timeUs: 500000,
+      durationUs: 1000000,
+      texts: [
+        PresentationTextFrameClip(
+          clipId: 'title',
+          trackId: 'visuals',
+          layerId: 'title-layer',
+          zIndex: 1,
+          text: 'Bienvenue à Avelune',
+          localizationKey: 'opening.title',
+          style: PresentationTextStyle(
+            fontSize: 36,
+            weight: PresentationTextWeight.bold,
+            alignment: PresentationTextAlignment.end,
+            wrapping: PresentationTextWrapping.noWrap,
+            colorHex: '#33AAFF',
+          ),
+          startUs: 0,
+          durationUs: 1000000,
+          elapsedUs: 500000,
+          progress: .5,
+          easedProgress: .5,
+          easing: PresentationEasing.linear,
+          composition: PresentationVisualComposition.identity,
+          reducedMotionComposition: PresentationVisualComposition.identity,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _app(
+        PresentationFrameRenderer(
+          frame: frame,
+          orientation: PresentationFrameOrientation.landscape,
+          contentPort: _ContentPort(),
+        ),
+      ),
+    );
+
+    final text = tester.widget<Text>(
+      find.byKey(const ValueKey<String>('presentation-text-title')),
+    );
+    expect(text.data, 'Bienvenue à Avelune');
+    expect(text.maxLines, 1);
+    expect(text.textAlign, TextAlign.end);
+    expect(text.style?.fontSize, 36);
+    expect(text.style?.fontWeight, FontWeight.w700);
+    expect(text.style?.color, const Color(0xFF33AAFF));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('renders explicit states for unavailable media and captions', (
     tester,
   ) async {

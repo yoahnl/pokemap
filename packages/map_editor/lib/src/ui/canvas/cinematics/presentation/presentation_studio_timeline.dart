@@ -838,12 +838,7 @@ class _PresentationStudioTimelineState
         !_editingController.selectedClipIds.contains(clip.id)) {
       _editingController.selectClip(clip.id, additive: additive);
     }
-    if (clip is PresentationVisualClip) {
-      widget.selectionController.selectClip(
-        asset: widget.asset,
-        clipId: clip.id,
-      );
-    }
+    widget.selectionController.selectClip(asset: widget.asset, clipId: clip.id);
   }
 
   void _finishDrag() {
@@ -929,6 +924,7 @@ IconData _trackIcon(PresentationTrackKind kind) => switch (kind) {
 
 String _clipLabel(PresentationClip clip) => switch (clip) {
   PresentationVisualClip() => clip.resourceId,
+  PresentationTextClip() => clip.text,
   PresentationAudioClip() => clip.resourceId,
   PresentationCaptionClip() => clip.captionId,
   PresentationMarkerClip() => clip.label,

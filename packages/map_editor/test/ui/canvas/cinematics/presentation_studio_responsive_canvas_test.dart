@@ -206,6 +206,46 @@ void main() {
     ]);
   });
 
+  testWidgets('an orientation source overrides the shared fallback', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      mode: PresentationStudioCanvasMode.compare,
+    );
+    addTearDown(controller.dispose);
+    final port = _RecordingContentPort();
+
+    await _pumpResponsiveCanvas(
+      tester,
+      controller: controller,
+      frameBuilder: (_) => _frame(),
+      contentPort: port,
+      mediaBindings: const [
+        PresentationStudioResponsiveMediaBinding(
+          clipId: 'hero-clip',
+          kind: PresentationStudioResponsiveMediaKind.image,
+          sharedResourceId: 'hero-shared',
+          portraitResourceId: 'hero-portrait',
+        ),
+      ],
+    );
+
+    expect(port.resolutions, [
+      (
+        orientation: PresentationFrameOrientation.landscape,
+        resourceId: 'hero-shared',
+      ),
+      (
+        orientation: PresentationFrameOrientation.portrait,
+        resourceId: 'hero-portrait',
+      ),
+    ]);
+    expect(
+      find.byKey(presentationStudioResponsiveMediaBlockerKey),
+      findsNothing,
+    );
+  });
+
   testWidgets('an incompatible responsive duration blocks the canvas', (
     tester,
   ) async {
@@ -237,6 +277,35 @@ void main() {
     expect(find.text('Composition responsive bloquée'), findsOneWidget);
     expect(find.textContaining('hero-portrait'), findsOneWidget);
     expect(find.byType(PresentationFrameRenderer), findsNothing);
+  });
+
+  testWidgets('catalog-pending video keeps the authoring canvas available', (
+    tester,
+  ) async {
+    final controller = PresentationStudioResponsiveCanvasController(
+      mode: PresentationStudioCanvasMode.compare,
+    );
+    addTearDown(controller.dispose);
+
+    await _pumpResponsiveCanvas(
+      tester,
+      controller: controller,
+      frameBuilder: (_) => _frame(),
+      mediaBindings: const [
+        PresentationStudioResponsiveMediaBinding(
+          clipId: 'hero-clip',
+          kind: PresentationStudioResponsiveMediaKind.video,
+          sharedResourceId: 'hero-video',
+          requireDurationMetadata: false,
+        ),
+      ],
+    );
+
+    expect(
+      find.byKey(presentationStudioResponsiveMediaBlockerKey),
+      findsNothing,
+    );
+    expect(find.byType(PresentationFrameRenderer), findsNWidgets(2));
   });
 
   testWidgets('Compare focus is deterministic and keeps both safe areas', (

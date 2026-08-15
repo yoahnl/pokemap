@@ -13,7 +13,21 @@ enum PresentationVisualTransitionKind {
   slideDown,
 }
 
+enum PresentationVisualMediaKind { image, video, poster }
+
 enum PresentationMarkerKind { ordinary, interactionCue }
+
+enum PresentationTextWeight { regular, medium, bold }
+
+enum PresentationTextAlignment { start, center, end }
+
+enum PresentationTextWrapping { wrap, noWrap }
+
+enum PresentationAudioKind { music, voice, soundEffect }
+
+enum PresentationAudioBus { music, voice, effects }
+
+enum PresentationCaptionStyle { standard, highContrast }
 
 enum PresentationCinematicValidationErrorCode {
   invalidValue,
@@ -68,7 +82,7 @@ final class PresentationCinematicAsset {
     _validateIdsAndReferences();
   }
 
-  static const int schemaVersion = 2;
+  static const int schemaVersion = 3;
   static const int ticksPerSecond = 1000000;
   static const String timeUnit = 'microsecond';
   static const List<String> capabilities = <String>['cinematic.presentation'];
@@ -194,11 +208,16 @@ final class PresentationCinematicAsset {
             path: clipPath,
           );
         }
-        if (clip case final PresentationVisualClip visualClip) {
-          if (!layerIds.contains(visualClip.layerId)) {
+        final layerId = switch (clip) {
+          PresentationVisualClip() => clip.layerId,
+          PresentationTextClip() => clip.layerId,
+          _ => null,
+        };
+        if (layerId != null) {
+          if (!layerIds.contains(layerId)) {
             throw PresentationCinematicValidationException(
               code: PresentationCinematicValidationErrorCode.danglingLayer,
-              message: 'Unknown layer id ${visualClip.layerId}',
+              message: 'Unknown layer id $layerId',
               path: '$clipPath.layerId',
             );
           }
@@ -528,6 +547,11 @@ final class PresentationVisualClip extends PresentationClip {
     required super.durationUs,
     required String layerId,
     required String resourceId,
+    this.mediaKind = PresentationVisualMediaKind.image,
+    String? landscapeResourceId,
+    String? portraitResourceId,
+    this.landscapeCompositionOverride,
+    this.portraitCompositionOverride,
     this.easing = PresentationEasing.linear,
     PresentationVisualComposition? from,
     PresentationVisualComposition? to,
@@ -538,6 +562,8 @@ final class PresentationVisualClip extends PresentationClip {
          resourceId,
          'PresentationVisualClip.resourceId',
        ),
+       landscapeResourceId = _optionalString(landscapeResourceId),
+       portraitResourceId = _optionalString(portraitResourceId),
        from = from ?? PresentationVisualComposition.identity,
        to = to ?? PresentationVisualComposition.identity,
        transitionIn = transitionIn ?? PresentationVisualTransition.none,
@@ -561,6 +587,11 @@ final class PresentationVisualClip extends PresentationClip {
 
   final String layerId;
   final String resourceId;
+  final PresentationVisualMediaKind mediaKind;
+  final String? landscapeResourceId;
+  final String? portraitResourceId;
+  final PresentationVisualComposition? landscapeCompositionOverride;
+  final PresentationVisualComposition? portraitCompositionOverride;
   final PresentationEasing easing;
   final PresentationVisualComposition from;
   final PresentationVisualComposition to;
@@ -579,6 +610,11 @@ final class PresentationVisualClip extends PresentationClip {
           other.durationUs == durationUs &&
           other.layerId == layerId &&
           other.resourceId == resourceId &&
+          other.mediaKind == mediaKind &&
+          other.landscapeResourceId == landscapeResourceId &&
+          other.portraitResourceId == portraitResourceId &&
+          other.landscapeCompositionOverride == landscapeCompositionOverride &&
+          other.portraitCompositionOverride == portraitCompositionOverride &&
           other.easing == easing &&
           other.from == from &&
           other.to == to &&
@@ -592,6 +628,145 @@ final class PresentationVisualClip extends PresentationClip {
     durationUs,
     layerId,
     resourceId,
+    mediaKind,
+    landscapeResourceId,
+    portraitResourceId,
+    landscapeCompositionOverride,
+    portraitCompositionOverride,
+    easing,
+    from,
+    to,
+    transitionIn,
+    transitionOut,
+  );
+}
+
+@immutable
+final class PresentationTextStyle {
+  PresentationTextStyle({
+    String? fontFamily,
+    this.fontSize = 48,
+    this.weight = PresentationTextWeight.regular,
+    this.alignment = PresentationTextAlignment.center,
+    this.wrapping = PresentationTextWrapping.wrap,
+    String colorHex = '#FFFFFF',
+    this.respectSafeArea = true,
+  }) : fontFamily = _optionalString(fontFamily),
+       colorHex = _colorHex(colorHex, 'PresentationTextStyle.colorHex') {
+    _positiveFinite(fontSize, 'PresentationTextStyle.fontSize');
+  }
+
+  final String? fontFamily;
+  final double fontSize;
+  final PresentationTextWeight weight;
+  final PresentationTextAlignment alignment;
+  final PresentationTextWrapping wrapping;
+  final String colorHex;
+  final bool respectSafeArea;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PresentationTextStyle &&
+          other.fontFamily == fontFamily &&
+          other.fontSize == fontSize &&
+          other.weight == weight &&
+          other.alignment == alignment &&
+          other.wrapping == wrapping &&
+          other.colorHex == colorHex &&
+          other.respectSafeArea == respectSafeArea;
+
+  @override
+  int get hashCode => Object.hash(
+    fontFamily,
+    fontSize,
+    weight,
+    alignment,
+    wrapping,
+    colorHex,
+    respectSafeArea,
+  );
+}
+
+@immutable
+final class PresentationTextClip extends PresentationClip {
+  PresentationTextClip({
+    required super.id,
+    required super.startUs,
+    required super.durationUs,
+    required String layerId,
+    required String text,
+    String? localizationKey,
+    PresentationTextStyle? style,
+    this.easing = PresentationEasing.linear,
+    PresentationVisualComposition? from,
+    PresentationVisualComposition? to,
+    PresentationVisualTransition? transitionIn,
+    PresentationVisualTransition? transitionOut,
+  }) : layerId = _requiredString(layerId, 'PresentationTextClip.layerId'),
+       text = _requiredString(text, 'PresentationTextClip.text'),
+       localizationKey = _optionalString(localizationKey),
+       style = style ?? PresentationTextStyle(),
+       from = from ?? PresentationVisualComposition.identity,
+       to = to ?? PresentationVisualComposition.identity,
+       transitionIn = transitionIn ?? PresentationVisualTransition.none,
+       transitionOut = transitionOut ?? PresentationVisualTransition.none,
+       super(allowZeroDuration: false) {
+    if (this.transitionIn.durationUs > durationUs) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'Entry transition exceeds clip duration',
+        path: 'PresentationTextClip.transitionIn',
+      );
+    }
+    if (this.transitionOut.durationUs > durationUs) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'Exit transition exceeds clip duration',
+        path: 'PresentationTextClip.transitionOut',
+      );
+    }
+  }
+
+  final String layerId;
+  final String text;
+  final String? localizationKey;
+  final PresentationTextStyle style;
+  final PresentationEasing easing;
+  final PresentationVisualComposition from;
+  final PresentationVisualComposition to;
+  final PresentationVisualTransition transitionIn;
+  final PresentationVisualTransition transitionOut;
+
+  @override
+  PresentationTrackKind get trackKind => PresentationTrackKind.visual;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PresentationTextClip &&
+          other.id == id &&
+          other.startUs == startUs &&
+          other.durationUs == durationUs &&
+          other.layerId == layerId &&
+          other.text == text &&
+          other.localizationKey == localizationKey &&
+          other.style == style &&
+          other.easing == easing &&
+          other.from == from &&
+          other.to == to &&
+          other.transitionIn == transitionIn &&
+          other.transitionOut == transitionOut;
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    startUs,
+    durationUs,
+    layerId,
+    text,
+    localizationKey,
+    style,
     easing,
     from,
     to,
@@ -607,13 +782,63 @@ final class PresentationAudioClip extends PresentationClip {
     required super.startUs,
     required super.durationUs,
     required String resourceId,
+    this.audioKind = PresentationAudioKind.music,
+    String? landscapeResourceId,
+    String? portraitResourceId,
+    this.volume = 1,
+    this.loop = false,
+    this.fadeInUs = 0,
+    this.fadeOutUs = 0,
+    this.bus = PresentationAudioBus.music,
   }) : resourceId = _requiredString(
          resourceId,
          'PresentationAudioClip.resourceId',
        ),
-       super(allowZeroDuration: false);
+       landscapeResourceId = _optionalString(landscapeResourceId),
+       portraitResourceId = _optionalString(portraitResourceId),
+       super(allowZeroDuration: false) {
+    _unitInterval(volume, 'PresentationAudioClip.volume');
+    if (fadeInUs < 0 || fadeInUs > durationUs) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'fadeInUs must fit inside the clip duration',
+        path: 'PresentationAudioClip.fadeInUs',
+      );
+    }
+    if (fadeOutUs < 0 || fadeOutUs > durationUs) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'fadeOutUs must fit inside the clip duration',
+        path: 'PresentationAudioClip.fadeOutUs',
+      );
+    }
+    if (audioKind == PresentationAudioKind.music &&
+        this.landscapeResourceId != null) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'Music must use one shared source',
+        path: 'PresentationAudioClip.landscapeResourceId',
+      );
+    }
+    if (audioKind == PresentationAudioKind.music &&
+        this.portraitResourceId != null) {
+      throw const PresentationCinematicValidationException(
+        code: PresentationCinematicValidationErrorCode.invalidValue,
+        message: 'Music must use one shared source',
+        path: 'PresentationAudioClip.portraitResourceId',
+      );
+    }
+  }
 
   final String resourceId;
+  final PresentationAudioKind audioKind;
+  final String? landscapeResourceId;
+  final String? portraitResourceId;
+  final double volume;
+  final bool loop;
+  final int fadeInUs;
+  final int fadeOutUs;
+  final PresentationAudioBus bus;
 
   @override
   PresentationTrackKind get trackKind => PresentationTrackKind.audio;
@@ -625,10 +850,31 @@ final class PresentationAudioClip extends PresentationClip {
           other.id == id &&
           other.startUs == startUs &&
           other.durationUs == durationUs &&
-          other.resourceId == resourceId;
+          other.resourceId == resourceId &&
+          other.audioKind == audioKind &&
+          other.landscapeResourceId == landscapeResourceId &&
+          other.portraitResourceId == portraitResourceId &&
+          other.volume == volume &&
+          other.loop == loop &&
+          other.fadeInUs == fadeInUs &&
+          other.fadeOutUs == fadeOutUs &&
+          other.bus == bus;
 
   @override
-  int get hashCode => Object.hash(id, startUs, durationUs, resourceId);
+  int get hashCode => Object.hash(
+    id,
+    startUs,
+    durationUs,
+    resourceId,
+    audioKind,
+    landscapeResourceId,
+    portraitResourceId,
+    volume,
+    loop,
+    fadeInUs,
+    fadeOutUs,
+    bus,
+  );
 }
 
 @immutable
@@ -638,13 +884,20 @@ final class PresentationCaptionClip extends PresentationClip {
     required super.startUs,
     required super.durationUs,
     required String captionId,
+    String locale = 'und',
+    this.style = PresentationCaptionStyle.standard,
+    this.fallbackToProjectDefault = true,
   }) : captionId = _requiredString(
          captionId,
          'PresentationCaptionClip.captionId',
        ),
+       locale = _requiredString(locale, 'PresentationCaptionClip.locale'),
        super(allowZeroDuration: false);
 
   final String captionId;
+  final String locale;
+  final PresentationCaptionStyle style;
+  final bool fallbackToProjectDefault;
 
   @override
   PresentationTrackKind get trackKind => PresentationTrackKind.caption;
@@ -656,10 +909,21 @@ final class PresentationCaptionClip extends PresentationClip {
           other.id == id &&
           other.startUs == startUs &&
           other.durationUs == durationUs &&
-          other.captionId == captionId;
+          other.captionId == captionId &&
+          other.locale == locale &&
+          other.style == style &&
+          other.fallbackToProjectDefault == fallbackToProjectDefault;
 
   @override
-  int get hashCode => Object.hash(id, startUs, durationUs, captionId);
+  int get hashCode => Object.hash(
+    id,
+    startUs,
+    durationUs,
+    captionId,
+    locale,
+    style,
+    fallbackToProjectDefault,
+  );
 }
 
 @immutable
@@ -669,11 +933,13 @@ final class PresentationMarkerClip extends PresentationClip {
     required super.startUs,
     required String label,
     this.markerKind = PresentationMarkerKind.ordinary,
+    this.required = false,
   }) : label = _requiredString(label, 'PresentationMarkerClip.label'),
        super(durationUs: 0, allowZeroDuration: true);
 
   final String label;
   final PresentationMarkerKind markerKind;
+  final bool required;
 
   @override
   PresentationTrackKind get trackKind => PresentationTrackKind.marker;
@@ -685,10 +951,11 @@ final class PresentationMarkerClip extends PresentationClip {
           other.id == id &&
           other.startUs == startUs &&
           other.label == label &&
-          other.markerKind == markerKind;
+          other.markerKind == markerKind &&
+          other.required == required;
 
   @override
-  int get hashCode => Object.hash(id, startUs, label, markerKind);
+  int get hashCode => Object.hash(id, startUs, label, markerKind, required);
 }
 
 String _requiredString(String value, String path) {
@@ -706,6 +973,18 @@ String _requiredString(String value, String path) {
 String? _optionalString(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}
+
+String _colorHex(String value, String path) {
+  final normalized = _requiredString(value, path).toUpperCase();
+  if (!RegExp(r'^#[0-9A-F]{6}([0-9A-F]{2})?$').hasMatch(normalized)) {
+    throw PresentationCinematicValidationException(
+      code: PresentationCinematicValidationErrorCode.invalidValue,
+      message: 'Color must use #RRGGBB or #RRGGBBAA',
+      path: path,
+    );
+  }
+  return normalized;
 }
 
 void _finite(double value, String path) {

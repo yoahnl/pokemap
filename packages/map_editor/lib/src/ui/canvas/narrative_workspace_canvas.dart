@@ -12,6 +12,8 @@ import '../../application/services/narrative_project_snapshot_loader.dart';
 import '../../application/services/narrative_template_catalog.dart';
 import '../../application/authoring_api/cinematic_library_authoring_gateway.dart';
 import '../../application/authoring_api/presentation_studio_layer_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_property_authoring_gateway.dart';
+import '../../application/authoring_api/presentation_studio_property_command.dart';
 import '../../application/authoring_api/presentation_studio_timeline_authoring_gateway.dart';
 import '../../application/authoring_api/presentation_studio_timeline_command.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
@@ -38,6 +40,7 @@ import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
 import 'cinematics/presentation/presentation_studio_shell.dart';
 import 'cinematics/presentation/presentation_studio_layer_tree.dart';
+import 'cinematics/presentation/presentation_studio_properties_panel.dart';
 import 'cinematics/presentation/presentation_studio_responsive_canvas.dart';
 import 'cinematics/presentation/presentation_studio_timeline.dart';
 import 'cinematics/presentation/presentation_timeline_editing_controller.dart';
@@ -1786,6 +1789,11 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             mutations: ref.read(authoringMutationAdapterProvider),
             queries: ref.read(authoringQueryAdapterProvider),
           ),
+          presentationPropertyGateway:
+              CanonicalPresentationStudioPropertyAuthoringGateway(
+            mutations: ref.read(authoringMutationAdapterProvider),
+            queries: ref.read(authoringQueryAdapterProvider),
+          ),
           projectRootPath: editor.projectRootPath,
           project: editor.project,
           activeMap: editor.activeMap,
@@ -2573,6 +2581,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
     required this.cinematicLibraryGateway,
     required this.presentationLayerGateway,
     required this.presentationTimelineGateway,
+    required this.presentationPropertyGateway,
     required this.projectRootPath,
     required this.project,
     required this.activeMap,
@@ -2595,6 +2604,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   final PresentationStudioLayerAuthoringGateway presentationLayerGateway;
   final PresentationStudioTimelineAuthoringGateway
       presentationTimelineGateway;
+  final PresentationStudioPropertyAuthoringGateway presentationPropertyGateway;
   final String? projectRootPath;
   final ProjectManifest? project;
   final MapData? activeMap;
@@ -2630,6 +2640,11 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   final List<PresentationTimelineAuthoringTransaction>
       _presentationTimelineRedo = <PresentationTimelineAuthoringTransaction>[];
   bool _presentationTimelineMutationPending = false;
+  final List<PresentationPropertyAuthoringTransaction>
+      _presentationPropertyUndo = <PresentationPropertyAuthoringTransaction>[];
+  final List<PresentationPropertyAuthoringTransaction>
+      _presentationPropertyRedo = <PresentationPropertyAuthoringTransaction>[];
+  bool _presentationPropertyMutationPending = false;
 
   @override
   void initState() {
@@ -2659,6 +2674,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       _presentationTimelineEditingController?.cancelDrag();
       _presentationTimelineUndo.clear();
       _presentationTimelineRedo.clear();
+      _presentationPropertyUndo.clear();
+      _presentationPropertyRedo.clear();
       _capturePresentationSource();
     }
   }
@@ -2799,6 +2816,12 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
                   ),
             contentPort: const _PresentationStudioContentPort(),
             playerTheme: PokeMapPlayerTheme.dark(),
+            orientationOverrides: _presentationOrientationOverrides(
+              resolvedAsset,
+            ),
+            mediaBindings: _presentationResponsiveMediaBindings(
+              resolvedAsset,
+            ),
             asset: resolvedAsset,
           ),
           layersPanel: PresentationStudioLayerTree(
@@ -2810,10 +2833,27 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
               _applyPresentationLayerCommand(command),
             ),
           ),
-          propertiesPanel: const PokeMapEmptyState(
-            title: 'Propriétés',
-            description: 'L’inspecteur typé sera branché dans ce slot.',
-            icon: Icon(CupertinoIcons.slider_horizontal_3),
+          propertiesPanel: AnimatedBuilder(
+            animation: Listenable.merge([
+              _presentationResponsiveCanvasController,
+              timelineEditingController,
+            ]),
+            builder: (context, _) => PresentationStudioPropertiesPanel(
+              asset: resolvedAsset,
+              selectionController:
+                  _presentationResponsiveCanvasController.selection,
+              orientation:
+                  _presentationResponsiveCanvasController.activeOrientation,
+              selectedClipIds: timelineEditingController.selectedClipIds,
+              onCommand: (command) => unawaited(
+                _applyPresentationPropertyCommand(command),
+              ),
+              mutationPending: _presentationPropertyMutationPending,
+              canUndo: _presentationPropertyUndo.isNotEmpty,
+              canRedo: _presentationPropertyRedo.isNotEmpty,
+              onUndo: () => unawaited(_undoPresentationPropertyCommand()),
+              onRedo: () => unawaited(_redoPresentationPropertyCommand()),
+            ),
           ),
           timeline: AnimatedBuilder(
             animation: _presentationResponsiveCanvasController,
@@ -3076,6 +3116,120 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     } finally {
       if (mounted) {
         setState(() => _presentationTimelineMutationPending = false);
+      }
+    }
+  }
+
+  Future<void> _applyPresentationPropertyCommand(
+    PresentationStudioPropertyCommand command,
+  ) async {
+    if (_presentationPropertyMutationPending) return;
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null || documentId == null) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Le projet doit être enregistré avant de modifier ses propriétés.',
+      );
+      return;
+    }
+    setState(() => _presentationPropertyMutationPending = true);
+    try {
+      final transaction = await widget.presentationPropertyGateway.apply(
+        projectRootPath,
+        expectedProject: project,
+        command: command,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        transaction.manifest,
+        statusMessage: 'Propriétés de présentation enregistrées.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationPropertyUndo.add(transaction);
+        _presentationPropertyRedo.clear();
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible de modifier les propriétés : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationPropertyMutationPending = false);
+      }
+    }
+  }
+
+  Future<void> _undoPresentationPropertyCommand() async {
+    if (_presentationPropertyMutationPending ||
+        _presentationPropertyUndo.isEmpty) {
+      return;
+    }
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null) return;
+    final transaction = _presentationPropertyUndo.last;
+    setState(() => _presentationPropertyMutationPending = true);
+    try {
+      final manifest = await widget.presentationPropertyGateway.undo(
+        projectRootPath,
+        expectedProject: project,
+        transaction: transaction,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        manifest,
+        statusMessage: 'Modification de propriété annulée.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationPropertyUndo.removeLast();
+        _presentationPropertyRedo.add(transaction);
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible d’annuler la propriété : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationPropertyMutationPending = false);
+      }
+    }
+  }
+
+  Future<void> _redoPresentationPropertyCommand() async {
+    if (_presentationPropertyMutationPending ||
+        _presentationPropertyRedo.isEmpty) {
+      return;
+    }
+    final project = widget.project;
+    final projectRootPath = widget.projectRootPath;
+    final documentId = widget.documentRoute?.documentId;
+    if (project == null || projectRootPath == null) return;
+    final transaction = _presentationPropertyRedo.last;
+    setState(() => _presentationPropertyMutationPending = true);
+    try {
+      final redone = await widget.presentationPropertyGateway.redo(
+        projectRootPath,
+        expectedProject: project,
+        transaction: transaction,
+      );
+      widget.editorNotifier.acceptCanonicalProjectManifest(
+        redone.manifest,
+        statusMessage: 'Modification de propriété rétablie.',
+      );
+      if (!mounted || widget.documentRoute?.documentId != documentId) return;
+      setState(() {
+        _presentationPropertyRedo.removeLast();
+        _presentationPropertyUndo.add(redone);
+      });
+    } on Object catch (error) {
+      widget.editorNotifier.reportNarrativeNavigationFailure(
+        'Impossible de rétablir la propriété : $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _presentationPropertyMutationPending = false);
       }
     }
   }
@@ -4032,6 +4186,47 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
 
 String _cinematicAuthoringOperationId(String action) =>
     'cinematic_${action}_${DateTime.now().microsecondsSinceEpoch}';
+
+PresentationFrameOrientationOverrides _presentationOrientationOverrides(
+  PresentationCinematicAsset asset,
+) => PresentationFrameOrientationOverrides(
+  visualsByClipId: <String, PresentationVisualOrientationOverride>{
+    for (final track in asset.tracks)
+      for (final clip in track.clips)
+        if (clip is PresentationVisualClip &&
+            (clip.landscapeCompositionOverride != null ||
+                clip.portraitCompositionOverride != null))
+          clip.id: PresentationVisualOrientationOverride(
+            landscape: clip.landscapeCompositionOverride,
+            portrait: clip.portraitCompositionOverride,
+            reducedMotionLandscape: clip.landscapeCompositionOverride,
+            reducedMotionPortrait: clip.portraitCompositionOverride,
+          ),
+  },
+);
+
+List<PresentationStudioResponsiveMediaBinding>
+    _presentationResponsiveMediaBindings(PresentationCinematicAsset asset) =>
+        <PresentationStudioResponsiveMediaBinding>[
+          for (final track in asset.tracks)
+            for (final clip in track.clips)
+              if (clip is PresentationVisualClip)
+                PresentationStudioResponsiveMediaBinding(
+                  clipId: clip.id,
+                  kind: switch (clip.mediaKind) {
+                    PresentationVisualMediaKind.image =>
+                      PresentationStudioResponsiveMediaKind.image,
+                    PresentationVisualMediaKind.video =>
+                      PresentationStudioResponsiveMediaKind.video,
+                    PresentationVisualMediaKind.poster =>
+                      PresentationStudioResponsiveMediaKind.poster,
+                  },
+                  sharedResourceId: clip.resourceId,
+                  landscapeResourceId: clip.landscapeResourceId,
+                  portraitResourceId: clip.portraitResourceId,
+                  requireDurationMetadata: false,
+                ),
+        ];
 
 final class _PresentationStudioContentPort
     implements PresentationFrameContentPort {

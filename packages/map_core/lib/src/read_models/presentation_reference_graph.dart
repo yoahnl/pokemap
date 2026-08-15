@@ -456,24 +456,47 @@ final class _PresentationReferenceGraphBuilder {
               '.clips[${clip.id}]';
           switch (clip) {
             case PresentationVisualClip():
-              _reference(
-                owner: owner,
-                target: PresentationReferenceKey.media(clip.resourceId),
-                path: '$path.resourceId',
-                relation: PresentationReferenceRelation.clipMedia,
-                acceptedMediaTypes: {
-                  ProjectMediaKind.image,
-                  ProjectMediaKind.video,
-                },
-              );
+              for (final (field, mediaId) in <(String, String?)>{
+                ('resourceId', clip.resourceId),
+                ('landscapeResourceId', clip.landscapeResourceId),
+                ('portraitResourceId', clip.portraitResourceId),
+              }) {
+                if (mediaId == null) continue;
+                _reference(
+                  owner: owner,
+                  target: PresentationReferenceKey.media(mediaId),
+                  path: '$path.$field',
+                  relation: PresentationReferenceRelation.clipMedia,
+                  acceptedMediaTypes: switch (clip.mediaKind) {
+                    PresentationVisualMediaKind.image => {
+                      ProjectMediaKind.image,
+                    },
+                    PresentationVisualMediaKind.video => {
+                      ProjectMediaKind.video,
+                    },
+                    PresentationVisualMediaKind.poster => {
+                      ProjectMediaKind.poster,
+                    },
+                  },
+                );
+              }
+            case PresentationTextClip():
+              break;
             case PresentationAudioClip():
-              _reference(
-                owner: owner,
-                target: PresentationReferenceKey.media(clip.resourceId),
-                path: '$path.resourceId',
-                relation: PresentationReferenceRelation.clipMedia,
-                acceptedMediaTypes: {ProjectMediaKind.audio},
-              );
+              for (final (field, mediaId) in <(String, String?)>{
+                ('resourceId', clip.resourceId),
+                ('landscapeResourceId', clip.landscapeResourceId),
+                ('portraitResourceId', clip.portraitResourceId),
+              }) {
+                if (mediaId == null) continue;
+                _reference(
+                  owner: owner,
+                  target: PresentationReferenceKey.media(mediaId),
+                  path: '$path.$field',
+                  relation: PresentationReferenceRelation.clipMedia,
+                  acceptedMediaTypes: {ProjectMediaKind.audio},
+                );
+              }
             case PresentationCaptionClip():
               _reference(
                 owner: owner,

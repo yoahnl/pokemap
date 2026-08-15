@@ -881,7 +881,7 @@ test("MCP commits and undoes one atomic Presentation clip batch", async () => {
         tilesets: [],
         presentationCinematics: [
           {
-            schemaVersion: 2,
+            schemaVersion: 3,
             capabilities: ["cinematic.presentation"],
             timebase: { unit: "microsecond", ticksPerSecond: 1_000_000 },
             id: "opening",

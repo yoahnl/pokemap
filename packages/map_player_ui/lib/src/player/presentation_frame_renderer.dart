@@ -67,6 +67,21 @@ final class PresentationFrameOrientationOverrides {
         ) ??
         fallback;
   }
+
+  PresentationVisualComposition resolveText({
+    required PresentationTextFrameClip clip,
+    required PresentationFrameOrientation orientation,
+    required bool reduceMotion,
+  }) {
+    final fallback =
+        reduceMotion ? clip.reducedMotionComposition : clip.composition;
+    return visualsByClipId[clip.clipId]?.resolve(
+          orientation: orientation,
+          fallback: fallback,
+          reduceMotion: reduceMotion,
+        ) ??
+        fallback;
+  }
 }
 
 sealed class PresentationVisualResolution {
@@ -162,21 +177,9 @@ class PresentationFrameRenderer extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  for (final visual in frame.visuals)
-                    _PresentationVisualLayer(
-                      clip: visual,
-                      orientation: orientation,
-                      composition: orientationOverrides.resolveVisual(
-                        clip: visual,
-                        orientation: orientation,
-                        reduceMotion: resolvedReduceMotion,
-                      ),
-                      reduceFlashes: reduceFlashes,
-                      resolution: contentPort.resolveVisual(
-                        clip: visual,
-                        orientation: orientation,
-                      ),
-                    ),
+                  ..._orderedContentLayers(
+                    reduceMotion: resolvedReduceMotion,
+                  ),
                   if (showCaptions && frame.captions.isNotEmpty)
                     SafeArea(
                       child: Align(
@@ -206,6 +209,48 @@ class PresentationFrameRenderer extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _orderedContentLayers({required bool reduceMotion}) {
+    final layers = <({String id, int zIndex, Widget child})>[
+      for (final visual in frame.visuals)
+        (
+          id: visual.clipId,
+          zIndex: visual.zIndex,
+          child: _PresentationVisualLayer(
+            clip: visual,
+            orientation: orientation,
+            composition: orientationOverrides.resolveVisual(
+              clip: visual,
+              orientation: orientation,
+              reduceMotion: reduceMotion,
+            ),
+            reduceFlashes: reduceFlashes,
+            resolution: contentPort.resolveVisual(
+              clip: visual,
+              orientation: orientation,
+            ),
+          ),
+        ),
+      for (final text in frame.texts)
+        (
+          id: text.clipId,
+          zIndex: text.zIndex,
+          child: _PresentationTextLayer(
+            clip: text,
+            composition: orientationOverrides.resolveText(
+              clip: text,
+              orientation: orientation,
+              reduceMotion: reduceMotion,
+            ),
+            reduceFlashes: reduceFlashes,
+          ),
+        ),
+    ]..sort((left, right) {
+        final zOrder = left.zIndex.compareTo(right.zIndex);
+        return zOrder != 0 ? zOrder : left.id.compareTo(right.id);
+      });
+    return <Widget>[for (final layer in layers) layer.child];
   }
 }
 
@@ -273,6 +318,87 @@ class _PresentationVisualLayer extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PresentationTextLayer extends StatelessWidget {
+  const _PresentationTextLayer({
+    required this.clip,
+    required this.composition,
+    required this.reduceFlashes,
+  });
+
+  final PresentationTextFrameClip clip;
+  final PresentationVisualComposition composition;
+  final bool reduceFlashes;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = clip.style;
+    Widget text = Align(
+      alignment: switch (style.alignment) {
+        PresentationTextAlignment.start => Alignment.centerLeft,
+        PresentationTextAlignment.center => Alignment.center,
+        PresentationTextAlignment.end => Alignment.centerRight,
+      },
+      child: Text(
+        clip.text,
+        key: ValueKey<String>('presentation-text-${clip.clipId}'),
+        maxLines: style.wrapping == PresentationTextWrapping.noWrap ? 1 : null,
+        overflow: style.wrapping == PresentationTextWrapping.noWrap
+            ? TextOverflow.clip
+            : null,
+        textAlign: switch (style.alignment) {
+          PresentationTextAlignment.start => TextAlign.start,
+          PresentationTextAlignment.center => TextAlign.center,
+          PresentationTextAlignment.end => TextAlign.end,
+        },
+        style: TextStyle(
+          color: _colorFromHex(style.colorHex),
+          fontFamily: style.fontFamily,
+          fontSize: style.fontSize,
+          fontWeight: switch (style.weight) {
+            PresentationTextWeight.regular => FontWeight.w400,
+            PresentationTextWeight.medium => FontWeight.w500,
+            PresentationTextWeight.bold => FontWeight.w700,
+          },
+        ),
+      ),
+    );
+    if (style.respectSafeArea) text = SafeArea(child: text);
+    return Opacity(
+      key: ValueKey<String>('presentation-text-opacity-${clip.clipId}'),
+      opacity: reduceFlashes ? clip.reducedFlashOpacity : composition.opacity,
+      child: FractionalTranslation(
+        translation: Offset(composition.translateX, composition.translateY),
+        child: Transform.rotate(
+          angle: composition.rotationTurns * math.pi * 2,
+          alignment: Alignment.center,
+          child: Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.diagonal3Values(
+              composition.scaleX,
+              composition.scaleY,
+              1,
+            ),
+            child: ClipRect(
+              clipper: _PresentationCropClipper(composition),
+              child: Padding(
+                padding: const EdgeInsets.all(PlayerSpacing.md),
+                child: text,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Color _colorFromHex(String value) {
+  final hex = value.substring(1);
+  final rgb = int.parse(hex.substring(0, 6), radix: 16);
+  final alpha = hex.length == 8 ? int.parse(hex.substring(6), radix: 16) : 255;
+  return Color.fromARGB(alpha, rgb >> 16, (rgb >> 8) & 0xFF, rgb & 0xFF);
 }
 
 final class _PresentationCropClipper extends CustomClipper<Rect> {

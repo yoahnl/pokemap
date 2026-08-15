@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../theme/theme.dart';
 import '../pokemap_badge.dart';
 import '../pokemap_button.dart';
+import '../pokemap_card.dart';
 import '../pokemap_icon_button.dart';
 import '../pokemap_toolbar_surface.dart';
 
@@ -18,6 +19,31 @@ enum PokeMapCinematicDocumentState {
 }
 
 enum PokeMapCinematicPanelTab { layers, properties }
+
+class PokeMapCinematicInspectorSection extends StatelessWidget {
+  const PokeMapCinematicInspectorSection({
+    super.key,
+    required this.title,
+    required this.child,
+  });
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => FocusTraversalGroup(
+    child: PokeMapCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    ),
+  );
+}
 
 class PokeMapCinematicDocumentStatus extends StatelessWidget {
   const PokeMapCinematicDocumentStatus({

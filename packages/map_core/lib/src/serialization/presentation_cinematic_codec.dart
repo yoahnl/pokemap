@@ -103,6 +103,12 @@ Map<String, Object?> encodePresentationCinematicAsset(
   };
 }
 
+Map<String, Object?> encodePresentationClip(PresentationClip clip) =>
+    _encodeClip(clip);
+
+Map<String, Object?> encodePresentationLayer(PresentationLayer layer) =>
+    _encodeLayer(layer);
+
 void _validateCapabilities(Object? value) {
   final capabilities = _list(value, path: r'$.capabilities');
   for (var index = 0; index < capabilities.length; index += 1) {
@@ -273,7 +279,18 @@ PresentationClip _decodeClip(Object? value, int trackIndex, int clipIndex) {
   );
 
   return switch (kind) {
-    PresentationTrackKind.visual => _decodeVisualClip(clip, path),
+    PresentationTrackKind.visual => switch (_string(
+      clip['contentKind'],
+      path: '$path.contentKind',
+    )) {
+      'media' => _decodeVisualClip(clip, path),
+      'text' => _decodeTextClip(clip, path),
+      final contentKind => throw PresentationCinematicCodecException(
+        code: PresentationCinematicCodecErrorCode.unsupportedKind,
+        message: 'Unsupported visual content kind: $contentKind',
+        path: '$path.contentKind',
+      ),
+    },
     PresentationTrackKind.audio => _decodeAudioClip(clip, path),
     PresentationTrackKind.caption => _decodeCaptionClip(clip, path),
     PresentationTrackKind.marker => _decodeMarkerClip(clip, path),
@@ -287,10 +304,16 @@ PresentationVisualClip _decodeVisualClip(
   _allowedFields(clip, const {
     'id',
     'kind',
+    'contentKind',
     'startUs',
     'durationUs',
     'layerId',
     'resourceId',
+    'mediaKind',
+    'landscapeResourceId',
+    'portraitResourceId',
+    'landscapeCompositionOverride',
+    'portraitCompositionOverride',
     'easing',
     'from',
     'to',
@@ -304,6 +327,31 @@ PresentationVisualClip _decodeVisualClip(
       durationUs: _integer(clip['durationUs'], path: '$path.durationUs'),
       layerId: _string(clip['layerId'], path: '$path.layerId'),
       resourceId: _string(clip['resourceId'], path: '$path.resourceId'),
+      mediaKind: _enumValue(
+        PresentationVisualMediaKind.values,
+        clip['mediaKind'],
+        path: '$path.mediaKind',
+      ),
+      landscapeResourceId: _optionalString(
+        clip['landscapeResourceId'],
+        path: '$path.landscapeResourceId',
+      ),
+      portraitResourceId: _optionalString(
+        clip['portraitResourceId'],
+        path: '$path.portraitResourceId',
+      ),
+      landscapeCompositionOverride: clip['landscapeCompositionOverride'] == null
+          ? null
+          : _decodeVisualComposition(
+              clip['landscapeCompositionOverride'],
+              '$path.landscapeCompositionOverride',
+            ),
+      portraitCompositionOverride: clip['portraitCompositionOverride'] == null
+          ? null
+          : _decodeVisualComposition(
+              clip['portraitCompositionOverride'],
+              '$path.portraitCompositionOverride',
+            ),
       easing: _enumValue(
         PresentationEasing.values,
         clip['easing'] ?? PresentationEasing.linear.name,
@@ -328,6 +376,100 @@ PresentationVisualClip _decodeVisualClip(
   } on PresentationCinematicValidationException catch (error) {
     throw _validationError(error, fallbackPath: path);
   }
+}
+
+PresentationTextClip _decodeTextClip(Map<String, Object?> clip, String path) {
+  _allowedFields(clip, const {
+    'id',
+    'kind',
+    'contentKind',
+    'startUs',
+    'durationUs',
+    'layerId',
+    'text',
+    'localizationKey',
+    'style',
+    'easing',
+    'from',
+    'to',
+    'transitionIn',
+    'transitionOut',
+  }, path: path);
+  try {
+    return PresentationTextClip(
+      id: _string(clip['id'], path: '$path.id'),
+      startUs: _integer(clip['startUs'], path: '$path.startUs'),
+      durationUs: _integer(clip['durationUs'], path: '$path.durationUs'),
+      layerId: _string(clip['layerId'], path: '$path.layerId'),
+      text: _string(clip['text'], path: '$path.text'),
+      localizationKey: _optionalString(
+        clip['localizationKey'],
+        path: '$path.localizationKey',
+      ),
+      style: clip['style'] == null
+          ? null
+          : _decodeTextStyle(clip['style'], '$path.style'),
+      easing: _enumValue(
+        PresentationEasing.values,
+        clip['easing'] ?? PresentationEasing.linear.name,
+        path: '$path.easing',
+      ),
+      from: clip['from'] == null
+          ? null
+          : _decodeVisualComposition(clip['from'], '$path.from'),
+      to: clip['to'] == null
+          ? null
+          : _decodeVisualComposition(clip['to'], '$path.to'),
+      transitionIn: clip['transitionIn'] == null
+          ? null
+          : _decodeVisualTransition(clip['transitionIn'], '$path.transitionIn'),
+      transitionOut: clip['transitionOut'] == null
+          ? null
+          : _decodeVisualTransition(
+              clip['transitionOut'],
+              '$path.transitionOut',
+            ),
+    );
+  } on PresentationCinematicValidationException catch (error) {
+    throw _validationError(error, fallbackPath: path);
+  }
+}
+
+PresentationTextStyle _decodeTextStyle(Object? value, String path) {
+  final style = _object(value, path: path);
+  _allowedFields(style, const {
+    'fontFamily',
+    'fontSize',
+    'weight',
+    'alignment',
+    'wrapping',
+    'colorHex',
+    'respectSafeArea',
+  }, path: path);
+  return PresentationTextStyle(
+    fontFamily: _optionalString(style['fontFamily'], path: '$path.fontFamily'),
+    fontSize: _number(style['fontSize'] ?? 48, path: '$path.fontSize'),
+    weight: _enumValue(
+      PresentationTextWeight.values,
+      style['weight'] ?? PresentationTextWeight.regular.name,
+      path: '$path.weight',
+    ),
+    alignment: _enumValue(
+      PresentationTextAlignment.values,
+      style['alignment'] ?? PresentationTextAlignment.center.name,
+      path: '$path.alignment',
+    ),
+    wrapping: _enumValue(
+      PresentationTextWrapping.values,
+      style['wrapping'] ?? PresentationTextWrapping.wrap.name,
+      path: '$path.wrapping',
+    ),
+    colorHex: _string(style['colorHex'] ?? '#FFFFFF', path: '$path.colorHex'),
+    respectSafeArea: _boolean(
+      style['respectSafeArea'] ?? true,
+      path: '$path.respectSafeArea',
+    ),
+  );
 }
 
 PresentationVisualComposition _decodeVisualComposition(
@@ -396,6 +538,14 @@ PresentationAudioClip _decodeAudioClip(Map<String, Object?> clip, String path) {
     'startUs',
     'durationUs',
     'resourceId',
+    'audioKind',
+    'landscapeResourceId',
+    'portraitResourceId',
+    'volume',
+    'loop',
+    'fadeInUs',
+    'fadeOutUs',
+    'bus',
   }, path: path);
   try {
     return PresentationAudioClip(
@@ -403,6 +553,28 @@ PresentationAudioClip _decodeAudioClip(Map<String, Object?> clip, String path) {
       startUs: _integer(clip['startUs'], path: '$path.startUs'),
       durationUs: _integer(clip['durationUs'], path: '$path.durationUs'),
       resourceId: _string(clip['resourceId'], path: '$path.resourceId'),
+      audioKind: _enumValue(
+        PresentationAudioKind.values,
+        clip['audioKind'] ?? PresentationAudioKind.music.name,
+        path: '$path.audioKind',
+      ),
+      landscapeResourceId: _optionalString(
+        clip['landscapeResourceId'],
+        path: '$path.landscapeResourceId',
+      ),
+      portraitResourceId: _optionalString(
+        clip['portraitResourceId'],
+        path: '$path.portraitResourceId',
+      ),
+      volume: _number(clip['volume'] ?? 1, path: '$path.volume'),
+      loop: _boolean(clip['loop'] ?? false, path: '$path.loop'),
+      fadeInUs: _integer(clip['fadeInUs'] ?? 0, path: '$path.fadeInUs'),
+      fadeOutUs: _integer(clip['fadeOutUs'] ?? 0, path: '$path.fadeOutUs'),
+      bus: _enumValue(
+        PresentationAudioBus.values,
+        clip['bus'] ?? PresentationAudioBus.music.name,
+        path: '$path.bus',
+      ),
     );
   } on PresentationCinematicValidationException catch (error) {
     throw _validationError(error, fallbackPath: path);
@@ -419,6 +591,9 @@ PresentationCaptionClip _decodeCaptionClip(
     'startUs',
     'durationUs',
     'captionId',
+    'locale',
+    'style',
+    'fallbackToProjectDefault',
   }, path: path);
   try {
     return PresentationCaptionClip(
@@ -426,6 +601,16 @@ PresentationCaptionClip _decodeCaptionClip(
       startUs: _integer(clip['startUs'], path: '$path.startUs'),
       durationUs: _integer(clip['durationUs'], path: '$path.durationUs'),
       captionId: _string(clip['captionId'], path: '$path.captionId'),
+      locale: _string(clip['locale'] ?? 'und', path: '$path.locale'),
+      style: _enumValue(
+        PresentationCaptionStyle.values,
+        clip['style'] ?? PresentationCaptionStyle.standard.name,
+        path: '$path.style',
+      ),
+      fallbackToProjectDefault: _boolean(
+        clip['fallbackToProjectDefault'] ?? true,
+        path: '$path.fallbackToProjectDefault',
+      ),
     );
   } on PresentationCinematicValidationException catch (error) {
     throw _validationError(error, fallbackPath: path);
@@ -443,6 +628,7 @@ PresentationMarkerClip _decodeMarkerClip(
     'durationUs',
     'label',
     'markerKind',
+    'required',
   }, path: path);
   final durationUs = _integer(clip['durationUs'], path: '$path.durationUs');
   if (durationUs != 0) {
@@ -462,6 +648,7 @@ PresentationMarkerClip _decodeMarkerClip(
         clip['markerKind'] ?? PresentationMarkerKind.ordinary.name,
         path: '$path.markerKind',
       ),
+      required: _boolean(clip['required'] ?? false, path: '$path.required'),
     );
   } on PresentationCinematicValidationException catch (error) {
     throw _validationError(error, fallbackPath: path);
@@ -496,10 +683,44 @@ Map<String, Object?> _encodeClip(PresentationClip clip) {
     PresentationVisualClip() => {
       'id': clip.id,
       'kind': clip.trackKind.name,
+      'contentKind': 'media',
       'startUs': clip.startUs,
       'durationUs': clip.durationUs,
       'layerId': clip.layerId,
       'resourceId': clip.resourceId,
+      'mediaKind': clip.mediaKind.name,
+      if (clip.landscapeResourceId != null)
+        'landscapeResourceId': clip.landscapeResourceId,
+      if (clip.portraitResourceId != null)
+        'portraitResourceId': clip.portraitResourceId,
+      if (clip.landscapeCompositionOverride != null)
+        'landscapeCompositionOverride': _encodeVisualComposition(
+          clip.landscapeCompositionOverride!,
+        ),
+      if (clip.portraitCompositionOverride != null)
+        'portraitCompositionOverride': _encodeVisualComposition(
+          clip.portraitCompositionOverride!,
+        ),
+      'easing': clip.easing.name,
+      if (clip.from != PresentationVisualComposition.identity)
+        'from': _encodeVisualComposition(clip.from),
+      if (clip.to != PresentationVisualComposition.identity)
+        'to': _encodeVisualComposition(clip.to),
+      if (clip.transitionIn != PresentationVisualTransition.none)
+        'transitionIn': _encodeVisualTransition(clip.transitionIn),
+      if (clip.transitionOut != PresentationVisualTransition.none)
+        'transitionOut': _encodeVisualTransition(clip.transitionOut),
+    },
+    PresentationTextClip() => {
+      'id': clip.id,
+      'kind': clip.trackKind.name,
+      'contentKind': 'text',
+      'startUs': clip.startUs,
+      'durationUs': clip.durationUs,
+      'layerId': clip.layerId,
+      'text': clip.text,
+      if (clip.localizationKey != null) 'localizationKey': clip.localizationKey,
+      'style': _encodeTextStyle(clip.style),
       'easing': clip.easing.name,
       if (clip.from != PresentationVisualComposition.identity)
         'from': _encodeVisualComposition(clip.from),
@@ -516,6 +737,16 @@ Map<String, Object?> _encodeClip(PresentationClip clip) {
       'startUs': clip.startUs,
       'durationUs': clip.durationUs,
       'resourceId': clip.resourceId,
+      'audioKind': clip.audioKind.name,
+      if (clip.landscapeResourceId != null)
+        'landscapeResourceId': clip.landscapeResourceId,
+      if (clip.portraitResourceId != null)
+        'portraitResourceId': clip.portraitResourceId,
+      'volume': clip.volume,
+      'loop': clip.loop,
+      'fadeInUs': clip.fadeInUs,
+      'fadeOutUs': clip.fadeOutUs,
+      'bus': clip.bus.name,
     },
     PresentationCaptionClip() => {
       'id': clip.id,
@@ -523,6 +754,9 @@ Map<String, Object?> _encodeClip(PresentationClip clip) {
       'startUs': clip.startUs,
       'durationUs': clip.durationUs,
       'captionId': clip.captionId,
+      'locale': clip.locale,
+      'style': clip.style.name,
+      'fallbackToProjectDefault': clip.fallbackToProjectDefault,
     },
     PresentationMarkerClip() => {
       'id': clip.id,
@@ -531,9 +765,20 @@ Map<String, Object?> _encodeClip(PresentationClip clip) {
       'durationUs': 0,
       'label': clip.label,
       'markerKind': clip.markerKind.name,
+      'required': clip.required,
     },
   };
 }
+
+Map<String, Object?> _encodeTextStyle(PresentationTextStyle style) => {
+  if (style.fontFamily != null) 'fontFamily': style.fontFamily,
+  'fontSize': style.fontSize,
+  'weight': style.weight.name,
+  'alignment': style.alignment.name,
+  'wrapping': style.wrapping.name,
+  'colorHex': style.colorHex,
+  'respectSafeArea': style.respectSafeArea,
+};
 
 Map<String, Object?> _encodeVisualComposition(
   PresentationVisualComposition composition,

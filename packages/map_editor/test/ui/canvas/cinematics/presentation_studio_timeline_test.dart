@@ -145,6 +145,62 @@ void main() {
     );
   });
 
+  testWidgets('audio selection is forwarded to the shared inspector', (
+    tester,
+  ) async {
+    final asset = PresentationCinematicAsset(
+      id: 'audio-presentation',
+      title: 'Audio',
+      durationUs: const Duration(seconds: 5).inMicroseconds,
+      tracks: [
+        PresentationTrack(
+          id: 'audio',
+          label: 'Audio',
+          kind: PresentationTrackKind.audio,
+          clips: [
+            PresentationAudioClip(
+              id: 'voice',
+              startUs: 0,
+              durationUs: const Duration(seconds: 2).inMicroseconds,
+              resourceId: 'voice.ogg',
+              audioKind: PresentationAudioKind.voice,
+              bus: PresentationAudioBus.voice,
+            ),
+          ],
+        ),
+      ],
+    );
+    final selection = PresentationStudioSelectionController();
+    addTearDown(selection.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 260,
+            child: PresentationStudioTimeline(
+              asset: asset,
+              playheadUs: 0,
+              selectionController: selection,
+              onPlayheadChanged: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('presentation-timeline-clip-voice')),
+    );
+    await tester.pump();
+
+    expect(selection.value?.clipId, 'voice');
+    expect(selection.value?.layerId, isNull);
+    expect(selection.origin, PresentationStudioSelectionOrigin.timeline);
+  });
+
   testWidgets('loading disabled and diagnostic states are explicit', (
     tester,
   ) async {

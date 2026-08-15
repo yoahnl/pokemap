@@ -44,6 +44,16 @@ void main() {
     expect(selection.value?.clipId, 'clip-front');
     expect(selection.origin, PresentationStudioSelectionOrigin.timeline);
 
+    selection.selectClip(
+      asset: asset,
+      clipId: 'music-clip',
+      origin: PresentationStudioSelectionOrigin.properties,
+    );
+    expect(selection.value?.layerId, isNull);
+    expect(selection.value?.trackId, 'music');
+    expect(selection.value?.clipId, 'music-clip');
+    expect(selection.origin, PresentationStudioSelectionOrigin.properties);
+
     selection.selectLayer(
       asset: asset,
       layerId: 'back',
@@ -86,6 +96,45 @@ void main() {
       normalizedPosition: const Offset(0.2, 0.2),
     );
     expect(selection.value?.layerId, 'front');
+  });
+
+  test('authored text shares the canvas selection identity', () {
+    final asset = PresentationCinematicAsset(
+      id: 'titles',
+      title: 'Titles',
+      durationUs: 10,
+      layers: <PresentationLayer>[
+        PresentationLayer(id: 'title-layer', label: 'Titre', zIndex: 1),
+      ],
+      tracks: <PresentationTrack>[
+        PresentationTrack(
+          id: 'visuals',
+          label: 'Visuels',
+          kind: PresentationTrackKind.visual,
+          clips: <PresentationClip>[
+            PresentationTextClip(
+              id: 'title',
+              startUs: 0,
+              durationUs: 10,
+              layerId: 'title-layer',
+              text: 'Bienvenue',
+            ),
+          ],
+        ),
+      ],
+    );
+    final selection = PresentationStudioSelectionController();
+    addTearDown(selection.dispose);
+
+    selection.selectCanvas(
+      asset: asset,
+      frame: const PresentationCinematicEvaluator().evaluate(asset, timeUs: 0),
+      normalizedPosition: const Offset(.5, .5),
+    );
+
+    expect(selection.value?.layerId, 'title-layer');
+    expect(selection.value?.trackId, 'visuals');
+    expect(selection.value?.clipId, 'title');
   });
 
   testWidgets('layer tree exposes system groups, folders and commands', (
@@ -281,6 +330,14 @@ PresentationCinematicAsset _asset() => PresentationCinematicAsset(
       id: 'music',
       label: 'Musique',
       kind: PresentationTrackKind.audio,
+      clips: <PresentationClip>[
+        PresentationAudioClip(
+          id: 'music-clip',
+          startUs: 0,
+          durationUs: 10,
+          resourceId: 'opening-music',
+        ),
+      ],
     ),
     PresentationTrack(
       id: 'captions',

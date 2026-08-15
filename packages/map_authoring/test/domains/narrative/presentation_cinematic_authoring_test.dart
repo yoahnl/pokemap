@@ -367,6 +367,8 @@ void main() {
       const revisedClip = <String, Object?>{
         'id': 'hero',
         'kind': 'visual',
+        'contentKind': 'media',
+        'mediaKind': 'image',
         'startUs': 500000,
         'durationUs': 1000000,
         'layerId': 'foreground',
@@ -387,6 +389,8 @@ void main() {
           'clip': <String, Object?>{
             'id': 'logo',
             'kind': 'visual',
+            'contentKind': 'media',
+            'mediaKind': 'image',
             'startUs': 2500000,
             'durationUs': 500000,
             'layerId': 'background',

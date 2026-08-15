@@ -17,6 +17,7 @@ final class PresentationCinematicEvaluator {
         if (asset.isLayerEffectivelyVisible(layer.id)) layer.id,
     };
     final visuals = <PresentationVisualFrameClip>[];
+    final texts = <PresentationTextFrameClip>[];
     final audio = <PresentationAudioFrameClip>[];
     final captions = <PresentationCaptionFrameClip>[];
     final markers = <PresentationFrameMarker>[];
@@ -44,18 +45,74 @@ final class PresentationCinematicEvaluator {
                 easedProgress: easedProgress,
                 easing: visualClip.easing,
                 composition: _evaluateVisualComposition(
-                  visualClip,
+                  from: visualClip.from,
+                  to: visualClip.to,
+                  transitionIn: visualClip.transitionIn,
+                  transitionOut: visualClip.transitionOut,
+                  easing: visualClip.easing,
+                  durationUs: visualClip.durationUs,
                   elapsedUs: elapsedUs,
                   easedProgress: easedProgress,
                   reduceMotion: false,
                 ),
                 reducedMotionComposition: _evaluateVisualComposition(
-                  visualClip,
+                  from: visualClip.from,
+                  to: visualClip.to,
+                  transitionIn: visualClip.transitionIn,
+                  transitionOut: visualClip.transitionOut,
+                  easing: visualClip.easing,
+                  durationUs: visualClip.durationUs,
                   elapsedUs: elapsedUs,
                   easedProgress: easedProgress,
                   reduceMotion: true,
                 ),
                 reducedFlashOpacity: visualClip.to.opacity,
+              ),
+            );
+          case final PresentationTextClip textClip
+              when visibleLayerIds.contains(textClip.layerId) &&
+                  _isActive(textClip, resolvedTimeUs):
+            final progress = _progress(textClip, resolvedTimeUs);
+            final easedProgress = _ease(progress, textClip.easing);
+            final elapsedUs = resolvedTimeUs - textClip.startUs;
+            texts.add(
+              PresentationTextFrameClip(
+                clipId: textClip.id,
+                trackId: track.id,
+                layerId: textClip.layerId,
+                zIndex: layerZIndexes[textClip.layerId]!,
+                text: textClip.text,
+                localizationKey: textClip.localizationKey,
+                style: textClip.style,
+                startUs: textClip.startUs,
+                durationUs: textClip.durationUs,
+                elapsedUs: elapsedUs,
+                progress: progress,
+                easedProgress: easedProgress,
+                easing: textClip.easing,
+                composition: _evaluateVisualComposition(
+                  from: textClip.from,
+                  to: textClip.to,
+                  transitionIn: textClip.transitionIn,
+                  transitionOut: textClip.transitionOut,
+                  easing: textClip.easing,
+                  durationUs: textClip.durationUs,
+                  elapsedUs: elapsedUs,
+                  easedProgress: easedProgress,
+                  reduceMotion: false,
+                ),
+                reducedMotionComposition: _evaluateVisualComposition(
+                  from: textClip.from,
+                  to: textClip.to,
+                  transitionIn: textClip.transitionIn,
+                  transitionOut: textClip.transitionOut,
+                  easing: textClip.easing,
+                  durationUs: textClip.durationUs,
+                  elapsedUs: elapsedUs,
+                  easedProgress: easedProgress,
+                  reduceMotion: true,
+                ),
+                reducedFlashOpacity: textClip.to.opacity,
               ),
             );
           case final PresentationAudioClip audioClip
@@ -101,6 +158,7 @@ final class PresentationCinematicEvaluator {
     }
 
     visuals.sort(_compareVisuals);
+    texts.sort(_compareTexts);
     audio.sort(_compareAudio);
     captions.sort(_compareCaptions);
     markers.sort(_compareMarkers);
@@ -110,6 +168,7 @@ final class PresentationCinematicEvaluator {
       timeUs: resolvedTimeUs,
       durationUs: asset.durationUs,
       visuals: visuals,
+      texts: texts,
       audio: audio,
       captions: captions,
       markers: markers,
@@ -133,14 +192,17 @@ double _ease(double progress, PresentationEasing easing) => switch (easing) {
         : 1 - ((-2 * progress + 2) * (-2 * progress + 2)) / 2,
 };
 
-PresentationVisualComposition _evaluateVisualComposition(
-  PresentationVisualClip clip, {
+PresentationVisualComposition _evaluateVisualComposition({
+  required PresentationVisualComposition from,
+  required PresentationVisualComposition to,
+  required PresentationVisualTransition transitionIn,
+  required PresentationVisualTransition transitionOut,
+  required PresentationEasing easing,
+  required int durationUs,
   required int elapsedUs,
   required double easedProgress,
   required bool reduceMotion,
 }) {
-  final from = clip.from;
-  final to = clip.to;
   var translateX = reduceMotion
       ? to.translateX
       : _lerp(from.translateX, to.translateX, easedProgress);
@@ -170,13 +232,22 @@ PresentationVisualComposition _evaluateVisualComposition(
       ? to.cropBottom
       : _lerp(from.cropBottom, to.cropBottom, easedProgress);
 
-  final entryProgress = _entryTransitionProgress(clip, elapsedUs);
-  final exitProgress = _exitTransitionProgress(clip, elapsedUs);
-  opacity *= _transitionOpacity(clip.transitionIn, entryProgress);
-  opacity *= _transitionOpacity(clip.transitionOut, exitProgress);
+  final entryProgress = _entryTransitionProgress(
+    transitionIn,
+    easing: easing,
+    elapsedUs: elapsedUs,
+  );
+  final exitProgress = _exitTransitionProgress(
+    transitionOut,
+    easing: easing,
+    durationUs: durationUs,
+    elapsedUs: elapsedUs,
+  );
+  opacity *= _transitionOpacity(transitionIn, entryProgress);
+  opacity *= _transitionOpacity(transitionOut, exitProgress);
   if (!reduceMotion) {
-    final entryOffset = _transitionOffset(clip.transitionIn, entryProgress);
-    final exitOffset = _transitionOffset(clip.transitionOut, exitProgress);
+    final entryOffset = _transitionOffset(transitionIn, entryProgress);
+    final exitOffset = _transitionOffset(transitionOut, exitProgress);
     translateX += entryOffset.$1 + exitOffset.$1;
     translateY += entryOffset.$2 + exitOffset.$2;
   }
@@ -195,22 +266,29 @@ PresentationVisualComposition _evaluateVisualComposition(
   );
 }
 
-double _entryTransitionProgress(PresentationVisualClip clip, int elapsedUs) {
-  final transition = clip.transitionIn;
+double _entryTransitionProgress(
+  PresentationVisualTransition transition, {
+  required PresentationEasing easing,
+  required int elapsedUs,
+}) {
   if (transition.kind == PresentationVisualTransitionKind.none) {
     return 1;
   }
-  return _ease((elapsedUs / transition.durationUs).clamp(0, 1), clip.easing);
+  return _ease((elapsedUs / transition.durationUs).clamp(0, 1), easing);
 }
 
-double _exitTransitionProgress(PresentationVisualClip clip, int elapsedUs) {
-  final transition = clip.transitionOut;
+double _exitTransitionProgress(
+  PresentationVisualTransition transition, {
+  required PresentationEasing easing,
+  required int durationUs,
+  required int elapsedUs,
+}) {
   if (transition.kind == PresentationVisualTransitionKind.none) {
     return 1;
   }
   return _ease(
-    ((clip.durationUs - elapsedUs) / transition.durationUs).clamp(0, 1),
-    clip.easing,
+    ((durationUs - elapsedUs) / transition.durationUs).clamp(0, 1),
+    easing,
   );
 }
 
@@ -240,6 +318,26 @@ double _lerp(double from, double to, double progress) =>
 int _compareVisuals(
   PresentationVisualFrameClip left,
   PresentationVisualFrameClip right,
+) => _compareValues(
+  <Comparable<Object>>[
+    left.zIndex,
+    left.layerId,
+    left.trackId,
+    left.startUs,
+    left.clipId,
+  ],
+  <Comparable<Object>>[
+    right.zIndex,
+    right.layerId,
+    right.trackId,
+    right.startUs,
+    right.clipId,
+  ],
+);
+
+int _compareTexts(
+  PresentationTextFrameClip left,
+  PresentationTextFrameClip right,
 ) => _compareValues(
   <Comparable<Object>>[
     left.zIndex,

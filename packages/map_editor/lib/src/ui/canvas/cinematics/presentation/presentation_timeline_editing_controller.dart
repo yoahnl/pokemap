@@ -74,8 +74,12 @@ final class PresentationTimelineEditingController extends ChangeNotifier {
 
   bool isClipEditable(String clipId) {
     final clip = _requireClip(clipId);
-    return clip is! PresentationVisualClip ||
-        !_asset.isLayerEffectivelyLocked(clip.layerId);
+    final layerId = switch (clip) {
+      PresentationVisualClip() => clip.layerId,
+      PresentationTextClip() => clip.layerId,
+      _ => null,
+    };
+    return layerId == null || !_asset.isLayerEffectivelyLocked(layerId);
   }
 
   void selectClip(String clipId, {bool additive = false}) {
@@ -456,6 +460,25 @@ PresentationClip _copyClip(
     durationUs: durationUs,
     layerId: clip.layerId,
     resourceId: clip.resourceId,
+    mediaKind: clip.mediaKind,
+    landscapeResourceId: clip.landscapeResourceId,
+    portraitResourceId: clip.portraitResourceId,
+    landscapeCompositionOverride: clip.landscapeCompositionOverride,
+    portraitCompositionOverride: clip.portraitCompositionOverride,
+    easing: clip.easing,
+    from: clip.from,
+    to: clip.to,
+    transitionIn: clip.transitionIn,
+    transitionOut: clip.transitionOut,
+  ),
+  PresentationTextClip() => PresentationTextClip(
+    id: clip.id,
+    startUs: startUs,
+    durationUs: durationUs,
+    layerId: clip.layerId,
+    text: clip.text,
+    localizationKey: clip.localizationKey,
+    style: clip.style,
     easing: clip.easing,
     from: clip.from,
     to: clip.to,
@@ -467,17 +490,29 @@ PresentationClip _copyClip(
     startUs: startUs,
     durationUs: durationUs,
     resourceId: clip.resourceId,
+    audioKind: clip.audioKind,
+    landscapeResourceId: clip.landscapeResourceId,
+    portraitResourceId: clip.portraitResourceId,
+    volume: clip.volume,
+    loop: clip.loop,
+    fadeInUs: clip.fadeInUs.clamp(0, durationUs).toInt(),
+    fadeOutUs: clip.fadeOutUs.clamp(0, durationUs).toInt(),
+    bus: clip.bus,
   ),
   PresentationCaptionClip() => PresentationCaptionClip(
     id: clip.id,
     startUs: startUs,
     durationUs: durationUs,
     captionId: clip.captionId,
+    locale: clip.locale,
+    style: clip.style,
+    fallbackToProjectDefault: clip.fallbackToProjectDefault,
   ),
   PresentationMarkerClip() => PresentationMarkerClip(
     id: clip.id,
     startUs: startUs,
     label: clip.label,
     markerKind: clip.markerKind,
+    required: clip.required,
   ),
 };

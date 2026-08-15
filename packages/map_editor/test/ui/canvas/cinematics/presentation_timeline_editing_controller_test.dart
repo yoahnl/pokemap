@@ -142,6 +142,40 @@ void main() {
     expect(controller.deleteSelection, throwsStateError);
     expect(controller.duplicateSelection, throwsStateError);
   });
+
+  test('timeline previews preserve every typed property', () {
+    final controller = PresentationTimelineEditingController(asset: _asset())
+      ..selectClip('visual-a')
+      ..beginDrag(
+        clipId: 'visual-a',
+        kind: PresentationTimelineDragKind.trimEnd,
+      )
+      ..updateDrag(deltaUs: 500000);
+
+    final visual = controller.previewClip('visual-a') as PresentationVisualClip;
+    expect(visual.landscapeResourceId, 'visual-a-landscape');
+    expect(visual.portraitResourceId, 'visual-a-portrait');
+    expect(visual.portraitCompositionOverride?.translateY, .25);
+
+    controller.cancelDrag();
+    controller
+      ..selectClip('text-a')
+      ..beginDrag(clipId: 'text-a', kind: PresentationTimelineDragKind.trimEnd)
+      ..updateDrag(deltaUs: 500000);
+
+    final text = controller.previewClip('text-a') as PresentationTextClip;
+    expect(text.text, 'Bienvenue');
+    expect(text.localizationKey, 'opening.title');
+    expect(text.style.weight, PresentationTextWeight.bold);
+  });
+
+  test('an effectively locked text layer rejects clip mutations', () {
+    final controller = PresentationTimelineEditingController(
+      asset: _asset(layerLocked: true),
+    )..selectClip('text-a');
+
+    expect(controller.canEditSelection, isFalse);
+  });
 }
 
 PresentationCinematicAsset _asset({
@@ -171,6 +205,11 @@ PresentationCinematicAsset _asset({
           durationUs: 1000000,
           layerId: 'foreground',
           resourceId: 'visual-a-resource',
+          landscapeResourceId: 'visual-a-landscape',
+          portraitResourceId: 'visual-a-portrait',
+          portraitCompositionOverride: PresentationVisualComposition(
+            translateY: .25,
+          ),
         ),
         PresentationVisualClip(
           id: 'visual-b',
@@ -178,6 +217,15 @@ PresentationCinematicAsset _asset({
           durationUs: 1000000,
           layerId: 'foreground',
           resourceId: 'visual-b-resource',
+        ),
+        PresentationTextClip(
+          id: 'text-a',
+          startUs: 6000000,
+          durationUs: 1000000,
+          layerId: 'foreground',
+          text: 'Bienvenue',
+          localizationKey: 'opening.title',
+          style: PresentationTextStyle(weight: PresentationTextWeight.bold),
         ),
       ],
     ),

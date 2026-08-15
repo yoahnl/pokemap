@@ -43,6 +43,7 @@ final class PresentationStudioResponsiveMediaBinding {
     this.portraitDurationUs,
     this.sharedResourceId,
     this.sharedDurationUs,
+    this.requireDurationMetadata = true,
   });
 
   final String clipId;
@@ -53,6 +54,7 @@ final class PresentationStudioResponsiveMediaBinding {
   final int? portraitDurationUs;
   final String? sharedResourceId;
   final int? sharedDurationUs;
+  final bool requireDurationMetadata;
 
   String? resourceIdFor(PresentationFrameOrientation orientation) {
     if (kind == PresentationStudioResponsiveMediaKind.music) {
@@ -60,9 +62,9 @@ final class PresentationStudioResponsiveMediaBinding {
     }
     return switch (orientation) {
       PresentationFrameOrientation.landscape =>
-        landscapeResourceId ?? portraitResourceId,
+        landscapeResourceId ?? sharedResourceId ?? portraitResourceId,
       PresentationFrameOrientation.portrait =>
-        portraitResourceId ?? landscapeResourceId,
+        portraitResourceId ?? sharedResourceId ?? landscapeResourceId,
     };
   }
 }
@@ -418,7 +420,6 @@ List<String> _validateBindings(
     }
     final clipDurationUs = clipDurations[binding.clipId];
     if (clipDurationUs == null) {
-      issues.add('Le clip ${binding.clipId} est absent de la frame courante.');
       continue;
     }
     if (binding.kind == PresentationStudioResponsiveMediaKind.music) {
@@ -439,11 +440,11 @@ List<String> _validateBindings(
       );
       continue;
     }
-    if (binding.sharedResourceId != null ||
-        (binding.landscapeResourceId == null &&
-            binding.portraitResourceId == null)) {
+    if (binding.sharedResourceId == null &&
+        binding.landscapeResourceId == null &&
+        binding.portraitResourceId == null) {
       issues.add(
-        'Le clip ${binding.clipId} doit fournir une source paysage, portrait ou les deux.',
+        'Le clip ${binding.clipId} doit fournir au moins une source média.',
       );
       continue;
     }
@@ -451,13 +452,22 @@ List<String> _validateBindings(
         binding.kind == PresentationStudioResponsiveMediaKind.video ||
         binding.kind == PresentationStudioResponsiveMediaKind.voice ||
         binding.kind == PresentationStudioResponsiveMediaKind.soundEffect;
+    if (binding.sharedResourceId case final resourceId?) {
+      _validateDuration(
+        issues: issues,
+        resourceId: resourceId,
+        availableUs: binding.sharedDurationUs,
+        requiredUs: clipDurationUs,
+        requiredMetadata: timed && binding.requireDurationMetadata,
+      );
+    }
     if (binding.landscapeResourceId case final resourceId?) {
       _validateDuration(
         issues: issues,
         resourceId: resourceId,
         availableUs: binding.landscapeDurationUs,
         requiredUs: clipDurationUs,
-        requiredMetadata: timed,
+        requiredMetadata: timed && binding.requireDurationMetadata,
       );
     }
     if (binding.portraitResourceId case final resourceId?) {
@@ -466,7 +476,7 @@ List<String> _validateBindings(
         resourceId: resourceId,
         availableUs: binding.portraitDurationUs,
         requiredUs: clipDurationUs,
-        requiredMetadata: timed,
+        requiredMetadata: timed && binding.requireDurationMetadata,
       );
     }
   }

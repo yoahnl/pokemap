@@ -101,6 +101,59 @@ void main() {
       );
     });
 
+    test('visual media kind must match the catalog media kind', () {
+      final cinematic = PresentationCinematicAsset(
+        id: 'cinematic.video',
+        title: 'Video',
+        durationUs: 100000,
+        layers: [PresentationLayer(id: 'layer.main', label: 'Main', zIndex: 0)],
+        tracks: [
+          PresentationTrack(
+            id: 'track.visual',
+            label: 'Visual',
+            kind: PresentationTrackKind.visual,
+            clips: [
+              PresentationVisualClip(
+                id: 'clip.video',
+                startUs: 0,
+                durationUs: 100000,
+                layerId: 'layer.main',
+                resourceId: 'media.image',
+                mediaKind: PresentationVisualMediaKind.video,
+              ),
+            ],
+          ),
+        ],
+      );
+      final mediaCatalog = ProjectMediaCatalog(
+        entries: [_media('media.image', ProjectMediaKind.image)],
+      );
+
+      final graph = PresentationReferenceGraph.build(
+        cinematics: [cinematic],
+        mediaCatalog: mediaCatalog,
+        sourceAssets: _sources(mediaCatalog),
+      );
+
+      expect(graph.preflight.canPublish, isFalse);
+      expect(
+        graph.diagnostics,
+        contains(
+          isA<PresentationReferenceDiagnostic>()
+              .having(
+                (diagnostic) => diagnostic.code,
+                'code',
+                PresentationReferenceDiagnosticCodes.mediaUnsupported,
+              )
+              .having(
+                (diagnostic) => diagnostic.path,
+                'path',
+                contains('resourceId'),
+              ),
+        ),
+      );
+    });
+
     test('blocks deletion and preserves every shared variant usage', () {
       final mediaCatalog = ProjectMediaCatalog(
         entries: [

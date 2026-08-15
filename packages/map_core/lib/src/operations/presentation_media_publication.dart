@@ -449,9 +449,21 @@ Set<String> _rootMediaIds(PresentationCinematicAsset cinematic) {
     for (final clip in track.clips) {
       switch (clip) {
         case PresentationVisualClip():
-          result.add(clip.resourceId);
+          result
+            ..add(clip.resourceId)
+            ..addAll(<String>[
+              if (clip.landscapeResourceId != null) clip.landscapeResourceId!,
+              if (clip.portraitResourceId != null) clip.portraitResourceId!,
+            ]);
+        case PresentationTextClip():
+          break;
         case PresentationAudioClip():
-          result.add(clip.resourceId);
+          result
+            ..add(clip.resourceId)
+            ..addAll(<String>[
+              if (clip.landscapeResourceId != null) clip.landscapeResourceId!,
+              if (clip.portraitResourceId != null) clip.portraitResourceId!,
+            ]);
         case PresentationCaptionClip():
           result.add(clip.captionId);
         case PresentationMarkerClip():

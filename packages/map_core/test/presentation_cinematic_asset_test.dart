@@ -89,12 +89,156 @@ void main() {
 
       expect(decoded, asset);
       expect(jsonEncode(encodedAgain), jsonEncode(encoded));
-      expect(encoded['schemaVersion'], 2);
+      expect(encoded['schemaVersion'], 3);
       expect(encoded['capabilities'], ['cinematic.presentation']);
       expect(encoded['timebase'], {
         'unit': 'microsecond',
         'ticksPerSecond': 1000000,
       });
+    });
+
+    test('round-trips authored text, responsive media and typed audio', () {
+      final asset = PresentationCinematicAsset(
+        id: 'presentation_typed_properties',
+        title: 'Typed properties',
+        durationUs: 8_000_000,
+        layers: <PresentationLayer>[
+          PresentationLayer(id: 'hero', label: 'Hero', zIndex: 1),
+          PresentationLayer(id: 'title', label: 'Title', zIndex: 2),
+        ],
+        tracks: <PresentationTrack>[
+          PresentationTrack(
+            id: 'visuals',
+            label: 'Visuals',
+            kind: PresentationTrackKind.visual,
+            clips: <PresentationClip>[
+              PresentationVisualClip(
+                id: 'hero-image',
+                startUs: 0,
+                durationUs: 8_000_000,
+                layerId: 'hero',
+                resourceId: 'hero-shared',
+                landscapeResourceId: 'hero-landscape',
+                portraitResourceId: 'hero-portrait',
+                landscapeCompositionOverride: PresentationVisualComposition(
+                  translateX: -.1,
+                  scaleX: 1.1,
+                  scaleY: 1.1,
+                ),
+                portraitCompositionOverride: PresentationVisualComposition(
+                  translateY: .15,
+                  scaleX: 1.3,
+                  scaleY: 1.3,
+                ),
+              ),
+              PresentationTextClip(
+                id: 'title-text',
+                startUs: 500_000,
+                durationUs: 5_000_000,
+                layerId: 'title',
+                text: 'Une aventure vous attend',
+                localizationKey: 'cinematic.opening.title',
+                style: PresentationTextStyle(
+                  fontFamily: 'Avelune Sans',
+                  fontSize: 54,
+                  weight: PresentationTextWeight.bold,
+                  alignment: PresentationTextAlignment.center,
+                  wrapping: PresentationTextWrapping.wrap,
+                  colorHex: '#FFF4DB',
+                  respectSafeArea: true,
+                ),
+              ),
+            ],
+          ),
+          PresentationTrack(
+            id: 'audio',
+            label: 'Audio',
+            kind: PresentationTrackKind.audio,
+            clips: <PresentationClip>[
+              PresentationAudioClip(
+                id: 'voice',
+                startUs: 0,
+                durationUs: 4_000_000,
+                resourceId: 'voice-shared',
+                audioKind: PresentationAudioKind.voice,
+                landscapeResourceId: 'voice-landscape',
+                portraitResourceId: 'voice-portrait',
+                volume: .8,
+                fadeInUs: 250_000,
+                fadeOutUs: 500_000,
+                bus: PresentationAudioBus.voice,
+              ),
+              PresentationAudioClip(
+                id: 'music',
+                startUs: 0,
+                durationUs: 8_000_000,
+                resourceId: 'music-shared',
+                audioKind: PresentationAudioKind.music,
+                loop: true,
+                bus: PresentationAudioBus.music,
+              ),
+            ],
+          ),
+          PresentationTrack(
+            id: 'captions',
+            label: 'Captions',
+            kind: PresentationTrackKind.caption,
+            clips: <PresentationClip>[
+              PresentationCaptionClip(
+                id: 'caption',
+                startUs: 0,
+                durationUs: 4_000_000,
+                captionId: 'caption-fr',
+                locale: 'fr-FR',
+                style: PresentationCaptionStyle.highContrast,
+                fallbackToProjectDefault: true,
+              ),
+            ],
+          ),
+          PresentationTrack(
+            id: 'markers',
+            label: 'Markers',
+            kind: PresentationTrackKind.marker,
+            clips: <PresentationClip>[
+              PresentationMarkerClip(
+                id: 'ask-name',
+                startUs: 4_000_000,
+                label: 'Demander le nom',
+                markerKind: PresentationMarkerKind.interactionCue,
+                required: true,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final encoded = encodePresentationCinematicAsset(asset);
+      final decoded = decodePresentationCinematicAsset(
+        jsonDecode(jsonEncode(encoded)),
+      );
+
+      expect(decoded, asset);
+      expect(encodePresentationCinematicAsset(decoded), encoded);
+    });
+
+    test('music rejects orientation-specific media overrides', () {
+      expect(
+        () => PresentationAudioClip(
+          id: 'music',
+          startUs: 0,
+          durationUs: 1_000_000,
+          resourceId: 'shared',
+          audioKind: PresentationAudioKind.music,
+          portraitResourceId: 'portrait',
+        ),
+        throwsA(
+          isA<PresentationCinematicValidationException>().having(
+            (error) => error.path,
+            'path',
+            'PresentationAudioClip.portraitResourceId',
+          ),
+        ),
+      );
     });
 
     test('uses deterministic defaults for a minimal asset', () {
@@ -105,7 +249,7 @@ void main() {
       );
 
       expect(encodePresentationCinematicAsset(asset), {
-        'schemaVersion': 2,
+        'schemaVersion': 3,
         'capabilities': ['cinematic.presentation'],
         'timebase': {'unit': 'microsecond', 'ticksPerSecond': 1000000},
         'id': 'presentation_minimal',
@@ -539,13 +683,13 @@ void main() {
       expect(
         () => decodePresentationCinematicAsset({
           ..._minimalJson(),
-          'schemaVersion': 3,
+          'schemaVersion': 4,
         }),
         throwsA(
           isA<UnsupportedPresentationCinematicSchema>().having(
             (error) => error.schemaVersion,
             'schemaVersion',
-            3,
+            4,
           ),
         ),
       );
@@ -578,6 +722,8 @@ void main() {
               {
                 'id': 'visual',
                 'kind': 'visual',
+                'contentKind': 'media',
+                'mediaKind': 'image',
                 'startUs': 0,
                 'durationUs': 1,
                 'layerId': 'missing',
@@ -662,7 +808,7 @@ void main() {
 }
 
 Map<String, Object?> _minimalJson() => {
-  'schemaVersion': 2,
+  'schemaVersion': 3,
   'capabilities': ['cinematic.presentation'],
   'timebase': {'unit': 'microsecond', 'ticksPerSecond': 1000000},
   'id': 'presentation_minimal',

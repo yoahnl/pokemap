@@ -9,13 +9,9 @@ enum PresentationStudioSelectionOrigin { canvas, layers, properties, timeline }
 
 @immutable
 final class PresentationStudioSelection {
-  const PresentationStudioSelection({
-    required this.layerId,
-    this.trackId,
-    this.clipId,
-  });
+  const PresentationStudioSelection({this.layerId, this.trackId, this.clipId});
 
-  final String layerId;
+  final String? layerId;
   final String? trackId;
   final String? clipId;
 
@@ -64,13 +60,17 @@ final class PresentationStudioSelectionController extends ChangeNotifier {
         PresentationStudioSelectionOrigin.layers,
   }) {
     _requireLayer(asset, layerId);
-    PresentationVisualClip? activeClip;
+    PresentationClip? activeClip;
     String? trackId;
     for (final track in asset.tracks) {
       if (track.kind != PresentationTrackKind.visual) continue;
       for (final clip in track.clips) {
-        if (clip is PresentationVisualClip &&
-            clip.layerId == layerId &&
+        final clipLayerId = switch (clip) {
+          PresentationVisualClip() => clip.layerId,
+          PresentationTextClip() => clip.layerId,
+          _ => null,
+        };
+        if (clipLayerId == layerId &&
             clip.startUs <= timeUs &&
             timeUs < clip.endUs) {
           activeClip = clip;
@@ -101,10 +101,14 @@ final class PresentationStudioSelectionController extends ChangeNotifier {
   }) {
     for (final track in asset.tracks) {
       for (final clip in track.clips) {
-        if (clip.id == clipId && clip is PresentationVisualClip) {
+        if (clip.id == clipId) {
           _setValue(
             PresentationStudioSelection(
-              layerId: clip.layerId,
+              layerId: switch (clip) {
+                PresentationVisualClip() => clip.layerId,
+                PresentationTextClip() => clip.layerId,
+                _ => null,
+              },
               trackId: track.id,
               clipId: clip.id,
             ),
@@ -115,7 +119,7 @@ final class PresentationStudioSelectionController extends ChangeNotifier {
         }
       }
     }
-    throw ArgumentError.value(clipId, 'clipId', 'unknown visual clip');
+    throw ArgumentError.value(clipId, 'clipId', 'unknown clip');
   }
 
   void selectCanvas({
@@ -124,15 +128,40 @@ final class PresentationStudioSelectionController extends ChangeNotifier {
     required Offset normalizedPosition,
   }) {
     final candidates =
-        <PresentationVisualFrameClip>[
-          for (final clip in frame.visuals)
-            if (!asset.isLayerEffectivelyLocked(clip.layerId) &&
-                _contains(clip.composition, normalizedPosition))
-              clip,
-        ]..sort((left, right) {
-          final zOrder = right.zIndex.compareTo(left.zIndex);
-          return zOrder != 0 ? zOrder : left.layerId.compareTo(right.layerId);
-        });
+        <
+            ({
+              String layerId,
+              String trackId,
+              String clipId,
+              int zIndex,
+              PresentationVisualComposition composition,
+            })
+          >[
+            for (final clip in frame.visuals)
+              if (!asset.isLayerEffectivelyLocked(clip.layerId) &&
+                  _contains(clip.composition, normalizedPosition))
+                (
+                  layerId: clip.layerId,
+                  trackId: clip.trackId,
+                  clipId: clip.clipId,
+                  zIndex: clip.zIndex,
+                  composition: clip.composition,
+                ),
+            for (final clip in frame.texts)
+              if (!asset.isLayerEffectivelyLocked(clip.layerId) &&
+                  _contains(clip.composition, normalizedPosition))
+                (
+                  layerId: clip.layerId,
+                  trackId: clip.trackId,
+                  clipId: clip.clipId,
+                  zIndex: clip.zIndex,
+                  composition: clip.composition,
+                ),
+          ]
+          ..sort((left, right) {
+            final zOrder = right.zIndex.compareTo(left.zIndex);
+            return zOrder != 0 ? zOrder : left.layerId.compareTo(right.layerId);
+          });
     if (candidates.isEmpty) {
       clear(origin: PresentationStudioSelectionOrigin.canvas);
       return;
