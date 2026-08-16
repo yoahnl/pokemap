@@ -155,5 +155,18 @@ void main() {
         equals('spikes'),
       );
     });
+
+    test('every bootstrap move carries a french name', () {
+      final catalog = buildEmbeddedPokemonMovesBootstrapSeed();
+      for (final entry in catalog.entries) {
+        final id = entry['id'] as String;
+        final names = (entry['names'] as Map).cast<String, dynamic>();
+        expect(
+          names['fr'],
+          isNotNull,
+          reason: 'Bootstrap move "$id" has no french name.',
+        );
+      }
+    });
   });
 }

@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 
+import 'pokemon_move_localized_names.dart';
 
 /// Version logique du seed embarqué des moves bootstrap.
 ///
@@ -867,7 +868,11 @@ PokemonMove _showdownSeedMove({
   return PokemonMove(
     id: id,
     name: name,
-    names: <String, String>{'en': name},
+    names: <String, String>{
+      'en': name,
+      for (final entry in localizedNamesForMove(id).entries)
+        if (entry.key != 'en') entry.key: entry.value,
+    },
     generation: generation,
     source: 'showdown',
     type: type,

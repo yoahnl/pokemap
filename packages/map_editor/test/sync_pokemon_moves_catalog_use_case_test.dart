@@ -177,6 +177,53 @@ void main() {
     expect(await projectFile.readAsString(), beforeProjectJson);
   });
 
+  test('an external french name overwrites the local one', () async {
+    // Décision de design assumée : la source externe fait autorité sur les
+    // langues qu'elle fournit, une surcharge manuelle de names.fr n'est pas
+    // garantie. Voir
+    // documentation/architecture/2026-08-16-noms-attaques-localises-design.md
+    await writeRepository.saveCatalogByKey(
+      workspace,
+      'moves',
+      const PokemonCatalogFile(
+        schemaVersion: 1,
+        kind: 'pokemon_catalog',
+        catalog: 'moves',
+        meta: PokemonDataMeta(
+          description: 'Local moves catalog with a hand-written translation.',
+        ),
+        entries: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'thunderbolt',
+            'name': 'Thunderbolt',
+            'names': <String, String>{
+              'en': 'Thunderbolt',
+              'fr': 'Éclair Maison',
+            },
+            'type': 'electric',
+            'category': 'special',
+            'power': 90,
+            'accuracy': 100,
+            'pp': 15,
+          },
+        ],
+      ),
+    );
+
+    final result = await syncUseCase.execute(workspace);
+    expect(result.updatedIds, contains('thunderbolt'));
+
+    final syncedCatalog = await readRepository.readCatalogByKey(
+      workspace,
+      'moves',
+    );
+    final thunderbolt = syncedCatalog.entries.firstWhere(
+      (entry) => entry['id'] == 'thunderbolt',
+    );
+    final names = (thunderbolt['names'] as Map).cast<String, dynamic>();
+    expect(names['fr'], 'Tonnerre');
+  });
+
   test('sync honors a custom pokemon data root for the moves catalog path',
       () async {
     await _configureCustomPokemonDataRoot(

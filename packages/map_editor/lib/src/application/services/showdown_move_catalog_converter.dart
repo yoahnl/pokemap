@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../errors/application_errors.dart';
+import '../seeds/pokemon_move_localized_names.dart';
 import 'pokemon_move_local_id.dart';
 
 /// Convertit un snapshot Showdown `moves.json` vers le catalogue local `moves`.
@@ -140,7 +141,11 @@ class ShowdownMoveCatalogConverter {
     final move = PokemonMove(
       id: localId,
       name: displayName,
-      names: <String, String>{'en': displayName},
+      names: <String, String>{
+        'en': displayName,
+        for (final entry in localizedNamesForMove(localId).entries)
+          if (entry.key != 'en') entry.key: entry.value,
+      },
       generation: _readOptionalInt(entry['gen']),
       source: 'showdown',
       type: type,
