@@ -7,7 +7,7 @@ import '../../test_driver/presentation_runtime_performance_driver.dart'
     as performance_driver;
 
 void main() {
-  test('macOS CIN-038 profile receipt blocks the protected release', () async {
+  test('CIN-038 profile soak remains local and absent from CI', () async {
     final workflow =
         await File(
           '../../.github/workflows/pokemap_hub_product_certification.yml',
@@ -19,24 +19,37 @@ void main() {
             as Map<String, Object?>;
     final platforms = support['platforms']! as Map<String, Object?>;
 
-    expect(workflow, contains('cinematic-runtime-performance-gate:'));
+    expect(workflow, isNot(contains('cinematic-runtime-performance-gate:')));
     expect(
       workflow,
-      contains(
-        '--target=integration_test/'
-        'presentation_runtime_performance_journey_test.dart',
+      isNot(
+        contains(
+          '--target=integration_test/'
+          'presentation_runtime_performance_journey_test.dart',
+        ),
       ),
     );
     expect(
       workflow,
-      contains(
-        '--driver=test_driver/'
-        'presentation_runtime_performance_driver.dart',
+      isNot(
+        contains(
+          '--driver=test_driver/'
+          'presentation_runtime_performance_driver.dart',
+        ),
       ),
     );
-    expect(workflow, contains('certify_presentation_runtime_performance.dart'));
-    expect(workflow, contains('presentation_runtime_cin_038_receipt.json'));
-    expect(workflow, contains('      - cinematic-runtime-performance-gate'));
+    expect(
+      workflow,
+      isNot(contains('certify_presentation_runtime_performance.dart')),
+    );
+    expect(
+      workflow,
+      isNot(contains('presentation_runtime_cin_038_receipt.json')),
+    );
+    expect(
+      workflow,
+      isNot(contains('      - cinematic-runtime-performance-gate')),
+    );
     expect(
       (platforms['macos']! as Map<String, Object?>)['status'],
       'supported',

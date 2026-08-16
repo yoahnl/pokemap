@@ -281,6 +281,17 @@ write authorization.
 
 ## 8. Validation
 
+### CI cost discipline
+
+- Keep ordinary CI short and inexpensive.
+- Do not add performance soaks, long-running integration journeys, or dedicated
+  macOS runners to CI unless the user explicitly requests that exact CI cost.
+- Expensive certification journeys run locally by default and remain opt-in;
+  their harnesses and receipt validators may be versioned without scheduling
+  the journey in GitHub Actions.
+- A release workflow must not gain a costly certification dependency merely
+  because a local benchmark exists.
+
 Run commands from the relevant package directory.
 
 Pure Dart:

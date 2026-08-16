@@ -76,60 +76,6 @@ jobs:
             --candidate-sha "$GITHUB_SHA" \
             ../..
 
-  cinematic-runtime-performance-gate:
-    runs-on: macos-15
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Install pinned Flutter SDK
-        run: |
-          git init "$RUNNER_TEMP/flutter"
-          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
-          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
-            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
-          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
-          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
-          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
-      - name: Verify CIN-038 receipt and workflow contracts
-        run: |
-          cd apps/pokemap_hub
-          flutter pub get
-          flutter test test/release/cinematic_runtime_performance_gate_test.dart
-          cd ../../tools/pokemap_product_certification
-          flutter pub get
-          flutter test \
-            test/presentation_runtime_performance_receipt_test.dart \
-            test/presentation_runtime_performance_cli_test.dart
-      - name: Run macOS presentation runtime profile gate
-        working-directory: apps/pokemap_hub
-        run: |
-          mkdir -p build/performance
-          set -o pipefail
-          flutter drive --profile -d macos \
-            --driver=test_driver/presentation_runtime_performance_driver.dart \
-            --target=integration_test/presentation_runtime_performance_journey_test.dart \
-            --dart-define=POKEMAP_CIN038_OUTPUT=build/performance/presentation_runtime_cin_038_measurements.json \
-            2>&1 | tee build/performance/presentation_runtime_cin_038.log
-      - name: Certify macOS presentation runtime profile receipt
-        working-directory: tools/pokemap_product_certification
-        run: |
-          dart run bin/certify_presentation_runtime_performance.dart \
-            --repository-root ../.. \
-            --measurements ../../apps/pokemap_hub/build/performance/presentation_runtime_cin_038_measurements.json \
-            --platform-support ../../apps/pokemap_hub/tool/release/platform_support.json \
-            --output ../../apps/pokemap_hub/build/performance/presentation_runtime_cin_038_receipt.json
-      - name: Preserve CIN-038 measurements and receipt
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: pokemap-cinematic-runtime-performance-${{ github.sha }}
-          if-no-files-found: warn
-          retention-days: 30
-          path: |
-            apps/pokemap_hub/build/performance/presentation_runtime_cin_038_measurements.json
-            apps/pokemap_hub/build/performance/presentation_runtime_cin_038_receipt.json
-            apps/pokemap_hub/build/performance/presentation_runtime_cin_038.log
-
   map-editor-functional-quality:
     runs-on: macos-15
     timeout-minutes: 60
@@ -479,7 +425,6 @@ jobs:
       (github.event_name == 'workflow_dispatch' && inputs.notarize)
     needs:
       - verify
-      - cinematic-runtime-performance-gate
       - windows-desktop-certification
       - linux-desktop-certification
     runs-on: macos-15
