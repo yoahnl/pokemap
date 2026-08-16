@@ -61,6 +61,19 @@ Future<void> main(List<String> arguments) async {
     tiledImageCollectionRasterCodec:
         const CliPngTiledImageCollectionRasterCodec(),
   );
+  GamePackageExportApiPort? gameExport;
+  if (options.exportRoots.isNotEmpty) {
+    try {
+      gameExport = await LocalGamePackageExportApi.create(
+        allowedProjectRoots: options.allowedRoots,
+        allowedExportRoots: options.exportRoots,
+      );
+    } on Object {
+      stderr.writeln('Unable to initialize the configured export roots.');
+      exitCode = AuthoringCliExitCodes.config;
+      return;
+    }
+  }
   final worker = JsonlWorker(
     api: api,
     mutations: mutations,
@@ -69,7 +82,9 @@ Future<void> main(List<String> arguments) async {
       fileReader: fileReader,
       writer: const LocalProjectManifestBootstrapWriter(),
     ),
+    gameExport: gameExport,
     commandTimeout: options.commandTimeout,
+    gameExportTimeout: options.gameExportTimeout,
     maxInputBytes: options.maxInputBytes,
   );
 
@@ -87,19 +102,25 @@ Future<void> main(List<String> arguments) async {
 }
 
 const String _usage = 'Usage: pokemap_authoring --root <allowed-root> '
-    '[--root <allowed-root> ...] [--timeout-ms <positive-int>] '
+    '[--root <allowed-root> ...] [--export-root <allowed-output-root> ...] '
+    '[--timeout-ms <positive-int>] '
+    '[--export-timeout-ms <positive-int>] '
     '[--max-input-bytes <positive-int>]';
 
 final class _CliOptions {
   const _CliOptions({
     required this.allowedRoots,
+    required this.exportRoots,
     required this.commandTimeout,
+    required this.gameExportTimeout,
     required this.maxInputBytes,
   });
 
   factory _CliOptions.parse(List<String> arguments) {
     final roots = <String>[];
+    final exportRoots = <String>[];
     var timeoutMs = 10000;
+    var exportTimeoutMs = 120000;
     var maxInputBytes = defaultAuthoringJsonlMaxInputBytes;
     var index = 0;
     while (index < arguments.length) {
@@ -107,8 +128,15 @@ final class _CliOptions {
       switch (option) {
         case '--root':
           roots.add(_nextValue(arguments, index++, option));
+        case '--export-root':
+          exportRoots.add(_nextValue(arguments, index++, option));
         case '--timeout-ms':
           timeoutMs = _positiveInt(
+            _nextValue(arguments, index++, option),
+            option,
+          );
+        case '--export-timeout-ms':
+          exportTimeoutMs = _positiveInt(
             _nextValue(arguments, index++, option),
             option,
           );
@@ -128,13 +156,17 @@ final class _CliOptions {
     }
     return _CliOptions(
       allowedRoots: List.unmodifiable(roots),
+      exportRoots: List.unmodifiable(exportRoots),
       commandTimeout: Duration(milliseconds: timeoutMs),
+      gameExportTimeout: Duration(milliseconds: exportTimeoutMs),
       maxInputBytes: maxInputBytes,
     );
   }
 
   final List<String> allowedRoots;
+  final List<String> exportRoots;
   final Duration commandTimeout;
+  final Duration gameExportTimeout;
   final int maxInputBytes;
 }
 

@@ -13,6 +13,8 @@ import '../contracts/query_request.dart';
 import '../domains/assets/asset_actions.dart';
 import '../domains/assets/character_studio_asset_actions.dart';
 import '../domains/assets/tileset_actions.dart';
+import '../domains/distribution/game_package_export_api.dart';
+import '../domains/distribution/game_package_export_profile.dart';
 import '../domains/gameplay/character_studio/character_studio_action_support.dart';
 import '../domains/gameplay/item_catalog_actions.dart';
 import '../domains/gameplay/pokemon_ruleset_actions.dart';
@@ -49,11 +51,14 @@ final class JsonlWorker {
     required AuthoringReadApiPort api,
     AuthoringMutationApiPort? mutations,
     ProjectPokemonRulesetBootstrapApiPort? projectBootstrap,
+    GamePackageExportApiPort? gameExport,
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
     this.commandTimeout = const Duration(seconds: 10),
+    this.gameExportTimeout = const Duration(minutes: 2),
   })  : _api = api,
         _mutations = mutations,
-        _projectBootstrap = projectBootstrap {
+        _projectBootstrap = projectBootstrap,
+        _gameExport = gameExport {
     if (maxInputBytes <= 0) {
       throw ArgumentError.value(
         maxInputBytes,
@@ -68,13 +73,22 @@ final class JsonlWorker {
         'must be positive',
       );
     }
+    if (gameExportTimeout <= Duration.zero) {
+      throw ArgumentError.value(
+        gameExportTimeout,
+        'gameExportTimeout',
+        'must be positive',
+      );
+    }
   }
 
   final AuthoringReadApiPort _api;
   final AuthoringMutationApiPort? _mutations;
   final ProjectPokemonRulesetBootstrapApiPort? _projectBootstrap;
+  final GamePackageExportApiPort? _gameExport;
   final int maxInputBytes;
   final Duration commandTimeout;
+  final Duration gameExportTimeout;
 
   Future<String> processLine(String line) async {
     var requestId = 'invalid';
@@ -95,7 +109,9 @@ final class JsonlWorker {
       requestId = requireContractString(decoded['id'], 'id');
       final command = requireContractString(decoded['command'], 'command');
       final args = _jsonObject(decoded['args'], 'args');
-      final data = await _dispatch(command, args).timeout(commandTimeout);
+      final timeout =
+          command == 'game_export' ? gameExportTimeout : commandTimeout;
+      final data = await _dispatch(command, args).timeout(timeout);
       result = AuthoringResult.success(requestId: requestId, data: data);
     } on TimeoutException {
       result = _failure(
@@ -157,6 +173,16 @@ final class JsonlWorker {
             : AuthoringErrorCode.validationFailed,
         domainCode: error.code,
         message: error.message,
+      );
+    } on GamePackageExportException catch (error) {
+      result = _failure(
+        requestId,
+        code: AuthoringErrorCode.validationFailed,
+        domainCode: error.code,
+        message: error.message,
+        details: <String, Object?>{
+          if (error.path != null) 'path': error.path,
+        },
       );
     } on ProjectSnapshotException catch (error) {
       result = _failure(
@@ -446,6 +472,22 @@ final class JsonlWorker {
         );
         await _mutations?.detachWorkspace(workspaceHandle);
         return _api.close(workspaceHandle);
+      case 'game_export':
+        rejectUnknownContractKeys(
+          args,
+          const {'projectRoot', 'outputPath'},
+        );
+        return (await _gameExportApi().export(
+          projectRoot: requireContractString(
+            args['projectRoot'],
+            'args.projectRoot',
+          ),
+          outputPath: requireContractString(
+            args['outputPath'],
+            'args.outputPath',
+          ),
+        ))
+            .toJson();
       case 'plan':
         rejectUnknownContractKeys(args, const {'projectHandle', 'request'});
         final request = _jsonObject(args['request'], 'args.request');
@@ -545,6 +587,9 @@ final class JsonlWorker {
   ProjectPokemonRulesetBootstrapApiPort _bootstrapApi() =>
       _projectBootstrap ?? (throw const _UnsupportedWorkerCommand());
 
+  GamePackageExportApiPort _gameExportApi() =>
+      _gameExport ?? (throw const _UnsupportedWorkerCommand());
+
   AuthoringArtifactStagingPort _artifactStagingApi() {
     final mutations = _mutations;
     if (mutations is! AuthoringArtifactStagingPort) {
@@ -561,7 +606,10 @@ final class JsonlWorker {
     final read = _api.describe();
     final mutations = _mutations;
     final bootstrap = _projectBootstrap;
-    if (mutations == null && bootstrap == null) return read;
+    final gameExport = _gameExport;
+    if (mutations == null && bootstrap == null && gameExport == null) {
+      return read;
+    }
     final mutation = mutations?.describeMutations();
     final commands = <Map<String, Object?>>[
       for (final command in read['commands']! as List)
@@ -578,6 +626,11 @@ final class JsonlWorker {
         const {
           'id': 'project_bootstrap_repair',
           'summary': 'Repair a missing explicit Pokemon ruleset.',
+        },
+      if (gameExport != null)
+        const {
+          'id': 'game_export',
+          'summary': 'Build and write a certified .avelunegame package.',
         },
     ]..sort(
         (left, right) =>

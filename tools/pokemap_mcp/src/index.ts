@@ -25,6 +25,7 @@ try {
 function start(config: PokeMapMcpConfig): void {
   const authoring = new LocalAuthoringClient({
     allowedRoots: config.allowedRoots,
+    exportRoots: config.exportRoots,
     authoringPackageRoot: config.authoringPackageRoot,
     dartExecutable: config.dartExecutable,
   });
@@ -45,7 +46,13 @@ function start(config: PokeMapMcpConfig): void {
     }),
   });
   const handle = serveStdio(
-    () => createPokeMapMcpServer({ authoring, artifacts, runtime }),
+    () =>
+      createPokeMapMcpServer({
+        authoring,
+        projectRoots: authoring,
+        artifacts,
+        runtime,
+      }),
     {
       legacy: "serve",
       onerror: (error) => {

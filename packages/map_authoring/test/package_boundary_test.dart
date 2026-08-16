@@ -9,7 +9,13 @@ void main() {
       expect(MapAuthoringPackageBoundaries.packageName, 'map_authoring');
       expect(
         MapAuthoringPackageBoundaries.allowedPackageDependencies,
-        {'map_core', 'map_distribution'},
+        {
+          'crypto',
+          'map_core',
+          'map_distribution',
+          'path',
+          'pub_semver',
+        },
       );
       expect(
         MapAuthoringPackageBoundaries.ownedResponsibilities,
@@ -62,7 +68,16 @@ void main() {
         r'^  ([a-zA-Z0-9_]+):',
         multiLine: true,
       ).allMatches(dependenciesBlock!).map((match) => match.group(1)!).toSet();
-      expect(dependencyNames, {'map_core', 'map_distribution'});
+      expect(
+        dependencyNames,
+        {
+          'crypto',
+          'map_core',
+          'map_distribution',
+          'path',
+          'pub_semver',
+        },
+      );
       expect(pubspec, isNot(contains('sdk: flutter')));
     });
 

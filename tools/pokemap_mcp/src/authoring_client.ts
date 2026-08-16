@@ -52,10 +52,13 @@ export class AuthoringClientError extends Error {
 
 export interface LocalAuthoringClientOptions {
   allowedRoots: readonly string[];
+  exportRoots?: readonly string[];
   authoringPackageRoot: string;
   dartExecutable?: string;
   requestTimeoutMs?: number;
   workerTimeoutMs?: number;
+  exportRequestTimeoutMs?: number;
+  exportWorkerTimeoutMs?: number;
   maxInputBytes?: number;
 }
 
@@ -87,9 +90,12 @@ export class LocalAuthoringClient
     this.#options = {
       ...options,
       allowedRoots: [...options.allowedRoots],
+      exportRoots: [...(options.exportRoots ?? [])],
       dartExecutable: options.dartExecutable ?? "dart",
       requestTimeoutMs: options.requestTimeoutMs ?? 15_000,
       workerTimeoutMs: options.workerTimeoutMs ?? 10_000,
+      exportRequestTimeoutMs: options.exportRequestTimeoutMs ?? 125_000,
+      exportWorkerTimeoutMs: options.exportWorkerTimeoutMs ?? 120_000,
       maxInputBytes: options.maxInputBytes ?? DEFAULT_AUTHORING_MAX_INPUT_BYTES,
     };
   }
@@ -103,6 +109,10 @@ export class LocalAuthoringClient
     const line = `${JSON.stringify({ id: requestId, command, args })}\n`;
 
     const result = await new Promise<AuthoringWorkerSuccess>((resolve, reject) => {
+      const timeoutMs =
+        command === "game_export"
+          ? this.#options.exportRequestTimeoutMs
+          : this.#options.requestTimeoutMs;
       const timer = setTimeout(() => {
         this.#pending.delete(requestId);
         reject(
@@ -112,7 +122,7 @@ export class LocalAuthoringClient
             true,
           ),
         );
-      }, this.#options.requestTimeoutMs);
+      }, timeoutMs);
       timer.unref();
       this.#pending.set(requestId, { resolve, reject, timer });
       child.stdin.write(line, (error) => {
@@ -168,14 +178,21 @@ export class LocalAuthoringClient
       "--root",
       root,
     ]);
+    const exportRootArgs = this.#options.exportRoots.flatMap((root) => [
+      "--export-root",
+      root,
+    ]);
     const child = spawn(
       this.#options.dartExecutable,
       [
         "run",
         "bin/pokemap_authoring.dart",
         ...rootArgs,
+        ...exportRootArgs,
         "--timeout-ms",
         String(this.#options.workerTimeoutMs),
+        "--export-timeout-ms",
+        String(this.#options.exportWorkerTimeoutMs),
         "--max-input-bytes",
         String(this.#options.maxInputBytes),
       ],

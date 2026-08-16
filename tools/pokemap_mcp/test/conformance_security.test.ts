@@ -47,7 +47,7 @@ async function connect(
   return { client, server };
 }
 
-test("all eleven tools publish strict schemas, outputs and annotations", async () => {
+test("all twelve tools publish strict schemas, outputs and annotations", async () => {
   const gateway: AuthoringGateway = {
     async request() {
       return { requestId: "conformance", data: {}, artifacts: [] };
@@ -71,6 +71,7 @@ test("all eleven tools publish strict schemas, outputs and annotations", async (
         "pokemap_apply",
         "pokemap_history",
         "pokemap_recovery",
+        "pokemap_game_export",
       ],
     );
     for (const tool of tools) {

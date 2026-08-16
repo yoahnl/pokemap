@@ -74,6 +74,7 @@ test("read-only MCP inspects a real project with cursor pagination", async () =>
         "pokemap_apply",
         "pokemap_history",
         "pokemap_recovery",
+        "pokemap_game_export",
       ],
     );
     assert.ok(tools.tools.slice(0, 5).every((tool) => tool.annotations?.readOnlyHint));

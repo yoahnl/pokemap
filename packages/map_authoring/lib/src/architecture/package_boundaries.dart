@@ -7,8 +7,11 @@ abstract final class MapAuthoringPackageBoundaries {
 
   /// `map_core` owns PokeMap's serializable data and pure domain operations.
   static const Set<String> allowedPackageDependencies = {
+    'crypto',
     'map_core',
     'map_distribution',
+    'path',
+    'pub_semver',
   };
 
   static const Set<String> ownedResponsibilities = {

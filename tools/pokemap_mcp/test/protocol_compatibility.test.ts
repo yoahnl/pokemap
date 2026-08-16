@@ -145,6 +145,7 @@ test("the packaged stdio entrypoint completes a real modern client exchange", as
         "pokemap_apply",
         "pokemap_history",
         "pokemap_recovery",
+        "pokemap_game_export",
         "pokemap_render",
         "pokemap_playtest",
         "pokemap_job",

@@ -8,6 +8,52 @@ import 'package:test/test.dart';
 
 void main() {
   group('JsonlWorker', () {
+    test('routes game_export through the configured export API', () async {
+      final exportApi = _RecordingGamePackageExportApi();
+      final worker = JsonlWorker(
+        api: const _DelayedReadApi(),
+        gameExport: exportApi,
+      );
+
+      final result = await _request(
+        worker,
+        id: 'export-1',
+        command: 'game_export',
+        args: const <String, Object?>{
+          'projectRoot': '/allowed/project',
+          'outputPath': '/allowed/output/game.avelunegame',
+        },
+      );
+
+      expect(result.status, AuthoringResultStatus.success);
+      expect(exportApi.projectRoot, '/allowed/project');
+      expect(exportApi.outputPath, '/allowed/output/game.avelunegame');
+      expect(result.data['sha256'], 'a' * 64);
+    });
+
+    test('uses the dedicated bounded timeout for game_export', () async {
+      final worker = JsonlWorker(
+        api: const _DelayedReadApi(),
+        gameExport: _RecordingGamePackageExportApi(
+          delay: const Duration(milliseconds: 20),
+        ),
+        commandTimeout: const Duration(milliseconds: 1),
+        gameExportTimeout: const Duration(milliseconds: 50),
+      );
+
+      final result = await _request(
+        worker,
+        id: 'export-timeout-1',
+        command: 'game_export',
+        args: const <String, Object?>{
+          'projectRoot': '/allowed/project',
+          'outputPath': '/allowed/output/game.avelunegame',
+        },
+      );
+
+      expect(result.status, AuthoringResultStatus.success);
+    });
+
     test('golden describe and malformed input are byte-for-byte stable',
         () async {
       final setup = await _TestSetup.create();
@@ -648,6 +694,35 @@ final class _DelayedReadApi implements AuthoringReadApiPort {
   @override
   Future<Map<String, Object?>> close(WorkspaceHandle workspaceHandle) async =>
       const {};
+}
+
+final class _RecordingGamePackageExportApi
+    implements GamePackageExportApiPort {
+  _RecordingGamePackageExportApi({this.delay = Duration.zero});
+
+  final Duration delay;
+  String? projectRoot;
+  String? outputPath;
+
+  @override
+  Future<GamePackageExportReceipt> export({
+    required String projectRoot,
+    required String outputPath,
+  }) async {
+    await Future<void>.delayed(delay);
+    this.projectRoot = projectRoot;
+    this.outputPath = outputPath;
+    return GamePackageExportReceipt(
+      outputPath: outputPath,
+      sizeBytes: 42,
+      sha256: 'a' * 64,
+      gameId: 'games.example.fixture',
+      gameVersion: '1.0.0',
+      title: 'Fixture',
+      fileCount: 3,
+      treeSha256: 'b' * 64,
+    );
+  }
 }
 
 final class _ThrowingReadApi implements AuthoringReadApiPort {

@@ -1,0 +1,840 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:crypto/crypto.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
+import 'package:pub_semver/pub_semver.dart';
+
+import '../gameplay/pokemon_catalog_coherence_loader.dart';
+import '../../ports/project_file_reader.dart';
+import 'game_package_gameplay_readiness_gate.dart';
+import 'game_package_export_profile.dart';
+import 'runtime_project_projection_builder.dart';
+import 'runtime_project_projection_file_reader.dart';
+
+typedef GamePackagePokemonValidator =
+    Future<PokemonCatalogCoherenceReport> Function({
+      required ProjectFileReader reader,
+      required String projectRoot,
+      required ProjectManifest manifest,
+    });
+typedef GamePackageAtomicFileWriter =
+    Future<void> Function({
+      required File outputFile,
+      required List<int> packageBytes,
+      required String packageSha256,
+    });
+typedef GamePackageArchiveBuilder =
+    GamePackageBuildResult Function({
+      required GamePackageManifest manifest,
+      required Map<String, List<int>> payloadFiles,
+    });
+
+final class GamePackageExportWriteFailure implements Exception {
+  const GamePackageExportWriteFailure({
+    required this.atomicError,
+    required this.directError,
+  });
+
+  final Object atomicError;
+  final Object directError;
+
+  @override
+  String toString() =>
+      'Atomic sibling write failed: $atomicError '
+      'Direct selected-file write failed: $directError';
+}
+
+final class GamePackageExportCertification {
+  GamePackageExportCertification({
+    required List<String> diagnostics,
+    required this.gameplayReadinessReport,
+    required this.pokemonValidationSha256,
+  }) : diagnostics = List.unmodifiable(diagnostics);
+
+  final List<String> diagnostics;
+  final NarrativeProjectValidationReport gameplayReadinessReport;
+  final String? pokemonValidationSha256;
+
+  bool get isCertified =>
+      gameplayReadinessReport.isPlayable && diagnostics.isEmpty;
+}
+
+final class GamePackageExportArtifact {
+  GamePackageExportArtifact({
+    required List<int> packageBytes,
+    required this.manifest,
+    required this.inspection,
+    required this.personalizationPreflight,
+    required this.certification,
+    required this.suggestedFileName,
+    required this.compiledDialogueCount,
+    required this.scrubbedSecretFieldCount,
+  }) : packageBytes = List.unmodifiable(packageBytes);
+
+  final List<int> packageBytes;
+  final GamePackageManifest manifest;
+  final GamePackageInspectionResult inspection;
+  final GamePackagePersonalizationPreflightReceipt personalizationPreflight;
+  final GamePackageExportCertification certification;
+  final String suggestedFileName;
+  final int compiledDialogueCount;
+  final int scrubbedSecretFieldCount;
+
+  String get packageSha256 => sha256.convert(packageBytes).toString();
+}
+
+final class CanonicalGamePackageExportService {
+  const CanonicalGamePackageExportService({
+    this.projectionBuilder = const RuntimeProjectProjectionBuilder(),
+    this.gameplayReadinessGate = const GamePackageGameplayReadinessGate(),
+    this.pokemonValidator,
+    this.packageBuilder = const GamePackageBuilder(),
+    this.packageArchiveBuilder,
+    this.atomicFileWriter,
+  });
+
+  final RuntimeProjectProjectionBuilder projectionBuilder;
+  final GamePackageGameplayReadinessGate gameplayReadinessGate;
+  final GamePackagePokemonValidator? pokemonValidator;
+  final GamePackageBuilder packageBuilder;
+  final GamePackageArchiveBuilder? packageArchiveBuilder;
+  final GamePackageAtomicFileWriter? atomicFileWriter;
+
+  Future<GamePackageExportArtifact> build({
+    required Directory projectRoot,
+    required GamePackageExportProfile profile,
+  }) async {
+    try {
+      final projection = await projectionBuilder.build(
+        projectRoot: projectRoot,
+        profile: profile,
+      );
+      PokemonCatalogCoherenceReport? pokemonValidationReport;
+      Object? pokemonValidationFailure;
+      if (projection.project.pokemon.enabled) {
+        try {
+          final projectionReader = RuntimeProjectProjectionFileReader(
+            projection,
+          );
+          final validate =
+              pokemonValidator ??
+              const PokemonCatalogCoherenceLoader().validateProjectFiles;
+          pokemonValidationReport = await validate(
+            reader: projectionReader,
+            projectRoot: RuntimeProjectProjectionFileReader.projectRoot,
+            manifest: projection.project,
+          );
+        } on Object catch (error) {
+          // Export remains fail-closed if the canonical validator itself
+          // cannot produce a report for the authored workspace.
+          pokemonValidationFailure = error;
+        }
+      }
+      final gameplayReadinessReport = gameplayReadinessGate.evaluate(
+        projection,
+        pokemonValidationReport: pokemonValidationReport,
+        pokemonValidationFailure: pokemonValidationFailure,
+      );
+      if (!gameplayReadinessReport.isPlayable) {
+        final errors = gameplayReadinessReport.diagnostics
+            .where(
+              (diagnostic) =>
+                  diagnostic.severity ==
+                  NarrativeProjectDiagnosticSeverity.error,
+            )
+            .toList(growable: false);
+        throw GamePackageExportException(
+          code: 'gameplayReadinessFailed',
+          path: errors.firstOrNull?.path,
+          message: _gameplayReadinessCreatorMessage(errors),
+          gameplayReadinessReport: gameplayReadinessReport,
+        );
+      }
+      final requiredCapabilities = <String>{
+        ...profile.requiredCapabilities,
+        if (projection.project.maps.isNotEmpty) 'map@1',
+      }.toList(growable: false)..sort();
+      final emptyContent = GamePackageContent(
+        fileCount: 0,
+        totalBytes: 0,
+        treeSha256: '0' * 64,
+        files: const <GamePackageFileEntry>[],
+      );
+      final manifest = GamePackageManifest(
+        packageFormat: 1,
+        gameId: profile.gameId,
+        gameVersion: profile.parsedGameVersion,
+        title: profile.title.trim(),
+        description: profile.description?.trim(),
+        author: GamePackageParty(
+          name: profile.authorName.trim(),
+          url: _uri(profile.authorUrl),
+        ),
+        publisher: profile.publisherName == null
+            ? null
+            : GamePackageParty(
+                name: profile.publisherName!.trim(),
+                url: _uri(profile.publisherUrl),
+              ),
+        compatibility: GamePackageCompatibility(
+          minHubVersion: Version.parse('0.1.0'),
+          runtimeApiExpression: '>=1.0.0 <2.0.0',
+          projectFormat: projection.project.version.name,
+          saveFormat: 1,
+          compatibilityId: 'main',
+          requiredCapabilities: requiredCapabilities,
+        ),
+        locales: GamePackageLocales(
+          defaultLocale: profile.defaultLocale,
+          supported: profile.supportedLocales,
+        ),
+        presentation: GamePackagePresentation(
+          schemaVersion: projection.presentation.schemaVersion,
+          branding: GamePackageBranding(
+            icon: projection.iconPackagePath,
+            cover: projection.coverPackagePath,
+            hero: projection.heroPackagePath,
+            accentColor: projection.presentation.branding.accentColor,
+            titleMusic: projection.titleMusicPackagePath,
+            layoutVariant: projection.presentation.branding.layoutVariant,
+          ),
+          title: projection.presentation.title == null
+              ? null
+              : GamePackageTitlePresentation(
+                  title: projection.presentation.title!.title,
+                  subtitle: projection.presentation.title!.subtitle,
+                  prompt: projection.presentation.title!.prompt,
+                  actions: projection.presentation.title!.actions
+                      ?.map(
+                        (action) => GamePackageTitleAction(
+                          id: action.id.name,
+                          label: action.label,
+                          icon: action.icon?.name,
+                          visible: action.visible,
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+          intro: projection.presentation.intro == null
+              ? null
+              : GamePackageIntroVideo(
+                  media: _packageResponsiveVideo(projection.introMedia!),
+                  reducedMotionBehavior:
+                      projection.presentation.intro!.reducedMotionBehavior,
+                  allowReplay: projection.presentation.intro!.allowReplay,
+                ),
+          titleMotion: projection.presentation.titleMotion == null
+              ? null
+              : GamePackageTitleMotion(
+                  promptLoop: projection.titlePromptMedia == null
+                      ? null
+                      : _packageResponsiveVideo(projection.titlePromptMedia!),
+                  menuLoop: projection.titleMenuMedia == null
+                      ? null
+                      : _packageResponsiveVideo(projection.titleMenuMedia!),
+                ),
+          typography: projection.presentation.typography == null
+              ? null
+              : GamePackageTypography(
+                  display: _packageFontRole(
+                    projection,
+                    ProjectTypographyRole.display,
+                  ),
+                  body: _packageFontRole(
+                    projection,
+                    ProjectTypographyRole.body,
+                  ),
+                  dialogue: _packageFontRole(
+                    projection,
+                    ProjectTypographyRole.dialogue,
+                  ),
+                  numbers: _packageFontRole(
+                    projection,
+                    ProjectTypographyRole.numbers,
+                  ),
+                  combat: projection.presentation.typography!.combat == null
+                      ? null
+                      : _packageFontRole(
+                          projection,
+                          ProjectTypographyRole.combat,
+                        ),
+                ),
+          theme: projection.presentation.theme == null
+              ? null
+              : _packageSemanticTheme(projection.presentation.theme!),
+          surfacePalettes: projection.presentation.surfacePalettes == null
+              ? null
+              : _packageSurfacePalettes(
+                  projection.presentation.surfacePalettes!,
+                ),
+          dialogue: projection.presentation.dialogue == null
+              ? null
+              : _packageDialogue(projection.presentation.dialogue!),
+          battle: projection.presentation.battle == null
+              ? null
+              : _packageBattle(projection.presentation.battle!),
+          pause: projection.presentation.pause == null
+              ? null
+              : GamePackagePausePresentation(
+                  title: projection.presentation.pause!.title,
+                  hint: projection.presentation.pause!.hint,
+                  actions: projection.presentation.pause!.actions
+                      ?.map(
+                        (action) => GamePackagePauseAction(
+                          id: action.id.name,
+                          label: action.label,
+                          icon: action.icon?.name,
+                          visible: action.visible,
+                        ),
+                      )
+                      .toList(growable: false),
+                  composition:
+                      projection.presentation.pause!.composition == null
+                      ? null
+                      : _packagePauseComposition(
+                          projection.presentation.pause!.composition!,
+                        ),
+                ),
+          menuLabels: projection.presentation.menuLabels == null
+              ? null
+              : GamePackageMenuLabels(
+                  pauseTitle: projection.presentation.menuLabels!.pauseTitle,
+                  resume: projection.presentation.menuLabels!.resume,
+                  party: projection.presentation.menuLabels!.party,
+                  bag: projection.presentation.menuLabels!.bag,
+                  pokedex: projection.presentation.menuLabels!.pokedex,
+                  map: projection.presentation.menuLabels!.map,
+                  save: projection.presentation.menuLabels!.save,
+                  options: projection.presentation.menuLabels!.options,
+                  returnToTitle:
+                      projection.presentation.menuLabels!.returnToTitle,
+                ),
+          windows: projection.presentation.windows == null
+              ? null
+              : _packageWindows(projection.presentation.windows!),
+          layouts: projection.presentation.layouts == null
+              ? null
+              : _packageLayouts(projection.presentation.layouts!),
+        ),
+        content: emptyContent,
+      );
+      final built =
+          (packageArchiveBuilder ??
+          ({required manifest, required payloadFiles}) => packageBuilder.build(
+            manifest: manifest,
+            payloadFiles: payloadFiles,
+          ))(manifest: manifest, payloadFiles: projection.payloadFiles);
+      final inspector = GamePackageInspector(
+        hostCompatibility: GamePackageHostCompatibility(
+          hubVersion: Version.parse('1.2.0'),
+          runtimeApiVersion: Version.parse('1.4.0'),
+          capabilities: const <String>{
+            'dialogue.choices@1',
+            'map@1',
+            'overworld.menu@1',
+            'world.shop@1',
+          },
+          supportedProjectFormats: <String>{projection.project.version.name},
+          currentProjectFormat: projection.project.version.name,
+          supportedSaveFormats: const <int>{1},
+        ),
+      );
+      final inspection = inspector.inspect(built.packageBytes);
+      final personalizationPreflight =
+          const GamePackagePersonalizationPreflight().certify(inspection);
+      final diagnostics = <String>[
+        if (inspection.manifest.gameId != profile.gameId)
+          'Exported game identity changed during packaging.',
+        if (inspection.manifest.gameVersion != profile.parsedGameVersion)
+          'Exported game version changed during packaging.',
+        if (inspection.manifest.content.treeSha256 !=
+            built.manifest.content.treeSha256)
+          'Reopened package tree hash differs from the built manifest.',
+        if (inspection.compatibility?.decision !=
+            GamePackageCompatibilityDecision.accept)
+          'Exported package is not compatible with the generic Hub contract.',
+      ];
+      final certification = GamePackageExportCertification(
+        diagnostics: diagnostics,
+        gameplayReadinessReport: gameplayReadinessReport,
+        pokemonValidationSha256: pokemonValidationReport == null
+            ? null
+            : sha256
+                  .convert(
+                    utf8.encode(jsonEncode(pokemonValidationReport.toJson())),
+                  )
+                  .toString(),
+      );
+      if (!certification.isCertified) {
+        throw GamePackageExportException(
+          code: 'exportCertificationFailed',
+          message: diagnostics.join(' '),
+        );
+      }
+      return GamePackageExportArtifact(
+        packageBytes: built.packageBytes,
+        manifest: built.manifest,
+        inspection: inspection,
+        personalizationPreflight: personalizationPreflight,
+        certification: certification,
+        suggestedFileName: _suggestedFileName(
+          profile.title,
+          profile.gameVersion,
+        ),
+        compiledDialogueCount: projection.compiledDialogueCount,
+        scrubbedSecretFieldCount: projection.scrubbedSecretFieldCount,
+      );
+    } on GamePackageExportException {
+      rethrow;
+    } on GamePackageFormatException catch (error) {
+      throw GamePackageExportException(
+        code: error.code,
+        path: error.path,
+        message: error.message,
+        cause: error,
+      );
+    } on Object catch (error) {
+      throw GamePackageExportException(
+        code: 'gameExportFailed',
+        message: 'The game package could not be built and certified.',
+        cause: error,
+      );
+    }
+  }
+
+  Future<GamePackageExportArtifact> exportToFile({
+    required Directory projectRoot,
+    required GamePackageExportProfile profile,
+    required File outputFile,
+  }) async {
+    final outputName = outputFile.uri.pathSegments.last.toLowerCase();
+    if (!outputName.endsWith('.avelunegame') ||
+        outputName.endsWith('.pokemapgame.avelunegame')) {
+      throw GamePackageExportException(
+        code: 'invalidExportDestination',
+        path: outputFile.path,
+        message: 'Export destination must use a single .avelunegame extension.',
+      );
+    }
+    final artifact = await build(projectRoot: projectRoot, profile: profile);
+    try {
+      await outputFile.parent.create(recursive: true);
+    } on Object catch (error) {
+      throw GamePackageExportException(
+        code: 'exportWriteFailed',
+        path: outputFile.path,
+        message: 'The export destination cannot be prepared.',
+        cause: error,
+      );
+    }
+    final atomicWriter = atomicFileWriter ?? _writeAtomically;
+    try {
+      await atomicWriter(
+        outputFile: outputFile,
+        packageBytes: artifact.packageBytes,
+        packageSha256: artifact.packageSha256,
+      );
+      return artifact;
+    } on FileSystemException catch (atomicError) {
+      // NSSavePanel grants a sandboxed macOS application access to the exact
+      // selected file, but not necessarily to sibling `.tmp` or `.backup`
+      // files. Keep the crash-atomic path as the default, then fall back to a
+      // flushed, digest-verified write to the explicitly selected file.
+      try {
+        await _writeDirectlyToSelectedFile(
+          outputFile: outputFile,
+          packageBytes: artifact.packageBytes,
+          packageSha256: artifact.packageSha256,
+        );
+        return artifact;
+      } on Object catch (directError) {
+        throw GamePackageExportException(
+          code: 'exportWriteFailed',
+          path: outputFile.path,
+          message: 'The certified package could not be written.',
+          cause: GamePackageExportWriteFailure(
+            atomicError: atomicError,
+            directError: directError,
+          ),
+        );
+      }
+    } on GamePackageExportException {
+      rethrow;
+    } on Object catch (error) {
+      throw GamePackageExportException(
+        code: 'exportWriteFailed',
+        path: outputFile.path,
+        message: 'The certified package could not be written atomically.',
+        cause: error,
+      );
+    }
+  }
+
+  static Future<void> _writeAtomically({
+    required File outputFile,
+    required List<int> packageBytes,
+    required String packageSha256,
+  }) async {
+    final token = '${DateTime.now().microsecondsSinceEpoch}-$pid';
+    final temporary = File('${outputFile.path}.$token.tmp');
+    final backup = File('${outputFile.path}.backup');
+    var backedUp = false;
+    try {
+      await temporary.writeAsBytes(packageBytes, flush: true);
+      final writtenBytes = await temporary.readAsBytes();
+      if (sha256.convert(writtenBytes).toString() != packageSha256) {
+        throw const GamePackageExportException(
+          code: 'exportWriteVerificationFailed',
+          message: 'Written package digest differs from the certified bytes.',
+        );
+      }
+      if (await outputFile.exists()) {
+        if (await backup.exists()) await backup.delete();
+        await outputFile.rename(backup.path);
+        backedUp = true;
+      }
+      await temporary.rename(outputFile.path);
+      if (backedUp && await backup.exists()) await backup.delete();
+    } on Object {
+      try {
+        if (!await outputFile.exists() && backedUp && await backup.exists()) {
+          await backup.rename(outputFile.path);
+        }
+      } on Object {
+        // Preserve the original filesystem error. The backup remains beside
+        // the destination for manual recovery if automatic restoration fails.
+      }
+      try {
+        if (await temporary.exists()) await temporary.delete();
+      } on Object {
+        // Best-effort staging cleanup must not hide the original failure.
+      }
+      rethrow;
+    }
+  }
+
+  static Future<void> _writeDirectlyToSelectedFile({
+    required File outputFile,
+    required List<int> packageBytes,
+    required String packageSha256,
+  }) async {
+    List<int>? previousBytes;
+    if (await outputFile.exists()) {
+      previousBytes = await outputFile.readAsBytes();
+    }
+    try {
+      await outputFile.writeAsBytes(packageBytes, flush: true);
+      final writtenBytes = await outputFile.readAsBytes();
+      if (sha256.convert(writtenBytes).toString() != packageSha256) {
+        throw const GamePackageExportException(
+          code: 'exportWriteVerificationFailed',
+          message: 'Written package digest differs from the certified bytes.',
+        );
+      }
+    } on Object {
+      try {
+        if (previousBytes != null) {
+          await outputFile.writeAsBytes(previousBytes, flush: true);
+        } else if (await outputFile.exists()) {
+          await outputFile.delete();
+        }
+      } on Object {
+        // Preserve the write error; restoration is a best-effort safeguard for
+        // a destination selected by the user.
+      }
+      rethrow;
+    }
+  }
+
+  static Uri? _uri(String? source) {
+    if (source == null || source.trim().isEmpty) return null;
+    return Uri.parse(source.trim());
+  }
+
+  static GamePackageFontRole _packageFontRole(
+    RuntimeProjectProjection projection,
+    ProjectTypographyRole role,
+  ) {
+    final projected = projection.typographyRoles[role]!;
+    return GamePackageFontRole(
+      font: projected.fontPackagePath,
+      family: projected.profile.family,
+      license: projected.licensePackagePath,
+      fallbackFamilies: projected.profile.fallbackFamilies,
+      metrics: projected.profile.metrics == null
+          ? null
+          : GamePackageTypographyMetrics(
+              sizeScale: projected.profile.metrics!.sizeScale,
+              weight: projected.profile.metrics!.weight,
+              lineHeight: projected.profile.metrics!.lineHeight,
+              letterSpacing: projected.profile.metrics!.letterSpacing,
+            ),
+    );
+  }
+
+  static GamePackageResponsiveVideo _packageResponsiveVideo(
+    RuntimeProjectedResponsiveVideo media,
+  ) => GamePackageResponsiveVideo(
+    landscape: _packageVideoVariant(media.landscape),
+    portrait: media.portrait == null
+        ? null
+        : _packageVideoVariant(media.portrait!),
+  );
+
+  static GamePackageVideoVariant _packageVideoVariant(
+    RuntimeProjectedVideoVariant variant,
+  ) {
+    final profile = variant.profile;
+    return GamePackageVideoVariant(
+      video: variant.videoPackagePath,
+      poster: variant.posterPackagePath,
+      captions: variant.captionsPackagePath,
+      durationMilliseconds: profile.durationMilliseconds,
+      width: profile.width,
+      height: profile.height,
+      bitrateKbps: profile.bitrateKbps,
+      sizeBytes: profile.sizeBytes,
+      videoCodec: profile.videoCodec,
+      audioCodec: profile.audioCodec,
+      focalX: profile.focalX,
+      focalY: profile.focalY,
+    );
+  }
+
+  static GamePackageSemanticTheme _packageSemanticTheme(
+    ProjectSemanticThemeProfile theme,
+  ) => GamePackageSemanticTheme(
+    primary: theme.primary,
+    onPrimary: theme.onPrimary,
+    background: theme.background,
+    surface: theme.surface,
+    surfaceElevated: theme.surfaceElevated,
+    textPrimary: theme.textPrimary,
+    textSecondary: theme.textSecondary,
+    outline: theme.outline,
+    success: theme.success,
+    warning: theme.warning,
+    danger: theme.danger,
+    titleSurface: theme.titleSurface,
+    dialogueSurface: theme.dialogueSurface,
+    menuSurface: theme.menuSurface,
+    overworldHudSurface: theme.overworldHudSurface,
+    battleHudSurface: theme.battleHudSurface,
+  );
+
+  static GamePackageBattlePresentation _packageBattle(
+    ProjectBattlePresentationProfile profile,
+  ) => GamePackageBattlePresentation(
+    commandLayout: profile.commandLayout.name,
+    commandColumns: profile.commandColumns,
+    showCommandIcons: profile.showCommandIcons,
+    commandShape: profile.commandShape.name,
+    commandPadding: profile.commandPadding.round(),
+    commandSurfaceColor: profile.commandSurfaceColor,
+    commandBorderColor: profile.commandBorderColor,
+    commandTextColor: profile.commandTextColor,
+    commandSelectionColor: profile.commandSelectionColor,
+    commands: profile.commands
+        ?.map(
+          (command) => GamePackageBattleCommand(
+            id: command.id.name,
+            label: command.label,
+            icon: command.icon?.name,
+          ),
+        )
+        .toList(growable: false),
+    hudShape: profile.hudShape.name,
+    enemyHudPosition: profile.enemyHudPosition.name,
+    playerHudPosition: profile.playerHudPosition.name,
+    showOwnerLabel: profile.showOwnerLabel,
+    showLevel: profile.showLevel,
+    showExactHp: profile.showExactHp,
+    hpBarShape: profile.hpBarShape.name,
+    hpHealthyColor: profile.hpHealthyColor,
+    hpWarningColor: profile.hpWarningColor,
+    hpDangerColor: profile.hpDangerColor,
+    statusColor: profile.statusColor,
+    moves: _packageBattlePanel(profile.moves),
+    target: _packageBattlePanel(profile.target),
+    message: _packageBattlePanel(profile.message),
+  );
+
+  static GamePackageDialoguePresentation _packageDialogue(
+    ProjectDialoguePresentationProfile profile,
+  ) => GamePackageDialoguePresentation(
+    placement: profile.placement.name,
+    maxWidthFactor: profile.maxWidthFactor,
+    margin: profile.margin,
+    contentPadding: profile.contentPadding,
+    shape: profile.shape.name,
+    cornerRadius: profile.cornerRadius,
+    borderWidth: profile.borderWidth,
+    fillOpacity: profile.fillOpacity,
+    surfaceColor: profile.surfaceColor,
+    borderColor: profile.borderColor,
+    textColor: profile.textColor,
+    portraitSide: profile.portraitSide.name,
+    portraitSize: profile.portraitSize,
+    portraitShape: profile.portraitShape.name,
+    portraitFrameWidth: profile.portraitFrameWidth,
+    portraitFrameColor: profile.portraitFrameColor,
+    nameplateStyle: profile.nameplateStyle.name,
+    nameplateBorderWidth: profile.nameplateBorderWidth,
+    nameplateSurfaceColor: profile.nameplateSurfaceColor,
+    nameplateBorderColor: profile.nameplateBorderColor,
+    nameplateTextColor: profile.nameplateTextColor,
+    choiceSpacing: profile.choiceSpacing,
+    choiceShape: profile.choiceShape.name,
+    choiceDisabledOpacity: profile.choiceDisabledOpacity,
+    choiceSelectedColor: profile.choiceSelectedColor,
+    progressIndicator: profile.progressIndicator.name,
+    progressIndicatorColor: profile.progressIndicatorColor,
+    portraitTransition: profile.portraitTransition.name,
+    portraitTransitionMilliseconds: profile.portraitTransitionMilliseconds,
+  );
+
+  static GamePackageBattlePanelPresentation _packageBattlePanel(
+    ProjectBattlePanelPresentationProfile profile,
+  ) => GamePackageBattlePanelPresentation(
+    layout: profile.layout.name,
+    columns: profile.columns,
+    shape: profile.shape.name,
+    padding: profile.padding.round(),
+    surfaceColor: profile.surfaceColor,
+    borderColor: profile.borderColor,
+    textColor: profile.textColor,
+    selectionColor: profile.selectionColor,
+  );
+
+  static GamePackagePresentationWindows _packageWindows(
+    ProjectPresentationWindowsProfile windows,
+  ) => GamePackagePresentationWindows(
+    styles: <GamePackageWindowStyle>[
+      for (final style in windows.styles)
+        GamePackageWindowStyle(
+          id: style.id,
+          fillToken: style.fillToken,
+          borderToken: style.borderToken,
+          borderWidth: style.borderWidth,
+          cornerRadius: style.cornerRadius,
+          contentPadding: style.contentPadding,
+          shadowElevation: style.shadowElevation,
+          shape: style.shape.name,
+          fillOpacity: style.fillOpacity,
+        ),
+    ],
+    defaultStyleId: windows.defaultStyleId,
+    pauseMenuStyleId: windows.pauseMenuStyleId,
+    dialogueStyleId: windows.dialogueStyleId,
+    battleStyleId: windows.battleStyleId,
+    pauseBackdropOpacity: windows.pauseBackdropOpacity,
+  );
+
+  static GamePackagePresentationSurfacePalettes _packageSurfacePalettes(
+    ProjectPresentationSurfacePalettesProfile palettes,
+  ) => GamePackagePresentationSurfacePalettes(
+    title: _packageSurfacePalette(palettes.title),
+    pauseMenu: _packageSurfacePalette(palettes.pauseMenu),
+    dialogue: _packageSurfacePalette(palettes.dialogue),
+    battle: _packageSurfacePalette(palettes.battle),
+  );
+
+  static GamePackageSurfacePalette? _packageSurfacePalette(
+    ProjectSurfacePaletteProfile? palette,
+  ) => palette == null
+      ? null
+      : GamePackageSurfacePalette(
+          background: palette.background,
+          surface: palette.surface,
+          border: palette.border,
+          text: palette.text,
+          accent: palette.accent,
+          selection: palette.selection,
+        );
+
+  static GamePackageResponsivePauseComposition _packagePauseComposition(
+    ProjectResponsivePauseCompositionProfile composition,
+  ) => GamePackageResponsivePauseComposition(
+    compactPortrait: _packagePauseCompositionVariant(
+      composition.compactPortrait,
+    ),
+    compactLandscape: _packagePauseCompositionVariant(
+      composition.compactLandscape,
+    ),
+    expanded: _packagePauseCompositionVariant(composition.expanded),
+  );
+
+  static GamePackagePauseCompositionVariant _packagePauseCompositionVariant(
+    ProjectPauseCompositionVariantProfile variant,
+  ) => GamePackagePauseCompositionVariant(
+    entrySize: variant.entrySize.name,
+    entrySpacing: variant.entrySpacing.name,
+    showTitle: variant.showTitle,
+    showHint: variant.showHint,
+    showRootDetailPanel: variant.showRootDetailPanel,
+  );
+
+  static GamePackagePresentationLayouts _packageLayouts(
+    ProjectPresentationLayoutsProfile layouts,
+  ) => GamePackagePresentationLayouts(
+    title: _packageResponsiveLayout(layouts.title),
+    pauseMenu: _packageResponsiveLayout(layouts.pauseMenu),
+    dialogue: _packageResponsiveLayout(layouts.dialogue),
+    battle: layouts.battle == null
+        ? null
+        : _packageResponsiveLayout(layouts.battle!),
+  );
+
+  static GamePackageResponsiveSurfaceLayout _packageResponsiveLayout(
+    ProjectResponsiveSurfaceLayoutProfile layout,
+  ) => GamePackageResponsiveSurfaceLayout(
+    compact: _packageLayoutVariant(layout.compact),
+    regular: _packageLayoutVariant(layout.regular),
+    expanded: _packageLayoutVariant(layout.expanded),
+  );
+
+  static GamePackageSurfaceLayoutVariant _packageLayoutVariant(
+    ProjectSurfaceLayoutVariant variant,
+  ) => GamePackageSurfaceLayoutVariant(
+    breakpoint: variant.breakpoint.name,
+    slot: variant.slot.name,
+    width: variant.width.name,
+    spacing: variant.spacing.name,
+    screenMargin: variant.screenMargin.name,
+    visibleSecondaryElements: variant.visibleSecondaryElements.map(
+      (element) => element.name,
+    ),
+  );
+
+  static String _gameplayReadinessCreatorMessage(
+    List<NarrativeProjectDiagnostic> errors,
+  ) {
+    final buffer = StringBuffer(
+      'Le projet n’est pas encore jouable et ne peut pas être certifié.',
+    );
+    for (final diagnostic in errors.take(8)) {
+      buffer
+        ..write('\n[')
+        ..write(diagnostic.code)
+        ..write('] ')
+        ..write(diagnostic.message)
+        ..write(' — ')
+        ..write(diagnostic.path);
+    }
+    if (errors.length > 8) {
+      buffer.write('\n… ${errors.length - 8} autre(s) erreur(s).');
+    }
+    return buffer.toString();
+  }
+
+  static String _suggestedFileName(String title, String version) {
+    var slug = title
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'^-+|-+$'), '');
+    if (slug.isEmpty) slug = 'pokemap-game';
+    return '$slug-$version.avelunegame';
+  }
+}

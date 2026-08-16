@@ -1,6 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/server";
 
-import type { AuthoringGateway } from "./authoring_client.js";
+import type {
+  AuthoringGateway,
+  ProjectRootResolver,
+} from "./authoring_client.js";
 import type { ArtifactReader } from "./artifacts.js";
 import type { RuntimeGateway } from "./runtime_gateway.js";
 import {
@@ -17,11 +20,13 @@ import {
 import { registerReadOnlyResources } from "./resources/read_only.js";
 import { registerReadOnlyTools } from "./tools/read_only.js";
 import { registerMutationTools } from "./tools/mutations.js";
+import { registerGameExportTool } from "./tools/game_export.js";
 import { registerRuntimeTools } from "./tools/runtime.js";
 
 export interface PokeMapMcpServerDependencies {
   authoring: AuthoringGateway;
   artifacts: ArtifactReader;
+  projectRoots?: ProjectRootResolver;
   runtime?: RuntimeGateway;
   guard?: PokeMapRequestGuard;
 }
@@ -45,6 +50,7 @@ export function createPokeMapMcpServer(
   );
   registerReadOnlyTools(server, authoring, artifacts);
   registerMutationTools(server, authoring);
+  registerGameExportTool(server, authoring, dependencies.projectRoots);
   if (runtime) {
     registerRuntimeTools(server, runtime);
   }
