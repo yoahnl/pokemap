@@ -3072,7 +3072,6 @@ CinematicAsset _copyCinematicWithTimeline(
     timeline: timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
-    legacyBridge: cinematic.legacyBridge,
   );
 }
 
@@ -3094,7 +3093,6 @@ CinematicAsset _copyCinematicWithActors(
     timeline: cinematic.timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
-    legacyBridge: cinematic.legacyBridge,
   );
 }
 
@@ -3116,7 +3114,6 @@ CinematicAsset _copyCinematicWithMovementTargets(
     timeline: cinematic.timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
-    legacyBridge: cinematic.legacyBridge,
   );
 }
 
@@ -3138,7 +3135,6 @@ CinematicAsset _copyCinematicWithStageMap(
     timeline: cinematic.timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
-    legacyBridge: cinematic.legacyBridge,
   );
 }
 
@@ -3160,7 +3156,6 @@ CinematicAsset _copyCinematicWithStageContext(
     timeline: cinematic.timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
-    legacyBridge: cinematic.legacyBridge,
   );
 }
 

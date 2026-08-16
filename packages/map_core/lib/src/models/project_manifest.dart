@@ -197,8 +197,7 @@ Map<String, dynamic> _sceneJsonObject(Object? json) {
 
 /// JSON -> authoring Cinematics.
 ///
-/// Missing or `null` keeps old projects readable as an empty list. This does
-/// not import or migrate legacy `ScenarioAsset` / Cutscene Studio data.
+/// Missing or `null` represents a project without in-game Cinematics.
 List<CinematicAsset> _cinematicsFromJson(Object? json) {
   if (json == null) {
     return const <CinematicAsset>[];
@@ -539,6 +538,7 @@ abstract class ProjectManifest with _$ProjectManifest {
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) {
     _preflightPokemonRulesetManifestJson(json);
+    _preflightRemovedCinematicJson(json);
     final migratedJson = _migrateLegacyTilesetSources(json);
     _preflightProjectManifestJson(migratedJson);
     final decoded = _$ProjectManifestFromJson(migratedJson);
@@ -653,6 +653,38 @@ void _preflightProjectManifestJson(Map<String, dynamic> json) {
         '\$.$key: smart_tile_v6_legacy_manifest_field_unsupported '
         '(version=$version, field=$key)',
       );
+    }
+  }
+}
+
+void _preflightRemovedCinematicJson(Map<String, dynamic> json) {
+  final cinematics = json['cinematics'];
+  if (cinematics is List) {
+    for (var index = 0; index < cinematics.length; index++) {
+      final cinematic = cinematics[index];
+      if (cinematic is Map && cinematic.containsKey('legacyBridge')) {
+        throw FormatException(
+          '\$.cinematics[$index].legacyBridge: '
+          'legacy_cinematic_bridge_unsupported '
+          '(rebuildWith=canonicalCinematicStudio)',
+        );
+      }
+    }
+  }
+  final scenarios = json['scenarios'];
+  if (scenarios is List) {
+    for (var index = 0; index < scenarios.length; index++) {
+      final scenario = scenarios[index];
+      if (scenario is! Map) continue;
+      final metadata = scenario['metadata'];
+      if (metadata is Map &&
+          metadata.containsKey('authoring.cutsceneSchema')) {
+        throw FormatException(
+          '\$.scenarios[$index].metadata.authoring.cutsceneSchema: '
+          'legacy_cinematic_scenario_unsupported '
+          '(rebuildWith=canonicalCinematicStudio)',
+        );
+      }
     }
   }
 }

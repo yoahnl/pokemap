@@ -48,12 +48,6 @@ final class SceneCinematicRuntimeAwaitableAdapter {
 
     final asset = _findCanonicalCinematic(cinematicId);
     if (asset == null) {
-      if (_isLegacyScenarioBridge(cinematicId)) {
-        return SceneCinematicRuntimeAwaitableResult.legacyBridgeAcknowledged(
-          message: 'Scene cinematic "$cinematicId" uses a legacy scenario '
-              'bridge; it is not a canonical CinematicAsset.',
-        );
-      }
       return SceneCinematicRuntimeAwaitableResult.failed(
         errorCode: SceneCinematicRuntimeAwaitableErrorCode.unknownCinematicId,
         message: 'Scene cinematic "$cinematicId" was not found.',
@@ -85,17 +79,6 @@ final class SceneCinematicRuntimeAwaitableAdapter {
       }
     }
     return null;
-  }
-
-  bool _isLegacyScenarioBridge(String cinematicId) {
-    for (final contract in buildCinematicPublicContracts(project)) {
-      if (contract.id == cinematicId &&
-          contract.sourceKind ==
-              CinematicPublicContractSourceKind.scenarioBridge) {
-        return true;
-      }
-    }
-    return false;
   }
 }
 

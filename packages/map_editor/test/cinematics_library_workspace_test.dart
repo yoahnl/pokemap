@@ -1499,7 +1499,6 @@ class _HarnessState extends State<_Harness> {
                     timeline: existing.timeline,
                     notes: notes,
                     metadata: metadata,
-                    legacyBridge: existing.legacyBridge,
                   ),
                 );
                 setState(() => _project = result.updatedProject);

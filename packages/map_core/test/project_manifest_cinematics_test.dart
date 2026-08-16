@@ -55,6 +55,59 @@ void main() {
       );
     });
 
+    test('rejects removed Scenario cinematic metadata before decoding', () {
+      expect(
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
+          ..._minimalProjectJson(),
+          'scenarios': [
+            const ScenarioAsset(
+              id: 'scenario_cutscene',
+              name: 'Legacy cutscene',
+              entryNodeId: 'start',
+              metadata: {'authoring.cutsceneSchema': 'cutscene_studio_v2'},
+            ).toJson(),
+          ],
+        }),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            contains('legacy_cinematic_scenario_unsupported'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects removed cinematic bridge payload with an actionable path',
+        () {
+      expect(
+        () => ProjectManifest.fromJsonPokeMapBetaV1ForTest({
+          ..._minimalProjectJson(),
+          'cinematics': [
+            {
+              'id': 'cinematic_intro',
+              'title': 'Intro cinematic',
+              'timeline': {'steps': <Object>[]},
+              'legacyBridge': null,
+            },
+          ],
+        }),
+        throwsA(
+          isA<FormatException>()
+              .having(
+                (error) => error.message,
+                'message',
+                contains(r'$.cinematics[0].legacyBridge'),
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                contains('legacy_cinematic_bridge_unsupported'),
+              ),
+        ),
+      );
+    });
+
     test('round-trips manifest with cinematics through JSON', () {
       final manifest = ProjectManifest(
         name: 'Project',

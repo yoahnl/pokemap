@@ -82,7 +82,7 @@ export 'src/operations/presentation_playback_clock.dart';
 export 'src/operations/cinematic_library_catalog_operations.dart';
 export 'src/operations/presentation_media_publication.dart';
 export 'src/serialization/presentation_cinematic_codec.dart';
-export 'src/compatibility/cinematic_legacy_migration_plan.dart';
+export 'src/compatibility/narrative_legacy_migration_scan.dart';
 export 'src/compatibility/environment_single_area_migration.dart';
 export 'src/models/cinematic_media_asset.dart';
 export 'src/models/cinematic_emote_catalog.dart';

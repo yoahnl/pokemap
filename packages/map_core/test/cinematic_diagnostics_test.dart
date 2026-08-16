@@ -1626,30 +1626,6 @@ void main() {
       );
     });
 
-    test('reports legacy bridge without making it canonical runtime', () {
-      final report = diagnoseCinematicAsset(
-        _cinematic(
-          id: 'cinematic_bridge',
-          legacyBridge: CinematicLegacyBridge(
-            sourceKind: CinematicLegacyBridgeSourceKind.scenarioAsset,
-            scenarioId: 'scenario_bridge',
-            cutsceneSchema: 'cutscene_studio_v2',
-          ),
-        ),
-      );
-
-      expect(
-        report.byCode(CinematicDiagnosticCode.cinematicLegacyBridge),
-        hasLength(1),
-      );
-      expect(
-        report.byCode(
-          CinematicDiagnosticCode.cinematicScenarioBridgeNotCanonical,
-        ),
-        hasLength(1),
-      );
-    });
-
     test('diagnoses duplicate stage point ids', () {
       final report = diagnoseCinematicAsset(
         CinematicAsset(
@@ -2426,7 +2402,6 @@ CinematicAsset _cinematic({
   List<CinematicActorRef> requiredActors = const [],
   List<CinematicMovementTargetRef> movementTargets = const [],
   CinematicStageContext? stageContext,
-  CinematicLegacyBridge? legacyBridge,
 }) {
   return CinematicAsset(
     id: id,
@@ -2446,7 +2421,6 @@ CinematicAsset _cinematic({
         ),
       ],
     ),
-    legacyBridge: legacyBridge,
   );
 }
 

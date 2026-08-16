@@ -53,12 +53,6 @@ void main() {
         ),
         notes: 'Authoring note.',
         metadata: const {'author': 'test'},
-        legacyBridge: CinematicLegacyBridge(
-          sourceKind: CinematicLegacyBridgeSourceKind.cutsceneStudio,
-          scenarioId: 'scenario_legacy_intro',
-          cutsceneSchema: 'cutscene_studio_v2',
-          notes: 'Imported later by an explicit tool.',
-        ),
       );
 
       final json =
@@ -74,7 +68,28 @@ void main() {
       expect(decoded.requiredActors.single.actorId, 'actor_professor');
       expect(decoded.movementTargets.single.targetId, 'target_center');
       expect(decoded.movementTargets.single.label, 'Centre de scène');
-      expect(decoded.legacyBridge?.scenarioId, 'scenario_legacy_intro');
+      expect(decoded.toJson(), isNot(contains('legacyBridge')));
+    });
+
+    test('rejects removed legacy bridge payloads before decoding', () {
+      expect(
+        () => CinematicAsset.fromJson({
+          'id': 'cinematic_intro',
+          'title': 'Intro cinematic',
+          'timeline': {'steps': <Object>[]},
+          'legacyBridge': {
+            'sourceKind': 'cutsceneStudio',
+            'scenarioId': 'scenario_legacy_intro',
+          },
+        }),
+        throwsA(
+          isA<ArgumentError>().having(
+            (error) => error.message,
+            'message',
+            contains('legacyBridge is no longer supported'),
+          ),
+        ),
+      );
     });
 
     test('V1-131 round-trips camera focus metadata through typed helpers', () {

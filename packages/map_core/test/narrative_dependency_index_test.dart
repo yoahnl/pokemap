@@ -1868,10 +1868,6 @@ void main() {
             ),
           ],
         ),
-        legacyBridge: CinematicLegacyBridge(
-          sourceKind: CinematicLegacyBridgeSourceKind.scenarioAsset,
-          scenarioId: 'scenario.legacy',
-        ),
       );
       final project = _project(
         maps: const <ProjectMapEntry>[
@@ -1949,15 +1945,6 @@ void main() {
             'media.bell',
           ),
         ]),
-      );
-      expect(
-        index
-            .usagesOwnedBy(cinematicOwner)
-            .singleWhere(
-              (usage) => usage.path.endsWith('legacyBridge.scenarioId'),
-            )
-            .resolution,
-        NarrativeDependencyResolution.legacyExternal,
       );
       expect(
         index.usagesOwnedBy(ruleOwner).map((usage) => usage.target),

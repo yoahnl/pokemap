@@ -294,7 +294,7 @@ void main() {
       ]);
       expect(
         contract.diagnostics.map((diagnostic) => diagnostic.code),
-        contains(LinkedAssetContractDiagnosticCode.legacyBridge),
+        contains(LinkedAssetContractDiagnosticCode.scenarioBridge),
       );
     });
 

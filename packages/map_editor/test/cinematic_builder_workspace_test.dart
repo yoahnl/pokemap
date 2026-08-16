@@ -16808,7 +16808,6 @@ void main() {
         timeline: fixture.asset.timeline,
         notes: fixture.asset.notes,
         metadata: fixture.asset.metadata,
-        legacyBridge: fixture.asset.legacyBridge,
       );
 
       final project = _project(cinematics: [assetWithPoints]);
@@ -17033,7 +17032,6 @@ void main() {
         timeline: fixture.asset.timeline,
         notes: fixture.asset.notes,
         metadata: fixture.asset.metadata,
-        legacyBridge: fixture.asset.legacyBridge,
       );
 
       final project = _project(cinematics: [assetWithPoints]);
@@ -17122,7 +17120,6 @@ void main() {
         timeline: fixture.asset.timeline,
         notes: fixture.asset.notes,
         metadata: fixture.asset.metadata,
-        legacyBridge: fixture.asset.legacyBridge,
       );
 
       final project = _project(cinematics: [assetWithPoints]);
@@ -17235,7 +17232,6 @@ void main() {
       timeline: fixture.asset.timeline,
       notes: fixture.asset.notes,
       metadata: fixture.asset.metadata,
-      legacyBridge: fixture.asset.legacyBridge,
     );
 
     final project = _project(cinematics: [assetWithPoints]);
@@ -17381,7 +17377,6 @@ void main() {
         timeline: fixture.asset.timeline,
         notes: fixture.asset.notes,
         metadata: fixture.asset.metadata,
-        legacyBridge: fixture.asset.legacyBridge,
       );
 
       final updatedManifest = fixture.project.copyWith(
@@ -17636,7 +17631,6 @@ void main() {
       timeline: fixture.asset.timeline,
       notes: fixture.asset.notes,
       metadata: fixture.asset.metadata,
-      legacyBridge: fixture.asset.legacyBridge,
     );
 
     final updatedManifest = fixture.project.copyWith(
@@ -17905,7 +17899,6 @@ void main() {
       ),
       notes: fixture.asset.notes,
       metadata: fixture.asset.metadata,
-      legacyBridge: fixture.asset.legacyBridge,
     );
 
     late ProjectManifest latestProject;
@@ -18390,7 +18383,6 @@ void main() {
         ),
         notes: fixture.asset.notes,
         metadata: fixture.asset.metadata,
-        legacyBridge: fixture.asset.legacyBridge,
       );
 
       final project = fixture.project.copyWith(cinematics: [assetWithMove]);
@@ -22104,7 +22096,6 @@ CinematicAsset _animatedLysaPlaybackCinematic(
     ),
     notes: asset.notes,
     metadata: asset.metadata,
-    legacyBridge: asset.legacyBridge,
   );
 }
 

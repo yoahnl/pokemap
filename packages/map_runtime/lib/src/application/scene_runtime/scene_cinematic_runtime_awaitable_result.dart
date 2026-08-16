@@ -1,6 +1,5 @@
 enum SceneCinematicRuntimeAwaitableStatus {
   completed,
-  legacyBridgeAcknowledged,
   failed,
 }
 
@@ -29,13 +28,6 @@ final class SceneCinematicRuntimeAwaitableResult {
   const SceneCinematicRuntimeAwaitableResult.completed()
       : this._(status: SceneCinematicRuntimeAwaitableStatus.completed);
 
-  const SceneCinematicRuntimeAwaitableResult.legacyBridgeAcknowledged({
-    required String message,
-  }) : this._(
-          status: SceneCinematicRuntimeAwaitableStatus.legacyBridgeAcknowledged,
-          message: message,
-        );
-
   const SceneCinematicRuntimeAwaitableResult.failed({
     required SceneCinematicRuntimeAwaitableErrorCode errorCode,
     required String message,
@@ -54,8 +46,6 @@ final class SceneCinematicRuntimeAwaitableResult {
   String? get scenePortId {
     return switch (status) {
       SceneCinematicRuntimeAwaitableStatus.completed => 'completed',
-      SceneCinematicRuntimeAwaitableStatus.legacyBridgeAcknowledged =>
-        'completed',
       SceneCinematicRuntimeAwaitableStatus.failed => null,
     };
   }

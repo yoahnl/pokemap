@@ -300,7 +300,6 @@ abstract final class NarrativeAssetMutation {
         timeline: source.timeline,
         notes: source.notes,
         metadata: source.metadata,
-        legacyBridge: source.legacyBridge,
       );
       final after = project.copyWith(
         cinematics: [...project.cinematics, clone],

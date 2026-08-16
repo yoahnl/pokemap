@@ -37,7 +37,7 @@ void main() {
       expect(bridge.isRemovable, isFalse);
       expect(
         bridge.diagnostics.map((diagnostic) => diagnostic.code),
-        contains('legacyBridge'),
+        contains('scenarioBridge'),
       );
     });
 

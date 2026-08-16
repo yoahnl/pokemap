@@ -20,8 +20,6 @@ enum CinematicTimelineStepKind {
   marker,
 }
 
-enum CinematicLegacyBridgeSourceKind { scenarioAsset, cutsceneStudio, unknown }
-
 enum CinematicStageBackdropMode { none, projectMap }
 
 enum CinematicActorBindingKind { player, mapEntity, cinematicOnly, unbound }
@@ -57,7 +55,6 @@ final class CinematicAsset {
     required this.timeline,
     String? notes,
     Map<String, String> metadata = const <String, String>{},
-    this.legacyBridge,
   })  : id = _requireTrimmed(id, 'CinematicAsset.id'),
         title = _requireTrimmed(title, 'CinematicAsset.title'),
         description = _trimOptional(description),
@@ -73,6 +70,13 @@ final class CinematicAsset {
         metadata = Map<String, String>.unmodifiable(metadata);
 
   factory CinematicAsset.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('legacyBridge')) {
+      throw ArgumentError.value(
+        json['legacyBridge'],
+        'legacyBridge',
+        'legacyBridge is no longer supported; rebuild the cinematic with the canonical Cinematic Studio before opening this project',
+      );
+    }
     return CinematicAsset(
       id: _readRequiredString(json, 'id'),
       title: _readRequiredString(json, 'title'),
@@ -101,11 +105,6 @@ final class CinematicAsset {
               CinematicTimeline(),
       notes: _readOptionalString(json, 'notes'),
       metadata: _readStringMap(json, 'metadata'),
-      legacyBridge: _readOptionalObject(
-        json,
-        'legacyBridge',
-        CinematicLegacyBridge.fromJson,
-      ),
     );
   }
 
@@ -123,10 +122,6 @@ final class CinematicAsset {
   final String? notes;
   final Map<String, String> metadata;
 
-  /// Optional legacy metadata. It documents provenance only; runtime V1 must
-  /// not execute a ScenarioAsset through this bridge.
-  final CinematicLegacyBridge? legacyBridge;
-
   CinematicAsset copyWith({
     String? id,
     String? title,
@@ -141,7 +136,6 @@ final class CinematicAsset {
     CinematicTimeline? timeline,
     Object? notes = _cinematicCopyUnset,
     Map<String, String>? metadata,
-    Object? legacyBridge = _cinematicCopyUnset,
   }) {
     return CinematicAsset(
       id: id ?? this.id,
@@ -167,9 +161,6 @@ final class CinematicAsset {
       notes:
           identical(notes, _cinematicCopyUnset) ? this.notes : notes as String?,
       metadata: metadata ?? this.metadata,
-      legacyBridge: identical(legacyBridge, _cinematicCopyUnset)
-          ? this.legacyBridge
-          : legacyBridge as CinematicLegacyBridge?,
     );
   }
 
@@ -189,7 +180,6 @@ final class CinematicAsset {
         'timeline': timeline.toJson(),
         'notes': notes,
         'metadata': metadata,
-        'legacyBridge': legacyBridge?.toJson(),
       });
 
   @override
@@ -208,8 +198,7 @@ final class CinematicAsset {
           other.stageContext == stageContext &&
           other.timeline == timeline &&
           other.notes == notes &&
-          _mapEquals(other.metadata, metadata) &&
-          other.legacyBridge == legacyBridge;
+          _mapEquals(other.metadata, metadata);
 
   @override
   int get hashCode => Object.hash(
@@ -226,7 +215,6 @@ final class CinematicAsset {
         timeline,
         notes,
         _mapHash(metadata),
-        legacyBridge,
       );
 }
 
@@ -891,56 +879,6 @@ final class CinematicMovementTargetRef {
 
   @override
   int get hashCode => Object.hash(targetId, label, description);
-}
-
-@immutable
-final class CinematicLegacyBridge {
-  CinematicLegacyBridge({
-    required this.sourceKind,
-    String? scenarioId,
-    String? cutsceneSchema,
-    String? notes,
-  })  : scenarioId = _trimOptional(scenarioId),
-        cutsceneSchema = _trimOptional(cutsceneSchema),
-        notes = _trimOptional(notes);
-
-  factory CinematicLegacyBridge.fromJson(Map<String, dynamic> json) {
-    return CinematicLegacyBridge(
-      sourceKind: _readEnum(
-        CinematicLegacyBridgeSourceKind.values,
-        json['sourceKind'],
-        'sourceKind',
-      ),
-      scenarioId: _readOptionalString(json, 'scenarioId'),
-      cutsceneSchema: _readOptionalString(json, 'cutsceneSchema'),
-      notes: _readOptionalString(json, 'notes'),
-    );
-  }
-
-  final CinematicLegacyBridgeSourceKind sourceKind;
-  final String? scenarioId;
-  final String? cutsceneSchema;
-  final String? notes;
-
-  Map<String, dynamic> toJson() => _withoutNulls({
-        'sourceKind': sourceKind.name,
-        'scenarioId': scenarioId,
-        'cutsceneSchema': cutsceneSchema,
-        'notes': notes,
-      });
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is CinematicLegacyBridge &&
-          other.sourceKind == sourceKind &&
-          other.scenarioId == scenarioId &&
-          other.cutsceneSchema == cutsceneSchema &&
-          other.notes == notes;
-
-  @override
-  int get hashCode =>
-      Object.hash(sourceKind, scenarioId, cutsceneSchema, notes);
 }
 
 String _requireTrimmed(String value, String fieldName) {

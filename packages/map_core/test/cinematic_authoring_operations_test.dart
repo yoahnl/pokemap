@@ -1089,13 +1089,8 @@ void main() {
       );
     });
 
-    test(
-        'upserts placements and target bindings while preserving legacy bridge',
+    test('upserts placements and target bindings without altering timeline',
         () {
-      final bridge = CinematicLegacyBridge(
-        sourceKind: CinematicLegacyBridgeSourceKind.cutsceneStudio,
-        scenarioId: 'scenario_legacy_intro',
-      );
       final project = _project(
         cinematics: [
           _cinematic(
@@ -1109,7 +1104,6 @@ void main() {
                 label: 'Centre scene',
               ),
             ],
-            legacyBridge: bridge,
           ),
         ],
       );
@@ -1157,7 +1151,6 @@ void main() {
       expect(
           removedTargetBinding.cinematic.stageContext?.movementTargetBindings,
           isEmpty);
-      expect(targetBinding.cinematic.legacyBridge, bridge);
       expect(
           targetBinding.cinematic.timeline, project.cinematics.single.timeline);
       expect(
@@ -3247,7 +3240,6 @@ CinematicAsset _cinematic({
   List<CinematicMovementTargetRef> movementTargets = const [],
   CinematicStageContext? stageContext,
   CinematicTimeline? timeline,
-  CinematicLegacyBridge? legacyBridge,
 }) {
   return CinematicAsset(
     id: id,
@@ -3267,7 +3259,6 @@ CinematicAsset _cinematic({
             ),
           ],
         ),
-    legacyBridge: legacyBridge,
   );
 }
 

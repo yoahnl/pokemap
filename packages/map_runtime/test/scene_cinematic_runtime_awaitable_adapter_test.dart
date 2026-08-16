@@ -134,8 +134,7 @@ void main() {
       expect(launched, isFalse);
     });
 
-    test(
-        'keeps scenarioBridge legacy explicit and does not launch canonical player',
+    test('rejects removed scenario bridge without launching the player',
         () async {
       var launched = false;
       final adapter = SceneCinematicRuntimeAwaitableAdapter(
@@ -162,12 +161,16 @@ void main() {
 
       expect(
         result.status,
-        SceneCinematicRuntimeAwaitableStatus.legacyBridgeAcknowledged,
+        SceneCinematicRuntimeAwaitableStatus.failed,
       );
-      expect(result.success, isTrue);
-      expect(result.scenePortId, 'completed');
+      expect(
+        result.errorCode,
+        SceneCinematicRuntimeAwaitableErrorCode.unknownCinematicId,
+      );
+      expect(result.success, isFalse);
+      expect(result.scenePortId, isNull);
       expect(launched, isFalse);
-      expect(result.message, contains('legacy scenario bridge'));
+      expect(result.message, contains('was not found'));
     });
 
     test('does not mutate GameState or apply Scene consequences directly',

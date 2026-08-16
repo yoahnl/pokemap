@@ -1401,7 +1401,6 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
           stageContext: widget.asset.stageContext ?? CinematicStageContext(),
           notes: widget.asset.notes,
           metadata: widget.asset.metadata,
-          legacyBridge: widget.asset.legacyBridge,
         ),
       ],
     );
@@ -1600,7 +1599,6 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
             stageContext: widget.asset.stageContext ?? CinematicStageContext(),
             notes: widget.asset.notes,
             metadata: widget.asset.metadata,
-            legacyBridge: widget.asset.legacyBridge,
           ),
         ],
       );
@@ -1640,7 +1638,6 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
             stageContext: widget.asset.stageContext ?? CinematicStageContext(),
             notes: widget.asset.notes,
             metadata: widget.asset.metadata,
-            legacyBridge: widget.asset.legacyBridge,
           ),
         ],
       );
@@ -1680,7 +1677,6 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
             stageContext: widget.asset.stageContext ?? CinematicStageContext(),
             notes: widget.asset.notes,
             metadata: widget.asset.metadata,
-            legacyBridge: widget.asset.legacyBridge,
           ),
         ],
       );

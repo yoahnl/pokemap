@@ -1774,16 +1774,6 @@ final class _NarrativeDependencyIndexBuilder {
           );
         }
       }
-      final scenarioId = cinematic.legacyBridge?.scenarioId;
-      if (scenarioId != null) {
-        _usage(
-          target: NarrativeDependencyKey.legacyScenario(scenarioId),
-          owner: owner,
-          path: 'cinematics[${cinematic.id}].legacyBridge.scenarioId',
-          criticality: NarrativeDependencyCriticality.informational,
-          resolution: NarrativeDependencyResolution.legacyExternal,
-        );
-      }
     }
   }
 

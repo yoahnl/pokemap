@@ -22,7 +22,7 @@ enum LinkedAssetContractDiagnosticCode {
   missingLabel,
   rawTechnicalLabel,
   missingOutcomeContract,
-  legacyBridge,
+  scenarioBridge,
   unsupportedSource,
   emptyTrainerTeam,
   missingBattleTemplateRef,
@@ -541,14 +541,6 @@ List<CinematicPublicContract> buildCinematicPublicContracts(
         fallbackId: id,
         sourceId: id,
       ),
-      if (cinematic.legacyBridge != null)
-        LinkedAssetContractDiagnostic(
-          code: LinkedAssetContractDiagnosticCode.legacyBridge,
-          severity: LinkedAssetContractDiagnosticSeverity.warning,
-          message:
-              'This canonical CinematicAsset carries legacy bridge provenance; review it before runtime playback.',
-          sourceId: id,
-        ),
     ];
     if (id.isEmpty) {
       diagnostics.add(
@@ -596,7 +588,7 @@ List<CinematicPublicContract> buildCinematicPublicContracts(
         sourceId: id,
       ),
       LinkedAssetContractDiagnostic(
-        code: LinkedAssetContractDiagnosticCode.legacyBridge,
+        code: LinkedAssetContractDiagnosticCode.scenarioBridge,
         severity: LinkedAssetContractDiagnosticSeverity.warning,
         message:
             'This cinematic contract is a ScenarioAsset bridge, not a canonical CinematicAsset.',

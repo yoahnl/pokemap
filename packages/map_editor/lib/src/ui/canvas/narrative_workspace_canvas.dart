@@ -3715,7 +3715,6 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         timeline: existing.timeline,
         notes: notes.trim(),
         metadata: metadata,
-        legacyBridge: existing.legacyBridge,
       ),
     );
     if (mutation is NarrativeAssetRejected) {

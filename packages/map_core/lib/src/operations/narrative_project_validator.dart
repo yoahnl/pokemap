@@ -5,7 +5,7 @@ import '../diagnostics/event_scene_link_diagnostics.dart';
 import '../diagnostics/scene_diagnostics.dart';
 import '../diagnostics/storyline_scene_link_diagnostics.dart';
 import '../diagnostics/world_rule_diagnostics.dart';
-import '../compatibility/cinematic_legacy_migration_plan.dart';
+import '../compatibility/narrative_legacy_migration_scan.dart';
 import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';

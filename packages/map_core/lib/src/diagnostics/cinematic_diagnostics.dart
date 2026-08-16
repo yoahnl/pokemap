@@ -70,8 +70,6 @@ enum CinematicDiagnosticCode {
   characterLibraryUnavailable,
   characterAssetMissingSprite,
   characterAssetMissingPreviewData,
-  cinematicLegacyBridge,
-  cinematicScenarioBridgeNotCanonical,
   stagePointDuplicateId,
   stagePointEmptyId,
   stagePointEmptyLabel,
@@ -110,7 +108,6 @@ enum CinematicDiagnosticTarget {
   step,
   reference,
   stageContext,
-  legacyBridge,
 }
 
 final class CinematicDiagnostic {
@@ -216,7 +213,6 @@ CinematicDiagnosticsReport diagnoseCinematicAsset(
     mapWidth: mapWidth,
     mapHeight: mapHeight,
   );
-  _diagnoseLegacyBridge(cinematic, diagnostics);
   return CinematicDiagnosticsReport(diagnostics: diagnostics);
 }
 
@@ -1998,44 +1994,6 @@ void _diagnoseActorMoveStep(
         }
       }
     }
-  }
-}
-
-void _diagnoseLegacyBridge(
-  CinematicAsset cinematic,
-  List<CinematicDiagnostic> diagnostics,
-) {
-  final bridge = cinematic.legacyBridge;
-  if (bridge == null) {
-    return;
-  }
-  diagnostics.add(
-    CinematicDiagnostic(
-      code: CinematicDiagnosticCode.cinematicLegacyBridge,
-      severity: CinematicDiagnosticSeverity.warning,
-      message:
-          'Cette Cinematic porte un bridge legacy ; elle reste canonique, mais la provenance doit être revue.',
-      cinematicId: cinematic.id,
-      referenceId: bridge.scenarioId,
-      target: CinematicDiagnosticTarget.legacyBridge,
-      suggestedFixLabel: 'Vérifier la timeline canonique avant runtime.',
-    ),
-  );
-  if (bridge.sourceKind == CinematicLegacyBridgeSourceKind.scenarioAsset ||
-      bridge.sourceKind == CinematicLegacyBridgeSourceKind.cutsceneStudio) {
-    diagnostics.add(
-      CinematicDiagnostic(
-        code: CinematicDiagnosticCode.cinematicScenarioBridgeNotCanonical,
-        severity: CinematicDiagnosticSeverity.info,
-        message:
-            'Le bridge Scenario/Cutscene n’est pas la source de vérité runtime Cinematic V1.',
-        cinematicId: cinematic.id,
-        referenceId: bridge.scenarioId,
-        target: CinematicDiagnosticTarget.legacyBridge,
-        suggestedFixLabel:
-            'Conserver le bridge comme provenance, pas comme exécution.',
-      ),
-    );
   }
 }
 

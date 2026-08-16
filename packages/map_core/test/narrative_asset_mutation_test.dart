@@ -145,12 +145,6 @@ void main() {
         ),
         notes: 'Ne pas déplacer le rival.',
         metadata: const {'camera': 'wide'},
-        legacyBridge: CinematicLegacyBridge(
-          sourceKind: CinematicLegacyBridgeSourceKind.cutsceneStudio,
-          scenarioId: 'legacy_intro',
-          cutsceneSchema: 'cutscene_v2',
-          notes: 'Provenance uniquement.',
-        ),
       );
       final project = _project(
         cinematics: [source],
