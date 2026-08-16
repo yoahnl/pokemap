@@ -3,33 +3,33 @@
   "dependencies": [
     {
       "ticket": "BETA-CIN-010",
-      "workflowStatus": "toReview",
+      "workflowStatus": "done",
       "technicalVerdict": "pass",
       "sourceCommit": "c327494b89a4b1ff54a675793b775015c346d43b"
     },
     {
       "ticket": "BETA-CIN-028",
-      "workflowStatus": "toReview",
+      "workflowStatus": "done",
       "technicalVerdict": "pass",
       "sourceCommit": "27a6301a12ebde7745b974ee62f49c1529160c34"
     },
     {
       "ticket": "BETA-CIN-033",
-      "workflowStatus": "toReview",
+      "workflowStatus": "done",
       "technicalVerdict": "pass",
       "sourceCommit": "bfdbe76e0acaa3c8202d1c79aa42d38b385c61f5"
     },
     {
       "ticket": "BETA-CIN-036",
-      "workflowStatus": "toReview",
+      "workflowStatus": "done",
       "technicalVerdict": "pass",
       "sourceCommit": "4f40eb6706db367c357702caa9fcbe3d0f61758f"
     },
     {
       "ticket": "BETA-CIN-038",
-      "workflowStatus": "toReview",
-      "technicalVerdict": "partial",
-      "sourceCommit": "68c00aae67f452523fc6d58600e7de0c10d92220"
+      "workflowStatus": "done",
+      "technicalVerdict": "pass",
+      "sourceCommit": "53f3f5b7c7661e60bc20fe3217ae1be1fc76cc08"
     },
     {
       "ticket": "BETA-CIN-041",
@@ -39,8 +39,8 @@
     },
     {
       "ticket": "BETA-LCH-001",
-      "workflowStatus": "toReview",
-      "technicalVerdict": "partial",
+      "workflowStatus": "done",
+      "technicalVerdict": "pass",
       "sourceCommit": "ed52c7082ae3e5940baafeaccc8ce8d72be6ca9c"
     }
   ],
@@ -121,14 +121,14 @@
     {
       "id": "runtimePerformance",
       "sourceTicket": "BETA-CIN-038",
-      "sourceCommit": "68c00aae67f452523fc6d58600e7de0c10d92220",
-      "status": "blocked",
-      "summary": "The local profile smoke is green but the exact-SHA device matrix is incomplete.",
-      "command": null,
-      "resultSha256": null,
+      "sourceCommit": "53f3f5b7c7661e60bc20fe3217ae1be1fc76cc08",
+      "status": "passed",
+      "summary": "A clean exact-SHA macOS profile receipt covers 50 landscape and portrait playback cycles with one decoder maximum, zero retained decoder or media handle, 0.37% RSS growth from cycle 5 to 50, 52.972 ms skip p95, 265.702 ms first-frame proxy p95 and 99.88% UI frames within budget.",
+      "command": "cd tools/pokemap_product_certification && FLUTTER_VERSION=3.46.0-0.3.pre FLUTTER_REVISION=677d472756f83c14371dd8cc624387065f3d32a7 dart run bin/certify_presentation_runtime_performance.dart --repository-root ../.. --measurements ../../apps/pokemap_hub/build/performance/cin038_review_measurements.json --platform-support ../../apps/pokemap_hub/tool/release/platform_support.json --output ../../apps/pokemap_hub/build/certification/cin038_review_receipt.json",
+      "resultSha256": "120d92bd9ebaecb97b9e8f388a137a86a1c90d0756cfd695b28888d513aa769e",
       "limitations": [
-        "exact-sha-clean-receipt-pending",
-        "ios-android-lifecycle-device-proof-deferred"
+        "first-frame-metric-is-position-positive-after-flutter-frame-proxy",
+        "ios-android-device-proof-owned-by-platform-and-canary-gates"
       ]
     },
     {

@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_product_certification/pokemap_product_certification.dart';
 
 void main() {
-  test('tracked CIN-008 evidence fails closed on every remaining blocker', () {
+  test('tracked CIN-008 evidence passes with every dependency complete', () {
     final repository = Directory.current.parent.parent;
     final evidenceFile = File(
       '${repository.path}/tools/pokemap_product_certification/'
@@ -71,17 +71,8 @@ void main() {
       evidence: evidence,
     );
 
-    expect(receipt.passed, isFalse);
-    expect(receipt.blockingDependencies, <String>[
-      'BETA-CIN-010',
-      'BETA-CIN-028',
-      'BETA-CIN-033',
-      'BETA-CIN-036',
-      'BETA-CIN-038',
-      'BETA-LCH-001',
-    ]);
-    expect(receipt.blockingEvidence, <CinematicV2FinalEvidenceId>[
-      CinematicV2FinalEvidenceId.runtimePerformance,
-    ]);
+    expect(receipt.passed, isTrue);
+    expect(receipt.blockingDependencies, isEmpty);
+    expect(receipt.blockingEvidence, isEmpty);
   });
 }
