@@ -1440,7 +1440,23 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
     final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.4;
     final colors = context.playerColors;
     final foreground = enabled ? colors.textPrimary : colors.textSecondary;
-    final accent = widget.selectionColor ?? _toneColor(colors, entry.tone);
+    final hasBattlePalette = context.playerSurfacePalette(
+          ProjectPresentationSurfaceRole.battleHud,
+        ) !=
+        null;
+    final toneColor = _toneColor(colors, entry.tone);
+    final accent = widget.selectionColor ??
+        (hasBattlePalette
+            ? _commandColor(colors, entry.commandId) ?? toneColor
+            : toneColor);
+    final surfaceColor = hasBattlePalette
+        ? Color.alphaBlend(
+            accent.withValues(alpha: entry.selected ? .34 : .24),
+            colors.surfaceElevated,
+          )
+        : entry.selected
+            ? accent.withValues(alpha: 0.16)
+            : colors.surfaceElevated;
     final disabledReason = entry.secondaryLabel.isEmpty
         ? context.playerL10n.actionUnavailable
         : entry.secondaryLabel;
@@ -1454,9 +1470,7 @@ class _BattleEntryButtonState extends State<_BattleEntryButton> {
       child: Tooltip(
         message: enabled ? entry.primaryLabel : disabledReason,
         child: Material(
-          color: entry.selected
-              ? accent.withValues(alpha: 0.16)
-              : colors.surfaceElevated,
+          color: surfaceColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(PlayerRadii.sm),
             side: BorderSide(
@@ -1685,6 +1699,18 @@ IconData _commandIcon(ProjectBattleCommandIcon icon) => switch (icon) {
       ProjectBattleCommandIcon.bag => Icons.backpack_rounded,
       ProjectBattleCommandIcon.party => Icons.groups_rounded,
       ProjectBattleCommandIcon.run => Icons.directions_run_rounded,
+    };
+
+Color? _commandColor(
+  PokeMapPlayerColors colors,
+  ProjectBattleCommandId? commandId,
+) =>
+    switch (commandId) {
+      ProjectBattleCommandId.fight => colors.primary,
+      ProjectBattleCommandId.bag => colors.warning,
+      ProjectBattleCommandId.party => colors.success,
+      ProjectBattleCommandId.run => colors.focus,
+      null => null,
     };
 
 Color _toneColor(

@@ -83,7 +83,10 @@ List<PlayerBattleCommandViewData> _commands(
         selected: entry.selected,
         tone: _tone(entry.tone),
         iconAssetPath: entry.iconAssetPath,
-        commandId: authored?.id,
+        commandId: authored?.id ??
+            (entry.kind == BattleCommandOverlayEntryKind.root
+                ? _commandIdForRuntimeIndex(entry.index)
+                : null),
         commandIcon: authored?.icon,
       );
   if (snapshot.mode != BattleCommandOverlayMode.root || profile == null) {

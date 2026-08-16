@@ -281,6 +281,92 @@ void main() {
   );
 
   testWidgets(
+    'battle surface palette tints command backgrounds by semantic tone',
+    (tester) async {
+      const viewport = Size(508, 379);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.binding.setSurfaceSize(viewport);
+      final semantic = PokeMapPlayerSemanticTheme.tryFromHex(
+        primary: '#23323B',
+        onPrimary: '#FFFFFF',
+        background: '#E3DFD7',
+        surface: '#E9E6DA',
+        surfaceElevated: '#DADEDA',
+        textPrimary: '#1B242C',
+        textSecondary: '#4F5860',
+        outline: '#657078',
+        success: '#16794B',
+        warning: '#8A5100',
+        danger: '#B4233C',
+        titleSurface: '#E3DFD7',
+        dialogueSurface: '#FFFFFF',
+        menuSurface: '#E9E6DA',
+        overworldHudSurface: '#FFFFFF',
+        battleHudSurface: '#F8F8F8',
+      )!;
+      final theme = PokeMapPlayerTheme.withSurfacePalettes(
+        PokeMapPlayerTheme.withSemanticTheme(
+          PokeMapPlayerTheme.light(),
+          semantic,
+        ),
+        const ProjectPresentationSurfacePalettesProfile(
+          battle: ProjectSurfacePaletteProfile(
+            surface: '#F8F8F8',
+            border: '#484848',
+            text: '#303030',
+            accent: '#B83B54',
+            selection: '#305FD9',
+          ),
+        ),
+      );
+      await _pumpOverlay(
+        tester,
+        snapshot: _rootSnapshot(viewportSize: viewport),
+        onCommand: (_) {},
+        theme: theme,
+      );
+
+      Material entryMaterial(int index) {
+        final semantics = tester.widget<Semantics>(
+          find.byKey(ValueKey<String>('battle-entry-$index')),
+        );
+        final tooltip = semantics.child! as Tooltip;
+        return tooltip.child! as Material;
+      }
+
+      const surface = Color(0xFFF8F8F8);
+      expect(
+        entryMaterial(0).color,
+        Color.alphaBlend(
+          const Color(0xFFB83B54).withValues(alpha: .34),
+          surface,
+        ),
+      );
+      expect(
+        entryMaterial(1).color,
+        Color.alphaBlend(
+          semantic.warning.withValues(alpha: .24),
+          surface,
+        ),
+      );
+      expect(
+        entryMaterial(2).color,
+        Color.alphaBlend(
+          semantic.success.withValues(alpha: .24),
+          surface,
+        ),
+      );
+      expect(
+        entryMaterial(3).color,
+        Color.alphaBlend(
+          const Color(0xFF305FD9).withValues(alpha: .24),
+          surface,
+        ),
+      );
+    },
+  );
+
+  testWidgets(
     'V10 reorders and relabels root commands without changing runtime indices',
     (tester) async {
       BattlePresentationCommand? command;
