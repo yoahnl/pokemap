@@ -40,6 +40,42 @@ function pngHeader(width: number, height: number, marker = 0): Buffer {
   return bytes;
 }
 
+function mp4Box(type: string, payload: Buffer): Buffer {
+  const bytes = Buffer.alloc(8 + payload.length);
+  bytes.writeUInt32BE(bytes.length, 0);
+  bytes.write(type, 4, 4, "ascii");
+  payload.copy(bytes, 8);
+  return bytes;
+}
+
+function h264Mp4Fixture(width: number, height: number): Buffer {
+  const ftyp = mp4Box(
+    "ftyp",
+    Buffer.from([0x69, 0x73, 0x6f, 0x6d, 0, 0, 0, 0, 0x69, 0x73, 0x6f, 0x6d]),
+  );
+  const mvhd = Buffer.alloc(20);
+  mvhd.writeUInt32BE(1000, 12);
+  mvhd.writeUInt32BE(1000, 16);
+  const tkhd = Buffer.alloc(84);
+  tkhd.writeUInt32BE(width << 16, tkhd.length - 8);
+  tkhd.writeUInt32BE(height << 16, tkhd.length - 4);
+  const hdlr = Buffer.alloc(12);
+  hdlr.write("vide", 8, 4, "ascii");
+  const stsd = mp4Box("stsd", Buffer.from("avc1", "ascii"));
+  const stbl = mp4Box("stbl", stsd);
+  const minf = mp4Box("minf", stbl);
+  const mdia = mp4Box("mdia", Buffer.concat([mp4Box("hdlr", hdlr), minf]));
+  const trak = mp4Box(
+    "trak",
+    Buffer.concat([mp4Box("tkhd", tkhd), mdia]),
+  );
+  const moov = mp4Box(
+    "moov",
+    Buffer.concat([mp4Box("mvhd", mvhd), trak]),
+  );
+  return Buffer.concat([ftyp, moov]);
+}
+
 async function toolData(
   client: Client,
   name: string,
@@ -5439,6 +5475,26 @@ test("MCP completes a cold-start 34-element visual import", async () => {
       projectHandle,
     });
     assert.equal(validated.snapshotRevision, revision);
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("MCP stages an H.264 MP4 as video instead of M4A audio", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const sourcePath = join(fixture.root, "opening.mp4");
+    await writeFile(sourcePath, h264Mp4Fixture(640, 360));
+
+    const staged = await toolData(fixture.client, "pokemap_artifact_stage", {
+      sourcePath,
+      declaredMediaType: "video/mp4",
+    });
+
+    assert.equal(staged.mediaType, "video/mp4");
   } finally {
     await fixture.client.close();
     await fixture.server.close();

@@ -415,6 +415,17 @@ String sniffArtifactMediaType(List<int> bytes) {
       String.fromCharCodes(bytes.sublist(8, 12)) == 'WEBP') {
     return 'image/webp';
   }
+  if (bytes.length >= 8 &&
+      String.fromCharCodes(bytes.sublist(4, 8)) == 'ftyp') {
+    try {
+      return const PresentationMediaHeaderProbe()
+          .inspect(bytes, declaredMediaType: 'video/mp4')
+          .mediaType;
+    } on PresentationMediaProbeException {
+      return detectAudioMediaFormat(bytes)?.mediaType ??
+          'application/octet-stream';
+    }
+  }
   final audioFormat = detectAudioMediaFormat(bytes);
   if (audioFormat != null) return audioFormat.mediaType;
   if (_startsWith(bytes, const [0x00, 0x01, 0x00, 0x00]) ||
