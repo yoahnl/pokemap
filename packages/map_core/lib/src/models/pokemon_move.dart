@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../localization/localized_names.dart';
 import 'pokemon_move_accuracy.dart';
 import 'pokemon_move_effect.dart';
 
@@ -244,6 +245,16 @@ abstract class PokemonMove with _$PokemonMove {
 
   factory PokemonMove.fromJson(Map<String, dynamic> json) =>
       _$PokemonMoveFromJson(json).normalized();
+
+  /// Libellé affichable pour une locale donnée.
+  ///
+  /// `name` reste l'anglais canonique et sert de repli : il ne doit jamais être
+  /// remplacé par une traduction.
+  String displayName(String locale) => resolveLocalizedName(
+        names: names,
+        locale: locale,
+        fallback: name,
+      );
 
   /// Sémantique tranchée de M2-bis :
   ///
